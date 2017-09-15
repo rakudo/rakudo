@@ -60,6 +60,7 @@ my class ThreadPoolScheduler does Scheduler {
             my \handles = nqp::list();
             my \indices = nqp::list_i();
             my int $insert = 0;
+            my $saw-slip = False;
             for i -> $awaitable {
                 unless nqp::istype($awaitable, Awaitable) {
                     die "Can only specify Awaitable objects to await (got a $awaitable.^name())";
@@ -70,9 +71,14 @@ my class ThreadPoolScheduler does Scheduler {
 
                 my $handle := $awaitable.get-await-handle;
                 if $handle.already {
-                    $handle.success
-                        ?? nqp::bindpos(results, $insert, $handle.result)
-                        !! $handle.cause.rethrow
+                    if $handle.success {
+                        my \result = $handle.result;
+                        nqp::bindpos(results, $insert, result);
+                        $saw-slip = True if nqp::istype(result, Slip);
+                    }
+                    else {
+                        $handle.cause.rethrow
+                    }
                 }
                 else {
                     nqp::push(handles, $handle);
@@ -105,6 +111,7 @@ my class ThreadPoolScheduler does Scheduler {
                             $l.protect: {
                                 if success && $remaining {
                                     nqp::bindpos(results, $insert, result);
+                                    $saw-slip = True if nqp::istype(result, Slip);
                                     --$remaining;
                                     $resume = 1 unless $remaining;
                                 }
@@ -136,7 +143,8 @@ my class ThreadPoolScheduler does Scheduler {
                 $exception.rethrow if nqp::isconcrete($exception);
             }
 
-            nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', results);
+            my \result-list = nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', results);
+            $saw-slip ?? result-list.map(-> \val { val }).List !! result-list
         }
     }
 

@@ -22,6 +22,13 @@ my role Enumeration {
     multi method Int(::?CLASS:D:)     { $!value.Int }
     multi method Real(::?CLASS:D:)    { $!value.Real }
 
+    multi method WHICH(::?CLASS:D:) { 
+        nqp::box_s(
+          nqp::join("|",nqp::list(self.^name,$!key,$!value.WHICH)),
+          ObjAt
+        )
+    }
+
     # Make sure we always accept any element of the enumeration
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:U $ --> True) { }
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }

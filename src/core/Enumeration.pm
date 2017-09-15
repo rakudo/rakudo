@@ -44,12 +44,12 @@ my role Enumeration {
             !! self.^enum_from_value($x)
     }
 
-    method pred() {
+    method pred(::?CLASS:D:) {
         my @values := self.^enum_value_list;
         my $index   = @values.first( self, :k );
         return $index <= 0 ?? self !! @values[ $index - 1 ];
     }
-    method succ() {
+    method succ(::?CLASS:D:) {
         my @values := self.^enum_value_list;
         my $index   = @values.first( self, :k );
         return $index >= @values.end ?? self !! @values[ $index + 1 ];

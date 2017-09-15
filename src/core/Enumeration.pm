@@ -46,12 +46,12 @@ my role Enumeration {
 
     method pred(::?CLASS:D:) {
         my @values := self.^enum_value_list;
-        my $index   = @values.first( self, :k );
+        my $index   = @values.first: { nqp::eqaddr( self, $_ ) }, :k;
         return $index <= 0 ?? self !! @values[ $index - 1 ];
     }
     method succ(::?CLASS:D:) {
         my @values := self.^enum_value_list;
-        my $index   = @values.first( self, :k );
+        my $index   = @values.first: { nqp::eqaddr( self, $_ ) }, :k;
         return $index >= @values.end ?? self !! @values[ $index + 1 ];
     }
 }

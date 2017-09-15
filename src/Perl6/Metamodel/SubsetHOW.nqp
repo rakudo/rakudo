@@ -56,6 +56,10 @@ class Perl6::Metamodel::SubsetHOW
     method refinement($obj) {
         $!refinement
     }
+
+    method isa($obj, $type) {
+        $!refinee.isa($type);
+    }
     
     method nominalize($obj) {
         $!refinee.HOW.archetypes.nominal ??

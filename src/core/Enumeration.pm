@@ -45,14 +45,37 @@ my role Enumeration {
     }
 
     method pred(::?CLASS:D:) {
-        my @values := self.^enum_value_list;
-        my $index   = @values.first: { nqp::eqaddr( self, $_ ) }, :k;
-        return $index <= 0 ?? self !! @values[ $index - 1 ];
+        nqp::stmts(
+          (my $values := self.^enum_value_list),
+          # We find ourselves in $values and give previous value, or self if we are the first one
+          nqp::if(
+            nqp::isle_i((my int $els = $values.elems), 1),
+            self, # short-curcuit; there's only us in the list; avoids --$i'ing past end later
+            nqp::stmts(
+              ($values := nqp::getattr($values, List, '$!reified')),
+              (my int $i = $els),
+              nqp::while(
+                nqp::isgt_i(($i = nqp::sub_i($i, 1)), 1) # >1 because we subtract one after the loop
+                && nqp::isfalse(self === nqp::atpos($values, $i)),
+                nqp::null),
+              nqp::atpos($values, nqp::sub_i($i,1)))))
     }
     method succ(::?CLASS:D:) {
-        my @values := self.^enum_value_list;
-        my $index   = @values.first: { nqp::eqaddr( self, $_ ) }, :k;
-        return $index >= @values.end ?? self !! @values[ $index + 1 ];
+        nqp::stmts(
+          (my $values := self.^enum_value_list),
+          # We find ourselves in $values and give next value, or self if we are the last one
+          nqp::if(
+            nqp::isle_i((my int $els = nqp::sub_i($values.elems, 2)), -1),
+                  # $els - 2 because we add 1 after the loop
+            self, # short-curcuit; there's only us in the list; avoids ++$i'ing past end later
+            nqp::stmts(
+              ($values := nqp::getattr($values, List, '$!reified')),
+              (my int $i   = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i, 1)), $els)
+                && nqp::isfalse(self === nqp::atpos($values, $i)),
+                nqp::null),
+              nqp::atpos($values, nqp::add_i($i,1)))))
     }
 }
 

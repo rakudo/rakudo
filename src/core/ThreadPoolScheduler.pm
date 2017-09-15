@@ -12,7 +12,17 @@ my class ThreadPoolScheduler does Scheduler {
             $!queue := nqp::decont($queue);
         }
 
+        sub holding-locks() {
+            nqp::p6bool(nqp::threadlockcount(nqp::currentthread()))
+        }
+
         method await(Awaitable:D $a) {
+            holding-locks()
+                ?? Awaiter::Blocking.await($a)
+                !! self!do-await($a)
+        }
+
+        method !do-await(Awaitable:D $a) {
             my $handle := $a.get-await-handle;
             if $handle.already {
                 $handle.success
@@ -37,6 +47,12 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         method await-all(Iterable:D \i) {
+            holding-locks()
+                ?? Awaiter::Blocking.await-all(i)
+                !! self!do-await-all(i)
+        }
+
+        method !do-await-all(Iterable:D \i) {
             # Collect results that are already available, and handles where the
             # results are not yet available together with the matching insertion
             # indices.

@@ -30,10 +30,6 @@ my role Enumeration {
         )
     }
 
-    multi method iterator(::?CLASS:U:) {
-        Rakudo::Iterator.ReifiedList(self.^enum_value_list)
-    }
-
     # Make sure we always accept any element of the enumeration
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:U $ --> True) { }
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }

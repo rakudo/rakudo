@@ -10,10 +10,10 @@ role Perl6::Metamodel::BUILDPLAN {
     # further parameters.  If it is an array, then the first element
     # of each array is an "op" # representing the task to perform:
     #   code = call as method (for BUILD or TWEAK)
-    #    0 class name attr_name = set attribute from init hash|default
-    #    1 class name attr_name = set native int attribute from init|default
-    #    2 class name attr_name = set native num attribute from init|default
-    #    3 class name attr_name = set native str attribute from init|default
+    #    0 class name attr_name = set attribute from init hash
+    #    1 class name attr_name = set a native int attribute from init hash
+    #    2 class name attr_name = set a native num attribute from init hash
+    #    3 class name attr_name = set a native str attribute from init hash
     #    4 class attr_name code = call default value closure if needed
     #    5 class attr_name code = call default value closure if needed, int attr
     #    6 class attr_name code = call default value closure if needed, num attr
@@ -30,7 +30,6 @@ role Perl6::Metamodel::BUILDPLAN {
         # do not touch in any of the BUILDPLAN so we can spit out vivify
         # ops at the end.
         my %attrs_untouched;
-        my %attrs_with_default;
         for @attrs {
             if nqp::can($_, 'container_initializer') {
                 my $ci := $_.container_initializer;
@@ -49,14 +48,6 @@ role Perl6::Metamodel::BUILDPLAN {
         if !nqp::isnull($build) && $build {
             # We'll call the custom one.
             nqp::push(@plan,$build);
-
-            # Ensure that any required attributes are set
-            for @attrs {
-                if nqp::can($_, 'required') && $_.required {
-                    nqp::push(@plan,[8, $obj, $_.name, $_.required]);
-                    nqp::deletekey(%attrs_untouched, $_.name);
-                }
-            }
         }
         else {
             # No custom BUILD. Rather than having an actual BUILD
@@ -67,36 +58,24 @@ role Perl6::Metamodel::BUILDPLAN {
                     nqp::push(@plan,[
                       nqp::add_i(0,nqp::objprimspec($_.type)),
                       $obj,
-                      $_.name,
-                      nqp::substr($_.name, 2)
+                      nqp::substr((my $attr_name := $_.name), 2),
+                      $attr_name
                     ]);
-
-                    # add default setting logic if available
-                    if nqp::can($_, 'build') {
-                        my $default := $_.build;
-                        if !nqp::isnull($default) && $default {
-                            %attrs_with_default{$_.name} := NQPMu;
-                            @plan[@plan - 1][4] := $default;
-                        }
-                    }
                 }
+            }
+        }
 
-                if nqp::can($_, 'required') && $_.required {
-                    unless nqp::existskey(%attrs_with_default,$_.name) {
-                        # check immediately after fetching
-                        nqp::push(@plan,[8, $obj, $_.name, $_.required]);
-                        nqp::deletekey(%attrs_untouched, $_.name);
-                    }
-                }
+        # Ensure that any required attributes are set
+        for @attrs {
+            if nqp::can($_, 'required') && $_.required {
+                nqp::push(@plan,[8, $obj, $_.name, $_.required]);
+                nqp::deletekey(%attrs_untouched, $_.name);
             }
         }
 
         # Check if there's any default values to put in place.
         for @attrs {
-            if nqp::existskey(%attrs_with_default,$_.name) {
-                # already in init logic
-            }
-            elsif nqp::can($_, 'build') {
+            if nqp::can($_, 'build') {
                 my $default := $_.build;
                 if !nqp::isnull($default) && $default {
                     nqp::push(@plan,[

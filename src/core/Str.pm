@@ -3102,7 +3102,7 @@ sub substr-rw(\what, \start, $want?) is rw {
 multi sub infix:<eqv>(Str:D \a, Str:D \b) {
     nqp::p6bool(
       nqp::unless(
-        nqp::eqaddr(a,b),
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a,b)
       )
     )

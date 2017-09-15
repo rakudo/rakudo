@@ -4609,6 +4609,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $cur_value := nqp::box_i(-1, $*W.find_symbol(['Int']));
         my @redecl;
         my $block := $*W.cur_lexpad();
+        my $index := -1;
         for @values {
             # If it's a pair, take that as the value; also find
             # key.
@@ -4658,7 +4659,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Create and install value.
-            my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value);
+            my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value, $index := $index + 1);
             $cur_key    := nqp::unbox_s($cur_key);
             $*W.install_package_symbol_unchecked($type_obj, $cur_key, $val_obj);
             if $block.symbol($cur_key) {

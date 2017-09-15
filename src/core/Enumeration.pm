@@ -2,6 +2,7 @@
 my role Enumeration {
     has $.key;
     has $.value;
+    has int $!index;
 
     method enums() { self.^enum_values.Map }
 
@@ -24,7 +25,7 @@ my role Enumeration {
 
     multi method WHICH(::?CLASS:D:) { 
         nqp::box_s(
-          nqp::join("|",nqp::list(self.^name,$!key,$!value.WHICH)),
+          nqp::concat(self.^name,nqp::concat("|",$!index)),
           ObjAt
         )
     }
@@ -45,35 +46,30 @@ my role Enumeration {
     }
 
     method pred(::?CLASS:D:) {
-        nqp::stmts(
-          (my $values := nqp::getattr(self.^enum_value_list, List, '$!reified')),
-          # We find ourselves in $values and give previous value, or self if we are the first one
-          nqp::if(
-            nqp::isle_i((my int $els = nqp::elems($values)), 1),
-            self, # short-curcuit; there's only us in the list; avoids --$i'ing past end later
-            nqp::stmts(
-              (my int $i = $els),
-              nqp::while(
-                nqp::isgt_i(($i = nqp::sub_i($i, 1)), 1) # >1 because we subtract one after the loop
-                && nqp::isfalse(nqp::eqaddr(self, nqp::atpos($values, $i))),
-                nqp::null),
-              nqp::atpos($values, nqp::sub_i($i,1)))))
+        nqp::if(
+          nqp::getattr_i(self,::?CLASS,'$!index'),
+          nqp::atpos(
+            nqp::getattr(self.^enum_value_list,List,'$!reified'),
+            nqp::sub_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
+          ),
+          self
+        )
     }
     method succ(::?CLASS:D:) {
         nqp::stmts(
-          (my $values := nqp::getattr(self.^enum_value_list, List, '$!reified')),
-          # We find ourselves in $values and give next value, or self if we are the last one
+          (my $values := nqp::getattr(self.^enum_value_list,List,'$!reified')),
           nqp::if(
-            nqp::isle_i((my int $els = nqp::sub_i(nqp::elems($values), 2)), -1),
-                  # $els - 2 because we add 1 after the loop
-            self, # short-curcuit; there's only us in the list; avoids ++$i'ing past end later
-            nqp::stmts(
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i, 1)), $els)
-                && nqp::isfalse(nqp::eqaddr(self, nqp::atpos($values, $i))),
-                nqp::null),
-              nqp::atpos($values, nqp::add_i($i,1)))))
+            nqp::islt_i(
+              nqp::getattr_i(self,::?CLASS,'$!index'),
+              nqp::sub_i(nqp::elems($values),1),
+            ),
+            nqp::atpos(
+               $values,
+               nqp::add_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
+            ),
+            self
+          )
+        )
     }
 }
 

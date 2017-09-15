@@ -3082,11 +3082,12 @@ class Perl6::World is HLL::World {
     }
 
     # Adds a value to an enumeration.
-    method create_enum_value($enum_type_obj, $key, $value) {
+    method create_enum_value($enum_type_obj, $key, $value, $index) {
         # Create directly.
         my $val := nqp::rebless(nqp::clone($value), $enum_type_obj);
         nqp::bindattr($val, $enum_type_obj, '$!key', $key);
         nqp::bindattr($val, $enum_type_obj, '$!value', $value);
+        nqp::bindattr_i($val, $enum_type_obj, '$!index', $index);
         self.add_object($val);
 
         # Add to meta-object.

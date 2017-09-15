@@ -176,11 +176,16 @@ my class Channel does Awaitable {
             # Need some care here to avoid a race. We must tap the notification
             # supply first, and then do an immediate poll after it, just to be
             # sure we won't miss notifications between the two. Also, we need
-            # to take some care that we never call subscriber twice; a lock is
-            # a tad heavy-weight for it, in the future we can just CAS an int.
+            # to take some care that we never call subscriber twice.
             my $notified := False;
             my $l := Lock.new;
-            my $t := $!async-notify.unsanitized-supply.tap: &poll-now;
+            my $t;
+            $l.protect: {
+                # Lock ensures $t will be assigned before we run the logic
+                # inside of poll-now, which relies on being able to do
+                # $t.close.
+                $t := $!async-notify.unsanitized-supply.tap: &poll-now;
+            }
             poll-now();
 
             sub poll-now($discard?) {

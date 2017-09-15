@@ -298,7 +298,8 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
     has $!cpp-name-mangler;
     has Pointer $!entry-point;
     has int $!arity;
-    has $!is-clone;
+    has int8 $!is-clone;
+    has int8 $!any-optionals;
 
     method !setup() {
         $setup-lock.protect: {
@@ -325,7 +326,16 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
             $!rettype := nqp::decont(map_return_type($r.returns));
             $!arity = $r.signature.arity;
             $!setup = 1;
+
+            $!any-optionals = self!any-optionals;
         }
+    }
+
+    method !any-optionals() {
+        for $r.signature.params -> $p {
+            return True if $p.optional
+        }
+        return False
     }
 
     my $perl6comp := nqp::getcomp("perl6");
@@ -406,7 +416,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
 
     method clone() {
         my $clone := callsame;
-        nqp::bindattr($clone, $?CLASS, '$!is-clone', 1);
+        nqp::bindattr_i($clone, $?CLASS, '$!is-clone', 1);
         $clone
     }
 
@@ -414,6 +424,7 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
         self!setup();
         self!create-optimized-call() unless
             $!is-clone # Clones and original would share the invokespec but not the $!do attribute
+            or $!any-optionals # the compiled code doesn't support optional parameters yet
             or $*W;    # Avoid issues with compiling specialized version during BEGIN time
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');

@@ -100,4 +100,15 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
     $r
 });
 
+# We use this one because, for example, Int:D === Int:D, has an optimization
+# that simply unboxes the values. That's no good for us, since two different
+# Enumertaion:Ds could have the same Int:D value.
+multi infix:<===> (Enumeration:D \a, Enumeration:D \b) {
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+      || (nqp::eqaddr(a.WHAT,b.WHAT)
+           && nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH)))
+    )
+}
+
 # vim: ft=perl6 expandtab sw=4

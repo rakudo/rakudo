@@ -2379,7 +2379,7 @@ class Rakudo::Iterator {
                           )
                         ),
                         nqp::if(
-                          $b,
+                          $!b,
                           $permuted,
                           nqp::p6bindattrinvres(
                             nqp::create(List),List,'$!reified',$permuted)

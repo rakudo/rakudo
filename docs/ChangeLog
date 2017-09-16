@@ -17,6 +17,13 @@ New in 2017.09:
     + Fixed doubled path issue in IO::Notification.watch-path [2362dfd6]
     + Disabled interactive REPL for non-TTY input [b6a60236]
     + Fixed various issues with Unicode Prepend characters [7f526c1e]
+    + Suppress line number in X::Package::Stubbed [edac1d68][7ba9b7cd]
+    + Fixed race condition in Channel awaiter [b30ac08a]
+    + Fixed NYI compilation of NativeCall sigs with optional params [1818de98]
+    + Fixed missing deconts in nqp::eqaddr() tests [880b33e2]
+    + Fixed Enumeration:D === Enumeration:D [8d938461]
+    + Fixed non-blocking await when holding locks [f26d1e24]
+    + Fixed non-blocking await-all to respect Slip [a137c0de]
  + Additions:
     + Added support for Str operations with Junctions [753c9a5e][7cd153f4]
         [95a70ca3][0b19baf0][d2f31bb7][e18291e2][8b5d283c]
@@ -27,11 +34,15 @@ New in 2017.09:
     + Made sure that open files are properly closed on exit [3c9cfdba]
         [97853564][347da8e5][dd8d0d89]
     + Added Unicode Collation Algorithm [9b42484a][5f335065][ec18efa0]
+    + Implement pred() and succ() for the Enumeration role [2645a1e9]
+        [8d442a52][8df53f34][43e41ec6][55aa7f28][f925c648][69dae1f3][2ad51a0f]
+    + Added isa method to SubsetHOW [0704cd97]
  + Build system:
     + Made t/harness* use 6 TEST_JOBS by default [8019c15b]
     + Added --ignore-errors option to Configure.pl [0bc1c877][1da075f9]
     + Fixed `make test` without `make install` first [fb0b3eb5]
     + Made Configure.pl refuse to work without ExtUtils::Command [3f4a9ffa]
+    + Fixed non-installed gdb/valgrind runners [4e3f0fca]
  + Efficiency:
     + Bump NQP/Moar to get Knuth-Morris-Pratt string search [593fa5f8]
     + Made `Any ~ Str` and `Str ~ Any` about 25% faster [815faa35]
@@ -52,7 +63,8 @@ New in 2017.09:
     + Various heap analyzer API changes [bfee5a1e]
     + Streamlined exit / END phaser handling [1adacc72]
     + Made junction optimizer only look at candidates [4de858a5]
-    + Assortment of low-level improvements [cbce6721][8a215876][9b42484a]
+    + Assortment of low-level improvements [cbce6721][8a215876]
+        [9b42484a][a4ce97ca]
 
 New in 2017.08:
  + Security:

@@ -1154,6 +1154,10 @@ S32-str/uc.t
 S32-str/unpack.t
 S32-str/utf8-c8.t       # moar
 S32-str/words.t
+S32-str/S32-str/CollationTest_NON_IGNORABLE-0.t # moar
+S32-str/S32-str/CollationTest_NON_IGNORABLE-1.t # moar
+S32-str/S32-str/CollationTest_NON_IGNORABLE-2.t # moar
+S32-str/S32-str/CollationTest_NON_IGNORABLE-3.t # moar
 S32-temporal/calendar.t
 S32-temporal/Date.t
 S32-temporal/DateTime-Instant-Duration.t

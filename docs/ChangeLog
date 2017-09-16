@@ -16,7 +16,8 @@ New in 2017.09:
     + Made Bool.enums consistent with Enumeration.enums [e7a58806]
     + Fixed doubled path issue in IO::Notification.watch-path [2362dfd6]
     + Disabled interactive REPL for non-TTY input [b6a60236]
-    + Fixed various issues with Unicode Prepend characters [7f526c1e]
+    + Fix ignoremark and casechange operations of graphemes which begin with
+        Unicode Prepend characters [7f526c1e]
     + Suppress line number in X::Package::Stubbed [edac1d68][7ba9b7cd]
     + Fixed race condition in Channel awaiter [b30ac08a]
     + Fixed NYI compilation of NativeCall sigs with optional params [1818de98]
@@ -28,12 +29,14 @@ New in 2017.09:
     + Added support for Str operations with Junctions [753c9a5e][7cd153f4]
         [95a70ca3][0b19baf0][d2f31bb7][e18291e2][8b5d283c]
     + Added support for Unicode 10 [64dd94c2]
+    + Added complete Unicode Collation Algorithm implementation [9b42484a][5f335065][ec18efa0]
+    + .collate/coll/unicmp operators are no longer experimental
+        (Note: $*COLLATION dynamic variable is still experimental) [5f3350656]
     + Added Thread.is-initial-thread method [59a2056a]
     + Added output buffering for non-TTYs [44680029][4b02b8aa]
     + Made temp and let on a Failure throw it [80a3255b]
     + Made sure that open files are properly closed on exit [3c9cfdba]
         [97853564][347da8e5][dd8d0d89]
-    + Added Unicode Collation Algorithm [9b42484a][5f335065][ec18efa0]
     + Implement pred() and succ() for the Enumeration role [2645a1e9]
         [8d442a52][8df53f34][43e41ec6][55aa7f28][f925c648][69dae1f3][2ad51a0f]
     + Added isa method to SubsetHOW [0704cd97]
@@ -44,7 +47,12 @@ New in 2017.09:
     + Made Configure.pl refuse to work without ExtUtils::Command [3f4a9ffa]
     + Fixed non-installed gdb/valgrind runners [4e3f0fca]
  + Efficiency:
-    + Bump NQP/Moar to get Knuth-Morris-Pratt string search [593fa5f8]
+    + MoarVM:
+        + Knuth-Morris-Pratt string search has been implemented for string
+            indexing operations (needles between 2 and 8192 in length) [593fa5f8]
+        + 1.5-2x speedup of most string operations involving strands [5ebbc5baf]
+        + 2.5x speedup for eq() for comparing two flat strings (between 1.7-2x speedup for others)
+        + 9x speedup when indexing with a needle one grapheme in length [8a215876c]
     + Made `Any ~ Str` and `Str ~ Any` about 25% faster [815faa35]
     + Made index and eqat operations 2x faster [5ebbc5ba]
     + Made all(@a), none(@a), one(@a) about 9x faster [51c3d86c]

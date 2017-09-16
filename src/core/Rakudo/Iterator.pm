@@ -751,7 +751,7 @@ class Rakudo::Iterator {
                         nqp::if(
                           nqp::iseq_i($index,$k),
                           nqp::if(
-                            $b,
+                            $!b,
                             nqp::clone($!combination),
                             nqp::p6bindattrinvres(
                               nqp::create(List),List,'$!reified',

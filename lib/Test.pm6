@@ -39,6 +39,8 @@ my int $done_testing_has_been_run = 0;
 _init_vars();
 
 sub _init_io {
+    nqp::setbuffersizefh(nqp::getstdout(), 0);
+    nqp::setbuffersizefh(nqp::getstderr(), 0);
     $output         = $PROCESS::OUT;
     $failure_output = $PROCESS::ERR;
     $todo_output    = $PROCESS::OUT;

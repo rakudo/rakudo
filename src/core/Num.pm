@@ -491,7 +491,6 @@ sub rand(--> Num:D) {
     nqp::p6box_n(nqp::rand_n(1e0));
 }
 
-# TODO: default seed of 'time'
 sub srand(Int $seed --> Int:D) {
     nqp::p6box_i(nqp::srand($seed))
 }

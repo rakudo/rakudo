@@ -1,3 +1,4 @@
+#!/usr/bin/env perl6
 use v6;
 
 my $template = q:to/END_TEMPLATE/;

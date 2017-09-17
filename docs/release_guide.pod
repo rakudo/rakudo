@@ -74,6 +74,11 @@ the release announcement).
 
 =item *
 
+B<Bump often>, especially the day before the release. Otherwise issues
+with MoarVM/NQP might go unnoticed for too long.
+
+=item *
+
 Create a draft release announcement in docs/announce/YYYY.MM.md in
 markdown format.  You can often use the previous release’s file as a
 starting point, updating the release number, version information, name,

@@ -31,7 +31,7 @@ New in 2017.09:
     + Added support for Unicode 10 [64dd94c2]
     + Added complete Unicode Collation Algorithm implementation [9b42484a][5f335065][ec18efa0]
     + .collate/coll/unicmp operators are no longer experimental
-        (Note: $*COLLATION dynamic variable is still experimental) [5f3350656]
+        (Note: $*COLLATION dynamic variable is still experimental) [5f335065]
     + Added Thread.is-initial-thread method [59a2056a]
     + Added output buffering for non-TTYs [44680029][4b02b8aa]
     + Made temp and let on a Failure throw it [80a3255b]
@@ -50,9 +50,9 @@ New in 2017.09:
     + MoarVM:
         + Knuth-Morris-Pratt string search has been implemented for string
             indexing operations (needles between 2 and 8192 in length) [593fa5f8]
-        + 1.5-2x speedup of most string operations involving strands [5ebbc5baf]
+        + 1.5-2x speedup of most string operations involving strands [5ebbc5ba]
         + 2.5x speedup for eq() for comparing two flat strings (between 1.7-2x speedup for others)
-        + 9x speedup when indexing with a needle one grapheme in length [8a215876c]
+        + 9x speedup when indexing with a needle one grapheme in length [8a215876]
     + Made `Any ~ Str` and `Str ~ Any` about 25% faster [815faa35]
     + Made index and eqat operations 2x faster [5ebbc5ba]
     + Made all(@a), none(@a), one(@a) about 9x faster [51c3d86c]

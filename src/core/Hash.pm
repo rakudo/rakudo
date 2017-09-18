@@ -523,11 +523,13 @@ my class Hash { # declared in BOOTSTRAP
         }
         multi method perl(::?CLASS:D \SELF:) {
             SELF.perlseen('Hash', {
-                self.elems
-                  ?? "(my {TValue.perl} % = {
-                       self.sort.map({.perl}).join(', ')
-                     })"
-                  !! "(my {TValue.perl} %)"
+                '$' x nqp::iscont(SELF)  # self is always deconted
+                ~ (self.elems
+                   ?? "(my {TValue.perl} % = {
+                        self.sort.map({.perl}).join(', ')
+                       })"
+                   !! "(my {TValue.perl} %)"
+                  )
             })
         }
     }
@@ -744,12 +746,17 @@ my class Hash { # declared in BOOTSTRAP
                 my $TKey-perl   := TKey.perl;
                 my $TValue-perl := TValue.perl;
                 $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
-                  ?? ':{' ~ SELF.sort.map({.perl}).join(', ') ~ '}'
-                  !! self.elems
-                        ?? "(my $TValue-perl %\{$TKey-perl\} = {
-                          self.sort.map({.perl}).join(', ')
-                        })"
-                        !! "(my $TValue-perl %\{$TKey-perl\})"
+                  ?? ( '$(' x nqp::iscont(SELF)
+                        ~ ':{' ~ SELF.sort.map({.perl}).join(', ') ~ '}'
+                        ~ ')' x nqp::iscont(SELF)
+                     )
+                  !! '$' x nqp::iscont(SELF)
+                     ~ (self.elems
+                          ?? "(my $TValue-perl %\{$TKey-perl\} = {
+                                self.sort.map({.perl}).join(', ')
+                             })"
+                          !! "(my $TValue-perl %\{$TKey-perl\})"
+                     )
             })
         }
 

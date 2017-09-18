@@ -1,5 +1,8 @@
 package org.perl6.rakudo;
 
+import java.lang.reflect.Field;
+import sun.misc.Unsafe;
+
 import org.perl6.nqp.runtime.*;
 import org.perl6.nqp.sixmodel.*;
 
@@ -115,5 +118,45 @@ public class RakudoContainerSpec extends ContainerSpec {
     /* Deserializes the container data, if any. */
     public void deserialize(ThreadContext tc, STable st, SerializationReader reader) {
         /* No data to deserialize. */
+    }
+
+    /* Atomic operations. */
+
+    private Unsafe unsafe;
+    private long scalarValueOffset;
+
+    @SuppressWarnings("restriction")
+    private void ensureAtomicsReady(SixModelObject cont) {
+        if (unsafe == null) {
+            try {
+                Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                unsafeField.setAccessible(true);
+                unsafe = (Unsafe)unsafeField.get(null);
+                scalarValueOffset = unsafe.objectFieldOffset(
+                    cont.getClass().getDeclaredField("field_1"));
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public SixModelObject cas(ThreadContext tc, SixModelObject cont,
+                              SixModelObject expected, SixModelObject value) {
+        ensureAtomicsReady(cont);
+        return unsafe.compareAndSwapObject(cont, scalarValueOffset, expected, value)
+            ? expected
+            : (SixModelObject)unsafe.getObjectVolatile(cont, scalarValueOffset);
+    }
+
+    public SixModelObject atomic_load(ThreadContext tc, SixModelObject cont) {
+        ensureAtomicsReady(cont);
+        return (SixModelObject)unsafe.getObjectVolatile(cont, scalarValueOffset);
+    }
+
+    public void atomic_store(ThreadContext tc, SixModelObject cont,
+                             SixModelObject value) {
+        ensureAtomicsReady(cont);
+        unsafe.putObjectVolatile(cont, scalarValueOffset, cont);
     }
 }

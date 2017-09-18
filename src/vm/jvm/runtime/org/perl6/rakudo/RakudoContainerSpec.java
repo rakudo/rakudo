@@ -33,7 +33,7 @@ public class RakudoContainerSpec extends ContainerSpec {
     /* Stores a value in a container. Used for assignment. */
     private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
-    public void store(ThreadContext tc, SixModelObject cont, SixModelObject value) {
+    private void checkStore(ThreadContext tc, SixModelObject cont, SixModelObject value) {
         RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
 
         long rw = 0;
@@ -74,12 +74,14 @@ public class RakudoContainerSpec extends ContainerSpec {
                         storeThrower, new Object[] { name, value, of });
             }
         }
-
+    }
+    public void store(ThreadContext tc, SixModelObject cont, SixModelObject value) {
+        checkStore(tc, cont, value);
+        RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
         SixModelObject whence = cont.get_attribute_boxed(tc, gcx.Scalar, "$!whence", HINT_whence);
         if (whence != null)
             Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
-        
         cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", HINT_value, value);
     }
     public void store_i(ThreadContext tc, SixModelObject cont, long value) {
@@ -144,6 +146,7 @@ public class RakudoContainerSpec extends ContainerSpec {
     public SixModelObject cas(ThreadContext tc, SixModelObject cont,
                               SixModelObject expected, SixModelObject value) {
         ensureAtomicsReady(cont);
+        checkStore(tc, cont, value);
         return unsafe.compareAndSwapObject(cont, scalarValueOffset, expected, value)
             ? expected
             : (SixModelObject)unsafe.getObjectVolatile(cont, scalarValueOffset);
@@ -157,6 +160,7 @@ public class RakudoContainerSpec extends ContainerSpec {
     public void atomic_store(ThreadContext tc, SixModelObject cont,
                              SixModelObject value) {
         ensureAtomicsReady(cont);
+        checkStore(tc, cont, value);
         unsafe.putObjectVolatile(cont, scalarValueOffset, cont);
     }
 }

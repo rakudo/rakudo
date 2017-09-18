@@ -140,7 +140,7 @@ my class Supply does Awaitable {
 
             method tap(&emit, |) {
                 my $i = 0;
-                my $lock = Lock.new;
+                my $lock = Lock::Async.new;
                 my $cancellation = $!scheduler.cue(
                     {
                         emit($lock.protect: { $i++ });

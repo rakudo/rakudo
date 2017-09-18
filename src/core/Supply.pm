@@ -178,7 +178,7 @@ my class Supply does Awaitable {
 
     method serialize(Supply:D:) {
         $!tappable.serial ?? self !! Supply.new(class :: does SimpleOpTappable {
-            has $!lock = Lock.new;
+            has $!lock = Lock::Async.new;
 
             submethod BUILD(:$!source! --> Nil) { }
 
@@ -370,7 +370,7 @@ my class Supply does Awaitable {
             has $!time;
             has $!scheduler;
             has $!last_cancellation;
-            has $!lock = Lock.new;
+            has $!lock = Lock::Async.new;
 
             submethod BUILD(:$!source!, :$!time!, :$!scheduler! --> Nil) { }
 

@@ -902,19 +902,23 @@ multi sub infix:<eqv>(Any:D \a, Any:D \b) {
 multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
     nqp::p6bool(
       nqp::unless(
-        nqp::eqaddr(a,b),                                    # identity
-        nqp::if(
-          nqp::eqaddr(a.WHAT,b.WHAT),                        # same type
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+        nqp::if(                                             # not same object
+          a.is-lazy || b.is-lazy,
+          die("Cannoy eqv lazy Iterables"),
           nqp::if(
-            nqp::iseq_i((my int $elems = a.elems),b.elems),  # same # elems
-            nqp::stmts(
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)    # not exhausted
-                  && a.AT-POS($i) eqv b.AT-POS($i),          # still same
-                nqp::null
-              ),
-              nqp::iseq_i($i,$elems)                      # exhausted = success!
+            nqp::eqaddr(a.WHAT,b.WHAT),
+            nqp::if(                                         # same type
+              nqp::iseq_i((my int $elems = a.elems),b.elems),
+              nqp::stmts(                                    # same # elems
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems)  # not exhausted
+                    && a.AT-POS($i) eqv b.AT-POS($i),        # still same
+                  nqp::null
+                ),
+                nqp::iseq_i($i,$elems)                    # exhausted = success!
+              )
             )
           )
         )

@@ -216,9 +216,21 @@ my class ThreadPoolScheduler does Scheduler {
 
     submethod BUILD(
         Int :$!initial_threads = 0,
-        Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 16).Int
+        Int :$!max_threads
         --> Nil
     ) {
+        unless $!max_threads.defined {
+            if %*ENV<RAKUDO_MAX_THREADS>.defined {
+                $!max_threads = (%*ENV<RAKUDO_MAX_THREADS>).Int;
+            }
+        }
+        unless $!max_threads.defined {
+            my $cores = nqp::cpucores();
+            if $cores < 16 {
+                $cores = 16;
+            }
+            $!max_threads = $cores;
+        }
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
             if $!initial_threads > $!max_threads;
     }

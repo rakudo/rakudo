@@ -500,7 +500,7 @@ my class Rakudo::Internals {
             $!buffer-start-seq = 0;
             $!done-target = -1;
             $!bust = 0;
-            $!lock := Lock.new;
+            $!lock := Lock::Async.new;
         }
 
         method process(Mu \seq, Mu \data, Mu \err) {

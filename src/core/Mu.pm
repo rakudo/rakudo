@@ -905,7 +905,7 @@ multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
         nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::if(                                             # not same object
           a.is-lazy || b.is-lazy,
-          die("Cannoy eqv lazy Iterables"),
+          die("Cannot eqv lazy Iterables"),
           nqp::if(
             nqp::eqaddr(a.WHAT,b.WHAT),
             nqp::if(                                         # same type

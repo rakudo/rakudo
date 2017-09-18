@@ -148,6 +148,7 @@ src/core/precedence.pm
 src/core/Deprecations.pm
 src/core/Thread.pm
 src/core/Lock.pm
+src/core/Lock/Async.pm
 src/core/Semaphore.pm
 src/core/Cancellation.pm
 src/core/Awaitable.pm

@@ -206,14 +206,14 @@ my class Hash { # declared in BOOTSTRAP
     multi method perl(Hash:D \SELF:) {
         SELF.perlseen('Hash', {
             '$' x nqp::iscont(SELF)  # self is always deconted
-            ~ '{' ~ self.pairs.sort.map({.perl}).join(', ') ~ '}'
+            ~ '{' ~ self.sort.map({.perl}).join(', ') ~ '}'
         })
     }
 
     multi method gist(Hash:D:) {
         self.gistseen('Hash', {
             '{' ~
-            self.pairs.sort.map( -> $elem {
+            self.sort.map( -> $elem {
                 given ++$ {
                     when 101 { '...' }
                     when 102 { last }
@@ -525,7 +525,7 @@ my class Hash { # declared in BOOTSTRAP
             SELF.perlseen('Hash', {
                 self.elems
                   ?? "(my {TValue.perl} % = {
-                       self.pairs.sort.map({.perl}).join(', ')
+                       self.sort.map({.perl}).join(', ')
                      })"
                   !! "(my {TValue.perl} %)"
             })
@@ -744,10 +744,10 @@ my class Hash { # declared in BOOTSTRAP
                 my $TKey-perl   := TKey.perl;
                 my $TValue-perl := TValue.perl;
                 $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
-                  ?? ':{' ~ SELF.pairs.sort.map({.perl}).join(', ') ~ '}'
+                  ?? ':{' ~ SELF.sort.map({.perl}).join(', ') ~ '}'
                   !! self.elems
                         ?? "(my $TValue-perl %\{$TKey-perl\} = {
-                          self.pairs.sort.map({.perl}).join(', ')
+                          self.sort.map({.perl}).join(', ')
                         })"
                         !! "(my $TValue-perl %\{$TKey-perl\})"
             })

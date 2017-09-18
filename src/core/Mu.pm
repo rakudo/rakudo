@@ -904,17 +904,17 @@ multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
       nqp::unless(
         nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::if(                                 # not same object
-          a.is-lazy,
-          nqp::if(                               # a lazy
-            b.is-lazy,
-            die("Cannot eqv lazy Iterables")     # a && b lazy
-          ),
-          nqp::if(                               # a NOT lazy
-            b.is-lazy,
-            0,                                   # b lazy
-            nqp::if(                             # a && b NOT lazy
-              nqp::eqaddr(a.WHAT,b.WHAT),
-              nqp::if(                           # same type
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(                               # same type
+            a.is-lazy,
+            nqp::if(                             # a lazy
+              b.is-lazy,
+              die("Cannot eqv lazy Iterables")   # a && b lazy
+            ),
+            nqp::if(                             # a NOT lazy
+              b.is-lazy,
+              0,                                 # b lazy
+              nqp::if(                           # a && b NOT lazy
                 nqp::iseq_i((my int $elems = a.elems),b.elems),
                 nqp::stmts(                      # same # elems
                   (my int $i = -1),

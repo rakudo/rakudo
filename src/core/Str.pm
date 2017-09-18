@@ -2918,10 +2918,9 @@ multi sub ords(Str $s) {
     $s.ords
 }
 
-# TODO: Cool  variants
-sub trim         (Str:D $s --> Str:D) { $s.trim }
-sub trim-leading (Str:D $s --> Str:D) { $s.trim-leading }
-sub trim-trailing(Str:D $s --> Str:D) { $s.trim-trailing }
+sub trim         (Cool:D $s --> Str:D) { $s.trim }
+sub trim-leading (Cool:D $s --> Str:D) { $s.trim-leading }
+sub trim-trailing(Cool:D $s --> Str:D) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
 proto sub UNBASE (|) { * }

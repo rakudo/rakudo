@@ -118,9 +118,9 @@ my class Supply does Awaitable {
             }
 
             method live(--> False) { }
-            method sane(--> True) { }
-            method serial(--> True) { }
-        }.new(:&producer, :&closing, :$scheduler))
+            method sane(--> False) { }
+            method serial(--> False) { }
+        }.new(:&producer, :&closing, :$scheduler)).sanitize
     }
 
     method from-list(Supply:U: +@values, :$scheduler = CurrentThreadScheduler) {

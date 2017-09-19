@@ -48,7 +48,7 @@ my class ThreadPoolScheduler does Scheduler {
             else {
                 my $success;
                 my $result;
-                nqp::continuationcontrol(0, THREAD_POOL_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
                     $handle.subscribe-awaiter(-> \success, \result {
                         $success := success;
                         $result := result;
@@ -150,7 +150,7 @@ my class ThreadPoolScheduler does Scheduler {
                         $l.unlock();
                     }
                 }
-                nqp::continuationcontrol(0, THREAD_POOL_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
                     $continuation := c;
                     $l.unlock;
                 });

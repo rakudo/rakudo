@@ -4,6 +4,7 @@ use nqp;
 
 plan 1;
 
+# RT#132126
 lives-ok {
     nqp::p6bindattrinvres(($ := 42), Int, q|$!value|, nqp::getattr(42, Int, q|$!value|))
 }, 'p6bindattrinvres with getattr of bigint does not crash';

@@ -1731,54 +1731,66 @@ augment class Rakudo::Internals {
         submethod BUILD(:&!block --> Nil) { }
 
         method tap(&emit, &done, &quit) {
+            # Create state for this tapping.
             my $state = Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
-            self!run-supply-code(&!block, $state);
+
+            # Placed here so it can close over $state, but we only need to
+            # closure-clone it once per Supply block, not once per whenever.
+            sub add-whenever($supply, &whenever-block) {
+                $state.increment-active();
+                my $tap = $supply.tap(
+                    -> \value {
+                        self!run-supply-code({ whenever-block(value) }, $state, &add-whenever)
+                    },
+                    done => {
+                        $state.delete-active-tap($tap) if $tap.DEFINITE;
+                        my @phasers := &whenever-block.phasers('LAST');
+                        if @phasers {
+                            self!run-supply-code({ .() for @phasers }, $state, &add-whenever)
+                        }
+                        $tap.?close;
+                        self!deactivate-one($state);
+                    },
+                    quit => -> \ex {
+                        $state.delete-active-tap($tap) if $tap.DEFINITE;
+                        self!run-supply-code({
+                            my $handled;
+                            my $phaser := &whenever-block.phasers('QUIT')[0];
+                            if $phaser.DEFINITE {
+                                $handled = $phaser(ex) === Nil;
+                            }
+                            if $handled {
+                                $tap.?close;
+                                self!deactivate-one($state);
+                            }
+                            elsif $state.get-and-zero-active() {
+                                $state.quit().(ex) if $state.quit;
+                                self!teardown($state);
+                            }
+                        }, $state, &add-whenever);
+                    });
+                $state.add-active-tap($tap);
+                $tap
+            }
+
+            # Stash the close phasers away.
             if nqp::istype(&!block,Block) {
                 $state.close-phasers.push(.clone) for &!block.phasers('CLOSE')
             }
+
+            # Run the Supply block, then decrease active count afterwards (it
+            # counts as an active runner).
+            self!run-supply-code(&!block, $state, &add-whenever);
             self!deactivate-one($state);
+
+            # Return a tap; when closed, tear down the state and all of our
+            # subscriptions.
             Tap.new(-> { self!teardown($state) })
         }
 
-        method !run-supply-code(&code, $state) {
+        method !run-supply-code(&code, $state, &add-whenever) {
             $state.run-operation({
-                my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
-                    $state.increment-active();
-                    my $tap = $supply.tap(
-                        -> \value {
-                            self!run-supply-code({ whenever-block(value) }, $state)
-                        },
-                        done => {
-                            $state.delete-active-tap($tap) if $tap.DEFINITE;
-                            my @phasers := &whenever-block.phasers('LAST');
-                            if @phasers {
-                                self!run-supply-code({ .() for @phasers }, $state)
-                            }
-                            $tap.?close;
-                            self!deactivate-one($state);
-                        },
-                        quit => -> \ex {
-                            $state.delete-active-tap($tap) if $tap.DEFINITE;
-                            self!run-supply-code({
-                                my $handled;
-                                my $phaser := &whenever-block.phasers('QUIT')[0];
-                                if $phaser.DEFINITE {
-                                    $handled = $phaser(ex) === Nil;
-                                }
-                                if $handled {
-                                    $tap.?close;
-                                    self!deactivate-one($state);
-                                }
-                                elsif $state.get-and-zero-active() {
-                                    $state.quit().(ex) if $state.quit;
-                                    self!teardown($state);
-                                }
-                            }, $state);
-                        });
-                    $state.add-active-tap($tap);
-                    $tap
-                }
-
+                my &*ADD-WHENEVER = &add-whenever;
                 my $emitter = {
                     my \ex := nqp::exception();
                     $state.emit().(nqp::getpayload(ex)) if $state.emit;

@@ -236,7 +236,6 @@ my class Supply does Awaitable {
 
     method on-close(Supply:D: &on-close) {
         return Supply.new(class :: does SimpleOpTappable {
-            has int $!finished;
             has &!on-close;
 
             submethod BUILD(:$!source!, :&!on-close! --> Nil) { }

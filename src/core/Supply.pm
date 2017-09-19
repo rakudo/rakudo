@@ -178,24 +178,23 @@ my class Supply does Awaitable {
 
     method serialize(Supply:D:) {
         $!tappable.serial ?? self !! Supply.new(class :: does SimpleOpTappable {
-            has $!lock = Lock::Async.new;
-
             submethod BUILD(:$!source! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
+                my $lock = Lock::Async.new;
                 my int $cleaned-up = 0;
                 my $source-tap = $!source.tap(
                     -> \value{
-                        $!lock.protect: { emit(value); }
+                        $lock.protect: { emit(value); }
                     },
                     done => -> {
-                        $!lock.protect: {
+                        $lock.protect: {
                             done();
                             self!cleanup($cleaned-up, $source-tap);
                         }
                     },
                     quit => -> $ex {
-                        $!lock.protect: {
+                        $lock.protect: {
                             quit($ex);
                             self!cleanup($cleaned-up, $source-tap);
                         }

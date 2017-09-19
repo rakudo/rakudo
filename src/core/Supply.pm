@@ -218,14 +218,18 @@ my class Supply does Awaitable {
                         emit(value) unless $!finished;
                     },
                     done => -> {
-                        $!finished = 1;
-                        done();
-                        self!cleanup($cleaned-up, $source-tap);
+                        unless $!finished {
+                            $!finished = 1;
+                            done();
+                            self!cleanup($cleaned-up, $source-tap);
+                        }
                     },
                     quit => -> $ex {
-                        $!finished = 1;
-                        quit($ex);
-                        self!cleanup($cleaned-up, $source-tap);
+                        unless $!finished {
+                            $!finished = 1;
+                            quit($ex);
+                            self!cleanup($cleaned-up, $source-tap);
+                        }
                     });
                 Tap.new({ self!cleanup($cleaned-up, $source-tap) })
             }

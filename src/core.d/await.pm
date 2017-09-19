@@ -53,40 +53,41 @@ my role X::React::Died {
     }
 }
 
+my class Rakudo::Internals::ReactAwaitable does Awaitable {
+    has $!handle;
+
+    method new($handle) {
+        self.CREATE!set-handle($handle)
+    }
+    method !set-handle($handle) {
+        $!handle = $handle;
+        self
+    }
+
+    method get-await-handle() { $!handle }
+}
+my class Rakudo::Internals::ReactAwaitHandle does Awaitable::Handle {
+    has &!react-block;
+
+    method not-ready(&react-block) {
+        self.CREATE!set-react-block(&react-block)
+    }
+    method !set-react-block(&react-block) {
+        &!react-block = &react-block;
+        self
+    }
+
+    method subscribe-awaiter(&subscriber) {
+        SUPPLY(&!react-block).tap:
+            { warn "Useless use of emit in react" },
+            done => { subscriber(True, Nil) },
+            quit => { subscriber(False, $_) };
+    }
+}
 sub REACT(&block --> Nil) {
-    my class ReactAwaitable does Awaitable {
-        has $!handle;
-
-        method new($handle) {
-            self.CREATE!set-handle($handle)
-        }
-        method !set-handle($handle) {
-            $!handle = $handle;
-            self
-        }
-
-        method get-await-handle() { $!handle }
-    }
-    my class ReactAwaitHandle does Awaitable::Handle {
-        has &!react-block;
-
-        method not-ready(&react-block) {
-            self.CREATE!set-react-block(&react-block)
-        }
-        method !set-react-block(&react-block) {
-            &!react-block = &react-block;
-            self
-        }
-
-        method subscribe-awaiter(&subscriber) {
-            SUPPLY(&!react-block).tap:
-                { warn "Useless use of emit in react" },
-                done => { subscriber(True, Nil) },
-                quit => { subscriber(False, $_) };
-        }
-    }
     CATCH {
         ($_ but X::React::Died(Backtrace.new(5))).rethrow
     }
-    $*AWAITER.await(ReactAwaitable.new(ReactAwaitHandle.not-ready(&block)));
+    $*AWAITER.await(Rakudo::Internals::ReactAwaitable.new(
+        Rakudo::Internals::ReactAwaitHandle.not-ready(&block)));
 }

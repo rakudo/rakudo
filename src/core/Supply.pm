@@ -207,26 +207,25 @@ my class Supply does Awaitable {
 
     method sanitize() {
         $!tappable.sane ?? self !! Supply.new(class :: does SimpleOpTappable {
-            has int $!finished;
-
             submethod BUILD(:$!source! --> Nil) { }
 
             method tap(&emit, &done, &quit) {
                 my int $cleaned-up = 0;
+                my int $finished = 0;
                 my $source-tap = $!source.tap(
                     -> \value{
-                        emit(value) unless $!finished;
+                        emit(value) unless $finished;
                     },
                     done => -> {
-                        unless $!finished {
-                            $!finished = 1;
+                        unless $finished {
+                            $finished = 1;
                             done();
                             self!cleanup($cleaned-up, $source-tap);
                         }
                     },
                     quit => -> $ex {
-                        unless $!finished {
-                            $!finished = 1;
+                        unless $finished {
+                            $finished = 1;
                             quit($ex);
                             self!cleanup($cleaned-up, $source-tap);
                         }

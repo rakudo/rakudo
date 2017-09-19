@@ -1,3 +1,4 @@
+my class X::Cannot::Lazy             { ... }
 my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
@@ -909,7 +910,7 @@ multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
             a.is-lazy,
             nqp::if(                             # a lazy
               b.is-lazy,
-              die("Cannot eqv lazy Iterables")   # a && b lazy
+              die(X::Cannot::Lazy.new: :action<eqv>) # a && b lazy
             ),
             nqp::if(                             # a NOT lazy
               b.is-lazy,

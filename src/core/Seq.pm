@@ -390,7 +390,7 @@ multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
             ),
             nqp::if(
               ia.is-lazy,
-              (die "Cannot eqv lazy Sequences"),
+              die(X::Cannot::Lazy.new: :action<eqv>),
               nqp::stmts(
                 nqp::until(
                   nqp::stmts(

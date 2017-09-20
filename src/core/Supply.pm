@@ -1170,7 +1170,7 @@ my class Supply does Awaitable {
                 else {
                     whenever $supply -> \val {
                         @values[$index].push(val);
-                        emit( $(@values.map(*.shift).list) ) if all(@values);
+                        emit( $(@values.map(*.shift).list.eager) ) if all(@values);
                     }
                 }
             }

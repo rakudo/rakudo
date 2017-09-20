@@ -1653,15 +1653,61 @@ my class Supplier::Preserving is Supplier {
 }
 
 augment class Rakudo::Internals {
+    my constant ADD_WHENEVER_PROMPT = Mu.new;
+
+    class CachedAwaitHandle does Awaitable {
+        has $.get-await-handle;
+    }
+
+    class SupplyBlockAddWheneverAwaiter does Awaiter {
+        has $!continuations;
+
+        method await(Awaitable:D $a) {
+            my $handle := $a.get-await-handle;
+            if $handle.already {
+                $handle.success
+                    ?? $handle.result
+                    !! $handle.cause.rethrow
+            }
+            else {
+                my $reawaitable = CachedAwaitHandle.new(get-await-handle => $handle);
+                $!continuations := nqp::list() unless nqp::isconcrete($!continuations);
+                nqp::continuationcontrol(0, ADD_WHENEVER_PROMPT, -> Mu \c {
+                    nqp::push($!continuations, -> $delegate-awaiter {
+                        nqp::continuationinvoke(c, {
+                            $delegate-awaiter.await($reawaitable);
+                        });
+                    });
+                });
+            }
+        }
+
+        method await-all(Iterable:D \i) {
+            die "NYI";
+        }
+
+        method take-all() {
+            if nqp::isconcrete($!continuations) {
+                my \result = $!continuations;
+                $!continuations := Mu;
+                result
+            }
+            else {
+                Empty
+            }
+        }
+    }
+
     class SupplyBlockState {
         has &.emit;
         has &.done;
         has &.quit;
         has @.close-phasers;
-        has $!active = 1;
+        has $.active = 1;
         has $!lock = Lock.new;
         has %!active-taps;
-        has @!queued-operations;
+        has $.run-async-lock = Lock::Async.new;
+        has $.awaiter = SupplyBlockAddWheneverAwaiter.CREATE;
 
         method increment-active() {
             $!lock.protect: { ++$!active }
@@ -1699,30 +1745,6 @@ augment class Rakudo::Internals {
             }
             @active
         }
-
-        method run-operation(&op --> Nil) {
-            if $!active {
-                my $run-now;
-                $!lock.protect({
-                    $run-now = not @!queued-operations;
-                    @!queued-operations.push(&op);
-                });
-                self!run-loop(&op) if $run-now;
-            }
-        }
-
-        method !run-loop(&initial --> Nil) {
-            my &current = &initial;
-            while &current {
-                current();
-                $!lock.protect({
-                    @!queued-operations.shift;
-                    &current = $!active && @!queued-operations
-                        ?? @!queued-operations[0]
-                        !! Nil;
-                });
-            }
-        }
     }
 
     class SupplyBlockTappable does Tappable {
@@ -1737,39 +1759,43 @@ augment class Rakudo::Internals {
             # Placed here so it can close over $state, but we only need to
             # closure-clone it once per Supply block, not once per whenever.
             sub add-whenever($supply, &whenever-block) {
+                my $*AWAITER := $state.awaiter;
                 $state.increment-active();
-                my $tap = $supply.tap(
-                    -> \value {
-                        self!run-supply-code({ whenever-block(value) }, $state, &add-whenever)
-                    },
-                    done => {
-                        $state.delete-active-tap($tap) if $tap.DEFINITE;
-                        my @phasers := &whenever-block.phasers('LAST');
-                        if @phasers {
-                            self!run-supply-code({ .() for @phasers }, $state, &add-whenever)
-                        }
-                        $tap.?close;
-                        self!deactivate-one($state);
-                    },
-                    quit => -> \ex {
-                        $state.delete-active-tap($tap) if $tap.DEFINITE;
-                        self!run-supply-code({
-                            my $handled;
-                            my $phaser := &whenever-block.phasers('QUIT')[0];
-                            if $phaser.DEFINITE {
-                                $handled = $phaser(ex) === Nil;
+                my $tap;
+                nqp::continuationreset(ADD_WHENEVER_PROMPT, {
+                    $tap = $supply.tap(
+                        -> \value {
+                            self!run-supply-code({ whenever-block(value) }, $state, &add-whenever)
+                        },
+                        done => {
+                            $state.delete-active-tap($tap) if $tap.DEFINITE;
+                            my @phasers := &whenever-block.phasers('LAST');
+                            if @phasers {
+                                self!run-supply-code({ .() for @phasers }, $state, &add-whenever)
                             }
+                            $tap.?close;
+                            self!deactivate-one($state);
+                        },
+                        quit => -> \ex {
+                            $state.delete-active-tap($tap) if $tap.DEFINITE;
+                            my $handled;
+                            self!run-supply-code({
+                                my $phaser := &whenever-block.phasers('QUIT')[0];
+                                if $phaser.DEFINITE {
+                                    $handled = $phaser(ex) === Nil;
+                                }
+                                if !$handled && $state.get-and-zero-active() {
+                                    $state.quit().(ex) if $state.quit;
+                                    self!teardown($state);
+                                }
+                            }, $state, &add-whenever);
                             if $handled {
                                 $tap.?close;
                                 self!deactivate-one($state);
                             }
-                            elsif $state.get-and-zero-active() {
-                                $state.quit().(ex) if $state.quit;
-                                self!teardown($state);
-                            }
-                        }, $state, &add-whenever);
-                    });
-                $state.add-active-tap($tap);
+                        });
+                    $state.add-active-tap($tap);
+                });
                 $tap
             }
 
@@ -1789,7 +1815,9 @@ augment class Rakudo::Internals {
         }
 
         method !run-supply-code(&code, $state, &add-whenever) {
-            $state.run-operation({
+            my @run-after;
+            $state.run-async-lock.protect: {
+                return unless $state.active > 0;
                 my &*ADD-WHENEVER = &add-whenever;
                 my $emitter = {
                     my \ex := nqp::exception();
@@ -1797,31 +1825,43 @@ augment class Rakudo::Internals {
                     nqp::resume(ex)
                 }
                 my $done = {
-                    $state.done().() if $state.done;
                     $state.get-and-zero-active();
                     self!teardown($state);
+                    $state.done().() if $state.done;
                 }
                 my $catch = {
                     my \ex = EXCEPTION(nqp::exception());
-                    $state.quit().(ex) if $state.quit;
                     $state.get-and-zero-active();
                     self!teardown($state);
+                    $state.quit().(ex) if $state.quit;
                 }
                 nqp::handle(code(),
                     'EMIT', $emitter(),
                     'DONE', $done(),
                     'CATCH', $catch(),
                     'NEXT', 0);
-            });
+                @run-after = $state.awaiter.take-all;
+            }
+            if @run-after {
+                my $nested-awaiter := SupplyBlockAddWheneverAwaiter.CREATE;
+                my $delegate-awaiter := $*AWAITER;
+                while @run-after.elems {
+                    my $*AWAITER := $nested-awaiter;
+                    nqp::continuationreset(ADD_WHENEVER_PROMPT, {
+                        @run-after.shift()($delegate-awaiter);
+                    });
+                    @run-after.append($nested-awaiter.take-all);
+                }
+            }
         }
 
         method !deactivate-one($state) {
-            $state.run-operation({
+            $state.run-async-lock.protect: {
                 if $state.decrement-active() == 0 {
                     $state.done().() if $state.done;
                     self!teardown($state);
                 }
-            });
+            };
         }
 
         method !teardown($state) {

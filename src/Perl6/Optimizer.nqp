@@ -2198,7 +2198,7 @@ class Perl6::Optimizer {
     # we may be passing.
     method call_ct_chosen_multi($call, $proto, $chosen) {
         self.simplify_refs($call, $chosen.signature);
-        if nqp::getcomp('perl6').backend.name ne 'moar' {
+        if nqp::getcomp('perl6').backend.name eq 'jvm' {
             my @cands := $proto.dispatchees();
             my int $idx := 0;
             for @cands {

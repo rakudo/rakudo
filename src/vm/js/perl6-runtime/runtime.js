@@ -215,7 +215,13 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   op.p6bindassert = function(ctx, value, type) {
     if (type !== Mu) {
       if (value.$$decont(ctx).$$istype(ctx, type) == 0) {
-        ctx.die("Type check failed in binding");
+        const thrower = getThrower("X::TypeCheck::Binding");
+
+        if (thrower === null) {
+          ctx.die("Type check failed in binding");
+        } else {
+          thrower.$$call(ctx, null, value, type);
+        }
       }
     }
     return value;

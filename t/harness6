@@ -26,7 +26,7 @@ multi sub MAIN(
     Str  :$tests-from-file = Str,
     Bool :$fudge = False,
     Int  :$verbosity = (%*ENV<TEST_VERBOSE> // 0).Int,
-    Int  :$jobs = (%*ENV<TEST_JOBS> // 6).Int,
+    Int  :$jobs = (%*ENV<TEST_JOBS> // 1).Int,
     Bool :$quick = False,
     Bool :$stress = False,
     Bool :$randomize = False,
@@ -35,6 +35,7 @@ multi sub MAIN(
     Str  :$perl5path = 'perl',
     *@files,
 ) {
+    die "TEST_JOBS > 1 is currently broken" if %*ENV<TEST_JOBS> and %*ENV<TEST_JOBS> > 1;
     my @slow;
     with ($tests-from-file) {
         my $inline-perl5-is-installed = run(

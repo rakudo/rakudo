@@ -1889,8 +1889,9 @@ augment class Rakudo::Internals {
 
             # Run the Supply block, then decrease active count afterwards (it
             # counts as an active runner).
-            self!run-supply-code(&!block, $state, &add-whenever);
-            self!deactivate-one($state);
+            self!run-supply-code:
+                { &!block(); self!deactivate-one-internal($state) },
+                $state, &add-whenever;
 
             # Evaluate to the Tap.
             $t
@@ -1938,12 +1939,14 @@ augment class Rakudo::Internals {
         }
 
         method !deactivate-one($state) {
-            $state.run-async-lock.protect: {
-                if $state.decrement-active() == 0 {
-                    $state.done().() if $state.done;
-                    self!teardown($state);
-                }
-            };
+            $state.run-async-lock.protect: { self!deactivate-one-internal($state) };
+        }
+
+        method !deactivate-one-internal($state) {
+            if $state.decrement-active() == 0 {
+                $state.done().() if $state.done;
+                self!teardown($state);
+            }
         }
 
         method !teardown($state) {

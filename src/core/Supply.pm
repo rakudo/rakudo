@@ -26,7 +26,7 @@ my class Tap {
 # not an Iterable. Guess that's part of the duality too. Ask your local
 # category theorist. :-))
 my role Tappable {
-    method tap() { ... }
+    method tap(&emit, &done, &quit, &tap) { ... }
     method live() { ... }    # Taps into a live data source
     method serial() { ... }  # Promises no concurrent emits
     method sane() { ... }    # Matches emit* [done|quit]? grammar
@@ -75,8 +75,8 @@ my class Supply does Awaitable {
     my \DISCARD = -> $ {};
     my \NOP = -> {};
     my \DEATH = -> $ex { $ex.throw };
-    method tap(Supply:D: &emit = DISCARD, :&done = NOP, :&quit = DEATH) {
-        $!tappable.tap(&emit, &done, &quit)
+    method tap(Supply:D: &emit = DISCARD, :&done = NOP, :&quit = DEATH, :&tap = DISCARD) {
+        $!tappable.tap(&emit, &done, &quit, &tap)
     }
 
     method act(Supply:D: &actor, *%others) {
@@ -87,40 +87,42 @@ my class Supply does Awaitable {
     ## Supply factories
     ##
 
-    method on-demand(Supply:U: &producer, :&closing, :$scheduler = CurrentThreadScheduler) {
-        Supply.new(class :: does Tappable {
-            has &!producer;
-            has &!closing;
-            has $!scheduler;
+    my class OnDemand does Tappable {
+        has &!producer;
+        has &!closing;
+        has $!scheduler;
 
-            submethod BUILD(:&!producer!, :&!closing!, :$!scheduler! --> Nil) {}
+        submethod BUILD(:&!producer!, :&!closing!, :$!scheduler! --> Nil) {}
 
-            method tap(&emit, &done, &quit) {
-                my int $closed = 0;
-                my $t = Tap.new({
-                    if &!closing {
-                        &!closing() unless $closed++;
-                    }
-                });
-                my $p = Supplier.new;
-                $p.Supply.tap(&emit,
-                    done => {
-                        done();
-                        $t.close();
-                    },
-                    quit => -> \ex {
-                        quit(ex);
-                        $t.close();
-                    });
-                $!scheduler.cue({ &!producer($p) },
-                    catch => -> \ex { $p.quit(ex) });
-                $t
+        method tap(&emit, &done, &quit, &tap) {
+            my int $closed = 0;
+            my $t = Tap.new: {
+                if &!closing {
+                    &!closing() unless $closed++;
+                }
             }
+            tap($t);
+            my $p = Supplier.new;
+            $p.Supply.tap(&emit,
+                done => {
+                    done();
+                    $t.close();
+                },
+                quit => -> \ex {
+                    quit(ex);
+                    $t.close();
+                });
+            $!scheduler.cue({ &!producer($p) },
+                catch => -> \ex { $p.quit(ex) });
+            $t
+        }
 
-            method live(--> False) { }
-            method sane(--> False) { }
-            method serial(--> False) { }
-        }.new(:&producer, :&closing, :$scheduler)).sanitize
+        method live(--> False) { }
+        method sane(--> False) { }
+        method serial(--> False) { }
+    }
+    method on-demand(Supply:U: &producer, :&closing, :$scheduler = CurrentThreadScheduler) {
+        Supply.new(OnDemand.new(:&producer, :&closing, :$scheduler)).sanitize
     }
 
     method from-list(Supply:U: +@values, :$scheduler = CurrentThreadScheduler) {
@@ -130,17 +132,17 @@ my class Supply does Awaitable {
         }, :$scheduler);
     }
 
-    method interval(Supply:U: $interval, $delay = 0, :$scheduler = $*SCHEDULER) {
-        Supply.new(class :: does Tappable {
-            has $!scheduler;
-            has $!interval;
-            has $!delay;
+    my class Interval does Tappable {
+        has $!scheduler;
+        has $!interval;
+        has $!delay;
 
-            submethod BUILD(:$!scheduler, :$!interval, :$!delay --> Nil) { }
+        submethod BUILD(:$!scheduler, :$!interval, :$!delay --> Nil) { }
 
-            method tap(&emit, |) {
-                my $i = 0;
-                my $lock = Lock::Async.new;
+        method tap(&emit, &, &, &tap) {
+            my $i = 0;
+            my $lock = Lock::Async.new;
+            $lock.protect: {
                 my $cancellation = $!scheduler.cue(
                     {
                         emit($lock.protect: { $i++ });
@@ -148,13 +150,18 @@ my class Supply does Awaitable {
                     },
                     :every($!interval), :in($!delay)
                 );
-                Tap.new({ $cancellation.cancel })
+                my $t = Tap.new({ $cancellation.cancel });
+                tap($t);
+                $t
             }
+        }
 
-            method live(--> False) { }
-            method sane(--> True) { }
-            method serial(--> False) { }
-        }.new(:$interval, :$delay, :$scheduler));
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> False) { }
+    }
+    method interval(Supply:U: $interval, $delay = 0, :$scheduler = $*SCHEDULER) {
+        Supply.new(Interval.new(:$interval, :$delay, :$scheduler));
     }
 
     ##
@@ -176,269 +183,333 @@ my class Supply does Awaitable {
         }
     }
 
+    my class Serialize does SimpleOpTappable {
+        submethod BUILD(:$!source! --> Nil) { }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my $lock = Lock::Async.new;
+            my int $cleaned-up = 0;
+            my $source-tap;
+            my $t;
+            $!source.tap(
+                tap => {
+                    $source-tap = $_;
+                    $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
+                    tap($t);
+                },
+                -> \value{
+                    $lock.protect: { emit(value); }
+                },
+                done => -> {
+                    $lock.protect: {
+                        done();
+                        self!cleanup($cleaned-up, $source-tap);
+                    }
+                },
+                quit => -> $ex {
+                    $lock.protect: {
+                        quit($ex);
+                        self!cleanup($cleaned-up, $source-tap);
+                    }
+                });
+            $t
+        }
+    }
     method serialize(Supply:D:) {
-        $!tappable.serial ?? self !! Supply.new(class :: does SimpleOpTappable {
-            submethod BUILD(:$!source! --> Nil) { }
-
-            method tap(&emit, &done, &quit) {
-                my $lock = Lock::Async.new;
-                my int $cleaned-up = 0;
-                my $source-tap = $!source.tap(
-                    -> \value{
-                        $lock.protect: { emit(value); }
-                    },
-                    done => -> {
-                        $lock.protect: {
-                            done();
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
-                    },
-                    quit => -> $ex {
-                        $lock.protect: {
-                            quit($ex);
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
-                    });
-                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
-            }
-        }.new(source => self))
+        $!tappable.serial ?? self !! Supply.new(Serialize.new(source => self))
     }
 
+    my class Sanitize does SimpleOpTappable {
+        submethod BUILD(:$!source! --> Nil) { }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my int $cleaned-up = 0;
+            my int $finished = 0;
+            my $source-tap;
+            my $t;
+            $!source.tap(
+                tap => {
+                    $source-tap = $_;
+                    $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
+                    tap($t);
+                },
+                -> \value{
+                    emit(value) unless $finished;
+                },
+                done => -> {
+                    unless $finished {
+                        $finished = 1;
+                        done();
+                        self!cleanup($cleaned-up, $source-tap);
+                    }
+                },
+                quit => -> $ex {
+                    unless $finished {
+                        $finished = 1;
+                        quit($ex);
+                        self!cleanup($cleaned-up, $source-tap);
+                    }
+                });
+            $t
+        }
+    }
     method sanitize() {
-        $!tappable.sane ?? self !! Supply.new(class :: does SimpleOpTappable {
-            submethod BUILD(:$!source! --> Nil) { }
-
-            method tap(&emit, &done, &quit) {
-                my int $cleaned-up = 0;
-                my int $finished = 0;
-                my $source-tap = $!source.tap(
-                    -> \value{
-                        emit(value) unless $finished;
-                    },
-                    done => -> {
-                        unless $finished {
-                            $finished = 1;
-                            done();
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
-                    },
-                    quit => -> $ex {
-                        unless $finished {
-                            $finished = 1;
-                            quit($ex);
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
-                    });
-                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
-            }
-        }.new(source => self.serialize))
+        $!tappable.sane ?? self !! Supply.new(Sanitize.new(source => self.serialize))
     }
 
-    method on-close(Supply:D: &on-close) {
-        return Supply.new(class :: does SimpleOpTappable {
-            has &!on-close;
+    my class OnClose does SimpleOpTappable {
+        has &!on-close;
 
-            submethod BUILD(:$!source!, :&!on-close! --> Nil) { }
+        submethod BUILD(:$!source!, :&!on-close! --> Nil) { }
 
-            method tap(&emit, &done, &quit) {
-                my int $cleaned-up = 0;
-                my $source-tap = $!source.tap(&emit, :&done, :&quit);
-                Tap.new({
+        method tap(&emit, &done, &quit, &tap) {
+            my int $cleaned-up = 0;
+            my $t;
+            $!source.tap: &emit, :&done, :&quit, tap => -> $source-tap {
+                $t = Tap.new({
                     &!on-close();
                     self!cleanup($cleaned-up, $source-tap)
-                })
+                });
+                tap($t);
             }
-        }.new(source => self, :&on-close))
+            $t
+        }
+    }
+    method on-close(Supply:D: &on-close) {
+        return Supply.new(OnClose.new(source => self, :&on-close))
     }
 
+    my class MapSupply does SimpleOpTappable {
+        has &!mapper;
+
+        submethod BUILD(:$!source!, :&!mapper! --> Nil) { }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my int $cleaned-up = 0;
+            my $source-tap;
+            my $t;
+            $!source.tap(
+                tap => {
+                    $source-tap = $_;
+                    $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
+                    tap($t);
+                },
+                -> \value {
+                    my \result = try &!mapper(value);
+                    if $! {
+                        quit($!);
+                        self!cleanup($cleaned-up, $source-tap);
+                    }
+                    else {
+                        emit(result)
+                    }
+                },
+                done => -> {
+                    done();
+                    self!cleanup($cleaned-up, $source-tap);
+                },
+                quit => -> $ex {
+                    quit($ex);
+                    self!cleanup($cleaned-up, $source-tap);
+                });
+            $t
+        }
+    }
     method map(Supply:D: &mapper) {
-        Supply.new(class :: does SimpleOpTappable {
-            has &!mapper;
-
-            submethod BUILD(:$!source!, :&!mapper! --> Nil) { }
-
-            method tap(&emit, &done, &quit) {
-                my int $cleaned-up = 0;
-                my $source-tap = $!source.tap(
-                    -> \value {
-                        my \result = try &!mapper(value);
-                        if $! {
-                            quit($!);
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
-                        else {
-                            emit(result)
-                        }
-                    },
-                    done => -> {
-                        done();
-                        self!cleanup($cleaned-up, $source-tap);
-                    },
-                    quit => -> $ex {
-                        quit($ex);
-                        self!cleanup($cleaned-up, $source-tap);
-                    });
-                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
-            }
-        }.new(source => self.sanitize, :&mapper))
+        Supply.new(MapSupply.new(source => self.sanitize, :&mapper))
     }
 
+    my class Grep does SimpleOpTappable {
+        has Mu $!test;
+
+        submethod BUILD(:$!source!, Mu :$!test! --> Nil) { }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my int $cleaned-up = 0;
+            my $source-tap;
+            my $t;
+            $!source.tap(
+                tap => {
+                    $source-tap = $_;
+                    $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
+                    tap($t);
+                },
+                -> \value {
+                    my \accepted = try $!test.ACCEPTS(value);
+                    if accepted {
+                        emit(value);
+                    }
+                    elsif $! {
+                        quit($!);
+                        self!cleanup($cleaned-up, $source-tap);
+                    }
+                },
+                done => -> {
+                    done();
+                    self!cleanup($cleaned-up, $source-tap);
+                },
+                quit => -> $ex {
+                    quit($ex);
+                    self!cleanup($cleaned-up, $source-tap);
+                });
+            $t
+        }
+    }
     method grep(Supply:D: Mu $test) {
-        Supply.new(class :: does SimpleOpTappable {
-            has Mu $!test;
-
-            submethod BUILD(:$!source!, Mu :$!test! --> Nil) { }
-
-            method tap(&emit, &done, &quit) {
-                my int $cleaned-up = 0;
-                my $source-tap = $!source.tap(
-                    -> \value {
-                        my \accepted = try $!test.ACCEPTS(value);
-                        if accepted {
-                            emit(value);
-                        }
-                        elsif $! {
-                            quit($!);
-                            self!cleanup($cleaned-up, $source-tap);
-                        }
-                    },
-                    done => -> {
-                        done();
-                        self!cleanup($cleaned-up, $source-tap);
-                    },
-                    quit => -> $ex {
-                        quit($ex);
-                        self!cleanup($cleaned-up, $source-tap);
-                    });
-                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
-            }
-        }.new(source => self.sanitize, :$test))
+        Supply.new(Grep.new(source => self.sanitize, :$test))
     }
 
+    my class ScheduleOn does SimpleOpTappable {
+        has $!scheduler;
+
+        submethod BUILD(:$!source!, :$!scheduler! --> Nil) { }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my int $cleaned-up = 0;
+            my $source-tap;
+            my $t;
+            $!source.tap(
+                tap => {
+                    $source-tap = $_;
+                    $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
+                    tap($t);
+                },
+                -> \value {
+                    $!scheduler.cue: { emit(value) }
+                },
+                done => -> {
+                    $!scheduler.cue: { done(); self!cleanup($cleaned-up, $source-tap); }
+                },
+                quit => -> $ex {
+                    $!scheduler.cue: { quit($ex); self!cleanup($cleaned-up, $source-tap); }
+                });
+            $t
+        }
+    }
     method schedule-on(Supply:D: Scheduler $scheduler) {
-        Supply.new(class :: does SimpleOpTappable {
-            has $!scheduler;
-
-            submethod BUILD(:$!source!, :$!scheduler! --> Nil) { }
-
-            method tap(&emit, &done, &quit) {
-                my int $cleaned-up = 0;
-                my $source-tap = $!source.tap(
-                    -> \value {
-                        $!scheduler.cue: { emit(value) }
-                    },
-                    done => -> {
-                        $!scheduler.cue: { done(); self!cleanup($cleaned-up, $source-tap); }
-                    },
-                    quit => -> $ex {
-                        $!scheduler.cue: { quit($ex); self!cleanup($cleaned-up, $source-tap); }
-                    });
-                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
-            }
-        }.new(source => self.sanitize, :$scheduler))
+        Supply.new(ScheduleOn.new(source => self.sanitize, :$scheduler))
     }
 
+    my class Start does SimpleOpTappable {
+        has $!value;
+        has &!startee;
+
+        submethod BUILD(:$!value, :&!startee --> Nil) { }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my int $closed = 0;
+            my $t = Tap.new({ $closed = 1 });
+            tap($t);
+            Promise.start({ &!startee($!value) }).then({
+                unless $closed {
+                    if .status == Kept {
+                        emit(.result);
+                        done();
+                    }
+                    else {
+                        quit(.cause);
+                    }
+                }
+            });
+            $t
+        }
+    }
     method start(Supply:D: &startee) {
         self.map: -> \value {
-            Supply.new(class :: does SimpleOpTappable {
-                has $!value;
-                has &!startee;
-
-                submethod BUILD(:$!value, :&!startee --> Nil) { }
-
-                method tap(&emit, &done, &quit) {
-                    my int $closed = 0;
-                    Promise.start({ &!startee($!value) }).then({
-                        unless $closed {
-                            if .status == Kept {
-                                emit(.result);
-                                done();
-                            }
-                            else {
-                                quit(.cause);
-                            }
-                        }
-                    });
-                    Tap.new({ $closed = 1 })
-                }
-            }.new(:value(value), :&startee))
+            Supply.new(Start.new(:value(value), :&startee))
         }
     }
 
-    method stable(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        return self unless $time;
-        Supply.new(class :: does SimpleOpTappable {
-            has $!time;
-            has $!scheduler;
-            has $!last_cancellation;
-            has $!lock = Lock::Async.new;
+    my class Stable does SimpleOpTappable {
+        has $!time;
+        has $!scheduler;
 
-            submethod BUILD(:$!source!, :$!time!, :$!scheduler! --> Nil) { }
+        submethod BUILD(:$!source!, :$!time!, :$!scheduler! --> Nil) { }
 
-            method tap(&emit, &done, &quit) {
-                my int $cleaned-up = 0;
-                my $source-tap = $!source.tap(
-                    -> \value {
-                        $!lock.protect: {
-                            if $!last_cancellation {
-                                $!last_cancellation.cancel;
-                            }
-                            $!last_cancellation = $!scheduler.cue(
-                                :in($time),
-                                {
-                                    $!lock.protect: { $!last_cancellation = Nil; }
-                                    try {
-                                        emit(value);
-                                        CATCH {
-                                            default {
-                                                quit($_);
-                                                self!cleanup($cleaned-up, $source-tap);
-                                            }
+        method tap(&emit, &done, &quit, &tap) {
+            my int $cleaned-up = 0;
+            my $lock = Lock::Async.new;
+            my $last_cancellation;
+            my $source-tap;
+            my $t;
+            $!source.tap(
+                tap => {
+                    $source-tap = $_;
+                    $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
+                    tap($t);
+                },
+                -> \value {
+                    $lock.protect: {
+                        if $last_cancellation {
+                            $last_cancellation.cancel;
+                        }
+                        $last_cancellation = $!scheduler.cue(
+                            :in($!time),
+                            {
+                                $lock.protect: { $last_cancellation = Nil; }
+                                try {
+                                    emit(value);
+                                    CATCH {
+                                        default {
+                                            quit($_);
+                                            self!cleanup($cleaned-up, $source-tap);
                                         }
                                     }
-                                });
-                        }
-                    },
-                    done => -> {
-                        done();
-                        self!cleanup($cleaned-up, $source-tap);
-                    },
-                    quit => -> $ex {
-                        quit($ex);
-                        self!cleanup($cleaned-up, $source-tap);
-                    });
-                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
-            }
-        }.new(source => self.sanitize, :$time, :$scheduler))
+                                }
+                            });
+                    }
+                },
+                done => -> {
+                    done();
+                    self!cleanup($cleaned-up, $source-tap);
+                },
+                quit => -> $ex {
+                    quit($ex);
+                    self!cleanup($cleaned-up, $source-tap);
+                });
+            $t
+        }
+    }
+    method stable(Supply:D: $time, :$scheduler = $*SCHEDULER) {
+        return self unless $time;
+        Supply.new(Stable.new(source => self.sanitize, :$time, :$scheduler))
     }
 
+    my class Delayed does SimpleOpTappable {
+        has $!time;
+        has $!scheduler;
+
+        submethod BUILD(:$!source!, :$!time, :$!scheduler! --> Nil) { }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my int $cleaned-up = 0;
+            my $source-tap;
+            my $t;
+            $!source.tap(
+                tap => {
+                    $source-tap = $_;
+                    my $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
+                    tap($t);
+                },
+                -> \value {
+                    $!scheduler.cue: { emit(value) }, :in($!time)
+                },
+                done => -> {
+                    $!scheduler.cue:
+                        { done(); self!cleanup($cleaned-up, $source-tap); },
+                        :in($!time)
+                },
+                quit => -> $ex {
+                    $!scheduler.cue:
+                        { quit($ex); self!cleanup($cleaned-up, $source-tap); },
+                        :in($!time)
+                });
+            $t
+        }
+    }
     method delayed(Supply:D: $time, :$scheduler = $*SCHEDULER) {
         return self unless $time;  # nothing to do
-        Supply.new(class :: does SimpleOpTappable {
-            has $!time;
-            has $!scheduler;
-
-            submethod BUILD(:$!source!, :$!time, :$!scheduler! --> Nil) { }
-
-            method tap(&emit, &done, &quit) {
-                my int $cleaned-up = 0;
-                my $source-tap = $!source.tap(
-                    -> \value {
-                        $!scheduler.cue: { emit(value) }, :in($time)
-                    },
-                    done => -> {
-                        $!scheduler.cue:
-                            { done(); self!cleanup($cleaned-up, $source-tap); },
-                            :in($time)
-                    },
-                    quit => -> $ex {
-                        $!scheduler.cue:
-                            { quit($ex); self!cleanup($cleaned-up, $source-tap); },
-                            :in($time)
-                    });
-                Tap.new({ self!cleanup($cleaned-up, $source-tap) })
-            }
-        }.new(source => self.sanitize, :$time, :$scheduler))
+        Supply.new(Delayed.new(source => self.sanitize, :$time, :$scheduler))
     }
 
     ##
@@ -1440,16 +1511,9 @@ my class Supplier {
         # need lock on modification).
         has Mu $!tappers;
 
-        method tap(&emit, &done, &quit) {
+        method tap(&emit, &done, &quit, &tap) {
             my $tle := TapListEntry.new(:&emit, :&done, :&quit);
-            $!lock.protect({
-                my Mu $update := nqp::isconcrete($!tappers)
-                    ?? nqp::clone($!tappers)
-                    !! nqp::list();
-                nqp::push($update, $tle);
-                $!tappers := $update;
-            });
-            Tap.new({
+            my $t = Tap.new({
                 $!lock.protect({
                     my Mu $update := nqp::list();
                     for nqp::hllize($!tappers) -> \entry {
@@ -1457,7 +1521,16 @@ my class Supplier {
                     }
                     $!tappers := $update;
                 });
-            })
+            });
+            tap($t);
+            $!lock.protect({
+                my Mu $update := nqp::isconcrete($!tappers)
+                    ?? nqp::clone($!tappers)
+                    !! nqp::list();
+                nqp::push($update, $tle);
+                $!tappers := $update;
+            });
+            $t
         }
 
         method emit(\value --> Nil) {
@@ -1552,9 +1625,20 @@ my class Supplier::Preserving is Supplier {
         has int $!replay-done;
         has $!replay-lock = Lock.new;
 
-        method tap(&emit, &done, &quit) {
+        method tap(&emit, &done, &quit, &tap) {
             my $tle := TapListEntry.new(:&emit, :&done, :&quit);
             my int $replay = 0;
+            my $t = Tap.new({
+                $!lock.protect({
+                    my Mu $update := nqp::list();
+                    for nqp::hllize($!tappers) -> \entry {
+                        nqp::push($update, entry) unless entry =:= $tle;
+                    }
+                    $!replay-done = 0 if nqp::elems($update) == 0;
+                    $!tappers := $update;
+                });
+            });
+            tap($t);
             $!lock.protect({
                 my Mu $update := nqp::isconcrete($!tappers)
                     ?? nqp::clone($!tappers)
@@ -1564,16 +1648,7 @@ my class Supplier::Preserving is Supplier {
                 self!replay($tle) if $replay;
                 $!tappers := $update;
             });
-            Tap.new({
-                $!lock.protect({
-                    my Mu $update := nqp::list();
-                    for nqp::hllize($!tappers) -> \entry {
-                        nqp::push($update, entry) unless entry =:= $tle;
-                    }
-                    $!replay-done = 0 if nqp::elems($update) == 0;
-                    $!tappers := $update;
-                });
-            })
+            $t
         }
 
         method emit(\value --> Nil) {
@@ -1752,7 +1827,7 @@ augment class Rakudo::Internals {
 
         submethod BUILD(:&!block --> Nil) { }
 
-        method tap(&emit, &done, &quit) {
+        method tap(&emit, &done, &quit, &tap) {
             # Create state for this tapping.
             my $state = Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
 
@@ -1763,21 +1838,25 @@ augment class Rakudo::Internals {
                 $state.increment-active();
                 my $tap;
                 nqp::continuationreset(ADD_WHENEVER_PROMPT, {
-                    $tap = $supply.tap(
+                    $supply.tap(
+                        tap => {
+                            $tap = $_;
+                            $state.add-active-tap($tap);
+                        },
                         -> \value {
                             self!run-supply-code({ whenever-block(value) }, $state, &add-whenever)
                         },
                         done => {
-                            $state.delete-active-tap($tap) if $tap.DEFINITE;
+                            $state.delete-active-tap($tap);
                             my @phasers := &whenever-block.phasers('LAST');
                             if @phasers {
                                 self!run-supply-code({ .() for @phasers }, $state, &add-whenever)
                             }
-                            $tap.?close;
+                            $tap.close;
                             self!deactivate-one($state);
                         },
                         quit => -> \ex {
-                            $state.delete-active-tap($tap) if $tap.DEFINITE;
+                            $state.delete-active-tap($tap);
                             my $handled;
                             self!run-supply-code({
                                 my $phaser := &whenever-block.phasers('QUIT')[0];
@@ -1790,11 +1869,10 @@ augment class Rakudo::Internals {
                                 }
                             }, $state, &add-whenever);
                             if $handled {
-                                $tap.?close;
+                                $tap.close;
                                 self!deactivate-one($state);
                             }
                         });
-                    $state.add-active-tap($tap);
                 });
                 $tap
             }
@@ -1804,14 +1882,18 @@ augment class Rakudo::Internals {
                 $state.close-phasers.push(.clone) for &!block.phasers('CLOSE')
             }
 
+            # Create and pass on tap; when closed, tear down the state and all
+            # of our subscriptions.
+            my $t = Tap.new(-> { self!teardown($state) });
+            tap($t);
+
             # Run the Supply block, then decrease active count afterwards (it
             # counts as an active runner).
             self!run-supply-code(&!block, $state, &add-whenever);
             self!deactivate-one($state);
 
-            # Return a tap; when closed, tear down the state and all of our
-            # subscriptions.
-            Tap.new(-> { self!teardown($state) })
+            # Evaluate to the Tap.
+            $t
         }
 
         method !run-supply-code(&code, $state, &add-whenever) {

@@ -19,7 +19,7 @@ addons:
     packages:
     # install toolchains
     - gcc-6
-    - openjdk-8-jdk
+    - oracle-java8-installer
 
 script:
     - perl Configure.pl $RAKUDO_OPTIONS --moar-option=--cc=$(command -v gcc-6 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "gcc"; else printf "gcc-6"; fi)

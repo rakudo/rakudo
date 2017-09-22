@@ -1860,13 +1860,15 @@ augment class Rakudo::Internals {
                                 $state.add-active-tap($tap);
                             },
                             -> \value {
-                                self!run-supply-code({ whenever-block(value) }, $state, &add-whenever)
+                                self!run-supply-code(&whenever-block, value, $state,
+                                    &add-whenever)
                             },
                             done => {
                                 $state.delete-active-tap($tap);
                                 my @phasers := &whenever-block.phasers('LAST');
                                 if @phasers {
-                                    self!run-supply-code({ .() for @phasers }, $state, &add-whenever)
+                                    self!run-supply-code({ .() for @phasers }, Nil, $state,
+                                        &add-whenever)
                                 }
                                 $tap.close;
                                 self!deactivate-one($state);
@@ -1883,7 +1885,7 @@ augment class Rakudo::Internals {
                                         $state.quit().(ex) if $state.quit;
                                         self!teardown($state);
                                     }
-                                }, $state, &add-whenever);
+                                }, Nil, $state, &add-whenever);
                                 if $handled {
                                     $tap.close;
                                     self!deactivate-one($state);
@@ -1908,13 +1910,13 @@ augment class Rakudo::Internals {
             # counts as an active runner).
             self!run-supply-code:
                 { &!block(); self!deactivate-one-internal($state) },
-                $state, &add-whenever;
+                Nil, $state, &add-whenever;
 
             # Evaluate to the Tap.
             $t
         }
 
-        method !run-supply-code(&code, $state, &add-whenever) {
+        method !run-supply-code(&code, \value, $state, &add-whenever) {
             my @run-after;
             my $queued := $state.run-async-lock.protect-or-queue-on-recursion: {
                 return unless $state.active > 0;
@@ -1938,7 +1940,7 @@ augment class Rakudo::Internals {
                     my $quit-handler = $state.quit;
                     $quit-handler(ex) if $quit-handler;
                 }
-                nqp::handle(code(),
+                nqp::handle(code(value),
                     'EMIT', $emitter(),
                     'DONE', $done(),
                     'CATCH', $catch(),

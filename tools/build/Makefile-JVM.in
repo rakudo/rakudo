@@ -87,7 +87,7 @@ j-all: $(PERL6_JAR) $(SETTING_JAR) $(SETTING_D_JAR) $(J_RUNNER) eval-client.pl  
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(MKPATH) bin
-	$(JAVAC) -source 1.7 -cp $(BLD_NQP_JARS) -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
+	$(JAVAC) -source 1.8 -cp $(BLD_NQP_JARS) -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
 
 $(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp

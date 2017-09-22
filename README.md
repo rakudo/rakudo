@@ -52,7 +52,7 @@ https://github.com/MoarVM/MoarVM manually and install them individually.
 
 ### Configuring Rakudo to run on the JVM
 
-Note that to run Rakudo on JVM, JDK 1.7 must be installed. To automatically
+Note that to run Rakudo on JVM, JDK 1.8 must be installed. To automatically
 download, build, and install a fresh NQP, run:
 
     perl Configure.pl --gen-nqp --backends=jvm

@@ -1,10 +1,10 @@
 module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
-  var Null = nqp.Null;
-  var op = {};
+  const Null = nqp.Null;
+  let op = {};
 
-  var Scalar, True, False, Int, Num, Str, Code, Mu, Any, ContainerDescriptor, Routine;
+  let Scalar, True, False, Int, Num, Str, Code, Mu, Any, ContainerDescriptor, Routine;
 
-  var defaultContainerDescriptor;
+  let defaultContainerDescriptor;
 
   op.p6settypes = function(types) {
     Scalar = types.content.get('Scalar');

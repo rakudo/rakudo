@@ -42,9 +42,83 @@ my class IO::Socket::Async {
         $p
     }
 
+    my class SocketReaderTappable does Tappable {
+        has $!VMIO;
+        has $!scheduler;
+        has $!buf;
+        has $!close-promise;
+
+        method new(Mu :$VMIO!, :$scheduler!, :$buf!, :$close-promise!) {
+            self.CREATE!SET-SELF($VMIO, $scheduler, $buf, $close-promise)
+        }
+
+        method !SET-SELF(Mu $!VMIO, $!scheduler, $!buf, $!close-promise) { self }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my $buffer := nqp::list();
+            my int $buffer-start-seq = 0;
+            my int $done-target = -1;
+            my int $finished = 0;
+
+            sub emit-events() {
+                until nqp::elems($buffer) == 0 || nqp::isnull(nqp::atpos($buffer, 0)) {
+                    emit(nqp::shift($buffer));
+                    $buffer-start-seq = $buffer-start-seq + 1;
+                }
+                if $buffer-start-seq == $done-target {
+                    done();
+                    $finished = 1;
+                }
+            }
+
+            my $lock = Lock::Async.new;
+            my $tap;
+            $lock.protect: {
+                my $cancellation := nqp::asyncreadbytes(nqp::decont($!VMIO),
+                    $!scheduler.queue(:hint-affinity),
+                    -> Mu \seq, Mu \data, Mu \err {
+                        $lock.protect: {
+                            unless $finished {
+                                if err {
+                                    quit(err);
+                                    $finished = 1;
+                                }
+                                elsif nqp::isconcrete(data) {
+                                    my int $insert-pos = seq - $buffer-start-seq;
+                                    nqp::bindpos($buffer, $insert-pos, data);
+                                    emit-events();
+                                }
+                                else {
+                                    $done-target = seq;
+                                    emit-events();
+                                }
+                            }
+                        }
+                    },
+                    nqp::decont($!buf), SocketCancellation);
+                $tap := Tap.new({ nqp::cancel($cancellation) });
+                tap($tap);
+            }
+            $!close-promise.then: {
+                $lock.protect: {
+                    unless $finished {
+                        done();
+                        $finished = 1;
+                    }
+                }
+            }
+
+            $tap
+        }
+
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
+    }
+
     multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$enc, :$scheduler = $*SCHEDULER) {
         if $bin {
-            Supply.new: Rakudo::Internals::IOReaderTappable.new:
+            Supply.new: SocketReaderTappable.new:
                 :$!VMIO, :$scheduler, :$buf, :$!close-promise
         }
         else {

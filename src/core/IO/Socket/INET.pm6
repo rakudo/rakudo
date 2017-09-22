@@ -1,9 +1,10 @@
 my class IO::Socket::INET does IO::Socket {
     my module PIO {
-        constant PF_LOCAL       = 0;
+        constant PF_UNSPEC      = 0;
+        constant PF_LOCAL       = 1;
         constant PF_UNIX        = 1;
         constant PF_INET        = 2;
-        constant PF_INET6       = 3;
+        constant PF_INET6       = 10;
         constant PF_MAX         = 4;
         constant SOCK_PACKET    = 0;
         constant SOCK_STREAM    = 1;
@@ -24,19 +25,31 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.localport;
     has Int $.backlog;
     has Bool $.listening;
-    has $.family = PIO::PF_INET;
+    has $.family = PIO::PF_UNSPEC;
     has $.proto = PIO::PROTO_TCP;
     has $.type = PIO::SOCK_STREAM;
 
+
+
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
+        if $family === PIO::PF_UNIX {
+            return ($host, $port);
+        }
+
         if ($host) {
-            my ($split-host, $split-port) = $family == PIO::PF_INET6
-                ?? v6-split($host)
-                !! v4-split($host);
+            my ($split-host, $split-port) = (Str, Int);
+
+            if $family !== PIO::PF_INET6 {
+                ($split-host, $split-port) = v4-split($host);
+            }
+
+            if ! $split-port && $family !== PIO::PF_INET {
+                ($split-host, $split-port) = v6-split($host);
+            }
 
             if $split-port {
                 $host = $split-host.Str;
-                $port //= $split-port.Int
+                $port //= $split-port.Int;
             }
         }
 
@@ -63,7 +76,9 @@ my class IO::Socket::INET does IO::Socket {
         Int    :$family where {
                 $family == PIO::PF_INET
              || $family == PIO::PF_INET6
-        } = PIO::PF_INET,
+             || $family == PIO::PF_UNIX
+             || $family == PIO::PF_UNSPEC
+        } = PIO::PF_UNSPEC,
                *%rest,
         --> IO::Socket::INET:D) {
 
@@ -88,7 +103,9 @@ my class IO::Socket::INET does IO::Socket {
         Int   :$family where {
                $family == PIO::PF_INET
             || $family == PIO::PF_INET6
-        } = PIO::PF_INET,
+            || $family == PIO::PF_UNIX
+            || $family == PIO::PF_UNSPEC
+        } = PIO::PF_UNSPEC,
               *%rest,
         --> IO::Socket::INET:D) {
 
@@ -113,14 +130,34 @@ my class IO::Socket::INET does IO::Socket {
             ~ "Invalid arguments to .new?";
     }
 
+    # returns the localport combined with address family
+    method !get-packed-localport() {
+        self!pack-port($!localport || 0);
+    }
+
+    # returns the localport combined with address family
+    method !get-packed-port() {
+        self!pack-port($!port);
+    }
+
+    # pack port with address family
+    method !pack-port(Int:D $port) {
+        return $port + ($.family +< 16)
+    }
+
     method !initialize() {
+        if ! $.host && ! $.localhost && $.family == PIO::PF_UNIX {
+            fail "Socket with family AF_UNIX needs a path to bind to";
+        }
+
         my $PIO := nqp::socket($.listening ?? 10 !! 0);
+
         #Quoting perl5's SIO::INET:
-        #If Listen is defined then a listen socket is created, else if the socket type,
+        #If Listen is defined then a listen socket is created, else if the socket type.
         #which is derived from the protocol, is SOCK_STREAM then connect() is called.
         if $.listening || $.localhost || $.localport {
-            nqp::bindsock($PIO, nqp::unbox_s($.localhost || "0.0.0.0"),
-                                 nqp::unbox_i($.localport || 0), nqp::unbox_i($.backlog || 128));
+            nqp::bindsock($PIO, nqp::unbox_s($.localhost || ($.family == PIO::PF_INET ?? "0.0.0.0" !! '::0')),
+                                 nqp::unbox_i(self!get-packed-localport()), nqp::unbox_i($.backlog || 128));
         }
 
         if $.listening {
@@ -129,7 +166,7 @@ my class IO::Socket::INET does IO::Socket {
 #?endif
         }
         elsif $.type == PIO::SOCK_STREAM {
-            nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i($.port));
+            nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i(self!get-packed-port()));
         }
 
         nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);

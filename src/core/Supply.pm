@@ -1791,10 +1791,6 @@ augment class Rakudo::Internals {
         has $.run-async-lock = Lock::Async.new;
         has $.awaiter = SupplyBlockAddWheneverAwaiter.CREATE;
 
-        method increment-active() {
-            $!lock.protect: { ++$!active }
-        }
-
         method decrement-active() {
             $!lock.protect: { --$!active }
         }
@@ -1809,6 +1805,7 @@ augment class Rakudo::Internals {
 
         method add-active-tap($tap --> Nil) {
             $!lock.protect: {
+                ++$!active;
                 %!active-taps{nqp::objectid($tap)} = $tap;
             }
         }
@@ -1844,7 +1841,6 @@ augment class Rakudo::Internals {
                 my $tap;
                 $state.run-async-lock.with-lock-hidden-from-recursion-check: {
                     my $*AWAITER := $state.awaiter;
-                    $state.increment-active();
                     nqp::continuationreset(ADD_WHENEVER_PROMPT, {
                         $supply.tap(
                             tap => {

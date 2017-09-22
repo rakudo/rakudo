@@ -1745,7 +1745,7 @@ augment class Rakudo::Internals {
                     !! $handle.cause.rethrow
             }
             else {
-                my $reawaitable = CachedAwaitHandle.new(get-await-handle => $handle);
+                my $reawaitable := CachedAwaitHandle.new(get-await-handle => $handle);
                 $!continuations := nqp::list() unless nqp::isconcrete($!continuations);
                 nqp::continuationcontrol(0, ADD_WHENEVER_PROMPT, -> Mu \c {
                     nqp::push($!continuations, -> $delegate-awaiter {
@@ -1906,19 +1906,22 @@ augment class Rakudo::Internals {
                 my &*ADD-WHENEVER = &add-whenever;
                 my $emitter = {
                     my \ex := nqp::exception();
-                    $state.emit().(nqp::getpayload(ex)) if $state.emit;
+                    my $emit-handler := $state.emit;
+                    $emit-handler(nqp::getpayload(ex)) if $emit-handler.DEFINITE;
                     nqp::resume(ex)
                 }
                 my $done = {
                     $state.get-and-zero-active();
                     self!teardown($state);
-                    $state.done().() if $state.done;
+                    my $done-handler := $state.done;
+                    $done-handler() if $done-handler.DEFINITE;
                 }
                 my $catch = {
                     my \ex = EXCEPTION(nqp::exception());
                     $state.get-and-zero-active();
                     self!teardown($state);
-                    $state.quit().(ex) if $state.quit;
+                    my $quit-handler = $state.quit;
+                    $quit-handler(ex) if $quit-handler;
                 }
                 nqp::handle(code(),
                     'EMIT', $emitter(),
@@ -1956,7 +1959,8 @@ augment class Rakudo::Internals {
 
         method !deactivate-one-internal($state) {
             if $state.decrement-active() == 0 {
-                $state.done().() if $state.done;
+                my $done-handler = $state.done;
+                $done-handler() if $done-handler;
                 self!teardown($state);
             }
         }

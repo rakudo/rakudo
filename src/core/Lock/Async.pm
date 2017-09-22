@@ -141,7 +141,7 @@ my class Lock::Async {
             self!run-with-updated-recursion-list(&code);
             Nil
         }
-        elsif (@*LOCK-ASYNC-RECURSION-LIST // Empty).first(* === self) {
+        elsif self!on-recursion-list() {
             # Lock is already held on the stack, so we're recursing. Queue.
             $try-acquire.then({
                 LEAVE self.unlock();
@@ -159,19 +159,46 @@ my class Lock::Async {
         }
     }
 
+    method !on-recursion-list() {
+        my $rec-list := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
+        if nqp::isnull($rec-list) {
+            False
+        }
+        else {
+            my int $n = nqp::elems($rec-list);
+            loop (my int $i = 0; $i < $n; $i++) {
+                return True if nqp::eqaddr(nqp::atpos($rec-list, $i), self);
+            }
+            False
+        }
+    }
+
     method !run-with-updated-recursion-list(&code) {
-        my @new-held = @*LOCK-ASYNC-RECURSION-LIST // ();
-        @new-held.push(self);
+        my $current := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
+        my $new-held := nqp::isnull($current) ?? nqp::list() !! nqp::clone($current);
+        nqp::push($new-held, self);
         {
-            my @*LOCK-ASYNC-RECURSION-LIST := @new-held;
+            my $*LOCK-ASYNC-RECURSION-LIST := $new-held;
             code();
         }
     }
 
     method with-lock-hidden-from-recursion-check(&code) {
-        my @new-held = (@*LOCK-ASYNC-RECURSION-LIST // ()).grep(* !=== self);
+        my $current := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
+        my $new-held;
+        if nqp::isnull($current) {
+            $new-held := nqp::null();
+        }
+        else {
+            $new-held := nqp::list();
+            my int $n = nqp::elems($current);
+            loop (my int $i = 0; $i < $n; $i++) {
+                my $lock := nqp::atpos($current, $i);
+                nqp::push($new-held, $lock) unless nqp::eqaddr($lock, self);
+            }
+        }
         {
-            my @*LOCK-ASYNC-RECURSION-LIST := @new-held;
+            my $*LOCK-ASYNC-RECURSION-LIST := $new-held;
             code();
         }
     }

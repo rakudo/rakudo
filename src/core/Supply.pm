@@ -1743,9 +1743,30 @@ augment class Rakudo::Internals {
             $state.run-operation({
                 my &*ADD-WHENEVER = sub ($supply, &whenever-block) {
                     $state.increment-active();
-                    my $tap = $supply.tap(
+                    my $tap;
+                    my $redoable = -> \value {
+                        loop {
+                            nqp::handle(
+                                nqp::stmts(whenever-block(value), last),
+                                'REDO', 0)
+                        }
+                    }
+                    my $last = -> {
+                        $state.delete-active-tap($tap) if $tap.DEFINITE;
+                        my @phasers := &whenever-block.phasers('LAST');
+                        if @phasers {
+                            self!run-supply-code({ .() for @phasers }, $state)
+                        }
+                        self!deactivate-one($state);
+                    };
+                    $tap = $supply.tap(
                         -> \value {
-                            self!run-supply-code({ whenever-block(value) }, $state)
+                            self!run-supply-code({
+                                nqp::handle(
+                                    whenever-block(value),
+                                    'REDO', $redoable(value),
+                                    'LAST', $last())
+                            }, $state)
                         },
                         done => {
                             $state.delete-active-tap($tap) if $tap.DEFINITE;

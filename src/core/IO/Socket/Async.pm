@@ -42,27 +42,10 @@ my class IO::Socket::Async {
         $p
     }
 
-    my sub capture(\supply) {
-        my $ss = Rakudo::Internals::SupplySequencer.new(
-            on-data-ready => -> \data { supply.emit(data) },
-            on-completed  => -> { supply.done() },
-            on-error      => -> \err { supply.quit(err) });
-        -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) }
-    }
-
     multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$enc, :$scheduler = $*SCHEDULER) {
         if $bin {
-            my $cancellation;
-            Supply.on-demand:
-                -> $supply {
-                    $cancellation := nqp::asyncreadbytes($!VMIO,
-                        $scheduler.queue(:hint-affinity),
-                        capture($supply), nqp::decont($buf), SocketCancellation);
-                    $!close-promise.then({ $supply.done });
-                },
-                closing => {
-                    $cancellation && nqp::cancel($cancellation)
-                }
+            Supply.new: Rakudo::Internals::IOReaderTappable.new:
+                :$!VMIO, :$scheduler, :$buf, :$!close-promise
         }
         else {
             my $bin-supply = self.Supply(:bin);

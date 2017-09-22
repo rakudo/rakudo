@@ -1758,7 +1758,14 @@ augment class Rakudo::Internals {
         }
 
         method await-all(Iterable:D \i) {
-            die "NYI";
+            $!continuations := nqp::list() unless nqp::isconcrete($!continuations);
+            nqp::continuationcontrol(0, ADD_WHENEVER_PROMPT, -> Mu \c {
+                nqp::push($!continuations, -> $delegate-awaiter {
+                    nqp::continuationinvoke(c, {
+                        $delegate-awaiter.await-all(i);
+                    });
+                });
+            });
         }
 
         method take-all() {

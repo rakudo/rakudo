@@ -1785,11 +1785,23 @@ augment class Rakudo::Internals {
         has &.done;
         has &.quit;
         has @.close-phasers;
-        has $.active = 1;
-        has $!lock = Lock.new;
+        has $.active;
+        has $!lock;
         has %!active-taps;
-        has $.run-async-lock = Lock::Async.new;
-        has $.awaiter = SupplyBlockAddWheneverAwaiter.CREATE;
+        has $.run-async-lock;
+        has $.awaiter;
+
+        method new(:&emit!, :&done!, :&quit!) {
+            self.CREATE!SET-SELF(&emit, &done, &quit)
+        }
+
+        method !SET-SELF(&!emit, &!done, &!quit) {
+            $!active = 1;
+            $!lock := Lock.new;
+            $!run-async-lock := Lock::Async.new;
+            $!awaiter := SupplyBlockAddWheneverAwaiter.CREATE;
+            self
+        }
 
         method decrement-active() {
             $!lock.protect: { --$!active }

@@ -818,7 +818,7 @@ S17-channel/basic.t
 S17-channel/stress.t     # stress slow
 S17-lowlevel/atomic.t    # moar
 S17-lowlevel/atomic-ops.t # moar
-S17-lowlevel/cas.t       # moar
+S17-lowlevel/cas.t
 S17-lowlevel/cas-int.t   # moar
 S17-lowlevel/cas-loop.t  # moar
 S17-lowlevel/cas-loop-int.t # moar
@@ -840,6 +840,7 @@ S17-promise/at.t
 S17-promise/anyof.t
 S17-promise/basic.t
 S17-promise/in.t         # slow
+S17-promise/lock-async.t
 S17-promise/start.t      # slow
 S17-promise/stress.t     # stress
 S17-promise/then.t

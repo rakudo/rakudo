@@ -125,4 +125,54 @@ my class Lock::Async {
         LEAVE self.unlock() if $acquired;
         code()
     }
+
+    # This either runs the code now if we can obtain the lock, releasing the
+    # lock afterwards, or queues the code to run if a recursive use of the
+    # lock is observed. It relies on all users of the lock to use it through
+    # this method only. This is useful for providing back-pressure while also
+    # avoiding code deadlocking on itself by providing a way for it to get run
+    # later on. Returns Nil if the code was run now (maybe after blocking), or
+    # a Promise if it was queued for running later.
+    method protect-or-queue-on-recursion(Lock::Async:D: &code) {
+        my $try-acquire = self.lock();
+        if $try-acquire {
+            # We could acquire the lock. Run the code right now.
+            LEAVE self.unlock();
+            self!run-with-updated-recursion-list(&code);
+            Nil
+        }
+        elsif (@*LOCK-ASYNC-RECURSION-LIST // Empty).first(* === self) {
+            # Lock is already held on the stack, so we're recursing. Queue.
+            $try-acquire.then({
+                LEAVE self.unlock();
+                self!run-with-updated-recursion-list(&code);
+            });
+        }
+        else {
+            # Lock is held but by something else. Await it's availability.
+            my int $acquired = 0;
+            $*AWAITER.await($try-acquire);
+            $acquired = 1;
+            LEAVE self.unlock() if $acquired;
+            self!run-with-updated-recursion-list(&code);
+            Nil
+        }
+    }
+
+    method !run-with-updated-recursion-list(&code) {
+        my @new-held = @*LOCK-ASYNC-RECURSION-LIST // ();
+        @new-held.push(self);
+        {
+            my @*LOCK-ASYNC-RECURSION-LIST := @new-held;
+            code();
+        }
+    }
+
+    method with-lock-hidden-from-recursion-check(&code) {
+        my @new-held = (@*LOCK-ASYNC-RECURSION-LIST // ()).grep(* !=== self);
+        {
+            my @*LOCK-ASYNC-RECURSION-LIST := @new-held;
+            code();
+        }
+    }
 }

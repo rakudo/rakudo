@@ -7,7 +7,18 @@ my class RoleToClassApplier {
             return nqp::existskey(%mt, $name);
         }
         else {
-            for $target.HOW.mro($target) {
+
+            # In an uncomposed class we need to look for methods in
+            # the part of the mro that has not been added yet.
+            my @mro := $target.HOW.mro($target);
+            if $target.HOW.parents($target, :local(1)) == 0
+              && $target.HOW.has_default_parent_type
+              && $target.HOW.name($target) ne 'Mu' {
+                my $dt := $target.HOW.get_default_parent_type;
+                nqp::splice(@mro, $dt.HOW.mro($dt), nqp::elems(@mro), 0);
+            }
+
+            for @mro {
                 my %mt := $_.HOW.method_table($_);
                 if nqp::existskey(%mt, $name) {
                     return 1;

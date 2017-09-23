@@ -198,7 +198,6 @@ my class IO::Socket::Async {
                                 # do nothing
                             }
                             elsif err {
-                                say "here with error";
                                 quit(X::AdHoc.new(message => err));
                                 $finished = 1;
                             }

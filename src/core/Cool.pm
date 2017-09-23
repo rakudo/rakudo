@@ -174,11 +174,13 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.subst(|c);
     }
 
-    method subst-mutate(Cool:D $self is rw: |c) {
+    # `$value-to-subst-mutate` will show up in errors when called on non-rw
+    # container, so use more descriptive name instead of just `$self`
+    method subst-mutate(Cool:D $value-to-subst-mutate is rw: |c) {
         $/ := nqp::getlexcaller('$/');
-        my $str   = $self.Str;
+        my $str   = $value-to-subst-mutate.Str;
         my $match = $str.subst-mutate(|c);
-        $self     = $str;
+        $value-to-subst-mutate = $str;
         $match
     }
 

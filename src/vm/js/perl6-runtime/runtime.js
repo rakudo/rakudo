@@ -4,6 +4,8 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
   let Scalar, True, False, Int, Num, Str, Code, Mu, Any, ContainerDescriptor, Routine;
 
+  let Iterable;
+
   let defaultContainerDescriptor;
 
   op.p6settypes = function(types) {
@@ -225,6 +227,11 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       }
     }
     return value;
+  };
+
+  op.p6setitertype = function(type) {
+    Iterable = type;
+    return type;
   };
 
   op.p6store = function(ctx, cont, value) {

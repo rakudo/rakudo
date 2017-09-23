@@ -40,9 +40,7 @@ $ops.add_simple_op('p6setautothreader', $ops.VOID, [$ops.OBJ], sub ($autothreade
     "nqp.p6binder.set_autothreader($*CTX, null, nqp.p6binder, $autothreader)"
 }, :side_effects);
 
-$ops.add_simple_op('p6setitertype', $ops.VOID, [$ops.OBJ], sub ($iterable) {
-    "nqp.p6binder.set_iterable($*CTX, null, nqp.p6binder, $iterable)"
-}, :side_effects);
+$ops.add_simple_op('p6setitertype', $ops.VOID, [$ops.OBJ], :side_effects);
 
 $ops.add_simple_op('p6trialbind', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ], :!inlinable, sub ($sig, $args, $sig_flags) {
         "nqp.p6binder.trial_bind($*CTX, null, nqp.p6binder, $sig, $args, $sig_flags)"

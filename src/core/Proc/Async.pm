@@ -109,8 +109,6 @@ my class Proc::Async {
     has CharsOrBytes $!stderr_type;
     has $!merge_supply;
     has CharsOrBytes $!merge_type;
-    has $!stdout_fd_promise;
-    has $!stderr_fd_promise;
     has $!stdin-fd;
     has $!stdout-fd;
     has $!stderr-fd;

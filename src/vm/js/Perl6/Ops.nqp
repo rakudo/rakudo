@@ -1,7 +1,7 @@
 my $ops := nqp::getcomp('QAST').operations;
 
 sub register_op_desugar($op, $desugar) is export {
-    nqp::getcomp('QAST').operations.add_op($op, sub ($comp, $node, :$want, :$cps) {
+    nqp::getcomp('QAST').operations.add_op(:hll<perl6>, $op, sub ($comp, $node, :$want, :$cps) {
         $comp.as_js($desugar($node), :$want, :$cps);
     });
 }
@@ -18,6 +18,30 @@ register_op_desugar('p6invokeflat', -> $qast {
     $qast[1].flat(1);
     QAST::Op.new( :op('call'), $qast[0], $qast[1]);
     QAST::Op.new(:op('null'));
+});
+
+# TODO only override for js
+# Override defor to call defined method.
+register_op_desugar('defor', -> $op {
+    if +$op.list != 2 {
+        nqp::die("Operation 'defor' needs 2 operands");
+    }
+    my $tmp := $op.unique('defined');
+    QAST::Stmts.new(
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+            $op[0]
+        ),
+        QAST::Op.new(
+            :op('if'),
+            QAST::Op.new(
+                :op('callmethod'), :name('defined'),
+                QAST::Var.new( :name($tmp), :scope('local') )
+            ),
+            QAST::Var.new( :name($tmp), :scope('local') ),
+            $op[1]
+        ));
 });
 
 # Signature binding related bits.

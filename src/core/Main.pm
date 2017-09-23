@@ -1,7 +1,4 @@
 # TODO:
-# * $?USAGE
-#   * Create $?USAGE at compile time
-#   * Make $?USAGE available globally
 # * Command-line parsing
 #   * Allow both = and space before argument of double-dash args
 #   * Comma-separated list values
@@ -185,9 +182,12 @@ my sub MAIN_HELPER($retval = 0) {
 
     # Generate default $?USAGE message
     my $usage;
-    my $?USAGE := Proxy.new(
+    my $*USAGE := Proxy.new(
         FETCH => -> | { $usage || ($usage = gen-usage()) },
-        STORE => -> | { }
+        STORE => -> | {
+            die 'Cannot assign to $*USAGE. Please use `sub USAGE {}` to '
+                ~ 'output custom usage message'
+        }
     );
 
     # Get a list of candidates that match according to the dispatcher
@@ -211,11 +211,11 @@ my sub MAIN_HELPER($retval = 0) {
     # We could not find a user defined USAGE sub!
     # Let's display the default USAGE message
     if $n<help> {
-        $*OUT.say($?USAGE);
+        $*OUT.say($*USAGE);
         exit 0;
     }
     else {
-        $*ERR.say($?USAGE);
+        $*ERR.say($*USAGE);
         exit 2;
     }
 }

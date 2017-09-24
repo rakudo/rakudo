@@ -58,8 +58,8 @@ role Perl6::Metamodel::BUILDPLAN {
                     nqp::push(@plan,[
                       nqp::add_i(0,nqp::objprimspec($_.type)),
                       $obj,
-                      nqp::substr((my $attr_name := $_.name), 2),
-                      $attr_name
+                      $_.name,
+                      nqp::substr($_.name, 2)
                     ]);
                 }
             }

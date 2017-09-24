@@ -174,25 +174,25 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
               nqp::if(                           # >0
                 nqp::isle_i($code,3),
                 nqp::if(                         # 1|2|3
-                  nqp::existskey($init,nqp::atpos($task,2)),
+                  nqp::existskey($init,nqp::atpos($task,3)),
                   nqp::if(                       # can initialize
                     nqp::iseq_i($code,1),
                     nqp::bindattr_i(self,        # 1
                       nqp::atpos($task,1),
-                      nqp::atpos($task,3),
-                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                      nqp::atpos($task,2),
+                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
                     ),
                     nqp::if(
                       nqp::iseq_i($code,2),
                       nqp::bindattr_n(self,      # 2
                         nqp::atpos($task,1),
-                        nqp::atpos($task,3),
-                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
                       ),
                       nqp::bindattr_s(self,      # 3
                         nqp::atpos($task,1),
-                        nqp::atpos($task,3),
-                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
                       )
                     )
                   )
@@ -280,9 +280,9 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
               ))))))),
 
               nqp::if(                           # 0
-                nqp::existskey($init,nqp::atpos($task,2)),
-                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                  = %attrinit.AT-KEY(nqp::atpos($task,2))),
+                nqp::existskey($init,nqp::atpos($task,3)),
+                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
+                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
               )
             )
           )
@@ -320,25 +320,25 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
               nqp::if(                           # >0
                 nqp::isle_i($code,3),
                 nqp::if(                         # 1|2|3
-                  nqp::existskey($init,nqp::atpos($task,2)),
+                  nqp::existskey($init,nqp::atpos($task,3)),
                   nqp::if(                       # can initialize
                     nqp::iseq_i($code,1),
                     nqp::bindattr_i(self,        # 1
                       nqp::atpos($task,1),
-                      nqp::atpos($task,3),
-                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                      nqp::atpos($task,2),
+                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
                     ),
                     nqp::if(
                       nqp::iseq_i($code,2),
                       nqp::bindattr_n(self,      # 2
                         nqp::atpos($task,1),
-                        nqp::atpos($task,3),
-                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
                       ),
                       nqp::bindattr_s(self,      # 3
                         nqp::atpos($task,1),
-                        nqp::atpos($task,3),
-                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
                       )
                     )
                   )
@@ -451,9 +451,9 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
               )))))))),
 
               nqp::if(                           # 0
-                nqp::existskey($init,nqp::atpos($task,2)),
-                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                  = %attrinit.AT-KEY(nqp::atpos($task,2))),
+                nqp::existskey($init,nqp::atpos($task,3)),
+                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
+                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
               )
             )
           )

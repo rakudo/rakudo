@@ -40,6 +40,14 @@ my class JavaScriptScheduler does Scheduler {
     method loads(--> 0) { }
 }
 
+
+# Stubbed for tests
+class ThreadPoolScheduler {
+  method new(*@args) {
+    die "Not implemented on the JS backend";
+  }
+}
+
 # This thread pool scheduler will be the default one.
 PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 

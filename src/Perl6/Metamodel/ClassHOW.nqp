@@ -81,7 +81,12 @@ class Perl6::Metamodel::ClassHOW
                 @ins_roles.push($ins);
                 nqp::push(@!concretizations, [$r, $ins]);
             }
-            self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
+            # Give the role applier our best approximation of the mro
+            my @mro := self.compute_mro($obj);
+            if self.parents($obj, :local(1)) == 0 && self.has_default_parent_type && self.name($obj) ne 'Mu' {
+                my $dt := self.get_default_parent_type;
+                nqp::splice(@mro, $dt.HOW.mro($dt), nqp::elems(@mro), 0);
+            }
             RoleToClassApplier.apply($obj, @ins_roles);
             
             # Add them to the typecheck list, and pull in their
@@ -101,6 +106,7 @@ class Perl6::Metamodel::ClassHOW
             if self.parents($obj, :local(1)) == 0 && self.has_default_parent_type && self.name($obj) ne 'Mu' {
                 self.add_parent($obj, self.get_default_parent_type);
             }
+            # Clean out the preliminary mro which we sent to the role applier
             self.compute_mro($obj);
             $!composed := 1;
         }

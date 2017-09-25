@@ -164,7 +164,7 @@ my class X::Method::NotFound is Exception {
                 when Cool { %suggestions{$_} = 0 for <chars codes>; }
                 default   { %suggestions{$_} = 0 for <elems chars codes>; }
             }
-            
+
         }
         elsif $.method eq 'bytes' {
             %suggestions<encode($encoding).bytes> = 0;
@@ -2215,7 +2215,7 @@ my class X::Assignment::RO is Exception {
     method message {
         "Cannot modify an immutable {$.value.^name} ({$.value.gist})"
     }
-    method typename { $.value.^name } 
+    method typename { $.value.^name }
 }
 
 my class X::Assignment::RO::Comp does X::Comp {

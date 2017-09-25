@@ -44,6 +44,10 @@ register_op_desugar('defor', -> $op {
         ));
 });
 
+$ops.add_hll_unbox('perl6', $ops.INT, 'getInt');
+$ops.add_hll_unbox('perl6', $ops.NUM, 'getNum');
+$ops.add_hll_unbox('perl6', $ops.STR, 'getStr');
+
 # Signature binding related bits.
 
 $ops.add_simple_op('p6setbinder', $ops.VOID, [$ops.OBJ], :side_effects, sub ($binder) {"nqp.p6binder = $binder"});

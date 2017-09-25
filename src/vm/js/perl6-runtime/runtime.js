@@ -409,6 +409,18 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       return this.$$getattr(Scalar, '$!value');
     });
 
+    this.STable.addInternalMethod('$$getInt', function(ctx) {
+      return this.$$getattr(Scalar, '$!value').$$getInt();
+    });
+
+    this.STable.addInternalMethod('$$getStr', function(ctx) {
+      return this.$$getattr(Scalar, '$!value').$$getStr();
+    });
+
+    this.STable.addInternalMethod('$$getNum', function(ctx) {
+      return this.$$getattr(Scalar, '$!value').$$getNum();
+    });
+
     this.STable.addInternalMethod('$$iscont', function() {
       return 1;
     });

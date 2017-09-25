@@ -1554,7 +1554,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^O' => 'VM.osname',
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
-      '$^T' => '$*INITTIME',
+      '$^T' => '$*INIT-INSTANT',
       '$^V' => '$*PERL.version or $*PERL.compiler.version',
       '$^W' => '$*WARNING',
       '$^X' => '$*EXECUTABLE-NAME',

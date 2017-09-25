@@ -117,10 +117,16 @@ sub term:<now>() {
     )
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*INITTIME', {
-    PROCESS::<$INITTIME> := nqp::create(Instant).SET-SELF(
+Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {
+    PROCESS::<$INIT-INSTANT> := nqp::create(Instant).SET-SELF(
       Rakudo::Internals.tai-from-posix(Rakudo::Internals.INITTIME,0).Rat
     )
+}
+Rakudo::Internals.REGISTER-DYNAMIC: '$*INITTIME', {
+    my ($file, $line) = .file, .line with callframe 3;
+    DEPRECATED('$*INIT-INSTANT', '2017.09.84.gb.02.da.4.d.1.a', '2017.08',
+        :what<$*INITTIME>, :$file, :$line);
+    $*INIT-INSTANT
 }
 
 # vim: ft=perl6 expandtab sw=4

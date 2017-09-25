@@ -1,20 +1,5 @@
 my class IO::Socket::INET does IO::Socket {
     my module PIO {
-        constant PF_UNSPEC      = 0;
-        constant PF_LOCAL       = 1;
-        constant PF_UNIX        = 1;
-        constant PF_INET        = 2;
-        constant PF_INET6       = 10;
-        constant PF_MAX         = 4;
-        constant SOCK_PACKET    = 0;
-        constant SOCK_STREAM    = 1;
-        constant SOCK_DGRAM     = 2;
-        constant SOCK_RAW       = 3;
-        constant SOCK_RDM       = 4;
-        constant SOCK_SEQPACKET = 5;
-        constant SOCK_MAX       = 6;
-        constant PROTO_TCP      = 6;
-        constant PROTO_UDP      = 17;
         constant MIN_PORT       = 0;
         constant MAX_PORT       = 65_535; # RFC 793: TCP/UDP port limit
     }
@@ -25,25 +10,25 @@ my class IO::Socket::INET does IO::Socket {
     has Int $.localport;
     has Int $.backlog;
     has Bool $.listening;
-    has $.family = PIO::PF_UNSPEC;
-    has $.proto = PIO::PROTO_TCP;
-    has $.type = PIO::SOCK_STREAM;
+    has $.family = PF_UNSPEC;
+    has $.proto = PROTO_TCP;
+    has $.type = SOCK_STREAM;
 
 
 
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
-        if $family === PIO::PF_UNIX {
+        if $family === PF_UNIX {
             return ($host, $port);
         }
 
         if ($host) {
             my ($split-host, $split-port) = (Str, Int);
 
-            if $family !== PIO::PF_INET6 {
+            if $family !== PF_INET6 {
                 ($split-host, $split-port) = v4-split($host);
             }
 
-            if ! $split-port && $family !== PIO::PF_INET {
+            if ! $split-port && $family !== PF_INET {
                 ($split-host, $split-port) = v6-split($host);
             }
 
@@ -68,19 +53,33 @@ my class IO::Socket::INET does IO::Socket {
         return $host ?? ($host, $port) !! $uri;
     }
 
+    method !correct-family(Int:D $family) {
+        if ($family == 3) {
+            note "You're using the old value (3) for IPv6 / PF_NET6, " ~
+                "please use the constant PF_INET6 to specify IPv6";
+            note Backtrace.new.Str;
+
+            return PF_INET6;
+        }
+
+        return $family;
+    }
+
     # Create new socket that listens on $localhost:$localport
     multi method new(
         Bool:D :$listen!,
         Str    :$localhost is copy,
         Int    :$localport is copy,
-        Int    :$family where {
-                $family == PIO::PF_INET
-             || $family == PIO::PF_INET6
-             || $family == PIO::PF_UNIX
-             || $family == PIO::PF_UNSPEC
-        } = PIO::PF_UNSPEC,
+        Int    :$family    is copy where {
+                $family == PF_INET
+             || $family == PF_INET6
+             || $family == PF_UNIX
+             || $family == PF_UNSPEC
+             || $family == 3 # legacy PF_INET6
+        } = PF_UNSPEC,
                *%rest,
         --> IO::Socket::INET:D) {
+
 
         ($localhost, $localport) = (
             split-host-port :host($localhost), :port($localport), :$family
@@ -90,7 +89,7 @@ my class IO::Socket::INET does IO::Socket {
         self.bless(
             :$localhost,
             :$localport,
-            :$family,
+            :family(self!correct-family($family)),
             :listening($listen),
             |%rest,
         )!initialize()
@@ -101,11 +100,12 @@ my class IO::Socket::INET does IO::Socket {
         Str:D :$host! is copy,
         Int   :$port is copy,
         Int   :$family where {
-               $family == PIO::PF_INET
-            || $family == PIO::PF_INET6
-            || $family == PIO::PF_UNIX
-            || $family == PIO::PF_UNSPEC
-        } = PIO::PF_UNSPEC,
+               $family == PF_INET
+            || $family == PF_INET6
+            || $family == PF_UNIX
+            || $family == PF_UNSPEC
+            || $family == 3 # legacy PF_INET6
+        } = PF_UNSPEC,
               *%rest,
         --> IO::Socket::INET:D) {
 
@@ -119,7 +119,7 @@ my class IO::Socket::INET does IO::Socket {
         self.bless(
             :$host,
             :$port,
-            :$family,
+            :family(self!correct-family($family)),
             |%rest,
         )!initialize()
     }
@@ -146,7 +146,7 @@ my class IO::Socket::INET does IO::Socket {
     }
 
     method !initialize() {
-        if ! $.host && ! $.localhost && $.family == PIO::PF_UNIX {
+        if ! $.host && ! $.localhost && $.family == PF_UNIX {
             fail "Socket with family AF_UNIX needs a path to bind to";
         }
 
@@ -156,7 +156,7 @@ my class IO::Socket::INET does IO::Socket {
         #If Listen is defined then a listen socket is created, else if the socket type.
         #which is derived from the protocol, is SOCK_STREAM then connect() is called.
         if $.listening || $.localhost || $.localport {
-            nqp::bindsock($PIO, nqp::unbox_s($.localhost || ($.family == PIO::PF_INET ?? "0.0.0.0" !! '::0')),
+            nqp::bindsock($PIO, nqp::unbox_s($.localhost || ($.family == PF_INET ?? "0.0.0.0" !! '::0')),
                                  nqp::unbox_i(self!get-packed-localport()), nqp::unbox_i($.backlog || 128));
         }
 
@@ -165,7 +165,7 @@ my class IO::Socket::INET does IO::Socket {
             $!localport = nqp::getport($PIO) if !$!localport;
 #?endif
         }
-        elsif $.type == PIO::SOCK_STREAM {
+        elsif $.type == SOCK_STREAM {
             nqp::connect($PIO, nqp::unbox_s($.host), nqp::unbox_i(self!get-packed-port()));
         }
 

@@ -9,20 +9,21 @@ enum SeekType (
   :SeekFromEnd(2),
 );
 enum ProtocolFamily (
-  :PF_LOCAL(0),
+  :PF_UNSPEC(0),
+  :PF_LOCAL(1),
   :PF_UNIX(1),
   :PF_INET(2),
-  :PF_INET6(3),
-  :PF_MAX(4),
+  :PF_INET6(10),
+  :PF_MAX(44),
 );
 enum SocketType (
-  :SOCK_PACKET(0),
   :SOCK_STREAM(1),
   :SOCK_DGRAM(2),
   :SOCK_RAW(3),
   :SOCK_RDM(4),
   :SOCK_SEQPACKET(5),
-  :SOCK_MAX(6),
+  :SOCK_PACKET(10),
+  :SOCK_MAX(11),
 );
 enum ProtocolType (
   :PROTO_TCP(6),

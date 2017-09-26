@@ -33,7 +33,7 @@ my class Lock::Async {
         }
 
         # Assumes it won't be called if there is no queue (SINGLE_HOLDER case
-        # in unlock()) 
+        # in unlock())
         method head-vow() {
             nqp::atpos($!queue, 0)
         }

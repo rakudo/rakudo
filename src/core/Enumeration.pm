@@ -23,7 +23,7 @@ my role Enumeration {
     multi method Int(::?CLASS:D:)     { $!value.Int }
     multi method Real(::?CLASS:D:)    { $!value.Real }
 
-    multi method WHICH(::?CLASS:D:) { 
+    multi method WHICH(::?CLASS:D:) {
         nqp::box_s(
           nqp::concat(self.^name,nqp::concat("|",$!index)),
           ObjAt

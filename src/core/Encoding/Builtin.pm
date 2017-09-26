@@ -68,7 +68,7 @@ Encoding::Registry.register(
       "latin1",
       "latin-1",
       "csisolatin1:",
-      "l1", 
+      "l1",
       "ibm819",
       "cp819"
     )

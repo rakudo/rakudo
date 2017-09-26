@@ -306,7 +306,7 @@ my role Baggy does QuantHash {
     method default(Baggy:D: --> 0) { }
 
     multi method Str(Baggy:D: --> Str:D) {
-        nqp::join(' ',Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+        nqp::join(' ',Rakudo::QuantHash.RAW-VALUES-MAP(self, {
             nqp::if(
               (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
               nqp::getattr($_,Pair,'$!key').gist,
@@ -320,7 +320,7 @@ my role Baggy does QuantHash {
             nqp::concat(self.^name,'('),
             nqp::join(', ',
               Rakudo::Sorting.MERGESORT-str(
-                Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, {
                     nqp::if(
                       (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
                       nqp::getattr($_,Pair,'$!key').gist,
@@ -340,7 +340,7 @@ my role Baggy does QuantHash {
             nqp::concat(
               '(',
               nqp::join(',',
-                Rakudo::QuantHash.RAW-VALUES-MAP(self, { 
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, {
                     nqp::if(
                       (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
                       nqp::getattr($_,Pair,'$!key').perl,

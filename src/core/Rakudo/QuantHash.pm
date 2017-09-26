@@ -425,7 +425,7 @@ my class Rakudo::QuantHash {
     method SUB-PAIRS-FROM-SET(\elems, \iterator) {
         nqp::stmts(
           (my $elems := nqp::clone(elems)),
-          nqp::until(           
+          nqp::until(
             nqp::eqaddr(                            # end of iterator?
               (my $pulled := iterator.pull-one),
               IterationEnd
@@ -1511,7 +1511,7 @@ my class Rakudo::QuantHash {
                       Pair,
                       '$!value'
                     ))
-                      >             # value in A should be <= than B 
+                      >             # value in A should be <= than B
                     ($right := nqp::getattr(
                       nqp::iterval($iter),Pair,'$!value'
                     )),

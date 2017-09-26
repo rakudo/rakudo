@@ -1337,7 +1337,7 @@ class Perl6::Optimizer {
                 ?? self.optimize_nameless_call($op)
                 !! self.optimize_call($op);
             if $opt_result {
-                 $!chain_depth := $!chain_depth - 1
+                 $!chain_depth := 0
                     if $op.op eq 'chain' && $!chain_depth == 1;
                  return $opt_result;
             }

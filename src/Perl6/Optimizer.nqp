@@ -1332,11 +1332,10 @@ class Perl6::Optimizer {
 
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
-        elsif $optype eq 'call' && $op.name ne '' {
-            my $opt_result := self.optimize_call($op);
-            return $opt_result if $opt_result;
-        } elsif $optype eq 'call' && $op.name eq '' {
-            my $opt_result := self.optimize_nameless_call($op);
+        elsif $optype eq 'call' {
+            my $opt_result := $op.name eq ''
+                ?? self.optimize_nameless_call($op)
+                !! self.optimize_call($op);
             return $opt_result if $opt_result;
         }
 

@@ -1336,7 +1336,11 @@ class Perl6::Optimizer {
             my $opt_result := $op.name eq ''
                 ?? self.optimize_nameless_call($op)
                 !! self.optimize_call($op);
-            return $opt_result if $opt_result;
+            if $opt_result {
+                 $!chain_depth := $!chain_depth - 1
+                    if $op.op eq 'chain' && $!chain_depth == 1;
+                 return $opt_result;
+            }
         }
 
         # If it's a private method call, we can sometimes resolve it at

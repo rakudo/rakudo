@@ -1,6 +1,4 @@
-my role Rational does Rational[Int] { }
-my role Rational[::T] does Rational[T,T] { }
-my role Rational[::NuT, ::DeT] does Real {
+my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     has NuT $.numerator   = 0;
     has DeT $.denominator = 1;
 

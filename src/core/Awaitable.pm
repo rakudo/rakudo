@@ -24,20 +24,20 @@ my role Awaitable::Handle {
     has Mu $.result;
     has Exception $.cause;
 
-    method already-success(\result) {
+    method already-success(Mu \result) {
         nqp::create(self)!already-success(result)
     }
-    method !already-success(\result) {
+    method !already-success(Mu \result) {
         $!already := True;
         $!success := True;
         $!result := result;
         self
     }
 
-    method already-failure(\cause) {
+    method already-failure(Mu \cause) {
         self.CREATE!already-failure(cause)
     }
-    method !already-failure(\cause) {
+    method !already-failure(Mu \cause) {
         $!already := True;
         $!success := False;
         $!cause := cause;

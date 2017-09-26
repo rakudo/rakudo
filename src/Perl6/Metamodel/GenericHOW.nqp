@@ -9,11 +9,11 @@ class Perl6::Metamodel::GenericHOW
     method archetypes() {
         $archetypes
     }
-    
+
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
-    
+
     # The name we're created with is both the name we'll claim
     # to be if asked, but also the name we'll look up in a
     # supplied type environment when we want to instantiate
@@ -30,14 +30,14 @@ class Perl6::Metamodel::GenericHOW
         my $found := nqp::getlexrel($type_environment, $name);
         nqp::isnull($found) ?? $obj !! $found
     }
-    
+
     method compose($obj) {
     }
-    
+
     method find_method($obj, $name) {
         nqp::null()
     }
-    
+
     method type_check($obj, $checkee) {
         0
     }

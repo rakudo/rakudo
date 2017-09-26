@@ -1,14 +1,14 @@
 role Perl6::Metamodel::BoolificationProtocol {
     has $!boolification_mode;
-    
+
     method get_boolification_mode($obj) {
         $!boolification_mode
     }
-    
+
     method set_boolification_mode($obj, $mode) {
         $!boolification_mode := $mode;
     }
-    
+
     method publish_boolification_spec($obj) {
         if $!boolification_mode == 0 {
             my $meth := self.find_method($obj, 'Bool', :no_fallback(1));

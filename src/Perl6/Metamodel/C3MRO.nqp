@@ -1,10 +1,10 @@
 role Perl6::Metamodel::C3MRO {
     # Storage of the MRO.
     has @!mro;
-    
+
     # The MRO minus anything that is hidden.
     has @!mro_unhidden;
-    
+
     # Computes C3 MRO.
     method compute_mro($class) {
         my @immediate_parents := $class.HOW.parents($class, :local);
@@ -29,7 +29,7 @@ role Perl6::Metamodel::C3MRO {
         # Put this class on the start of the list, and we're done.
         @result.unshift($class);
         @!mro := @result;
-        
+
         # Also compute the unhidden MRO (all the things in the MRO that
         # are not somehow hidden).
         my @unhidden;
@@ -51,7 +51,7 @@ role Perl6::Metamodel::C3MRO {
             }
         }
         @!mro_unhidden := @unhidden;
-        
+
         @!mro
     }
 
@@ -134,7 +134,7 @@ role Perl6::Metamodel::C3MRO {
             self.compute_mro($obj)
         }
     }
-    
+
     # Introspects the Method Resolution Order without anything that has
     # been hidden.
     method mro_unhidden($obj) {

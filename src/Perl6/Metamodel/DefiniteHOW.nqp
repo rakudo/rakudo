@@ -6,10 +6,10 @@
 class Perl6::Metamodel::DefiniteHOW
     #~ does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
-    
+
     #~ does Perl6::Metamodel::MethodDelegation
     #~ does Perl6::Metamodel::TypePretense
-    
+
     #~ does Perl6::Metamodel::Stashing
     #~ does Perl6::Metamodel::AttributeContainer
     #~ does Perl6::Metamodel::MethodContainer
@@ -83,7 +83,7 @@ class Perl6::Metamodel::DefiniteHOW
         #~ }
         #~ @!mro
     #~ }
-    
+
     #~ method parents($obj, :$local, :$excl, :$all) {
         #~ my @parents := [$!base_type];
         #~ unless $local {
@@ -128,7 +128,7 @@ class Perl6::Metamodel::DefiniteHOW
 BEGIN {
     my $root := nqp::newtype(Perl6::Metamodel::DefiniteHOW, 'Uninstantiable');
     nqp::settypehll($root, 'perl6');
-    
+
     nqp::setparameterizer($root, sub ($type, $params) {
         # Re-use same HOW.
         my $thing := nqp::settypehll(nqp::newtype($type.HOW, 'Uninstantiable'), 'perl6');

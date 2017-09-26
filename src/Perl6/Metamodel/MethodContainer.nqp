@@ -5,7 +5,7 @@ role Perl6::Metamodel::MethodContainer {
 
     # The order that the methods were added in.
     has @!method_order;
-    
+
     # Cache that expires when we add methods (primarily to support NFA stuff).
     # The hash here is readonly; we copy/replace in on addition, for thread
     # safety (additions are dominated by lookups, so a lock - even a rw-lock -
@@ -25,9 +25,9 @@ role Perl6::Metamodel::MethodContainer {
               ~ $name
               ~ "' (did you mean to declare a multi-method?)");
         }
-        
+
         # Add to correct table depending on if it's a Submethod.
-        if !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type) 
+        if !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type)
             && nqp::istype($code_obj, Perl6::Metamodel::Configuration.submethod_type) {
             %!submethods{$name} := $code_obj;
         }
@@ -60,7 +60,7 @@ role Perl6::Metamodel::MethodContainer {
                 }
             }
         }
-        
+
         # Return result list.
         @meths
     }
@@ -70,18 +70,18 @@ role Perl6::Metamodel::MethodContainer {
     method method_table($obj) {
         %!methods
     }
-    
+
     # Gets the submethods table.
     method submethod_table($obj) {
         %!submethods
     }
-    
+
     # Checks if this package (not its parents) declares a given
     # method. Checks submethods also.
     method declares_method($obj, $name) {
         %!methods{$name} || %!submethods{$name} ?? 1 !! 0
     }
-    
+
     # Looks up a method with the provided name, for introspection purposes.
     method lookup($obj, $name) {
         for self.mro($obj) {

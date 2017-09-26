@@ -18,7 +18,7 @@ class Perl6::Pod {
     my $csep2 := /\h '=' \h/;
     my $csep3 := /\h '_' \h/;
     my $csep4 := /\h \h/;
-    
+
     my $has_table_col_sep := /
                           [
                             | $csep0
@@ -33,7 +33,7 @@ class Perl6::Pod {
     my %table_pod_line_info     := []; # save debug info on each incoming line
     my $max_num_table_row_cells := 0;  # all table rows must have the same number of cells
     my $error_msg               := '';
-    
+
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
             nqp::die("You must provide one of leading or trailing to Perl6::Pod::document");
@@ -323,7 +323,7 @@ class Perl6::Pod {
                     }
                 }
 	    }
-	    
+
             # chomp (this is needed for later processing, but may be moved later)
             @rows[$i] := subst(@rows[$i], /\n$/, '');
             $i := $i + 1;

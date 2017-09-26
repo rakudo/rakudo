@@ -19,7 +19,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             self.find_method_fallback($obj, $name) !!
             nqp::null();
     }
-    
+
     method find_method_qualified($obj, $qtype, $name) {
         if $qtype.HOW.archetypes.parametric && nqp::can(self, 'concretization') {
             # Resolve it via the concrete form of this parametric.
@@ -66,12 +66,12 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
                 $authable := 0;
             }
         }
-        
+
         # Also add submethods.
         for $obj.HOW.submethod_table($obj) {
             %cache{$_.key} := $_.value;
         }
-        
+
         nqp::setmethcache($obj, %cache);
         unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($obj) {
             nqp::setmethcacheauth($obj, $authable);

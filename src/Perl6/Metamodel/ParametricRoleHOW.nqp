@@ -27,7 +27,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     method archetypes() {
         $archetypes
     }
-    
+
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
@@ -44,28 +44,28 @@ class Perl6::Metamodel::ParametricRoleHOW
         }
         self.add_stash($type);
     }
-    
+
     method parameterize($obj, *@pos_args, *%named_args) {
         $currier.new_type($obj, |@pos_args, |%named_args)
     }
-    
+
     method set_body_block($obj, $block) {
         $!body_block := $block
     }
-    
+
     method body_block($obj) {
         $!body_block
     }
-    
+
     method signatured($obj) {
         $!signatured
     }
-    
+
     method set_group($obj, $group) {
         $!group := $group;
         $!in_group := 1;
     }
-    
+
     method group($obj) {
         $!in_group ?? $!group !! $obj
     }
@@ -85,11 +85,11 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!composed := 1;
         $obj
     }
-    
+
     method is_composed($obj) {
         $!composed
     }
-    
+
     method roles($obj, :$transitive = 1) {
         if $transitive {
             my @result;
@@ -105,11 +105,11 @@ class Perl6::Metamodel::ParametricRoleHOW
             self.roles_to_compose($obj)
         }
     }
-    
+
     method role_typecheck_list($obj) {
         @!role_typecheck_list
     }
-    
+
     method type_check($obj, $checkee) {
         my $decont := nqp::decont($checkee);
         if $decont =:= $obj.WHAT {
@@ -130,7 +130,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         }
         0
     }
-    
+
     method specialize($obj, *@pos_args, *%named_args) {
         # We only allow one specialization of a role to take place at a time,
         # since the body block captures the methods into its lexical scope,
@@ -157,18 +157,18 @@ class Perl6::Metamodel::ParametricRoleHOW
             self.specialize_with($obj, $type_env, @pos_args)
         })
     }
-    
+
     method specialize_with($obj, $type_env, @pos_args) {
         # Create a concrete role.
         my $conc := $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
-        
+
         # Go through attributes, reifying as needed and adding to
         # the concrete role.
         for self.attributes($obj, :local(1)) {
             $conc.HOW.add_attribute($conc,
                 $_.is_generic ?? $_.instantiate_generic($type_env) !! $_);
         }
-        
+
         # Go through methods and instantiate them; we always do this
         # unconditionally, since we need the clone anyway.
         for self.method_table($obj) {
@@ -183,7 +183,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         for self.multi_methods_to_incorporate($obj) {
             $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))
         }
-        
+
         # Roles done by this role need fully specializing also; all
         # they'll be missing is the target class (e.g. our first arg).
         for self.roles_to_compose($obj) {
@@ -194,7 +194,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
             $conc.HOW.add_role($conc, $r.HOW.specialize($r, @pos_args[0]));
         }
-        
+
         # Pass along any parents that have been added, resolving them in
         # the case they're generic (role Foo[::T] is T { })
         for self.parents($obj, :local(1)) {
@@ -204,7 +204,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
             $conc.HOW.add_parent($conc, $p);
         }
-        
+
         # Resolve any array type being passed along (only really used in the
         # punning case, since roles are the way we get generic types).
         if self.is_array_type($obj) {
@@ -214,11 +214,11 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
             $conc.HOW.set_array_type($conc, $at);
         }
-        
+
         $conc.HOW.compose($conc);
         return $conc;
     }
-    
+
     method mro($obj) {
         [$obj]
     }

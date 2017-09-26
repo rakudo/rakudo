@@ -3,11 +3,11 @@ class Perl6::Metamodel::BaseDispatcher {
     has $!idx;
 
     method candidates() { @!candidates }
-    
+
     method exhausted() { $!idx >= +@!candidates }
-    
+
     method last()      { @!candidates := [] }
-    
+
     method call_with_args(*@pos, *%named) {
         my $call := @!candidates[$!idx];
         $!idx := $!idx + 1;
@@ -21,7 +21,7 @@ class Perl6::Metamodel::BaseDispatcher {
             $call(|@pos, |%named);
         }
     }
-    
+
     method call_with_capture($capture) {
         my $call := @!candidates[$!idx];
         $!idx := $!idx + 1;
@@ -46,7 +46,7 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
         nqp::bindattr($disp, Perl6::Metamodel::MethodDispatcher, '$!obj', $obj);
         $disp
     }
-    
+
     method vivify_for($sub, $lexpad, $args) {
         my $obj      := $lexpad<self>;
         my $name     := $sub.name;
@@ -62,7 +62,7 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
         }
         self.new(:candidates(@methods), :obj($obj), :idx(1))
     }
-    
+
     method has_invocant() { 1 }
     method invocant()     { $!obj }
 }
@@ -79,7 +79,7 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
         nqp::bindattr($disp, Perl6::Metamodel::MultiDispatcher, '$!has_invocant', $has_invocant);
         $disp
     }
-    
+
     method vivify_for($sub, $lexpad, $args) {
         my $disp         := $sub.dispatcher();
         my $has_invocant := nqp::existskey($lexpad, 'self');
@@ -102,11 +102,11 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
     }
 
     method has_invocant() { 0 }
-    
+
     method add($wrapper) {
         self.candidates.unshift($wrapper)
     }
-    
+
     method remove($wrapper) {
         my @cands := self.candidates;
         my $i := 0;
@@ -119,7 +119,7 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
         }
         return 0;
     }
-    
+
     method enter(*@pos, *%named) {
         my $fresh := nqp::clone(self);
         my $first := self.candidates[0];

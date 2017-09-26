@@ -1,10 +1,10 @@
 # This represents a group of parametric roles. For example, given
 # we have the declarations:
-# 
+#
 #   role Foo[] { } # (which is same as role Foo { })
 #   role Foo[::T] { }
 #   role Foo[::T1, ::T2] { }
-# 
+#
 # Each of them results in a type object that has a HOW of type
 # Perl6::Metamodel::ParametricRoleHOW. In here, we keep the whole
 # group of those, and know how to specialize to a certain parameter
@@ -26,11 +26,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method archetypes() {
         $archetypes
     }
-    
+
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
-    
+
     my $selector_creator;
     method set_selector_creator($sc) {
         $selector_creator := $sc;
@@ -86,13 +86,13 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $curried.HOW.set_pun_repr($curried, self.pun_repr($obj));
         $curried
     }
-    
+
     method add_possibility($obj, $possible) {
         @!candidates[+@!candidates] := $possible;
         $!selector.add_dispatchee($possible.HOW.body_block($possible));
         self.update_role_typecheck_list($obj);
     }
-    
+
     method specialize($obj, *@pos_args, *%named_args) {
         # Use multi-dispatcher to pick the body block of the best role.
         my $error;
@@ -129,7 +129,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         # Having picked the appropriate one, specialize it.
         $selected.HOW.specialize($selected, |@pos_args, |%named_args);
     }
-    
+
     method update_role_typecheck_list($obj) {
         for @!candidates {
             if !$_.HOW.signatured($_) {
@@ -137,11 +137,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             }
         }
     }
-    
+
     method role_typecheck_list($obj) {
         @!role_typecheck_list
     }
-    
+
     method type_check($obj, $checkee) {
         my $decont := nqp::decont($checkee);
         if $decont =:= $obj.WHAT {

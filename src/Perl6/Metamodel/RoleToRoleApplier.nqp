@@ -4,7 +4,7 @@ my class RoleToRoleApplier {
         unless +@roles {
             return [];
         }
-        
+
         # Aggregate all of the methods sharing names, eliminating
         # any duplicates (a method can't collide with itself).
         my %meth_info;
@@ -75,7 +75,7 @@ my class RoleToRoleApplier {
                             @impl_meths.push($_);
                         }
                     }
-                    
+
                     # If there's still more than one possible - add to collisions list.
                     # If we got down to just one, add it. If they were all requirements,
                     # just choose one.
@@ -91,7 +91,7 @@ my class RoleToRoleApplier {
                 }
             }
         }
-        
+
         # Process private method list.
         if nqp::can($target.HOW, 'private_method_table') {
             my %target_priv_meth_info := $target.HOW.private_method_table($target);
@@ -228,7 +228,7 @@ my class RoleToRoleApplier {
                     $target.HOW.add_attribute($target, $add_attr);
                 }
             }
-            
+ 
             # Any parents can also just be copied over.
             if nqp::can($how, 'parents') {
                 my @parents := $how.parents($_, :local(1));

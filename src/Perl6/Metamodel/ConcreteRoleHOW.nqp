@@ -11,14 +11,14 @@ class Perl6::Metamodel::ConcreteRoleHOW
 {
     # Any collisions to resolve.
     has @!collisions;
-    
+
     # The (parametric) role(s) that this concrete one was directly derived
     # from.
     has @!roles;
-    
+
     # Full flat list of done roles.
     has @!role_typecheck_list;
-    
+
     # Are we composed yet?
     has $!composed;
 
@@ -26,11 +26,11 @@ class Perl6::Metamodel::ConcreteRoleHOW
     method archetypes() {
         $archetypes
     }
-    
+
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
-    
+
     my class Collision {
         has $!name;
         has @!roles;
@@ -50,7 +50,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
         $metarole.set_auth($obj, $auth) if $auth;
         $obj;
     }
-    
+
     method add_collision($obj, $colliding_name, @role_names, :$private = 0, :$multi) {
         @!collisions[+@!collisions] := Collision.new(
             :name($colliding_name), :roles(@role_names), :$private, :$multi
@@ -75,15 +75,15 @@ class Perl6::Metamodel::ConcreteRoleHOW
         $!composed := 1;
         $obj
     }
-    
+
     method is_composed($obj) {
         $!composed ?? 1 !! 0
     }
-    
+
     method collisions($obj) {
         @!collisions
     }
-    
+
     method roles($obj, :$transitive = 1) {
         if $transitive {
             my @trans;
@@ -98,15 +98,15 @@ class Perl6::Metamodel::ConcreteRoleHOW
             @!roles
         }
     }
-    
+
     method add_to_role_typecheck_list($obj, $type) {
         @!role_typecheck_list[+@!role_typecheck_list] := $type;
     }
-    
+
     method role_typecheck_list($obj) {
         @!role_typecheck_list
     }
-    
+
     method type_check($obj, $checkee) {
         my $decont := nqp::decont($checkee);
         if $decont =:= $obj.WHAT {
@@ -119,13 +119,13 @@ class Perl6::Metamodel::ConcreteRoleHOW
         }
         0
     }
-    
+
     method publish_type_cache($obj) {
         my @types := [$obj.WHAT];
         for @!role_typecheck_list { @types.push($_) }
         nqp::settypecache($obj, @types)
     }
-    
+
     method mro($obj) {
         [$obj]
     }

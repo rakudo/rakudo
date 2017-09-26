@@ -1,7 +1,7 @@
 role Perl6::Metamodel::BUILDPLAN {
     has @!BUILDALLPLAN;
     has @!BUILDPLAN;
-    
+
     # Creates the plan for building up the object. This works
     # out what we'll need to do up front, so we can just zip
     # through the "todo list" each time we need to make an object.
@@ -42,7 +42,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 %attrs_untouched{$_.name} := NQPMu;
             }
         }
-        
+
         # Does it have its own BUILD?
         my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
         if !nqp::isnull($build) && $build {
@@ -125,11 +125,11 @@ role Perl6::Metamodel::BUILDPLAN {
         # if same number of elems and no noops, identical, so just keep 1 copy
         @!BUILDALLPLAN := $noops || +@all_plan != +@plan ?? @all_plan !! @plan;
     }
-    
+
     method BUILDPLAN($obj) {
         @!BUILDPLAN
     }
-    
+
     method BUILDALLPLAN($obj) {
         @!BUILDALLPLAN
     }

@@ -92,7 +92,7 @@ my class Symbols {
         $!fake_top_routine := NQPMu;
         $result;
     }
-    
+
     # Accessors for interesting symbols/scopes.
     method GLOBALish()   { $!GLOBALish }
     method UNIT()        { $!UNIT }
@@ -702,7 +702,7 @@ my class JunctionOptimizer {
         $!optimizer := $optimizer;
         $!symbols   := $symbols;
     }
-    
+
     # Check if the junction is in a context where we can optimize.
     method is_outer_foldable($op) {
         if $op.op eq "call" {
@@ -923,13 +923,13 @@ class Perl6::Optimizer {
 
         $past
     }
-    
+
     # Called when we encounter a block in the tree.
     method visit_block($block) {
         # Push block onto block stack and create vars tracking.
         $!symbols.push_block($block);
         @!block_var_stack.push(BlockVarOptimizer.new);
-        
+
         # Visit children.
         if $block.ann('DYNAMICALLY_COMPILED') {
             my $*DYNAMICALLY_COMPILED := 1;
@@ -938,7 +938,7 @@ class Perl6::Optimizer {
         else {
             self.visit_children($block, :resultchild(+@($block) - 1),:void_default);
         }
-        
+
         # Pop block from block stack and get computed block var info.
         $!symbols.pop_block();
         my $vars_info := @!block_var_stack.pop();
@@ -980,7 +980,7 @@ class Perl6::Optimizer {
                     }
                 }
             }
-            
+
             # If we have no interesting ones, then we can inline the
             # statements.
             if +@sigsyms == 0 {
@@ -1015,7 +1015,7 @@ class Perl6::Optimizer {
             $op
         }
     }
-    
+
     # Range operators we can optimize into loops, and how to do it.
     sub get_bound($node) {
         if nqp::istype($node, QAST::Want) && $node[1] eq 'Ii' {
@@ -1339,20 +1339,20 @@ class Perl6::Optimizer {
             my $opt_result := self.optimize_nameless_call($op);
             return $opt_result if $opt_result;
         }
-        
+
         # If it's a private method call, we can sometimes resolve it at
         # compile time. If so, we can reduce it to a sub call in some cases.
         elsif $!level >= 2 && $optype eq 'callmethod' && $op.name eq 'dispatch:<!>' {
             self.optimize_private_method_call($op);
         }
-        
+
         # If we end up here, just leave op as is.
         if $op.op eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
         }
         $op
     }
-    
+
     method visit_op_children($op) {
         my int $orig_void := $!void_context;
         $!void_context    := $op.op eq 'callmethod' && $op.name eq 'sink';
@@ -1725,7 +1725,7 @@ class Perl6::Optimizer {
                 }
             }
             else {
-                $!problems.add_exception(['X', 'Method', 'NotFound'], $op, 
+                $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
                     :private(nqp::p6bool(1)), :method($name),
                     :typename($pkg.HOW.name($pkg)), :invocant($pkg));
             }
@@ -1790,7 +1790,7 @@ class Perl6::Optimizer {
         $!void_context := $orig_void;
         $op
     }
-    
+
     # Handles visiting a QAST::Want node.
     method visit_want($want) {
         note("method visit_want $!void_context\n" ~ $want.dump) if $!debug;
@@ -1841,7 +1841,7 @@ class Perl6::Optimizer {
 
         $want;
     }
-    
+
     # Handles visit a variable node.
     method visit_var($var) {
         # Track usage.
@@ -1889,7 +1889,7 @@ class Perl6::Optimizer {
 
         $var;
     }
-    
+
     # Checks arguments to see if we're going to be able to do compile
     # time analysis of the call.
     my @allo_map := ['', 'Ii', 'Nn', 'Ss'];
@@ -1902,7 +1902,7 @@ class Perl6::Optimizer {
         my @allomorphs;
         my int $num_prim := 0;
         my int $num_allo := 0;
-        
+
         # Initial analysis.
         for @($op) {
             if !nqp::can($_,'flat') {
@@ -1913,7 +1913,7 @@ class Perl6::Optimizer {
             if $_.flat || $_.named ne '' {
                 return [];
             }
-            
+
             # See if we know the node's type; if so, check it.
             my $type := $_.returns();
             if $type =:= NQPMu {
@@ -1947,7 +1947,7 @@ class Perl6::Optimizer {
                 return [];
             }
         }
-        
+
         # See if we have an allomorphic constant that may allow us to do
         # a native dispatch with it; takes at least one declaratively
         # native argument to make this happen.
@@ -1958,14 +1958,14 @@ class Perl6::Optimizer {
                 @flags[$allo_idx] := $prim_flag +| $ARG_IS_LITERAL;
             }
         }
-        
+
         # Alternatively, a single arg that is allomorphic will prefer
         # the literal too.
         if @types == 1 && $num_allo == 1 {
             my $rev := %allo_rev{@allomorphs[0]};
             @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
         }
-        
+
         [@types, @flags]
     }
 
@@ -1991,7 +1991,7 @@ class Perl6::Optimizer {
 
         $!problems.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
     }
-    
+
     # Signature list for multis.
     sub multi_sig_list($dispatcher) {
         my @sigs := [];
@@ -2000,7 +2000,7 @@ class Perl6::Optimizer {
         }
         @sigs
     }
-    
+
     # Visits all of a nodes children, and dispatches appropriately.
     method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default) {
         my int $r := $resultchild // -1;
@@ -2113,7 +2113,7 @@ class Perl6::Optimizer {
 
         # Copy over interesting stuff in declaration section.
         for @($decls) {
-            if nqp::istype($_, QAST::Op) && ($_.op eq 'p6bindsig' || 
+            if nqp::istype($_, QAST::Op) && ($_.op eq 'p6bindsig' ||
                     $_.op eq 'bind' && $_[0].name eq 'call_sig') {
                 # Don't copy this binder call or setup.
             }
@@ -2155,14 +2155,14 @@ class Perl6::Optimizer {
             return $stmts;
         }
     }
-    
+
     # Inlines a call to a sub.
     method inline_call($call, $code_obj) {
         # If the code object is marked soft, can't inline it.
         if nqp::can($code_obj, 'soft') && $code_obj.soft {
             return $call;
         }
-        
+
         # Bind the arguments to temporaries, if they are used more than once.
         my $inlined := QAST::Stmts.new();
         my @subs;
@@ -2184,7 +2184,7 @@ class Perl6::Optimizer {
             }
             $idx++;
         }
-        
+
         # Now do the inlining.
         $inlined.push($code_obj.inline_info.substitute_inline_placeholders(@subs));
         if $call.named -> $name {
@@ -2201,7 +2201,7 @@ class Perl6::Optimizer {
 
         $inlined
     }
-    
+
     # If we decide a dispatch at compile time, this emits the direct call.
     # Note that we do not do this on MoarVM, since it can actually make a
     # much better job of these than we are able to here and we don't have a
@@ -2272,7 +2272,7 @@ class Perl6::Optimizer {
             }
         }
     }
-    
+
     my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];
     my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
     sub copy_returns($to, $from) {

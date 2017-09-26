@@ -54,7 +54,9 @@ multi sub POSITIONS(
         }
     }
 
-    my \pos-iter = pos.iterator;
+    my \pos-iter = pos ~~ Range && pos.is-lazy && !SELF.is-lazy                                                    # If the range is lazy but the iterable is not
+                   ?? ((pos.min ~~ -Inf ?? 0 !! pos.min) .. (pos.max ~~ Inf ?? SELF.elems-1 !! pos.max)).iterator  # The upper bound must be the max index if range max is Inf,
+                   !! pos.iterator;                                                                                # The lower bound must be 0 if range min is -Inf.
     my \pos-list = nqp::create(List);
     my \eager-indices = nqp::create(IterationBuffer);
     my \target = IndicesReificationTarget.new(eager-indices, $eagerize);

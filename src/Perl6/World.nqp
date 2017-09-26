@@ -2994,15 +2994,17 @@ class Perl6::World is HLL::World {
             $!w.cur_lexpad()[0].push($block);
 
             my $sig;
-            if $package_type =:= $!acc_sig_cache_type {
+            my $invocant_type :=
+              $!w.create_definite_type( $!w.find_symbol(['Metamodel','DefiniteHOW']), $package_type, 1 );
+            if $invocant_type =:= $!acc_sig_cache_type {
                 $sig := $!acc_sig_cache;
             }
             else {
                 my %sig_info := nqp::hash('parameters', []);
                 $sig := $!w.create_signature_and_params(NQPMu, %sig_info,
-                    $block, 'Any', :method, invocant_type => $package_type);
+                    $block, 'Any', :method, :$invocant_type);
                 $!acc_sig_cache := $sig;
-                $!acc_sig_cache_type := $package_type;
+                $!acc_sig_cache_type := $invocant_type;
             }
 
             my $code := $!w.create_code_object($block, 'Method', $sig);

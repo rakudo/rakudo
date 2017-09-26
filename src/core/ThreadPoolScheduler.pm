@@ -197,6 +197,9 @@ my class ThreadPoolScheduler does Scheduler {
         # Working is 1 if the worker is currently busy, 0 if not.
         has int $.working;
 
+        # Number of times take-completed has returned zero in a row.
+        has int $.times-nothing-completed;
+
         # Resets the completed to zero.
         method take-completed() {
 #?if moar
@@ -207,6 +210,12 @@ my class ThreadPoolScheduler does Scheduler {
             my int $taken = $!completed;
             $!completed = 0;
 #?endif
+            if $taken == 0 {
+                $!times-nothing-completed++;
+            }
+            else {
+                $!times-nothing-completed = 0;
+            }
             $taken
         }
 
@@ -495,9 +504,11 @@ my class ThreadPoolScheduler does Scheduler {
         # is at lesat one worker free to process things in the queue, so we
         # don't need to add one.
         my int $total-completed;
+        my int $total-times-nothing-completed;
         worker-list.map: {
             return unless .working;
             $total-completed += .take-completed;
+            $total-times-nothing-completed += .times-nothing-completed;
         }
 
         # If we didn't complete anything, then consider adding more threads.
@@ -513,8 +524,21 @@ my class ThreadPoolScheduler does Scheduler {
                 # Otherwise, consider utilization. If it's very little then a
                 # further thread may be needed for deadlock breaking.
                 elsif $per-core-util < 2 {
-                    scheduler-debug "Heuristic deadlock situation detected";
+                    scheduler-debug "Heuristic low utilization deadlock situation detected";
                     add-worker();
+                }
+
+                # Another form of deadlock can happen when one kind of queue
+                # is being processed but another is not. In that case, the
+                # number of iterations since nothing was completed by any
+                # worker will grow.
+                else {
+                    my int $average-times-nothing-completed =
+                        $total-times-nothing-completed div (worker-list.elems || 1);
+                    if $average-times-nothing-completed > 20 {
+                        scheduler-debug "Heuristic queue progress deadlock situation detected";
+                        add-worker();
+                    }
                 }
             }
             else {

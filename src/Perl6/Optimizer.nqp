@@ -1376,11 +1376,23 @@ class Perl6::Optimizer {
         }
     }
 
+    method convert_mexico_op_to_texas($op) {
+        if $!symbols.is_from_core: $op.name {
+            my $name := $op.name;
+            if    ($name eq '&infix:<≤>') { $op.name: '&infix:«<=»' }
+            elsif ($name eq '&infix:<≥>') { $op.name: '&infix:«>=»' }
+            elsif ($name eq '&infix:<≠>') { $op.name: '&infix:<!=>' }
+        }
+    }
+
     method optimize_call($op) {
         # See if we can find the thing we're going to call.
         my $obj;
         my int $found := 0;
         note("method optimize_call $!void_context\n" ~ $op.dump) if $!debug;
+
+        self.convert_mexico_op_to_texas($op);
+
         try {
             $obj := $!symbols.find_lexical($op.name);
             $found := 1;

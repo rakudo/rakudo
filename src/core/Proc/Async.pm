@@ -118,11 +118,7 @@ my class Proc::Async {
     has $!encoder;
     has @!close-after-exit;
 
-    proto method new(|) { * }
-    multi method new(*@args where .so) {
-        my $path = @args.shift;
-        self.bless(:$path, :@args, |%_)
-    }
+    method new($path, *@args) { self.bless(:$path, :@args, |%_) }
 
     submethod TWEAK(--> Nil) {
         $!encoder := Encoding::Registry.find($!enc).encoder(:$!translate-nl);

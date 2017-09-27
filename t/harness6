@@ -20,10 +20,13 @@ else {
 }
 require ::('TAP');
 
+constant FULL_ROAST_TEST_LIST_FILE = 't/spectest.data';
+constant ROAST_VERSION_FILE        = 't/spec/VERSION';
+
 my $vm = $*VM.name;
 
-multi sub MAIN(
-    Str  :$tests-from-file = Str,
+sub MAIN(
+    Str  :$tests-from-file is copy = Str,
     Bool :$fudge = False,
     Int  :$verbosity = (%*ENV<TEST_VERBOSE> // 0).Int,
     Int  :$jobs = (%*ENV<TEST_JOBS> // 1).Int,
@@ -37,7 +40,8 @@ multi sub MAIN(
 ) {
     die "TEST_JOBS > 1 is currently broken" if $jobs and $jobs > 1;
     my @slow;
-    with ($tests-from-file) {
+    with $tests-from-file {
+        $tests-from-file .= &convert-to-versioned-file;
         my $inline-perl5-is-installed = run(
             $perlpath, '-e', 'exit 1 if (try require Inline::Perl5) === Nil'
         ).exitcode == 0;
@@ -136,6 +140,31 @@ multi sub MAIN(
     multi sub get-handler(Any, :$perlpath) {
        ::('TAP::Harness::SourceHandler::Perl6').new(:incdirs['lib'], :path($perlpath));
     }
+}
+
+sub note-in-box { note "{'#' x 76}\n\n$^text\n\n{'#' x 76}\n" }
+sub convert-to-versioned-file ($file) {
+    return $file unless $file eq FULL_ROAST_TEST_LIST_FILE;
+
+    my $ver = .lines.grep({!/\s* '#'/}).head.trim
+        with ROAST_VERSION_FILE.IO.open
+        orelse note-in-box "Failed to open roast VERSION file in "
+            ~ "{ROAST_VERSION_FILE}: " ~ .exception.message
+            ~ "\nDefaulting to test files from $file"
+            and return $file;
+
+    # Make a new test file name using the version of the roast. The master
+    # branch would have version something like `6.d-proposals`; in such
+    # a case, we'll use the default test file list
+    my $new-file = $file ~ (".$ver" unless $ver.contains: 'propos');
+    if $new-file.IO.r {
+        print "Testing Roast version $ver using test file list from $new-file\n";
+        return $new-file;
+    }
+
+    note-in-box "Test list file `$new-file` for Roast version $ver does not exist\n"
+        ~ "or isn't readable. Defaulting to $file";
+    return $file;
 }
 
 sub USAGE { say "\n" ~ (require ::('Pod::To::Text')).render($=pod[0]) ~ "\n" }

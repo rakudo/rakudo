@@ -59,7 +59,7 @@ sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
     my Version $vremoved;
     if $from {
         $vfrom = Version.new($from);
-        return unless $version cmp $vfrom === More;
+        return if $version before $vfrom; # not deprecated yet
     }
     $vremoved = Version.new($removed) if $removed;
 

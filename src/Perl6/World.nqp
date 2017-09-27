@@ -3027,8 +3027,9 @@ class Perl6::World is HLL::World {
         );
 
         # signature configuration hash for ":(%init)"
-        my %sig_init :=
-          nqp::hash('parameters', [nqp::hash('variable_name','%init')]);
+        my %sig_init := nqp::hash('parameters', [
+          nqp::hash('variable_name','%init','is_multi_invocant',1)
+        ]);
 
         # Generate a method for building a new object that takes a hash
         # with attribute => value pairs to be assigned to the object's
@@ -3063,20 +3064,24 @@ class Perl6::World is HLL::World {
 
                 # The block of the method
                 my $block := QAST::Block.new(
-                  :name<BUILDALL_UNDER_CONSTRUCTION>, :blocktype<declaration_static>,
+                  :name<BUILDALL>, :blocktype<declaration_static>,
                   $declarations
                 );
 
                 # Register the block in its SC
                 $!w.cur_lexpad()[0].push($block);
 
-# :(Foo:D: %init)
-                my $sig := $!w.create_signature_and_params(
-                  NQPMu, %sig_init, $block, 'Any', :method,
-                  invocant_type => $!w.create_definite_type(
-                    $!w.find_symbol(['Metamodel','DefiniteHOW']),
-                    $object,
-                    1
+                my $invocant_type := $!w.create_definite_type(
+                  $!w.find_symbol(['Metamodel','DefiniteHOW']),
+                  $object,
+                  1
+                );
+
+                $stmts.push(
+                  QAST::Op.new( :op<say>,
+                    QAST::SVal.new( :value(
+                      $object.HOW.name($object) ~ '.BUILDALL called'
+                    ))
                   )
                 );
 
@@ -3152,6 +3157,12 @@ class Perl6::World is HLL::World {
                                   QAST::SVal.new( :value(nqp::atpos($task,2)) )
                                 );
 
+                                # set assign operation to be used
+                                my $sigil :=
+                                  nqp::substr(nqp::atpos($task,2),0,1);
+                                my $op := $sigil eq '$' || $sigil eq '&'
+                                  ?? 'assign'
+                                  !! 'p6store';
 # nqp::unless(
 #   nqp::attrinited(self,Foo,'$!a'),
 #   (nqp::getattr(self,Foo,'$!a') =
@@ -3166,7 +3177,7 @@ class Perl6::World is HLL::World {
                                         :value(nqp::atpos($task,2))
                                       )
                                     ),
-                                    QAST::Op.new( :op<assign>,
+                                    QAST::Op.new( :$op,
                                       $getattrop,
                                       QAST::Op.new( :op<call>,
                                         QAST::WVal.new(
@@ -3356,8 +3367,12 @@ class Perl6::World is HLL::World {
                               QAST::SVal.new( :value( nqp::atpos($task,2) ) )
                             );
 
-#$execution.push(QAST::Op.new( :op('say'), QAST::SVal.new( :value("Initializing for 0: " ~ nqp::atpos($task,2) ~ ' - ' ~ nqp::atpos($task,3)) )));
-
+                            # set assign operation to be used
+                            my $sigil :=
+                              nqp::substr(nqp::atpos($task,2),0,1);
+                            my $op := $sigil eq '$' || $sigil eq '&'
+                              ?? 'assign'
+                              !! 'p6store';
 # nqp::if(
 #   nqp::existskey($init,'a'),
 #   nqp::getattr(self,Foo,'$!a') = %init.AT-KEY('a')
@@ -3365,7 +3380,7 @@ class Perl6::World is HLL::World {
                             $stmts.push(
                               QAST::Op.new( :op<if>,
                                 $existskeyop,
-                                QAST::Op.new( :op<assign>,
+                                QAST::Op.new( :$op,
                                   $getattrop,
                                   QAST::Op.new( :op<callmethod>,
                                     QAST::Var.new(:scope<local>,:name('%init')),
@@ -3461,6 +3476,11 @@ class Perl6::World is HLL::World {
                 # Add the statements to the block
                 $block.push($stmts);
 
+# :(Foo:D: %init)
+                my $sig := $!w.create_signature_and_params(
+                  NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
+                );
+
                 # Create the code object and return it
                 $!w.create_code_object($block, 'Submethod', $sig)
             }
@@ -3475,7 +3495,7 @@ class Perl6::World is HLL::World {
 
 # submethod :: (Any:D:) { self }
                 my $block := QAST::Block.new(
-                  :name<BUILDALL_UNDER_CONSTRUCTION>, :blocktype<declaration_static>,
+                  :name<BUILDALL>, :blocktype<declaration_static>,
                   QAST::Stmts.new(
                     QAST::Var.new(:decl<param>, :scope<local>, :name<self>),
                     QAST::Var.new(:decl<param>, :scope<local>, :name('%init')),
@@ -3486,13 +3506,14 @@ class Perl6::World is HLL::World {
                 # Register the block in its SC
                 $!w.cur_lexpad()[0].push($block);
 
+                my $invocant_type := $!w.create_definite_type(
+                  $!w.find_symbol(['Metamodel','DefiniteHOW']),
+                  $!w.find_symbol(['Any']),
+                  1
+                );
+
                 my $sig := $!w.create_signature_and_params(
-                  NQPMu, %sig_init, $block, 'Any', :method,
-                  invocant_type => $!w.create_definite_type(
-                    $!w.find_symbol(['Metamodel','DefiniteHOW']),
-                    $!w.find_symbol(['Any']),
-                    1
-                  )
+                  NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
                 );
 
                 # Create the code object, save and return it

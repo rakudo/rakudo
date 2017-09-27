@@ -160,15 +160,18 @@ class Perl6::Metamodel::ClassHOW
                     nqp::say('Could not generate a BUILDALL for ' ~ $obj.HOW.name($obj));
                 }
                 else {
-                    $method.set_name('BUILDALL_UNDER_CONSTRUCTION');
+                    $method.set_name('BUILDALL');
                     my $result := try {
-                        self.add_method($obj,'BUILDALL_UNDER_CONSTRUCTION',$method)
+                        self.add_multi_method($obj,'BUILDALL',$method)
                     }
                     unless $result {
                         nqp::say($obj.HOW.name($obj) ~ ' failed to add a BUILDALL');
                     }
                 }
             }
+
+            # Incorporate any new multi candidates (needs MRO built).
+            self.incorporate_multi_candidates($obj);
 
             # Compose the representation
             self.compose_repr($obj);

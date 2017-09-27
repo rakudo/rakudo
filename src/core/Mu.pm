@@ -108,17 +108,6 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         nqp::p6bool(nqp::isconcrete(self))
     }
 
-    method new_UNDER_CONSTRUCTION(*%init) {
-        nqp::if(
-          nqp::eqaddr(
-            (my $bless := nqp::findmethod(self,'bless')),
-            nqp::findmethod(Mu,'bless')
-          ),
-          nqp::create(self).BUILDALL_UNDER_CONSTRUCTION(%init),
-          nqp::invokewithcapture($bless,nqp::usecapture)
-        )
-    }
-
     proto method new(|) { * }
     multi method new(*%attrinit) {
         nqp::if(
@@ -149,11 +138,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     # This candidate provided for those modules that rely on the old
     # BUILDALL interface, such as Inline::Perl5
-    multi method BUILDALL(@positional,%attrinit) {
+    multi method BUILDALL(Mu:D: @positional,%attrinit) {
         self.BUILDALL(%attrinit)
     }
 
-    multi method BUILDALL(%attrinit) {
+    multi method BUILDALL(Mu:D: %attrinit) {
         my $init := nqp::getattr(%attrinit,Map,'$!storage');
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which

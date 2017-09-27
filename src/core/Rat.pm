@@ -1,7 +1,19 @@
 # XXX: should be Rational[Int, UInt64]
 my class Rat is Cool does Rational[Int, Int] {
-    method Rat   (Rat:D: Real $?) { self }
-    method FatRat(Rat:D: Real $?) { FatRat.new($!numerator, $!denominator); }
+    proto method Rat(|) {*}
+    multi method Rat(Rat:D: ) { self }
+    multi method Rat(Rat:D: Real) {
+        DEPRECATED :lang-vers, '.Rat coercer without an argument', '6.d', '6.e';
+        self
+    }
+
+    proto method FatRat(|) {*}
+    multi method FatRat(Rat:D:) { FatRat.new($!numerator, $!denominator); }
+    multi method FatRat(Rat:D: Real) {
+        DEPRECATED :lang-vers, '.FatRat coercer without an argument', '6.d', '6.e';
+        self.FatRat
+    }
+
     multi method perl(Rat:D:) {
         if $!denominator == 1 {
             $!numerator ~ '.0'
@@ -24,12 +36,24 @@ my class Rat is Cool does Rational[Int, Int] {
 }
 
 my class FatRat is Cool does Rational[Int, Int] {
-    method FatRat(FatRat:D: Real $?) { self }
-    method Rat   (FatRat:D: Real $?) {
+    proto method FatRat(|) {*}
+    multi method FatRat(FatRat:D:) { self }
+    multi method FatRat(FatRat:D: Real) {
+        DEPRECATED :lang-vers, '.FatRat coercer without an argument', '6.d', '6.e';
+        self
+    }
+
+    proto method Rat(|) {*}
+    multi method Rat(FatRat:D:) {
         $!denominator < $UINT64_UPPER
           ?? Rat.new($!numerator, $!denominator)
           !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
+    multi method Rat (FatRat:D: Real) {
+        DEPRECATED :lang-vers, '.Rat coercer without an argument', '6.d', '6.e';
+        self.Rat
+    }
+
     multi method perl(FatRat:D:) {
         "FatRat.new($!numerator, $!denominator)";
     }

@@ -2,7 +2,7 @@ use lib <t/spec/packages/>;
 use Test;
 use Test::Util;
 
-plan 8;
+plan 10;
 
 # XXX TODO: swap v6.d.PREVIEW to v6.d, once the latter is available
 constant $v6d = 'v6.d.PREVIEW';
@@ -34,3 +34,4 @@ is-newly-deprecated ｢$ = 4.2.Rat: 42｣;
 is-newly-deprecated ｢$ = 4.2.FatRat: 42｣;
 is-newly-deprecated ｢$ = FatRat.new(4,2).Rat: 42｣;
 is-newly-deprecated ｢$ = FatRat.new(4,2).FatRat: 42｣;
+is-newly-deprecated ｢".".IO.chdir: "."｣;

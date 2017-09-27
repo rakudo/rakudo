@@ -158,7 +158,7 @@ sub convert-to-versioned-file ($file) {
     # a case, we'll use the default test file list
     my $new-file = $file ~ (".$ver" unless $ver.lc.contains: 'propos');
     if $new-file.IO.r {
-        print "Testing Roast version $ver using test file list from $new-file\n";
+        say "Testing Roast version $ver using test file list from $new-file";
         return $new-file;
     }
 

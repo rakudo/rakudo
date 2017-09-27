@@ -15,6 +15,8 @@ use Pod::Usage;
 use Test::Harness;
 $Test::Harness::switches = '';
 
+use constant FULL_ROAST_TEST_LIST_FILE => 't/spectest.data';
+use constant ROAST_VERSION_FILE        => 't/spec/VERSION';
 my $win   = $^O eq 'MSWin32';
 my $slash = $win ? '\\' : '/';
 
@@ -42,6 +44,8 @@ $ENV{'PERL6LIB'} = "lib";
 
 my @slow;
 if ($list_file) {
+    $list_file = convert_to_versioned_file($list_file);
+
     my $perl5 = not system $ENV{HARNESS_PERL} . ' -e "exit !try { require Inline::Perl5; 1 }"';
     print "Inline::Perl5 not installed: not running Perl 5 integration tests\n"
       if !$perl5;
@@ -181,6 +185,36 @@ sub fudge {
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
+}
+
+sub warn_in_box {
+    warn +('#' x 76) . "\n\n" . shift . "\n\n" . ('#' x 76) . "\n";
+}
+
+sub convert_to_versioned_file {
+    my $file = shift;
+    return $file unless $file eq FULL_ROAST_TEST_LIST_FILE;
+
+    open my $fh, '<', ROAST_VERSION_FILE or do {
+        warn_in_box "Failed to open roast VERSION file in "
+            . ROAST_VERSION_FILE . ": $!\n"
+            . "Defaulting to test files from $file";
+        return $file;
+    };
+    (my $ver = (grep !/^\s*#/, <$fh>)[0]) =~ s/^\s+|\s+$//g;
+
+    # Make a new test file name using the version of the roast. The master
+    # branch would have version something like `6.d-proposals`; in such
+    # a case, we'll use the default test file list
+    my $new_file = $ver =~ /propos/ ? $file : "$file.$ver";
+    if (-r $new_file) {
+        print "Testing Roast version $ver using test file list from $new_file\n";
+        return $new_file;
+    }
+
+    warn_in_box "Test list file `$new_file` for Roast version $ver does not exist\n"
+        . "or isn't readable. Defaulting to $file";
+    return $file;
 }
 
 =head1 NAME

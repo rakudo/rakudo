@@ -107,7 +107,7 @@ class Kernel does Systemic {
         @!signals //= [2, 9]
     }
 #?endif
-#?if moar
+#?if !jvm
     has $!signals-setup-lock = Lock.new;
     has $!signals-setup = False;
     method signals (Kernel:D:) {
@@ -148,7 +148,7 @@ class Kernel does Systemic {
     has $!signals-by-Str-setup = False;
 
     proto method signal (|) { * }
-#?if moar
+#?if !jvm
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
         unless $!signals-by-Str-setup {
             $!signals-setup-lock.protect: {

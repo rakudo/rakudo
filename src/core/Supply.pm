@@ -1833,6 +1833,7 @@ augment class Rakudo::Internals {
             $!lock.protect: {
                 @active = %!active-taps.values;
                 %!active-taps = ();
+                $!active = 0;
             }
             @active
         }
@@ -1919,33 +1920,36 @@ augment class Rakudo::Internals {
         method !run-supply-code(&code, \value, $state, &add-whenever) {
             my @run-after;
             my $queued := $state.run-async-lock.protect-or-queue-on-recursion: {
-                return unless $state.active > 0;
-                my &*ADD-WHENEVER = &add-whenever;
-                my $emitter = {
-                    my \ex := nqp::exception();
-                    my $emit-handler := $state.emit;
-                    $emit-handler(nqp::getpayload(ex)) if $emit-handler.DEFINITE;
-                    nqp::resume(ex)
+                if $state.active > 0 {
+                    my &*ADD-WHENEVER = &add-whenever;
+                    my $emitter = {
+                        if $state.active {
+                            my \ex := nqp::exception();
+                            my $emit-handler := $state.emit;
+                            $emit-handler(nqp::getpayload(ex)) if $emit-handler.DEFINITE;
+                            nqp::resume(ex)
+                        }
+                    }
+                    my $done = {
+                        $state.get-and-zero-active();
+                        self!teardown($state);
+                        my $done-handler := $state.done;
+                        $done-handler() if $done-handler.DEFINITE;
+                    }
+                    my $catch = {
+                        my \ex = EXCEPTION(nqp::exception());
+                        $state.get-and-zero-active();
+                        self!teardown($state);
+                        my $quit-handler = $state.quit;
+                        $quit-handler(ex) if $quit-handler;
+                    }
+                    nqp::handle(code(value),
+                        'EMIT', $emitter(),
+                        'DONE', $done(),
+                        'CATCH', $catch(),
+                        'NEXT', 0);
+                    @run-after = $state.awaiter.take-all;
                 }
-                my $done = {
-                    $state.get-and-zero-active();
-                    self!teardown($state);
-                    my $done-handler := $state.done;
-                    $done-handler() if $done-handler.DEFINITE;
-                }
-                my $catch = {
-                    my \ex = EXCEPTION(nqp::exception());
-                    $state.get-and-zero-active();
-                    self!teardown($state);
-                    my $quit-handler = $state.quit;
-                    $quit-handler(ex) if $quit-handler;
-                }
-                nqp::handle(code(value),
-                    'EMIT', $emitter(),
-                    'DONE', $done(),
-                    'CATCH', $catch(),
-                    'NEXT', 0);
-                @run-after = $state.awaiter.take-all;
             }
             if $queued.defined {
                 $queued.then({ self!run-add-whenever-awaits(@run-after) });

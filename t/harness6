@@ -156,7 +156,7 @@ sub convert-to-versioned-file ($file) {
     # Make a new test file name using the version of the roast. The master
     # branch would have version something like `6.d-proposals`; in such
     # a case, we'll use the default test file list
-    my $new-file = $file ~ (".$ver" unless $ver.contains: 'propos');
+    my $new-file = $file ~ (".$ver" unless $ver.lc.contains: 'propos');
     if $new-file.IO.r {
         print "Testing Roast version $ver using test file list from $new-file\n";
         return $new-file;

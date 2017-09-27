@@ -206,7 +206,7 @@ sub convert_to_versioned_file {
     # Make a new test file name using the version of the roast. The master
     # branch would have version something like `6.d-proposals`; in such
     # a case, we'll use the default test file list
-    my $new_file = $ver =~ /propos/ ? $file : "$file.$ver";
+    my $new_file = $ver =~ /propos/i ? $file : "$file.$ver";
     if (-r $new_file) {
         print "Testing Roast version $ver using test file list from $new_file\n";
         return $new_file;

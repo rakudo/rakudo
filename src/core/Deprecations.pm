@@ -51,10 +51,14 @@ class Deprecation {
     }
 }
 
-sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line) {
+sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool :$lang-vers) {
+    state $ver  = $*PERL.compiler.version;
+    my $version = $lang-vers ?? $*PERL.version !! $ver;
+    # if $lang-vers was given, treat the provided versions as language
+    # versions, rather than compiler versions. Note that we can't
+    # `state` the `$*PERL.version` (I think) because different CompUnits
+    # might be using different versions.
 
-    # not deprecated yet
-    state $version = $*PERL.compiler.version;
     my Version $vfrom;
     my Version $vremoved;
     if $from {

@@ -143,18 +143,41 @@ class Perl6::Metamodel::ClassHOW
                 });
         }
 
+        # This isn't an augment.
+        unless $was_composed {
+
+            # Create BUILDPLAN.
+            my $BUILDALLPLAN := self.create_BUILDPLAN($obj);
+
+            # Create BUILDALL method if we can (if we can't, the one from
+            # Mu will be used, which will iterate over the BUILDALLPLAN at
+            # runtime).
+            if nqp::isconcrete($compiler_services) {
+                my $builder := nqp::findmethod(
+                  $compiler_services,'generate_buildplan_executor');
+                my $method := $builder($compiler_services,$obj,$BUILDALLPLAN);
+                if $method =:= NQPMu {
+                    nqp::say('Could not generate a BUILDALL for ' ~ $obj.HOW.name($obj));
+                }
+                else {
+                    $method.set_name('BUILDALL_UNDER_CONSTRUCTION');
+                    my $result := try {
+                        self.add_method($obj,'BUILDALL_UNDER_CONSTRUCTION',$method)
+                    }
+                    unless $result {
+                        nqp::say($obj.HOW.name($obj) ~ ' failed to add a BUILDALL');
+                    }
+                }
+            }
+
+            # Compose the representation
+            self.compose_repr($obj);
+        }
+
         # Publish type and method caches.
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
-
-        # Create BUILDPLAN.
-        self.create_BUILDPLAN($obj);
-
-        # Compose the representation, provided this isn't an augment.
-        unless $was_composed {
-            self.compose_repr($obj);
-        }
 
         # Compose the meta-methods.
         self.compose_meta_methods($obj);

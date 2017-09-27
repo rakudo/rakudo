@@ -108,6 +108,17 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         nqp::p6bool(nqp::isconcrete(self))
     }
 
+    method new_UNDER_CONSTRUCTION(*%init) {
+        nqp::if(
+          nqp::eqaddr(
+            (my $bless := nqp::findmethod(self,'bless')),
+            nqp::findmethod(Mu,'bless')
+          ),
+          nqp::create(self).BUILDALL_UNDER_CONSTRUCTION(%init),
+          nqp::invokewithcapture($bless,nqp::usecapture)
+        )
+    }
+
     proto method new(|) { * }
     multi method new(*%attrinit) {
         nqp::if(

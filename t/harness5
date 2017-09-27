@@ -201,7 +201,7 @@ sub convert_to_versioned_file {
             . "Defaulting to test files from $file";
         return $file;
     };
-    (my $ver = (grep !/^\s*#/, <$fh>)[0]) =~ s/^\s+|\s+$//g;
+    (my $ver = (grep !/^\s*#/ && /\S/, <$fh>)[0]) =~ s/^\s+|\s+$//g;
 
     # Make a new test file name using the version of the roast. The master
     # branch would have version something like `6.d-proposals`; in such

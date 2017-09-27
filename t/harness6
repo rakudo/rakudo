@@ -38,7 +38,6 @@ sub MAIN(
     Str  :$perl5path = 'perl',
     *@files,
 ) {
-    die "TEST_JOBS > 1 is currently broken" if $jobs and $jobs > 1;
     my @slow;
     with $tests-from-file {
         $tests-from-file .= &convert-to-versioned-file;

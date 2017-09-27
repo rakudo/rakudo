@@ -2,8 +2,9 @@ The files `t/spectest.data*` specify the list of files to use to test a
 specific roast version. The version to test is obtained from the VERSION
 file in roast checkout (`t/spec/VERSION`).
 
-The default file is `t/spectest.data` and it's used is roast version could not
-be obtained or if the version matches string `propo` (e.g. `6.d.proposal`).
+The default file is `t/spectest.data` and it's used if roast version could not
+be obtained, if the `spectest.data` file for the requested version doesn't
+exist or isn't readable, or if the version matches string `propo` (e.g. `6.d.proposal`).
 Otherwise, the version is used as a suffix, separated with a dot:
 
     VERSION file contains "6.c" => tests read from t/spectest.data.6.c

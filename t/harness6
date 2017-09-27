@@ -146,10 +146,11 @@ sub note-in-box { note "{'#' x 76}\n\n$^text\n\n{'#' x 76}\n" }
 sub convert-to-versioned-file ($file) {
     return $file unless $file eq FULL_ROAST_TEST_LIST_FILE;
 
-    ROAST_VERSION_FILE.IO.open
-        andthen my $ver = .lines.grep({!/\s* '#'/}).head.trim
+    my $ver = .lines.grep({!/\s* '#'/}).head.trim
+        with ROAST_VERSION_FILE.IO.open
         orelse note-in-box "Failed to open roast VERSION file in "
-                ~ "{ROAST_VERSION_FILE}: $_\nDefaulting to test files from $file"
+            ~ "{ROAST_VERSION_FILE}: " ~ .exception.message
+            ~ "\nDefaulting to test files from $file"
             and return $file;
 
     # Make a new test file name using the version of the roast. The master

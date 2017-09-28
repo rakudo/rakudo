@@ -1204,7 +1204,7 @@ class Perl6::World is HLL::World {
         $RMD("  Late loading '$module_name'") if $RMD;
 
         # Immediate loading.
-        my $line   := self.current_line($/);
+        my $line := self.current_line($/);
         my $true := self.find_symbol(['True']);
         my $spec := self.find_symbol(['CompUnit', 'DependencySpecification']).new(
             :short-name($module_name),
@@ -3086,21 +3086,21 @@ class Perl6::World is HLL::World {
             );
 
             # Debugging
-            $stmts.push(
-              QAST::Op.new( :op<say>,
-                QAST::SVal.new( :value(
-                  $object.HOW.name($object) ~ '.BUILDALL called'
-                ))
-              ),
-            );
-            $stmts.push(
-              QAST::Op.new( :op<say>,
-                QAST::Op.new( :op<callmethod>,
-                  QAST::Var.new( :scope<local>, :name('%init') ),
-                  QAST::SVal.new( :value<perl> )
-                )
-              )
-            );
+#            $stmts.push(
+#              QAST::Op.new( :op<say>,
+#                QAST::SVal.new( :value(
+#                  $object.HOW.name($object) ~ '.BUILDALL called'
+#                ))
+#              ),
+#            );
+#            $stmts.push(
+#              QAST::Op.new( :op<say>,
+#                QAST::Op.new( :op<callmethod>,
+#                  QAST::Var.new( :scope<local>, :name('%init') ),
+#                  QAST::SVal.new( :value<perl> )
+#                )
+#              )
+#            );
 
 # my $init := nqp::getattr(%init,Map,'$!storage')
             $stmts.push(QAST::Op.new(
@@ -3134,8 +3134,7 @@ class Perl6::World is HLL::World {
                         if $code < 4 {
 
 # nqp::existskey($init,'a')
-                            my $existskeyop := QAST::Op.new(
-                              :op('existskey'),
+                            my $existskeyop := QAST::Op.new( :op('existskey'),
                               $init,
                               QAST::SVal.new( :value(nqp::atpos($task,3)) )
                             );
@@ -3467,13 +3466,6 @@ class Perl6::World is HLL::World {
                     $!w.add_object_if_no_sc($task);
                 }
             }
-
-            # Debugging
-            $stmts.push(
-              QAST::Op.new( :op<say>,
-                QAST::SVal.new( :value('....done') )
-              )
-            );
 
             # Finally, add the return value
             $stmts.push(QAST::Var.new(:name('self'), :scope('local')));

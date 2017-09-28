@@ -162,9 +162,9 @@ class Perl6::Metamodel::ClassHOW
                     my $method :=
                       $builder($compiler_services,$obj,$BUILDALLPLAN);
                     unless $method =:= NQPMu {
-                        $method.set_name('BUILDALL_UNDER_CONSTRUCTION');
+                        $method.set_name('BUILDALL');
                         my $result := try {
-                            self.add_method($obj,'BUILDALL_UNDER_CONSTRUCTION',$method);
+                            self.add_method($obj,'BUILDALL',$method);
                         }
                         unless $result {
                             nqp::say($obj.HOW.name($obj) ~ ' failed to add a BUILDALL');

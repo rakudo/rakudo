@@ -2,30 +2,30 @@ use lib <t/spec/packages/>;
 use Test;
 use Test::Util;
 
-plan 11;
+plan 6;
 
 # XXX TODO: swap v6.d.PREVIEW to v6.d, once the latter is available
 constant $v6d = 'v6.d.PREVIEW';
 
 ################### HELPER ROUTINES ###################################
 
-sub test-deprecation (
-    Str:D $lang, Str:D $code, Str:D $desc = "with `$code`",
-    Bool :$is-visible
-) {
+sub test-deprecation (Str:D $lang, Str:D $code, Bool :$is-visible) {
     is_run '
         use \qq[$lang];
         %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;
         \qq[$code]
     ', { :out(''), :err($is-visible ?? /deprecated/ !! ''), :0status },
         ($is-visible ?? 'shows' !! 'no   ')
-    ~ " deprecation message $desc [using $lang]";
+    ~ " deprecation message using $lang";
 }
 sub    is-deprecated (|c) { test-deprecation |c, :is-visible }
 sub isn't-deprecated (|c) { test-deprecation |c              }
-sub is-newly-deprecated (|c) {
-    is-deprecated $v6d, |c;
-    isn't-deprecated 'v6.c', |c;
+sub is-newly-deprecated (Str:D $code, Str:D $desc = "with `$code`") {
+    subtest $desc => {
+        plan 2;
+        test-deprecation $v6d,   $code, :is-visible;
+        test-deprecation 'v6.c', $code;
+    }
 }
 
 ######################################################################
@@ -37,8 +37,8 @@ is-newly-deprecated ｢$ = FatRat.new(4,2).FatRat: 42｣;
 is-newly-deprecated ｢".".IO.chdir: "."｣;
 
 subtest 'IO::Handle.slurp-rest' => {
-    plan 4;
+    plan 2;
     my $file := make-temp-file(:content<foo>).absolute.perl;
-    is-newly-deprecated "$file.IO.open.slurp-rest";
-    is-newly-deprecated "$file.IO.open.slurp-rest: :bin";
+    is-newly-deprecated "$file.IO.open.slurp-rest",       '.slurp-rest';
+    is-newly-deprecated "$file.IO.open.slurp-rest: :bin", '.slurp-rest: :bin';
 }

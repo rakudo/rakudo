@@ -1376,25 +1376,20 @@ class Perl6::Optimizer {
         }
     }
 
-    method convert_unicode_op_to_texas($op) {
-        sub should-texify ($from, $to) {
+    method convert_unicode_op_to_ascii($op) {
+        sub asciify-to ($to) {
             try {
-                $!symbols.find_lexical($to);
-                $!symbols.is_from_core($to) && 1;
-            } ?? 1 !! 0;
+                # this method reifies lazy symbol's values, and the value
+                # is then looked at by the is_from_core method.
+                $!symbols.find_lexical($to); # dies if can't find
+                $!symbols.is_from_core($to) && $op.name: $to
+            }
         }
 
-        if $!symbols.is_from_core: $op.name {
-            my $name := $op.name;
-            if    ($name eq '&infix:<≤>'
-                && should-texify('&infix:<≤>', '&infix:«<=»')) {
-                    $op.name: '&infix:«<=»' }
-            elsif ($name eq '&infix:<≥>'
-                && should-texify('&infix:<≥>', '&infix:«>=»')) {
-                    $op.name: '&infix:«>=»' }
-            elsif ($name eq '&infix:<≠>'
-                && should-texify('&infix:<≠>', '&infix:<!=>')) {
-                    $op.name: '&infix:<!=>' }
+        if $!symbols.is_from_core: my $name := $op.name {
+            if    ($name eq '&infix:<≤>') { asciify-to('&infix:«<=»') }
+            elsif ($name eq '&infix:<≥>') { asciify-to('&infix:«>=»') }
+            elsif ($name eq '&infix:<≠>') { asciify-to('&infix:<!=>') }
         }
     }
 
@@ -1404,13 +1399,14 @@ class Perl6::Optimizer {
         my int $found := 0;
         note("method optimize_call $!void_context\n" ~ $op.dump) if $!debug;
 
-        self.convert_unicode_op_to_texas($op);
-
         try {
             $obj := $!symbols.find_lexical($op.name);
             $found := 1;
         }
+
         if $found {
+            self.convert_unicode_op_to_ascii($op);
+
             # Pure operators can be constant folded.
             if nqp::can($obj, 'IS_PURE') && $obj.IS_PURE {
                 # First ensure we're not in void context; warn if so.

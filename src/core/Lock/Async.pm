@@ -49,7 +49,7 @@ my class Lock::Async {
 
     # Base states for Holder
     my constant NO_HOLDER = Holder;
-    my constant SINGLE_HOLDER = Holder.new;
+    my constant SINGLE_HOLDER = nqp::create(Holder);
 
     # The current holder record, with waiters queue, of the lock.
     has Holder $!holder = Holder;

@@ -1252,12 +1252,15 @@ my class Rakudo::Internals {
 
     our class CompilerServices {
         has Mu $!compiler;
+        has Mu $!current-match;
 
         method generate_accessor(str $name, Mu \package_type, str $attr_name, Mu \type, int $rw) {
-            $!compiler.generate_accessor($name, package_type, $attr_name, type, $rw);
+            $!compiler.generate_accessor(
+              $!current-match, $name, package_type, $attr_name, type, $rw);
         }
         method generate_buildplan_executor(Mu \obj, Mu \buildplan) {
-            $!compiler.generate_buildplan_executor(obj, buildplan)
+            $!compiler.generate_buildplan_executor(
+              $!current-match, obj, buildplan)
         }
     }
 

@@ -152,27 +152,26 @@ class Perl6::Metamodel::ClassHOW
             # Create BUILDALL method if we can (if we can't, the one from
             # Mu will be used, which will iterate over the BUILDALLPLAN at
             # runtime).
-            if nqp::isconcrete($compiler_services)
-              && $obj.HOW.name($obj) ne 'Mu' {
-                my $builder := nqp::findmethod(
-                  $compiler_services,'generate_buildplan_executor');
-                my $method := $builder($compiler_services,$obj,$BUILDALLPLAN);
-                if $method =:= NQPMu {
-                    nqp::say('Could not generate a BUILDALL for ' ~ $obj.HOW.name($obj));
+            if nqp::isconcrete($compiler_services) {
+                if nqp::existskey($obj.HOW.method_table($obj),'BUILDPLAN') {
+                    nqp::say($obj.HOW.name($obj) ~ ' already has a BUILDALL');
                 }
                 else {
-                    $method.set_name('BUILDALL');
-#                    my $result := try {
-#                        self.add_method($obj,'BUILDALL',$method)
-#                    }
-#                    unless $result {
-#                        nqp::say($obj.HOW.name($obj) ~ ' failed to add a BUILDALL');
-#                    }
+                    my $builder := nqp::findmethod(
+                      $compiler_services,'generate_buildplan_executor');
+                    my $method :=
+                      $builder($compiler_services,$obj,$BUILDALLPLAN);
+                    unless $method =:= NQPMu {
+                        $method.set_name('BUILDALL_UNDER_CONSTRUCTION');
+                        my $result := try {
+                            self.add_method($obj,'BUILDALL_UNDER_CONSTRUCTION',$method);
+                        }
+                        unless $result {
+                            nqp::say($obj.HOW.name($obj) ~ ' failed to add a BUILDALL');
+                        }
+                    }
                 }
             }
-
-            # Incorporate any new multi candidates (needs MRO built).
-            self.incorporate_multi_candidates($obj);
 
             # Compose the representation
             self.compose_repr($obj);

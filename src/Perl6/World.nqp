@@ -2968,9 +2968,6 @@ class Perl6::World is HLL::World {
         has $!acc_sig_cache;
         has $!acc_sig_cache_type;
 
-        # The generic BUILDALL method for empty BUILDPLANs
-        has $!empty_buildplan_method;
-
         method generate_accessor($/, str $meth_name, $package_type, str $attr_name, $type, int $rw) {
             my $native := nqp::objprimspec($type) != 0;
             my $acc := QAST::Var.new(
@@ -3039,342 +3036,143 @@ class Perl6::World is HLL::World {
         # and JITting opportunities.
         method generate_buildplan_executor($/, $in_object, $in_build_plan) {
 
-            # deconted / low level hash access
-            my $object := nqp::decont($in_object);
+            # low level hash access
             my $build_plan := nqp::getattr(
               nqp::decont($in_build_plan),
               $!w.find_symbol(['List']),
               '$!reified'
             );
 
+            # No buildplan?  we're done!
+            my int $count := nqp::elems($build_plan);
+            unless $count {
+
+                # Indicate that we're not going to auto-generate a BUILDALL
+                # for this class, but let it be handled by Mu.BUILDALL.
+                return NQPMu;
+            }
+
+            # The bare object
+            my $object := nqp::decont($in_object);
+
             # Do we need to wrap an exception handler
             my int $needs_wrapping;
 
-            # There's a BUILDPLAN to work with
-            if nqp::elems($build_plan) -> $count {
+            # The basic statements for object initialization, to be
+            # filled in later
+            my $stmts := QAST::Stmts.new(:node($/));
 
-                # The basic statements for object initialization, to be
-                # filled in later
-                my $stmts := QAST::Stmts.new();
+            my $declarations := QAST::Stmts.new(
+              QAST::Var.new(:decl<param>, :scope<local>, :name<self>),
+              QAST::Var.new(:decl<param>, :scope<local>, :name('@auto')),
+              QAST::Var.new(:decl<param>, :scope<local>, :name('%init')),
+              QAST::Var.new(:decl<var>,   :scope<local>, :name<init>)
+            );
 
-                my $declarations := QAST::Stmts.new(
-                  QAST::Var.new(:decl<param>, :scope<local>, :name<self>),
-                  QAST::Var.new(:decl<param>, :scope<local>, :name('@auto')),
-                  QAST::Var.new(:decl<param>, :scope<local>, :name('%init')),
-                  QAST::Var.new(:decl<var>,   :scope<local>, :name<init>)
-                );
+            # The block of the method
+            my $block := QAST::Block.new(
+              :name<BUILDALL>, :blocktype<declaration_static>,
+              $declarations
+            );
 
-                # The block of the method
-                my $block := QAST::Block.new(
-                  :name<BUILDALL>, :blocktype<declaration_static>,
-                  $declarations
-                );
+            # Register the block in its SC
+            $!w.cur_lexpad()[0].push($block);
 
-                # Register the block in its SC
-                $!w.cur_lexpad()[0].push($block);
+            # Create the invocant type we need
+            my $invocant_type := $object;
+            $!w.create_definite_type(
+              $!w.find_symbol(['Metamodel','DefiniteHOW']),
+              $object,
+              1
+            );
 
-                my $invocant_type := $!w.create_definite_type(
-                  $!w.find_symbol(['Metamodel','DefiniteHOW']),
-                  $object,
-                  1
-                );
-
-                $stmts.push(
-                  QAST::Op.new( :op<say>,
-                    QAST::SVal.new( :value(
-                      $object.HOW.name($object) ~ '.BUILDALL called'
-                    ))
-                  ),
-                );
-                $stmts.push(
-                  QAST::Op.new( :op<say>,
-                    QAST::Op.new( :op<callmethod>,
-                      QAST::Var.new( :scope<local>, :name('%init') ),
-                      QAST::SVal.new( :value<perl> )
-                    )
-                  )
-                );
+            # Debugging
+            $stmts.push(
+              QAST::Op.new( :op<say>,
+                QAST::SVal.new( :value(
+                  $object.HOW.name($object) ~ '.BUILDALL called'
+                ))
+              ),
+            );
+            $stmts.push(
+              QAST::Op.new( :op<say>,
+                QAST::Op.new( :op<callmethod>,
+                  QAST::Var.new( :scope<local>, :name('%init') ),
+                  QAST::SVal.new( :value<perl> )
+                )
+              )
+            );
 
 # my $init := nqp::getattr(%init,Map,'$!storage')
-                $stmts.push(QAST::Op.new(
-                  :op('bind'),
-                  (my $init := QAST::Var.new(:scope<local>, :name<init>)),
-                  QAST::Op.new(
-                    :op('getattr'),
-                    QAST::Var.new( :scope<local>, :name('%init') ),
-                    QAST::WVal.new( :value($!w.find_symbol(['Map'])) ),
-                    QAST::SVal.new( :value('$!storage') )
-                  )
-                ));
+            $stmts.push(QAST::Op.new(
+              :op('bind'),
+              (my $init := QAST::Var.new(:scope<local>, :name<init>)),
+              QAST::Op.new(
+                :op('getattr'),
+                QAST::Var.new( :scope<local>, :name('%init') ),
+                QAST::WVal.new( :value($!w.find_symbol(['Map'])) ),
+                QAST::SVal.new( :value('$!storage') )
+              )
+            ));
 
-                my int $i := -1;
-                while nqp::islt_i($i := nqp::add_i($i, 1), $count) {
+            # Do all of the actions in the BUILDPLAN
+            my int $i := -1;
+            while nqp::islt_i($i := nqp::add_i($i, 1), $count) {
 
-                    # We have some intricate action to do
-                    if nqp::islist(my $task := nqp::atpos($build_plan,$i)) {
+                # We have some intricate action to do
+                if nqp::islist(my $task := nqp::atpos($build_plan,$i)) {
 
-                        # Register the class in the SC if needed
-                        $!w.add_object_if_no_sc( nqp::atpos($task,1) );
+                    # Register the class in the SC if needed
+                    $!w.add_object_if_no_sc( nqp::atpos($task,1) );
 
-                        # Generate the WVal for setting the class object
-                        my $classwval :=
-                          QAST::WVal.new( :value(nqp::atpos($task,1) ) );
+                    # Generate the WVal for setting the class object
+                    my $classwval :=
+                      QAST::WVal.new( :value(nqp::atpos($task,1) ) );
 
-                        if nqp::atpos($task,0) -> $code {
+                    if nqp::atpos($task,0) -> $code {
 
-                            # 1,2,3 = initialize native from %init
-                            if $code < 4 {
+                        # 1,2,3 = initialize native from %init
+                        if $code < 4 {
 
 # nqp::existskey($init,'a')
-                                my $existskeyop := QAST::Op.new(
-                                  :op('existskey'),
-                                  $init,
-                                  QAST::SVal.new( :value(nqp::atpos($task,3)) )
-                                );
+                            my $existskeyop := QAST::Op.new(
+                              :op('existskey'),
+                              $init,
+                              QAST::SVal.new( :value(nqp::atpos($task,3)) )
+                            );
 
 # nqp::bindattr_x(self,Foo,'$!a',nqp::decont(%init.AT-KEY('a')))
-                                my $bindattrop := QAST::Op.new(
-                                  :op( 'bindattr' ~ @psp[$code] ),
-                                  QAST::Var.new( :name<self>, :scope<local> ),
-                                  $classwval,
-                                  QAST::SVal.new( :value(nqp::atpos($task,2)) ),
-                                  QAST::Op.new( :op<decont>,
-                                    QAST::Op.new( :op<callmethod>,
-                                      QAST::Var.new(
-                                        :scope<local>, :name('%init')),
-                                      QAST::SVal.new( :value<AT-KEY> ),
-                                      QAST::SVal.new(
-                                        :value(nqp::atpos($task,3)) )
-                                    )
-                                  )
-                                );
+                            my $bindattrop := QAST::Op.new(
+                              :op( 'bindattr' ~ @psp[$code] ),
+                              QAST::Var.new( :name<self>, :scope<local> ),
+                              $classwval,
+                              QAST::SVal.new( :value(nqp::atpos($task,2)) ),
+                              QAST::Op.new( :op<decont>,
+                                QAST::Op.new( :op<callmethod>,
+                                  QAST::Var.new(:scope<local>, :name('%init')),
+                                  QAST::SVal.new( :value<AT-KEY> ),
+                                  QAST::SVal.new(
+                                    :value(nqp::atpos($task,3)) )
+                                )
+                              )
+                            );
 
 # nqp::if(
 #   nqp::existskey($init,'a'),
 #   nqp::bindattr_x(self,Foo,'$!a',nqp::decont(%init.AT-KEY('a')))
 # ),
-                                $stmts.push(
-                                  QAST::Op.new(:op<if>,$existskeyop,$bindattrop)
-                                );
-                            }
-
-                            # 4 = set opaque with default if not set yet
-                            elsif $code == 4 {
-# nqp::getattr(self,Foo,'$!a')
-                                my $getattrop := QAST::Op.new( :op<getattr>,
-                                  QAST::Var.new( :name<self>, :scope<local> ),
-                                  $classwval,
-                                  QAST::SVal.new( :value(nqp::atpos($task,2)) )
-                                );
-
-                                # set assign operation to be used
-                                my $sigil :=
-                                  nqp::substr(nqp::atpos($task,2),0,1);
-                                my $op := $sigil eq '$' || $sigil eq '&'
-                                  ?? 'assign'
-                                  !! 'p6store';
-# nqp::unless(
-#   nqp::attrinited(self,Foo,'$!a'),
-#   (nqp::getattr(self,Foo,'$!a') =
-#     $initializer(self,nqp::getattr(self,Foo,'$!a')))
-# ),
-                                $stmts.push(
-                                  QAST::Op.new( :op<unless>,
-                                    QAST::Op.new( :op<attrinited>,
-                                      QAST::Var.new(:name<self>, :scope<local>),
-                                      $classwval,
-                                      QAST::SVal.new(
-                                        :value(nqp::atpos($task,2))
-                                      )
-                                    ),
-                                    QAST::Op.new( :$op,
-                                      $getattrop,
-                                      QAST::Op.new( :op<call>,
-                                        QAST::WVal.new(
-                                          :value(nqp::atpos($task,3))
-                                        ),
-                                        QAST::Var.new(
-                                          :name('self'),
-                                          :scope('local')
-                                        ),
-                                        $getattrop
-                                      )
-                                    )
-                                  )
-                                );
-
-                                $!w.add_object_if_no_sc(nqp::atpos($task,3));
-                            }
-
-                            # 5,6 = set native numeric with default if not set
-                            elsif $code < 7 {
-# nqp::getattr_x(self,Foo,'$!a')
-                                my $getattrop := QAST::Op.new(
-                                  :op('getattr' ~ @psp[$code - 4]),
-                                  QAST::Var.new( :name<self>, :scope<local> ),
-                                  $classwval,
-                                  QAST::SVal.new( :value(nqp::atpos($task,2)) )
-                                );
-# nqp::if(
-#   nqp::iseq_x(
-#     nqp::getattr_x(self,Foo,'$!a'),
-#     (native default value)
-#   ),
-#   nqp::bindattr_x(self,Foo,'$!a',
-#     $initializer(self,nqp::getattr_x(self,Foo,'$!a')))
-# ),
-                                $stmts.push(
-                                  QAST::Op.new( :op<if>,
-                                    QAST::Op.new(
-                                      :op('iseq' ~ @psp[$code - 4]),
-                                      $getattrop,
-                                      @psd[$code - 4],
-                                    ),
-                                    QAST::Op.new(
-                                      :op('bindattr' ~ @psp[$code - 4]),
-                                      QAST::Var.new(:name<self>, :scope<local>),
-                                      $classwval,
-                                      QAST::SVal.new(
-                                        :value(nqp::atpos($task,2)) ),
-                                      QAST::Op.new( :op<call>,
-                                        QAST::WVal.new(
-                                          :value(nqp::atpos($task,3))
-                                        ),
-                                        QAST::Var.new(
-                                          :name('self'),
-                                          :scope('local')
-                                        ),
-                                        $getattrop
-                                      )
-                                    )
-                                  )
-                                );
-
-                                $!w.add_object_if_no_sc(nqp::atpos($task,3));
-                            }
-
-                            # 7 = set native string with default if not set
-                            elsif $code == 7 {
-# nqp::getattr_s(self,Foo,'$!a')
-                                my $getattrop := QAST::Op.new( :op<getattr_s>,
-                                  QAST::Var.new( :name<self>, :scope<local> ),
-                                  $classwval,
-                                  QAST::SVal.new( :value(nqp::atpos($task,2)) )
-                                );
-
-# nqp::if(
-#   nqp::isnull_s(nqp::getattr_s(self,Foo,'$!a')),
-#   nqp::bindattr_s(self,Foo,'$!a',
-#     $initializer(self,nqp::getattr_s(self,Foo,'$!a')))
-# ),
-                                $stmts.push(
-                                  QAST::Op.new( :op<if>,
-                                    QAST::Op.new( :op<isnull_s>, $getattrop),
-                                    QAST::Op.new( :op<bindattr_s>,
-                                      QAST::Var.new(:name<self>, :scope<local>),
-                                      $classwval,
-                                      QAST::SVal.new(
-                                        :value(nqp::atpos($task,2)) ),
-                                      QAST::Op.new( :op<call>,
-                                        QAST::WVal.new(
-                                          :value(nqp::atpos($task,3))
-                                        ),
-                                        QAST::Var.new(
-                                          :name('self'),
-                                          :scope('local')
-                                        ),
-                                        $getattrop
-                                      )
-                                    )
-                                  )
-                                );
-
-                                $!w.add_object_if_no_sc(nqp::atpos($task,3));
-                            }
-
-                            # 8 = bail if opaque not yet initialized
-                            elsif $code == 8 {
-# nqp::getattr(self,Foo,'$!a')
-                                my $getattrop := QAST::Op.new( :op<getattr>,
-                                  QAST::Var.new( :name<self>, :scope<local> ),
-                                  $classwval,
-                                  QAST::SVal.new( :value(nqp::atpos($task,2)) )
-                                );
-
-# nqp::unless(
-#   nqp::attrinited(self,Foo,'$!a'),
-#   X::Attribute::Required.new(name => '$!a', why => (value))
-# ),
-                                $stmts.push(
-                                  QAST::Op.new( :op<unless>,
-                                    QAST::Op.new( :op<attrinited>,
-                                      QAST::Var.new(:name<self>, :scope<local>),
-                                      $classwval,
-                                      QAST::SVal.new(
-                                        :value(nqp::atpos($task,2))
-                                      )
-                                    ),
-                                    QAST::Op.new( :op<callmethod>,
-                                      QAST::Op.new( :op<callmethod>,
-                                        QAST::WVal.new( :value(
-                                          $!w.find_symbol(
-                                            ['X','Attribute','Required']
-                                          )
-                                        )),
-                                        QAST::SVal.new( :value<new> ),
-                                        QAST::SVal.new( :named('name'),
-                                          :value(nqp::atpos($task,2))
-                                        ),
-                                        QAST::WVal.new( :named('why'),
-                                          :value(nqp::atpos($task,3))
-                                        )
-                                      ),
-                                      QAST::SVal.new( :value<throw> ),
-                                    )
-                                  )
-                                );
-                            }
-
-                            # 9 = run attribute container initializer
-                            elsif $code == 9 {
-
-# nqp::bindattr(self,Foo,'$!a',$initializer())
-                                $stmts.push(
-                                  QAST::Op.new( :op<bindattr>,
-                                    QAST::Var.new(:name<self>, :scope<local>),
-                                    $classwval,
-                                    QAST::SVal.new(
-                                      :value(nqp::atpos($task,2)) ),
-                                    QAST::Op.new( :op<call>,
-                                      QAST::WVal.new(
-                                        :value(nqp::atpos($task,3))
-                                      )
-                                    )
-                                  )
-                                );
-
-                                $!w.add_object_if_no_sc(nqp::atpos($task,3));
-                            }
-
-                            else {
-                                nqp::die("Invalid BUILDALL plan");
-                            }
+                            $stmts.push(
+                              QAST::Op.new(:op<if>,$existskeyop,$bindattrop)
+                            );
                         }
 
-                        # 0 = initialize opaque from %init
-                        else {
-
-# nqp::existskey($init,'a')
-                            my $existskeyop := QAST::Op.new( :op('existskey'),
-                              $init,
-                              QAST::SVal.new( :value(nqp::atpos($task,3)) )
-                            );
-
+                        # 4 = set opaque with default if not set yet
+                        elsif $code == 4 {
 # nqp::getattr(self,Foo,'$!a')
                             my $getattrop := QAST::Op.new( :op<getattr>,
                               QAST::Var.new( :name<self>, :scope<local> ),
                               $classwval,
-                              QAST::SVal.new( :value( nqp::atpos($task,2) ) )
+                              QAST::SVal.new( :value(nqp::atpos($task,2)) )
                             );
 
                             # set assign operation to be used
@@ -3383,39 +3181,239 @@ class Perl6::World is HLL::World {
                             my $op := $sigil eq '$' || $sigil eq '&'
                               ?? 'assign'
                               !! 'p6store';
-# nqp::if(
-#   nqp::existskey($init,'a'),
-#   nqp::getattr(self,Foo,'$!a') = %init.AT-KEY('a')
+# nqp::unless(
+#   nqp::attrinited(self,Foo,'$!a'),
+#   (nqp::getattr(self,Foo,'$!a') =
+#     $initializer(self,nqp::getattr(self,Foo,'$!a')))
 # ),
                             $stmts.push(
-                              QAST::Op.new( :op<if>,
-                                $existskeyop,
+                              QAST::Op.new( :op<unless>,
+                                QAST::Op.new( :op<attrinited>,
+                                  QAST::Var.new(:name<self>, :scope<local>),
+                                  $classwval,
+                                  QAST::SVal.new(
+                                    :value(nqp::atpos($task,2))
+                                  )
+                                ),
                                 QAST::Op.new( :$op,
                                   $getattrop,
-                                  QAST::Op.new( :op<callmethod>,
-                                    QAST::Var.new(:scope<local>,:name('%init')),
-                                    QAST::SVal.new(:value<AT-KEY>),
-                                    QAST::SVal.new(:value(nqp::atpos($task,3)))
+                                  QAST::Op.new( :op<call>,
+                                    QAST::WVal.new(
+                                      :value(nqp::atpos($task,3))
+                                    ),
+                                    QAST::Var.new(
+                                      :name('self'),
+                                      :scope('local')
+                                    ),
+                                    $getattrop
                                   )
                                 )
                               )
                             );
+
+                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                        }
+
+                        # 5,6 = set native numeric with default if not set
+                        elsif $code < 7 {
+# nqp::getattr_x(self,Foo,'$!a')
+                            my $getattrop := QAST::Op.new(
+                              :op('getattr' ~ @psp[$code - 4]),
+                              QAST::Var.new( :name<self>, :scope<local> ),
+                              $classwval,
+                              QAST::SVal.new( :value(nqp::atpos($task,2)) )
+                            );
+# nqp::if(
+#   nqp::iseq_x(
+#     nqp::getattr_x(self,Foo,'$!a'),
+#     (native default value)
+#   ),
+#   nqp::bindattr_x(self,Foo,'$!a',
+#     $initializer(self,nqp::getattr_x(self,Foo,'$!a')))
+# ),
+                            $stmts.push(
+                              QAST::Op.new( :op<if>,
+                                QAST::Op.new(
+                                  :op('iseq' ~ @psp[$code - 4]),
+                                  $getattrop,
+                                  @psd[$code - 4],
+                                ),
+                                QAST::Op.new(
+                                  :op('bindattr' ~ @psp[$code - 4]),
+                                  QAST::Var.new(:name<self>, :scope<local>),
+                                  $classwval,
+                                  QAST::SVal.new(:value(nqp::atpos($task,2))),
+                                  QAST::Op.new( :op<call>,
+                                    QAST::WVal.new(:value(nqp::atpos($task,3))
+                                    ),
+                                    QAST::Var.new(
+                                      :name('self'),
+                                      :scope('local')
+                                    ),
+                                    $getattrop
+                                  )
+                                )
+                              )
+                            );
+
+                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                        }
+
+                        # 7 = set native string with default if not set
+                        elsif $code == 7 {
+# nqp::getattr_s(self,Foo,'$!a')
+                            my $getattrop := QAST::Op.new( :op<getattr_s>,
+                              QAST::Var.new( :name<self>, :scope<local> ),
+                              $classwval,
+                              QAST::SVal.new( :value(nqp::atpos($task,2)) )
+                            );
+
+# nqp::if(
+#   nqp::isnull_s(nqp::getattr_s(self,Foo,'$!a')),
+#   nqp::bindattr_s(self,Foo,'$!a',
+#     $initializer(self,nqp::getattr_s(self,Foo,'$!a')))
+# ),
+                            $stmts.push(
+                              QAST::Op.new( :op<if>,
+                                QAST::Op.new( :op<isnull_s>, $getattrop),
+                                QAST::Op.new( :op<bindattr_s>,
+                                  QAST::Var.new(:name<self>, :scope<local>),
+                                  $classwval,
+                                  QAST::SVal.new(:value(nqp::atpos($task,2))),
+                                  QAST::Op.new( :op<call>,
+                                    QAST::WVal.new(:value(nqp::atpos($task,3))),
+                                    QAST::Var.new(
+                                      :name('self'),
+                                      :scope('local')
+                                    ),
+                                    $getattrop
+                                  )
+                                )
+                              )
+                            );
+
+                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                        }
+
+                        # 8 = bail if opaque not yet initialized
+                        elsif $code == 8 {
+# nqp::getattr(self,Foo,'$!a')
+                            my $getattrop := QAST::Op.new( :op<getattr>,
+                              QAST::Var.new( :name<self>, :scope<local> ),
+                              $classwval,
+                              QAST::SVal.new( :value(nqp::atpos($task,2)) )
+                            );
+
+# nqp::unless(
+#   nqp::attrinited(self,Foo,'$!a'),
+#   X::Attribute::Required.new(name => '$!a', why => (value))
+# ),
+                            $stmts.push(
+                              QAST::Op.new( :op<unless>,
+                                QAST::Op.new( :op<attrinited>,
+                                  QAST::Var.new(:name<self>, :scope<local>),
+                                  $classwval,
+                                  QAST::SVal.new(:value(nqp::atpos($task,2)))
+                                ),
+                                QAST::Op.new( :op<callmethod>,
+                                  QAST::Op.new( :op<callmethod>,
+                                    QAST::WVal.new( :value(
+                                      $!w.find_symbol(
+                                        ['X','Attribute','Required']
+                                      )
+                                    )),
+                                    QAST::SVal.new( :value<new> ),
+                                    QAST::SVal.new( :named('name'),
+                                      :value(nqp::atpos($task,2))
+                                    ),
+                                    QAST::WVal.new( :named('why'),
+                                      :value(nqp::atpos($task,3))
+                                    )
+                                  ),
+                                  QAST::SVal.new( :value<throw> ),
+                                )
+                              )
+                            );
+                        }
+
+                        # 9 = run attribute container initializer
+                        elsif $code == 9 {
+
+# nqp::bindattr(self,Foo,'$!a',$initializer())
+                            $stmts.push(
+                              QAST::Op.new( :op<bindattr>,
+                                QAST::Var.new(:name<self>, :scope<local>),
+                                $classwval,
+                                QAST::SVal.new(:value(nqp::atpos($task,2))),
+                                QAST::Op.new( :op<call>,
+                                  QAST::WVal.new(:value(nqp::atpos($task,3)))
+                                )
+                              )
+                            );
+
+                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                        }
+
+                        else {
+                            nqp::die("Invalid BUILDALL plan");
                         }
                     }
 
-                    # BUILD/TWEAK
+                    # 0 = initialize opaque from %init
                     else {
 
-                        # BUILD or TWEAK without BUILD (first seen)
-                        unless $needs_wrapping {
+# nqp::existskey($init,'a')
+                        my $existskeyop := QAST::Op.new( :op('existskey'),
+                          $init,
+                          QAST::SVal.new( :value(nqp::atpos($task,3)) )
+                        );
+
+# nqp::getattr(self,Foo,'$!a')
+                        my $getattrop := QAST::Op.new( :op<getattr>,
+                          QAST::Var.new( :name<self>, :scope<local> ),
+                          $classwval,
+                          QAST::SVal.new( :value( nqp::atpos($task,2) ) )
+                        );
+
+                        # set assign operation to be used
+                        my $sigil :=
+                          nqp::substr(nqp::atpos($task,2),0,1);
+                        my $op := $sigil eq '$' || $sigil eq '&'
+                          ?? 'assign'
+                          !! 'p6store';
+# nqp::if(
+#   nqp::existskey($init,'a'),
+#   nqp::getattr(self,Foo,'$!a') = %init.AT-KEY('a')
+# ),
+                        $stmts.push(
+                          QAST::Op.new( :op<if>,
+                            $existskeyop,
+                            QAST::Op.new( :$op,
+                              $getattrop,
+                              QAST::Op.new( :op<callmethod>,
+                                QAST::Var.new(:scope<local>,:name('%init')),
+                                QAST::SVal.new(:value<AT-KEY>),
+                                QAST::SVal.new(:value(nqp::atpos($task,3)))
+                              )
+                            )
+                          )
+                        );
+                    }
+                }
+
+                # BUILD/TWEAK
+                else {
+
+                    # BUILD or TWEAK without BUILD (first seen)
+                    unless $needs_wrapping {
 
 # (my $return),
-                            $declarations.push(
-                              QAST::Var.new(
-                                :decl<var>, :scope<local>, :name<return>)
-                            );
-                            $needs_wrapping := 1
-                        };
+                        $declarations.push(
+                          QAST::Var.new(
+                            :decl<var>, :scope<local>, :name<return>)
+                        );
+                        $needs_wrapping := 1
+                    };
 
 # nqp::if(
 #   nqp::istype(
@@ -3428,108 +3426,78 @@ class Perl6::World is HLL::World {
 #   ),
 #   return $return
 # ),
-                        $stmts.push(
-                          QAST::Op.new( :op<if>,
-                            QAST::Op.new( :op<istype>,
-                              QAST::Op.new( :op<bind>,
-                                QAST::Var.new(:scope<local>, :name<return>),
-                                QAST::Op.new( :op<if>,
-                                  QAST::Op.new( :op<elems>, $init ),
-                                  QAST::Op.new( :op<call>,
-                                    QAST::WVal.new( :value($task) ),
-                                    QAST::Var.new(
-                                      :name('self'),
-                                      :scope('local')
-                                    ),
-                                    QAST::Var.new(
-                                      :scope<local>,
-                                      :name<init>,  # use nqp::hash directly
-                                      :flat(1),
-                                      :named(1)
-                                    ),
-                                  ),
-                                  QAST::Op.new( :op<call>,
-                                    QAST::WVal.new( :value($task) ),
-                                    QAST::Var.new(:name('self'),:scope('local'))
-                                  )
-                                )
+                    $stmts.push(
+                      QAST::Op.new( :op<if>,
+                        QAST::Op.new( :op<istype>,
+                          QAST::Op.new( :op<bind>,
+                            QAST::Var.new(:scope<local>, :name<return>),
+                            QAST::Op.new( :op<if>,
+                              QAST::Op.new( :op<elems>, $init ),
+                              QAST::Op.new( :op<call>,
+                                QAST::WVal.new( :value($task) ),
+                                QAST::Var.new(
+                                  :name('self'),
+                                  :scope('local')
+                                ),
+                                QAST::Var.new(
+                                  :scope<local>,
+                                  :name<init>,  # use nqp::hash directly
+                                  :flat(1),
+                                  :named(1)
+                                ),
                               ),
-                              QAST::WVal.new(
-                                :value($!w.find_symbol(['Failure']))
-                              ),
-                            ),
-                            QAST::Op.new( :op<call>,
-                              QAST::WVal.new(
-                                :value($!w.find_symbol(['&return']))
-                              ),
-                              QAST::Var.new(:scope<local>, :name<return>)
+                              QAST::Op.new( :op<call>,
+                                QAST::WVal.new( :value($task) ),
+                                QAST::Var.new(:name('self'),:scope('local'))
+                              )
                             )
-                          )
-                        );
-
-                        $!w.add_object_if_no_sc($task);
-                    }
-                }
-
-                # Finally, add the return value
-                $stmts.push(QAST::Var.new(:name('self'), :scope('local')));
-
-                # Need to wrap an exception handler around
-                if $needs_wrapping {
-                    $stmts := QAST::Op.new( :op<handlepayload>,
-                      $stmts,
-                      'RETURN',
-                      QAST::Op.new( :op<lastexpayload> )
+                          ),
+                          QAST::WVal.new(
+                            :value($!w.find_symbol(['Failure']))
+                          ),
+                        ),
+                        QAST::Op.new( :op<call>,
+                          QAST::WVal.new(
+                            :value($!w.find_symbol(['&return']))
+                          ),
+                          QAST::Var.new(:scope<local>, :name<return>)
+                        )
+                      )
                     );
-                }
 
-                # Add the statements to the block
-                $block.push($stmts);
+                    $!w.add_object_if_no_sc($task);
+                }
+            }
+
+            # Debugging
+            $stmts.push(
+              QAST::Op.new( :op<say>,
+                QAST::SVal.new( :value('....done') )
+              )
+            );
+
+            # Finally, add the return value
+            $stmts.push(QAST::Var.new(:name('self'), :scope('local')));
+
+            # Need to wrap an exception handler around
+            if $needs_wrapping {
+                $stmts := QAST::Op.new( :op<handlepayload>,
+                  $stmts,
+                  'RETURN',
+                  QAST::Op.new( :op<lastexpayload> )
+                );
+            }
+
+            # Add the statements to the block
+            $block.push($stmts);
 
 # :(Foo:D: %init)
-                my $sig := $!w.create_signature_and_params(
-                  NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
-                );
+            my $sig := $!w.create_signature_and_params(
+              NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
+            );
 
-                # Create the code object and return it
-                $!w.create_code_object($block, 'Submethod', $sig)
-            }
-
-            # Empty buildplan, and we already have an empty buildplan method
-            elsif $!empty_buildplan_method {
-                $!empty_buildplan_method
-            }
-
-            # Empty buildplan, still need to make an empty method
-            else {
-
-# submethod :: (Any:D:) { self }
-                my $block := QAST::Block.new(
-                  :name<BUILDALL>, :blocktype<declaration_static>,
-                  QAST::Stmts.new(
-                    QAST::Var.new(:decl<param>, :scope<local>, :name<self>),
-                    QAST::Var.new(:decl<param>, :scope<local>, :name('%init')),
-                  ),
-                  QAST::Var.new(:name('self'), :scope('local'))
-                );
-
-                # Register the block in its SC
-                $!w.cur_lexpad()[0].push($block);
-
-                my $invocant_type := $!w.create_definite_type(
-                  $!w.find_symbol(['Metamodel','DefiniteHOW']),
-                  $!w.find_symbol(['Any']),
-                  1
-                );
-
-                my $sig := $!w.create_signature_and_params(
-                  NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
-                );
-
-                # Create the code object, save and return it
-                $!empty_buildplan_method :=
-                  $!w.create_code_object($block,'Submethod',$sig)
-            }
+            # Create the code object and return it
+            $!w.create_code_object($block, 'Submethod', $sig)
         }
     }
 

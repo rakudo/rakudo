@@ -3028,7 +3028,7 @@ class Perl6::World is HLL::World {
 
         # signature configuration hash for ":(%init)"
         my %sig_init := nqp::hash('parameters', [
-          nqp::hash('variable_name','%init','is_multi_invocant',1)
+          nqp::hash('variable_name','%init')
         ]);
 
         # Generate a method for building a new object that takes a hash
@@ -3058,6 +3058,7 @@ class Perl6::World is HLL::World {
 
                 my $declarations := QAST::Stmts.new(
                   QAST::Var.new(:decl<param>, :scope<local>, :name<self>),
+                  QAST::Var.new(:decl<param>, :scope<local>, :name('@auto')),
                   QAST::Var.new(:decl<param>, :scope<local>, :name('%init')),
                   QAST::Var.new(:decl<var>,   :scope<local>, :name<init>)
                 );
@@ -3082,6 +3083,14 @@ class Perl6::World is HLL::World {
                     QAST::SVal.new( :value(
                       $object.HOW.name($object) ~ '.BUILDALL called'
                     ))
+                  ),
+                );
+                $stmts.push(
+                  QAST::Op.new( :op<say>,
+                    QAST::Op.new( :op<callmethod>,
+                      QAST::Var.new( :scope<local>, :name('%init') ),
+                      QAST::SVal.new( :value<perl> )
+                    )
                   )
                 );
 

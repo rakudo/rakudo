@@ -115,7 +115,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             (my $bless := nqp::findmethod(self,'bless')),
             nqp::findmethod(Mu,'bless')
           ),
-          nqp::create(self).BUILDALL(%attrinit),
+          nqp::create(self).BUILDALL(Empty, %attrinit),
           nqp::invokewithcapture($bless,nqp::usecapture)
         )
     }
@@ -131,18 +131,10 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     method bless(*%attrinit) {
-        nqp::create(self).BUILDALL(%attrinit);
+        nqp::create(self).BUILDALL(Empty, %attrinit);
     }
 
-    proto method BUILDALL(|) { * }
-
-    # This candidate provided for those modules that rely on the old
-    # BUILDALL interface, such as Inline::Perl5
-    multi method BUILDALL(Mu:D: @positional,%attrinit) {
-        self.BUILDALL(%attrinit)
-    }
-
-    multi method BUILDALL(Mu:D: %attrinit) {
+    method BUILDALL(Mu:D: @autovivs, %attrinit) {
         my $init := nqp::getattr(%attrinit,Map,'$!storage');
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which

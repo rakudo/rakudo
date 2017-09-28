@@ -152,7 +152,8 @@ class Perl6::Metamodel::ClassHOW
             # Create BUILDALL method if we can (if we can't, the one from
             # Mu will be used, which will iterate over the BUILDALLPLAN at
             # runtime).
-            if nqp::isconcrete($compiler_services) {
+            if nqp::isconcrete($compiler_services)
+              && $obj.HOW.name($obj) ne 'Mu' {
                 my $builder := nqp::findmethod(
                   $compiler_services,'generate_buildplan_executor');
                 my $method := $builder($compiler_services,$obj,$BUILDALLPLAN);
@@ -161,12 +162,12 @@ class Perl6::Metamodel::ClassHOW
                 }
                 else {
                     $method.set_name('BUILDALL');
-                    my $result := try {
-                        self.add_multi_method($obj,'BUILDALL',$method)
-                    }
-                    unless $result {
-                        nqp::say($obj.HOW.name($obj) ~ ' failed to add a BUILDALL');
-                    }
+#                    my $result := try {
+#                        self.add_method($obj,'BUILDALL',$method)
+#                    }
+#                    unless $result {
+#                        nqp::say($obj.HOW.name($obj) ~ ' failed to add a BUILDALL');
+#                    }
                 }
             }
 

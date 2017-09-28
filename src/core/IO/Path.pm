@@ -574,9 +574,12 @@ my class IO::Path is Cool does IO {
             $handle,
             nqp::stmts(
                 (my $blob := $handle.slurp(:close)),
-                nqp::if($bin, $blob, nqp::join("\n",
-                  nqp::split("\r\n", $blob.decode: $enc || 'utf-8')))
-            ))
+                nqp::if($bin, $blob,
+                    nqp::if(
+                        nqp::isne_i(nqp::elems(my $l := nqp::split("\r\n", $blob.decode: $enc || 'utf-8')), 1),
+                        nqp::join("\n", $l),
+                        nqp::atpos($l, 0)
+            ))))
     }
 
     method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly) {

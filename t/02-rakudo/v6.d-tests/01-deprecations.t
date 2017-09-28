@@ -2,7 +2,7 @@ use lib <t/spec/packages/>;
 use Test;
 use Test::Util;
 
-plan 6;
+plan 7;
 
 # XXX TODO: swap v6.d.PREVIEW to v6.d, once the latter is available
 constant $v6d = 'v6.d.PREVIEW';
@@ -42,3 +42,10 @@ subtest 'IO::Handle.slurp-rest' => {
     is-newly-deprecated "$file.IO.open.slurp-rest",       '.slurp-rest';
     is-newly-deprecated "$file.IO.open.slurp-rest: :bin", '.slurp-rest: :bin';
 }
+
+
+# Should be removed in 6.d, but I made it just die, at least for now,
+# as I'm unsure how the removal is meant to happen, if we still wish
+# to have it working in 6.c tests
+is_run 'use \qq[$v6d]; use Test; try is_approx 1, 1; $! and say "test passed"',
+    {:out(/'test passed'/), :0status }, 'is_approx dies in v6.d';

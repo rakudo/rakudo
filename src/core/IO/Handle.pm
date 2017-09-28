@@ -674,9 +674,8 @@ my class IO::Handle {
 
     proto method slurp-rest(|) { * }
     multi method slurp-rest(IO::Handle:D: :$bin! where *.so, :$close --> Buf:D) {
-        # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
-        # Testing of it in roast master has been removed and only kept in 6.c
-        # If you're changing this code for whatever reason, test with 6.c-errata
+        DEPRECATED '.slurp', '6.d', '6.e', :lang-vers;
+
         LEAVE self.close if $close;
         my $res := buf8.new;
         loop {
@@ -687,9 +686,8 @@ my class IO::Handle {
         }
     }
     multi method slurp-rest(IO::Handle:D: :$enc, :$bin, :$close --> Str:D) {
-        # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
-        # Testing of it in roast master has been removed and only kept in 6.c
-        # If you're changing this code for whatever reason, test with 6.c-errata
+        DEPRECATED '.slurp', '6.d', '6.e', :lang-vers;
+
         $!decoder or die X::IO::BinaryMode.new(:trying<slurp-rest>);
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;

@@ -1377,11 +1377,24 @@ class Perl6::Optimizer {
     }
 
     method convert_mexico_op_to_texas($op) {
+        sub should-texify ($from, $to) {
+            try {
+                $!symbols.find_lexical($to);
+                $!symbols.is_from_core($to) && 1;
+            } ?? 1 !! 0;
+        }
+
         if $!symbols.is_from_core: $op.name {
             my $name := $op.name;
-            if    ($name eq '&infix:<≤>') { $op.name: '&infix:«<=»' }
-            elsif ($name eq '&infix:<≥>') { $op.name: '&infix:«>=»' }
-            elsif ($name eq '&infix:<≠>') { $op.name: '&infix:<!=>' }
+            if    ($name eq '&infix:<≤>'
+                && should-texify('&infix:<≤>', '&infix:«<=»')) {
+                    $op.name: '&infix:«<=»' }
+            elsif ($name eq '&infix:<≥>'
+                && should-texify('&infix:<≥>', '&infix:«>=»')) {
+                    $op.name: '&infix:«>=»' }
+            elsif ($name eq '&infix:<≠>'
+                && should-texify('&infix:<≠>', '&infix:<!=>')) {
+                    $op.name: '&infix:<!=>' }
         }
     }
 

@@ -3079,8 +3079,7 @@ class Perl6::World is HLL::World {
             $!w.cur_lexpad()[0].push($block);
 
             # Create the invocant type we need
-            my $invocant_type := $object;
-            $!w.create_definite_type(
+            my $invocant_type := $!w.create_definite_type(
               $!w.find_symbol(['Metamodel','DefiniteHOW']),
               $object,
               1

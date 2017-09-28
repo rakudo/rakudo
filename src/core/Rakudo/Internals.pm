@@ -17,6 +17,20 @@ my class Rakudo::Internals {
     # for use in nqp::splice
     my $empty := nqp::list;
 
+    our class CompilerServices {
+        has Mu $!compiler;
+        has Mu $!current-match;
+
+        method generate_accessor(str $name, Mu \package_type, str $attr_name, Mu \type, int $rw) {
+            $!compiler.generate_accessor(
+              $!current-match, $name, package_type, $attr_name, type, $rw);
+        }
+        method generate_buildplan_executor(Mu \obj, Mu \buildplan) {
+            $!compiler.generate_buildplan_executor(
+              $!current-match, obj, buildplan)
+        }
+    }
+
     # rotate nqp list to another given list without using push/pop
     method RotateListToList(\from,\n,\to) {
         nqp::stmts(
@@ -1248,20 +1262,6 @@ my class Rakudo::Internals {
     }
     method FILETEST-CHANGED(Str:D \abspath) {
         nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
-    }
-
-    our class CompilerServices {
-        has Mu $!compiler;
-        has Mu $!current-match;
-
-        method generate_accessor(str $name, Mu \package_type, str $attr_name, Mu \type, int $rw) {
-            $!compiler.generate_accessor(
-              $!current-match, $name, package_type, $attr_name, type, $rw);
-        }
-        method generate_buildplan_executor(Mu \obj, Mu \buildplan) {
-            $!compiler.generate_buildplan_executor(
-              $!current-match, obj, buildplan)
-        }
     }
 
     method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {

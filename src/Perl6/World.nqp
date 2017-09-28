@@ -2988,6 +2988,7 @@ class Perl6::World is HLL::World {
             my $block := QAST::Block.new(
                 :name($meth_name), :blocktype('declaration_static'),
                 QAST::Stmts.new(
+                    :node($/),
                     QAST::Var.new(
                         :decl('param'), :scope('local'), :name('self')
                     ),

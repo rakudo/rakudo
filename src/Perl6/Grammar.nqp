@@ -5421,7 +5421,6 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPacka
     }
 
     token assertion:sym<name> {
-        <!before '::' <RESTRICTED>>
         <longname=.LANG('MAIN','longname')>
             [
             | <?[>]>

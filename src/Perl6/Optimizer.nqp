@@ -1376,7 +1376,7 @@ class Perl6::Optimizer {
         }
     }
 
-    method convert_mexico_op_to_texas($op) {
+    method convert_unicode_op_to_texas($op) {
         sub should-texify ($from, $to) {
             try {
                 $!symbols.find_lexical($to);
@@ -1404,7 +1404,7 @@ class Perl6::Optimizer {
         my int $found := 0;
         note("method optimize_call $!void_context\n" ~ $op.dump) if $!debug;
 
-        self.convert_mexico_op_to_texas($op);
+        self.convert_unicode_op_to_texas($op);
 
         try {
             $obj := $!symbols.find_lexical($op.name);

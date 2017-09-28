@@ -10,9 +10,8 @@ my sub MAIN_HELPER($retval = 0) {
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
 
-    my %SUB-MAIN-OPTS := %*SUB-MAIN-OPTS // {};
-    my $no-named-after =
-      !(%SUB-MAIN-OPTS<named-anywhere> // $*MAIN-ALLOW-NAMED-ANYWHERE);
+    my %SUB-MAIN-OPTS  := %*SUB-MAIN-OPTS // {};
+    my $no-named-after := nqp::isfalse(%SUB-MAIN-OPTS<named-anywhere>);
 
     sub thevalue(\a) {
         ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))

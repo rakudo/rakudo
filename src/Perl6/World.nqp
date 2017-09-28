@@ -1207,7 +1207,7 @@ class Perl6::World is HLL::World {
         my $line   := self.current_line($/);
         my $true := self.find_symbol(['True']);
         my $spec := self.find_symbol(['CompUnit', 'DependencySpecification']).new(
-            :short-name(nqp::hllize($module_name)),
+            :short-name($module_name),
             :from(%opts<from> // 'Perl6'),
             :auth-matcher(%opts<auth> // $true),
             :version-matcher(%opts<ver> // $true),

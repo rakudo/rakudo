@@ -53,18 +53,16 @@ class Deprecation {
 
 sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool :$lang-vers) {
     state $ver  = $*PERL.compiler.version;
-    my $version = $lang-vers ?? $*PERL.version !! $ver;
+    my $version = $lang-vers ?? nqp::getcomp('perl6').language_version !! $ver;
     # if $lang-vers was given, treat the provided versions as language
     # versions, rather than compiler versions. Note that we can't
-    # `state` the `$*PERL.version` (I think) because different CompUnits
+    # `state` the lang version (I think) because different CompUnits
     # might be using different versions.
 
     my Version $vfrom;
     my Version $vremoved;
-    if $from {
-        $vfrom = Version.new($from);
-        return if $version before $vfrom; # not deprecated yet
-    }
+    $from && nqp::iseq_i($version cmp ($vfrom = Version.new: $from), -1)
+          && return; # not deprecated yet;
     $vremoved = Version.new($removed) if $removed;
 
     my $bt = Backtrace.new;

@@ -2,7 +2,7 @@ use lib <t/spec/packages/>;
 use Test;
 use Test::Util;
 
-plan 7;
+plan 9;
 
 # XXX TODO: swap v6.d.PREVIEW to v6.d, once the latter is available
 constant $v6d = 'v6.d.PREVIEW';
@@ -35,6 +35,8 @@ is-newly-deprecated ｢$ = 4.2.FatRat: 42｣;
 is-newly-deprecated ｢$ = FatRat.new(4,2).Rat: 42｣;
 is-newly-deprecated ｢$ = FatRat.new(4,2).FatRat: 42｣;
 is-newly-deprecated ｢".".IO.chdir: "."｣;
+is-newly-deprecated ｢"".lines:  :count｣;
+is-newly-deprecated ｢"".lines: :!count｣;
 
 subtest 'IO::Handle.slurp-rest' => {
     plan 2;

@@ -3028,9 +3028,20 @@ class Perl6::World is HLL::World {
           nqp::hash('variable_name','%init')
         ]);
 
-        # We always need a self and the low level init hash
-        my $self := QAST::Var.new( :name<self>, :scope<local> );
-        my $init := QAST::Var.new( :name<init>, :scope<local> );
+        # Parameters we always need
+        my $pself := QAST::Var.new(:decl<param>, :scope<local>, :name<self>);
+        my $pauto := QAST::Var.new(:decl<param>, :scope<local>, :name<@auto>);
+        my $pinit := QAST::Var.new(:decl<param>, :scope<local>, :name<%init>);
+
+        # Declarations we always need
+        my $dinit   := QAST::Var.new(:decl<var>, :scope<local>, :name<init>);
+        my $dreturn := QAST::Var.new(:decl<var>, :scope<local>, :name<return>);
+
+        # References to variables we always need
+        my $self     := QAST::Var.new( :scope<local>, :name<self> );
+        my $init     := QAST::Var.new( :scope<local>, :name<init> );
+        my $hllinit  := QAST::Var.new( :scope<local>, :name<%init> );
+        my $return   := QAST::Var.new( :scope<local>, :name<return> );
 
         # String values we always need
         my $storage := QAST::SVal.new( :value<$!storage> );
@@ -3068,12 +3079,7 @@ class Perl6::World is HLL::World {
             # filled in later
             my $stmts := QAST::Stmts.new();
 
-            my $declarations := QAST::Stmts.new(
-              QAST::Var.new(:decl<param>, :scope<local>, :name<self>),
-              QAST::Var.new(:decl<param>, :scope<local>, :name('@auto')),
-              QAST::Var.new(:decl<param>, :scope<local>, :name('%init')),
-              QAST::Var.new(:decl<var>,   :scope<local>, :name<init>)
-            );
+            my $declarations := QAST::Stmts.new($pself, $pauto, $pinit, $dinit);
 
             # The block of the method
             my $block := QAST::Block.new(
@@ -3101,10 +3107,7 @@ class Perl6::World is HLL::World {
 #            );
 #            $stmts.push(
 #              QAST::Op.new( :op<say>,
-#                QAST::Op.new( :op<callmethod>,
-#                  QAST::Var.new( :scope<local>, :name('%init') ),
-#                  QAST::SVal.new( :value<perl> )
-#                )
+#                QAST::Op.new( :op<callmethod>, :name<perl>, $hllinit )
 #              )
 #            );
 
@@ -3112,7 +3115,7 @@ class Perl6::World is HLL::World {
             $stmts.push(QAST::Op.new( :op<bind>,
               $init,
               QAST::Op.new( :op<getattr>,
-                QAST::Var.new( :scope<local>, :name('%init') ),
+                $hllinit,
                 QAST::WVal.new( :value($!w.find_symbol(['Map'])) ),
                 $storage
               )
@@ -3150,8 +3153,7 @@ class Perl6::World is HLL::World {
                                   $self, $class, $attr,
                                   QAST::Op.new( :op<decont>,
                                     QAST::Op.new(:op<callmethod>, :name<AT-KEY>,
-                                      QAST::Var.new(:scope<local>,:name<%init>),
-                                      $key
+                                      $hllinit, $key
                                     )
                                   )
                                 )
@@ -3341,8 +3343,7 @@ class Perl6::World is HLL::World {
 
 # %init.AT-KEY('a')
                         my $value := QAST::Op.new(:op<callmethod>,:name<AT-KEY>,
-                          QAST::Var.new( :name<%init>, :scope<local> ),
-                          $key
+                          $hllinit, $key
                         );
 
                         my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
@@ -3380,10 +3381,7 @@ class Perl6::World is HLL::World {
                     unless $needs_wrapping {
 
 # (my $return),
-                        $declarations.push(
-                          QAST::Var.new(
-                            :decl<var>, :scope<local>, :name<return>)
-                        );
+                        $declarations.push($dreturn);
                         $needs_wrapping := 1
                     };
 
@@ -3402,7 +3400,7 @@ class Perl6::World is HLL::World {
                       QAST::Op.new( :op<if>,
                         QAST::Op.new( :op<istype>,
                           QAST::Op.new( :op<bind>,
-                            QAST::Var.new(:scope<local>, :name<return>),
+                            $return,
                             QAST::Op.new( :op<if>,
                               QAST::Op.new( :op<elems>, $init ),
                               QAST::Op.new( :op<call>,

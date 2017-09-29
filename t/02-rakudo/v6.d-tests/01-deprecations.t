@@ -2,7 +2,7 @@ use lib <t/spec/packages/>;
 use Test;
 use Test::Util;
 
-plan 6;
+plan 5;
 
 # XXX TODO: swap v6.d.PREVIEW to v6.d, once the latter is available
 constant $v6d = 'v6.d.PREVIEW';
@@ -35,10 +35,3 @@ is-newly-deprecated ｢$ = 4.2.FatRat: 42｣;
 is-newly-deprecated ｢$ = FatRat.new(4,2).Rat: 42｣;
 is-newly-deprecated ｢$ = FatRat.new(4,2).FatRat: 42｣;
 is-newly-deprecated ｢".".IO.chdir: "."｣;
-
-subtest 'IO::Handle.slurp-rest' => {
-    plan 2;
-    my $file := make-temp-file(:content<foo>).absolute.perl;
-    is-newly-deprecated "$file.IO.open.slurp-rest",       '.slurp-rest';
-    is-newly-deprecated "$file.IO.open.slurp-rest: :bin", '.slurp-rest: :bin';
-}

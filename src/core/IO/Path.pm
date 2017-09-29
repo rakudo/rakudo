@@ -411,9 +411,44 @@ my class IO::Path is Cool does IO {
     multi method chdir(
         IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
     ) {
-        DEPRECATED 'subroutine chdir()', '6.d', '6.e', :lang-vers;
-        temp $*CWD = self;
-        chdir $path
+        unless $!SPEC.is-absolute($path) {
+            my ($volume,$dirs) = $!SPEC.splitpath(self.absolute, :nofile);
+            my @dirs = $!SPEC.splitdir($dirs);
+            @dirs.shift; # the first is always empty for absolute dirs
+            for $!SPEC.splitdir($path) -> $dir {
+                if $dir eq '..' {
+                    @dirs.pop if @dirs;
+                }
+                elsif $dir ne '.' {
+                    @dirs.push: $dir;
+                }
+            }
+            @dirs.push('') if !@dirs;  # need at least the rootdir
+            $path = join($!SPEC.dir-sep, $volume, @dirs);
+        }
+        my $dir = IO::Path!new-from-absolute-path($path,:$!SPEC,:CWD(self));
+
+        nqp::stmts(
+            nqp::unless(
+                nqp::unless(nqp::isfalse($d), $dir.d),
+                fail X::IO::Chdir.new: :$path, :os-error(
+                    nqp::if($dir.e, 'is not a directory', 'does not exist')
+                )
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($r), $dir.r),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :r test")
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($w), $dir.w),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :w test")
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($x), $dir.x),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :x test")
+            ),
+            $dir
+        )
     }
 
     method rename(IO::Path:D: IO() $to, :$createonly --> True) {

@@ -130,36 +130,8 @@ multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir(Str() $path is copy, :$d = True, :$r, :$w, :$x) {
-    my $CWD      := $*CWD;
-    my $SPEC     := $CWD.SPEC;
-    my $new-path := $path;
-
-    unless $SPEC.is-absolute($path) {
-        my ($volume,$dirs) = $SPEC.splitpath: $CWD.absolute, :nofile;
-        my @dirs = $SPEC.splitdir: $dirs;
-        @dirs.shift; # the first is always empty for absolute dirs
-        for $SPEC.splitdir($path) -> $dir {
-            if    $dir eq '..' { @dirs.pop if @dirs }
-            elsif $dir ne '.'  { @dirs.push: $dir   }
-        }
-        @dirs.push: '' if !@dirs;  # need at least the rootdir
-        $path := join $SPEC.dir-sep, $volume, @dirs;
-    }
-
-    my $dir := IO::Path.new: $path, :$SPEC, :$CWD;
-
-    fail X::IO::Chdir.new: :$path, :os-error(
-        $dir.e ?? 'is not a directory' !! 'does not exist'
-    ) if $d and nqp::isfalse($dir.d);
-    fail X::IO::Chdir.new: :$path, :os-error("did not pass :r test")
-        if $r and nqp::isfalse($dir.r);
-    fail X::IO::Chdir.new: :$path, :os-error("did not pass :w test")
-        if $w and nqp::isfalse($dir.w);
-    fail X::IO::Chdir.new: :$path, :os-error("did not pass :x test")
-        if $x and nqp::isfalse($dir.x);
-
-    $*CWD = $dir
+sub chdir(|c) {
+    nqp::if(nqp::istype(($_ := $*CWD.chdir(|c)), Failure), $_, $*CWD = $_)
 }
 
 proto sub indir(|) {*}

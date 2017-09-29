@@ -9922,6 +9922,22 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         my $qast;
         # We got something like <::($foo)>
         if $lng.contains_indirect_lookup() {
+            if $<assertion> {
+                if +$lng.components() > 1 {
+                    $/.typed_panic('X::Syntax::Regex::Alias::LongName');
+                }
+                else {
+                    # If ever implemented, take care with RESTRICTED
+                    $/.typed_panic('X::Syntax::Reserved', :reserved('dynamic alias name in regex'));
+                }
+            }
+            if +$lng.components() > 1 {
+                # If ever implemented, take care with RESTRICTED
+                $/.typed_panic('X::NYI', :feature('long dynamic name in regex assertion'));
+            }
+            if $*RESTRICTED {
+                $/.typed_panic('X::SecurityPolicy::Eval', :payload($*RESTRICTED));
+            }
             $qast := QAST::Regex.new( :rxtype<subrule>, :subtype<method>, :node($/),
                 QAST::NodeList.new(QAST::SVal.new( :value('INDMETHOD') ), $lng.name_past()) );
         }
@@ -9931,7 +9947,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             my $c     := $/;
             if $<assertion> {
                 if +@parts {
-                    $c.panic("Can only alias to a short name (without '::')");
+                    $c.typed_panic('X::Syntax::Regex::Alias::LongName');
                 }
                 $qast := $<assertion>.ast;
                 if $qast.rxtype eq 'subrule' {

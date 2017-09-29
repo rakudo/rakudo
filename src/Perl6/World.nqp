@@ -3034,10 +3034,6 @@ class Perl6::World is HLL::World {
 
         # String values we always need
         my $storage := QAST::SVal.new( :value<$!storage> );
-        my $AT-KEY  := QAST::SVal.new( :value<AT-KEY> );
-        my $STORE   := QAST::SVal.new( :value<STORE> );
-        my $new     := QAST::SVal.new( :value<new> );
-        my $throw   := QAST::SVal.new( :value<throw> );
 
         # Generate a method for building a new object that takes a hash
         # with attribute => value pairs to be assigned to the object's
@@ -3153,9 +3149,8 @@ class Perl6::World is HLL::World {
                                 QAST::Op.new(:op('bindattr' ~ @psp[$code]),
                                   $self, $class, $attr,
                                   QAST::Op.new( :op<decont>,
-                                    QAST::Op.new( :op<callmethod>,
+                                    QAST::Op.new(:op<callmethod>, :name<AT-KEY>,
                                       QAST::Var.new(:scope<local>,:name<%init>),
-                                      $AT-KEY,
                                       $key
                                     )
                                   )
@@ -3190,8 +3185,8 @@ class Perl6::World is HLL::World {
 # nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')))
                             if $sigil eq '@' || $sigil eq '%' {
                                 $unless.push(
-                                  QAST::Op.new( :op<callmethod>,
-                                    $getattr, $STORE, $initializer
+                                  QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                    $getattr, $initializer
                                   )
                                 );
                             }
@@ -3287,22 +3282,20 @@ class Perl6::World is HLL::World {
                                 QAST::Op.new( :op<attrinited>,
                                   $self, $class, $attr
                                 ),
-                                QAST::Op.new( :op<callmethod>,
-                                  QAST::Op.new( :op<callmethod>,
+                                QAST::Op.new( :op<callmethod>, :name<throw>,
+                                  QAST::Op.new( :op<callmethod>, :name<new>,
                                     QAST::WVal.new( :value(
                                       $!w.find_symbol(
                                         ['X','Attribute','Required']
                                       )
                                     )),
-                                    $new,
                                     QAST::SVal.new( :named('name'),
                                       :value(nqp::atpos($task,2))
                                     ),
                                     QAST::WVal.new( :named('why'),
                                       :value(nqp::atpos($task,3))
                                     )
-                                  ),
-                                  $throw
+                                  )
                                 )
                               )
                             );
@@ -3347,9 +3340,9 @@ class Perl6::World is HLL::World {
                         );
 
 # %init.AT-KEY('a')
-                        my $value := QAST::Op.new( :op<callmethod>,
+                        my $value := QAST::Op.new(:op<callmethod>,:name<AT-KEY>,
                           QAST::Var.new( :name<%init>, :scope<local> ),
-                          $AT-KEY, $key
+                          $key
                         );
 
                         my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
@@ -3357,8 +3350,8 @@ class Perl6::World is HLL::World {
 # nqp::getattr(self,Foo,'$!a').STORE(%init.AT-KEY('a'))
                         if $sigil eq '@' || $sigil eq '%' {
                             $if.push(
-                              QAST::Op.new( :op<callmethod>,
-                                $getattr, $STORE, $value
+                              QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                $getattr, $value
                               )
                             );
                         }

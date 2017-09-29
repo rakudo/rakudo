@@ -3028,6 +3028,17 @@ class Perl6::World is HLL::World {
           nqp::hash('variable_name','%init')
         ]);
 
+        # We always need a self and the low level init hash
+        my $self := QAST::Var.new( :name<self>, :scope<local> );
+        my $init := QAST::Var.new( :name<init>, :scope<local> );
+
+        # String values we always need
+        my $storage := QAST::SVal.new( :value<$!storage> );
+        my $AT-KEY  := QAST::SVal.new( :value<AT-KEY> );
+        my $STORE   := QAST::SVal.new( :value<STORE> );
+        my $new     := QAST::SVal.new( :value<new> );
+        my $throw   := QAST::SVal.new( :value<throw> );
+
         # Generate a method for building a new object that takes a hash
         # with attribute => value pairs to be assigned to the object's
         # attributes.  Basically a flattened version of Mu.BUILDALL, which
@@ -3101,17 +3112,13 @@ class Perl6::World is HLL::World {
 #              )
 #            );
 
-            # We always need a self and the low level init hash
-            my $self := QAST::Var.new( :name<self>, :scope<local> );
-            my $init := QAST::Var.new( :name<init>, :scope<local> );
-
 # my $init := nqp::getattr(%init,Map,'$!storage')
             $stmts.push(QAST::Op.new( :op<bind>,
               $init,
               QAST::Op.new( :op<getattr>,
                 QAST::Var.new( :scope<local>, :name('%init') ),
                 QAST::WVal.new( :value($!w.find_symbol(['Map'])) ),
-                QAST::SVal.new( :value<$!storage> )
+                $storage
               )
             ));
 
@@ -3148,7 +3155,7 @@ class Perl6::World is HLL::World {
                                   QAST::Op.new( :op<decont>,
                                     QAST::Op.new( :op<callmethod>,
                                       QAST::Var.new(:scope<local>,:name<%init>),
-                                      QAST::SVal.new( :value<AT-KEY> ),
+                                      $AT-KEY,
                                       $key
                                     )
                                   )
@@ -3184,9 +3191,7 @@ class Perl6::World is HLL::World {
                             if $sigil eq '@' || $sigil eq '%' {
                                 $unless.push(
                                   QAST::Op.new( :op<callmethod>,
-                                    $getattr,
-                                    QAST::SVal.new( :value<STORE> ),
-                                    $initializer
+                                    $getattr, $STORE, $initializer
                                   )
                                 );
                             }
@@ -3289,7 +3294,7 @@ class Perl6::World is HLL::World {
                                         ['X','Attribute','Required']
                                       )
                                     )),
-                                    QAST::SVal.new( :value<new> ),
+                                    $new,
                                     QAST::SVal.new( :named('name'),
                                       :value(nqp::atpos($task,2))
                                     ),
@@ -3297,7 +3302,7 @@ class Perl6::World is HLL::World {
                                       :value(nqp::atpos($task,3))
                                     )
                                   ),
-                                  QAST::SVal.new( :value<throw> ),
+                                  $throw
                                 )
                               )
                             );
@@ -3344,8 +3349,7 @@ class Perl6::World is HLL::World {
 # %init.AT-KEY('a')
                         my $value := QAST::Op.new( :op<callmethod>,
                           QAST::Var.new( :name<%init>, :scope<local> ),
-                          QAST::SVal.new( :value<AT-KEY> ),
-                          $key
+                          $AT-KEY, $key
                         );
 
                         my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
@@ -3354,9 +3358,7 @@ class Perl6::World is HLL::World {
                         if $sigil eq '@' || $sigil eq '%' {
                             $if.push(
                               QAST::Op.new( :op<callmethod>,
-                                $getattr,
-                                QAST::SVal.new( :value<STORE> ),
-                                $value
+                                $getattr, $STORE, $value
                               )
                             );
                         }

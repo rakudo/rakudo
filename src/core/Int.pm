@@ -48,17 +48,11 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::p6box_n(nqp::tonum_I(self));
     }
 
-    proto method Rat(|) {*}
-    multi method Rat(Int:D:) { Rat.new(self, 1) }
-    multi method Rat(Int:D: $) {
-        DEPRECATED :lang-vers, '.Rat coercer without an argument', '6.d', '6.e';
-        self.Rat
+    method Rat(Int:D: $?) {
+        Rat.new(self, 1);
     }
-    proto method FatRat(|) {*}
-    multi method FatRat(Int:D:) { FatRat.new(self, 1) }
-    multi method FatRat(Int:D: $) {
-        DEPRECATED :lang-vers, '.FatRat coercer without an argument', '6.d', '6.e';
-        self.FatRat
+    method FatRat(Int:D: $?) {
+        FatRat.new(self, 1);
     }
 
     method abs(Int:D:) {

@@ -2950,7 +2950,7 @@ class Perl6::World is HLL::World {
 
     # Composes the package, and stores an event for this action.
     method pkg_compose($/, $obj) {
-        my $compiler_services := self.get_compiler_services($/);
+        my $compiler_services := self.get_compiler_services;
         if nqp::isconcrete($compiler_services) {
             self.ex-handle($/, { $obj.HOW.compose($obj, :$compiler_services) })
         }
@@ -2968,7 +2968,7 @@ class Perl6::World is HLL::World {
         has $!acc_sig_cache;
         has $!acc_sig_cache_type;
 
-        method generate_accessor($/, str $meth_name, $package_type, str $attr_name, $type, int $rw) {
+        method generate_accessor(str $meth_name, $package_type, str $attr_name, $type, int $rw) {
             my $native := nqp::objprimspec($type) != 0;
             my $acc := QAST::Var.new(
                 :scope($native && $rw ?? 'attributeref' !! 'attribute'),
@@ -2985,7 +2985,6 @@ class Perl6::World is HLL::World {
             my $block := QAST::Block.new(
                 :name($meth_name), :blocktype('declaration_static'),
                 QAST::Stmts.new(
-                    :node($/),
                     QAST::Var.new(
                         :decl('param'), :scope('local'), :name('self')
                     ),
@@ -3034,7 +3033,7 @@ class Perl6::World is HLL::World {
         # attributes.  Basically a flattened version of Mu.BUILDALL, which
         # iterates over the BUILDALLPLAN at runtime with fewer inlining
         # and JITting opportunities.
-        method generate_buildplan_executor($/, $in_object, $in_build_plan) {
+        method generate_buildplan_executor($in_object, $in_build_plan) {
 
             # low level hash access
             my $build_plan := nqp::getattr(
@@ -3060,7 +3059,7 @@ class Perl6::World is HLL::World {
 
             # The basic statements for object initialization, to be
             # filled in later
-            my $stmts := QAST::Stmts.new(:node($/));
+            my $stmts := QAST::Stmts.new();
 
             my $declarations := QAST::Stmts.new(
               QAST::Var.new(:decl<param>, :scope<local>, :name<self>),
@@ -3492,24 +3491,13 @@ class Perl6::World is HLL::World {
         }
     }
 
-    method get_compiler_services($/) {
-        if nqp::isconcrete($!compiler_services) {
-            nqp::bindattr(
-              $!compiler_services,
-              $!compiler_services.WHAT,
-              '$!current-match',
-              $/
-            );
-        }
-        else {
-            try {
-                my $wtype   := self.find_symbol(['Rakudo', 'Internals', 'CompilerServices']);
-                my $wrapped := CompilerServices.new(w => self);
-                my $wrapper := nqp::create($wtype);
-                nqp::bindattr($wrapper, $wtype, '$!compiler', $wrapped);
-                nqp::bindattr($wrapper, $wtype, '$!current-match', $/);
-                $!compiler_services := $wrapper;
-            }
+    method get_compiler_services() {
+        try {
+            my $wtype   := self.find_symbol(['Rakudo', 'Internals', 'CompilerServices']);
+            my $wrapped := CompilerServices.new(w => self);
+            my $wrapper := nqp::create($wtype);
+            nqp::bindattr($wrapper, $wtype, '$!compiler', $wrapped);
+            $!compiler_services := $wrapper;
         }
         $!compiler_services
     }

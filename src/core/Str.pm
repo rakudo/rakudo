@@ -1297,7 +1297,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method lines(|) { * }
     multi method lines(Str:D: :$count!) {
-        DEPRECATED '.lines.elems', '6.d', '6.e', :lang-vers;
+        # we should probably deprecate this feature
         $count ?? self.lines.elems !! self.lines;
     }
     multi method lines(Str:D: $limit) {

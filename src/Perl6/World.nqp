@@ -2968,70 +2968,12 @@ class Perl6::World is HLL::World {
         has $!acc_sig_cache;
         has $!acc_sig_cache_type;
 
-        method generate_accessor(str $meth_name, $package_type, str $attr_name, $type, int $rw) {
-            my $native := nqp::objprimspec($type) != 0;
-            my $acc := QAST::Var.new(
-                :scope($native && $rw ?? 'attributeref' !! 'attribute'),
-                :name($attr_name), :returns($type),
-                QAST::Op.new(
-                    :op('decont'),
-                    QAST::Var.new( :name('self'), :scope('local') )
-                ),
-                QAST::WVal.new( :value($package_type) )
-            );
-            unless $native || $rw {
-                $acc := QAST::Op.new( :op('decont'), $acc );
-            }
-            my $block := QAST::Block.new(
-                :name($meth_name), :blocktype('declaration_static'),
-                QAST::Stmts.new(
-                    QAST::Var.new(
-                        :decl('param'), :scope('local'), :name('self')
-                    ),
-                    QAST::Var.new(
-                        :decl('param'), :scope('local'), :name('_'), :slurpy, :named
-                    )
-                ),
-                QAST::Stmts.new($acc));
-            $!w.cur_lexpad()[0].push($block);
-
-            my $sig;
-            my $invocant_type :=
-              $!w.create_definite_type( $!w.find_symbol(['Metamodel','DefiniteHOW']), $package_type, 1 );
-            if $invocant_type =:= $!acc_sig_cache_type {
-                $sig := $!acc_sig_cache;
-            }
-            else {
-                my %sig_info := nqp::hash('parameters', []);
-                $sig := $!w.create_signature_and_params(NQPMu, %sig_info,
-                    $block, 'Any', :method, :$invocant_type);
-                $!acc_sig_cache := $sig;
-                $!acc_sig_cache_type := $invocant_type;
-            }
-
-            my $code := $!w.create_code_object($block, 'Method', $sig);
-            $code.set_rw() if $rw;
-            return $code;
-        }
-
-        # Mapping of primspec to attribute postfix
-        my @psp := ('','_i','_n','_s');
-
-        # Mapping of primspec to native numeric default value op
-        my @psd := (nqp::null,
-          QAST::IVal.new( :value(0) ),
-          QAST::NVal.new( :value(0e0) )
-        );
-
-        # signature configuration hash for ":(%init)"
-        my %sig_init := nqp::hash('parameters', [
-          nqp::hash('variable_name','%init')
-        ]);
-
         # Parameters we always need
         my $pself := QAST::Var.new(:decl<param>, :scope<local>, :name<self>);
         my $pauto := QAST::Var.new(:decl<param>, :scope<local>, :name<@auto>);
         my $pinit := QAST::Var.new(:decl<param>, :scope<local>, :name<%init>);
+        my $p_    := QAST::Var.new(:decl<param>, :scope<local>, :name('_'),
+          :slurpy, :named);
 
         # Declarations we always need
         my $dinit   := QAST::Var.new(:decl<var>, :scope<local>, :name<init>);
@@ -3045,6 +2987,85 @@ class Perl6::World is HLL::World {
 
         # String values we always need
         my $storage := QAST::SVal.new( :value<$!storage> );
+
+        # signature configuration hashes
+        my %sig_empty := nqp::hash('parameters', []);  # :()
+        my %sig_init := nqp::hash(
+          'parameters', [nqp::hash('variable_name','%init')]
+        );
+
+        # Generate an accessor method with the given method name, package,
+        # attribute name, type of attribute and rw flag.  Returns a code
+        # object that can be installed as a method.
+        method generate_accessor(
+          str $meth_name, $package_type, str $attr_name, $type, int $rw
+        ) {
+
+            # Is it a native attribute? (primpspec != 0)
+            my $native := nqp::objprimspec($type);
+
+            # Set up the actual statements, starting with "self"
+# nqp::attribute(self,$package_type,$attr_name)
+            my $stmts  := QAST::Var.new(
+              :scope($native && $rw ?? 'attributeref' !! 'attribute'),
+              :name($attr_name),
+              :returns($type),
+              QAST::Op.new( :op<decont>, $self ),
+              QAST::WVal.new( :value($package_type) )
+            );
+
+            # Opaque and read-only accessors need a decont
+            unless $native || $rw {
+                $stmts := QAST::Op.new( :op<decont>, $stmts );
+            }
+
+            # Create the block
+            my $block := QAST::Block.new(
+              :name($meth_name),
+              :blocktype('declaration_static'),
+              QAST::Stmts.new( $pself, $p_ ),
+              QAST::Stmts.new($stmts)
+            );
+
+            # Make sure the block has a SC
+            $!w.cur_lexpad()[0].push($block);
+
+            # Find/Create the type of the invocant
+            my $invocant_type := $!w.create_definite_type(
+              $!w.find_symbol(['Metamodel','DefiniteHOW']), $package_type, 1 );
+
+            # Seen accessors of this class before, so use existing signature
+            my $sig;
+            if $invocant_type =:= $!acc_sig_cache_type {
+                $sig := $!acc_sig_cache;
+            }
+
+            # First time, create new signature and mark it cached
+            else {
+                $sig := $!w.create_signature_and_params(
+                  NQPMu, %sig_empty, $block, 'Any', :method, :$invocant_type);
+                $!acc_sig_cache      := $sig;
+                $!acc_sig_cache_type := $invocant_type;
+            }
+
+            # Create a code object of the block, make sure we can write if ok
+            my $code := $!w.create_code_object($block, 'Method', $sig);
+            $code.set_rw() if $rw;
+
+            # That's it
+            $code
+        }
+
+        # Mapping of primspec to attribute postfix
+        my @psp := ('','_i','_n','_s');
+
+        # Mapping of primspec to native numeric default value op
+        my @psd := (nqp::null,
+          QAST::IVal.new( :value(0) ),
+          QAST::NVal.new( :value(0e0) )
+        );
+
+        # signature configuration hash for ":(%init)"
 
         # Generate a method for building a new object that takes a hash
         # with attribute => value pairs to be assigned to the object's

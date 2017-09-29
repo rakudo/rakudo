@@ -3101,15 +3101,17 @@ class Perl6::World is HLL::World {
 #              )
 #            );
 
+            # We always need a self and the low level init hash
+            my $self := QAST::Var.new( :name<self>, :scope<local> );
+            my $init := QAST::Var.new( :name<init>, :scope<local> );
+
 # my $init := nqp::getattr(%init,Map,'$!storage')
-            $stmts.push(QAST::Op.new(
-              :op('bind'),
-              (my $init := QAST::Var.new(:scope<local>, :name<init>)),
-              QAST::Op.new(
-                :op('getattr'),
+            $stmts.push(QAST::Op.new( :op<bind>,
+              $init,
+              QAST::Op.new( :op<getattr>,
                 QAST::Var.new( :scope<local>, :name('%init') ),
                 QAST::WVal.new( :value($!w.find_symbol(['Map'])) ),
-                QAST::SVal.new( :value('$!storage') )
+                QAST::SVal.new( :value<$!storage> )
               )
             ));
 
@@ -3123,54 +3125,40 @@ class Perl6::World is HLL::World {
                     # Register the class in the SC if needed
                     $!w.add_object_if_no_sc( nqp::atpos($task,1) );
 
-                    # Generate the WVal for setting the class object
-                    my $classwval :=
-                      QAST::WVal.new( :value(nqp::atpos($task,1) ) );
+                    # We always need the class object and full attribute name
+                    my $class := QAST::WVal.new( :value(nqp::atpos($task,1)) );
+                    my $attr  := QAST::SVal.new( :value(nqp::atpos($task,2)) );
 
                     if nqp::atpos($task,0) -> $code {
 
                         # 1,2,3 = initialize native from %init
                         if $code < 4 {
 
-# nqp::existskey($init,'a')
-                            my $existskeyop := QAST::Op.new( :op('existskey'),
-                              $init,
-                              QAST::SVal.new( :value(nqp::atpos($task,3)) )
-                            );
-
-# nqp::bindattr_x(self,Foo,'$!a',nqp::decont(%init.AT-KEY('a')))
-                            my $bindattrop := QAST::Op.new(
-                              :op( 'bindattr' ~ @psp[$code] ),
-                              QAST::Var.new( :name<self>, :scope<local> ),
-                              $classwval,
-                              QAST::SVal.new( :value(nqp::atpos($task,2)) ),
-                              QAST::Op.new( :op<decont>,
-                                QAST::Op.new( :op<callmethod>,
-                                  QAST::Var.new(:scope<local>, :name('%init')),
-                                  QAST::SVal.new( :value<AT-KEY> ),
-                                  QAST::SVal.new(
-                                    :value(nqp::atpos($task,3)) )
-                                )
-                              )
-                            );
-
 # nqp::if(
 #   nqp::existskey($init,'a'),
 #   nqp::bindattr_x(self,Foo,'$!a',nqp::decont(%init.AT-KEY('a')))
 # ),
+                            my $key :=
+                              QAST::SVal.new(:value(nqp::atpos($task,3)));
                             $stmts.push(
-                              QAST::Op.new(:op<if>,$existskeyop,$bindattrop)
+                              QAST::Op.new(:op<if>,
+                                QAST::Op.new(:op<existskey>, $init, $key),
+                                QAST::Op.new(:op('bindattr' ~ @psp[$code]),
+                                  $self, $class, $attr,
+                                  QAST::Op.new( :op<decont>,
+                                    QAST::Op.new( :op<callmethod>,
+                                      QAST::Var.new(:scope<local>,:name<%init>),
+                                      QAST::SVal.new( :value<AT-KEY> ),
+                                      $key
+                                    )
+                                  )
+                                )
+                              )
                             );
                         }
 
                         # 4 = set opaque with default if not set yet
                         elsif $code == 4 {
-# nqp::getattr(self,Foo,'$!a')
-                            my $getattrop := QAST::Op.new( :op<getattr>,
-                              QAST::Var.new( :name<self>, :scope<local> ),
-                              $classwval,
-                              QAST::SVal.new( :value(nqp::atpos($task,2)) )
-                            );
 
                             # set assign operation to be used
                             my $sigil :=
@@ -3183,14 +3171,13 @@ class Perl6::World is HLL::World {
 #   (nqp::getattr(self,Foo,'$!a') =
 #     $initializer(self,nqp::getattr(self,Foo,'$!a')))
 # ),
+                            my $getattrop := QAST::Op.new( :op<getattr>,
+                              $self, $class, $attr
+                            );
                             $stmts.push(
                               QAST::Op.new( :op<unless>,
                                 QAST::Op.new( :op<attrinited>,
-                                  QAST::Var.new(:name<self>, :scope<local>),
-                                  $classwval,
-                                  QAST::SVal.new(
-                                    :value(nqp::atpos($task,2))
-                                  )
+                                  $self, $class, $attr
                                 ),
                                 QAST::Op.new( :$op,
                                   $getattrop,
@@ -3198,11 +3185,7 @@ class Perl6::World is HLL::World {
                                     QAST::WVal.new(
                                       :value(nqp::atpos($task,3))
                                     ),
-                                    QAST::Var.new(
-                                      :name('self'),
-                                      :scope('local')
-                                    ),
-                                    $getattrop
+                                    $self, $getattrop
                                   )
                                 )
                               )
@@ -3213,13 +3196,6 @@ class Perl6::World is HLL::World {
 
                         # 5,6 = set native numeric with default if not set
                         elsif $code < 7 {
-# nqp::getattr_x(self,Foo,'$!a')
-                            my $getattrop := QAST::Op.new(
-                              :op('getattr' ~ @psp[$code - 4]),
-                              QAST::Var.new( :name<self>, :scope<local> ),
-                              $classwval,
-                              QAST::SVal.new( :value(nqp::atpos($task,2)) )
-                            );
 # nqp::if(
 #   nqp::iseq_x(
 #     nqp::getattr_x(self,Foo,'$!a'),
@@ -3228,25 +3204,21 @@ class Perl6::World is HLL::World {
 #   nqp::bindattr_x(self,Foo,'$!a',
 #     $initializer(self,nqp::getattr_x(self,Foo,'$!a')))
 # ),
+                            my $getattrop := QAST::Op.new(
+                              :op('getattr' ~ @psp[$code - 4]),
+                              $self, $class, $attr
+                            );
                             $stmts.push(
                               QAST::Op.new( :op<if>,
-                                QAST::Op.new(
-                                  :op('iseq' ~ @psp[$code - 4]),
+                                QAST::Op.new( :op('iseq' ~ @psp[$code - 4]),
                                   $getattrop,
                                   @psd[$code - 4],
                                 ),
-                                QAST::Op.new(
-                                  :op('bindattr' ~ @psp[$code - 4]),
-                                  QAST::Var.new(:name<self>, :scope<local>),
-                                  $classwval,
-                                  QAST::SVal.new(:value(nqp::atpos($task,2))),
+                                QAST::Op.new( :op('bindattr' ~ @psp[$code - 4]),
+                                  $self, $class, $attr,
                                   QAST::Op.new( :op<call>,
-                                    QAST::WVal.new(:value(nqp::atpos($task,3))
-                                    ),
-                                    QAST::Var.new(
-                                      :name('self'),
-                                      :scope('local')
-                                    ),
+                                    QAST::WVal.new(:value(nqp::atpos($task,3))),
+                                    $self,
                                     $getattrop
                                   )
                                 )
@@ -3258,31 +3230,22 @@ class Perl6::World is HLL::World {
 
                         # 7 = set native string with default if not set
                         elsif $code == 7 {
-# nqp::getattr_s(self,Foo,'$!a')
-                            my $getattrop := QAST::Op.new( :op<getattr_s>,
-                              QAST::Var.new( :name<self>, :scope<local> ),
-                              $classwval,
-                              QAST::SVal.new( :value(nqp::atpos($task,2)) )
-                            );
-
 # nqp::if(
 #   nqp::isnull_s(nqp::getattr_s(self,Foo,'$!a')),
 #   nqp::bindattr_s(self,Foo,'$!a',
 #     $initializer(self,nqp::getattr_s(self,Foo,'$!a')))
 # ),
+                            my $getattrop := QAST::Op.new( :op<getattr_s>,
+                              $self, $class, $attr
+                            );
                             $stmts.push(
                               QAST::Op.new( :op<if>,
                                 QAST::Op.new( :op<isnull_s>, $getattrop),
                                 QAST::Op.new( :op<bindattr_s>,
-                                  QAST::Var.new(:name<self>, :scope<local>),
-                                  $classwval,
-                                  QAST::SVal.new(:value(nqp::atpos($task,2))),
+                                  $self, $class, $attr,
                                   QAST::Op.new( :op<call>,
                                     QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                    QAST::Var.new(
-                                      :name('self'),
-                                      :scope('local')
-                                    ),
+                                    $self,
                                     $getattrop
                                   )
                                 )
@@ -3294,12 +3257,6 @@ class Perl6::World is HLL::World {
 
                         # 8 = bail if opaque not yet initialized
                         elsif $code == 8 {
-# nqp::getattr(self,Foo,'$!a')
-                            my $getattrop := QAST::Op.new( :op<getattr>,
-                              QAST::Var.new( :name<self>, :scope<local> ),
-                              $classwval,
-                              QAST::SVal.new( :value(nqp::atpos($task,2)) )
-                            );
 
 # nqp::unless(
 #   nqp::attrinited(self,Foo,'$!a'),
@@ -3308,9 +3265,7 @@ class Perl6::World is HLL::World {
                             $stmts.push(
                               QAST::Op.new( :op<unless>,
                                 QAST::Op.new( :op<attrinited>,
-                                  QAST::Var.new(:name<self>, :scope<local>),
-                                  $classwval,
-                                  QAST::SVal.new(:value(nqp::atpos($task,2)))
+                                  $self, $class, $attr
                                 ),
                                 QAST::Op.new( :op<callmethod>,
                                   QAST::Op.new( :op<callmethod>,
@@ -3339,9 +3294,7 @@ class Perl6::World is HLL::World {
 # nqp::bindattr(self,Foo,'$!a',$initializer())
                             $stmts.push(
                               QAST::Op.new( :op<bindattr>,
-                                QAST::Var.new(:name<self>, :scope<local>),
-                                $classwval,
-                                QAST::SVal.new(:value(nqp::atpos($task,2))),
+                                $self, $class, $attr,
                                 QAST::Op.new( :op<call>,
                                   QAST::WVal.new(:value(nqp::atpos($task,3)))
                                 )
@@ -3359,19 +3312,6 @@ class Perl6::World is HLL::World {
                     # 0 = initialize opaque from %init
                     else {
 
-# nqp::existskey($init,'a')
-                        my $existskeyop := QAST::Op.new( :op('existskey'),
-                          $init,
-                          QAST::SVal.new( :value(nqp::atpos($task,3)) )
-                        );
-
-# nqp::getattr(self,Foo,'$!a')
-                        my $getattrop := QAST::Op.new( :op<getattr>,
-                          QAST::Var.new( :name<self>, :scope<local> ),
-                          $classwval,
-                          QAST::SVal.new( :value( nqp::atpos($task,2) ) )
-                        );
-
                         # set assign operation to be used
                         my $sigil :=
                           nqp::substr(nqp::atpos($task,2),0,1);
@@ -3382,15 +3322,16 @@ class Perl6::World is HLL::World {
 #   nqp::existskey($init,'a'),
 #   nqp::getattr(self,Foo,'$!a') = %init.AT-KEY('a')
 # ),
+                        my $key := QAST::SVal.new(:value(nqp::atpos($task,3)));
                         $stmts.push(
                           QAST::Op.new( :op<if>,
-                            $existskeyop,
+                            QAST::Op.new(:op('existskey'), $init, $key),
                             QAST::Op.new( :$op,
-                              $getattrop,
+                              QAST::Op.new(:op<getattr>, $self, $class, $attr),
                               QAST::Op.new( :op<callmethod>,
                                 QAST::Var.new(:scope<local>,:name('%init')),
                                 QAST::SVal.new(:value<AT-KEY>),
-                                QAST::SVal.new(:value(nqp::atpos($task,3)))
+                                $key
                               )
                             )
                           )
@@ -3432,10 +3373,7 @@ class Perl6::World is HLL::World {
                               QAST::Op.new( :op<elems>, $init ),
                               QAST::Op.new( :op<call>,
                                 QAST::WVal.new( :value($task) ),
-                                QAST::Var.new(
-                                  :name('self'),
-                                  :scope('local')
-                                ),
+                                $self,
                                 QAST::Var.new(
                                   :scope<local>,
                                   :name<init>,  # use nqp::hash directly
@@ -3445,7 +3383,7 @@ class Perl6::World is HLL::World {
                               ),
                               QAST::Op.new( :op<call>,
                                 QAST::WVal.new( :value($task) ),
-                                QAST::Var.new(:name('self'),:scope('local'))
+                                $self,
                               )
                             )
                           ),
@@ -3467,7 +3405,7 @@ class Perl6::World is HLL::World {
             }
 
             # Finally, add the return value
-            $stmts.push(QAST::Var.new(:name('self'), :scope('local')));
+            $stmts.push($self);
 
             # Need to wrap an exception handler around
             if $needs_wrapping {

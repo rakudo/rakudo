@@ -3160,36 +3160,51 @@ class Perl6::World is HLL::World {
                         # 4 = set opaque with default if not set yet
                         elsif $code == 4 {
 
-                            # set assign operation to be used
-                            my $sigil :=
-                              nqp::substr(nqp::atpos($task,2),0,1);
-                            my $op := $sigil eq '$' || $sigil eq '&'
-                              ?? 'assign'
-                              !! 'p6store';
 # nqp::unless(
 #   nqp::attrinited(self,Foo,'$!a'),
-#   (nqp::getattr(self,Foo,'$!a') =
-#     $initializer(self,nqp::getattr(self,Foo,'$!a')))
-# ),
-                            my $getattrop := QAST::Op.new( :op<getattr>,
-                              $self, $class, $attr
-                            );
-                            $stmts.push(
-                              QAST::Op.new( :op<unless>,
+                            my $unless := QAST::Op.new( :op<unless>,
                                 QAST::Op.new( :op<attrinited>,
                                   $self, $class, $attr
-                                ),
-                                QAST::Op.new( :$op,
-                                  $getattrop,
-                                  QAST::Op.new( :op<call>,
-                                    QAST::WVal.new(
-                                      :value(nqp::atpos($task,3))
+                                )
+                            );
+
+# nqp::getattr(self,Foo,'$!a')
+                            my $getattr := QAST::Op.new( :op<getattr>,
+                              $self, $class, $attr
+                            );
+
+# $code(self,nqp::getattr(self,Foo,'$!a')))
+                            my $initializer := QAST::Op.new( :op<call>,
+                              QAST::WVal.new(:value(nqp::atpos($task,3))),
+                              $self, $getattr
+                            );
+
+                            my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
+# nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')))
+                            if $sigil eq '@' || $sigil eq '%' {
+                                $unless.push(
+                                  QAST::Op.new( :op<callmethod>,
+                                    $getattr,
+                                    QAST::SVal.new( :value<STORE> ),
+                                    $initializer
+                                  )
+                                );
+                            }
+
+                            else {
+# (nqp::getattr(self,Foo,'$!a') = $code(self,nqp::getattr(self,Foo,'$!a')))
+                                $unless.push(
+                                  QAST::Op.new(
+                                    :op( $sigil eq '$' || $sigil eq '&'
+                                           ?? 'assign' !! 'p6store'
                                     ),
-                                    $self, $getattrop
+                                    $getattr, $initializer
                                   )
                                 )
-                              )
-                            );
+                            }
+
+# ),
+                            $stmts.push($unless);
 
                             $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
@@ -3204,14 +3219,14 @@ class Perl6::World is HLL::World {
 #   nqp::bindattr_x(self,Foo,'$!a',
 #     $initializer(self,nqp::getattr_x(self,Foo,'$!a')))
 # ),
-                            my $getattrop := QAST::Op.new(
+                            my $getattr := QAST::Op.new(
                               :op('getattr' ~ @psp[$code - 4]),
                               $self, $class, $attr
                             );
                             $stmts.push(
                               QAST::Op.new( :op<if>,
                                 QAST::Op.new( :op('iseq' ~ @psp[$code - 4]),
-                                  $getattrop,
+                                  $getattr,
                                   @psd[$code - 4],
                                 ),
                                 QAST::Op.new( :op('bindattr' ~ @psp[$code - 4]),
@@ -3219,7 +3234,7 @@ class Perl6::World is HLL::World {
                                   QAST::Op.new( :op<call>,
                                     QAST::WVal.new(:value(nqp::atpos($task,3))),
                                     $self,
-                                    $getattrop
+                                    $getattr
                                   )
                                 )
                               )
@@ -3235,18 +3250,18 @@ class Perl6::World is HLL::World {
 #   nqp::bindattr_s(self,Foo,'$!a',
 #     $initializer(self,nqp::getattr_s(self,Foo,'$!a')))
 # ),
-                            my $getattrop := QAST::Op.new( :op<getattr_s>,
+                            my $getattr := QAST::Op.new( :op<getattr_s>,
                               $self, $class, $attr
                             );
                             $stmts.push(
                               QAST::Op.new( :op<if>,
-                                QAST::Op.new( :op<isnull_s>, $getattrop),
+                                QAST::Op.new( :op<isnull_s>, $getattr),
                                 QAST::Op.new( :op<bindattr_s>,
                                   $self, $class, $attr,
                                   QAST::Op.new( :op<call>,
                                     QAST::WVal.new(:value(nqp::atpos($task,3))),
                                     $self,
-                                    $getattrop
+                                    $getattr
                                   )
                                 )
                               )
@@ -3312,30 +3327,54 @@ class Perl6::World is HLL::World {
                     # 0 = initialize opaque from %init
                     else {
 
-                        # set assign operation to be used
-                        my $sigil :=
-                          nqp::substr(nqp::atpos($task,2),0,1);
-                        my $op := $sigil eq '$' || $sigil eq '&'
-                          ?? 'assign'
-                          !! 'p6store';
+# 'a'
+                        my $key := QAST::SVal.new(:value(nqp::atpos($task,3)));
+
+# nqp::getattr(self,Foo,'$!a')
+                        my $getattr := QAST::Op.new( :op<getattr>,
+                          $self, $class, $attr
+                        );
+
 # nqp::if(
 #   nqp::existskey($init,'a'),
-#   nqp::getattr(self,Foo,'$!a') = %init.AT-KEY('a')
-# ),
-                        my $key := QAST::SVal.new(:value(nqp::atpos($task,3)));
-                        $stmts.push(
-                          QAST::Op.new( :op<if>,
-                            QAST::Op.new(:op('existskey'), $init, $key),
-                            QAST::Op.new( :$op,
-                              QAST::Op.new(:op<getattr>, $self, $class, $attr),
-                              QAST::Op.new( :op<callmethod>,
-                                QAST::Var.new(:scope<local>,:name('%init')),
-                                QAST::SVal.new(:value<AT-KEY>),
-                                $key
-                              )
-                            )
-                          )
+                        my $if := QAST::Op.new( :op<if>,
+                          QAST::Op.new( :op<existskey>, $init, $key)
                         );
+
+# %init.AT-KEY('a')
+                        my $value := QAST::Op.new( :op<callmethod>,
+                          QAST::Var.new( :name<%init>, :scope<local> ),
+                          QAST::SVal.new( :value<AT-KEY> ),
+                          $key
+                        );
+
+                        my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
+
+# nqp::getattr(self,Foo,'$!a').STORE(%init.AT-KEY('a'))
+                        if $sigil eq '@' || $sigil eq '%' {
+                            $if.push(
+                              QAST::Op.new( :op<callmethod>,
+                                $getattr,
+                                QAST::SVal.new( :value<STORE> ),
+                                $value
+                              )
+                            );
+                        }
+
+# nqp::getattr(self,Foo,'$!a') = %init.AT-KEY('a')
+                        else {
+                            $if.push(
+                              QAST::Op.new(
+                                :op( $sigil eq '$' || $sigil eq '&'
+                                       ?? 'assign' !! 'p6store'
+                                ),
+                                $getattr, $value
+                              )
+                            );
+                        }
+
+# ),
+                        $stmts.push($if);
                     }
                 }
 

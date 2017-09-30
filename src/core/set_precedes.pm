@@ -1,7 +1,7 @@
 # This file implements the following set operators:
-#   (<+)    precedes (Texas)
+#   (<+)    precedes (ASCII)
 #   ≼       precedes
-#   (>+)    succeeds (Texas)
+#   (>+)    succeeds (ASCII)
 #   ≽       succeeds
 
 proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {

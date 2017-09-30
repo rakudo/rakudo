@@ -1,5 +1,5 @@
 # This file implements the following set operators:
-#   (-)     set difference (Texas)
+#   (-)     set difference (ASCII)
 #   ∖       set difference
 
 proto sub infix:<(-)>(|) is pure { * }

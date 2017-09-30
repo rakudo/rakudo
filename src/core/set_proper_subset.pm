@@ -1,8 +1,8 @@
 # This file implements the following set operators:
-#   (<)   is a proper subset of (Texas)
+#   (<)   is a proper subset of (ASCII)
 #   ⊂     is a proper subset of
 #   ⊄     is NOT a proper subset of
-#   (>)   is a proper superset of (Texas)
+#   (>)   is a proper superset of (ASCII)
 #   ⊃     is a proper superset of
 #   ⊅     is NOT a proper superset of
 

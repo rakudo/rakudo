@@ -1,5 +1,5 @@
 # This file implements the following set operators:
-#   (+)     baggy addition (Texas)
+#   (+)     baggy addition (ASCII)
 #   ⊎       baggy addition
 
 proto sub infix:<(+)>(|) is pure { * }

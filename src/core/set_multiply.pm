@@ -1,5 +1,5 @@
 # This file implements the following set operators:
-#   (.)  set multiplication (Texas)
+#   (.)  set multiplication (ASCII)
 #   ⊍    set multiplication
 
 proto sub infix:<(.)>(|) is pure { * }

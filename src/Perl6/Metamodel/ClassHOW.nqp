@@ -166,9 +166,6 @@ class Perl6::Metamodel::ClassHOW
                         my $result := try {
                             self.add_method($obj,'BUILDALL',$method);
                         }
-                        unless $result {
-                            nqp::say($obj.HOW.name($obj) ~ ' failed to add a BUILDALL');
-                        }
                     }
                 }
             }

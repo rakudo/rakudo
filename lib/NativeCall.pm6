@@ -203,7 +203,7 @@ my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
 
-sub guess_library_name($lib) is export(:TEST) {
+sub guess_library_name($lib, Bool $no-version = False) is export(:TEST) {
     my $libname;
     my $apiversion = '';
     my Str $ext = '';
@@ -228,6 +228,7 @@ sub guess_library_name($lib) is export(:TEST) {
     return '' unless $libname.DEFINITE;
     #Already a full name?
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
+    warn "NativeCall: Consider adding the api version of the library you want to use, sub foo is native($libname, v1)" if $libname ~~ /^<-[\.\/\\]>+$/ and $apiversion eq '' and ! $no-version;
     return $*VM.platform-library-name($libname.IO, :version($apiversion || Version)).Str;
 }
 
@@ -287,11 +288,53 @@ sub guess-name-mangler(Routine $r, Str $libname) {
     }
 }
 
+role NC-Library-Handle is export {
+  has	$.library-file;
+}
+
+my %registered-libraries;
+
+sub list-native-libraries() is export(:utils) {
+  return %registered-libraries;
+}
+
+sub remove-native-library(Str $key) is export(:utils) {
+  %registered-libraries{$key}:delete;
+}
+
+sub add-native-library(Str $key, NC-Library-Handle $nh) is export(:utils) {
+  if %registered-libraries{$key}:exists {
+    die "The library $key is already registered";
+  }
+  %registered-libraries{$key} = $nh;
+}
+
+sub get-native-library($key) is export(:utils) {
+  return %registered-libraries{$key};
+}
+
+
+sub register-native-library(Str $name, Str $basename, Version :$version, Bool :$no-version = False, :$ENV) returns NC-Library-Handle is export {
+  #We accept only a full path when no version
+  if !$version.defined and $no-version == False and ! $basename.IO.e {
+    die "You need to specify the library API/ABI version with the :version argument (eg v1). You must explicitly use :no-version if the library does not follow any versionning";
+  }
+  my $lib;
+  if $ENV.defined and %*ENV{$ENV}:exists {
+    $lib =  %*ENV{$ENV}
+  } else {
+    $lib =  $no-version ?? guess_library_name($basename, True) !! guess_library_name(($basename, $version));
+  }
+  my NC-Library-Handle $nh = NC-Library-Handle.new(:library-file($lib));
+  add-native-library($name, $nh);
+  return $nh;
+}
+
 my Lock $setup-lock .= new;
 
 # This role is mixed in to any routine that is marked as being a
 # native call.
-my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource] {
+my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource|NC-Library-Handle] {
     has int $!setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;
@@ -302,14 +345,14 @@ my role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributio
     has int8 $!any-optionals;
 
     method !setup() {
-        $setup-lock.protect: {
+    $setup-lock.protect: {
             return if $!setup;
             # Make sure that C++ methotds are treated as mangled (unless set otherwise)
             if self.package.REPR eq 'CPPStruct' and not self.does(NativeCallMangled) {
               self does NativeCallMangled[True];
             }
 
-            my $guessed_libname = guess_library_name($libname);
+            my $guessed_libname = $libname ~~ NC-Library-Handle ?? $libname.library-file !! guess_library_name($libname);
             if self.does(NativeCallMangled) and $r.?native_call_mangled {
               # if needed, try to guess mangler
               $!cpp-name-mangler  = %lib{$guessed_libname} //
@@ -544,9 +587,19 @@ multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
 
 # Specifies that the routine is actually a native call, into the
 # current executable (platform specific) or into a named library
-multi trait_mod:<is>(Routine $r, :$native!) is export(:DEFAULT, :traits) {
+multi trait_mod:<is>(Routine $r, :$native! where Str|Callable|List|Bool|IO::Path|Distribution::Resource) is export(:DEFAULT, :traits) {
     check_routine_sanity($r);
     $r does Native[$r, $native === True ?? Str !! $native];
+}
+
+multi trait_mod:<is>(Routine $r, NC-Library-Handle :$native!) is export(:DEFAULT, :traits) {
+    check_routine_sanity($r);
+    $r does Native[$r, $native];
+}
+
+# Avoid the 'can't find native trait' error
+multi trait_mod:<is>(Routine $r, :$native!) is export(:DEFAULT, :traits) {
+    die "Invalid argument for the \'is native\' trait";
 }
 
 # Specifies the calling convention to use for a native call.
@@ -617,7 +670,7 @@ sub cglobal($libname, $symbol, $target-type) is export is rw {
     Proxy.new(
         FETCH => -> $ {
             nqp::nativecallglobal(
-                nqp::unbox_s(guess_library_name($libname)),
+                nqp::unbox_s($libname ~~ NC-Library-Handle ?? $libname.library-file !! guess_library_name($libname)),
                 nqp::unbox_s($symbol),
                 nqp::decont($target-type),
                 nqp::decont(map_return_type($target-type)))

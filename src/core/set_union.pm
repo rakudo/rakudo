@@ -1,5 +1,5 @@
 # This file implements the following set operators:
-#   (|)     union (Texas)
+#   (|)     union (ASCII)
 #   ∪       union
 
 proto sub infix:<(|)>(|) is pure { * }

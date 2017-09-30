@@ -1,5 +1,5 @@
 # This file implements the following set operators:
-#   (&)     intersection (Texas)
+#   (&)     intersection (ASCII)
 #   ∩       intersection
 
 proto sub infix:<(&)>(|) is pure { * }

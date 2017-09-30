@@ -1,8 +1,8 @@
 # This file implements the following set operators:
-#   (<=)  is a subset of (Texas)
+#   (<=)  is a subset of (ASCII)
 #   ⊆     is a subset of
 #   ⊈     is NOT a subset of
-#   (>=)  is a superset of (Texas)
+#   (>=)  is a superset of (ASCII)
 #   ⊇     is a superset of
 #   ⊉     is NOT a superset of
 

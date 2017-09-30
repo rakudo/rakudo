@@ -1,8 +1,8 @@
 # This file implements the following set operators:
-#   (elem)  is an element of (Texas)
+#   (elem)  is an element of (ASCII)
 #   ∈       is an element of
 #   ∉       is NOT an element of
-#   (cont)  contains (Texas)
+#   (cont)  contains (ASCII)
 #   ∋       contains
 #   ∌       does NOT contain
 

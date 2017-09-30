@@ -159,6 +159,15 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             my int $done;
             my $pulled;
             my $value;
+
+            nqp::if(
+              $!slipping,
+              nqp::until(
+                nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                $target.push($value)
+              )
+            );
+
             until $done
                 || nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
                 nqp::stmts(
@@ -208,6 +217,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   &!block.has-phaser('FIRST'),
                   nqp::p6setfirstflag(&!block)
                 )
+              )
+            );
+
+            nqp::if(
+              $!slipping,
+              nqp::until(
+                nqp::eqaddr(self.slip-one,IterationEnd),
+                nqp::null
               )
             );
 
@@ -424,49 +441,68 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
 
         method push-all($target --> IterationEnd) {
-            nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      nqp::if(
-                        nqp::istype((my $result := &!block($value)),Slip),
-                        self.slip-all($result,$target),
-                        $target.push($result)
-                      ),
-                      'LABELED', $!label,
-                      'REDO', ($redo = 1),
-                      'LAST', return,
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                    )
-                  ),
-                  :nohandler
+            nqp::stmts(
+              (my $value),
+              nqp::if(
+                $!slipping,
+                nqp::until(
+                  nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                  $target.push($value)
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+                nqp::stmts(
+                  (my int $redo = 1),
+                  nqp::while(
+                    $redo,
+                    nqp::stmts(
+                      ($redo = 0),
+                      nqp::handle(
+                        nqp::if(
+                          nqp::istype((my $result := &!block($value)),Slip),
+                          self.slip-all($result,$target),
+                          $target.push($result)
+                        ),
+                        'LABELED', $!label,
+                        'REDO', ($redo = 1),
+                        'LAST', return,
+                        'NEXT', nqp::null, # need NEXT for next LABEL support
+                      )
+                    ),
+                    :nohandler
+                  )
                 )
               )
             )
         }
 
         method sink-all(--> IterationEnd) {
-            nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(  # doesn't sink
-                      &!block($value),
-                      'LABELED', $!label,
-                      'NEXT', nqp::null,  # need NEXT for next LABEL support
-                      'REDO', ($redo = 1),
-                      'LAST', return
-                    ),
-                  :nohandler
+            nqp::stmts(
+              nqp::if(
+                $!slipping,
+                nqp::until(
+                  nqp::eqaddr(self.slip-one,IterationEnd),
+                  nqp::null
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
+                nqp::stmts(
+                  (my int $redo = 1),
+                  nqp::while(
+                    $redo,
+                    nqp::stmts(
+                      ($redo = 0),
+                      nqp::handle(  # doesn't sink
+                        &!block($value),
+                        'LABELED', $!label,
+                        'NEXT', nqp::null,  # need NEXT for next LABEL support
+                        'REDO', ($redo = 1),
+                        'LAST', return
+                      ),
+                    :nohandler
+                    )
                   )
                 )
               )
@@ -554,78 +590,97 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
 
         method push-all($target --> IterationEnd) {
-            nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      nqp::if(
-                        nqp::eqaddr(
-                          (my $value2 := $!source.pull-one),
-                          IterationEnd
-                        ),
-                        nqp::stmts(
-                          (my $result := &!block($value)),
+            nqp::stmts(
+              (my $value),
+              nqp::if(
+                $!slipping,
+                nqp::until(
+                  nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                  $target.push($value)
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+                nqp::stmts(
+                  (my int $redo = 1),
+                  nqp::while(
+                    $redo,
+                    nqp::stmts(
+                      ($redo = 0),
+                      nqp::handle(
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $value2 := $!source.pull-one),
+                            IterationEnd
+                          ),
+                          nqp::stmts(
+                            (my $result := &!block($value)),
+                            nqp::if(
+                              nqp::istype($result,Slip),
+                              self.slip-all($result,$target),
+                              $target.push($result)
+                            ),
+                            return
+                          ),
                           nqp::if(
-                            nqp::istype($result,Slip),
+                            nqp::istype(
+                              ($result := &!block($value,$value2)),
+                              Slip
+                            ),
                             self.slip-all($result,$target),
                             $target.push($result)
-                          ),
-                          return
+                          )
                         ),
-                        nqp::if(
-                          nqp::istype(
-                            ($result := &!block($value,$value2)),
-                            Slip
-                          ),
-                          self.slip-all($result,$target),
-                          $target.push($result)
-                        )
-                      ),
-                      'LABELED', $!label,
-                      'REDO', ($redo = 1),
-                      'LAST', return,
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                    )
-                  ),
-                  :nohandler
+                        'LABELED', $!label,
+                        'REDO', ($redo = 1),
+                        'LAST', return,
+                        'NEXT', nqp::null, # need NEXT for next LABEL support
+                      )
+                    ),
+                    :nohandler
+                  )
                 )
               )
             )
         }
 
         method sink-all(--> IterationEnd) {
-            nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(  # doesn't sink
-                      nqp::if(
-                        nqp::eqaddr(
-                          (my $value2 := $!source.pull-one),
-                          IterationEnd
+            nqp::stmts(
+              nqp::if(
+                $!slipping,
+                nqp::until(
+                  nqp::eqaddr(self.slip-one,IterationEnd),
+                  nqp::null,
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
+                nqp::stmts(
+                  (my int $redo = 1),
+                  nqp::while(
+                    $redo,
+                    nqp::stmts(
+                      ($redo = 0),
+                      nqp::handle(  # doesn't sink
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $value2 := $!source.pull-one),
+                            IterationEnd
+                          ),
+                          nqp::stmts(
+                            (&!block($value)),
+                            return
+                          ),
+                          (&!block($value,$value2))
                         ),
-                        nqp::stmts(
-                          (&!block($value)),
-                          return
-                        ),
-                        (&!block($value,$value2))
-                      ),
-                      'LABELED', $!label,
-                      'NEXT', nqp::null,  # need NEXT for next LABEL support
-                      'REDO', ($redo = 1),
-                      'LAST', return
-                    )
-                  ),
-                :nohandler
+                        'LABELED', $!label,
+                        'NEXT', nqp::null,  # need NEXT for next LABEL support
+                        'REDO', ($redo = 1),
+                        'LAST', return
+                      )
+                    ),
+                  :nohandler
+                  )
                 )
               )
             )

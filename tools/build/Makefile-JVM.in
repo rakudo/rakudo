@@ -178,7 +178,7 @@ j-test    : j-coretest
 j-fulltest: j-coretest j-stresstest
 
 j-coretest: j-all
-	$(J_HARNESS5) t/01-sanity t/03-jvm t/04-nativecall
+	$(J_HARNESS5) t/01-sanity t/02-rakudo t/03-jvm t/04-nativecall t/05-messages
 
 # Run the spectests that we know work.
 j-spectest: j-testable t/spectest.data

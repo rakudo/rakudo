@@ -248,9 +248,11 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
-            _diag "expected: '" ~ ($expected // $expected.^name)     ~ "'\n"
+            my $expected-desc = (try $expected.perl) // $expected.gist;
+            my      $got-desc = (try $got     .perl) // $got     .gist;
+            _diag "expected: $expected-desc\n"
                 ~ " matcher: '" ~ ($matcher.?name || $matcher.^name) ~ "'\n"
-                ~ "     got: '$got'";
+                ~ "     got: $got-desc";
         }
     }
     else {

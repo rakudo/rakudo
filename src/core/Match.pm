@@ -414,7 +414,8 @@ my class Match is Capture is Cool does NQPMatchRole {
     method DYNQUANT_LIMITS($mm) {
         # Treat non-Range values as range with that value on both end points
         # Throw for non-Numeric or NaN Ranges, or if minimum limit is +Inf
-        # If starting end point is less than 0, treat is as 0
+        # Convert endpoints that are less than 0 to 0, then,
+        # throw if Range is empty.
         nqp::if(
           nqp::istype($mm,Range),
           nqp::if(

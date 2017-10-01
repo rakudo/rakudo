@@ -3344,7 +3344,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<identifier> {
         :my $pos;
-        <identifier> <!{ $*W.is_type([~$<identifier>]) }> <?before <.unsp>|'('> <![:]>
+        <identifier> <!{ $*W.is_type([~$<identifier>]) }> [ <?before <.unsp>? '('> | \\ <?before '('> ]
         { $pos := $/.pos }
         <args(1)>
         {
@@ -3422,7 +3422,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
             }
             [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
-        || <args(1)>
+        || [ \\ <?before '('> ]? <args(1)>
             {
                 if !$<args><invocant> {
                     my $name := ~$<longname>;

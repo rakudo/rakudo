@@ -676,7 +676,7 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
 
 sub EXPORT(|) {
     my @routines_to_setup;
-    if ($*W) {
+    if $*W {
         my $block := {
             for @routines_to_setup {
                 .create-optimized-call;

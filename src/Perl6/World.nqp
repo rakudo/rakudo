@@ -3006,7 +3006,7 @@ class Perl6::World is HLL::World {
 
             # Set up the actual statements, starting with "self"
 # nqp::attribute(self,$package_type,$attr_name)
-            my $stmts  := QAST::Var.new(
+            my $accessor  := QAST::Var.new(
               :scope($native && $rw ?? 'attributeref' !! 'attribute'),
               :name($attr_name),
               :returns($type),
@@ -3016,7 +3016,7 @@ class Perl6::World is HLL::World {
 
             # Opaque and read-only accessors need a decont
             unless $native || $rw {
-                $stmts := QAST::Op.new( :op<decont>, $stmts );
+                $accessor := QAST::Op.new( :op<decont>, $accessor );
             }
 
             # Create the block
@@ -3024,7 +3024,7 @@ class Perl6::World is HLL::World {
               :name($meth_name),
               :blocktype('declaration_static'),
               QAST::Stmts.new( $pself, $p_ ),
-              QAST::Stmts.new($stmts)
+              $accessor
             );
 
             # Make sure the block has a SC

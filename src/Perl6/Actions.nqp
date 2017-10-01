@@ -9798,7 +9798,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 if $<upto> eq '^' {
                     $max--;
                 }
-                $/.panic("Empty range") if $min > $max;
+
+                $/.typed_panic(
+                  'X::Syntax::Regex::QuantifierValue', :empty-range
+                ) if $min > $max;
             }
             $qast := QAST::Regex.new( :rxtype<quant>, :min($min), :max($max), :node($/) );
         }

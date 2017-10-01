@@ -1696,6 +1696,25 @@ my class X::Syntax::Regex::SpacesInBareRange does X::Syntax {
     method message { 'Spaces not allowed in bare range.' }
 }
 
+my class X::Syntax::Regex::QuantifierValue does X::Syntax {
+    has $.inf;
+    has $.non-numeric;
+    has $.non-numeric-range;
+    has $.empty-range;
+    method message {
+        $!inf
+          && 'Minimum quantity to match for quantifier cannot be Inf.'
+            ~ ' Did you mean to use + or * quantifiers instead of **?'
+        || $!non-numeric-range
+          && 'Cannot use Range with non-Numeric or NaN end points as quantifier'
+        || $!non-numeric
+          && 'Cannot non-Numeric or NaN value as quantifier'
+        || $!empty-range
+          && 'Cannot use empty Range as quantifier'
+        || 'Invalid quantifier value'
+    }
+}
+
 my class X::Syntax::Regex::SolitaryQuantifier does X::Syntax {
     method message { 'Quantifier quantifies nothing' }
 }

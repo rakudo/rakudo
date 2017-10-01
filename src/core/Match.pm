@@ -412,17 +412,51 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     method DYNQUANT_LIMITS($mm) {
-        nqp::istype($mm,Range)
-          ?? $mm.min == Inf
-            ?? die 'Range minimum in quantifier (**) cannot be +Inf'
-            !! $mm.max == -Inf
-              ?? die 'Range maximum in quantifier (**) cannot be -Inf'
-              !! nqp::list_i(
-                   $mm.min  <   0 ??  0 !! $mm.min.Int,
-                   $mm.max == Inf ?? -1 !! $mm.max.Int)
-          !! $mm == -Inf || $mm == Inf
-            ?? Failure.new('Fixed quantifier cannot be infinite')
-            !! nqp::list_i($mm.Int, $mm.Int)
+        # Treat non-Range values as range with that value on both end points
+        # Throw for non-Numeric or NaN Ranges, or if minimum limit is +Inf
+        # If starting end point is less than 0, treat is as 0
+        nqp::if(
+          nqp::istype($mm,Range),
+          nqp::if(
+               nqp::isfalse(nqp::istype((my $min := $mm.min),Numeric))
+            || nqp::isfalse(nqp::istype((my $max := $mm.max),Numeric))
+            || $min.isNaN || $max.isNaN,
+            X::Syntax::Regex::QuantifierValue.new(:non-numeric-range).throw,
+            nqp::if(
+              $min == Inf,
+              X::Syntax::Regex::QuantifierValue.new(:inf).throw,
+              nqp::stmts(
+                nqp::if(
+                  nqp::islt_i(
+                    ($min := nqp::add_i($min == -Inf ?? -1 !! $min.Int,
+                      $mm.excludes-min)),
+                    0),
+                  $min := 0),
+                nqp::if(
+                  $max == Inf,
+                  nqp::list_i($min,-1),
+                  nqp::stmts(
+                    nqp::if(
+                      $max == -Inf || nqp::islt_i(
+                        ($max := nqp::sub_i($max.Int,$mm.excludes-max)),0),
+                      $max := 0),
+                    nqp::if(
+                      nqp::islt_i($max, $min),
+                      X::Syntax::Regex::QuantifierValue.new(:empty-range).throw,
+                      nqp::list_i($min,$max))))))),
+          nqp::if(
+            nqp::istype((my $v := $mm.Int), Failure),
+            nqp::if(
+              nqp::istype($mm,Numeric) && nqp::isfalse($mm.isNaN),
+              nqp::if(
+                $mm == Inf,
+                X::Syntax::Regex::QuantifierValue.new(:inf).throw,
+                nqp::list_i(0,0)), # if we got here, $mm is -Inf, treat as zero
+              X::Syntax::Regex::QuantifierValue.new(:non-numeric).throw),
+            nqp::if(
+              nqp::islt_i($v,0),
+              nqp::list_i(0,0),
+              nqp::list_i($v,$v))))
     }
 
     method OTHERGRAMMAR($grammar, $name, |) {

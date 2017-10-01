@@ -1708,7 +1708,7 @@ my class X::Syntax::Regex::QuantifierValue does X::Syntax {
         || $!non-numeric-range
           && 'Cannot use Range with non-Numeric or NaN end points as quantifier'
         || $!non-numeric
-          && 'Cannot non-Numeric or NaN value as quantifier'
+          && 'Cannot use non-Numeric or NaN value as quantifier'
         || $!empty-range
           && 'Cannot use empty Range as quantifier'
         || 'Invalid quantifier value'

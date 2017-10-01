@@ -447,13 +447,15 @@ my class Match is Capture is Cool does NQPMatchRole {
                       nqp::list_i($min,$max))))))),
           nqp::if(
             nqp::istype((my $v := $mm.Int), Failure),
-            nqp::if(
-              nqp::istype($mm,Numeric) && nqp::isfalse($mm.isNaN),
+            nqp::stmts(
+              ($v.so), # handle Failure
               nqp::if(
-                $mm == Inf,
-                X::Syntax::Regex::QuantifierValue.new(:inf).throw,
-                nqp::list_i(0,0)), # if we got here, $mm is -Inf, treat as zero
-              X::Syntax::Regex::QuantifierValue.new(:non-numeric).throw),
+                nqp::istype($mm,Numeric) && nqp::isfalse($mm.isNaN),
+                nqp::if(
+                  $mm == Inf,
+                  X::Syntax::Regex::QuantifierValue.new(:inf).throw,
+                  nqp::list_i(0,0)), # if we got here, $mm is -Inf, treat as zero
+                X::Syntax::Regex::QuantifierValue.new(:non-numeric).throw)),
             nqp::if(
               nqp::islt_i($v,0),
               nqp::list_i(0,0),

@@ -647,6 +647,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(List:D: $topic) {
+        CATCH { default { return False } } # .elems on lazies throws
+        return True if nqp::eqaddr(self, nqp::decont($topic));
+
         unless nqp::istype($topic, Iterable) {
             return self unless self.elems;
             return self if nqp::istype(self[0], Match);

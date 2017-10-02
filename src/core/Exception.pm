@@ -733,7 +733,7 @@ my class X::Comp::Group is Exception {
 my role X::MOP is Exception { }
 
 my class X::Comp::BeginTime does X::Comp {
-    has $.use-case;
+    has str $.use-case;
     has $.exception;
 
     method message() {

@@ -147,7 +147,7 @@ class Perl6::Metamodel::ClassHOW
         unless $was_composed {
 
             # Create BUILDPLAN.
-            my $BUILDALLPLAN := self.create_BUILDPLAN($obj);
+            self.create_BUILDPLAN($obj);
 
             # Create BUILDALL method if we can (if we can't, the one from
             # Mu will be used, which will iterate over the BUILDALLPLAN at
@@ -160,7 +160,7 @@ class Perl6::Metamodel::ClassHOW
                     my $builder := nqp::findmethod(
                       $compiler_services,'generate_buildplan_executor');
                     my $method :=
-                      $builder($compiler_services,$obj,$BUILDALLPLAN);
+                      $builder($compiler_services,$obj,self.BUILDALLPLAN($obj));
 
                     # We have a generated BUILDALL submethod, so install!
                     unless $method =:= NQPMu {

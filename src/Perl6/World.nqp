@@ -3483,12 +3483,14 @@ class Perl6::World is HLL::World {
     }
 
     method get_compiler_services() {
-        try {
-            my $wtype   := self.find_symbol(['Rakudo', 'Internals', 'CompilerServices']);
-            my $wrapped := CompilerServices.new(w => self);
-            my $wrapper := nqp::create($wtype);
-            nqp::bindattr($wrapper, $wtype, '$!compiler', $wrapped);
-            $!compiler_services := $wrapper;
+        unless nqp::isconcrete($!compiler_services) {
+            try {
+                my $wtype   := self.find_symbol(['Rakudo', 'Internals', 'CompilerServices']);
+                my $wrapped := CompilerServices.new(w => self);
+                my $wrapper := nqp::create($wtype);
+                nqp::bindattr($wrapper, $wtype, '$!compiler', $wrapped);
+                $!compiler_services := $wrapper;
+            }
         }
         $!compiler_services
     }

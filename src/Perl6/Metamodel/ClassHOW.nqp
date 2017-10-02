@@ -163,9 +163,7 @@ class Perl6::Metamodel::ClassHOW
                       $builder($compiler_services,$obj,$BUILDALLPLAN);
                     unless $method =:= NQPMu {
                         $method.set_name('BUILDALL');
-                        my $result := try {
-                            self.add_method($obj,'BUILDALL',$method);
-                        }
+                        self.add_method($obj,'BUILDALL',$method);
                     }
                 }
             }

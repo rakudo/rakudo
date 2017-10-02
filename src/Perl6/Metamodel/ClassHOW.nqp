@@ -153,14 +153,16 @@ class Perl6::Metamodel::ClassHOW
             # Mu will be used, which will iterate over the BUILDALLPLAN at
             # runtime).
             if nqp::isconcrete($compiler_services) {
-                if nqp::existskey($obj.HOW.method_table($obj),'BUILDPLAN') {
-                    nqp::say($obj.HOW.name($obj) ~ ' already has a BUILDALL');
-                }
-                else {
+
+                # Class does not appear to have a BUILDALL yet
+                unless nqp::existskey($obj.HOW.submethod_table($obj),'BUILDALL')
+                  || nqp::existskey($obj.HOW.method_table($obj),'BUILDALL') {
                     my $builder := nqp::findmethod(
                       $compiler_services,'generate_buildplan_executor');
                     my $method :=
                       $builder($compiler_services,$obj,$BUILDALLPLAN);
+
+                    # We have a generated BUILDALL submethod, so install!
                     unless $method =:= NQPMu {
                         $method.set_name('BUILDALL');
                         self.add_method($obj,'BUILDALL',$method);

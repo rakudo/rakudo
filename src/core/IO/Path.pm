@@ -408,6 +408,9 @@ my class IO::Path is Cool does IO {
         );
         self.chdir: $path, |$test.words.map(* => True).Hash;
     }
+    multi method chdir(IO::Path:D: IO $path, |c) {
+        self.chdir: $path.absolute, |c
+    }
     multi method chdir(
         IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
     ) {

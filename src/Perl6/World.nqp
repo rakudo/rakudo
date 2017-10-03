@@ -2994,7 +2994,10 @@ class Perl6::World is HLL::World {
         # signature configuration hashes
         my %sig_empty := nqp::hash('parameters', []);  # :()
         my %sig_init := nqp::hash(
-          'parameters', [nqp::hash('variable_name','%init')]
+          'parameters', [
+            nqp::hash('variable_name','@auto'),
+            nqp::hash('variable_name','%init')
+          ]
         );
 
         # Generate an accessor method with the given method name, package,

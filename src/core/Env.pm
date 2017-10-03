@@ -1,5 +1,3 @@
-PROCESS::<%ENV> := Rakudo::Internals.createENV(0);
-
 Rakudo::Internals.REGISTER-DYNAMIC: '$*CWD', {
 #    PROCESS::<$CWD> = nqp::p6box_s(nqp::cwd());
     my $CWD := nqp::p6box_s(nqp::cwd());

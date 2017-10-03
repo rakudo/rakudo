@@ -3,7 +3,6 @@
 # does for its iterator. If you ask for its iterator, then you are ending the
 # declaration of a chain of parallelizable operations. That is, in fact, the
 # thing that will actually kick off the parallel work.
-my class Promise { ... }
 my class HyperSeq does Iterable does HyperIterable does PositionalBindFailover {
     has HyperIterator $!hyper-iter;
 

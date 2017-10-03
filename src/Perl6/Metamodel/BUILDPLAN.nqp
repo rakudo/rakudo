@@ -103,32 +103,49 @@ role Perl6::Metamodel::BUILDPLAN {
             nqp::push(@plan,$TWEAK);
         }
 
-        # Install plan for this class.
-        @!BUILDPLAN := +@plan ?? @plan !! @EMPTY;
+        # Something in the buildplan of this class
+        if @plan {
 
-        # Now create the full plan by getting the MRO, and working from
-        # least derived to most derived, copying the plans.
-        my @all_plan;
-        my @mro := self.mro($obj);
-        my $i := +@mro;
-        my $noops := 0;
-        while $i > 0 {
-            $i := $i - 1;
-            my $class := @mro[$i];
-            for $class.HOW.BUILDPLAN($class) {
-                if nqp::islist($_) && $_[0] == 10 {   # noop in BUILDALLPLAN
-                    $noops := 1;
-                }
-                else {
-                    nqp::push(@all_plan, $_);
+            # Install plan for this class.
+            @!BUILDPLAN := @plan;
+
+            # Now create the full plan by getting the MRO, and working from
+            # least derived to most derived, copying the plans.
+            my @all_plan;
+            my @mro := self.mro($obj);
+            my $i := +@mro;
+            my $noops := 0;
+            while $i > 0 {
+                $i := $i - 1;
+                my $class := @mro[$i];
+                for $class.HOW.BUILDPLAN($class) {
+                    if nqp::islist($_) && $_[0] == 10 {   # noop in BUILDALLPLAN
+                        $noops := 1;
+                    }
+                    else {
+                        nqp::push(@all_plan, $_);
+                    }
                 }
             }
+
+            # Same number of elems and no noops, identical, so just keep 1 copy
+            @!BUILDALLPLAN := $noops || +@all_plan != +@plan
+              ?? @all_plan
+              !! @plan
         }
 
-        # if same number of elems and no noops, identical, so just keep 1 copy
-        @!BUILDALLPLAN := $noops || +@all_plan != +@plan
-          ?? @all_plan
-          !! @!BUILDPLAN;  # if empty, shared across classes
+        # BUILDPLAN of class itself is empty
+        else {
+
+            # Share the empty BUILDPLAN
+            @!BUILDPLAN := @EMPTY;
+
+            # Take the first "super"class's BUILDALLPLAN if possible
+            my @mro := self.mro($obj);
+            @!BUILDALLPLAN := +@mro > 1
+              ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
+              !! @EMPTY    
+        }
     }
 
     method BUILDPLAN($obj) {

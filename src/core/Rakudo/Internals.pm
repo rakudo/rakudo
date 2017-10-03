@@ -887,9 +887,7 @@ my class Rakudo::Internals {
 #method INITIALIZERS() { $initializers }
 
     method REGISTER-DYNAMIC(Str:D \name, &code, Str $version = '6.c' --> Nil) {
-#nqp::print("Registering ");
-#nqp::print(name);
-#nqp::print("\n");
+#nqp::say('Registering ' ~ name);
         nqp::stmts(
           (my str $with = nqp::concat($version, nqp::concat("\0", name))),
           nqp::if(
@@ -907,9 +905,7 @@ my class Rakudo::Internals {
         )
     }
     method INITIALIZE-DYNAMIC(str \name) is raw {
-#nqp::print("Initializing");
-#nqp::print(name);
-#nqp::print("\n");
+#nqp::say('Initializing ' ~ name);
         nqp::stmts(
           (my str $with = nqp::concat(
             nqp::getcomp('perl6').language_version, nqp::concat("\0", name))),

@@ -593,6 +593,9 @@ my class ThreadPoolScheduler does Scheduler {
           if $every.defined and $times > 1 and &stop;
         my $delay = $at ?? $at - now !! $in // 0;
 
+        # Wrap any catch handler around the code to run.
+        my &run := &catch ?? wrap-catch(&code, &catch) !! &code;
+
         # need repeating
         if $every {
             # generate a stopper if needed
@@ -610,56 +613,40 @@ my class ThreadPoolScheduler does Scheduler {
                       Cancellation.new(async_handles => [$handle]);
                 }
                 $handle := nqp::timer(self!timer-queue(),
-                    &catch
-                      ?? -> {
-                          stop()
-                            ?? cancellation().cancel
-                            !! code();
-                          CATCH { default { catch($_) } };
-                      }
-                      !! -> {
-                          stop()
-                            ?? cancellation().cancel
-                            !! code();
-                      },
+                    { stop() ?? cancellation().cancel !! run() },
                     to-millis($delay), to-millis($every),
                     TimerCancellation);
-                return cancellation()
+                cancellation()
             }
 
             # no stopper
             else {
-                my $handle := nqp::timer(self!timer-queue(),
-                    &catch
-                      ?? -> { code(); CATCH { default { catch($_) } } }
-                      !! &code,
+                my $handle := nqp::timer(self!timer-queue(), &run,
                     to-millis($delay), to-millis($every),
                     TimerCancellation);
-                return Cancellation.new(async_handles => [$handle]);
+                Cancellation.new(async_handles => [$handle])
             }
         }
 
         # only after waiting a bit or more than once
         elsif $delay or $times > 1 {
-            my $todo := &catch
-                ?? -> { code(); CATCH { default { catch($_) } } }
-                !! &code;
             my @async_handles;
             $delay = to-millis($delay) if $delay;
             @async_handles.push(
-              nqp::timer(self!timer-queue(), $todo, $delay, 0, TimerCancellation)
+              nqp::timer(self!timer-queue(), &run, $delay, 0, TimerCancellation)
             ) for 1 .. $times;
-            return Cancellation.new(:@async_handles);
+            Cancellation.new(:@async_handles)
         }
 
         # just cue the code
         else {
-            my &run := &catch
-               ?? -> { code(); CATCH { default { catch($_) } } }
-               !! &code;
             nqp::push(self!general-queue(), &run);
-            return Nil;
+            Nil
         }
+    }
+
+    sub wrap-catch(&code, &catch) {
+        -> { code(); CATCH { default { catch($_) } } }
     }
 
     multi to-millis(Int $value) {

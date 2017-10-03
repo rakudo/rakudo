@@ -2,6 +2,9 @@ role Perl6::Metamodel::BUILDPLAN {
     has @!BUILDALLPLAN;
     has @!BUILDPLAN;
 
+    # Empty BUILDPLAN shared by all classes with empty BUILDPLANs
+    my @EMPTY := nqp::list;
+
     # Creates the plan for building up the object. This works
     # out what we'll need to do up front, so we can just zip
     # through the "todo list" each time we need to make an object.
@@ -101,7 +104,7 @@ role Perl6::Metamodel::BUILDPLAN {
         }
 
         # Install plan for this class.
-        @!BUILDPLAN := @plan;
+        @!BUILDPLAN := +@plan ?? @plan !! @EMPTY;
 
         # Now create the full plan by getting the MRO, and working from
         # least derived to most derived, copying the plans.
@@ -123,7 +126,9 @@ role Perl6::Metamodel::BUILDPLAN {
         }
 
         # if same number of elems and no noops, identical, so just keep 1 copy
-        @!BUILDALLPLAN := $noops || +@all_plan != +@plan ?? @all_plan !! @plan;
+        @!BUILDALLPLAN := $noops || +@all_plan != +@plan
+          ?? @all_plan
+          !! @!BUILDPLAN;  # if empty, shared across classes
     }
 
     method BUILDPLAN($obj) {

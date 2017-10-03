@@ -149,10 +149,13 @@ class Perl6::Metamodel::ClassHOW
             # Create BUILDPLAN.
             self.create_BUILDPLAN($obj);
 
-            # Create BUILDALL method if we can (if we can't, the one from
-            # Mu will be used, which will iterate over the BUILDALLPLAN at
-            # runtime).
-            if nqp::isconcrete($compiler_services) {
+            # If the BUILDPLAN is not empty, we should attempt to auto-
+            # generate a BUILDALL method.  If the BUILDPLAN is empty, then
+            # the BUILDALL of the parent is already good enough.  We can
+            # only auto-generate a BUILDALL method if we have compiler
+            # services.  If we don't, then BUILDALL will fall back to the
+            # one in Mu, which will iterate over the BUILDALLPLAN.
+            if self.BUILDPLAN($obj) && nqp::isconcrete($compiler_services) {
 
                 # Class does not appear to have a BUILDALL yet
                 unless nqp::existskey($obj.HOW.submethod_table($obj),'BUILDALL')

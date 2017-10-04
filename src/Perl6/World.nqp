@@ -4116,19 +4116,21 @@ class Perl6::World is HLL::World {
         if $name<identifier> {
             @components.push(~$name<identifier>);
         }
-        for $name<morename> {
-            if $_<identifier> {
-                @components.push(~$_<identifier>);
-            }
-            elsif $_<EXPR> {
-                my $EXPR := $_<EXPR>.ast;
-                @components.push($EXPR);
-            }
-            else {
-                # Either it's :: as a name entirely, in which case it's anon,
-                # or we're ending in ::, in which case it implies .WHO.
-                if +@components {
-                    nqp::bindattr_i($result, LongName, '$!get_who', 1);
+        if $name<morename> {
+            for $name<morename> {
+                if $_<identifier> {
+                    @components.push(~$_<identifier>);
+                }
+                elsif $_<EXPR> {
+                    my $EXPR := $_<EXPR>.ast;
+                    @components.push($EXPR);
+                }
+                else {
+                    # Either it's :: as a name entirely, in which case it's anon,
+                    # or we're ending in ::, in which case it implies .WHO.
+                    if +@components {
+                        nqp::bindattr_i($result, LongName, '$!get_who', 1);
+                    }
                 }
             }
         }
@@ -4138,44 +4140,45 @@ class Perl6::World is HLL::World {
         # the last part of the name (e.g. for infix:<+>). Need to be a
         # little cheaty when compiling the setting due to bootstrapping.
         my @pairs;
-        for $longname<colonpair> {
-            if $_<coloncircumfix> && !$_<identifier> {
-                my $cp_str;
-                if $*COMPILING_CORE_SETTING {
-                    my $ast := $_.ast;
+        if $longname<colonpair> {
+            for $longname<colonpair> {
+                if $_<coloncircumfix> && !$_<identifier> {
+                    my $cp_str;
+                    if $*COMPILING_CORE_SETTING {
+                        my $ast := $_.ast;
 
-                    # XXX hackish for dealing with <longname> stuff, which
-                    # doesn't get handled in a consistent way like <deflongname>
-                    # stuff. The better solution, in the long run, is to
-                    # uniformly run longname through nibble_to_str before this
-                    if nqp::istype($ast, QAST::Op) && $ast.name eq '&val' {
-                        $ast := $ast[0];
-                    }
-                    if nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal) {
-                        $cp_str := self.canonicalize_pair('',$ast[2].value);
-                    }
-                    elsif nqp::istype($ast, QAST::WVal) &&
-                          nqp::istype($ast.value, $*W.find_symbol(['Str'], :setting-only)) {
-                        $cp_str := self.canonicalize_pair('', $ast.value);
+                        # XXX hackish for dealing with <longname> stuff, which
+                        # doesn't get handled in a consistent way like <deflongname>
+                        # stuff. The better solution, in the long run, is to
+                        # uniformly run longname through nibble_to_str before this
+                        if nqp::istype($ast, QAST::Op) && $ast.name eq '&val' {
+                            $ast := $ast[0];
+                        }
+                        if nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal) {
+                            $cp_str := self.canonicalize_pair('',$ast[2].value);
+                        }
+                        elsif nqp::istype($ast, QAST::WVal) &&
+                              nqp::istype($ast.value, $*W.find_symbol(['Str'], :setting-only)) {
+                            $cp_str := self.canonicalize_pair('', $ast.value);
+                        }
+                        else {
+                            $cp_str := ~$_;
+                        }
                     }
                     else {
-                        $cp_str := ~$_;
+                        # Safe to evaluate it directly; no bootstrap issues.
+                        $cp_str := self.canonicalize_pair('',self.compile_time_evaluate($_, $_.ast));
+                    }
+                    if +@components {
+                        @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
+                    } else {
+                        @components[0] := $cp_str;
                     }
                 }
-
                 else {
-                    # Safe to evaluate it directly; no bootstrap issues.
-                    $cp_str := self.canonicalize_pair('',self.compile_time_evaluate($_, $_.ast));
+                    $_.ast.wanted(1);
+                    @pairs.push($_);
                 }
-                if +@components {
-                    @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
-                } else {
-                    @components[0] := $cp_str;
-                }
-            }
-            else {
-                $_.ast.wanted(1);
-                @pairs.push($_);
             }
         }
         nqp::bindattr($result, LongName, '@!colonpairs', @pairs);

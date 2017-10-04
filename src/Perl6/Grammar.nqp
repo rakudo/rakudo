@@ -2097,7 +2097,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$.> {
-        <sym> {} <!before \w | '('>
+        <sym> {} <!before \w | '(' | '^' >
         <.obsvar('$.')>
     }
 
@@ -2151,11 +2151,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
+    token desigilmetaname {
+        $<longname>=( $<name>=( <identifier>  ) )
+    }
+
     token variable {
         :my $*IN_META := '';
         [
         | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
-        | <sigil> <twigil>? <desigilname>
+        | <sigil> [ $<twigil>=['.^'] <desigilname=desigilmetaname> | <twigil>? <desigilname> ]
           [ <?{ !$*IN_DECL && $*VARIABLE && $*VARIABLE eq $<sigil> ~ $<twigil> ~ $<desigilname> }>
             { self.typed_panic: 'X::Syntax::Variable::Initializer', name => $*VARIABLE } ]?
         | <special_variable>
@@ -2165,7 +2169,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
-        [ <?{ $<twigil> && $<twigil> eq '.' }>
+        [ <?{ $<twigil> && ( $<twigil> eq '.' || $<twigil> eq '.^' ) }>
             [ <.unsp> | '\\' | <?> ] <?[(]> <!RESTRICTED> <arglist=.postcircumfix>
         ]?
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }

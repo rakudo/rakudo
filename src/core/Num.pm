@@ -1,5 +1,6 @@
-my class X::Numeric::DivideByZero { ... };
-my role Rational { ... };
+my class X::Numeric::DivideByZero  { ... }
+my class X::Numeric::CannotConvert { ... }
+my role Rational { ... }
 
 my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool
@@ -24,7 +25,7 @@ my class Num does Real { # declared in BOOTSTRAP
 
     method Int(Num:D:) {
         nqp::isnanorinf(nqp::unbox_n(self))
-          ?? Failure.new("Cannot coerce {self} to an Int")
+          ?? X::Numeric::CannotConvert.new(:source(self), :target(Int)).fail
           !! nqp::fromnum_I(nqp::unbox_n(self),Int)
     }
 

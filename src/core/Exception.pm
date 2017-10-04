@@ -2404,7 +2404,7 @@ my class X::Import::Positional is Exception {
     }
 }
 
-my class X::Numeric::Real is Exception {
+my class X::Numeric::CannotConvert is Exception {
     has $.target;
     has $.reason;
     has $.source;
@@ -2412,7 +2412,9 @@ my class X::Numeric::Real is Exception {
     method message() {
         "Cannot convert $.source to {$.target.^name}: $.reason";
     }
+
 }
+my class X::Numeric::Real is X::Numeric::CannotConvert {}
 
 my class X::Numeric::DivideByZero is Exception {
     has $.using;

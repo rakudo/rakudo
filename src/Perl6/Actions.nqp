@@ -8953,7 +8953,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.pop_lexpad();
         if nqp::defined($migrate_stmt_id) {
             migrate_blocks($*W.cur_lexpad(), $block, -> $b {
-                !$b.ann('in_stmt_mod') && ($b.ann('statement_id') // -1) == $migrate_stmt_id
+                !$b.ann('in_stmt_mod') && ($b.ann('statement_id') // -1) >= $migrate_stmt_id
             });
         }
         ($*W.cur_lexpad())[0].push($block);

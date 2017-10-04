@@ -98,6 +98,7 @@ sub read_config {
     for my $file (@config_src) {
         no warnings;
         if (! -f $file) {
+            print "No pre-existing installed file found at $file\n";
             next;
         }
         if (open my $CONFIG, '-|', "\"$file\" --show-config") {

@@ -25,7 +25,7 @@ my class Rakudo::Internals::EvalIdSource {
         $lock.protect: { $count++ }
     }
 }
-proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
+proto sub EVAL($code is copy where Blob|Cool, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     # First look in compiler registry.
     my $compiler := nqp::getcomp($lang);
     if nqp::isnull($compiler) {
@@ -38,6 +38,10 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
         }
         return {*};
     }
+    $code = nqp::istype($code,Blob) ?? $code.decode(
+        $compiler.cli-options<encoding> // 'utf8'
+    ) !! $code.Str;
+
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
@@ -53,7 +57,7 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
         my $grammar := $LANG<MAIN>;
         my $actions := $LANG<MAIN-actions>;
         $compiled := $compiler.compile(
-            $code.Stringy,
+            $code,
             :outer_ctx($eval_ctx),
             :global(GLOBAL),
             :mast_frames(mast_frames),
@@ -63,7 +67,7 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     }
     else {
         $compiled := $compiler.compile(
-            $code.Stringy,
+            $code,
             :outer_ctx($eval_ctx),
             :global(GLOBAL),
             :mast_frames(mast_frames),
@@ -76,7 +80,7 @@ proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
     $compiled();
 }
 
-multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
+multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ (state $no)++;
     state $p5;
@@ -91,12 +95,14 @@ multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'Perl5' }, Pseudo
         }
         $p5 = ::("Inline::Perl5").default_perl5;
     }
-    $p5.run($code);
+    $p5.run: nqp::istype($code,Blob)
+        ?? Blob.new($code).decode('utf8-c8')
+        !! $code.Str;
 }
 
 proto sub EVALFILE($, *%) {*}
 multi sub EVALFILE($filename, :$lang = 'perl6') {
-    EVAL slurp($filename), :$lang, :context(CALLER::);
+    EVAL slurp(:bin, $filename), :$lang, :context(CALLER::);
 }
 
 # vim: ft=perl6 expandtab sw=4

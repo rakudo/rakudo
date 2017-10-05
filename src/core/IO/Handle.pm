@@ -1,5 +1,4 @@
 my class IO::Path { ... }
-my class IO::Special { ... }
 my class Proc { ... }
 
 my class IO::Handle {

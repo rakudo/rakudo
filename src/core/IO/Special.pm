@@ -1,3 +1,5 @@
+my class Instant { ... }
+
 class IO::Special does IO {
     has Str $.what;
 

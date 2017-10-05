@@ -136,7 +136,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method gist(Blob:D:) {
-        self.^name ~ ':0x<' ~ self.list.fmt('%02x', ' ') ~ '>'
+        self.^name ~ ':0x<' ~ self.map( -> $elem {
+            given ++$ {
+                when 101 { '...' }
+                when 102 { last }
+                default  { $elem.fmt: '%02x' }
+            }
+        }) ~ '>'
     }
     multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';

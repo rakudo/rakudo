@@ -126,7 +126,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             ++$i == 101 ?? '...'
                 !! $i == 102 ?? last()
                     !! .gist
-        }).join(',') ~ '))'
+        }).join(', ') ~ '))'
     }
 
     multi method perl(Map:D \SELF:) {

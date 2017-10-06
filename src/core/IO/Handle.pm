@@ -696,23 +696,29 @@ my class IO::Handle {
         self!slurp-all-chars()
     }
 
-    method slurp(IO::Handle:D: :$close) {
-        my $res;
-        nqp::if(
-          $!decoder,
-          ($res := self!slurp-all-chars()),
-          nqp::stmts(
-            ($res := buf8.new),
+    method slurp(IO::Handle:D: :$close, :$bin) {
+        nqp::stmts(
+          (my $res),
+          nqp::if(
+            $!decoder,
+            nqp::if(
+              $bin,
+              nqp::stmts(
+                ($res := buf8.new),
+                nqp::if(
+                  $!decoder.bytes-available,
+                  $res.append($!decoder.consume-exactly-bytes(
+                    $!decoder.bytes-available)))),
+              ($res := self!slurp-all-chars())),
+            ($res := buf8.new)),
+          nqp::if(
+            nqp::isfalse($!decoder) || $bin,
             nqp::while(
               nqp::elems(my $buf := self.read-internal(0x100000)),
-              $res.append($buf)
-            )
-          )
-        );
-
-        # don't sink result of .close; it might be a failed Proc
-        $ = self.close if $close;
-        $res
+              $res.append($buf))),
+          # don't sink result of .close; it might be a failed Proc
+          nqp::if($close, $ = self.close),
+          $res)
     }
 
     method !slurp-all-chars() {

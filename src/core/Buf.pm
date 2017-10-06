@@ -136,13 +136,24 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method gist(Blob:D:) {
-        self.^name ~ ':0x<' ~ self.map( -> $elem {
-            given ++$ {
-                when 101 { '...' }
-                when 102 { last }
-                default  { $elem.fmt: '%02x' }
-            }
-        }) ~ '>'
+        nqp::stmts(
+          (my str $gist = self.^name ~ ':0x<'),
+          (my int $els = nqp::elems(self)),
+          (my int $max = nqp::isle_i($els,100) ?? $els !! 100),
+          (my int $i   = -1),
+          nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$max),
+              ($gist = nqp::concat($gist, nqp::concat(nqp::if(
+                nqp::iseq_i(
+                  nqp::chars(my str $s = nqp::lc(
+                    (self.AT-POS: $i).base: 16)),1),
+                nqp::concat('0',$s),$s),' ')))),
+          nqp::if( # take care of ending, removing extra ' '  if needed
+            nqp::isge_i($els, 101),
+            ($gist = nqp::concat($gist,'...')),
+            $els && ($gist = nqp::substr(
+              $gist,0,nqp::sub_i(nqp::chars($gist),1)))),
+          nqp::concat($gist,'>'))
     }
     multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';

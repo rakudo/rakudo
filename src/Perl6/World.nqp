@@ -3250,11 +3250,16 @@ class Perl6::World is HLL::World {
                               $self, $class, $attr
                             );
 
+                            my $initializer := nqp::istype(
+                              nqp::atpos($task,3),
+                              $!w.find_symbol(['Block'])
 # $code(self,nqp::getattr(self,Foo,'$!a')))
-                            my $initializer := QAST::Op.new( :op<call>,
-                              QAST::WVal.new(:value(nqp::atpos($task,3))),
-                              $self, $getattr
-                            );
+                            ) ?? QAST::Op.new( :op<call>,
+                                   QAST::WVal.new(:value(nqp::atpos($task,3))),
+                                   $self, $getattr
+                                 )
+# $value
+                              !! QAST::WVal.new(:value(nqp::atpos($task,3)));
 
                             my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
 # nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')))
@@ -3306,10 +3311,21 @@ class Perl6::World is HLL::World {
                                 ),
                                 QAST::Op.new( :op('bindattr' ~ @psp[$code - 4]),
                                   $self, $class, $attr,
-                                  QAST::Op.new( :op<call>,
-                                    QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                    $self,
-                                    $getattr
+                                  nqp::if(
+                                    nqp::istype(
+                                      nqp::atpos($task,3),
+                                      $!w.find_symbol(['Block'])
+                                    ),
+                                    QAST::Op.new( :op<call>,
+                                      QAST::WVal.new(:value(nqp::atpos($task,3))),
+                                      $self,
+                                      $getattr
+                                    ),
+                                    nqp::if(
+                                      nqp::iseq_i($code,5),
+                                      QAST::IVal.new(:value(nqp::atpos($task,3))),
+                                      QAST::NVal.new(:value(nqp::atpos($task,3)))
+                                    )
                                   )
                                 )
                               )
@@ -3333,10 +3349,17 @@ class Perl6::World is HLL::World {
                                 QAST::Op.new( :op<isnull_s>, $getattr),
                                 QAST::Op.new( :op<bindattr_s>,
                                   $self, $class, $attr,
-                                  QAST::Op.new( :op<call>,
-                                    QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                    $self,
-                                    $getattr
+                                  nqp::if(
+                                    nqp::istype(
+                                      nqp::atpos($task,3),
+                                      $!w.find_symbol(['Block'])
+                                    ),
+                                    QAST::Op.new( :op<call>,
+                                      QAST::WVal.new(:value(nqp::atpos($task,3))),
+                                      $self,
+                                      $getattr
+                                    ),
+                                    QAST::SVal.new(:value(nqp::atpos($task,3)))
                                   )
                                 )
                               )

@@ -45,3 +45,5 @@ my class IterationBuffer {
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',self).perl
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

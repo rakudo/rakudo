@@ -9,3 +9,5 @@ role Encoding::Decoder {
     method bytes-available(--> Int:D) { ... }
     method consume-exactly-bytes(int $bytes --> Blob) { ... }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -34,3 +34,5 @@ my class IO::Notification {
         $s.Supply
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

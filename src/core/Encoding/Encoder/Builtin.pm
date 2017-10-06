@@ -42,3 +42,5 @@ my class Encoding::Encoder::Builtin::Replacement does Encoding::Encoder {
 #?endif
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -111,3 +111,5 @@ my class Awaiter::Blocking does Awaiter {
 }
 
 PROCESS::<$AWAITER> := Awaiter::Blocking;
+
+# vim: ft=perl6 expandtab sw=4

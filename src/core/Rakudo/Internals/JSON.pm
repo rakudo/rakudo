@@ -133,3 +133,5 @@ my class Rakudo::Internals::JSON {
     }
     method to-json(|c) { to-json(|c) }
 }
+
+# vim: ft=perl6 expandtab sw=4

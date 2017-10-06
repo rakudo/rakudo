@@ -86,3 +86,5 @@ my class KeyReducer {
         $!exception ?? $!exception.throw !! %!result
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

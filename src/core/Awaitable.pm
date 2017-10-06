@@ -46,3 +46,5 @@ my role Awaitable::Handle {
 
     method subscribe-awaiter(&subscriber) { ... }
 }
+
+# vim: ft=perl6 expandtab sw=4

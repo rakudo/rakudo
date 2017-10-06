@@ -123,3 +123,5 @@ my class NFKC is Uni {
         die "Cannot create an NFKC directly"; # XXX typed, better message
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

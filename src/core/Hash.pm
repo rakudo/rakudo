@@ -204,14 +204,14 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method perl(Hash:D \SELF:) {
-        SELF.perlseen('Hash', {
+        SELF.perlseen(self.^name, {
             '$' x nqp::iscont(SELF)  # self is always deconted
             ~ '{' ~ self.sort.map({.perl}).join(', ') ~ '}'
         })
     }
 
     multi method gist(Hash:D:) {
-        self.gistseen('Hash', {
+        self.gistseen(self.^name, {
             '{' ~
             self.sort.map( -> $elem {
                 given ++$ {

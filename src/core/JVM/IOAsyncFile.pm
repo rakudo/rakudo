@@ -74,3 +74,5 @@ my class IO::Async::File {
         $c
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

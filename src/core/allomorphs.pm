@@ -506,3 +506,5 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
 
     parse_win $result;
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -420,3 +420,5 @@ my class Proc::Async {
         nqp::killprocasync($!process_handle, $*KERNEL.signal: signal)
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

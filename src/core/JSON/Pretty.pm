@@ -7,3 +7,5 @@ sub from-json($text) {
     DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.perl6.org/');
     Rakudo::Internals::JSON.from-json($text);
 }
+
+# vim: ft=perl6 expandtab sw=4

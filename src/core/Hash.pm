@@ -213,13 +213,12 @@ my class Hash { # declared in BOOTSTRAP
     multi method gist(Hash:D:) {
         self.gistseen(self.^name, {
             '{' ~
-            self.sort.map( -> $elem {
-                given ++$ {
-                    when 101 { '...' }
-                    when 102 { last }
-                    default  { $elem.gist }
-                }
-            } ).join(', ')
+            self.sort.map({
+                state $i = 0;
+                ++$i == 101 ?? '...'
+                    !! $i == 102 ?? last()
+                        !! .gist
+            }).join(', ')
             ~ '}'
         })
     }

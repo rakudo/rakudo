@@ -197,12 +197,17 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                       nqp::atpos($task,1),
                       nqp::atpos($task,2)
                     ),
-                    nqp::stmts(
-                      (my \attr := nqp::getattr(self,
-                        nqp::atpos($task,1),
-                        nqp::atpos($task,2)
-                      )),
-                      (attr = nqp::atpos($task,3)(self,attr))
+                    nqp::if(
+                      nqp::istype(nqp::atpos($task,3),Block),
+                      nqp::stmts(
+                        (my \attr := nqp::getattr(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2)
+                        )),
+                        (attr = nqp::atpos($task,3)(self,attr))
+                      ),
+                      nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2)) =
+                        nqp::atpos($task,3)
                     )
                   ),
 
@@ -216,7 +221,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                       nqp::bindattr_i(self,
                         nqp::atpos($task,1),
                         nqp::atpos($task,2),
-                        (nqp::atpos($task,3)(self,$int))
+                        nqp::if(
+                          nqp::istype(nqp::atpos($task,3),Block),
+                          (nqp::atpos($task,3)(self,$int)),
+                          nqp::atpos($task,3)
+                        )
                       )
                     ),
 
@@ -230,7 +239,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                         nqp::bindattr_n(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2),
-                          (nqp::atpos($task,3)(self,$num))
+                          nqp::if(
+                            nqp::istype(nqp::atpos($task,3),Block),
+                            (nqp::atpos($task,3)(self,$num)),
+                            nqp::atpos($task,3)
+                          )
                         )
                       ),
 
@@ -244,7 +257,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                           nqp::bindattr_s(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2),
-                            (nqp::atpos($task,3)(self,$str))
+                            nqp::if(
+                              nqp::istype(nqp::atpos($task,3),Block),
+                              (nqp::atpos($task,3)(self,$str)),
+                              nqp::atpos($task,3)
+                            )
                           )
                         ),
 
@@ -343,12 +360,17 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                       nqp::atpos($task,1),
                       nqp::atpos($task,2)
                     ),
-                    nqp::stmts(
-                      (my \attr := nqp::getattr(self,
-                        nqp::atpos($task,1),
-                        nqp::atpos($task,2)
-                      )),
-                      (attr = nqp::atpos($task,3)(self,attr))
+                    nqp::if(
+                      nqp::istype(nqp::atpos($task,3),Block),
+                      nqp::stmts(
+                        (my \attr := nqp::getattr(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2)
+                        )),
+                        (attr = nqp::atpos($task,3)(self,attr))
+                      ),
+                      nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2)) =
+                        nqp::atpos($task,3)
                     )
                   ),
 
@@ -362,7 +384,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                       nqp::bindattr_i(self,
                         nqp::atpos($task,1),
                         nqp::atpos($task,2),
-                        (nqp::atpos($task,3)(self,$int))
+                        nqp::if(
+                          nqp::istype(nqp::atpos($task,3),Block),
+                          (nqp::atpos($task,3)(self,$int)),
+                          nqp::atpos($task,3)
+                        )
                       )
                     ),
 
@@ -376,7 +402,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                         nqp::bindattr_n(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2),
-                          (nqp::atpos($task,3)(self,$num))
+                          nqp::if(
+                            nqp::istype(nqp::atpos($task,3),Block),
+                            (nqp::atpos($task,3)(self,$num)),
+                            nqp::atpos($task,3)
+                          )
                         )
                       ),
 
@@ -390,7 +420,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                           nqp::bindattr_s(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2),
-                            (nqp::atpos($task,3)(self,$str))
+                            nqp::if(
+                              nqp::istype(nqp::atpos($task,3),Block),
+                              (nqp::atpos($task,3)(self,$str)),
+                              nqp::atpos($task,3)
+                            )
                           )
                         ),
 

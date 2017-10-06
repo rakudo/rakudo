@@ -9154,25 +9154,43 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 placeholder => $block.ann('placeholder_sig')[0]<placeholder>,
             );
         }
+        if $initializer.has_compile_time_value {
+            my $build := $initializer.compile_time_value;
+            if nqp::isconcrete($build) {  # can't handle type values yet
+                return $*W.apply_trait($/, '&trait_mod:<will>', $attr, :$build);
+            }
+        }
+
+        # Need to construct and install an initializer method
         my @params := [
-            hash( is_invocant => 1, nominal_type => $/.package),
-            hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
+          hash( is_invocant => 1, nominal_type => $/.package),
+          hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
         ];
         my $sig := $*W.create_signature(nqp::hash('parameter_objects', [
-            $*W.create_parameter($/, @params[0]),
-            $*W.create_parameter($/, @params[1])
+          $*W.create_parameter($/, @params[0]),
+          $*W.create_parameter($/, @params[1])
         ]));
-        $block[0].push(QAST::Var.new( :name('self'), :scope('lexical'), :decl('var') ));
-        $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
-        $block.push(QAST::Stmts.new( WANTED($initializer, 'install_attr_init'), :node($/) ));
+
+        $block[0].push(
+          QAST::Var.new( :name('self'), :scope('lexical'), :decl('var') )
+        );
+        $block[0].push(
+          QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') )
+        );
+        $block.push(
+          QAST::Stmts.new(
+            WANTED($initializer, 'install_attr_init'), :node($/)
+          )
+        );
+
         add_signature_binding_code($block, $sig, @params);
         $block.blocktype('declaration_static');
-        my $code := $*W.create_code_object($block, 'Method', $sig);
 
         # Block should go in current lexpad, in correct lexical context.
         ($*W.cur_lexpad())[0].push($block);
 
         # Dispatch trait.
+        my $code := $*W.create_code_object($block, 'Method', $sig);
         $*W.apply_trait($/, '&trait_mod:<will>', $attr, :build($code));
     }
 

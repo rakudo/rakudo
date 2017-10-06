@@ -474,7 +474,7 @@ multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
       highexpect => <lazy>,
     ).throw;
 }
-multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {  # internal usage
+multi sub trait_mod:<will>(Attribute $attr, Mu :$build!) {  # internal usage
     $attr.set_build($build)
 }
 

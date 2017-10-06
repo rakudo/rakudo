@@ -80,7 +80,7 @@ role Perl6::Metamodel::BUILDPLAN {
         for @attrs {
             if nqp::can($_, 'build') {
                 my $default := $_.build;
-                if !nqp::isnull($default) && $default {
+                if nqp::isconcrete($default) {
                     nqp::push(@plan,[
                       nqp::add_i(4,nqp::objprimspec($_.type)),
                       $obj,

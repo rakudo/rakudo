@@ -136,12 +136,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method gist(Blob:D:) {
-        self.^name ~ ':0x<' ~ self.map( -> $elem {
-            given ++$ {
-                when 101 { '...' }
-                when 102 { last }
-                default  { $elem.fmt: '%02x' }
-            }
+        self.^name ~ ':0x<' ~ self.map( -> \el {
+            state $i = 0;
+            ++$i == 101 ?? '...'
+                !! $i == 102 ?? last()
+                    !! nqp::if(nqp::iseq_i( # el.fmt: '%02x'
+                        nqp::chars(my str $v = nqp::lc(el.base: 16)),1),
+                        nqp::concat('0',$v),$v)
         }) ~ '>'
     }
     multi method perl(Blob:D:) {

@@ -2943,7 +2943,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
         [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' > || <.malformed('parameter')> ]
         { $*IN_DECL := ''; }
-        [ '-->' <.ws> [[<typename>|<value>] <.ws> <?[ { ) ]> || <typo_typename(1)> || <.malformed('return value')>] ]?
+        [ '-->' <.ws> [ || [<typename>|<value>||<typo_typename(1)>] <.ws> <?[ { ) ]>
+                        || <.malformed('return value')>
+                      ] ]?
         { $*LEFTSIGIL := '@'; }
     }
 

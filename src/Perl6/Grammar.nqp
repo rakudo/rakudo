@@ -1607,11 +1607,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     # we parse out the numeral, since we could have "6c"
                     :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
                     [
-                    ||  <?{ $version == 5 }> {
-                            my $module := $*W.load_module($/, 'Perl5', {}, $*GLOBALish);
-                            $*W.do_import($/, $module, 'Perl5');
-                            $*W.import_EXPORTHOW($/, $module);
-                        }
                     ||  <?{ $version == 6 }> {
                             my $version_parts := $<version><vnum>;
                             my $vwant := $<version>.ast.compile_time_value;

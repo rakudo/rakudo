@@ -841,6 +841,13 @@ my class X::Worry::P5::LeadingZero is X::Worry::P5 {
         ) ~ '. If you meant to create a string, please add quotation marks.'
     }
 }
+my class X::Worry::Precedence::Range is X::Worry {
+    has $.action;
+    method message {
+"To $!action a range, parenthesize the whole range.
+(Or parenthesize the whole endpoint expression, if you meant that.)"
+    }
+}
 
 my class X::Trait::Invalid is Exception {
     has $.type;       # is, will, of etc.

@@ -397,7 +397,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         my $arglist := QAST::Op.new(:op<list>);
         my $locals = 0;
         for $r.signature.params {
-            next if nqp::istype($r, Method) && $_.name // '' eq '%_';
+            next if nqp::istype($r, Method) && ($_.name // '') eq '%_';
             my $name = $_.name || '__anonymous_param__' ~ $++;
             my $decont = self!decont-for-type($_.type);
             if $_.rw and nqp::objprimspec($_.type) > 0 {

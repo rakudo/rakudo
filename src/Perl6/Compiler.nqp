@@ -84,10 +84,10 @@ class Perl6::Compiler is HLL::Compiler {
 
     method usage($name?, :$use-stderr = False) {
 	my $print-func := $use-stderr ?? &note !! &say; # RT #130760
-        $print-func(($name ?? $name !! "") ~ " [switches] [--] [programfile] [arguments]
+        $print-func(($name ?? $name !! "") ~ q♥ [switches] [--] [programfile] [arguments]
 
-With no arguments, enters a REPL on TTY displays or evals STDIN on non-TTY.
-With a \"[programfile]\" or the \"-e\" option, compiles the given program
+With no arguments, enters a REPL (see --repl-mode option).
+With a "[programfile]" or the "-e" option, compiles the given program
 and, by default, also executes the compiled code.
 
   -c                   check syntax only (runs BEGIN and CHECK blocks)
@@ -95,7 +95,7 @@ and, by default, also executes the compiled code.
   -e program           one line of program, strict is enabled by default
   -h, --help           display this help text
   -n                   run program once for each line of input
-  -p                   same as -n, but also print \$_ at the end of lines
+  -p                   same as -n, but also print $_ at the end of lines
   -I path              adds the path to the module search path
   -M module            loads the module prior to running the program
   --target=stage       specify compilation stage to emit
@@ -117,18 +117,22 @@ and, by default, also executes the compiled code.
                          any other extension outputs in HTML
   --doc=module         use Pod::To::[module] to render inline documentation
 
-  --force-stdin-eval-mode=interactive|non-interactive
-                       when running without -e or filename arguments,
-                       do not rely on whether STDIN is a TTY and force the
-                       eval of code from STDIN to be via REPL (interactive)
-                       or without REPL (non-interactive)
+  --repl-mode=interactive|non-interactive
+                       when running without "-e" or filename arguments,
+                       a REPL is started. By default, if STDIN is a TTY,
+                       "interactive" REPL is started that shows extra messages and
+                       prompts, otherwise a "non-interactive" mode is used where
+                       STDIN is read entirely and evaluated as if it were a program,
+                       without any extra output (in fact, no REPL machinery is even
+                       loaded). This option allows to bypass TTY detection and
+                       force one of the REPL modes.
 
 Note that only boolean single-letter options may be bundled.
 
 To modify the include path, you can set the PERL6LIB environment variable:
 
-PERL6LIB=\"lib\" perl6 example.pl
-"); # end of usage statement
+PERL6LIB="lib" perl6 example.pl
+♥); # end of usage statement
 
         nqp::exit(0);
 

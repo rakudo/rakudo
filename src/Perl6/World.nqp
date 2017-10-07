@@ -3656,7 +3656,7 @@ class Perl6::World is HLL::World {
             # only care about type objects
             my $first := nqp::substr($name, 0, 1);
             return 1 if $first eq '$' || $first eq '%' || $first eq '@' || $first eq '&' || $first eq ':';
-            return 1 if !$has_object || nqp::isconcrete($object);
+            return 1 if !$has_object || (nqp::isconcrete($object) && !($object.HOW.HOW.name($object.HOW) eq 'Perl6::Metamodel::EnumHOW'));
             return 1 if nqp::existskey(%seen, $name);
 
             %seen{$name} := 1;

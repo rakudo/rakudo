@@ -604,7 +604,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
                 $*W.is_name([$n]) || $*W.is_name(['&' ~ $n])
                     ?? False
-                    !! self.sorry("Whitespace required after keyword '$n'")
+                    !! self.panic("Whitespace required after keyword '$n'")
            }>
         ]
     }
@@ -1331,7 +1331,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <?before ')' | ']' | '}' >
         || $
         || <?stopper>
-        || <?before [if|while|for|loop|repeat|given|when] » > { self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
+        || <?before [if|while|for|loop|repeat|given|when] » > { $/.'!clear_highwater'(); self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
         || { $/.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
     }
 
@@ -1773,21 +1773,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto rule statement_mod_cond { <...> }
 
-    token modifier_expr { <EXPR> }
-    token smexpr { <EXPR> }
+    method nomodexpr($k) {
+        self.'!clear_highwater'();
+        self.typed_panic( 'X::Syntax::Confused', reason => "Missing expression for '$k' statement modifier" );
+        self;
+    }
+    token modifier_expr($k) { <EXPR> || <.nomodexpr($k)> }
+    token smexpr($k)        { <EXPR> || <.nomodexpr($k)> }
 
-    rule statement_mod_cond:sym<if>     { <sym><.kok> <modifier_expr> }
-    rule statement_mod_cond:sym<unless> { <sym><.kok> <modifier_expr> }
-    rule statement_mod_cond:sym<when>   { <sym><.kok> <modifier_expr> }
-    rule statement_mod_cond:sym<with>   { <sym><.kok> <modifier_expr> }
-    rule statement_mod_cond:sym<without>{ <sym><.kok> <modifier_expr> }
+    rule statement_mod_cond:sym<if>     { <sym><.kok> <modifier_expr('if')> }
+    rule statement_mod_cond:sym<unless> { <sym><.kok> <modifier_expr('unless')> }
+    rule statement_mod_cond:sym<when>   { <sym><.kok> <modifier_expr('when')> }
+    rule statement_mod_cond:sym<with>   { <sym><.kok> <modifier_expr('with')> }
+    rule statement_mod_cond:sym<without>{ <sym><.kok> <modifier_expr('without')> }
 
     proto rule statement_mod_loop { <...> }
 
-    rule statement_mod_loop:sym<while> { <sym><.kok> <smexpr> }
-    rule statement_mod_loop:sym<until> { <sym><.kok> <smexpr> }
-    rule statement_mod_loop:sym<for>   { <sym><.kok> <smexpr> }
-    rule statement_mod_loop:sym<given> { <sym><.kok> <smexpr> }
+    rule statement_mod_loop:sym<while> { <sym><.kok> <smexpr('while')> }
+    rule statement_mod_loop:sym<until> { <sym><.kok> <smexpr('until')> }
+    rule statement_mod_loop:sym<for>   { <sym><.kok> <smexpr('for')> }
+    rule statement_mod_loop:sym<given> { <sym><.kok> <smexpr('given')> }
 
     ## Terms
 

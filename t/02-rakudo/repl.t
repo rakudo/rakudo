@@ -1,5 +1,7 @@
 use v6;
+use lib <t/packages>;
 use Test;
+use Test::Helpers;
 
 # Sanity check that the repl is working at all.
 my $cmd = $*DISTRO.is-win
@@ -256,16 +258,12 @@ is feed_repl_with(['say "hi"'], :no-filter-messages).subst(:g, /\W+/, ''),
         'prefix 0 on valid octal warns in REPL';
 }
 
-done-testing;
-
-=finish
-
 # RT #70297
 {
     my $proc = &CORE::run( $*EXECUTABLE, :in, :out, :err);
     $proc.in.close;
 
-    #?rakudo 2 skip 'Result differs on OSX'
+    skip 'Result differs on OSX';
     subtest {
         plan 2;
         is   $proc.err.slurp, '', 'stderr is correct';
@@ -279,7 +277,7 @@ done-testing;
     my $code-to-run = q/[1..99].map:{[$_%%5&&'fizz', $_%%3&&'buzz'].grep:Str}/
         ~ "\nsay 'We are still alive';\n";
 
-    is_run_repl $code-to-run,
+    is-run-repl $code-to-run,
         out => /'Cannot resolve caller grep' .* 'We are still alive'/,
         err => '',
         'exceptions from lazy-evaluated things do not crash REPL';
@@ -292,15 +290,14 @@ done-testing;
                                               'num32 $i,  num64 $j,',
                     ') = 1, 2, 3, 4, 5, 6, 7, 8, 9e0, 10e0;';
 
-    #?rakudo.moar todo 'RT#127933'
-    is_run_repl "$code\nsay 'test is good';\n",
+    todo 'RT#127933';
+    is-run-repl "$code\nsay 'test is good';\n",
         :err(''),
         :out(/'(1 2 3 4 5 6 7 8 9 10)' .* 'test is good'/),
     'Using native numeric types does not break REPL';
 }
 
 # RT #128595
-#?rakudo.jvm skip 'Proc::Async NYI RT #126524'
 {
     # REPL must not start, but if it does start and wait for input, it'll
     # "hang", from our point of view, which the test function will detect
@@ -312,7 +309,7 @@ done-testing;
 
 # RT #128973
 {
-    is_run_repl "my \$x = 42;\nsay qq/The value is \$x/;\n",
+    is-run-repl "my \$x = 42;\nsay qq/The value is \$x/;\n",
         :err(''),
         :out(/'The value is 42'/),
     'variables persist across multiple lines of input';
@@ -323,7 +320,7 @@ done-testing;
     # entered line of code, then we'll have more than just two 'say' print
     # outs. So we check the output each output happens just once
     my $code = <one two>.map({ "say 'testing-repl-$_';"}).join("\n");
-    is_run_repl "$code\n",
+    is-run-repl "$code\n",
         :err(''),
         :out({
                 $^o.comb('testing-repl-one') == 1
@@ -337,7 +334,7 @@ done-testing;
     my $code = 'sub x() returns Array of Int { return my @x of Int = 1,2,3 };'
         ~ "x().WHAT.say\n";
 
-    is_run_repl $code x 10,
+    is-run-repl $code x 10,
         :err(''),
         :out({ not $^o.contains: '[Int][Int]' }),
     'no bizzare types returned from redeclared "returns an `of` Array" sub';
@@ -346,7 +343,7 @@ done-testing;
 # RT #127631
 {
 
-    is_run_repl join("\n", <last next redo>, 'say "rt127631-pass"', ''),
+    is-run-repl join("\n", <last next redo>, 'say "rt127631-pass"', ''),
         :err(''),
         :out(/'rt127631-pass'/),
     'loop controls do not exit the REPL';
@@ -354,7 +351,7 @@ done-testing;
 
 # RT #130719
 {
-    is_run_repl join("\n", 'Mu', ''),
+    is-run-repl join("\n", 'Mu', ''),
         :err(''),
         :out{.contains('failed').not},
     ｢REPL can handle `Mu` as line's return value｣;

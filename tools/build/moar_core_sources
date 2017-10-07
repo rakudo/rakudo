@@ -52,8 +52,8 @@ src/core/Encoding/Encoder.pm
 src/core/Encoding/Encoder/Builtin.pm
 src/core/Encoding/Encoder/TranslateNewlineWrapper.pm
 src/core/Encoding.pm
-src/core/Encoding/Registry.pm
 src/core/Encoding/Builtin.pm
+src/core/Encoding/Registry.pm
 src/core/Str.pm
 src/core/Capture.pm
 src/core/IterationBuffer.pm

@@ -225,6 +225,9 @@ subtest '`IO::Socket::INET.new: :listen` fails with useful error' => {
     like $res.exception.message, /'Invalid port'/, 'error mentions port';
 }
 
+throws-like ｢use v5｣, X::Language::Unsupported,
+    '`use v5` in code does not try to load non-existent modules';
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

@@ -55,13 +55,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             # Compare Str.chars == Str.codes to filter out any combining characters
             && nqp::iseq_i(
                 nqp::chars($!value),
-                nqp::elems(
-                    nqp::strtocodes(
-                        $!value,
-                        nqp::const::NORMALIZE_NFC,
-                        nqp::create(NFC),
-                    )
-                ),
+                nqp::codes($!value)
             )
 #?endif
 #?if jvm

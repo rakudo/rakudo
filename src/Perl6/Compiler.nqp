@@ -86,9 +86,9 @@ class Perl6::Compiler is HLL::Compiler {
 	my $print-func := $use-stderr ?? &note !! &say; # RT #130760
         $print-func(($name ?? $name !! "") ~ " [switches] [--] [programfile] [arguments]
 
-With no arguments, enters a REPL. With a \"[programfile]\" or the \"-e\"
-option, compiles the given program and, by default, also executes the
-compiled code.
+With no arguments, enters a REPL on TTY displays or evals STDIN on non-TTY.
+With a \"[programfile]\" or the \"-e\" option, compiles the given program
+and, by default, also executes the compiled code.
 
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   --doc                extract documentation and print it as text

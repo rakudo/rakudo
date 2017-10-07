@@ -6469,6 +6469,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
         'fff^', -> $/, $sym { flipflop($/[0].ast, $/[1].ast, 0, 1, 1) },
         '^fff^',-> $/, $sym { flipflop($/[0].ast, $/[1].ast, 1, 1, 1) }
     );
+    my %worrisome := nqp::hash(
+        '..', 1,
+        '^..', 1,
+        '..^', 1,
+        '^..^', 1,
+        'R..', 1,
+        'R^..', 1,
+        'R..^', 1,
+        'R^..^', 1
+    );
     method EXPR($/, $KEY?) {
         unless $KEY { return 0; }
         my $past := $/.ast // $<OPER>.ast;
@@ -6636,6 +6646,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :op('hllize'), :returns($past.returns()));
             }
         }
+	if $key eq 'infix' && nqp::existskey(%worrisome, ~$/<OPER>) {
+            if ~$/[0]<prefix> eq '|' {
+                $/[0].typed_worry('X::Worry::Precedence::Range', action => "apply a Slip flattener to", precursor => 1);
+            }
+            elsif ~$/[0]<prefix> eq '~' {
+                $/[0].typed_worry('X::Worry::Precedence::Range', action => "stringify", precursor => 1);
+            }
+        }
+
         make $past;
     }
 

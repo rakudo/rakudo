@@ -164,12 +164,52 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     }
 }
 
-PROCESS::<$IN> =
-  IO::Handle.new(:path(IO::Special.new('<STDIN>'))).open;
-PROCESS::<$OUT> =
-  IO::Handle.new(:path(IO::Special.new('<STDOUT>'))).open;
-PROCESS::<$ERR> =
-  IO::Handle.new(:path(IO::Special.new('<STDERR>'))).open;
+# Set up the standard STDIN/STDOUT/STDERR by first setting up the skeletons
+# of the IO::Handle objects that can be setup at compile time.  Then, when
+# running the mainline of the setting at startup, plug in the low level
+# handles and set up the encoder and decoders.  This shaves off about 1.5%
+# of bare startup.
+{
+    my constant NL-IN    = ["\x0A", "\r\n"];
+    my constant NL-OUT   = "\n";
+    my constant ENCODING = "utf8";
+
+    my sub setup-handle(str $what) {    
+        my $handle := nqp::p6bindattrinvres(
+          nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
+            nqp::create(IO::Special),IO::Special,'$!what',$what
+          )
+        );
+        nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
+        nqp::getattr($handle,IO::Handle,'$!nl-in')    = NL-IN;
+        nqp::getattr($handle,IO::Handle,'$!nl-out')   = NL-OUT;
+        nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
+        $handle
+    }
+
+    # Set up the skeletons at compile time
+    my constant STDIN  = setup-handle('<STDIN>');
+    my constant STDOUT = setup-handle('<STDOUT>');
+    my constant STDERR = setup-handle('<STDERR>');
+
+    my sub activate-handle(Mu \HANDLE, Mu \PIO) {
+        nqp::setbuffersizefh(PIO,8192) unless nqp::isttyfh(PIO);
+
+        my $encoding = Encoding::Registry.find(ENCODING);
+        nqp::bindattr(
+          HANDLE,IO::Handle,'$!decoder',$encoding.decoder(:translate-nl)
+        ).set-line-separators(NL-IN);
+        nqp::bindattr(
+          HANDLE,IO::Handle,'$!encoder',$encoding.encoder(:translate-nl)
+        );
+        nqp::p6bindattrinvres(HANDLE,IO::Handle,'$!PIO',PIO)
+    }
+
+    # Activate the skeletons at runtime
+    PROCESS::<$IN>  = activate-handle(STDIN,  nqp::getstdin);
+    PROCESS::<$OUT> = activate-handle(STDOUT, nqp::getstdout);
+    PROCESS::<$ERR> = activate-handle(STDERR, nqp::getstderr);
+}
 
 sub chmod($mode, *@filenames) {
     my @ok;

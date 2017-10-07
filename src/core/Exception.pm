@@ -766,10 +766,12 @@ my class X::Comp::AdHoc is X::AdHoc does X::Comp {
 my class X::Comp::FailGoal does X::Comp {
     has $.dba;
     has $.goal;
+    has $.line-real;
 
     method is-compile-time(--> True) { }
 
-    method message { "Unable to parse expression in $.dba; couldn't find final $.goal" }
+    method message { "Unable to parse expression in $.dba; couldn't find final $.goal"
+                     ~ " (corresponding starter was at line $.line-real)" }
 }
 
 my role X::Syntax does X::Comp { }

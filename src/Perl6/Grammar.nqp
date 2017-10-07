@@ -255,7 +255,8 @@ role STD {
         $stopper := $stopper // $goal;
         $stopper := $stopper ~~ /(.*\S)\s*/;
         $stopper := ~$stopper[0];
-        self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper));
+        self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper),
+                         :line-real(HLL::Compiler.lineof(self.orig(), self.from())));
     }
 
     method panic(*@args) {

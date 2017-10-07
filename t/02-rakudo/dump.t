@@ -19,6 +19,7 @@ is DUMP(Duration),  Duration.perl,    'DUMP(:U) is .perl (Duration)';
 is DUMP(Instant),   Instant.perl,     'DUMP(:U) is .perl (Instant)';
 
 # Defined booleans DUMP as .Str
+todo 'NYI', 2;
 is DUMP(False),     False.Str,        'DUMP(Bool:D) is .Str (False)';
 is DUMP(True),      True.Str,         'DUMP(Bool:D) is .Str (True)';
 
@@ -59,6 +60,7 @@ my int $int = 42;
 my num $num = 12345e0;
 my str $str = 'a string';
 
+todo 'NYI (can it even?)', 3;
 is DUMP($int),      DUMP(42),         'DUMP(int) dumps as a literal';
 is DUMP($num),      DUMP(12345e0),    'DUMP(num) dumps as a literal';
 is DUMP($str),      DUMP('a string'), 'DUMP(str) dumps as a literal';

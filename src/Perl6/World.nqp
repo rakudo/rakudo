@@ -2972,6 +2972,14 @@ class Perl6::World is HLL::World {
         # The generic BUILDALL method for empty BUILDPLANs
         has $!empty_buildplan_method;
 
+        # Types we always need
+        has $!Block;
+        has $!DefiniteHOW;
+        has $!Failure;
+        has $!List;
+        has $!Map;
+        has $!X-Attribute-Required;
+
         # Parameters we always need
         my $pself := QAST::Var.new(:decl<param>, :scope<local>, :name<self>);
         my $pauto := QAST::Var.new(:decl<param>, :scope<local>, :name<@auto>);
@@ -3038,8 +3046,8 @@ class Perl6::World is HLL::World {
             $!w.cur_lexpad()[0].push($block);
 
             # Find/Create the type of the invocant
-            my $invocant_type := $!w.create_definite_type(
-              $!w.find_symbol(['Metamodel','DefiniteHOW']), $package_type, 1 );
+            my $invocant_type :=
+              $!w.create_definite_type($!DefiniteHOW, $package_type, 1);
 
             # Seen accessors of this class before, so use existing signature
             my $sig;
@@ -3082,11 +3090,8 @@ class Perl6::World is HLL::World {
         method generate_buildplan_executor($/, $in_object, $in_build_plan) {
 
             # low level hash access
-            my $build_plan := nqp::getattr(
-              nqp::decont($in_build_plan),
-              $!w.find_symbol(['List']),
-              '$!reified'
-            );
+            my $build_plan :=
+              nqp::getattr(nqp::decont($in_build_plan), $!List, '$!reified');
 
             if nqp::elems($build_plan) -> $count {
 
@@ -3113,11 +3118,8 @@ class Perl6::World is HLL::World {
                 $!w.cur_lexpad()[0].push($block);
 
                 # Create the invocant type we need
-                my $invocant_type := $!w.create_definite_type(
-                  $!w.find_symbol(['Metamodel','DefiniteHOW']),
-                  $object,
-                  1
-                );
+                my $invocant_type :=
+                  $!w.create_definite_type($!DefiniteHOW, $object, 1);
 
                 # Debugging
 #                $stmts.push(
@@ -3137,9 +3139,7 @@ class Perl6::World is HLL::World {
                 $stmts.push(QAST::Op.new( :op<bind>,
                   $init,
                   QAST::Op.new( :op<getattr>,
-                    $hllinit,
-                    QAST::WVal.new( :value($!w.find_symbol(['Map'])) ),
-                    $storage
+                    $hllinit, QAST::WVal.new( :value($!Map) ), $storage
                   )
                 ));
 
@@ -3251,9 +3251,8 @@ class Perl6::World is HLL::World {
                             );
 
                             my $initializer := nqp::istype(
-                              nqp::atpos($task,3),
-                              $!w.find_symbol(['Block'])
-# $code(self,nqp::getattr(self,Foo,'$!a')))
+                              nqp::atpos($task,3),$!Block
+# $code(self,nqp::getattr(self,Foo,'$!a'))
                             ) ?? QAST::Op.new( :op<call>,
                                    QAST::WVal.new(:value(nqp::atpos($task,3))),
                                    $self, $getattr
@@ -3312,10 +3311,7 @@ class Perl6::World is HLL::World {
                                 QAST::Op.new( :op('bindattr' ~ @psp[$code - 4]),
                                   $self, $class, $attr,
                                   nqp::if(
-                                    nqp::istype(
-                                      nqp::atpos($task,3),
-                                      $!w.find_symbol(['Block'])
-                                    ),
+                                    nqp::istype(nqp::atpos($task,3),$!Block),
                                     QAST::Op.new( :op<call>,
                                       QAST::WVal.new(:value(nqp::atpos($task,3))),
                                       $self,
@@ -3350,10 +3346,7 @@ class Perl6::World is HLL::World {
                                 QAST::Op.new( :op<bindattr_s>,
                                   $self, $class, $attr,
                                   nqp::if(
-                                    nqp::istype(
-                                      nqp::atpos($task,3),
-                                      $!w.find_symbol(['Block'])
-                                    ),
+                                    nqp::istype(nqp::atpos($task,3),$!Block),
                                     QAST::Op.new( :op<call>,
                                       QAST::WVal.new(:value(nqp::atpos($task,3))),
                                       $self,
@@ -3382,17 +3375,12 @@ class Perl6::World is HLL::World {
                                 ),
                                 QAST::Op.new( :op<callmethod>, :name<throw>,
                                   QAST::Op.new( :op<callmethod>, :name<new>,
-                                    QAST::WVal.new( :value(
-                                      $!w.find_symbol(
-                                        ['X','Attribute','Required']
-                                      )
-                                    )),
+                                    QAST::WVal.new(
+                                      :value($!X-Attribute-Required)),
                                     QAST::SVal.new( :named('name'),
-                                      :value(nqp::atpos($task,2))
-                                    ),
+                                      :value(nqp::atpos($task,2))),
                                     QAST::WVal.new( :named('why'),
-                                      :value(nqp::atpos($task,3))
-                                    )
+                                      :value(nqp::atpos($task,3)))
                                   )
                                 )
                               )
@@ -3465,14 +3453,11 @@ class Perl6::World is HLL::World {
                                   )
                                 )
                               ),
-                              QAST::WVal.new(
-                                :value($!w.find_symbol(['Failure']))
-                              ),
+                              QAST::WVal.new(:value($!Failure)),
                             ),
                             QAST::Op.new( :op<call>,
                               QAST::WVal.new(
-                                :value($!w.find_symbol(['&return']))
-                              ),
+                                :value($!w.find_symbol(['&return']))),
                               QAST::Var.new(:scope<local>, :name<return>)
                             )
                           )
@@ -3525,10 +3510,7 @@ class Perl6::World is HLL::World {
                 $!w.cur_lexpad()[0].push($block);
 
                 my $invocant_type := $!w.create_definite_type(
-                  $!w.find_symbol(['Metamodel','DefiniteHOW']),
-                  $!w.find_symbol(['Any']),
-                  1
-                );
+                  $!DefiniteHOW, $!w.find_symbol(['Any']), 1);
 
                 my $sig := $!w.create_signature_and_params(
                   NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
@@ -3542,20 +3524,42 @@ class Perl6::World is HLL::World {
     }
 
     method get_compiler_services($/) {
+
+        # Already have a CompilerServices object
         if nqp::isconcrete($!compiler_services) {
+
+            # Update $/ for error reporting on generated methods
             nqp::bindattr(
               $!compiler_services,$!compiler_services.WHAT,'$!current-match',$/
             );
         }
+
+        # Don't have a CompilerServices object yet
         else {
             try {
+
+                # Find the HLL version, might fail early in setting compilation
                 my $wtype :=
                   self.find_symbol(['Rakudo','Internals','CompilerServices']);
-                my $wrapped := CompilerServices.new(w => self);
                 my $wrapper := nqp::create($wtype);
+
+                # Set up the base object
+                my $wrapped := CompilerServices.new(
+                  w           => self,
+                  Block       => self.find_symbol(['Block']),
+                  DefiniteHOW => self.find_symbol(['Metamodel','DefiniteHOW']),
+                  Failure     => self.find_symbol(['Failure']),
+                  List        => self.find_symbol(['List']),
+                  Map         => self.find_symbol(['Map']),
+                  X-Attribute-Required =>
+                    self.find_symbol(['X','Attribute','Required'])
+                );
                 nqp::bindattr($wrapper, $wtype, '$!compiler', $wrapped);
                 nqp::bindattr($wrapper, $wtype, '$!current-match', $/);
+
+                # When we got here, we really got a full CompilerServices object
                 $!compiler_services := $wrapper;
+
             }
         }
         $!compiler_services

@@ -117,6 +117,11 @@ and, by default, also executes the compiled code.
                          any other extension outputs in HTML
   --doc=module         use Pod::To::[module] to render inline documentation
 
+  --force-stdin-eval-mode=interactive|non-interactive
+                       when running without -e or filename arguments,
+                       do not rely on whether STDIN is a TTY and force the
+                       eval of code from STDIN to be via REPL (interactive)
+                       or without REPL (non-interactive)
 
 Note that only boolean single-letter options may be bundled.
 

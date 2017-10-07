@@ -222,7 +222,7 @@ role STD {
         <babble($l, @base_tweaks)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
-        $start <nibble($lang)> [ $stop || { $/.typed_panic('X::Comp::AdHoc', payload => "Couldn't find terminator $stop (corresponding $start was at line {HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from())})", expected => [$stop] ) } ]
+        $start <nibble($lang)> [ $stop || { $/.typed_panic('X::Comp::AdHoc', payload => "Couldn't find terminator $stop (corresponding $start was at line {HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from(), :cache(1))})", expected => [$stop] ) } ]
 
         {
             nqp::can($lang, 'herelang') && self.queue_heredoc(
@@ -256,7 +256,8 @@ role STD {
         $stopper := $stopper ~~ /(.*\S)\s*/;
         $stopper := ~$stopper[0];
         self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper),
-                         :line-real(HLL::Compiler.lineof(self.orig(), self.from())));
+                         :line-real(HLL::Compiler.lineof(self.orig(), self.from(),
+                                                         :cache(1))));
     }
 
     method panic(*@args) {
@@ -4220,7 +4221,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))> '>'
         || <?before \h* [ \d | <.sigil> | ':' ] >
            { $/.panic("Whitespace required before < operator") }
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>' (corresponding '<' was at line {HLL::Compiler.lineof($/.orig(), $/.from())})") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>' (corresponding '<' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
         ]
         <O(|%methodcall)>
     }
@@ -4230,7 +4231,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '<<'
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']))> '>>'
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>>' (corresponding '<<' was at line {HLL::Compiler.lineof($/.orig(), $/.from())})") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>>' (corresponding '<<' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
         ]
         <O(|%methodcall)>
     }
@@ -4240,7 +4241,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '«'
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))> '»'
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find '»' (corresponding '«' was at line {HLL::Compiler.lineof($/.orig(), $/.from())})") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '»' (corresponding '«' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
         ]
         <O(|%methodcall)>
     }

@@ -4219,7 +4219,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))> '>'
         || <?before \h* [ \d | <.sigil> | ':' ] >
            { $/.panic("Whitespace required before < operator") }
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find right angle quote") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>' (corresponding '<' was at line {HLL::Compiler.lineof($/.orig(), $/.from())})") }
         ]
         <O(|%methodcall)>
     }
@@ -4229,7 +4229,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '<<'
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']))> '>>'
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>>' (corresponding '<<' was at line {HLL::Compiler.lineof($/.orig(), $/.from())})") }
         ]
         <O(|%methodcall)>
     }
@@ -4239,7 +4239,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '«'
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))> '»'
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find right double-angle quote") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '»' (corresponding '«' was at line {HLL::Compiler.lineof($/.orig(), $/.from())})") }
         ]
         <O(|%methodcall)>
     }

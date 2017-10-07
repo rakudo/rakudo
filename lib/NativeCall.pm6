@@ -334,7 +334,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         my @deconts;
         my @params;
         for $r.signature.params {
-            next if nqp::istype($r, Method) && $_.name // '' eq '%_';
+            next if nqp::istype($r, Method) && ($_.name // '') eq '%_';
             my $name = $_.name || '__anonymous_param__' ~ $++;
             my $lowered_param_name = '__lowered_param__' ~ $locals;
             my $lowered_name = '__lowered__' ~ $locals++;

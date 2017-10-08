@@ -27,10 +27,8 @@ sub is-run (
     }
 }
 
-multi sub is-run-repl (@lines, |c) is export {
-    is-run-repl @lines.join("\n"), |c
-}
-multi sub is-run-repl ($code, $desc, :$out = '', :$err = '') is export {
+sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '') is export {
+    $code .= join: "\n" if $code ~~ Positional|Seq;
     my $proc = run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
     $proc.in.print: $code;
     $proc.in.close;

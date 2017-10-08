@@ -54,7 +54,16 @@ multi sub POSITIONS(
         }
     }
 
-    my \pos-iter = pos.iterator;
+    # we can optimize `42..*` Ranges; as long as they're from core, unmodified
+    my \pos-iter = nqp::eqaddr(pos.WHAT,Range)
+        && nqp::eqaddr(pos.max,Inf)
+        && nqp::isfalse(SELF.is-lazy)
+          ?? Range.new(pos.min, SELF.elems-1,
+              :excludes-min(pos.excludes-min),
+              :excludes-max(pos.excludes-max)
+          ).iterator
+          !! pos.iterator;
+
     my \pos-list = nqp::create(List);
     my \eager-indices = nqp::create(IterationBuffer);
     my \target = IndicesReificationTarget.new(eager-indices, $eagerize);

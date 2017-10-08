@@ -44,7 +44,9 @@ multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '') is export {
             when Str        { is      $output, $_, $test-name; }
             when Regex      { like    $output, $_, $test-name; }
             when Callable   { ok   $_($output),    $test-name or diag $output; }
-            when Positional { is      $output, .join("\n")~"\n", $test-name; }
+            when Positional|Seq {
+                is $output, .join("\n")~"\n", $test-name;
+            }
             die "Don't know how to handle test of type $_.^name()";
         }
 

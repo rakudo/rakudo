@@ -3,7 +3,7 @@ use Test;
 
 sub is-run (
     Str() $code, $desc = "$code runs",
-    Stringy :$in, :@compiler-args, :@args, :$out, :$err, :$status
+    Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$status = 0
 ) is export {
     with run :in, :out, :err,
         $*EXECUTABLE, @compiler-args, '-e', $code, @args

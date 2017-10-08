@@ -29,6 +29,7 @@ sub is-run (
 
 sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '') is export {
     $code .= join: "\n" if $code ~~ Positional|Seq;
+    (temp %*ENV)<RAKUDO_ERROR_COLOR> = 0;
     my $proc = run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
     $proc.in.print: $code;
     $proc.in.close;

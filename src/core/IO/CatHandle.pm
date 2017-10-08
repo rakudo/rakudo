@@ -354,8 +354,6 @@ my class IO::CatHandle is IO::Handle {
     #                    (⛣)
     proto method flush   (|) { * }
     multi method flush   (|) { die X::NYI.new: :feature<flush>    }
-    proto method nl-out  (|) { * }
-    multi method nl-out  (|) { die X::NYI.new: :feature<nl-out>   }
     proto method print   (|) { * }
     multi method print   (|) { die X::NYI.new: :feature<print>    }
     proto method printf  (|) { * }
@@ -369,6 +367,12 @@ my class IO::CatHandle is IO::Handle {
     proto method write   (|) { * }
     multi method write   (|) { die X::NYI.new: :feature<write>    }
     #                    /|\
+
+    # Don't die on this one, as doing so breaks .Capture
+    # proto method nl-out  (|) { * }
+    # multi method nl-out  (|) {
+    #     die X::NYI.new: :feature<nl-out>
+    # }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -740,6 +740,66 @@ my class Hash { # declared in BOOTSTRAP
                  }
             }.new(self))
         }
+        multi method roll(::?CLASS:D:) {
+            nqp::if(
+              (my $raw := nqp::getattr(self,Map,'$!storage')) && nqp::elems($raw),
+              nqp::stmts(
+                (my int $i = nqp::add_i(nqp::elems($raw).rand.floor,1)),
+                (my $iter := nqp::iterator($raw)),
+                nqp::while(
+                  nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+                  nqp::null
+                ),
+                nqp::iterval($iter)
+              ),
+              Nil
+            )
+        }
+        multi method roll(::?CLASS:D: Callable:D $calculate) {
+            self.roll( $calculate(self.elems) )
+        }
+        multi method roll(::?CLASS:D: Whatever $) { self.roll(Inf) }
+        multi method roll(::?CLASS:D: $count) {
+            Seq.new(nqp::if(
+              (my $raw := nqp::getattr(self,Map,'$!storage'))
+                && nqp::elems($raw) && $count > 0,
+              class :: does Iterator {
+                  has $!storage;
+                  has $!keys;
+                  has $!count;
+
+                  method !SET-SELF(\hash,\count) {
+                      nqp::stmts(
+                        ($!storage := nqp::getattr(hash,Map,'$!storage')),
+                        ($!count = $count),
+                        (my $iter := nqp::iterator($!storage)),
+                        ($!keys := nqp::list_s),
+                        nqp::while(
+                          $iter,
+                          nqp::push_s($!keys,nqp::iterkey_s(nqp::shift($iter)))
+                        ),
+                        self
+                      )
+                  }
+                  method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+                  method pull-one() {
+                      nqp::if(
+                        $!count,
+                        nqp::stmts(
+                          --$!count,  # must be HLL to handle Inf
+                          nqp::atkey(
+                            $!storage,
+                            nqp::atpos_s($!keys,nqp::elems($!keys).rand.floor)
+                          )
+                        ),
+                        IterationEnd
+                      )
+                  }
+                  method is-lazy() { $!count == Inf }
+              }.new(self,$count),
+              Rakudo::Iterator.Empty
+            ))
+        }
         multi method perl(::?CLASS:D \SELF:) {
             SELF.perlseen('Hash', {
                 my $TKey-perl   := TKey.perl;

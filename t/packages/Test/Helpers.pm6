@@ -40,7 +40,7 @@ sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '') is export {
             my $test-name = 'stdout is correct';
             when Str        { is      $output, $_, $test-name; }
             when Regex      { like    $output, $_, $test-name; }
-            when Callable   { ok   $_($output),    $test-name; }
+            when Callable   { ok   $_($output),    $test-name or diag $output; }
             when Positional { is      $output, .join("\n")~"\n", $test-name; }
 
             die "Don't know how to handle :out of type $_.^name()";
@@ -51,7 +51,7 @@ sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '') is export {
             my $test-name = 'stderr is correct';
             when Str        { is      $output, $_, $test-name; }
             when Regex      { like    $output, $_, $test-name; }
-            when Callable   { ok   $_($output),    $test-name; }
+            when Callable   { ok   $_($output),    $test-name or diag $output; }
             when Positional { is      $output, .join("\n")~"\n", $test-name; }
 
             die "Don't know how to handle :err of type $_.^name()";

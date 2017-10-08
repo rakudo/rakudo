@@ -13,127 +13,74 @@ my $*REPL-SCRUBBER = -> $_ is copy {
     $_
 }
 
-my $quote;
-my $separator;
-if $*DISTRO.is-win {
-    $quote     = "";
-    $separator = "& ";
-}
-else {
-    $quote     = "'";
-    $separator = "; ";
-}
-
-sub feed_repl_with ( @lines, Bool:D :$no-filter-messages = False ) {
-    ## warning: works only with simple input lines which don't need quoting for Windows
-    my $repl-input = '(' ~ (@lines.map: { 'echo ' ~ $quote ~ $_ ~ $quote }).join($separator) ~ ')';
-    my $repl-output = qqx[$repl-input | $*EXECUTABLE].trim-trailing;
-    unless $no-filter-messages {
-        $repl-output ~~ s/^^ "You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor\n\n"//;
-        $repl-output ~~ s/^^ "To exit type 'exit' or '^D'\n"//;
-    }
-    $repl-output ~~ s:g/ ^^ "> " //; # Strip out the prompts
-    $repl-output ~~ s:g/ ">" $ //; # Strip out the final prompt
-    $repl-output ~~ s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
-    $repl-output
-}
-
-my @input-lines;
 # RT #123187
-{
-    @input-lines[0] = 'my int $t=4; $t.say;';
-    @input-lines[1] = '$t.say';
-    is feed_repl_with( @input-lines ).lines, (4, 4),
-        'can use native typed variable on subsequent lines (1)';
+is-run-repl «'my int $t=4; $t.say;'  '$t.say'», :out<4 4>,
+    'can use native typed variable on subsequent lines (1)';
+
+subtest 'indented code parses correctly' => {
+    plan 4;
+
+    todo "indent styles don't parse right", 3;
+    is-run-repl q:to/END/,
+        if False {
+            say ":(";
+        }
+        else {
+            say ":)";
+        }
+        END
+    :out(":)\n"), 'uncuddled else is parsed correctly';
+
+    is-run-repl q:to/END/,
+        if False
+        {
+            say ":(";
+        }
+        else
+        {
+            say ":)";
+        }
+        END
+    :out(":)\n"), 'open brace on next line is parsed correctly';
+
+    is-run-repl q:to/END/,
+        if False { say ":("; }
+        else { say ":)"; }
+        END
+    :out(":)\n"), 'partially-cuddled else is parsed correctly';
+
+    is-run-repl q:to/END/,
+        if False {
+            say ":(";
+        } else {
+            say ":)";
+        }
+        END
+    :out(":)\n"), 'cuddled else';
 }
 
-{
-    @input-lines = q:to/END/.split("\n");
-    if False {
-        say ":(";
-    }
-    else {
-        say ":)";
-    }
-    END
+is-run-repl «'sub f {'  'say "works"'  '}'  'f()'», :out{:t<2>, :l2<works> },
+    'multi-line sub decl';
+is-run-repl «'sub f { say "works" }'  'f()'», :out{:t<2>, :l2<works> },
+    'single-line sub declaration works';
 
-    todo "indent styles don't parse right";
-    is feed_repl_with( @input-lines ).lines, ":)",
-        "uncuddled else is parsed correctly";
 
-    @input-lines = q:to/END/.split("\n");
-    if False
-    {
-        say ":(";
-    }
-    else
-    {
-        say ":)";
-    }
-    END
 
-    todo "indent styles don't parse right";
-    is feed_repl_with( @input-lines ).lines, ":)",
-        "open brace on next line is parsed correctly";
-
-    @input-lines = q:to/END/.split("\n");
-    if False { say ":("; }
-    else { say ":)"; }
-    END
-
-    todo "indent styles don't parse right";
-    is feed_repl_with( @input-lines ).lines, ":)",
-        "cuddled else is parsed correctly";
-
-    @input-lines = q:to/END/.split("\n");
-    if False {
-        say ":(";
-    } else {
-        say ":)";
-    }
-    END
-
-    is feed_repl_with( @input-lines ).lines, ":)",
-        "cuddled else is parsed correctly";
-}
-
-{
-    @input-lines = 'say "works"', 'if True;';
-    todo "statement mod if on the next line";
-    is feed_repl_with( @input-lines ).lines, "works",
-        "statement mod if on the next line works";
-
-    @input-lines = 'say "works"', 'for 1;';
-    todo "statement mod for on the next line";
-    is feed_repl_with( @input-lines ).lines, "works",
-        "statement mod for on the next line works";
-
-    @input-lines = 'sub f { 42 }', 'f()';
-    todo "block parsing broken";
-    is feed_repl_with( @input-lines ).lines, "42",
-        "single-line sub declaration works";
-
-    @input-lines = 'sub f {', '42', '}';
-    todo "block parsing broken";
-    is feed_repl_with( @input-lines ).lines, "42",
-        "single-line sub declaration works";
-}
 
 # RT #122914
-{
-    @input-lines = 'my $a = 42; say 1', '$a.say';
-    is feed_repl_with( @input-lines ).lines, (1, 42),
-        'Assigning to a Scalar lasts to the next line';
-
-    @input-lines = 'my @a = 1, 2, 3; say 1', '@a.elems.say';
-    is feed_repl_with( @input-lines ).lines, (1, 3),
-        'Assigning to an Array lasts to the next line';
-
-    @input-lines = 'my \a = 100; say 1', 'a.say';
-    is feed_repl_with( @input-lines ).lines, (1, 100),
-        'Assigning to a sigilless lasts to the next line';
+subtest 'assignment maintains values on subsequent lines' => {
+    plan 4;
+    is-run-repl «'my $a = 42; say 1'  '$a.say'», :out("1\n42\n"),
+        'Scalar';
+    is-run-repl «'my @a = 1, 2, 3; say 1'  '@a.elems.say'», :out("1\n3\n"),
+        'Array';
+    is-run-repl «'my %h = 1..4; say 1'  'say +%h.keys'», :out("1\n2\n"),
+        'Hash';
+    is-run-repl «'my \a = 100; say 1'  'a.say'», :out("1\n100\n"),
+        'sigilless value';
 }
-
+done-testing;
+=finish
 {
     @input-lines = '';
     is feed_repl_with(@input-lines).lines, (),

@@ -260,7 +260,7 @@ is feed_repl_with(['say "hi"'], :no-filter-messages).subst(:g, /\W+/, ''),
 
 # RT #70297
 {
-    my $proc = &CORE::run( $*EXECUTABLE, :in, :out, :err);
+    my $proc = run $*EXECUTABLE, :in, :out, :err;
     $proc.in.close;
 
     skip 'Result differs on OSX';

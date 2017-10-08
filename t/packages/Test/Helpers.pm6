@@ -32,30 +32,38 @@ sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '') is export {
     my $proc = run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
     $proc.in.print: $code;
     $proc.in.close;
+
     subtest {
         plan +($out, $err).grep: *.defined;
-        with $out {
-            my $output    = $proc.out.slurp;
-            $output = $*REPL-SCRUBBER($output) if $*REPL-SCRUBBER;
-            my $test-name = 'stdout is correct';
+
+        sub run-test ($_, $output, $test-name) {
             when Str        { is      $output, $_, $test-name; }
             when Regex      { like    $output, $_, $test-name; }
             when Callable   { ok   $_($output),    $test-name or diag $output; }
             when Positional { is      $output, .join("\n")~"\n", $test-name; }
-
-            die "Don't know how to handle :out of type $_.^name()";
+            when Map        {
+                subtest "$test-name lines" => {
+                    plan .elems;
+                    my %lines = (1….elems) «=>» $_ with $output.lines;
+                    with .<t>:delete {
+                        is +%lines, $_, "expected number of lines";
+                    }
+                    for $_<> -> (:key($ln), :value($expected)) {
+                        with %lines{$ln.substr: 1} {
+                            is $_, $expected, "line #$ln";
+                        }
+                        else {
+                            flunk "No line #$ln (note: numebering starts at 1)";
+                        }
+                    }
+                }
+            }
+            die "Don't know how to handle test of type $_.^name()";
         }
 
-        with $err {
-            my $output    = $proc.err.slurp;
-            my $test-name = 'stderr is correct';
-            when Str        { is      $output, $_, $test-name; }
-            when Regex      { like    $output, $_, $test-name; }
-            when Callable   { ok   $_($output),    $test-name or diag $output; }
-            when Positional { is      $output, .join("\n")~"\n", $test-name; }
-
-            die "Don't know how to handle :err of type $_.^name()";
-        }
+        run-test $_, ($*REPL-SCRUBBER//{$_})($proc.out.slurp),
+            'stdout is correct' with $out;
+        run-test $_, $proc.err.slurp, 'stderr is correct' with $err;
     }, $desc;
 }
 

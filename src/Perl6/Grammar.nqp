@@ -1202,12 +1202,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_control:sym<loop> {
         <sym><.kok>
         :s''
-        [ '('
-            [
-            <e1=.EXPR>? ';' <e2=.EXPR>? ';' <e3=.EXPR>?
-            || <.malformed('loop spec')>
-            ]
-        ')' ]?
+        [
+          :my $exprs := 0;
+          '('
+          [     <e1=.EXPR>? {$exprs := 1 if $<e1>}
+          [ ';' <e2=.EXPR>? {$exprs := 2}
+          [ ';' <e3=.EXPR>? {$exprs := 3}
+          ]? ]? ]? # succeed anyway, this will leave us with a nice cursor
+          [
+          || <?{ $exprs == 3 }> ')'
+          || <?before ')'>
+             [
+             || <?{ $exprs == 0 }>
+                <.malformed("loop spec (expected 3 semicolon-separated expressions)")>
+             || <.malformed("loop spec (expected 3 semicolon-separated expressions but got {$exprs})")>
+             ]
+          || <?before ‘;’>
+             <.malformed('loop spec (expected 3 semicolon-separated expressions but got more)')>
+          || <.malformed('loop spec')>
+          ]
+        ]?
         <block>
     }
 

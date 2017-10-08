@@ -28,7 +28,7 @@ sub is-run (
 }
 
 sub is-run-repl ($code, $desc, :$out, :$err) is export {
-    my $proc = &CORE::run( $*EXECUTABLE, :in, :out, :err );
+    my $proc = run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
     $proc.in.print: $code;
     $proc.in.close;
     subtest {

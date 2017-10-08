@@ -301,9 +301,9 @@ is feed_repl_with(['say "hi"'], :no-filter-messages).subst(:g, /\W+/, ''),
 {
     # REPL must not start, but if it does start and wait for input, it'll
     # "hang", from our point of view, which the test function will detect
-    doesn't-hang \(:w, $*EXECUTABLE, '-M', "NonExistentModuleRT128595"),
-        :out(/^$/),
-        :err(/'Could not find NonExistentModuleRT128595'/),
+    doesn't-hang \(:w, $*EXECUTABLE,
+        '--repl-mode=interactive', '-M', 'NonExistentModuleRT128595'
+    ), :out(/^$/), :err(/'Could not find NonExistentModuleRT128595'/),
     'REPL with -M with non-existent module does not start';
 }
 

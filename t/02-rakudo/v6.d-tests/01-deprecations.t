@@ -1,6 +1,5 @@
-use lib <t/spec/packages/>;
+use lib <t/packages/>;
 use Test;
-use Test::Util;
+use Test::Helpers;
 
 plan 1; ok 'dummy';
-

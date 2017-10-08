@@ -64,7 +64,7 @@ perl6-debug-m
 perl6-debug-m.bat
 t/localtest.data
 t/spec
-t/packages
+t/packages/tap-harness6
 /panda
 perl6.c
 perl6.o

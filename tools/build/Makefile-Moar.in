@@ -231,7 +231,7 @@ m-quicktest: m-quicktest$(HARNESS_TYPE)
 m-stresstest: m-stresstest$(HARNESS_TYPE)
 
 m-coretest5: m-all
-	$(M_HARNESS5) t/01-sanity t/04-nativecall
+	$(M_HARNESS5) t/01-sanity t/02-rakudo t/04-nativecall t/05-messages
 
 # Run the spectests that we know work.
 m-spectest5: m-testable t/spectest.data
@@ -248,7 +248,7 @@ m-stresstest5: m-testable t/spectest.data
 
 
 m-coretest6: m-all
-	$(M_HARNESS6) t/01-sanity t/04-nativecall
+	$(M_HARNESS6) t/01-sanity t/02-rakudo t/04-nativecall t/05-messages
 
 # Run the spectests that we know work.
 m-spectest6: m-testable t/spectest.data

@@ -3,6 +3,8 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
+plan 39;
+
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
         " or use rlwrap for a line editor\n\n"//;
@@ -14,7 +16,7 @@ my $*REPL-SCRUBBER = -> $_ is copy {
 }
 
 # RT #123187
-is-run-repl «'my int $t=4; $t.say;'  '$t.say'», :out<4 4>,
+is-run-repl «'my int $t=4; $t.say;'  '$t.say'», <4 4>,
     'can use native typed variable on subsequent lines (1)';
 
 subtest 'indented code parses correctly' => {
@@ -29,7 +31,7 @@ subtest 'indented code parses correctly' => {
             say ":)";
         }
         END
-    :out(":)\n"), 'uncuddled else is parsed correctly';
+    ":)\n", 'uncuddled else is parsed correctly';
 
     is-run-repl q:to/END/,
         if False
@@ -41,13 +43,13 @@ subtest 'indented code parses correctly' => {
             say ":)";
         }
         END
-    :out(":)\n"), 'open brace on next line is parsed correctly';
+    ":)\n", 'open brace on next line is parsed correctly';
 
     is-run-repl q:to/END/,
         if False { say ":("; }
         else { say ":)"; }
         END
-    :out(":)\n"), 'partially-cuddled else is parsed correctly';
+    ":)\n", 'partially-cuddled else is parsed correctly';
 
     is-run-repl q:to/END/,
         if False {
@@ -56,149 +58,117 @@ subtest 'indented code parses correctly' => {
             say ":)";
         }
         END
-    :out(":)\n"), 'cuddled else';
+    ":)\n", 'cuddled else';
 }
 
-is-run-repl «'sub f {'  'say "works"'  '}'  'f()'», :out{:t<2>, :l2<works> },
-    'multi-line sub decl';
-is-run-repl «'sub f { say "works" }'  'f()'», :out{:t<2>, :l2<works> },
-    'single-line sub declaration works';
-
-
-
+is-run-repl «'sub f {'  'say "works"'  '}'  'f()'», {
+    .lines == 2 and .lines.tail eq 'works'
+}, 'multi-line sub decl';
+is-run-repl «'sub f { say "works" }'  'f()'», {
+    .lines == 2 and .lines.tail eq 'works'
+}, 'single-line sub declaration works';
 
 # RT #122914
 subtest 'assignment maintains values on subsequent lines' => {
     plan 4;
-    is-run-repl «'my $a = 42; say 1'  '$a.say'», :out("1\n42\n"),
+    is-run-repl «'my $a = 42; say 1'  '$a.say'», "1\n42\n",
         'Scalar';
-    is-run-repl «'my @a = 1, 2, 3; say 1'  '@a.elems.say'», :out("1\n3\n"),
+    is-run-repl «'my @a = 1, 2, 3; say 1'  '@a.elems.say'», "1\n3\n",
         'Array';
-    is-run-repl «'my %h = 1..4; say 1'  'say +%h.keys'», :out("1\n2\n"),
+    is-run-repl «'my %h = 1..4; say 1'  'say +%h.keys'», "1\n2\n",
         'Hash';
-    is-run-repl «'my \a = 100; say 1'  'a.say'», :out("1\n100\n"),
+    is-run-repl «'my \a = 100; say 1'  'a.say'», "1\n100\n",
         'sigilless value';
 }
-done-testing;
-=finish
-{
-    @input-lines = '';
-    is feed_repl_with(@input-lines).lines, (),
-        'Entering a blank line gives back the prompt';
 
-    @input-lines = '""';
-    is feed_repl_with(@input-lines).lines, (''),
-        'An empty string gives back one blank line';
+is-run-repl   "\n", '> ', 'entering a blank line gives back the prompt';
+is-run-repl "''\n", "\n", 'an empty string gives back one blank line';
+
+is-run-repl "}\n", /'===SORRY!===' .* 'Unexpected closing bracket'/,
+    'syntax error gives a compile-time error';
+
+is-run-repl "}\nsay 42", {
+    .match: /'===SORRY!===' .* 'Unexpected closing bracket' .* '42'/
+    and 1 == .comb: 'Error while compiling'
+}, 'syntax error clears on further input';
+
+is-run-repl ['meow-meow()'], /'===SORRY!===' .* 'Undeclared routine'/,
+    'undeclared routines give compile time errors';
+is-run-repl ['sub f { meow-meow() }; f()'],
+    /'===SORRY!===' .* 'Undeclared routine'/,
+    'undeclared routines inside another routine give compile time errors';
+is-run-repl ['[1].map:{[].grep:Str}'], /'Cannot resolve caller'/,
+    'run-time error error gives the expected error';
+
+
+for <return redo next last proceed succeed> -> $cmd {
+    is-run-repl [$cmd], /'Control flow commands not allowed in toplevel'/,
+        "raises error when you run control flow command '$cmd' in top level";
 }
 
-{
-    @input-lines = '}';
-    like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
-        'Syntax error gives a compile-time error';
-    like feed_repl_with(@input-lines), / "Unexpected closing bracket" /,
-        'Syntax error gives the expected error';
-
-    @input-lines = 'sub }', 'say 1+1';
-    like feed_repl_with(@input-lines),
-        / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
-        'Syntax error gives a compile-time error';
-    like feed_repl_with(@input-lines), / "Missing block" /,
-        'Syntax error gives the expected error';
-    is   feed_repl_with(@input-lines).comb('Error while compiling').elems, 1,
-        'Syntax error clears on further input';
-
-    @input-lines = 'this-function-does-not-exist()';
-    like feed_repl_with(@input-lines), / "===" "\e[0m"? "SORRY!" "\e[31m"? "===" /,
-        'EVAL-time compile error gives a compile-time error';
-    like feed_repl_with(@input-lines), / "Undeclared routine" /,
-        'EVAL-time compile error error gives the expected error';
-
-    @input-lines = 'sub f { this-function-does-not-exist() } ; f()';
-    like feed_repl_with(@input-lines), / "Undeclared routine" /,
-        'EVAL-time compile error error gives the expected error';
-
-    @input-lines = '[1].map:{[].grep:Str}';
-    like feed_repl_with(@input-lines), / "Cannot resolve caller" /,
-        'Print-time error error gives the expected error';
-}
-
-{
-    for <return redo next last proceed succeed> -> $cmd {
-        @input-lines = $cmd;
-        like feed_repl_with(@input-lines), / "Control flow commands not allowed in topleve" /,
-            "Raises error when you run control flow command '$cmd'";
-    }
-
-    like feed_repl_with(['emit 42']), /'emit without'/,
-        '`emit` prints useful message';
-
-    like feed_repl_with(['take 42']), /'take without'/,
-        '`take` prints useful message';
-
-    like feed_repl_with(['warn "foo"']), /'foo'/,
-        'Warnings print their message';
-}
+is-run-repl ['emit 42'   ], /'emit without'/, '`emit` errors usefully';
+is-run-repl ['take 42'   ], /'take without'/, '`take` errors usefully';
+is-run-repl ['warn "foo"'], /'foo'         /, 'warn() shows warnings';
 
 # RT#130876
 {
-    like feed_repl_with(['say "hi"; die "meows";']), /meows/,
+    is-run-repl ['say "hi"; die "meows";'], :out(/meows/),
         'previous output does not silence exceptions';
 
-    my $out = feed_repl_with
-        ['say "hi"; my $f = Failure.new: "meows"; $f.Bool; $f'];
-    ok $out.contains('meows').not,
+    is-run-repl ['say "hi"; my $f = Failure.new: "meows"; $f.Bool; $f'],
+        *.contains('meows').not,
         'previous output prevents output of handled failures';
 
-    $out = feed_repl_with ['say "hi"; X::AdHoc.new(:payload<meows>)'];
-    ok $out.contains('meows').not,
+    is-run-repl ['say "hi"; X::AdHoc.new(:payload<meows>)'],
+        *.contains('meows').not,
         'previous output prevents output of unthrown exceptions';
 
-    $out = feed_repl_with ['say "hi"; try +"a"; $!'];
-    ok $out.contains('meows').not,
+    is-run-repl ['say "hi"; try +"a"; $!'],
+        *.contains('meows').not,
         'previous output does not prevent output of unthrown exceptions';
 
-    $out = feed_repl_with([
+    is-run-repl [
           ｢say "hi"; use nqp; my $x = REPL.new(nqp::getcomp("perl6"), %)｣
         ~ ｢.repl-eval(q|die "meows"|, $);｣
-    ]);
-    ok $out.contains('meows').not,
+    ], *.contains('meows').not,
         ｢can't trick REPL into thinking an exception was thrown (RT#130876)｣;
 }
 
-# RT#130874
-like feed_repl_with(['Nil']), /Nil/, 'REPL outputs Nil as a Nil';
 
+
+# RT#130874
+is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
 
 # Since there might be some differences in REPL sessions in whitespace
 # or what not, strip all \W and then check what we have left over is what
 # a normal session should have. This lets us catch any unexpected error
 # messages and stuff.
-is feed_repl_with(['say "hi"'], :no-filter-messages).subst(:g, /\W+/, ''),
-    'YoumaywanttozefinstallReadlineorzefinstallLinenoise'
-    ~ 'oruserlwrapforalineeditor' ~ 'ToexittypeexitorD' ~ 'hi',
-'REPL session does not have unexpected stuff';
+{
+    my $*REPL-SCRUBBER := Nil;
+    is-run-repl ['say "hi"'], {
+        .subst(:g, /\W+/, '') eq
+        'YoumaywanttozefinstallReadlineorzefinstallLinenoise'
+        ~ 'oruserlwrapforalineeditor' ~ 'ToexittypeexitorD' ~ 'hi'
+    }, 'REPL session does not have unexpected stuff';
 
-## XXX TODO: need to write tests that exercise the REPL with Linenoise
-# and Readline installed. Particular things to check:
-# 1. History file can be made on all OSes:
-#    https://github.com/rakudo/rakudo/commit/b4fa6d6792dd02424d2182b73c31a071cddc0b8e
-# 2. Test REPL does not show errors when $*HOME is not set:
-#    https://rt.perl.org/Ticket/Display.html?id=130456
+    ## XXX TODO: need to write tests that exercise the REPL with Linenoise
+    # and Readline installed. Particular things to check:
+    # 1. History file can be made on all OSes:
+    #    https://github.com/rakudo/rakudo/commit/b4fa6d6792dd02424d2182b73c31a071cddc0b8e
+    # 2. Test REPL does not show errors when $*HOME is not set:
+    #    https://rt.perl.org/Ticket/Display.html?id=130456
+}
 
 # RT #119339
 {
-    todo 'make the function check STDERR', 2;
-    like feed_repl_with(['say 069']),
-        /'Potential difficulties:'
-            .* 'Leading 0' .+ "use '0o' prefix,"
-            .* '69 is not a valid octal number'/,
-        'prefix 0 on invalid octal warns in REPL';
+    is-run-repl ['say 069'], :out("69\n"), :err(/'Potential difficulties:'
+        .* 'Leading 0' .+ "use '0o' prefix,"
+        .* '69 is not a valid octal number'
+    /), 'prefix 0 on invalid octal warns in REPL';
 
-    like feed_repl_with(['say 069']),
-        /'Potential difficulties:'
-            .* 'Leading 0' .+ "use '0o' prefix,"
-            .* '0o67 is not a valid octal number'/,
-        'prefix 0 on valid octal warns in REPL';
+    is-run-repl ['say 067'], :out("67\n"), :err(/'Potential difficulties:'
+        .* 'Leading 0' .+ "use '0o' prefix" .* "like, '0o67'"
+    /), 'prefix 0 on valid octal warns in REPL';
 }
 
 # RT #70297
@@ -207,12 +177,12 @@ is feed_repl_with(['say "hi"'], :no-filter-messages).subst(:g, /\W+/, ''),
     $proc.in.close;
 
     skip 'Result differs on OSX';
-    subtest {
-        plan 2;
-        is   $proc.err.slurp, '', 'stderr is correct';
-        like $proc.out.slurp, /"To exit type 'exit' or '^D'\n> "/,
-            'stdout is correct';
-    }, 'Pressing CTRL+D in REPL produces correct output on exit';
+    # subtest {
+    #     plan 2;
+    #     is   $proc.err.slurp, '', 'stderr is correct';
+    #     like $proc.out.slurp, /"To exit type 'exit' or '^D'\n> "/,
+    #         'stdout is correct';
+    # }, 'Pressing CTRL+D in REPL produces correct output on exit';
 }
 
 # RT #128470

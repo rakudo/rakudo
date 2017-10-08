@@ -45,23 +45,6 @@ multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '') is export {
             when Regex      { like    $output, $_, $test-name; }
             when Callable   { ok   $_($output),    $test-name or diag $output; }
             when Positional { is      $output, .join("\n")~"\n", $test-name; }
-            when Map        {
-                subtest "$test-name lines" => {
-                    plan .elems;
-                    my %lines = (1….elems) «=>» $_ with $output.lines;
-                    with .<t>:delete {
-                        is +%lines, $_, "expected number of lines";
-                    }
-                    for $_<> -> (:key($ln), :value($expected)) {
-                        with %lines{$ln.substr: 1} {
-                            is $_, $expected, "line #$ln";
-                        }
-                        else {
-                            flunk "No line #$ln (note: numebering starts at 1)";
-                        }
-                    }
-                }
-            }
             die "Don't know how to handle test of type $_.^name()";
         }
 

@@ -27,7 +27,10 @@ sub is-run (
     }
 }
 
-sub is-run-repl ($code, $desc, :$out, :$err) is export {
+multi sub is-run-repl (@lines, |c) is export {
+    is-run-repl @lines.join("\n"), |c
+}
+multi sub is-run-repl ($code, $desc, :$out = '', :$err = '') is export {
     my $proc = run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
     $proc.in.print: $code;
     $proc.in.close;
@@ -37,9 +40,10 @@ sub is-run-repl ($code, $desc, :$out, :$err) is export {
             my $output    = $proc.out.slurp;
             $output = $*REPL-SCRUBBER($output) if $*REPL-SCRUBBER;
             my $test-name = 'stdout is correct';
-            when Str      { is      $output, $_, $test-name; }
-            when Regex    { like    $output, $_, $test-name; }
-            when Callable { ok   $_($output),    $test-name; }
+            when Str        { is      $output, $_, $test-name; }
+            when Regex      { like    $output, $_, $test-name; }
+            when Callable   { ok   $_($output),    $test-name; }
+            when Positional { is      $output, .join("\n")~"\n", $test-name; }
 
             die "Don't know how to handle :out of type $_.^name()";
         }
@@ -47,9 +51,10 @@ sub is-run-repl ($code, $desc, :$out, :$err) is export {
         with $err {
             my $output    = $proc.err.slurp;
             my $test-name = 'stderr is correct';
-            when Str      { is      $output, $_, $test-name; }
-            when Regex    { like    $output, $_, $test-name; }
-            when Callable { ok   $_($output),    $test-name; }
+            when Str        { is      $output, $_, $test-name; }
+            when Regex      { like    $output, $_, $test-name; }
+            when Callable   { ok   $_($output),    $test-name; }
+            when Positional { is      $output, .join("\n")~"\n", $test-name; }
 
             die "Don't know how to handle :err of type $_.^name()";
         }

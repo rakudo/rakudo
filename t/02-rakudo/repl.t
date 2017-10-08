@@ -3,18 +3,14 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-# Sanity check that the repl is working at all.
-my $cmd = $*DISTRO.is-win
-    ?? "echo exit(42)   | $*EXECUTABLE 1>&2"
-    !! "echo 'exit(42)' | $*EXECUTABLE >/dev/null 2>&1";
-is shell($cmd).exitcode, 42, 'exit(42) in executed REPL got run';
-
-# RT #104514
-{
-    my $cmd = $*DISTRO.is-win
-        ?? q[echo my @a = -^^^> { say "foo" }; @a^^^>^^^>.() | ] ~ $*EXECUTABLE
-        !! q[echo 'my @a = -> { say "foo" }; @a>>.()' | ] ~ $*EXECUTABLE;
-    like qqx[$cmd].Str, /"foo" $$/, '>>.() does not crash in REPL';
+my $*REPL-SCRUBBER = -> $_ is copy {
+    s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
+        " or use rlwrap for a line editor\n\n"//;
+    s/^^ "To exit type 'exit' or '^D'\n"//;
+    s:g/ ^^ "> "  //; # Strip out the prompts
+    s:g/    ">" $ //; # Strip out the final prompt
+    s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
+    $_
 }
 
 my $quote;

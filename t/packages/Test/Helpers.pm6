@@ -35,6 +35,7 @@ sub is-run-repl ($code, $desc, :$out, :$err) is export {
         plan +($out, $err).grep: *.defined;
         with $out {
             my $output    = $proc.out.slurp;
+            $output = $*REPL-SCRUBBER($output) if $*REPL-SCRUBBER;
             my $test-name = 'stdout is correct';
             when Str      { is      $output, $_, $test-name; }
             when Regex    { like    $output, $_, $test-name; }

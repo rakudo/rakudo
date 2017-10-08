@@ -56,13 +56,13 @@ sub is-run-repl ($code, $desc, :$out, :$err) is export {
     }, $desc;
 }
 
-multi doesn't-hang (Str $args, $desc, :$in, :$wait = 1.5, :$out, :$err)
+multi sub doesn't-hang (Str $args, $desc, :$in, :$wait = 1.5, :$out, :$err)
 is export {
     doesn't-hang \($*EXECUTABLE, '-e', $args), $desc,
         :$in, :$wait, :$out, :$err;
 }
 
-multi doesn't-hang (
+multi sub doesn't-hang (
     Capture $args, $desc = 'code does not hang',
     :$in, :$wait = 1.5, :$out, :$err,
 ) is export {

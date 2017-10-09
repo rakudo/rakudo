@@ -1041,9 +1041,14 @@ class Perl6::World is HLL::World {
                 my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
                 my $io-path  := self.find_symbol(['IO', 'Path']);
                 for $arglist -> $arg {
-                    $registry.use-repository($registry.repository-for-spec(
-                        nqp::istype($arg, $io-path) ?? $arg.absolute !! $arg
-                    ));
+                    if $arg {
+                        $registry.use-repository($registry.repository-for-spec(
+                            nqp::istype($arg, $io-path) ?? $arg.absolute !! $arg
+                        ));
+                    }
+                    else {
+                        self.throw($/, 'X::LibEmpty');
+                    }
                 }
             }
             else {

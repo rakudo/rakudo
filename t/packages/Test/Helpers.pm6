@@ -30,9 +30,11 @@ sub is-run (
 multi sub is-run-repl ($code, $out, $desc, |c) is export {
     is-run-repl $code, $desc, :$out, |c;
 }
-multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '') is export {
+multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '',
+    :$line-editor = 'none'
+) is export {
     $code .= join: "\n" if $code ~~ Positional|Seq;
-    (temp %*ENV)<RAKUDO_ERROR_COLOR> = 0;
+    (temp %*ENV)<RAKUDO_ERROR_COLOR  RAKUDO_LINE_EDITOR> = 0, $line-editor;
     my $proc = run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
     $proc.in.print: $code;
     $proc.in.close;
@@ -112,9 +114,11 @@ are arguments to the compiler.
 =head2 is-run-repl
 
     multi sub is-run-repl ($code, $out, $desc, |c)
-    multi sub is-run-repl ($code, $desc, :$out = '', :$err = '')
+    multi sub is-run-repl ($code, $desc, :$out = '', :$err = '', :$line-editor = 'none')
 
-Fires up the REPL and feeds it with C<$code>. If C<$code> is a C<Positional>
+Fires up the REPL and feeds it with C<$code>, setting
+C«%*ENV<RAKUDO_LINE_EDITOR>» to the value of C<$line-editor> for the duration
+of the test. If C<$code> is a C<Positional>
 or a C<Seq>, will join each element with a C<"\n">. The C<$out> and C<$err>
 test STDOUT and STDERR respectively and can be of the following types:
 

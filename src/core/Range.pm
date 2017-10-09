@@ -21,6 +21,7 @@ my class Range is Cool does Iterable does Positional {
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments
     # are present (e.g., Range,Whatever or Real,Range).
+    proto method new(|) {*}
     multi method new(Range $min, \max, :$excludes-min, :$excludes-max) {
         X::Range::InvalidArg.new(:got($min)).throw;
     }

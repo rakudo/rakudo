@@ -600,6 +600,14 @@ my class Range is Cool does Iterable does Positional {
         }
     }
 
+    method Capture(Range:D:) {
+        \( :$!min, :$!max,
+           excludes-min => self.excludes-min,
+           excludes-max => self.excludes-max,
+           infinite     => self.infinite,
+           is-int       => self.is-int)
+    }
+
     multi method Numeric(Range:D:) {
         $!is-int
           ?? self.elems

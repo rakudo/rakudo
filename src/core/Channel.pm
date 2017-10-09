@@ -106,6 +106,7 @@ my class Channel does Awaitable {
         }
     }
 
+    method Capture(Channel:D:) { self.List.Capture }
     multi method Supply(Channel:D:) {
         supply {
             # Tap the async notification for new values supply.

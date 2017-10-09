@@ -61,6 +61,7 @@ my class RatStr is Rat is Str {
             self.Str.ACCEPTS(a),
             self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)))
     }
+    method Capture(RatStr:D:) { self.Mu::Capture }
     multi method Numeric(RatStr:D:) { self.Rat }
     method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
@@ -85,6 +86,7 @@ my class ComplexStr is Complex is Str {
             self.Str.ACCEPTS(a),
             self.Str.ACCEPTS(a) && self.Complex.ACCEPTS(a)))
     }
+    method Capture(ComplexStr:D:) { self.Mu::Capture }
     multi method Numeric(ComplexStr:D:) { self.Complex }
     method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
     multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }

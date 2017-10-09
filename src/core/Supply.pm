@@ -68,6 +68,8 @@ my class Supply does Awaitable {
     }
     submethod BUILD(:$!tappable! --> Nil) { }
 
+    method Capture(Supply:D:) { self.List.Capture }
+
     method live(Supply:D:) { $!tappable.live }
     method serial(Supply:D:) { $!tappable.serial }
     method Tappable(--> Tappable) { $!tappable }

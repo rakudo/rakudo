@@ -52,9 +52,9 @@ multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '',
             die "Don't know how to handle test of type $_.^name()";
         }
 
-        run-test $_, ($*REPL-SCRUBBER//{$_})($proc.out.slurp),
+        run-test $_, ($*REPL-SCRUBBER//{$_})($proc.out.slurp: :close),
             'stdout is correct' with $out;
-        run-test $_, $proc.err.slurp, 'stderr is correct' with $err;
+        run-test $_, $proc.err.slurp(:close), 'stderr is correct' with $err;
     }, $desc;
 }
 

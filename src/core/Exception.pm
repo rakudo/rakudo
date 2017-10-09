@@ -2098,6 +2098,15 @@ my class X::Cannot::New is Exception {
         "Cannot make a {$.class.^name} object using .new";
     }
 }
+my class X::Cannot::Capture is Exception {
+    has $.what;
+    method message() {
+        "Cannot unpack or Capture `$!what.gist()`.\n"
+          ~ "To create a Capture, add parentheses: \\(...)\n"
+          ~ 'If unpacking in a signature, perhaps you needlessly used'
+          ~ ' parentheses? -> ($x) {} vs. -> $x {}';
+    }
+}
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
     has $.sequence;

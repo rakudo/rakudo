@@ -132,6 +132,8 @@ It's possible to scrub STDOUT of unwanted strings before testing by setting
 C<$*REPL-SCRUBBER> to a C<Callable> that takes original STDOUT as argument and
 returns the scrubbed version.
 
+Note: the routine sets C«%*ENV<RAKUDO_ERROR_COLOR>» to C<0>
+
 =head2 doesn't-hang
 
     doesn't-hang 'say "some code"' :out(/'some code'/),

@@ -103,6 +103,8 @@ class Version {
         True;
     }
 
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
+
     multi method WHICH(Version:D:) {
         nqp::box_s(
           nqp::concat(

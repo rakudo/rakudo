@@ -1,5 +1,6 @@
 my class Range  { ... }
 my class Match  { ... }
+my class X::Cannot::Capture      { ... }
 my class X::Str::InvalidCharName { ... }
 my class X::Str::Numeric  { ... }
 my class X::Str::Match::x { ... }
@@ -39,6 +40,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method Bool(Str:D:) {
         nqp::p6bool(nqp::chars($!value));
     }
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
 
     multi method Str(Str:D:)     { self }
     multi method Stringy(Str:D:) { self }

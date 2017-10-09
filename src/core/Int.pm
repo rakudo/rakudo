@@ -1,4 +1,5 @@
 my class Rat { ... }
+my class X::Cannot::Capture       { ... }
 my class X::Numeric::DivideByZero { ... }
 my class X::NYI::BigInt { ... }
 
@@ -37,6 +38,8 @@ my class Int does Real { # declared in BOOTSTRAP
     multi method Bool(Int:D:) {
         nqp::p6bool(nqp::bool_I(self));
     }
+
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
 
     method Int() { self }
 

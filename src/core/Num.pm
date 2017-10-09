@@ -1,3 +1,4 @@
+my class X::Cannot::Capture        { ... }
 my class X::Numeric::DivideByZero  { ... }
 my class X::Numeric::CannotConvert { ... }
 my role Rational { ... }
@@ -19,6 +20,7 @@ my class Num does Real { # declared in BOOTSTRAP
           ObjAt
         )
     }
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
     method Num() { self }
     method Bridge(Num:D:) { self }
     method Range(Num:U:) { Range.new(-Inf,Inf) }

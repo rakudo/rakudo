@@ -1,3 +1,5 @@
+my class X::Cannot::Capture { ... }
+
 my class Signature { # declared in BOOTSTRAP
     # class Signature is Any
     #   has @!params;             # VM's array of parameters
@@ -78,6 +80,8 @@ my class Signature { # declared in BOOTSTRAP
         return False unless self.returns =:= $topic.returns;
         True;
     }
+
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
 
     method arity() {
         $!arity

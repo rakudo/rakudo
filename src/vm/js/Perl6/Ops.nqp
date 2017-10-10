@@ -17,7 +17,6 @@ $ops.add_simple_op('p6sink', $ops.VOID, [$ops.OBJ], :ctx, :side_effects);
 register_op_desugar('p6invokeflat', -> $qast {
     $qast[1].flat(1);
     QAST::Op.new( :op('call'), $qast[0], $qast[1]);
-    QAST::Op.new(:op('null'));
 });
 
 # TODO only override for js

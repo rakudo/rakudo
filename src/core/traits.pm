@@ -97,7 +97,7 @@ multi sub trait_mod:<is>(Attribute $attr, :$required!) {
       nqp::istype($required,Bool) ?? +$required !! $required
     );
 }
-multi sub trait_mod:<is>(Attribute $attr, :$default!) {
+multi sub trait_mod:<is>(Attribute $attr, Mu :$default!) {
     $attr.container_descriptor.set_default(nqp::decont($default));
     $attr.container = nqp::decont($default) if nqp::iscont($attr.container);
 }

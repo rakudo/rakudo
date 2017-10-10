@@ -285,26 +285,50 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
-                          die("Invalid BUILDALL plan"),
-              ))))))),
+                          nqp::if(
+                            nqp::iseq_i($code,11),
+                            nqp::if(             # 11
+                              nqp::existskey($init,nqp::atpos($task,3)),
+                              (nqp::getattr(self,
+                                nqp::atpos($task,1),nqp::atpos($task,2))
+                                = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                              nqp::bindattr(self,
+                                nqp::atpos($task,1),nqp::atpos($task,2),
+                                nqp::list
+                              )
+                            ),
+                            nqp::if(
+                              nqp::iseq_i($code,12),
+                              nqp::if(           # 12
+                                nqp::existskey($init,nqp::atpos($task,3)),
+                                (nqp::getattr(self,
+                                  nqp::atpos($task,1),nqp::atpos($task,2))
+                                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                                nqp::bindattr(self,
+                                  nqp::atpos($task,1),nqp::atpos($task,2),
+                                  nqp::hash
+                                )
+                              ),
+                              die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
+                  ))))))))),
 
-              nqp::if(                           # 0
-                nqp::existskey($init,nqp::atpos($task,3)),
-                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
-                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                  nqp::if(                       # 0
+                    nqp::existskey($init,nqp::atpos($task,3)),
+                    (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
+                      = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                  )
+                )
               )
-            )
-          )
-        );
-        self
-    }
+            );
+            self
+        }
 
-    method BUILD_LEAST_DERIVED(%attrinit) {
-        my $init := nqp::getattr(%attrinit,Map,'$!storage');
-        # Get the build plan for just this class.
-        my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
-        my int $count = nqp::elems($bp);
-        my int $i     = -1;
+        method BUILD_LEAST_DERIVED(%attrinit) {
+            my $init := nqp::getattr(%attrinit,Map,'$!storage');
+            # Get the build plan for just this class.
+            my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
+            my int $count = nqp::elems($bp);
+            my int $i     = -1;
 
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$count),
@@ -473,8 +497,32 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                               ),
                               ($i = nqp::sub_i($i,1))
                             ),
-                            die("Invalid BUILD_LEAST_DERIVED plan")
-              )))))))),
+                            nqp::if(
+                              nqp::iseq_i($code,11),
+                              nqp::if(           # 11
+                                nqp::existskey($init,nqp::atpos($task,3)),
+                                (nqp::getattr(self,
+                                  nqp::atpos($task,1),nqp::atpos($task,2))
+                                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                                nqp::bindattr(self,
+                                  nqp::atpos($task,1),nqp::atpos($task,2),
+                                  nqp::list
+                                )
+                              ),
+                              nqp::if(
+                                nqp::iseq_i($code,12),
+                                nqp::if(         # 12
+                                  nqp::existskey($init,nqp::atpos($task,3)),
+                                  (nqp::getattr(self,
+                                    nqp::atpos($task,1),nqp::atpos($task,2))
+                                    = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                                  nqp::bindattr(self,
+                                    nqp::atpos($task,1),nqp::atpos($task,2),
+                                    nqp::hash
+                                  )
+                                ),
+                                die('Invalid ' ~ self.^name ~ ".BUILD_LEAST_DERIVED plan: $code"),
+              )))))))))),
 
               nqp::if(                           # 0
                 nqp::existskey($init,nqp::atpos($task,3)),

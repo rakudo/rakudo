@@ -24,6 +24,8 @@ role Perl6::Metamodel::BUILDPLAN {
     #    8 die if a required attribute is not present
     #    9 class attr_name code = run attribute container initializer
     #   10 class attr_name = touch/vivify attribute if part of mixin
+    #   11 same as 0, but init to nqp::list if value absent (nqp only)
+    #   12 same as 0, but init to nqp::hash if value absent (nqp only)
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;

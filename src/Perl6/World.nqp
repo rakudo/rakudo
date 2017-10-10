@@ -3165,8 +3165,8 @@ class Perl6::World is HLL::World {
                           QAST::SVal.new( :value(nqp::atpos($task,2)) );
 
                         my int $code := nqp::atpos($task,0);
-                        # 0 = initialize opaque from %init
-                        if $code == 0 {
+                        # 0,11,12 = initialize opaque from %init
+                        if $code == 0 || $code == 11 || $code == 12 {
 
 # 'a'
                             my $key :=
@@ -3207,6 +3207,19 @@ class Perl6::World is HLL::World {
                                            ?? 'assign' !! 'p6store'
                                     ),
                                     $getattr, $value
+                                  )
+                                );
+                            }
+
+                            # 11,12
+# bindattr(self,Foo,'$!a',nqp::list|hash)
+                            if $code {
+                                $if.push(
+                                  QAST::Op.new(:op<bindattr>,
+                                    $self, $class, $attr,
+                                    QAST::Op.new(
+                                      :op($code == 11 ?? 'list' !! 'hash')
+                                    )
                                   )
                                 );
                             }
@@ -3408,8 +3421,16 @@ class Perl6::World is HLL::World {
                             $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
+                        # 10 = set attrinited on attribute
+                        elsif $code == 10 {
+# nqp::getattr(self,Foo,'$!a')
+                            $stmts.push(
+                              QAST::Op.new(:op<getattr>, $self, $class, $attr)
+                            );
+                        }
+
                         else {
-                            nqp::die("Invalid BUILDALL plan");
+                            nqp::die('Invalid ' ~ $object.HOW.name($object) ~ '.BUILDALL plan: ' ~ $code);
                         }
                     }
 

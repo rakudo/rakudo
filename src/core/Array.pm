@@ -372,7 +372,7 @@ my class Array { # declared in BOOTSTRAP
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos($cow,$i,nqp::decont(nqp::atpos($reified,$i))),
+                  nqp::bindpos($cow,$i,nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)),
                 ),
                 nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$cow)
               )

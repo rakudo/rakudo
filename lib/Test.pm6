@@ -230,7 +230,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
+multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $ok;

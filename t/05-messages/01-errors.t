@@ -1,4 +1,6 @@
+use lib <t/packages/>;
 use Test;
+use Test::Helpers;
 
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
@@ -64,16 +66,24 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 
 # RT #113954
 {
-    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo bar|) {}]]).err.slurp(:close),
-       qq|Usage:\n  -e '...' 'foo bar' \n|,
+    is-run ｢multi MAIN(q|foo bar|) {}｣,
+       :err(qq|Usage:\n  -e '...' 'foo bar' \n|),
+       :status(*),
        'a space in a literal param to a MAIN() multi makes the suggestion quoted';
 
-    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo"bar|) {}]]).err.slurp(:close),
-       qq|Usage:\n  -e '...' 'foo"bar' \n|,
-       'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+    if $*DISTRO.is-win {
+        skip "Test routine quoting doesn't work right on Windows: RT#132258"
+    }
+    else {
+        is-run ｢multi MAIN(q|foo"bar|) {}｣,
+           :err(qq|Usage:\n  -e '...' 'foo"bar' \n|),
+           :status(*),
+           'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+    }
 
-    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo'bar|) {}]]).err.slurp(:close),
-       qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|,
+    is-run ｢multi MAIN(q|foo'bar|) {}｣,
+       :err(qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|),
+       :status(*),
        'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
 }
 

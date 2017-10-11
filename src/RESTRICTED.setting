@@ -27,7 +27,7 @@ sub RENAME-PATH      { restricted('rename') }
 sub SYMLINK-PATH     { restricted('symlink') }
 sub UNLINK-PATH      { restricted('unlink') }
 
-my class RESTRICTED-CLASS is Mu { 
+my class RESTRICTED-CLASS is Mu {
     method FALLBACK(|) { restricted(self.^name) }
     method new(|)      { restricted(self.^name) }
     method gist(|)     { restricted(self.^name) }

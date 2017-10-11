@@ -141,7 +141,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$raw!) {
     $r.set_rw(); # for now, until we have real raw handling
 }
 multi sub trait_mod:<is>(Routine:D $r, :$default!) {
-    $r does role { method default(--> True) { } }
+    $r.^mixin: role { method default(--> True) { } }
 }
 multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)

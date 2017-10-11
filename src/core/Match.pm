@@ -210,7 +210,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         (var)(self)
     }
 
-    multi method INTERPOLATE(Mu:D \var, int $i, int $m, int $monkey, int $s, int $a, $context) {
+    multi method INTERPOLATE(Iterable:D \var, int $i, int $m, int $monkey, int $s, int $a, $context) {
         my $maxmatch;
         my $cur    := self.'!cursor_start_cur'();
         my str $tgt = $cur.target;
@@ -224,7 +224,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         my Mu $order := nqp::list();
 
         # Looks something we need to loop over
-        if nqp::istype(var, Iterable) and !nqp::iscont(var) {
+        if !nqp::iscont(var) {
             my $varlist  := var.list;
             my int $elems = $varlist.elems; # reifies
             my $list     := nqp::getattr($varlist,List,'$!reified');
@@ -397,6 +397,117 @@ my class Match is Capture is Cool does NQPMatchRole {
                 $maxmatch := $match;
                 last if $s; # stop here for sequential alternation
             }
+        }
+
+        nqp::istype($maxmatch, Match)
+          ?? $maxmatch
+          !! nqp::isge_i($maxlen,0)
+            ?? $cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+            !! $cur
+    }
+
+    multi method INTERPOLATE(Mu:D \var, int $i, int $m, int $monkey, int $s, int $a, $context) {
+        my $maxmatch;
+        my $cur    := self.'!cursor_start_cur'();
+        my str $tgt = $cur.target;
+        my int $eos = nqp::chars($tgt);
+
+        my int $maxlen = -1;
+        my int $pos    = nqp::getattr_i($cur, $?CLASS, '$!from');
+        my int $start  = 1;
+        my int $nomod  = !($i || $m);
+
+        my str $topic_str;
+        my $match;
+        my int $len;
+
+        # We are in a regex assertion, the strings we get will be
+        # treated as regex rules.
+        if $a {
+            return $cur.'!cursor_start_cur'()
+              if nqp::istype(var,Associative);
+
+            my $rx := MAKE_REGEX(var,$i,$m,$monkey,$context);
+            $match := self.$rx;
+            $len    = $match.pos - $match.from;
+        }
+
+        # A Regex already.
+        elsif nqp::istype(var,Regex) {
+            $match := self.var;
+            $len    = $match.pos - $match.from;
+        }
+
+        # The pattern is a string. $len and and $topic_str are used
+        # later on if this condition does not hold.
+        elsif nqp::iseq_i(($len = nqp::chars($topic_str = var.Str)),0) {
+            $match = 1;
+        }
+
+        # no modifier, match literally
+        elsif $nomod {
+            $match = nqp::eqat($tgt, $topic_str, $pos);
+        }
+
+#?if moar
+        # ignoremark+ignorecase
+        elsif $m && $i {
+            $match = nqp::eqaticim($tgt, $topic_str, $pos);
+        }
+
+        # ignoremark
+        elsif $m {
+            $match = nqp::eqatim($tgt, $topic_str, $pos);
+        }
+
+        # ignorecase
+        elsif $i {
+            $match = nqp::eqatic($tgt, $topic_str, $pos);
+        }
+#?endif
+#?if !moar
+        # ignoremark(+ignorecase?)
+        elsif $m {
+            my int $k = -1;
+
+            # ignorecase+ignoremark
+            if $i {
+                my str $tgt_fc   = nqp::fc(nqp::substr($tgt,$pos,$len));
+                my str $topic_fc = nqp::fc($topic_str);
+                Nil while nqp::islt_i(++$k,$len)
+                  && nqp::iseq_i(
+                    nqp::ordbaseat($tgt_fc, nqp::add_i($pos,$k)),
+                    nqp::ordbaseat($topic_fc, $k)
+                  );
+            }
+
+            # ignoremark
+            else {
+                Nil while nqp::islt_i(++$k, $len)
+                  && nqp::iseq_i(
+                    nqp::ordbaseat($tgt, nqp::add_i($pos,$k)),
+                    nqp::ordbaseat($topic_str, $k)
+                  );
+            }
+
+            $match = nqp::iseq_i($k,$len); # match if completed
+        }
+
+        # ignorecase
+        else {
+            $match = nqp::iseq_s(
+              nqp::fc(nqp::substr($tgt, $pos, $len)),
+              nqp::fc($topic_str)
+            )
+        }
+#?endif
+
+        if $match
+          && nqp::isgt_i($len,$maxlen)
+          && nqp::isle_i(nqp::add_i($pos,$len),$eos) {
+            $maxlen    = $len;
+            $maxmatch := $match;
+            last if $s; # stop here for sequential alternation
         }
 
         nqp::istype($maxmatch, Match)

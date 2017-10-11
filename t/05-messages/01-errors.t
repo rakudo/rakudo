@@ -238,6 +238,11 @@ subtest '`IO::Socket::INET.new: :listen` fails with useful error' => {
 throws-like ｢use v5｣, X::Language::Unsupported,
     '`use v5` in code does not try to load non-existent modules';
 
+# RT#127341
+is-run 'Duration.new: Inf; Duration.new: "meow"',
+    :out{not .contains: '$!tai'}, :err{not .contains: '$!tai'}, :status(*),
+    'Duration.new with bad args does not reference guts';
+
 done-testing;
 
 # vim: ft=perl6 expandtab sw=4

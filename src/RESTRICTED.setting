@@ -33,10 +33,7 @@ my class RESTRICTED-CLASS is Mu {
     method gist(|)     { restricted(self.^name) }
 }
 
-my class IO::Dir          is RESTRICTED-CLASS { }
-my class IO::File         is RESTRICTED-CLASS { }
 my class IO::Handle       is RESTRICTED-CLASS { }
-my class IO::Local        is RESTRICTED-CLASS { }
 my class IO::Path         is RESTRICTED-CLASS { }
 my class IO::Pipe         is RESTRICTED-CLASS { }
 my class IO::Socket       is RESTRICTED-CLASS { }
@@ -50,6 +47,3 @@ my role RESTRICTED-ROLE {
     method new(|)      { restricted(self.^name) }
     method gist(|)     { restricted(self.^name) }
 }
-
-my role IO::Pathy does RESTRICTED-ROLE { }
-my role PIO       does RESTRICTED-ROLE { }

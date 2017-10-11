@@ -424,8 +424,8 @@ my class array does Iterable {
             nqp::push_i(self, $value);
             self
         }
-        multi method append(intarray:D: int @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(intarray:D: intarray:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(intarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))

@@ -59,6 +59,7 @@ src/core/Capture.pm
 src/core/IterationBuffer.pm
 src/core/HyperConfiguration.pm
 src/core/HyperWorkBuffer.pm
+src/core/Sequence.pm
 src/core/Seq.pm
 src/core/HyperSeq.pm
 src/core/Nil.pm

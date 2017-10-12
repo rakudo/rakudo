@@ -205,12 +205,12 @@ my class Match is Capture is Cool does NQPMatchRole {
     # aren't currently JITted on MoarVM
     proto method INTERPOLATE(|) { * }
 
-    multi method INTERPOLATE(Callable:D \var, int $i, int $m, int $monkey, int $s, int $a, $context) {
+    multi method INTERPOLATE(Callable:D \var, int $im, int $monkey, int $s, int $a, $context) {
         # Call it if it is a routine. This will capture if requested.
         (var)(self)
     }
 
-    multi method INTERPOLATE(Iterable:D \var, int $i, int $m, int $monkey, int $s, int $a, $context) {
+    multi method INTERPOLATE(Iterable:D \var, int $im, int $monkey, int $s, int $a, $context) {
         my $maxmatch;
         my $cur    := self.'!cursor_start_cur'();
         my str $tgt = $cur.target;
@@ -219,7 +219,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         my int $maxlen = -1;
         my int $pos    = nqp::getattr_i($cur, $?CLASS, '$!from');
         my int $start  = 1;
-        my int $nomod  = !($i || $m);
+        my int $nomod  = $im == 0;
 
         my Mu $order := nqp::list();
 
@@ -250,8 +250,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                     if $a {
                         return $cur.'!cursor_start_cur'()
                           if nqp::istype($topic,Associative);
-
-                        my $rx := MAKE_REGEX($topic,$i,$m,$monkey,$context);
+                        my $rx := MAKE_REGEX($topic,$im == 1 || $im == 3,$im == 2 || $im == 3,$monkey,$context);
                         $nfa.mergesubstates($start,0,nqp::decont($fate),
                           nqp::findmethod($rx,'NFA')($rx),
                           Mu);
@@ -270,8 +269,8 @@ my class Match is Capture is Cool does NQPMatchRole {
                           :rxtype<literal>, $topic,
                           :subtype( $nomod
                             ?? ''
-                            !! $m
-                              ?? $i
+                            !! $im == 2
+                              ?? $im == 1
                                 ?? 'ignorecase+ignoremark'
                                 !! 'ignoremark'
                               !! 'ignorecase')
@@ -315,7 +314,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                 return $cur.'!cursor_start_cur'()
                   if nqp::istype($topic,Associative);
 
-                my $rx := MAKE_REGEX($topic,$i,$m,$monkey,$context);
+                my $rx := MAKE_REGEX($topic,$im == 1 || $im == 3,$im == 2 || $im == 3,$monkey,$context);
                 $match := self.$rx;
                 $len    = $match.pos - $match.from;
             }
@@ -339,27 +338,27 @@ my class Match is Capture is Cool does NQPMatchRole {
 
 #?if moar
             # ignoremark+ignorecase
-            elsif $m && $i {
+            elsif $im == 3 {
                 $match = nqp::eqaticim($tgt, $topic_str, $pos);
             }
 
             # ignoremark
-            elsif $m {
+            elsif $im == 2 {
                 $match = nqp::eqatim($tgt, $topic_str, $pos);
             }
 
             # ignorecase
-            elsif $i {
+            elsif $im == 1 {
                 $match = nqp::eqatic($tgt, $topic_str, $pos);
             }
 #?endif
 #?if !moar
             # ignoremark(+ignorecase?)
-            elsif $m {
+            elsif $im == 2 || $im == 3 {
                 my int $k = -1;
 
                 # ignorecase+ignoremark
-                if $i {
+                if $im == 3 {
                     my str $tgt_fc   = nqp::fc(nqp::substr($tgt,$pos,$len));
                     my str $topic_fc = nqp::fc($topic_str);
                     Nil while nqp::islt_i(++$k,$len)
@@ -406,7 +405,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             !! $cur
     }
 
-    multi method INTERPOLATE(Mu:D \var, int $i, int $m, int $monkey, int $s, int $a, $context) {
+    multi method INTERPOLATE(Mu:D \var, int $im, int $monkey, int $s, int $a, $context) {
         my $maxmatch;
         my $cur    := self.'!cursor_start_cur'();
         my str $tgt = $cur.target;
@@ -415,7 +414,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         my int $maxlen = -1;
         my int $pos    = nqp::getattr_i($cur, $?CLASS, '$!from');
         my int $start  = 1;
-        my int $nomod  = !($i || $m);
+        my int $nomod  = $im == 0;
 
         my str $topic_str;
         my $match;
@@ -427,7 +426,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             return $cur.'!cursor_start_cur'()
               if nqp::istype(var,Associative);
 
-            my $rx := MAKE_REGEX(var,$i,$m,$monkey,$context);
+            my $rx := MAKE_REGEX(var,$im == 1 || $im == 3,$im == 2 || $im == 3,$monkey,$context);
             $match := self.$rx;
             $len    = $match.pos - $match.from;
         }
@@ -451,27 +450,27 @@ my class Match is Capture is Cool does NQPMatchRole {
 
 #?if moar
         # ignoremark+ignorecase
-        elsif $m && $i {
+        elsif $im == 3 {
             $match = nqp::eqaticim($tgt, $topic_str, $pos);
         }
 
         # ignoremark
-        elsif $m {
+        elsif $im == 2 {
             $match = nqp::eqatim($tgt, $topic_str, $pos);
         }
 
         # ignorecase
-        elsif $i {
+        elsif $im == 1 {
             $match = nqp::eqatic($tgt, $topic_str, $pos);
         }
 #?endif
 #?if !moar
         # ignoremark(+ignorecase?)
-        elsif $m {
+        elsif $im == 2 || $im == 3 {
             my int $k = -1;
 
             # ignorecase+ignoremark
-            if $i {
+            if $im == 3 {
                 my str $tgt_fc   = nqp::fc(nqp::substr($tgt,$pos,$len));
                 my str $topic_fc = nqp::fc($topic_str);
                 Nil while nqp::islt_i(++$k,$len)
@@ -517,7 +516,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             !! $cur
     }
 
-    multi method INTERPOLATE(Mu:U \var, int $i, int $m, int $monkey, int $s, int $a, $context) {
+    multi method INTERPOLATE(Mu:U \var, int $im, int $monkey, int $s, int $a, $context) {
         self."!cursor_start_cur"()
     }
 

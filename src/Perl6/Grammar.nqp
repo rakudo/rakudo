@@ -1234,7 +1234,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         :dba('statement list')
 #        <.check_LANG_oopsies('statementlist')>
-        ''
+        <.ws>
         # Define this scope to be a new language.
         <!!{ $*LANG := $*LEAF := $/.clone_braid_from(self); 1 }>
         [

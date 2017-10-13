@@ -386,7 +386,6 @@ my class ThreadPoolScheduler does Scheduler {
         # Otherwise, check if the queue beats the threshold to add another
         # worker thread.
         my $chosen-queue := $most-free-worker.queue;
-        my $queue-elems = $chosen-queue.elems;
         my $threshold = @affinity-add-thresholds[
             ($cur-affinity-workers.elems min @affinity-add-thresholds) - 1
         ];

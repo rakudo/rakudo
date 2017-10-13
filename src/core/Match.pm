@@ -353,6 +353,11 @@ my class Match is Capture is Cool does NQPMatchRole {
             }
 #?endif
 #?if !moar
+
+# This branch is required because neither the JVM nor the JS implementations
+# have the nqp::eqat* ops. However, nqp::ordbaseat just throws a NYI
+# exception for both, so the code doesn't actually work.
+
             # ignoremark(+ignorecase?)
             elsif $im == 2 || $im == 3 {
                 my int $k = -1;
@@ -450,6 +455,11 @@ my class Match is Capture is Cool does NQPMatchRole {
         }
 #?endif
 #?if !moar
+
+# This branch is required because neither the JVM nor the JS implementations
+# have the nqp::eqat* ops. However, nqp::ordbaseat just throws a NYI
+# exception for both, so the code doesn't actually work.
+
         # ignoremark(+ignorecase?)
         elsif $im == 2 || $im == 3 {
             my int $k = -1;
@@ -576,6 +586,11 @@ my class Match is Capture is Cool does NQPMatchRole {
         }
 #?endif
 #?if !moar
+
+# This branch is required because neither the JVM nor the JS implementations
+# have the nqp::eqat* ops. However, nqp::ordbaseat just throws a NYI
+# exception for both, so the code doesn't actually work.
+
         # ignoremark(+ignorecase?)
         elsif $im == 2 || $im == 3 {
             my int $k = -1;

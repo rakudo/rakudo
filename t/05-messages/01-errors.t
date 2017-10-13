@@ -2,6 +2,8 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
+plan 44;
+
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
     message => /'but require mutable arguments'/,
@@ -242,7 +244,5 @@ throws-like ｢use v5｣, X::Language::Unsupported,
 is-run 'Duration.new: Inf; Duration.new: "meow"',
     :out{not .contains: '$!tai'}, :err{not .contains: '$!tai'}, :status(*),
     'Duration.new with bad args does not reference guts';
-
-done-testing;
 
 # vim: ft=perl6 expandtab sw=4

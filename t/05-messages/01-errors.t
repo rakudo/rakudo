@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 45;
+plan 46;
 
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
@@ -249,5 +249,11 @@ is-run 'Duration.new: Inf; Duration.new: "meow"',
 is-run ｢my Str where 'foo' $test｣, :status(*),
   :err{.contains: ｢forget a variable｣ and not .contains: ｢Did you mean 'Str'｣},
 'sane error when missing variables with my and where';
+
+# RT#132285
+throws-like ｢Blob[num32].new: 2e0｣,
+    Exception,
+    :message{ .contains: ｢not yet implemented｣ & ｢num32｣ and not .contains: ｢got null｣ },
+    'sane error for num32 Blob';
 
 # vim: ft=perl6 expandtab sw=4

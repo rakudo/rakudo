@@ -254,6 +254,6 @@ is-run ｢my Str where 'foo' $test｣, :status(*),
 throws-like ｢Blob[num32].new: 2e0｣,
     Exception,
     :message{ .contains: ｢not yet implemented｣ & ｢num32｣ and not .contains: ｢got null｣ },
-    'sane error for num32 Blob';
+    'sane NYI error for num32 Blob';
 
 # vim: ft=perl6 expandtab sw=4

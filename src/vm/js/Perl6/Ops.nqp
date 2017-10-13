@@ -13,6 +13,8 @@ register_op_desugar('', -> $qast {
 
 $ops.add_simple_op('p6sink', $ops.VOID, [$ops.OBJ], :ctx, :side_effects);
 
+$ops.add_simple_op('p6reprname', $ops.OBJ, [$ops.OBJ], :decont(0));
+
 # Stub
 register_op_desugar('p6invokeflat', -> $qast {
     $qast[1].flat(1);

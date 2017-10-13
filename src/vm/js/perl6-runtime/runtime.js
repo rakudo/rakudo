@@ -347,6 +347,13 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return codeRef.staticCode.outerCodeRef;
   };
 
+  op.p6reprname = function(obj) {
+    const repr = Str._STable.REPR;
+    const boxed = repr.allocate(Str._STable);
+    boxed.$$setStr(nqp.op.reprname(obj));
+    return boxed;
+  };
+
   function RakudoScalar(STable) {
     this.STable = STable;
   }

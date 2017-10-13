@@ -326,8 +326,15 @@ my class IO::Path is Cool does IO {
         $resolved = $sep unless nqp::chars($resolved);
         IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
     }
-
-    method parent(IO::Path:D:) {    # XXX needs work
+    proto method parent(|) { * }
+    multi method parent(IO::Path:D: Int:D $depth) {
+        die "method parent(IO::Path:D: Int:D) can only be called with non-negative integers"
+            if $depth < 0;
+        my $io = self;
+        $io .= parent xx $depth;
+        $io;
+    }
+    multi method parent(IO::Path:D:) {    # XXX needs work
         my $curdir := $!SPEC.curdir;
         my $updir  := $!SPEC.updir;
 

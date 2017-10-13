@@ -416,7 +416,6 @@ my class Match is Capture is Cool does NQPMatchRole {
 
         my int $maxlen = -1;
         my int $pos    = nqp::getattr_i($cur, $?CLASS, '$!from');
-        my int $start  = 1;
         my int $nomod  = $im == 0;
 
         my str $topic_str;
@@ -492,7 +491,6 @@ my class Match is Capture is Cool does NQPMatchRole {
           && nqp::isle_i(nqp::add_i($pos,$len),$eos) {
             $maxlen    = $len;
             $maxmatch := $match;
-            last if $s; # stop here for sequential alternation
         }
 
         nqp::istype($maxmatch, Match)
@@ -519,7 +517,6 @@ my class Match is Capture is Cool does NQPMatchRole {
           && nqp::isle_i(nqp::add_i($pos,$len),$eos) {
             $maxlen    = $len;
             $maxmatch := $match;
-            last if $s; # stop here for sequential alternation
         }
 
         nqp::istype($maxmatch, Match)
@@ -537,7 +534,6 @@ my class Match is Capture is Cool does NQPMatchRole {
 
         my int $maxlen = -1;
         my int $pos    = nqp::getattr_i($cur, $?CLASS, '$!from');
-        my int $start  = 1;
         my int $nomod  = $im == 0;
 
         my str $topic_str;
@@ -621,7 +617,6 @@ my class Match is Capture is Cool does NQPMatchRole {
           && nqp::isle_i(nqp::add_i($pos,$len),$eos) {
             $maxlen    = $len;
             $maxmatch := $match;
-            last if $s; # stop here for sequential alternation
         }
 
         nqp::istype($maxmatch, Match)

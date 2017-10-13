@@ -499,10 +499,7 @@ my class Rakudo::QuantHash {
         nqp::stmts(
           (my $iter := Rakudo::QuantHash.BAG-ROLL(elems,total)),
           nqp::if(
-            nqp::iseq_i(
-              (my $value := nqp::getattr(nqp::iterval($iter),Pair,'$!value')),
-              1
-            ),
+            (my $value := nqp::getattr(nqp::iterval($iter),Pair,'$!value')) == 1,
             nqp::stmts(              # going to 0, so remove
               (my $object := nqp::getattr(nqp::iterval($iter),Pair,'$!key')),
               nqp::deletekey(elems,nqp::iterkey_s($iter)),
@@ -513,7 +510,7 @@ my class Rakudo::QuantHash {
                 nqp::iterval($iter),
                 Pair,
                 '$!value',
-                nqp::sub_i($value,1)
+                $value - 1
               ),
               nqp::getattr(nqp::iterval($iter),Pair,'$!key')
             )

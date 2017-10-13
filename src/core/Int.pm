@@ -69,7 +69,7 @@ my class Int does Real { # declared in BOOTSTRAP
     method chr(Int:D:) {
         nqp::if(
           nqp::isbig_I(self),
-          (die "chr codepoint too large: {self}"),
+            die("chr codepoint %i (0x%X) is too large".sprintf(self, self)),
           nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
         )
     }

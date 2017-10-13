@@ -68,7 +68,12 @@ our class Pointer                               is repr('CPointer') {
             self.add(-1);
         }
         method AT-POS(Int $pos) {
-            self.add($pos).deref;
+            nqp::nativecallcast(
+                TValue,
+                nqp::istype(TValue, Int) ?? Int
+                                         !! nqp::istype(TValue, Num) ?? Num !! TValue,
+                nqp::box_i(nqp::unbox_i(nqp::decont(self)) + nqp::nativecallsizeof(TValue) * $pos, Pointer)
+            )
         }
     }
     method ^parameterize(Mu:U \p, Mu:U \t) {

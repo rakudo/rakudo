@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 46;
+plan 47;
 
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
@@ -255,5 +255,9 @@ throws-like ｢Blob[num32].new: 2e0｣,
     Exception,
     :message{ .contains: ｢not yet implemented｣ & ｢num32｣ and not .contains: ｢got null｣ },
     'sane NYI error for num32 Blob';
+
+# RT#77754
+throws-like ｢callframe.callframe(1).my.perl｣, X::NYI,
+    'callframe.my throws sane NYI error message';
 
 # vim: ft=perl6 expandtab sw=4

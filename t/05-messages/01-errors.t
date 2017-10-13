@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 44;
+plan 45;
 
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
@@ -244,5 +244,10 @@ throws-like ｢use v5｣, X::Language::Unsupported,
 is-run 'Duration.new: Inf; Duration.new: "meow"',
     :out{not .contains: '$!tai'}, :err{not .contains: '$!tai'}, :status(*),
     'Duration.new with bad args does not reference guts';
+
+# RT#125902
+is-run ｢my Str where 'foo' $test｣, :status(*),
+  :err{.contains: ｢forget a variable｣ and not .contains: ｢Did you mean 'Str'｣},
+'sane error when missing variables with my and where';
 
 # vim: ft=perl6 expandtab sw=4

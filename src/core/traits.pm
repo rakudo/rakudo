@@ -350,7 +350,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
 
 multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
     $r.^mixin( role is-pure {
-        method IS_PURE(--> True) { }
+        method is-pure (--> True) { }
     }) if $pure;
 }
 

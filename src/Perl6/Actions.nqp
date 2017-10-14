@@ -352,7 +352,7 @@ sub unwanted($ast, $by) {
                             my $subname := $node0[0].name;
                             my $subfun := try $*W.find_symbol([$subname]);
                             if $subfun {
-                                if nqp::index($node0.name, 'ASSIGN') < 0 && nqp::can($subfun, 'IS_PURE') && $subfun.IS_PURE {
+                                if nqp::index($node0.name, 'ASSIGN') < 0 && nqp::can($subfun, 'is-pure') {
                                     $purity := 1;
                                 }
                             }
@@ -7265,7 +7265,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if nqp::istype($basepast, QAST::Var) {
                 my $subfun := try $*W.find_symbol([$basepast.name]);
                 if $subfun {
-                    $purity := 1 if nqp::can($subfun, 'IS_PURE') && $subfun.IS_PURE;
+                    $purity := 1 if nqp::can($subfun, 'is-pure');
                 }
                 else {
                     $purity := 1;   # assume will be defined pure

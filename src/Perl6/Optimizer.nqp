@@ -1408,7 +1408,7 @@ class Perl6::Optimizer {
             self.convert_unicode_op_to_ascii($op);
 
             # Pure operators can be constant folded.
-            if nqp::can($obj, 'IS_PURE') && $obj.IS_PURE {
+            if nqp::can($obj, 'is-pure') {
                 # First ensure we're not in void context; warn if so.
                 sub widen($m) {
                     my int $from := $m.from;

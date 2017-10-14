@@ -1434,6 +1434,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $res
     }
 
+    # NOTE: if changing candidates' signatures, ensure Cool candidate has
+    # the same change applied to its candidates for this routine as well
+    proto method split(|) {*}
     multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
 
@@ -1511,6 +1514,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.ReifiedList($result))
     }
 
+    # NOTE: if changing candidates' signatures, ensure Cool candidate has
+    # the same change applied to its candidates for this routine as well
     multi method split(Str:D: Str(Cool) $match;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
@@ -1571,6 +1576,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.ReifiedList($matches))
     }
 
+    # NOTE: if changing candidates' signatures, ensure Cool candidate has
+    # the same change applied to its candidates for this routine as well
     multi method split(Str:D: Str(Cool) $match, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
@@ -1732,6 +1739,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
+    # NOTE: if changing candidates' signatures, ensure Cool candidate has
+    # the same change applied to its candidates for this routine as well
     multi method split(Str:D: @needles, $parts is copy = Inf;;
        :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);

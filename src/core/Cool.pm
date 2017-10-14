@@ -181,8 +181,24 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.rindex(|c)
     }
 
-    method split(Cool: |c) {
-        self.Stringy.split(|c);
+    # NOTE: here we duplicate Str's candidates because currently simply
+    # grabbing a Capture and slipping it in makes things super slow RT#132280
+    proto method split(|) {*}
+    multi method split(Cool:D: Regex:D \pat, \limit is copy = Inf;;
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+        self.Stringy.split: pat, limit, :$v, :$k, :$kv, :$p, :$skip-empty
+    }
+    multi method split(Cool:D: Str(Cool) \match;;
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+        self.Stringy.split: match, :$v, :$k, :$kv, :$p, :$skip-empty
+    }
+    multi method split(Cool:D: Str(Cool) \match, \limit is copy = Inf;;
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+        self.Stringy.split: match, limit, :$v, :$k, :$kv, :$p, :$skip-empty
+    }
+    multi method split(Cool:D: @needles, \parts is copy = Inf;;
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+        self.Stringy.split: @needles, parts, :$v, :$k, :$kv, :$p, :$skip-empty
     }
 
     method match(Cool:D: |c) {

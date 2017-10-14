@@ -128,45 +128,20 @@ my class Cool { # declared in BOOTSTRAP
     }
     method trans(|c) { self.Str.trans(|c) }
 
-    # NOTE: here we duplicate Str's candidates because currently simply
-    # grabbing a Capture and slipping it in makes things super slow RT#132280
-    # TODO Use coercer in 1 candidate when RT#131014
-    proto method starts-with(|) {*}
-    multi method starts-with(Cool:D: Cool:D \needle) {
-        self.Str.starts-with: needle.Str
-    }
-    multi method starts-with(Cool:D: Str:D \needle) {
-        self.Str.starts-with: needle
+    method starts-with(Cool:D: |c) {
+        self.Str.starts-with(|c)
     }
 
-    # NOTE: here we duplicate Str's candidates because currently simply
-    # grabbing a Capture and slipping it in makes things super slow RT#132280
-    # TODO Use coercer in 1 candidate when RT#131014
-    proto method ends-with(|) {*}
-    multi method ends-with(Cool:D: Cool:D \suffix) {
-        self.Str.ends-with: suffix.Str
-    }
-    multi method ends-with(Cool:D: Str:D  \suffix) {
-        self.Str.ends-with: suffix
+    method ends-with(Cool:D: |c) {
+        self.Str.ends-with(|c)
     }
 
     method substr-eq(Cool:D: |c) {
         self.Str.substr-eq(|c)
     }
 
-    # NOTE: here we duplicate Str's candidates because currently simply
-    # grabbing a Capture and slipping it in makes things super slow RT#132280
-    # TODO Use coercer in 1 candidate when RT#131014
-    proto method contains(|) {*}
-    multi method contains(Cool:D: Cool:D \needle) {self.contains: needle.Str}
-    multi method contains(Cool:D: Str:D \needle) {
-        self.Str.contains: needle
-    }
-    multi method contains(Cool:D: Cool:D \needle, Int(Cool:D) \pos) {
-        self.Str.contains: needle.Str, pos
-    }
-    multi method contains(Cool:D: Str:D \needle, Int:D \pos) {
-        self.Str.contains: needle, pos
+    method contains(Cool:D: |c) {
+        self.Str.contains(|c)
     }
 
     method indices(Cool:D: |c) {
@@ -181,24 +156,8 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.rindex(|c)
     }
 
-    # NOTE: here we duplicate Str's candidates because currently simply
-    # grabbing a Capture and slipping it in makes things super slow RT#132280
-    proto method split(|) {*}
-    multi method split(Cool:D: Regex:D \pat, \limit is copy = Inf;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        self.Stringy.split: pat, limit, :$v, :$k, :$kv, :$p, :$skip-empty
-    }
-    multi method split(Cool:D: Str(Cool) \match;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        self.Stringy.split: match, :$v, :$k, :$kv, :$p, :$skip-empty
-    }
-    multi method split(Cool:D: Str(Cool) \match, \limit is copy = Inf;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        self.Stringy.split: match, limit, :$v, :$k, :$kv, :$p, :$skip-empty
-    }
-    multi method split(Cool:D: @needles, \parts is copy = Inf;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
-        self.Stringy.split: @needles, parts, :$v, :$k, :$kv, :$p, :$skip-empty
+    method split(Cool: |c) {
+        self.Stringy.split(|c);
     }
 
     method match(Cool:D: |c) {

@@ -299,4 +299,6 @@ subtest '.new on native types works (deprecated; will die)' => {
     # throws-like { str.new: 'x'   }, Exception, 'str';
 }
 
+#### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE
+
 # vim: ft=perl6 expandtab sw=4

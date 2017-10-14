@@ -513,20 +513,20 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method INTERPOLATE(Regex \var, int $im, int $monkey, int $s, int $a, $context) {
         my $maxmatch;
         my $cur    := self.'!cursor_start_cur'();
-        my str $tgt = $cur.target;
-        my int $eos = nqp::chars($tgt);
 
         my int $maxlen = -1;
         my int $pos    = nqp::getattr_i($cur, $?CLASS, '$!from');
         my Mu $topic := var;
         my $match := self.$topic;
-        my int $len = $match.pos - $match.from;
 
-        if $match
-          && nqp::isgt_i($len,$maxlen)
-          && nqp::isle_i(nqp::add_i($pos,$len),$eos) {
-            $maxlen    = $len;
-            $maxmatch := $match;
+        if $match {
+            my int $len = $match.pos - $match.from;
+
+            if nqp::isgt_i($len,$maxlen)
+               && nqp::isle_i(nqp::add_i($pos,$len),nqp::chars($cur.target)) {
+                $maxlen    = $len;
+                $maxmatch := $match;
+            }
         }
 
         nqp::istype($maxmatch, Match)

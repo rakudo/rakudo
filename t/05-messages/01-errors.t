@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 47;
+plan 48;
 
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
@@ -259,5 +259,44 @@ throws-like ｢Blob[num32].new: 2e0｣,
 # RT#77754
 throws-like ｢callframe.callframe(1).my.perl｣, X::NYI,
     'callframe.my throws sane NYI error message';
+
+
+subtest '.new on native types works (deprecated; will die)' => {
+    plan 9;
+
+    die "Time to remove deprecation and make .new on ints die"
+        if $*PERL.compiler.version after v2017.12.50;
+
+    # TODO XXX: remove deprecation in NativeHOW
+    # (see https://github.com/rakudo/rakudo/commit/9d9c7f9c3b )
+    # and make .new die, then remove
+    # the tests that test the values and uncomment tests that test the
+    # throwage and likely move them to roast
+
+    sub DEPRECATED (|) {};
+    is-deeply int.new(4), 4, 'int';
+    is-deeply int8.new(4), 4, 'int8';
+    is-deeply int16.new(4), 4, 'int16';
+    is-deeply int32.new(4), 4, 'int32';
+    is-deeply int64.new(4), 4, 'int64';
+
+    is-deeply num.new(4e0), 4e0, 'num';
+    is-deeply num32.new(4e0), 4e0, 'num32';
+    is-deeply num64.new(4e0), 4e0, 'num64';
+
+    is-deeply str.new('x'), 'x', 'str';
+
+    # throws-like { int  .new: 4   }, Exception, 'int';
+    # throws-like { int8 .new: 4   }, Exception, 'int8';
+    # throws-like { int16.new: 4   }, Exception, 'int16';
+    # throws-like { int32.new: 4   }, Exception, 'int32';
+    # throws-like { int64.new: 4   }, Exception, 'int64';
+    #
+    # throws-like { num  .new: 4e0 }, Exception, 'num';
+    # throws-like { num32.new: 4e0 }, Exception, 'num32';
+    # throws-like { num64.new: 4e0 }, Exception, 'num64';
+    #
+    # throws-like { str.new: 'x'   }, Exception, 'str';
+}
 
 # vim: ft=perl6 expandtab sw=4

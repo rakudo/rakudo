@@ -54,11 +54,7 @@ public class RakudoContainerSpec extends ContainerSpec {
                     "Cannot assign to a readonly variable or a value");
             }
 
-        if (value.st.WHAT == gcx.Nil) {
-            value = desc.get_attribute_boxed(tc,
-                gcx.ContainerDescriptor, "$!default", RakOps.HINT_CD_DEFAULT);
-        }
-        else {
+        if (value.st.WHAT != gcx.Nil) {
             SixModelObject of = desc.get_attribute_boxed(tc,
                 gcx.ContainerDescriptor, "$!of", RakOps.HINT_CD_OF);
             long ok = Ops.istype(value, of, tc);
@@ -82,6 +78,12 @@ public class RakudoContainerSpec extends ContainerSpec {
         if (whence != null)
             Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
+        if (value.st.WHAT == gcx.Nil) {
+            SixModelObject desc = cont.get_attribute_boxed(tc, gcx.Scalar,
+                "$!descriptor", HINT_descriptor);
+            value = desc.get_attribute_boxed(tc,
+                gcx.ContainerDescriptor, "$!default", RakOps.HINT_CD_DEFAULT);
+        }
         cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", HINT_value, value);
     }
     public void store_i(ThreadContext tc, SixModelObject cont, long value) {

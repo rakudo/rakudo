@@ -154,8 +154,19 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.substr-eq(|c)
     }
 
-    method contains(Cool:D: |c) {
-        self.Str.contains(|c)
+    # NOTE: here we duplicate Str's candidates because currently simply
+    # grabbing a Capture and slipping it in makes things super slow RT#132280
+    # TODO Use coercer in 1 candidate when RT#131014
+    proto method contains(|) {*}
+    multi method contains(Cool:D: Cool:D \needle) {self.contains: needle.Str}
+    multi method contains(Cool:D: Str:D \needle) {
+        self.Str.contains: needle
+    }
+    multi method contains(Cool:D: Cool:D \needle, Int(Cool:D) \pos) {
+        self.Str.contains: needle.Str, pos
+    }
+    multi method contains(Cool:D: Str:D \needle, Int:D \pos) {
+        self.Str.contains: needle, pos
     }
 
     method indices(Cool:D: |c) {

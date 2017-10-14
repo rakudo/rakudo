@@ -173,6 +173,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # TODO Use coercer in 1 candidate when RT131014
+    # NOTE: if changing candidates' signatures, ensure Cool candidate has
+    # the same change applied to its candidates for this routine as well
     proto method contains(|) {*}
     multi method contains(Str:D: Cool:D $needle) {self.contains: $needle.Str}
     multi method contains(Str:D: Str:D $needle) {

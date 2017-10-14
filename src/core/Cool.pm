@@ -128,12 +128,26 @@ my class Cool { # declared in BOOTSTRAP
     }
     method trans(|c) { self.Str.trans(|c) }
 
-    method starts-with(Cool:D: |c) {
-        self.Str.starts-with(|c)
+    # NOTE: here we duplicate Str's candidates because currently simply
+    # grabbing a Capture and slipping it in makes things super slow RT#132280
+    # TODO Use coercer in 1 candidate when RT#131014
+    proto method starts-with(|) {*}
+    multi method starts-with(Cool:D: Cool:D \needle) {
+        self.Str.starts-with: needle.Str
+    }
+    multi method starts-with(Cool:D: Str:D \needle) {
+        self.Str.starts-with: needle
     }
 
-    method ends-with(Cool:D: |c) {
-        self.Str.ends-with(|c)
+    # NOTE: here we duplicate Str's candidates because currently simply
+    # grabbing a Capture and slipping it in makes things super slow RT#132280
+    # TODO Use coercer in 1 candidate when RT#131014
+    proto method ends-with(|) {*}
+    multi method ends-with(Cool:D: Cool:D \suffix) {
+        self.Str.ends-with: suffix.Str
+    }
+    multi method ends-with(Cool:D: Str:D  \suffix) {
+        self.Str.ends-with: suffix
     }
 
     method substr-eq(Cool:D: |c) {

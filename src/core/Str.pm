@@ -134,14 +134,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $chars > 0 ?? nqp::p6box_s(nqp::substr($!value,0,$chars)) !! '';
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
+    # TODO Use coercer in 1 candidate when RT#131014
+    # NOTE: if changing candidates' signatures, ensure Cool candidate has
+    # the same change applied to its candidates for this routine as well
     proto method starts-with(|) {*}
     multi method starts-with(Str:D: Cool:D $needle) {self.starts-with: $needle.Str}
     multi method starts-with(Str:D: Str:D $needle) {
         nqp::p6bool(nqp::eqat(self, $needle, 0))
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
+    # TODO Use coercer in 1 candidate when RT#131014
+    # NOTE: if changing candidates' signatures, ensure Cool candidate has
+    # the same change applied to its candidates for this routine as well
     proto method ends-with(|) {*}
     multi method ends-with(Str:D: Cool:D $suffix) {self.ends-with: $suffix.Str}
     multi method ends-with(Str:D: Str:D $suffix) {
@@ -152,7 +156,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
+    # TODO Use coercer in 1 candidate when RT#131014
     proto method substr-eq(|) {*}
     multi method substr-eq(Str:D: Cool:D $needle) {self.substr-eq: $needle.Str}
     multi method substr-eq(Str:D: Str:D $needle) {

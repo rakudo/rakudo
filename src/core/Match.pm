@@ -761,8 +761,8 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     method clone() {
-	my $new := nqp::clone(self);
-	$new;
+        my $new := nqp::clone(self);
+        $new;
     }
 
     multi method WHICH (Match:D:) {

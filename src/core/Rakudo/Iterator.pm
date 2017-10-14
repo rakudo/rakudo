@@ -2453,11 +2453,17 @@ class Rakudo::Iterator {
                   nqp::elems($!reified)
                 )
             }
-            method skip-at-least(int $toskip) {
-                nqp::islt_i(
-                  ($!i =
-                    nqp::add_i($!i,nqp::if(nqp::isgt_i($toskip,0),$toskip,0))),
-                  nqp::elems($!reified)
+            method skip-at-least(Int:D $toskip) {
+                nqp::unless(
+                  $toskip <= 0,  # must be HLL
+                  nqp::stmts(
+                    ($!i = nqp::if(
+                      $!i + $toskip < nqp::elems($!reified),  # must be HLL
+                      nqp::add_i($!i,$toskip),
+                      nqp::elems($!reified)
+                    )),
+                    nqp::islt_i($!i,nqp::elems($!reified))
+                  )
                 )
             }
             method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
@@ -2513,11 +2519,17 @@ class Rakudo::Iterator {
                   nqp::elems($!reified)
                 )
             }
-            method skip-at-least(int $toskip) {
-                nqp::islt_i(
-                  ($!i =
-                    nqp::add_i($!i,nqp::if(nqp::isgt_i($toskip,0),$toskip,0))),
-                  nqp::elems($!reified)
+            method skip-at-least(Int:D $toskip) {
+                nqp::unless(
+                  $toskip <= 0,  # must be HLL
+                  nqp::stmts(
+                    ($!i = nqp::if(
+                      $!i + $toskip < nqp::elems($!reified),  # must be HLL
+                      nqp::add_i($!i,$toskip),
+                      nqp::elems($!reified)
+                    )),
+                    nqp::islt_i($!i,nqp::elems($!reified))
+                  )
                 )
             }
             method count-only() { nqp::p6box_i(nqp::elems($!reified)) }

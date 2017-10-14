@@ -745,16 +745,16 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     submethod BUILD(
-	:$orig = '',
-	:$from = 0,
-	:to(:$pos),
-	:ast(:$made),
-	:$shared,
-	:$braid,
-	:$list,
-	:$hash)
+        :$orig = '',
+        :$from = 0,
+        :to(:$pos),
+        :ast(:$made),
+        :$shared,
+        :$braid,
+        :$list,
+        :$hash)
     {
-	# :build tells !cursor_init that it's too late to do a CREATE
+        # :build tells !cursor_init that it's too late to do a CREATE
         self.'!cursor_init'($orig, :build, :p($pos), :$shared, :$braid);
         nqp::bindattr_i(self, Match,   '$!from', $from);
         nqp::bindattr(  self, Match,   '$!made', nqp::decont($made)) if $made.defined;

@@ -337,25 +337,27 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
-    $r.^mixin( role { method is-hidden-from-backtrace(--> True) { } } );
+    $r.^mixin( role is-hidden-from-backtrace {
+        method is-hidden-from-backtrace(--> True) { }
+    }) if $hidden-from-backtrace;
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
-    $r.^mixin( role {
+    $r.^mixin( role is-hidden-from-USAGE {
         method is-hidden-from-USAGE(--> True) { }
-    });
+    }) if $hidden-from-USAGE;
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
-    $r.^mixin( role {
+    $r.^mixin( role is-pure {
         method IS_PURE(--> True) { }
-    });
+    }) if $pure;
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$nodal!) {
-    $r.^mixin( role {
+    $r.^mixin( role is-nodal {
         method nodal(--> True) { }
-    });
+    }) if $nodal;
 }
 
 proto sub trait_mod:<returns>(|) { * }

@@ -2465,7 +2465,7 @@ my class X::Numeric::Confused is Exception {
         ~ (
             "\n(If you really wanted to convert {$.num.perl} to a base-$.base"
                 ~ " string, use {$.num.perl}.base($.base) instead.)"
-            if $.num.perl.^can('base')
+            if $.num.^can('base')
         );
     }
 }

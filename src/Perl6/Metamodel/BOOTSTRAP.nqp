@@ -166,6 +166,7 @@ my class Binder {
         }
         my str $s := $arity == 1 ?? "" !! "s";
         my str $routine := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
+        $routine := '<anon>' unless $routine;
 
         if $arity == $count {
             return "$error_prefix positionals passed to '$routine'; expected $arity argument$s but got $num_pos_args";

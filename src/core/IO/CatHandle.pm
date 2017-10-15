@@ -66,14 +66,14 @@ my class IO::CatHandle is IO::Handle {
               nqp::if(
                 nqp::istype(
                   ($_ = .open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                    :bin(nqp::isfalse($!encoding))),
+                    :bin(nqp::p6bool(nqp::isfalse($!encoding)))),
                   Failure),
                 .throw,
                 ($!active-handle = $_))),
             nqp::if(
               nqp::istype(
                 ($_ := .IO.open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                  :bin(nqp::isfalse($!encoding))),
+                  :bin(nqp::p6bool(nqp::isfalse($!encoding)))),
                 Failure),
               .throw,
               ($!active-handle = $_))),

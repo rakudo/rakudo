@@ -344,8 +344,19 @@ multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
 #?if js
-multi sub unival(|)       { die 'unival NYI on js backend' }
-multi sub univals(|)      { die 'univals NYI on js backend' }
+proto sub unival(|) {*}
+multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
+multi sub unival(Int:D $code) {
+    state $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
+    state $deprop = nqp::unipropcode("Numeric_Value_Denominator");
+    my $nu = nqp::getuniprop_str($code, $nuprop);
+    my $de = nqp::getuniprop_str($code, $deprop);
+    !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
+}
+
+proto sub univals(|) {*}
+multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
+
 multi sub uniprop(|)      { die 'uniprop NYI on js backend' }
 multi sub uniprop-int(|)  { die 'uniprop-int NYI on js backend' }
 multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }

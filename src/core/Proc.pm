@@ -146,13 +146,8 @@ my class Proc {
     }
 
     method !await-if-last-handle() {
-        if --$!active-handles {
-            Nil
-        }
-        else {
-            self!wait-for-finish;
-            self
-        }
+        self!wait-for-finish unless --$!active-handles;
+        self
     }
 
     method !wait-for-finish {

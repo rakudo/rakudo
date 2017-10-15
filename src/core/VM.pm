@@ -42,9 +42,9 @@ class VM does Systemic {
         $!name           = 'js';
         $!auth           = "unknown";
         $!version        = Version.new("unknown");
-        $!prefix         = 'todo';
-        $!precomp-ext    = "todo";
-        $!precomp-target = "todo";
+        $!prefix         = 'todo-prefix';
+        $!precomp-ext    = "todo-precomp-exit";
+        $!precomp-target = "todo-precomp-target";
 #?endif
 # add new backends here please
     }
@@ -64,13 +64,9 @@ class VM does Systemic {
         my $dll = self.config<dll>;
         my $platform-name = sprintf($dll, $basename);
 #?endif
-#?if jvm
+#?if !moar
         my $prefix = $is-win ?? '' !! 'lib';
         my $platform-name = "$prefix$basename" ~ ".{self.config<nativecall.so>}";
-#?endif
-#?if js
-        my $prefix = 'todo';
-        my $platform-name = 'todo';
 #?endif
 
         $platform-name ~= '.' ~ $version

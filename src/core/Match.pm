@@ -410,7 +410,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             !! $cur
     }
 
-    multi method INTERPOLATE(Associative \var, int $im, int $monkey, int $s, int $a, $context) {
+    multi method INTERPOLATE(Associative:D \var, int $im, int $monkey, int $s, int $a, $context) {
         my $cur    := self.'!cursor_start_cur'();
         if $a {
             return $cur.'!cursor_start_cur'()
@@ -510,7 +510,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             !! $cur
     }
 
-    multi method INTERPOLATE(Regex \var, int $im, int $monkey, int $s, int $a, $context) {
+    multi method INTERPOLATE(Regex:D \var, $, $, $, $, $) {
         my $maxmatch;
         my $cur    := self.'!cursor_start_cur'();
 

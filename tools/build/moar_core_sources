@@ -60,6 +60,7 @@ src/core/Sequence.pm
 src/core/Seq.pm
 src/core/Rakudo/Internals/HyperWorkBatch.pm
 src/core/Rakudo/Internals/HyperWorkStage.pm
+src/core/Rakudo/Internals/HyperPipeline.pm
 src/core/Rakudo/Internals/HyperIteratorBatcher.pm
 src/core/Rakudo/Internals/HyperToIterator.pm
 src/core/Rakudo/Internals/RaceToIterator.pm

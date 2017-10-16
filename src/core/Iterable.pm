@@ -119,34 +119,12 @@ my role Iterable {
 
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
         self!valid-hyper-race('hyper',$batch,$degree);
-        self!go-hyper(HyperConfiguration.new(:!race, :$batch, :$degree))
+        die "NYI"
     }
 
     method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
         self!valid-hyper-race('race',$batch,$degree);
-        self!go-hyper(HyperConfiguration.new(:race, :$batch, :$degree))
-    }
-
-    method !go-hyper($configuration) {
-        HyperSeq.new(class :: does HyperIterator {
-            has $!source;
-            has $!configuration;
-
-            method new(\iter, $configuration) {
-                my \hyper-iter = nqp::create(self);
-                nqp::bindattr(hyper-iter, self, '$!source', iter);
-                nqp::bindattr(hyper-iter, self, '$!configuration', $configuration);
-                hyper-iter
-            }
-
-            method fill-buffer(HyperWorkBuffer:D $work, int $items) {
-                $!source.push-exactly($work.input, $items)
-            }
-
-            method process-buffer(HyperWorkBuffer:D $work --> Nil) { }
-
-            method configuration() { $!configuration }
-        }.new(self.iterator, $configuration));
+        die "NYI"
     }
 
     sub MIXIFY(\iterable, \type) {

@@ -18,44 +18,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, $label);
     }
 
-    multi method map(HyperIterable:D: &block;; :$label) {
-        # For now we only know how to parallelize when we've only one input
-        # value needed per block. For the rest, fall back to sequential.
-        if &block.count != 1 {
-            sequential-map(self.iterator, &block, $label)
-        }
-        else {
-            HyperSeq.new(class :: does HyperIterator {
-                has $!source;
-                has &!block;
-
-                method new(\source, &block) {
-                    my \iter = nqp::create(self);
-                    nqp::bindattr(iter, self, '$!source', source);
-                    nqp::bindattr(iter, self, '&!block', &block);
-                    iter
-                }
-
-                method fill-buffer(HyperWorkBuffer:D $work, int $items) {
-                    $!source.fill-buffer($work, $items);
-                }
-
-                method process-buffer(HyperWorkBuffer:D $work) {
-                    unless $!source.process-buffer($work) =:= Nil {
-                        $work.swap();
-                    }
-                    my \buffer-mapper = sequential-map($work.input-iterator, &!block, $label);
-                    buffer-mapper.iterator.push-all($work.output);
-                    $work
-                }
-
-                method configuration() {
-                    $!source.configuration
-                }
-            }.new(self.hyper-iterator, &block))
-        }
-    }
-
     my class IterateOneWithPhasers does SlippyIterator {
         has &!block;
         has $!source;

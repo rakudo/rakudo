@@ -16,6 +16,7 @@ src/core/Rakudo/Internals.pm
 src/core/Rakudo/Iterator.pm
 src/core/Rakudo/QuantHash.pm
 src/core/Rakudo/Sorting.pm
+src/core/HyperConfiguration.pm
 src/core/Iterable.pm
 src/core/Any-iterable-methods.pm
 src/core/SLICE.pm
@@ -53,7 +54,6 @@ src/core/Encoding/Registry.pm
 src/core/Str.pm
 src/core/Capture.pm
 src/core/IterationBuffer.pm
-src/core/HyperConfiguration.pm
 src/core/Sequence.pm
 src/core/Seq.pm
 src/core/Rakudo/Internals/HyperWorkBatch.pm
@@ -62,7 +62,9 @@ src/core/Rakudo/Internals/HyperPipeline.pm
 src/core/Rakudo/Internals/HyperIteratorBatcher.pm
 src/core/Rakudo/Internals/HyperToIterator.pm
 src/core/Rakudo/Internals/RaceToIterator.pm
+src/core/Rakudo/Internals/HyperRaceSharedImpl.pm
 src/core/HyperSeq.pm
+src/core/RaceSeq.pm
 src/core/Nil.pm
 src/core/Range.pm
 src/core/List.pm

@@ -418,11 +418,12 @@ for $*IN.lines -> $line {
                 method push-all($target --> IterationEnd) {
                     nqp::stmts(
                       (my int $elems = nqp::elems($!list)),
-                      (my int $i = -1),
+                      (my int $pos = $!pos),
                       nqp::while(
-                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
-                        $target.push(nqp::atpos_#postfix#($!list,$!pos))
-                      )
+                        nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                        $target.push(nqp::atpos_#postfix#($!list,$pos))
+                      ),
+                      ($!pos = $pos)
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!list)) }

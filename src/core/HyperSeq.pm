@@ -25,6 +25,10 @@ my class HyperSeq does Iterable does Sequence {
 
     method hyper(HyperSeq:D:) { self }
 
+    method race(HyperSeq:D:) {
+        RaceSeq.new(:$!configuration, :$!work-stage-head)
+    }
+
     method sink(--> Nil) {
         Rakudo::Internals::HyperRaceSharedImpl.sink(self, $!work-stage-head)
     }

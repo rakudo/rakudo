@@ -19,6 +19,10 @@ my class RaceSeq does Iterable does Sequence {
             self, $!work-stage-head, $matcher, %options
     }
 
+    method hyper(RaceSeq:D:) {
+        HyperSeq.new(:$!configuration, :$!work-stage-head)
+    }
+
     method map(RaceSeq:D: $matcher, *%options) {
         Rakudo::Internals::HyperRaceSharedImpl.map:
             self, $!work-stage-head, $matcher, %options

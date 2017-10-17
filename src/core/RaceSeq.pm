@@ -1,7 +1,7 @@
 # A RaceSeq performs batches of work in parallel, and will deliver the results
 # in the order they are produced (so potentially disordering them relative to
 # the input).
-my class RaceSeq does Iterable {
+my class RaceSeq does Iterable does Sequence {
     has HyperConfiguration $.configuration;
     has Rakudo::Internals::HyperWorkStage $!work-stage-head;
 

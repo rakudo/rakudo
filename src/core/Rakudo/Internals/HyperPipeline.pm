@@ -54,7 +54,6 @@ my class Rakudo::Internals::HyperPipeline {
                 last if $batch.last;
                 CATCH {
                     default {
-                        .note;
                         $dest-channel.fail($_);
                     }
                 }
@@ -79,7 +78,6 @@ my class Rakudo::Internals::HyperPipeline {
                         $dest-channel.close;
                     }
                     default {
-                        .note;
                         $dest-channel.fail($_);
                     }
                 }

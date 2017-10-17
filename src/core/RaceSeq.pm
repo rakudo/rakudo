@@ -23,6 +23,8 @@ my class RaceSeq does Iterable does Sequence {
         HyperSeq.new(:$!configuration, :$!work-stage-head)
     }
 
+    method is-lazy() { False }
+
     method map(RaceSeq:D: $matcher, *%options) {
         Rakudo::Internals::HyperRaceSharedImpl.map:
             self, $!work-stage-head, $matcher, %options

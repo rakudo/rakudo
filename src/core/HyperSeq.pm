@@ -25,6 +25,8 @@ my class HyperSeq does Iterable does Sequence {
 
     method hyper(HyperSeq:D:) { self }
 
+    method is-lazy() { False }
+
     method race(HyperSeq:D:) {
         RaceSeq.new(:$!configuration, :$!work-stage-head)
     }

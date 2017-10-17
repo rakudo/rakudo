@@ -58,7 +58,7 @@ my class Channel does Awaitable {
         elsif nqp::istype(msg, CHANNEL_FAIL) {
             nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.break(msg.error);
-            die msg.error;
+            msg.error.rethrow;
         }
         else {
             msg

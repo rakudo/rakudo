@@ -65,6 +65,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
         has int $!batches-seen = 0;
         method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
             $!batches-seen++;
+            self.batch-used();
             if $batch.last {
                 $!last-target = $batch.sequence-number;
             }
@@ -79,7 +80,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
     }
     method sink(\hyper, $source --> Nil) {
         if hyper.DEFINITE {
-            my $sink = Sink.new($source);
+            my $sink = Sink.new(:$source);
             Rakudo::Internals::HyperPipeline.start($sink, hyper.configuration);
             $*AWAITER.await($sink.complete);
             CATCH {

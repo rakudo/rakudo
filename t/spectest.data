@@ -544,6 +544,7 @@ S07-slip/slip.t
 S07-iterators/range-iterator.t
 S07-hyperrace/hyper.t
 S07-hyperrace/race.t
+S07-hyperrace/stress.t # stress
 S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
 S09-autovivification/autovivification.t

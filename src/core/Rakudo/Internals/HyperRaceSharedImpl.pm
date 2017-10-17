@@ -58,6 +58,33 @@ class Rakudo::Internals::HyperRaceSharedImpl {
         }
     }
 
+    my class Sink does Rakudo::Internals::HyperJoiner {
+        has Promise $.complete .= new;
+
+        has int $!last-target = -1;
+        has int $!batches-seen = 0;
+        method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
+            $!batches-seen++;
+            if $batch.last {
+                $!last-target = $batch.sequence-number;
+            }
+            if $!last-target >= 0 && $!batches-seen == $!last-target + 1 {
+                $!complete.keep(True);
+            }
+        }
+
+        method consume-error(Exception $e --> Nil) {
+            $!complete.break($e);
+        }
+    }
+    method sink(\hyper, $source --> Nil) {
+        if hyper.DEFINITE {
+            my $sink = Sink.new($source);
+            Rakudo::Internals::HyperPipeline.start($sink, hyper.configuration);
+            $*AWAITER.await($sink.complete);
+        }
+    }
+
     proto method rehyper($, $) {*}
     multi method rehyper(HyperSeq \hyper, \seq) {
         my \conf = hyper.configuration;

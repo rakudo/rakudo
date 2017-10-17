@@ -24,6 +24,10 @@ my class HyperSeq does Iterable does Sequence {
     }
 
     method hyper(HyperSeq:D:) { self }
+
+    method sink(--> Nil) {
+        Rakudo::Internals::HyperRaceSharedImpl.sink(self, $!work-stage-head)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

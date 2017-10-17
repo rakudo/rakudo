@@ -25,6 +25,10 @@ my class RaceSeq does Iterable {
     }
 
     method race(RaceSeq:D:) { self }
+
+    method sink(--> Nil) {
+        Rakudo::Internals::HyperRaceSharedImpl.sink(self, $!work-stage-head)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

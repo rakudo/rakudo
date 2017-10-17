@@ -124,17 +124,10 @@ multi sub infix:<(&)>(Map:D $a, Map:D $b) {
     )
 }
 
-multi sub infix:<(&)>(Any:D $a, Any:D $b) {
-    nqp::if(
-      nqp::istype((my $aset := $a.Set),Set),
-      nqp::if(
-        nqp::istype((my $bset := $b.Set),Set),
-        infix:<(&)>($aset, $bset),
-        $bset.throw
-      ),
-      $aset.throw
-    )
-}
+multi sub infix:<(&)>(Any $, Failure:D $b) { $b.throw }
+multi sub infix:<(&)>(Failure:D $a, Any $) { $a.throw }
+multi sub infix:<(&)>(Any $a, Any $b) { infix:<(&)>($a.Set,$b.Set) }
+
 multi sub infix:<(&)>(**@p) {
     my $result = @p.shift;
     $result = $result (&) @p.shift while @p;

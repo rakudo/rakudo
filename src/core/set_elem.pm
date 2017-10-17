@@ -64,9 +64,10 @@ multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
       (my $elems := $b.RAW-HASH) && nqp::existskey($elems,$a.WHICH)
     )
 }
-multi sub infix:<(elem)>(Any $a, Any $b --> Bool:D) {
-    $a (elem) $b.Set(:view);
-}
+
+multi sub infix:<(elem)>(Any $, Failure:D $b) { $b.throw }
+multi sub infix:<(elem)>(Failure:D $a, Any $) { $a.throw }
+multi sub infix:<(elem)>(Any $a, Any $b) { infix:<(elem)>($a,$b.Set) }
 
 # U+2208 ELEMENT OF
 my constant &infix:<∈> := &infix:<(elem)>;

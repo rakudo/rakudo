@@ -86,12 +86,15 @@ multi sub infix:<(-)>(Baggy:D $a, Map:D $b) {
 multi sub infix:<(-)>(Baggy:D $a, Any:D $b) {    # also Iterable
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Set)
 }
-multi sub infix:<(-)>(Any:D $a, Baggy:D $b) {
+multi sub infix:<(-)>(Any $a, Baggy:D $b) {
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)
 }
-multi sub infix:<(-)>(Any:D $a, Map:D $b)      { infix:<(-)>($a.Set, $b) }
-multi sub infix:<(-)>(Any:D $a, Iterable:D $b) { infix:<(-)>($a.Set, $b) }
-multi sub infix:<(-)>(Any:D $a, Any:D $b)      { infix:<(-)>($a.Set, $b.Set) }
+multi sub infix:<(-)>(Any $a, Map:D $b)      { infix:<(-)>($a.Set, $b) }
+multi sub infix:<(-)>(Any $a, Iterable:D $b) { infix:<(-)>($a.Set, $b) }
+
+multi sub infix:<(-)>(Any $, Failure:D $b) { $b.throw }
+multi sub infix:<(-)>(Failure:D $a, Any $) { $a.throw }
+multi sub infix:<(-)>(Any $a, Any $b) { infix:<(-)>($a.Set,$b.Set) }
 
 multi sub infix:<(-)>(**@p) {
 

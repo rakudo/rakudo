@@ -133,10 +133,12 @@ multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
 multi sub infix:<<(<=)>>(Any $a, Mixy:D  $b --> Bool:D) { $a.Mix (<=) $b     }
 multi sub infix:<<(<=)>>(Any $a, Baggy:D $b --> Bool:D) { $a.Bag (<=) $b     }
 multi sub infix:<<(<=)>>(Any $a, Setty:D $b --> Bool:D) { $a.Set (<=) $b     }
-multi sub infix:<<(<=)>>(Any $a, Any     $b --> Bool:D) { $a.Set (<=) $b.Set }
 
-multi sub infix:<<(<=)>>(Failure $a, Any     $b) { $a.throw }
-multi sub infix:<<(<=)>>(Any     $a, Failure $b) { $b.throw }
+multi sub infix:<<(<=)>>(Failure:D $a, Any $b) { $a.throw }
+multi sub infix:<<(<=)>>(Any $a, Failure:D $b) { $b.throw }
+multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool:D) {
+    infix:<<(<=)>>($a.Set, $b.Set)
+}
 
 # U+2286 SUBSET OF OR EQUAL TO
 my constant &infix:<⊆> := &infix:<<(<=)>>;

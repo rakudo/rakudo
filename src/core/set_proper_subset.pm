@@ -104,16 +104,12 @@ multi sub infix:<<(<)>>(Baggy:D $a, Any $b --> Bool:D) { $a (<) $b.Bag }
 
 multi sub infix:<<(<)>>(Any $a, Mixy:D  $b --> Bool:D) { $a.Mix (<) $b     }
 multi sub infix:<<(<)>>(Any $a, Baggy:D $b --> Bool:D) { $a.Bag (<) $b     }
-multi sub infix:<<(<)>>(Any $a, Any     $b --> Bool:D) {
-    nqp::if(
-      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
-      False,                    # X is never a true subset of itself
-      $a.Set (<) $b.Set
-    )
-}
 
-multi sub infix:<<(<)>>(Failure $a, Any     $b) { $a.throw }
-multi sub infix:<<(<)>>(Any     $a, Failure $b) { $b.throw }
+multi sub infix:<<(<)>>(Failure:D $a, Any $b) { $a.throw }
+multi sub infix:<<(<)>>(Any $a, Failure:D $b) { $b.throw }
+multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
+    infix:<<(<)>>($a.Set, $b.Set)
+}
 
 # U+2282 SUBSET OF
 my constant &infix:<⊂> := &infix:<<(<)>>;

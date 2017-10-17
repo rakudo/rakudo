@@ -32,9 +32,9 @@ multi sub infix:<(.)>(Mixy:D $a, Mixy:D $b) {
 }
 
 multi sub infix:<(.)>(Mixy:D $a, Baggy:D $b) { infix:<(.)>($a, $b.Mix) }
-multi sub infix:<(.)>(Mixy:D $a, Any:D $b)   { infix:<(.)>($a, $b.Mix) }
+multi sub infix:<(.)>(Mixy:D $a, Any $b)     { infix:<(.)>($a, $b.Mix) }
 multi sub infix:<(.)>(Baggy:D $a, Mixy:D $b) { infix:<(.)>($a.Mix, $b) }
-multi sub infix:<(.)>(Any:D $a, Mixy:D $b) { infix:<(.)>($a.Mix, $b) }
+multi sub infix:<(.)>(Any $a, Mixy:D $b)     { infix:<(.)>($a.Mix, $b) }
 multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
       (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW($a.RAW-HASH))
@@ -45,7 +45,10 @@ multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
       bag()
     )
 }
-multi sub infix:<(.)>(Any:D $a, Any:D $b) { $a.Bag (.) $b.Bag }
+
+multi sub infix:<(.)>(Any $, Failure:D $b) { $b.throw }
+multi sub infix:<(.)>(Failure:D $a, Any $) { $a.throw }
+multi sub infix:<(.)>(Any $a, Any $b) { infix:<(.)>($a.Bag,$b.Bag) }
 
 multi sub infix:<(.)>(**@p) {
     my $result = @p.shift;

@@ -1,3 +1,14 @@
+my class Backtrace { ... }
+my role X::HyperRace::Died {
+    has $.start-backtrace;
+    multi method gist(::?CLASS:D:) {
+        "A worker in a parallel iteration (hyper or race) initiated here:\n" ~
+            ((try $!start-backtrace ~ "\n") // '<unknown location>') ~
+            "Died at:\n" ~
+            callsame().indent(4)
+    }
+}
+
 my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner does Iterator {
     has Channel $.batches .= new;
 
@@ -46,7 +57,11 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
                 when X::Channel::ReceiveOnClosed {
                     return IterationEnd;
                 }
-                # Throw other errors onwards
+                default {
+                    unless nqp::istype($_, X::HyperRace::Died) {
+                        ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                    }
+                }
             }
         }
         nqp::shift(nqp::decont($!current-items))

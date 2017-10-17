@@ -82,6 +82,11 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             my $sink = Sink.new($source);
             Rakudo::Internals::HyperPipeline.start($sink, hyper.configuration);
             $*AWAITER.await($sink.complete);
+            CATCH {
+                unless nqp::istype($_, X::HyperRace::Died) {
+                    ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                }
+            }
         }
     }
 

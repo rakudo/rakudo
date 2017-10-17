@@ -29,7 +29,11 @@ my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner d
                 when X::Channel::ReceiveOnClosed {
                     return IterationEnd;
                 }
-                # Throw other errors onwards
+                default {
+                    unless nqp::istype($_, X::HyperRace::Died) {
+                        ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                    }
+                }
             }
         }
         nqp::shift(nqp::decont($!current-items))

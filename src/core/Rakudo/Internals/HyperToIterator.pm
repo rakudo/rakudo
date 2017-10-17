@@ -32,7 +32,6 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
     }
 
     method consume-error(Exception $e --> Nil) {
-        note $e;
         $!batches.fail($e);
     }
 

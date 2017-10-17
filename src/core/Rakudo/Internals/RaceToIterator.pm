@@ -15,7 +15,6 @@ my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner d
     }
 
     method consume-error(Exception $e --> Nil) {
-        note $e;
         $!batches.fail($e);
     }
 

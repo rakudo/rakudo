@@ -590,7 +590,19 @@ my class ThreadPoolScheduler does Scheduler {
           if $at.defined and $in.defined;
         die "Cannot specify :every, :times and :stop at the same time"
           if $every.defined and $times > 1 and &stop;
-        my $delay = $at ?? $at - now !! $in // 0;
+
+        # For $in/$at times, if the resultant delay is less than 0.001 (inlcuding
+        # negatives) equate those to zero. For $every intervals, we convert
+        # such values to minimum resolution of 0.001 and warn about that
+        sub to-millis(Numeric() $value, $allow-zero = False) {
+            my $proposed := (1000 * $value).Int;
+            $proposed > 0 ?? $proposed
+                !! $allow-zero ?? 0
+                    !! do {warn "Minimum timer resolution is 1ms; using that "
+                            ~ "instead of {1000 * $value}ms";
+                        1}
+        }
+        my $delay = to-millis ($at ?? $at - now !! $in // 0), True;
 
         # Wrap any catch handler around the code to run.
         my &run := &catch ?? wrap-catch(&code, &catch) !! &code;
@@ -613,7 +625,7 @@ my class ThreadPoolScheduler does Scheduler {
                 }
                 $handle := nqp::timer(self!timer-queue(),
                     { stop() ?? cancellation().cancel !! run() },
-                    to-millis($delay), to-millis($every),
+                    $delay, to-millis($every),
                     TimerCancellation);
                 cancellation()
             }
@@ -621,7 +633,7 @@ my class ThreadPoolScheduler does Scheduler {
             # no stopper
             else {
                 my $handle := nqp::timer(self!timer-queue(), &run,
-                    to-millis($delay), to-millis($every),
+                    $delay, to-millis($every),
                     TimerCancellation);
                 Cancellation.new(async_handles => [$handle])
             }
@@ -630,7 +642,6 @@ my class ThreadPoolScheduler does Scheduler {
         # only after waiting a bit or more than once
         elsif $delay or $times > 1 {
             my @async_handles;
-            $delay = to-millis($delay) if $delay;
             @async_handles.push(
               nqp::timer(self!timer-queue(), &run, $delay, 0, TimerCancellation)
             ) for 1 .. $times;
@@ -646,21 +657,6 @@ my class ThreadPoolScheduler does Scheduler {
 
     sub wrap-catch(&code, &catch) {
         -> { code(); CATCH { default { catch($_) } } }
-    }
-
-    multi to-millis(Int $value) {
-        1000 * $value
-    }
-    multi to-millis(Numeric $value) {
-        my $proposed = (1000 * $value).Int;
-        if $value && $proposed == 0 {
-            warn "Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms";
-            $proposed = 1;
-        }
-        $proposed
-    }
-    multi to-millis($value) {
-        to-millis(+$value)
     }
 
     method loads() {

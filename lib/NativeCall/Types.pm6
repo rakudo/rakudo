@@ -56,7 +56,7 @@ our class Pointer                               is repr('CPointer') {
     my role TypedPointer[::TValue] {
         method of() { TValue }
         method deref(::?CLASS:D \ptr:) { self ?? nativecast(TValue, ptr) !! fail("Can't dereference a Null Pointer"); }
-        method add(UInt $off) returns Pointer {
+        method add(Int $off) returns Pointer {
             die "Can't do arithmetic with a void pointer"
                 if TValue.isa(void);
             nqp::box_i(self.Int + nqp::nativecallsizeof(TValue) * $off, self.WHAT);

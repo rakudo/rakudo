@@ -5,8 +5,11 @@
 # Additionally, as .lazy and .eager are about iterator behavior, they are
 # provided by this role. Overriding those is not likely to be needed, and
 # discouraged to maintain predictable semantics. Finally, both .hyper() and
-# .race() are implemented here, and return a HyperSeq wrapping the iterator.
+# .race() are methods to enter the hyper and race paradigm and implemented
+# here, so they can use any Iterable as a source.
 my class HyperSeq { ... }
+my class RaceSeq { ... }
+my role Rakudo::Internals::HyperIteratorBatcher { ... }
 my class X::Invalid::Value { ... }
 my role Iterable {
     method iterator() { ... }
@@ -118,35 +121,21 @@ my role Iterable {
     }
 
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
-        self!valid-hyper-race('hyper',$batch,$degree);
-        self!go-hyper(HyperConfiguration.new(:!race, :$batch, :$degree))
+        self!valid-hyper-race('hyper', $batch, $degree);
+        HyperSeq.new:
+            configuration => HyperConfiguration.new(:$degree, :$batch),
+            work-stage-head => Rakudo::Internals::HyperIteratorBatcher.new(
+                iterator => self.iterator
+            )
     }
 
     method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
-        self!valid-hyper-race('race',$batch,$degree);
-        self!go-hyper(HyperConfiguration.new(:race, :$batch, :$degree))
-    }
-
-    method !go-hyper($configuration) {
-        HyperSeq.new(class :: does HyperIterator {
-            has $!source;
-            has $!configuration;
-
-            method new(\iter, $configuration) {
-                my \hyper-iter = nqp::create(self);
-                nqp::bindattr(hyper-iter, self, '$!source', iter);
-                nqp::bindattr(hyper-iter, self, '$!configuration', $configuration);
-                hyper-iter
-            }
-
-            method fill-buffer(HyperWorkBuffer:D $work, int $items) {
-                $!source.push-exactly($work.input, $items)
-            }
-
-            method process-buffer(HyperWorkBuffer:D $work --> Nil) { }
-
-            method configuration() { $!configuration }
-        }.new(self.iterator, $configuration));
+        self!valid-hyper-race('race', $batch, $degree);
+        RaceSeq.new:
+            configuration => HyperConfiguration.new(:$degree, :$batch),
+            work-stage-head => Rakudo::Internals::HyperIteratorBatcher.new(
+                iterator => self.iterator
+            )
     }
 
     sub MIXIFY(\iterable, \type) {

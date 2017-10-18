@@ -8,9 +8,11 @@ my class X::AdHoc  { ... }
 my class FatRat    { ... }
 my class Pair      { ... }
 my class Promise   { ... }
+my class Channel   { ... }
 my class X::OutOfRange { ... }
 my class X::Dynamic::NotFound { ... }
 my class X::SecurityPolicy::Eval { ... }
+my class X::Channel::ReceiveOnClosed { ... }
 
 my role QuantHash { ... }
 my role Setty { ... }

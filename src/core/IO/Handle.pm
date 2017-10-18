@@ -10,6 +10,7 @@ my class IO::Handle {
     has Str $.encoding;
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;
+    has int $!out-buffer;
 
     submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
         nqp::if(
@@ -67,8 +68,16 @@ my class IO::Handle {
       :$chomp = $!chomp,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
-      :$buffer
+      :$buffer,
+      :$out-buffer is copy,
     ) {
+        nqp::if(
+            $buffer.DEFINITE,
+            nqp::stmts(
+              ($out-buffer = $buffer),
+              DEPRECATED ':out-buffer argument to control handle buffering',
+                '2017.09.455.g.2.fba.0.ba.0.d', '2018.01'));
+
         nqp::if(
           $bin,
           nqp::stmts(
@@ -167,7 +176,7 @@ my class IO::Handle {
                 $!encoder := $encoding.encoder(:translate-nl);
                 $!encoding = $encoding.name;
             }
-            self!set-buffer-size($buffer);
+            self!set-out-buffer-size($out-buffer);
             return self;
         }
 
@@ -214,16 +223,23 @@ my class IO::Handle {
             $!encoder := $encoding.encoder(:translate-nl);
             $!encoding = $encoding.name;
         }
-        self!set-buffer-size($buffer);
+        self!set-out-buffer-size($out-buffer);
         self;
     }
 
-    method !set-buffer-size($buffer is copy) {
+    method out-buffer is rw {
+        Proxy.new: :FETCH{ $!out-buffer }, STORE => -> $, \buffer {
+            self!set-out-buffer-size: buffer;
+        }
+    }
+
+    method !set-out-buffer-size($buffer is copy) {
         $buffer //= !nqp::isttyfh($!PIO);
-        my int $buffer-size = nqp::istype($buffer, Bool)
+        $!out-buffer = nqp::istype($buffer, Bool)
             ?? ($buffer ?? 8192 !! 0)
             !! $buffer.Int;
-        nqp::setbuffersizefh($!PIO, $buffer-size);
+        nqp::setbuffersizefh($!PIO, $!out-buffer);
+        $!out-buffer
     }
 
     method nl-in is rw {

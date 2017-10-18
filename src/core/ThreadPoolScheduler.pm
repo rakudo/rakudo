@@ -591,7 +591,7 @@ my class ThreadPoolScheduler does Scheduler {
         die "Cannot specify :every, :times and :stop at the same time"
           if $every.defined and $times > 1 and &stop;
 
-        # For $in/$at times, if the resultant delay is less than 0.001 (inlcuding
+        # For $in/$at times, if the resultant delay is less than 0.001 (including
         # negatives) equate those to zero. For $every intervals, we convert
         # such values to minimum resolution of 0.001 and warn about that
         sub to-millis(Numeric() $value, $allow-zero = False) {

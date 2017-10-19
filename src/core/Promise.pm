@@ -98,7 +98,7 @@ my class Promise does Awaitable {
     proto method broken(|) { * }
     multi method broken(Promise:U:) {
         my \rv := self.new;
-        rv!break(False);
+        rv!break("Died");
         rv;
     }
     multi method broken(Promise:U: Mu \exception) {
@@ -109,7 +109,7 @@ my class Promise does Awaitable {
 
     proto method break(|) { * }
     multi method break(Promise:D:) {
-        self.vow.break(False)
+        self.vow.break("Died")
     }
     multi method break(Promise:D: \result) {
         self.vow.break(result)

@@ -174,7 +174,7 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     my constant NL-OUT   = "\n";
     my constant ENCODING = "utf8";
 
-    my sub setup-handle(str $what) {    
+    my sub setup-handle(str $what) {
         my $handle := nqp::p6bindattrinvres(
           nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
             nqp::create(IO::Special),IO::Special,'$!what',$what

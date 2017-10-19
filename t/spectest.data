@@ -1006,6 +1006,7 @@ S32-io/chdir-process.t    # moar
 S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
+S32-io/in-buffering.t
 S32-io/indir.t
 S32-io/io-cathandle.t
 S32-io/io-handle.t
@@ -1031,6 +1032,7 @@ S32-io/note.t
 S32-io/null-char.t
 S32-io/open.t
 S32-io/other.t
+S32-io/out-buffering.t
 S32-io/pipe.t
 S32-io/rename.t
 S32-io/seek.t

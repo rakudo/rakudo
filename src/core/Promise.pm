@@ -26,7 +26,7 @@ my role X::Promise::Broken {
 }
 my class Promise does Awaitable {
     has $.scheduler;
-    has $.status;
+    has $.status is default(Planned);
     has $!result is default(Nil);
     has int $!vow_taken;
     has $!lock;
@@ -35,9 +35,8 @@ my class Promise does Awaitable {
     has Mu $!dynamic_context;
 
     submethod BUILD(:$!scheduler = $*SCHEDULER --> Nil) {
-        $!lock            := nqp::create(Lock);
-        $!cond            := $!lock.condition();
-        $!status           = Planned;
+        $!lock := nqp::create(Lock);
+        $!cond := $!lock.condition();
     }
 
     # A Vow is used to enable the right to keep/break a promise

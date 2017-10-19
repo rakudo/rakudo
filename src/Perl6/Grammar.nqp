@@ -1741,10 +1741,28 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<POST>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<CLOSE> { <sym><.kok> <blorst> }
 
-    token statement_prefix:sym<race>    { <sym><.kok> <blorst> }
-    token statement_prefix:sym<hyper>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<race> {
+        <sym><.kok>
+        [
+        | <?before 'for' <.kok>> <for=.statement_control>
+        | <blorst>
+        ]
+    }
+    token statement_prefix:sym<hyper> {
+        <sym><.kok>
+        [
+        | <?before 'for' <.kok>> <for=.statement_control>
+        | <blorst>
+        ]
+    }
+    token statement_prefix:sym<lazy> {
+        <sym><.kok>
+        [
+        | <?before 'for' <.kok>> <for=.statement_control>
+        | <blorst>
+        ]
+    }
     token statement_prefix:sym<eager>   { <sym><.kok> <blorst> }
-    token statement_prefix:sym<lazy>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<sink>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<try>     {
         :my $*FATAL := 1;

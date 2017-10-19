@@ -32,6 +32,8 @@ my class RaceSeq does Iterable does Sequence {
 
     method race(RaceSeq:D:) { self }
 
+    multi method serial(HyperSeq:D:) { self.Seq }
+
     method sink(--> Nil) {
         Rakudo::Internals::HyperRaceSharedImpl.sink(self, $!work-stage-head)
     }

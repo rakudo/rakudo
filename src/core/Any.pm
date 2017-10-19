@@ -59,6 +59,9 @@ my class Any { # declared in BOOTSTRAP
     proto method eager(|) is nodal { * }
     multi method eager() { self.list.eager }
 
+    proto method serial(|) is nodal { * }
+    multi method serial() { self }
+
     # derived from .list
     proto method List(|) is nodal { * }
     multi method List() { self.list }

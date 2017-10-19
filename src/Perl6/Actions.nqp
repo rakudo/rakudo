@@ -483,20 +483,42 @@ register_op_desugar('p6fatalize', -> $qast {
         ))
 });
 register_op_desugar('p6for', -> $qast {
+    # Figure out the execution mode.
+    my $mode := $qast.ann('mode') || 'serial';
+    my $after-mode;
+    if $mode eq 'lazy' {
+        $after-mode := 'lazy';
+        $mode := 'serial';
+    }
+    else {
+        $after-mode := $qast.sunk ?? 'sink' !! 'eager';
+    }
+
     my $cond := $qast[0];
     my $block := $qast[1];
     my $label := $qast[2];
     my $for-list-name := QAST::Node.unique('for-list');
-    my $iscont := QAST::Op.new(:op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ));
-    $iscont.named('item');
     my $call := QAST::Op.new(
-        :op<callmethod>, :name<map>, :node($qast),
-        QAST::Var.new( :name($for-list-name), :scope('local') ),
-        $block,
-        $iscont,
+        :op('if'),
+        QAST::Op.new( :op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ) ),
+        QAST::Op.new(
+            :op<callmethod>, :name<map>, :node($qast),
+            QAST::Var.new( :name($for-list-name), :scope('local') ),
+            $block,
+            QAST::IVal.new( :value(1), :named('item') )
+        ),
+        QAST::Op.new(
+            :op<callmethod>, :name<map>, :node($qast),
+            QAST::Op.new(
+                :op<callmethod>, :name($mode), :node($qast),
+                QAST::Var.new( :name($for-list-name), :scope('local') )
+            ),
+            $block
+        )
     );
     if $label {
-        $call.push($label);
+        $call[1].push($label);
+        $call[2].push($label);
     }
     my $bind := QAST::Op.new(
         :op('bind'),
@@ -505,7 +527,7 @@ register_op_desugar('p6for', -> $qast {
     );
     QAST::Stmts.new(
         $bind,
-        QAST::Op.new( :op<callmethod>, :name($qast.sunk ?? 'sink' !! 'eager'), $call )
+        QAST::Op.new( :op<callmethod>, :name($after-mode), $call )
     );
 });
 register_op_desugar('p6forstmt', -> $qast {
@@ -2315,10 +2337,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<lazy>($/) {
-        make QAST::Op.new(
-            :op('callmethod'), :name('lazy'),
-            QAST::Op.new( :op('call'), $<blorst>.ast )
-        );
+        if $<for> {
+            my $ast := $<for>.ast;
+            $ast[0].annotate('mode', 'lazy');
+            $ast.annotate('statement_level', NQPMu);
+            make $ast;
+        }
+        else {
+            make QAST::Op.new(
+                :op('callmethod'), :name('lazy'),
+                QAST::Op.new( :op('call'), $<blorst>.ast )
+            );
+        }
     }
 
     method statement_prefix:sym<eager>($/) {
@@ -2329,17 +2359,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<hyper>($/) {
-        make QAST::Op.new(
-            :op('callmethod'), :name('hyper'),
-            QAST::Op.new( :op('call'), $<blorst>.ast )
-        );
+        if $<for> {
+            my $ast := $<for>.ast;
+            $ast[0].annotate('mode', 'hyper');
+            $ast.annotate('statement_level', NQPMu);
+            make $ast;
+        }
+        else {
+            make QAST::Op.new(
+                :op('callmethod'), :name('hyper'),
+                QAST::Op.new( :op('call'), $<blorst>.ast )
+            );
+        }
     }
 
     method statement_prefix:sym<race>($/) {
-        make QAST::Op.new(
-            :op('callmethod'), :name('race'),
-            QAST::Op.new( :op('call'), $<blorst>.ast )
-        );
+        if $<for> {
+            my $ast := $<for>.ast;
+            $ast[0].annotate('mode', 'race');
+            $ast.annotate('statement_level', NQPMu);
+            make $ast;
+        }
+        else {
+            make QAST::Op.new(
+                :op('callmethod'), :name('race'),
+                QAST::Op.new( :op('call'), $<blorst>.ast )
+            );
+        }
     }
 
     method statement_prefix:sym<sink>($/) {

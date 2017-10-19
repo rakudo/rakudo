@@ -66,6 +66,18 @@ my class Promise does Awaitable {
         $vow
     }
 
+    proto method kept(|) { * }
+    multi method kept(Promise:U:) {
+        my \rv := self.new;
+        rv!keep(True);
+        rv;
+    }
+    multi method kept(Promise:U: Mu \result) {
+        my \rv := self.new;
+        rv!keep(result);
+        rv;
+    }
+
     proto method keep(|) { * }
     multi method keep(Promise:D:) {
         self.vow.keep(True)
@@ -81,6 +93,18 @@ my class Promise does Awaitable {
             self!schedule_thens();
             $!cond.signal_all;
         });
+    }
+
+    proto method broken(|) { * }
+    multi method broken(Promise:U:) {
+        my \rv := self.new;
+        rv!break(False);
+        rv;
+    }
+    multi method broken(Promise:U: Mu \exception) {
+        my \rv := self.new;
+        rv!break(exception);
+        rv;
     }
 
     proto method break(|) { * }

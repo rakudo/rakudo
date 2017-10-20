@@ -21,13 +21,13 @@ my class Rakudo::Internals::HyperWorkBatch does Iterable {
 
         submethod BUILD(:$items --> Nil) {
             $!items := nqp::decont($items);
-            $!i = 0;
+            $!i = -1;
             $!n = nqp::elems($!items);
         }
 
         method pull-one() {
-            $!i < $!n
-                ?? nqp::atpos($!items, $!i++)
+            ++$!i < $!n
+                ?? nqp::atpos($!items, $!i)
                 !! IterationEnd
         }
     }

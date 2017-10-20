@@ -28,12 +28,12 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
         my int $seq = $batch.sequence-number;
         if $seq == $!next-to-send {
             $!batches.send($batch);
-            $!next-to-send++;
+            ++$!next-to-send;
             if @!held-back {
                 @!held-back.=sort(*.sequence-number);
                 while @!held-back && @!held-back[0].sequence-number == $!next-to-send {
                     $!batches.send(@!held-back.shift);
-                    $!next-to-send++;
+                    ++$!next-to-send;
                 }
             }
         }

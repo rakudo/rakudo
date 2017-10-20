@@ -5,7 +5,7 @@ my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner d
     has int $!batches-seen = 0;
     method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
         $!batches.send($batch);
-        $!batches-seen++;
+        ++$!batches-seen;
         if $batch.last {
             $!last-target = $batch.sequence-number;
         }

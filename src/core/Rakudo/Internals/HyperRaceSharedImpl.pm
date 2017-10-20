@@ -9,7 +9,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             my $result := IterationBuffer.new;
             my $items := $batch.items;
             my int $n = $items.elems;
-            loop (my int $i = 0; $i < $n; $i++) {
+            loop (my int $i = 0; $i < $n; ++$i) {
                 my \item := nqp::atpos($items, $i);
                 $result.push(item) if $!matcher.ACCEPTS(item);
             }
@@ -38,7 +38,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             my $items := $batch.items;
             my int $n = $items.elems;
             my &mapper := &!mapper.clone;
-            loop (my int $i = 0; $i < $n; $i++) {
+            loop (my int $i = 0; $i < $n; ++$i) {
                 my \mapped = mapper(nqp::atpos($items, $i));
                 nqp::istype(mapped, Slip) && !nqp::iscont(mapped)
                     ?? mapped.iterator.push-all($result)
@@ -65,7 +65,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
         has int $!last-target = -1;
         has int $!batches-seen = 0;
         method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
-            $!batches-seen++;
+            ++$!batches-seen;
             self.batch-used();
             if $batch.last {
                 $!last-target = $batch.sequence-number;

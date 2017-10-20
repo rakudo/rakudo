@@ -3,7 +3,9 @@ use Test;
 
 # Tests that NYI methods of IO::CatHandle throw
 
-my @meths = <flush print  printf  print-nl  put  say  write>;  # nl-out
+my @meths = <
+    flush  out-buffer  print  printf  print-nl  put  say  write
+>;  # nl-out
 plan 2 + @meths;
 
 throws-like { IO::CatHandle.new."$_"() }, X::NYI, $_ for @meths;

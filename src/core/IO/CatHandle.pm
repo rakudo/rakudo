@@ -343,30 +343,32 @@ my class IO::CatHandle is IO::Handle {
         self
     }
 
-    #                        __________________________________________
-    #                       / I don't know what the write methods      \
-    #                      | should do in a CatHandle, so I'll mark    |
-    #                      | these as NYI, for now.... Has anyone      |
-    #                      \ seen my cocoon? I always lose that thing! /
-    #                      |  -----------------------------------------
-    #                      | /
-    #                      |/
-    #                    (⛣)
-    proto method flush   (|) { * }
-    multi method flush   (|) { die X::NYI.new: :feature<flush>    }
-    proto method print   (|) { * }
-    multi method print   (|) { die X::NYI.new: :feature<print>    }
-    proto method printf  (|) { * }
-    multi method printf  (|) { die X::NYI.new: :feature<printf>   }
-    proto method print-nl(|) { * }
-    multi method print-nl(|) { die X::NYI.new: :feature<print-nl> }
-    proto method put     (|) { * }
-    multi method put     (|) { die X::NYI.new: :feature<put>      }
-    proto method say     (|) { * }
-    multi method say     (|) { die X::NYI.new: :feature<say>      }
-    proto method write   (|) { * }
-    multi method write   (|) { die X::NYI.new: :feature<write>    }
-    #                    /|\
+    #                           __________________________________________
+    #                          / I don't know what the write methods      \
+    #                         | should do in a CatHandle, so I'll mark    |
+    #                         | these as NYI, for now.... Has anyone      |
+    #                         \ seen my cocoon? I always lose that thing! /
+    #                         |  -----------------------------------------
+    #                         | /
+    #                         |/
+    #                       (⛣)
+    proto method flush      (|) { * }
+    multi method flush      (|) { die X::NYI.new: :feature<flush>      }
+    proto method out-buffer (|) { * }
+    multi method out-buffer (|) { die X::NYI.new: :feature<out-buffer> }
+    proto method print      (|) { * }
+    multi method print      (|) { die X::NYI.new: :feature<print>      }
+    proto method printf     (|) { * }
+    multi method printf     (|) { die X::NYI.new: :feature<printf>     }
+    proto method print-nl   (|) { * }
+    multi method print-nl   (|) { die X::NYI.new: :feature<print-nl>   }
+    proto method put        (|) { * }
+    multi method put        (|) { die X::NYI.new: :feature<put>        }
+    proto method say        (|) { * }
+    multi method say        (|) { die X::NYI.new: :feature<say>        }
+    proto method write      (|) { * }
+    multi method write      (|) { die X::NYI.new: :feature<write>      }
+    #                       /|\
 
     # Don't die on this one, as doing so breaks .Capture
     # proto method nl-out  (|) { * }

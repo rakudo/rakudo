@@ -1006,7 +1006,6 @@ S32-io/chdir-process.t    # moar
 S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t
-S32-io/in-buffering.t
 S32-io/indir.t
 S32-io/io-cathandle.t
 S32-io/io-handle.t

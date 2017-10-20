@@ -37,8 +37,9 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             my $result := IterationBuffer.new;
             my $items := $batch.items;
             my int $n = $items.elems;
+            my &mapper := &!mapper.clone;
             loop (my int $i = 0; $i < $n; $i++) {
-                my \mapped = &!mapper(nqp::atpos($items, $i));
+                my \mapped = mapper(nqp::atpos($items, $i));
                 nqp::istype(mapped, Slip) && !nqp::iscont(mapped)
                     ?? mapped.iterator.push-all($result)
                     !! $result.push(mapped)

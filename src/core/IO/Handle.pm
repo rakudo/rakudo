@@ -2,9 +2,6 @@ my class IO::Path { ... }
 my class Proc { ... }
 
 my class IO::Handle {
-    # if editing, edit the value for STDIN in src/core/io_operators.pm too
-    my constant IN-BUFFER-DEFAULT = 0x100000;
-
     has $.path;
     has $!PIO;
     has $.chomp is rw = Bool::True;
@@ -14,7 +11,6 @@ my class IO::Handle {
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;
     has int $!out-buffer;
-    has int $!in-buffer = IN-BUFFER-DEFAULT;
 
     submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
         nqp::if(
@@ -74,7 +70,6 @@ my class IO::Handle {
       Str:D :$nl-out is copy = $!nl-out,
       :$buffer,
       :$out-buffer is copy,
-      :$in-buffer,
     ) {
         nqp::if(
             $buffer.DEFINITE,
@@ -182,7 +177,6 @@ my class IO::Handle {
                 $!encoding = $encoding.name;
             }
             self!set-out-buffer-size($out-buffer);
-            self!set-in-buffer-size($in-buffer);
             return self;
         }
 
@@ -230,7 +224,6 @@ my class IO::Handle {
             $!encoding = $encoding.name;
         }
         self!set-out-buffer-size($out-buffer);
-        self!set-in-buffer-size($in-buffer);
         self;
     }
 
@@ -247,20 +240,6 @@ my class IO::Handle {
             !! $buffer.Int;
         nqp::setbuffersizefh($!PIO, $!out-buffer);
         $!out-buffer
-    }
-
-    method in-buffer is rw {
-        Proxy.new: :FETCH{ $!in-buffer }, STORE => -> $, \buffer {
-            self!set-in-buffer-size: buffer;
-        }
-    }
-
-    method !set-in-buffer-size($buffer is copy) {
-        $!in-buffer = $buffer.defined
-            ?? nqp::istype($buffer, Bool)
-                ?? ($buffer ?? IN-BUFFER-DEFAULT !! 0)
-                !! $buffer.Int
-            !! IN-BUFFER-DEFAULT
     }
 
     method nl-in is rw {
@@ -316,7 +295,7 @@ my class IO::Handle {
     method !get-line-slow-path() {
         my $line := Nil;
         loop {
-            my $buf := self.read-internal($!in-buffer);
+            my $buf := self.read-internal(0x100000);
             if $buf.elems {
                 $!decoder.add-bytes($buf);
                 $line := $!decoder.consume-line-chars(:$!chomp);
@@ -540,7 +519,7 @@ my class IO::Handle {
             buf8.new
         }
         else {
-            $!decoder.add-bytes(self.read-internal($bytes max $!in-buffer));
+            $!decoder.add-bytes(self.read-internal($bytes max 0x100000));
             $!decoder.consume-exactly-bytes($bytes)
                 // $!decoder.consume-exactly-bytes($!decoder.bytes-available)
                 // buf8.new
@@ -556,7 +535,7 @@ my class IO::Handle {
         my $result := '';
         unless self.eof-internal && $!decoder.is-empty {
             loop {
-                my $buf := self.read-internal($!in-buffer);
+                my $buf := self.read-internal(0x100000);
                 if $buf.elems {
                     $!decoder.add-bytes($buf);
                     $result := $!decoder.consume-exactly-chars($chars);
@@ -716,7 +695,7 @@ my class IO::Handle {
         LEAVE self.close if $close;
         my $res := buf8.new;
         loop {
-            my $buf := self.read($!in-buffer);
+            my $buf := self.read(0x100000);
             nqp::elems($buf)
               ?? $res.append($buf)
               !! return $res
@@ -750,7 +729,7 @@ my class IO::Handle {
           nqp::if(
             nqp::isfalse($!decoder) || $bin,
             nqp::while(
-              nqp::elems(my $buf := self.read-internal($!in-buffer)),
+              nqp::elems(my $buf := self.read-internal(0x100000)),
               $res.append($buf))),
           # don't sink result of .close; it might be a failed Proc
           nqp::if($close, $ = self.close),
@@ -758,7 +737,7 @@ my class IO::Handle {
     }
 
     method !slurp-all-chars() {
-        while nqp::elems(my $buf := self.read-internal($!in-buffer)) {
+        while nqp::elems(my $buf := self.read-internal(0x100000)) {
             $!decoder.add-bytes($buf);
         }
         $!decoder.consume-all-chars()

@@ -173,7 +173,6 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     my constant NL-IN    = ["\x0A", "\r\n"];
     my constant NL-OUT   = "\n";
     my constant ENCODING = "utf8";
-    my constant IN-BUFFER-DEFAULT = 0x100000;
 
     my sub setup-handle(str $what) {
         my $handle := nqp::p6bindattrinvres(
@@ -185,7 +184,6 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
         nqp::getattr($handle,IO::Handle,'$!nl-in')    = NL-IN;
         nqp::getattr($handle,IO::Handle,'$!nl-out')   = NL-OUT;
         nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
-        nqp::bindattr_i($handle,IO::Handle,'$!in-buffer',IN-BUFFER-DEFAULT);
         $handle
     }
 

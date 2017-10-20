@@ -542,6 +542,7 @@ S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S07-slip/slip.t
 S07-iterators/range-iterator.t
+S07-hyperrace/for.t
 S07-hyperrace/hyper.t
 S07-hyperrace/race.t
 S07-hyperrace/stress.t # stress

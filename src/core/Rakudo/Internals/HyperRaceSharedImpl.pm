@@ -1,6 +1,6 @@
 # Implementations shared between HyperSeq and RaceSeq.
 class Rakudo::Internals::HyperRaceSharedImpl {
-    my class Grep does Rakudo::Internals::HyperProcessor {
+    my class GrepSM does Rakudo::Internals::HyperProcessor {
         has $!matcher;
 
         submethod TWEAK(:$!matcher) {}
@@ -24,7 +24,36 @@ class Rakudo::Internals::HyperRaceSharedImpl {
         else {
             hyper.bless:
                 configuration => hyper.configuration,
-                work-stage-head => Grep.new(:$source, :matcher(matcher))
+                work-stage-head => GrepSM.new(:$source, :matcher(matcher))
+        }
+    }
+
+    my class GrepCode does Rakudo::Internals::HyperProcessor {
+        has &!matcher;
+
+        submethod TWEAK(:&!matcher) {}
+
+        method process-batch(Rakudo::Internals::HyperWorkBatch $batch) {
+            my $result := IterationBuffer.new;
+            my $items := $batch.items;
+            my int $n = $items.elems;
+            my &matcher = &!matcher.clone;
+            loop (my int $i = 0; $i < $n; ++$i) {
+                my \item := nqp::atpos($items, $i);
+                $result.push(item) if matcher(item);
+            }
+            $batch.replace-with($result);
+        }
+    }
+    multi method grep(\hyper, $source, &matcher, %options) {
+        if %options || &matcher.count > 1 {
+            # Fall back to sequential grep for cases we can't yet handle
+            self.rehyper(hyper, hyper.Any::grep(&matcher, |%options))
+        }
+        else {
+            hyper.bless:
+                configuration => hyper.configuration,
+                work-stage-head => GrepCode.new(:$source, :&matcher)
         }
     }
 

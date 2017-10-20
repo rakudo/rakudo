@@ -339,7 +339,7 @@ class Perl6::Pod {
                 my $m := $v ~~ /
                     :ratchet
                     ([<!before [\h+ || ^^] '|' [\h+ || $$]> .]*)+
-                     % [ [\h+ || ^^] '|' [\h+ || $$] ]
+                     % [ [\h+ || ^^] '|' [\h || $$] ]
                 /;
                 @res[$i] := [];
                 for $m[0] { @res[$i].push(normalize_text($_)) }
@@ -352,7 +352,7 @@ class Perl6::Pod {
                 @res[$i] := [];
                 for $m[0] { @res[$i].push(normalize_text($_)) }
             } else {
-                # now way to easily split rows with visual separators
+                # now way to easily split rows with non-visual separators
                 return splitrows(@rows);
             }
             $i := $i + 1;
@@ -467,7 +467,7 @@ class Perl6::Pod {
         # collect cell delimiters per row
         my $i := 0;
         while $i < +@rows {
-            unless @rows[$i] ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$ / {
+            unless @rows[$i] ~~ $is_table_row_sep {
                 my @line := nqp::split('', @rows[$i]);
                 my $j := 0;
                 while $j < +@line {
@@ -476,10 +476,10 @@ class Perl6::Pod {
                             @suspects[$j] := 1;
                         }
                     }
-                    $j := $j + 1;
+                    ++$j;
                 }
             }
-            $i := $i + 1;
+            ++$i;
         }
 
         # now let's skip the single spaces by marking them impossible
@@ -490,7 +490,7 @@ class Perl6::Pod {
                     @suspects[$i] := 1;
                 }
             }
-            $i := $i + 1;
+            ++$i;
         }
 
         # now we're doing some magic which will
@@ -511,13 +511,13 @@ class Perl6::Pod {
                 @ranges.push($i);
                 $wasone := 0;
             }
-            $i := $i + 1;
+            ++$i;
         }
         @ranges.push(0); # guard
 
         my @ret := [];
         for @rows -> $row {
-            if $row ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$/ {
+            if $row ~~ $is_table_row_sep {
                 @ret.push($row);
                 next;
             }

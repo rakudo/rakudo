@@ -333,25 +333,26 @@ class Perl6::Pod {
         $i := 0;
         while $i < +@rows {
             my $v := @rows[$i];
-            if $v ~~ /^'='+ || ^'-'+ || ^'_'+ || ^\h*$/ {
+            if $v ~~ $is_table_row_sep {
                 @res[$i] := $v;
             } elsif $v ~~ /\h'|'\h/ {
                 my $m := $v ~~ /
                     :ratchet
                     ([<!before [\h+ || ^^] '|' [\h+ || $$]> .]*)+
-                    % [ [\h+ || ^^] '|' [\h || $$] ]
+                     % [ [\h+ || ^^] '|' [\h+ || $$] ]
                 /;
                 @res[$i] := [];
                 for $m[0] { @res[$i].push(normalize_text($_)) }
             } elsif $v ~~ /\h'+'\h/ {
                 my $m := $v ~~ /
-                    :ratchet ([<!before [\h+ || ^^] '+' [\h+ || $$]> .]*)+
-                    % [ [\h+ || ^^] '+' [\h+ || $$] ]
+                     :ratchet
+		     ([<!before [\h+ || ^^] '+' [\h+ || $$]> .]*)+
+                     % [ [\h+ || ^^] '+' [\h+ || $$] ]
                 /;
                 @res[$i] := [];
                 for $m[0] { @res[$i].push(normalize_text($_)) }
             } else {
-                # now way to easily split rows
+                # now way to easily split rows with visual separators
                 return splitrows(@rows);
             }
             $i := $i + 1;
@@ -456,6 +457,8 @@ class Perl6::Pod {
 
     # takes an array of strings (rows of a table)
     # returns array of arrays of strings (cells)
+    # NOTE: this only works for tables with double-space cell
+    # separators!
     our sub splitrows(@rows) {
         my @suspects := []; #positions that might be cell delimiters
                             # values: 1     - impossible!

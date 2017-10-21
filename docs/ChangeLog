@@ -2,7 +2,7 @@ New in 2017.10:
  + SPECIAL NOTES:
     + This release includes fixes to || alternation in :ratchet
       mode. Code that was unintentionally relying on buggy behavior
-      (backtracking in :ratched mode) may now produce unwanted
+      (backtracking in :ratchet mode) may now produce unwanted
       results (namely will fail to match) [963a0f06]
  + Security:
     + Restricted dynamic lookup metasyntax in rx EVAL [1d63dfd2][2448195d]
@@ -94,6 +94,8 @@ New in 2017.10:
     + Made Hash.gist 24% faster [69af24c4]
     + Made @a[42..*] 4.2x faster [456358e3]
     + Various NativeCall speedups [a06ebaf2][269fe7db][80d6b425]
+    + Significantly faster INTERPOLATE [1761540e][0a68a18f][d73d500b]
+        [1775259a][e8003c87][4d3ccd83][04b171bd][317ae16c][dd880cad]
     + Other small optimizations [9d4a833b][6902c590][fb4eb666]
         [b9c98531][4fae0711][921db910][c91c4011][98fae3d8]
         [a462d0a2][16c2a157][5f6896bd][397692ac][476741e7]
@@ -102,8 +104,6 @@ New in 2017.10:
     + Better scheduler [d2eb7423][80b49320][340d8ed3][c50d35a9][9af5607d]
         [683037be][7c18112c][c285b489][b5605c2d][3b98fb9e][596611c8]
     + Added RAKUDO_SCHEDULER_DEBUG_STATUS env var [de311f46]
-    + Significantly faster INTERPOLATE [1761540e][0a68a18f][d73d500b]
-        [1775259a][e8003c87][4d3ccd83][04b171bd][317ae16c][dd880cad]
     + Bumped libuv to the latest version [198b8497]
     + Reworked BUILDALL method autogeneration [9837687d][63cf246f]
         [5ad2fffe][31a03a41][eb9c3d4d][346dfeff][70ca505a][af2ab751]

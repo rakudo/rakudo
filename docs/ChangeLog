@@ -12,7 +12,7 @@ New in 2017.10:
  + Fixes:
     + Fixed Hash.perl to include Scalar indicators [47d6c66e]
     + Fixed :delete with lazy Arrays [0385b2aa]
-    + Fixed serial/sanitry for on-demand Supplies [93a66d75]
+    + Fixed sanitization of on-demand Supplies [93a66d75]
     + Fixed duplicate done/quit messages [9e179355]
     + Fixed non-blocking `react { await blah() }` [29863a0b]
     + Fixed issues with Int.new [dff7d9b2][0d2ca0d7][0834036d]

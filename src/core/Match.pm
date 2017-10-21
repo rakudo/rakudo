@@ -432,7 +432,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         }
 
         # no modifier, match literally
-        elsif im ==0 {
+        elsif im == 0 {
             $match = nqp::eqat($tgt, $topic_str, $pos);
         }
 

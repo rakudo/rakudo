@@ -327,9 +327,7 @@ my class IO::Path is Cool does IO {
         IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
     }
     proto method parent(|) { * }
-    multi method parent(IO::Path:D: Int:D $depth) {
-        die "method parent(IO::Path:D: Int:D) can only be called with non-negative integers"
-            if $depth < 0;
+    multi method parent(IO::Path:D: UInt:D $depth) {
         my $io = self;
         $io .= parent xx $depth;
         $io;

@@ -914,7 +914,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token pod_block:sym<delimited> {
+    regex pod_block:sym<delimited> {
         ^^
         $<spaces> = [ \h* ]
         '=begin'
@@ -1011,12 +1011,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }
         :my $*ALLOW_INLINE_CODE := 0;
-        $<type> = [
-            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
-            || <identifier>
+        [ :!ratchet
+            $<type> = [
+                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+                || <identifier>
+            ]
+            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+            <pod_configuration($<spaces>)>
+            <pod_newline>
         ]
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)> <pod_newline>
         <pod_content=.pod_textcontent>**0..1
     }
 
@@ -1056,12 +1059,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }
         :my $*ALLOW_INLINE_CODE := 0;
-        $<type> = [
-            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
-            || <identifier>
+        [ :!ratchet
+            $<type> = [
+                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+                || <identifier>
+            ]
+            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+            [\h*\n|\h+]
         ]
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        [\h*\n|\h+]
         <pod_content=.pod_textcontent>**0..1
     }
 

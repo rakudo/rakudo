@@ -59,7 +59,7 @@ New in 2017.10:
  + Additions:
     + Improved .Capture semantics on all core types [4ba12ff1]
         [bad9fefd][cd5864cf]
-    + Added trim* subroutines to Cool instance [5a19dffa][691f8b7b][e01e5bc3]
+    + Added trim* subroutines taking Cool instance [5a19dffa][691f8b7b][e01e5bc3]
     + Added Lock::Async [53dd776c][4a8038c2][85bdd38a][38896402][6170cb9d]
     + Added atomic reference op support on JVM backend [32e4a1de][59c4117f]
     + Added $*USAGE [0b15f672]
@@ -88,7 +88,7 @@ New in 2017.10:
     + Made chained ops up to 36x faster [a92d0369]
     + Made ≥, ≤, and ≠ unicode ops as fast as ascii equivalents
         [6ec21cb4][1af2a745][43c348a8][9ff2f98f]
-    + Made &inifx:<cmp> with Version:Ds 7.2x faster [1d9553f0]
+    + Made &infix:<cmp> with Version:Ds 7.2x faster [1d9553f0]
     + Made &DEPRECATED 27% faster when vfrom is too large [145e3156]
     + Made Blob.gist 26x faster [20a99fc3]
     + Made Hash.gist 24% faster [69af24c4]

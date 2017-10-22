@@ -611,12 +611,12 @@ my class Match is Capture is Cool does NQPMatchRole {
                   );
             }
 
-            match = nqp::iseq_i($k,$len); # match if completed
+            $match = nqp::iseq_i($k,$len); # match if completed
         }
 
         # ignorecase
         else {
-            match = nqp::iseq_s(
+            $match = nqp::iseq_s(
               nqp::fc(nqp::substr($tgt, $pos, $len)),
               nqp::fc($topic_str)
             )

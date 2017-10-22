@@ -10,6 +10,7 @@ import org.perl6.nqp.sixmodel.reprs.CallCaptureInstance;
 import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
 import org.perl6.nqp.sixmodel.reprs.NativeRefInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
+import org.perl6.nqp.sixmodel.reprs.P6OpaqueBaseInstance;
 
 /**
  * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
@@ -518,8 +519,19 @@ public final class RakOps {
     }
     
     public static SixModelObject p6bindattrinvres(SixModelObject obj, SixModelObject ch, String name, SixModelObject value, ThreadContext tc) {
-        obj.bind_attribute_boxed(tc, Ops.decont(ch, tc),
-            name, STable.NO_HINT, value);
+        try {
+            obj.bind_attribute_boxed(tc, Ops.decont(ch, tc),
+                name, STable.NO_HINT, value);
+        }
+        catch (P6OpaqueBaseInstance.BadReferenceRuntimeException badRef) {
+            if (tc.native_type == ThreadContext.NATIVE_INT)
+                tc.native_i = value.get_int(tc);
+            else if (tc.native_type == ThreadContext.NATIVE_NUM)
+                tc.native_n = value.get_num(tc);
+            else if (tc.native_type == ThreadContext.NATIVE_STR)
+                tc.native_s = value.get_str(tc);
+            obj.bind_attribute_native(tc, Ops.decont(ch, tc), name, STable.NO_HINT);
+        }
         if (obj.sc != null)
             Ops.scwbObject(tc, obj);
         return obj;

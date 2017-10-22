@@ -59,7 +59,8 @@ New in 2017.10:
  + Additions:
     + Improved .Capture semantics on all core types [4ba12ff1]
         [bad9fefd][cd5864cf]
-    + Added trim* subroutines taking Cool instance [5a19dffa][691f8b7b][e01e5bc3]
+    + Added trim* subroutines taking Cool instance [5a19dffa]
+        [691f8b7b][e01e5bc3]
     + Added Lock::Async [53dd776c][4a8038c2][85bdd38a][38896402][6170cb9d]
     + Added atomic reference op support on JVM backend [32e4a1de][59c4117f]
     + Added $*USAGE [0b15f672]
@@ -72,8 +73,10 @@ New in 2017.10:
         [3ca6554f][bc5fbfcb][2fba0ba0]
     + Added X::Numeric::CannotConvert exception type [2e726528]
         [b377de1c][f04bd1d6]
-    + Added IO::Handle.out-buffer for controlling the buffer size [f9c10c21][765dd694]
-    + Added IO::Path.parent(Int) for getting up more than one level [7bea3a2d]
+    + Added IO::Handle.out-buffer for controlling the buffer size
+        [f9c10c21][765dd694]
+    + Added IO::Path.parent(Int) for getting up more than one level
+        [7bea3a2d][78d8d509]
  + Removals:
     + Removed $*MAIN-ALLOW-NAMED-ANYWHERE [9cb4b167]
     + Removed support for ornate parenthesis from quoting constructs [9ce896d8]
@@ -94,8 +97,9 @@ New in 2017.10:
     + Made Hash.gist 24% faster [69af24c4]
     + Made @a[42..*] 4.2x faster [456358e3]
     + Various NativeCall speedups [a06ebaf2][269fe7db][80d6b425]
-    + Significantly faster INTERPOLATE [1761540e][0a68a18f][d73d500b]
-        [1775259a][e8003c87][4d3ccd83][04b171bd][317ae16c][dd880cad]
+    + Significantly faster interpolation of variables into regexes
+	[1761540e][0a68a18f][d73d500b][1775259a][e8003c87]
+	[4d3ccd83][04b171bd][317ae16c][dd880cad][2262cc47]
     + Other small optimizations [9d4a833b][6902c590][fb4eb666]
         [b9c98531][4fae0711][921db910][c91c4011][98fae3d8]
         [a462d0a2][16c2a157][5f6896bd][397692ac][476741e7]

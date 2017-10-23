@@ -50,7 +50,7 @@ my class IO::CatHandle is IO::Handle {
         (my $old-handle is default(Nil) = $!active-handle),
         nqp::if(
           nqp::defined($!active-handle),
-          ($ = $!active-handle.close)), # don't sink the result, since it might
+          (my $ = $!active-handle.close)), # don't sink the result, since it might
           # .. be an IO::Pipe that returns a Proc that might throw
         nqp::if(
           nqp::elems($!handles),
@@ -259,14 +259,14 @@ my class IO::CatHandle is IO::Handle {
         nqp::stmts(
           nqp::if(
             nqp::defined($!active-handle),
-            $ = $!active-handle.close),
+            my $ = $!active-handle.close),
           (my int $i = -1),
           (my int $els = nqp::elems($!handles)),
           nqp::while(
             nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
             nqp::if(
               nqp::istype(($_ := nqp::atpos($!handles, $i)), IO::Handle),
-              $ = .close)),
+              my $ = .close)),
           ($!handles := nqp::list),
           ($!active-handle = Nil))
     }

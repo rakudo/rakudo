@@ -2508,8 +2508,8 @@ my class X::Multi::NoMatch is Exception {
         my @un-rw-cand;
         if first / 'is rw' /, @cand {
             my $rw-capture = Capture.new(
-                :list( $!capture.list.map({ $ = $_ })                  ),
-                :hash( $!capture.hash.map({ .key => $ = .value }).hash ),
+                :list( $!capture.list.map({ my $ = $_ })                  ),
+                :hash( $!capture.hash.map({ .key => my $ = .value }).hash ),
             );
             @un-rw-cand = $.dispatcher.dispatchees».signature.grep({
                 $rw-capture ~~ $^cand

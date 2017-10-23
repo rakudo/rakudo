@@ -5,12 +5,12 @@ my $template = q:to/END_TEMPLATE/;
 # Announce: Rakudo Perl 6 compiler, Release #«release-num» («release-name»)
 
 On behalf of the Rakudo development team, I’m very happy to announce the
-«month» «year» release of Rakudo Perl 6 #«release-num». Rakudo is an implementation of
-Perl 6 on the Moar Virtual Machine[^1].
+«month» «year» release of Rakudo Perl 6 #«release-num». Rakudo is an implementation of
+Perl 6 on the Moar Virtual Machine[^1].
 
-This release implements the 6.c version of the Perl 6 specifications.
+This release implements the 6.c version of the Perl 6 specifications.
 It includes bugfixes and optimizations on top of
-the 2015.12 release of Rakudo, but no new features.
+the 2015.12 release of Rakudo.
 
 Upcoming releases in 2017 will include new functionality that is not
 part of the 6.c specification, available with a lexically scoped
@@ -21,7 +21,7 @@ spec releases this year as well.
 The tarball for this release is available from <http://rakudo.org/downloads/rakudo/>.
 
 Please note: This announcement is not for the Rakudo Star
-distribution[^2] --- it’s announcing a new release of the compiler
+distribution[^2] — it’s announcing a new release of the compiler
 only. For the latest Rakudo Star release, see
 <http://rakudo.org/downloads/star/>.
 
@@ -39,8 +39,8 @@ If you would like to contribute or find out more information, visit
 <perl6-compiler@perl.org> mailing list, or ask on IRC #perl6 on freenode.
 
 Additionally, we invite you to make a donation to The Perl Foundation
-to sponsor Perl 6 development: <https://donate.perlfoundation.org/>
-(put "Perl 6 Core Development Fund" in the 'Purpose' text field)
+to sponsor Perl 6 development: <https://donate.perlfoundation.org/>
+(put “Perl 6 Core Development Fund” in the ‘Purpose’ text field)
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».
 
@@ -49,7 +49,7 @@ A list of the other planned release dates is available in the
 
 The development team appreciates feedback! If you’re using Rakudo, do
 get back to us. Questions, comments, suggestions for improvements, cool
-discoveries, incredible hacks, or any other feedback -- get in touch with
+discoveries, incredible hacks, or any other feedback – get in touch with
 us through (the above-mentioned) mailing list or IRC channel. Enjoy!
 
 Please note that recent releases have known issues running on the JVM.
@@ -61,12 +61,13 @@ an estimated delivery date.
 [^2]: What’s the difference between the Rakudo compiler and the Rakudo
 Star distribution?
 
-The Rakudo compiler is a compiler for the Perl 6 language.
+The Rakudo compiler is a compiler for the Perl 6 language.
 Not much more.
 
 The Rakudo Star distribution is the Rakudo compiler plus a selection
-of useful Perl 6 modules, a module installer, Perl 6 introductory documentation, 
-and other software that can be used with the Rakudo compiler to enhance its utility.
+of useful Perl 6 modules, a module installer, Perl 6 introductory
+documentation, and other software that can be used with the Rakudo
+compiler to enhance its utility.
 END_TEMPLATE
 
 my @ENGLISH-MONTHS = flat Any,
@@ -133,7 +134,7 @@ sub find-contributors(
                 "--roast=$roast",
                 |($last_release if $last_release);
 
-    $proc.out.slurp-rest(:close).lines[1..*].join: "\n";
+    $proc.out.slurp-rest(:close).lines[1..*]».trim-trailing.join: "\n";
 }
 
 sub find-next-release-date() {
@@ -181,5 +182,5 @@ sub MAIN (
         $value
     }, :g);
 
-    say $content;
+    say $content.chomp;
 }

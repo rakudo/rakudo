@@ -25,11 +25,14 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     proto method new(|) {*}
-    multi method new(      \value) { self.new: value.Int         }
-    multi method new(int   \value) { nqp::box_i(value,self.WHAT) }
+    multi method new(      \value) { self.new: value.Int }
+    multi method new(int   \value) {
+        # rebox the value, so we get rid of any potential mixins
+        nqp::div_I(nqp::decont(value), 1, self)
+    }
     multi method new(Int:D \value = 0) {
-        nqp::p6bindattrinvres(self.bless, Int,'$!value',
-          nqp::getattr(nqp::decont(value),Int,'$!value'))
+        # rebox the value, so we get rid of any potential mixins
+        nqp::div_I(nqp::decont(value), 1, self)
     }
 
     multi method perl(Int:D:) {

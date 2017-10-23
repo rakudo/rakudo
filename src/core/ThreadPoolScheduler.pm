@@ -295,7 +295,7 @@ my class ThreadPoolScheduler does Scheduler {
     has Int $.max_threads;
 
     # All of the worker and queue state below is guarded by this lock.
-    has Lock $!state-lock .= new;
+    has Lock $!state-lock = Lock.new;
 
     # The general queue and timer queue, if created.
     has Queue $!general-queue;
@@ -547,7 +547,10 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method !total-workers() {
-        $!general-workers.elems + $!timer-workers.elems + $!affinity-workers.elems
+        my int $a = $!general-workers.elems;
+        my int $b = $!timer-workers.elems;
+        my int $c = $!affinity-workers.elems;
+        $a + $b + $c
     }
 
     submethod BUILD(

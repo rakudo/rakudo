@@ -111,7 +111,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ($!future.DEFINITE && nqp::not_i($!current-iter.DEFINITE)),
                 nqp::stmts(
                   nqp::while(
-                    $!future.DEFINITE && nqp::elems($!future),
+                    nqp::elems($!future),
                     nqp::if(
                       (nqp::istype((my $current := nqp::shift($!future)),Slip)
                         && nqp::isconcrete($current)),
@@ -129,8 +129,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                       $!reification-target.push($current)
                     )
                   ),
-                  nqp::if(
-                    $!future.DEFINITE && nqp::not_i(nqp::elems($!future)),
+                  nqp::unless(
+                    nqp::elems($!future),
                     $!future := Mu
                   )
                 )

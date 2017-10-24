@@ -303,9 +303,9 @@ my class ThreadPoolScheduler does Scheduler {
 
     # The current lists of workers. Immutable lists; new ones are produced
     # upon changes.
-    has List $!general-workers = ();
-    has List $!timer-workers = ();
-    has List $!affinity-workers = ();
+    has $!general-workers;
+    has $!timer-workers;
+    has $!affinity-workers;
 
     # The supervisor thread, if started.
     has Thread $!supervisor;
@@ -316,10 +316,15 @@ my class ThreadPoolScheduler does Scheduler {
                 unless $!general-queue.DEFINITE {
                     # We don't have any workers yet, so start one.
                     $!general-queue := nqp::create(Queue);
-                    $!general-workers = (GeneralWorker.new(
+                    my $workers := nqp::create(IterationBuffer);
+                    nqp::push(
+                      $workers,
+                      GeneralWorker.new(
                         queue => $!general-queue,
                         scheduler => self
-                    ),);
+                      )
+                    );
+                    $!general-workers := $workers;
                     scheduler-debug "Created initial general worker thread";
                     self!maybe-start-supervisor();
                 }
@@ -334,10 +339,15 @@ my class ThreadPoolScheduler does Scheduler {
                 unless $!timer-queue.DEFINITE {
                     # We don't have any workers yet, so start one.
                     $!timer-queue := nqp::create(Queue);
-                    $!timer-workers = (TimerWorker.new(
+                    my $workers := nqp::create(IterationBuffer);
+                    nqp::push(
+                      $workers,
+                      TimerWorker.new(
                         queue => $!timer-queue,
                         scheduler => self
-                    ),);
+                      )
+                    );
+                    $!timer-workers := $workers;
                     scheduler-debug "Created initial timer worker thread";
                     self!maybe-start-supervisor();
                 }
@@ -355,9 +365,14 @@ my class ThreadPoolScheduler does Scheduler {
                 if $!affinity-workers.elems == 0 {
                     # We don't have any affinity workers yet, so start one
                     # and return its queue.
-                    $!affinity-workers := (AffinityWorker.new(
+                    my $workers := nqp::create(IterationBuffer);
+                    nqp::push(
+                      $workers,
+                      AffinityWorker.new(
                         scheduler => self
-                    ),);
+                      )
+                    );
+                    $!affinity-workers := $workers;
                     scheduler-debug "Created initial affinity worker thread";
                     self!maybe-start-supervisor();
                     return $!affinity-workers[0].queue;
@@ -370,18 +385,25 @@ my class ThreadPoolScheduler does Scheduler {
         # and approximate, but enough to help us avoid a busy worker). If we
         # find an empty queue, return it immediately.
         my $most-free-worker;
-        $cur-affinity-workers.map: -> $cand {
-            if $most-free-worker.DEFINITE {
-                my $queue := $cand.queue;
-                return $queue if $queue.elems == 0;
-                if $cand.elems < $most-free-worker.queue.elems {
-                    $most-free-worker := $cand;
-                }
-            }
-            else {
-                $most-free-worker := $cand;
-            }
-        }
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($cur-affinity-workers)),
+          nqp::if(
+            $most-free-worker.DEFINITE,
+            nqp::stmts(
+              (my $cand := nqp::atpos($cur-affinity-workers,$i)),
+              nqp::unless(
+                (my $queue := $cand.queue).elems,
+                (return $queue)
+              ),
+              nqp::if(
+                nqp::islt_i($cand.elems,$most-free-worker.queue.elems),
+                $most-free-worker := $cand
+              )
+            ),
+            ($most-free-worker := nqp::atpos($cur-affinity-workers,$i))
+          )
+        );
 
         # Otherwise, check if the queue beats the threshold to add another
         # worker thread.
@@ -400,7 +422,9 @@ my class ThreadPoolScheduler does Scheduler {
                     return $chosen-queue;
                 }
                 my $new-worker := AffinityWorker.new(scheduler => self);
-                $!affinity-workers := (|$!affinity-workers, $new-worker);
+                my $workers := nqp::clone($!affinity-workers);
+                nqp::push($workers, $new-worker);
+                $!affinity-workers := $workers;
                 scheduler-debug "Added an affinity worker thread";
                 $new-worker.queue
             }
@@ -419,19 +443,29 @@ my class ThreadPoolScheduler does Scheduler {
             $!supervisor = Thread.start(:app_lifetime, {
                 sub add-general-worker() {
                     $!state-lock.protect: {
-                        $!general-workers := (|$!general-workers, GeneralWorker.new(
+                        my $workers := nqp::clone($!general-workers);
+                        nqp::push(
+                          $workers,
+                          GeneralWorker.new(
                             queue => $!general-queue,
                             scheduler => self
-                        ));
+                          )
+                        );
+                        $!general-workers := $workers;
                     }
                     scheduler-debug "Added a general worker thread";
                 }
                 sub add-timer-worker() {
                     $!state-lock.protect: {
-                        $!timer-workers := (|$!timer-workers, TimerWorker.new(
+                        my $workers := nqp::clone($!timer-workers);
+                        nqp::push(
+                          $workers,
+                          TimerWorker.new(
                             queue => $!timer-queue,
                             scheduler => self
-                        ));
+                          )
+                        );
+                        $!timer-workers := $workers;
                     }
                     scheduler-debug "Added a timer worker thread";
                 }
@@ -504,11 +538,24 @@ my class ThreadPoolScheduler does Scheduler {
         # don't need to add one.
         my int $total-completed;
         my int $total-times-nothing-completed;
-        worker-list.map: {
-            return unless .working;
-            $total-completed += .take-completed;
-            $total-times-nothing-completed += .times-nothing-completed;
-        }
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(worker-list)),
+          nqp::if(
+            (my $worker := nqp::atpos(worker-list,$i)).working,
+            nqp::stmts(
+              ($total-completed = nqp::add_i(
+                $total-completed,
+                $worker.take-completed
+              )),
+              ($total-times-nothing-completed = nqp::add_i(
+                $total-times-nothing-completed,
+                $worker.times-nothing-completed
+              ))
+            ),
+            return
+          )
+        );
 
         # If we didn't complete anything, then consider adding more threads.
         my int $total-workers = self!total-workers();
@@ -547,10 +594,7 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method !total-workers() {
-        my int $a = $!general-workers.elems;
-        my int $b = $!timer-workers.elems;
-        my int $c = $!affinity-workers.elems;
-        $a + $b + $c
+        $!general-workers.elems + $!timer-workers.elems + $!affinity-workers.elems
     }
 
     submethod BUILD(
@@ -560,17 +604,29 @@ my class ThreadPoolScheduler does Scheduler {
     ) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
             if $!initial_threads > $!max_threads;
+
+            $!general-workers  := nqp::create(IterationBuffer);
+            $!timer-workers    := nqp::create(IterationBuffer);
+            $!affinity-workers := nqp::create(IterationBuffer);
+
         if $!initial_threads > 0 {
             # We've been asked to make some initial threads; we interpret this
             # as general workers.
             self!general-queue(); # Starts one worker
             if $!initial_threads > 1 {
-                $!general-workers := (|$!general-workers, |(
+                my $workers := nqp::clone($!general-workers);
+                my int $i = -1;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$!initial_threads),
+                  nqp::push(
+                    $workers,
                     GeneralWorker.new(
                         queue => $!general-queue,
                         scheduler => self
-                    ) xx $!initial_threads - 1
-                ));
+                    )
+                  )
+                );
+                $!general-workers := $workers;
             }
         }
     }
@@ -663,9 +719,17 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method loads() {
-        [+] ($!general-queue ?? $!general-queue.elems !! 0),
-            ($!timer-queue ?? $!timer-queue.elems !! 0),
-            |($!affinity-workers.map(*.queue.elems))
+        my int $loads = 0;
+        $loads = $loads + $!general-queue.elems if $!general-queue;
+        $loads = $loads + $!timer-queue.elems   if $!timer-queue;
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!affinity-workers)),
+          $loads = $loads + nqp::atpos($!affinity-workers,$i).queue.elems
+        );
+
+        $loads
     }
 }
 

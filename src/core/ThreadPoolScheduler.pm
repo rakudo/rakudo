@@ -525,28 +525,21 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method !prod-affinity-workers (\worker-list) {
-        nqp::if(
-          nqp::elems(worker-list),
-          nqp::stmts(
-            (my int $i = -1),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(worker-list)),
-              nqp::if(
-                (my $worker := nqp::atpos(worker-list,$i)).working,
-                nqp::stmts(
-                  $worker.take-completed,
-                  nqp::if(
-                    nqp::isgt_i($worker.times-nothing-completed, 10),
-                    $!state-lock.protect: {
-                        # an affinity worker completed nothing for some time;
-                        # steal its queue, moving it to general queue. This
-                        # resolves deadlocks in certain cases.
-                        scheduler-debug "Stealing queue from affinity worker";
-                        my $worker-queue := $worker.queue;
-                        nqp::while(
-                          nqp::elems($worker-queue),
-                          nqp::push($!general-queue, nqp::shift($worker-queue)))
-                    }))))))
+        for ^worker-list.elems {
+            my $worker := worker-list[$_];
+            if $worker.working {
+                $worker.take-completed;
+
+                # If an affinity worker completed nothing for some time,
+                # steal an item from its queue, moving it to general queue.
+                # This resolves deadlocks in certain cases.
+                if $worker.times-nothing-completed > 10 {
+                    scheduler-debug "Stealing queue from affinity worker";
+                    my $item := nqp::queuepoll($worker.queue);
+                    nqp::push($!general-queue, $item) unless nqp::isnull($item);
+                }
+            }
+        }
     }
 
     method !getrusage-total() {

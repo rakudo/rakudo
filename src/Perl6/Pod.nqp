@@ -5,7 +5,7 @@
 # + ensure tests in 7a are for my three bug reports
 # + make detailed log from a git diff of this branch since inception
 # + check all TODOs in code
-# + add test for single column table
+# + ensure single-cell tables are handled
 
 # various helper methods for Pod parsing and processing
 my $debug := 1;
@@ -21,6 +21,7 @@ class Perl6::Pod {
 
     my $has_vis_col_sep := / $col_sep_pipe | $col_sep_plus /;
     my $has_ws_col_sep  := / $col_sep_ws /;
+    my $has_col_sep     := / $col_sep_pipe | $col_sep_plus | $col_sep_ws /;
 
     # some vars for telling caller about table attributes, warnings, or exceptions
     # these need resetting upon each call to sub table
@@ -29,6 +30,7 @@ class Perl6::Pod {
     my $error_msg       := '';
     my $table_has_vis_col_seps := 0;
     my $table_has_ws_col_seps  := 0;
+    my $table_has_no_col_seps  := 0;
     my $unbalanced_row_cells   := 0; # set true if all rows don't have same number of cells
 
     our sub document($/, $what, $with, :$leading, :$trailing) {
@@ -332,6 +334,7 @@ class Perl6::Pod {
 	$error_msg       := '';
 	$table_has_vis_col_seps := 0;
 	$table_has_ws_col_seps  := 0;
+        $table_has_no_col_seps  := 0;
 	$unbalanced_row_cells   := 0; # set true if all rows don't have same number of cells
 
 	# form the rows from the pod table parse match
@@ -340,25 +343,37 @@ class Perl6::Pod {
         for $<table_row> {
             # stringify the row for analysis and further handling
             my $row := $_.ast;
+            $row := chomp($row);
+            nqp::say("DEBUG RAW ROW (after chomp): '$row'") if $debug;
             # remove inline pod comment (Z<some comment to be ignored>)
             $row := remove_inline_comments($row);
-            $row := chomp($row);
-            nqp::say("DEBUG RAW ROW: '$row'") if $debug;
+            unless $row ~~ $is_row_sep {
+                if $row ~~ $has_vis_col_sep {
+                    nqp::say("      VIS COL SEP ROW: '$row'") if $debug;
+                } elsif $row ~~ $has_ws_col_sep {
+                    nqp::say("      WS COL SEP ROW: '$row'") if $debug;
+                }
+            }
+            @rows.push($row);
+        }
+        nqp::say("===DEBUG END OF TABLE") if $debug;
+
+        # remove trailing blank lines BEFORE checking for col separators
+        @rows.pop while @rows && @rows[+@rows - 1] ~~ /^ \s* $/;
+
+        # check for col seps AFTER trailing blank lines have been removed
+        for @rows -> $row {
             unless $row ~~ $is_row_sep {
                 # Test the row for type of col seps. If a vis type is
                 # found, then if a ws type also exists it shouldn't affect further
                 # analysis. But then check for a ws type if a vis type is not found.
                 if $row ~~ $has_vis_col_sep {
                     ++$table_has_vis_col_seps;
-                    nqp::say("      VIS ROW: '$row'") if $debug;
                 } elsif $row ~~ $has_ws_col_sep {
                     ++$table_has_ws_col_seps;
-                    nqp::say("      WS ROW: '$row'") if $debug;
                 }
             }
-            @rows.push($row);
-        }
-        nqp::say("===DEBUG END OF TABLE") if $debug;
+        } 
 
         # we have an invalid table if we have both visible and invisible
         # col sep types
@@ -368,8 +383,7 @@ class Perl6::Pod {
             nqp::die("===FATAL: Table has a mixture of visible and invisible column-separator types.");
         }
 
-        # remove trailing blank lines
-        @rows.pop while @rows && @rows[+@rows - 1] ~~ /^ \s* $/;
+        # we may have a single-column table
 
         # TODO: see if this is needed only for ws col sep tables
         @rows := trim_row_leading_ws(@rows);
@@ -380,11 +394,16 @@ class Perl6::Pod {
         } elsif $table_has_ws_col_seps {
             @rows := splitrows(@rows);
         }
+        else {
+            # don't forget the single-column tables!
+            @rows := splitrows(@rows);
+            #@rows := process_rows(@rows);
+        }
 
         # TODO: move this code to inside loop below
         # multi-line rows are not yet merged, but we may need to
         # add empty cells to some rows
-        if 0 && $unbalanced_row_cells {
+        if $unbalanced_row_cells {
             my $i := 0;
             while $i < +@rows {
                 if nqp::islist(@rows[$i]) {
@@ -393,7 +412,7 @@ class Perl6::Pod {
                         # pad row with needed empty cells
                         my $n := $num_row_cells - $nc;
                         while $n > 0 {
-                            nqp::push(@rows[$i], ' ');
+                            nqp::push(@rows[$i], '');
                             --$n;
                         }
                     }

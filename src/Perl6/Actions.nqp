@@ -4982,7 +4982,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $quant := $<quant>;
         if $<default_value> {
             my $name := %*PARAM_INFO<variable_name> // '';
-            if $quant eq '*' || $quant eq '|' {
+            if $quant eq '*'  || $quant eq '|'
+            || $quant eq '**' || $quant eq '+' {
                 $/.typed_sorry('X::Parameter::Default', how => 'slurpy',
                             parameter => $name);
             }

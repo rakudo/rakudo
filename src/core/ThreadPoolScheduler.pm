@@ -397,7 +397,7 @@ my class ThreadPoolScheduler does Scheduler {
                 (return $queue)
               ),
               nqp::if(
-                nqp::islt_i($cand.elems,$most-free-worker.queue.elems),
+                nqp::islt_i($queue.elems,$most-free-worker.queue.elems),
                 $most-free-worker := $cand
               )
             ),

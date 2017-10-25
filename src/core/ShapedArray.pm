@@ -258,12 +258,7 @@
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
                       nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
-#?if moar
                       ) = nqp::multidimref_i($!from,$!indices)
-#?endif
-#?if !moar
-                      ) = nqp::atposnd_i($!from,$!indices)
-#?endif
                 }
             }.new(to,from).sink-all
         }
@@ -281,12 +276,7 @@
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
                       nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
-#?if moar
                       ) = nqp::multidimref_n($!from,$!indices)
-#?endif
-#?if !moar
-                      ) = nqp::atposnd_n($!from,$!indices)
-#?endif
                 }
             }.new(to,from).sink-all
         }

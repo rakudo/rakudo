@@ -86,11 +86,9 @@ my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-#?if moar
 my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-#?endif
 
 # Implement the signature binder.
 # The JVM backend really only uses trial_bind,
@@ -1359,11 +1357,9 @@ BEGIN {
     setup_native_ref_type(IntPosRef, int, 'positional');
     setup_native_ref_type(NumPosRef, num, 'positional');
     setup_native_ref_type(StrPosRef, str, 'positional');
-#?if moar
     setup_native_ref_type(IntMultidimRef, int, 'multidim');
     setup_native_ref_type(NumMultidimRef, num, 'multidim');
     setup_native_ref_type(StrMultidimRef, str, 'multidim');
-#?endif
 
     # class Proxy is Any {
     #    has Mu &!FETCH;
@@ -3370,11 +3366,9 @@ nqp::sethllconfig('perl6', nqp::hash(
     'int_pos_ref', IntPosRef,
     'num_pos_ref', NumPosRef,
     'str_pos_ref', StrPosRef,
-#?if moar
     'int_multidim_ref', IntMultidimRef,
     'num_multidim_ref', NumMultidimRef,
     'str_multidim_ref', StrMultidimRef,
-#?endif
 ));
 
 #?if jvm

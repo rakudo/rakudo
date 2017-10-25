@@ -438,6 +438,7 @@ my class ThreadPoolScheduler does Scheduler {
     # it takes stock of the current situation and decides whether or not to
     # add threads.
     my constant SUPERVISION_INTERVAL = 0.01;
+    my constant LAST_UTILS_NUM       = 5;
     method !maybe-start-supervisor() {
         unless $!supervisor.DEFINITE {
             $!supervisor = Thread.start(:app_lifetime, {
@@ -473,7 +474,7 @@ my class ThreadPoolScheduler does Scheduler {
                 scheduler-debug "Supervisor started";
                 my num $last-rusage-time = nqp::time_n;
                 my int $last-usage = self!getrusage-total();
-                my num @last-utils;
+                my num @last-utils = 0e0 xx LAST_UTILS_NUM;
                 my int $cpu-cores = nqp::cpucores();
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
@@ -496,11 +497,11 @@ my class ThreadPoolScheduler does Scheduler {
                     my num $per-core = $normalized-delta / $cpu-cores;
                     my num $per-core-util = 100 * ($per-core / 1000000);
 
-                    # Since those values are noisy, average the last 5 to get
-                    # a smoothed value.
-                    @last-utils.shift if @last-utils == 5;
-                    push @last-utils, $per-core-util;
-                    my $smooth-per-core-util = [+](@last-utils) / @last-utils;
+                    # Since those values are noisy, average the last
+                    # LAST_UTILS_NUM values to get a smoothed value.
+                    @last-utils.shift;
+                    @last-utils.push: $per-core-util;
+                    my $smooth-per-core-util = @last-utils.sum / LAST_UTILS_NUM;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%";
 
                     if $!general-queue.DEFINITE {

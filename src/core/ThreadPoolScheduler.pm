@@ -411,7 +411,11 @@ my class ThreadPoolScheduler does Scheduler {
         my $threshold = @affinity-add-thresholds[
             ($cur-affinity-workers.elems min @affinity-add-thresholds) - 1
         ];
-        if $chosen-queue.elems > $threshold {
+
+        # If we got up to here with an empty queue, we have just one worker,
+        # so fire off another one because otherwise there seems to be a hang
+        # in some cases https://irclog.perlgeek.de/perl6-dev/2017-10-25#i_15349923
+        if not $chosen-queue.elems or $chosen-queue.elems > $threshold {
             # Add another one, unless another thread did too.
             $!state-lock.protect: {
                 if self!total-workers() >= $!max_threads {

@@ -128,8 +128,8 @@ my class array does Iterable {
             nqp::push_s(self, $value);
             self
         }
-        multi method append(strarray:D: str @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(strarray:D: strarray:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(strarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
@@ -739,8 +739,8 @@ my class array does Iterable {
             nqp::push_n(self, $value);
             self
         }
-        multi method append(numarray:D: num @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(numarray:D: numarray:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(numarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))

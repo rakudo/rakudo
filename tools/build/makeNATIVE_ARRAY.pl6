@@ -115,8 +115,8 @@ for $*IN.lines -> $line {
             nqp::push_#postfix#(self, $value);
             self
         }
-        multi method append(#type#array:D: #type# @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(#type#array:D: #type#array:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(#type#array:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))

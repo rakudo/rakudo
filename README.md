@@ -21,7 +21,7 @@ text file.
 
 ## Building and Installing Rakudo
 
-[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=nom)](https://travis-ci.org/rakudo/rakudo) [![Build status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/nom)
+[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
 
 See the INSTALL.txt file for detailed prerequisites and build and
 installation instructions.
@@ -117,7 +117,7 @@ Rakudo, its components, and the Perl 6 language specification.
 If you have a patch that fixes a bug or adds a new feature, please
 create a pull request using github's pull request infrastructure.
 
-See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/nom/CONTRIBUTING.md) for more information.
+See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/CONTRIBUTING.md) for more information.
 
 ## Line editing and tab completion
 

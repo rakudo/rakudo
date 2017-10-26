@@ -9,15 +9,13 @@ We want to provide a little more stability than we attain today in terms of
 releases, but at the same time don't want to slow down development notably.
 Therefore:
 
-* Development work will continue on the nom branch (which we might rename,
-  but it'll end up bikeshed to death and it's in muscle memory, so we'll
-  probably leave it as is.)
-* Commit policy on "nom" is pretty much as today
-* The camelia bot will build from "nom"
-* A "master" branch will be created and will become the default branch
+* Development work will continue on the master branch
+* Commit policy on "master" is pretty much as today
+* The camelia bot will build from "master"
+* Some other branch will be created and will become the default branch
   people pull, that things like rakudobrew build if asked to get the
   latest non-release, and that we release from
-* An automated process will fast-forward master to catch up with nom at
+* An automated process will fast-forward master to catch up with master at
   regular intervals, provided it meets a bunch of automated quality checks
 
 These automated quality checks are as follows:
@@ -38,16 +36,16 @@ mistakes.
 
 ## Releases
 
-Releases will be cut from master. The release manager will have the advantage
+Releases will be cut from some branch. The release manager will have the advantage
 of knowing they are releasing something that has already passed a bunch of
 automated quality checks. The release process will be something like:
 
-* Create a release branch based off master
+* Create a release branch based off some branch
 * Do release-related commits in the branch (announcement, last change log
   updates, bump VERSION, etc.)
 * Cut the release (produce the tarball, etc.)
 * Tag the released commit
-* Merge the release branch into nom (so it will end up merged into master
+* Merge the release branch into master (so it will end up merged into some branch
   also later)
 
 We can script some of this (the branch creation, stubbing announcement,

@@ -47,8 +47,8 @@
             <dc:title>The Perl Foundation</dc:title>
           </cc:Agent>
         </dc:rights>
-        <dc:source>https://raw.github.com/rakudo/rakudo/nom/docs/architecture.svg</dc:source>
-        <dc:relation>https://raw.github.com/rakudo/rakudo/nom/docs/architecture.html</dc:relation>
+        <dc:source>https://raw.github.com/rakudo/rakudo/master/docs/architecture.svg</dc:source>
+        <dc:relation>https://raw.github.com/rakudo/rakudo/master/docs/architecture.html</dc:relation>
         <dc:language>en-US</dc:language>
       </cc:Work>
     </rdf:RDF>

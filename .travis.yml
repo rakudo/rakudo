@@ -28,7 +28,7 @@ script:
 
 branches:
    only:
-     - nom
+     - master
      - /smoke-me/
 
 notifications:

@@ -579,6 +579,15 @@ my class ThreadPoolScheduler does Scheduler {
           )
         );
 
+        sub heuristic-check-for-deadlock {
+            my int $average-times-nothing-completed
+            = $total-times-nothing-completed div (worker-list.elems || 1);
+            if $average-times-nothing-completed > 20 {
+                scheduler-debug "Heuristic queue progress deadlock situation detected";
+                add-worker();
+            }
+        }
+
         # If we didn't complete anything, then consider adding more threads.
         my int $total-workers = self!total-workers();
         if $total-completed == 0 {
@@ -601,16 +610,19 @@ my class ThreadPoolScheduler does Scheduler {
                 # number of iterations since nothing was completed by any
                 # worker will grow.
                 else {
-                    my int $average-times-nothing-completed =
-                        $total-times-nothing-completed div (worker-list.elems || 1);
-                    if $average-times-nothing-completed > 20 {
-                        scheduler-debug "Heuristic queue progress deadlock situation detected";
-                        add-worker();
-                    }
+                    heuristic-check-for-deadlock
                 }
             }
             else {
-                scheduler-debug "Will not add extra worker; hit $!max_threads thread limit";
+                scheduler-debug "Will not add extra worker; hit $!max_threads thread limit [branch with 0 total completed]";
+            }
+        }
+        elsif $total-times-nothing-completed > 20*$cores {
+            if $total-workers < $!max_threads {
+                heuristic-check-for-deadlock
+            }
+            else {
+                scheduler-debug "Will not add extra worker; hit $!max_threads thread limit [branch with some total completed]";
             }
         }
     }

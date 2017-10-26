@@ -495,13 +495,14 @@ my class ThreadPoolScheduler does Scheduler {
                     # into a per-core utilization percentage.
                     my num $normalized-delta = $usage-delta / $rusage-period;
                     my num $per-core = $normalized-delta / $cpu-cores;
-                    my num $per-core-util = 100 * ($per-core / 1000000);
+                    my num $per-core-util =
+                      100 * ($per-core / (1000000 * LAST_UTILS_NUM));
 
                     # Since those values are noisy, average the last
                     # LAST_UTILS_NUM values to get a smoothed value.
                     @last-utils.shift;
                     @last-utils.push: $per-core-util;
-                    my $smooth-per-core-util = @last-utils.sum / LAST_UTILS_NUM;
+                    my $smooth-per-core-util = @last-utils.sum;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%";
 
                     if $!general-queue.DEFINITE {

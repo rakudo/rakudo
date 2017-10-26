@@ -262,7 +262,7 @@ throws-like ｢callframe.callframe(1).my.perl｣, X::NYI,
 
 
 subtest '.new on native types works (deprecated; will die)' => {
-    plan 9;
+    plan 18;
 
     die "Time to remove deprecation and make .new on ints die"
         if $*PERL.compiler.version after v2017.12.50;
@@ -285,6 +285,18 @@ subtest '.new on native types works (deprecated; will die)' => {
     is-deeply num64.new(4e0), 4e0, 'num64';
 
     is-deeply str.new('x'), 'x', 'str';
+
+    throws-like { int  .new }, Exception, :message{.contains: "Cannot instantiate"}, 'int no args';
+    throws-like { int8 .new }, Exception, :message{.contains: "Cannot instantiate"}, 'int8 no args';
+    throws-like { int16.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int16 no args';
+    throws-like { int32.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int32 no args';
+    throws-like { int64.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int64 no args';
+
+    throws-like { num  .new }, Exception, :message{.contains: "Cannot instantiate"}, 'num no args';
+    throws-like { num32.new }, Exception, :message{.contains: "Cannot instantiate"}, 'num32 no args';
+    throws-like { num64.new }, Exception, :message{.contains: "Cannot instantiate"}, 'num64 no args';
+
+    throws-like { str.new   }, Exception, :message{.contains: "Cannot instantiate"}, 'str no args';
 
     # throws-like { int  .new: 4   }, Exception, 'int';
     # throws-like { int8 .new: 4   }, Exception, 'int8';

@@ -436,15 +436,7 @@ my class ThreadPoolScheduler does Scheduler {
     # just take whatever we can get and assume that it may be gone by
     # the time we get to it.
     sub push-worker(\workers, \to-push) is raw {
-        my int $i = -1;
-        my $new-workers := nqp::create(IterationBuffer);
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(workers)),
-          nqp::unless(
-            nqp::isnull(my $job := nqp::atpos(workers,$i)),
-            nqp::push($new-workers,$job)
-          )
-        );
+        my $new-workers := nqp::clone(workers);
         nqp::push($new-workers,to-push);
         $new-workers
     }

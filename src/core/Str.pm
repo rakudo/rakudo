@@ -1096,7 +1096,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
-        try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
+        $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches = %options
           ?? self.match($matcher, |%options)
           !! self.match($matcher);  # 30% faster
@@ -1169,7 +1169,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
         # nothing to do
-        try caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
+        caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
         my @matches = %options
           ?? self.match($matcher, :$g, |%options)
           !! self.match($matcher, :$g);  # 30% faster
@@ -1196,7 +1196,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $prev;
         my str $str    = nqp::unbox_s(self);
         my Mu $result := nqp::list_s();
-        try cds = $/ if SDS;
+        cds = $/ if SDS;
 
         # need to do something special
         if SDS || space || case || mark || callable {
@@ -1205,7 +1205,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my \case-and-mark := case && mark;
 
             for flat matches -> $m {
-                try cds = $m if SDS;
+                cds = $m if SDS;
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                 );

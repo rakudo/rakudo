@@ -43,10 +43,14 @@ New in 2017.10:
     + Fixed location of errors coming from Channel [82a38c29]
     + Fixed lockup when scheduling with degenerate delays [df01ad97][031f8cf7]
     + Fixed segfault in getlexdyn [4f5fc520][4c370072]
+    + Fixed poor error with some slurpies with defaults [a92950fb]
+    + Fixed Int.new to properly give a new object [e4a5bb17]
+    + Fixed .STORE leaving behind elements on native arrays [a85c8d48]
     + Various async improvements [633a15b8][ef4d16fe][f53d3963]
         [26a9c313][9d903408][0d600a0c][54783920][e0e5e6fa][b16aba01]
         [d8890a82][73aeee6c][2a826238][3deda842][f58ac999][40c2d0cd]
-        [c46de00f][e5c17462][6e42b37e][80f883bc]
+        [c46de00f][e5c17462][6e42b37e][80f883bc][6af44f8d][e70969e3]
+        [30462d76][97b11edd]
     + Various fixes and improvements to hyper/race [cc2a0643][2352efe5]
         [d43b3738][dfa230f7][1fdc84fe][cef4806f][ea51d19b][374ee3e2]
         [ad0dd8e7][41729e93][d74ba041][83676112][2580a0a6][cf1673d9]
@@ -56,7 +60,7 @@ New in 2017.10:
         [cf95ce81][66c2d05f][a845ac3d][48a84d6a][bb45791c][279bae08]
         [6542bb80][5747bc71][c7a82d45][fb7abf06][ac97a401][64b001a1]
         [1ea3297b][56eef696][25c87d0d][5d3ebc09][de2b9ff7][084078e1]
-        [3acde358][b3bb8c40][e611978f][12774237][33e113a2]
+        [3acde358][b3bb8c40][e611978f][12774237][33e113a2][9554a97c]
  + Additions:
     + Improved .Capture semantics on all core types [4ba12ff1]
         [bad9fefd][cd5864cf]
@@ -81,7 +85,8 @@ New in 2017.10:
  + Removals:
     + Removed $*MAIN-ALLOW-NAMED-ANYWHERE [9cb4b167]
     + Removed support for ornate parenthesis from quoting constructs [9ce896d8]
-    + Renamed $*INITTIME to $*INIT-INSTANT according to the spec [6bdb2dd3]
+    + Renamed $*INITTIME to $*INIT-INSTANT according to the spec
+        [6bdb2dd3][bd6c6403]
  + Build system:
     + Reworked REPL tests [be4d57de][338a0972][7c8a2739][f8edb829][1ce3a36d]
     + Various changes related to v6.d prep [7d830d5c][6cb810d2][36bc8e2d]
@@ -91,7 +96,7 @@ New in 2017.10:
     + Made startup time up to 5 ms faster [48406db6][a09f5f21][bb5583ae]
     + Made chained ops up to 36x faster [a92d0369]
     + Made ≥, ≤, and ≠ unicode ops as fast as ascii equivalents
-        [6ec21cb4][1af2a745][43c348a8][9ff2f98f]
+        [6ec21cb4][1af2a745][43c348a8][9ff2f98f][6ad06fad]
     + Made &infix:<cmp> with Version:Ds 7.2x faster [1d9553f0]
     + Made &DEPRECATED 27% faster when vfrom is too large [145e3156]
     + Made Blob.gist 26x faster [20a99fc3]
@@ -99,8 +104,8 @@ New in 2017.10:
     + Made @a[42..*] 4.2x faster [456358e3]
     + Various NativeCall speedups [a06ebaf2][269fe7db][80d6b425]
     + Significantly faster interpolation of variables into regexes
-	[1761540e][0a68a18f][d73d500b][1775259a][e8003c87]
-	[4d3ccd83][04b171bd][317ae16c][dd880cad][2262cc47]
+        [1761540e][0a68a18f][d73d500b][1775259a][e8003c87]
+        [4d3ccd83][04b171bd][317ae16c][dd880cad][2262cc47]
     + Other small optimizations [9d4a833b][6902c590][fb4eb666]
         [b9c98531][4fae0711][921db910][c91c4011][98fae3d8]
         [a462d0a2][16c2a157][5f6896bd][397692ac][476741e7]
@@ -108,6 +113,8 @@ New in 2017.10:
     + New JIT [2724a851][ff063e7b]
     + Better scheduler [d2eb7423][80b49320][340d8ed3][c50d35a9][9af5607d]
         [683037be][7c18112c][c285b489][b5605c2d][3b98fb9e][596611c8]
+        [6f6e62ea][176a6fae][43b7cfde][59bfa5ab][27590e8b][e95eb42c]
+        [2c4868b8]
     + Added RAKUDO_SCHEDULER_DEBUG_STATUS env var [de311f46]
     + Bumped libuv to the latest version [198b8497]
     + Reworked BUILDALL method autogeneration [9837687d][63cf246f]

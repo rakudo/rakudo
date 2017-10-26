@@ -450,7 +450,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2017-07-15   Rakudo #113 "2017.07"           (Zoffix + NeuralAnomaly)
   2017-08-21   Rakudo #114 "2017.08"           (AlexDaniel + Releasable)
   2017-09-18   Rakudo #115 "2017.09"           (AlexDaniel + Releasable)
-  2017-10-23   Rakudo #116 "2017.10"           (AlexDaniel + Releasable)
+  2017-10-26   Rakudo #116 "2017.10"           (AlexDaniel + Releasable)
 
 =head1 COPYRIGHT
 

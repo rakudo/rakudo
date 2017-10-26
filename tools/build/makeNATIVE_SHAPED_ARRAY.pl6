@@ -56,12 +56,7 @@ for $*IN.lines -> $line {
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
-#?if moar
                 nqp::multidimref_#postfix#(self,$idxs)
-#?endif
-#?if !moar
-                nqp::atposnd_#postfix#(self,$idxs)
-#?endif
               ),
               nqp::if(
                 nqp::isgt_i($numind,$numdims),
@@ -121,12 +116,7 @@ for $*IN.lines -> $line {
                 }
                 method result(--> Nil) {
                     nqp::bindposnd_#postfix#($!list,$!indices,
-#?if moar
                       nqp::multidimref_#postfix#($!from,$!indices))
-#?endif
-#?if !moar
-                      nqp::atposnd_#postfix#($!from,$!indices))
-#?endif
                 }
             }.new(to,from).sink-all;
             to
@@ -259,12 +249,7 @@ for $*IN.lines -> $line {
         method iterator(::?CLASS:D:) {
             class :: does Rakudo::Iterator::ShapeLeaf {
                 method result() is raw {
-#?if moar
                     nqp::multidimref_#postfix#($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                    nqp::atposnd_#postfix#($!list,nqp::clone($!indices))
-#?endif
                 }
             }.new(self)
         }
@@ -280,12 +265,7 @@ for $*IN.lines -> $line {
                           nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
                         $result
                       ),
-#?if moar
                       nqp::multidimref_#postfix#($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                      nqp::atposnd_#postfix#($!list,nqp::clone($!indices))
-#?endif
                     )
                 }
                 # needs its own push-all since it fiddles with $!indices
@@ -302,12 +282,7 @@ for $*IN.lines -> $line {
                 method result() {
                     Pair.new(
                       self.indices,
-#?if moar
                       nqp::multidimref_#postfix#($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                      nqp::atposnd_#postfix#($!list,nqp::clone($!indices))
-#?endif
                     )
                 }
             }.new(self))
@@ -498,20 +473,10 @@ for $*IN.lines -> $line {
 
     role shaped2#type#array does shaped#type#array {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
-#?if moar
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
-#?endif
-#?if !moar
-            nqp::atpos2d_#postfix#(self,one,two)
-#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
-#?if moar
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
-#?endif
-#?if !moar
-            nqp::atpos2d_#postfix#(self,one,two)
-#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, #Type#:D \value) {
@@ -541,20 +506,10 @@ for $*IN.lines -> $line {
 
     role shaped3#type#array does shaped#type#array {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
-#?if moar
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
-#?endif
-#?if !moar
-            nqp::atpos3d_#postfix#(self,one,two,three)
-#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
-#?if moar
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
-#?endif
-#?if !moar
-            nqp::atpos3d_#postfix#(self,one,two,three)
-#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, #Type#:D \value) {

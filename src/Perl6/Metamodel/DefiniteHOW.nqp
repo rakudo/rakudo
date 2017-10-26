@@ -30,9 +30,12 @@ class Perl6::Metamodel::DefiniteHOW
 
     #~ has @!mro;
 
+    my class Definite { }
+    my class NotDefinite { }
+
     method new_type(:$base_type!, :$definite!) {
         my $root := nqp::parameterizetype((Perl6::Metamodel::DefiniteHOW.WHO)<root>,
-            [$base_type, $definite]);
+            [$base_type, $definite ?? Definite !! NotDefinite]);
         nqp::setdebugtypename($root, self.name($root));
     }
 
@@ -43,7 +46,7 @@ class Perl6::Metamodel::DefiniteHOW
         else {
             my $base_type := nqp::typeparameterat($definite_type, 0);
             my $definite  := nqp::typeparameterat($definite_type, 1);
-            $base_type.HOW.name($base_type) ~ ':' ~ ($definite ?? 'D' !! 'U')
+            $base_type.HOW.name($base_type) ~ ':' ~ (nqp::eqaddr($definite, Definite) ?? 'D' !! 'U')
         }
     }
 
@@ -54,7 +57,7 @@ class Perl6::Metamodel::DefiniteHOW
         else {
             my $base_type := nqp::typeparameterat($definite_type, 0);
             my $definite  := nqp::typeparameterat($definite_type, 1);
-            $base_type.HOW.shortname($base_type) ~ ':' ~ ($definite ?? 'D' !! 'U')
+            $base_type.HOW.shortname($base_type) ~ ':' ~ (nqp::eqaddr($definite, Definite) ?? 'D' !! 'U')
         }
     }
 
@@ -70,7 +73,7 @@ class Perl6::Metamodel::DefiniteHOW
 
     method definite($definite_type) {
         check_instantiated($definite_type);
-        nqp::typeparameterat($definite_type, 1)
+        nqp::eqaddr(nqp::typeparameterat($definite_type, 1), Definite) ?? 1 !! 0
     }
 
     #~ # Our MRO is just that of base type.

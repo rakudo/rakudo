@@ -341,22 +341,19 @@ class CompUnit::RepositoryRegistry {
 #?endif
 
     sub parse-include-spec(Str:D $spec, Str:D $default-short-id = 'file') {
-        my %options;
-
         # something we understand
         if $spec ~~ /^
           <before .>
           [
             $<type>=[ <.ident>+ % '::' ]
-            [ '#' $<n>=\w+
-              <[ < ( [ { ]> $<v>=<[\w-]>+ <[ > ) \] } ]>
-              { %options{$<n>} = ~$<v> }
+            [ '#' $<option-name>=\w+
+              <[ < ( [ { ]> $<option-value>=<[\w-]>+? <[ > ) \] } ]>
             ]*
             '#'
           ]?
           $<path>=.*
         $/ {
-            ( $<type> ?? ~$<type> !! $default-short-id, %options, ~$<path> );
+            ( ~($<type> // $default-short-id), %($<option-name>>>.Str Z=> $<option-value>>>.Str), ~$<path> );
         }
     }
 

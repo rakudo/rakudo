@@ -75,11 +75,13 @@ for $*IN.lines -> $line {
         }
 
         multi method STORE(#type#array:D: $value) {
+            nqp::setelems(self,1);
             nqp::bindpos_#postfix#(self, 0, nqp::unbox_#postfix#($value));
             self
         }
         multi method STORE(#type#array:D: #type# @values) {
-            nqp::splice(self,@values,0,0)
+            nqp::setelems(self,@values.elems);
+            nqp::splice(self,@values,0,@values.elems)
         }
         multi method STORE(#type#array:D: @values) {
             my int $elems = @values.elems;

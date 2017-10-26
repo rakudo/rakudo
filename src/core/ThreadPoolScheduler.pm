@@ -422,9 +422,7 @@ my class ThreadPoolScheduler does Scheduler {
                     return $chosen-queue;
                 }
                 my $new-worker := AffinityWorker.new(scheduler => self);
-                my $workers := nqp::clone($!affinity-workers);
-                nqp::push($workers, $new-worker);
-                $!affinity-workers := $workers;
+                $!affinity-workers := push-worker($!affinity-workers,$new-worker);
                 scheduler-debug "Added an affinity worker thread";
                 $new-worker.queue
             }
@@ -432,6 +430,23 @@ my class ThreadPoolScheduler does Scheduler {
         else {
             $chosen-queue
         }
+    }
+
+    # Since the worker lists can be changed during copying, we need to
+    # just take whatever we can get and assume that it may be gone by
+    # the time we get to it.
+    sub push-worker(\workers, \to-push) is raw {
+        my int $i = -1;
+        my $new-workers := nqp::create(IterationBuffer);
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(workers)),
+          nqp::unless(
+            nqp::isnull(my $job := nqp::atpos(workers,$i)),
+            nqp::push($new-workers,$job)
+          )
+        );
+        nqp::push($new-workers,to-push);
+        $new-workers
     }
 
     # The supervisor sits in a loop, mostly sleeping. Each time it wakes up,
@@ -444,29 +459,26 @@ my class ThreadPoolScheduler does Scheduler {
             $!supervisor = Thread.start(:app_lifetime, {
                 sub add-general-worker() {
                     $!state-lock.protect: {
-                        my $workers := nqp::clone($!general-workers);
-                        nqp::push(
-                          $workers,
+                        $!general-workers := push-worker(
+                          $!general-workers,
                           GeneralWorker.new(
                             queue => $!general-queue,
                             scheduler => self
                           )
                         );
-                        $!general-workers := $workers;
+
                     }
                     scheduler-debug "Added a general worker thread";
                 }
                 sub add-timer-worker() {
                     $!state-lock.protect: {
-                        my $workers := nqp::clone($!timer-workers);
-                        nqp::push(
-                          $workers,
+                        $!timer-workers := push-worker(
+                          $!timer-workers,
                           TimerWorker.new(
                             queue => $!timer-queue,
                             scheduler => self
                           )
                         );
-                        $!timer-workers := $workers;
                     }
                     scheduler-debug "Added a timer worker thread";
                 }
@@ -640,16 +652,15 @@ my class ThreadPoolScheduler does Scheduler {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
             if $!initial_threads > $!max_threads;
 
-            $!general-workers  := nqp::create(IterationBuffer);
-            $!timer-workers    := nqp::create(IterationBuffer);
-            $!affinity-workers := nqp::create(IterationBuffer);
+        $!timer-workers    := nqp::create(IterationBuffer);
+        $!affinity-workers := nqp::create(IterationBuffer);
 
         if $!initial_threads > 0 {
             # We've been asked to make some initial threads; we interpret this
             # as general workers.
             self!general-queue(); # Starts one worker
             if $!initial_threads > 1 {
-                my $workers := nqp::clone($!general-workers);
+                my $workers := nqp::create(IterationBuffer);
                 my int $i = -1;
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$!initial_threads),
@@ -663,6 +674,9 @@ my class ThreadPoolScheduler does Scheduler {
                 );
                 $!general-workers := $workers;
             }
+        }
+        else {
+            $!general-workers  := nqp::create(IterationBuffer);
         }
     }
 

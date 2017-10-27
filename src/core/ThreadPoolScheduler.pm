@@ -475,7 +475,6 @@ my class ThreadPoolScheduler does Scheduler {
                 my num $last-rusage-time = nqp::time_n;
                 my int $last-usage = self!getrusage-total();
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
-                my int $sampled;
                 my int $cpu-cores = nqp::cpucores();
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
@@ -501,7 +500,8 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
-                    @last-utils[++$sampled % NUM_SAMPLES] = $per-core-util;
+                    nqp::shift_n(@last-utils);
+                    nqp::push_n(@last-utils,$per-core-util);
                     my $smooth-per-core-util = @last-utils.sum;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%";
 

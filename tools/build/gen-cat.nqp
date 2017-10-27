@@ -1,6 +1,21 @@
 #!/usr/bin/env nqp
 # Copyright (C) 2014, The Perl Foundation
 
+note('
+
+
+*****************************************************************
+
+  NOTICE: `nom` branch of rakudo repository is NO LONGER ACTIVELY USED.
+  Please use `master` branch to track latest changes.
+
+  Press ENTER to continue this build process
+
+*****************************************************************
+
+
+');
+nqp::readfh(nqp::getstdin(), nqp::create($NQPBuf), 1);
 
 sub MAIN(*@ARGS) {
     my $program := @ARGS.shift;

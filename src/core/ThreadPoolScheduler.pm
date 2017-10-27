@@ -339,15 +339,13 @@ my class ThreadPoolScheduler does Scheduler {
                 unless $!timer-queue.DEFINITE {
                     # We don't have any workers yet, so start one.
                     $!timer-queue := nqp::create(Queue);
-                    my $workers := nqp::create(IterationBuffer);
-                    nqp::push(
-                      $workers,
+                    $!timer-workers := push-worker(
+                      nqp::create(IterationBuffer),
                       TimerWorker.new(
                         queue => $!timer-queue,
                         scheduler => self
                       )
                     );
-                    $!timer-workers := $workers;
                     scheduler-debug "Created initial timer worker thread";
                     self!maybe-start-supervisor();
                 }
@@ -365,14 +363,12 @@ my class ThreadPoolScheduler does Scheduler {
                 if $!affinity-workers.elems == 0 {
                     # We don't have any affinity workers yet, so start one
                     # and return its queue.
-                    my $workers := nqp::create(IterationBuffer);
-                    nqp::push(
-                      $workers,
+                    $!affinity-workers := push-worker(
+                      nqp::create(IterationBuffer),
                       AffinityWorker.new(
                         scheduler => self
                       )
                     );
-                    $!affinity-workers := $workers;
                     scheduler-debug "Created initial affinity worker thread";
                     self!maybe-start-supervisor();
                     return $!affinity-workers[0].queue;

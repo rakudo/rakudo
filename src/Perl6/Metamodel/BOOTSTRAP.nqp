@@ -2974,11 +2974,9 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
-#?if moar
     Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
-#?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);

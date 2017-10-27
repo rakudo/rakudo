@@ -393,16 +393,17 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
         value = desc.$$getattr(ContainerDescriptor, '$!default');
       } else {
         value = maybeValue;
-        let of = desc.$$getattr(ContainerDescriptor, '$!of');
-        if (of !== Mu && value.$$istype(ctx, of)=== 0) {
-          let name = desc.$$getattr_s(ContainerDescriptor, '$!name');
-          let thrower = getThrower("X::TypeCheck::Assignment");
+      }
 
-          if (thrower === null) {
-              ctx.die("Type check failed in assignment to '" + name + "'");
-          } else {
-              thrower.$$call(ctx, null, name, value, of);
-          }
+      let of = desc.$$getattr(ContainerDescriptor, '$!of');
+      if (of !== Mu && value.$$istype(ctx, of)=== 0) {
+        let name = desc.$$getattr_s(ContainerDescriptor, '$!name');
+        let thrower = getThrower("X::TypeCheck::Assignment");
+
+        if (thrower === null) {
+            ctx.die("Type check failed in assignment to '" + name + "'");
+        } else {
+            thrower.$$call(ctx, null, name, value, of);
         }
       }
 

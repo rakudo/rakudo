@@ -632,8 +632,14 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
 
-    method !total-workers() {
-        $!general-workers.elems + $!timer-workers.elems + $!affinity-workers.elems
+    method !total-workers() is raw {
+        nqp::add_i(
+          nqp::elems($!general-workers),
+          nqp::add_i(
+            nqp::elems($!timer-workers),
+            nqp::elems($!affinity-workers)
+          )
+        )
     }
 
     submethod BUILD(

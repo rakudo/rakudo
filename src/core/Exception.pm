@@ -2132,9 +2132,19 @@ my class X::ControlFlow is Exception {
     method message() { "$.illegal without $.enclosing" }
 }
 my class X::ControlFlow::Return is X::ControlFlow {
+    has Bool $.out-of-dynamic-scope;
+    submethod BUILD(Bool() :$!out-of-dynamic-scope) {}
+
     method illegal()   { 'return'  }
     method enclosing() { 'Routine' }
-    method message()   { 'Attempt to return outside of any Routine' }
+    method message()   {
+        'Attempt to return outside of ' ~ (
+            $!out-of-dynamic-scope
+              ?? 'immediatelly-enclosing Routine (i.e. `return` execution is'
+               ~ ' outside the dynamic scope of the Routine where `return` was used)'
+              !! 'any Routine'
+        )
+    }
 }
 
 my class X::Composition::NotComposable does X::Comp {
@@ -2627,8 +2637,8 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::Assignment::RO.new(:$value).throw;
   },
   'X::ControlFlow::Return',
-  {
-      X::ControlFlow::Return.new().throw;
+  -> $out-of-dynamic-scope = False {
+      X::ControlFlow::Return.new(:$out-of-dynamic-scope).throw;
   },
   'X::NoDispatcher',
   -> $redispatcher {

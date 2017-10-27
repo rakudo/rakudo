@@ -7,12 +7,12 @@ my class ThreadPoolScheduler does Scheduler {
     # Scheduler debug, controlled by an environment variable.
     my $scheduler-debug = so %*ENV<RAKUDO_SCHEDULER_DEBUG>;
     my $scheduler-debug-status = so %*ENV<RAKUDO_SCHEDULER_DEBUG_STATUS>;
-    sub scheduler-debug($message) {
+    sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {
             note "[SCHEDULER] $message";
         }
     }
-    sub scheduler-debug-status($message) {
+    sub scheduler-debug-status($message --> Nil) {
         if $scheduler-debug-status {
             note "[SCHEDULER] $message";
         }
@@ -219,7 +219,7 @@ my class ThreadPoolScheduler does Scheduler {
             $taken
         }
 
-        method !run-one(\task) {
+        method !run-one(\task --> Nil) {
             $!working = 1;
             nqp::continuationreset(THREAD_POOL_PROMPT, {
                 if nqp::istype(task, List) {
@@ -446,10 +446,10 @@ my class ThreadPoolScheduler does Scheduler {
     # add threads.
     my constant SUPERVISION_INTERVAL = 0.01;
     my constant LAST_UTILS_NUM       = 5;
-    method !maybe-start-supervisor() {
+    method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
             $!supervisor = Thread.start(:app_lifetime, {
-                sub add-general-worker() {
+                sub add-general-worker(--> Nil) {
                     $!state-lock.protect: {
                         $!general-workers := push-worker(
                           $!general-workers,
@@ -462,7 +462,7 @@ my class ThreadPoolScheduler does Scheduler {
                     }
                     scheduler-debug "Added a general worker thread";
                 }
-                sub add-timer-worker() {
+                sub add-timer-worker(--> Nil) {
                     $!state-lock.protect: {
                         $!timer-workers := push-worker(
                           $!timer-workers,
@@ -530,7 +530,7 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
 
-    method !prod-affinity-workers (\worker-list) {
+    method !prod-affinity-workers (\worker-list --> Nil) {
         for ^worker-list.elems {
             my $worker := worker-list[$_];
             if $worker.working {
@@ -584,7 +584,7 @@ my class ThreadPoolScheduler does Scheduler {
           )
         );
 
-        sub heuristic-check-for-deadlock {
+        sub heuristic-check-for-deadlock(--> Nil) {
             my int $average-times-nothing-completed
             = $total-times-nothing-completed div (worker-list.elems || 1);
             if $average-times-nothing-completed > 20 {

@@ -505,11 +505,11 @@ my class ThreadPoolScheduler does Scheduler {
                     my $smooth-per-core-util = @last-utils.sum;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%";
 
-                    if $!general-queue.DEFINITE {
+                    if $!general-queue.DEFINITE && $!general-queue.elems {
                         self!tweak-workers: $!general-queue, $!general-workers,
                             &add-general-worker, $cpu-cores, $smooth-per-core-util;
                     }
-                    if $!timer-queue.DEFINITE {
+                    if $!timer-queue.DEFINITE && $!timer-queue.elems {
                         self!tweak-workers: $!timer-queue, $!timer-workers,
                             &add-timer-worker, $cpu-cores, $smooth-per-core-util;
                     }
@@ -552,12 +552,11 @@ my class ThreadPoolScheduler does Scheduler {
             nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
     }
 
+    # Tweak workers for non-empty queues
     method !tweak-workers(\queue, \worker-list, &add-worker, $cores, $per-core-util) {
-        # If there's nothing in the queue, nothing could need an extra worker.
-        return if queue.elems == 0;
 
         # Go through the worker list. If something is not working, then there
-        # is at lesat one worker free to process things in the queue, so we
+        # is at least one worker free to process things in the queue, so we
         # don't need to add one.
         my int $total-completed;
         my int $total-times-nothing-completed;

@@ -28,11 +28,11 @@ my class Int does Real { # declared in BOOTSTRAP
     multi method new(      \value) { self.new: value.Int }
     multi method new(int   \value) {
         # rebox the value, so we get rid of any potential mixins
-        nqp::div_I(nqp::decont(value), 1, self)
+        nqp::fromI_I(nqp::decont(value), self)
     }
     multi method new(Int:D \value = 0) {
         # rebox the value, so we get rid of any potential mixins
-        nqp::div_I(nqp::decont(value), 1, self)
+        nqp::fromI_I(nqp::decont(value), self)
     }
 
     multi method perl(Int:D:) {

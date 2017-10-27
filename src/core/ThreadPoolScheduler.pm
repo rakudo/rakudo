@@ -471,9 +471,17 @@ my class ThreadPoolScheduler does Scheduler {
                     scheduler-debug "Added a timer worker thread";
                 }
 
+                sub getrusage-total() is raw {
+                    my \rusage = nqp::getrusage();
+                    nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
+                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
+                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
+                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
+                }
+
                 scheduler-debug "Supervisor started";
                 my num $last-rusage-time = nqp::time_n;
-                my int $last-usage = self!getrusage-total();
+                my int $last-usage = getrusage-total;
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
                 my int $cpu-cores = nqp::cpucores();
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
@@ -487,7 +495,7 @@ my class ThreadPoolScheduler does Scheduler {
                     my num $now = nqp::time_n;
                     my num $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
-                    my int $current-usage = self!getrusage-total();
+                    my int $current-usage = getrusage-total();
                     my int $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 
@@ -542,14 +550,6 @@ my class ThreadPoolScheduler does Scheduler {
                 }
             }
         }
-    }
-
-    method !getrusage-total() {
-        my \rusage = nqp::getrusage();
-        nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000 +
-            nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC) +
-            nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000 +
-            nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
     }
 
     # Tweak workers for non-empty queues

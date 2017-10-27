@@ -955,6 +955,21 @@ my class array does Iterable {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------
 
+        method sum(numarray:D:) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my num $sum = nqp::atpos_n(self,0)),
+                (my int $i),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  $sum = nqp::add_n($sum,nqp::atpos_n(self,$i))
+                ),
+                $sum
+              ),
+              0e0
+            )
+        }
         multi method STORE(numarray:D: Range:D $range) {
             my num $val = $range.min;
             $val = $val + 1 if $range.excludes-min;

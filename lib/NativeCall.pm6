@@ -388,7 +388,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:scope<local>, :name($lowered_name)),
-                       $_.type ~~ Str ?? QAST::SVal.new()
+                       $_.type ~~ Str ?? Str
                     !! $_.type ~~ Int ?? QAST::IVal.new(:value(0))
                     !! $_.type ~~ Num ?? QAST::NVal.new(:value(0))
                     !! QAST::IVal.new(:value(0))

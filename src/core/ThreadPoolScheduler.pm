@@ -1,7 +1,7 @@
 my class ThreadPoolScheduler does Scheduler {
     # A concurrent, blocking-on-receive queue.
     my class Queue is repr('ConcBlockingQueue') {
-        method elems() { nqp::elems(self) }
+        method elems() is raw { nqp::elems(self) }
     }
 
     # Initialize $*PID here, as we need it for the debug message
@@ -767,7 +767,7 @@ my class ThreadPoolScheduler does Scheduler {
         -> { code(); CATCH { default { catch($_) } } }
     }
 
-    method loads() {
+    method loads() is raw {
         my int $loads = 0;
         $loads = $loads + $!general-queue.elems if $!general-queue;
         $loads = $loads + $!timer-queue.elems   if $!timer-queue;

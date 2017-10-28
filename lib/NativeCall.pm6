@@ -331,10 +331,11 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     method !create-jit-compiled-function-body(Routine $r) {
         my $block := QAST::Block.new(:name($r.name), :arity($!arity), :blocktype('declaration_static'));
         my $locals = 0;
-        my @deconts;
-        my @params;
+        my $args = 0;
+        my (@params, @assigns);
         for $r.signature.params {
             next if nqp::istype($r, Method) && ($_.name // '') eq '%_';
+            $args++;
             my $name = $_.name || '__anonymous_param__' ~ $++;
             my $lowered_param_name = '__lowered_param__' ~ $locals;
             my $lowered_name = '__lowered__' ~ $locals++;
@@ -350,13 +351,27 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 ),
             );
             @params.push: QAST::Var.new(:scope<local>, :name($lowered_name));
-            @deconts.push: QAST::Var.new(
+            $block.push: QAST::Var.new(
                 :name($lowered_param_name),
                 :scope<local>,
                 :decl<param>,
                 :slurpy($_.slurpy ?? 1 !! 0),
             );
-            @deconts.push: QAST::Op.new(
+            if $_.rw and nqp::objprimspec($_.type) > 0 {
+                $block.push: QAST::Var.new(
+                    :name($name),
+                    :scope<lexicalref>,
+                    :decl<var>,
+                    :returns($_.type),
+                );
+                $block.push:
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new(:scope<lexicalref>, :name($name)),
+                        QAST::Var.new(:scope<local>, :name($lowered_param_name)),
+                    );
+            }
+            $block.push: QAST::Op.new(
                 :op<if>,
                 QAST::Op.new(
                     :op<isconcrete>,
@@ -379,8 +394,15 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                     !! QAST::IVal.new(:value(0))
                 ),
             );
+
+            if $_.rw and nqp::objprimspec($_.type) > 0 {
+                @assigns.push: QAST::Op.new(
+                    :op<assign>,
+                    QAST::Var.new(:scope<lexicalref>, :name($name)),
+                    QAST::Op.new(:op<getarg_i>, QAST::IVal.new(:value($args - 1))),
+                );
+            }
         }
-        $block.push: nqp::decont($_) for @deconts; # do not interrupt the locals definitions
         $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
         my $invoke_op := QAST::Op.new(
             :op<nativeinvoke>,
@@ -388,7 +410,22 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             QAST::WVal.new(:value($!rettype)),
         );
         $invoke_op.push: nqp::decont($_) for @params;
-        $block.push: $invoke_op;
+        if @assigns {
+            $block.push: QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new(
+                    :name<return_value>,
+                    :scope<local>,
+                    :decl<var>,
+                ),
+                $invoke_op
+            );
+            $block.push: nqp::decont($_) for @assigns;
+            $block.push: QAST::Var.new(:name<return_value>, :scope<local>);
+        }
+        else {
+            $block.push: $invoke_op;
+        }
         $block
     }
 

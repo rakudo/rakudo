@@ -4,17 +4,22 @@ my class ThreadPoolScheduler does Scheduler {
         method elems() { nqp::elems(self) }
     }
 
+    # Initialize $*PID here, as we need it for the debug message
+    # anyway *and* it appears to have a positive effect on stability
+    # specifically wrt GH #1202.
+    PROCESS::<$PID> := nqp::p6box_i(my $pid := nqp::getpid);
+
     # Scheduler debug, controlled by an environment variable.
     my $scheduler-debug = so %*ENV<RAKUDO_SCHEDULER_DEBUG>;
     my $scheduler-debug-status = so %*ENV<RAKUDO_SCHEDULER_DEBUG_STATUS>;
     sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {
-            note "[SCHEDULER] $message";
+            note "[SCHEDULER $pid] $message";
         }
     }
     sub scheduler-debug-status($message --> Nil) {
         if $scheduler-debug-status {
-            note "[SCHEDULER] $message";
+            note "[SCHEDULER $pid] $message";
         }
     }
 

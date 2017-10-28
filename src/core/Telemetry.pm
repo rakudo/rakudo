@@ -115,7 +115,12 @@ class Telemetry::Period is Telemetry {
     }
 }
 
-multi sub infix:<->(Telemetry $a, Telemetry $b) {
+multi sub infix:<->(Telemetry:U $a, Telemetry:U $b) {
+    Telemetry::Period.new(0,0,0)
+}
+multi sub infix:<->(Telemetry:D $a, Telemetry:U $b) { $a     - $b.new }
+multi sub infix:<->(Telemetry:U $a, Telemetry:D $b) { $a.new - $b     }
+multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) {
     Telemetry::Period.new(
       nqp::sub_i(
         nqp::getattr_i(nqp::decont($a),Telemetry,'$!cpu-user'),

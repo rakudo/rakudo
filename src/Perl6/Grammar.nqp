@@ -65,7 +65,9 @@ role STD {
     method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
         sub lang_key() {
             my $stopstr := nqp::istype($stop,VMArray) ?? nqp::join(' ',$stop) !! $stop;
-            my @keybits := [$l.HOW.name($l), $start, $stopstr];
+            my @keybits := [
+                self.HOW.name(self), $l.HOW.name($l), $start, $stopstr
+            ];
             for @base_tweaks {
                 @keybits.push($_);
             }

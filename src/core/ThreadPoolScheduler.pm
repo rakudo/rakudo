@@ -546,7 +546,8 @@ my class ThreadPoolScheduler does Scheduler {
                 if $worker.times-nothing-completed > 10 {
                     scheduler-debug "Stealing queue from affinity worker";
                     my $item := nqp::queuepoll($worker.queue);
-                    nqp::push($!general-queue, $item) unless nqp::isnull($item);
+                    nqp::push(self!general-queue, $item)
+                      unless nqp::isnull($item);
                 }
             }
         }

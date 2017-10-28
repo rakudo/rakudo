@@ -104,7 +104,7 @@ class Telemetry::Period is Telemetry {
         $period
     }
 
-    multi method perl(Telemetry::Period:) {
+    multi method perl(Telemetry::Period:D:) {
         "Telemetry::Period.new(:cpu-user({
           nqp::getattr_i(self,Telemetry,'$!cpu-user')
         }), :cpu-sys({
@@ -116,7 +116,20 @@ class Telemetry::Period is Telemetry {
 }
 
 multi sub infix:<->(Telemetry $a, Telemetry $b) {
-    $a.cpu - $b.cpu
+    Telemetry::Period.new(
+      nqp::sub_i(
+        nqp::getattr_i(nqp::decont($a),Telemetry,'$!cpu-user'),
+        nqp::getattr_i(nqp::decont($b),Telemetry,'$!cpu-user')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i(nqp::decont($a),Telemetry,'$!cpu-sys'),
+        nqp::getattr_i(nqp::decont($b),Telemetry,'$!cpu-sys')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i(nqp::decont($a),Telemetry,'$!wallclock'),
+        nqp::getattr_i(nqp::decont($b),Telemetry,'$!wallclock')
+      )
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

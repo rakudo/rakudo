@@ -10,8 +10,8 @@ my class ThreadPoolScheduler does Scheduler {
     PROCESS::<$PID> := nqp::p6box_i(my $pid := nqp::getpid);
 
     # Scheduler debug, controlled by an environment variable.
-    my $scheduler-debug = so %*ENV<RAKUDO_SCHEDULER_DEBUG>;
-    my $scheduler-debug-status = so %*ENV<RAKUDO_SCHEDULER_DEBUG_STATUS>;
+    my int $scheduler-debug = so %*ENV<RAKUDO_SCHEDULER_DEBUG>;
+    my int $scheduler-debug-status = so %*ENV<RAKUDO_SCHEDULER_DEBUG_STATUS>;
     sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {
             note "[SCHEDULER $pid] $message";
@@ -516,7 +516,8 @@ my class ThreadPoolScheduler does Scheduler {
                     nqp::shift_n(@last-utils);
                     nqp::push_n(@last-utils,$per-core-util);
                     my $smooth-per-core-util = @last-utils.sum;
-                    scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%";
+                    scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
+                      if $scheduler-debug-status;
 
                     if $!general-queue.DEFINITE && $!general-queue.elems {
                         self!tweak-workers: $!general-queue, $!general-workers,

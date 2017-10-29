@@ -91,6 +91,16 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!wallclock')
         }))"
     }
+
+    method cpus() {
+        nqp::add_i(
+          nqp::getattr_i(self,Telemetry,'$!cpu-user'),
+          nqp::getattr_i(self,Telemetry,'$!cpu-sys')
+        ) / nqp::getattr_i(self,Telemetry,'$!wallclock')
+    }
+
+    my $factor = 100 / Kernel.cpu-cores;
+    method utilization() { $factor * self.cpus }
 }
 
 multi sub infix:<->(Telemetry:U $a, Telemetry:U $b) is export {

@@ -161,7 +161,6 @@ src/core/Awaitable.pm
 src/core/Awaiter.pm
 src/core/Scheduler.pm
 src/core/Env.pm
-src/core/Telemetry.pm
 src/core/ThreadPoolScheduler.pm
 src/core/CurrentThreadScheduler.pm
 src/core/Promise.pm

@@ -10,6 +10,7 @@ my %provides =
     "newline"                       => "lib/newline.pm6",
     "experimental"                  => "lib/experimental.pm6",
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm",
+    "Telemetry"                     => "lib/Telemetry.pm6",
 ;
 
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(

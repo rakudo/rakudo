@@ -1,5 +1,7 @@
 # An attempt at providing an API to nqp::getrusage.
 
+use nqp;
+
 class Telemetry::Period { ... }
 
 class Telemetry {
@@ -117,12 +119,12 @@ class Telemetry::Period is Telemetry {
     }
 }
 
-multi sub infix:<->(Telemetry:U $a, Telemetry:U $b) {
+multi sub infix:<->(Telemetry:U $a, Telemetry:U $b) is export {
     Telemetry::Period.new(0,0,0)
 }
-multi sub infix:<->(Telemetry:D $a, Telemetry:U $b) { $a     - $b.new }
-multi sub infix:<->(Telemetry:U $a, Telemetry:D $b) { $a.new - $b     }
-multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) {
+multi sub infix:<->(Telemetry:D $a, Telemetry:U $b) is export { $a     - $b.new }
+multi sub infix:<->(Telemetry:U $a, Telemetry:D $b) is export { $a.new - $b     }
+multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) is export {
     Telemetry::Period.new(
       nqp::sub_i(
         nqp::getattr_i(nqp::decont($a),Telemetry,'$!cpu-user'),
@@ -138,5 +140,7 @@ multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) {
       )
     )
 }
+
+sub snap() is export { Telemetry.new }
 
 # vim: ft=perl6 expandtab sw=4

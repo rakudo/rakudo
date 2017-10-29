@@ -10,6 +10,21 @@ my class SetHash does Setty {
         )
     }
 
+    method STORE(*@pairs --> SetHash:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          nqp::stmts(
+            nqp::bindattr(self,::?CLASS,'$!elems',
+              Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+                nqp::create(Rakudo::Internals::IterationSet), $iterator
+              )
+            ),
+            self
+          )
+        )
+    }
+
 #--- selector methods
 
     multi method grab(SetHash:D:) {

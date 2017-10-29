@@ -7,6 +7,8 @@ class Telemetry {
     has int $!cpu-sys;
     has int $!wallclock;
 
+    my num $start = Rakudo::Internals.INITTIME;
+
     multi method new(Telemetry:) { nqp::create(self).SET-SELF }
 
     method SET-SELF() {
@@ -15,7 +17,7 @@ class Telemetry {
           + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC);
         $!cpu-sys  = nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
           + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC);
-        $!wallclock = nqp::fromnum_I(1000000 * nqp::time_n,Int);
+        $!wallclock = nqp::fromnum_I(1000000*nqp::sub_n(nqp::time_n,$start),Int);
         self
     }
 

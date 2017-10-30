@@ -11,21 +11,6 @@ my class Set does Setty {
           set()
         )
     }
-    method STORE(*@pairs --> Set:D) {
-        nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
-          nqp::if(
-            $!elems || nqp::eqaddr(self,set()),
-            X::Immutable.new( method => 'STORE', typename => self.^name ).throw,
-            self.SET-SELF(
-              Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-                nqp::create(Rakudo::Internals::IterationSet), $iterator
-              )
-            )
-          )
-        )
-    }
     multi method new(Set:_:) {
         nqp::if(
           nqp::eqaddr(self.WHAT,Set),

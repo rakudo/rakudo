@@ -55,9 +55,6 @@ my class BagHash does Baggy {
         )
     }
 
-#--- object creation methods
-    multi method new(BagHash:_:) { nqp::create(self) }
-
 #--- introspection methods
     method total() { Rakudo::QuantHash.BAG-TOTAL($!elems) }
 

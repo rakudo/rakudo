@@ -142,9 +142,15 @@ my role Iterable {
         nqp::if(
           (my $iterator := iterable.flat.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::create(type).SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+          nqp::if(
+            nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
               nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )),
+            nqp::create(type).SET-SELF($elems),
+            nqp::if(
+              nqp::eqaddr(type,Mix),
+              mix(),
+              nqp::create(type)
             )
           )
         )
@@ -156,9 +162,15 @@ my role Iterable {
         nqp::if(
           (my $iterator := iterable.flat.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::create(type).SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+          nqp::if(
+            nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
               nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )),
+            nqp::create(type).SET-SELF($elems),
+            nqp::if(
+              nqp::eqaddr(type,Bag),
+              bag(),
+              nqp::create(type)
             )
           )
         )
@@ -170,9 +182,15 @@ my role Iterable {
         nqp::if(
           (my $iterator := iterable.flat.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::create(type).SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+          nqp::if(
+            nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
               nqp::create(Rakudo::Internals::IterationSet),$iterator
+            )),
+            nqp::create(type).SET-SELF($elems),
+            nqp::if(
+              nqp::eqaddr(type,Set),
+              set(),
+              nqp::create(type)
             )
           )
         )

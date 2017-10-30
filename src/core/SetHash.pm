@@ -1,15 +1,5 @@
 my class SetHash does Setty {
 
-    method SET-SELF(\elems) {
-        nqp::stmts(
-          nqp::if(
-            nqp::elems(elems),
-            nqp::bindattr(self,::?CLASS,'$!elems',elems)
-          ),
-          self
-        )
-    }
-
 #--- selector methods
 
     multi method grab(SetHash:D:) {

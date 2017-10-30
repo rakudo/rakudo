@@ -22,27 +22,7 @@ my class Bag does Baggy {
         )
     }
 
-#--- object creation methods
-    multi method new(Bag:_:) {
-        nqp::if(
-          nqp::eqaddr(self.WHAT,Bag),
-          bag(),
-          nqp::create(self)
-        )
-    }
-
 #--- interface methods
-    method SET-SELF(Bag:D: \elems) {
-        nqp::if(
-          nqp::elems(elems),
-          nqp::stmts(
-            nqp::bindattr(self,::?CLASS,'$!elems',elems),
-            self
-          ),
-          bag()
-        )
-    }
-
     multi method DELETE-KEY(Bag:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }

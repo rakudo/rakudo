@@ -61,10 +61,10 @@ sub string_encoding_to_nci_type(\encoding) {
 }
 
 # Builds a hash of type information for the specified parameter.
-sub param_hash_for(Parameter $p, :$with-typeobj) {
+sub param_hash_for(Parameter $p) {
     my Mu $result := nqp::hash();
     my $type := $p.type();
-    nqp::bindkey($result, 'typeobj', nqp::decont($type)) if $with-typeobj;
+    nqp::bindkey($result, 'typeobj', nqp::decont($type));
     nqp::bindkey($result, 'rw', nqp::unbox_i(1)) if $p.rw;
     if $type ~~ Str {
         my $enc := $p.?native_call_encoded() || 'utf8';
@@ -73,7 +73,7 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
     }
     elsif $type ~~ Callable {
         nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
-        my $info := param_list_for($p.sub_signature, :with-typeobj);
+        my $info := param_list_for($p.sub_signature);
         nqp::unshift($info, return_hash_for($p.sub_signature, :with-typeobj));
         nqp::bindkey($result, 'callback_args', $info);
     }
@@ -84,7 +84,7 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
 }
 
 # Builds the list of parameter information for a callback argument.
-sub param_list_for(Signature $sig, &r?, :$with-typeobj) {
+sub param_list_for(Signature $sig, &r?) {
     my $params   := nqp::getattr($sig.params,List,'$!reified');
     my int $elems = nqp::elems($params);
 
@@ -97,7 +97,7 @@ sub param_list_for(Signature $sig, &r?, :$with-typeobj) {
     my $result := nqp::setelems(nqp::list,$elems);
     my int $i   = -1;
     nqp::bindpos($result,$i,
-      param_hash_for(nqp::atpos($params,$i),:$with-typeobj)
+      param_hash_for(nqp::atpos($params,$i))
     ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
 
     $result

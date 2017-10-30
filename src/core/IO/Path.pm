@@ -214,7 +214,7 @@ my class IO::Path is Cool does IO {
     }
 #?endif
 
-    proto method absolute(|) { * }
+    proto method absolute(|) {*}
     multi method absolute (IO::Path:D:) {
         $!abspath //= $!SPEC.rel2abs($!path,$!CWD)
     }
@@ -326,7 +326,7 @@ my class IO::Path is Cool does IO {
         $resolved = $sep unless nqp::chars($resolved);
         IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
     }
-    proto method parent(|) { * }
+    proto method parent(|) {*}
     multi method parent(IO::Path:D: UInt:D $depth) {
         my $io = self;
         $io .= parent xx $depth;
@@ -402,7 +402,7 @@ my class IO::Path is Cool does IO {
         self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
     }
 
-    proto method chdir(|) { * }
+    proto method chdir(|) {*}
     multi method chdir(IO::Path:D: Str() $path, :$test!) {
         DEPRECATED(
             :what<:$test argument>,
@@ -605,7 +605,7 @@ my class IO::Path is Cool does IO {
         }
     }
 
-    proto method slurp() { * }
+    proto method slurp() {*}
     multi method slurp(IO::Path:D: :$enc, :$bin) {
         # We use an IO::Handle in binary mode, and then decode the string
         # all in one go, which avoids the overhead of setting up streaming

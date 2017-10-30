@@ -116,7 +116,7 @@ sub METAOP_ZIP(\op, &reduce) {
     )
 }
 
-proto sub METAOP_REDUCE_LEFT(|) { * }
+proto sub METAOP_REDUCE_LEFT(|) {*}
 multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
     if op.count > 2 and op.count < Inf {
         my $count = op.count;
@@ -212,7 +212,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
     }
 }
 
-proto sub METAOP_REDUCE_RIGHT(|) { * }
+proto sub METAOP_REDUCE_RIGHT(|) {*}
 multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
     nqp::if(
       op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
@@ -398,7 +398,7 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
     )
 }
 
-proto sub METAOP_REDUCE_LIST(|) { * }
+proto sub METAOP_REDUCE_LIST(|) {*}
 multi sub METAOP_REDUCE_LIST(\op, \triangle) {
     sub (+values) {
         GATHER({
@@ -414,7 +414,7 @@ multi sub METAOP_REDUCE_LIST(\op) {
     sub (+values) { op.(|values) }
 }
 
-proto sub METAOP_REDUCE_LISTINFIX(|) { * }
+proto sub METAOP_REDUCE_LISTINFIX(|) {*}
 multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
     sub (|values) {
         my \p = values[0];
@@ -436,7 +436,7 @@ multi sub METAOP_REDUCE_LISTINFIX(\op) {
     }
 }
 
-proto sub METAOP_REDUCE_CHAIN(|) { * }
+proto sub METAOP_REDUCE_CHAIN(|) {*}
 multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
     sub (+values) {
         my $state = True;
@@ -526,7 +526,7 @@ sub METAOP_HYPER_PREFIX(\op) {
 
 sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
 
-proto sub HYPER(|) { * }
+proto sub HYPER(|) {*}
 
 multi sub HYPER(&op, \left, \right, :$dwim-left, :$dwim-right) {
     op(left, right);
@@ -643,7 +643,7 @@ multi sub HYPER(\op, \obj) {
     )
 }
 
-proto sub deepmap(|) { * }
+proto sub deepmap(|) {*}
 
 multi sub deepmap(\op, \obj) {
     Rakudo::Internals.coremap(op, obj, :deep)
@@ -654,7 +654,7 @@ multi sub deepmap(\op, Associative \h) {
     hash @keys Z deepmap(op, h{@keys})
 }
 
-proto sub nodemap(|) { * }
+proto sub nodemap(|) {*}
 multi sub nodemap(\op, \obj) {
     my Mu $rpa := nqp::create(IterationBuffer);
     my \objs := obj.list;
@@ -697,7 +697,7 @@ multi sub nodemap(\op, Associative \h) {
     hash @keys Z nodemap(op, h{@keys})
 }
 
-proto sub duckmap(|) { * }
+proto sub duckmap(|) {*}
 multi sub duckmap(\op, \obj) {
     Rakudo::Internals.coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj);
 }

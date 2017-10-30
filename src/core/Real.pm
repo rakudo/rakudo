@@ -37,7 +37,7 @@ my role Real does Numeric {
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
 
-    proto method round(|) { * }
+    proto method round(|) {*}
     multi method round(Real:D:) {
         (self + 1/2).floor; # Rat NYI here, so no .5
     }
@@ -174,7 +174,7 @@ multi sub truncate(Real:D $x) { $x.truncate }
 multi sub truncate(Cool:D $x) { $x.Numeric.truncate }
 
 
-proto sub atan2($, $?)    { * }
+proto sub atan2($, $?)    {*}
 multi sub atan2(Real \a, Real \b = 1e0) { a.Bridge.atan2(b.Bridge) }
 # should really be (Cool, Cool), and then (Cool, Real) and (Real, Cool)
 # candidates, but since Int both conforms to Cool and Real, we'd get lots

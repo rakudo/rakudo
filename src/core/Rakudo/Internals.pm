@@ -1436,7 +1436,7 @@ my class Rakudo::Internals {
         $target
     }
 
-    proto method coremap(|) { * }
+    proto method coremap(|) {*}
 
     multi method coremap(\op, Associative \h, Bool :$deep) {
         my @keys = h.keys;

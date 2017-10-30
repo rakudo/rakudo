@@ -393,7 +393,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method fmt(|) { * }
+    proto method fmt(|) {*}
     multi method fmt() {
         nqp::if(
           (my int $elems = self.elems),             # reifies
@@ -724,7 +724,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
-    proto method STORE(|) { * }
+    proto method STORE(|) {*}
     multi method STORE(List:D: Iterable:D \iterable) {
         # First pass -- scan lhs containers and pick out scalar versus list
         # assignment. This also reifies the RHS values we need, and deconts
@@ -932,7 +932,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method pick(|) is nodal { * }
+    proto method pick(|) is nodal {*}
     multi method pick(List:D:) {
         self.is-lazy
          ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
@@ -993,7 +993,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }.new(self,$elems,$number))
     }
 
-    proto method roll(|) is nodal { * }
+    proto method roll(|) is nodal {*}
     multi method roll() {
         self.is-lazy
           ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
@@ -1477,7 +1477,7 @@ multi flat(Iterable \a)    {     a.flat }
 
 sub cache(+@l) { @l }
 
-proto sub infix:<xx>(|) { * }
+proto sub infix:<xx>(|) {*}
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(&x, Num() $n) {
@@ -1518,7 +1518,7 @@ multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
     Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))
 }
 
-proto sub reverse(|)   { * }
+proto sub reverse(|)   {*}
 multi sub reverse(@a)  { @a.reverse }
 multi sub reverse(+@a) { @a.reverse }
 

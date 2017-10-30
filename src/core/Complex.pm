@@ -8,7 +8,7 @@ my class Complex is Cool does Numeric {
         $!im = im;
         self
     }
-    proto method new(|) { * }
+    proto method new(|) {*}
     multi method new() { self.new: 0, 0 }
     multi method new(Real \re, Real \im) { nqp::create(self)!SET-SELF(re, im) }
 
@@ -487,7 +487,7 @@ multi sub infix:«<=>»(Complex:D \a, Complex:D \b --> Order:D) {
 multi sub infix:«<=>»(Num(Real) \a, Complex:D \b --> Order:D) { a.Complex <=> b }
 multi sub infix:«<=>»(Complex:D \a, Num(Real) \b --> Order:D) { a <=> b.Complex }
 
-proto sub postfix:<i>(\a --> Complex:D) is pure { * }
+proto sub postfix:<i>(\a --> Complex:D) is pure {*}
 multi sub postfix:<i>(Real      \a --> Complex:D) { Complex.new(0e0, a);     }
 multi sub postfix:<i>(Complex:D \a --> Complex:D) { Complex.new(-a.im, a.re) }
 multi sub postfix:<i>(Numeric   \a --> Complex:D) { a * Complex.new(0e0, 1e0) }

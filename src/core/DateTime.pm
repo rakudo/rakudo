@@ -366,7 +366,7 @@ my class DateTime does Dateish {
     method utc()   { self.in-timezone(0) }
     method local() { self.in-timezone($*TZ) }
 
-    proto method Date() { * }
+    proto method Date() {*}
     multi method Date(DateTime:D:) { Date.new($!year,$!month,$!day) }
     multi method Date(DateTime:U:) { Date }
     method DateTime() { self }

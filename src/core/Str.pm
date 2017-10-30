@@ -336,7 +336,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
-    proto method comb(|) { * }
+    proto method comb(|) {*}
     multi method comb(Str:D:) {
         Seq.new(class :: does Iterator {
             has str $!str;
@@ -1291,7 +1291,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 #?endif
 
-    proto method lines(|) { * }
+    proto method lines(|) {*}
     multi method lines(Str:D: :$count!) {
         # we should probably deprecate this feature
         $count ?? self.lines.elems !! self.lines;
@@ -2155,7 +2155,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
     }
 
-    proto method words(|) { * }
+    proto method words(|) {*}
     multi method words(Str:D: :$autoderef!) { # in Actions.postprocess_words
         my @list := self.words.List;
         return @list == 1 ?? @list[0] !! @list;
@@ -2706,7 +2706,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    proto method codes(|) { * }
+    proto method codes(|) {*}
     multi method codes(Str:D: --> Int:D) {
 #?if moar
         nqp::codes(self)
@@ -2720,7 +2720,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         0
     }
 
-    proto method chars(|) { * }
+    proto method chars(|) {*}
     multi method chars(Str:D: --> Int:D) {
         nqp::p6box_i(nqp::chars($!value))
     }
@@ -2729,7 +2729,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         0
     }
 
-    proto method uc(|) { * }
+    proto method uc(|) {*}
     multi method uc(Str:D:) {
         nqp::p6box_s(nqp::uc($!value));
     }
@@ -2737,7 +2737,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.Str;
     }
 
-    proto method lc(|) { * }
+    proto method lc(|) {*}
     multi method lc(Str:D:) {
         nqp::p6box_s(nqp::lc($!value));
     }
@@ -2745,7 +2745,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.Str;
     }
 
-    proto method tc(|) { * }
+    proto method tc(|) {*}
     multi method tc(Str:D:) {
         nqp::p6box_s(nqp::tc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1));
     }
@@ -2753,7 +2753,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.Str
     }
 
-    proto method fc(|) { * }
+    proto method fc(|) {*}
     multi method fc(Str:D:) {
         nqp::p6box_s(nqp::fc($!value));
     }
@@ -2761,7 +2761,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.Str;
     }
 
-    proto method tclc(|) { * }
+    proto method tclc(|) {*}
     multi method tclc(Str:D:) {
         nqp::p6box_s(nqp::tclc($!value))
     }
@@ -2769,7 +2769,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.Str
     }
 
-    proto method flip(|) { * }
+    proto method flip(|) {*}
     multi method flip(Str:D:) {
         nqp::p6box_s(nqp::flip($!value))
     }
@@ -2777,7 +2777,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.Str
     }
 
-    proto method ord(|) { * }
+    proto method ord(|) {*}
     multi method ord(Str:D: --> Int:D) {
         nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
@@ -2919,7 +2919,7 @@ sub trim-leading (Cool:D $s --> Str:D) { $s.trim-leading }
 sub trim-trailing(Cool:D $s --> Str:D) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-proto sub UNBASE (|) { * }
+proto sub UNBASE (|) {*}
 multi sub UNBASE(Int:D $base, Any:D $num) {
     X::Numeric::Confused.new(:$num, :$base).throw;
 }
@@ -2961,8 +2961,8 @@ sub UNBASE_BRACKET($base, @a) {
     }
     $v;
 }
-proto sub infix:<unicmp>(|) is pure { * }
-proto sub infix:<coll>(|) { * }
+proto sub infix:<unicmp>(|) is pure {*}
+proto sub infix:<coll>(|) {*}
 #?if moar
 multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
     ORDER(
@@ -3015,12 +3015,12 @@ sub chrs(*@c --> Str:D) {
     nqp::join("",$result)
 }
 
-proto sub parse-base(|) { * }
+proto sub parse-base(|) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 
 sub parse-names(Str:D $str) { $str.parse-names }
 
-proto sub substr(|) { * }
+proto sub substr(|) {*}
 multi sub substr(Str:D \what, Int:D \start) {
     my str $str  = nqp::unbox_s(what);
     my int $max  = nqp::chars($str);

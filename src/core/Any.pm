@@ -21,17 +21,17 @@ my class Any { # declared in BOOTSTRAP
         nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
     }
 
-    proto method EXISTS-KEY(|) is nodal { * }
+    proto method EXISTS-KEY(|) is nodal {*}
     multi method EXISTS-KEY(Any:U: $ --> False) { }
     multi method EXISTS-KEY(Any:D: $ --> False) { }
 
-    proto method DELETE-KEY(|) is nodal { * }
+    proto method DELETE-KEY(|) is nodal {*}
     multi method DELETE-KEY(Any:U: $ --> Nil) { }
     multi method DELETE-KEY(Any:D: $) {
         Failure.new("Can not remove values from a {self.^name}")
     }
 
-    proto method DELETE-POS(|) is nodal { * }
+    proto method DELETE-POS(|) is nodal {*}
     multi method DELETE-POS(Any:U: $pos --> Nil) { }
     multi method DELETE-POS(Any:D: $pos) {
         Failure.new("Can not remove elements from a {self.^name}")
@@ -49,77 +49,77 @@ my class Any { # declared in BOOTSTRAP
 
     method cache() { self.list }
 
-    proto method list(|) is nodal { * }
+    proto method list(|) is nodal {*}
     multi method list(Any:U:) { infix:<,>(self) }
     multi method list(Any:D \SELF:) { infix:<,>(SELF) }
 
-    proto method flat(|) is nodal { * }
+    proto method flat(|) is nodal {*}
     multi method flat() { self.list.flat }
 
-    proto method eager(|) is nodal { * }
+    proto method eager(|) is nodal {*}
     multi method eager() { self.list.eager }
 
-    proto method serial(|) is nodal { * }
+    proto method serial(|) is nodal {*}
     multi method serial() { self }
 
     # derived from .list
-    proto method List(|) is nodal { * }
+    proto method List(|) is nodal {*}
     multi method List() { self.list }
-    proto method Slip(|) is nodal { * }
+    proto method Slip(|) is nodal {*}
     multi method Slip() { self.list.Slip }
-    proto method Array(|) is nodal { * }
+    proto method Array(|) is nodal {*}
     multi method Array() { self.list.Array }
-    proto method Seq(|) is nodal { * }
+    proto method Seq(|) is nodal {*}
     multi method Seq() { Seq.new(self.iterator) }
 
-    proto method hash(|) is nodal { * }
+    proto method hash(|) is nodal {*}
     multi method hash(Any:U:) { my % = () }
     multi method hash(Any:D:) { my % = self }
 
     # derived from .hash
-    proto method Hash(|) is nodal { * }
+    proto method Hash(|) is nodal {*}
     multi method Hash() { self.hash.Hash }
 
-    proto method Map(|) is nodal { * }
+    proto method Map(|) is nodal {*}
     multi method Map() { self.hash.Map }
 
-    proto method elems(|) is nodal { * }
+    proto method elems(|) is nodal {*}
     multi method elems(Any:U: --> 1) { }
     multi method elems(Any:D:) { self.list.elems }
 
-    proto method end(|) is nodal { * }
+    proto method end(|) is nodal {*}
     multi method end(Any:U: --> 0) { }
     multi method end(Any:D:) { self.list.end }
 
-    proto method keys(|) is nodal { * }
+    proto method keys(|) is nodal {*}
     multi method keys(Any:U:) { () }
     multi method keys(Any:D:) { self.list.keys }
 
-    proto method kv(|) is nodal { * }
+    proto method kv(|) is nodal {*}
     multi method kv(Any:U:) { () }
     multi method kv(Any:D:) { self.list.kv }
 
-    proto method values(|) is nodal { * }
+    proto method values(|) is nodal {*}
     multi method values(Any:U:) { () }
     multi method values(Any:D:) { self.list }
 
-    proto method pairs(|) is nodal { * }
+    proto method pairs(|) is nodal {*}
     multi method pairs(Any:U:) { () }
     multi method pairs(Any:D:) { self.list.pairs }
 
-    proto method antipairs(|) is nodal { * }
+    proto method antipairs(|) is nodal {*}
     multi method antipairs(Any:U:) { () }
     multi method antipairs(Any:D:) { self.list.antipairs }
 
-    proto method invert(|) is nodal { * }
+    proto method invert(|) is nodal {*}
     multi method invert(Any:U:) { () }
     multi method invert(Any:D:) { self.list.invert }
 
-    proto method pick(|) is nodal { * }
+    proto method pick(|) is nodal {*}
     multi method pick()   { self.list.pick     }
     multi method pick($n) { self.list.pick($n) }
 
-    proto method roll(|) is nodal { * }
+    proto method roll(|) is nodal {*}
     multi method roll()   { self.list.roll     }
     multi method roll($n) { self.list.roll($n) }
 
@@ -127,7 +127,7 @@ my class Any { # declared in BOOTSTRAP
 
     method match(Any:U: |) { self.Str; nqp::getlexcaller('$/') = Nil }
 
-    proto method classify(|) is nodal { * }
+    proto method classify(|) is nodal {*}
     multi method classify() {
         die "Must specify something to classify with, a Callable, Hash or List";
     }
@@ -141,7 +141,7 @@ my class Any { # declared in BOOTSTRAP
         Hash.^parameterize(Any,Any).new.classify-list( $test, self, :&as );
     }
 
-    proto method categorize(|) is nodal { * }
+    proto method categorize(|) is nodal {*}
     multi method categorize() {
         die "Must specify something to categorize with, a Callable, Hash or List";
     }
@@ -166,7 +166,7 @@ my class Any { # declared in BOOTSTRAP
     method deepmap(&block) is nodal { deepmap(&block, self) }
 
     # XXX GLR Do we need tree post-GLR?
-    proto method tree(|) is nodal { * }
+    proto method tree(|) is nodal {*}
     multi method tree(Any:U:) { self }
     multi method tree(Any:D:) {
         nqp::istype(self, Iterable)
@@ -194,25 +194,25 @@ my class Any { # declared in BOOTSTRAP
         SELF.push(|values);
     }
 
-    proto method append(|) is nodal { * }
+    proto method append(|) is nodal {*}
     multi method append(Any:U \SELF: |values) {
         SELF = nqp::istype(SELF,Positional) ?? SELF.new !! Array.new;
         SELF.append(|values);
     }
 
-    proto method unshift(|) is nodal { * }
+    proto method unshift(|) is nodal {*}
     multi method unshift(Any:U \SELF: |values) {
         SELF = Array.new;
         SELF.unshift(|values);
     }
 
-    proto method prepend(|) is nodal { * }
+    proto method prepend(|) is nodal {*}
     multi method prepend(Any:U \SELF: |values) {
         SELF = Array.new;
         SELF.prepend(|values);
     }
 
-    proto method EXISTS-POS(|) is nodal { * }
+    proto method EXISTS-POS(|) is nodal {*}
     multi method EXISTS-POS(Any:U: Any:D $ --> False) { }
     multi method EXISTS-POS(Any:U: Any:U $pos) {
         die "Cannot use '{$pos.^name}' as an index";
@@ -317,7 +317,7 @@ my class Any { # declared in BOOTSTRAP
         Rakudo::Internals.WALK-AT-POS(self,@indices).AT-POS($final)
     }
 
-    proto method ZEN-POS(|) { * }
+    proto method ZEN-POS(|) {*}
     multi method ZEN-POS(*%unexpected) {
         %unexpected
           ?? Failure.new(X::Adverb.new(
@@ -327,7 +327,7 @@ my class Any { # declared in BOOTSTRAP
           !! self
     }
 
-    proto method ZEN-KEY(|) { * }
+    proto method ZEN-KEY(|) {*}
     multi method ZEN-KEY(*%unexpected) {
         %unexpected
           ?? Failure.new(X::Adverb.new(
@@ -337,7 +337,7 @@ my class Any { # declared in BOOTSTRAP
           !! self
     }
 
-    proto method ASSIGN-POS(|) is nodal { * }
+    proto method ASSIGN-POS(|) is nodal {*}
     multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) {
        SELF.AT-POS(pos) = assignee;                     # defer < 0 check
     }
@@ -371,7 +371,7 @@ my class Any { # declared in BOOTSTRAP
         Rakudo::Internals.WALK-AT-POS(self,@indices).ASSIGN-POS($final,value)
     }
 
-    proto method BIND-POS(|) { * }
+    proto method BIND-POS(|) {*}
     multi method BIND-POS(Any:D: **@indices is raw) is raw {
 # looks like Array.pop doesn't really return a bindable container
 #        my \value := @indices.pop;
@@ -395,7 +395,7 @@ my class Any { # declared in BOOTSTRAP
     method none() is nodal { Junction.new("none",self) }
 
     # internals
-    proto method AT-KEY(|) is nodal { * }
+    proto method AT-KEY(|) is nodal {*}
     multi method AT-KEY(Any:D: $key) is raw {
         Failure.new( self ~~ Associative
           ?? "Associative indexing implementation missing from type {self.WHAT.perl}"
@@ -420,7 +420,7 @@ my class Any { # declared in BOOTSTRAP
         )
     }
 
-    proto method BIND-KEY(|) is nodal { * }
+    proto method BIND-KEY(|) is nodal {*}
     multi method BIND-KEY(Any:D: \k, \v) is raw {
         Failure.new(X::Bind.new(target => self.^name))
     }
@@ -430,7 +430,7 @@ my class Any { # declared in BOOTSTRAP
         $BIND
     }
 
-    proto method ASSIGN-KEY(|) is nodal { * }
+    proto method ASSIGN-KEY(|) is nodal {*}
     multi method ASSIGN-KEY(\SELF: \key, Mu \assignee) is raw {
         SELF.AT-KEY(key) = assignee;
     }
@@ -442,26 +442,26 @@ my class Any { # declared in BOOTSTRAP
     }
     method FLATTENABLE_HASH() is nodal { nqp::hash() }
 
-    proto method Set(|) is nodal { * }
+    proto method Set(|) is nodal {*}
     multi method Set(Any:) { Set.new-from-pairs(self.list) }
 
-    proto method SetHash(|) is nodal { * }
+    proto method SetHash(|) is nodal {*}
     multi method SetHash(Any:) { SetHash.new-from-pairs(self.list) }
 
-    proto method Bag(|) is nodal { * }
+    proto method Bag(|) is nodal {*}
     multi method Bag(Any:) { Bag.new-from-pairs(self.list) }
 
-    proto method BagHash(|) is nodal { * }
+    proto method BagHash(|) is nodal {*}
     multi method BagHash(Any:) { BagHash.new-from-pairs(self.list) }
 
-    proto method Mix(|) is nodal { * }
+    proto method Mix(|) is nodal {*}
     multi method Mix(Any:) { Mix.new-from-pairs(self.list) }
 
-    proto method MixHash(|) is nodal { * }
+    proto method MixHash(|) is nodal {*}
     multi method MixHash() { MixHash.new-from-pairs(self.list) }
 
     # XXX GLR does this really need to force a list?
-    proto method Supply(|) is nodal { * }
+    proto method Supply(|) is nodal {*}
     multi method Supply() { self.list.Supply }
 
     method nl-out() { "\n" }
@@ -483,7 +483,7 @@ my class Any { # declared in BOOTSTRAP
 Metamodel::ClassHOW.exclude_parent(Any);
 
 # builtin ops
-proto sub infix:<===>(Mu $?, Mu $?) is pure { * }
+proto sub infix:<===>(Mu $?, Mu $?) is pure {*}
 multi sub infix:<===>($?)    { Bool::True }
 multi sub infix:<===>(\a, \b) {
     nqp::p6bool(
@@ -493,50 +493,50 @@ multi sub infix:<===>(\a, \b) {
     )
 }
 
-proto sub infix:<before>(Mu $?, Mu $?)  is pure { * }
+proto sub infix:<before>(Mu $?, Mu $?)  is pure {*}
 multi sub infix:<before>($?)      { Bool::True }
 multi sub infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
-proto sub infix:<after>(Mu $?, Mu $?) is pure { * }
+proto sub infix:<after>(Mu $?, Mu $?) is pure {*}
 multi sub infix:<after>($x?)       { Bool::True }
 multi sub infix:<after>(\a, \b)    { (a cmp b) > 0 }
 
-proto prefix:<++>(Mu)             { * }
+proto prefix:<++>(Mu)             {*}
 multi prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
 multi prefix:<++>(Mu:U $a is rw) { $a = 1 }
-proto prefix:<-->(Mu)             { * }
+proto prefix:<-->(Mu)             {*}
 multi prefix:<-->(Mu:D $a is rw) { $a = $a.pred }
 multi prefix:<-->(Mu:U $a is rw) { $a = -1 }
 
-proto postfix:<++>(Mu)             { * }
+proto postfix:<++>(Mu)             {*}
 multi postfix:<++>(Mu:D $a is rw) { my $b = $a; $a = $a.succ; $b }
 multi postfix:<++>(Mu:U $a is rw) { $a = 1; 0 }
-proto postfix:<-->(Mu)             { * }
+proto postfix:<-->(Mu)             {*}
 multi postfix:<-->(Mu:D $a is rw) { my $b = $a; $a = $a.pred; $b }
 multi postfix:<-->(Mu:U $a is rw) { $a = -1; 0 }
 
-proto sub pick(|) { * }
+proto sub pick(|) {*}
 multi sub pick($n, +values) { values.pick($n) }
 
-proto sub roll(|) { * }
+proto sub roll(|) {*}
 multi sub roll($n, +values) { values.roll($n) }
 
-proto sub keys(|) { * }
+proto sub keys(|) {*}
 multi sub keys($x) { $x.keys }
 
-proto sub values(|) { * }
+proto sub values(|) {*}
 multi sub values($x) { $x.values }
 
-proto sub pairs(|) { * }
+proto sub pairs(|) {*}
 multi sub pairs($x) { $x.pairs }
 
-proto sub kv(|) { * }
+proto sub kv(|) {*}
 multi sub kv($x) { $x.kv }
 
-proto sub elems(|) is nodal { * }
+proto sub elems(|) is nodal {*}
 multi sub elems($a) { $a.elems }
 
-proto sub end(|) { * }
+proto sub end(|) {*}
 multi sub end($a) { $a.end }
 
 proto sub sum(|) {*}
@@ -563,7 +563,7 @@ sub categorize( $test, +items, *%named ) {
     }
 }
 
-proto sub item(|) is pure { * }
+proto sub item(|) is pure {*}
 multi sub item(\x)    { my $ = x }
 multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }

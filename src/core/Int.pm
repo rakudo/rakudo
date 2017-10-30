@@ -79,7 +79,7 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
-    proto method base(|) { * }
+    proto method base(|) {*}
     multi method base(Int:D: Int:D $base) {
         2 <= $base <= 36
           ?? nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))

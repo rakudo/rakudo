@@ -12,7 +12,7 @@ my class X::Does::TypeObject is Exception {
     method message() { "Cannot use 'does' operator with a type object." }
 }
 
-proto sub infix:<does>(|) { * }
+proto sub infix:<does>(|) {*}
 multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is raw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
@@ -51,7 +51,7 @@ multi sub infix:<cmp>(Rational:D \a, Rational:D \b) is default {
     a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
 }
 
-proto sub infix:<but>(|) is pure { * }
+proto sub infix:<but>(|) is pure {*}
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
@@ -466,7 +466,7 @@ sub WHAT(Mu \x) { x.WHAT }
 sub HOW (Mu \x) { x.HOW }
 sub VAR (Mu \x) { x.VAR }
 
-proto sub infix:<...>(|) { * }
+proto sub infix:<...>(|) {*}
 multi sub infix:<...>(\a, Mu \b) { Seq.new(SEQUENCE(a, b).iterator) }
 multi sub infix:<...>(|lol) {
     my @lol := lol.list;
@@ -506,13 +506,13 @@ multi sub infix:<...>(|lol) {
     }
 }
 
-proto sub infix:<...^>(|) { * }
+proto sub infix:<...^>(|) {*}
 multi sub infix:<...^>(\a, Mu \b) { Seq.new(SEQUENCE(a, b, :exclude_end(1)).iterator) }
 
-proto sub infix:<…>(|) { * }
+proto sub infix:<…>(|) {*}
 multi sub infix:<…>(|c) { infix:<...>(|c) }
 
-proto sub infix:<…^>(|) { * }
+proto sub infix:<…^>(|) {*}
 multi sub infix:<…^>(|c) { infix:<...^>(|c) }
 
 multi sub undefine(Mu \x) is raw { x = Nil }

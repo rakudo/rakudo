@@ -1,5 +1,5 @@
 # The [...] term creates an Array.
-proto circumfix:<[ ]>(|) { * }
+proto circumfix:<[ ]>(|) {*}
 multi circumfix:<[ ]>() {
     nqp::create(Array)
 }

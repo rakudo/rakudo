@@ -50,14 +50,14 @@ multi sub return(**@x is raw --> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
 }
 
-proto sub take-rw(|) { * }
+proto sub take-rw(|) {*}
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
 multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
     THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray))
 }
 
-proto sub take(|) { * }
+proto sub take(|) {*}
 multi sub take()   { die "take without parameters doesn't make sense" }
 multi sub take(\x) {
     THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x))
@@ -69,22 +69,22 @@ multi sub take(|) {
     )
 }
 
-proto sub goto(|) { * }
+proto sub goto(|) {*}
 multi sub goto(Label:D \x --> Nil) { x.goto }
 
-proto sub last(|) { * }
+proto sub last(|) {*}
 multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
 multi sub last(Label:D \x --> Nil) { x.last }
 
-proto sub next(|) { * }
+proto sub next(|) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
 multi sub next(Label:D \x --> Nil) { x.next }
 
-proto sub redo(|) { * }
+proto sub redo(|) {*}
 multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
 multi sub redo(Label:D \x --> Nil) { x.redo }
 
-proto sub succeed(|) { * }
+proto sub succeed(|) {*}
 multi sub succeed(--> Nil) { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
 multi sub succeed(\x --> Nil) { THROW(nqp::const::CONTROL_SUCCEED, x) }
 multi sub succeed(| --> Nil) {

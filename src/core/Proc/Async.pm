@@ -118,7 +118,7 @@ my class Proc::Async {
     has $!encoder;
     has @!close-after-exit;
 
-    proto method new(|) { * }
+    proto method new(|) {*}
     multi method new(*@args where .so) {
         my $path = @args.shift;
         self.bless(:$path, :@args, |%_)
@@ -165,7 +165,7 @@ my class Proc::Async {
         }
     }
 
-    proto method stdout(|) { * }
+    proto method stdout(|) {*}
     multi method stdout(Proc::Async:D: :$bin!) {
         die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
         die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
@@ -183,7 +183,7 @@ my class Proc::Async {
             $enc, $!stdout_descriptor_vow, 1, :$translate-nl
     }
 
-    proto method stderr(|) { * }
+    proto method stderr(|) {*}
     multi method stderr(Proc::Async:D: :$bin!) {
         die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
         die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
@@ -201,7 +201,7 @@ my class Proc::Async {
             $enc, $!stderr_descriptor_vow, 2, :$translate-nl
     }
 
-    proto method Supply(|) { * }
+    proto method Supply(|) {*}
     multi method Supply(Proc::Async:D: :$bin!) {
         die X::Proc::Async::SupplyOrStd.new if $!stdout_supply || $!stderr_supply;
         die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply'))
@@ -405,7 +405,7 @@ my class Proc::Async {
 
     # Note: some of the duplicated code in methods could be moved to
     # proto, but at the moment (2017-06-02) that makes the call 24% slower
-    proto method kill(|) { * }
+    proto method kill(|) {*}
     multi method kill(Proc::Async:D: Signal:D \signal = SIGHUP) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
         nqp::killprocasync($!process_handle, signal.value)

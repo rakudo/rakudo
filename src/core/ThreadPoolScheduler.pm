@@ -260,7 +260,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         submethod BUILD(Queue :$queue!, :$!scheduler!) {
             $!queue := $queue;
-            $!thread = Thread.start(:app_lifetime, {
+            $!thread = Thread.start(:app_lifetime, :name<GeneralWorker>, {
                 my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
                 loop {
                     self!run-one(nqp::shift($queue));
@@ -273,7 +273,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         submethod BUILD(Queue :$queue!, :$!scheduler!) {
             $!queue := $queue;
-            $!thread = Thread.start(:app_lifetime, {
+            $!thread = Thread.start(:app_lifetime, :name<TimerWorker>, {
                 my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
                 loop {
                     self!run-one(nqp::shift($queue));
@@ -286,7 +286,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         submethod BUILD(:$!scheduler!) {
             my $queue := $!queue := Queue.CREATE;
-            $!thread = Thread.start(:app_lifetime, {
+            $!thread = Thread.start(:app_lifetime, :name<AffinityWorker>, {
                 my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
                 loop {
                     self!run-one(nqp::shift($queue));
@@ -449,7 +449,7 @@ my class ThreadPoolScheduler does Scheduler {
     my constant NUM_SAMPLES          = 5;
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
-            $!supervisor = Thread.start(:app_lifetime, {
+            $!supervisor = Thread.start(:app_lifetime, :name<Supervisor>, {
                 sub add-general-worker(--> Nil) {
                     $!state-lock.protect: {
                         $!general-workers := push-worker(

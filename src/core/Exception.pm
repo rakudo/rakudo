@@ -2267,7 +2267,9 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 my class X::Assignment::RO is Exception {
     has $.value = "value";
     method message {
-        "Cannot modify an immutable {$.value.^name} ({$.value.gist})"
+        my $gist = $.value.gist;
+        $gist = "$gist.substr(0,20)..." if $gist.chars > 23;
+        "Cannot modify an immutable {$.value.^name} ($gist)"
     }
     method typename { $.value.^name }
 }

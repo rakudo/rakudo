@@ -132,11 +132,10 @@ multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
 
 proto sub periods(|) is export { * }
 multi sub periods() {
-    @snaps.push(Telemetry.new) if @snaps == 1;
-    (1..^@snaps).map: {
-        LAST @snaps = ();
-        @snaps[$_] - @snaps[$_ - 1]
-    }
+    my @s = @snaps;
+    @snaps = ();
+    @s.push(Telemetry.new) if @s == 1;
+    (1..^@s).map: { @s[$_] - @s[$_ - 1] }
 }
 multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 

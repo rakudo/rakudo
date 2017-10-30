@@ -1,6 +1,17 @@
 my class BagHash does Baggy {
 
 #--- interface methods
+    method STORE(*@pairs --> BagHash:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          self.SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet), $iterator
+            )
+          )
+        )
+    }
     multi method AT-KEY(BagHash:D: \k) is raw {
         Proxy.new(
           FETCH => {

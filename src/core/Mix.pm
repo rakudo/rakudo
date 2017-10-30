@@ -4,6 +4,21 @@ my class Mix does Mixy {
     has Real $!total-positive;
 
 #--- interface methods
+    method STORE(*@pairs, :$initialize --> Mix:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          nqp::if(
+            $initialize,
+            self.SET-SELF(
+              Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+                nqp::create(Rakudo::Internals::IterationSet), $iterator
+              )
+            ),
+            X::Assignment::RO.new(value => self).throw
+          )
+        )
+    }
     multi method DELETE-KEY(Mix:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }

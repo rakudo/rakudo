@@ -10,12 +10,31 @@ class Telemetry {
     has int $!wallclock;
     has int $!supervisor;
     has int $!general-workers;
-    has int $!general-jobs-waiting;
+    has int $!general-tasks-queued;
+    has int $!general-tasks-completed;
     has int $!timer-workers;
-    has int $!timer-jobs-waiting;
+    has int $!timer-tasks-queued;
+    has int $!timer-tasks-completed;
     has int $!affinity-workers;
 
     my num $start = Rakudo::Internals.INITTIME;
+
+    sub completed(\workers) is raw {
+        my int $elems = nqp::elems(workers);
+        my int $completed;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::stmts(
+            (my $w := nqp::atpos(workers,$i)),
+            ($completed = nqp::add_i(
+              $completed,
+              nqp::getattr_i($w,$w.WHAT,'$!total')
+            ))
+          )
+        );
+        $completed
+    }
 
     submethod BUILD() {
         my \rusage = nqp::getrusage;
@@ -33,18 +52,20 @@ class Telemetry {
         if nqp::getattr($scheduler,ThreadPoolScheduler,'$!general-workers')
           -> \workers {
             $!general-workers = nqp::elems(workers);
+            $!general-tasks-completed = completed(workers);
         }
         if nqp::getattr($scheduler,ThreadPoolScheduler,'$!general-queue')
           -> \queue {
-            $!general-jobs-waiting = nqp::elems(queue);
+            $!general-tasks-queued = nqp::elems(queue);
         }
         if nqp::getattr($scheduler,ThreadPoolScheduler,'$!timer-workers')
           -> \workers {
             $!timer-workers = nqp::elems(workers);
+            $!timer-tasks-completed = completed(workers);
         }
         if nqp::getattr($scheduler,ThreadPoolScheduler,'$!timer-queue')
           -> \queue {
-            $!timer-jobs-waiting = nqp::elems(queue);
+            $!timer-tasks-queued = nqp::elems(queue);
         }
         if nqp::getattr($scheduler,ThreadPoolScheduler,'$!affinity-workers')
           -> \workers {
@@ -95,7 +116,9 @@ class Telemetry {
           )
         )
     }
-    multi method supervisor(Telemetry:D:) { $!supervisor }
+    multi method supervisor(Telemetry:D:) {
+        $!supervisor
+    }
 
     proto method general-workers() { * }
     multi method general-workers(Telemetry:U:) {
@@ -106,10 +129,12 @@ class Telemetry {
           nqp::elems($workers)
         )
     }
-    multi method general-workers(Telemetry:D:) { $!general-workers }
+    multi method general-workers(Telemetry:D:) {
+        $!general-workers
+    }
 
-    proto method general-jobs-waiting() { * }
-    multi method general-jobs-waiting(Telemetry:U:) {
+    proto method general-tasks-queued() { * }
+    multi method general-tasks-queued(Telemetry:U:) {
         nqp::if(
           nqp::istrue((my $queue := nqp::getattr(
             nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!general-queue'
@@ -117,7 +142,22 @@ class Telemetry {
           nqp::elems($queue)
         )
     }
-    multi method general-jobs-waiting(Telemetry:D:) { $!general-jobs-waiting }
+    multi method general-tasks-queued(Telemetry:D:) {
+        $!general-tasks-queued
+    }
+
+    proto method general-tasks-completed() { * }
+    multi method general-tasks-completed(Telemetry:U:) {
+        nqp::if(
+          nqp::istrue((my $workers := nqp::getattr(
+            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!general-workers'
+          ))),
+          completed($workers)
+        )
+    }
+    multi method general-tasks-completed(Telemetry:D:) {
+        $!general-tasks-completed
+    }
 
     proto method timer-workers() { * }
     multi method timer-workers(Telemetry:U:) {
@@ -130,8 +170,8 @@ class Telemetry {
     }
     multi method timer-workers(Telemetry:D:) { $!timer-workers }
 
-    proto method timer-jobs-waiting() { * }
-    multi method timer-jobs-waiting(Telemetry:U:) {
+    proto method timer-tasks-queued() { * }
+    multi method timer-tasks-queued(Telemetry:U:) {
         nqp::if(
           nqp::istrue((my $queue := nqp::getattr(
             nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-queue'
@@ -139,7 +179,20 @@ class Telemetry {
           nqp::elems($queue)
         )
     }
-    multi method timer-jobs-waiting(Telemetry:D:) { $!timer-jobs-waiting }
+    multi method timer-tasks-queued(Telemetry:D:) { $!timer-tasks-queued }
+
+    proto method timer-tasks-completed() { * }
+    multi method timer-tasks-completed(Telemetry:U:) {
+        nqp::if(
+          nqp::istrue((my $workers := nqp::getattr(
+            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-workers'
+          ))),
+          completed($workers)
+        )
+    }
+    multi method timer-tasks-completed(Telemetry:D:) {
+        $!timer-tasks-completed
+    }
 
     proto method affinity-workers() { * }
     multi method affinity-workers(Telemetry:U:) {
@@ -167,15 +220,17 @@ class Telemetry::Period is Telemetry {
       int :$wallclock,
       int :$supervisor,
       int :$general-workers,
-      int :$general-jobs-waiting,
+      int :$general-tasks-queued,
+      int :$general-tasks-completed,
       int :$timer-workers,
-      int :$timer-jobs-waiting,
+      int :$timer-tasks-queued,
+      int :$timer-tasks-completed,
       int :$affinity-workers,
     ) {
         self.new(
           $cpu-user, $cpu-sys, $wallclock, $supervisor,
-          $general-workers, $general-jobs-waiting,
-          $timer-workers, $timer-jobs-waiting,
+          $general-workers, $general-tasks-queued, $general-tasks-completed,
+          $timer-workers, $timer-tasks-queued, $timer-tasks-completed,
           $affinity-workers
         )
     }
@@ -185,21 +240,36 @@ class Telemetry::Period is Telemetry {
       int $wallclock,
       int $supervisor,
       int $general-workers,
-      int $general-jobs-waiting,
+      int $general-tasks-queued,
+      int $general-tasks-completed,
       int $timer-workers,
-      int $timer-jobs-waiting,
+      int $timer-tasks-queued,
+      int $timer-tasks-completed,
       int $affinity-workers,
     ) {
         my $period := nqp::create(Telemetry::Period);
-        nqp::bindattr_i($period,Telemetry,'$!cpu-user',       $cpu-user);
-        nqp::bindattr_i($period,Telemetry,'$!cpu-sys',        $cpu-sys);
-        nqp::bindattr_i($period,Telemetry,'$!wallclock',      $wallclock);
-        nqp::bindattr_i($period,Telemetry,'$!supervisor',     $supervisor);
-        nqp::bindattr_i($period,Telemetry,'$!general-workers',$general-workers);
-        nqp::bindattr_i($period,Telemetry,'$!general-jobs-waiting',   $general-jobs-waiting);
-        nqp::bindattr_i($period,Telemetry,'$!timer-workers',  $timer-workers);
-        nqp::bindattr_i($period,Telemetry,'$!timer-jobs-waiting',     $timer-jobs-waiting);
-        nqp::bindattr_i($period,Telemetry,'$!affinity-workers',$affinity-workers);
+        nqp::bindattr_i($period,Telemetry,
+          '$!cpu-user',               $cpu-user);
+        nqp::bindattr_i($period,Telemetry,
+          '$!cpu-sys',                $cpu-sys);
+        nqp::bindattr_i($period,Telemetry,
+          '$!wallclock',              $wallclock);
+        nqp::bindattr_i($period,Telemetry,
+          '$!supervisor',             $supervisor);
+        nqp::bindattr_i($period,Telemetry,
+          '$!general-workers',        $general-workers);
+        nqp::bindattr_i($period,Telemetry,
+          '$!general-tasks-queued',   $general-tasks-queued);
+        nqp::bindattr_i($period,Telemetry,
+          '$!general-tasks-completed',$general-tasks-completed);
+        nqp::bindattr_i($period,Telemetry,
+          '$!timer-workers',          $timer-workers);
+        nqp::bindattr_i($period,Telemetry,
+          '$!timer-tasks-queued',     $timer-tasks-queued);
+        nqp::bindattr_i($period,Telemetry,
+          '$!timer-tasks-completed',  $timer-tasks-completed);
+        nqp::bindattr_i($period,Telemetry,
+          '$!affinity-workers',       $affinity-workers);
         $period
     }
 
@@ -214,12 +284,16 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!supervisor')
         }), :general-workers({
           nqp::getattr_i(self,Telemetry,'$!general-workers')
-        }), :general-jobs-waiting({
-          nqp::getattr_i(self,Telemetry,'$!general-jobs-waiting')
+        }), :general-tasks-queued({
+          nqp::getattr_i(self,Telemetry,'$!general-tasks-queued')
+        }), :general-tasks-completed({
+          nqp::getattr_i(self,Telemetry,'$!general-tasks-completed')
         }), :timer-workers({
           nqp::getattr_i(self,Telemetry,'$!timer-workers')
-        }), :timer-jobs-waiting({
-          nqp::getattr_i(self,Telemetry,'$!timer-jobs-waiting')
+        }), :timer-tasks-queued({
+          nqp::getattr_i(self,Telemetry,'$!timer-tasks-queued')
+        }), :timer-tasks-completed({
+          nqp::getattr_i(self,Telemetry,'$!timer-tasks-completed')
         }), :affinity-workers({
           nqp::getattr_i(self,Telemetry,'$!affinity-workers')
         }))"
@@ -264,16 +338,24 @@ multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) is export {
         nqp::getattr_i(nqp::decont($b),Telemetry,'$!general-workers')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!general-jobs-waiting'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!general-jobs-waiting')
+        nqp::getattr_i(nqp::decont($a),Telemetry,'$!general-tasks-queued'),
+        nqp::getattr_i(nqp::decont($b),Telemetry,'$!general-tasks-queued')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i(nqp::decont($a),Telemetry,'$!general-tasks-completed'),
+        nqp::getattr_i(nqp::decont($b),Telemetry,'$!general-tasks-completed')
       ),
       nqp::sub_i(
         nqp::getattr_i(nqp::decont($a),Telemetry,'$!timer-workers'),
         nqp::getattr_i(nqp::decont($b),Telemetry,'$!timer-workers')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!timer-jobs-waiting'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!timer-jobs-waiting')
+        nqp::getattr_i(nqp::decont($a),Telemetry,'$!timer-tasks-queued'),
+        nqp::getattr_i(nqp::decont($b),Telemetry,'$!timer-tasks-queued')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i(nqp::decont($a),Telemetry,'$!timer-tasks-completed'),
+        nqp::getattr_i(nqp::decont($b),Telemetry,'$!timer-tasks-completed')
       ),
       nqp::sub_i(
         nqp::getattr_i(nqp::decont($a),Telemetry,'$!affinity-workers'),
@@ -317,7 +399,7 @@ multi sub report() {
     report(nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s));
 }
 multi sub report(@s) {
-    sub hide0(\value) { value ?? sprintf("%3d",value) !! "   " }
+    sub hide0(\value, $size = 3) { value ?? sprintf("%{$size}d",value) !! "   " }
 
     my $total = @s[*-1] - @s[0];
     my $text := nqp::list_s(qq:to/HEADER/.chomp);
@@ -326,16 +408,20 @@ Number of Snapshots: {+@s}
 Total Time:      { ($total.wallclock / 1000000).fmt("%9.2f") } seconds
 Total CPU Usage: { ($total.cpu / 1000000).fmt("%9.2f") } seconds
 
- util%  sv  gt gjw  tt tjw  at
+    wall  util%  sv  gd gtq  gtc  td ttq  at
 HEADER
 
     sub push-period($_) {
         nqp::push_s($text,
-          sprintf("%6.2f %s %s %s %s %s %s",
+          sprintf('%8d %6.2f %s %s %s %s %s %s %s',
+            .wallclock,
             .utilization,
             hide0(.supervisor),
-            hide0(.general-workers), hide0(.general-jobs-waiting),
-            hide0(.timer-workers),   hide0(.timer-jobs-waiting),
+            hide0(.general-workers),
+            hide0(.general-tasks-queued),
+            hide0(.general-tasks-completed,4),
+            hide0(.timer-workers),
+            hide0(.timer-tasks-queued),
             hide0(.affinity-workers)
           ).trim-trailing
         );
@@ -344,7 +430,7 @@ HEADER
     push-period($_) for periods(@s);
 
     nqp::push_s($text, qq:to/FOOTER/.chomp);
------- --- --- --- --- --- ---
+-------- ------ --- --- --- ---- --- --- ---
 FOOTER
 
     push-period($total);

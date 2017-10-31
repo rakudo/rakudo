@@ -2,6 +2,6 @@
 
 use Telemetry;
 
-snapper( %*ENV<SNAPPER> // 0.1 );
+snapper( %*ENV<RAKUDO_SNAPPER> // 0.1 );
 
 # vim: ft=perl6 expandtab sw=4

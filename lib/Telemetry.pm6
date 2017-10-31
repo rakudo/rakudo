@@ -10,6 +10,7 @@ class Telemetry {
     has int $!wallclock;
     has int $!supervisor;
     has int $!general-workers;
+    has int $!timer-workers;
 
     my num $start = Rakudo::Internals.INITTIME;
 
@@ -28,7 +29,11 @@ class Telemetry {
 
         if nqp::getattr($scheduler,ThreadPoolScheduler,'$!general-workers')
           -> \workers {
-            $!general-workers = nqp::elems(workers)
+            $!general-workers = nqp::elems(workers);
+        }
+        if nqp::getattr($scheduler,ThreadPoolScheduler,'$!timer-workers')
+          -> \workers {
+            $!timer-workers = nqp::elems(workers);
         }
 
     }
@@ -88,6 +93,17 @@ class Telemetry {
     }
     multi method general-workers(Telemetry:D:) { $!general-workers }
 
+    proto method timer-workers() { * }
+    multi method timer-workers(Telemetry:U:) {
+        nqp::if(
+          nqp::istrue((my $workers := nqp::getattr(
+            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-workers'
+          ))),
+          nqp::elems($workers)
+        )
+    }
+    multi method timer-workers(Telemetry:D:) { $!timer-workers }
+
     multi method Str(Telemetry:D:) {
         $!wallclock ?? "$.cpu / $!wallclock" !! "cpu / wallclock"
     }
@@ -103,8 +119,12 @@ class Telemetry::Period is Telemetry {
       int :$wallclock,
       int :$supervisor,
       int :$general-workers,
+      int :$timer-workers,
     ) {
-        self.new($cpu-user, $cpu-sys, $wallclock, $supervisor, $general-workers)
+        self.new(
+          $cpu-user, $cpu-sys, $wallclock,
+          $supervisor, $general-workers, $timer-workers
+        )
     }
     multi method new(Telemetry::Period:
       int $cpu-user,
@@ -112,6 +132,7 @@ class Telemetry::Period is Telemetry {
       int $wallclock,
       int $supervisor,
       int $general-workers,
+      int $timer-workers,
     ) {
         my $period := nqp::create(Telemetry::Period);
         nqp::bindattr_i($period,Telemetry,'$!cpu-user',       $cpu-user);
@@ -119,6 +140,7 @@ class Telemetry::Period is Telemetry {
         nqp::bindattr_i($period,Telemetry,'$!wallclock',      $wallclock);
         nqp::bindattr_i($period,Telemetry,'$!supervisor',     $supervisor);
         nqp::bindattr_i($period,Telemetry,'$!general-workers',$general-workers);
+        nqp::bindattr_i($period,Telemetry,'$!timer-workers',  $timer-workers);
         $period
     }
 
@@ -133,6 +155,8 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!supervisor')
         }), :general-workers({
           nqp::getattr_i(self,Telemetry,'$!general-workers')
+        }), :timer-workers({
+          nqp::getattr_i(self,Telemetry,'$!timer-workers')
         }))"
     }
 
@@ -173,6 +197,10 @@ multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) is export {
       nqp::sub_i(
         nqp::getattr_i(nqp::decont($a),Telemetry,'$!general-workers'),
         nqp::getattr_i(nqp::decont($b),Telemetry,'$!general-workers')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i(nqp::decont($a),Telemetry,'$!timer-workers'),
+        nqp::getattr_i(nqp::decont($b),Telemetry,'$!timer-workers')
       )
     )
 }

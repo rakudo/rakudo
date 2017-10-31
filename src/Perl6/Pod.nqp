@@ -1,37 +1,63 @@
 # TODO BEFORE RELEASE TO PR:
 #
+# + must handle an empty table (no data rows)
 # + fix balance rows
+# + ensure clean debug output for user and dev
 # + remove spec test 7b
 # + ensure tests in 7a are for my three bug reports
+# + ensure tests in 7b are for the earlier bug report
 # + make detailed log from a git diff of this branch since inception
 # + check all TODOs in code
 # + ensure single-cell tables are handled
+# + reword verbose tests to use diag test function per zoffix email
+# + update docs showing diag use
+# + ensure leading and trailing col seps are removed and warned about
+#   - handle vis and ws differently
+#     * ws i think is handled okay with the normal ws trim
+#     * vis: needs its own trim
+#         leading: if leading cells in all headers and rows are empty then warn and remove,
+#                  otherwise just split and warn of leading empty cells
+#         trailing: if trailing cells in all headers and rows are empty then warn and remove,
+#                  otherwise just split and warn of trailing empty cells
+# + fatal to have multiple interior row separators
+# + ensure all fixes and corrections have tests!!
+# + rename subs process_rows and splitrows to something like split_ws_sep_rows and split_vis_sep_rows
+# + use nqp::getenvhash and a good env var to control debugging tables
+#      from zoffix suggestion on #perl6-dev i will use RAKUDO_POD6_TABLE_DEBUG
+# + file bugs for renders that may not be showing tables correctly:
+#      specifically p6doc and Pod::To::Text and maybe Pod::To::HTML
+
+# LAST: try to simplify some code like;
+#    nqp::push(@rows[$i], '')       ==> @rows[$i].push('');
+#    my $n := nqp::elems(@rows[$i]) ==> @rows[$i].elems;
+#
+# + FILL IN LOG FILE FOR THE PR COMMIT!!!
 
 # various helper methods for Pod parsing and processing
-my $debug := 1;
+
+# enable use of env vars for debug selections
+my $debug    := 0; # for dev use
+my $udebug   := 0; # for users via an environment variable
+
+my $ddenvvar := 'RAKUDO_POD6_TABLE_DEBUG_DEV';
+my $duenvvar := 'RAKUDO_POD6_TABLE_DEBUG';
+
+my %env := nqp::getenvhash();
+if nqp::existskey(%env, $ddenvvar) {
+    my $val := nqp::atkey(%env, $ddenvvar);
+    $debug := $val;
+    #say("DEBUG: $ddenvvar = $val");
+}
+if nqp::existskey(%env, $duenvvar) {
+    my $val := nqp::atkey(%env, $duenvvar);
+    $udebug := $val;
+    #say("DEBUG: $duenvvar = $val");
+}
+#nqp::die("DEBUG: early end") if $debug == 1 || $udebug == 1;
+
 class Perl6::Pod {
 
-    # some rules for processing tables
-    # row separator
-    my $is_row_sep   := /^ <[-+_|=\h]>* $/;
-    # legal row cell separators
-    my $col_sep_pipe := /\h '|' \h/; # visible
-    my $col_sep_plus := /\h '+' \h/; # visible
-    my $col_sep_ws   := /\h \h/;     # invisible: double-space
-
-    my $has_vis_col_sep := / $col_sep_pipe | $col_sep_plus /;
-    my $has_ws_col_sep  := / $col_sep_ws /;
-    my $has_col_sep     := / $col_sep_pipe | $col_sep_plus | $col_sep_ws /;
-
-    # some vars for telling caller about table attributes, warnings, or exceptions
-    # these need resetting upon each call to sub table
-    my @table_line_info := []; # save info on each incoming line
-    my $num_row_cells   := 0;  # all table rows must have the same number of cells
-    my $error_msg       := '';
-    my $table_has_vis_col_seps := 0;
-    my $table_has_ws_col_seps  := 0;
-    my $table_has_no_col_seps  := 0;
-    my $unbalanced_row_cells   := 0; # set true if all rows don't have same number of cells
+    my $table_num := -1; # for user debugging, incremented by one on each call to sub table
 
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
@@ -193,7 +219,7 @@ class Perl6::Pod {
 	my $idx := nqp::index($s, 'Z<'); # find the beginning of a comment
 	while $idx > -1 {
             my $idx2 := nqp::index($s, '>', $idx+2); # and the end
-            nqp::die("FATAL:  Non-existent closing '>' for inline pod comment in string '$s'") if $idx2 < 0;
+            nqp::die("FATAL:  Non-existent closing '>' for inline pod comment in string '$s' in Table $table_num") if $idx2 < 0;
             my $s0 := nqp::substr($s, 0, $idx); # the leading chunk (which may be empty)
             # assemble the cleaned string by parts
             $ret := nqp::concat($ret, $s0);
@@ -214,6 +240,11 @@ class Perl6::Pod {
     our sub chomp($s) {
 	# remove ending newline from a string
         return subst($s, /\n$/, '');
+    }
+
+    our sub trim_right($a) {
+	# given a string of text, removes all whitespace from the end
+        return subst($a, /\s*$/, '');
     }
 
     our sub merge_twines(@twines) {
@@ -328,40 +359,110 @@ class Perl6::Pod {
             ?? $<pod_configuration>.ast
             !! serialize_object('Hash').compile_time_value;
 
-	# reset global table vars for each table
-	@table_line_info := []; # save info on each incoming line
-	$num_row_cells   := 0;  # all table rows must have the same number of cells
-	$error_msg       := '';
-	$table_has_vis_col_seps := 0;
-	$table_has_ws_col_seps  := 0;
-        $table_has_no_col_seps  := 0;
-	$unbalanced_row_cells   := 0; # set true if all rows don't have same number of cells
+
+
+        # increment the table number for user debugging and reporting
+        ++$table_num;
+
+	# some rules for processing tables
+	# row separator
+	my $is_row_sep   := /^ <[-+_|=\h]>* $/;
+	# legal row cell separators
+	my $col_sep_pipe := /\h '|' \h/; # visible
+	my $col_sep_plus := /\h '+' \h/; # visible
+	my $col_sep_ws   := /\h \h/;     # invisible: double-space
+
+	my $has_vis_col_sep  := / $col_sep_pipe | $col_sep_plus /;
+	my $has_ws_col_sep   := / $col_sep_ws /;
+	my $has_col_sep      := / $col_sep_pipe | $col_sep_plus | $col_sep_ws /;
+	my $has_col_sep_plus := / $col_sep_plus /;
+
+
+        # string literals for substitutions
+	my $col_sep_pipe_literal := ' | '; # visible
+        my $pipe  := '|';
+        my $plus  := '+';
+        my $space := ' ';
+
+	# some vars for telling caller about table attributes, warnings, or exceptions
+	# these are reset upon each call to sub table (i.e., for each table)
+	my $table_has_no_col_seps   := 0;
+	my @orig_rows               := [];
+        my $has_shown_table_matrix  := 0;
+
+        #=== for fatal conditions
+        my $fatals := 0;
+	my $has_multiple_row_seps   := 0; # set true if multiple consecutive interior row seps
+	my $table_has_vis_col_seps  := 0;
+	my $table_has_ws_col_seps   := 0;
+	my $table_has_data          := 0; # die if not set true
+        #=== for warning conditions
+        my $warns := 0;
+	my $unbalanced_row_cells    := 0; # set true if all rows don't have same number of cells
+	my $num_row_cells           := 0; # all table rows must have the same number of cells
+	my $has_leading_row_seps    := 0;
+	my $has_trailing_row_seps   := 0;
+        my $has_border_vis_col_seps := 0;
+        my $has_leading_border_vis_col_seps  := 0;
+        my $has_trailing_border_vis_col_seps := 0;
 
 	# form the rows from the pod table parse match
         my @rows := [];
-        nqp::say("===DEBUG NEW TABLE") if $debug;
+        nqp::say("===DEBUG NEW TABLE $table_num") if $debug;
+
+	my $first_line            := 0; # set true when first non-row-sep line is seen
+        my $last_line_was_row_sep := 0;
         for $<table_row> {
             # stringify the row for analysis and further handling
             my $row := $_.ast;
             $row := chomp($row);
+	    @orig_rows.push($row);
+            if $row ~~ $is_row_sep {
+                # leading row sep lines are deleted and warned about
+                # two consecutive interior row sep lines are illegal
+	        if !$first_line {
+		    # ignore it for now but create a warning
+		    $has_leading_row_seps := 1;
+		    next;
+		}
+                if $last_line_was_row_sep {
+                    # an invalid table if inside it
+	            $has_multiple_row_seps := 1;
+                } else {
+                    $last_line_was_row_sep := 1;
+                }
+            } else {
+                $last_line_was_row_sep := 0;
+                # this is a table data line
+                $first_line := 1;
+            }
+
             nqp::say("DEBUG RAW ROW (after chomp): '$row'") if $debug;
             # remove inline pod comment (Z<some comment to be ignored>)
-            $row := remove_inline_comments($row);
+            $row := remove_inline_comments($row) if $row ~~ /'Z<'/;
             unless $row ~~ $is_row_sep {
+                ++$table_has_data;
                 if $row ~~ $has_vis_col_sep {
-                    nqp::say("      VIS COL SEP ROW: '$row'") if $debug;
+                    #nqp::say("      VIS COL SEP ROW: '$row'") if $debug;
+                    $has_col_sep_plus := 1 if $row ~~ $has_col_sep_plus;
                 } elsif $row ~~ $has_ws_col_sep {
-                    nqp::say("      WS COL SEP ROW: '$row'") if $debug;
+                    #nqp::say("      WS COL SEP ROW: '$row'") if $debug;
                 }
             }
             @rows.push($row);
         }
-        nqp::say("===DEBUG END OF TABLE") if $debug;
+        nqp::say("===DEBUG END OF TABLE INPUT for table $table_num") if $debug;
 
         # remove trailing blank lines BEFORE checking for col separators
         @rows.pop while @rows && @rows[+@rows - 1] ~~ /^ \s* $/;
 
-        # check for col seps AFTER trailing blank lines have been removed
+	# check for trailing row sep lines
+	if @rows && @rows[+@rows - 1] ~~ $is_row_sep {
+	    $has_trailing_row_seps := 1;
+            @rows.pop while @rows && @rows[+@rows - 1] ~~ $is_row_sep;
+	}
+
+        # check for col seps AFTER trailing row separator lines have been removed
         for @rows -> $row {
             unless $row ~~ $is_row_sep {
                 # Test the row for type of col seps. If a vis type is
@@ -373,19 +474,11 @@ class Perl6::Pod {
                     ++$table_has_ws_col_seps;
                 }
             }
-        } 
-
-        # we have an invalid table if we have both visible and invisible
-        # col sep types
-        if $table_has_vis_col_seps && $table_has_ws_col_seps {
-            nqp::say("===FATAL: Table has a mixture of visible and invisible column-separator types.");
-            nqp::say($_) for @rows;
-            nqp::die("===FATAL: Table has a mixture of visible and invisible column-separator types.");
         }
 
-        # we may have a single-column table
+	# note warnings and fatal conditions are handled in a sub AFTER the next phases:
 
-        # TODO: see if this is needed only for ws col sep tables
+        # all tables have excess leading ws trimmed evenly
         @rows := trim_row_leading_ws(@rows);
 
         # break the data rows into cells
@@ -397,8 +490,11 @@ class Perl6::Pod {
         else {
             # don't forget the single-column tables!
             @rows := splitrows(@rows);
-            #@rows := process_rows(@rows);
         }
+
+        # all warnings and invalid conditions should be known by now
+        # time to warn or throw as appropriate
+        handle_table_issues(@orig_rows);
 
         # TODO: move this code to inside loop below
         # multi-line rows are not yet merged, but we may need to
@@ -407,10 +503,10 @@ class Perl6::Pod {
             my $i := 0;
             while $i < +@rows {
                 if nqp::islist(@rows[$i]) {
-                    my $nc := nqp::elems(@rows[$i]);
-                    if $nc != $num_row_cells {
+                    my $ncells := nqp::elems(@rows[$i]);
+                    if $ncells != $num_row_cells {
                         # pad row with needed empty cells
-                        my $n := $num_row_cells - $nc;
+                        my $n := $num_row_cells - $ncells;
                         while $n > 0 {
                             nqp::push(@rows[$i], '');
                             --$n;
@@ -510,6 +606,37 @@ class Perl6::Pod {
             $content := @newrows;
         }
 
+        # show final table matrix (put in a sub?? YES)
+	if $debug || $udebug {
+	    # show final table matrix
+            nqp::say("===DEBUG: final cell layout for table $table_num.");
+            nqp::say("=== cell contents are enclosed in single quotes");
+            nqp::say("=== cell separators are shown as pipes ('|')");
+            nqp::say("=== headers");
+            if $headers {
+                my $i := 0;
+	        for $headers -> $h {
+		    nqp::print(" | ") if $i;
+		    nqp::print("'$h'");
+                    ++$i;
+	        }
+	        nqp::print("\n");
+            } else {
+	        nqp::print(" (no headers)\n");
+            }
+            nqp::say("=== contents");
+	    for $content -> $row {
+                my $i := 0;
+	    	for $row -> $cell {
+		    nqp::print(" | ") if $i;
+		    nqp::print("'$cell'");
+                    ++$i;
+		}
+		nqp::print("\n");
+	    }
+            nqp::say("===DEBUG: end final cell layout for table $table_num.");
+	}
+
         # the table data are separated properly, now pack up
         # everything into a table object
         my $past := serialize_object(
@@ -518,191 +645,294 @@ class Perl6::Pod {
             :contents(serialize_aoaos($content).compile_time_value),
         );
 
-        make $past.compile_time_value;
-    } # end sub table
+	# must return here before the sub subs begin
+        return make $past.compile_time_value;
 
-    #===== TABLE-SPECIFIC SUBROUTINES =====
-    my sub trim_row_leading_ws(@Rows) {
-        # find the shortest leading whitespace and strip it
-        # from every row, also remove trailing \n
-        my $w := 999999; # the shortest leading whitespace
-        my @rows := @Rows;
-        for @rows -> $row {
-	    next if $row ~~ /^\s*$/;
-	    my $match := $row ~~ /^\s+/;
-	    my $n := 0;
-	    $n := $match.to if $match;
-	    if $n < $w {
-                $w := $n;
+	#===== TABLE-SPECIFIC SUBROUTINES =====
+        my sub handle_table_issues(@rows) {
+            my $t := $table_num;
+            #=== invalid tables generate exceptions
+            if $table_has_vis_col_seps && $table_has_ws_col_seps {
+		++$fatals;
+		nqp::say("===FATAL: Table $t has a mixture of visible and invisible column-separator types.");
+            }
+            if $has_multiple_row_seps {
+		++$fatals;
+		nqp::say("===FATAL: Table $t has multiple interior row separator lines.");
+            }
+            if !$table_has_data {
+		++$fatals;
+		nqp::say("===FATAL: Table $t has no data.");
+            }
+
+	    #=== warnings
+	    if $has_leading_row_seps || $has_trailing_row_seps {
+		++$warns;
+		nqp::say("===WARNING: Table $t has unneeded leading or trailing row separators.");
 	    }
+
+	    if $has_border_vis_col_seps {
+		++$warns;
+		nqp::say("===WARNING: Table $t has unneeded border vis col separators.");
+	    }
+
+	    # warn or die:
+            if $fatals || $warns {
+		nqp::say($_) for @rows; # the original table as input
+		nqp::say("===end FATAL table $t input") if $fatals;
+		nqp::exit(1) if $fatals;
+		nqp::say("===end WARNING table $t input rows") if $warns;
+            }
         }
 
-        my $i := 0;
-        while $i < +@rows {
-	    unless @rows[$i] ~~ /^\s*$/ {
-                if $w != -1 {
-		    @rows[$i] := nqp::substr(@rows[$i], $w);
-                }
-	    }
-	    ++$i;
-        }
-        return @rows;
-    }
-
-    my sub process_rows(@rows) {
-        # split the row between cells
-        my @res;
-        my $i := 0;
-        while $i < +@rows {
-	    my $v := @rows[$i];
-	    if $v ~~ $is_row_sep {
-                @res[$i] := $v;
-	    } elsif $v ~~ /\h'|'\h/ {
-                my $m := $v ~~ /
-                    :ratchet
-			 ([<!before [\h+ || ^^] '|' [\h+ || $$]> .]*)+
-			 % [ [\h+ || ^^] '|' [\h || $$] ]
-			 /;
-                @res[$i] := [];
-                for $m[0] { @res[$i].push(normalize_text($_)) }
-                check_num_row_cells(+@res[$i]);
-	    } elsif $v ~~ /\h'+'\h/ {
-                my $m := $v ~~ /
-                    :ratchet
-			 ([<!before [\h+ || ^^] '+' [\h+ || $$]> .]*)+
-			 % [ [\h+ || ^^] '+' [\h+ || $$] ]
-			 /;
-                @res[$i] := [];
-                for $m[0] { @res[$i].push(normalize_text($_)) }
-                check_num_row_cells(+@res[$i]);
-	    } else {
-                # SHOULDN'T GET HERE NOW
-                nqp::die("FATAL: SHOULD NOT GET HERE!!");
-                # now way to easily split rows with non-visual separators
-                #return splitrows(@rows);
-	    }
-	    ++$i;
-        }
-        return @res;
-    }
-
-    my sub merge_rows(@rows) {
-        my @result := @rows[0];
-        my $i := 1;
-        while $i < +@rows {
-	    my $j := 0;
-	    while $j < +@rows[$i] {
-                if @rows[$i][$j] {
-		    @result[$j] := normalize_text(
-                        ~@result[$j] ~ ' ' ~ ~@rows[$i][$j]
-		    );
+	my sub normalize_vis_col_sep_rows(@Rows) {
+	    # leading and trailing column separators are handled and warned about
+            my @rows := @Rows;
+            my $nr   := +@rows;
+            my $nlp  := 0; # number of leading pipes
+            my $ntp  := 0; # number of trailing pipes
+            my $leading  := 0;
+            my $trailing := 0;
+            my $i    := 0;
+            while $i < $nr {
+                unless @rows[$i] ~~ $is_row_sep {
+                    @rows[$i] := normalize_row_cells(@rows[$i]);
+                    # check for leading pipes
+                    if @rows[$i] ~~ /^ \s* '|' / {
+                        ++$nlp;
+                        $has_leading_border_vis_col_seps := 1;
+                        $has_border_vis_col_seps := 1;
                     }
-                ++$j;
-	    }
-	    ++$i;
-        }
-        return @result;
-    }
-
-    # takes an array of strings (rows of a table)
-    # returns array of arrays of strings (cells)
-    # NOTE: this only works for tables with double-space cell
-    # separators!
-    my sub splitrows(@Rows) {
-        my @rows := @Rows;
-
-        my @suspects := [];  #positions that might be cell delimiters
-        # values: 1     - impossible!
-        #         unset - maybe
-
-        # collect cell delimiters per row
-        my $i := 0;
-        while $i < +@rows {
-	    unless @rows[$i] ~~ $is_row_sep {
-                my @line := nqp::split('', @rows[$i]);
-                my $j := 0;
-                while $j < +@line {
-		    unless @suspects[$j] {
-                        if @line[$j] ne ' ' {
-			    @suspects[$j] := 1;
-                        }
-		    }
-		    ++$j;
+                    # check for trailing pipes
+                    if @rows[$i] ~~ / '|' \s* $/ {
+                        ++$ntp;
+                        $has_trailing_border_vis_col_seps := 1;
+                        $has_border_vis_col_seps := 1;
+                    }
                 }
-	    }
-	    ++$i;
+                ++$i;
+            }
+            ++$leading if $nlp == $nr;
+            ++$trailing if $ntp == $nr;
+            if $leading || $trailing {
+                # all rows have the leading or trailng pipe, so remove all including surrounding ws
+                @rows := remove_border_pipes(@rows, $leading, $trailing);
+            }
+            return @rows;
         }
 
-        # now let's skip the single spaces by marking them impossible
-        $i := 0;
-        while $i < +@suspects {
-	    unless @suspects[$i] {
-                if @suspects[$i-1] && @suspects[$i+1] {
-		    @suspects[$i] := 1;
+        my sub remove_border_pipes(@Rows, :$leading?, :$trailing?) {
+            my @rows :=  @Rows;
+            while $i < +@rows {
+                unless @rows[$i] ~~ $is_row_sep {
+                    if $leading {
+                        # remove the leading pipe and surrounding ws
+                        @rows[$i] := subst(@rows[$i], /^ \s* '|' \s* /, '');
+                    }
+                    if $trailing {
+                        # remove the trailing pipe and surrounding ws
+                        @rows[$i] := subst(@rows[$i], / \s* '|' \s* $/, '');
+                    }
+
                 }
-	    }
-	    ++$i;
+                ++$i;
+            }
+            return @rows;
         }
 
-        # now we're doing some magic which will
-        # turn those positions into cell ranges
-        # so, e.g., for 1 values in positions: 13 14 15   30 31 32 33
-        # we get [0, 13, 16, 30, 34, 0] (last 0 as a guard)
+	my sub trim_row_leading_ws(@Rows) {
+            # find the shortest leading whitespace and strip it
+            # from every row
+            my $w := 999999; # the shortest leading whitespace
+            my @rows := @Rows;
+            for @rows -> $row {
+		next if $row ~~ /^\s*$/;
+		my $match := $row ~~ /^\s+/;
+		my $n := 0;
+		$n := $match.to if $match;
+		if $n < $w {
+                    $w := $n;
+		}
+            }
 
-        my $wasone := 1;
-        $i := 0;
-        my @ranges := [];
-        @ranges.push(0);
+            my $i := 0;
+            while $i < +@rows {
+		unless @rows[$i] ~~ /^\s*$/ {
+                    if $w != -1 {
+			@rows[$i] := nqp::substr(@rows[$i], $w);
+                    }
+		}
+		++$i;
+            }
+            return @rows;
+	}
 
-        while $i < +@suspects {
-	    if !$wasone && @suspects[$i] == 1 {
-                @ranges.push($i);
-                $wasone := 1;
-	    } elsif $wasone && @suspects[$i] != 1 {
-                @ranges.push($i);
-                $wasone := 0;
-	    }
-	    ++$i;
-        }
-        @ranges.push(0); # guard
+	my sub process_rows(@Rows) {
+            my @rows := normalize_vis_col_sep_rows(@Rows);
 
-        my @ret := [];
-        for @rows -> $row {
-	    if $row ~~ $is_row_sep {
-                @ret.push($row);
-                next;
-	    }
-	    my @tmp := [];
-	    for @ranges -> $a, $b {
-                next if $a > nqp::chars($row);
-                if $b {
-		    @tmp.push(
-                        normalize_text(nqp::substr($row, $a, $b - $a))
-		    );
-                } else {
-		    @tmp.push(
-                        normalize_text(nqp::substr($row, $a))
-		    );
+            # split the vis col sep rows between cells
+	    # note we don't merge multiple rows yet
+            my @res;
+            my $i := 0;
+            for @rows -> $row {
+	        if $row ~~ $is_row_sep {
+		    @res.push($row);
+		} elsif nqp::isstr($row) {
+		    # just split the row
+                    nqp::say("VIS BEFORE SPLIT: '$row'") if $debug;
+                    my @t := nqp::split('|', $row);
+                    my @tmp := [];
+                    my $j := 0;
+                    for @t {
+                        my $c := $_;
+                        nqp::say("  CELL $j: '$c'") if $debug;
+                        $c := normalize_text($c);
+                        nqp::say("  CELL $j normalized: '$c'") if $debug;
+                        @tmp.push($c);
+                        ++$j;
+                    }
+                    # this is the check for vis col sep rows
+                    check_num_cells(nqp::elems(@tmp));
+		    @res.push(@tmp);
+		} else {
+                    nqp::say("WEIRD ROW number $i '$row'");
                 }
-	    }
-	    @ret.push(@tmp);
-            check_num_row_cells(+@tmp);
-        }
-        return @ret;
-    }
+                ++$i;
+            }
+	    return @res;
+	}
 
-    my sub check_num_row_cells($num_cells) {
-        # checks a row's number of cells against the global value
-        if !$num_row_cells {
-            $num_row_cells := $num_cells;
-        } elsif $num_cells > $num_row_cells {
-            $num_row_cells := $num_cells;
-            $unbalanced_row_cells := 1;
-        } elsif $num_cells < $num_row_cells {
-            $unbalanced_row_cells := 1;
-        } 
-    }
-    #===== END OF TABLE-SPECIFIC SUBROUTINES =====
+	my sub merge_rows(@rows) {
+            my @result := @rows[0];
+            my $i := 1;
+            while $i < +@rows {
+		my $j := 0;
+		while $j < +@rows[$i] {
+                    if @rows[$i][$j] {
+			@result[$j] := normalize_text(
+                            ~@result[$j] ~ ' ' ~ ~@rows[$i][$j]
+			);
+                    }
+                    ++$j;
+		}
+		++$i;
+            }
+            return @result;
+	}
+
+	# takes an array of strings (rows of a table)
+	# returns array of arrays of strings (cells)
+	# NOTE: this only works for tables with double-space cell
+	# separators!
+	my sub splitrows(@Rows) {
+            my @rows := @Rows;
+
+            my @suspects := [];  #positions that might be cell delimiters
+            # values: 1     - impossible!
+            #         unset - maybe
+
+            # collect cell delimiters per row
+            my $i := 0;
+            while $i < +@rows {
+		unless @rows[$i] ~~ $is_row_sep {
+                    my @line := nqp::split('', @rows[$i]);
+                    my $j := 0;
+                    while $j < +@line {
+			unless @suspects[$j] {
+                            if @line[$j] ne ' ' {
+				@suspects[$j] := 1;
+                            }
+			}
+			++$j;
+                    }
+		}
+		++$i;
+            }
+
+            # now let's skip the single spaces by marking them impossible
+            $i := 0;
+            while $i < +@suspects {
+		unless @suspects[$i] {
+                    if @suspects[$i-1] && @suspects[$i+1] {
+			@suspects[$i] := 1;
+                    }
+		}
+		++$i;
+            }
+
+            # now we're doing some magic which will
+            # turn those positions into cell ranges
+            # so, e.g., for 1 values in positions: 13 14 15   30 31 32 33
+            # we get [0, 13, 16, 30, 34, 0] (last 0 as a guard)
+
+            my $wasone := 1;
+            $i := 0;
+            my @ranges := [];
+            @ranges.push(0);
+
+            while $i < +@suspects {
+		if !$wasone && @suspects[$i] == 1 {
+                    @ranges.push($i);
+                    $wasone := 1;
+		} elsif $wasone && @suspects[$i] != 1 {
+                    @ranges.push($i);
+                    $wasone := 0;
+		}
+		++$i;
+            }
+            @ranges.push(0); # guard
+
+            my @ret := [];
+            for @rows -> $row {
+		if $row ~~ $is_row_sep {
+                    @ret.push($row);
+                    next;
+		}
+		my @tmp := [];
+		for @ranges -> $a, $b {
+                    next if $a > nqp::chars($row);
+                    if $b {
+			@tmp.push(
+                            normalize_text(nqp::substr($row, $a, $b - $a))
+			);
+                    } else {
+			@tmp.push(
+                            normalize_text(nqp::substr($row, $a))
+			);
+                    }
+		}
+                # this is the check for ws col sep rows
+		check_num_row_cells(+@tmp);
+		@ret.push(@tmp);
+            }
+            return @ret;
+	}
+
+	my sub check_num_row_cells($num_cells) {
+            #return npq::ifnull($num_cells);
+            if !$num_cells {return}
+            # checks a row's number of cells against the global value
+            if !$num_row_cells {
+                # the first row checked sets the mark
+		$num_row_cells := $num_cells;
+            } elsif $num_cells > $num_row_cells {
+		$num_row_cells := $num_cells;
+		++$unbalanced_row_cells;
+            } elsif $num_cells < $num_row_cells {
+		++$unbalanced_row_cells;
+            }
+	}
+
+	my sub normalize_row_cells($row) {
+	    # forces a pipe separator as the row cell separator
+            my $s := $row;
+	    $s := subst($s, / $col_sep_plus /, $col_sep_pipe_literal, :global);
+	    $s := trim_right($row);
+	    return $s;
+	}
+	#===== END OF TABLE-SPECIFIC SUBROUTINES =====
+
+    } # end sub table
 
 } # end class Perl6::Pod
 

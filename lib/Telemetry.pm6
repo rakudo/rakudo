@@ -292,8 +292,9 @@ multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
 my int $snapper-running;
 sub snapper($sleep = 0.1 --> Nil) is export {
     unless $snapper-running {
+        snap;
         Thread.start(:app_lifetime, :name<Snapper>, {
-            loop { snap; sleep $sleep }
+            loop { sleep $sleep; snap }
         });
         $snapper-running = 1
     }
@@ -310,16 +311,21 @@ multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 proto sub report(|) is export { * }
 multi sub report() {
-    my @s = @snaps;
-    @snaps = ();
-    @s.push(Telemetry.new) if @s == 1;
-    report(@s)
+    my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
+    nqp::setelems(nqp::getattr(@snaps,List,'$!reified'),0);
+    nqp::push($s,Telemetry.new) if nqp::elems($s) == 1;
+    report(nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s));
 }
 multi sub report(@s) {
     sub hide0(\value) { value ?? sprintf("%3d",value) !! "   " }
 
+    my $total = @s[*-1] - @s[0];
     my $text := nqp::list_s(qq:to/HEADER/);
 Telemetry Report of Process #$*PID ($*INIT-INSTANT.DateTime())
+Number of Snapshots: {+@s}
+Total Time:      { ($total.wallclock / 1000000).fmt("%9.2f") } seconds
+Total CPU Usage: { ($total.cpu / 1000000).fmt("%9.2f") } seconds
+
  util%  sv  gt  gj  tt  tj  at
 HEADER
 
@@ -341,11 +347,11 @@ HEADER
 ------ --- --- --- --- --- ---
 FOOTER
 
-    push-period(@s[*-1] - @s[0]);
+    push-period($total);
  
     nqp::join('',$text)
 }
 
-END { if @snaps { note report } }
+END { if @snaps { snap; note report } }
 
 # vim: ft=perl6 expandtab sw=4

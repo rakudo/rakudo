@@ -199,13 +199,16 @@ my class ThreadPoolScheduler does Scheduler {
         has int $.completed;
 #?endif
 
+        # Total number of tasks completed since creation.
+        has int $.total;
+
         # Working is 1 if the worker is currently busy, 0 if not.
         has int $.working;
 
         # Number of times take-completed has returned zero in a row.
         has int $.times-nothing-completed;
 
-        # Resets the completed to zero.
+        # Resets the completed to zero and updates the total.
         method take-completed() {
 #?if moar
             my atomicint $taken;
@@ -219,6 +222,7 @@ my class ThreadPoolScheduler does Scheduler {
                 $!times-nothing-completed++;
             }
             else {
+                $!total = $!total + $taken;
                 $!times-nothing-completed = 0;
             }
             $taken

@@ -304,10 +304,48 @@ multi sub periods() {
     my @s = @snaps;
     @snaps = ();
     @s.push(Telemetry.new) if @s == 1;
-    (1..^@s).map: { @s[$_] - @s[$_ - 1] }
+    periods(@s)
 }
 multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
-END { if @snaps { .say for periods } }
+proto sub report(|) is export { * }
+multi sub report() {
+    my @s = @snaps;
+    @snaps = ();
+    @s.push(Telemetry.new) if @s == 1;
+    report(@s)
+}
+multi sub report(@s) {
+    sub hide0(\value) { value ?? sprintf("%3d",value) !! "   " }
+
+    my $text := nqp::list_s(qq:to/HEADER/);
+Telemetry Report of Process #$*PID ($*INIT-INSTANT.DateTime())
+ util%  sv  gt  gj  tt  tj  at
+HEADER
+
+    sub push-period($_) {
+        nqp::push_s($text,
+          sprintf("%6.2f %s %s %s %s %s %s\n",
+            .utilization,
+            hide0(.supervisor),
+            hide0(.general-workers), hide0(.general-jobs),
+            hide0(.timer-workers),   hide0(.timer-jobs),
+            hide0(.affinity-workers)
+          )
+        );
+    }
+
+    push-period($_) for periods(@s);
+
+    nqp::push_s($text, qq:to/FOOTER/);
+------ --- --- --- --- --- ---
+FOOTER
+
+    push-period(@s[*-1] - @s[0]);
+ 
+    nqp::join('',$text)
+}
+
+END { if @snaps { note report } }
 
 # vim: ft=perl6 expandtab sw=4

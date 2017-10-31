@@ -732,7 +732,7 @@ my class IO::Handle {
               nqp::elems(my $buf := self.read-internal(0x100000)),
               $res.append($buf))),
           # don't sink result of .close; it might be a failed Proc
-          nqp::if($close, $ = self.close),
+          nqp::if($close, my $ = self.close),
           $res)
     }
 

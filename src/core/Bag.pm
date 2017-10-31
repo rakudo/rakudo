@@ -22,24 +22,20 @@ my class Bag does Baggy {
         )
     }
 
-#--- object creation methods
-    multi method new(Bag:_:) {
-        nqp::if(
-          nqp::eqaddr(self.WHAT,Bag),
-          bag(),
-          nqp::create(self)
-        )
-    }
-
 #--- interface methods
-    method SET-SELF(Bag:D: \elems) {
+    method STORE(*@pairs, :$initialize --> Bag:D) {
         nqp::if(
-          nqp::elems(elems),
-          nqp::stmts(
-            nqp::bindattr(self,::?CLASS,'$!elems',elems),
-            self
-          ),
-          bag()
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          nqp::if(
+            $initialize,
+            self.SET-SELF(
+              Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+                nqp::create(Rakudo::Internals::IterationSet), $iterator
+              )
+            ),
+            X::Assignment::RO.new(value => self).throw
+          )
         )
     }
 

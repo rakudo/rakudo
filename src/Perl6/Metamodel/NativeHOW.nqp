@@ -116,7 +116,7 @@ class Perl6::Metamodel::NativeHOW
     method method_table($obj) {
         nqp::hash('new',
           nqp::getstaticcode(sub (*@_,*%_) {
-              # nqp::die('Cannot instantiate a native type');
+              @_[1] // nqp::die('Cannot instantiate a native type');
               nqp::getlexcaller('&DEPRECATED')(
                   '(my ' ~ @_[0].HOW.name(@_[0]) ~ ' $ = ' ~ @_[1].perl() ~ ')',
                   '2017.09.403',

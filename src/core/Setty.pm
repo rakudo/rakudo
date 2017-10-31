@@ -158,16 +158,16 @@ my role Setty does QuantHash {
         )
     }
     multi method perl(Setty:D $ : --> Str:D) {
-        nqp::concat(
+        nqp::if(
+          nqp::eqaddr(self,set()),
+          'set()',
           nqp::concat(
-            nqp::if(
-              nqp::istype(self,Set),
-              'set(',
-              nqp::concat(self.^name,'(')
-            ),
-            nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl))
-          ),
-          ')'
+            nqp::concat(self.^name,'.new('),
+            nqp::concat(
+              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl)),
+              ')'
+            )
+          )
         )
     }
 

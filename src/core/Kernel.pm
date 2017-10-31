@@ -168,6 +168,8 @@ class Kernel does Systemic {
 
     multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }
     multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }
+
+    method cpu-cores() is raw { nqp::cpucores }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

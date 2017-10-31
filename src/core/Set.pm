@@ -1,24 +1,6 @@
 my class Set does Setty {
     has $!WHICH;
 
-    method SET-SELF(\elems) {
-        nqp::if(
-          nqp::elems(elems),
-          nqp::stmts(
-            nqp::bindattr(self,::?CLASS,'$!elems',elems),
-            self
-          ),
-          set()
-        )
-    }
-    multi method new(Set:_:) {
-        nqp::if(
-          nqp::eqaddr(self.WHAT,Set),
-          set(),
-          nqp::create(self)
-        )
-    }
-
     multi method WHICH (Set:D:) {
         nqp::if(
           nqp::attrinited(self,Set,'$!WHICH'),
@@ -106,6 +88,22 @@ my class Set does Setty {
     }
 
 #--- interface methods
+    method STORE(*@pairs, :$initialize --> Set:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          nqp::if(
+            $initialize,
+            self.SET-SELF(
+              Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+                nqp::create(Rakudo::Internals::IterationSet), $iterator
+              )
+            ),
+            X::Assignment::RO.new(value => self).throw
+          )
+        )
+    }
+
     multi method AT-KEY(Set:D: \k --> Bool:D) {
         nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
     }

@@ -3340,7 +3340,7 @@ nqp::sethllconfig('perl6', nqp::hash(
         if $cat == nqp::const::CONTROL_RETURN {
             my %ex := nqp::gethllsym('perl6', 'P6EX');
             if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::ControlFlow::Return') {
-                nqp::atkey(%ex, 'X::ControlFlow::Return')();
+                nqp::atkey(%ex, 'X::ControlFlow::Return')($out_of_dyn_scope);
             }
             nqp::die('Attempt to return outside of any Routine');
         }

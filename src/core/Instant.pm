@@ -71,6 +71,9 @@ multi sub infix:«==»(Instant:D $a, Instant:D $b) {
 multi sub infix:«!=»(Instant:D $a, Instant:D $b) {
     $a.tai != $b.tai
 }
+multi sub infix:«≠»(Instant:D $a, Instant:D $b) {
+    $a.tai ≠ $b.tai
+}
 
 multi sub infix:«<»(Instant:D $a, Instant:D $b) {
     $a.tai < $b.tai
@@ -83,9 +86,15 @@ multi sub infix:«>»(Instant:D $a, Instant:D $b) {
 multi sub infix:«<=»(Instant:D $a, Instant:D $b) {
     $a.tai <= $b.tai
 }
+multi sub infix:«≤»(Instant:D $a, Instant:D $b) {
+    $a.tai ≤ $b.tai
+}
 
 multi sub infix:«>=»(Instant:D $a, Instant:D $b) {
     $a.tai >= $b.tai
+}
+multi sub infix:«≥»(Instant:D $a, Instant:D $b) {
+    $a.tai ≥ $b.tai
 }
 
 multi sub infix:<+>(Instant:D $a, Real:D $b) {
@@ -124,7 +133,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {
 }
 Rakudo::Internals.REGISTER-DYNAMIC: '$*INITTIME', {
     my ($file, $line) = .file, .line with callframe 3;
-    DEPRECATED('$*INIT-INSTANT', '2017.09.84.gb.02.da.4.d.1.a', '2017.08',
+    DEPRECATED('$*INIT-INSTANT', '2017.09.84.gb.02.da.4.d.1.a', '2018.08',
         :what<$*INITTIME>, :$file, :$line);
     $*INIT-INSTANT
 }

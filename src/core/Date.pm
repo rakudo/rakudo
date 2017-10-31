@@ -187,11 +187,17 @@ multi sub infix:<==>(Date:D $a, Date:D $b) {
 multi sub infix:«<=»(Date:D $a, Date:D $b) {
     $a.daycount <= $b.daycount
 }
+multi sub infix:«≤»(Date:D $a, Date:D $b) {
+    $a.daycount ≤ $b.daycount
+}
 multi sub infix:«<»(Date:D $a, Date:D $b) {
     $a.daycount < $b.daycount
 }
 multi sub infix:«>=»(Date:D $a, Date:D $b) {
     $a.daycount >= $b.daycount
+}
+multi sub infix:«≥»(Date:D $a, Date:D $b) {
+    $a.daycount ≥ $b.daycount
 }
 multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount

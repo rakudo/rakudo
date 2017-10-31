@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -88,11 +88,13 @@ my class array does Iterable {
         }
 
         multi method STORE(strarray:D: $value) {
+            nqp::setelems(self,1);
             nqp::bindpos_s(self, 0, nqp::unbox_s($value));
             self
         }
         multi method STORE(strarray:D: str @values) {
-            nqp::splice(self,@values,0,0)
+            nqp::setelems(self,@values.elems);
+            nqp::splice(self,@values,0,@values.elems)
         }
         multi method STORE(strarray:D: @values) {
             my int $elems = @values.elems;
@@ -128,8 +130,8 @@ my class array does Iterable {
             nqp::push_s(self, $value);
             self
         }
-        multi method append(strarray:D: str @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(strarray:D: strarray:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(strarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
@@ -353,7 +355,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -384,11 +386,13 @@ my class array does Iterable {
         }
 
         multi method STORE(intarray:D: $value) {
+            nqp::setelems(self,1);
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
         multi method STORE(intarray:D: int @values) {
-            nqp::splice(self,@values,0,0)
+            nqp::setelems(self,@values.elems);
+            nqp::splice(self,@values,0,@values.elems)
         }
         multi method STORE(intarray:D: @values) {
             my int $elems = @values.elems;
@@ -668,7 +672,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -699,11 +703,13 @@ my class array does Iterable {
         }
 
         multi method STORE(numarray:D: $value) {
+            nqp::setelems(self,1);
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
         multi method STORE(numarray:D: num @values) {
-            nqp::splice(self,@values,0,0)
+            nqp::setelems(self,@values.elems);
+            nqp::splice(self,@values,0,@values.elems)
         }
         multi method STORE(numarray:D: @values) {
             my int $elems = @values.elems;
@@ -739,8 +745,8 @@ my class array does Iterable {
             nqp::push_n(self, $value);
             self
         }
-        multi method append(numarray:D: num @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(numarray:D: numarray:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(numarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
@@ -949,6 +955,21 @@ my class array does Iterable {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------
 
+        method sum(numarray:D:) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my num $sum = nqp::atpos_n(self,0)),
+                (my int $i),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  $sum = nqp::add_n($sum,nqp::atpos_n(self,$i))
+                ),
+                $sum
+              ),
+              0e0
+            )
+        }
         multi method STORE(numarray:D: Range:D $range) {
             my num $val = $range.min;
             $val = $val + 1 if $range.excludes-min;

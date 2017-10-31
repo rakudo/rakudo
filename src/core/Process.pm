@@ -9,10 +9,6 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
       !! False
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*PID', {
-    PROCESS::<$PID> := nqp::p6box_i(nqp::getpid());
-}
-
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
     PROCESS::<$EXECUTABLE> := (
 #?if jvm

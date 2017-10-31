@@ -852,20 +852,25 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$results)
     }
 
-    method dispatch:<hyper>(Mu \SELF: Str() $name, |c) {
+    method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {
         nqp::if(
-          nqp::can(List,$name) && nqp::can(List.can($name).AT-POS(0),"nodal"),
+          nqp::if(
+            nqp::istype($nodality,Str),
+            nqp::if(
+              $nodality,
+                 nqp::can(List,$nodality)
+              && nqp::can(List.can($nodality ).AT-POS(0),'nodal'),
+                 nqp::can(List,$meth-name)
+              && nqp::can(List.can($meth-name).AT-POS(0),'nodal')),
+            nqp::can($nodality, 'nodal')),
           nqp::if(
             c,
-            HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF ),
-            HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
-          ),
+            HYPER( sub (\obj) is nodal { obj."$meth-name"(|c) }, SELF ),
+            HYPER( sub (\obj) is nodal { obj."$meth-name"()   }, SELF )),
           nqp::if(
             c,
-            HYPER( -> \obj { obj."$name"(|c) }, SELF ),
-            HYPER( -> \obj { obj."$name"() }, SELF )
-          )
-        )
+            HYPER( -> \obj { obj."$meth-name"(|c) }, SELF ),
+            HYPER( -> \obj { obj."$meth-name"(  ) }, SELF )))
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,

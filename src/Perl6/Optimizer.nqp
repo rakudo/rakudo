@@ -1376,23 +1376,6 @@ class Perl6::Optimizer {
         }
     }
 
-    method convert_unicode_op_to_ascii($op) {
-        sub asciify-to ($to) {
-            try {
-                # this method reifies lazy symbol's values, and the value
-                # is then looked at by the is_from_core method.
-                $!symbols.find_lexical($to); # dies if can't find
-                $!symbols.is_from_core($to) && $op.name: $to
-            }
-        }
-
-        if $!symbols.is_from_core: my $name := $op.name {
-            if    ($name eq '&infix:<≤>') { asciify-to('&infix:«<=»') }
-            elsif ($name eq '&infix:<≥>') { asciify-to('&infix:«>=»') }
-            elsif ($name eq '&infix:<≠>') { asciify-to('&infix:<!=>') }
-        }
-    }
-
     method optimize_call($op) {
         # See if we can find the thing we're going to call.
         my $obj;
@@ -1405,8 +1388,6 @@ class Perl6::Optimizer {
         }
 
         if $found {
-            self.convert_unicode_op_to_ascii($op);
-
             # Pure operators can be constant folded.
             if nqp::can($obj, 'is-pure') {
                 # First ensure we're not in void context; warn if so.

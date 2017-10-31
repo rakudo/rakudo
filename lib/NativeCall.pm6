@@ -61,10 +61,10 @@ sub string_encoding_to_nci_type(\encoding) {
 }
 
 # Builds a hash of type information for the specified parameter.
-sub param_hash_for(Parameter $p, :$with-typeobj) {
+sub param_hash_for(Parameter $p) {
     my Mu $result := nqp::hash();
     my $type := $p.type();
-    nqp::bindkey($result, 'typeobj', nqp::decont($type)) if $with-typeobj;
+    nqp::bindkey($result, 'typeobj', nqp::decont($type));
     nqp::bindkey($result, 'rw', nqp::unbox_i(1)) if $p.rw;
     if $type ~~ Str {
         my $enc := $p.?native_call_encoded() || 'utf8';
@@ -73,7 +73,7 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
     }
     elsif $type ~~ Callable {
         nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
-        my $info := param_list_for($p.sub_signature, :with-typeobj);
+        my $info := param_list_for($p.sub_signature);
         nqp::unshift($info, return_hash_for($p.sub_signature, :with-typeobj));
         nqp::bindkey($result, 'callback_args', $info);
     }
@@ -84,7 +84,7 @@ sub param_hash_for(Parameter $p, :$with-typeobj) {
 }
 
 # Builds the list of parameter information for a callback argument.
-sub param_list_for(Signature $sig, &r?, :$with-typeobj) {
+sub param_list_for(Signature $sig, &r?) {
     my $params   := nqp::getattr($sig.params,List,'$!reified');
     my int $elems = nqp::elems($params);
 
@@ -97,7 +97,7 @@ sub param_list_for(Signature $sig, &r?, :$with-typeobj) {
     my $result := nqp::setelems(nqp::list,$elems);
     my int $i   = -1;
     nqp::bindpos($result,$i,
-      param_hash_for(nqp::atpos($params,$i),:$with-typeobj)
+      param_hash_for(nqp::atpos($params,$i))
     ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
 
     $result
@@ -331,10 +331,11 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     method !create-jit-compiled-function-body(Routine $r) {
         my $block := QAST::Block.new(:name($r.name), :arity($!arity), :blocktype('declaration_static'));
         my $locals = 0;
-        my @deconts;
-        my @params;
+        my $args = 0;
+        my (@params, @assigns);
         for $r.signature.params {
             next if nqp::istype($r, Method) && ($_.name // '') eq '%_';
+            $args++;
             my $name = $_.name || '__anonymous_param__' ~ $++;
             my $lowered_param_name = '__lowered_param__' ~ $locals;
             my $lowered_name = '__lowered__' ~ $locals++;
@@ -350,13 +351,27 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 ),
             );
             @params.push: QAST::Var.new(:scope<local>, :name($lowered_name));
-            @deconts.push: QAST::Var.new(
+            $block.push: QAST::Var.new(
                 :name($lowered_param_name),
                 :scope<local>,
                 :decl<param>,
                 :slurpy($_.slurpy ?? 1 !! 0),
             );
-            @deconts.push: QAST::Op.new(
+            if $_.rw and nqp::objprimspec($_.type) > 0 {
+                $block.push: QAST::Var.new(
+                    :name($name),
+                    :scope<lexicalref>,
+                    :decl<var>,
+                    :returns($_.type),
+                );
+                $block.push:
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new(:scope<lexicalref>, :name($name)),
+                        QAST::Var.new(:scope<local>, :name($lowered_param_name)),
+                    );
+            }
+            $block.push: QAST::Op.new(
                 :op<if>,
                 QAST::Op.new(
                     :op<isconcrete>,
@@ -373,14 +388,21 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:scope<local>, :name($lowered_name)),
-                       $_.type ~~ Str ?? QAST::SVal.new()
+                       $_.type ~~ Str ?? Str
                     !! $_.type ~~ Int ?? QAST::IVal.new(:value(0))
                     !! $_.type ~~ Num ?? QAST::NVal.new(:value(0))
                     !! QAST::IVal.new(:value(0))
                 ),
             );
+
+            if $_.rw and nqp::objprimspec($_.type) > 0 {
+                @assigns.push: QAST::Op.new(
+                    :op<assign>,
+                    QAST::Var.new(:scope<lexicalref>, :name($name)),
+                    QAST::Op.new(:op<getarg_i>, QAST::IVal.new(:value($args - 1))),
+                );
+            }
         }
-        $block.push: nqp::decont($_) for @deconts; # do not interrupt the locals definitions
         $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
         my $invoke_op := QAST::Op.new(
             :op<nativeinvoke>,
@@ -388,7 +410,22 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             QAST::WVal.new(:value($!rettype)),
         );
         $invoke_op.push: nqp::decont($_) for @params;
-        $block.push: $invoke_op;
+        if @assigns {
+            $block.push: QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new(
+                    :name<return_value>,
+                    :scope<local>,
+                    :decl<var>,
+                ),
+                $invoke_op
+            );
+            $block.push: nqp::decont($_) for @assigns;
+            $block.push: QAST::Var.new(:name<return_value>, :scope<local>);
+        }
+        else {
+            $block.push: $invoke_op;
+        }
         $block
     }
 

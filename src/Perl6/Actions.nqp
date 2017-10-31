@@ -3157,7 +3157,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 elsif $<initializer><sym> eq '=' {
-                    $past := assign_op($/, $past, $initast);
+                    $past := assign_op($/, $past, $initast, :initialize);
                 }
                 elsif $<initializer><sym> eq '.=' {
                     $past := make_dot_equals($past, $initast);
@@ -4982,7 +4982,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $quant := $<quant>;
         if $<default_value> {
             my $name := %*PARAM_INFO<variable_name> // '';
-            if $quant eq '*' || $quant eq '|' {
+            if $quant eq '*'  || $quant eq '|'
+            || $quant eq '**' || $quant eq '+' {
                 $/.typed_sorry('X::Parameter::Default', how => 'slurpy',
                             parameter => $name);
             }
@@ -6959,7 +6960,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
-    sub assign_op($/, $lhs_ast, $rhs_ast) {
+    sub assign_op($/, $lhs_ast, $rhs_ast, :$initialize) {
         my $past;
         my $var_sigil;
         $lhs_ast := WANTED($lhs_ast,'assign_op/lhs');
@@ -6975,6 +6976,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
+
+        # get the sigil out of the my %h is Set = case
+        elsif nqp::istype($lhs_ast,QAST::Op) && $lhs_ast.op eq 'bind'
+          && nqp::istype($lhs_ast[0], QAST::Var) {
+            $var_sigil := nqp::substr($lhs_ast[0].name, 0, 1);
+        }
+
         if nqp::istype($lhs_ast, QAST::Var)
                 && nqp::objprimspec($lhs_ast.returns) -> $spec {
             # Native assignment is only possible to a reference; complain now
@@ -6995,6 +7003,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new(
                 :op('callmethod'), :name('STORE'),
                 $lhs_ast, $rhs_ast);
+
+            # let STORE know if this is the first time
+            if $initialize {
+                $past.push(QAST::WVal.new(
+                  :named('initialize'),
+                  :value($*W.find_symbol(['Bool', 'True']))
+                ));
+            }
             $past.nosink(1);
         }
         elsif $var_sigil eq '$' {
@@ -7447,14 +7463,57 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_numeric_constant($/, 'Int', $power));
     }
 
+    method hyper-nodal-name-tweak ($past) {
+        unless my $name := $past.name {
+            $past.unshift: QAST::SVal.new: :value('');
+            return;
+        }
+        $past.unshift: QAST::SVal.new: :value($name);
+
+        unless nqp::eqat($name, 'dispatch:<', 0) && (
+               $name eq 'dispatch:<var>' || $name eq 'dispatch:<.*>'
+            || $name eq 'dispatch:<.+>'  || $name eq 'dispatch:<.?>'
+            || $name eq 'dispatch:<::>'
+        ) {
+            $past.unshift: QAST::SVal.new: :value('');
+            return;
+        }
+
+        # the call we're hypering is another `dispatch:<` call, so we need
+        # to figure out what's the actual method name we'll call, inside that
+        # dispatch, so we can pass it to our hyper call for nodality calculation
+        my $nodal-name := $past[1];
+
+        if $nodal-name.isa(QAST::Want) && nqp::elems($nodal-name) == 3
+        && $nodal-name[2].isa(QAST::SVal) {
+            # the new nodal name might be another level of
+            # dispatch:<...>; dig one level deeper for real name
+            $nodal-name := $past[2]
+                if $nodal-name[2].value eq 'dispatch:<var>'
+                || $nodal-name[2].value eq 'dispatch:<::>';
+        }
+        else {
+            # at this point, we could have method name in a string that
+            # has a code block to run. We need to ensure the code runs just
+            # once, so we'll store the result in a variable, to use for the
+            # logic that figures out nodality. We'll also stick that variable
+            # into the second `dispatch` call, to use as a name there.
+            my $name-var := $*W.cur_lexpad.unique: 'nodal-name';
+            $nodal-name := QAST::Op.new: :op<bind>,
+                QAST::Var.new(:name($name-var), :scope<lexical>, :decl<var>),
+                $past[1];
+            $past[1] := QAST::Var.new: :name($name-var), :scope<lexical>;
+        }
+
+        $past.unshift: $nodal-name;
+    }
+
     method postfixish($/) {
         if $<postfix_prefix_meta_operator> {
             my $past := $<OPER>.ast || QAST::Op.new( :name('&postfix' ~ $*W.canonicalize_pair('', $<OPER>.Str)),
                                                      :op<call> );
             if $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
-                if $past.name -> $name {
-                    $past.unshift(QAST::SVal.new( :value($name) ));
-                }
+                self.hyper-nodal-name-tweak($past);
                 $past.name('dispatch:<hyper>');
             }
             elsif $past.isa(QAST::Op) && $past.op() eq 'call' {

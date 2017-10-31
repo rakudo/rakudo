@@ -2132,9 +2132,19 @@ my class X::ControlFlow is Exception {
     method message() { "$.illegal without $.enclosing" }
 }
 my class X::ControlFlow::Return is X::ControlFlow {
+    has Bool $.out-of-dynamic-scope;
+    submethod BUILD(Bool() :$!out-of-dynamic-scope) {}
+
     method illegal()   { 'return'  }
     method enclosing() { 'Routine' }
-    method message()   { 'Attempt to return outside of any Routine' }
+    method message()   {
+        'Attempt to return outside of ' ~ (
+            $!out-of-dynamic-scope
+              ?? 'immediatelly-enclosing Routine (i.e. `return` execution is'
+               ~ ' outside the dynamic scope of the Routine where `return` was used)'
+              !! 'any Routine'
+        )
+    }
 }
 
 my class X::Composition::NotComposable does X::Comp {
@@ -2257,7 +2267,9 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 my class X::Assignment::RO is Exception {
     has $.value = "value";
     method message {
-        "Cannot modify an immutable {$.value.^name} ({$.value.gist})"
+        my $gist = $.value.gist;
+        $gist = "$gist.substr(0,20)..." if $gist.chars > 23;
+        "Cannot modify an immutable {$.value.^name} ($gist)"
     }
     method typename { $.value.^name }
 }
@@ -2508,8 +2520,8 @@ my class X::Multi::NoMatch is Exception {
         my @un-rw-cand;
         if first / 'is rw' /, @cand {
             my $rw-capture = Capture.new(
-                :list( $!capture.list.map({ $ = $_ })                  ),
-                :hash( $!capture.hash.map({ .key => $ = .value }).hash ),
+                :list( $!capture.list.map({ my $ = $_ })                  ),
+                :hash( $!capture.hash.map({ .key => my $ = .value }).hash ),
             );
             @un-rw-cand = $.dispatcher.dispatchees».signature.grep({
                 $rw-capture ~~ $^cand
@@ -2627,8 +2639,8 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::Assignment::RO.new(:$value).throw;
   },
   'X::ControlFlow::Return',
-  {
-      X::ControlFlow::Return.new().throw;
+  -> $out-of-dynamic-scope = False {
+      X::ControlFlow::Return.new(:$out-of-dynamic-scope).throw;
   },
   'X::NoDispatcher',
   -> $redispatcher {

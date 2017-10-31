@@ -65,7 +65,9 @@ role STD {
     method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
         sub lang_key() {
             my $stopstr := nqp::istype($stop,VMArray) ?? nqp::join(' ',$stop) !! $stop;
-            my @keybits := [$l.HOW.name($l), $start, $stopstr];
+            my @keybits := [
+                self.HOW.name(self), $l.HOW.name($l), $start, $stopstr
+            ];
             for @base_tweaks {
                 @keybits.push($_);
             }
@@ -914,7 +916,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token pod_block:sym<delimited> {
+    regex pod_block:sym<delimited> {
         ^^
         $<spaces> = [ \h* ]
         '=begin'
@@ -1011,12 +1013,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }
         :my $*ALLOW_INLINE_CODE := 0;
-        $<type> = [
-            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
-            || <identifier>
+        [ :!ratchet
+            $<type> = [
+                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+                || <identifier>
+            ]
+            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+            <pod_configuration($<spaces>)>
+            <pod_newline>
         ]
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)> <pod_newline>
         <pod_content=.pod_textcontent>**0..1
     }
 
@@ -1056,12 +1061,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $*VMARGIN := $<spaces>.to - $<spaces>.from;
         }
         :my $*ALLOW_INLINE_CODE := 0;
-        $<type> = [
-            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
-            || <identifier>
+        [ :!ratchet
+            $<type> = [
+                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+                || <identifier>
+            ]
+            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+            [\h*\n|\h+]
         ]
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        [\h*\n|\h+]
         <pod_content=.pod_textcontent>**0..1
     }
 
@@ -4643,7 +4650,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         if $categorical {    # Does it look like a metaop?
             my $cat := ~$categorical[0][0];
             my $op := ~$categorical[0][1];
-            return self if $op eq '!=';
+            return self if $op eq '!=' || $op eq '≠';
             my $lang := self.'!cursor_init'($op, :p(0), :actions($actions));
             $lang.clone_braid_from(self);
             my $meth := $cat eq 'infix' || $cat eq 'prefix' || $cat eq 'postfix' ?? $cat ~ 'ish' !! $cat;

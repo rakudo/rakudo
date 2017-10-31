@@ -8,16 +8,22 @@ class Telemetry {
     has int $!cpu-user;
     has int $!cpu-sys;
     has int $!wallclock;
+    has int $!supervisor;
 
     my num $start = Rakudo::Internals.INITTIME;
 
     submethod BUILD() {
         my \rusage = nqp::getrusage;
-        $!cpu-user = nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
+        $!cpu-user = nqp::atpos_i(rusage,nqp::const::RUSAGE_UTIME_SEC) * 1000000
           + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC);
-        $!cpu-sys  = nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
+        $!cpu-sys  = nqp::atpos_i(rusage,nqp::const::RUSAGE_STIME_SEC) * 1000000
           + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC);
-        $!wallclock = nqp::fromnum_I(1000000*nqp::sub_n(nqp::time_n,$start),Int);
+        $!wallclock =
+          nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int);
+
+        my $scheduler := nqp::decont($*SCHEDULER);
+        $!supervisor = 1
+          if nqp::getattr($scheduler,ThreadPoolScheduler,'$!supervisor');
     }
 
     proto method cpu() { * }
@@ -53,6 +59,16 @@ class Telemetry {
         nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int)
     }
     multi method wallclock(Telemetry:D:) is raw { $!wallclock }
+
+    proto method supervisor() { * }
+    multi method supervisor(Telemetry:U:) {
+        nqp::istrue(
+          nqp::getattr(
+            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!supervisor'
+          )
+        )
+    }
+    multi method supervisor(Telemetry:D:) { $!supervisor }
 
     multi method Str(Telemetry:D:) {
         $!wallclock ?? "$.cpu / $!wallclock" !! "cpu / wallclock"

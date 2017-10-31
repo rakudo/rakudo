@@ -1,4 +1,4 @@
-# An attempt at providing an API to nqp::getrusage.
+# Provide an API for keeping track of a lot of system lifesigns
 
 use nqp;
 
@@ -320,7 +320,7 @@ multi sub report(@s) {
     sub hide0(\value) { value ?? sprintf("%3d",value) !! "   " }
 
     my $total = @s[*-1] - @s[0];
-    my $text := nqp::list_s(qq:to/HEADER/);
+    my $text := nqp::list_s(qq:to/HEADER/.chomp);
 Telemetry Report of Process #$*PID ($*INIT-INSTANT.DateTime())
 Number of Snapshots: {+@s}
 Total Time:      { ($total.wallclock / 1000000).fmt("%9.2f") } seconds
@@ -331,25 +331,25 @@ HEADER
 
     sub push-period($_) {
         nqp::push_s($text,
-          sprintf("%6.2f %s %s %s %s %s %s\n",
+          sprintf("%6.2f %s %s %s %s %s %s",
             .utilization,
             hide0(.supervisor),
             hide0(.general-workers), hide0(.general-jobs),
             hide0(.timer-workers),   hide0(.timer-jobs),
             hide0(.affinity-workers)
-          )
+          ).trim-trailing
         );
     }
 
     push-period($_) for periods(@s);
 
-    nqp::push_s($text, qq:to/FOOTER/);
+    nqp::push_s($text, qq:to/FOOTER/.chomp);
 ------ --- --- --- --- --- ---
 FOOTER
 
     push-period($total);
  
-    nqp::join('',$text)
+    nqp::join("\n",$text)
 }
 
 END { if @snaps { snap; note report } }

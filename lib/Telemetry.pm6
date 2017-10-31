@@ -230,10 +230,22 @@ multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) is export {
     )
 }
 
+constant T is export = Telemetry;
+
 my @snaps;
 proto sub snap(|) is export { * }
 multi sub snap(--> Nil) { @snaps.push(Telemetry.new) }
 multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
+
+my int $snapper-running;
+sub snapper($sleep = 0.1 --> Nil) is export {
+    unless $snapper-running {
+        Thread.start(:app_lifetime, :name<Snapper>, {
+            loop { snap; sleep $sleep }
+        });
+        $snapper-running = 1
+    }
+}
 
 proto sub periods(|) is export { * }
 multi sub periods() {

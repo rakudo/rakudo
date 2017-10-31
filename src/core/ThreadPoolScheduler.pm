@@ -106,7 +106,7 @@ my class ThreadPoolScheduler does Scheduler {
                     nqp::push_i(indices, $insert);
                 }
 
-                $insert++;
+                ++$insert;
             }
 
             # See if we have anything that we really need to suspend for. If
@@ -124,7 +124,7 @@ my class ThreadPoolScheduler does Scheduler {
                 $l.lock;
                 {
                     my int $remaining = $num-handles;
-                    loop (my int $i = 0; $i < $num-handles; $i++) {
+                    loop (my int $i = 0; $i < $num-handles; ++$i) {
                         my $handle := nqp::atpos(handles, $i);
                         my int $insert = nqp::atpos_i(indices, $i);
                         $handle.subscribe-awaiter(-> \success, \result {
@@ -219,7 +219,7 @@ my class ThreadPoolScheduler does Scheduler {
             $!completed = 0;
 #?endif
             if $taken == 0 {
-                $!times-nothing-completed++;
+                ++$!times-nothing-completed;
             }
             else {
                 $!total = $!total + $taken;
@@ -252,10 +252,10 @@ my class ThreadPoolScheduler does Scheduler {
             });
             $!working = 0;
 #?if moar
-            $!completed⚛++;
+            ++⚛$!completed;
 #?endif
 #?if !moar
-            $!completed++;
+            ++$!completed;
 #?endif
         }
     }

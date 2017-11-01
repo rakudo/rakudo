@@ -3,13 +3,19 @@
 use nqp;
 
 # Constants indexing into the nqp::getrusage array -----------------------------
-constant UTIME_SEC  = 0;
-constant UTIME_MSEC = 1;
-constant STIME_SEC  = 2;
-constant STIME_MSEC = 3;
-constant MAX_RSS    = 4;
-constant IX_RSS     = 5;
-constant ID_RSS     = 6;
+constant UTIME_SEC  =  0;
+constant UTIME_MSEC =  1;
+constant STIME_SEC  =  2;
+constant STIME_MSEC =  3;
+constant MAX_RSS    =  4;
+constant IX_RSS     =  5;
+constant ID_RSS     =  6;
+constant IS_RSS     =  8;
+constant MIN_FLT    =  9;
+constant MAJ_FLT    = 10;
+constant NSWAP      = 11;
+constant INBLOCK    = 12;
+constant OUTBLOCK   = 13;
 
 # Helper stuff -----------------------------------------------------------------
 my num $start = Rakudo::Internals.INITTIME;
@@ -60,6 +66,30 @@ sub ix-rss() is raw is export(:COLUMNS) {
 
 sub id-rss() is raw is export(:COLUMNS) {
     nqp::atpos_i(nqp::getrusage,ID_RSS)
+}
+
+sub is-rss() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,IS_RSS)
+}
+
+sub min-flt() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,MIN_FLT)
+}
+
+sub maj-flt() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,MAJ_FLT)
+}
+
+sub nswap() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,NSWAP)
+}
+
+sub inblock() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,INBLOCK)
+}
+
+sub outblock() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,OUTBLOCK)
 }
 
 sub wallclock() is raw is export(:COLUMNS) {
@@ -142,6 +172,12 @@ class Telemetry {
     has int $!max-rss;
     has int $!ix-rss;
     has int $!id-rss;
+    has int $!is-rss;
+    has int $!min-flt;
+    has int $!maj-flt;
+    has int $!nswap;
+    has int $!inblock;
+    has int $!outblock;
     has int $!wallclock;
     has int $!supervisor;
     has int $!general-workers;
@@ -161,6 +197,12 @@ class Telemetry {
         $!max-rss  = nqp::atpos_i(rusage,MAX_RSS);
         $!ix-rss   = nqp::atpos_i(rusage,IX_RSS);
         $!id-rss   = nqp::atpos_i(rusage,ID_RSS);
+        $!is-rss   = nqp::atpos_i(rusage,IS_RSS);
+        $!min-flt  = nqp::atpos_i(rusage,MIN_FLT);
+        $!maj-flt  = nqp::atpos_i(rusage,MAJ_FLT);
+        $!nswap    = nqp::atpos_i(rusage,NSWAP);
+        $!inblock  = nqp::atpos_i(rusage,INBLOCK);
+        $!outblock = nqp::atpos_i(rusage,OUTBLOCK);
 
         $!wallclock =
           nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int);
@@ -211,6 +253,24 @@ class Telemetry {
 
     multi method id-rss(Telemetry:U:) is raw {   id-rss }
     multi method id-rss(Telemetry:D:) is raw { $!id-rss }
+
+    multi method is-rss(Telemetry:U:) is raw {   is-rss }
+    multi method is-rss(Telemetry:D:) is raw { $!is-rss }
+
+    multi method min-flt(Telemetry:U:) is raw {   min-flt }
+    multi method min-flt(Telemetry:D:) is raw { $!min-flt }
+
+    multi method maj-flt(Telemetry:U:) is raw {   maj-flt }
+    multi method maj-flt(Telemetry:D:) is raw { $!maj-flt }
+
+    multi method nswap(Telemetry:U:) is raw {   nswap }
+    multi method nswap(Telemetry:D:) is raw { $!nswap }
+
+    multi method inblock(Telemetry:U:) is raw {   inblock }
+    multi method inblock(Telemetry:D:) is raw { $!inblock }
+
+    multi method outblock(Telemetry:U:) is raw {   outblock }
+    multi method outblock(Telemetry:D:) is raw { $!outblock }
 
     multi method wallclock(Telemetry:U:) is raw {   wallclock }
     multi method wallclock(Telemetry:D:) is raw { $!wallclock }
@@ -275,6 +335,12 @@ class Telemetry::Period is Telemetry {
       int :$max-rss,
       int :$ix-rss,
       int :$id-rss,
+      int :$is-rss,
+      int :$min-flt,
+      int :$maj-flt,
+      int :$nswap,
+      int :$inblock,
+      int :$outblock,
       int :$wallclock,
       int :$supervisor,
       int :$general-workers,
@@ -287,7 +353,8 @@ class Telemetry::Period is Telemetry {
     ) {
         self.new(
           $cpu-user, $cpu-sys,
-          $max-rss, $ix-rss, $id-rss,
+          $max-rss, $ix-rss, $id-rss, $is-rss, $min-flt, $maj-flt, $nswap,
+          $inblock, $outblock,
           $wallclock, $supervisor,
           $general-workers, $general-tasks-queued, $general-tasks-completed,
           $timer-workers, $timer-tasks-queued, $timer-tasks-completed,
@@ -302,6 +369,12 @@ class Telemetry::Period is Telemetry {
       int $max-rss,
       int $ix-rss,
       int $id-rss,
+      int $is-rss,
+      int $min-flt,
+      int $maj-flt,
+      int $nswap,
+      int $inblock,
+      int $outblock,
       int $wallclock,
       int $supervisor,
       int $general-workers,
@@ -323,6 +396,18 @@ class Telemetry::Period is Telemetry {
           '$!ix-rss',                 $ix-rss);
         nqp::bindattr_i($period,Telemetry,
           '$!id-rss',                 $id-rss);
+        nqp::bindattr_i($period,Telemetry,
+          '$!is-rss',                 $is-rss);
+        nqp::bindattr_i($period,Telemetry,
+          '$!min-flt',                $min-flt);
+        nqp::bindattr_i($period,Telemetry,
+          '$!maj-flt',                $maj-flt);
+        nqp::bindattr_i($period,Telemetry,
+          '$!nswap',                  $nswap);
+        nqp::bindattr_i($period,Telemetry,
+          '$!inblock',                $inblock);
+        nqp::bindattr_i($period,Telemetry,
+          '$!outblock',               $outblock);
         nqp::bindattr_i($period,Telemetry,
           '$!wallclock',              $wallclock);
         nqp::bindattr_i($period,Telemetry,
@@ -356,6 +441,18 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!ix-rss')
         }), :id-rss({
           nqp::getattr_i(self,Telemetry,'$!id-rss')
+        }), :is-rss({
+          nqp::getattr_i(self,Telemetry,'$!is-rss')
+        }), :min-flt({
+          nqp::getattr_i(self,Telemetry,'$!min-flt')
+        }), :maj-flt({
+          nqp::getattr_i(self,Telemetry,'$!maj-flt')
+        }), :nswap({
+          nqp::getattr_i(self,Telemetry,'$!nswap')
+        }), :inblock({
+          nqp::getattr_i(self,Telemetry,'$!inblock')
+        }), :outblock({
+          nqp::getattr_i(self,Telemetry,'$!outblock')
         }), :wallclock({
           nqp::getattr_i(self,Telemetry,'$!wallclock')
         }), :supervisor({
@@ -418,6 +515,30 @@ multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
       nqp::sub_i(
         nqp::getattr_i($a,Telemetry,'$!id-rss'),
         nqp::getattr_i($b,Telemetry,'$!id-rss')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!is-rss'),
+        nqp::getattr_i($b,Telemetry,'$!is-rss')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!min-flt'),
+        nqp::getattr_i($b,Telemetry,'$!min-flt')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!maj-flt'),
+        nqp::getattr_i($b,Telemetry,'$!maj-flt')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!nswap'),
+        nqp::getattr_i($b,Telemetry,'$!nswap')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!inblock'),
+        nqp::getattr_i($b,Telemetry,'$!inblock')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!outblock'),
+        nqp::getattr_i($b,Telemetry,'$!outblock')
       ),
       nqp::sub_i(
         nqp::getattr_i($a,Telemetry,'$!wallclock'),
@@ -534,12 +655,30 @@ my %format =
   id-rss =>
     ["    id-rss", { hide0(.id-rss,10) },
       "Integral unshared data size (in bytes)"],
+  inblock =>
+    ["inb", { hide0(.inblock) },
+      "Number of block input operations"],
+  is-rss =>
+    ["    is-rss", { hide0(.id-rss,10) },
+      "Integral unshared stack size (in bytes)"],
   ix-rss =>
     ["    ix-rss", { hide0(.ix-rss,10) },
       "Integral shared text memory size (in bytes)"],
+  maj-flt =>
+    ["aft", { hide0(.maj-flt,3) },
+      "Number of page reclaims (ru_majflt)"],
   max-rss =>
     ["   max-rss", { hide0(.max-rss,10) },
       "Maximum resident set size (in bytes)"],
+  min-flt =>
+    ["ift", { hide0(.min-flt) },
+      "Number of page reclaims (ru_minflt)"],
+  nswap =>
+    ["nsw", { hide0(.nswap) },
+      "Number of swaps"],
+  outblock =>
+    ["oub", { hide0(.outblock) },
+      "Number of block output operations"],
   supervisor =>
     [       "s", { hide0(.supervisor,1) },
       "The number of supervisors"],

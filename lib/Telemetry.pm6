@@ -5,6 +5,8 @@ use nqp;
 class Telemetry {
     has int $!cpu-user;
     has int $!cpu-sys;
+    has int $!max-rss;
+    has int $!ix-rss;
     has int $!wallclock;
     has int $!supervisor;
     has int $!general-workers;
@@ -34,12 +36,22 @@ class Telemetry {
         $completed
     }
 
+    constant UTIME_SEC  = 0;
+    constant UTIME_MSEC = 1;
+    constant STIME_SEC  = 2;
+    constant STIME_MSEC = 3;
+    constant MAX_RSS    = 4;
+    constant IX_RSS     = 5;
+
     submethod BUILD() {
         my \rusage = nqp::getrusage;
-        $!cpu-user = nqp::atpos_i(rusage,nqp::const::RUSAGE_UTIME_SEC) * 1000000
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC);
-        $!cpu-sys  = nqp::atpos_i(rusage,nqp::const::RUSAGE_STIME_SEC) * 1000000
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC);
+        $!cpu-user = nqp::atpos_i(rusage,UTIME_SEC) * 1000000
+          + nqp::atpos_i(rusage,UTIME_MSEC);
+        $!cpu-sys  = nqp::atpos_i(rusage,STIME_SEC) * 1000000
+          + nqp::atpos_i(rusage,STIME_MSEC);
+        $!max-rss  = nqp::atpos_i(rusage,MAX_RSS);
+        $!ix-rss   = nqp::atpos_i(rusage,IX_RSS);
+
         $!wallclock =
           nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int);
 
@@ -75,10 +87,10 @@ class Telemetry {
     proto method cpu() { * }
     multi method cpu(Telemetry:U:) is raw {
         my \rusage = nqp::getrusage;
-        nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
+        nqp::atpos_i(rusage,UTIME_SEC) * 1000000
+          + nqp::atpos_i(rusage,UTIME_MSEC)
+          + nqp::atpos_i(rusage,STIME_SEC) * 1000000
+          + nqp::atpos_i(rusage,STIME_MSEC)
     }
     multi method cpu(Telemetry:D:) is raw {
         nqp::add_i($!cpu-user,$!cpu-sys)
@@ -87,18 +99,30 @@ class Telemetry {
     proto method cpu-user() { * }
     multi method cpu-user(Telemetry:U:) is raw {
         my \rusage = nqp::getrusage;
-        nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
+        nqp::atpos_i(rusage,UTIME_SEC) * 1000000
+          + nqp::atpos_i(rusage,UTIME_MSEC)
     }
     multi method cpu-user(Telemetry:D:) is raw { $!cpu-user }
 
     proto method cpu-sys() { * }
     multi method cpu-sys(Telemetry:U:) is raw {
         my \rusage = nqp::getrusage;
-        nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
+        nqp::atpos_i(rusage,STIME_SEC) * 1000000
+          + nqp::atpos_i(rusage,STIME_MSEC)
     }
     multi method cpu-sys(Telemetry:D:) is raw { $!cpu-sys }
+
+    proto method max-rss() { * }
+    multi method max-rss(Telemetry:U:) is raw {
+        nqp::atpos_i(nqp::getrusage,MAX_RSS)
+    }
+    multi method max-rss(Telemetry:D:) is raw { $!max-rss }
+
+    proto method ix-rss() { * }
+    multi method ix-rss(Telemetry:U:) is raw {
+        nqp::atpos_i(nqp::getrusage,IX_RSS)
+    }
+    multi method ix-rss(Telemetry:D:) is raw { $!ix-rss }
 
     proto method wallclock() { * }
     multi method wallclock(Telemetry:U:) is raw {
@@ -204,10 +228,10 @@ class Telemetry {
     multi method affinity-workers(Telemetry:D:) { $!affinity-workers }
 
     multi method Str(Telemetry:D:) {
-        $!wallclock ?? "$.cpu / $!wallclock" !! "cpu / wallclock"
+        "$.cpu / $!wallclock"
     }
     multi method gist(Telemetry:D:) {
-        $!wallclock ?? "$.cpu / $!wallclock" !! "cpu / wallclock"
+        "$.cpu / $!wallclock"
     }
 }
 
@@ -215,6 +239,8 @@ class Telemetry::Period is Telemetry {
     multi method new(Telemetry::Period:
       int :$cpu-user,
       int :$cpu-sys,
+      int :$max-rss,
+      int :$ix-rss,
       int :$wallclock,
       int :$supervisor,
       int :$general-workers,
@@ -226,7 +252,9 @@ class Telemetry::Period is Telemetry {
       int :$affinity-workers,
     ) {
         self.new(
-          $cpu-user, $cpu-sys, $wallclock, $supervisor,
+          $cpu-user, $cpu-sys,
+          $max-rss, $ix-rss,
+          $wallclock, $supervisor,
           $general-workers, $general-tasks-queued, $general-tasks-completed,
           $timer-workers, $timer-tasks-queued, $timer-tasks-completed,
           $affinity-workers
@@ -235,6 +263,8 @@ class Telemetry::Period is Telemetry {
     multi method new(Telemetry::Period:
       int $cpu-user,
       int $cpu-sys,
+      int $max-rss,
+      int $ix-rss,
       int $wallclock,
       int $supervisor,
       int $general-workers,
@@ -250,6 +280,10 @@ class Telemetry::Period is Telemetry {
           '$!cpu-user',               $cpu-user);
         nqp::bindattr_i($period,Telemetry,
           '$!cpu-sys',                $cpu-sys);
+        nqp::bindattr_i($period,Telemetry,
+          '$!max-rss',                $max-rss);
+        nqp::bindattr_i($period,Telemetry,
+          '$!ix-rss',                 $ix-rss);
         nqp::bindattr_i($period,Telemetry,
           '$!wallclock',              $wallclock);
         nqp::bindattr_i($period,Telemetry,
@@ -276,6 +310,10 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!cpu-user')
         }), :cpu-sys({
           nqp::getattr_i(self,Telemetry,'$!cpu-sys')
+        }), :max-rss({
+          nqp::getattr_i(self,Telemetry,'$!max-rss')
+        }), :ix-rss({
+          nqp::getattr_i(self,Telemetry,'$!ix-rss')
         }), :wallclock({
           nqp::getattr_i(self,Telemetry,'$!wallclock')
         }), :supervisor({
@@ -308,56 +346,67 @@ class Telemetry::Period is Telemetry {
     method utilization() { $factor * self.cpus }
 }
 
-multi sub infix:<->(Telemetry:U $a, Telemetry:U $b) is export {
-    Telemetry::Period.new(0,0,0)
+multi sub infix:<->(Telemetry:U \a, Telemetry:U \b) is export {
+    nqp::create(Telemetry::Period)
 }
-multi sub infix:<->(Telemetry:D $a, Telemetry:U $b) is export { $a     - $b.new }
-multi sub infix:<->(Telemetry:U $a, Telemetry:D $b) is export { $a.new - $b     }
-multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) is export {
+multi sub infix:<->(Telemetry:D \a, Telemetry:U \b) is export { a - b.new }
+multi sub infix:<->(Telemetry:U \a, Telemetry:D \b) is export { a.new - b }
+multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
+    my $a := nqp::decont(a);
+    my $b := nqp::decont(b);
+
     Telemetry::Period.new(
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!cpu-user'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!cpu-user')
+        nqp::getattr_i($a,Telemetry,'$!cpu-user'),
+        nqp::getattr_i($b,Telemetry,'$!cpu-user')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!cpu-sys'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!cpu-sys')
+        nqp::getattr_i($a,Telemetry,'$!cpu-sys'),
+        nqp::getattr_i($b,Telemetry,'$!cpu-sys')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!wallclock'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!wallclock')
+        nqp::getattr_i($a,Telemetry,'$!max-rss'),
+        nqp::getattr_i($b,Telemetry,'$!max-rss')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!supervisor'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!supervisor')
+        nqp::getattr_i($a,Telemetry,'$!ix-rss'),
+        nqp::getattr_i($b,Telemetry,'$!ix-rss')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!general-workers'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!general-workers')
+        nqp::getattr_i($a,Telemetry,'$!wallclock'),
+        nqp::getattr_i($b,Telemetry,'$!wallclock')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!general-tasks-queued'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!general-tasks-queued')
+        nqp::getattr_i($a,Telemetry,'$!supervisor'),
+        nqp::getattr_i($b,Telemetry,'$!supervisor')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!general-tasks-completed'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!general-tasks-completed')
+        nqp::getattr_i($a,Telemetry,'$!general-workers'),
+        nqp::getattr_i($b,Telemetry,'$!general-workers')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!timer-workers'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!timer-workers')
+        nqp::getattr_i($a,Telemetry,'$!general-tasks-queued'),
+        nqp::getattr_i($b,Telemetry,'$!general-tasks-queued')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!timer-tasks-queued'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!timer-tasks-queued')
+        nqp::getattr_i($a,Telemetry,'$!general-tasks-completed'),
+        nqp::getattr_i($b,Telemetry,'$!general-tasks-completed')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!timer-tasks-completed'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!timer-tasks-completed')
+        nqp::getattr_i($a,Telemetry,'$!timer-workers'),
+        nqp::getattr_i($b,Telemetry,'$!timer-workers')
       ),
       nqp::sub_i(
-        nqp::getattr_i(nqp::decont($a),Telemetry,'$!affinity-workers'),
-        nqp::getattr_i(nqp::decont($b),Telemetry,'$!affinity-workers')
+        nqp::getattr_i($a,Telemetry,'$!timer-tasks-queued'),
+        nqp::getattr_i($b,Telemetry,'$!timer-tasks-queued')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!timer-tasks-completed'),
+        nqp::getattr_i($b,Telemetry,'$!timer-tasks-completed')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!affinity-workers'),
+        nqp::getattr_i($b,Telemetry,'$!affinity-workers')
       )
     )
 }
@@ -407,54 +456,61 @@ sub hide0(\value, int $size = 3) {
 # Set up how to handle report generation
 my %format =
   affinity-workers =>
-    [     " aw", { hide0(.affinity-workers) },          '---',
+    [     " aw", { hide0(.affinity-workers) },
       "The number of affinity threads"],
-  cpu => 
-    ["     cpu", { .cpu.fmt('%8d') },                   '--------',
+  cpu =>
+    ["     cpu", { .cpu.fmt('%8d') },
       "The amount of CPU used (in microseconds)"],
-  cpu-user => 
-    ["cpu-user", { .cpu.fmt('%8d') },                   '--------',
+  cpu-user =>
+    ["cpu-user", { .cpu.fmt('%8d') },
       "The amount of CPU used in user code (in microseconds)"],
-  cpu-sys =>               
-    [" cpu-sys", { .cpu.fmt('%8d') },                   '--------',
+  cpu-sys =>
+    [" cpu-sys", { .cpu.fmt('%8d') },
       "The amount of CPU used in system overhead (in microseconds)"],
   general-workers =>
-    [     " gw", { hide0(.general-workers) },           '---',
+    [     " gw", { hide0(.general-workers) },
       "The number of general worker threads"],
   general-tasks-queued =>
-    [     "gtq", { hide0(.general-tasks-queued) },      '---',
+    [     "gtq", { hide0(.general-tasks-queued) },
       "The number of tasks queued for execution in general worker threads"],
   general-tasks-completed =>
-    [    " gtc", { hide0(.general-tasks-completed,4) }, '----',
+    [    " gtc", { hide0(.general-tasks-completed,4) },
       "The number of tasks completed in general worker threads"],
+  ix-rss =>
+    ["    ix-rss", { hide0(.ix-rss,10) },
+      "Integral shared text memory size (in bytes)"],
+  max-rss =>
+    ["   max-rss", { .max-rss.fmt('%10d') },
+      "Maximum resident set size (in bytes)"],
   supervisor =>
-    [       "s", { hide0(.supervisor,1) },              '-',
+    [       "s", { hide0(.supervisor,1) },
       "The number of supervisors"],
   timer-workers =>
-    [     " tw", { hide0(.timer-workers) },             '---',
+    [     " tw", { hide0(.timer-workers) },
       "The number of timer threads"],
   timer-tasks-queued =>
-    [     "ttq", { hide0(.timer-tasks-queued) },        '---',
+    [     "ttq", { hide0(.timer-tasks-queued) },
       "The number of tasks queued for execution in timer threads"],
   timer-tasks-completed =>
-    [     "ttc", { hide0(.timer-tasks-completed) },     '---',
+    [     "ttc", { hide0(.timer-tasks-completed) },
       "The number of tasks completed in timer threads"],
   utilization =>
-    [  " util%", { .utilization.fmt('%6.2f') },         '------',
+    [  " util%", { .utilization.fmt('%6.2f') },
       "Percentage of CPU utilization (0..100%)"],
   wallclock =>
-    ["wallclock", { .wallclock.fmt('%9d') },            '---------',
+    ["wallclock", { .wallclock.fmt('%9d') },
       "Number of microseconds elapsed"],
 ;
 
-# Make sure we can also use the header key as an indicator
+# Set footer and make sure we can also use the header key as an indicator
 for %format.values -> \v {
-    %format{v[0].trim} = v
+    v[3] = '-' x v[0].chars;
+    %format{v[0].trim} = v;
 }
 
 multi sub report(
   @s,
-  @cols = <wallclock util% gw gtc tw ttc aw>,
+  @cols = <wallclock util% max-rss gw gtc tw ttc aw>,
   :$legend,
   :$header-repeat = 32,
 ) {
@@ -481,7 +537,7 @@ HEADER
         push-period($period)
     }
 
-    nqp::push_s($text,%format{@cols}>>.[2].join(' '));
+    nqp::push_s($text,%format{@cols}>>.[3].join(' '));
 
     push-period($total);
 
@@ -489,7 +545,7 @@ HEADER
         nqp::push_s($text,'');
         nqp::push_s($text,'Legend:');
         for %format{@cols} -> $col {
-            nqp::push_s($text," $col[0].trim-leading.fmt('%5s')  $col[3]");
+            nqp::push_s($text," $col[0].trim-leading.fmt('%5s')  $col[2]");
         }
     }
 

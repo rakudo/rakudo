@@ -491,7 +491,12 @@ my class ThreadPoolScheduler does Scheduler {
                 scheduler-debug "Supervisor started";
                 my num $last-rusage-time = nqp::time_n;
                 my int $last-usage = getrusage-total;
+#?if !jvm
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
+#?endif
+#?if jvm
+                my @last-utils = 0e0 xx NUM_SAMPLES;
+#?endif
                 my int $cpu-cores = nqp::cpucores();
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {

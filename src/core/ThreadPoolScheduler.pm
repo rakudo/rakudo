@@ -202,6 +202,9 @@ my class ThreadPoolScheduler does Scheduler {
         # Total number of tasks completed since creation.
         has int $.total;
 
+        # Wallclock seconds actually worked
+        has num $.worked;
+
         # Working is 1 if the worker is currently busy, 0 if not.
         has int $.working;
 
@@ -229,14 +232,19 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         method !run-one(\task --> Nil) {
+            my num $start;
             $!working = 1;
             nqp::continuationreset(THREAD_POOL_PROMPT, {
                 if nqp::istype(task, List) {
                     my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
+                    $start = nqp::time_n;
                     $code(|task);
+                    $!worked = nqp::add_n($!worked,nqp::sub_n(nqp::time_n,$start));
                 }
                 else {
+                    $start = nqp::time_n;
                     task.();
+                    $!worked = nqp::add_n($!worked,nqp::sub_n(nqp::time_n,$start));
                 }
                 CONTROL {
                     default {

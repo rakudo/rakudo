@@ -388,13 +388,14 @@ multi sub periods() {
 multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 proto sub report(|) is export { * }
-multi sub report(:$legend) {
+multi sub report(:$legend, :$header-repeat = 32) {
     my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
     nqp::setelems(nqp::getattr(@snaps,List,'$!reified'),0);
     nqp::push($s,Telemetry.new) if nqp::elems($s) == 1;
     report(
       nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s),
-      :$legend
+      :$legend,
+      :$header-repeat,
     );
 }
 
@@ -455,6 +456,7 @@ multi sub report(
   @s,
   @cols = <wall util% s gw gtq gtc tw ttq ttc aw>,
   :$legend,
+  :$header-repeat = 32,
 ) {
 
     my $total = @s[*-1] - @s[0];
@@ -463,17 +465,20 @@ Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
 Number of Snapshots: {+@s}
 Total Time:      { ($total.wallclock / 1000000).fmt("%9.2f") } seconds
 Total CPU Usage: { ($total.cpu / 1000000).fmt("%9.2f") } seconds
-
 HEADER
-
-    nqp::push_s($text,%format{@cols}>>.[0].join(" "));
 
     sub push-period($period) {
         nqp::push_s($text,
           %format{@cols}>>.[1]>>.($period).join(" ").trim-trailing);
     }
 
-    push-period($_) for periods(@s);
+    my $header = "\n%format{@cols}>>.[0].join(" ")";
+    nqp::push_s($text,$header) unless $header-repeat;
+
+    for periods(@s).kv -> $index, $period {
+        nqp::push_s($text,$header) if $index %% $header-repeat;
+        push-period($period)
+    }
 
     nqp::push_s($text,%format{@cols}>>.[2].join(" "));
 

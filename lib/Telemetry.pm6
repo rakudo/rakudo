@@ -2,6 +2,135 @@
 
 use nqp;
 
+# Constants indexing into the nqp::getrusage array -----------------------------
+constant UTIME_SEC  = 0;
+constant UTIME_MSEC = 1;
+constant STIME_SEC  = 2;
+constant STIME_MSEC = 3;
+constant MAX_RSS    = 4;
+constant IX_RSS     = 5;
+
+# Helper stuff -----------------------------------------------------------------
+my num $start = Rakudo::Internals.INITTIME;
+
+sub completed(\workers) is raw {
+    my int $elems = nqp::elems(workers);
+    my int $completed;
+    my int $i = -1;
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+      nqp::stmts(
+        (my $w := nqp::atpos(workers,$i)),
+        ($completed = nqp::add_i(
+          $completed,
+          nqp::getattr_i($w,$w.WHAT,'$!total')
+        ))
+      )
+    );
+    $completed
+}
+
+# Subroutines that are exported with :COLUMNS ----------------------------------
+sub cpu() is raw is export(:COLUMNS) {
+    my \rusage = nqp::getrusage;
+    nqp::atpos_i(rusage,UTIME_SEC) * 1000000
+      + nqp::atpos_i(rusage,UTIME_MSEC)
+      + nqp::atpos_i(rusage,STIME_SEC) * 1000000
+      + nqp::atpos_i(rusage,STIME_MSEC)
+}
+
+sub cpu-user() is raw is export(:COLUMNS) {
+    my \rusage = nqp::getrusage;
+    nqp::atpos_i(rusage,UTIME_SEC) * 1000000 + nqp::atpos_i(rusage,UTIME_MSEC)
+}
+
+sub cpu-sys() is raw is export(:COLUMNS) {
+    my \rusage = nqp::getrusage;
+    nqp::atpos_i(rusage,STIME_SEC) * 1000000 + nqp::atpos_i(rusage,STIME_MSEC)
+}
+
+sub max-rss() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,MAX_RSS)
+}
+
+sub ix-rss() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,IX_RSS)
+}
+
+sub wallclock() is raw is export(:COLUMNS) {
+    nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int)
+}
+
+sub supervisor() is raw is export(:COLUMNS) {
+    nqp::istrue(
+      nqp::getattr(nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!supervisor')
+    )
+}
+
+sub general-workers() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $workers := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!general-workers'
+      ))),
+      nqp::elems($workers)
+    )
+}
+
+sub general-tasks-queued() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $queue := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!general-queue'
+      ))),
+      nqp::elems($queue)
+    )
+}
+
+sub general-tasks-completed() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $workers := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!general-workers'
+      ))),
+      completed($workers)
+    )
+}
+
+sub timer-workers() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $workers := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-workers'
+      ))),
+      nqp::elems($workers)
+    )
+}
+
+sub timer-tasks-queued() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $queue := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-queue'
+      ))),
+      nqp::elems($queue)
+    )
+}
+
+sub timer-tasks-completed() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $workers := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-workers'
+      ))),
+      completed($workers)
+    )
+}
+
+sub affinity-workers() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $workers := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!affinity-workers'
+      ))),
+      nqp::elems($workers)
+    )
+}
+
+# Telemetry --------------------------------------------------------------------
 class Telemetry {
     has int $!cpu-user;
     has int $!cpu-sys;
@@ -16,32 +145,6 @@ class Telemetry {
     has int $!timer-tasks-queued;
     has int $!timer-tasks-completed;
     has int $!affinity-workers;
-
-    my num $start = Rakudo::Internals.INITTIME;
-
-    sub completed(\workers) is raw {
-        my int $elems = nqp::elems(workers);
-        my int $completed;
-        my int $i = -1;
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::stmts(
-            (my $w := nqp::atpos(workers,$i)),
-            ($completed = nqp::add_i(
-              $completed,
-              nqp::getattr_i($w,$w.WHAT,'$!total')
-            ))
-          )
-        );
-        $completed
-    }
-
-    constant UTIME_SEC  = 0;
-    constant UTIME_MSEC = 1;
-    constant STIME_SEC  = 2;
-    constant STIME_MSEC = 3;
-    constant MAX_RSS    = 4;
-    constant IX_RSS     = 5;
 
     submethod BUILD() {
         my \rusage = nqp::getrusage;
@@ -84,147 +187,62 @@ class Telemetry {
 
     }
 
-    proto method cpu() { * }
-    multi method cpu(Telemetry:U:) is raw {
-        my \rusage = nqp::getrusage;
-        nqp::atpos_i(rusage,UTIME_SEC) * 1000000
-          + nqp::atpos_i(rusage,UTIME_MSEC)
-          + nqp::atpos_i(rusage,STIME_SEC) * 1000000
-          + nqp::atpos_i(rusage,STIME_MSEC)
-    }
-    multi method cpu(Telemetry:D:) is raw {
-        nqp::add_i($!cpu-user,$!cpu-sys)
-    }
+    multi method cpu(Telemetry:U:) is raw { cpu }
+    multi method cpu(Telemetry:D:) is raw { nqp::add_i($!cpu-user,$!cpu-sys) }
 
-    proto method cpu-user() { * }
-    multi method cpu-user(Telemetry:U:) is raw {
-        my \rusage = nqp::getrusage;
-        nqp::atpos_i(rusage,UTIME_SEC) * 1000000
-          + nqp::atpos_i(rusage,UTIME_MSEC)
-    }
+    multi method cpu-user(Telemetry:U:) is raw {   cpu-user }
     multi method cpu-user(Telemetry:D:) is raw { $!cpu-user }
 
-    proto method cpu-sys() { * }
-    multi method cpu-sys(Telemetry:U:) is raw {
-        my \rusage = nqp::getrusage;
-        nqp::atpos_i(rusage,STIME_SEC) * 1000000
-          + nqp::atpos_i(rusage,STIME_MSEC)
-    }
+    multi method cpu-sys(Telemetry:U:) is raw {   cpu-sys }
     multi method cpu-sys(Telemetry:D:) is raw { $!cpu-sys }
 
-    proto method max-rss() { * }
-    multi method max-rss(Telemetry:U:) is raw {
-        nqp::atpos_i(nqp::getrusage,MAX_RSS)
-    }
+    multi method max-rss(Telemetry:U:) is raw {   max-rss }
     multi method max-rss(Telemetry:D:) is raw { $!max-rss }
 
-    proto method ix-rss() { * }
-    multi method ix-rss(Telemetry:U:) is raw {
-        nqp::atpos_i(nqp::getrusage,IX_RSS)
-    }
+    multi method ix-rss(Telemetry:U:) is raw {   ix-rss }
     multi method ix-rss(Telemetry:D:) is raw { $!ix-rss }
 
-    proto method wallclock() { * }
-    multi method wallclock(Telemetry:U:) is raw {
-        nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int)
-    }
+    multi method wallclock(Telemetry:U:) is raw {   wallclock }
     multi method wallclock(Telemetry:D:) is raw { $!wallclock }
 
-    proto method supervisor() { * }
-    multi method supervisor(Telemetry:U:) {
-        nqp::istrue(
-          nqp::getattr(
-            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!supervisor'
-          )
-        )
-    }
-    multi method supervisor(Telemetry:D:) {
-        $!supervisor
-    }
+    multi method supervisor(Telemetry:U:) is raw {   supervisor }
+    multi method supervisor(Telemetry:D:) is raw { $!supervisor }
 
-    proto method general-workers() { * }
-    multi method general-workers(Telemetry:U:) {
-        nqp::if(
-          nqp::istrue((my $workers := nqp::getattr(
-            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!general-workers'
-          ))),
-          nqp::elems($workers)
-        )
-    }
-    multi method general-workers(Telemetry:D:) {
-        $!general-workers
-    }
+    multi method general-workers(Telemetry:U:) is raw {   general-workers }
+    multi method general-workers(Telemetry:D:) is raw { $!general-workers }
 
-    proto method general-tasks-queued() { * }
-    multi method general-tasks-queued(Telemetry:U:) {
-        nqp::if(
-          nqp::istrue((my $queue := nqp::getattr(
-            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!general-queue'
-          ))),
-          nqp::elems($queue)
-        )
+    multi method general-tasks-queued(Telemetry:U:) is raw {
+        general-tasks-queued
     }
-    multi method general-tasks-queued(Telemetry:D:) {
+    multi method general-tasks-queued(Telemetry:D:) is raw {
         $!general-tasks-queued
     }
 
-    proto method general-tasks-completed() { * }
-    multi method general-tasks-completed(Telemetry:U:) {
-        nqp::if(
-          nqp::istrue((my $workers := nqp::getattr(
-            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!general-workers'
-          ))),
-          completed($workers)
-        )
+    multi method general-tasks-completed(Telemetry:U:) is raw {
+        general-tasks-completed
     }
-    multi method general-tasks-completed(Telemetry:D:) {
+    multi method general-tasks-completed(Telemetry:D:) is raw {
         $!general-tasks-completed
     }
 
-    proto method timer-workers() { * }
-    multi method timer-workers(Telemetry:U:) {
-        nqp::if(
-          nqp::istrue((my $workers := nqp::getattr(
-            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-workers'
-          ))),
-          nqp::elems($workers)
-        )
-    }
-    multi method timer-workers(Telemetry:D:) { $!timer-workers }
+    multi method timer-workers(Telemetry:U:) is raw {   timer-workers }
+    multi method timer-workers(Telemetry:D:) is raw { $!timer-workers }
 
-    proto method timer-tasks-queued() { * }
-    multi method timer-tasks-queued(Telemetry:U:) {
-        nqp::if(
-          nqp::istrue((my $queue := nqp::getattr(
-            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-queue'
-          ))),
-          nqp::elems($queue)
-        )
+    multi method timer-tasks-queued(Telemetry:U:) is raw {
+        timer-tasks-queued
     }
-    multi method timer-tasks-queued(Telemetry:D:) { $!timer-tasks-queued }
+    multi method timer-tasks-queued(Telemetry:D:) is raw {
+        $!timer-tasks-queued
+    }
 
-    proto method timer-tasks-completed() { * }
-    multi method timer-tasks-completed(Telemetry:U:) {
-        nqp::if(
-          nqp::istrue((my $workers := nqp::getattr(
-            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!timer-workers'
-          ))),
-          completed($workers)
-        )
+    multi method timer-tasks-completed(Telemetry:U:) is raw {
+        timer-tasks-completed
     }
-    multi method timer-tasks-completed(Telemetry:D:) {
+    multi method timer-tasks-completed(Telemetry:D:) is raw {
         $!timer-tasks-completed
     }
 
-    proto method affinity-workers() { * }
-    multi method affinity-workers(Telemetry:U:) {
-        nqp::if(
-          nqp::istrue((my $workers := nqp::getattr(
-            nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!affinity-workers'
-          ))),
-          nqp::elems($workers)
-        )
-    }
+    multi method affinity-workers(Telemetry:U:) {   affinity-workers }
     multi method affinity-workers(Telemetry:D:) { $!affinity-workers }
 
     multi method Str(Telemetry:D:) {
@@ -235,7 +253,10 @@ class Telemetry {
     }
 }
 
+# Telemetry::Period ------------------------------------------------------------
 class Telemetry::Period is Telemetry {
+
+    # The external .new with slower named parameter interface
     multi method new(Telemetry::Period:
       int :$cpu-user,
       int :$cpu-sys,
@@ -260,6 +281,8 @@ class Telemetry::Period is Telemetry {
           $affinity-workers
         )
     }
+
+    # The internal .new with faster positional parameter interface
     multi method new(Telemetry::Period:
       int $cpu-user,
       int $cpu-sys,
@@ -305,6 +328,7 @@ class Telemetry::Period is Telemetry {
         $period
     }
 
+    # For roundtripping
     multi method perl(Telemetry::Period:D:) {
         "Telemetry::Period.new(:cpu-user({
           nqp::getattr_i(self,Telemetry,'$!cpu-user')
@@ -346,6 +370,7 @@ class Telemetry::Period is Telemetry {
     method utilization() { $factor * self.cpus }
 }
 
+# Creating Telemetry::Period objects -------------------------------------------
 multi sub infix:<->(Telemetry:U \a, Telemetry:U \b) is export {
     nqp::create(Telemetry::Period)
 }
@@ -411,22 +436,29 @@ multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
     )
 }
 
+# Subroutines that are always exported -----------------------------------------
+
+# Making a Telemetry object procedurally 
 my @snaps;
 proto sub snap(|) is export { * }
-multi sub snap(--> Nil) { @snaps.push(Telemetry.new) }
+multi sub snap(--> Nil)    { @snaps.push(Telemetry.new) }
 multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
 
+# Starting the snapper / changing the period size
 my int $snapper-running;
+my $snapper-wait;
 sub snapper($sleep = 0.1 --> Nil) is export {
+    $snapper-wait = $sleep;
     unless $snapper-running {
         snap;
         Thread.start(:app_lifetime, :name<Snapper>, {
-            loop { sleep $sleep; snap }
+            loop { sleep $snapper-wait; snap }
         });
         $snapper-running = 1
     }
 }
 
+# Telemetry::Period objects from a list of Telemetry objects
 proto sub periods(|) is export { * }
 multi sub periods() {
     my @s = @snaps;
@@ -436,6 +468,7 @@ multi sub periods() {
 }
 multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
+# Telemetry reporting features -------------------------------------------------
 proto sub report(|) is export { * }
 multi sub report(:$legend, :$header-repeat = 32) {
     my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
@@ -552,6 +585,7 @@ HEADER
     nqp::join("\n",$text)
 }
 
+# Make sure we tell the world if we're implicitely told to do so ---------------
 END { if @snaps { snap; note report } }
 
 # vim: ft=perl6 expandtab sw=4

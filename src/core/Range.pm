@@ -391,7 +391,7 @@ my class Range is Cool does Iterable does Positional {
               ($from = $!min.floor + $!excludes-min),
               ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max))
             ),
-            (die "Cannot determine integer bounds")
+            Failure.new("Cannot determine integer bounds")
           )
         )
     }
@@ -649,9 +649,15 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method sum() is nodal {
-        my ($start,$stop) = self.int-bounds || nextsame;
-        my $elems = 0 max $stop - $start + 1;
-        ($start + $stop) * $elems div 2;
+        self.int-bounds(my $start, my $stop)
+          ?? ($start + $stop) * (0 max $stop - $start + 1) div 2
+          !! $!min == -Inf
+            ?? $!max == Inf
+              ?? 0
+              !! -Inf
+            !! $!max == Inf
+              ?? Inf
+              !! nextsame
     }
 
     method rand() {

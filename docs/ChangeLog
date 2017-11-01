@@ -1,3 +1,14 @@
+New in 2017.11:
+ + SPECIAL NOTES:
+ + Security:
+ + Deprecations:
+ + Fixes:
+ + Additions:
+ + Removals:
+ + Build system:
+ + Efficiency:
+ + Internal:
+
 New in 2017.10:
  + SPECIAL NOTES:
     + This release includes fixes to || alternation in :ratchet

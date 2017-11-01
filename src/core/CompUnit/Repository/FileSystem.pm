@@ -27,15 +27,14 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method id() {
-        once {
+        $!id //= do {
             my @parts =
                 grep { .defined }, (.id with self.next-repo), slip   # slip next repo id into hash parts to be hashed together
                 map  { nqp::sha1(slurp($_, :enc<iso-8859-1>)) },     # D8FEDAD3A05A68501ED829E21E5C8C80850910AB, 0BDE185BBAE51CE25E18A90B551A60AF27A9239C
                 map  { self!dist-prefix.child($_) },                 # /home/lib/Foo/Bar.pm6, /home/lib/Foo/Baz.pm6
                 self!distribution.meta<provides>.values.unique.sort; # lib/Foo/Bar.pm6, lib/Foo/Baz.pm6
-            $!id = nqp::sha1(@parts.join(''));
+            nqp::sha1(@parts.join(''));
         }
-        return $!id;
     }
 
     method resolve(CompUnit::DependencySpecification $spec --> CompUnit:D) {
@@ -58,17 +57,17 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         --> CompUnit:D)
     {
+        return %!loaded{~$spec} if %!loaded{~$spec}:exists;
+
         with self!matching-dist($spec) {
             my $name = $spec.short-name;
-            return %!loaded{$name} if %!loaded{$name}:exists;
-
             my $file = self!dist-prefix.child($_.meta<provides>{$name});
             my $id   = self!comp-unit-id($name);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
             my $handle = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
                     :$id,
-                    :src(~$file),
+                    :src($file.Str),
                     :$spec,
                 ),
                 :@precomp-stores,
@@ -76,7 +75,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($file);
 
-            return %!loaded{$name} = CompUnit.new(
+            return %!loaded{~$spec} = CompUnit.new(
                 :short-name($name),
                 :$handle,
                 :repo(self),
@@ -202,7 +201,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         my $distribution := $!prefix.add('META6.json').f
             ?? Distribution::Path.new($!prefix)
             !! Distribution::Hash.new({
-                    name  => ~$!prefix,
                     ver   => '*',
                     api   => '*',
                     auth  => '',
@@ -212,7 +210,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                         }).hash if self!dist-prefix.child('bin').d).Slip,
                         (Rakudo::Internals.DIR-RECURSE(self!dist-prefix.child('resources').absolute).map({ .IO.relative(self!dist-prefix) }).map({
                             $_ ~~ m/^resources\/libraries\/(.*)/
-                                ?? ('resources/libraries/' ~ $0.subst(/^lib/, '').subst(/\..*/, '') => $_)
+                                ?? ('resources/libraries/' ~ ($0.IO.dirname eq '.'??''!!$0.IO.dirname~"/") ~ $0.IO.basename.subst(/^lib/, '').subst(/\..*/, '') => $_)
                                 !! ($_ => $_)
                         }).hash).Slip,
                     ).Slip),
@@ -221,26 +219,19 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                     }).hash,
                 }, :prefix(self!dist-prefix));
 
-        $distribution.meta<ver> = Version.new($distribution.meta<ver version>.first(*.defined) // 0);
-        $distribution.meta<resources> //= $distribution.meta<files>.keys.grep(*.starts-with('resources/')).map(*.substr(10)).list;
+        $distribution.meta<name> //= $distribution.meta<provides>.hash.keys.sort(*.chars).head // ~$!prefix; # must guess name when using -Ilib / use lib 'lib'
+        $distribution.meta<ver>  = Version.new($distribution.meta<ver version>.first(*.defined) // 0);
+        $distribution.meta<resources> //= $distribution.meta<files>.keys.grep(*.starts-with('resources/')).map(*.substr(10)).List;
 
         return $distribution;
     }
 
     method resource($dist-id, $key) {
-        # We now save the 'resources/' part of a resource's path in files, i.e:
-        # "files" : [ "resources/libraries/xxx" => "resources/libraries/xxx.so" ]
-        # but we also want to root any path request to the CUR's resources directory
-
-        my %meta = self!distribution.meta.hash;
-        # When $.prefix points at a directory containing a meta file (eg. -I.)
-        return $.prefix.add( %meta<files>{$key} )
-            if %meta<files> && %meta<files>{$key};
-        return $.prefix.add( $key )
-            if %meta<resources> && %meta<resources>.first({ $_ eq $key.subst(/^resources\//, "") });
-
-        # When $.prefix is presumably the 'lib' folder (eg. -Ilib)
-        return $.prefix.parent.add($key);
+        if self!distribution -> $dist {
+            if $dist.meta<files>.hash.{$key} -> IO() $path {
+                return $path.is-relative ?? $dist.prefix.add( $path ) !! $path;
+            }
+        }
     }
 
     method precomp-store(--> CompUnit::PrecompilationStore:D) {

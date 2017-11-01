@@ -653,7 +653,7 @@ my class Range is Cool does Iterable does Positional {
           ?? ($start + $stop) * (0 max $stop - $start + 1) div 2
           !! $!min == -Inf
             ?? $!max == Inf
-              ?? 0
+              ?? NaN
               !! -Inf
             !! $!max == Inf
               ?? Inf

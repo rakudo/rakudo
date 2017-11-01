@@ -664,6 +664,7 @@ my class ThreadPoolScheduler does Scheduler {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
             if $!initial_threads > $!max_threads;
 
+        $!general-workers  := nqp::create(IterationBuffer);
         $!timer-workers    := nqp::create(IterationBuffer);
         $!affinity-workers := nqp::create(IterationBuffer);
 
@@ -671,7 +672,6 @@ my class ThreadPoolScheduler does Scheduler {
             # We've been asked to make some initial threads; we interpret this
             # as general workers.
             $!general-queue   := nqp::create(Queue);
-            $!general-workers := nqp::create(IterationBuffer);
             nqp::push(
               $!general-workers,
               GeneralWorker.new(
@@ -684,7 +684,6 @@ my class ThreadPoolScheduler does Scheduler {
         }
         else {
             scheduler-debug "Created scheduler without initial general workers";
-            $!general-workers := nqp::create(IterationBuffer);
         }
     }
 

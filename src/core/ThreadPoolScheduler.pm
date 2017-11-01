@@ -670,25 +670,21 @@ my class ThreadPoolScheduler does Scheduler {
         if $!initial_threads > 0 {
             # We've been asked to make some initial threads; we interpret this
             # as general workers.
-            self!general-queue(); # Starts one worker
-            if $!initial_threads > 1 {
-                my $workers := nqp::create(IterationBuffer);
-                my int $i = -1;
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$!initial_threads),
-                  nqp::push(
-                    $workers,
-                    GeneralWorker.new(
-                        queue => $!general-queue,
-                        scheduler => self
-                    )
-                  )
-                );
-                $!general-workers := $workers;
-            }
+            $!general-queue   := nqp::create(Queue);
+            $!general-workers := nqp::create(IterationBuffer);
+            nqp::push(
+              $!general-workers,
+              GeneralWorker.new(
+                queue => $!general-queue,
+                scheduler => self
+              )
+            ) for ^$!initial_threads;
+            scheduler-debug "Created scheduler with $!initial_threads initial general workers";
+            self!maybe-start-supervisor();
         }
         else {
-            $!general-workers  := nqp::create(IterationBuffer);
+            scheduler-debug "Created scheduler without initial general workers";
+            $!general-workers := nqp::create(IterationBuffer);
         }
     }
 

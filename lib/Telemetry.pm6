@@ -261,6 +261,8 @@ class Telemetry {
     multi method gist(Telemetry:D:) {
         "$.cpu / $!wallclock"
     }
+
+    multi method AT-KEY(Telemetry:D: $key) { self."$key"() }
 }
 
 # Telemetry::Period ------------------------------------------------------------
@@ -607,6 +609,10 @@ HEADER
 
     nqp::join("\n",$text)
 }
+
+# The special T<foo bar> functionality -----------------------------------------
+
+sub T () is export { Telemetry.new }
 
 # Make sure we tell the world if we're implicitely told to do so ---------------
 END { if @snaps { snap; note report(:legend) } }

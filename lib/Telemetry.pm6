@@ -2,8 +2,6 @@
 
 use nqp;
 
-class Telemetry::Period { ... }
-
 class Telemetry {
     has int $!cpu-user;
     has int $!cpu-sys;
@@ -363,8 +361,6 @@ multi sub infix:<->(Telemetry:D $a, Telemetry:D $b) is export {
       )
     )
 }
-
-constant T is export = Telemetry;
 
 my @snaps;
 proto sub snap(|) is export { * }

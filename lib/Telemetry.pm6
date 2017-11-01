@@ -443,18 +443,18 @@ my %format =
     [  " util%", { .utilization.fmt('%6.2f') },         '------',
       "Percentage of CPU utilization (0..100%)"],
   wallclock =>
-    ["    wall", { .wallclock.fmt('%8d') },             '--------',
+    ["wallclock", { .wallclock.fmt('%9d') },            '---------',
       "Number of microseconds elapsed"],
 ;
 
 # Make sure we can also use the header key as an indicator
-for %format.kv -> \k, \v {
+for %format.values -> \v {
     %format{v[0].trim} = v
 }
 
 multi sub report(
   @s,
-  @cols = <wall util% s gw gtq gtc tw ttq ttc aw>,
+  @cols = <wallclock util% gw gtc tw ttc aw>,
   :$legend,
   :$header-repeat = 32,
 ) {
@@ -463,30 +463,31 @@ multi sub report(
     my $text := nqp::list_s(qq:to/HEADER/.chomp);
 Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
 Number of Snapshots: {+@s}
-Total Time:      { ($total.wallclock / 1000000).fmt("%9.2f") } seconds
-Total CPU Usage: { ($total.cpu / 1000000).fmt("%9.2f") } seconds
+Total Time:      { ($total.wallclock / 1000000).fmt('%9.2f') } seconds
+Total CPU Usage: { ($total.cpu / 1000000).fmt('%9.2f') } seconds
 HEADER
 
     sub push-period($period) {
         nqp::push_s($text,
-          %format{@cols}>>.[1]>>.($period).join(" ").trim-trailing);
+          %format{@cols}>>.[1]>>.($period).join(' ').trim-trailing);
     }
 
-    my $header = "\n%format{@cols}>>.[0].join(" ")";
+    my $header = "\n%format{@cols}>>.[0].join(' ')";
     nqp::push_s($text,$header) unless $header-repeat;
 
     for periods(@s).kv -> $index, $period {
-        nqp::push_s($text,$header) if $index %% $header-repeat;
+        nqp::push_s($text,$header)
+          if $header-repeat && $index %% $header-repeat;
         push-period($period)
     }
 
-    nqp::push_s($text,%format{@cols}>>.[2].join(" "));
+    nqp::push_s($text,%format{@cols}>>.[2].join(' '));
 
     push-period($total);
 
     if $legend {
-        nqp::push_s($text,"");
-        nqp::push_s($text,"Legend:");
+        nqp::push_s($text,'');
+        nqp::push_s($text,'Legend:');
         for %format{@cols} -> $col {
             nqp::push_s($text," $col[0].trim-leading.fmt('%5s')  $col[3]");
         }

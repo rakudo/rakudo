@@ -333,15 +333,13 @@ my class ThreadPoolScheduler does Scheduler {
                 unless $!general-queue.DEFINITE {
                     # We don't have any workers yet, so start one.
                     $!general-queue := nqp::create(Queue);
-                    my $workers := nqp::create(IterationBuffer);
-                    nqp::push(
-                      $workers,
+                    $!general-workers := push-worker(
+                      nqp::create(IterationBuffer),
                       GeneralWorker.new(
                         queue => $!general-queue,
                         scheduler => self
                       )
                     );
-                    $!general-workers := $workers;
                     scheduler-debug "Created initial general worker thread";
                     self!maybe-start-supervisor();
                 }

@@ -9,6 +9,7 @@ constant STIME_SEC  = 2;
 constant STIME_MSEC = 3;
 constant MAX_RSS    = 4;
 constant IX_RSS     = 5;
+constant ID_RSS     = 6;
 
 # Helper stuff -----------------------------------------------------------------
 my num $start = Rakudo::Internals.INITTIME;
@@ -55,6 +56,10 @@ sub max-rss() is raw is export(:COLUMNS) {
 
 sub ix-rss() is raw is export(:COLUMNS) {
     nqp::atpos_i(nqp::getrusage,IX_RSS)
+}
+
+sub id-rss() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,ID_RSS)
 }
 
 sub wallclock() is raw is export(:COLUMNS) {
@@ -136,6 +141,7 @@ class Telemetry {
     has int $!cpu-sys;
     has int $!max-rss;
     has int $!ix-rss;
+    has int $!id-rss;
     has int $!wallclock;
     has int $!supervisor;
     has int $!general-workers;
@@ -154,6 +160,7 @@ class Telemetry {
           + nqp::atpos_i(rusage,STIME_MSEC);
         $!max-rss  = nqp::atpos_i(rusage,MAX_RSS);
         $!ix-rss   = nqp::atpos_i(rusage,IX_RSS);
+        $!id-rss   = nqp::atpos_i(rusage,ID_RSS);
 
         $!wallclock =
           nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int);
@@ -201,6 +208,9 @@ class Telemetry {
 
     multi method ix-rss(Telemetry:U:) is raw {   ix-rss }
     multi method ix-rss(Telemetry:D:) is raw { $!ix-rss }
+
+    multi method id-rss(Telemetry:U:) is raw {   id-rss }
+    multi method id-rss(Telemetry:D:) is raw { $!id-rss }
 
     multi method wallclock(Telemetry:U:) is raw {   wallclock }
     multi method wallclock(Telemetry:D:) is raw { $!wallclock }
@@ -262,6 +272,7 @@ class Telemetry::Period is Telemetry {
       int :$cpu-sys,
       int :$max-rss,
       int :$ix-rss,
+      int :$id-rss,
       int :$wallclock,
       int :$supervisor,
       int :$general-workers,
@@ -274,7 +285,7 @@ class Telemetry::Period is Telemetry {
     ) {
         self.new(
           $cpu-user, $cpu-sys,
-          $max-rss, $ix-rss,
+          $max-rss, $ix-rss, $id-rss,
           $wallclock, $supervisor,
           $general-workers, $general-tasks-queued, $general-tasks-completed,
           $timer-workers, $timer-tasks-queued, $timer-tasks-completed,
@@ -288,6 +299,7 @@ class Telemetry::Period is Telemetry {
       int $cpu-sys,
       int $max-rss,
       int $ix-rss,
+      int $id-rss,
       int $wallclock,
       int $supervisor,
       int $general-workers,
@@ -307,6 +319,8 @@ class Telemetry::Period is Telemetry {
           '$!max-rss',                $max-rss);
         nqp::bindattr_i($period,Telemetry,
           '$!ix-rss',                 $ix-rss);
+        nqp::bindattr_i($period,Telemetry,
+          '$!id-rss',                 $id-rss);
         nqp::bindattr_i($period,Telemetry,
           '$!wallclock',              $wallclock);
         nqp::bindattr_i($period,Telemetry,
@@ -338,6 +352,8 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!max-rss')
         }), :ix-rss({
           nqp::getattr_i(self,Telemetry,'$!ix-rss')
+        }), :id-rss({
+          nqp::getattr_i(self,Telemetry,'$!id-rss')
         }), :wallclock({
           nqp::getattr_i(self,Telemetry,'$!wallclock')
         }), :supervisor({
@@ -396,6 +412,10 @@ multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
       nqp::sub_i(
         nqp::getattr_i($a,Telemetry,'$!ix-rss'),
         nqp::getattr_i($b,Telemetry,'$!ix-rss')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!id-rss'),
+        nqp::getattr_i($b,Telemetry,'$!id-rss')
       ),
       nqp::sub_i(
         nqp::getattr_i($a,Telemetry,'$!wallclock'),
@@ -486,7 +506,7 @@ sub hide0(\value, int $size = 3) {
     value ?? value.fmt("%{$size}d") !! nqp::x(" ",$size)
 }
 
-# Set up how to handle report generation
+# Set up how to handle report generation (in alphabetical order)
 my %format =
   affinity-workers =>
     [     " aw", { hide0(.affinity-workers) },
@@ -509,6 +529,9 @@ my %format =
   general-tasks-completed =>
     [ "     gtc", { hide0(.general-tasks-completed,8) },
       "The number of tasks completed in general worker threads"],
+  id-rss =>
+    ["    id-rss", { hide0(.id-rss,10) },
+      "Integral unshared data size (in bytes)"],
   ix-rss =>
     ["    ix-rss", { hide0(.ix-rss,10) },
       "Integral shared text memory size (in bytes)"],
@@ -578,7 +601,7 @@ HEADER
         nqp::push_s($text,'');
         nqp::push_s($text,'Legend:');
         for %format{@cols} -> $col {
-            nqp::push_s($text," $col[0].trim-leading.fmt('%5s')  $col[2]");
+            nqp::push_s($text," $col[0].trim-leading.fmt('%9s')  $col[2]");
         }
     }
 
@@ -586,6 +609,6 @@ HEADER
 }
 
 # Make sure we tell the world if we're implicitely told to do so ---------------
-END { if @snaps { snap; note report } }
+END { if @snaps { snap; note report(:legend) } }
 
 # vim: ft=perl6 expandtab sw=4

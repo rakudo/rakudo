@@ -387,7 +387,7 @@ my class ThreadPoolScheduler does Scheduler {
         my $most-free-worker;
         my int $i = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($cur-affinity-workers)),
+          ++$i < nqp::elems($cur-affinity-workers),
           nqp::if(
             $most-free-worker.DEFINITE,
             nqp::stmts(
@@ -581,18 +581,12 @@ my class ThreadPoolScheduler does Scheduler {
         my int $total-times-nothing-completed;
         my int $i = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(worker-list)),
+          ++$i < nqp::elems(worker-list),
           nqp::if(
             (my $worker := nqp::atpos(worker-list,$i)).working,
             nqp::stmts(
-              ($total-completed = nqp::add_i(
-                $total-completed,
-                $worker.take-completed
-              )),
-              ($total-times-nothing-completed = nqp::add_i(
-                $total-times-nothing-completed,
-                $worker.times-nothing-completed
-              ))
+              ($total-completed += $worker.take-completed),
+              ($total-times-nothing-completed += $worker.times-nothing-completed)
             ),
             return
           )
@@ -647,13 +641,9 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method !total-workers() is raw {
-        nqp::add_i(
-          nqp::elems($!general-workers),
-          nqp::add_i(
-            nqp::elems($!timer-workers),
-            nqp::elems($!affinity-workers)
-          )
-        )
+        nqp::elems($!general-workers)
+          + nqp::elems($!timer-workers)
+          + nqp::elems($!affinity-workers)
     }
 
     submethod BUILD(
@@ -781,7 +771,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         my int $i = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!affinity-workers)),
+          ++$i < nqp::elems($!affinity-workers),
           $loads = $loads + nqp::atpos($!affinity-workers,$i).queue.elems
         );
 

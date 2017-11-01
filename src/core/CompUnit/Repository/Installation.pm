@@ -455,11 +455,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method !matching-dist(CompUnit::DependencySpecification $spec) {
         return %!seen{~$spec} if %!seen{~$spec}:exists;
 
-        my $dist = self.candidates($spec).head;
-
-        $!lock.protect: {
-            return %!seen{~$spec} //= $dist;
+        with self.candidates($spec).head {
+            $!lock.protect: { return %!seen{~$spec} //= $_ }
         }
+
+        Nil
     }
 
     # Allows a distribution to re-populate its meta data

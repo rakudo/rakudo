@@ -507,13 +507,13 @@ my %format =
     [     "gtq", { hide0(.general-tasks-queued) },
       "The number of tasks queued for execution in general worker threads"],
   general-tasks-completed =>
-    [    " gtc", { hide0(.general-tasks-completed,4) },
+    [ "     gtc", { hide0(.general-tasks-completed,8) },
       "The number of tasks completed in general worker threads"],
   ix-rss =>
     ["    ix-rss", { hide0(.ix-rss,10) },
       "Integral shared text memory size (in bytes)"],
   max-rss =>
-    ["   max-rss", { .max-rss.fmt('%10d') },
+    ["   max-rss", { hide0(.max-rss,10) },
       "Maximum resident set size (in bytes)"],
   supervisor =>
     [       "s", { hide0(.supervisor,1) },
@@ -525,7 +525,7 @@ my %format =
     [     "ttq", { hide0(.timer-tasks-queued) },
       "The number of tasks queued for execution in timer threads"],
   timer-tasks-completed =>
-    [     "ttc", { hide0(.timer-tasks-completed) },
+    [ "     ttc", { hide0(.timer-tasks-completed,8) },
       "The number of tasks completed in timer threads"],
   utilization =>
     [  " util%", { .utilization.fmt('%6.2f') },

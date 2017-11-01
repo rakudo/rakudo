@@ -16,6 +16,11 @@ constant MAJ_FLT    = 10;
 constant NSWAP      = 11;
 constant INBLOCK    = 12;
 constant OUTBLOCK   = 13;
+constant MSGSND     = 14;
+constant MSGRCV     = 14;
+constant NSIGNALS   = 15;
+constant NVCSW      = 16;
+constant INVCSW     = 17;
 
 # Helper stuff -----------------------------------------------------------------
 my num $start = Rakudo::Internals.INITTIME;
@@ -91,6 +96,26 @@ sub inblock() is raw is export(:COLUMNS) {
 
 sub outblock() is raw is export(:COLUMNS) {
     nqp::atpos_i(nqp::getrusage,OUTBLOCK)
+}
+
+sub msgsnd() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,MSGSND)
+}
+
+sub msgrcv() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,MSGRCV)
+}
+
+sub nsignals() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,NSIGNALS)
+}
+
+sub nvcsw() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,NVCSW)
+}
+
+sub invcsw() is raw is export(:COLUMNS) {
+    nqp::atpos_i(nqp::getrusage,INVCSW)
 }
 
 sub wallclock() is raw is export(:COLUMNS) {
@@ -179,6 +204,11 @@ class Telemetry {
     has int $!nswap;
     has int $!inblock;
     has int $!outblock;
+    has int $!msgsnd;
+    has int $!msgrcv;
+    has int $!nsignals;
+    has int $!nvcsw;
+    has int $!invcsw;
     has int $!wallclock;
     has int $!supervisor;
     has int $!general-workers;
@@ -204,6 +234,11 @@ class Telemetry {
         $!nswap    = nqp::atpos_i(rusage,NSWAP);
         $!inblock  = nqp::atpos_i(rusage,INBLOCK);
         $!outblock = nqp::atpos_i(rusage,OUTBLOCK);
+        $!msgsnd   = nqp::atpos_i(rusage,MSGSND);
+        $!msgrcv   = nqp::atpos_i(rusage,MSGRCV);
+        $!nsignals = nqp::atpos_i(rusage,NSIGNALS);
+        $!nvcsw    = nqp::atpos_i(rusage,NVCSW);
+        $!invcsw   = nqp::atpos_i(rusage,INVCSW);
 
         $!wallclock =
           nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int);
@@ -272,6 +307,21 @@ class Telemetry {
 
     multi method outblock(Telemetry:U:) is raw {   outblock }
     multi method outblock(Telemetry:D:) is raw { $!outblock }
+
+    multi method msgsnd(Telemetry:U:) is raw {   msgsnd }
+    multi method msgsnd(Telemetry:D:) is raw { $!msgsnd }
+
+    multi method msgrcv(Telemetry:U:) is raw {   msgrcv }
+    multi method msgrcv(Telemetry:D:) is raw { $!msgrcv }
+
+    multi method nsignals(Telemetry:U:) is raw {   nsignals }
+    multi method nsignals(Telemetry:D:) is raw { $!nsignals }
+
+    multi method nvcsw(Telemetry:U:) is raw {   nvcsw }
+    multi method nvcsw(Telemetry:D:) is raw { $!nvcsw }
+
+    multi method invcsw(Telemetry:U:) is raw {   invcsw }
+    multi method invcsw(Telemetry:D:) is raw { $!invcsw }
 
     multi method wallclock(Telemetry:U:) is raw {   wallclock }
     multi method wallclock(Telemetry:D:) is raw { $!wallclock }
@@ -342,6 +392,11 @@ class Telemetry::Period is Telemetry {
       int :$nswap,
       int :$inblock,
       int :$outblock,
+      int :$msgsnd,
+      int :$msgrcv,
+      int :$nsignals,
+      int :$nvcsw,
+      int :$invcsw,
       int :$wallclock,
       int :$supervisor,
       int :$general-workers,
@@ -355,7 +410,7 @@ class Telemetry::Period is Telemetry {
         self.new(
           $cpu-user, $cpu-sys,
           $max-rss, $ix-rss, $id-rss, $is-rss, $min-flt, $maj-flt, $nswap,
-          $inblock, $outblock,
+          $inblock, $outblock, $msgsnd, $msgrcv, $nsignals, $nvcsw, $invcsw,
           $wallclock, $supervisor,
           $general-workers, $general-tasks-queued, $general-tasks-completed,
           $timer-workers, $timer-tasks-queued, $timer-tasks-completed,
@@ -376,6 +431,11 @@ class Telemetry::Period is Telemetry {
       int $nswap,
       int $inblock,
       int $outblock,
+      int $msgsnd,
+      int $msgrcv,
+      int $nsignals,
+      int $nvcsw,
+      int $invcsw,
       int $wallclock,
       int $supervisor,
       int $general-workers,
@@ -409,6 +469,16 @@ class Telemetry::Period is Telemetry {
           '$!inblock',                $inblock);
         nqp::bindattr_i($period,Telemetry,
           '$!outblock',               $outblock);
+        nqp::bindattr_i($period,Telemetry,
+          '$!msgsnd',                 $msgsnd);
+        nqp::bindattr_i($period,Telemetry,
+          '$!msgrcv',                 $msgrcv);
+        nqp::bindattr_i($period,Telemetry,
+          '$!nsignals',               $nsignals);
+        nqp::bindattr_i($period,Telemetry,
+          '$!nvcsw',                  $nvcsw);
+        nqp::bindattr_i($period,Telemetry,
+          '$!invcsw',                 $invcsw);
         nqp::bindattr_i($period,Telemetry,
           '$!wallclock',              $wallclock);
         nqp::bindattr_i($period,Telemetry,
@@ -454,6 +524,16 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!inblock')
         }), :outblock({
           nqp::getattr_i(self,Telemetry,'$!outblock')
+        }), :msgsnd({
+          nqp::getattr_i(self,Telemetry,'$!msgsnd')
+        }), :msgrcv({
+          nqp::getattr_i(self,Telemetry,'$!msgrcv')
+        }), :nsignals({
+          nqp::getattr_i(self,Telemetry,'$!nsignals')
+        }), :nvcsw({
+          nqp::getattr_i(self,Telemetry,'$!nvcsw')
+        }), :invcsw({
+          nqp::getattr_i(self,Telemetry,'$!invcsw')
         }), :wallclock({
           nqp::getattr_i(self,Telemetry,'$!wallclock')
         }), :supervisor({
@@ -540,6 +620,26 @@ multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
       nqp::sub_i(
         nqp::getattr_i($a,Telemetry,'$!outblock'),
         nqp::getattr_i($b,Telemetry,'$!outblock')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!msgsnd'),
+        nqp::getattr_i($b,Telemetry,'$!msgsnd')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!msgrcv'),
+        nqp::getattr_i($b,Telemetry,'$!msgrcv')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!nsignals'),
+        nqp::getattr_i($b,Telemetry,'$!nsignals')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!nvcsw'),
+        nqp::getattr_i($b,Telemetry,'$!nvcsw')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!invcsw'),
+        nqp::getattr_i($b,Telemetry,'$!invcsw')
       ),
       nqp::sub_i(
         nqp::getattr_i($a,Telemetry,'$!wallclock'),
@@ -659,6 +759,9 @@ my %format =
   inblock =>
     ["inb", { hide0(.inblock) },
       "Number of block input operations"],
+  invcsw =>
+    ["     ics", { hide0(.invcsw,8) },
+      "Number of involuntary context switches"],
   is-rss =>
     ["  is-rss", { hide0(.id-rss,8) },
       "Integral unshared stack size (in Kbytes)"],
@@ -674,9 +777,21 @@ my %format =
   min-flt =>
     ["ift", { hide0(.min-flt) },
       "Number of page reclaims (ru_minflt)"],
+  msgrcv =>
+    ["mrc", { hide0(.msgrcv) },
+      "Number of messages received"],
+  msgsnd =>
+    ["msd", { hide0(.msgsnd) },
+      "Number of messages sent"],
+  nsignals =>
+    ["ngs", { hide0(.nsignals) },
+      "Number of signals received"],
   nswap =>
     ["nsw", { hide0(.nswap) },
       "Number of swaps"],
+  nvcsw =>
+    [" vcs", { hide0(.nvcsw,4) },
+      "Number of voluntary context switches"],
   outblock =>
     ["oub", { hide0(.outblock) },
       "Number of block output operations"],
@@ -708,7 +823,7 @@ for %format.values -> \v {
 
 multi sub report(
   @s,
-  @cols = <wallclock util% max-rss gw gtc tw ttc aw>,
+  @cols = <wallclock util% max-rss ics gw gtc tw ttc aw>,
   :$legend,
   :$header-repeat = 32,
 ) {

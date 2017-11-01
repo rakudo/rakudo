@@ -18,12 +18,14 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         )
     }
 
-    method !matching-dist($spec) {
+    method !matching-dist(CompUnit::DependencySpecification $spec) {
         return %!seen{~$spec} if %!seen{~$spec}:exists;
 
-        my $dist = self.candidates($spec).head;
+        with self.candidates($spec).head {
+            return %!seen{~$spec} //= $_;
+        }
 
-        return %!seen{~$spec} //= $dist;
+        Nil
     }
 
     method id() {

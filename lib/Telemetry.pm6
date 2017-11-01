@@ -19,6 +19,7 @@ constant OUTBLOCK   = 13;
 
 # Helper stuff -----------------------------------------------------------------
 my num $start = Rakudo::Internals.INITTIME;
+my int $b2kb  = nqp::atkey(nqp::backendconfig,q/osname/) eq 'darwin' ?? 10 !! 0;
 
 sub completed(\workers) is raw {
     my int $elems = nqp::elems(workers);
@@ -57,19 +58,19 @@ sub cpu-sys() is raw is export(:COLUMNS) {
 }
 
 sub max-rss() is raw is export(:COLUMNS) {
-    nqp::atpos_i(nqp::getrusage,MAX_RSS)
+    nqp::bitshiftr_i(nqp::atpos_i(nqp::getrusage,MAX_RSS),$b2kb)
 }
 
 sub ix-rss() is raw is export(:COLUMNS) {
-    nqp::atpos_i(nqp::getrusage,IX_RSS)
+    nqp::bitshiftr_i(nqp::atpos_i(nqp::getrusage,IX_RSS),$b2kb)
 }
 
 sub id-rss() is raw is export(:COLUMNS) {
-    nqp::atpos_i(nqp::getrusage,ID_RSS)
+    nqp::bitshiftr_i(nqp::atpos_i(nqp::getrusage,ID_RSS),$b2kb)
 }
 
 sub is-rss() is raw is export(:COLUMNS) {
-    nqp::atpos_i(nqp::getrusage,IS_RSS)
+    nqp::bitshiftr_i(nqp::atpos_i(nqp::getrusage,IS_RSS),$b2kb)
 }
 
 sub min-flt() is raw is export(:COLUMNS) {
@@ -194,10 +195,10 @@ class Telemetry {
           + nqp::atpos_i(rusage,UTIME_MSEC);
         $!cpu-sys  = nqp::atpos_i(rusage,STIME_SEC) * 1000000
           + nqp::atpos_i(rusage,STIME_MSEC);
-        $!max-rss  = nqp::atpos_i(rusage,MAX_RSS);
-        $!ix-rss   = nqp::atpos_i(rusage,IX_RSS);
-        $!id-rss   = nqp::atpos_i(rusage,ID_RSS);
-        $!is-rss   = nqp::atpos_i(rusage,IS_RSS);
+        $!max-rss  = nqp::bitshiftr_i(nqp::atpos_i(rusage,MAX_RSS),$b2kb);
+        $!ix-rss   = nqp::bitshiftr_i(nqp::atpos_i(rusage,IX_RSS),$b2kb);
+        $!id-rss   = nqp::bitshiftr_i(nqp::atpos_i(rusage,ID_RSS),$b2kb);
+        $!is-rss   = nqp::bitshiftr_i(nqp::atpos_i(rusage,IS_RSS),$b2kb);
         $!min-flt  = nqp::atpos_i(rusage,MIN_FLT);
         $!maj-flt  = nqp::atpos_i(rusage,MAJ_FLT);
         $!nswap    = nqp::atpos_i(rusage,NSWAP);
@@ -653,23 +654,23 @@ my %format =
     [ "     gtc", { hide0(.general-tasks-completed,8) },
       "The number of tasks completed in general worker threads"],
   id-rss =>
-    ["    id-rss", { hide0(.id-rss,10) },
-      "Integral unshared data size (in bytes)"],
+    ["  id-rss", { hide0(.id-rss,8) },
+      "Integral unshared data size (in Kbytes)"],
   inblock =>
     ["inb", { hide0(.inblock) },
       "Number of block input operations"],
   is-rss =>
-    ["    is-rss", { hide0(.id-rss,10) },
-      "Integral unshared stack size (in bytes)"],
+    ["  is-rss", { hide0(.id-rss,8) },
+      "Integral unshared stack size (in Kbytes)"],
   ix-rss =>
-    ["    ix-rss", { hide0(.ix-rss,10) },
-      "Integral shared text memory size (in bytes)"],
+    ["  ix-rss", { hide0(.ix-rss,8) },
+      "Integral shared text memory size (in Kbytes)"],
   maj-flt =>
     ["aft", { hide0(.maj-flt,3) },
       "Number of page reclaims (ru_majflt)"],
   max-rss =>
-    ["   max-rss", { hide0(.max-rss,10) },
-      "Maximum resident set size (in bytes)"],
+    [" max-rss", { hide0(.max-rss,8) },
+      "Maximum resident set size (in Kbytes)"],
   min-flt =>
     ["ift", { hide0(.min-flt) },
       "Number of page reclaims (ru_minflt)"],

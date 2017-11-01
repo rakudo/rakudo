@@ -16,7 +16,7 @@
      If the program unexpectedly crashes, please run it with
      `perl6 --ll-exception` and provide the produced output. -->
 
-## Your Environment
+## Environment
 * Operating system: 
 * Compiler version (`perl6 -v`): 
 

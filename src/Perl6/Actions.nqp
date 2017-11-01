@@ -2752,7 +2752,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 setup_attr_var($/, $past);
             }
         }
-        elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
+        elsif ($twigil eq '.' || $twigil eq '.^') && $*IN_DECL ne 'variable' {
             if !$*HAS_SELF {
                 $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
             } elsif $*HAS_SELF eq 'partial' {
@@ -2760,7 +2760,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>.ast !! QAST::Op.new();
-            $past.op('callmethod');
+            if $twigil eq '.^' {
+                $past.op('p6callmethodhow');
+            }
+            else {
+                $past.op('callmethod');
+            }
             $past.name($desigilname);
             $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
             # Contextualize based on sigil.

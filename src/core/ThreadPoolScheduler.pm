@@ -325,8 +325,7 @@ my class ThreadPoolScheduler does Scheduler {
                 unless $!general-queue.DEFINITE {
                     # We don't have any workers yet, so start one.
                     $!general-queue := nqp::create(Queue);
-                    $!general-workers := push-worker(
-                      nqp::create(IterationBuffer),
+                    $!general-workers := first-worker(
                       GeneralWorker.new(
                         queue => $!general-queue,
                         scheduler => self
@@ -346,8 +345,7 @@ my class ThreadPoolScheduler does Scheduler {
                 unless $!timer-queue.DEFINITE {
                     # We don't have any workers yet, so start one.
                     $!timer-queue := nqp::create(Queue);
-                    $!timer-workers := push-worker(
-                      nqp::create(IterationBuffer),
+                    $!timer-workers := first-worker(
                       TimerWorker.new(
                         queue => $!timer-queue,
                         scheduler => self
@@ -370,8 +368,7 @@ my class ThreadPoolScheduler does Scheduler {
                 if $!affinity-workers.elems == 0 {
                     # We don't have any affinity workers yet, so start one
                     # and return its queue.
-                    $!affinity-workers := push-worker(
-                      nqp::create(IterationBuffer),
+                    $!affinity-workers := first-worker(
                       AffinityWorker.new(
                         scheduler => self
                       )
@@ -433,6 +430,14 @@ my class ThreadPoolScheduler does Scheduler {
         else {
             $chosen-queue
         }
+    }
+
+    # Initializing a worker list with a worker, is straightforward and devoid
+    # of concurrency issues, as we're already in protected code when we do this.
+    sub first-worker(\first) is raw {
+        my $workers := nqp::create(IterationBuffer);
+        nqp::push($workers,first);
+        $workers
     }
 
     # Since the worker lists can be changed during copying, we need to

@@ -388,49 +388,105 @@ multi sub periods() {
 multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 proto sub report(|) is export { * }
-multi sub report() {
+multi sub report(:$legend) {
     my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
     nqp::setelems(nqp::getattr(@snaps,List,'$!reified'),0);
     nqp::push($s,Telemetry.new) if nqp::elems($s) == 1;
-    report(nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s));
+    report(
+      nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s),
+      :$legend
+    );
 }
-multi sub report(@s) {
-    sub hide0(\value, $size = 3) { value ?? sprintf("%{$size}d",value) !! "   " }
+
+# Convert to spaces if numeric value is 0
+sub hide0(\value, int $size = 3) {
+    value ?? value.fmt("%{$size}d") !! nqp::x(" ",$size)
+}
+
+# Set up how to handle report generation
+my %format =
+  affinity-workers =>
+    [     " aw", { hide0(.affinity-workers) },          '---',
+      "The number of affinity threads"],
+  cpu => 
+    ["     cpu", { .cpu.fmt('%8d') },                   '--------',
+      "The amount of CPU used (in microseconds)"],
+  cpu-user => 
+    ["cpu-user", { .cpu.fmt('%8d') },                   '--------',
+      "The amount of CPU used in user code (in microseconds)"],
+  cpu-sys =>               
+    [" cpu-sys", { .cpu.fmt('%8d') },                   '--------',
+      "The amount of CPU used in system overhead (in microseconds)"],
+  general-workers =>
+    [     " gw", { hide0(.general-workers) },           '---',
+      "The number of general worker threads"],
+  general-tasks-queued =>
+    [     "gtq", { hide0(.general-tasks-queued) },      '---',
+      "The number of tasks queued for execution in general worker threads"],
+  general-tasks-completed =>
+    [    " gtc", { hide0(.general-tasks-completed,4) }, '----',
+      "The number of tasks completed in general worker threads"],
+  supervisor =>
+    [       "s", { hide0(.supervisor,1) },              '-',
+      "The number of supervisors"],
+  timer-workers =>
+    [     " tw", { hide0(.timer-workers) },             '---',
+      "The number of timer threads"],
+  timer-tasks-queued =>
+    [     "ttq", { hide0(.timer-tasks-queued) },        '---',
+      "The number of tasks queued for execution in timer threads"],
+  timer-tasks-completed =>
+    [     "ttc", { hide0(.timer-tasks-completed) },     '---',
+      "The number of tasks completed in timer threads"],
+  utilization =>
+    [  " util%", { .utilization.fmt('%6.2f') },         '------',
+      "Percentage of CPU utilization (0..100%)"],
+  wallclock =>
+    ["    wall", { .wallclock.fmt('%8d') },             '--------',
+      "Number of microseconds elapsed"],
+;
+
+# Make sure we can also use the header key as an indicator
+for %format.kv -> \k, \v {
+    %format{v[0].trim} = v
+}
+
+multi sub report(
+  @s,
+  @cols = <wall util% s gw gtq gtc tw ttq ttc aw>,
+  :$legend,
+) {
 
     my $total = @s[*-1] - @s[0];
     my $text := nqp::list_s(qq:to/HEADER/.chomp);
-Telemetry Report of Process #$*PID ($*INIT-INSTANT.DateTime())
+Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
 Number of Snapshots: {+@s}
 Total Time:      { ($total.wallclock / 1000000).fmt("%9.2f") } seconds
 Total CPU Usage: { ($total.cpu / 1000000).fmt("%9.2f") } seconds
 
-    wall  util%  sv  gd gtq  gtc  td ttq  at
 HEADER
 
-    sub push-period($_) {
+    nqp::push_s($text,%format{@cols}>>.[0].join(" "));
+
+    sub push-period($period) {
         nqp::push_s($text,
-          sprintf('%8d %6.2f %s %s %s %s %s %s %s',
-            .wallclock,
-            .utilization,
-            hide0(.supervisor),
-            hide0(.general-workers),
-            hide0(.general-tasks-queued),
-            hide0(.general-tasks-completed,4),
-            hide0(.timer-workers),
-            hide0(.timer-tasks-queued),
-            hide0(.affinity-workers)
-          ).trim-trailing
-        );
+          %format{@cols}>>.[1]>>.($period).join(" ").trim-trailing);
     }
 
     push-period($_) for periods(@s);
 
-    nqp::push_s($text, qq:to/FOOTER/.chomp);
--------- ------ --- --- --- ---- --- --- ---
-FOOTER
+    nqp::push_s($text,%format{@cols}>>.[2].join(" "));
 
     push-period($total);
- 
+
+    if $legend {
+        nqp::push_s($text,"");
+        nqp::push_s($text,"Legend:");
+        for %format{@cols} -> $col {
+            nqp::push_s($text," $col[0].trim-leading.fmt('%5s')  $col[3]");
+        }
+    }
+
     nqp::join("\n",$text)
 }
 

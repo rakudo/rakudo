@@ -440,11 +440,9 @@ my class Binder {
                     # and a normal bind is a straightforward binding.
                     if $flags +& $SIG_ELEM_ARRAY_SIGIL {
                         if $flags +& $SIG_ELEM_IS_COPY {
-                            # XXX GLR
-                            nqp::die('replace this Array is copy logic');
-                            # my $bindee := nqp::create(Array);
-                            # $bindee.STORE(nqp::decont($oval));
-                            # nqp::bindkey($lexpad, $varname, $bindee);
+                            my $bindee := nqp::create(Array);
+                            $bindee.STORE(nqp::decont($oval));
+                            nqp::bindkey($lexpad, $varname, $bindee);
                         }
                         else {
                             nqp::bindkey($lexpad, $varname, nqp::decont($oval));

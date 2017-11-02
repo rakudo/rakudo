@@ -67,7 +67,8 @@ class Perl6::Pod {
         if ~$with ne '' {
             if $leading {
                 $*W.apply_trait($/, '&trait_mod:<is>', $what, :leading_docs($with));
-            } else { # trailing
+            } 
+            else { # trailing
                 $*W.apply_trait($/, '&trait_mod:<is>', $what, :trailing_docs($with));
             }
         }
@@ -84,10 +85,12 @@ class Perl6::Pod {
         if $<type>.Str ~~ /^item \d*$/ {
             $type    := 'Pod::Item';
             $leveled := 1;
-        } elsif $<type>.Str ~~ /^head \d+$/ {
+        } 
+        elsif $<type>.Str ~~ /^head \d+$/ {
             $type    := 'Pod::Heading';
             $leveled := 1;
-        } else {
+        } 
+        else {
             $type := 'Pod::Block::Named';
         }
 
@@ -161,12 +164,14 @@ class Perl6::Pod {
                 $val := $colonpair<coloncircumfix><circumfix>;
                 if $val<nibble> {
                     $val := $*W.colonpair_nibble_to_str($/, $val<nibble>);
-                } else {
+                } 
+                else {
                     $val := ~$val<semilist>;
                 }
 
                 $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
-            } else {
+            } 
+            else {
                 # and this is the worst hack of them all.
                 # Hide your kids, hide your wife!
                 my $truth := !nqp::eqat($colonpair, '!', 1);
@@ -181,7 +186,8 @@ class Perl6::Pod {
                     my $char := nqp::substr($val, $pos, 1);
                     if $char eq " " {
                         $pos := $pos + 1;
-                    } else {
+                    } 
+                    else {
                         my $bitval := nqp::ord($char) - nqp::ord("A");
                         if $bitval >= 0 && $bitval <= 25 {
                             $*POD_ALLOW_FCODES := $*POD_ALLOW_FCODES +| (2 ** $bitval);
@@ -285,10 +291,12 @@ class Perl6::Pod {
                 # don't push the leading whitespace
                 if +@res + @strs == 0 && $elem eq ' ' {
 
-                } else {
+                } 
+                else {
                     @strs.push($elem);
                 }
-            } else {
+            } 
+            else {
                 push_strings(@strs, @res);
                 @strs := [];
                 @res.push($elem);
@@ -314,7 +322,8 @@ class Perl6::Pod {
         for @content -> $elem {
             if nqp::isstr($elem) {
                 @strs.push($elem);
-            } else {
+            } 
+            else {
                 push_strings(@strs, @res);
                 @strs := [];
                 @res.push($elem);
@@ -430,10 +439,12 @@ class Perl6::Pod {
                 if $last_line_was_row_sep {
                     # an invalid table if inside it
 	            ++$table_has_multiple_row_seps;
-                } else {
+                } 
+                else {
                     $last_line_was_row_sep := 1;
                 }
-            } else {
+            } 
+            else {
                 $last_line_was_row_sep := 0;
                 # this is a table data line
                 $first_line := 1;
@@ -473,7 +484,8 @@ class Perl6::Pod {
                 # analysis. But then check for a ws type if a vis type is not found.
                 if $row ~~ $has_vis_col_sep {
                     ++$table_has_vis_col_seps;
-                } elsif $row ~~ $has_ws_col_sep {
+                } 
+                elsif $row ~~ $has_ws_col_sep {
                     ++$table_has_ws_col_seps;
                 }
             }
@@ -487,7 +499,8 @@ class Perl6::Pod {
         # break the data rows into cells
         if $table_has_vis_col_seps {
             @rows := process_rows(@rows);
-        } elsif $table_has_ws_col_seps {
+        } 
+        elsif $table_has_ws_col_seps {
             @rows := splitrows(@rows);
         }
         else {
@@ -547,7 +560,8 @@ class Perl6::Pod {
                 unless $firstsepindex { $firstsepindex := $i }
                 if $firstsep {
                     if $firstsep ne @rows[$i] { $differentseps := 1 }
-                } else {
+                } 
+                else {
                     $firstsep := @rows[$i];
                 }
             }
@@ -561,13 +575,15 @@ class Perl6::Pod {
         if $sepnum == 0 {
             # ordinary table, no headers, one-lined rows
             $content := @rows;
-        } elsif $sepnum == 1 {
+        } 
+        elsif $sepnum == 1 {
             if $firstsepindex == 1 {
                 # one-lined header, one-lined rows
                 $headers := @rows.shift;
                 @rows.shift; # remove the row separator
                 $content := @rows;
-            } else {
+            } 
+            else {
                 # multi-line header, one-lined rows
                 my $i := 0;
                 my @hlines := [];
@@ -579,7 +595,8 @@ class Perl6::Pod {
                 @rows.shift; # remove the row separator
                 $content := @rows;
             }
-        } else {
+        } 
+        else {
             my @hlines := [];
             my $i := 0;
             if $differentseps {
@@ -597,7 +614,8 @@ class Perl6::Pod {
             while $i < +@rows {
                 if nqp::islist(@rows[$i]) {
                     @tmp.push(@rows[$i]);
-                } else {
+                } 
+                else {
                     @newrows.push(merge_rows(@tmp));
                     @tmp := [];
                 }
@@ -624,7 +642,8 @@ class Perl6::Pod {
                     ++$i;
 	        }
 	        nqp::print("\n");
-            } else {
+            } 
+            else {
 	        nqp::print(" (no headers)\n");
             }
             nqp::say("=== contents");
@@ -792,7 +811,8 @@ class Perl6::Pod {
             for @rows -> $row {
 	        if $row ~~ $is_row_sep {
 		    @res.push($row);
-		} elsif nqp::isstr($row) {
+		} 
+                elsif nqp::isstr($row) {
 		    # just split the row
                     nqp::say("VIS BEFORE SPLIT: '$row'") if $debug;
                     my @t := nqp::split('|', $row);
@@ -810,7 +830,8 @@ class Perl6::Pod {
 		    my $n := +@tmp;
                     check_num_row_cells($n);
 		    @res.push(@tmp);
-		} else {
+		} 
+                else {
                     nqp::say("WEIRD ROW number $i '$row'");
                 }
                 ++$i;
@@ -890,7 +911,8 @@ class Perl6::Pod {
 		if !$wasone && @suspects[$i] == 1 {
                     @ranges.push($i);
                     $wasone := 1;
-		} elsif $wasone && @suspects[$i] != 1 {
+		} 
+                elsif $wasone && @suspects[$i] != 1 {
                     @ranges.push($i);
                     $wasone := 0;
 		}
@@ -911,7 +933,8 @@ class Perl6::Pod {
 			@tmp.push(
                             normalize_text(nqp::substr($row, $a, $b - $a))
 			);
-                    } else {
+                    } 
+                    else {
 			@tmp.push(
                             normalize_text(nqp::substr($row, $a))
 			);

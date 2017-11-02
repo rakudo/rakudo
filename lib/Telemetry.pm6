@@ -191,6 +191,15 @@ sub affinity-workers() is raw is export(:COLUMNS) {
     )
 }
 
+sub affinity-tasks-completed() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $workers := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!affinity-workers'
+      ))),
+      completed($workers)
+    )
+}
+
 # Telemetry --------------------------------------------------------------------
 class Telemetry {
     has int $!cpu-user;
@@ -218,6 +227,7 @@ class Telemetry {
     has int $!timer-tasks-queued;
     has int $!timer-tasks-completed;
     has int $!affinity-workers;
+    has int $!affinity-tasks-completed;
 
     submethod BUILD() {
         my \rusage = nqp::getrusage;
@@ -268,6 +278,7 @@ class Telemetry {
         if nqp::getattr($scheduler,ThreadPoolScheduler,'$!affinity-workers')
           -> \workers {
             $!affinity-workers = nqp::elems(workers);
+            $!affinity-tasks-completed = completed(workers);
         }
 
     }
@@ -366,6 +377,13 @@ class Telemetry {
     multi method affinity-workers(Telemetry:U:) {   affinity-workers }
     multi method affinity-workers(Telemetry:D:) { $!affinity-workers }
 
+    multi method affinity-tasks-completed(Telemetry:U:) is raw {
+        affinity-tasks-completed
+    }
+    multi method affinity-tasks-completed(Telemetry:D:) is raw {
+        $!affinity-tasks-completed
+    }
+
     multi method Str(Telemetry:D:) {
         "$.cpu / $!wallclock"
     }
@@ -406,6 +424,7 @@ class Telemetry::Period is Telemetry {
       int :$timer-tasks-queued,
       int :$timer-tasks-completed,
       int :$affinity-workers,
+      int :$affinity-tasks-completed,
     ) {
         self.new(
           $cpu-user, $cpu-sys,
@@ -414,7 +433,7 @@ class Telemetry::Period is Telemetry {
           $wallclock, $supervisor,
           $general-workers, $general-tasks-queued, $general-tasks-completed,
           $timer-workers, $timer-tasks-queued, $timer-tasks-completed,
-          $affinity-workers
+          $affinity-workers, $affinity-tasks-completed,
         )
     }
 
@@ -445,58 +464,61 @@ class Telemetry::Period is Telemetry {
       int $timer-tasks-queued,
       int $timer-tasks-completed,
       int $affinity-workers,
+      int $affinity-tasks-completed,
     ) {
         my $period := nqp::create(Telemetry::Period);
         nqp::bindattr_i($period,Telemetry,
-          '$!cpu-user',               $cpu-user);
+          '$!cpu-user',                $cpu-user);
         nqp::bindattr_i($period,Telemetry,
-          '$!cpu-sys',                $cpu-sys);
+          '$!cpu-sys',                 $cpu-sys);
         nqp::bindattr_i($period,Telemetry,
-          '$!max-rss',                $max-rss);
+          '$!max-rss',                 $max-rss);
         nqp::bindattr_i($period,Telemetry,
-          '$!ix-rss',                 $ix-rss);
+          '$!ix-rss',                  $ix-rss);
         nqp::bindattr_i($period,Telemetry,
-          '$!id-rss',                 $id-rss);
+          '$!id-rss',                  $id-rss);
         nqp::bindattr_i($period,Telemetry,
-          '$!is-rss',                 $is-rss);
+          '$!is-rss',                  $is-rss);
         nqp::bindattr_i($period,Telemetry,
-          '$!min-flt',                $min-flt);
+          '$!min-flt',                 $min-flt);
         nqp::bindattr_i($period,Telemetry,
-          '$!maj-flt',                $maj-flt);
+          '$!maj-flt',                 $maj-flt);
         nqp::bindattr_i($period,Telemetry,
-          '$!nswap',                  $nswap);
+          '$!nswap',                   $nswap);
         nqp::bindattr_i($period,Telemetry,
-          '$!inblock',                $inblock);
+          '$!inblock',                 $inblock);
         nqp::bindattr_i($period,Telemetry,
-          '$!outblock',               $outblock);
+          '$!outblock',                $outblock);
         nqp::bindattr_i($period,Telemetry,
-          '$!msgsnd',                 $msgsnd);
+          '$!msgsnd',                  $msgsnd);
         nqp::bindattr_i($period,Telemetry,
-          '$!msgrcv',                 $msgrcv);
+          '$!msgrcv',                  $msgrcv);
         nqp::bindattr_i($period,Telemetry,
-          '$!nsignals',               $nsignals);
+          '$!nsignals',                $nsignals);
         nqp::bindattr_i($period,Telemetry,
-          '$!nvcsw',                  $nvcsw);
+          '$!nvcsw',                   $nvcsw);
         nqp::bindattr_i($period,Telemetry,
-          '$!invcsw',                 $invcsw);
+          '$!invcsw',                  $invcsw);
         nqp::bindattr_i($period,Telemetry,
-          '$!wallclock',              $wallclock);
+          '$!wallclock',               $wallclock);
         nqp::bindattr_i($period,Telemetry,
-          '$!supervisor',             $supervisor);
+          '$!supervisor',              $supervisor);
         nqp::bindattr_i($period,Telemetry,
-          '$!general-workers',        $general-workers);
+          '$!general-workers',         $general-workers);
         nqp::bindattr_i($period,Telemetry,
-          '$!general-tasks-queued',   $general-tasks-queued);
+          '$!general-tasks-queued',    $general-tasks-queued);
         nqp::bindattr_i($period,Telemetry,
-          '$!general-tasks-completed',$general-tasks-completed);
+          '$!general-tasks-completed', $general-tasks-completed);
         nqp::bindattr_i($period,Telemetry,
-          '$!timer-workers',          $timer-workers);
+          '$!timer-workers',           $timer-workers);
         nqp::bindattr_i($period,Telemetry,
-          '$!timer-tasks-queued',     $timer-tasks-queued);
+          '$!timer-tasks-queued',      $timer-tasks-queued);
         nqp::bindattr_i($period,Telemetry,
-          '$!timer-tasks-completed',  $timer-tasks-completed);
+          '$!timer-tasks-completed',   $timer-tasks-completed);
         nqp::bindattr_i($period,Telemetry,
-          '$!affinity-workers',       $affinity-workers);
+          '$!affinity-workers',        $affinity-workers);
+        nqp::bindattr_i($period,Telemetry,
+          '$!affinity-tasks-completed',$affinity-tasks-completed);
         $period
     }
 
@@ -552,6 +574,8 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!timer-tasks-completed')
         }), :affinity-workers({
           nqp::getattr_i(self,Telemetry,'$!affinity-workers')
+        }), :affinity-tasks-completed({
+          nqp::getattr_i(self,Telemetry,'$!affinity-tasks-completed')
         }))"
     }
 
@@ -679,6 +703,10 @@ multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
       nqp::sub_i(
         nqp::getattr_i($a,Telemetry,'$!affinity-workers'),
         nqp::getattr_i($b,Telemetry,'$!affinity-workers')
+      ),
+      nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!affinity-tasks-completed'),
+        nqp::getattr_i($b,Telemetry,'$!affinity-tasks-completed')
       )
     )
 }
@@ -739,6 +767,9 @@ my %format =
   affinity-workers =>
     [     " aw", { hide0(.affinity-workers) },
       "The number of affinity threads"],
+  affinity-tasks-completed =>
+    [ "     atc", { hide0(.affinity-tasks-completed,8) },
+      "The number of tasks completed in affinity threads"],
   cpu =>
     ["     cpu", { .cpu.fmt('%8d') },
       "The amount of CPU used (in microseconds)"],
@@ -837,7 +868,7 @@ multi sub report(
             @columns = $rrc.comb( /<[\w-]>+/ );
         }
         else {
-            @columns = <wallclock util% max-rss ics gw gtc tw ttc aw>;
+            @columns = <wallclock util% max-rss ics gw gtc tw ttc aw atc>;
         }
     }
 

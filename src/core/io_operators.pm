@@ -109,7 +109,6 @@ multi sub getc (IO::Handle:D $fh = $*ARGFILES) { $fh.getc }
 proto sub close(|) { * }
 multi sub close(IO::Handle:D $fh)   { $fh.close }
 multi sub close(Channel:D $channel) { $channel.close }
-multi sub close(Supply:D $supply)   { $supply.close }
 
 proto sub slurp(|) { * }
 multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c) { $fh.slurp(|c) }

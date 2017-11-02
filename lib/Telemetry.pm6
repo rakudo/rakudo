@@ -26,6 +26,7 @@ constant INVCSW     = 17;
 my num $start = Rakudo::Internals.INITTIME;
 my int $b2kb  = nqp::atkey(nqp::backendconfig,q/osname/) eq 'darwin' ?? 10 !! 0;
 
+# calculate number of tasks completed for a worker list
 sub completed(\workers) is raw {
     my int $elems = nqp::elems(workers);
     my int $completed;
@@ -41,6 +42,25 @@ sub completed(\workers) is raw {
       )
     );
     $completed
+}
+
+# calculate number of tasks queued for an affinity worker list, which has
+# a separate queue for each worker
+sub queued(\workers) is raw {
+    my int $elems = nqp::elems(workers);
+    my int $queued;
+    my int $i = -1;
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+      nqp::stmts(
+        (my $w := nqp::atpos(workers,$i)),
+        ($queued = nqp::add_i(
+          $queued,
+          nqp::elems(nqp::getattr($w,$w.WHAT,'$!queue'))
+        ))
+      )
+    );
+    $queued
 }
 
 # Subroutines that are exported with :COLUMNS ----------------------------------
@@ -191,6 +211,15 @@ sub affinity-workers() is raw is export(:COLUMNS) {
     )
 }
 
+sub affinity-tasks-queued() is raw is export(:COLUMNS) {
+    nqp::if(
+      nqp::istrue((my $workers := nqp::getattr(
+        nqp::decont($*SCHEDULER),ThreadPoolScheduler,'$!affinity-workers'
+      ))),
+      queued($workers)
+    )
+}
+
 sub affinity-tasks-completed() is raw is export(:COLUMNS) {
     nqp::if(
       nqp::istrue((my $workers := nqp::getattr(
@@ -227,6 +256,7 @@ class Telemetry {
     has int $!timer-tasks-queued;
     has int $!timer-tasks-completed;
     has int $!affinity-workers;
+    has int $!affinity-tasks-queued;
     has int $!affinity-tasks-completed;
 
     submethod BUILD() {
@@ -277,8 +307,26 @@ class Telemetry {
         }
         if nqp::getattr($scheduler,ThreadPoolScheduler,'$!affinity-workers')
           -> \workers {
-            $!affinity-workers = nqp::elems(workers);
-            $!affinity-tasks-completed = completed(workers);
+            my int $elems = $!affinity-workers = nqp::elems(workers);
+            my int $completed;
+            my int $queued;
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::stmts(
+                (my $w := nqp::atpos(workers,$i)),
+                ($completed = nqp::add_i(
+                  $completed,
+                  nqp::getattr_i($w,$w.WHAT,'$!total')
+                )),
+                ($queued = nqp::add_i(
+                  $queued,
+                  nqp::elems(nqp::getattr($w,$w.WHAT,'$!queue'))
+                ))
+              )
+            );
+            $!affinity-tasks-queued    = $queued;
+            $!affinity-tasks-completed = $completed;
         }
 
     }
@@ -377,6 +425,13 @@ class Telemetry {
     multi method affinity-workers(Telemetry:U:) {   affinity-workers }
     multi method affinity-workers(Telemetry:D:) { $!affinity-workers }
 
+    multi method affinity-tasks-queued(Telemetry:U:) is raw {
+        affinity-tasks-queued
+    }
+    multi method affinity-tasks-queued(Telemetry:D:) is raw {
+        $!affinity-tasks-queued
+    }
+
     multi method affinity-tasks-completed(Telemetry:U:) is raw {
         affinity-tasks-completed
     }
@@ -424,6 +479,7 @@ class Telemetry::Period is Telemetry {
       int :$timer-tasks-queued,
       int :$timer-tasks-completed,
       int :$affinity-workers,
+      int :$affinity-tasks-queued,
       int :$affinity-tasks-completed,
     ) {
         self.new(
@@ -433,7 +489,7 @@ class Telemetry::Period is Telemetry {
           $wallclock, $supervisor,
           $general-workers, $general-tasks-queued, $general-tasks-completed,
           $timer-workers, $timer-tasks-queued, $timer-tasks-completed,
-          $affinity-workers, $affinity-tasks-completed,
+          $affinity-workers, $affinity-tasks-queued, $affinity-tasks-completed,
         )
     }
 
@@ -464,6 +520,7 @@ class Telemetry::Period is Telemetry {
       int $timer-tasks-queued,
       int $timer-tasks-completed,
       int $affinity-workers,
+      int $affinity-tasks-queued,
       int $affinity-tasks-completed,
     ) {
         my $period := nqp::create(Telemetry::Period);
@@ -517,6 +574,8 @@ class Telemetry::Period is Telemetry {
           '$!timer-tasks-completed',   $timer-tasks-completed);
         nqp::bindattr_i($period,Telemetry,
           '$!affinity-workers',        $affinity-workers);
+        nqp::bindattr_i($period,Telemetry,
+          '$!affinity-tasks-queued',$affinity-tasks-queued);
         nqp::bindattr_i($period,Telemetry,
           '$!affinity-tasks-completed',$affinity-tasks-completed);
         $period
@@ -574,6 +633,8 @@ class Telemetry::Period is Telemetry {
           nqp::getattr_i(self,Telemetry,'$!timer-tasks-completed')
         }), :affinity-workers({
           nqp::getattr_i(self,Telemetry,'$!affinity-workers')
+        }), :affinity-tasks-queued({
+          nqp::getattr_i(self,Telemetry,'$!affinity-tasks-queued')
         }), :affinity-tasks-completed({
           nqp::getattr_i(self,Telemetry,'$!affinity-tasks-completed')
         }))"
@@ -705,6 +766,10 @@ multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
         nqp::getattr_i($b,Telemetry,'$!affinity-workers')
       ),
       nqp::sub_i(
+        nqp::getattr_i($a,Telemetry,'$!affinity-tasks-queued'),
+        nqp::getattr_i($b,Telemetry,'$!affinity-tasks-queued')
+      ),
+      nqp::sub_i(
         nqp::getattr_i($a,Telemetry,'$!affinity-tasks-completed'),
         nqp::getattr_i($b,Telemetry,'$!affinity-tasks-completed')
       )
@@ -764,12 +829,15 @@ sub hide0(\value, int $size = 3) {
 
 # Set up how to handle report generation (in alphabetical order)
 my %format =
-  affinity-workers =>
-    [     " aw", { hide0(.affinity-workers) },
-      "The number of affinity threads"],
   affinity-tasks-completed =>
     [ "     atc", { hide0(.affinity-tasks-completed,8) },
       "The number of tasks completed in affinity threads"],
+  affinity-tasks-queued =>
+    [ "atq", { hide0(.affinity-tasks-queued) },
+      "The number of tasks queued for execution in affinity threads"],
+  affinity-workers =>
+    [     " aw", { hide0(.affinity-workers) },
+      "The number of affinity threads"],
   cpu =>
     ["     cpu", { .cpu.fmt('%8d') },
       "The amount of CPU used (in microseconds)"],

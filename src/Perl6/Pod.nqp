@@ -692,27 +692,29 @@ class Perl6::Pod {
 	my sub normalize_vis_col_sep_rows(@Rows) {
 	    # leading and trailing column separators are handled and warned about
             my @rows     := @Rows;
-            my $nr       := +@rows;
             my $nlp      := 0; # number of leading pipes
             my $ntp      := 0; # number of trailing pipes
+            my $nr       := 0; # number of data rows
             my $leading  := 0;
             my $trailing := 0;
             my $i        := 0;
-            while $i < $nr {
+            while $i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
+                    ++$nr;
                     @rows[$i] := normalize_row_cells(@rows[$i]);
                     # check for leading pipes
-                    if @rows[$i] ~~ /^ \h* '|' / {
+                    if @rows[$i] ~~ /^ \s* '|' / {
                         ++$nlp;
                         ++$table_has_leading_border_vis_col_seps;
                         ++$table_has_border_vis_col_seps;
                     }
                     # check for trailing pipes
-                    if @rows[$i] ~~ / '|' \h* $/ {
+                    if @rows[$i] ~~ / '|' \s* $/ {
                         ++$ntp;
                         ++$table_has_trailing_border_vis_col_seps;
                         ++$table_has_border_vis_col_seps;
                     }
+                    say("DEBUG: i $i, nlp $nlp, ntp $ntp, nr $nr");
                 }
                 ++$i;
             }

@@ -2752,7 +2752,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 setup_attr_var($/, $past);
             }
         }
-        elsif $twigil eq '.' && $*IN_DECL ne 'variable' {
+        elsif ($twigil eq '.' || $twigil eq '.^') && $*IN_DECL ne 'variable' {
             if !$*HAS_SELF {
                 $*W.throw($/, ['X', 'Syntax', 'NoSelf'], variable => $name);
             } elsif $*HAS_SELF eq 'partial' {
@@ -2760,7 +2760,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             # Need to transform this to a method call.
             $past := $<arglist> ?? $<arglist>.ast !! QAST::Op.new();
-            $past.op('callmethod');
+            if $twigil eq '.^' {
+                $past.op('p6callmethodhow');
+            }
+            else {
+                $past.op('callmethod');
+            }
             $past.name($desigilname);
             $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
             # Contextualize based on sigil.
@@ -3157,7 +3162,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 elsif $<initializer><sym> eq '=' {
-                    $past := assign_op($/, $past, $initast);
+                    $past := assign_op($/, $past, $initast, :initialize);
                 }
                 elsif $<initializer><sym> eq '.=' {
                     $past := make_dot_equals($past, $initast);
@@ -6960,7 +6965,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
-    sub assign_op($/, $lhs_ast, $rhs_ast) {
+    sub assign_op($/, $lhs_ast, $rhs_ast, :$initialize) {
         my $past;
         my $var_sigil;
         $lhs_ast := WANTED($lhs_ast,'assign_op/lhs');
@@ -6976,6 +6981,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
+
+        # get the sigil out of the my %h is Set = case
+        elsif nqp::istype($lhs_ast,QAST::Op) && $lhs_ast.op eq 'bind'
+          && nqp::istype($lhs_ast[0], QAST::Var) {
+            $var_sigil := nqp::substr($lhs_ast[0].name, 0, 1);
+        }
+
         if nqp::istype($lhs_ast, QAST::Var)
                 && nqp::objprimspec($lhs_ast.returns) -> $spec {
             # Native assignment is only possible to a reference; complain now
@@ -6996,6 +7008,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new(
                 :op('callmethod'), :name('STORE'),
                 $lhs_ast, $rhs_ast);
+
+            # let STORE know if this is the first time
+            if $initialize {
+                $past.push(QAST::WVal.new(
+                  :named('initialize'),
+                  :value($*W.find_symbol(['Bool', 'True']))
+                ));
+            }
             $past.nosink(1);
         }
         elsif $var_sigil eq '$' {

@@ -4,6 +4,17 @@ my class MixHash does Mixy {
     method total() { Rakudo::QuantHash.MIX-TOTAL($!elems) }
     method !total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
 
+    method STORE(*@pairs --> MixHash:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          self.SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+              nqp::create(Rakudo::Internals::IterationSet), $iterator
+            )
+          )
+        )
+    }
     multi method AT-KEY(MixHash:D: \k) is raw {
         Proxy.new(
           FETCH => {

@@ -1120,7 +1120,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method combinations(Range:D $ofrange) {
         nqp::stmts(
           (my int $elems = self.elems),      # reifies
-          $ofrange.int-bounds(my int $i, my int $to),
+          nqp::if(
+            $ofrange.is-int,
+            $ofrange.int-bounds(my int $i, my int $to),
+            nqp::stmts(
+              nqp::unless(
+                $ofrange.min < 0,   # $i already 0 if not
+                ($i = $ofrange.min + $ofrange.excludes-min)
+              ),
+              nqp::if(
+                $ofrange.max > $elems,
+                ($to = $elems),
+                ($to = $ofrange.max - $ofrange.excludes-max)
+              )
+            )
+          ),
           ($i = nqp::if(nqp::islt_i($i,0),-1,nqp::sub_i($i,1))),
           nqp::if(nqp::isgt_i($to,$elems),($to = $elems)),
           Seq.new(

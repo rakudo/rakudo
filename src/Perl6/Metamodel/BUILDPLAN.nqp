@@ -39,6 +39,24 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::can($_, 'container_initializer') {
                 my $ci := $_.container_initializer;
                 if nqp::isconcrete($ci) {
+
+                    # GH #1226
+                    if nqp::can($_, 'build') {
+                        my $default := $_.build;
+                        if nqp::isconcrete($default) {
+                            $*W.find_symbol(["X","Comp","NYI"]).new(
+                              feature =>
+                                "Defaults on compound attribute types",
+                              workaround =>
+                                "Create/Adapt TWEAK method in class "
+                                  ~ $obj.HOW.name($obj)
+                                  ~ ", e.g:\n    method TWEAK(:"
+                                  ~ $_.name
+                                  ~ ' = (initial values)) { }'
+                            ).throw;
+                        }
+                    }
+
                     nqp::push(@plan,[9, $obj, $_.name, $ci]);
                     next;
                 }

@@ -717,12 +717,13 @@ multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 # Telemetry reporting features -------------------------------------------------
 proto sub report(|) is export { * }
-multi sub report(:$legend, :$header-repeat = 32) {
+multi sub report(:@columns, :$legend, :$header-repeat = 32) {
     my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
     nqp::setelems(nqp::getattr(@snaps,List,'$!reified'),0);
     nqp::push($s,Telemetry.new) if nqp::elems($s) == 1;
     report(
       nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s),
+      :@columns,
       :$legend,
       :$header-repeat,
     );
@@ -826,10 +827,19 @@ for %format.values -> \v {
 
 multi sub report(
   @s,
-  @cols = <wallclock util% max-rss ics gw gtc tw ttc aw>,
+  :@columns is copy,
   :$legend,
   :$header-repeat = 32,
 ) {
+
+    unless @columns {
+        if %*ENV<RAKUDO_REPORT_COLUMNS> -> $rrc {
+            @columns = $rrc.comb( /<[\w-]>+/ );
+        }
+        else {
+            @columns = <wallclock util% max-rss ics gw gtc tw ttc aw>;
+        }
+    }
 
     my $total = @s[*-1] - @s[0];
     my $text := nqp::list_s(qq:to/HEADER/.chomp);
@@ -842,10 +852,10 @@ HEADER
 
     sub push-period($period) {
         nqp::push_s($text,
-          %format{@cols}>>.[1]>>.($period).join(' ').trim-trailing);
+          %format{@columns}>>.[1]>>.($period).join(' ').trim-trailing);
     }
 
-    my $header = "\n%format{@cols}>>.[0].join(' ')";
+    my $header = "\n%format{@columns}>>.[0].join(' ')";
     nqp::push_s($text,$header) unless $header-repeat;
 
     for periods(@s).kv -> $index, $period {
@@ -854,14 +864,14 @@ HEADER
         push-period($period)
     }
 
-    nqp::push_s($text,%format{@cols}>>.[3].join(' '));
+    nqp::push_s($text,%format{@columns}>>.[3].join(' '));
 
     push-period($total);
 
     if $legend {
         nqp::push_s($text,'');
         nqp::push_s($text,'Legend:');
-        for %format{@cols} -> $col {
+        for %format{@columns} -> $col {
             nqp::push_s($text," $col[0].trim-leading.fmt('%9s')  $col[2]");
         }
     }

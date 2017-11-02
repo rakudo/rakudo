@@ -1,5 +1,6 @@
 # TODO BEFORE RELEASE TO PR:
 #
+# + change cuddled elses to K & R style
 # + must handle an empty table (no data rows)
 # + fix balance rows
 # + ensure clean debug output for user and dev
@@ -390,21 +391,22 @@ class Perl6::Pod {
 	my @orig_rows               := [];
         my $has_shown_table_matrix  := 0;
 
+	my $table_has_col_sep_plus      := 0;
         #=== for fatal conditions
         my $fatals := 0;
-	my $has_multiple_row_seps   := 0; # set true if multiple consecutive interior row seps
-	my $table_has_vis_col_seps  := 0;
-	my $table_has_ws_col_seps   := 0;
-	my $table_has_data          := 0; # die if not set true
+	my $table_has_multiple_row_seps := 0; # set true if multiple consecutive interior row seps
+	my $table_has_vis_col_seps      := 0;
+	my $table_has_ws_col_seps       := 0;
+	my $table_has_data              := 0; # die if not set true
         #=== for warning conditions
         my $warns := 0;
 	my $unbalanced_row_cells    := 0; # set true if all rows don't have same number of cells
 	my $num_row_cells           := 0; # all table rows must have the same number of cells
-	my $has_leading_row_seps    := 0;
-	my $has_trailing_row_seps   := 0;
-        my $has_border_vis_col_seps := 0;
-        my $has_leading_border_vis_col_seps  := 0;
-        my $has_trailing_border_vis_col_seps := 0;
+	my $table_has_leading_row_seps             := 0;
+	my $table_has_trailing_row_seps            := 0;
+        my $table_has_border_vis_col_seps          := 0;
+        my $table_has_leading_border_vis_col_seps  := 0;
+        my $table_has_trailing_border_vis_col_seps := 0;
 
 	# form the rows from the pod table parse match
         my @rows := [];
@@ -422,12 +424,12 @@ class Perl6::Pod {
                 # two consecutive interior row sep lines are illegal
 	        if !$first_line {
 		    # ignore it for now but create a warning
-		    $has_leading_row_seps := 1;
+		    ++$table_has_leading_row_seps;
 		    next;
 		}
                 if $last_line_was_row_sep {
                     # an invalid table if inside it
-	            $has_multiple_row_seps := 1;
+	            ++$table_has_multiple_row_seps;
                 } else {
                     $last_line_was_row_sep := 1;
                 }
@@ -444,10 +446,11 @@ class Perl6::Pod {
                 ++$table_has_data;
                 if $row ~~ $has_vis_col_sep {
                     #nqp::say("      VIS COL SEP ROW: '$row'") if $debug;
-                    $has_col_sep_plus := 1 if $row ~~ $has_col_sep_plus;
-                } elsif $row ~~ $has_ws_col_sep {
-                    #nqp::say("      WS COL SEP ROW: '$row'") if $debug;
+                    ++$table_has_col_sep_plus if $row ~~ $has_col_sep_plus;
                 }
+		#elsif $row ~~ $has_ws_col_sep {
+                #    nqp::say("      WS COL SEP ROW: '$row'") if $debug;
+                #}
             }
             @rows.push($row);
         }
@@ -458,7 +461,7 @@ class Perl6::Pod {
 
 	# check for trailing row sep lines
 	if @rows && @rows[+@rows - 1] ~~ $is_row_sep {
-	    $has_trailing_row_seps := 1;
+	    ++$table_has_trailing_row_seps;
             @rows.pop while @rows && @rows[+@rows - 1] ~~ $is_row_sep;
 	}
 
@@ -646,7 +649,8 @@ class Perl6::Pod {
         );
 
 	# must return here before the sub subs begin
-        return make $past.compile_time_value;
+        #return make $past.compile_time_value;
+        return $past.compile_time_value;
 
 	#===== TABLE-SPECIFIC SUBROUTINES =====
         my sub handle_table_issues(@rows) {
@@ -656,7 +660,7 @@ class Perl6::Pod {
 		++$fatals;
 		nqp::say("===FATAL: Table $t has a mixture of visible and invisible column-separator types.");
             }
-            if $has_multiple_row_seps {
+            if $table_has_multiple_row_seps {
 		++$fatals;
 		nqp::say("===FATAL: Table $t has multiple interior row separator lines.");
             }
@@ -666,12 +670,12 @@ class Perl6::Pod {
             }
 
 	    #=== warnings
-	    if $has_leading_row_seps || $has_trailing_row_seps {
+	    if $table_has_leading_row_seps || $table_has_trailing_row_seps {
 		++$warns;
 		nqp::say("===WARNING: Table $t has unneeded leading or trailing row separators.");
 	    }
 
-	    if $has_border_vis_col_seps {
+	    if $table_has_border_vis_col_seps {
 		++$warns;
 		nqp::say("===WARNING: Table $t has unneeded border vis col separators.");
 	    }
@@ -687,27 +691,27 @@ class Perl6::Pod {
 
 	my sub normalize_vis_col_sep_rows(@Rows) {
 	    # leading and trailing column separators are handled and warned about
-            my @rows := @Rows;
-            my $nr   := +@rows;
-            my $nlp  := 0; # number of leading pipes
-            my $ntp  := 0; # number of trailing pipes
+            my @rows     := @Rows;
+            my $nr       := +@rows;
+            my $nlp      := 0; # number of leading pipes
+            my $ntp      := 0; # number of trailing pipes
             my $leading  := 0;
             my $trailing := 0;
-            my $i    := 0;
+            my $i        := 0;
             while $i < $nr {
                 unless @rows[$i] ~~ $is_row_sep {
                     @rows[$i] := normalize_row_cells(@rows[$i]);
                     # check for leading pipes
-                    if @rows[$i] ~~ /^ \s* '|' / {
+                    if @rows[$i] ~~ /^ \h* '|' / {
                         ++$nlp;
-                        $has_leading_border_vis_col_seps := 1;
-                        $has_border_vis_col_seps := 1;
+                        ++$table_has_leading_border_vis_col_seps;
+                        ++$table_has_border_vis_col_seps;
                     }
                     # check for trailing pipes
-                    if @rows[$i] ~~ / '|' \s* $/ {
+                    if @rows[$i] ~~ / '|' \h* $/ {
                         ++$ntp;
-                        $has_trailing_border_vis_col_seps := 1;
-                        $has_border_vis_col_seps := 1;
+                        ++$table_has_trailing_border_vis_col_seps;
+                        ++$table_has_border_vis_col_seps;
                     }
                 }
                 ++$i;
@@ -715,25 +719,34 @@ class Perl6::Pod {
             ++$leading if $nlp == $nr;
             ++$trailing if $ntp == $nr;
             if $leading || $trailing {
-                # all rows have the leading or trailng pipe, so remove all including surrounding ws
+                say("DEBUG: REMOVING BORDER PIPES");
+                # all data rows have the leading or trailng pipe, so remove all including surrounding ws
                 @rows := remove_border_pipes(@rows, $leading, $trailing);
             }
             return @rows;
         }
 
-        my sub remove_border_pipes(@Rows, :$leading?, :$trailing?) {
+        #my sub remove_border_pipes(@Rows, :$leading?, :$trailing?) {
+        #my sub remove_border_pipes(@Rows, :$leading, :$trailing) {
+        my sub remove_border_pipes(@Rows, $leading, $trailing) {
             my @rows :=  @Rows;
+            my $i := 0; # BUG: nqp did NOT warn about missing $i
             while $i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
+		    if $leading || $trailing {
+			say("DEBUG BEFORE rm border: '@rows[$i]'");
+		    }
                     if $leading {
                         # remove the leading pipe and surrounding ws
-                        @rows[$i] := subst(@rows[$i], /^ \s* '|' \s* /, '');
+                        @rows[$i] := subst(@rows[$i], /^ \h* '|' \h* /, '');
                     }
                     if $trailing {
                         # remove the trailing pipe and surrounding ws
-                        @rows[$i] := subst(@rows[$i], / \s* '|' \s* $/, '');
+                        @rows[$i] := subst(@rows[$i], / \h* '|' \h* $/, '');
                     }
-
+		    if $leading || $trailing {
+			say("DEBUG AFTER rm border: '@rows[$i]'");
+		    }
                 }
                 ++$i;
             }
@@ -792,7 +805,8 @@ class Perl6::Pod {
                         ++$j;
                     }
                     # this is the check for vis col sep rows
-                    check_num_cells(nqp::elems(@tmp));
+		    my $n := +@tmp;
+                    check_num_row_cells($n);
 		    @res.push(@tmp);
 		} else {
                     nqp::say("WEIRD ROW number $i '$row'");
@@ -909,16 +923,17 @@ class Perl6::Pod {
 	}
 
 	my sub check_num_row_cells($num_cells) {
-            #return npq::ifnull($num_cells);
             if !$num_cells {return}
             # checks a row's number of cells against the global value
             if !$num_row_cells {
                 # the first row checked sets the mark
 		$num_row_cells := $num_cells;
-            } elsif $num_cells > $num_row_cells {
+            } 
+            elsif $num_cells > $num_row_cells {
 		$num_row_cells := $num_cells;
 		++$unbalanced_row_cells;
-            } elsif $num_cells < $num_row_cells {
+            } 
+            elsif $num_cells < $num_row_cells {
 		++$unbalanced_row_cells;
             }
 	}
@@ -926,8 +941,8 @@ class Perl6::Pod {
 	my sub normalize_row_cells($row) {
 	    # forces a pipe separator as the row cell separator
             my $s := $row;
-	    $s := subst($s, / $col_sep_plus /, $col_sep_pipe_literal, :global);
-	    $s := trim_right($row);
+	    $s := subst($s, /\h '+' \h /, $col_sep_pipe_literal, :global);
+	    #$s := trim_right($s);
 	    return $s;
 	}
 	#===== END OF TABLE-SPECIFIC SUBROUTINES =====

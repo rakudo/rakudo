@@ -555,14 +555,17 @@ class Telemetry::Period is Telemetry {
         }))"
     }
 
+    my int $cores = Kernel.cpu-cores;
     method cpus() {
-        nqp::add_i(
-          nqp::getattr_i(self,Telemetry,'$!cpu-user'),
-          nqp::getattr_i(self,Telemetry,'$!cpu-sys')
-        ) / nqp::getattr_i(self,Telemetry,'$!wallclock')
+        (my int $wallclock = nqp::getattr_i(self,Telemetry,'$!wallclock'))
+          ?? nqp::add_i(
+               nqp::getattr_i(self,Telemetry,'$!cpu-user'),
+               nqp::getattr_i(self,Telemetry,'$!cpu-sys')
+             ) / $wallclock
+          !! $cores
     }
 
-    my $factor = 100 / Kernel.cpu-cores;
+    my $factor = 100 / $cores;
     method utilization() { $factor * self.cpus }
 }
 
@@ -811,7 +814,7 @@ my %format =
     [  " util%", { .utilization.fmt('%6.2f') },
       "Percentage of CPU utilization (0..100%)"],
   wallclock =>
-    ["wallclock", { .wallclock.fmt('%9d') },
+    ["wallclock", { hide0(.wallclock,9) },
       "Number of microseconds elapsed"],
 ;
 
@@ -832,6 +835,7 @@ multi sub report(
     my $text := nqp::list_s(qq:to/HEADER/.chomp);
 Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
 Number of Snapshots: {+@s}
+Initial Size:    { @s[0].max-rss.fmt('%9d') } Kbytes
 Total Time:      { ($total.wallclock / 1000000).fmt('%9.2f') } seconds
 Total CPU Usage: { ($total.cpu / 1000000).fmt('%9.2f') } seconds
 HEADER

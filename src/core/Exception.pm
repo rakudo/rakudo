@@ -780,9 +780,11 @@ my role X::Pod                 { }
 my class X::NYI is Exception {
     has $.feature;
     has $.did-you-mean;
+    has $.workaround;
     method message() {
         my $msg = "$.feature not yet implemented. Sorry.";
         $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
+        $msg ~= "\nWorkaround: $.workaround" if $.workaround;
         $msg
     }
 }

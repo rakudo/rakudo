@@ -1867,7 +1867,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*LABEL {
             my $label := QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') );
             $past[0].push($label);
-            $past[2].push($label);
         }
         $past[2].sunk(1);
         my $sinkee := $past[0];

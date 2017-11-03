@@ -99,9 +99,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method !read-dist($id) {
-        my $dist = Rakudo::Internals::JSON.from-json(self!dist-dir.add($id).slurp);
-        $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
-        $dist
+        my $meta = Rakudo::Internals::JSON.from-json(self!dist-dir.add($id).slurp);
+        $meta<ver> = $meta<ver> ?? Version.new( ~$meta<ver> ) !! Version.new('0');
+        $meta
     }
 
     method !repository-version(--> Int:D) {
@@ -127,8 +127,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 $file.unlink;
                 $file.mkdir;
                 for @ids -> $id {
-                    my $dist = self!read-dist($id);
-                    $file.add($id).spurt("{$dist<ver> // ''}\n{$dist<auth> // ''}\n{$dist<api> // ''}\n");
+                    my $meta = self!read-dist($id);
+                    $file.add($id).spurt("{$meta<ver> // ''}\n{$meta<auth> // ''}\n{$meta<api> // ''}\n");
                 }
             }
         }
@@ -395,9 +395,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
     }
 
-    # Allows the introspection match candidates from a specific repository (unlike resolve)
-    # as well as returning them in a Distribution instead of our internal dist-id/dist pair.
-    # Essentially the CURI recommendation manager api.
     proto method candidates(|) {*}
     multi method candidates(Str:D $name, :$auth, :$ver, :$api) {
         return samewith(CompUnit::DependencySpecification.new(
@@ -410,10 +407,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     multi method candidates(CompUnit::DependencySpecification $spec) {
         return Empty unless $spec.from eq 'Perl6';
 
+        # $lookup is a file system resource that acts as a fast meta data lookup for a given module short name.
         my $lookup = self!short-dir.add(nqp::sha1($spec.short-name));
         return Empty unless $lookup.e;
 
-        my @dists = (
+        # Each item contains a subset of meta data - notably items needed `use "Foo:ver<*>"`
+        # All items match the given module short name, but may differ in ver, auth, api, etc.
+        my @metas = (
                 self!repository-version < 1
                 ?? $lookup.lines.unique.map({
                         $_ => self!read-dist($_)
@@ -422,9 +422,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
                         $_.basename => {
                             name     => $spec.short-name,
-                            ver      => Version.new( $ver || 0 ),
                             auth     => $auth,
-                            api      => Version.new( $api || 0 ),
+                            api      => Version.new( $api || 0 ), # Create the Version objects once
+                            ver      => Version.new( $ver || 0 ), # (used to compare, and then sort)
                             source   => $source || Any,
                             checksum => $checksum || Str,
                         }
@@ -438,17 +438,24 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             ?? $spec.api-matcher
             !! Version.new($spec.api-matcher);
 
-        my $matching-dists := @dists.grep: {
+        # @metas has already been filtered by name via $lookup, so do remaining filtering on fast lookup fields
+        my $matching-metas := @metas.grep: {
             $_.value<auth> ~~ $spec.auth-matcher
             and $_.value<ver> ~~ $version-matcher
             and $_.value<api> ~~ $api-matcher
         }
 
-        my $sorted-dists := $matching-dists.sort(*.value<ver>).reverse;
+        # Sort from highest to lowest by version and api
+        my $sorted-metas := $matching-metas.sort(*.value<api>).sort(*.value<ver>).reverse;
 
-        return $sorted-dists.map(*.kv).map: -> ($dist-id, $meta) {
-            self!lazy-distribution($dist-id, :$meta)
-        }
+        # There is nothing left to do with the subset of meta data, so initialize a lazy distribution with it
+        my $distributions := $sorted-metas.map(*.kv).map: -> ($dist-id, $meta) { self!lazy-distribution($dist-id, :$meta) }
+
+        # A different policy might wish to implement additional/alternative filtering or sorting at this point,
+        # with the caveat that calling a non-lazy field will require parsing json for each matching distribution.
+        # my $policy-okd-dists := $distributions.grep({ .meta<license> eq 'Artistic-2.0' }).sort(-*.meta<production>)`
+
+        return $distributions;
     }
 
     # An equivalent of self.candidates($spec).head that caches the best match
@@ -462,10 +469,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         Nil
     }
 
-    # Allows a distribution to re-populate its meta data
-    # if a $key that doesn't exist is used. This is so we
-    # can supply *some* meta data on creation, and only
-    # obtaining the rest as a last resort (via IO).
+    # A distribution that provides a subset of its meta data without parsing the full original
+    # original json version, while lazily parsing once fields outside of that subset are used.
     my role LazyMetaReader {
         has $.meta-reader;
         method AT-KEY($key)     { $!meta-reader($key) }
@@ -480,21 +485,32 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         has $.read-dist;
         has $!installed-dist;
         has $.meta;
+
+        # Parses dist info from json and populates $.meta with any new fields
         method !dist {
             unless $!installed-dist.defined {
-                $!installed-dist = InstalledDistribution.new($.read-dist()(), :$.prefix);
+                $!installed-dist = InstalledDistribution.new($.read-dist()($!dist-id), :$.prefix);
+
+                # Keep fields of the meta data subset that do not exist in the full meta data
+                # (source, default values for versions, etc)
                 my %hash = $!installed-dist.meta.hash;
                 %hash{$_} //= $!meta{$_} for $!meta.hash.keys;
                 $!meta = %hash;
             }
             $!installed-dist;
         }
+
         method meta(--> Hash:D) {
             my %hash = $!meta.hash;
             unless $!installed-dist.defined {
+                # Allow certain meta fields to be read without a full parsing, and fallback
+                # to calling self!dist to populate the entire meta data from json.
                 %hash does LazyMetaReader({ $!meta.hash{$^a} // self!dist.meta.{$^a} });
+
+                # Allows absolutifying paths in .meta<files source> to keep .files() happy
                 %hash does MetaAssigner({ $!meta.ASSIGN-KEY($^a, $^b) });
             }
+
             return %hash;
         }
         method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
@@ -505,7 +521,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method !lazy-distribution($dist-id, :$meta) {
         LazyDistribution.new(
             :$dist-id,
-            :read-dist(-> { self!read-dist($dist-id) }),
+            :read-dist(-> $_ { self!read-dist($_) }),
             :$meta,
             :$.prefix,
         )
@@ -586,9 +602,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method resource($dist-id, $key) {
-        my $dist = %!dist-metas{$dist-id} //= Rakudo::Internals::JSON.from-json(self!dist-dir.add($dist-id).slurp);
+        my $meta = %!dist-metas{$dist-id} //= Rakudo::Internals::JSON.from-json(self!dist-dir.add($dist-id).slurp);
         # need to strip the leading resources/ on old repositories
-        self!resources-dir.add($dist<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
+        self!resources-dir.add($meta<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
     }
 
     method id() {

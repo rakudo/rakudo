@@ -605,7 +605,7 @@ multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 # Telemetry reporting features -------------------------------------------------
 proto sub report(|) is export {*}
-multi sub report(:@columns, :$legend, :$header-repeat = 32) {
+multi sub report(:@columns, :$legend, :$header-repeat = 32, :@format) {
     my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
     nqp::setelems(nqp::getattr(@snaps,List,'$!reified'),0);
     nqp::push($s,Telemetry.new) if nqp::elems($s) == 1;
@@ -614,116 +614,143 @@ multi sub report(:@columns, :$legend, :$header-repeat = 32) {
       :@columns,
       :$legend,
       :$header-repeat,
+      :@format,
     );
 }
 
-# Convert to spaces if numeric value is 0
-sub hide0(\value, int $size = 3) {
-    value ?? value.fmt("%{$size}d") !! nqp::x(" ",$size)
+# some constants for the %format list
+constant COLUMN  = 0; # short name
+constant METHOD  = 1; # method name
+constant FORMAT  = 2; # format (without % prefixed)
+constant LEGEND  = 3; # legend
+constant HEADER  = 4; # generated: column header
+constant FOOTER  = 5; # generated: column footer
+constant DISPLAY = 6; # generated: code to execute to display
+
+sub prepare-format(@raw) is raw {
+    my %format;
+ 
+    for @raw -> @info is copy {
+        my str $column = @info[COLUMN];
+        my str $method = @info[METHOD];
+        my str $format = @info[FORMAT];
+        my int $width  = $format; # natives have p5 semantics
+        my str $empty  = nqp::x(" ",$width);
+
+        @info[HEADER]  = $column.fmt("%{$width}s");
+        @info[FOOTER]  = nqp::x("-",$width);
+        @info[DISPLAY] = -> \value{ value ?? value.fmt("%$format") !! $empty }
+
+        %format{$column} = @info;
+        %format{$method} = @info if $method ne $column;
+    }
+
+    %format
 }
+
+# Set after first run.  Unfortunately, cannot do this at compile time as
+# apparently we have a bug serializing code blocks living inside data
+# structures such as this one.
+my %default_format;
 
 # Set up how to handle report generation (in alphabetical order)
-my %format =
-  affinity-tasks-completed =>
-    [ "     atc", { hide0(.affinity-tasks-completed,8) },
-      "The number of tasks completed in affinity threads"],
-  affinity-tasks-queued =>
-    [ "atq", { hide0(.affinity-tasks-queued) },
-      "The number of tasks queued for execution in affinity threads"],
-  affinity-workers =>
-    [     " aw", { hide0(.affinity-workers) },
-      "The number of affinity threads"],
-  cpu =>
-    ["     cpu", { .cpu.fmt('%8d') },
-      "The amount of CPU used (in microseconds)"],
-  cpu-user =>
-    ["cpu-user", { .cpu.fmt('%8d') },
-      "The amount of CPU used in user code (in microseconds)"],
-  cpu-sys =>
-    [" cpu-sys", { .cpu.fmt('%8d') },
-      "The amount of CPU used in system overhead (in microseconds)"],
-  general-workers =>
-    [     " gw", { hide0(.general-workers) },
-      "The number of general worker threads"],
-  general-tasks-queued =>
-    [     "gtq", { hide0(.general-tasks-queued) },
-      "The number of tasks queued for execution in general worker threads"],
-  general-tasks-completed =>
-    [ "     gtc", { hide0(.general-tasks-completed,8) },
-      "The number of tasks completed in general worker threads"],
-  id-rss =>
-    ["  id-rss", { hide0(.id-rss,8) },
-      "Integral unshared data size (in Kbytes)"],
-  inblock =>
-    ["inb", { hide0(.inblock) },
-      "Number of block input operations"],
-  invcsw =>
-    ["     ics", { hide0(.invcsw,8) },
-      "Number of involuntary context switches"],
-  is-rss =>
-    ["  is-rss", { hide0(.id-rss,8) },
-      "Integral unshared stack size (in Kbytes)"],
-  ix-rss =>
-    ["  ix-rss", { hide0(.ix-rss,8) },
-      "Integral shared text memory size (in Kbytes)"],
-  maj-flt =>
-    ["aft", { hide0(.maj-flt,3) },
-      "Number of page reclaims (ru_majflt)"],
-  max-rss =>
-    [" max-rss", { hide0(.max-rss,8) },
-      "Maximum resident set size (in Kbytes)"],
-  min-flt =>
-    ["ift", { hide0(.min-flt) },
-      "Number of page reclaims (ru_minflt)"],
-  msgrcv =>
-    ["mrc", { hide0(.msgrcv) },
-      "Number of messages received"],
-  msgsnd =>
-    ["msd", { hide0(.msgsnd) },
-      "Number of messages sent"],
-  nsignals =>
-    ["ngs", { hide0(.nsignals) },
-      "Number of signals received"],
-  nswap =>
-    ["nsw", { hide0(.nswap) },
-      "Number of swaps"],
-  nvcsw =>
-    [" vcs", { hide0(.nvcsw,4) },
-      "Number of voluntary context switches"],
-  outblock =>
-    ["oub", { hide0(.outblock) },
-      "Number of block output operations"],
-  supervisor =>
-    [       "s", { hide0(.supervisor,1) },
-      "The number of supervisors"],
-  timer-workers =>
-    [     " tw", { hide0(.timer-workers) },
-      "The number of timer threads"],
-  timer-tasks-queued =>
-    [     "ttq", { hide0(.timer-tasks-queued) },
-      "The number of tasks queued for execution in timer threads"],
-  timer-tasks-completed =>
-    [ "     ttc", { hide0(.timer-tasks-completed,8) },
-      "The number of tasks completed in timer threads"],
-  utilization =>
-    [  " util%", { .utilization.fmt('%6.2f') },
-      "Percentage of CPU utilization (0..100%)"],
-  wallclock =>
-    ["wallclock", { hide0(.wallclock,9) },
-      "Number of microseconds elapsed"],
+constant @default_format =
+  <<
+          atc affinity-tasks-completed 8d
+    "The number of tasks completed in affinity threads"
+  >>,<<
+          atq affinity-tasks-queued    3d
+    "The number of tasks queued for execution in affinity threads"
+  >>,<<
+           aw affinity-workers         3d
+     "The number of affinity threads"
+  >>,<<
+          cpu cpu                      8d
+    "The amount of CPU used (in microseconds)"
+  >>,<<
+     cpu-user cpu-user                 8d
+    "The amount of CPU used in user code (in microseconds)"
+  >>,<<
+      cpu-sys cpu-sys                  8d
+    "The amount of CPU used in system overhead (in microseconds)"
+  >>,<<
+           gw general-workers          3d
+    "The number of general worker threads"
+  >>,<<
+          gtq general-tasks-queued     3d
+    "The number of tasks queued for execution in general worker threads"
+  >>,<<
+          gtc general-tasks-completed  8d
+    "The number of tasks completed in general worker threads"
+  >>,<<
+       id-rss id-rss                   8d
+    "Integral unshared data size (in Kbytes)"
+  >>,<<
+          inb inblock                  3d
+    "Number of block input operations"
+  >>,<<
+       invcsw invcsw                   8d
+    "Number of involuntary context switches"
+  >>,<<
+       is-rss is-rss                   8d
+    "Integral unshared stack size (in Kbytes)"
+  >>,<<
+       ix-rss ix-rss                   8d
+    "Integral shared text memory size (in Kbytes)"
+  >>,<<
+          aft maj-flt                  3d
+    "Number of page reclaims (ru_majflt)"
+  >>,<<
+      max-rss max-rss                  8d
+    "Maximum resident set size (in Kbytes)"
+  >>,<<
+          ift min-flt                  3d
+    "Number of page reclaims (ru_minflt)"
+  >>,<<
+          mrc msgrcv                   3d
+    "Number of messages received"
+  >>,<<
+          msd msgsnd                   3d
+    "Number of messages sent"
+  >>,<<
+          ngs nsignals                 3d
+    "Number of signals received"
+  >>,<<
+          nsw nswap                    3d
+    "Number of swaps"
+  >>,<<
+          vcs nvcsw                    4d
+    "Number of voluntary context switches"
+  >>,<<
+          oub outblock                 3d
+    "Number of block output operations"
+  >>,<<
+            s supervisor               1d
+    "The number of supervisors"
+  >>,<<
+           tw timer-workers            3d
+    "The number of timer threads"
+  >>,<<
+          ttq timer-tasks-queued       3d
+    "The number of tasks queued for execution in timer threads"
+  >>,<<
+          ttc timer-tasks-completed    8d
+    "The number of tasks completed in timer threads"
+  >>,<<
+        util% utilization              6.2f
+    "Percentage of CPU utilization (0..100%)"
+  >>,<<
+    wallclock wallclock                9d
+    "Number of microseconds elapsed"
+  >>
 ;
-
-# Set footer and make sure we can also use the header key as an indicator
-for %format.values -> \v {
-    v[3] = '-' x v[0].chars;
-    %format{v[0].trim} = v;
-}
 
 multi sub report(
   @s,
   :@columns is copy,
   :$legend,
   :$header-repeat = 32,
+  :@format,
 ) {
 
     unless @columns {
@@ -735,21 +762,33 @@ multi sub report(
         }
     }
 
+    # get / calculate the format info we need
+    my %format := %default_format
+      ?? %default_format
+      !! @format
+        ?? prepare-format(@format)
+        !! (%default_format := prepare-format(@default_format));
+
     my $total = @s[*-1] - @s[0];
     my $text := nqp::list_s(qq:to/HEADER/.chomp);
 Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
 Number of Snapshots: {+@s}
 Initial Size:    { @s[0].max-rss.fmt('%9d') } Kbytes
-Total Time:      { ($total.wallclock / 1000000).fmt('%9.2f') } seconds
-Total CPU Usage: { ($total.cpu / 1000000).fmt('%9.2f') } seconds
+Total Time:      { (%format<wallclock>[DISPLAY]($total.wallclock)) } seconds
+Total CPU Usage: { (%format<cpu>[DISPLAY]($total.cpu)) } seconds
 HEADER
 
-    sub push-period($period) {
+
+    my @formats = %format{@columns};
+    sub push-period($period --> Nil) {
         nqp::push_s($text,
-          %format{@columns}>>.[1]>>.($period).join(' ').trim-trailing);
+          @formats.map( -> @info {
+              @info[DISPLAY]($period."@info[METHOD]"())
+          }).join(' ').trim-trailing
+        )
     }
 
-    my $header = "\n%format{@columns}>>.[0].join(' ')";
+    my $header = "\n%format{@columns}>>.[HEADER].join(' ')";
     nqp::push_s($text,$header) unless $header-repeat;
 
     for periods(@s).kv -> $index, $period {
@@ -758,7 +797,7 @@ HEADER
         push-period($period)
     }
 
-    nqp::push_s($text,%format{@columns}>>.[3].join(' '));
+    nqp::push_s($text,%format{@columns}>>.[FOOTER].join(' '));
 
     push-period($total);
 
@@ -766,7 +805,7 @@ HEADER
         nqp::push_s($text,'');
         nqp::push_s($text,'Legend:');
         for %format{@columns} -> $col {
-            nqp::push_s($text," $col[0].trim-leading.fmt('%9s')  $col[2]");
+            nqp::push_s($text,"$col[COLUMN].fmt("%9s")  $col[LEGEND]");
         }
     }
 

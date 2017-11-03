@@ -21,6 +21,7 @@ constant MSGRCV     = 14;
 constant NSIGNALS   = 15;
 constant NVCSW      = 16;
 constant INVCSW     = 17;
+constant RUSAGE_ELEMS = 18;
 
 # Helper stuff -----------------------------------------------------------------
 my num $start = Rakudo::Internals.INITTIME;
@@ -62,6 +63,20 @@ sub queued(\workers) is raw {
     );
     $queued
 }
+
+# usable names of attributes that are part of getrusage struct
+constant @rusage_names = << "" "" "" "" # first 4 are special
+  max-rss ix-rss   id-rss is-rss min-flt  maj-flt nswap
+  inblock outblock msgsnd msgrcv nsignals nvcsw   invcsw
+>>;
+
+# names of attributes that are native integers
+constant @scheduler_names = <
+  $!supervisor
+  $!general-workers  $!general-tasks-queued  $!general-tasks-completed
+  $!timer-workers    $!timer-tasks-queued    $!timer-tasks-completed
+  $!affinity-workers $!affinity-tasks-queued $!affinity-tasks-completed
+>;
 
 # Subroutines that are exported with :COLUMNS ----------------------------------
 sub cpu() is raw is export(:COLUMNS) {
@@ -231,23 +246,8 @@ sub affinity-tasks-completed() is raw is export(:COLUMNS) {
 
 # Telemetry --------------------------------------------------------------------
 class Telemetry {
-    has int $!cpu-user;
-    has int $!cpu-sys;
-    has int $!max-rss;
-    has int $!ix-rss;
-    has int $!id-rss;
-    has int $!is-rss;
-    has int $!min-flt;
-    has int $!maj-flt;
-    has int $!nswap;
-    has int $!inblock;
-    has int $!outblock;
-    has int $!msgsnd;
-    has int $!msgrcv;
-    has int $!nsignals;
-    has int $!nvcsw;
-    has int $!invcsw;
-    has int $!wallclock;
+    has Mu $!rusage;
+    has num $!wallclock;
     has int $!supervisor;
     has int $!general-workers;
     has int $!general-tasks-queued;
@@ -260,28 +260,8 @@ class Telemetry {
     has int $!affinity-tasks-completed;
 
     submethod BUILD() {
-        my \rusage = nqp::getrusage;
-        $!cpu-user = nqp::atpos_i(rusage,UTIME_SEC) * 1000000
-          + nqp::atpos_i(rusage,UTIME_MSEC);
-        $!cpu-sys  = nqp::atpos_i(rusage,STIME_SEC) * 1000000
-          + nqp::atpos_i(rusage,STIME_MSEC);
-        $!max-rss  = nqp::bitshiftr_i(nqp::atpos_i(rusage,MAX_RSS),$b2kb);
-        $!ix-rss   = nqp::bitshiftr_i(nqp::atpos_i(rusage,IX_RSS),$b2kb);
-        $!id-rss   = nqp::bitshiftr_i(nqp::atpos_i(rusage,ID_RSS),$b2kb);
-        $!is-rss   = nqp::bitshiftr_i(nqp::atpos_i(rusage,IS_RSS),$b2kb);
-        $!min-flt  = nqp::atpos_i(rusage,MIN_FLT);
-        $!maj-flt  = nqp::atpos_i(rusage,MAJ_FLT);
-        $!nswap    = nqp::atpos_i(rusage,NSWAP);
-        $!inblock  = nqp::atpos_i(rusage,INBLOCK);
-        $!outblock = nqp::atpos_i(rusage,OUTBLOCK);
-        $!msgsnd   = nqp::atpos_i(rusage,MSGSND);
-        $!msgrcv   = nqp::atpos_i(rusage,MSGRCV);
-        $!nsignals = nqp::atpos_i(rusage,NSIGNALS);
-        $!nvcsw    = nqp::atpos_i(rusage,NVCSW);
-        $!invcsw   = nqp::atpos_i(rusage,INVCSW);
-
-        $!wallclock =
-          nqp::fromnum_I(1000000 * nqp::sub_n(nqp::time_n,$start),Int);
+        $!rusage   := nqp::getrusage;
+        $!wallclock = nqp::time_n;
 
         my $scheduler := nqp::decont($*SCHEDULER);
         $!supervisor = 1
@@ -332,58 +312,85 @@ class Telemetry {
     }
 
     multi method cpu(Telemetry:U:) is raw { cpu }
-    multi method cpu(Telemetry:D:) is raw { nqp::add_i($!cpu-user,$!cpu-sys) }
+    multi method cpu(Telemetry:D:) is raw {
+        nqp::atpos_i($!rusage,UTIME_SEC) * 1000000
+          + nqp::atpos_i($!rusage,UTIME_MSEC)
+          + nqp::atpos_i($!rusage,STIME_SEC) * 1000000
+          + nqp::atpos_i($!rusage,STIME_MSEC)
+    }
 
-    multi method cpu-user(Telemetry:U:) is raw {   cpu-user }
-    multi method cpu-user(Telemetry:D:) is raw { $!cpu-user }
+    multi method cpu-user(Telemetry:U:) is raw { cpu-user }
+    multi method cpu-user(Telemetry:D:) is raw {
+        nqp::atpos_i($!rusage,UTIME_SEC) * 1000000
+          + nqp::atpos_i($!rusage,UTIME_MSEC)
+    }
 
-    multi method cpu-sys(Telemetry:U:) is raw {   cpu-sys }
-    multi method cpu-sys(Telemetry:D:) is raw { $!cpu-sys }
+    multi method cpu-sys(Telemetry:U:) is raw { cpu-sys }
+    multi method cpu-sys(Telemetry:D:) is raw {
+        nqp::atpos_i($!rusage,STIME_SEC) * 1000000
+          + nqp::atpos_i($!rusage,STIME_MSEC)
+    }
 
-    multi method max-rss(Telemetry:U:) is raw {   max-rss }
-    multi method max-rss(Telemetry:D:) is raw { $!max-rss }
+    multi method max-rss(Telemetry:U:) is raw { max-rss }
+    multi method max-rss(Telemetry:D:) is raw {
+        nqp::bitshiftr_i(nqp::atpos_i($!rusage,MAX_RSS),$b2kb)
+    }
 
-    multi method ix-rss(Telemetry:U:) is raw {   ix-rss }
-    multi method ix-rss(Telemetry:D:) is raw { $!ix-rss }
+    multi method ix-rss(Telemetry:U:) is raw { ix-rss }
+    multi method ix-rss(Telemetry:D:) is raw {
+        nqp::bitshiftr_i(nqp::atpos_i($!rusage,IX_RSS),$b2kb)
+    }
 
     multi method id-rss(Telemetry:U:) is raw {   id-rss }
-    multi method id-rss(Telemetry:D:) is raw { $!id-rss }
+    multi method id-rss(Telemetry:D:) is raw {
+        nqp::bitshiftr_i(nqp::atpos_i($!rusage,ID_RSS),$b2kb)
+    }
 
-    multi method is-rss(Telemetry:U:) is raw {   is-rss }
-    multi method is-rss(Telemetry:D:) is raw { $!is-rss }
+    multi method is-rss(Telemetry:U:) is raw { is-rss }
+    multi method is-rss(Telemetry:D:) is raw {
+        nqp::bitshiftr_i(nqp::atpos_i($!rusage,IS_RSS),$b2kb)
+    }
 
-    multi method min-flt(Telemetry:U:) is raw {   min-flt }
-    multi method min-flt(Telemetry:D:) is raw { $!min-flt }
+    multi method min-flt(Telemetry:U:) is raw { min-flt }
+    multi method min-flt(Telemetry:D:) is raw { nqp::atpos_i($!rusage,MIN_FLT) }
 
-    multi method maj-flt(Telemetry:U:) is raw {   maj-flt }
-    multi method maj-flt(Telemetry:D:) is raw { $!maj-flt }
+    multi method maj-flt(Telemetry:U:) is raw { maj-flt }
+    multi method maj-flt(Telemetry:D:) is raw { nqp::atpos_i($!rusage,MAJ_FLT) }
 
-    multi method nswap(Telemetry:U:) is raw {   nswap }
-    multi method nswap(Telemetry:D:) is raw { $!nswap }
+    multi method nswap(Telemetry:U:) is raw { nswap }
+    multi method nswap(Telemetry:D:) is raw { nqp::atpos_i($!rusage,NSWAP) }
 
-    multi method inblock(Telemetry:U:) is raw {   inblock }
-    multi method inblock(Telemetry:D:) is raw { $!inblock }
+    multi method inblock(Telemetry:U:) is raw { inblock }
+    multi method inblock(Telemetry:D:) is raw {
+        nqp::atpos_i($!rusage,INBLOCK)
+    }
 
-    multi method outblock(Telemetry:U:) is raw {   outblock }
-    multi method outblock(Telemetry:D:) is raw { $!outblock }
+    multi method outblock(Telemetry:U:) is raw { outblock }
+    multi method outblock(Telemetry:D:) is raw {
+        nqp::atpos_i($!rusage,OUTBLOCK)
+    }
 
-    multi method msgsnd(Telemetry:U:) is raw {   msgsnd }
-    multi method msgsnd(Telemetry:D:) is raw { $!msgsnd }
+    multi method msgsnd(Telemetry:U:) is raw { msgsnd }
+    multi method msgsnd(Telemetry:D:) is raw { nqp::atpos_i($!rusage,MSGSND) }
 
-    multi method msgrcv(Telemetry:U:) is raw {   msgrcv }
-    multi method msgrcv(Telemetry:D:) is raw { $!msgrcv }
+    multi method msgrcv(Telemetry:U:) is raw { msgrcv }
+    multi method msgrcv(Telemetry:D:) is raw { nqp::atpos_i($!rusage,MSGRCV) }
 
-    multi method nsignals(Telemetry:U:) is raw {   nsignals }
-    multi method nsignals(Telemetry:D:) is raw { $!nsignals }
+    multi method nsignals(Telemetry:U:) is raw { nsignals }
+    multi method nsignals(Telemetry:D:) is raw {
+        nqp::atpos_i($!rusage,NSIGNALS)
+    }
 
-    multi method nvcsw(Telemetry:U:) is raw {   nvcsw }
-    multi method nvcsw(Telemetry:D:) is raw { $!nvcsw }
+    multi method nvcsw(Telemetry:U:) is raw { nvcsw }
+    multi method nvcsw(Telemetry:D:) is raw { nqp::atpos_i($!rusage,NVCSW) }
 
-    multi method invcsw(Telemetry:U:) is raw {   invcsw }
-    multi method invcsw(Telemetry:D:) is raw { $!invcsw }
+    multi method invcsw(Telemetry:U:) is raw { invcsw }
+    multi method invcsw(Telemetry:D:) is raw { nqp::atpos_i($!rusage,INVCSW) }
 
-    multi method wallclock(Telemetry:U:) is raw {   wallclock }
-    multi method wallclock(Telemetry:D:) is raw { $!wallclock }
+    multi method wallclock(Telemetry:U:) is raw { wallclock }
+    multi method wallclock(Telemetry:D:) is raw {
+        nqp::fromnum_I(1000000 * nqp::sub_n($!wallclock,$start),Int)
+    }
 
     multi method supervisor(Telemetry:U:) is raw {   supervisor }
     multi method supervisor(Telemetry:D:) is raw { $!supervisor }
@@ -440,10 +447,10 @@ class Telemetry {
     }
 
     multi method Str(Telemetry:D:) {
-        "$.cpu / $!wallclock"
+        "$.cpu / $.wallclock"
     }
     multi method gist(Telemetry:D:) {
-        "$.cpu / $!wallclock"
+        "$.cpu / $.wallclock"
     }
 
     multi method AT-KEY(Telemetry:D: $key) { self."$key"() }
@@ -471,182 +478,51 @@ class Telemetry::Period is Telemetry {
       int :$nvcsw,
       int :$invcsw,
       int :$wallclock,
-      int :$supervisor,
-      int :$general-workers,
-      int :$general-tasks-queued,
-      int :$general-tasks-completed,
-      int :$timer-workers,
-      int :$timer-tasks-queued,
-      int :$timer-tasks-completed,
-      int :$affinity-workers,
-      int :$affinity-tasks-queued,
-      int :$affinity-tasks-completed,
+      # non-special handling of other native integer nameds caught in %_
     ) {
-        self.new(
-          $cpu-user, $cpu-sys,
-          $max-rss, $ix-rss, $id-rss, $is-rss, $min-flt, $maj-flt, $nswap,
-          $inblock, $outblock, $msgsnd, $msgrcv, $nsignals, $nvcsw, $invcsw,
-          $wallclock, $supervisor,
-          $general-workers, $general-tasks-queued, $general-tasks-completed,
-          $timer-workers, $timer-tasks-queued, $timer-tasks-completed,
-          $affinity-workers, $affinity-tasks-queued, $affinity-tasks-completed,
-        )
-    }
+        my $period := nqp::create(self);
 
-    # The internal .new with faster positional parameter interface
-    multi method new(Telemetry::Period:
-      int $cpu-user,
-      int $cpu-sys,
-      int $max-rss,
-      int $ix-rss,
-      int $id-rss,
-      int $is-rss,
-      int $min-flt,
-      int $maj-flt,
-      int $nswap,
-      int $inblock,
-      int $outblock,
-      int $msgsnd,
-      int $msgrcv,
-      int $nsignals,
-      int $nvcsw,
-      int $invcsw,
-      int $wallclock,
-      int $supervisor,
-      int $general-workers,
-      int $general-tasks-queued,
-      int $general-tasks-completed,
-      int $timer-workers,
-      int $timer-tasks-queued,
-      int $timer-tasks-completed,
-      int $affinity-workers,
-      int $affinity-tasks-queued,
-      int $affinity-tasks-completed,
-    ) {
-        my $period := nqp::create(Telemetry::Period);
-        nqp::bindattr_i($period,Telemetry,
-          '$!cpu-user',                $cpu-user);
-        nqp::bindattr_i($period,Telemetry,
-          '$!cpu-sys',                 $cpu-sys);
-        nqp::bindattr_i($period,Telemetry,
-          '$!max-rss',                 $max-rss);
-        nqp::bindattr_i($period,Telemetry,
-          '$!ix-rss',                  $ix-rss);
-        nqp::bindattr_i($period,Telemetry,
-          '$!id-rss',                  $id-rss);
-        nqp::bindattr_i($period,Telemetry,
-          '$!is-rss',                  $is-rss);
-        nqp::bindattr_i($period,Telemetry,
-          '$!min-flt',                 $min-flt);
-        nqp::bindattr_i($period,Telemetry,
-          '$!maj-flt',                 $maj-flt);
-        nqp::bindattr_i($period,Telemetry,
-          '$!nswap',                   $nswap);
-        nqp::bindattr_i($period,Telemetry,
-          '$!inblock',                 $inblock);
-        nqp::bindattr_i($period,Telemetry,
-          '$!outblock',                $outblock);
-        nqp::bindattr_i($period,Telemetry,
-          '$!msgsnd',                  $msgsnd);
-        nqp::bindattr_i($period,Telemetry,
-          '$!msgrcv',                  $msgrcv);
-        nqp::bindattr_i($period,Telemetry,
-          '$!nsignals',                $nsignals);
-        nqp::bindattr_i($period,Telemetry,
-          '$!nvcsw',                   $nvcsw);
-        nqp::bindattr_i($period,Telemetry,
-          '$!invcsw',                  $invcsw);
-        nqp::bindattr_i($period,Telemetry,
-          '$!wallclock',               $wallclock);
-        nqp::bindattr_i($period,Telemetry,
-          '$!supervisor',              $supervisor);
-        nqp::bindattr_i($period,Telemetry,
-          '$!general-workers',         $general-workers);
-        nqp::bindattr_i($period,Telemetry,
-          '$!general-tasks-queued',    $general-tasks-queued);
-        nqp::bindattr_i($period,Telemetry,
-          '$!general-tasks-completed', $general-tasks-completed);
-        nqp::bindattr_i($period,Telemetry,
-          '$!timer-workers',           $timer-workers);
-        nqp::bindattr_i($period,Telemetry,
-          '$!timer-tasks-queued',      $timer-tasks-queued);
-        nqp::bindattr_i($period,Telemetry,
-          '$!timer-tasks-completed',   $timer-tasks-completed);
-        nqp::bindattr_i($period,Telemetry,
-          '$!affinity-workers',        $affinity-workers);
-        nqp::bindattr_i($period,Telemetry,
-          '$!affinity-tasks-queued',$affinity-tasks-queued);
-        nqp::bindattr_i($period,Telemetry,
-          '$!affinity-tasks-completed',$affinity-tasks-completed);
+        # set all fields in the rusage struct
+        my \rusage = nqp::getrusage; # make sure we get the same thing
+        nqp::bindpos_i(rusage, UTIME_SEC,$cpu-user div 1000000);
+        nqp::bindpos_i(rusage,UTIME_MSEC,$cpu-user  %  1000000);
+        nqp::bindpos_i(rusage, STIME_SEC,$cpu-sys div 1000000);
+        nqp::bindpos_i(rusage,STIME_MSEC,$cpu-sys  %  1000000);
+        for @rusage_names.kv -> int $i, $name {
+            nqp::bindpos_i($period,$i,%_{$name.substr(2)})
+              if $name && %_.EXISTS-KEY($name.substr(2))
+        }
+
+        # create object with special cases
+        nqp::bindattr($period,Telemetry,'$!rusage',rusage);
+        nqp::bindattr_n($period,Telemetry,'$!wallclock',
+          nqp::add_n($start,$wallclock / 1000000)
+        );
+
+        # diff all attribute_i attributes
+        nqp::bindattr_i($period,Telemetry,$_,%_{.substr(2)})
+          if %_{.substr(2)}:exists for @scheduler_names;
+
         $period
     }
 
     # For roundtripping
     multi method perl(Telemetry::Period:D:) {
-        "Telemetry::Period.new(:cpu-user({
-          nqp::getattr_i(self,Telemetry,'$!cpu-user')
-        }), :cpu-sys({
-          nqp::getattr_i(self,Telemetry,'$!cpu-sys')
-        }), :max-rss({
-          nqp::getattr_i(self,Telemetry,'$!max-rss')
-        }), :ix-rss({
-          nqp::getattr_i(self,Telemetry,'$!ix-rss')
-        }), :id-rss({
-          nqp::getattr_i(self,Telemetry,'$!id-rss')
-        }), :is-rss({
-          nqp::getattr_i(self,Telemetry,'$!is-rss')
-        }), :min-flt({
-          nqp::getattr_i(self,Telemetry,'$!min-flt')
-        }), :maj-flt({
-          nqp::getattr_i(self,Telemetry,'$!maj-flt')
-        }), :nswap({
-          nqp::getattr_i(self,Telemetry,'$!nswap')
-        }), :inblock({
-          nqp::getattr_i(self,Telemetry,'$!inblock')
-        }), :outblock({
-          nqp::getattr_i(self,Telemetry,'$!outblock')
-        }), :msgsnd({
-          nqp::getattr_i(self,Telemetry,'$!msgsnd')
-        }), :msgrcv({
-          nqp::getattr_i(self,Telemetry,'$!msgrcv')
-        }), :nsignals({
-          nqp::getattr_i(self,Telemetry,'$!nsignals')
-        }), :nvcsw({
-          nqp::getattr_i(self,Telemetry,'$!nvcsw')
-        }), :invcsw({
-          nqp::getattr_i(self,Telemetry,'$!invcsw')
-        }), :wallclock({
-          nqp::getattr_i(self,Telemetry,'$!wallclock')
-        }), :supervisor({
-          nqp::getattr_i(self,Telemetry,'$!supervisor')
-        }), :general-workers({
-          nqp::getattr_i(self,Telemetry,'$!general-workers')
-        }), :general-tasks-queued({
-          nqp::getattr_i(self,Telemetry,'$!general-tasks-queued')
-        }), :general-tasks-completed({
-          nqp::getattr_i(self,Telemetry,'$!general-tasks-completed')
-        }), :timer-workers({
-          nqp::getattr_i(self,Telemetry,'$!timer-workers')
-        }), :timer-tasks-queued({
-          nqp::getattr_i(self,Telemetry,'$!timer-tasks-queued')
-        }), :timer-tasks-completed({
-          nqp::getattr_i(self,Telemetry,'$!timer-tasks-completed')
-        }), :affinity-workers({
-          nqp::getattr_i(self,Telemetry,'$!affinity-workers')
-        }), :affinity-tasks-queued({
-          nqp::getattr_i(self,Telemetry,'$!affinity-tasks-queued')
-        }), :affinity-tasks-completed({
-          nqp::getattr_i(self,Telemetry,'$!affinity-tasks-completed')
-        }))"
+        my \rusage := nqp::getattr(self,Telemetry,'$!rusage');
+
+        "Telemetry::Period.new(:cpu-user($.cpu-user),:cpu-sys($.cpu-sys),"
+          ~ @rusage_names.kv.map( -> int $i, $name {
+              ":$name\({nqp::atpos_i(rusage,$i)})" if $name
+            }).join(",")
+          ~ @scheduler_names.map({
+              ":$_.substr(2)\({nqp::getattr_i(self,Telemetry,$_)})"
+            }).join(",")
     }
 
     my int $cores = Kernel.cpu-cores;
     method cpus() {
-        (my int $wallclock = nqp::getattr_i(self,Telemetry,'$!wallclock'))
-          ?? nqp::add_i(
-               nqp::getattr_i(self,Telemetry,'$!cpu-user'),
-               nqp::getattr_i(self,Telemetry,'$!cpu-sys')
-             ) / $wallclock
+        (my int $wallclock = self.wallclock)
+          ?? self.cpu / $wallclock
           !! $cores
     }
 
@@ -663,124 +539,43 @@ multi sub infix:<->(Telemetry:U \a, Telemetry:D \b) is export { a.new - b }
 multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
     my $a := nqp::decont(a);
     my $b := nqp::decont(b);
-
-    Telemetry::Period.new(
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!cpu-user'),
-        nqp::getattr_i($b,Telemetry,'$!cpu-user')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!cpu-sys'),
-        nqp::getattr_i($b,Telemetry,'$!cpu-sys')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!max-rss'),
-        nqp::getattr_i($b,Telemetry,'$!max-rss')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!ix-rss'),
-        nqp::getattr_i($b,Telemetry,'$!ix-rss')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!id-rss'),
-        nqp::getattr_i($b,Telemetry,'$!id-rss')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!is-rss'),
-        nqp::getattr_i($b,Telemetry,'$!is-rss')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!min-flt'),
-        nqp::getattr_i($b,Telemetry,'$!min-flt')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!maj-flt'),
-        nqp::getattr_i($b,Telemetry,'$!maj-flt')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!nswap'),
-        nqp::getattr_i($b,Telemetry,'$!nswap')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!inblock'),
-        nqp::getattr_i($b,Telemetry,'$!inblock')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!outblock'),
-        nqp::getattr_i($b,Telemetry,'$!outblock')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!msgsnd'),
-        nqp::getattr_i($b,Telemetry,'$!msgsnd')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!msgrcv'),
-        nqp::getattr_i($b,Telemetry,'$!msgrcv')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!nsignals'),
-        nqp::getattr_i($b,Telemetry,'$!nsignals')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!nvcsw'),
-        nqp::getattr_i($b,Telemetry,'$!nvcsw')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!invcsw'),
-        nqp::getattr_i($b,Telemetry,'$!invcsw')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!wallclock'),
-        nqp::getattr_i($b,Telemetry,'$!wallclock')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!supervisor'),
-        nqp::getattr_i($b,Telemetry,'$!supervisor')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!general-workers'),
-        nqp::getattr_i($b,Telemetry,'$!general-workers')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!general-tasks-queued'),
-        nqp::getattr_i($b,Telemetry,'$!general-tasks-queued')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!general-tasks-completed'),
-        nqp::getattr_i($b,Telemetry,'$!general-tasks-completed')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!timer-workers'),
-        nqp::getattr_i($b,Telemetry,'$!timer-workers')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!timer-tasks-queued'),
-        nqp::getattr_i($b,Telemetry,'$!timer-tasks-queued')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!timer-tasks-completed'),
-        nqp::getattr_i($b,Telemetry,'$!timer-tasks-completed')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!affinity-workers'),
-        nqp::getattr_i($b,Telemetry,'$!affinity-workers')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!affinity-tasks-queued'),
-        nqp::getattr_i($b,Telemetry,'$!affinity-tasks-queued')
-      ),
-      nqp::sub_i(
-        nqp::getattr_i($a,Telemetry,'$!affinity-tasks-completed'),
-        nqp::getattr_i($b,Telemetry,'$!affinity-tasks-completed')
+    
+    # create diff of rusage structs
+    my Mu \rusage-a = nqp::decont(nqp::getattr($a,Telemetry,'$!rusage'));
+    my Mu \rusage-b = nqp::decont(nqp::getattr($b,Telemetry,'$!rusage'));
+    my Mu \rusage   = nqp::clone(rusage-a);  # make sure correct type
+    my int $i = -1;
+    nqp::while(
+      ++$i < RUSAGE_ELEMS,
+      nqp::bindpos_i(rusage,$i,
+        nqp::sub_i(nqp::atpos_i(rusage-a,$i),nqp::atpos_i(rusage-b,$i))
       )
-    )
+    );
+
+    # create object with special cases
+    my $period := nqp::create(Telemetry::Period);
+    nqp::bindattr($period,Telemetry,'$!rusage',rusage);
+    nqp::bindattr_n($period,Telemetry,'$!wallclock',
+      nqp::add_n($start,nqp::sub_n(
+        nqp::getattr_n($a,Telemetry,'$!wallclock'),
+        nqp::getattr_n($b,Telemetry,'$!wallclock')
+      ))
+    );
+
+    # diff all attribute_i attributes
+    nqp::bindattr_i($period,Telemetry,$_,nqp::sub_i(
+      nqp::getattr_i($a,Telemetry,$_),
+      nqp::getattr_i($b,Telemetry,$_)
+    )) for @scheduler_names;
+
+    $period
 }
 
 # Subroutines that are always exported -----------------------------------------
 
 # Making a Telemetry object procedurally 
 my @snaps;
-proto sub snap(|) is export { * }
+proto sub snap(|) is export {*}
 multi sub snap(--> Nil)    { @snaps.push(Telemetry.new) }
 multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
 
@@ -799,7 +594,7 @@ sub snapper($sleep = 0.1 --> Nil) is export {
 }
 
 # Telemetry::Period objects from a list of Telemetry objects
-proto sub periods(|) is export { * }
+proto sub periods(|) is export {*}
 multi sub periods() {
     my @s = @snaps;
     @snaps = ();
@@ -809,7 +604,7 @@ multi sub periods() {
 multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 # Telemetry reporting features -------------------------------------------------
-proto sub report(|) is export { * }
+proto sub report(|) is export {*}
 multi sub report(:@columns, :$legend, :$header-repeat = 32) {
     my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
     nqp::setelems(nqp::getattr(@snaps,List,'$!reified'),0);
@@ -936,7 +731,7 @@ multi sub report(
             @columns = $rrc.comb( /<[\w-]>+/ );
         }
         else {
-            @columns = <wallclock util% max-rss ics gw gtc tw ttc aw atc>;
+            @columns = <wallclock util% max-rss gw gtc tw ttc aw atc>;
         }
     }
 

@@ -54,21 +54,23 @@ public class RakudoContainerSpec extends ContainerSpec {
                     "Cannot assign to a readonly variable or a value");
             }
 
-        if (value.st.WHAT != gcx.Nil) {
-            SixModelObject of = desc.get_attribute_boxed(tc,
-                gcx.ContainerDescriptor, "$!of", RakOps.HINT_CD_OF);
-            long ok = Ops.istype(value, of, tc);
-            if (ok == 0) {
-                desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
-                String name = tc.native_s;
-                SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Assignment");
-                if (thrower == null)
-                    throw ExceptionHandling.dieInternal(tc,
-                        "Type check failed in assignment to '" + name + "'");
-                else
-                    Ops.invokeDirect(tc, thrower,
-                        storeThrower, new Object[] { name, value, of });
-            }
+        if (value.st.WHAT == gcx.Nil) {
+            value = desc.get_attribute_boxed(tc,
+                gcx.ContainerDescriptor, "$!default", RakOps.HINT_CD_DEFAULT);
+        }
+        SixModelObject of = desc.get_attribute_boxed(tc,
+            gcx.ContainerDescriptor, "$!of", RakOps.HINT_CD_OF);
+        long ok = Ops.istype(value, of, tc);
+        if (ok == 0) {
+            desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
+            String name = tc.native_s;
+            SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Assignment");
+            if (thrower == null)
+                throw ExceptionHandling.dieInternal(tc,
+                    "Type check failed in assignment to '" + name + "'");
+            else
+                Ops.invokeDirect(tc, thrower,
+                    storeThrower, new Object[] { name, value, of });
         }
     }
     public void store(ThreadContext tc, SixModelObject cont, SixModelObject value) {

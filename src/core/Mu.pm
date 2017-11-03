@@ -10,7 +10,7 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
-    proto method ACCEPTS(|) { * }
+    proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {
         nqp::p6bool(nqp::istype(topic, self))
     }
@@ -42,7 +42,7 @@ my class Mu { # declared in BOOTSTRAP
         )
     }
 
-    proto method iterator(|) { * }
+    proto method iterator(|) {*}
     multi method iterator(Mu:) {
         my $buf := nqp::create(IterationBuffer);
         $buf.push(Mu);
@@ -52,8 +52,8 @@ my class Mu { # declared in BOOTSTRAP
         Rakudo::Iterator.ReifiedList($buf)
     }
 
-    proto method split(|) { * }
-    proto method splice(|) is nodal { * }
+    proto method split(|) {*}
+    proto method splice(|) is nodal {*}
 
     method emit {
         emit self;
@@ -72,7 +72,7 @@ my class Mu { # declared in BOOTSTRAP
         $list;
     }
 
-    proto method WHY(|) { * }
+    proto method WHY(|) {*}
     multi method WHY(Mu:) {
         my Mu $why;
 
@@ -108,7 +108,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         nqp::p6bool(nqp::isconcrete(self))
     }
 
-    proto method new(|) { * }
+    proto method new(|) {*}
     multi method new(*%attrinit) {
         nqp::if(
           nqp::eqaddr(
@@ -123,7 +123,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         X::Constructor::Positional.new(:type( self )).throw();
     }
 
-    proto method is-lazy (|) { * }
+    proto method is-lazy (|) {*}
     multi method is-lazy(Mu: --> False) { }
 
     method CREATE() {
@@ -535,18 +535,18 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         self
     }
 
-    proto method Numeric(|) { * }
+    proto method Numeric(|) {*}
     multi method Numeric(Mu:U \v:) {
         warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
-    proto method Real(|) { * }
+    proto method Real(|) {*}
     multi method Real(Mu:U \v:) {
         warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
 
-    proto method Str(|) { * }
+    proto method Str(|) {*}
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
@@ -563,7 +563,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         )
     }
 
-    proto method Stringy(|) { * }
+    proto method Stringy(|) {*}
     multi method Stringy(Mu:U \v:) {
         my $*VAR_NAME = try v.VAR.?name;
         self.Str
@@ -572,7 +572,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     method item(Mu \item:) is raw { item }
 
-    proto method say(|) { * }
+    proto method say(|) {*}
     multi method say() { say(self) }
     method print() { print(self) }
     method put() { put(self) }
@@ -602,7 +602,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         }
     }
 
-    proto method gist(|) { * }
+    proto method gist(|) {*}
     multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
     multi method gist(Mu:D:) { self.perl }
 
@@ -634,7 +634,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         }
     }
 
-    proto method perl(|) { * }
+    proto method perl(|) {*}
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
         nqp::if(
@@ -651,7 +651,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         )
     }
 
-    proto method DUMP(|) { * }
+    proto method DUMP(|) {*}
     multi method DUMP(Mu:U:) { self.perl }
     multi method DUMP(Mu:D: :$indent-step = 4, :%ctx?) {
         return DUMP(self, :$indent-step) unless %ctx;
@@ -708,7 +708,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         @pieces.DUMP-PIECES($before, :$indent-step);
     }
 
-    proto method isa(|) { * }
+    proto method isa(|) {*}
     multi method isa(Mu \SELF: Mu $type) {
         nqp::p6bool(SELF.^isa($type.WHAT))
     }
@@ -732,7 +732,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         SELF.^can($name)
     }
 
-    proto method clone (|) { * }
+    proto method clone (|) {*}
     multi method clone(Mu:U: *%twiddles) {
         %twiddles and die 'Cannot set attribute values when cloning a type object';
         self
@@ -942,26 +942,26 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 }
 
 
-proto sub defined(Mu) is pure { * }
+proto sub defined(Mu) is pure {*}
 multi sub defined(Mu \x) { x.defined }
 
-proto sub infix:<~~>(Mu \topic, Mu \matcher) { * }
+proto sub infix:<~~>(Mu \topic, Mu \matcher) {*}
 multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
 }
 
-proto sub infix:<!~~>(Mu \topic, Mu \matcher) { * }
+proto sub infix:<!~~>(Mu \topic, Mu \matcher) {*}
 multi sub infix:<!~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).not;
 }
 
-proto sub infix:<=:=>(Mu $?, Mu $?) is pure { * }
+proto sub infix:<=:=>(Mu $?, Mu $?) is pure {*}
 multi sub infix:<=:=>($?)      { Bool::True }
 multi sub infix:<=:=>(Mu \a, Mu \b) {
     nqp::p6bool(nqp::eqaddr(a, b));
 }
 
-proto sub infix:<eqv>(Any $?, Any $?) is pure { * }
+proto sub infix:<eqv>(Any $?, Any $?) is pure {*}
 multi sub infix:<eqv>($?)            { Bool::True }
 
 # Last ditch snapshot semantics.  We shouldn't come here too often, so
@@ -1074,9 +1074,9 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
 }
 
 # U+2212 minus (forward call to regular minus)
-proto sub  infix:<−>(|)  is pure { * }
+proto sub  infix:<−>(|)  is pure {*}
 multi sub  infix:<−>(|c)         {  infix:<->(|c) }
-proto sub prefix:<−>(|)  is pure { * }
+proto sub prefix:<−>(|)  is pure {*}
 multi sub prefix:<−>(|c)         { prefix:<->(|c) }
 
 # These must collapse Junctions

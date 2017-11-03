@@ -373,7 +373,7 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
-    proto method int-bounds(|) { * }
+    proto method int-bounds(|) {*}
     multi method int-bounds($from is rw, $to is rw) {
         nqp::if(
           $!is-int,
@@ -481,7 +481,7 @@ my class Range is Cool does Iterable does Positional {
             !! "{$!min.perl}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.perl()"
     }
 
-    proto method roll(|) { * }
+    proto method roll(|) {*}
     multi method roll(Range:D: Whatever) {
         if self.elems -> $elems {
             $!is-int
@@ -545,7 +545,7 @@ my class Range is Cool does Iterable does Positional {
         }
     }
 
-    proto method pick(|)        { * }
+    proto method pick(|)        {*}
     multi method pick()          { self.roll };
     multi method pick(Whatever)  { self.list.pick(*) };
     multi method pick(Int(Cool) $todo) {

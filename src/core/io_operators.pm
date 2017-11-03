@@ -1,6 +1,6 @@
 my class IO::ArgFiles { ... }
 
-proto sub print(|) { * }
+proto sub print(|) {*}
 multi sub print(Str:D \x) {
     $*OUT.print(x);
 }
@@ -13,7 +13,7 @@ multi sub print(**@args is raw) {
     $*OUT.print($str);
 }
 
-proto sub say(|) { * }
+proto sub say(|) {*}
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {
     my $out := $*OUT;
@@ -33,7 +33,7 @@ multi sub say(**@args is raw) {
     $out.print(nqp::concat($str,$out.nl-out));
 }
 
-proto sub put(|) { * }
+proto sub put(|) {*}
 multi sub put() { $*OUT.print-nl }
 multi sub put(Str:D \x) {
     my $out := $*OUT;
@@ -53,7 +53,7 @@ multi sub put(**@args is raw) {
     $out.print(nqp::concat($str,$out.nl-out));
 }
 
-proto sub note(|) { * }
+proto sub note(|) {*}
 multi sub note() {
     my $err := $*ERR;
     $err.print(nqp::concat("Noted",$err.nl-out));
@@ -86,35 +86,35 @@ multi sub prompt($msg) {
     $*IN.get;
 }
 
-proto sub dir(|) { * }
+proto sub dir(|) {*}
 multi sub dir(*%_) { $*SPEC.curdir.IO.dir(:!absolute, |%_) }
 multi sub dir(IO::Path:D $path, |c) { $path.dir(|c) }
 multi sub dir(IO()       $path, |c) { $path.dir(|c) }
 
-proto sub open(|) { * }
+proto sub open(|) {*}
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
 
-proto sub lines(|) { * }
+proto sub lines(|) {*}
 multi sub lines($what = $*ARGFILES, |c) { $what.lines(|c) }
 
-proto sub words(|) { * }
+proto sub words(|) {*}
 multi sub words($what = $*ARGFILES, |c) { $what.words(|c) }
 
-proto sub get  (|) { * }
+proto sub get  (|) {*}
 multi sub get  (IO::Handle:D $fh = $*ARGFILES) { $fh.get  }
 
-proto sub getc (|) { * }
+proto sub getc (|) {*}
 multi sub getc (IO::Handle:D $fh = $*ARGFILES) { $fh.getc }
 
-proto sub close(|) { * }
-multi sub close(IO::Handle:D $fh)   { $fh.close }
+proto sub close(|) {*}
+multi sub close(IO::Handle:D $fh) { $fh.close }
 multi sub close(Channel:D $channel) { $channel.close }
 
-proto sub slurp(|) { * }
+proto sub slurp(|) {*}
 multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
 multi sub slurp(IO() $path, |c) { $path.slurp(|c) }
 
-proto sub spurt(|) { * }
+proto sub spurt(|) {*}
 multi sub spurt(IO::Handle:D $fh,   |c) { $fh  .spurt(|c) }
 multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
 

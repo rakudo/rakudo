@@ -605,7 +605,7 @@ multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 # Telemetry reporting features -------------------------------------------------
 proto sub report(|) is export {*}
-multi sub report(:@columns, :$legend, :$header-repeat = 32, :@format) {
+multi sub report(:@columns, :$legend, :$header-repeat, :@format) {
     my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
     nqp::setelems(nqp::getattr(@snaps,List,'$!reified'),0);
     nqp::push($s,Telemetry.new) if nqp::elems($s) == 1;
@@ -747,12 +747,13 @@ constant @default_format =
 
 multi sub report(
   @s,
-  :@columns is copy,
-  :$legend,
-  :$header-repeat = 32,
+  :@columns       is copy,
+  :$header-repeat is copy,
+  :$legend        is copy,
   :@format,
 ) {
 
+    # determine columns to be displayed
     unless @columns {
         if %*ENV<RAKUDO_REPORT_COLUMNS> -> $rrc {
             @columns = $rrc.comb( /<[\w-]>+/ );
@@ -760,6 +761,16 @@ multi sub report(
         else {
             @columns = <wallclock util% max-rss gw gtc tw ttc aw atc>;
         }
+    }
+
+    # set header repeat flag
+    without $header-repeat {
+        $header-repeat = $_.Int with %*ENV<RAKUDO_REPORT_HEADER_REPEAT> // 32;
+    }
+
+    # set legend flag
+    without $legend {
+        $legend = $_.Int with %*ENV<RAKUDO_REPORT_LEGEND> // 1;
     }
 
     # get / calculate the format info we need
@@ -776,25 +787,26 @@ multi sub report(
 Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
 HEADER
 
+    # give the supervisor blurb
     if $first.supervisor {
-        nqp::push_s($text,"Supervisor thread ran for the whole period.");
+        nqp::push_s($text,"Supervisor thread ran for the whole time");
     }
     elsif !$last.supervisor {
-        nqp::push_s($text,"No supervisor thread has been running.");
+        nqp::push_s($text,"No supervisor thread has been running");
     }
     else {
         my $started = @s.first: *.supervisor;
         nqp::push_s($text,"Supervisor thread ran for {
-          (100 * ($started.wallclock - $first.wallclock) / $total.wallclock)
+          (100 * ($last.wallclock - $started.wallclock) / $total.wallclock)
             .fmt("%5.2f")
-        }% of the time.");
+        }% of the time");
     }
 
     nqp::push_s($text,qq:to/HEADER/.chomp);
 Number of Snapshots: {+@s}
 Initial Size:    { @s[0].max-rss.fmt('%9d') } Kbytes
-Total Time:      { (%format<wallclock>[DISPLAY]($total.wallclock)) } seconds
-Total CPU Usage: { (%format<cpu>[DISPLAY]($total.cpu)) } seconds
+Total Time:      { ($total.wallclock / 1000000).fmt('%9.2f') } seconds
+Total CPU Usage: { ($total.cpu / 1000000).fmt('%9.2f') } seconds
 HEADER
 
     my @formats = %format{@columns};
@@ -835,6 +847,6 @@ HEADER
 sub T () is export { Telemetry.new }
 
 # Make sure we tell the world if we're implicitely told to do so ---------------
-END { if @snaps { snap; note report(:legend) } }
+END { if @snaps { snap; note report } }
 
 # vim: ft=perl6 expandtab sw=4

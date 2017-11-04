@@ -19,7 +19,7 @@ my class IterationBuffer {
 
     method push(Mu \value) { nqp::push(self, value) }
 
-    proto method AT-POS(|) { * }
+    proto method AT-POS(|) {*}
     multi method AT-POS(IterationBuffer:D: int $pos) is raw {
         nqp::atpos(self, $pos)
     }
@@ -27,7 +27,7 @@ my class IterationBuffer {
         nqp::atpos(self, $pos)
     }
 
-    proto method BIND-POS(|) { * }
+    proto method BIND-POS(|) {*}
     multi method BIND-POS(IterationBuffer:D: int $pos, Mu \value) {
         nqp::bindpos(self, $pos, value)
     }

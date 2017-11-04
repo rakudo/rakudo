@@ -2,7 +2,7 @@
 #   (|)     union (ASCII)
 #   ∪       union
 
-proto sub infix:<(|)>(|) is pure { * }
+proto sub infix:<(|)>(|) is pure {*}
 multi sub infix:<(|)>()               { set()  }
 multi sub infix:<(|)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
 multi sub infix:<(|)>(SetHash:D $a)   { $a.Set }

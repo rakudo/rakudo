@@ -3,7 +3,7 @@ my class Pair does Associative {
     has $.value is rw is default(Nil);
     has Mu $!WHICH;
 
-    proto method new(|) { * }
+    proto method new(|) {*}
     # This candidate is needed because it currently JITS better
     multi method new(Pair: Cool:D \key, Mu \value) {
         my \p := nqp::p6bindattrinvres(

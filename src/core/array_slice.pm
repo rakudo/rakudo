@@ -10,7 +10,7 @@
 # if called with an Int.  Before it does so, it may cause the calling code
 # to switch to a memoized version of an iterator by modifying variables in
 # the caller's scope.
-proto sub POSITIONS(|) { * }
+proto sub POSITIONS(|) {*}
 multi sub POSITIONS(
   \SELF,
   \pos,
@@ -87,7 +87,7 @@ multi sub POSITIONS(
     pos-list
 }
 
-proto sub postcircumfix:<[ ]>(|) is nodal { * }
+proto sub postcircumfix:<[ ]>(|) is nodal {*}
 
 multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is raw {
     die "Unable to call postcircumfix {try SELF.VAR.name}[ $type.gist() ] with a type object\n"

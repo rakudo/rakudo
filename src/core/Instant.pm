@@ -12,7 +12,7 @@ my class Instant is Cool does Real {
 
     method new(*@) { X::Cannot::New.new(class => self).throw }
 
-    proto method from-posix(|) { * }
+    proto method from-posix(|) {*}
     multi method from-posix($posix) {
         nqp::create(Instant).SET-SELF(
           Rakudo::Internals.tai-from-posix($posix,0).Rat

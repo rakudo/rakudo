@@ -26,7 +26,7 @@ my class KeyReducer {
         $!obtained = False;
     }
 
-    proto method contribute(|) { * }
+    proto method contribute(|) {*}
     multi method contribute(KeyReducer:D: %h) {
         $!lock.lock();
         if $!exception {

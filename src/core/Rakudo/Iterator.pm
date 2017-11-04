@@ -574,7 +574,7 @@ class Rakudo::Iterator {
     # data from the Callable is exhausted.  No checks for Slips are done,
     # so they will be passed on as is.  Also optionally takes a flag to
     # mark the iterator as lazy or not: default is False (not lazy)
-    proto method Callable(|) { * }
+    proto method Callable(|) {*}
     multi method Callable(&callable) {
         class :: does Iterator {
             has &!callable;

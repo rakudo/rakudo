@@ -306,7 +306,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
 
-    proto method STORE_AT_KEY(|) { * }
+    proto method STORE_AT_KEY(|) {*}
     multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
         nqp::bindkey($!storage, nqp::unbox_s(key), nqp::decont(value))
     }

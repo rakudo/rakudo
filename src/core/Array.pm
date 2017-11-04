@@ -179,7 +179,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    proto method new(|) { * }
+    proto method new(|) {*}
     multi method new(:$shape!) {
         nqp::if(
           nqp::defined($shape),
@@ -223,7 +223,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::create(self).STORE(@values)
     }
 
-    proto method STORE(|) { * }
+    proto method STORE(|) {*}
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::iscont(iterable)
             ?? self!STORE-ONE(iterable)

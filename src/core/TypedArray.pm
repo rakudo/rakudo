@@ -2,7 +2,7 @@
 
     my role TypedArray[::TValue] does Positional[TValue] {
 
-        proto method new(|) { * }
+        proto method new(|) {*}
         multi method new(:$shape!) {
             set-descriptor(nqp::if(
               nqp::defined($shape),
@@ -58,7 +58,7 @@
 
         # must have a proto here to hide the candidates in Array
         # otherwise we could bind any value to the Array
-        proto method BIND-POS(|) { * }
+        proto method BIND-POS(|) {*}
 
         # these BIND-POSses are identical to Array's, except for bindval
         multi method BIND-POS(Array:D: int $pos, TValue \bindval) is raw {

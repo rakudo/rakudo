@@ -8,7 +8,7 @@ my class Regex { # declared in BOOTSTRAP
     # cache cursor initialization lookup
     my $cursor-init := Match.^lookup("!cursor_init");
 
-    proto method ACCEPTS(|) { * }
+    proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Regex:D: Mu:U \a) {
         False
     }

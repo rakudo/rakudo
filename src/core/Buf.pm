@@ -47,7 +47,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     multi method new(Blob: *@values) { self.new(@values) }
 
-    proto method allocate(|) { * }
+    proto method allocate(|) {*}
     multi method allocate(Blob:U: Int $elements) {
         nqp::setelems(nqp::create(self),$elements)
     }
@@ -115,7 +115,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
     multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
 
-    proto method decode(|) { * }
+    proto method decode(|) {*}
     multi method decode(Blob:D:) {
         nqp::p6box_s(nqp::decode(self, 'utf8'))
     }
@@ -248,7 +248,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::join($delim.Str,$list)
     }
 
-    proto method unpack(|) { * }
+    proto method unpack(|) {*}
     multi method unpack(Blob:D: Str:D $template) {
         nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
             feature => "the 'unpack' method",
@@ -618,7 +618,7 @@ constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
 
-proto sub pack(|) { * }
+proto sub pack(|) {*}
 multi sub pack(Str $template, *@items) {
     nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
         feature => "the 'pack' function",

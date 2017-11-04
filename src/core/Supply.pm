@@ -59,7 +59,7 @@ my class Supplier::Preserving { ... }
 my class Supply does Awaitable {
     has Tappable $!tappable;
 
-    proto method new(|) { * }
+    proto method new(|) {*}
     multi method new() {
         X::Supply::New.new.throw
     }
@@ -604,7 +604,7 @@ my class Supply does Awaitable {
         }
     }
 
-    proto method classify(|) { * }
+    proto method classify(|) {*}
     multi method classify(Supply:D: &mapper )  {
         self!classify(&mapper);
     }
@@ -615,7 +615,7 @@ my class Supply does Awaitable {
         self!classify({ @mapper[$^a] });
     }
 
-    proto method categorize (|) { * }
+    proto method categorize (|) {*}
     multi method categorize(Supply:D: &mapper )  {
         self!classify(&mapper, :multi);
     }
@@ -1292,7 +1292,7 @@ my class Supply does Awaitable {
         }
     }
 
-    proto method throttle(|) { * }
+    proto method throttle(|) {*}
     multi method throttle(Supply:D $self:
       Int()  $elems,
       Real() $seconds,
@@ -1585,7 +1585,7 @@ my class Supplier {
         $!taplist.done();
     }
 
-    proto method quit($) { * }
+    proto method quit($) {*}
     multi method quit(Supplier:D: Exception $ex) {
         $!taplist.quit($ex);
     }

@@ -271,7 +271,7 @@ my class IO::CatHandle is IO::Handle {
           ($!active-handle = Nil))
     }
 
-    proto method encoding(|) { * }
+    proto method encoding(|) {*}
     multi method encoding(::?CLASS:D:) { $!encoding || Nil }
     multi method encoding(::?CLASS:D: $enc is copy) {
         $!encoding = nqp::if(
@@ -352,26 +352,26 @@ my class IO::CatHandle is IO::Handle {
     #                         | /
     #                         |/
     #                       (⛣)
-    proto method flush      (|) { * }
+    proto method flush      (|) {*}
     multi method flush      (|) { die X::NYI.new: :feature<flush>      }
-    proto method out-buffer (|) { * }
+    proto method out-buffer (|) {*}
     multi method out-buffer (|) { die X::NYI.new: :feature<out-buffer> }
-    proto method print      (|) { * }
+    proto method print      (|) {*}
     multi method print      (|) { die X::NYI.new: :feature<print>      }
-    proto method printf     (|) { * }
+    proto method printf     (|) {*}
     multi method printf     (|) { die X::NYI.new: :feature<printf>     }
-    proto method print-nl   (|) { * }
+    proto method print-nl   (|) {*}
     multi method print-nl   (|) { die X::NYI.new: :feature<print-nl>   }
-    proto method put        (|) { * }
+    proto method put        (|) {*}
     multi method put        (|) { die X::NYI.new: :feature<put>        }
-    proto method say        (|) { * }
+    proto method say        (|) {*}
     multi method say        (|) { die X::NYI.new: :feature<say>        }
-    proto method write      (|) { * }
+    proto method write      (|) {*}
     multi method write      (|) { die X::NYI.new: :feature<write>      }
     #                       /|\
 
     # Don't die on this one, as doing so breaks .Capture
-    # proto method nl-out  (|) { * }
+    # proto method nl-out  (|) {*}
     # multi method nl-out  (|) {
     #     die X::NYI.new: :feature<nl-out>
     # }

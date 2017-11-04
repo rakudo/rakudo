@@ -14,7 +14,7 @@ my class Code does Callable { # declared in BOOTSTRAP
 
     method signature(Code:D:) { $!signature }
 
-    proto method prec(|) { * }
+    proto method prec(|) {*}
     multi method prec() { my % }
     multi method prec(Str:D $) { '' }
 

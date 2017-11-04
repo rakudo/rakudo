@@ -203,7 +203,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     # INTERPOLATE's parameters are non-optional since the ops for optional params
     # aren't currently JITted on MoarVM
-    proto method INTERPOLATE(|) { * }
+    proto method INTERPOLATE(|) {*}
 
     multi method INTERPOLATE(Callable:D \var, $, $, $, $, $) {
         # Call it if it is a routine. This will capture if requested.
@@ -765,7 +765,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         self.Mu::WHICH # skip Capture's as Match is not a value type
     }
 
-    proto method Bool(|) { * }
+    proto method Bool(|) {*}
     multi method Bool(Match:U:) { False }
     multi method Bool(Match:D:) { nqp::p6bool($!pos >= $!from) }
 

@@ -198,7 +198,7 @@ my role Baggy does QuantHash {
             }
         }.new($!elems))
     }
-    proto method kxxv(|) { * }
+    proto method kxxv(|) {*}
     multi method kxxv(Baggy:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
             has Mu $!key;
@@ -355,7 +355,7 @@ my role Baggy does QuantHash {
     }
 
 #--- selection methods
-    proto method grabpairs (|) { * }
+    proto method grabpairs (|) {*}
     multi method grabpairs(Baggy:D:) {
         nqp::if(
           $!elems && nqp::elems($!elems),
@@ -393,7 +393,7 @@ my role Baggy does QuantHash {
         }.new($!elems, $count))
     }
 
-    proto method pickpairs(|) { * }
+    proto method pickpairs(|) {*}
     multi method pickpairs(Baggy:D:) {
         nqp::if(
           $!elems && nqp::elems($!elems),
@@ -419,12 +419,12 @@ my role Baggy does QuantHash {
         }.new($!elems, $count))
     }
 
-    proto method grab(|) { * }
+    proto method grab(|) {*}
     multi method grab(Baggy:D: |c) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
-    proto method pick(|) { * }
+    proto method pick(|) {*}
     multi method pick(Baggy:D:) { self.roll }
     multi method pick(Baggy:D: Callable:D $calculate) {
         self.pick( $calculate(self.total) )
@@ -538,7 +538,7 @@ my role Baggy does QuantHash {
         ))
     }
 
-    proto method roll(|) { * }
+    proto method roll(|) {*}
     multi method roll(Baggy:D:) {
         nqp::if(
           $!elems && (my $total := self.total),
@@ -597,7 +597,7 @@ my role Baggy does QuantHash {
     }
 
 #--- classification method
-    proto method classify-list(|) { * }
+    proto method classify-list(|) {*}
     multi method classify-list( &test, \list) {
         fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
@@ -629,7 +629,7 @@ my role Baggy does QuantHash {
         self.classify-list(&test, @list, |c);
     }
 
-    proto method categorize-list(|) { * }
+    proto method categorize-list(|) {*}
     multi method categorize-list( &test, \list ) {
         fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;

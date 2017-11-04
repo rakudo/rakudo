@@ -147,7 +147,7 @@ class Kernel does Systemic {
     has %!signals-by-Str;
     has $!signals-by-Str-setup = False;
 
-    proto method signal (|) { * }
+    proto method signal (|) {*}
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
         unless $!signals-by-Str-setup {
             $!signals-setup-lock.protect: {

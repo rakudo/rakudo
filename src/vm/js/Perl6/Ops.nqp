@@ -1,8 +1,8 @@
 my $ops := nqp::getcomp('QAST').operations;
 
 sub register_op_desugar($op, $desugar) is export {
-    nqp::getcomp('QAST').operations.add_op(:hll<perl6>, $op, sub ($comp, $node, :$want, :$cps) {
-        $comp.as_js($desugar($node), :$want, :$cps);
+    nqp::getcomp('QAST').operations.add_op(:hll<perl6>, $op, sub ($comp, $node, :$want) {
+        $comp.as_js($desugar($node), :$want);
     });
 }
 
@@ -52,7 +52,7 @@ $ops.add_hll_unbox('perl6', $ops.STR, 'getStr');
 # Signature binding related bits.
 
 $ops.add_simple_op('p6setbinder', $ops.VOID, [$ops.OBJ], :side_effects, sub ($binder) {"nqp.p6binder = $binder"});
-$ops.add_op('p6bindsig', :!inlinable, sub ($comp, $node, :$want, :$cps) {
+$ops.add_op('p6bindsig', :!inlinable, sub ($comp, $node, :$want) {
     my $ops := nqp::getcomp('QAST').operations;
     my $tmp := $*BLOCK.add_tmp;
     $ops.new_chunk($ops.VOID, "", [
@@ -129,12 +129,12 @@ $ops.add_simple_op('p6stateinit', $ops.INT, [], sub () { $*BLOCK.first_time_mark
 
 $ops.add_simple_op('p6scalarfromdesc', $ops.OBJ, [$ops.OBJ], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
 
-$ops.add_op('p6return', :!inlinable, sub ($comp, $node, :$want, :$cps) {
+$ops.add_op('p6return', :!inlinable, sub ($comp, $node, :$want) {
     my $ops := nqp::getcomp('QAST').operations;
     unless $*RETURN_FROM_HANDLER {
         $*RETURN_FROM_HANDLER := $*BLOCK.add_tmp;
     }
-    my $value := $comp.as_js($node[0], :$want, :$cps);
+    my $value := $comp.as_js($node[0], :$want);
     $ops.new_chunk($ops.VOID, "", [
         $value,
         "$*RETURN_FROM_HANDLER = {$value.expr};\n"

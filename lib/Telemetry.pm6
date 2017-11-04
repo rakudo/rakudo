@@ -846,6 +846,12 @@ HEADER
 
 sub T () is export { Telemetry.new }
 
+# Provide limited export capability --------------------------------------------
+
+sub EXPORT(*@args) {
+    (EXPORT::COLUMNS::{ @args.map: "&" ~ * }:p).Map
+}
+
 # Make sure we tell the world if we're implicitely told to do so ---------------
 END { if @snaps { snap; note report } }
 

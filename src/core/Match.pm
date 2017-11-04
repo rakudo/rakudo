@@ -210,7 +210,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         (var)(self)
     }
 
-    multi method INTERPOLATE(Iterable:D \var, int \im, int \monkey, int \s, int \a, \context) {
+    multi method INTERPOLATE(Iterable:D \var, int \im, int \monkey, int \s, $, \context) {
         my $maxmatch;
         my \cur    := self.'!cursor_start_cur'();
         my str $tgt = cur.target;
@@ -245,19 +245,8 @@ my class Match is Capture is Cool does NQPMatchRole {
                     my Mu $topic := nqp::atpos(list,$j);
                     nqp::bindpos(alts,$j,$topic);
 
-                    # We are in a regex assertion, the strings we get will
-                    # be treated as regex rules.
-                    if a {
-                        return cur.'!cursor_start_cur'()
-                          if nqp::istype($topic,Associative);
-                        my $rx := MAKE_REGEX($topic,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
-                        nfa.mergesubstates($start,0,nqp::decont($fate),
-                          nqp::findmethod($rx,'NFA')($rx),
-                          Mu);
-                    }
-
                     # A Regex already.
-                    elsif nqp::istype($topic,Regex) {
+                    if nqp::istype($topic,Regex) {
                         nfa.mergesubstates($start,0,nqp::decont($fate),
                           nqp::findmethod($topic,'NFA')($topic),
                           Mu);
@@ -308,19 +297,8 @@ my class Match is Capture is Cool does NQPMatchRole {
             my $match;
             my int $len;
 
-            # We are in a regex assertion, the strings we get will be
-            # treated as regex rules.
-            if a {
-                return cur.'!cursor_start_cur'()
-                  if nqp::istype($topic,Associative);
-
-                my $rx := MAKE_REGEX($topic,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
-                $match := self.$rx;
-                $len    = $match.pos - $match.from;
-            }
-
             # A Regex already.
-            elsif nqp::istype($topic,Regex) {
+            if nqp::istype($topic,Regex) {
                 $match := self.$topic;
                 $len    = $match.pos - $match.from;
             }
@@ -410,11 +388,8 @@ my class Match is Capture is Cool does NQPMatchRole {
             !! cur
     }
 
-    multi method INTERPOLATE(Associative:D \var, int \im, $, $, int \a, \context) {
+    multi method INTERPOLATE(Associative:D \var, int \im, $, $, $, \context) {
         my \cur    := self.'!cursor_start_cur'();
-        if a {
-            return cur.'!cursor_start_cur'()
-        }
         my $maxmatch;
         my str $tgt = cur.target;
 
@@ -508,7 +483,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             !! cur
     }
 
-    multi method INTERPOLATE(Regex:D \var, int \im, int \monkey, $, int \a, $) {
+    multi method INTERPOLATE(Regex:D \var, int \im, int \monkey, $, $, $) {
         my $maxmatch;
         my \cur    := self.'!cursor_start_cur'();
 
@@ -534,7 +509,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             !! cur
     }
 
-    multi method INTERPOLATE(Mu:D \var, int \im, int \monkey, $, int \a, \context) {
+    multi method INTERPOLATE(Mu:D \var, int \im, int \monkey, $, $, \context) {
         my $maxmatch;
         my \cur     = self.'!cursor_start_cur'();
         my str $tgt = cur.target;
@@ -546,17 +521,9 @@ my class Match is Capture is Cool does NQPMatchRole {
         my $match;
         my int $len;
 
-        # We are in a regex assertion, the strings we get will be
-        # treated as regex rules.
-        if a {
-            my $rx := MAKE_REGEX(var,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
-            $match := self.$rx;
-            $len    = $match.pos - $match.from;
-        }
-
         # The pattern is a zero length string. $len and and $topic_str
         # are used later on if this condition does not hold.
-        elsif nqp::iseq_i(($len = nqp::chars($topic_str = var.Str)),0) {
+        if nqp::iseq_i(($len = nqp::chars($topic_str = var.Str)),0) {
             $match = 1;
         }
 
@@ -630,6 +597,106 @@ my class Match is Capture is Cool does NQPMatchRole {
             $maxmatch := $match;
         }
 
+        nqp::isge_i($maxlen,0)
+          ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+          !! cur
+    }
+
+    multi method INTERPOLATE(Mu:U \var, $, $, $, $, $) {
+        self."!cursor_start_cur"()
+    }
+
+    proto method INTERPOLATE_ASSERTION(|) {*}
+
+    multi method INTERPOLATE_ASSERTION(Associative:D $, $, $, $, $, $) {
+        return self.'!cursor_start_cur'().'!cursor_start_cur'()
+    }
+
+    multi method INTERPOLATE_ASSERTION(Iterable:D \var, int \im, int \monkey, int \s, $, \context) {
+        my $maxmatch;
+        my \cur    := self.'!cursor_start_cur'();
+        my str $tgt = cur.target;
+        my int $eos = nqp::chars($tgt);
+
+        my int $maxlen = -1;
+        my int $pos    = nqp::getattr_i(cur, $?CLASS, '$!from');
+        my int $start  = 1;
+        my int $nomod  = im == 0;
+
+        my Mu $order := nqp::list();
+
+        # Looks something we need to loop over
+        if !nqp::iscont(var) {
+            my \varlist  := var.list;
+            my int $elems = varlist.elems; # reifies
+            my \list     := nqp::getattr(varlist,List,'$!reified');
+
+            # Order matters for sequential matching, so no NFA involved.
+            if s {
+                $order := list;
+            }
+
+            # prepare to run the NFA if var is array-ish.
+            else {
+                my Mu \nfa  := QRegex::NFA.new;
+                my Mu \alts := nqp::setelems(nqp::list,$elems);
+                my int $fate = 0;
+                my int $j    = -1;
+
+                while nqp::islt_i(++$j,$elems) {
+                    my Mu $topic := nqp::atpos(list,$j);
+                    nqp::bindpos(alts,$j,$topic);
+
+                    # We are in a regex assertion, the strings we get will
+                    # be treated as regex rules.
+                    return cur.'!cursor_start_cur'() if nqp::istype($topic,Associative);
+                    my $rx := MAKE_REGEX($topic,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
+                    nfa.mergesubstates($start,0,nqp::decont($fate),nqp::findmethod($rx,'NFA')($rx),Mu);
+
+                    ++$fate;
+                }
+
+                # Now run the NFA
+                my Mu \fates := nqp::findmethod(nfa,'run')(nfa,$tgt,$pos);
+                my int $count = nqp::elems(fates);
+                nqp::setelems($order,$count);
+                $j = -1;
+                nqp::bindpos($order,$j,nqp::atpos(alts,nqp::atpos_i(fates,$j)))
+                  while nqp::islt_i(++$j,$count);
+            }
+        }
+
+        # Use the var as it is if it's not array-ish.
+        else {
+            nqp::push($order, var);
+        }
+
+        my str $topic_str;
+        my int $omax = nqp::elems($order);
+        my int $o    = -1;
+        while nqp::islt_i(++$o,$omax) {
+            my Mu $topic := nqp::atpos($order,$o);
+            my $match;
+            my int $len;
+
+            # We are in a regex assertion, the strings we get will be
+            # treated as regex rules.
+            return cur.'!cursor_start_cur'()
+              if nqp::istype($topic,Associative);
+
+            my $rx := MAKE_REGEX($topic,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
+            $match := self.$rx;
+            $len    = $match.pos - $match.from;
+
+            if $match
+              && nqp::isgt_i($len,$maxlen)
+              && nqp::isle_i(nqp::add_i($pos,$len),$eos) {
+                $maxlen    = $len;
+                $maxmatch := $match;
+                last if s; # stop here for sequential alternation
+            }
+        }
+
         nqp::istype($maxmatch, Match)
           ?? $maxmatch
           !! nqp::isge_i($maxlen,0)
@@ -637,8 +704,31 @@ my class Match is Capture is Cool does NQPMatchRole {
             !! cur
     }
 
-    multi method INTERPOLATE(Mu:U \var, $, $, $, $, $) {
-        self."!cursor_start_cur"()
+    multi method INTERPOLATE_ASSERTION(Mu:D \var, int \im, int \monkey, $, $, \context) {
+        my $maxmatch;
+        my \cur     = self.'!cursor_start_cur'();
+
+        my int $maxlen = -1;
+        my int $pos    = nqp::getattr_i(cur, $?CLASS, '$!from');
+
+        # We are in a regex assertion, the strings we get will be
+        # treated as regex rules.
+        my $rx     := MAKE_REGEX(var,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
+        my $match  := self.$rx;
+        my int $len = $match.pos - $match.from;
+
+        if $match
+          && nqp::isgt_i($len,$maxlen)
+          && nqp::isle_i(nqp::add_i($pos,$len),nqp::chars(cur.target)) {
+            $maxlen    = $len;
+            $maxmatch := $match;
+        }
+
+        nqp::istype($maxmatch, Match)
+          ?? $maxmatch
+          !! nqp::isge_i($maxlen,0)
+            ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+            !! cur
     }
 
     method CALL_SUBRULE($rule, |c) {

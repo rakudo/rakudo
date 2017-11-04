@@ -67,7 +67,7 @@ class Perl6::Pod {
         if ~$with ne '' {
             if $leading {
                 $*W.apply_trait($/, '&trait_mod:<is>', $what, :leading_docs($with));
-            } 
+            }
             else { # trailing
                 $*W.apply_trait($/, '&trait_mod:<is>', $what, :trailing_docs($with));
             }
@@ -85,11 +85,11 @@ class Perl6::Pod {
         if $<type>.Str ~~ /^item \d*$/ {
             $type    := 'Pod::Item';
             $leveled := 1;
-        } 
+        }
         elsif $<type>.Str ~~ /^head \d+$/ {
             $type    := 'Pod::Heading';
             $leveled := 1;
-        } 
+        }
         else {
             $type := 'Pod::Block::Named';
         }
@@ -164,13 +164,13 @@ class Perl6::Pod {
                 $val := $colonpair<coloncircumfix><circumfix>;
                 if $val<nibble> {
                     $val := $*W.colonpair_nibble_to_str($/, $val<nibble>);
-                } 
+                }
                 else {
                     $val := ~$val<semilist>;
                 }
 
                 $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
-            } 
+            }
             else {
                 # and this is the worst hack of them all.
                 # Hide your kids, hide your wife!
@@ -186,7 +186,7 @@ class Perl6::Pod {
                     my $char := nqp::substr($val, $pos, 1);
                     if $char eq " " {
                         $pos := $pos + 1;
-                    } 
+                    }
                     else {
                         my $bitval := nqp::ord($char) - nqp::ord("A");
                         if $bitval >= 0 && $bitval <= 25 {
@@ -291,11 +291,11 @@ class Perl6::Pod {
                 # don't push the leading whitespace
                 if +@res + @strs == 0 && $elem eq ' ' {
 
-                } 
+                }
                 else {
                     @strs.push($elem);
                 }
-            } 
+            }
             else {
                 push_strings(@strs, @res);
                 @strs := [];
@@ -322,7 +322,7 @@ class Perl6::Pod {
         for @content -> $elem {
             if nqp::isstr($elem) {
                 @strs.push($elem);
-            } 
+            }
             else {
                 push_strings(@strs, @res);
                 @strs := [];
@@ -439,11 +439,11 @@ class Perl6::Pod {
                 if $last_line_was_row_sep {
                     # an invalid table if inside it
 	            ++$table_has_multiple_row_seps;
-                } 
+                }
                 else {
                     $last_line_was_row_sep := 1;
                 }
-            } 
+            }
             else {
                 $last_line_was_row_sep := 0;
                 # this is a table data line
@@ -484,7 +484,7 @@ class Perl6::Pod {
                 # analysis. But then check for a ws type if a vis type is not found.
                 if $row ~~ $has_vis_col_sep {
                     ++$table_has_vis_col_seps;
-                } 
+                }
                 elsif $row ~~ $has_ws_col_sep {
                     ++$table_has_ws_col_seps;
                 }
@@ -499,7 +499,7 @@ class Perl6::Pod {
         # break the data rows into cells
         if $table_has_vis_col_seps {
             @rows := process_rows(@rows);
-        } 
+        }
         elsif $table_has_ws_col_seps {
             @rows := splitrows(@rows);
         }
@@ -511,27 +511,6 @@ class Perl6::Pod {
         # all warnings and invalid conditions should be known by now
         # time to warn or throw as appropriate
         handle_table_issues(@orig_rows);
-
-        # TODO: move this code to inside loop below
-        # multi-line rows are not yet merged, but we may need to
-        # add empty cells to some rows
-        if $unbalanced_row_cells {
-            my $i := 0;
-            while $i < +@rows {
-                if nqp::islist(@rows[$i]) {
-                    my $ncells := nqp::elems(@rows[$i]);
-                    if $ncells != $num_row_cells {
-                        # pad row with needed empty cells
-                        my $n := $num_row_cells - $ncells;
-                        while $n > 0 {
-                            nqp::push(@rows[$i], '');
-                            --$n;
-                        }
-                    }
-                }
-                ++$i;
-            }
-        }
 
 	# Now separate the table into headers (if any) and content.
 	#
@@ -560,12 +539,24 @@ class Perl6::Pod {
                 unless $firstsepindex { $firstsepindex := $i }
                 if $firstsep {
                     if $firstsep ne @rows[$i] { $differentseps := 1 }
-                } 
+                }
                 else {
                     $firstsep := @rows[$i];
                 }
             }
-            # TODO put balance row code here--saves a loop
+            # multi-line rows are not yet merged, but we may need to
+            # add empty cells to some rows
+            if $unbalanced_row_cells && nqp::islist(@rows[$i]) {
+                my $ncells := nqp::elems(@rows[$i]);
+                if $ncells != $num_row_cells {
+                    # pad row with needed empty cells
+                    my $n := $num_row_cells - $ncells;
+                    while $n > 0 {
+                        nqp::push(@rows[$i], '');
+                        --$n;
+                    }
+                }
+            }
             ++$i;
         }
 
@@ -575,14 +566,14 @@ class Perl6::Pod {
         if $sepnum == 0 {
             # ordinary table, no headers, one-lined rows
             $content := @rows;
-        } 
+        }
         elsif $sepnum == 1 {
             if $firstsepindex == 1 {
                 # one-lined header, one-lined rows
                 $headers := @rows.shift;
                 @rows.shift; # remove the row separator
                 $content := @rows;
-            } 
+            }
             else {
                 # multi-line header, one-lined rows
                 my $i := 0;
@@ -595,7 +586,7 @@ class Perl6::Pod {
                 @rows.shift; # remove the row separator
                 $content := @rows;
             }
-        } 
+        }
         else {
             my @hlines := [];
             my $i := 0;
@@ -614,7 +605,7 @@ class Perl6::Pod {
             while $i < +@rows {
                 if nqp::islist(@rows[$i]) {
                     @tmp.push(@rows[$i]);
-                } 
+                }
                 else {
                     @newrows.push(merge_rows(@tmp));
                     @tmp := [];
@@ -642,7 +633,7 @@ class Perl6::Pod {
                     ++$i;
 	        }
 	        nqp::print("\n");
-            } 
+            }
             else {
 	        nqp::print(" (no headers)\n");
             }
@@ -811,7 +802,7 @@ class Perl6::Pod {
             for @rows -> $row {
 	        if $row ~~ $is_row_sep {
 		    @res.push($row);
-		} 
+		}
                 elsif nqp::isstr($row) {
 		    # just split the row
                     nqp::say("VIS BEFORE SPLIT: '$row'") if $debug;
@@ -830,7 +821,7 @@ class Perl6::Pod {
 		    my $n := +@tmp;
                     check_num_row_cells($n);
 		    @res.push(@tmp);
-		} 
+		}
                 else {
                     nqp::say("WEIRD ROW number $i '$row'");
                 }
@@ -911,7 +902,7 @@ class Perl6::Pod {
 		if !$wasone && @suspects[$i] == 1 {
                     @ranges.push($i);
                     $wasone := 1;
-		} 
+		}
                 elsif $wasone && @suspects[$i] != 1 {
                     @ranges.push($i);
                     $wasone := 0;
@@ -933,7 +924,7 @@ class Perl6::Pod {
 			@tmp.push(
                             normalize_text(nqp::substr($row, $a, $b - $a))
 			);
-                    } 
+                    }
                     else {
 			@tmp.push(
                             normalize_text(nqp::substr($row, $a))
@@ -953,11 +944,11 @@ class Perl6::Pod {
             if !$num_row_cells {
                 # the first row checked sets the mark
 		$num_row_cells := $num_cells;
-            } 
+            }
             elsif $num_cells > $num_row_cells {
 		$num_row_cells := $num_cells;
 		++$unbalanced_row_cells;
-            } 
+            }
             elsif $num_cells < $num_row_cells {
 		++$unbalanced_row_cells;
             }

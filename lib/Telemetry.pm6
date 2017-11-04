@@ -666,7 +666,7 @@ constant @default_format =
      "The number of affinity threads"
   >>,<<
           cpu cpu                      8d
-    "The amount of CPU used (in microseconds)"
+    "The total amount of CPU used (in microseconds)"
   >>,<<
      cpu-user cpu-user                 8d
     "The amount of CPU used in user code (in microseconds)"
@@ -674,14 +674,14 @@ constant @default_format =
       cpu-sys cpu-sys                  8d
     "The amount of CPU used in system overhead (in microseconds)"
   >>,<<
-           gw general-workers          3d
-    "The number of general worker threads"
+          gtc general-tasks-completed  8d
+    "The number of tasks completed in general worker threads"
   >>,<<
           gtq general-tasks-queued     3d
     "The number of tasks queued for execution in general worker threads"
   >>,<<
-          gtc general-tasks-completed  8d
-    "The number of tasks completed in general worker threads"
+           gw general-workers          3d
+    "The number of general worker threads"
   >>,<<
        id-rss id-rss                   8d
     "Integral unshared data size (in Kbytes)"
@@ -728,14 +728,14 @@ constant @default_format =
             s supervisor               1d
     "The number of supervisors"
   >>,<<
-           tw timer-workers            3d
-    "The number of timer threads"
+          ttc timer-tasks-completed    8d
+    "The number of tasks completed in timer threads"
   >>,<<
           ttq timer-tasks-queued       3d
     "The number of tasks queued for execution in timer threads"
   >>,<<
-          ttc timer-tasks-completed    8d
-    "The number of tasks completed in timer threads"
+           tw timer-workers            3d
+    "The number of timer threads"
   >>,<<
         util% utilization              6.2f
     "Percentage of CPU utilization (0..100%)"
@@ -769,15 +769,33 @@ multi sub report(
         ?? prepare-format(@format)
         !! (%default_format := prepare-format(@default_format));
 
-    my $total = @s[*-1] - @s[0];
+    my $first = @s[0];
+    my $last  = @s[*-1];
+    my $total = $last - $first;
     my $text := nqp::list_s(qq:to/HEADER/.chomp);
 Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
+HEADER
+
+    if $first.supervisor {
+        nqp::push_s($text,"Supervisor thread ran for the whole period.");
+    }
+    elsif !$last.supervisor {
+        nqp::push_s($text,"No supervisor thread has been running.");
+    }
+    else {
+        my $started = @s.first: *.supervisor;
+        nqp::push_s($text,"Supervisor thread ran for {
+          (100 * ($started.wallclock - $first.wallclock) / $total.wallclock)
+            .fmt("%5.2f")
+        }% of the time.");
+    }
+
+    nqp::push_s($text,qq:to/HEADER/.chomp);
 Number of Snapshots: {+@s}
 Initial Size:    { @s[0].max-rss.fmt('%9d') } Kbytes
 Total Time:      { (%format<wallclock>[DISPLAY]($total.wallclock)) } seconds
 Total CPU Usage: { (%format<cpu>[DISPLAY]($total.cpu)) } seconds
 HEADER
-
 
     my @formats = %format{@columns};
     sub push-period($period --> Nil) {

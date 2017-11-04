@@ -10011,7 +10011,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     method assertion:sym<{ }>($/) {
         make QAST::Regex.new(
                  QAST::NodeList.new(
-                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    QAST::SVal.new( :value('INTERPOLATE_ASSERTION') ),
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> && %*RX<m> ?? 3 !! %*RX<m> ?? 2 !! %*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
@@ -10049,7 +10049,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         } else {
             make QAST::Regex.new(
                 QAST::NodeList.new(
-                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    QAST::SVal.new( :value('INTERPOLATE_ASSERTION') ),
                     wanted($<var>.ast, 'assertvar2'),
                     QAST::IVal.new( :value(%*RX<i> && %*RX<m> ?? 3 !! %*RX<m> ?? 2 !! %*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
@@ -10211,7 +10211,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     method p5metachar:sym<(??{ })>($/) {
         make QAST::Regex.new(
                  QAST::NodeList.new(
-                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    QAST::SVal.new( :value($*INTERPOLATION ?? 'INTERPOLATE_ASSERTION' !! 'INTERPOLATE') ),
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
@@ -10227,7 +10227,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     method p5metachar:sym<var>($/) {
         make QAST::Regex.new(
                  QAST::NodeList.new(
-                    QAST::SVal.new( :value('INTERPOLATE') ),
+                    QAST::SVal.new( :value($*INTERPOLATION ?? 'INTERPOLATE_ASSERTION' !! 'INTERPOLATE') ),
                     wanted($<var>.ast, 'p5var'),
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),

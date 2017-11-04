@@ -69,7 +69,7 @@ class VM does Systemic {
           !! $platform-name.IO
     }
 
-    proto method osname(|) { * }
+    proto method osname(|) {*}
     multi method osname(VM:U:) {
 #?if jvm
         nqp::lc(nqp::atkey(nqp::jvmgetproperties,'os.name'))

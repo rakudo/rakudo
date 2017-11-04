@@ -240,7 +240,7 @@ class Distribution::Resources does Associative {
     has Str $.repo;
     has Str $.repo-name;
 
-    proto method BUILD(|) { * }
+    proto method BUILD(|) {*}
 
     multi method BUILD(:$!dist-id, CompUnit::Repository :$repo --> Nil) {
         unless $repo.can('name') and $!repo-name = $repo.name and $!repo-name ne '' {

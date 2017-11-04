@@ -30,7 +30,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
     }
 
     # Load a pre-compiled file
-    proto method load-precompilation-file(|) { * }
+    proto method load-precompilation-file(|) {*}
     multi method load-precompilation-file(IO::Path $path --> CompUnit::Handle:D) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;

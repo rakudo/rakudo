@@ -171,10 +171,10 @@ my role Setty does QuantHash {
         )
     }
 
-    proto method grab(|) { * }
-    proto method grabpairs(|) { * }
+    proto method grab(|) {*}
+    proto method grabpairs(|) {*}
 
-    proto method pick(|) { * }
+    proto method pick(|) {*}
     multi method pick(Setty:D:) { self.roll }
     multi method pick(Setty:D: Callable:D $calculate) {
         self.pick( $calculate(self.elems) )
@@ -194,7 +194,7 @@ my role Setty does QuantHash {
         }.new($!elems, $count))
     }
 
-    proto method pickpairs(|) { * }
+    proto method pickpairs(|) {*}
     multi method pickpairs(Setty:D:) { Pair.new(self.roll,True) }
     multi method pickpairs(Setty:D: Callable:D $calculate) {
         self.pickpairs( $calculate(self.elems) )
@@ -214,7 +214,7 @@ my role Setty does QuantHash {
         }.new($!elems, $count))
     }
 
-    proto method roll(|) { * }
+    proto method roll(|) {*}
     multi method roll(Setty:D:) {
         nqp::if(
           $!elems,

@@ -67,7 +67,7 @@ my class Promise does Awaitable {
         $vow
     }
 
-    proto method kept(|) { * }
+    proto method kept(|) {*}
     multi method kept(Promise:U:) {
         my \rv := self.new;
         rv!keep(True);
@@ -79,7 +79,7 @@ my class Promise does Awaitable {
         rv;
     }
 
-    proto method keep(|) { * }
+    proto method keep(|) {*}
     multi method keep(Promise:D:) {
         self.vow.keep(True)
     }
@@ -96,7 +96,7 @@ my class Promise does Awaitable {
         });
     }
 
-    proto method broken(|) { * }
+    proto method broken(|) {*}
     multi method broken(Promise:U:) {
         my \rv := self.new;
         rv!break("Died");
@@ -108,7 +108,7 @@ my class Promise does Awaitable {
         rv;
     }
 
-    proto method break(|) { * }
+    proto method break(|) {*}
     multi method break(Promise:D:) {
         self.vow.break("Died")
     }

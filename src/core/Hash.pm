@@ -311,7 +311,7 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
-    proto method classify-list(|) { * }
+    proto method classify-list(|) {*}
     multi method classify-list( &test, \list, :&as ) {
         fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
@@ -371,7 +371,7 @@ my class Hash { # declared in BOOTSTRAP
         self.classify-list(&test, @list, |c);
     }
 
-    proto method categorize-list(|) { * }
+    proto method categorize-list(|) {*}
     multi method categorize-list( &test, \list, :&as ) {
        fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;

@@ -8,7 +8,7 @@ my role X::Await::Died {
     }
 }
 
-proto sub await(|) { * }
+proto sub await(|) {*}
 multi sub await() {
     die "Must specify an Awaitable to await (got an empty list)";
 }

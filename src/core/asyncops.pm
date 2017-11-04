@@ -13,7 +13,7 @@ my role X::Await::Died {
     }
 }
 
-proto sub await(|) { * }
+proto sub await(|) {*}
 multi sub await() {
     die "Must specify a Promise or Channel to await on (got an empty list)";
 }

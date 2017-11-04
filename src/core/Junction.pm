@@ -47,7 +47,7 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
-    proto method new(|) { * }
+    proto method new(|) {*}
     multi method new(Junction: \values, Str :$type!) {
         nqp::create(Junction)!SET-SELF($type,values)
     }
@@ -351,19 +351,19 @@ my class Junction { # declared in BOOTSTRAP
     }
 }
 
-proto sub any(|) is pure { * }
+proto sub any(|) is pure {*}
 #multi sub any(@values) { @values.any }  # this breaks S02-literals/radix.t
 multi sub any(+values) {  values.any }
 
-proto sub all(|) is pure { * }
+proto sub all(|) is pure {*}
 multi sub all(@values) { @values.all }
 multi sub all(+values) {  values.all }
 
-proto sub one(|) is pure { * }
+proto sub one(|) is pure {*}
 multi sub one(@values) { @values.one }
 multi sub one(+values) {  values.one }
 
-proto sub none(|) is pure { * }
+proto sub none(|) is pure {*}
 multi sub none(@values) { @values.none }
 multi sub none(+values) {  values.none }
 

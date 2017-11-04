@@ -2,7 +2,7 @@
 #   (+)     baggy addition (ASCII)
 #   ⊎       baggy addition
 
-proto sub infix:<(+)>(|) is pure { * }
+proto sub infix:<(+)>(|) is pure {*}
 multi sub infix:<(+)>()               { bag()  }
 multi sub infix:<(+)>(Bag:D $a)       { $a     }
 multi sub infix:<(+)>(Mix:D $a)       { $a     }

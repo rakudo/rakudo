@@ -146,7 +146,7 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
-    proto method from-loop(|) { * }
+    proto method from-loop(|) {*}
     multi method from-loop(&body) {
         Seq.new(Rakudo::Iterator.Loop(&body))
     }

@@ -185,7 +185,7 @@ my class Proc {
         $is-spawned
     }
 
-    proto method status(|) { * }
+    proto method status(|) {*}
     multi method status($new_status) {
         $!exitcode = $new_status +> 8;
         $!signal   = $new_status +& 0xFF;

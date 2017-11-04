@@ -27,7 +27,7 @@ my class array does Iterable {
               !! nqp::create(self)
     }
 
-    proto method STORE(|) { * }
+    proto method STORE(|) {*}
     multi method STORE(array:D: *@values) { self.STORE(@values) }
 
     multi method push(array:D:    **@values) { self.append(@values) }
@@ -1031,7 +1031,7 @@ my class array does Iterable {
             )
         }
 
-        proto method STORE(|) { * }
+        proto method STORE(|) {*}
         multi method STORE(::?CLASS:D: Mu \item) {
             X::Assignment::ToShaped.new(shape => self.shape).throw
         }
@@ -2752,7 +2752,7 @@ my class array does Iterable {
         die "Cannot delete from a natively typed array";
     }
 
-    proto method ASSIGN-POS(|) { * } # Hide candidates from Any
+    proto method ASSIGN-POS(|) {*} # Hide candidates from Any
     multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) { # auto-viv
        SELF.AT-POS(pos) = assignee;
     }
@@ -2773,7 +2773,7 @@ my class array does Iterable {
 
     multi method elems(array:D:)    { nqp::elems(self) }
     method shape() { (*,) }
-    proto method Int(|) { * }
+    proto method Int(|) {*}
     multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }
 

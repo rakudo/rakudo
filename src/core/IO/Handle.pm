@@ -325,7 +325,7 @@ my class IO::Handle {
         self.slurp(:$close).split: |c
     }
 
-    proto method words (|) { * }
+    proto method words (|) {*}
     multi method words(IO::Handle:D \SELF: $limit, :$close) {
         $!decoder or die X::IO::BinaryMode.new(:trying<words>);
         nqp::istype($limit,Whatever) || $limit == Inf
@@ -488,7 +488,7 @@ my class IO::Handle {
         ).new(self)
     }
 
-    proto method lines (|) { * }
+    proto method lines (|) {*}
     multi method lines(IO::Handle:D \SELF: $limit, :$close) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.lines(:$close)
@@ -580,7 +580,7 @@ my class IO::Handle {
         }
     }
 
-    proto method seek(|) { * }
+    proto method seek(|) {*}
     multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence = SeekFromBeginning) {
         my int $rewind = 0;
         if $!decoder {
@@ -644,7 +644,7 @@ my class IO::Handle {
         self.print(sprintf |c);
     }
 
-    proto method print(|) { * }
+    proto method print(|) {*}
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print>);
         self.write-internal($!encoder.encode-chars(x));
@@ -653,7 +653,7 @@ my class IO::Handle {
         self.print(@list.join);
     }
 
-    proto method put(|) { * }
+    proto method put(|) {*}
     multi method put(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<put>);
         self.write-internal($!encoder.encode-chars(
@@ -687,7 +687,7 @@ my class IO::Handle {
         self.write-internal($!encoder.encode-chars($!nl-out));
     }
 
-    proto method slurp-rest(|) { * }
+    proto method slurp-rest(|) {*}
     multi method slurp-rest(IO::Handle:D: :$bin! where *.so, :$close --> Buf:D) {
         # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
         # Testing of it in roast master has been removed and only kept in 6.c
@@ -743,7 +743,7 @@ my class IO::Handle {
         $!decoder.consume-all-chars()
     }
 
-    proto method spurt(|) { * }
+    proto method spurt(|) {*}
     multi method spurt(IO::Handle:D: Blob $data, :$close) {
         LEAVE self.close if $close;
         self.write-internal($data);
@@ -769,7 +769,7 @@ my class IO::Handle {
         nqp::flushfh($!PIO);
     }
 
-    proto method encoding(|) { * }
+    proto method encoding(|) {*}
     multi method encoding(IO::Handle:D:) { $!encoding // Nil }
     multi method encoding(IO::Handle:D: $new-encoding is copy) {
         with $new-encoding {

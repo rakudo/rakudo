@@ -170,6 +170,14 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }
 
     method cpu-cores() is raw { nqp::cpucores }
+
+    method cpu-usage() is raw {
+        my \rusage = nqp::getrusage();
+        nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
+          + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
+          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
+          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
+    }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

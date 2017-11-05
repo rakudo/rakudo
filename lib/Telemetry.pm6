@@ -582,14 +582,23 @@ multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
 # Starting the snapper / changing the period size
 my int $snapper-running;
 my $snapper-wait;
-sub snapper($sleep = 0.1 --> Nil) is export {
+sub snapper($sleep = 0.1, :$stop, :$reset --> Nil) is export {
+
     $snapper-wait = $sleep;
-    unless $snapper-running {
-        snap;
+    nqp::bindattr(@snaps,List,'$!reified',nqp::list) if $reset;
+
+    if $snapper-running {
+        $snapper-running = 0 if $stop;
+    }
+    else {
+        $snapper-running = 1;
         Thread.start(:app_lifetime, :name<Snapper>, {
-            loop { sleep $snapper-wait; snap }
+            snap;
+            while $snapper-running {
+                sleep $snapper-wait;
+                snap
+            }
         });
-        $snapper-running = 1
     }
 }
 

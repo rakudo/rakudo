@@ -802,13 +802,14 @@ multi sub report(
         !! (%default_format := prepare-format(@default_format));
 
     # some initializations
-    my @formats = %format{@columns};
     my $text   := nqp::list_s;
+    my @periods = periods(@s);
     
     # only want CSV ready output
     if $csv {
+        my @formats = %format{@columns};
         nqp::push_s($text,%format{@columns}>>.[COLUMN].join(' '));
-        for periods(@s) -> $period {
+        for @periods -> $period {
             nqp::push_s($text,
               @formats.map( -> @info {
                   $period."@info[METHOD]"()
@@ -822,7 +823,13 @@ multi sub report(
         my $first = @s[0];
         my $last  = @s[*-1];
         my $total = $last - $first;
+
+        # remove the columns that don't have any values
+        @columns = @columns.grep: -> $column {
+            @periods.first: { ."%format{$column}[METHOD]"() }
+        };
         my $header  = "\n%format{@columns}>>.[HEADER].join(' ')";
+        my @formats = %format{@columns};
 
         nqp::push_s($text,qq:to/HEADER/.chomp);
 Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
@@ -860,7 +867,7 @@ HEADER
 
         nqp::push_s($text,$header) unless $header-repeat;
 
-        for periods(@s).kv -> $index, $period {
+        for @periods.kv -> $index, $period {
             nqp::push_s($text,$header)
               if $header-repeat && $index %% $header-repeat;
             push-period($period)

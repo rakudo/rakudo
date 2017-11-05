@@ -882,6 +882,15 @@ HEADER
     nqp::join("\n",$text)
 }
 
+# Allow for safe CTRL-c exit, always giving a report ---------------------------
+my int $has-safe-ctrl-c;
+sub safe-ctrl-c(--> Nil) is export {
+    unless $has-safe-ctrl-c {
+        signal(SIGINT).tap: &exit;
+        $has-safe-ctrl-c = 1;
+    }
+}
+
 # The special T<foo bar> functionality -----------------------------------------
 
 sub T () is export { Telemetry.new }

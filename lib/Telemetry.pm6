@@ -596,7 +596,7 @@ sub snapper($sleep = 0.1, :$stop, :$reset --> Nil) is export {
             snap;
             while $snapper-running {
                 sleep $snapper-wait;
-                snap
+                snap if $snapper-running;
             }
         });
     }
@@ -622,7 +622,6 @@ multi sub report(:@columns, :$legend, :$header-repeat, :$csv, :@format) {
     my $s := nqp::getattr(@snaps,List,'$!reified');
     nqp::bindattr(@snaps,List,'$!reified',nqp::list);
 
-    nqp::push($s,Telemetry.new) if nqp::elems($s) == 1;
     report(
       nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s),
       :@columns,
@@ -912,6 +911,12 @@ sub EXPORT(*@args) {
 }
 
 # Make sure we tell the world if we're implicitely told to do so ---------------
-END { if @snaps { snap; note report } }
+END {
+    $snapper-running = 0;  # stop any snapper
+    if @snaps {
+        snap;
+        note report;
+    }
+}
 
 # vim: ft=perl6 expandtab sw=4

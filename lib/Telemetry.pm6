@@ -791,7 +791,7 @@ multi sub report(
 
     # set csv flag
     without $csv {
-        $csv = $_.Int with %*ENV<RAKUDO_REPORT_CSV> // 1;
+        $csv = $_.Int with %*ENV<RAKUDO_REPORT_CSV> // 0;
     }
 
     # get / calculate the format info we need

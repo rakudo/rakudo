@@ -614,15 +614,21 @@ multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 # Telemetry reporting features -------------------------------------------------
 proto sub report(|) is export {*}
-multi sub report(:@columns, :$legend, :$header-repeat, :@format) {
-    my $s := nqp::clone(nqp::getattr(@snaps,List,'$!reified'));
-    nqp::setelems(nqp::getattr(@snaps,List,'$!reified'),0);
+multi sub report(:@columns, :$legend, :$header-repeat, :$csv, :@format) {
+
+    # race condition, but should be safe enough because installing new list
+    # and all access is done using HLL ops, so those will either see the old
+    # or the new nqp::list, and thus push to either the old or the new.
+    my $s := nqp::getattr(@snaps,List,'$!reified');
+    nqp::bindattr(@snaps,List,'$!reified',nqp::list);
+
     nqp::push($s,Telemetry.new) if nqp::elems($s) == 1;
     report(
       nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s),
       :@columns,
       :$legend,
       :$header-repeat,
+      :$csv,
       :@format,
     );
 }
@@ -759,6 +765,7 @@ multi sub report(
   :@columns       is copy,
   :$header-repeat is copy,
   :$legend        is copy,
+  :$csv           is copy,
   :@format,
 ) {
 
@@ -782,6 +789,11 @@ multi sub report(
         $legend = $_.Int with %*ENV<RAKUDO_REPORT_LEGEND> // 1;
     }
 
+    # set csv flag
+    without $csv {
+        $csv = $_.Int with %*ENV<RAKUDO_REPORT_CSV> // 1;
+    }
+
     # get / calculate the format info we need
     my %format := %default_format
       ?? %default_format
@@ -789,62 +801,81 @@ multi sub report(
         ?? prepare-format(@format)
         !! (%default_format := prepare-format(@default_format));
 
-    my $first = @s[0];
-    my $last  = @s[*-1];
-    my $total = $last - $first;
-    my $text := nqp::list_s(qq:to/HEADER/.chomp);
+    # some initializations
+    my @formats = %format{@columns};
+    my $text   := nqp::list_s;
+    
+    # only want CSV ready output
+    if $csv {
+        nqp::push_s($text,%format{@columns}>>.[COLUMN].join(' '));
+        for periods(@s) -> $period {
+            nqp::push_s($text,
+              @formats.map( -> @info {
+                  $period."@info[METHOD]"()
+              }).join(' ')
+            )
+        }
+    }
+
+    # standard text output
+    else {
+        my $first = @s[0];
+        my $last  = @s[*-1];
+        my $total = $last - $first;
+        my $header  = "\n%format{@columns}>>.[HEADER].join(' ')";
+
+        nqp::push_s($text,qq:to/HEADER/.chomp);
 Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
 HEADER
 
-    # give the supervisor blurb
-    if $first.supervisor {
-        nqp::push_s($text,"Supervisor thread ran for the whole time");
-    }
-    elsif !$last.supervisor {
-        nqp::push_s($text,"No supervisor thread has been running");
-    }
-    else {
-        my $started = @s.first: *.supervisor;
-        nqp::push_s($text,"Supervisor thread ran for {
-          (100 * ($last.wallclock - $started.wallclock) / $total.wallclock)
-            .fmt("%5.2f")
-        }% of the time");
-    }
+        # give the supervisor blurb
+        if $first.supervisor {
+            nqp::push_s($text,"Supervisor thread ran for the whole time");
+        }
+        elsif !$last.supervisor {
+            nqp::push_s($text,"No supervisor thread has been running");
+        }
+        else {
+            my $started = @s.first: *.supervisor;
+            nqp::push_s($text,"Supervisor thread ran for {
+              (100 * ($last.wallclock - $started.wallclock) / $total.wallclock)
+                .fmt("%5.2f")
+            }% of the time");
+        }
 
-    nqp::push_s($text,qq:to/HEADER/.chomp);
+        nqp::push_s($text,qq:to/HEADER/.chomp);
 Number of Snapshots: {+@s}
 Initial Size:    { @s[0].max-rss.fmt('%9d') } Kbytes
 Total Time:      { ($total.wallclock / 1000000).fmt('%9.2f') } seconds
 Total CPU Usage: { ($total.cpu / 1000000).fmt('%9.2f') } seconds
 HEADER
 
-    my @formats = %format{@columns};
-    sub push-period($period --> Nil) {
-        nqp::push_s($text,
-          @formats.map( -> @info {
-              @info[DISPLAY]($period."@info[METHOD]"())
-          }).join(' ').trim-trailing
-        )
-    }
+        sub push-period($period --> Nil) {
+            nqp::push_s($text,
+              @formats.map( -> @info {
+                  @info[DISPLAY]($period."@info[METHOD]"())
+              }).join(' ').trim-trailing
+            )
+        }
 
-    my $header = "\n%format{@columns}>>.[HEADER].join(' ')";
-    nqp::push_s($text,$header) unless $header-repeat;
+        nqp::push_s($text,$header) unless $header-repeat;
 
-    for periods(@s).kv -> $index, $period {
-        nqp::push_s($text,$header)
-          if $header-repeat && $index %% $header-repeat;
-        push-period($period)
-    }
+        for periods(@s).kv -> $index, $period {
+            nqp::push_s($text,$header)
+              if $header-repeat && $index %% $header-repeat;
+            push-period($period)
+        }
 
-    nqp::push_s($text,%format{@columns}>>.[FOOTER].join(' '));
+        nqp::push_s($text,%format{@columns}>>.[FOOTER].join(' '));
 
-    push-period($total);
+        push-period($total);
 
-    if $legend {
-        nqp::push_s($text,'');
-        nqp::push_s($text,'Legend:');
-        for %format{@columns} -> $col {
-            nqp::push_s($text,"$col[COLUMN].fmt("%9s")  $col[LEGEND]");
+        if $legend {
+            nqp::push_s($text,'');
+            nqp::push_s($text,'Legend:');
+            for %format{@columns} -> $col {
+                nqp::push_s($text,"$col[COLUMN].fmt("%9s")  $col[LEGEND]");
+            }
         }
     }
 

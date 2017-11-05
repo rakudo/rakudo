@@ -590,7 +590,7 @@ sub snapper($sleep = 0.1, :$stop, :$reset --> Nil) is export {
     if $snapper-running {
         $snapper-running = 0 if $stop;
     }
-    else {
+    elsif !$stop {
         $snapper-running = 1;
         Thread.start(:app_lifetime, :name<Snapper>, {
             snap;

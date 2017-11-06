@@ -510,7 +510,6 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     multi method INTERPOLATE(Mu:D \var, int \im, int \monkey, $, $, \context) {
-        my $maxmatch;
         my \cur     = self.'!cursor_start_cur'();
         my str $tgt = cur.target;
 
@@ -594,7 +593,6 @@ my class Match is Capture is Cool does NQPMatchRole {
           && nqp::isgt_i($len,$maxlen)
           && nqp::isle_i(nqp::add_i($pos,$len),nqp::chars($tgt)) {
             $maxlen    = $len;
-            $maxmatch := $match;
         }
 
         nqp::isge_i($maxlen,0)
@@ -705,7 +703,6 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     multi method INTERPOLATE_ASSERTION(Mu:D \var, int \im, int \monkey, $, $, \context) {
-        my $maxmatch;
         my \cur     = self.'!cursor_start_cur'();
 
         my int $maxlen = -1;
@@ -714,18 +711,13 @@ my class Match is Capture is Cool does NQPMatchRole {
         # We are in a regex assertion, the strings we get will be
         # treated as regex rules.
         my $rx     := MAKE_REGEX(var,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
-        my $match  := self.$rx;
-        my int $len = $match.pos - $match.from;
+        my Match \match  := self.$rx;
+        my int $len = match.pos - match.from;
 
-        if $match
+        match.Bool
           && nqp::isgt_i($len,$maxlen)
-          && nqp::isle_i(nqp::add_i($pos,$len),nqp::chars(cur.target)) {
-            $maxlen    = $len;
-            $maxmatch := $match;
-        }
-
-        nqp::istype($maxmatch, Match)
-          ?? $maxmatch
+          && nqp::isle_i(nqp::add_i($pos,$len),nqp::chars(cur.target))
+          ?? match
           !! nqp::isge_i($maxlen,0)
             ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
             !! cur

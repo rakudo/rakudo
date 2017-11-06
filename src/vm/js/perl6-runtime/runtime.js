@@ -354,6 +354,15 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return boxed;
   };
 
+  op.p6getouterctx = function(codeObj) {
+    const closure = codeObj.$$getattr(Code, "$!do");
+    console.log('p6getouterctx:');
+    nqp.dumpObj(closure);
+    console.log('returning');
+    nqp.dumpObj(closure.outerCtx);
+    return closure.outerCtx || Null;
+  };
+
   function RakudoScalar(STable) {
     this.STable = STable;
   }

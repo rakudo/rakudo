@@ -159,4 +159,6 @@ $ops.add_simple_op('p6setpre', $ops.OBJ,  [], :ctx, :side_effects);
 $ops.add_simple_op('p6clearpre', $ops.OBJ, [], :ctx, :side_effects);
 $ops.add_simple_op('p6inpre', $ops.INT, [], :ctx, :side_effects);
 
+$ops.add_simple_op('p6getouterctx', $ops.OBJ, [$ops.OBJ], :decont(0), :!inlinable);
+
 $ops.add_simple_op('p6staticouter', $ops.OBJ, [$ops.OBJ], :ctx, :side_effects);

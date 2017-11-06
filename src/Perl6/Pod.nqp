@@ -34,29 +34,28 @@
 #
 # + FILL IN LOG FILE FOR THE PR COMMIT!!!
 
-# various helper methods for Pod parsing and processing
-
-# enable use of env vars for debug selections
-my $debug    := 0; # for dev use
-my $udebug   := 0; # for users via an environment variable
-
-my $ddenvvar := 'RAKUDO_POD6_TABLE_DEBUG_DEV';
-my $duenvvar := 'RAKUDO_POD6_TABLE_DEBUG';
-
-my %env := nqp::getenvhash();
-if nqp::existskey(%env, $ddenvvar) {
-    my $val := nqp::atkey(%env, $ddenvvar);
-    $debug := $val;
-    #say("DEBUG: $ddenvvar = $val");
-}
-if nqp::existskey(%env, $duenvvar) {
-    my $val := nqp::atkey(%env, $duenvvar);
-    $udebug := $val;
-    #say("DEBUG: $duenvvar = $val");
-}
-#nqp::die("DEBUG: early end") if $debug == 1 || $udebug == 1;
-
 class Perl6::Pod {
+
+    # various helper methods for Pod parsing and processing
+
+    # enable use of env vars for debug selections
+    my $debug  := 0; # for dev use
+    my $udebug := 0; # for users via an environment variable
+
+    my $ddenvvar := 'RAKUDO_POD6_TABLE_DEBUG_DEV';
+    my $duenvvar := 'RAKUDO_POD6_TABLE_DEBUG';
+
+    my %env := nqp::getenvhash();
+    if nqp::existskey(%env, $ddenvvar) {
+	my $val := nqp::atkey(%env, $ddenvvar);
+	$debug := $val;
+	#say("DEBUG: $ddenvvar = $val");
+    }
+    if nqp::existskey(%env, $duenvvar) {
+	my $val := nqp::atkey(%env, $duenvvar);
+	$udebug := $val;
+    }
+    my $show_warning := 1;
 
     my $table_num := -1; # for user debugging, incremented by one on each call to sub table
 
@@ -369,8 +368,6 @@ class Perl6::Pod {
             ?? $<pod_configuration>.ast
             !! serialize_object('Hash').compile_time_value;
 
-
-
         # increment the table number for user debugging and reporting
         ++$table_num;
 
@@ -459,9 +456,6 @@ class Perl6::Pod {
                     #nqp::say("      VIS COL SEP ROW: '$row'") if $debug;
                     ++$table_has_col_sep_plus if $row ~~ $has_col_sep_plus;
                 }
-		#elsif $row ~~ $has_ws_col_sep {
-                #    nqp::say("      WS COL SEP ROW: '$row'") if $debug;
-                #}
             }
             @rows.push($row);
         }
@@ -536,9 +530,13 @@ class Perl6::Pod {
         while $i < +@rows {
             unless nqp::islist(@rows[$i]) {
                 $sepnum := $sepnum + 1;
-                unless $firstsepindex { $firstsepindex := $i }
+                unless $firstsepindex {
+		    $firstsepindex := $i
+		}
                 if $firstsep {
-                    if $firstsep ne @rows[$i] { $differentseps := 1 }
+                    if $firstsep ne @rows[$i] {
+			$differentseps := 1
+		    }
                 }
                 else {
                     $firstsep := @rows[$i];
@@ -619,35 +617,9 @@ class Perl6::Pod {
         }
 
         # show final table matrix (put in a sub?? YES)
-	if $debug || $udebug {
+	if $debug > 0 || $udebug > 0 {
 	    # show final table matrix
-            nqp::say("===DEBUG: final cell layout for table $table_num.");
-            nqp::say("=== cell contents are enclosed in single quotes");
-            nqp::say("=== cell separators are shown as pipes ('|')");
-            nqp::say("=== headers");
-            if $headers {
-                my $i := 0;
-	        for $headers -> $h {
-		    nqp::print(" | ") if $i;
-		    nqp::print("'$h'");
-                    ++$i;
-	        }
-	        nqp::print("\n");
-            }
-            else {
-	        nqp::print(" (no headers)\n");
-            }
-            nqp::say("=== contents");
-	    for $content -> $row {
-                my $i := 0;
-	    	for $row -> $cell {
-		    nqp::print(" | ") if $i;
-		    nqp::print("'$cell'");
-                    ++$i;
-		}
-		nqp::print("\n");
-	    }
-            nqp::say("===DEBUG: end final cell layout for table $table_num.");
+	    show_final_table_matrix($headers, $content);
 	}
 
         # the table data are separated properly, now pack up
@@ -659,7 +631,6 @@ class Perl6::Pod {
         );
 
 	# must return here before the sub subs begin
-        #return make $past.compile_time_value;
         return $past.compile_time_value;
 
 	#===== TABLE-SPECIFIC SUBROUTINES =====
@@ -679,24 +650,33 @@ class Perl6::Pod {
 		nqp::say("===FATAL: Table $t has no data.");
             }
 
-	    #=== warnings
+	    # bailout for a fatal
+	    if $fatals {
+		nqp::say($_) for @rows; # the original table as input
+		nqp::say("===end FATAL table $t input");
+		nqp::die(1);
+	    }
+
+	    #=== warnings (only if $udebug)
 	    if $table_has_leading_row_seps || $table_has_trailing_row_seps {
 		++$warns;
-		nqp::say("===WARNING: Table $t has unneeded leading or trailing row separators.");
+		nqp::say("===WARNING: Table $t has unneeded leading or trailing row separators.") if $udebug;
 	    }
 
 	    if $table_has_border_vis_col_seps {
 		++$warns;
-		nqp::say("===WARNING: Table $t has unneeded border vis col separators.");
+		nqp::say("===WARNING: Table $t has unneeded border vis col separators.") if $udebug;
 	    }
 
-	    # warn or die:
-            if $fatals || $warns {
+	    if $warns && $udebug {
 		nqp::say($_) for @rows; # the original table as input
-		nqp::say("===end FATAL table $t input") if $fatals;
-		nqp::exit(1) if $fatals;
 		nqp::say("===end WARNING table $t input rows") if $warns;
-            }
+	    }
+	    elsif $warns && $show_warning {
+		    nqp::say("===WARNING: One or more tables evidence bad practice.");
+		    nqp::say("==          Set environment variable 'RAKUDO_POD6_TABLE_DEBUG' for more details.");
+		    $show_warning := 0;
+	    }
         }
 
 	my sub normalize_vis_col_sep_rows(@Rows) {
@@ -724,14 +704,14 @@ class Perl6::Pod {
                         ++$table_has_trailing_border_vis_col_seps;
                         ++$table_has_border_vis_col_seps;
                     }
-                    say("DEBUG: i $i, nlp $nlp, ntp $ntp, nr $nr");
+                    say("DEBUG: i $i, nlp $nlp, ntp $ntp, nr $nr") if $debug;
                 }
                 ++$i;
             }
             ++$leading if $nlp == $nr;
             ++$trailing if $ntp == $nr;
             if $leading || $trailing {
-                say("DEBUG: REMOVING BORDER PIPES");
+                say("DEBUG: REMOVING BORDER PIPES") if $debug;
                 # all data rows have the leading or trailng pipe, so remove all including surrounding ws
                 @rows := remove_border_pipes(@rows, $leading, $trailing);
             }
@@ -746,7 +726,7 @@ class Perl6::Pod {
             while $i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
 		    if $leading || $trailing {
-			say("DEBUG BEFORE rm border: '@rows[$i]'");
+			say("DEBUG BEFORE rm border: '@rows[$i]'") if $debug;
 		    }
                     if $leading {
                         # remove the leading pipe and surrounding ws
@@ -757,7 +737,7 @@ class Perl6::Pod {
                         @rows[$i] := subst(@rows[$i], / \h* '|' \h* $/, '');
                     }
 		    if $leading || $trailing {
-			say("DEBUG AFTER rm border: '@rows[$i]'");
+			say("DEBUG AFTER rm border: '@rows[$i]'") if $debug;
 		    }
                 }
                 ++$i;
@@ -823,7 +803,7 @@ class Perl6::Pod {
 		    @res.push(@tmp);
 		}
                 else {
-                    nqp::say("WEIRD ROW number $i '$row'");
+                    nqp::say("WEIRD ROW number $i '$row'") if $debug;
                 }
                 ++$i;
             }
@@ -960,6 +940,36 @@ class Perl6::Pod {
 	    $s := subst($s, /\h '+' \h /, $col_sep_pipe_literal, :global);
 	    #$s := trim_right($s);
 	    return $s;
+	}
+
+	my sub show_final_table_matrix($headers, $content) {
+            nqp::say("===DEBUG: final cell layout for table $table_num.");
+            nqp::say("=== cell contents are enclosed in single quotes");
+            nqp::say("=== cell separators are shown as pipes ('|')");
+            nqp::say("=== headers");
+            if $headers {
+                my $i := 0;
+	        for $headers -> $h {
+		    nqp::print(" | ") if $i;
+		    nqp::print("'$h'");
+                    ++$i;
+	        }
+	        nqp::print("\n");
+            }
+            else {
+	        nqp::print(" (no headers)\n");
+            }
+            nqp::say("=== contents");
+	    for $content -> $row {
+                my $i := 0;
+	    	for $row -> $cell {
+		    nqp::print(" | ") if $i;
+		    nqp::print("'$cell'");
+                    ++$i;
+		}
+		nqp::print("\n");
+	    }
+            nqp::say("===DEBUG: end final cell layout for table $table_num.");
 	}
 	#===== END OF TABLE-SPECIFIC SUBROUTINES =====
 

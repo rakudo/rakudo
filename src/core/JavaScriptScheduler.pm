@@ -44,11 +44,9 @@ my class JavaScriptScheduler does Scheduler {
 # Stubbed for tests
 class ThreadPoolScheduler {
   method new(*@args) {
-    die "Not implemented on the JS backend";
+    die "ThreadPoolScheduler is not implemented on the JS backend";
   }
 }
 
-# This thread pool scheduler will be the default one.
-PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 
 # vim: ft=perl6 expandtab sw=4

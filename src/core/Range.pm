@@ -21,6 +21,7 @@ my class Range is Cool does Iterable does Positional {
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments
     # are present (e.g., Range,Whatever or Real,Range).
+    proto method new(|) {*}
     multi method new(Range $min, \max, :$excludes-min, :$excludes-max) {
         X::Range::InvalidArg.new(:got($min)).throw;
     }
@@ -372,7 +373,7 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
-    proto method int-bounds(|) { * }
+    proto method int-bounds(|) {*}
     multi method int-bounds($from is rw, $to is rw) {
         nqp::if(
           $!is-int,
@@ -390,7 +391,7 @@ my class Range is Cool does Iterable does Positional {
               ($from = $!min.floor + $!excludes-min),
               ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max))
             ),
-            (die "Cannot determine integer bounds")
+            Failure.new("Cannot determine integer bounds")
           )
         )
     }
@@ -480,7 +481,7 @@ my class Range is Cool does Iterable does Positional {
             !! "{$!min.perl}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.perl()"
     }
 
-    proto method roll(|) { * }
+    proto method roll(|) {*}
     multi method roll(Range:D: Whatever) {
         if self.elems -> $elems {
             $!is-int
@@ -544,7 +545,7 @@ my class Range is Cool does Iterable does Positional {
         }
     }
 
-    proto method pick(|)        { * }
+    proto method pick(|)        {*}
     multi method pick()          { self.roll };
     multi method pick(Whatever)  { self.list.pick(*) };
     multi method pick(Int(Cool) $todo) {
@@ -599,6 +600,14 @@ my class Range is Cool does Iterable does Positional {
         }
     }
 
+    method Capture(Range:D:) {
+        \( :$!min, :$!max,
+           excludes-min => self.excludes-min,
+           excludes-max => self.excludes-max,
+           infinite     => self.infinite,
+           is-int       => self.is-int)
+    }
+
     multi method Numeric(Range:D:) {
         $!is-int
           ?? self.elems
@@ -640,9 +649,15 @@ my class Range is Cool does Iterable does Positional {
     }
 
     method sum() is nodal {
-        my ($start,$stop) = self.int-bounds || nextsame;
-        my $elems = 0 max $stop - $start + 1;
-        ($start + $stop) * $elems div 2;
+        self.int-bounds(my $start, my $stop)
+          ?? ($start + $stop) * (0 max $stop - $start + 1) div 2
+          !! $!min == -Inf
+            ?? $!max == Inf
+              ?? NaN
+              !! -Inf
+            !! $!max == Inf
+              ?? Inf
+              !! nextsame
     }
 
     method rand() {

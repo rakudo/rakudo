@@ -6,7 +6,7 @@ my class IO::Async::File {
     has $.chomp = Bool::True;
     has $.path;
 
-    proto method open(|) { * }
+    proto method open(|) {*}
     multi method open($path? is copy, :$r, :$w, :$a, :$bin, :$chomp = Bool::True,
             :enc(:$encoding) = 'utf8') {
         $path //= $!path;
@@ -74,3 +74,5 @@ my class IO::Async::File {
         $c
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -103,6 +103,8 @@ class Version {
         True;
     }
 
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
+
     multi method WHICH(Version:D:) {
         nqp::box_s(
           nqp::concat(
@@ -134,45 +136,54 @@ multi sub infix:<eqv>(Version:D \a, Version:D \b) {
 }
 
 multi sub infix:<cmp>(Version:D \a, Version:D \b) {
-    proto vnumcmp(|) { * }
-    multi vnumcmp(Str, Int) { Order::Less }
-    multi vnumcmp(Int, Str) { Order::More }
-    multi vnumcmp($av, $bv) { $av cmp $bv }
-
-    # we're us
-    if a =:= b {
-        Same
-    }
-
-    # need to check
-    else {
-        my \ia := nqp::iterator(nqp::getattr(nqp::decont(a),Version,'$!parts'));
-        my \ib := nqp::iterator(nqp::getattr(nqp::decont(b),Version,'$!parts'));
-
-        # check from left
-        while ia {
-            if vnumcmp(nqp::shift(ia), ib ?? nqp::shift(ib) !! 0) -> $cmp {
-                return $cmp;
-            }
-        }
-
-        # check from right
-        while ib {
-            if vnumcmp(0, nqp::shift(ib)) -> $cmp {
-                return $cmp;
-            }
-        }
-
-        a.plus cmp b.plus
-    }
+    nqp::if(
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b)), # we're us
+      Same,
+      nqp::stmts(
+        (my \ia := nqp::iterator(nqp::getattr(nqp::decont(a),Version,'$!parts'))),
+        (my \ib := nqp::iterator(nqp::getattr(nqp::decont(b),Version,'$!parts'))),
+        (my ($ret, $a-part, $b-part)),
+        nqp::while(
+          ia, # check from left
+          nqp::stmts(
+            ($a-part := nqp::shift(ia)),
+            ($b-part := ib ?? nqp::shift(ib) !! 0),
+            nqp::if(
+              ($ret := nqp::if(
+                nqp::istype($a-part,Str) && nqp::istype($b-part,Int),
+                Less,
+                nqp::if(
+                  nqp::istype($a-part,Int) && nqp::istype($b-part,Str),
+                  More,
+                  ($a-part cmp $b-part)))),
+              return $ret))),
+        nqp::while(
+          ib, # check from right
+          nqp::stmts(
+            ($a-part := 0),
+            ($b-part := nqp::shift(ib)),
+            nqp::if(
+              ($ret := nqp::if(
+                nqp::istype($a-part,Str) && nqp::istype($b-part,Int),
+                Less,
+                nqp::if(
+                  nqp::istype($a-part,Int) && nqp::istype($b-part,Str),
+                  More,
+                  ($a-part cmp $b-part)))),
+              return $ret))),
+        (     nqp::getattr_i(nqp::decont(a),Version,'$!plus')
+          cmp nqp::getattr_i(nqp::decont(b),Version,'$!plus'))))
 }
 
 multi sub infix:«<=>»(Version:D \a, Version:D \b) { a cmp b }
 multi sub infix:«<»  (Version:D \a, Version:D \b) { a cmp b == Less }
 multi sub infix:«<=» (Version:D \a, Version:D \b) { a cmp b != More }
+multi sub infix:«≤»  (Version:D \a, Version:D \b) { a cmp b != More }
 multi sub infix:«==» (Version:D \a, Version:D \b) { a cmp b == Same }
 multi sub infix:«!=» (Version:D \a, Version:D \b) { a cmp b != Same }
+multi sub infix:«≠»  (Version:D \a, Version:D \b) { a cmp b  ≠ Same }
 multi sub infix:«>=» (Version:D \a, Version:D \b) { a cmp b != Less }
+multi sub infix:«≥»  (Version:D \a, Version:D \b) { a cmp b != Less }
 multi sub infix:«>»  (Version:D \a, Version:D \b) { a cmp b == More }
 
 # vim: ft=perl6 expandtab sw=4

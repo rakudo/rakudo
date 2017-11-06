@@ -1,33 +1,33 @@
 role Perl6::Metamodel::RolePunning {
     # Meta-object we use to make a pun.
     my $pun_meta;
-    
+
     # Exceptions to the punning. Hash of name to actual object to call on.
     my %exceptions;
-    
+
     # The pun for the current meta-object.
     has $!pun;
-    
+
     # Did we make a pun?
     has $!made_pun;
-    
+
     # Representation to pun to, if any.
     has str $!pun_repr;
-    
+
     # Configures the punning.
     method configure_punning($my_pun_meta, %my_exceptions) {
         $pun_meta := $my_pun_meta;
         %exceptions := %my_exceptions;
     }
-    
+
     method set_pun_repr($obj, $repr) {
         $!pun_repr := $repr
     }
-    
+
     method pun_repr($obj) {
         $!pun_repr
     }
-    
+
     # Produces the pun.
     method make_pun($obj) {
         my $pun := $!pun_repr
@@ -41,7 +41,7 @@ role Perl6::Metamodel::RolePunning {
         }
         $pun
     }
-    
+
     # Returns the pun (only creating it if it wasn't already created)
     method pun($obj) {
         unless $!made_pun {
@@ -55,7 +55,7 @@ role Perl6::Metamodel::RolePunning {
     method inheritalize($obj) {
         self.pun($obj)
     }
-    
+
     # Do a pun-based dispatch. If we pun, return a thunk that will delegate.
     method find_method($obj, $name) {
         if nqp::existskey(%exceptions, $name) {

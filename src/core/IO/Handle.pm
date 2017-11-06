@@ -1,5 +1,4 @@
 my class IO::Path { ... }
-my class IO::Special { ... }
 my class Proc { ... }
 
 my class IO::Handle {
@@ -11,6 +10,7 @@ my class IO::Handle {
     has Str $.encoding;
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;
+    has int $!out-buffer;
 
     submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
         nqp::if(
@@ -19,10 +19,30 @@ my class IO::Handle {
           $!encoding = $encoding || 'utf8')
     }
 
+#?if moar
     # Make sure we close any open files on exit
     my $opened := nqp::list;
-    my $opened-sizer = Lock.new;
-    END {
+    my $opened-locker = Lock.new;
+    method !remember-to-close(--> Nil) {
+        $opened-locker.protect: {
+            nqp::stmts(
+              nqp::if(
+                nqp::isge_i(
+                  (my int $fileno = nqp::filenofh($!PIO)),
+                  (my int $elems = nqp::elems($opened))
+                ),
+                nqp::setelems($opened,nqp::add_i($elems,1024))
+              ),
+              nqp::bindpos($opened,$fileno,$!PIO)
+            )
+        }
+    }
+    method !forget-about-closing(int $fileno --> Nil) {
+        $opened-locker.protect: {
+            nqp::bindpos($opened,$fileno,nqp::null)
+        }
+    }
+    method !close-all-open-handles() {
         my int $i = 2;
         my int $elems = nqp::elems($opened);
         nqp::while(
@@ -33,6 +53,7 @@ my class IO::Handle {
           )
         )
     }
+#?endif
 
     method open(IO::Handle:D:
       :$r, :$w, :$x, :$a, :$update,
@@ -47,8 +68,16 @@ my class IO::Handle {
       :$chomp = $!chomp,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
-      :$buffer
+      :$buffer,
+      :$out-buffer is copy,
     ) {
+        nqp::if(
+            $buffer.DEFINITE,
+            nqp::stmts(
+              ($out-buffer = $buffer),
+              DEPRECATED ':out-buffer argument to control handle buffering',
+                '2017.09.455.g.2.fba.0.ba.0.d', '2018.01'));
+
         nqp::if(
           $bin,
           nqp::stmts(
@@ -147,7 +176,7 @@ my class IO::Handle {
                 $!encoder := $encoding.encoder(:translate-nl);
                 $!encoding = $encoding.name;
             }
-            self!set-buffer-size($buffer);
+            self!set-out-buffer-size($out-buffer);
             return self;
         }
 
@@ -180,19 +209,9 @@ my class IO::Handle {
                     )
                 ),
             );
-            nqp::if(
-              nqp::isge_i(
-                (my int $fileno = nqp::filenofh($!PIO)),
-                nqp::elems($opened)
-              ),
-              $opened-sizer.protect( {
-                  nqp::if(
-                    nqp::isge_i($fileno,(my int $elems = nqp::elems($opened))),
-                    nqp::setelems($opened,nqp::add_i($elems,1024))
-                  )
-              })
-            );
-            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
+#?if moar
+            self!remember-to-close;
+#?endif
         }
 
         $!chomp = $chomp;
@@ -204,16 +223,23 @@ my class IO::Handle {
             $!encoder := $encoding.encoder(:translate-nl);
             $!encoding = $encoding.name;
         }
-        self!set-buffer-size($buffer);
+        self!set-out-buffer-size($out-buffer);
         self;
     }
 
-    method !set-buffer-size($buffer is copy) {
+    method out-buffer is rw {
+        Proxy.new: :FETCH{ $!out-buffer }, STORE => -> $, \buffer {
+            self!set-out-buffer-size: buffer;
+        }
+    }
+
+    method !set-out-buffer-size($buffer is copy) {
         $buffer //= !nqp::isttyfh($!PIO);
-        my int $buffer-size = nqp::istype($buffer, Bool)
+        $!out-buffer = nqp::istype($buffer, Bool)
             ?? ($buffer ?? 8192 !! 0)
             !! $buffer.Int;
-        nqp::setbuffersizefh($!PIO, $buffer-size);
+        nqp::setbuffersizefh($!PIO, $!out-buffer);
+        $!out-buffer
     }
 
     method nl-in is rw {
@@ -233,9 +259,16 @@ my class IO::Handle {
         nqp::if(
           nqp::defined($!PIO),
           nqp::stmts(
+#?if !moar
+            nqp::closefh($!PIO), # TODO: catch errors
+            $!PIO := nqp::null
+#?endif
+#?if moar
             (my int $fileno = nqp::filenofh($!PIO)),
             nqp::closefh($!PIO), # TODO: catch errors
-            nqp::bindpos($opened,$fileno,$!PIO := nqp::null)
+            ($!PIO := nqp::null),
+            self!forget-about-closing($fileno)
+#?endif
           )
         )
     }
@@ -292,7 +325,7 @@ my class IO::Handle {
         self.slurp(:$close).split: |c
     }
 
-    proto method words (|) { * }
+    proto method words (|) {*}
     multi method words(IO::Handle:D \SELF: $limit, :$close) {
         $!decoder or die X::IO::BinaryMode.new(:trying<words>);
         nqp::istype($limit,Whatever) || $limit == Inf
@@ -455,7 +488,7 @@ my class IO::Handle {
         ).new(self)
     }
 
-    proto method lines (|) { * }
+    proto method lines (|) {*}
     multi method lines(IO::Handle:D \SELF: $limit, :$close) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.lines(:$close)
@@ -547,7 +580,7 @@ my class IO::Handle {
         }
     }
 
-    proto method seek(|) { * }
+    proto method seek(|) {*}
     multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence = SeekFromBeginning) {
         my int $rewind = 0;
         if $!decoder {
@@ -586,10 +619,14 @@ my class IO::Handle {
     method lock(IO::Handle:D:
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
-        nqp::bindpos($opened,nqp::filenofh($!PIO),nqp::null);
+#?if moar
+        self!forget-about-closing(nqp::filenofh($!PIO));
+#?endif
         nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
-            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
+#?if moar
+            self!remember-to-close;
+#?endif
             fail X::IO::Lock.new: :os-error(.Str),
                 :lock-type( 'non-' x $non-blocking ~ 'blocking, '
                     ~ ($shared ?? 'shared' !! 'exclusive') );
@@ -597,7 +634,9 @@ my class IO::Handle {
     }
 
     method unlock(IO::Handle:D: --> True) {
-        nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
+#?if moar
+        self!remember-to-close;
+#?endif
         nqp::unlockfh($!PIO);
     }
 
@@ -605,7 +644,7 @@ my class IO::Handle {
         self.print(sprintf |c);
     }
 
-    proto method print(|) { * }
+    proto method print(|) {*}
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print>);
         self.write-internal($!encoder.encode-chars(x));
@@ -614,7 +653,7 @@ my class IO::Handle {
         self.print(@list.join);
     }
 
-    proto method put(|) { * }
+    proto method put(|) {*}
     multi method put(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<put>);
         self.write-internal($!encoder.encode-chars(
@@ -648,7 +687,7 @@ my class IO::Handle {
         self.write-internal($!encoder.encode-chars($!nl-out));
     }
 
-    proto method slurp-rest(|) { * }
+    proto method slurp-rest(|) {*}
     multi method slurp-rest(IO::Handle:D: :$bin! where *.so, :$close --> Buf:D) {
         # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
         # Testing of it in roast master has been removed and only kept in 6.c
@@ -672,23 +711,29 @@ my class IO::Handle {
         self!slurp-all-chars()
     }
 
-    method slurp(IO::Handle:D: :$close) {
-        my $res;
-        nqp::if(
-          $!decoder,
-          ($res := self!slurp-all-chars()),
-          nqp::stmts(
-            ($res := buf8.new),
+    method slurp(IO::Handle:D: :$close, :$bin) {
+        nqp::stmts(
+          (my $res),
+          nqp::if(
+            $!decoder,
+            nqp::if(
+              $bin,
+              nqp::stmts(
+                ($res := buf8.new),
+                nqp::if(
+                  $!decoder.bytes-available,
+                  $res.append($!decoder.consume-exactly-bytes(
+                    $!decoder.bytes-available)))),
+              ($res := self!slurp-all-chars())),
+            ($res := buf8.new)),
+          nqp::if(
+            nqp::isfalse($!decoder) || $bin,
             nqp::while(
               nqp::elems(my $buf := self.read-internal(0x100000)),
-              $res.append($buf)
-            )
-          )
-        );
-
-        # don't sink result of .close; it might be a failed Proc
-        $ = self.close if $close;
-        $res
+              $res.append($buf))),
+          # don't sink result of .close; it might be a failed Proc
+          nqp::if($close, my $ = self.close),
+          $res)
     }
 
     method !slurp-all-chars() {
@@ -698,7 +743,7 @@ my class IO::Handle {
         $!decoder.consume-all-chars()
     }
 
-    proto method spurt(|) { * }
+    proto method spurt(|) {*}
     multi method spurt(IO::Handle:D: Blob $data, :$close) {
         LEAVE self.close if $close;
         self.write-internal($data);
@@ -724,7 +769,7 @@ my class IO::Handle {
         nqp::flushfh($!PIO);
     }
 
-    proto method encoding(|) { * }
+    proto method encoding(|) {*}
     multi method encoding(IO::Handle:D:) { $!encoding // Nil }
     multi method encoding(IO::Handle:D: $new-encoding is copy) {
         with $new-encoding {
@@ -782,7 +827,13 @@ my class IO::Handle {
             && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
           nqp::stmts(
             nqp::closefh($!PIO),  # don't bother checking for errors
-            nqp::bindpos($opened,$fileno,$!PIO := nqp::null)
+#?if !moar
+            $!PIO := nqp::null
+#?endif
+#?if moar
+            ($!PIO := nqp::null),
+            self!forget-about-closing($fileno)
+#?endif
           )
         )
     }

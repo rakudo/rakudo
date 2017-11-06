@@ -157,7 +157,7 @@ my class Date does Dateish {
         $dt.day == $!day && $dt.month == $!month && $dt.year == $!year
     }
 
-    proto method DateTime()  { * }
+    proto method DateTime()  {*}
     multi method DateTime(Date:D:) { DateTime.new(:$!year, :$!month, :$!day) }
     multi method DateTime(Date:U:) { DateTime }
     method Date() { self }
@@ -187,11 +187,17 @@ multi sub infix:<==>(Date:D $a, Date:D $b) {
 multi sub infix:«<=»(Date:D $a, Date:D $b) {
     $a.daycount <= $b.daycount
 }
+multi sub infix:«≤»(Date:D $a, Date:D $b) {
+    $a.daycount ≤ $b.daycount
+}
 multi sub infix:«<»(Date:D $a, Date:D $b) {
     $a.daycount < $b.daycount
 }
 multi sub infix:«>=»(Date:D $a, Date:D $b) {
     $a.daycount >= $b.daycount
+}
+multi sub infix:«≥»(Date:D $a, Date:D $b) {
+    $a.daycount ≥ $b.daycount
 }
 multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount

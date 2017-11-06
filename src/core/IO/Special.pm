@@ -1,3 +1,5 @@
+my class Instant { ... }
+
 class IO::Special does IO {
     has Str $.what;
 
@@ -23,3 +25,5 @@ class IO::Special does IO {
     method changed( IO::Special:D: --> Instant) { Instant }
     method mode(IO::Special:D: --> Nil) { }
 }
+
+# vim: ft=perl6 expandtab sw=4

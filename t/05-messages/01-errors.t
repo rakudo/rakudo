@@ -1,4 +1,8 @@
+use lib <t/packages/>;
 use Test;
+use Test::Helpers;
+
+plan 48;
 
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
@@ -64,16 +68,24 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 
 # RT #113954
 {
-    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo bar|) {}]]).err.slurp(:close),
-       qq|Usage:\n  -e '...' 'foo bar' \n|,
+    is-run ｢multi MAIN(q|foo bar|) {}｣,
+       :err(qq|Usage:\n  -e '...' 'foo bar' \n|),
+       :status(*),
        'a space in a literal param to a MAIN() multi makes the suggestion quoted';
 
-    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo"bar|) {}]]).err.slurp(:close),
-       qq|Usage:\n  -e '...' 'foo"bar' \n|,
-       'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+    if $*DISTRO.is-win {
+        skip "Test routine quoting doesn't work right on Windows: RT#132258"
+    }
+    else {
+        is-run ｢multi MAIN(q|foo"bar|) {}｣,
+           :err(qq|Usage:\n  -e '...' 'foo"bar' \n|),
+           :status(*),
+           'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+    }
 
-    is run(:err, $*EXECUTABLE, ['-e', q[multi MAIN(q|foo'bar|) {}]]).err.slurp(:close),
-       qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|,
+    is-run ｢multi MAIN(q|foo'bar|) {}｣,
+       :err(qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|),
+       :status(*),
        'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
 }
 
@@ -225,6 +237,80 @@ subtest '`IO::Socket::INET.new: :listen` fails with useful error' => {
     like $res.exception.message, /'Invalid port'/, 'error mentions port';
 }
 
-done-testing;
+throws-like ｢use v5｣, X::Language::Unsupported,
+    '`use v5` in code does not try to load non-existent modules';
+
+# RT#127341
+is-run 'Duration.new: Inf; Duration.new: "meow"',
+    :out{not .contains: '$!tai'}, :err{not .contains: '$!tai'}, :status(*),
+    'Duration.new with bad args does not reference guts';
+
+# RT#125902
+is-run ｢my Str where 'foo' $test｣, :status(*),
+  :err{.contains: ｢forget a variable｣ and not .contains: ｢Did you mean 'Str'｣},
+'sane error when missing variables with my and where';
+
+# RT#132285
+throws-like ｢Blob[num32].new: 2e0｣,
+    Exception,
+    :message{ .contains: ｢not yet implemented｣ & ｢num32｣ and not .contains: ｢got null｣ },
+    'sane NYI error for num32 Blob';
+
+# RT#77754
+throws-like ｢callframe.callframe(1).my.perl｣, X::NYI,
+    'callframe.my throws sane NYI error message';
+
+
+subtest '.new on native types works (deprecated; will die)' => {
+    plan 18;
+
+    die "Time to remove deprecation and make .new on ints die"
+        if $*PERL.compiler.version after v2017.12.50;
+
+    # TODO XXX: remove deprecation in NativeHOW
+    # (see https://github.com/rakudo/rakudo/commit/9d9c7f9c3b )
+    # and make .new die, then remove
+    # the tests that test the values and uncomment tests that test the
+    # throwage and likely move them to roast
+
+    sub DEPRECATED (|) {};
+    is-deeply int.new(4), 4, 'int';
+    is-deeply int8.new(4), 4, 'int8';
+    is-deeply int16.new(4), 4, 'int16';
+    is-deeply int32.new(4), 4, 'int32';
+    is-deeply int64.new(4), 4, 'int64';
+
+    is-deeply num.new(4e0), 4e0, 'num';
+    is-deeply num32.new(4e0), 4e0, 'num32';
+    is-deeply num64.new(4e0), 4e0, 'num64';
+
+    is-deeply str.new('x'), 'x', 'str';
+
+    throws-like { int  .new }, Exception, :message{.contains: "Cannot instantiate"}, 'int no args';
+    throws-like { int8 .new }, Exception, :message{.contains: "Cannot instantiate"}, 'int8 no args';
+    throws-like { int16.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int16 no args';
+    throws-like { int32.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int32 no args';
+    throws-like { int64.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int64 no args';
+
+    throws-like { num  .new }, Exception, :message{.contains: "Cannot instantiate"}, 'num no args';
+    throws-like { num32.new }, Exception, :message{.contains: "Cannot instantiate"}, 'num32 no args';
+    throws-like { num64.new }, Exception, :message{.contains: "Cannot instantiate"}, 'num64 no args';
+
+    throws-like { str.new   }, Exception, :message{.contains: "Cannot instantiate"}, 'str no args';
+
+    # throws-like { int  .new: 4   }, Exception, 'int';
+    # throws-like { int8 .new: 4   }, Exception, 'int8';
+    # throws-like { int16.new: 4   }, Exception, 'int16';
+    # throws-like { int32.new: 4   }, Exception, 'int32';
+    # throws-like { int64.new: 4   }, Exception, 'int64';
+    #
+    # throws-like { num  .new: 4e0 }, Exception, 'num';
+    # throws-like { num32.new: 4e0 }, Exception, 'num32';
+    # throws-like { num64.new: 4e0 }, Exception, 'num64';
+    #
+    # throws-like { str.new: 'x'   }, Exception, 'str';
+}
+
+#### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE
 
 # vim: ft=perl6 expandtab sw=4

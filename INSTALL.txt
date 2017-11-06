@@ -33,7 +33,7 @@
 
         $ perl Configure.pl --gen-moar --gen-nqp --backends=moar     # Moar only
     or:
-        $ perl Configure.pl --gen-nqp --backends=jvm  # needs JDK 1.7 installed
+        $ perl Configure.pl --gen-nqp --backends=jvm  # needs JDK 1.8 installed
     then:
         $ make
 

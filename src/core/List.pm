@@ -393,7 +393,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method fmt(|) { * }
+    proto method fmt(|) {*}
     multi method fmt() {
         nqp::if(
           (my int $elems = self.elems),             # reifies
@@ -647,6 +647,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(List:D: $topic) {
+        CATCH { default { return False } } # .elems on lazies throws
+        return True if nqp::eqaddr(self, nqp::decont($topic));
+
         unless nqp::istype($topic, Iterable) {
             return self unless self.elems;
             return self if nqp::istype(self[0], Match);
@@ -721,7 +724,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
-    proto method STORE(|) { * }
+    proto method STORE(|) {*}
     multi method STORE(List:D: Iterable:D \iterable) {
         # First pass -- scan lhs containers and pick out scalar versus list
         # assignment. This also reifies the RHS values we need, and deconts
@@ -929,7 +932,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method pick(|) is nodal { * }
+    proto method pick(|) is nodal {*}
     multi method pick(List:D:) {
         self.is-lazy
          ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
@@ -990,7 +993,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }.new(self,$elems,$number))
     }
 
-    proto method roll(|) is nodal { * }
+    proto method roll(|) is nodal {*}
     multi method roll() {
         self.is-lazy
           ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
@@ -1117,7 +1120,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method combinations(Range:D $ofrange) {
         nqp::stmts(
           (my int $elems = self.elems),      # reifies
-          $ofrange.int-bounds(my int $i, my int $to),
+          nqp::if(
+            $ofrange.is-int,
+            $ofrange.int-bounds(my int $i, my int $to),
+            nqp::stmts(
+              nqp::unless(
+                $ofrange.min < 0,   # $i already 0 if not
+                ($i = $ofrange.min + $ofrange.excludes-min)
+              ),
+              nqp::if(
+                $ofrange.max > $elems,
+                ($to = $elems),
+                ($to = $ofrange.max - $ofrange.excludes-max)
+              )
+            )
+          ),
           ($i = nqp::if(nqp::islt_i($i,0),-1,nqp::sub_i($i,1))),
           nqp::if(nqp::isgt_i($to,$elems),($to = $elems)),
           Seq.new(
@@ -1358,9 +1375,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           )
         )
     }
-    method collate {
-        self.sort(&[coll]);
-    }
     multi method tail(List:D:) is raw {
         nqp::if(
           $!todo.DEFINITE,
@@ -1477,7 +1491,7 @@ multi flat(Iterable \a)    {     a.flat }
 
 sub cache(+@l) { @l }
 
-proto sub infix:<xx>(|) { * }
+proto sub infix:<xx>(|) {*}
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(&x, Num() $n) {
@@ -1518,7 +1532,7 @@ multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
     Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))
 }
 
-proto sub reverse(|)   { * }
+proto sub reverse(|)   {*}
 multi sub reverse(@a)  { @a.reverse }
 multi sub reverse(+@a) { @a.reverse }
 

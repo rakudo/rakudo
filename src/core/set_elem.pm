@@ -1,8 +1,8 @@
 # This file implements the following set operators:
-#   (elem)  is an element of (Texas)
+#   (elem)  is an element of (ASCII)
 #   ∈       is an element of
 #   ∉       is NOT an element of
-#   (cont)  contains (Texas)
+#   (cont)  contains (ASCII)
 #   ∋       contains
 #   ∌       does NOT contain
 
@@ -64,9 +64,10 @@ multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
       (my $elems := $b.RAW-HASH) && nqp::existskey($elems,$a.WHICH)
     )
 }
-multi sub infix:<(elem)>(Any $a, Any $b --> Bool:D) {
-    $a (elem) $b.Set(:view);
-}
+
+multi sub infix:<(elem)>(Any $, Failure:D $b) { $b.throw }
+multi sub infix:<(elem)>(Failure:D $a, Any $) { $a.throw }
+multi sub infix:<(elem)>(Any $a, Any $b) { infix:<(elem)>($a,$b.Set) }
 
 # U+2208 ELEMENT OF
 my constant &infix:<∈> := &infix:<(elem)>;

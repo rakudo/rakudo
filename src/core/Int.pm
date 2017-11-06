@@ -1,4 +1,5 @@
 my class Rat { ... }
+my class X::Cannot::Capture       { ... }
 my class X::Numeric::DivideByZero { ... }
 my class X::NYI::BigInt { ... }
 
@@ -22,17 +23,26 @@ my class Int does Real { # declared in BOOTSTRAP
           ObjAt
         )
     }
-    multi method new($value) {
-        # clone to ensure we return a new object for any cached
-        # numeric constants
-        $value.Int.clone;
+
+    proto method new(|) {*}
+    multi method new(      \value) { self.new: value.Int }
+    multi method new(int   \value) {
+        # rebox the value, so we get rid of any potential mixins
+        nqp::fromI_I(nqp::decont(value), self)
     }
+    multi method new(Int:D \value = 0) {
+        # rebox the value, so we get rid of any potential mixins
+        nqp::fromI_I(nqp::decont(value), self)
+    }
+
     multi method perl(Int:D:) {
         self.Str;
     }
     multi method Bool(Int:D:) {
         nqp::p6bool(nqp::bool_I(self));
     }
+
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
 
     method Int() { self }
 
@@ -62,14 +72,14 @@ my class Int does Real { # declared in BOOTSTRAP
     method chr(Int:D:) {
         nqp::if(
           nqp::isbig_I(self),
-          (die "chr codepoint too large: {self}"),
+            die("chr codepoint %i (0x%X) is too large".sprintf(self, self)),
           nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
         )
     }
 
     method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
 
-    proto method base(|) { * }
+    proto method base(|) {*}
     multi method base(Int:D: Int:D $base) {
         2 <= $base <= 36
           ?? nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
@@ -344,9 +354,8 @@ multi sub infix:<==>(int $a, int $b) {
     nqp::p6bool(nqp::iseq_i($a, $b))
 }
 
-multi sub infix:<!=>(int $a, int $b) {
-    nqp::p6bool(nqp::isne_i($a, $b))
-}
+multi sub infix:<!=>(int $a, int $b) { nqp::p6bool(nqp::isne_i($a, $b)) }
+multi sub infix:<≠> (int $a, int $b) { nqp::p6bool(nqp::isne_i($a, $b)) }
 
 multi sub infix:«<»(Int:D \a, Int:D \b) {
     nqp::p6bool(nqp::islt_I(nqp::decont(a), nqp::decont(b)))
@@ -361,6 +370,12 @@ multi sub infix:«<=»(Int:D \a, Int:D \b) {
 multi sub infix:«<=»(int $a, int $b) {
     nqp::p6bool(nqp::isle_i($a, $b))
 }
+multi sub infix:«≤»(Int:D \a, Int:D \b) {
+    nqp::p6bool(nqp::isle_I(nqp::decont(a), nqp::decont(b)))
+}
+multi sub infix:«≤»(int $a, int $b) {
+    nqp::p6bool(nqp::isle_i($a, $b))
+}
 
 multi sub infix:«>»(Int:D \a, Int:D \b) {
     nqp::p6bool(nqp::isgt_I(nqp::decont(a), nqp::decont(b)))
@@ -373,6 +388,12 @@ multi sub infix:«>=»(Int:D \a, Int:D \b) {
     nqp::p6bool(nqp::isge_I(nqp::decont(a), nqp::decont(b)))
 }
 multi sub infix:«>=»(int $a, int $b) {
+    nqp::p6bool(nqp::isge_i($a, $b))
+}
+multi sub infix:«≥»(Int:D \a, Int:D \b) {
+    nqp::p6bool(nqp::isge_I(nqp::decont(a), nqp::decont(b)))
+}
+multi sub infix:«≥»(int $a, int $b) {
     nqp::p6bool(nqp::isge_i($a, $b))
 }
 

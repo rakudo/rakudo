@@ -8,7 +8,7 @@
 use MONKEY-TYPING;
 augment class Any {
 
-    proto method map(|) is nodal { * }
+    proto method map(|) is nodal {*}
     multi method map(Hash \h) {
         die "Cannot map a {self.^name} to a {h.^name}.
 Did you mean to add a stub (\{...\}) or did you mean to .classify?"
@@ -16,44 +16,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
     multi method map(\SELF: &block;; :$label, :$item) {
         sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, $label);
-    }
-
-    multi method map(HyperIterable:D: &block;; :$label) {
-        # For now we only know how to parallelize when we've only one input
-        # value needed per block. For the rest, fall back to sequential.
-        if &block.count != 1 {
-            sequential-map(self.iterator, &block, $label)
-        }
-        else {
-            HyperSeq.new(class :: does HyperIterator {
-                has $!source;
-                has &!block;
-
-                method new(\source, &block) {
-                    my \iter = nqp::create(self);
-                    nqp::bindattr(iter, self, '$!source', source);
-                    nqp::bindattr(iter, self, '&!block', &block);
-                    iter
-                }
-
-                method fill-buffer(HyperWorkBuffer:D $work, int $items) {
-                    $!source.fill-buffer($work, $items);
-                }
-
-                method process-buffer(HyperWorkBuffer:D $work) {
-                    unless $!source.process-buffer($work) =:= Nil {
-                        $work.swap();
-                    }
-                    my \buffer-mapper = sequential-map($work.input-iterator, &!block, $label);
-                    buffer-mapper.iterator.push-all($work.output);
-                    $work
-                }
-
-                method configuration() {
-                    $!source.configuration
-                }
-            }.new(self.hyper-iterator, &block))
-        }
     }
 
     my class IterateOneWithPhasers does SlippyIterator {
@@ -159,6 +121,15 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             my int $done;
             my $pulled;
             my $value;
+
+            nqp::if(
+              $!slipping,
+              nqp::until(
+                nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                $target.push($value)
+              )
+            );
+
             until $done
                 || nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
                 nqp::stmts(
@@ -208,6 +179,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   &!block.has-phaser('FIRST'),
                   nqp::p6setfirstflag(&!block)
                 )
+              )
+            );
+
+            nqp::if(
+              $!slipping,
+              nqp::until(
+                nqp::eqaddr(self.slip-one,IterationEnd),
+                nqp::null
               )
             );
 
@@ -424,49 +403,68 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
 
         method push-all($target --> IterationEnd) {
-            nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      nqp::if(
-                        nqp::istype((my $result := &!block($value)),Slip),
-                        self.slip-all($result,$target),
-                        $target.push($result)
-                      ),
-                      'LABELED', $!label,
-                      'REDO', ($redo = 1),
-                      'LAST', return,
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                    )
-                  ),
-                  :nohandler
+            nqp::stmts(
+              (my $value),
+              nqp::if(
+                $!slipping,
+                nqp::until(
+                  nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                  $target.push($value)
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+                nqp::stmts(
+                  (my int $redo = 1),
+                  nqp::while(
+                    $redo,
+                    nqp::stmts(
+                      ($redo = 0),
+                      nqp::handle(
+                        nqp::if(
+                          nqp::istype((my $result := &!block($value)),Slip),
+                          self.slip-all($result,$target),
+                          $target.push($result)
+                        ),
+                        'LABELED', $!label,
+                        'REDO', ($redo = 1),
+                        'LAST', return,
+                        'NEXT', nqp::null, # need NEXT for next LABEL support
+                      )
+                    ),
+                    :nohandler
+                  )
                 )
               )
             )
         }
 
         method sink-all(--> IterationEnd) {
-            nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(  # doesn't sink
-                      &!block($value),
-                      'LABELED', $!label,
-                      'NEXT', nqp::null,  # need NEXT for next LABEL support
-                      'REDO', ($redo = 1),
-                      'LAST', return
-                    ),
-                  :nohandler
+            nqp::stmts(
+              nqp::if(
+                $!slipping,
+                nqp::until(
+                  nqp::eqaddr(self.slip-one,IterationEnd),
+                  nqp::null
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
+                nqp::stmts(
+                  (my int $redo = 1),
+                  nqp::while(
+                    $redo,
+                    nqp::stmts(
+                      ($redo = 0),
+                      nqp::handle(  # doesn't sink
+                        &!block($value),
+                        'LABELED', $!label,
+                        'NEXT', nqp::null,  # need NEXT for next LABEL support
+                        'REDO', ($redo = 1),
+                        'LAST', return
+                      ),
+                    :nohandler
+                    )
                   )
                 )
               )
@@ -554,78 +552,97 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
 
         method push-all($target --> IterationEnd) {
-            nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      nqp::if(
-                        nqp::eqaddr(
-                          (my $value2 := $!source.pull-one),
-                          IterationEnd
-                        ),
-                        nqp::stmts(
-                          (my $result := &!block($value)),
+            nqp::stmts(
+              (my $value),
+              nqp::if(
+                $!slipping,
+                nqp::until(
+                  nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                  $target.push($value)
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+                nqp::stmts(
+                  (my int $redo = 1),
+                  nqp::while(
+                    $redo,
+                    nqp::stmts(
+                      ($redo = 0),
+                      nqp::handle(
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $value2 := $!source.pull-one),
+                            IterationEnd
+                          ),
+                          nqp::stmts(
+                            (my $result := &!block($value)),
+                            nqp::if(
+                              nqp::istype($result,Slip),
+                              self.slip-all($result,$target),
+                              $target.push($result)
+                            ),
+                            return
+                          ),
                           nqp::if(
-                            nqp::istype($result,Slip),
+                            nqp::istype(
+                              ($result := &!block($value,$value2)),
+                              Slip
+                            ),
                             self.slip-all($result,$target),
                             $target.push($result)
-                          ),
-                          return
+                          )
                         ),
-                        nqp::if(
-                          nqp::istype(
-                            ($result := &!block($value,$value2)),
-                            Slip
-                          ),
-                          self.slip-all($result,$target),
-                          $target.push($result)
-                        )
-                      ),
-                      'LABELED', $!label,
-                      'REDO', ($redo = 1),
-                      'LAST', return,
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                    )
-                  ),
-                  :nohandler
+                        'LABELED', $!label,
+                        'REDO', ($redo = 1),
+                        'LAST', return,
+                        'NEXT', nqp::null, # need NEXT for next LABEL support
+                      )
+                    ),
+                    :nohandler
+                  )
                 )
               )
             )
         }
 
         method sink-all(--> IterationEnd) {
-            nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(  # doesn't sink
-                      nqp::if(
-                        nqp::eqaddr(
-                          (my $value2 := $!source.pull-one),
-                          IterationEnd
+            nqp::stmts(
+              nqp::if(
+                $!slipping,
+                nqp::until(
+                  nqp::eqaddr(self.slip-one,IterationEnd),
+                  nqp::null,
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
+                nqp::stmts(
+                  (my int $redo = 1),
+                  nqp::while(
+                    $redo,
+                    nqp::stmts(
+                      ($redo = 0),
+                      nqp::handle(  # doesn't sink
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $value2 := $!source.pull-one),
+                            IterationEnd
+                          ),
+                          nqp::stmts(
+                            (&!block($value)),
+                            return
+                          ),
+                          (&!block($value,$value2))
                         ),
-                        nqp::stmts(
-                          (&!block($value)),
-                          return
-                        ),
-                        (&!block($value,$value2))
-                      ),
-                      'LABELED', $!label,
-                      'NEXT', nqp::null,  # need NEXT for next LABEL support
-                      'REDO', ($redo = 1),
-                      'LAST', return
-                    )
-                  ),
-                :nohandler
+                        'LABELED', $!label,
+                        'NEXT', nqp::null,  # need NEXT for next LABEL support
+                        'REDO', ($redo = 1),
+                        'LAST', return
+                      )
+                    ),
+                  :nohandler
+                  )
                 )
               )
             )
@@ -750,7 +767,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method flatmap (|) is nodal { * }
+    proto method flatmap (|) is nodal {*}
     multi method flatmap(&block, :$label) {
         self.map(&block, :$label).flat
     }
@@ -975,7 +992,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method grep(|) is nodal { * }
+    proto method grep(|) is nodal {*}
     multi method grep(Bool:D $t) {
         X::Match::Bool.new( type => '.grep').throw
     }
@@ -1048,7 +1065,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
-    proto method first(|) is nodal { * }
+    proto method first(|) is nodal {*}
     multi method first(Bool:D $t) {
         Failure.new(X::Match::Bool.new( type => '.first' ))
     }
@@ -1160,7 +1177,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method min (|) is nodal { * }
+    proto method min (|) is nodal {*}
     multi method min() {
         nqp::stmts(
           nqp::if(
@@ -1194,7 +1211,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method max (|) is nodal { * }
+    proto method max (|) is nodal {*}
     multi method max() {
         nqp::stmts(
           nqp::if(
@@ -1271,7 +1288,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method minmax (|) is nodal { * }
+    proto method minmax (|) is nodal {*}
     multi method minmax() {
         nqp::stmts(
           nqp::if(
@@ -1374,7 +1391,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method sort(|) is nodal { * }
+    proto method sort(|) is nodal {*}
     multi method sort() {
         nqp::if(
           nqp::eqaddr(
@@ -1442,14 +1459,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method reduce(|) { * }
+    proto method reduce(|) {*}
     multi method reduce(&with) is nodal {
         return unless self.DEFINITE;
         my $reducer := find-reducer-for-op(&with);
         $reducer(&with)(self) if $reducer;
     }
 
-    proto method produce(|) { * }
+    proto method produce(|) {*}
     multi method produce(&with) is nodal {
         return unless self.DEFINITE;
         my $reducer := find-reducer-for-op(&with);
@@ -1764,7 +1781,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }.new(self, &with))
     }
 
-    proto method pairup(|) is nodal { * }
+    proto method pairup(|) is nodal {*}
     multi method pairup(Any:U:) { () }
     multi method pairup(Any:D:) {
         my \iter := self.iterator;
@@ -1793,7 +1810,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
-    proto method head(|) { * }
+    proto method head(|) {*}
     multi method head(Any:D:) is raw {
         nqp::if(
           nqp::eqaddr((my $pulled := self.iterator.pull-one),IterationEnd),
@@ -1810,7 +1827,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new(Rakudo::Iterator.NextNValues(self.iterator,$n))
     }
 
-    proto method tail(|) { * }
+    proto method tail(|) {*}
     multi method tail(Any:D:) is raw {
         nqp::if(
           nqp::eqaddr((my $pulled :=
@@ -1835,7 +1852,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method minpairs(|) { * }
+    proto method minpairs(|) {*}
     multi method minpairs(Any:D:) {
         my @found;
         for self.pairs {
@@ -1853,7 +1870,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new(@found.iterator)
     }
 
-    proto method maxpairs(|) { * }
+    proto method maxpairs(|) {*}
     multi method maxpairs(Any:D:) {
         my @found;
         for self.pairs {
@@ -1871,7 +1888,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new(@found.iterator)
     }
 
-    proto method batch(|) is nodal { * }
+    proto method batch(|) is nodal {*}
     multi method batch(Any:D: Int:D :$elems!) {
         Seq.new(Rakudo::Iterator.Batch(self.iterator,$elems,1))
     }
@@ -1879,7 +1896,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,1))
     }
 
-    proto method rotor(|) is nodal { * }
+    proto method rotor(|) is nodal {*}
     multi method rotor(Any:D: Int:D $batch, :$partial) {
         Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,$partial))
     }
@@ -1887,14 +1904,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
 
-    proto method skip(|) { * }
+    proto method skip(|) {*}
     multi method skip()         { Seq.new(self.iterator).skip }
     multi method skip(Int() $n) { Seq.new(self.iterator).skip($n) }
 }
 
 BEGIN Attribute.^compose;
 
-proto sub infix:<min>(|) is pure { * }
+proto sub infix:<min>(|) is pure {*}
 multi sub infix:<min>(Mu:D \a, Mu:U) { a }
 multi sub infix:<min>(Mu:U, Mu:D \b) { b }
 multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
@@ -1905,7 +1922,7 @@ multi sub infix:<min>(num   \a, num   \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b)
 multi sub infix:<min>(+args is raw) { args.min }
 sub min(+args, :&by = &infix:<cmp>) { args.min(&by) }
 
-proto sub infix:<max>(|) is pure { * }
+proto sub infix:<max>(|) is pure {*}
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
@@ -1916,7 +1933,7 @@ multi sub infix:<max>(num   \a, num   \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b)
 multi sub infix:<max>(+args) { args.max }
 sub max(+args, :&by = &infix:<cmp>) { args.max(&by) }
 
-proto sub infix:<minmax>(|) is pure { * }
+proto sub infix:<minmax>(|) is pure {*}
 multi sub infix:<minmax>(+args) { args.minmax }
 sub minmax(+args, :&by = &infix:<cmp>) { args.minmax(&by) }
 
@@ -1934,22 +1951,22 @@ proto sub first(|) {*}
 multi sub first(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<first>)) }
 multi sub first(Mu $test, +values, *%a) { values.first($test,|%a) }
 
-proto sub join(|) { * }
+proto sub join(|) {*}
 multi sub join($sep = '', *@values) { @values.join($sep) }
 
-proto sub reduce (|) { * }
+proto sub reduce (|) {*}
 multi sub reduce (&with, +list)  { list.reduce(&with) }
 
-proto sub produce (|) { * }
+proto sub produce (|) {*}
 multi sub produce (&with, +list)  { list.produce(&with) }
 
-proto sub unique(|) { * }
+proto sub unique(|) {*}
 multi sub unique(+values, |c) { my $laze = values.is-lazy; values.unique(|c).lazy-if($laze) }
 
-proto sub squish(|) { * }
+proto sub squish(|) {*}
 multi sub squish(+values, |c) { my $laze = values.is-lazy; values.squish(|c).lazy-if($laze) }
 
-proto sub repeated(|) { * }
+proto sub repeated(|) {*}
 multi sub repeated(+values, |c) { my $laze = values.is-lazy; values.repeated(|c).lazy-if($laze) }
 
 proto sub sort(|) {*}

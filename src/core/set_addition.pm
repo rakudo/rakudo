@@ -1,8 +1,8 @@
 # This file implements the following set operators:
-#   (+)     baggy addition (Texas)
+#   (+)     baggy addition (ASCII)
 #   ⊎       baggy addition
 
-proto sub infix:<(+)>(|) is pure { * }
+proto sub infix:<(+)>(|) is pure {*}
 multi sub infix:<(+)>()               { bag()  }
 multi sub infix:<(+)>(Bag:D $a)       { $a     }
 multi sub infix:<(+)>(Mix:D $a)       { $a     }
@@ -125,15 +125,13 @@ multi sub infix:<(+)>(Iterable:D $a, Iterable:D $b) {
     )
 }
 
+multi sub infix:<(+)>(Any $, Failure:D $b) { $b.throw }
+multi sub infix:<(+)>(Failure:D $a, Any $) { $a.throw }
 multi sub infix:<(+)>(Any $a, Any $b) {
     nqp::if(
-      nqp::istype($a,Baggy:D),
-      infix:<(+)>($a, $b.Bag),
-      nqp::if(
-        nqp::istype($b,Baggy:D),
-        infix:<(+)>($a.Bag, $b),
-        infix:<(+)>($a.Bag, $b.Bag)
-      )
+      nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
+      infix:<(+)>($a.Mix, $b.Mix),
+      infix:<(+)>($a.Bag, $b.Bag)
     )
 }
 

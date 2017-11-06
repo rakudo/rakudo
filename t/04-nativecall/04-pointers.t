@@ -1,18 +1,19 @@
 use v6;
 
-use lib <lib t/04-nativecall>;
+use lib <t/04-nativecall>;
 use CompileTestLib;
 use NativeCall;
 use NativeCall::Types;
 use Test;
 
-plan 12;
+plan 22;
 
 compile_test_lib('04-pointers');
 
 sub ReturnSomePointer()         returns Pointer is native("./04-pointers") { * }
 sub CompareSomePointer(Pointer) returns int32   is native("./04-pointers") { * }
 sub ReturnNullPointer()         returns Pointer is native("./04-pointers") { * }
+sub ReturnPointerToIntArray()   returns Pointer[int32] is native("./04-pointers") { * }
 
 my $x     = ReturnSomePointer();
 my int $a = 4321;
@@ -27,6 +28,19 @@ is +Pointer.new(0),       0, 'Pointer.new(0) has 0 numerical value';
 is +Pointer.new(1234), 1234, 'Pointer.new(1234) has numerical value 1234';
 is +Pointer.new($a),     $a, 'Pointer.new accepts a native int too';
 ok ReturnNullPointer() === Pointer,           'A returned NULL pointer is the Pointer type object itself';
+
+my $p = ReturnPointerToIntArray();
+is $p.deref, 10, 'typed pointer deref method';
+is $p[1], 20, 'typed pointer array dereference';
+is (++$p).deref, 20, 'typed pointer increment';
+is ($p.add: -1).deref, 10, '.add(-1)';
+is $p[0], 20, 'typed pointer incremented (1)';
+is $p[1], 30, 'typed pointer incremented (2)';
+is (--$p).deref, 10, 'typed pointer decrement';
+is $p[0], 10, 'typed pointer incremented (1)';
+is $p[1], 20, 'typed pointer incremented (2)';
+is ($p.add: 2).deref, 30, '.add(2)';
+
 
 {
     eval-lives-ok q:to 'CODE', 'Signature matching with Pointer[int32] works (RT #124321)';

@@ -37,7 +37,7 @@ my role Real does Numeric {
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
 
-    proto method round(|) { * }
+    proto method round(|) {*}
     multi method round(Real:D:) {
         (self + 1/2).floor; # Rat NYI here, so no .5
     }
@@ -89,7 +89,7 @@ my role Real does Numeric {
                 :range<0..1073741824>
             ) if $digits.defined and $digits < 0;
         my $prec = $digits // 1e8.log($base.Num).Int;
-        my Int $int_part = self.Int;
+        my Int $int_part = self.Int.self; # .self blows up Failures
         my $frac = abs(self - $int_part);
         my @frac_digits;
         my @conversion := <0 1 2 3 4 5 6 7 8 9
@@ -149,10 +149,12 @@ multi sub infix:<==>(Real \a, Real \b)  { a.Bridge == b.Bridge }
 multi sub infix:«<»(Real \a, Real \b)   { a.Bridge < b.Bridge }
 
 multi sub infix:«<=»(Real \a, Real \b)  { a.Bridge <= b.Bridge }
+multi sub infix:«≤» (Real \a, Real \b)  { a.Bridge  ≤ b.Bridge }
 
 multi sub infix:«>»(Real \a, Real \b)   { a.Bridge > b.Bridge }
 
 multi sub infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
+multi sub infix:«≥» (Real \a, Real \b)  { a.Bridge  ≥ b.Bridge }
 
 multi sub prefix:<->(Real:D \a)            { -a.Bridge }
 
@@ -172,7 +174,7 @@ multi sub truncate(Real:D $x) { $x.truncate }
 multi sub truncate(Cool:D $x) { $x.Numeric.truncate }
 
 
-proto sub atan2($, $?)    { * }
+proto sub atan2($, $?)    {*}
 multi sub atan2(Real \a, Real \b = 1e0) { a.Bridge.atan2(b.Bridge) }
 # should really be (Cool, Cool), and then (Cool, Real) and (Real, Cool)
 # candidates, but since Int both conforms to Cool and Real, we'd get lots

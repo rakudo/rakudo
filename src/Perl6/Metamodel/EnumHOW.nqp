@@ -21,20 +21,20 @@ class Perl6::Metamodel::EnumHOW
 {
     # Hash representing enumeration keys to values.
     has %!values;
-    
+
     # Reverse mapping hash.
     has %!value_to_enum;
-    
+
     # List of enum values (actual enum objects).
     has @!enum_value_list;
-    
+
     # Roles that we do.
     has @!role_typecheck_list;
-    
+
     # Role'd version of the enum.
     has $!role;
     has int $!roled;
-    
+
     # Are we composed yet?
     has $!composed;
 
@@ -46,11 +46,11 @@ class Perl6::Metamodel::EnumHOW
     method archetypes() {
         $archetypes
     }
-    
+
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
-    
+
     method new_type(:$name!, :$base_type?, :$repr = 'P6opaque') {
         my $meta := self.new();
         my $obj  := nqp::settypehll(nqp::newtype($meta, $repr), 'perl6');
@@ -64,7 +64,7 @@ class Perl6::Metamodel::EnumHOW
     method add_parent($obj, $parent) {
         self.set_base_type($obj, $parent);
     }
-    
+
     method add_enum_value($obj, $value) {
         %!values{nqp::unbox_s($value.key)} := $value.value;
         @!enum_value_list[+@!enum_value_list] := $value;
@@ -77,11 +77,11 @@ class Perl6::Metamodel::EnumHOW
     method enum_values($obj) {
         %!values
     }
-    
+
     method elems($obj) {
         nqp::elems(%!values)
     }
-    
+
     method enum_from_value($obj, $value) {
         unless %!value_to_enum {
             for @!enum_value_list {
@@ -92,7 +92,7 @@ class Perl6::Metamodel::EnumHOW
             ?? %!value_to_enum{$value}
             !! $obj.WHAT;
     }
-    
+
     method enum_value_list($obj) {
         @!enum_value_list
     }
@@ -120,7 +120,7 @@ class Perl6::Metamodel::EnumHOW
                 }
             }
         }
-        
+
         # Incorporate any new multi candidates (needs MRO built).
         self.incorporate_multi_candidates($obj);
 
@@ -132,19 +132,19 @@ class Perl6::Metamodel::EnumHOW
         # Publish type and method caches.
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
-        
+
         # Publish boolification spec.
         self.publish_boolification_spec($obj);
-        
+
         # Create BUILDPLAN.
         self.create_BUILDPLAN($obj);
-        
+
         # Compose the representation.
         unless $!composed {
             self.compose_repr($obj);
             $!composed := 1;
         }
-        
+
         # Compose invocation protocol.
         self.compose_invocation($obj);
 

@@ -75,11 +75,13 @@ for $*IN.lines -> $line {
         }
 
         multi method STORE(#type#array:D: $value) {
+            nqp::setelems(self,1);
             nqp::bindpos_#postfix#(self, 0, nqp::unbox_#postfix#($value));
             self
         }
         multi method STORE(#type#array:D: #type# @values) {
-            nqp::splice(self,@values,0,0)
+            nqp::setelems(self,@values.elems);
+            nqp::splice(self,@values,0,@values.elems)
         }
         multi method STORE(#type#array:D: @values) {
             my int $elems = @values.elems;
@@ -115,8 +117,8 @@ for $*IN.lines -> $line {
             nqp::push_#postfix#(self, $value);
             self
         }
-        multi method append(#type#array:D: #type# @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(#type#array:D: #type#array:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(#type#array:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))

@@ -14,3 +14,5 @@ my class Encoding::Encoder::TranslateNewlineWrapper does Encoding::Encoder {
         $!delegate.encode-chars(Rakudo::Internals.TRANSPOSE($str, "\n", "\r\n"))
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

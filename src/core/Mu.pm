@@ -1,3 +1,4 @@
+my class X::Cannot::Lazy             { ... }
 my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
@@ -9,7 +10,7 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
-    proto method ACCEPTS(|) { * }
+    proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {
         nqp::p6bool(nqp::istype(topic, self))
     }
@@ -41,7 +42,7 @@ my class Mu { # declared in BOOTSTRAP
         )
     }
 
-    proto method iterator(|) { * }
+    proto method iterator(|) {*}
     multi method iterator(Mu:) {
         my $buf := nqp::create(IterationBuffer);
         $buf.push(Mu);
@@ -51,8 +52,8 @@ my class Mu { # declared in BOOTSTRAP
         Rakudo::Iterator.ReifiedList($buf)
     }
 
-    proto method split(|) { * }
-    proto method splice(|) is nodal { * }
+    proto method split(|) {*}
+    proto method splice(|) is nodal {*}
 
     method emit {
         emit self;
@@ -71,7 +72,7 @@ my class Mu { # declared in BOOTSTRAP
         $list;
     }
 
-    proto method WHY(|) { * }
+    proto method WHY(|) {*}
     multi method WHY(Mu:) {
         my Mu $why;
 
@@ -107,15 +108,22 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         nqp::p6bool(nqp::isconcrete(self))
     }
 
-    proto method new(|) { * }
-    multi method new(*%) {
-        nqp::invokewithcapture(nqp::findmethod(self, 'bless'), nqp::usecapture())
+    proto method new(|) {*}
+    multi method new(*%attrinit) {
+        nqp::if(
+          nqp::eqaddr(
+            (my $bless := nqp::findmethod(self,'bless')),
+            nqp::findmethod(Mu,'bless')
+          ),
+          nqp::create(self).BUILDALL(Empty, %attrinit),
+          nqp::invokewithcapture($bless,nqp::usecapture)
+        )
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();
     }
 
-    proto method is-lazy (|) { * }
+    proto method is-lazy (|) {*}
     multi method is-lazy(Mu: --> False) { }
 
     method CREATE() {
@@ -123,144 +131,143 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     method bless(*%attrinit) {
-        nqp::create(self).BUILDALL(%attrinit);
+        nqp::create(self).BUILDALL(Empty, %attrinit);
     }
 
-    proto method BUILDALL(|) { * }
-
-    # This candidate provided for those modules that rely on the old
-    # BUILDALL interface, such as Inline::Perl5
-    multi method BUILDALL(@positional,%attrinit) {
-        self.BUILDALL(%attrinit)
-    }
-
-    multi method BUILDALL(%attrinit) {
+    method BUILDALL(Mu:D: @autovivs, %attrinit) {
         my $init := nqp::getattr(%attrinit,Map,'$!storage');
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which
         # would get expensive.
         my $bp := nqp::findmethod(self.HOW,'BUILDALLPLAN')(self.HOW, self);
         my int $count = nqp::elems($bp);
-        my int $i     = -1;
-        my $task;
-        my $build;
-        my int $code;
-        my int $int;
-        my num $num;
-        my str $str;
+        my int $i = -1;
 
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$count),
 
           nqp::if(
-            ($code = nqp::atpos(($task := nqp::atpos($bp,$i)),0)),
-
-            nqp::if(                                    # >0
-              nqp::isle_i($code,3),                     # 1,2,3
-              nqp::if(
-                nqp::existskey($init,nqp::atpos($task,2)),
-                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                  = %attrinit.AT-KEY(nqp::atpos($task,2))),
-                nqp::if(                                # no initializer found
-                  nqp::iseq_i($code,2),
-                  nqp::bindattr(
-                    self,nqp::atpos($task,1),nqp::atpos($task,3),nqp::list),
-                  nqp::if(
-                    nqp::iseq_i($code,3),
-                    nqp::bindattr(
-                      self,nqp::atpos($task,1),nqp::atpos($task,3),nqp::hash)
-                  )
-                )
+            nqp::istype((my $task := nqp::atpos($bp,$i)),Callable),
+            nqp::if(                             # BUILD/TWEAK
+              nqp::istype(
+                (my $build := nqp::if(
+                  nqp::elems($init),
+                  $task(self,|%attrinit),
+                  $task(self)
+                )),
+                Failure
               ),
+              return $build
+            ),
 
-              nqp::if(
-                nqp::iseq_i($code,4),
-                nqp::unless(                            # 4
-                  nqp::attrinited(self,
-                    nqp::atpos($task,1),
-                    nqp::atpos($task,2)
-                  ),
-                  nqp::stmts(
-                    (my \attr := nqp::getattr(self,
+            nqp::if(                             # not just calling
+              (my int $code = nqp::atpos($task,0)),
+
+              nqp::if(                           # >0
+                nqp::isle_i($code,3),
+                nqp::if(                         # 1|2|3
+                  nqp::existskey($init,nqp::atpos($task,3)),
+                  nqp::if(                       # can initialize
+                    nqp::iseq_i($code,1),
+                    nqp::bindattr_i(self,        # 1
                       nqp::atpos($task,1),
-                      nqp::atpos($task,2)
-                    )),
-                    (attr = nqp::atpos($task,3)(self,attr))
+                      nqp::atpos($task,2),
+                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                    ),
+                    nqp::if(
+                      nqp::iseq_i($code,2),
+                      nqp::bindattr_n(self,      # 2
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                      ),
+                      nqp::bindattr_s(self,      # 3
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                      )
+                    )
                   )
                 ),
 
                 nqp::if(
-                  nqp::isle_i($code,7),
-                  nqp::if(                              # 5,6,7
-                    nqp::existskey($init,nqp::atpos($task,2)),
-                    nqp::if(                            # can initialize
-                      nqp::iseq_i($code,5),
-                      nqp::bindattr_i(self,             # 5
-                        nqp::atpos($task,1),
-                        nqp::atpos($task,3),
-                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
+                  nqp::iseq_i($code,4),
+                  nqp::unless(                   # 4
+                    nqp::attrinited(self,
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2)
+                    ),
+                    nqp::if(
+                      nqp::istype(nqp::atpos($task,3),Block),
+                      nqp::stmts(
+                        (my \attr := nqp::getattr(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2)
+                        )),
+                        (attr = nqp::atpos($task,3)(self,attr))
                       ),
-                      nqp::if(
-                        nqp::iseq_i($code,6),           # 6
-                        nqp::bindattr_n(self,
-                          nqp::atpos($task,1),
-                          nqp::atpos($task,3),
-                          nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
-                        ),
-                        nqp::bindattr_s(self,           # 7
-                          nqp::atpos($task,1),
-                          nqp::atpos($task,3),
-                          nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,2)))
-                        )
-                      )
+                      nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2)) =
+                        nqp::atpos($task,3)
                     )
                   ),
 
                   nqp::if(
-                    nqp::iseq_i($code,8),
-                    nqp::if(                            # 8
-                      nqp::iseq_i($int = nqp::getattr_i(self,
+                    nqp::iseq_i($code,5),
+                    nqp::if(                     # 5
+                      nqp::iseq_i(my $int = nqp::getattr_i(self,
                         nqp::atpos($task,1),
                         nqp::atpos($task,2)
                       ), 0),
                       nqp::bindattr_i(self,
                         nqp::atpos($task,1),
                         nqp::atpos($task,2),
-                        (nqp::atpos($task,3)(self,$int))
+                        nqp::if(
+                          nqp::istype(nqp::atpos($task,3),Block),
+                          (nqp::atpos($task,3)(self,$int)),
+                          nqp::atpos($task,3)
+                        )
                       )
                     ),
 
                     nqp::if(
-                      nqp::iseq_i($code,9),
-                      nqp::if(                          # 9
-                        nqp::iseq_n($num = nqp::getattr_n(self,
+                      nqp::iseq_i($code,6),
+                      nqp::if(                   # 6
+                        nqp::iseq_n(my num $num = nqp::getattr_n(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2)
                         ), 0e0),
                         nqp::bindattr_n(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2),
-                          (nqp::atpos($task,3)(self,$num))
+                          nqp::if(
+                            nqp::istype(nqp::atpos($task,3),Block),
+                            (nqp::atpos($task,3)(self,$num)),
+                            nqp::atpos($task,3)
+                          )
                         )
                       ),
 
                       nqp::if(
-                        nqp::iseq_i($code,10),
-                        nqp::if(                        # 10
-                          nqp::isnull_s($str = nqp::getattr_s(self,
+                        nqp::iseq_i($code,7),
+                        nqp::if(                 # 7
+                          nqp::isnull_s(my str $str = nqp::getattr_s(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2)
                           )),
                           nqp::bindattr_s(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2),
-                            (nqp::atpos($task,3)(self,$str))
+                            nqp::if(
+                              nqp::istype(nqp::atpos($task,3),Block),
+                              (nqp::atpos($task,3)(self,$str)),
+                              nqp::atpos($task,3)
+                            )
                           )
                         ),
 
                       nqp::if(
-                        nqp::iseq_i($code,11),
-                        nqp::unless(                    # 11
+                        nqp::iseq_i($code,8),
+                        nqp::unless(             # 8
                           nqp::attrinited(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2)
@@ -272,257 +279,274 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                         ),
 
                         nqp::if(
-                          nqp::iseq_i($code,12),
-                          nqp::bindattr(self,           # 12
+                          nqp::iseq_i($code,9),
+                          nqp::bindattr(self,    # 9
                             nqp::atpos($task,1),
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
-
                           nqp::if(
-                            nqp::iseq_i($code,13),      # no-op in BUILDALL
-                            nqp::stmts(                 # 13's flock together
-                              nqp::while(
-                                nqp::islt_i(
-                                  ($i = nqp::add_i($i,1)),$count
-                                ) && nqp::iseq_i(
-                                  nqp::atpos(nqp::atpos($bp,$i),0),13
-                                ),
-                                nqp::null
-                              ),
-                              ($i = nqp::sub_i($i,1))
+                            nqp::iseq_i($code,11),
+                            nqp::if(             # 11
+                              nqp::existskey($init,nqp::atpos($task,3)),
+                              (nqp::getattr(self,
+                                nqp::atpos($task,1),nqp::atpos($task,2))
+                                = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                              nqp::bindattr(self,
+                                nqp::atpos($task,1),nqp::atpos($task,2),
+                                nqp::list
+                              )
                             ),
-                            die("Invalid BUILDALL plan")
-            ))))))))),
+                            nqp::if(
+                              nqp::iseq_i($code,12),
+                              nqp::if(           # 12
+                                nqp::existskey($init,nqp::atpos($task,3)),
+                                (nqp::getattr(self,
+                                  nqp::atpos($task,1),nqp::atpos($task,2))
+                                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                                nqp::bindattr(self,
+                                  nqp::atpos($task,1),nqp::atpos($task,2),
+                                  nqp::hash
+                                )
+                              ),
+                              die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
+                  ))))))))),
 
-            nqp::if(                                    # 0 Custom BUILD call.
-              nqp::istype(
-                ($build := nqp::if(
-                  nqp::elems($init),
-                  nqp::atpos($task,1)(self,|%attrinit),
-                  nqp::atpos($task,1)(self)
-                )),
-                Failure
-              ),
-              return $build
-            )
-          )
-        );
-        self
-    }
+                  nqp::if(                       # 0
+                    nqp::existskey($init,nqp::atpos($task,3)),
+                    (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
+                      = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                  )
+                )
+              )
+            );
+            self
+        }
 
-    method BUILD_LEAST_DERIVED(%attrinit) {
-        my $init := nqp::getattr(%attrinit,Map,'$!storage');
-        # Get the build plan for just this class.
-        my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
-        my int $count = nqp::elems($bp);
-        my int $i     = -1;
-        my $task;
-        my $build;
-        my int $code;
-        my int $int;
-        my num $num;
-        my str $str;
+        method BUILD_LEAST_DERIVED(%attrinit) {
+            my $init := nqp::getattr(%attrinit,Map,'$!storage');
+            # Get the build plan for just this class.
+            my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
+            my int $count = nqp::elems($bp);
+            my int $i     = -1;
 
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$count),
 
-          nqp::if( # 0     # Custom BUILD call.
-            nqp::iseq_i(($code = nqp::atpos(
-              ($task := nqp::atpos($bp,$i)),0
-            )),0),
-            nqp::if(
+          nqp::if(
+            nqp::istype((my $task := nqp::atpos($bp,$i)),Callable),
+            nqp::if(                             # BUILD/TWEAK
               nqp::istype(
-                ($build := nqp::if(
+                (my $build := nqp::if(
                   nqp::elems($init),
-                  nqp::atpos($task,1)(self,|%attrinit),
-                  nqp::atpos($task,1)(self)
+                  $task(self,|%attrinit),
+                  $task(self)
                 )),
                 Failure
               ),
               return $build
             ),
 
-            nqp::if( # 1
-              nqp::iseq_i($code,1),
-              nqp::if(
-                nqp::existskey($init,nqp::atpos($task,2)),
-                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                  = nqp::decont(
-                    %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))
-                  )
-                )
-              ),
+            nqp::if(                             # not just calling
+              (my int $code = nqp::atpos($task,0)),
 
-              nqp::if( # 2
-                nqp::iseq_i($code,2),
-                nqp::if(
-                  nqp::existskey($init,nqp::atpos($task,2)),
-                  (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                    = nqp::decont(
-                      %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))
+              nqp::if(                           # >0
+                nqp::isle_i($code,3),
+                nqp::if(                         # 1|2|3
+                  nqp::existskey($init,nqp::atpos($task,3)),
+                  nqp::if(                       # can initialize
+                    nqp::iseq_i($code,1),
+                    nqp::bindattr_i(self,        # 1
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2),
+                      nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                    ),
+                    nqp::if(
+                      nqp::iseq_i($code,2),
+                      nqp::bindattr_n(self,      # 2
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                      ),
+                      nqp::bindattr_s(self,      # 3
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
+                      )
                     )
-                  ),
-                  nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
-                    nqp::list)
+                  )
                 ),
 
-                nqp::if( # 3
-                  nqp::iseq_i($code,3),
-                  nqp::if(
-                    nqp::existskey($init,nqp::atpos($task,2)),
-                    (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,3))
-                       = nqp::decont(
-                         %attrinit.AT-KEY(nqp::p6box_s(nqp::atpos($task,2)))
-                       )
+                nqp::if(
+                  nqp::iseq_i($code,4),
+                  nqp::unless(                   # 4
+                    nqp::attrinited(self,
+                      nqp::atpos($task,1),
+                      nqp::atpos($task,2)
                     ),
-                    nqp::bindattr(self,nqp::atpos($task,1),nqp::atpos($task,3),
-                       nqp::hash)
-                  ),
-
-                  nqp::if( # 4
-                    nqp::iseq_i($code,4),
-                    nqp::unless(
-                      nqp::attrinited(self,
-                        nqp::atpos($task,1),
-                        nqp::atpos($task,2)
-                      ),
+                    nqp::if(
+                      nqp::istype(nqp::atpos($task,3),Block),
                       nqp::stmts(
                         (my \attr := nqp::getattr(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2)
                         )),
                         (attr = nqp::atpos($task,3)(self,attr))
+                      ),
+                      nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2)) =
+                        nqp::atpos($task,3)
+                    )
+                  ),
+
+                  nqp::if(
+                    nqp::iseq_i($code,5),
+                    nqp::if(                     # 5
+                      nqp::iseq_i(my $int = nqp::getattr_i(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      ), 0),
+                      nqp::bindattr_i(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2),
+                        nqp::if(
+                          nqp::istype(nqp::atpos($task,3),Block),
+                          (nqp::atpos($task,3)(self,$int)),
+                          nqp::atpos($task,3)
+                        )
                       )
                     ),
 
-                    nqp::if( # 5
-                      nqp::iseq_i($code,5),
-                      nqp::if(
-                        nqp::existskey($init,nqp::atpos($task,2)),
-                        nqp::bindattr_i(self,
+                    nqp::if(
+                      nqp::iseq_i($code,6),
+                      nqp::if(                   # 6
+                        nqp::iseq_n(my num $num = nqp::getattr_n(self,
                           nqp::atpos($task,1),
-                          nqp::atpos($task,3),
-                          nqp::decont(%attrinit.AT-KEY(
-                            nqp::p6box_s(nqp::atpos($task,2))
-                          ))
+                          nqp::atpos($task,2)
+                        ), 0e0),
+                        nqp::bindattr_n(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2),
+                          nqp::if(
+                            nqp::istype(nqp::atpos($task,3),Block),
+                            (nqp::atpos($task,3)(self,$num)),
+                            nqp::atpos($task,3)
+                          )
                         )
                       ),
 
-                      nqp::if( # 6
-                        nqp::iseq_i($code,6),
-                        nqp::if(
-                          nqp::existskey($init,nqp::atpos($task,2)),
-                          nqp::bindattr_n(self,
+                      nqp::if(
+                        nqp::iseq_i($code,7),
+                        nqp::if(                 # 7
+                          nqp::isnull_s(my str $str = nqp::getattr_s(self,
                             nqp::atpos($task,1),
-                            nqp::atpos($task,3),
-                            nqp::decont(%attrinit.AT-KEY(
-                              nqp::p6box_s(nqp::atpos($task,2))
-                            ))
+                            nqp::atpos($task,2)
+                          )),
+                          nqp::bindattr_s(self,
+                            nqp::atpos($task,1),
+                            nqp::atpos($task,2),
+                            nqp::if(
+                              nqp::istype(nqp::atpos($task,3),Block),
+                              (nqp::atpos($task,3)(self,$str)),
+                              nqp::atpos($task,3)
+                            )
                           )
                         ),
 
-                        nqp::if( # 7
-                          nqp::iseq_i($code,7),
-                          nqp::if(
-                            nqp::existskey($init,nqp::atpos($task,2)),
-                            nqp::bindattr_s(self,
-                              nqp::atpos($task,1),
-                              nqp::atpos($task,3),
-                              nqp::decont(%attrinit.AT-KEY(
-                                nqp::p6box_s(nqp::atpos($task,2))
-                              ))
-                            )
+                      nqp::if(
+                        nqp::iseq_i($code,8),
+                        nqp::unless(             # 8
+                          nqp::attrinited(self,
+                            nqp::atpos($task,1),
+                            nqp::atpos($task,2)
                           ),
+                          X::Attribute::Required.new(
+                            name => nqp::atpos($task,2),
+                            why  => nqp::atpos($task,3)
+                          ).throw
+                        ),
 
-                          nqp::if( # 8
-                            nqp::iseq_i($code,8),
-                            nqp::if(
-                              nqp::iseq_i($int = nqp::getattr_i(self,
+                        nqp::if(
+                          nqp::iseq_i($code,9),
+                          nqp::bindattr(self,    # 9
+                            nqp::atpos($task,1),
+                            nqp::atpos($task,2),
+                            (nqp::atpos($task,3)())
+                          ),
+                          nqp::if(
+                            nqp::iseq_i($code,10),
+                            # Force vivification, for the sake of meta-object
+                            # mix-ins at compile time ending up with correctly
+                            # shared containers.
+                            nqp::stmts(          # 10
+                              nqp::getattr(self,
                                 nqp::atpos($task,1),
                                 nqp::atpos($task,2)
-                              ), 0),
-                              nqp::bindattr_i(self,
-                                nqp::atpos($task,1),
-                                nqp::atpos($task,2),
-                                (nqp::atpos($task,3)(self,$int))
-                              )
-                            ),
-
-                            nqp::if( # 9
-                              nqp::iseq_i($code,9),
-                              nqp::if(
-                                nqp::iseq_n($num = nqp::getattr_n(self,
+                              ),
+                              nqp::while(        # 10's flock together
+                                nqp::islt_i(($i = nqp::add_i($i,1)),$count)
+                                  && nqp::iseq_i(
+                                       nqp::atpos(
+                                         ($task := nqp::atpos($bp,$i)),
+                                         0
+                                       ),10
+                                     ),
+                                nqp::getattr(self,
                                   nqp::atpos($task,1),
                                   nqp::atpos($task,2)
-                                ), 0e0),
-                                nqp::bindattr_n(self,
-                                  nqp::atpos($task,1),
-                                  nqp::atpos($task,2),
-                                  (nqp::atpos($task,3)(self,$num))
                                 )
                               ),
-
-                              nqp::if( # 10
-                                nqp::iseq_i($code,10),
-                                nqp::if(
-                                  nqp::isnull_s($str = nqp::getattr_s(self,
-                                    nqp::atpos($task,1),
-                                    nqp::atpos($task,2)
-                                  )),
-                                  nqp::bindattr_s(self,
-                                    nqp::atpos($task,1),
-                                    nqp::atpos($task,2),
-                                    (nqp::atpos($task,3)(self,$str))
+                              ($i = nqp::sub_i($i,1))
+                            ),
+                            nqp::if(
+                              nqp::iseq_i($code,11),
+                              nqp::if(           # 11
+                                nqp::existskey($init,nqp::atpos($task,3)),
+                                (nqp::getattr(self,
+                                  nqp::atpos($task,1),nqp::atpos($task,2))
+                                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                                nqp::bindattr(self,
+                                  nqp::atpos($task,1),nqp::atpos($task,2),
+                                  nqp::list
+                                )
+                              ),
+                              nqp::if(
+                                nqp::iseq_i($code,12),
+                                nqp::if(         # 12
+                                  nqp::existskey($init,nqp::atpos($task,3)),
+                                  (nqp::getattr(self,
+                                    nqp::atpos($task,1),nqp::atpos($task,2))
+                                    = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                                  nqp::bindattr(self,
+                                    nqp::atpos($task,1),nqp::atpos($task,2),
+                                    nqp::hash
                                   )
                                 ),
+                                die('Invalid ' ~ self.^name ~ ".BUILD_LEAST_DERIVED plan: $code"),
+              )))))))))),
 
-                                  nqp::if( # 13
-                                    nqp::iseq_i($code,13),
-                                    # Force vivification, for the sake of meta-object
-                                    # mix-ins at compile time ending up with correctly
-                                    # shared containers.
-                                    nqp::stmts(
-                                      nqp::getattr(self,
-                                        nqp::atpos($task,1),
-                                        nqp::atpos($task,2)
-                                      ),
-                                      nqp::while(  # 13's flock together
-                                        nqp::islt_i(
-                                          ($i = nqp::add_i($i,1)),
-                                          $count
-                                        ) && nqp::iseq_i(
-                                          nqp::atpos(
-                                            ($task := nqp::atpos($bp,$i)),
-                                            0
-                                          ),
-                                          13
-                                        ),
-                                        nqp::getattr(self,
-                                          nqp::atpos($task,1),
-                                          nqp::atpos($task,2)
-                                        )
-                                      ),
-                                      ($i = nqp::sub_i($i,1))
-                                    ),
-                                    die("Invalid BUILD_LEAST_DERIVED plan")
-                                  )
-        ))))))))))));
+              nqp::if(                           # 0
+                nqp::existskey($init,nqp::atpos($task,3)),
+                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
+                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
+              )
+            )
+          )
+        );
         self
     }
 
-    proto method Numeric(|) { * }
+    proto method Numeric(|) {*}
     multi method Numeric(Mu:U \v:) {
         warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
-    proto method Real(|) { * }
+    proto method Real(|) {*}
     multi method Real(Mu:U \v:) {
         warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
 
-    proto method Str(|) { * }
+    proto method Str(|) {*}
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.?name) // '';
         $name   ~= ' ' if $name ne '';
@@ -539,7 +563,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         )
     }
 
-    proto method Stringy(|) { * }
+    proto method Stringy(|) {*}
     multi method Stringy(Mu:U \v:) {
         my $*VAR_NAME = try v.VAR.?name;
         self.Str
@@ -548,7 +572,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     method item(Mu \item:) is raw { item }
 
-    proto method say(|) { * }
+    proto method say(|) {*}
     multi method say() { say(self) }
     method print() { print(self) }
     method put() { put(self) }
@@ -578,7 +602,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         }
     }
 
-    proto method gist(|) { * }
+    proto method gist(|) {*}
     multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
     multi method gist(Mu:D:) { self.perl }
 
@@ -610,7 +634,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         }
     }
 
-    proto method perl(|) { * }
+    proto method perl(|) {*}
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
         nqp::if(
@@ -627,7 +651,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         )
     }
 
-    proto method DUMP(|) { * }
+    proto method DUMP(|) {*}
     multi method DUMP(Mu:U:) { self.perl }
     multi method DUMP(Mu:D: :$indent-step = 4, :%ctx?) {
         return DUMP(self, :$indent-step) unless %ctx;
@@ -684,7 +708,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         @pieces.DUMP-PIECES($before, :$indent-step);
     }
 
-    proto method isa(|) { * }
+    proto method isa(|) {*}
     multi method isa(Mu \SELF: Mu $type) {
         nqp::p6bool(SELF.^isa($type.WHAT))
     }
@@ -708,7 +732,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         SELF.^can($name)
     }
 
-    proto method clone (|) { * }
+    proto method clone (|) {*}
     multi method clone(Mu:U: *%twiddles) {
         %twiddles and die 'Cannot set attribute values when cloning a type object';
         self
@@ -828,20 +852,25 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$results)
     }
 
-    method dispatch:<hyper>(Mu \SELF: Str() $name, |c) {
+    method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {
         nqp::if(
-          nqp::can(List,$name) && nqp::can(List.can($name).AT-POS(0),"nodal"),
+          nqp::if(
+            nqp::istype($nodality,Str),
+            nqp::if(
+              $nodality,
+                 nqp::can(List,$nodality)
+              && nqp::can(List.can($nodality ).AT-POS(0),'nodal'),
+                 nqp::can(List,$meth-name)
+              && nqp::can(List.can($meth-name).AT-POS(0),'nodal')),
+            nqp::can($nodality, 'nodal')),
           nqp::if(
             c,
-            HYPER( sub (\obj) is nodal { obj."$name"(|c) }, SELF ),
-            HYPER( sub (\obj) is nodal { obj."$name"() }, SELF )
-          ),
+            HYPER( sub (\obj) is nodal { obj."$meth-name"(|c) }, SELF ),
+            HYPER( sub (\obj) is nodal { obj."$meth-name"()   }, SELF )),
           nqp::if(
             c,
-            HYPER( -> \obj { obj."$name"(|c) }, SELF ),
-            HYPER( -> \obj { obj."$name"() }, SELF )
-          )
-        )
+            HYPER( -> \obj { obj."$meth-name"(|c) }, SELF ),
+            HYPER( -> \obj { obj."$meth-name"(  ) }, SELF )))
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
@@ -913,26 +942,26 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 }
 
 
-proto sub defined(Mu) is pure { * }
+proto sub defined(Mu) is pure {*}
 multi sub defined(Mu \x) { x.defined }
 
-proto sub infix:<~~>(Mu \topic, Mu \matcher) { * }
+proto sub infix:<~~>(Mu \topic, Mu \matcher) {*}
 multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
 }
 
-proto sub infix:<!~~>(Mu \topic, Mu \matcher) { * }
+proto sub infix:<!~~>(Mu \topic, Mu \matcher) {*}
 multi sub infix:<!~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).not;
 }
 
-proto sub infix:<=:=>(Mu $?, Mu $?) is pure { * }
+proto sub infix:<=:=>(Mu $?, Mu $?) is pure {*}
 multi sub infix:<=:=>($?)      { Bool::True }
 multi sub infix:<=:=>(Mu \a, Mu \b) {
     nqp::p6bool(nqp::eqaddr(a, b));
 }
 
-proto sub infix:<eqv>(Any $?, Any $?) is pure { * }
+proto sub infix:<eqv>(Any $?, Any $?) is pure {*}
 multi sub infix:<eqv>($?)            { Bool::True }
 
 # Last ditch snapshot semantics.  We shouldn't come here too often, so
@@ -953,19 +982,30 @@ multi sub infix:<eqv>(Any:D \a, Any:D \b) {
 multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
     nqp::p6bool(
       nqp::unless(
-        nqp::eqaddr(a,b),                                    # identity
-        nqp::if(
-          nqp::eqaddr(a.WHAT,b.WHAT),                        # same type
-          nqp::if(
-            nqp::iseq_i((my int $elems = a.elems),b.elems),  # same # elems
-            nqp::stmts(
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)    # not exhausted
-                  && a.AT-POS($i) eqv b.AT-POS($i),          # still same
-                nqp::null
-              ),
-              nqp::iseq_i($i,$elems)                      # exhausted = success!
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+        nqp::if(                                 # not same object
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(                               # same type
+            a.is-lazy,
+            nqp::if(                             # a lazy
+              b.is-lazy,
+              die(X::Cannot::Lazy.new: :action<eqv>) # a && b lazy
+            ),
+            nqp::if(                             # a NOT lazy
+              b.is-lazy,
+              0,                                 # b lazy
+              nqp::if(                           # a && b NOT lazy
+                nqp::iseq_i((my int $elems = a.elems),b.elems),
+                nqp::stmts(                      # same # elems
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems) # not exhausted
+                      && a.AT-POS($i) eqv b.AT-POS($i),         # still same
+                    nqp::null
+                  ),
+                  nqp::iseq_i($i,$elems)         # exhausted = success!
+                )
+              )
             )
           )
         )
@@ -1034,9 +1074,9 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
 }
 
 # U+2212 minus (forward call to regular minus)
-proto sub  infix:<−>(|)  is pure { * }
+proto sub  infix:<−>(|)  is pure {*}
 multi sub  infix:<−>(|c)         {  infix:<->(|c) }
-proto sub prefix:<−>(|)  is pure { * }
+proto sub prefix:<−>(|)  is pure {*}
 multi sub prefix:<−>(|c)         { prefix:<->(|c) }
 
 # These must collapse Junctions

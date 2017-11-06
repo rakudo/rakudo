@@ -1,7 +1,7 @@
 # This file implements the following set operators:
-#   (<+)    precedes (Texas)
+#   (<+)    precedes (ASCII)
 #   ≼       precedes
-#   (>+)    succeeds (Texas)
+#   (>+)    succeeds (ASCII)
 #   ≽       succeeds
 
 proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {
@@ -95,13 +95,17 @@ multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:D $b --> Bool:D ) {
     return False if $a.AT-KEY($_) > $b.AT-KEY($_) for $a.keys;
     True
 }
+
+multi sub infix:<<(<+)>>(Any $, Failure:D $b) { $b.throw }
+multi sub infix:<<(<+)>>(Failure:D $a, Any $) { $a.throw }
 multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool:D) {
-    if nqp::istype($a, Mixy) or nqp::istype($b, Mixy) {
-        $a.Mix(:view) (<+) $b.Mix(:view);
-    } else {
-        $a.Bag(:view) (<+) $b.Bag(:view);
-    }
+    nqp::if(
+      nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
+      infix:<<(<+)>>($a.Mix, $b.Mix),
+      infix:<<(<+)>>($a.Bag, $b.Bag)
+    )
 }
+
 # U+227C PRECEDES OR EQUAL TO
 only sub infix:<≼>($a, $b --> Bool:D) is pure {
     my $*WHAT    = "≼";

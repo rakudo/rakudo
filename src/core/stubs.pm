@@ -8,9 +8,11 @@ my class X::AdHoc  { ... }
 my class FatRat    { ... }
 my class Pair      { ... }
 my class Promise   { ... }
+my class Channel   { ... }
 my class X::OutOfRange { ... }
 my class X::Dynamic::NotFound { ... }
 my class X::SecurityPolicy::Eval { ... }
+my class X::Channel::ReceiveOnClosed { ... }
 
 my role QuantHash { ... }
 my role Setty { ... }
@@ -26,6 +28,7 @@ my class Mix { ... }
 my class MixHash { ... }
 
 my class Lock is repr('ReentrantMutex') { ... }
+my class Lock::Async { ... }
 
 sub DYNAMIC(\name) is raw {
     nqp::ifnull(
@@ -58,7 +61,7 @@ sub DYNAMIC(\name) is raw {
 # actually appear in the setting).
 {
     my class Dummy {
-        our proto method AUTOGEN(::T $: |) { * }
+        our proto method AUTOGEN(::T $: |) {*}
     }
     Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
 }

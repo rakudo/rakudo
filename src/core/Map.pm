@@ -120,11 +120,18 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    multi method perl(Map:D:) {
-        self.^name
-          ~ '.new(('
-          ~ self.sort.map({.perl}).join(',')
-          ~ '))';
+    multi method gist(Map:D:) {
+        self.^name ~ '.new((' ~ self.sort.map({
+            state $i = 0;
+            ++$i == 101 ?? '...'
+                !! $i == 102 ?? last()
+                    !! .gist
+        }).join(', ') ~ '))'
+    }
+
+    multi method perl(Map:D \SELF:) {
+        my $p = self.^name ~ '.new((' ~ self.sort.map({.perl}).join(',') ~ '))';
+        nqp::iscont(SELF) ?? '$(' ~ $p ~ ')' !! $p
     }
 
     method iterator(Map:D:) {
@@ -299,7 +306,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
 
-    proto method STORE_AT_KEY(|) { * }
+    proto method STORE_AT_KEY(|) {*}
     multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
         nqp::bindkey($!storage, nqp::unbox_s(key), nqp::decont(value))
     }

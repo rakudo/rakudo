@@ -71,6 +71,11 @@ my class Failure is Nil {
        )
     }
 
+    method Capture() {
+        self.DEFINITE.not || $!handled
+            ?? X::Cannot::Capture.new(what => self).throw
+            !! self!throw
+    }
     method Int(Failure:D:)        { $!handled ?? Int !! self!throw(); }
     method Num(Failure:D:)        { $!handled ?? NaN !! self!throw(); }
     method Numeric(Failure:D:)    { $!handled ?? NaN !! self!throw(); }

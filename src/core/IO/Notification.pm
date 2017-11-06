@@ -19,7 +19,7 @@ my class IO::Notification {
         my $is-dir = $path.IO.d;
         my $s = Supplier.new;
         nqp::watchfile(
-            $scheduler.queue,
+            $scheduler.queue(:hint-affinity),
             -> \path, \rename, \err {
                 if err {
                     $s.quit(err);
@@ -34,3 +34,5 @@ my class IO::Notification {
         $s.Supply
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

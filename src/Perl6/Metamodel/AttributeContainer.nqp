@@ -2,7 +2,7 @@ role Perl6::Metamodel::AttributeContainer {
     # Attributes list.
     has @!attributes;
     has %!attribute_lookup;
-    
+
     # Do we default them to rw?
     has $!attr_rw_by_default;
 
@@ -41,18 +41,18 @@ role Perl6::Metamodel::AttributeContainer {
                 !! $_.compose($obj)
         }
     }
-    
+
     # Makes setting the type represented by the meta-object rw mean that its
     # attributes are rw by default.
     method set_rw($obj) {
         $!attr_rw_by_default := 1;
     }
-    
+
     # Is this type's attributes rw by default?
     method rw($obj) {
         $!attr_rw_by_default
     }
-    
+
     # Gets the attribute meta-object for an attribute if it exists.
     # This is called by the parser so it should only return attributes
     # that are visible inside the current package.

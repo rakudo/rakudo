@@ -12,7 +12,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
     #     has Mu $!why;
-    #     has int $!required;
+    #     has $!required;
     #     has Mu $!container_initializer;
 
     method compose(Mu $package, :$compiler_services) {

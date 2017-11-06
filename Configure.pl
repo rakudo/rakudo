@@ -18,8 +18,10 @@ my $lclang = lc $lang;
 my $uclang = uc $lang;
 my $win    = $^O eq 'MSWin32';
 my $slash  = $win ? '\\' : '/';
-
-
+# We don't use ExtUtils::Command in Configure.pl, but it is used in the Makefile
+# Try `use`ing it here so users know if they need to install this module
+# (not included with *every* Perl installation)
+use ExtUtils::Command;
 MAIN: {
     if (-r 'config.default') {
         unshift @ARGV, shellwords(slurp('config.default'));

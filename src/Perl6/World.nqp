@@ -675,6 +675,7 @@ class Perl6::World is HLL::World {
         if $!compiler_services {
             my $cs := $!compiler_services;
             nqp::bindattr($cs, $cs.WHAT, '$!compiler', nqp::null());
+            nqp::bindattr($cs, $cs.WHAT, '$!current-match', nqp::null());
         }
     }
 
@@ -1086,9 +1087,14 @@ class Perl6::World is HLL::World {
                 my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
                 my $io-path  := self.find_symbol(['IO', 'Path']);
                 for $arglist -> $arg {
-                    $registry.use-repository($registry.repository-for-spec(
-                        nqp::istype($arg, $io-path) ?? $arg.absolute !! $arg
-                    ));
+                    if $arg {
+                        $registry.use-repository($registry.repository-for-spec(
+                            nqp::istype($arg, $io-path) ?? $arg.absolute !! $arg
+                        ));
+                    }
+                    else {
+                        self.throw($/, 'X::LibEmpty');
+                    }
                 }
             }
             else {
@@ -1250,7 +1256,7 @@ class Perl6::World is HLL::World {
         $RMD("  Late loading '$module_name'") if $RMD;
 
         # Immediate loading.
-        my $line   := self.current_line($/);
+        my $line := self.current_line($/);
         my $true := self.find_symbol(['True']);
         my $spec := self.find_symbol(['CompUnit', 'DependencySpecification']).new(
             :short-name($module_name),
@@ -2999,7 +3005,7 @@ class Perl6::World is HLL::World {
 
     # Composes the package, and stores an event for this action.
     method pkg_compose($/, $obj) {
-        my $compiler_services := self.get_compiler_services();
+        my $compiler_services := self.get_compiler_services($/);
         if nqp::isconcrete($compiler_services) {
             self.ex-handle($/, { $obj.HOW.compose($obj, :$compiler_services) })
         }
@@ -3009,64 +3015,626 @@ class Perl6::World is HLL::World {
     }
 
     my class CompilerServices {
+
+        # Instantiated World object
         has $!w;
 
         # We share one Signature object among accessors for a given package.
         has $!acc_sig_cache;
         has $!acc_sig_cache_type;
 
-        method generate_accessor(str $meth_name, $package_type, str $attr_name, $type, int $rw) {
-            my $native := nqp::objprimspec($type) != 0;
-            my $acc := QAST::Var.new(
-                :scope($native && $rw ?? 'attributeref' !! 'attribute'),
-                :name($attr_name), :returns($type),
-                QAST::Op.new(
-                    :op('decont'),
-                    QAST::Var.new( :name('self'), :scope('local') )
-                ),
-                QAST::WVal.new( :value($package_type) )
+        # The generic BUILDALL method for empty BUILDPLANs
+        has $!empty_buildplan_method;
+
+        # Types we always need
+        has $!Block;
+        has $!DefiniteHOW;
+        has $!Failure;
+        has $!List;
+        has $!Map;
+        has $!X-Attribute-Required;
+
+        # Parameters we always need
+        my $pself := QAST::Var.new(:decl<param>, :scope<local>, :name<self>);
+        my $pauto := QAST::Var.new(:decl<param>, :scope<local>, :name<@auto>);
+        my $pinit := QAST::Var.new(:decl<param>, :scope<local>, :name<%init>);
+        my $p_    := QAST::Var.new(:decl<param>, :scope<local>, :name('_'),
+          :slurpy, :named);
+
+        # Declarations we always need
+        my $dinit   := QAST::Var.new(:decl<var>, :scope<local>, :name<init>);
+        my $dreturn := QAST::Var.new(:decl<var>, :scope<local>, :name<return>);
+
+        # References to variables we always need
+        my $self     := QAST::Var.new( :scope<local>, :name<self> );
+        my $init     := QAST::Var.new( :scope<local>, :name<init> );
+        my $hllinit  := QAST::Var.new( :scope<local>, :name<%init> );
+        my $return   := QAST::Var.new( :scope<local>, :name<return> );
+
+        # String values we always need
+        my $storage := QAST::SVal.new( :value<$!storage> );
+
+        # signature configuration hashes
+        my %sig_empty := nqp::hash('parameters', []);  # :()
+        my %sig_init := nqp::hash(
+          'parameters', [
+            nqp::hash('variable_name','@auto'),
+            nqp::hash('variable_name','%init')
+          ]
+        );
+
+        # Generate an accessor method with the given method name, package,
+        # attribute name, type of attribute and rw flag.  Returns a code
+        # object that can be installed as a method.
+        method generate_accessor(
+          $/, str $meth_name, $package_type, str $attr_name, $type, int $rw
+        ) {
+
+            # Is it a native attribute? (primpspec != 0)
+            my $native := nqp::objprimspec($type);
+
+            # Set up the actual statements, starting with "self"
+# nqp::attribute(self,$package_type,$attr_name)
+            my $accessor  := QAST::Var.new(
+              :scope($native && $rw ?? 'attributeref' !! 'attribute'),
+              :name($attr_name),
+              :returns($type),
+              QAST::Op.new( :op<decont>, $self ),
+              QAST::WVal.new( :value($package_type) )
             );
+
+            # Opaque and read-only accessors need a decont
             unless $native || $rw {
-                $acc := QAST::Op.new( :op('decont'), $acc );
+                $accessor := QAST::Op.new( :op<decont>, $accessor );
             }
+
+            # Create the block
             my $block := QAST::Block.new(
-                :name($meth_name), :blocktype('declaration_static'),
-                QAST::Stmts.new(
-                    QAST::Var.new(
-                        :decl('param'), :scope('local'), :name('self')
-                    ),
-                    QAST::Var.new(
-                        :decl('param'), :scope('local'), :name('_'), :slurpy, :named
-                    )
-                ),
-                QAST::Stmts.new($acc));
+              :name($meth_name),
+              :blocktype('declaration_static'),
+              QAST::Stmts.new( $pself, $p_, :node(nqp::decont($/)) ),
+              $accessor
+            );
+
+            # Make sure the block has a SC
             $!w.cur_lexpad()[0].push($block);
 
+            # Find/Create the type of the invocant
+            my $invocant_type :=
+              $!w.create_definite_type($!DefiniteHOW, $package_type, 1);
+
+            # Seen accessors of this class before, so use existing signature
             my $sig;
-            if $package_type =:= $!acc_sig_cache_type {
+            if $invocant_type =:= $!acc_sig_cache_type {
                 $sig := $!acc_sig_cache;
             }
+
+            # First time, create new signature and mark it cached
             else {
-                my %sig_info := nqp::hash('parameters', []);
-                $sig := $!w.create_signature_and_params(NQPMu, %sig_info,
-                    $block, 'Any', :method, invocant_type => $package_type);
-                $!acc_sig_cache := $sig;
-                $!acc_sig_cache_type := $package_type;
+                $sig := $!w.create_signature_and_params(
+                  NQPMu, %sig_empty, $block, 'Any', :method, :$invocant_type);
+                $!acc_sig_cache      := $sig;
+                $!acc_sig_cache_type := $invocant_type;
             }
 
+            # Create a code object of the block, make sure we can write if ok
             my $code := $!w.create_code_object($block, 'Method', $sig);
             $code.set_rw() if $rw;
-            return $code;
+
+            # That's it
+            $code
+        }
+
+        # Mapping of primspec to attribute postfix
+        my @psp := ('','_i','_n','_s');
+
+        # Mapping of primspec to native numeric default value op
+        my @psd := (nqp::null,
+          QAST::IVal.new( :value(0) ),
+          QAST::NVal.new( :value(0e0) )
+        );
+
+        # signature configuration hash for ":(%init)"
+
+        # Generate a method for building a new object that takes a hash
+        # with attribute => value pairs to be assigned to the object's
+        # attributes.  Basically a flattened version of Mu.BUILDALL, which
+        # iterates over the BUILDALLPLAN at runtime with fewer inlining
+        # and JITting opportunities.
+        method generate_buildplan_executor($/, $in_object, $in_build_plan) {
+
+            # low level hash access
+            my $build_plan :=
+              nqp::getattr(nqp::decont($in_build_plan), $!List, '$!reified');
+
+            if nqp::elems($build_plan) -> $count {
+
+                # The bare object
+                my $object := nqp::decont($in_object);
+
+                # Do we need to wrap an exception handler
+                my int $needs_wrapping;
+
+                # The basic statements for object initialization, to be
+                # filled in later
+                my $stmts := QAST::Stmts.new(:node(nqp::decont($/)));
+
+                my $declarations :=
+                  QAST::Stmts.new($pself, $pauto, $pinit, $dinit);
+
+                # The block of the method
+                my $block := QAST::Block.new(
+                  :name<BUILDALL>, :blocktype<declaration_static>,
+                  $declarations
+                );
+
+                # Register the block in its SC
+                $!w.cur_lexpad()[0].push($block);
+
+                # Create the invocant type we need
+                my $invocant_type :=
+                  $!w.create_definite_type($!DefiniteHOW, $object, 1);
+
+                # Debugging
+#                $stmts.push(
+#                  QAST::Op.new( :op<say>,
+#                    QAST::SVal.new( :value(
+#                      $object.HOW.name($object) ~ '.BUILDALL called'
+#                    ))
+#                  ),
+#                );
+#                $stmts.push(
+#                  QAST::Op.new( :op<say>,
+#                    QAST::Op.new( :op<callmethod>, :name<perl>, $hllinit )
+#                  )
+#                );
+
+# my $init := nqp::getattr(%init,Map,'$!storage')
+                $stmts.push(QAST::Op.new( :op<bind>,
+                  $init,
+                  QAST::Op.new( :op<getattr>,
+                    $hllinit, QAST::WVal.new( :value($!Map) ), $storage
+                  )
+                ));
+
+                # Do all of the actions in the BUILDPLAN
+                my int $i := -1;
+                while nqp::islt_i($i := nqp::add_i($i, 1), $count) {
+
+                    # We have some intricate action to do
+                    if nqp::islist(my $task := nqp::atpos($build_plan,$i)) {
+
+                        # Register the class in the SC if needed
+                        $!w.add_object_if_no_sc( nqp::atpos($task,1) );
+
+                        # We always need the class object & full attribute name
+                        my $class :=
+                          QAST::WVal.new( :value(nqp::atpos($task,1)) );
+                        my $attr :=
+                          QAST::SVal.new( :value(nqp::atpos($task,2)) );
+
+                        my int $code := nqp::atpos($task,0);
+                        # 0,11,12 = initialize opaque from %init
+                        if $code == 0 || $code == 11 || $code == 12 {
+
+# 'a'
+                            my $key :=
+                              QAST::SVal.new( :value(nqp::atpos($task,3)) );
+
+# nqp::getattr(self,Foo,'$!a')
+                            my $getattr := QAST::Op.new( :op<getattr>,
+                              $self, $class, $attr
+                            );
+
+# nqp::if(
+#   nqp::existskey($init,'a'),
+                            my $if := QAST::Op.new( :op<if>,
+                              QAST::Op.new( :op<existskey>, $init, $key)
+                            );
+
+# %init.AT-KEY('a')
+                            my $value := QAST::Op.new( :op<callmethod>,
+                              :name<AT-KEY>, $hllinit, $key
+                            );
+
+                            my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
+
+# nqp::getattr(self,Foo,'$!a').STORE(%init.AT-KEY('a'))
+                            if $sigil eq '@' || $sigil eq '%' {
+                                $if.push(
+                                  QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                    $getattr, $value
+                                  )
+                                );
+                            }
+
+# nqp::getattr(self,Foo,'$!a') = %init.AT-KEY('a')
+                            else {
+                                $if.push(
+                                  QAST::Op.new(
+                                    :op( $sigil eq '$' || $sigil eq '&'
+                                           ?? 'assign' !! 'p6store'
+                                    ),
+                                    $getattr, $value
+                                  )
+                                );
+                            }
+
+                            # 11,12
+# bindattr(self,Foo,'$!a',nqp::list|hash)
+                            if $code {
+                                $if.push(
+                                  QAST::Op.new(:op<bindattr>,
+                                    $self, $class, $attr,
+                                    QAST::Op.new(
+                                      :op($code == 11 ?? 'list' !! 'hash')
+                                    )
+                                  )
+                                );
+                            }
+
+# ),
+                            $stmts.push($if);
+                        }
+
+                        # 1,2,3 = initialize native from %init
+                        elsif $code < 4 {
+
+# nqp::if(
+#   nqp::existskey($init,'a'),
+#   nqp::bindattr_x(self,Foo,'$!a',nqp::decont(%init.AT-KEY('a')))
+# ),
+                            my $key :=
+                              QAST::SVal.new(:value(nqp::atpos($task,3)));
+                            $stmts.push(
+                              QAST::Op.new(:op<if>,
+                                QAST::Op.new(:op<existskey>, $init, $key),
+                                QAST::Op.new(:op('bindattr' ~ @psp[$code]),
+                                  $self, $class, $attr,
+                                  QAST::Op.new( :op<decont>,
+                                    QAST::Op.new(:op<callmethod>, :name<AT-KEY>,
+                                      $hllinit, $key
+                                    )
+                                  )
+                                )
+                              )
+                            );
+                        }
+
+                        # 4 = set opaque with default if not set yet
+                        elsif $code == 4 {
+
+# nqp::unless(
+#   nqp::attrinited(self,Foo,'$!a'),
+                            my $unless := QAST::Op.new( :op<unless>,
+                                QAST::Op.new( :op<attrinited>,
+                                  $self, $class, $attr
+                                )
+                            );
+
+# nqp::getattr(self,Foo,'$!a')
+                            my $getattr := QAST::Op.new( :op<getattr>,
+                              $self, $class, $attr
+                            );
+
+                            my $initializer := nqp::istype(
+                              nqp::atpos($task,3),$!Block
+# $code(self,nqp::getattr(self,Foo,'$!a'))
+                            ) ?? QAST::Op.new( :op<call>,
+                                   QAST::WVal.new(:value(nqp::atpos($task,3))),
+                                   $self, $getattr
+                                 )
+# $value
+                              !! QAST::WVal.new(:value(nqp::atpos($task,3)));
+
+                            my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
+# nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')))
+                            if $sigil eq '@' || $sigil eq '%' {
+                                $unless.push(
+                                  QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                    $getattr, $initializer
+                                  )
+                                );
+                            }
+
+                            else {
+# (nqp::getattr(self,Foo,'$!a') = $code(self,nqp::getattr(self,Foo,'$!a')))
+                                $unless.push(
+                                  QAST::Op.new(
+                                    :op( $sigil eq '$' || $sigil eq '&'
+                                           ?? 'assign' !! 'p6store'
+                                    ),
+                                    $getattr, $initializer
+                                  )
+                                )
+                            }
+
+# ),
+                            $stmts.push($unless);
+
+                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                        }
+
+                        # 5,6 = set native numeric with default if not set
+                        elsif $code < 7 {
+# nqp::if(
+#   nqp::iseq_x(
+#     nqp::getattr_x(self,Foo,'$!a'),
+#     (native default value)
+#   ),
+#   nqp::bindattr_x(self,Foo,'$!a',
+#     $initializer(self,nqp::getattr_x(self,Foo,'$!a')))
+# ),
+                            my $getattr := QAST::Op.new(
+                              :op('getattr' ~ @psp[$code - 4]),
+                              $self, $class, $attr
+                            );
+                            $stmts.push(
+                              QAST::Op.new( :op<if>,
+                                QAST::Op.new( :op('iseq' ~ @psp[$code - 4]),
+                                  $getattr,
+                                  @psd[$code - 4],
+                                ),
+                                QAST::Op.new( :op('bindattr' ~ @psp[$code - 4]),
+                                  $self, $class, $attr,
+                                  nqp::if(
+                                    nqp::istype(nqp::atpos($task,3),$!Block),
+                                    QAST::Op.new( :op<call>,
+                                      QAST::WVal.new(:value(nqp::atpos($task,3))),
+                                      $self,
+                                      $getattr
+                                    ),
+                                    nqp::if(
+                                      nqp::iseq_i($code,5),
+                                      QAST::IVal.new(:value(nqp::atpos($task,3))),
+                                      QAST::NVal.new(:value(nqp::atpos($task,3)))
+                                    )
+                                  )
+                                )
+                              )
+                            );
+
+                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                        }
+
+                        # 7 = set native string with default if not set
+                        elsif $code == 7 {
+# nqp::if(
+#   nqp::isnull_s(nqp::getattr_s(self,Foo,'$!a')),
+#   nqp::bindattr_s(self,Foo,'$!a',
+#     $initializer(self,nqp::getattr_s(self,Foo,'$!a')))
+# ),
+                            my $getattr := QAST::Op.new( :op<getattr_s>,
+                              $self, $class, $attr
+                            );
+                            $stmts.push(
+                              QAST::Op.new( :op<if>,
+                                QAST::Op.new( :op<isnull_s>, $getattr),
+                                QAST::Op.new( :op<bindattr_s>,
+                                  $self, $class, $attr,
+                                  nqp::if(
+                                    nqp::istype(nqp::atpos($task,3),$!Block),
+                                    QAST::Op.new( :op<call>,
+                                      QAST::WVal.new(:value(nqp::atpos($task,3))),
+                                      $self,
+                                      $getattr
+                                    ),
+                                    QAST::SVal.new(:value(nqp::atpos($task,3)))
+                                  )
+                                )
+                              )
+                            );
+
+                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                        }
+
+                        # 8 = bail if opaque not yet initialized
+                        elsif $code == 8 {
+
+# nqp::unless(
+#   nqp::attrinited(self,Foo,'$!a'),
+#   X::Attribute::Required.new(name => '$!a', why => (value))
+# ),
+                            $stmts.push(
+                              QAST::Op.new( :op<unless>,
+                                QAST::Op.new( :op<attrinited>,
+                                  $self, $class, $attr
+                                ),
+                                QAST::Op.new( :op<callmethod>, :name<throw>,
+                                  QAST::Op.new( :op<callmethod>, :name<new>,
+                                    QAST::WVal.new(
+                                      :value($!X-Attribute-Required)),
+                                    QAST::SVal.new( :named('name'),
+                                      :value(nqp::atpos($task,2))),
+                                    QAST::WVal.new( :named('why'),
+                                      :value(nqp::atpos($task,3)))
+                                  )
+                                )
+                              )
+                            );
+                        }
+
+                        # 9 = run attribute container initializer
+                        elsif $code == 9 {
+
+# nqp::bindattr(self,Foo,'$!a',$initializer())
+                            $stmts.push(
+                              QAST::Op.new( :op<bindattr>,
+                                $self, $class, $attr,
+                                QAST::Op.new( :op<call>,
+                                  QAST::WVal.new(:value(nqp::atpos($task,3)))
+                                )
+                              )
+                            );
+
+                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                        }
+
+                        # 10 = set attrinited on attribute
+                        elsif $code == 10 {
+# nqp::getattr(self,Foo,'$!a')
+                            $stmts.push(
+                              QAST::Op.new(:op<getattr>, $self, $class, $attr)
+                            );
+                        }
+
+                        else {
+                            nqp::die('Invalid ' ~ $object.HOW.name($object) ~ '.BUILDALL plan: ' ~ $code);
+                        }
+                    }
+
+                    # BUILD/TWEAK
+                    else {
+
+                        # BUILD or TWEAK without BUILD (first seen)
+                        unless $needs_wrapping {
+
+# (my $return),
+                            $declarations.push($dreturn);
+                            $needs_wrapping := 1
+                        }
+
+# nqp::if(
+#   nqp::istype(
+#     ($return := nqp::if(
+#       nqp::elems($init),
+#       $task(self,|%init),
+#       $task(self)
+#     )),
+#     Failure
+#   ),
+#   return $return
+# ),
+                        $stmts.push(
+                          QAST::Op.new( :op<if>,
+                            QAST::Op.new( :op<istype>,
+                              QAST::Op.new( :op<bind>,
+                                $return,
+                                QAST::Op.new( :op<if>,
+                                  QAST::Op.new( :op<elems>, $init ),
+                                  QAST::Op.new( :op<call>,
+                                    QAST::WVal.new( :value($task) ),
+                                    $self,
+                                    QAST::Var.new(
+                                      :scope<local>,
+                                      :name<init>,  # use nqp::hash directly
+                                      :flat(1),
+                                      :named(1)
+                                    ),
+                                  ),
+                                  QAST::Op.new( :op<call>,
+                                    QAST::WVal.new( :value($task) ),
+                                    $self,
+                                  )
+                                )
+                              ),
+                              QAST::WVal.new(:value($!Failure)),
+                            ),
+                            QAST::Op.new( :op<call>,
+                              QAST::WVal.new(
+                                :value($!w.find_symbol(['&return']))),
+                              QAST::Var.new(:scope<local>, :name<return>)
+                            )
+                          )
+                        );
+
+                        $!w.add_object_if_no_sc($task);
+                    }
+                }
+
+                # Finally, add the return value
+                $stmts.push($self);
+
+                # Need to wrap an exception handler around
+                if $needs_wrapping {
+                    $stmts := QAST::Op.new( :op<handlepayload>,
+                      $stmts,
+                      'RETURN',
+                      QAST::Op.new( :op<lastexpayload> )
+                    );
+                }
+
+                # Add the statements to the block
+                $block.push($stmts);
+
+# :(Foo:D: %init)
+                my $sig := $!w.create_signature_and_params(
+                  NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
+                );
+
+                # Create the code object and return it
+                $!w.create_code_object($block, 'Submethod', $sig)
+            }
+
+            # Empty buildplan, and we already have an empty buildplan method
+            elsif $!empty_buildplan_method {
+                $!empty_buildplan_method
+            }
+
+            # Empty buildplan, still need to make an empty method
+            else {
+
+# submethod :: (Any:D:) { self }
+                my $block := QAST::Block.new(
+                  :name<BUILDALL>, :blocktype<declaration_static>,
+                  QAST::Stmts.new($pself, $pauto, $pinit),
+                  $self
+                );
+
+                # Register the block in its SC
+                $!w.cur_lexpad()[0].push($block);
+
+                my $invocant_type := $!w.create_definite_type(
+                  $!DefiniteHOW, $!w.find_symbol(['Any']), 1);
+
+                my $sig := $!w.create_signature_and_params(
+                  NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
+                );
+
+                # Create the code object, save and return it
+                $!empty_buildplan_method :=
+                  $!w.create_code_object($block, 'Submethod', $sig)
+            }
         }
     }
-    method get_compiler_services() {
-        unless nqp::isconcrete($!compiler_services) {
+
+    method get_compiler_services($/) {
+
+        # Already have a CompilerServices object
+        if nqp::isconcrete($!compiler_services) {
+
+            # Update $/ for error reporting on generated methods
+            nqp::bindattr(
+              $!compiler_services,$!compiler_services.WHAT,'$!current-match',$/
+            );
+        }
+
+        # Don't have a CompilerServices object yet
+        else {
             try {
-                my $wtype   := self.find_symbol(['Rakudo', 'Internals', 'CompilerServices']);
-                my $wrapped := CompilerServices.new(w => self);
+
+                # Find the HLL version, might fail early in setting compilation
+                my $wtype :=
+                  self.find_symbol(['Rakudo','Internals','CompilerServices']);
                 my $wrapper := nqp::create($wtype);
+
+                # Set up the base object
+                my $wrapped := CompilerServices.new(
+                  w           => self,
+                  Block       => self.find_symbol(['Block']),
+                  DefiniteHOW => self.find_symbol(['Metamodel','DefiniteHOW']),
+                  Failure     => self.find_symbol(['Failure']),
+                  List        => self.find_symbol(['List']),
+                  Map         => self.find_symbol(['Map']),
+                  X-Attribute-Required =>
+                    self.find_symbol(['X','Attribute','Required'])
+                );
                 nqp::bindattr($wrapper, $wtype, '$!compiler', $wrapped);
+                nqp::bindattr($wrapper, $wtype, '$!current-match', $/);
+
+                # When we got here, we really got a full CompilerServices object
                 $!compiler_services := $wrapper;
+
             }
         }
         $!compiler_services
@@ -3131,11 +3699,12 @@ class Perl6::World is HLL::World {
     }
 
     # Adds a value to an enumeration.
-    method create_enum_value($enum_type_obj, $key, $value) {
+    method create_enum_value($enum_type_obj, $key, $value, $index) {
         # Create directly.
         my $val := nqp::rebless(nqp::clone($value), $enum_type_obj);
         nqp::bindattr($val, $enum_type_obj, '$!key', $key);
         nqp::bindattr($val, $enum_type_obj, '$!value', $value);
+        nqp::bindattr_i($val, $enum_type_obj, '$!index', $index);
         self.add_object($val);
 
         # Add to meta-object.
@@ -3166,7 +3735,7 @@ class Perl6::World is HLL::World {
             # only care about type objects
             my $first := nqp::substr($name, 0, 1);
             return 1 if $first eq '$' || $first eq '%' || $first eq '@' || $first eq '&' || $first eq ':';
-            return 1 if !$has_object || nqp::isconcrete($object);
+            return 1 if !$has_object || (nqp::isconcrete($object) && !($object.HOW.HOW.name($object.HOW) eq 'Perl6::Metamodel::EnumHOW'));
             return 1 if nqp::existskey(%seen, $name);
 
             %seen{$name} := 1;
@@ -3645,19 +4214,21 @@ class Perl6::World is HLL::World {
         if $name<identifier> {
             @components.push(~$name<identifier>);
         }
-        for $name<morename> {
-            if $_<identifier> {
-                @components.push(~$_<identifier>);
-            }
-            elsif $_<EXPR> {
-                my $EXPR := $_<EXPR>.ast;
-                @components.push($EXPR);
-            }
-            else {
-                # Either it's :: as a name entirely, in which case it's anon,
-                # or we're ending in ::, in which case it implies .WHO.
-                if +@components {
-                    nqp::bindattr_i($result, LongName, '$!get_who', 1);
+        if $name<morename> {
+            for $name<morename> {
+                if $_<identifier> {
+                    @components.push(~$_<identifier>);
+                }
+                elsif $_<EXPR> {
+                    my $EXPR := $_<EXPR>.ast;
+                    @components.push($EXPR);
+                }
+                else {
+                    # Either it's :: as a name entirely, in which case it's anon,
+                    # or we're ending in ::, in which case it implies .WHO.
+                    if +@components {
+                        nqp::bindattr_i($result, LongName, '$!get_who', 1);
+                    }
                 }
             }
         }
@@ -3667,44 +4238,45 @@ class Perl6::World is HLL::World {
         # the last part of the name (e.g. for infix:<+>). Need to be a
         # little cheaty when compiling the setting due to bootstrapping.
         my @pairs;
-        for $longname<colonpair> {
-            if $_<coloncircumfix> && !$_<identifier> {
-                my $cp_str;
-                if $*COMPILING_CORE_SETTING {
-                    my $ast := $_.ast;
+        if $longname<colonpair> {
+            for $longname<colonpair> {
+                if $_<coloncircumfix> && !$_<identifier> {
+                    my $cp_str;
+                    if $*COMPILING_CORE_SETTING {
+                        my $ast := $_.ast;
 
-                    # XXX hackish for dealing with <longname> stuff, which
-                    # doesn't get handled in a consistent way like <deflongname>
-                    # stuff. The better solution, in the long run, is to
-                    # uniformly run longname through nibble_to_str before this
-                    if nqp::istype($ast, QAST::Op) && $ast.name eq '&val' {
-                        $ast := $ast[0];
-                    }
-                    if nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal) {
-                        $cp_str := self.canonicalize_pair('',$ast[2].value);
-                    }
-                    elsif nqp::istype($ast, QAST::WVal) &&
-                          nqp::istype($ast.value, $*W.find_symbol(['Str'], :setting-only)) {
-                        $cp_str := self.canonicalize_pair('', $ast.value);
+                        # XXX hackish for dealing with <longname> stuff, which
+                        # doesn't get handled in a consistent way like <deflongname>
+                        # stuff. The better solution, in the long run, is to
+                        # uniformly run longname through nibble_to_str before this
+                        if nqp::istype($ast, QAST::Op) && $ast.name eq '&val' {
+                            $ast := $ast[0];
+                        }
+                        if nqp::istype($ast, QAST::Want) && nqp::istype($ast[2], QAST::SVal) {
+                            $cp_str := self.canonicalize_pair('',$ast[2].value);
+                        }
+                        elsif nqp::istype($ast, QAST::WVal) &&
+                              nqp::istype($ast.value, $*W.find_symbol(['Str'], :setting-only)) {
+                            $cp_str := self.canonicalize_pair('', $ast.value);
+                        }
+                        else {
+                            $cp_str := ~$_;
+                        }
                     }
                     else {
-                        $cp_str := ~$_;
+                        # Safe to evaluate it directly; no bootstrap issues.
+                        $cp_str := self.canonicalize_pair('',self.compile_time_evaluate($_, $_.ast));
+                    }
+                    if +@components {
+                        @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
+                    } else {
+                        @components[0] := $cp_str;
                     }
                 }
-
                 else {
-                    # Safe to evaluate it directly; no bootstrap issues.
-                    $cp_str := self.canonicalize_pair('',self.compile_time_evaluate($_, $_.ast));
+                    $_.ast.wanted(1);
+                    @pairs.push($_);
                 }
-                if +@components {
-                    @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
-                } else {
-                    @components[0] := $cp_str;
-                }
-            }
-            else {
-                $_.ast.wanted(1);
-                @pairs.push($_);
             }
         }
         nqp::bindattr($result, LongName, '@!colonpairs', @pairs);

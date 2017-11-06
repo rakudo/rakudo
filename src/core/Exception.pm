@@ -164,7 +164,7 @@ my class X::Method::NotFound is Exception {
                 when Cool { %suggestions{$_} = 0 for <chars codes>; }
                 default   { %suggestions{$_} = 0 for <elems chars codes>; }
             }
-            
+
         }
         elsif $.method eq 'bytes' {
             %suggestions<encode($encoding).bytes> = 0;
@@ -388,7 +388,7 @@ do {
                 $err.say("===SORRY!===");
                 $err.say($e.Str);
             }
-            Rakudo::Internals.THE_END();
+            nqp::getcurhllsym('&THE_END')();
             CONTROL { when CX::Warn { .resume } }
         }
         if $! {
@@ -733,7 +733,7 @@ my class X::Comp::Group is Exception {
 my role X::MOP is Exception { }
 
 my class X::Comp::BeginTime does X::Comp {
-    has $.use-case;
+    has str $.use-case;
     has $.exception;
 
     method message() {
@@ -766,10 +766,12 @@ my class X::Comp::AdHoc is X::AdHoc does X::Comp {
 my class X::Comp::FailGoal does X::Comp {
     has $.dba;
     has $.goal;
+    has $.line-real;
 
     method is-compile-time(--> True) { }
 
-    method message { "Unable to parse expression in $.dba; couldn't find final $.goal" }
+    method message { "Unable to parse expression in $.dba; couldn't find final $.goal"
+                     ~ " (corresponding starter was at line $.line-real)" }
 }
 
 my role X::Syntax does X::Comp { }
@@ -778,9 +780,11 @@ my role X::Pod                 { }
 my class X::NYI is Exception {
     has $.feature;
     has $.did-you-mean;
+    has $.workaround;
     method message() {
         my $msg = "$.feature not yet implemented. Sorry.";
         $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
+        $msg ~= "\nWorkaround: $.workaround" if $.workaround;
         $msg
     }
 }
@@ -839,6 +843,13 @@ my class X::Worry::P5::LeadingZero is X::Worry::P5 {
                 ?? ", but note that $!value is not a valid octal number"
                 !! "; like, '0o$!value'"
         ) ~ '. If you meant to create a string, please add quotation marks.'
+    }
+}
+my class X::Worry::Precedence::Range is X::Worry {
+    has $.action;
+    method message {
+"To $!action a range, parenthesize the whole range.
+(Or parenthesize the whole endpoint expression, if you meant that.)"
     }
 }
 
@@ -1554,7 +1565,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^O' => 'VM.osname',
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
-      '$^T' => '$*INITTIME',
+      '$^T' => '$*INIT-INSTANT',
       '$^V' => '$*PERL.version or $*PERL.compiler.version',
       '$^W' => '$*WARNING',
       '$^X' => '$*EXECUTABLE-NAME',
@@ -1696,6 +1707,25 @@ my class X::Syntax::Regex::SpacesInBareRange does X::Syntax {
     method message { 'Spaces not allowed in bare range.' }
 }
 
+my class X::Syntax::Regex::QuantifierValue does X::Syntax {
+    has $.inf;
+    has $.non-numeric;
+    has $.non-numeric-range;
+    has $.empty-range;
+    method message {
+        $!inf
+          && 'Minimum quantity to match for quantifier cannot be Inf.'
+            ~ ' Did you mean to use + or * quantifiers instead of **?'
+        || $!non-numeric-range
+          && 'Cannot use Range with non-Numeric or NaN end points as quantifier'
+        || $!non-numeric
+          && 'Cannot use non-Numeric or NaN value as quantifier'
+        || $!empty-range
+          && 'Cannot use empty Range as quantifier'
+        || 'Invalid quantifier value'
+    }
+}
+
 my class X::Syntax::Regex::SolitaryQuantifier does X::Syntax {
     method message { 'Quantifier quantifies nothing' }
 }
@@ -1706,6 +1736,10 @@ my class X::Syntax::Regex::NonQuantifiable does X::Syntax {
 
 my class X::Syntax::Regex::SolitaryBacktrackControl does X::Syntax {
     method message { "Backtrack control ':' does not seem to have a preceding atom to control" }
+}
+
+my class X::Syntax::Regex::Alias::LongName does X::Syntax {
+    method message() { "Can only alias to a short name (without '::')"; }
 }
 
 my class X::Syntax::Term::MissingInitializer does X::Syntax {
@@ -1889,6 +1923,9 @@ my class X::Match::Bool is Exception {
     method message() { "Cannot use Bool as Matcher with '" ~ $.type ~ "'.  Did you mean to use \$_ inside a block?" }
 }
 
+my class X::LibEmpty does X::Comp {
+    method message { q/Repository specification can not be an empty string.  Did you mean 'use lib "."' ?/ }
+}
 my class X::LibNone does X::Comp {
     method message { q/Must specify at least one repository.  Did you mean 'use lib "lib"' ?/ }
 }
@@ -1898,10 +1935,16 @@ my class X::Package::UseLib does X::Comp {
 }
 my class X::Package::Stubbed does X::Comp {
     has @.packages;
-    # TODO: suppress display of line number
     method message() {
         "The following packages were stubbed but not defined:\n    "
         ~ @.packages.join("\n    ");
+    }
+
+    # The unnamed named param is here so this candidate, rather than
+    # the one from X::Comp is used. (is it a bug that this is needed?
+    # No idea: https://irclog.perlgeek.de/perl6-dev/2017-09-14#i_15164569 )
+    multi method gist(::?CLASS:D: :$) {
+        $.message;
     }
 }
 
@@ -1978,8 +2021,8 @@ my class X::Str::Trans::InvalidArg is Exception {
 }
 
 my class X::Str::Sprintf::Directives::Count is Exception {
-    has $.args-used;
-    has $.args-have;
+    has int $.args-used;
+    has num $.args-have;
     method message() {
         "Your printf-style directives specify "
         ~ ($.args-used == 1 ?? "1 argument, but "
@@ -2060,6 +2103,15 @@ my class X::Cannot::New is Exception {
         "Cannot make a {$.class.^name} object using .new";
     }
 }
+my class X::Cannot::Capture is Exception {
+    has $.what;
+    method message() {
+        "Cannot unpack or Capture `$!what.gist()`.\n"
+          ~ "To create a Capture, add parentheses: \\(...)\n"
+          ~ 'If unpacking in a signature, perhaps you needlessly used'
+          ~ ' parentheses? -> ($x) {} vs. -> $x {}';
+    }
+}
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
     has $.sequence;
@@ -2082,9 +2134,19 @@ my class X::ControlFlow is Exception {
     method message() { "$.illegal without $.enclosing" }
 }
 my class X::ControlFlow::Return is X::ControlFlow {
+    has Bool $.out-of-dynamic-scope;
+    submethod BUILD(Bool() :$!out-of-dynamic-scope) {}
+
     method illegal()   { 'return'  }
     method enclosing() { 'Routine' }
-    method message()   { 'Attempt to return outside of any Routine' }
+    method message()   {
+        'Attempt to return outside of ' ~ (
+            $!out-of-dynamic-scope
+              ?? 'immediatelly-enclosing Routine (i.e. `return` execution is'
+               ~ ' outside the dynamic scope of the Routine where `return` was used)'
+              !! 'any Routine'
+        )
+    }
 }
 
 my class X::Composition::NotComposable does X::Comp {
@@ -2207,9 +2269,11 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 my class X::Assignment::RO is Exception {
     has $.value = "value";
     method message {
-        "Cannot modify an immutable {$.value.^name} ({$.value.gist})"
+        my $gist = $.value.gist;
+        $gist = "$gist.substr(0,20)..." if $gist.chars > 23;
+        "Cannot modify an immutable {$.value.^name} ($gist)"
     }
-    method typename { $.value.^name } 
+    method typename { $.value.^name }
 }
 
 my class X::Assignment::RO::Comp does X::Comp {
@@ -2375,15 +2439,17 @@ my class X::Import::Positional is Exception {
     }
 }
 
-my class X::Numeric::Real is Exception {
+my class X::Numeric::CannotConvert is Exception {
     has $.target;
     has $.reason;
     has $.source;
 
     method message() {
-        "Cannot convert $.source to {$.target.^name}: $.reason";
+        "Cannot convert $!source to {$!target // $!target.perl}: $!reason";
     }
+
 }
+my class X::Numeric::Real is X::Numeric::CannotConvert {}
 
 my class X::Numeric::DivideByZero is Exception {
     has $.using;
@@ -2413,7 +2479,7 @@ my class X::Numeric::Confused is Exception {
         ~ (
             "\n(If you really wanted to convert {$.num.perl} to a base-$.base"
                 ~ " string, use {$.num.perl}.base($.base) instead.)"
-            if $.num.perl.^can('base')
+            if $.num.^can('base')
         );
     }
 }
@@ -2456,8 +2522,8 @@ my class X::Multi::NoMatch is Exception {
         my @un-rw-cand;
         if first / 'is rw' /, @cand {
             my $rw-capture = Capture.new(
-                :list( $!capture.list.map({ $ = $_ })                  ),
-                :hash( $!capture.hash.map({ .key => $ = .value }).hash ),
+                :list( $!capture.list.map({ my $ = $_ })                  ),
+                :hash( $!capture.hash.map({ .key => my $ = .value }).hash ),
             );
             @un-rw-cand = $.dispatcher.dispatchees».signature.grep({
                 $rw-capture ~~ $^cand
@@ -2575,8 +2641,8 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::Assignment::RO.new(:$value).throw;
   },
   'X::ControlFlow::Return',
-  {
-      X::ControlFlow::Return.new().throw;
+  -> $out-of-dynamic-scope = False {
+      X::ControlFlow::Return.new(:$out-of-dynamic-scope).throw;
   },
   'X::NoDispatcher',
   -> $redispatcher {

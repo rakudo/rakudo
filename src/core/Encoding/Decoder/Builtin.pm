@@ -78,3 +78,5 @@ augment class Rakudo::Internals {
         }
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

@@ -1,4 +1,37 @@
 #!/usr/bin/env perl6
+
+
+=begin pod
+
+This script is for installing Perl6 modules. B<install-dist.pl> does the same module registration like the 'zef' tool.
+
+B<install-dist.pl> makes it easy to install a module system wide.
+
+=head1 OPTIONS
+
+By default the destination is the site of the Perl 6 library.
+
+    # Install to a custom location
+    --to=<destination>     # /home/username/my_perl6_mod_dir
+
+If you specify a destination that does not exists then it will be created. The --to option can only be used together with the --for option. 
+
+    --for=[ vendor | site ]
+
+    --from=<home of the module source>   # default is the current directory
+
+
+The command in the install session for packaging a Perl 6 module could be done in the form:
+
+    install-dist.pl --to=<buildroot/...> --for=vendor
+
+It is recommended to set the environment variable 'RAKUDO_RERESOLVE_DEPENDENCIES' by using the script:
+
+    RAKUDO_RERESOLVE_DEPENDENCIES=0 install-dist.pl --to=<buildroot/...> --for=site
+
+=end pod
+
+
 use v6.c;
 use CompUnit::Repository::Staging;
 

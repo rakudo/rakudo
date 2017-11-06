@@ -10,7 +10,7 @@ my class X::Comp::Trait::Unknown { ... }
 my class X::Experimental { ... }
 my class Pod::Block::Declarator { ... }
 
-proto sub trait_mod:<is>(|) { * }
+proto sub trait_mod:<is>(|) {*}
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
         $child.^add_parent($parent);
@@ -97,7 +97,7 @@ multi sub trait_mod:<is>(Attribute $attr, :$required!) {
       nqp::istype($required,Bool) ?? +$required !! $required
     );
 }
-multi sub trait_mod:<is>(Attribute $attr, :$default!) {
+multi sub trait_mod:<is>(Attribute $attr, Mu :$default!) {
     $attr.container_descriptor.set_default(nqp::decont($default));
     $attr.container = nqp::decont($default) if nqp::iscont($attr.container);
 }
@@ -141,7 +141,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$raw!) {
     $r.set_rw(); # for now, until we have real raw handling
 }
 multi sub trait_mod:<is>(Routine:D $r, :$default!) {
-    $r does role { method default(--> True) { } }
+    $r.^mixin: role { method default(--> True) { } }
 }
 multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
@@ -158,7 +158,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$onlystar!) {
 multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     my role Precedence {
         has %!prec;
-        proto method prec(|) { * }
+        proto method prec(|) {*}
         multi method prec() is raw { %!prec }
         multi method prec(Str:D $key) {
             nqp::ifnull(
@@ -307,7 +307,7 @@ multi sub trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
     Rakudo::Internals.SET_TRAILING_DOCS($docee.HOW, $trailing_docs);
 }
 
-proto sub trait_mod:<does>(|) { * }
+proto sub trait_mod:<does>(|) {*}
 multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     if $role.HOW.archetypes.composable() {
         $doee.^add_role($role)
@@ -323,7 +323,7 @@ multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     }
 }
 
-proto sub trait_mod:<of>(|) { * }
+proto sub trait_mod:<of>(|) {*}
 multi sub trait_mod:<of>(Mu:U $target, Mu:U $type) {
     # XXX Ensure we can do this, die if not.
     $target.^set_of($type);
@@ -338,28 +338,30 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
-    $r.^mixin( role { method is-hidden-from-backtrace(--> True) { } } );
+    $r.^mixin( role is-hidden-from-backtrace {
+        method is-hidden-from-backtrace(--> True) { }
+    }) if $hidden-from-backtrace;
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
-    $r.^mixin( role {
+    $r.^mixin( role is-hidden-from-USAGE {
         method is-hidden-from-USAGE(--> True) { }
-    });
+    }) if $hidden-from-USAGE;
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
-    $r.^mixin( role {
-        method IS_PURE(--> True) { }
-    });
+    $r.^mixin( role is-pure {
+        method is-pure (--> True) { }
+    }) if $pure;
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$nodal!) {
-    $r.^mixin( role {
+    $r.^mixin( role is-nodal {
         method nodal(--> True) { }
-    });
+    }) if $nodal;
 }
 
-proto sub trait_mod:<returns>(|) { * }
+proto sub trait_mod:<returns>(|) {*}
 multi sub trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     my $sig := $target.signature;
     X::Redeclaration.new(what => 'return type for', symbol => $target,
@@ -369,7 +371,7 @@ multi sub trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     $target.^mixin(Callable.^parameterize($type))
 }
 
-proto sub trait_mod:<handles>(|) { * }
+proto sub trait_mod:<handles>(|) {*}
 multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
     $target does role {
         has $.handles;
@@ -464,7 +466,7 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     0;
 }
 
-proto sub trait_mod:<will>(|) { * }
+proto sub trait_mod:<will>(|) {*}
 multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
       file       => $?FILE,
@@ -475,16 +477,16 @@ multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
       highexpect => <lazy>,
     ).throw;
 }
-multi sub trait_mod:<will>(Attribute $attr, Block :$build!) {  # internal usage
+multi sub trait_mod:<will>(Attribute $attr, Mu :$build!) {  # internal usage
     $attr.set_build($build)
 }
 
-proto sub trait_mod:<trusts>(|) { * }
+proto sub trait_mod:<trusts>(|) {*}
 multi sub trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
     $truster.^add_trustee($trustee);
 }
 
-proto sub trait_mod:<hides>(|) { * }
+proto sub trait_mod:<hides>(|) {*}
 multi sub trait_mod:<hides>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable() {
         $child.^add_parent($parent, :hides);

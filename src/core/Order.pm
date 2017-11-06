@@ -6,7 +6,7 @@ sub ORDER(int $i) {
     nqp::iseq_i($i,0) ?? Same !! nqp::islt_i($i,0) ?? Less !! More
 }
 
-proto sub infix:<cmp>(Mu $, Mu $) is pure { * }
+proto sub infix:<cmp>(Mu $, Mu $) is pure {*}
 multi sub infix:<cmp>(\a, \b) {
     nqp::eqaddr(a,b)
       ?? Same

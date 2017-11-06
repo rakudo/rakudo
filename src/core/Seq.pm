@@ -1,38 +1,6 @@
-# A Seq represents anything that can lazily produce a sequence of values. A
-# Seq is born in a state where iterating it will consume the values. However,
-# calling .cache on a Seq will return a List that will lazily reify to the
-# values in the Seq. The List is memoized, so that subsequent calls to .cache
-# will always return the same List (safe thanks to List being immutable). More
-# than one call to .iterator throws an exception (and calling .cache calls the
-# .iterator method the first time also). The memoization can be avoided by
-# asking very specifically for the Seq to be coerced to a List (using .List or .list), a
-# Slip (.Slip) or an Array (.Array). The actual memoization functionality is
-# factored out into a role, PositionalBindFailover, which is used by the binder
-# to identify types that, on failure to bind to an @-sigilled thing, can have
-# .cache called on them and expect memoization semantics. This not only makes
-# it easy for HyperSeq to also have this functionality, but makes it available
-# for other kinds of paradigm that show up in the future (beyond sequential
-# and parallel) that also want to have this behavior.
-my $in_deprecation;
 my class X::Seq::Consumed { ... }
 my class X::Seq::NotIndexable { ... }
-my role PositionalBindFailover {
-    has $!list;
-
-    method cache() {
-        $!list.DEFINITE
-            ?? $!list
-            !! ($!list := List.from-iterator(self.iterator))
-    }
-    multi method list(::?CLASS:D:) {
-        List.from-iterator(self.iterator)
-    }
-
-    method iterator() { ... }
-}
-nqp::p6configposbindfailover(Positional, PositionalBindFailover); # Binder
-Routine.'!configure_positional_bind_failover'(Positional, PositionalBindFailover); # Multi-dispatch
-my class Seq is Cool does Iterable does PositionalBindFailover {
+my class Seq is Cool does Iterable does Sequence {
     # The underlying iterator that iterating this sequence will work its
     # way through. Can only be obtained once.
     has Iterator $!iter;
@@ -74,10 +42,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         )
     }
 
-    multi method eager(Seq:D:) { List.from-iterator(self.iterator).eager }
-    multi method List(Seq:D:)  { List.from-iterator(self.iterator) }
-    multi method Slip(Seq:D:)  { Slip.from-iterator(self.iterator) }
-    multi method Array(Seq:D:) { Array.from-iterator(self.iterator) }
     multi method Seq(Seq:D:)   { self }
 
     method Capture() {
@@ -126,22 +90,6 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
           ),
           self.cache.Bool
         )
-    }
-
-    multi method Str(Seq:D:) {
-        self.cache.Str
-    }
-
-    multi method Stringy(Seq:D:) {
-        self.cache.Stringy
-    }
-
-    method fmt(|c) {
-        self.cache.fmt(|c)
-    }
-
-    multi method gist(Seq:D:) {
-        self.cache.gist
     }
 
     multi method perl(Seq:D \SELF:) {
@@ -198,23 +146,7 @@ my class Seq is Cool does Iterable does PositionalBindFailover {
         )
     }
 
-    multi method AT-POS(Seq:D: Int $idx) is raw {
-        self.cache.AT-POS($idx)
-    }
-
-    multi method AT-POS(Seq:D: int $idx) is raw {
-        self.cache.AT-POS($idx)
-    }
-
-    multi method EXISTS-POS(Seq:D: Int $idx) {
-        self.cache.EXISTS-POS($idx)
-    }
-
-    multi method EXISTS-POS(Seq:D: int $idx) {
-        self.cache.EXISTS-POS($idx)
-    }
-
-    proto method from-loop(|) { * }
+    proto method from-loop(|) {*}
     multi method from-loop(&body) {
         Seq.new(Rakudo::Iterator.Loop(&body))
     }
@@ -390,7 +322,7 @@ multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
             ),
             nqp::if(
               ia.is-lazy,
-              (die "Cannot eqv lazy Sequences"),
+              die(X::Cannot::Lazy.new: :action<eqv>),
               nqp::stmts(
                 nqp::until(
                   nqp::stmts(

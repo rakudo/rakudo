@@ -58,7 +58,7 @@ my class Channel does Awaitable {
         elsif nqp::istype(msg, CHANNEL_FAIL) {
             nqp::push($!queue, msg);  # make sure other readers see it
             $!closed_promise_vow.break(msg.error);
-            die msg.error;
+            msg.error.rethrow;
         }
         else {
             msg
@@ -106,6 +106,7 @@ my class Channel does Awaitable {
         }
     }
 
+    method Capture(Channel:D:) { self.List.Capture }
     multi method Supply(Channel:D:) {
         supply {
             # Tap the async notification for new values supply.
@@ -176,11 +177,16 @@ my class Channel does Awaitable {
             # Need some care here to avoid a race. We must tap the notification
             # supply first, and then do an immediate poll after it, just to be
             # sure we won't miss notifications between the two. Also, we need
-            # to take some care that we never call subscriber twice; a lock is
-            # a tad heavy-weight for it, in the future we can just CAS an int.
+            # to take some care that we never call subscriber twice.
             my $notified := False;
             my $l := Lock.new;
-            my $t := $!async-notify.unsanitized-supply.tap: &poll-now;
+            my $t;
+            $l.protect: {
+                # Lock ensures $t will be assigned before we run the logic
+                # inside of poll-now, which relies on being able to do
+                # $t.close.
+                $t := $!async-notify.unsanitized-supply.tap: &poll-now;
+            }
             poll-now();
 
             sub poll-now($discard?) {

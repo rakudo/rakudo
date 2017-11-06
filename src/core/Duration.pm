@@ -3,7 +3,7 @@ my class Duration is Cool does Real {
       # A linear count of seconds.
 
     method new($tai) {
-        nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',$tai.Rat)
+        nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',$tai.Rat.self) # .self blows up Failures
     }
 
     method Bridge(Duration:D:) { $!tai.Num    }

@@ -1,15 +1,5 @@
 my class SetHash does Setty {
 
-    method SET-SELF(\elems) {
-        nqp::stmts(
-          nqp::if(
-            nqp::elems(elems),
-            nqp::bindattr(self,::?CLASS,'$!elems',elems)
-          ),
-          self
-        )
-    }
-
 #--- selector methods
 
     multi method grab(SetHash:D:) {
@@ -186,6 +176,18 @@ my class SetHash does Setty {
     }
 
 #--- interface methods
+    method STORE(*@pairs --> SetHash:D) {
+        nqp::if(
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          self.SET-SELF(
+            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+              nqp::create(Rakudo::Internals::IterationSet), $iterator
+            )
+          )
+        )
+    }
+
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(
           FETCH => {

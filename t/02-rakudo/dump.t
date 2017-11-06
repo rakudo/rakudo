@@ -19,6 +19,7 @@ is DUMP(Duration),  Duration.perl,    'DUMP(:U) is .perl (Duration)';
 is DUMP(Instant),   Instant.perl,     'DUMP(:U) is .perl (Instant)';
 
 # Defined booleans DUMP as .Str
+todo 'NYI', 2;
 is DUMP(False),     False.Str,        'DUMP(Bool:D) is .Str (False)';
 is DUMP(True),      True.Str,         'DUMP(Bool:D) is .Str (True)';
 
@@ -42,7 +43,6 @@ is DUMP(-1.1),      (-1.1).perl,      'DUMP(Rat:D) is .perl (-1.1)';
 is DUMP( 22/7),     ( 22/7).perl,     'DUMP(Rat:D) is .perl (22/7)';
 is DUMP(-22/7),     (-22/7).perl,     'DUMP(Rat:D) is .perl (-22/7)';
 
-todo('0i literal gets wrapped in a container, unlike other numeric literals');
 is DUMP(   0i),     (   0i).perl,     'DUMP(Complex:D) is .perl (0i)';
 is DUMP(  -0i),     (  -0i).perl,     'DUMP(Complex:D) is .perl (-0i)';
 is DUMP( 0+0i),     ( 0+0i).perl,     'DUMP(Complex:D) is .perl (0+0i)';
@@ -59,6 +59,7 @@ my int $int = 42;
 my num $num = 12345e0;
 my str $str = 'a string';
 
+todo 'NYI (can it even?)', 3;
 is DUMP($int),      DUMP(42),         'DUMP(int) dumps as a literal';
 is DUMP($num),      DUMP(12345e0),    'DUMP(num) dumps as a literal';
 is DUMP($str),      DUMP('a string'), 'DUMP(str) dumps as a literal';

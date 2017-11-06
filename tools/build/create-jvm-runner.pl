@@ -77,5 +77,5 @@ if ($debugger) {
 else {
     install "perl6-j", "java $jopts perl6 $blib";
     install "perl6-jdb-server", "java $jdbopts $jopts perl6 $blib";
-    install "perl6-eval-server", "java -Xmx3000m -XX:MaxPermSize=200m $jopts org.perl6.nqp.tools.EvalServer";
+    install "perl6-eval-server", "java -Xmx3000m $jopts org.perl6.nqp.tools.EvalServer";
 }

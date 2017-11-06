@@ -39,6 +39,8 @@ my int $done_testing_has_been_run = 0;
 _init_vars();
 
 sub _init_io {
+    nqp::setbuffersizefh(nqp::getstdout(), 0);
+    nqp::setbuffersizefh(nqp::getstderr(), 0);
     $output         = $PROCESS::OUT;
     $failure_output = $PROCESS::ERR;
     $todo_output    = $PROCESS::OUT;
@@ -228,7 +230,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
-multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
+multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export {
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $ok;
@@ -246,9 +248,11 @@ multi sub cmp-ok(Mu $got, $op, Mu $expected, $desc = '') is export {
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
-            _diag "expected: '" ~ ($expected // $expected.^name)     ~ "'\n"
+            my $expected-desc = (try $expected.perl) // $expected.gist;
+            my      $got-desc = (try $got     .perl) // $got     .gist;
+            _diag "expected: $expected-desc\n"
                 ~ " matcher: '" ~ ($matcher.?name || $matcher.^name) ~ "'\n"
-                ~ "     got: '$got'";
+                ~ "     got: $got-desc";
         }
     }
     else {

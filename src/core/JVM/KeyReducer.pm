@@ -26,7 +26,7 @@ my class KeyReducer {
         $!obtained = False;
     }
 
-    proto method contribute(|) { * }
+    proto method contribute(|) {*}
     multi method contribute(KeyReducer:D: %h) {
         $!lock.lock();
         if $!exception {
@@ -86,3 +86,5 @@ my class KeyReducer {
         $!exception ?? $!exception.throw !! %!result
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

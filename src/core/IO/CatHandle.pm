@@ -50,7 +50,7 @@ my class IO::CatHandle is IO::Handle {
         (my $old-handle is default(Nil) = $!active-handle),
         nqp::if(
           nqp::defined($!active-handle),
-          ($ = $!active-handle.close)), # don't sink the result, since it might
+          (my $ = $!active-handle.close)), # don't sink the result, since it might
           # .. be an IO::Pipe that returns a Proc that might throw
         nqp::if(
           nqp::elems($!handles),
@@ -66,14 +66,14 @@ my class IO::CatHandle is IO::Handle {
               nqp::if(
                 nqp::istype(
                   ($_ = .open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                    :bin(nqp::isfalse($!encoding))),
+                    :bin(nqp::p6bool(nqp::isfalse($!encoding)))),
                   Failure),
                 .throw,
                 ($!active-handle = $_))),
             nqp::if(
               nqp::istype(
                 ($_ := .IO.open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                  :bin(nqp::isfalse($!encoding))),
+                  :bin(nqp::p6bool(nqp::isfalse($!encoding)))),
                 Failure),
               .throw,
               ($!active-handle = $_))),
@@ -259,19 +259,19 @@ my class IO::CatHandle is IO::Handle {
         nqp::stmts(
           nqp::if(
             nqp::defined($!active-handle),
-            $ = $!active-handle.close),
+            my $ = $!active-handle.close),
           (my int $i = -1),
           (my int $els = nqp::elems($!handles)),
           nqp::while(
             nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
             nqp::if(
               nqp::istype(($_ := nqp::atpos($!handles, $i)), IO::Handle),
-              $ = .close)),
+              my $ = .close)),
           ($!handles := nqp::list),
           ($!active-handle = Nil))
     }
 
-    proto method encoding(|) { * }
+    proto method encoding(|) {*}
     multi method encoding(::?CLASS:D:) { $!encoding || Nil }
     multi method encoding(::?CLASS:D: $enc is copy) {
         $!encoding = nqp::if(
@@ -343,32 +343,38 @@ my class IO::CatHandle is IO::Handle {
         self
     }
 
-    #                        __________________________________________
-    #                       / I don't know what the write methods      \
-    #                      | should do in a CatHandle, so I'll mark    |
-    #                      | these as NYI, for now.... Has anyone      |
-    #                      \ seen my cocoon? I always lose that thing! /
-    #                      |  -----------------------------------------
-    #                      | /
-    #                      |/
-    #                    (⛣)
-    proto method flush   (|) { * }
-    multi method flush   (|) { die X::NYI.new: :feature<flush>    }
-    proto method nl-out  (|) { * }
-    multi method nl-out  (|) { die X::NYI.new: :feature<nl-out>   }
-    proto method print   (|) { * }
-    multi method print   (|) { die X::NYI.new: :feature<print>    }
-    proto method printf  (|) { * }
-    multi method printf  (|) { die X::NYI.new: :feature<printf>   }
-    proto method print-nl(|) { * }
-    multi method print-nl(|) { die X::NYI.new: :feature<print-nl> }
-    proto method put     (|) { * }
-    multi method put     (|) { die X::NYI.new: :feature<put>      }
-    proto method say     (|) { * }
-    multi method say     (|) { die X::NYI.new: :feature<say>      }
-    proto method write   (|) { * }
-    multi method write   (|) { die X::NYI.new: :feature<write>    }
-    #                    /|\
+    #                           __________________________________________
+    #                          / I don't know what the write methods      \
+    #                         | should do in a CatHandle, so I'll mark    |
+    #                         | these as NYI, for now.... Has anyone      |
+    #                         \ seen my cocoon? I always lose that thing! /
+    #                         |  -----------------------------------------
+    #                         | /
+    #                         |/
+    #                       (⛣)
+    proto method flush      (|) {*}
+    multi method flush      (|) { die X::NYI.new: :feature<flush>      }
+    proto method out-buffer (|) {*}
+    multi method out-buffer (|) { die X::NYI.new: :feature<out-buffer> }
+    proto method print      (|) {*}
+    multi method print      (|) { die X::NYI.new: :feature<print>      }
+    proto method printf     (|) {*}
+    multi method printf     (|) { die X::NYI.new: :feature<printf>     }
+    proto method print-nl   (|) {*}
+    multi method print-nl   (|) { die X::NYI.new: :feature<print-nl>   }
+    proto method put        (|) {*}
+    multi method put        (|) { die X::NYI.new: :feature<put>        }
+    proto method say        (|) {*}
+    multi method say        (|) { die X::NYI.new: :feature<say>        }
+    proto method write      (|) {*}
+    multi method write      (|) { die X::NYI.new: :feature<write>      }
+    #                       /|\
+
+    # Don't die on this one, as doing so breaks .Capture
+    # proto method nl-out  (|) {*}
+    # multi method nl-out  (|) {
+    #     die X::NYI.new: :feature<nl-out>
+    # }
 }
 
 # vim: ft=perl6 expandtab sw=4

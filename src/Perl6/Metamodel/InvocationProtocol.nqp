@@ -2,7 +2,7 @@ role Perl6::Metamodel::InvocationProtocol {
     has int $!has_invocation_attr;
     has $!invocation_attr_class;
     has str $!invocation_attr_name;
-    
+
     has int $!has_invocation_handler;
     has $!invocation_handler;
 
@@ -10,27 +10,27 @@ role Perl6::Metamodel::InvocationProtocol {
     has $!md_attr_class;
     has str $!md_valid_attr_name;
     has str $!md_cache_attr_name;
-    
+
     my $default_invoke_handler;
     method set_default_invoke_handler($h) {
         $default_invoke_handler := $h;
     }
-    
+
     method set_invocation_attr($obj, $class, str $name) {
         $!has_invocation_attr   := 1;
         $!invocation_attr_class := $class;
         $!invocation_attr_name  := $name;
     }
-    
+
     method set_invocation_handler($obj, $handler) {
         $!has_invocation_handler := 1;
         $!invocation_handler     := $handler;
     }
-    
+
     method has_invocation_attr($obj) { $!has_invocation_attr }
     method invocation_attr_class($obj) { $!invocation_attr_class }
     method invocation_attr_name($obj) { $!invocation_attr_name }
-    
+
     method has_invocation_handler($obj) { $!has_invocation_handler }
     method invocation_handler($obj) { $!invocation_handler }
 
@@ -44,7 +44,7 @@ role Perl6::Metamodel::InvocationProtocol {
     method multi_attr_class($obj) { $!md_attr_class }
     method multi_valid_attr_name($obj) { $!md_valid_attr_name }
     method multi_cache_attr_name($obj) { $!md_cache_attr_name }
-    
+
     method compose_invocation($obj) {
         # Check if we have a invoke, and if so install
         # the default invocation forwarder. Otherwise, see if we or

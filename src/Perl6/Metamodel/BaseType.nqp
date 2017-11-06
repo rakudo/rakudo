@@ -5,7 +5,7 @@ role Perl6::Metamodel::BaseType {
     has $!base_type;
     has $!base_type_set;
     has @!mro;
-    
+
     method set_base_type($obj, $base_type) {
         if $!base_type_set {
             nqp::die("Base type has already been set for " ~ self.name($obj));
@@ -13,7 +13,7 @@ role Perl6::Metamodel::BaseType {
         $!base_type := $base_type;
         $!base_type_set := 1;
     }
-    
+
     # Our MRO is just that of base type.
     method mro($obj) {
         unless @!mro {
@@ -24,7 +24,7 @@ role Perl6::Metamodel::BaseType {
         }
         @!mro
     }
-    
+
     method parents($obj, :$local, :$excl, :$all) {
         my @parents := [$!base_type];
         unless $local {

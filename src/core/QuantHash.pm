@@ -1,4 +1,15 @@
 my role QuantHash does Associative {
+
+    method SET-SELF(QuantHash:D: \elems) {
+        nqp::stmts(
+          nqp::if(
+            nqp::elems(elems),
+            nqp::bindattr(self,::?CLASS,'$!elems',elems)
+          ),
+          self
+        )
+    }
+
     method Int     ( --> Int:D)     { self.total.Int }
     method Num     ( --> Num:D)     { self.total.Num }
     method Numeric ( --> Numeric:D) { self.total.Numeric }

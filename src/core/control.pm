@@ -50,14 +50,14 @@ multi sub return(**@x is raw --> Nil) {
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, @x);
 }
 
-proto sub take-rw(|) { * }
+proto sub take-rw(|) {*}
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
 multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
 multi sub take-rw(|) {
     THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray))
 }
 
-proto sub take(|) { * }
+proto sub take(|) {*}
 multi sub take()   { die "take without parameters doesn't make sense" }
 multi sub take(\x) {
     THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x))
@@ -69,22 +69,22 @@ multi sub take(|) {
     )
 }
 
-proto sub goto(|) { * }
+proto sub goto(|) {*}
 multi sub goto(Label:D \x --> Nil) { x.goto }
 
-proto sub last(|) { * }
+proto sub last(|) {*}
 multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
 multi sub last(Label:D \x --> Nil) { x.last }
 
-proto sub next(|) { * }
+proto sub next(|) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
 multi sub next(Label:D \x --> Nil) { x.next }
 
-proto sub redo(|) { * }
+proto sub redo(|) {*}
 multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
 multi sub redo(Label:D \x --> Nil) { x.redo }
 
-proto sub succeed(|) { * }
+proto sub succeed(|) {*}
 multi sub succeed(--> Nil) { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
 multi sub succeed(\x --> Nil) { THROW(nqp::const::CONTROL_SUCCEED, x) }
 multi sub succeed(| --> Nil) {
@@ -190,87 +190,6 @@ multi sub warn(*@msg) {
     nqp::setextype($ex, nqp::const::CONTROL_WARN);
     nqp::throw($ex);
     0;
-}
-
-my class Rakudo::Internals::EvalIdSource {
-    my Int $count = 0;
-    my Lock $lock = Lock.new;
-    method next-id() {
-        $lock.protect: { $count++ }
-    }
-}
-proto sub EVAL(Cool $code, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
-    # First look in compiler registry.
-    my $compiler := nqp::getcomp($lang);
-    if nqp::isnull($compiler) {
-        # Try a multi-dispatch to another EVAL candidate. If that fails to
-        # dispatch, map it to a typed exception.
-        CATCH {
-            when X::Multi::NoMatch {
-                X::Eval::NoSuchLang.new(:$lang).throw
-            }
-        }
-        return {*};
-    }
-    $context := CALLER:: unless nqp::defined($context);
-    my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
-    my \mast_frames := nqp::hash();
-    my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the currently compiling compilation unit
-    my $compiled;
-    my $LANG := $context<%?LANG>;
-    if !$LANG {
-        $LANG := CALLERS::<%?LANG>;
-    }
-    if $LANG {
-        # XXX
-        my $grammar := $LANG<MAIN>;
-        my $actions := $LANG<MAIN-actions>;
-        $compiled := $compiler.compile(
-            $code.Stringy,
-            :outer_ctx($eval_ctx),
-            :global(GLOBAL),
-            :mast_frames(mast_frames),
-            :grammar($grammar),
-            :actions($actions),
-        );
-    }
-    else {
-        $compiled := $compiler.compile(
-            $code.Stringy,
-            :outer_ctx($eval_ctx),
-            :global(GLOBAL),
-            :mast_frames(mast_frames),
-        );
-    }
-    if $*W and $*W.is_precompilation_mode() { # we are still compiling
-        $*W.add_additional_frames(mast_frames);
-    }
-    nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
-    $compiled();
-}
-
-multi sub EVAL(Cool $code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
-    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ (state $no)++;
-    state $p5;
-    unless $p5 {
-        {
-            my $compunit := $*REPO.need(CompUnit::DependencySpecification.new(:short-name<Inline::Perl5>));
-            GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package);
-            CATCH {
-                #X::Eval::NoSuchLang.new(:$lang).throw;
-                note $_;
-            }
-        }
-        $p5 = ::("Inline::Perl5").default_perl5;
-    }
-    $p5.run($code);
-}
-
-proto sub EVALFILE($, *%) {*}
-multi sub EVALFILE($filename, :$lang = 'perl6') {
-    EVAL slurp($filename), :$lang, :context(CALLER::);
 }
 
 constant Inf = nqp::p6box_n(nqp::inf());

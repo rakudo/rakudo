@@ -4,17 +4,21 @@ my class Mix does Mixy {
     has Real $!total-positive;
 
 #--- interface methods
-    method SET-SELF(Mix:D: \elems) {
+    method STORE(*@pairs, :$initialize --> Mix:D) {
         nqp::if(
-          nqp::elems(elems),
-          nqp::stmts(
-            nqp::bindattr(self,::?CLASS,'$!elems',elems),
-            self
-          ),
-          mix()
+          (my $iterator := @pairs.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          nqp::if(
+            $initialize,
+            self.SET-SELF(
+              Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+                nqp::create(Rakudo::Internals::IterationSet), $iterator
+              )
+            ),
+            X::Assignment::RO.new(value => self).throw
+          )
         )
     }
-
     multi method DELETE-KEY(Mix:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
@@ -43,15 +47,6 @@ my class Mix does Mixy {
           nqp::attrinited(self,Mix,'$!total-positive'),
           $!total-positive,
           $!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems)
-        )
-    }
-
-#--- object creation methods
-    multi method new(Mix:_:) {
-        nqp::if(
-          nqp::eqaddr(self.WHAT,Mix),
-          mix(),
-          nqp::create(self)
         )
     }
 

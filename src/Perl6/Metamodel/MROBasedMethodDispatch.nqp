@@ -2,6 +2,10 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     # While we normally end up locating methods through the method cache,
     # this is here as a fallback.
     method find_method($obj, $name, :$no_fallback, *%adverbs) {
+
+# uncomment line below for verbose information about uncached method lookups
+#nqp::say( "looking for " ~ $name ~ " in " ~ $obj.HOW.name($obj) );
+#
         if nqp::can($obj.HOW, 'submethod_table') {
             my %submethods := $obj.HOW.submethod_table($obj);
             if nqp::existskey(%submethods, $name) {
@@ -19,7 +23,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             self.find_method_fallback($obj, $name) !!
             nqp::null();
     }
-    
+
     method find_method_qualified($obj, $qtype, $name) {
         if $qtype.HOW.archetypes.parametric && nqp::can(self, 'concretization') {
             # Resolve it via the concrete form of this parametric.
@@ -66,12 +70,12 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
                 $authable := 0;
             }
         }
-        
+
         # Also add submethods.
         for $obj.HOW.submethod_table($obj) {
             %cache{$_.key} := $_.value;
         }
-        
+
         nqp::setmethcache($obj, %cache);
         unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($obj) {
             nqp::setmethcacheauth($obj, $authable);

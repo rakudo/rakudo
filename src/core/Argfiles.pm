@@ -12,8 +12,8 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*ARGFILES', {
       ?? IO::ArgFiles.new(@*ARGS)
       !! IO::ArgFiles.new:
           (my $in := $*IN),
-          :nl-in($in.nl-in),       :chomp($in.chomp),
-          :encoding($in.encoding), :bin(nqp::isfalse($in.encoding));
+          :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),
+          :bin(nqp::p6bool(nqp::isfalse($in.encoding)));
 }
 
 # vim: ft=perl6 expandtab sw=4

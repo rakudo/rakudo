@@ -11,11 +11,11 @@ class Perl6::Metamodel::PackageHOW
     method archetypes() {
         $archetypes
     }
-    
+
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
-    
+
     method new_type(:$name = '<anon>', :$repr, :$ver, :$auth) {
         if $repr { nqp::die("'package' does not support custom representations") }
         my $metaclass := nqp::create(self);
@@ -27,7 +27,7 @@ class Perl6::Metamodel::PackageHOW
     method compose($obj, :$compiler_services) {
         $!composed := 1;
     }
-    
+
     method is_composed($obj) {
         $!composed
     }

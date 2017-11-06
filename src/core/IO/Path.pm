@@ -1,5 +1,3 @@
-my class Instant { ... }
-
 my class IO::Path is Cool does IO {
     has IO::Spec $.SPEC;
     has Str      $.CWD;
@@ -216,7 +214,7 @@ my class IO::Path is Cool does IO {
     }
 #?endif
 
-    proto method absolute(|) { * }
+    proto method absolute(|) {*}
     multi method absolute (IO::Path:D:) {
         $!abspath //= $!SPEC.rel2abs($!path,$!CWD)
     }
@@ -328,8 +326,13 @@ my class IO::Path is Cool does IO {
         $resolved = $sep unless nqp::chars($resolved);
         IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
     }
-
-    method parent(IO::Path:D:) {    # XXX needs work
+    proto method parent(|) {*}
+    multi method parent(IO::Path:D: UInt:D $depth) {
+        my $io = self;
+        $io .= parent xx $depth;
+        $io;
+    }
+    multi method parent(IO::Path:D:) {    # XXX needs work
         my $curdir := $!SPEC.curdir;
         my $updir  := $!SPEC.updir;
 
@@ -399,7 +402,7 @@ my class IO::Path is Cool does IO {
         self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
     }
 
-    proto method chdir(|) { * }
+    proto method chdir(|) {*}
     multi method chdir(IO::Path:D: Str() $path, :$test!) {
         DEPRECATED(
             :what<:$test argument>,
@@ -407,6 +410,9 @@ my class IO::Path is Cool does IO {
             "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
         );
         self.chdir: $path, |$test.words.map(* => True).Hash;
+    }
+    multi method chdir(IO::Path:D: IO $path, |c) {
+        self.chdir: $path.absolute, |c
     }
     multi method chdir(
         IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
@@ -599,7 +605,7 @@ my class IO::Path is Cool does IO {
         }
     }
 
-    proto method slurp() { * }
+    proto method slurp() {*}
     multi method slurp(IO::Path:D: :$enc, :$bin) {
         # We use an IO::Handle in binary mode, and then decode the string
         # all in one go, which avoids the overhead of setting up streaming

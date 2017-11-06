@@ -7,7 +7,7 @@ my role SlippyIterator does Iterator {
     # The current Slip we're iterating.
     has $!slip-iter;
 
-    proto method start-slip(|) { * }
+    proto method start-slip(|) {*}
     multi method start-slip(Slip:U $slip) {
         $slip
     }
@@ -42,7 +42,7 @@ my role SlippyIterator does Iterator {
         )
     }
 
-    proto method slip-all(|) { * }
+    proto method slip-all(|) {*}
     multi method slip-all(Slip:U $slip, $target) {
         $target.push($slip)
     }

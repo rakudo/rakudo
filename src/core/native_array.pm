@@ -27,7 +27,7 @@ my class array does Iterable {
               !! nqp::create(self)
     }
 
-    proto method STORE(|) { * }
+    proto method STORE(|) {*}
     multi method STORE(array:D: *@values) { self.STORE(@values) }
 
     multi method push(array:D:    **@values) { self.append(@values) }
@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -88,11 +88,13 @@ my class array does Iterable {
         }
 
         multi method STORE(strarray:D: $value) {
+            nqp::setelems(self,1);
             nqp::bindpos_s(self, 0, nqp::unbox_s($value));
             self
         }
         multi method STORE(strarray:D: str @values) {
-            nqp::splice(self,@values,0,0)
+            nqp::setelems(self,@values.elems);
+            nqp::splice(self,@values,0,@values.elems)
         }
         multi method STORE(strarray:D: @values) {
             my int $elems = @values.elems;
@@ -128,8 +130,8 @@ my class array does Iterable {
             nqp::push_s(self, $value);
             self
         }
-        multi method append(strarray:D: str @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(strarray:D: strarray:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(strarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
@@ -353,7 +355,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -384,11 +386,13 @@ my class array does Iterable {
         }
 
         multi method STORE(intarray:D: $value) {
+            nqp::setelems(self,1);
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
         multi method STORE(intarray:D: int @values) {
-            nqp::splice(self,@values,0,0)
+            nqp::setelems(self,@values.elems);
+            nqp::splice(self,@values,0,@values.elems)
         }
         multi method STORE(intarray:D: @values) {
             my int $elems = @values.elems;
@@ -424,8 +428,8 @@ my class array does Iterable {
             nqp::push_i(self, $value);
             self
         }
-        multi method append(intarray:D: int @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(intarray:D: intarray:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(intarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
@@ -668,7 +672,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2017-04-09T22:40:33+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -699,11 +703,13 @@ my class array does Iterable {
         }
 
         multi method STORE(numarray:D: $value) {
+            nqp::setelems(self,1);
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
         multi method STORE(numarray:D: num @values) {
-            nqp::splice(self,@values,0,0)
+            nqp::setelems(self,@values.elems);
+            nqp::splice(self,@values,0,@values.elems)
         }
         multi method STORE(numarray:D: @values) {
             my int $elems = @values.elems;
@@ -739,8 +745,8 @@ my class array does Iterable {
             nqp::push_n(self, $value);
             self
         }
-        multi method append(numarray:D: num @values) {
-            nqp::splice(self,@values,nqp::elems(self),0)
+        multi method append(numarray:D: numarray:D $values) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(numarray:D: @values) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
@@ -949,6 +955,21 @@ my class array does Iterable {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------
 
+        method sum(numarray:D:) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my num $sum = nqp::atpos_n(self,0)),
+                (my int $i),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  $sum = nqp::add_n($sum,nqp::atpos_n(self,$i))
+                ),
+                $sum
+              ),
+              0e0
+            )
+        }
         multi method STORE(numarray:D: Range:D $range) {
             my num $val = $range.min;
             $val = $val + 1 if $range.excludes-min;
@@ -1010,14 +1031,14 @@ my class array does Iterable {
             )
         }
 
-        proto method STORE(|) { * }
+        proto method STORE(|) {*}
         multi method STORE(::?CLASS:D: Mu \item) {
             X::Assignment::ToShaped.new(shape => self.shape).throw
         }
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2017-08-15T17:55:57+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1371,11 +1392,12 @@ my class array does Iterable {
                 method push-all($target --> IterationEnd) {
                     nqp::stmts(
                       (my int $elems = nqp::elems($!list)),
-                      (my int $i = -1),
+                      (my int $pos = $!pos),
                       nqp::while(
-                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
-                        $target.push(nqp::atpos_i($!list,$!pos))
-                      )
+                        nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                        $target.push(nqp::atpos_i($!list,$pos))
+                      ),
+                      ($!pos = $pos)
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!list)) }
@@ -1522,7 +1544,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2017-08-15T17:55:57+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1876,11 +1898,12 @@ my class array does Iterable {
                 method push-all($target --> IterationEnd) {
                     nqp::stmts(
                       (my int $elems = nqp::elems($!list)),
-                      (my int $i = -1),
+                      (my int $pos = $!pos),
                       nqp::while(
-                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
-                        $target.push(nqp::atpos_n($!list,$!pos))
-                      )
+                        nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                        $target.push(nqp::atpos_n($!list,$pos))
+                      ),
+                      ($!pos = $pos)
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!list)) }
@@ -2027,7 +2050,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2017-08-15T17:55:57+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2381,11 +2404,12 @@ my class array does Iterable {
                 method push-all($target --> IterationEnd) {
                     nqp::stmts(
                       (my int $elems = nqp::elems($!list)),
-                      (my int $i = -1),
+                      (my int $pos = $!pos),
                       nqp::while(
-                        nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$elems),
-                        $target.push(nqp::atpos_s($!list,$!pos))
-                      )
+                        nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                        $target.push(nqp::atpos_s($!list,$pos))
+                      ),
+                      ($!pos = $pos)
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!list)) }
@@ -2593,7 +2617,7 @@ my class array does Iterable {
         die "Cannot delete from a natively typed array";
     }
 
-    proto method ASSIGN-POS(|) { * } # Hide candidates from Any
+    proto method ASSIGN-POS(|) {*} # Hide candidates from Any
     multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) { # auto-viv
        SELF.AT-POS(pos) = assignee;
     }
@@ -2614,7 +2638,7 @@ my class array does Iterable {
 
     multi method elems(array:D:)    { nqp::elems(self) }
     method shape() { (*,) }
-    proto method Int(|) { * }
+    proto method Int(|) {*}
     multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }
 

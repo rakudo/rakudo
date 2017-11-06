@@ -281,7 +281,7 @@
             }.new(to,from).sink-all
         }
 
-        proto method STORE(|) { * }
+        proto method STORE(|) {*}
         multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
             nqp::if(
               in.shape eqv self.shape,

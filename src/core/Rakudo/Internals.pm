@@ -1,5 +1,6 @@
 my class DateTime { ... }
 my role  IO { ... }
+my class IO::Handle { ... }
 my class IO::Path { ... }
 my class Rakudo::Metaops { ... }
 my class X::Cannot::Lazy { ... }
@@ -15,6 +16,20 @@ my class Rakudo::Internals {
 
     # for use in nqp::splice
     my $empty := nqp::list;
+
+    our class CompilerServices {
+        has Mu $!compiler;
+        has Mu $!current-match;
+
+        method generate_accessor(str $name, Mu \package_type, str $attr_name, Mu \type, int $rw) {
+            $!compiler.generate_accessor(
+              $!current-match, $name, package_type, $attr_name, type, $rw);
+        }
+        method generate_buildplan_executor(Mu \obj, Mu \buildplan) {
+            $!compiler.generate_buildplan_executor(
+              $!current-match, obj, buildplan)
+        }
+    }
 
     # rotate nqp list to another given list without using push/pop
     method RotateListToList(\from,\n,\to) {
@@ -126,12 +141,6 @@ my class Rakudo::Internals {
             }
         }
         0;
-    }
-
-    method THE_END {
-        my @END := nqp::p6bindattrinvres(nqp::create(List), List, '$!reified',
-            nqp::getcurhllsym("@END_PHASERS"));
-        for @END -> $end { $end() };
     }
 
     method createENV(int $bind) {
@@ -505,7 +514,7 @@ my class Rakudo::Internals {
             $!buffer-start-seq = 0;
             $!done-target = -1;
             $!bust = 0;
-            $!lock := Lock.new;
+            $!lock := Lock::Async.new;
         }
 
         method process(Mu \seq, Mu \data, Mu \err) {
@@ -626,7 +635,7 @@ my class Rakudo::Internals {
     }
 
     my num $init-time-num = nqp::time_n;
-    method INITTIME() { $init-time-num }
+    method INITTIME() is raw { $init-time-num }
 
 #?if moar
     my $init-thread := nqp::currentthread();
@@ -886,9 +895,7 @@ my class Rakudo::Internals {
 #method INITIALIZERS() { $initializers }
 
     method REGISTER-DYNAMIC(Str:D \name, &code, Str $version = '6.c' --> Nil) {
-#nqp::print("Registering ");
-#nqp::print(name);
-#nqp::print("\n");
+#nqp::say('Registering ' ~ name);
         nqp::stmts(
           (my str $with = nqp::concat($version, nqp::concat("\0", name))),
           nqp::if(
@@ -906,9 +913,7 @@ my class Rakudo::Internals {
         )
     }
     method INITIALIZE-DYNAMIC(str \name) is raw {
-#nqp::print("Initializing");
-#nqp::print(name);
-#nqp::print("\n");
+#nqp::say('Initializing ' ~ name);
         nqp::stmts(
           (my str $with = nqp::concat(
             nqp::getcomp('perl6').language_version, nqp::concat("\0", name))),
@@ -1261,14 +1266,6 @@ my class Rakudo::Internals {
         nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
     }
 
-    our class CompilerServices {
-        has Mu $!compiler;
-
-        method generate_accessor(str $name, Mu \package_type, str $attr_name, Mu \type, int $rw) {
-            $!compiler.generate_accessor($name, package_type, $attr_name, type, $rw);
-        }
-    }
-
     method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {
         my $vmex := nqp::getattr(nqp::decont(exception), Exception, '$!ex');
         my \payload := nqp::getpayload($vmex);
@@ -1445,7 +1442,7 @@ my class Rakudo::Internals {
         $target
     }
 
-    proto method coremap(|) { * }
+    proto method coremap(|) {*}
 
     multi method coremap(\op, Associative \h, Bool :$deep) {
         my @keys = h.keys;
@@ -1536,17 +1533,43 @@ my class Rakudo::Internals {
 # expose the number of bits a native int has
 my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
+{   # setting up END phaser handling
+    my int $the-end-is-done;
+    my $the-end-locker = Lock.new;
+    # END handling, returns trueish if END handling already done/in progress
+    nqp::bindcurhllsym('&THE_END', {
+        unless $the-end-is-done {
+            $the-end-locker.protect: {
+                unless $the-end-is-done {
+                    my $comp := nqp::getcomp('perl6');
+                    my $end  := nqp::getcurhllsym('@END_PHASERS');
+                    while nqp::elems($end) {           # run all END blocks
+                        my $result := nqp::shift($end)();
+                        $result.sink if nqp::can($result,'sink');
+                        CATCH { $comp.handle-exception($_) }
+                        CONTROL { $comp.handle-control($_) }
+                    }
+#?if moar
+                    # close all open files
+                    IO::Handle.^find_private_method(
+                      'close-all-open-handles'
+                    )(IO::Handle);
+#?endif
+                    nqp::not_i(($the-end-is-done = 1)); # we're really done now
+                }
+            }
+        }
+    } );
+}
+
 # we need this to run *after* the mainline of Rakudo::Internals has run
 Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
     PROCESS::<&EXIT> := sub exit($status) {
-        state $exit;
-        $exit = $status;
+        state $exit = $status;  # first call to exit sets value
 
-        once {
-            Rakudo::Internals.THE_END();
-            nqp::exit(nqp::unbox_i($exit.Int));
-        }
-        $exit;
+        nqp::getcurhllsym('&THE_END')()
+          ?? $exit
+          !! nqp::exit(nqp::unbox_i($exit.Int))
     }
 }
 

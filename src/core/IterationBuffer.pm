@@ -15,26 +15,23 @@ my class IterationBuffer {
         nqp::setelems(self, 0)
     }
 
-    multi method elems(IterationBuffer:D:) {
-        nqp::elems(self)
-    }
+    method elems() { nqp::elems(self) }
 
-    multi method push(IterationBuffer:D: Mu \value) {
-        nqp::push(self, value)
-    }
+    method push(Mu \value) { nqp::push(self, value) }
 
+    proto method AT-POS(|) {*}
     multi method AT-POS(IterationBuffer:D: int $pos) is raw {
         nqp::atpos(self, $pos)
     }
-    multi method AT-POS(IterationBuffer:D: Int $pos) is raw {
+    multi method AT-POS(IterationBuffer:D: Int:D $pos) is raw {
         nqp::atpos(self, $pos)
     }
 
-    proto method BIND-POS(|) { * }
+    proto method BIND-POS(|) {*}
     multi method BIND-POS(IterationBuffer:D: int $pos, Mu \value) {
         nqp::bindpos(self, $pos, value)
     }
-    multi method BIND-POS(IterationBuffer:D: Int $pos, Mu \value) {
+    multi method BIND-POS(IterationBuffer:D: Int:D $pos, Mu \value) {
         nqp::bindpos(self, $pos, value)
     }
 
@@ -45,3 +42,5 @@ my class IterationBuffer {
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',self).perl
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

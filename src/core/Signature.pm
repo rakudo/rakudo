@@ -1,3 +1,5 @@
+my class X::Cannot::Capture { ... }
+
 my class Signature { # declared in BOOTSTRAP
     # class Signature is Any
     #   has @!params;             # VM's array of parameters
@@ -6,18 +8,12 @@ my class Signature { # declared in BOOTSTRAP
     #   has Num $!count;          # count
     #   has Code $!code;
 
+    multi method ACCEPTS(Signature:D: Mu \topic) {
+        nqp::p6bool(try self.ACCEPTS: topic.Capture)
+    }
     multi method ACCEPTS(Signature:D: Capture $topic) {
         nqp::p6bool(nqp::p6isbindable(self, nqp::decont($topic)));
     }
-
-    multi method ACCEPTS(Signature:D: @topic) {
-        self.ACCEPTS(@topic.Capture)
-    }
-
-    multi method ACCEPTS(Signature:D: %topic) {
-        self.ACCEPTS(%topic.Capture)
-    }
-
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
         my $sclass = self.params.classify({.named});
         my $tclass = $topic.params.classify({.named});
@@ -78,6 +74,8 @@ my class Signature { # declared in BOOTSTRAP
         return False unless self.returns =:= $topic.returns;
         True;
     }
+
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
 
     method arity() {
         $!arity

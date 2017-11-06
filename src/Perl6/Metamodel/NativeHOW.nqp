@@ -3,7 +3,7 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::MultipleInheritance    
+    does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::C3MRO
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
@@ -16,7 +16,7 @@ class Perl6::Metamodel::NativeHOW
     method archetypes() {
         $archetypes
     }
-    
+
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
@@ -53,7 +53,7 @@ class Perl6::Metamodel::NativeHOW
         }
         $!composed := 1;
     }
-    
+
     method is_composed($obj) {
         $!composed
     }
@@ -104,15 +104,26 @@ class Perl6::Metamodel::NativeHOW
     method nativesize($obj) {
         $!nativesize
     }
-    
+
     method set_unsigned($obj, $unsigned) {
         $!unsigned := $unsigned ?? 1 !! 0
     }
-    
+
     method unsigned($obj) {
         $!unsigned
     }
-    
-    method method_table($obj) { nqp::hash() }
+
+    method method_table($obj) {
+        nqp::hash('new',
+          nqp::getstaticcode(sub (*@_,*%_) {
+              @_[1] // nqp::die('Cannot instantiate a native type');
+              nqp::getlexcaller('&DEPRECATED')(
+                  '(my ' ~ @_[0].HOW.name(@_[0]) ~ ' $ = ' ~ @_[1].perl() ~ ')',
+                  '2017.09.403',
+                  '2018.01',
+              );
+              @_[1];
+          }))
+    }
     method submethod_table($obj) { nqp::hash() }
 }

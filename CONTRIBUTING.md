@@ -1,3 +1,16 @@
+# Filing Issues
+
+## Potential bugs
+
+Please include a way for developers to reproduce the problem. A small program
+that demonstrates a problem is best.
+
+Describe the behaviour you're observing and how it differs from expectations.
+Include the version of the compiler you're using (run `perl6 -v`) as well as
+the type and version of the operating system (e.g. `Windows 10`)
+
+--------------------------------
+
 # How to Contribute to Rakudo Perl 6
 
 Contributions to Rakudo are very welcome.

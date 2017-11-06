@@ -56,6 +56,25 @@ our class Pointer                               is repr('CPointer') {
     my role TypedPointer[::TValue] {
         method of() { TValue }
         method deref(::?CLASS:D \ptr:) { self ?? nativecast(TValue, ptr) !! fail("Can't dereference a Null Pointer"); }
+        method add(Int $off) returns Pointer {
+            die "Can't do arithmetic with a void pointer"
+                if TValue.isa(void);
+            nqp::box_i(self.Int + nqp::nativecallsizeof(TValue) * $off, self.WHAT);
+        }
+        method succ {
+            self.add(1);
+        }
+        method pred {
+            self.add(-1);
+        }
+        method AT-POS(Int $pos) {
+            nqp::nativecallcast(
+                TValue,
+                nqp::istype(TValue, Int) ?? Int
+                                         !! nqp::istype(TValue, Num) ?? Num !! TValue,
+                nqp::box_i(nqp::unbox_i(nqp::decont(self)) + nqp::nativecallsizeof(TValue) * $pos, Pointer)
+            )
+        }
     }
     method ^parameterize(Mu:U \p, Mu:U \t) {
         die "A typed pointer can only hold:\n" ~

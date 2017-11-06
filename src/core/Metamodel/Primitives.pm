@@ -64,3 +64,5 @@ my class Metamodel::Primitives {
         nqp::p6bool(nqp::istype(obj, type))
     }
 }
+
+# vim: ft=perl6 expandtab sw=4

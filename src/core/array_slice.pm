@@ -10,7 +10,7 @@
 # if called with an Int.  Before it does so, it may cause the calling code
 # to switch to a memoized version of an iterator by modifying variables in
 # the caller's scope.
-proto sub POSITIONS(|) { * }
+proto sub POSITIONS(|) {*}
 multi sub POSITIONS(
   \SELF,
   \pos,
@@ -54,7 +54,16 @@ multi sub POSITIONS(
         }
     }
 
-    my \pos-iter = pos.iterator;
+    # we can optimize `42..*` Ranges; as long as they're from core, unmodified
+    my \pos-iter = nqp::eqaddr(pos.WHAT,Range)
+        && nqp::eqaddr(pos.max,Inf)
+        && nqp::isfalse(SELF.is-lazy)
+          ?? Range.new(pos.min, SELF.elems-1,
+              :excludes-min(pos.excludes-min),
+              :excludes-max(pos.excludes-max)
+          ).iterator
+          !! pos.iterator;
+
     my \pos-list = nqp::create(List);
     my \eager-indices = nqp::create(IterationBuffer);
     my \target = IndicesReificationTarget.new(eager-indices, $eagerize);
@@ -78,7 +87,7 @@ multi sub POSITIONS(
     pos-list
 }
 
-proto sub postcircumfix:<[ ]>(|) is nodal { * }
+proto sub postcircumfix:<[ ]>(|) is nodal {*}
 
 multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is raw {
     die "Unable to call postcircumfix {try SELF.VAR.name}[ $type.gist() ] with a type object\n"

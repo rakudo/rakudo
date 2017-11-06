@@ -1,13 +1,13 @@
 role Perl6::Metamodel::MultipleInheritance {
     # Array of parents.
     has @!parents;
-    
+
     # Are any of the parents hidden?
     has @!hides;
-    
+
     # Is this class hidden?
     has $!hidden;
-    
+
     # Classes to exclude from the parents list in introspection by default.
     my @excluded;
     method exclude_parent($parent) {
@@ -78,15 +78,15 @@ role Perl6::Metamodel::MultipleInheritance {
             @parents
         }
     }
-    
+
     method hides($obj) {
         @!hides
     }
-    
+
     method hidden($obj) {
         $!hidden ?? 1 !! 0
     }
-    
+
     method set_hidden($obj) {
         $!hidden := 1;
     }

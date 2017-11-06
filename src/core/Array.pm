@@ -179,7 +179,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    proto method new(|) { * }
+    proto method new(|) {*}
     multi method new(:$shape!) {
         nqp::if(
           nqp::defined($shape),
@@ -223,7 +223,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::create(self).STORE(@values)
     }
 
-    proto method STORE(|) { * }
+    proto method STORE(|) {*}
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::iscont(iterable)
             ?? self!STORE-ONE(iterable)
@@ -372,7 +372,7 @@ my class Array { # declared in BOOTSTRAP
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos($cow,$i,nqp::decont(nqp::atpos($reified,$i))),
+                  nqp::bindpos($cow,$i,nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)),
                 ),
                 nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$cow)
               )
@@ -591,30 +591,36 @@ my class Array { # declared in BOOTSTRAP
             :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
-            nqp::if(
-              nqp::isle_i(                               # something to delete
-                $pos,my int $end = nqp::sub_i(nqp::elems($reified),1)),
-              nqp::stmts(
-                (my $value := nqp::ifnull(               # save the value
-                  nqp::atpos($reified,$pos),
-                  self.default
-                )),
-                nqp::bindpos($reified,$pos,nqp::null),   # remove this one
-                nqp::if(
-                  nqp::iseq_i($pos,$end),
-                  nqp::stmts(                            # shorten from end
-                    (my int $i = $pos),
-                    nqp::while(
-                      (nqp::isge_i(($i = nqp::sub_i($i,1)),0)
-                        && nqp::not_i(nqp::existspos($reified,$i))),
-                      nqp::null
-                    ),
-                    nqp::setelems($reified,nqp::add_i($i,1))
-                  ),
-                ),
-                $value                                   # value, if any
+            nqp::stmts(
+              nqp::if(
+                (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+                $todo.reify-at-least(nqp::add_i($pos,1)),
               ),
-              self.default                               # outlander
+              nqp::if(
+                nqp::isle_i(                               # something to delete
+                  $pos,my int $end = nqp::sub_i(nqp::elems($reified),1)),
+                nqp::stmts(
+                  (my $value := nqp::ifnull(               # save the value
+                    nqp::atpos($reified,$pos),
+                    self.default
+                  )),
+                  nqp::bindpos($reified,$pos,nqp::null),   # remove this one
+                  nqp::if(
+                    nqp::iseq_i($pos,$end) && nqp::not_i(nqp::defined($todo)),
+                    nqp::stmts(                            # shorten from end
+                      (my int $i = $pos),
+                      nqp::while(
+                        (nqp::isge_i(($i = nqp::sub_i($i,1)),0)
+                          && nqp::not_i(nqp::existspos($reified,$i))),
+                        nqp::null
+                      ),
+                      nqp::setelems($reified,nqp::add_i($i,1))
+                    ),
+                  ),
+                  $value                                   # value, if any
+                ),
+                self.default                               # outlander
+              ),
             ),
             self.default                                 # no elements
           )

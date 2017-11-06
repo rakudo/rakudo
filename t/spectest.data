@@ -20,7 +20,7 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
-
+MISC/bug-coverage-stress.t                  # stress
 S01-perl-5-integration/array.t              # perl5
 S01-perl-5-integration/basic.t              # perl5
 S01-perl-5-integration/class.t              # perl5
@@ -204,7 +204,6 @@ S03-operators/assign.t
 S03-operators/autoincrement-range.t
 S03-operators/autoincrement.t
 S03-operators/autovivification.t
-S03-operators/bag.t
 S03-operators/basic-types.t
 S03-operators/bit.t
 S03-operators/boolean-bitwise.t
@@ -232,7 +231,6 @@ S03-operators/lcm.t
 S03-operators/list-quote-junction.t
 S03-operators/minmax.t
 S03-operators/misc.t
-S03-operators/mix.t
 S03-operators/names.t
 S03-operators/nesting.t
 S03-operators/not.t
@@ -247,7 +245,6 @@ S03-operators/reduce-le1arg.t
 S03-operators/relational.t
 S03-operators/repeat.t
 S03-operators/scalar-assign.t
-S03-operators/set.t
 S03-operators/set_addition.t
 S03-operators/set_difference.t
 S03-operators/set_elem.t
@@ -318,7 +315,6 @@ S04-phasers/check.t
 S04-phasers/descending-order.t
 S04-phasers/end.t
 S04-phasers/enter-leave.t
-S04-phasers/eval-in-begin.t
 S04-phasers/first.t
 S04-phasers/init.t
 S04-phasers/in-eval.t
@@ -546,8 +542,10 @@ S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S07-slip/slip.t
 S07-iterators/range-iterator.t
-S07-hyperrace/hyper.t
-S07-hyperrace/race.t
+S07-hyperrace/for.t
+S07-hyperrace/hyper.t  # moar
+S07-hyperrace/race.t   # moar
+S07-hyperrace/stress.t # moar stress
 S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
 S09-autovivification/autovivification.t
@@ -571,6 +569,7 @@ S09-typed-arrays/native-str.t
 S10-packages/basic.t
 S10-packages/joined-namespaces.t
 S10-packages/precompilation.t # slow
+S10-packages/require-and-use.t
 S10-packages/use-with-class.t
 S11-compunit/compunit-dependencyspecification.t
 S11-compunit/compunit-repository.t
@@ -714,7 +713,6 @@ S15-nfg/grapheme-break.t        # moar
 S15-nfg/GraphemeBreakTest.t     # moar
 S15-nfg/emoji-test.t            # moar
 S15-nfg/long-uni.t              # moar
-S15-nfg/mass-chars.t            # moar
 S15-nfg/many-combiners.t        # moar
 S15-nfg/many-threads.t          # moar
 S15-nfg/mass-equality.t         # moar
@@ -817,7 +815,7 @@ S17-channel/basic.t
 S17-channel/stress.t     # stress slow
 S17-lowlevel/atomic.t    # moar
 S17-lowlevel/atomic-ops.t # moar
-S17-lowlevel/cas.t       # moar
+S17-lowlevel/cas.t
 S17-lowlevel/cas-int.t   # moar
 S17-lowlevel/cas-loop.t  # moar
 S17-lowlevel/cas-loop-int.t # moar
@@ -839,6 +837,9 @@ S17-promise/at.t
 S17-promise/anyof.t
 S17-promise/basic.t
 S17-promise/in.t         # slow
+S17-promise/lock-async.t
+S17-promise/lock-async-stress.t # stress slow
+S17-promise/lock-async-stress2.t # stress slow
 S17-promise/start.t      # slow
 S17-promise/stress.t     # stress
 S17-promise/then.t
@@ -914,6 +915,7 @@ S24-testing/10-is-approx.t
 S24-testing/11-plan-skip-all.t            # stress
 S24-testing/11-plan-skip-all-subtests.t
 S24-testing/12-subtest-todo.t
+S24-testing/13-cmp-ok.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
@@ -936,6 +938,7 @@ S26-documentation/why-both.t
 S26-documentation/why-trailing.t
 S26-documentation/why-leading.t
 S28-named-variables/cwd.t
+S28-named-variables/init-instant.t
 S28-named-variables/slangs.t    # moar
 S29-any/cmp.t
 S29-any/deg-trans.t
@@ -1008,7 +1011,7 @@ S32-io/indir.t
 S32-io/io-cathandle.t
 S32-io/io-handle.t
 S32-io/lock.t                   # slow
-S32-io/socket-host-port-split.t
+S32-io/socket-host-port-split.t      # moar
 S32-io/socket-fail-invalid-values.t
 S32-io/io-special.t
 S32-io/io-spec-qnx.t
@@ -1029,11 +1032,12 @@ S32-io/note.t
 S32-io/null-char.t
 S32-io/open.t
 S32-io/other.t
+S32-io/out-buffering.t
 S32-io/pipe.t
 S32-io/rename.t
 S32-io/seek.t
-S32-io/socket-accept-and-working-threads.t
-S32-io/socket-recv-vs-read.t
+S32-io/socket-accept-and-working-threads.t      # moar
+S32-io/socket-recv-vs-read.t   # moar
 S32-io/slurp.t
 S32-io/spurt.t
 S32-io/tell.t
@@ -1116,6 +1120,7 @@ S32-scalar/undef.t
 S32-str/append.t
 S32-str/bool.t
 S32-str/capitalize.t
+S32-str/Collation.t # moar
 S32-str/chomp.t
 S32-str/chop.t
 S32-str/comb.t
@@ -1154,6 +1159,10 @@ S32-str/uc.t
 S32-str/unpack.t
 S32-str/utf8-c8.t       # moar
 S32-str/words.t
+S32-str/CollationTest_NON_IGNORABLE-0.t # moar
+S32-str/CollationTest_NON_IGNORABLE-1.t # moar
+S32-str/CollationTest_NON_IGNORABLE-2.t # moar
+S32-str/CollationTest_NON_IGNORABLE-3.t # moar
 S32-temporal/calendar.t
 S32-temporal/Date.t
 S32-temporal/DateTime-Instant-Duration.t

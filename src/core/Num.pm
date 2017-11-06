@@ -1,5 +1,7 @@
-my class X::Numeric::DivideByZero { ... };
-my role Rational { ... };
+my class X::Cannot::Capture        { ... }
+my class X::Numeric::DivideByZero  { ... }
+my class X::Numeric::CannotConvert { ... }
+my role Rational { ... }
 
 my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool
@@ -18,13 +20,14 @@ my class Num does Real { # declared in BOOTSTRAP
           ObjAt
         )
     }
+    method Capture() { die X::Cannot::Capture.new: :what(self) }
     method Num() { self }
     method Bridge(Num:D:) { self }
     method Range(Num:U:) { Range.new(-Inf,Inf) }
 
     method Int(Num:D:) {
         nqp::isnanorinf(nqp::unbox_n(self))
-          ?? Failure.new("Cannot coerce {self} to an Int")
+          ?? X::Numeric::CannotConvert.new(:source(self), :target(Int)).fail
           !! nqp::fromnum_I(nqp::unbox_n(self),Int)
     }
 
@@ -458,6 +461,9 @@ multi sub infix:<==>(num $a, num $b --> Bool:D)  {
 multi sub infix:<!=>(num $a, num $b --> Bool:D) {
     nqp::p6bool(nqp::isne_n($a, $b))
 }
+multi sub infix:<≠>(num $a, num $b --> Bool:D) {
+    nqp::p6bool(nqp::isne_n($a, $b))
+}
 
 multi sub infix:«<»(Num:D \a, Num:D \b --> Bool:D) {
     nqp::p6bool(nqp::islt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
@@ -470,6 +476,12 @@ multi sub infix:«<=»(Num:D \a, Num:D \b --> Bool:D) {
     nqp::p6bool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«<=»(num $a, num $b --> Bool:D) {
+    nqp::p6bool(nqp::isle_n($a, $b))
+}
+multi sub infix:«≤»(Num:D \a, Num:D \b --> Bool:D) {
+    nqp::p6bool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+}
+multi sub infix:«≤»(num $a, num $b --> Bool:D) {
     nqp::p6bool(nqp::isle_n($a, $b))
 }
 
@@ -486,12 +498,17 @@ multi sub infix:«>=»(Num:D \a, Num:D \b --> Bool:D) {
 multi sub infix:«>=»(num $a, num $b --> Bool:D) {
     nqp::p6bool(nqp::isge_n($a, $b))
 }
+multi sub infix:«≥»(Num:D \a, Num:D \b --> Bool:D) {
+    nqp::p6bool(nqp::isge_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+}
+multi sub infix:«≥»(num $a, num $b --> Bool:D) {
+    nqp::p6bool(nqp::isge_n($a, $b))
+}
 
 sub rand(--> Num:D) {
     nqp::p6box_n(nqp::rand_n(1e0));
 }
 
-# TODO: default seed of 'time'
 sub srand(Int $seed --> Int:D) {
     nqp::p6box_i(nqp::srand($seed))
 }

@@ -1,8 +1,6 @@
-# Configuration for hyper/race, controlling how we parallelize. Not a class
-# end users can expect to work with unless they're doing truly special
-# things.
+# Configuration for hyper/race, controlling how we parallelize (number of
+# items at a time, and number of threads).
 my class HyperConfiguration {
-    has Bool $.race;
     has int $.batch;
     has Int $.degree;
 }

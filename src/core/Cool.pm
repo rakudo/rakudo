@@ -43,7 +43,7 @@ my class Cool { # declared in BOOTSTRAP
     multi method exp(Cool:D: )      { self.Numeric.exp          }
     multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }
 
-    proto method round(|) { * }
+    proto method round(|) {*}
     multi method round()      { self.Numeric.round()      }
     multi method round($base) { self.Numeric.round($base) }
 
@@ -109,7 +109,7 @@ my class Cool { # declared in BOOTSTRAP
 
     method chomp(Cool:D:) { self.Str.chomp }
 
-    proto method chop(|)                { * }
+    proto method chop(|)                {*}
     multi method chop(Cool:D:)          { self.Str.chop }
     multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
 
@@ -174,15 +174,17 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.subst(|c);
     }
 
-    method subst-mutate(Cool:D $self is rw: |c) {
+    # `$value-to-subst-mutate` will show up in errors when called on non-rw
+    # container, so use more descriptive name instead of just `$self`
+    method subst-mutate(Cool:D $value-to-subst-mutate is rw: |c) {
         $/ := nqp::getlexcaller('$/');
-        my $str   = $self.Str;
+        my $str   = $value-to-subst-mutate.Str;
         my $match = $str.subst-mutate(|c);
-        $self     = $str;
+        $value-to-subst-mutate = $str;
         $match
     }
 
-    proto method IO(|) { * }
+    proto method IO(|) {*}
     multi method IO(Cool:D:) { IO::Path.new(self) }
     multi method IO(Cool:U:) { IO::Path }
 
@@ -207,7 +209,7 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    proto method Int(|) { * }
+    proto method Int(|) {*}
     multi method Int()  {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),
@@ -216,7 +218,7 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    proto method UInt(|) { * }
+    proto method UInt(|) {*}
     multi method UInt()  {
         my $got := self.Int;
         $got < 0
@@ -261,7 +263,7 @@ my class Cool { # declared in BOOTSTRAP
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
-proto sub chop(|) { * }
+proto sub chop(|) {*}
 multi sub chop(Cool:D $s --> Str:D) { $s.chop }
 multi sub chop(Cool:D $s, Int() $n --> Str:D) { $s.chop($n) }
 
@@ -280,19 +282,19 @@ sub indices(Cool $s, |c) {
     $s.indices(|c);
 }
 
-proto sub rindex($, $, $?) is pure { * };
+proto sub rindex($, $, $?) is pure {*};
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
 multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };
 
-proto sub ords($) is pure     { * }
+proto sub ords($) is pure     {*}
 multi sub ords(Cool $s)       { ords($s.Stringy) }
 
-proto sub comb($, $, $?)            { * }
+proto sub comb($, $, $?)            {*}
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Int:D $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
-proto sub wordcase($) is pure { * }
+proto sub wordcase($) is pure {*}
 multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 

@@ -33,3 +33,9 @@ DLLEXPORT void * TakeTwoPointersToInt(int *ptr1, int *ptr2)
 DLLEXPORT void * TakeCArrayToInt8(int array[]) {
     return NULL;
 }
+
+static int array[3] = {10, 20, 30};
+DLLEXPORT int * ReturnPointerToIntArray()
+{
+    return array;
+}

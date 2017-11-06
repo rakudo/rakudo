@@ -1,6 +1,6 @@
 my class IO::ArgFiles { ... }
 
-proto sub print(|) { * }
+proto sub print(|) {*}
 multi sub print(Str:D \x) {
     $*OUT.print(x);
 }
@@ -13,7 +13,7 @@ multi sub print(**@args is raw) {
     $*OUT.print($str);
 }
 
-proto sub say(|) { * }
+proto sub say(|) {*}
 multi sub say() { $*OUT.print-nl }
 multi sub say(Str:D \x) {
     my $out := $*OUT;
@@ -33,7 +33,7 @@ multi sub say(**@args is raw) {
     $out.print(nqp::concat($str,$out.nl-out));
 }
 
-proto sub put(|) { * }
+proto sub put(|) {*}
 multi sub put() { $*OUT.print-nl }
 multi sub put(Str:D \x) {
     my $out := $*OUT;
@@ -53,7 +53,7 @@ multi sub put(**@args is raw) {
     $out.print(nqp::concat($str,$out.nl-out));
 }
 
-proto sub note(|) { * }
+proto sub note(|) {*}
 multi sub note() {
     my $err := $*ERR;
     $err.print(nqp::concat("Noted",$err.nl-out));
@@ -86,34 +86,35 @@ multi sub prompt($msg) {
     $*IN.get;
 }
 
-proto sub dir(|) { * }
+proto sub dir(|) {*}
 multi sub dir(*%_) { $*SPEC.curdir.IO.dir(:!absolute, |%_) }
 multi sub dir(IO::Path:D $path, |c) { $path.dir(|c) }
 multi sub dir(IO()       $path, |c) { $path.dir(|c) }
 
-proto sub open(|) { * }
+proto sub open(|) {*}
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
 
-proto sub lines(|) { * }
+proto sub lines(|) {*}
 multi sub lines($what = $*ARGFILES, |c) { $what.lines(|c) }
 
-proto sub words(|) { * }
+proto sub words(|) {*}
 multi sub words($what = $*ARGFILES, |c) { $what.words(|c) }
 
-proto sub get  (|) { * }
+proto sub get  (|) {*}
 multi sub get  (IO::Handle:D $fh = $*ARGFILES) { $fh.get  }
 
-proto sub getc (|) { * }
+proto sub getc (|) {*}
 multi sub getc (IO::Handle:D $fh = $*ARGFILES) { $fh.getc }
 
-proto sub close(|) { * }
+proto sub close(|) {*}
 multi sub close(IO::Handle:D $fh) { $fh.close }
+multi sub close(Channel:D $channel) { $channel.close }
 
-proto sub slurp(|) { * }
+proto sub slurp(|) {*}
 multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
 multi sub slurp(IO() $path, |c) { $path.slurp(|c) }
 
-proto sub spurt(|) { * }
+proto sub spurt(|) {*}
 multi sub spurt(IO::Handle:D $fh,   |c) { $fh  .spurt(|c) }
 multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
 
@@ -164,12 +165,52 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     }
 }
 
-PROCESS::<$IN> =
-  IO::Handle.new(:path(IO::Special.new('<STDIN>'))).open;
-PROCESS::<$OUT> =
-  IO::Handle.new(:path(IO::Special.new('<STDOUT>'))).open;
-PROCESS::<$ERR> =
-  IO::Handle.new(:path(IO::Special.new('<STDERR>'))).open;
+# Set up the standard STDIN/STDOUT/STDERR by first setting up the skeletons
+# of the IO::Handle objects that can be setup at compile time.  Then, when
+# running the mainline of the setting at startup, plug in the low level
+# handles and set up the encoder and decoders.  This shaves off about 1.5%
+# of bare startup.
+{
+    my constant NL-IN    = ["\x0A", "\r\n"];
+    my constant NL-OUT   = "\n";
+    my constant ENCODING = "utf8";
+
+    my sub setup-handle(str $what) {
+        my $handle := nqp::p6bindattrinvres(
+          nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
+            nqp::create(IO::Special),IO::Special,'$!what',$what
+          )
+        );
+        nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
+        nqp::getattr($handle,IO::Handle,'$!nl-in')    = NL-IN;
+        nqp::getattr($handle,IO::Handle,'$!nl-out')   = NL-OUT;
+        nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
+        $handle
+    }
+
+    # Set up the skeletons at compile time
+    my constant STDIN  = setup-handle('<STDIN>');
+    my constant STDOUT = setup-handle('<STDOUT>');
+    my constant STDERR = setup-handle('<STDERR>');
+
+    my sub activate-handle(Mu \HANDLE, Mu \PIO) {
+        nqp::setbuffersizefh(PIO,8192) unless nqp::isttyfh(PIO);
+
+        my $encoding = Encoding::Registry.find(ENCODING);
+        nqp::bindattr(
+          HANDLE,IO::Handle,'$!decoder',$encoding.decoder(:translate-nl)
+        ).set-line-separators(NL-IN);
+        nqp::bindattr(
+          HANDLE,IO::Handle,'$!encoder',$encoding.encoder(:translate-nl)
+        );
+        nqp::p6bindattrinvres(HANDLE,IO::Handle,'$!PIO',PIO)
+    }
+
+    # Activate the skeletons at runtime
+    PROCESS::<$IN>  = activate-handle(STDIN,  nqp::getstdin);
+    PROCESS::<$OUT> = activate-handle(STDOUT, nqp::getstdout);
+    PROCESS::<$ERR> = activate-handle(STDERR, nqp::getstderr);
+}
 
 sub chmod($mode, *@filenames) {
     my @ok;

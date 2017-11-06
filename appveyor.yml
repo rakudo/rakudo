@@ -19,7 +19,7 @@ configuration:
 # Monitored branches
 branches:
   only:
-    - nom
+    - master
     - /smoke-me/
 
 # To stop automatic build of VS solution files

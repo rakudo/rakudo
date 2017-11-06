@@ -2,10 +2,10 @@ role Perl6::Metamodel::MultiMethodContainer {
     # Set of multi-methods to incorporate. Not just the method handles;
     # each is a hash containing keys name and body.
     has @!multi_methods_to_incorporate;
-    
+
     # The proto we'll clone.
     my $autogen_proto;
-    
+
     # Sets the proto we'll auto-gen based on.
     method set_autogen_proto($proto) {
         $autogen_proto := $proto
@@ -33,7 +33,7 @@ role Perl6::Metamodel::MultiMethodContainer {
     method multi_methods_to_incorporate($obj) {
         @!multi_methods_to_incorporate
     }
-    
+
     # Incorporates the multi candidates into the appropriate proto. Need to
     # implement proto incorporation yet.
     method incorporate_multi_candidates($obj) {
@@ -56,7 +56,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                     $dispatcher.add_dispatchee($code);
                 }
                 else {
-                    nqp::die("Cannot have a multi candidate for '" ~ $name ~ 
+                    nqp::die("Cannot have a multi candidate for '" ~ $name ~
                         "' when an only method is also in the package '" ~
                         self.name($obj) ~ "'");
                 }

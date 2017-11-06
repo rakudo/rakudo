@@ -107,8 +107,9 @@ class Kernel does Systemic {
         @!signals //= [2, 9]
     }
 #?endif
-#?if !jvm
+
     has $!signals-setup-lock = Lock.new;
+#?if !jvm
     has $!signals-setup = False;
     method signals (Kernel:D:) {
         unless $!signals-setup {
@@ -147,8 +148,7 @@ class Kernel does Systemic {
     has %!signals-by-Str;
     has $!signals-by-Str-setup = False;
 
-    proto method signal (|) { * }
-#?if !jvm
+    proto method signal (|) {*}
     multi method signal(Kernel:D: Str:D $signal --> Int:D) {
         unless $!signals-by-Str-setup {
             $!signals-setup-lock.protect: {
@@ -166,10 +166,19 @@ class Kernel does Systemic {
         }
         %!signals-by-Str{$signal} // %!signals-by-Str{"SIG$signal"} // Int;
     }
-#?endif
 
     multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }
     multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }
+
+    method cpu-cores() is raw { nqp::cpucores }
+
+    method cpu-usage() is raw {
+        my \rusage = nqp::getrusage();
+        nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
+          + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
+          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
+          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
+    }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

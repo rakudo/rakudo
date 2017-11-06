@@ -34,7 +34,7 @@ class Perl6::Metamodel::ClassHOW
     method archetypes() {
         $archetypes
     }
-    
+
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
@@ -50,7 +50,7 @@ class Perl6::Metamodel::ClassHOW
         nqp::setboolspec($obj, 5, nqp::null());
         $obj
     }
-    
+
     # Adds a new fallback for method dispatch. Expects the specified
     # condition to have been met (passes it the object and method name),
     # and if it is calls $calculator with the object and method name to
@@ -58,7 +58,7 @@ class Perl6::Metamodel::ClassHOW
     method add_fallback($obj, $condition, $calculator) {
         # Adding a fallback means any method cache is no longer authoritative.
         nqp::setmethcacheauth($obj, 0);
-        
+
         # Add it.
         my %desc;
         %desc<cond> := $condition;
@@ -83,7 +83,7 @@ class Perl6::Metamodel::ClassHOW
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
             RoleToClassApplier.apply($obj, @ins_roles);
-            
+
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
             for @ins_roles {
@@ -143,28 +143,54 @@ class Perl6::Metamodel::ClassHOW
                 });
         }
 
+        # This isn't an augment.
+        unless $was_composed {
+
+            # Create BUILDPLAN.
+            self.create_BUILDPLAN($obj);
+
+            # If the BUILDPLAN is not empty, we should attempt to auto-
+            # generate a BUILDALL method.  If the BUILDPLAN is empty, then
+            # the BUILDALL of the parent is already good enough.  We can
+            # only auto-generate a BUILDALL method if we have compiler
+            # services.  If we don't, then BUILDALL will fall back to the
+            # one in Mu, which will iterate over the BUILDALLPLAN.
+            if self.BUILDPLAN($obj) && nqp::isconcrete($compiler_services) {
+
+                # Class does not appear to have a BUILDALL yet
+                unless nqp::existskey($obj.HOW.submethod_table($obj),'BUILDALL')
+                  || nqp::existskey($obj.HOW.method_table($obj),'BUILDALL') {
+                    my $builder := nqp::findmethod(
+                      $compiler_services,'generate_buildplan_executor');
+                    my $method :=
+                      $builder($compiler_services,$obj,self.BUILDALLPLAN($obj));
+
+                    # We have a generated BUILDALL submethod, so install!
+                    unless $method =:= NQPMu {
+                        $method.set_name('BUILDALL');
+                        self.add_method($obj,'BUILDALL',$method);
+                    }
+                }
+            }
+
+            # Compose the representation
+            self.compose_repr($obj);
+        }
+
         # Publish type and method caches.
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
-        
-        # Create BUILDPLAN.
-        self.create_BUILDPLAN($obj);
-        
-        # Compose the representation, provided this isn't an augment.
-        unless $was_composed {
-            self.compose_repr($obj);
-        }
 
         # Compose the meta-methods.
         self.compose_meta_methods($obj);
-        
+
         # Compose invocation protocol.
         self.compose_invocation($obj);
 
         $obj
     }
-    
+
     method roles($obj, :$local, :$transitive = 1) {
         my @result;
         for @!roles {
@@ -189,11 +215,11 @@ class Perl6::Metamodel::ClassHOW
         }
         @result
     }
-    
+
     method role_typecheck_list($obj) {
         @!role_typecheck_list
     }
-    
+
     method concretization($obj, $ptype) {
         for @!concretizations {
             if nqp::decont($_[0]) =:= nqp::decont($ptype) {
@@ -202,7 +228,7 @@ class Perl6::Metamodel::ClassHOW
         }
         nqp::die("No concretization found for " ~ $ptype.HOW.name($ptype));
     }
-    
+
     method is_composed($obj) {
         $!composed
     }
@@ -215,7 +241,7 @@ class Perl6::Metamodel::ClassHOW
         $junction_type := $type;
         $junction_autothreader := $autothreader;
     }
-    
+
     # Handles the various dispatch fallback cases we have.
     method find_method_fallback($obj, $name) {
         # If the object is a junction, need to do a junction dispatch.
@@ -225,7 +251,7 @@ class Perl6::Metamodel::ClassHOW
                 $junction_autothreader($p6name, |@pos_args, |%named_args)
             };
         }
-        
+
         # Consider other fallbacks, if we have any.
         for @!fallbacks {
             if ($_<cond>)($obj, $name) {
@@ -236,7 +262,7 @@ class Perl6::Metamodel::ClassHOW
         # Otherwise, didn't find anything.
         nqp::null()
     }
-    
+
     # Does the type have any fallbacks?
     method has_fallbacks($obj) {
         return nqp::istype($obj, $junction_type) || +@!fallbacks;

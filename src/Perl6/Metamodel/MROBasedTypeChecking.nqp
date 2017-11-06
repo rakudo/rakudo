@@ -6,11 +6,11 @@ role Perl6::Metamodel::MROBasedTypeChecking {
         }
         0
     }
-    
+
     method does($obj, $type) {
         nqp::p6bool(nqp::istype($obj, $type))
     }
-    
+
     method type_check($obj, $checkee) {
         # The only time we end up in here is if the type check cache was
         # not yet published, which means the class isn't yet fully composed.
@@ -29,7 +29,7 @@ role Perl6::Metamodel::MROBasedTypeChecking {
         }
         0
     }
-    
+
     method publish_type_cache($obj) {
         my @tc;
         for self.mro($obj) {

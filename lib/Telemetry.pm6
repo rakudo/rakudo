@@ -411,7 +411,7 @@ class Telemetry::Sampler {
 }
 
 # Make sure we alwas have a Sampler
-without $*SAMPLER {
+INIT without $*SAMPLER {
     PROCESS::<$SAMPLER> := Telemetry::Sampler.new;
 }
 
@@ -681,7 +681,7 @@ HEADER
         # give the supervisor blurb if we can
         if $sampler.instruments.grep( Telemetry::Instrument::ThreadPool ) {
             if $first<s> {
-                nqp::push_s($text,"Supervisor thread ran for the whole time");
+                nqp::push_s($text,"Supervisor thread ran the whole time");
             }
             elsif !$last<s> {
                 nqp::push_s($text,"No supervisor thread has been running");

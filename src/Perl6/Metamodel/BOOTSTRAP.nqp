@@ -1690,7 +1690,7 @@ BEGIN {
             my $do_cloned := nqp::clone($do);
             nqp::bindattr($cloned, Code, '$!do', $do_cloned);
             nqp::setcodeobj($do_cloned, $cloned);
-#?if moar
+#?if !jvm
             my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
             if nqp::isconcrete($phasers) {
                 my int $next := nqp::existskey($phasers, 'NEXT');
@@ -1747,7 +1747,7 @@ BEGIN {
         }));
     Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
-#?if moar
+#?if !jvm
             my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
             if nqp::isconcrete($phasers) {
                 my @next := nqp::atkey($phasers, 'NEXT');

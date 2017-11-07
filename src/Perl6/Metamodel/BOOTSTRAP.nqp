@@ -1694,7 +1694,8 @@ BEGIN {
                 my int $next := nqp::existskey($phasers, 'NEXT');
                 my int $last := nqp::existskey($phasers, 'LAST');
                 my int $quit := nqp::existskey($phasers, 'QUIT');
-                if $next +| $last +| $quit {
+                my int $close := nqp::existskey($phasers, 'CLOSE');
+                if $next +| $last +| $quit +| $close {
                     my %pclone := nqp::clone($phasers);
                     if $next {
                         my @nexts := nqp::clone($phasers<NEXT>);
@@ -1726,6 +1727,17 @@ BEGIN {
                             $i++;
                         }
                         %pclone<QUIT> := @quits;
+                    }
+                    if $close {
+                        my @closes := nqp::clone($phasers<CLOSE>);
+                        my int $i := 0;
+                        while $i < nqp::elems(@closes) {
+                            nqp::captureinnerlex(nqp::getattr(
+                                (@closes[$i] := @closes[$i].clone()),
+                                Code, '$!do'));
+                            $i++;
+                        }
+                        %pclone<CLOSE> := @closes;
                     }
                     nqp::bindattr($cloned, Block, '$!phasers', %pclone);
                 }
@@ -1769,6 +1781,14 @@ BEGIN {
                     my int $i := 0;
                     while $i < nqp::elems(@quit) {
                         nqp::p6capturelexwhere(@quit[$i]);
+                        $i++;
+                    }
+                }
+                my @close := nqp::atkey($phasers, 'CLOSE');
+                if nqp::islist(@close) {
+                    my int $i := 0;
+                    while $i < nqp::elems(@close) {
+                        nqp::p6capturelexwhere(@close[$i]);
                         $i++;
                     }
                 }

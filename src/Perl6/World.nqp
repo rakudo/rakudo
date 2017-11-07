@@ -2398,7 +2398,7 @@ class Perl6::World is HLL::World {
                     }
                 }
                 if nqp::existskey(%phasers, 'LAST') || nqp::existskey(%phasers, 'NEXT') ||
-                        nqp::existskey(%phasers, 'QUIT') {
+                        nqp::existskey(%phasers, 'QUIT') || nqp::existskey(%phasers, 'CLOSE') {
                     $code_past[0].push(QAST::Op.new(
                         :op('callmethod'), :name('!capture_phasers'),
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )

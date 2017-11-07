@@ -1899,9 +1899,9 @@ augment class Rakudo::Internals {
                 $tap
             }
 
-            # Stash the close phasers away.
-            if nqp::istype(&!block,Block) {
-                $state.close-phasers.push(.clone) for &!block.phasers('CLOSE')
+            # Stash away any CLOSE phasers.
+            if nqp::istype(&!block, Block) {
+                $state.close-phasers.append(&!block.phasers('CLOSE'));
             }
 
             # Create and pass on tap; when closed, tear down the state and all

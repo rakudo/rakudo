@@ -705,9 +705,6 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method INTERPOLATE_ASSERTION(Mu:D \var, int \im, int \monkey, $, $, \context) {
         my \cur     = self.'!cursor_start_cur'();
 
-        my int $maxlen = -1;
-        my int $pos    = nqp::getattr_i(cur, $?CLASS, '$!from');
-
         # We are in a regex assertion, the strings we get will be
         # treated as regex rules.
         my $rx     := MAKE_REGEX(var,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
@@ -715,12 +712,10 @@ my class Match is Capture is Cool does NQPMatchRole {
         my int $len = match.pos - match.from;
 
         match.Bool
-          && nqp::isgt_i($len,$maxlen)
-          && nqp::isle_i(nqp::add_i($pos,$len),nqp::chars(cur.target))
+          && nqp::isgt_i($len,-1)
+          && nqp::isle_i(nqp::add_i(nqp::getattr_i(cur, $?CLASS, '$!from'),$len),nqp::chars(cur.target))
           ?? match
-          !! nqp::isge_i($maxlen,0)
-            ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
-            !! cur
+          !! cur
     }
 
     method CALL_SUBRULE($rule, |c) {

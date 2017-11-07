@@ -1435,6 +1435,16 @@ my class Rakudo::Internals {
           while nqp::islt_i(++$i,$elems);
         $target
     }
+    
+    method WALK-AT-KEY(\target,\indices) is raw {
+        my $target   := target;
+        my $indices  := nqp::getattr(indices,List,'$!reified');
+        my int $elems = nqp::elems($indices);
+        my int $i     = -1;
+        $target := $target.AT-KEY(nqp::atpos($indices,$i))
+          while nqp::islt_i(++$i,$elems);
+        $target
+    }
 
     proto method coremap(|) { * }
 

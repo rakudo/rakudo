@@ -289,7 +289,7 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
                 nqp::bindpos_i($data,TW,nqp::elems(workers));
                 if nqp::getattr($sched,ThreadPoolScheduler,'$!timer-queue')
                   -> \queue {
-                    nqp::bindpos_i($data,TTQ,mnqp::elems(queue));
+                    nqp::bindpos_i($data,TTQ,nqp::elems(queue));
                 }
                 nqp::bindpos_i($data,TTC,completed(workers));
             }

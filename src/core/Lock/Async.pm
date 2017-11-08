@@ -62,6 +62,7 @@ my class Lock::Async {
     }
 
     method lock(Lock::Async:D: --> Promise) {
+#?if !js
         loop {
             my $holder := ⚛$!holder;
             if $holder.DEFINITE {
@@ -79,9 +80,14 @@ my class Lock::Async {
                 }
             }
         }
+#?endif
+#?if js
+                    return KEPT-PROMISE;
+#?endif
     }
 
     method unlock(Lock::Async:D: --> Nil) {
+#?if !js
         loop {
             my $holder := ⚛$!holder;
             if $holder =:= SINGLE_HOLDER {
@@ -116,13 +122,16 @@ my class Lock::Async {
                 die X::Lock::Async::NotLocked.new;
             }
         }
+#?endif
     }
 
     method protect(Lock::Async:D: &code) {
+#?if !js
         my int $acquired = 0;
         $*AWAITER.await(self.lock());
         $acquired = 1;
         LEAVE self.unlock() if $acquired;
+#?endif
         code()
     }
 

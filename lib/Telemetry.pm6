@@ -2,8 +2,24 @@
 
 use nqp;
 
-# Telemetry::Instrument role for building instruments --------------------------
-role Telemetry::Instrument does Associative is export {
+# Role for building instruments --------------------------
+role Telemetry::Instrument is export {
+
+    # Should return instantiated snap object
+    method snap() is raw { ... } # Typically just Snap.new
+    
+    # Should return a list of lists with:
+    #  [0] name of the column, also used in headers and legends
+    #  [1] printf format of the column, *without* '%' prefix
+    #  [2] one line explanation of the column to be used in legend
+    method formats() { ... }
+
+    # Should a return a list of column names to be used by default
+    method columns() { ... }
+}
+
+# Role for creating an instrument snap -------------
+role Telemetry::Instrument::Snap does Associative is export {
     has Mu $!data;
     method data() is raw { $!data }
 
@@ -12,7 +28,7 @@ role Telemetry::Instrument does Associative is export {
         nqp::bindattr($self,self,'$!data',$self!snap);
         $self
     }
-    multi method new(::?CLASS: Mu $data) {  # provided for .perl roundtripping
+    multi method new(::?CLASS: Mu $data) {  # needed for creating a difference
         my $self := nqp::create(self);
         nqp::bindattr($self,::?CLASS,'$!data',nqp::decont($data));
         $self
@@ -36,88 +52,18 @@ role Telemetry::Instrument does Associative is export {
         self.^name ~ '.new(' ~ nqp::join(',',$text) ~ ')'
     }
 
+    # Should return a native-int like list with a sample
     method !snap() is raw { ... }
-    method formats() { ... }
-    method columns() { ... }
-    method AT-KEY($key) { ... }
-    method EXISTS-KEY($key) { ... }
+
+    # Needed for associative access: given a column name, return the value
+    method AT-KEY($column) { ... }
+
+    # Needed for associative access: given a column name, return whether exists
+    method EXISTS-KEY($column) { ... }
 }
 
 # Telemetry data from wallclock and nqp::getrusage -----------------------------
 class Telemetry::Instrument::Usage does Telemetry::Instrument {
-
-    # Helper stuff
-    my int $start = nqp::fromnum_I(Rakudo::Internals.INITTIME * 1000000,Int);
-    my int $cores = Kernel.cpu-cores;
-    my $utilize   = 100 / $cores;
-    my int $b2kb =
-      nqp::atkey(nqp::backendconfig,'osname') eq 'darwin' ?? 10 !! 0;
-
-    # Constants indexing into the data array
-    my constant UTIME_SEC  =  0;
-    my constant UTIME_MSEC =  1;
-    my constant STIME_SEC  =  2;
-    my constant STIME_MSEC =  3;
-    my constant MAX_RSS    =  4;
-    my constant IX_RSS     =  5;
-    my constant ID_RSS     =  6;
-    my constant IS_RSS     =  8;
-    my constant MIN_FLT    =  9;
-    my constant MAJ_FLT    = 10;
-    my constant NSWAP      = 11;
-    my constant INBLOCK    = 12;
-    my constant OUTBLOCK   = 13;
-    my constant MSGSND     = 14;
-    my constant MSGRCV     = 14;
-    my constant NSIGNALS   = 15;
-    my constant NVCSW      = 16;
-    my constant INVCSW     = 17;
-    my constant WALLCLOCK  = 18;   # not actually part of nqp::getrusage
-
-    # Initialize the dispatch hash using HLL features, as we only need to
-    # do this on module load time.  First handle the usable names of
-    # attributes that are part of getrusage struct.
-    my %dispatch = << "" "" "" "" # first 4 are special
-      max-rss  ix-rss id-rss is-rss   min-flt maj-flt nswap inblock
-      outblock msgsnd msgrcv nsignals nvcsw   invcsw  wallclock
-    >>.kv.map: -> int $index, $name {
-        if $name {
-            $name => $name.ends-with('rss') && $b2kb
-              ?? -> Mu \data {
-                       nqp::bitshiftr_i(nqp::atpos_i(data,$index),$b2kb)
-                    }
-              !! -> Mu \data {
-                       nqp::atpos_i(data,$index)
-                    }
-        }
-    }
-
-    # Allow for low-level dispatch hash access for speed
-    my $dispatch := nqp::getattr(%dispatch,Map,'$!storage');
-
-    # Add the special cases to the dispatch
-    %dispatch<cpu> = -> Mu \data {
-        nqp::atpos_i(data,UTIME_SEC) * 1000000
-          + nqp::atpos_i(data,UTIME_MSEC)
-          + nqp::atpos_i(data,STIME_SEC) * 1000000
-          + nqp::atpos_i(data,STIME_MSEC)
-    }
-    %dispatch<cpu-user> = -> Mu \data {
-        nqp::atpos_i(data,UTIME_SEC) * 1000000
-          + nqp::atpos_i(data,UTIME_MSEC)
-    }
-    %dispatch<cpu-sys> = -> Mu \data {
-        nqp::atpos_i(data,STIME_SEC) * 1000000
-          + nqp::atpos_i(data,STIME_MSEC)
-    }
-    %dispatch<cpus> = -> Mu \data {
-        (my int $wallclock = nqp::atkey($dispatch,'wallclock')(data))
-          ?? nqp::atkey($dispatch,'cpu')(data) / $wallclock
-          !! $cores
-    }
-    %dispatch<util%> = -> Mu \data {
-        $utilize * nqp::atkey($dispatch,'cpus')(data)
-    }
 
     method formats() is raw {
            << cpu 8d
@@ -163,72 +109,109 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
 
     method columns() { < wallclock util% max-rss > }
 
-    method AT-KEY(Str:D $key) {
-        nqp::ifnull(
-          nqp::atkey($dispatch,$key),
-          -> Mu \data { Nil }
-        )($!data)
+    # actual snapping logic
+    class Snap does Telemetry::Instrument::Snap {
+
+        # Helper stuff
+        my int $start =
+          nqp::fromnum_I(Rakudo::Internals.INITTIME * 1000000,Int);
+        my int $cores = Kernel.cpu-cores;
+        my $utilize   = 100 / $cores;
+        my int $b2kb =
+          nqp::atkey(nqp::backendconfig,'osname') eq 'darwin' ?? 10 !! 0;
+
+        # Constants indexing into the data array
+        my constant UTIME_SEC  =  0;
+        my constant UTIME_MSEC =  1;
+        my constant STIME_SEC  =  2;
+        my constant STIME_MSEC =  3;
+        my constant MAX_RSS    =  4;
+        my constant IX_RSS     =  5;
+        my constant ID_RSS     =  6;
+        my constant IS_RSS     =  8;
+        my constant MIN_FLT    =  9;
+        my constant MAJ_FLT    = 10;
+        my constant NSWAP      = 11;
+        my constant INBLOCK    = 12;
+        my constant OUTBLOCK   = 13;
+        my constant MSGSND     = 14;
+        my constant MSGRCV     = 14;
+        my constant NSIGNALS   = 15;
+        my constant NVCSW      = 16;
+        my constant INVCSW     = 17;
+        my constant WALLCLOCK  = 18;   # not actually part of nqp::getrusage
+
+        # Initialize the dispatch hash using HLL features, as we only need to
+        # do this on module load time.  First handle the usable names of
+        # attributes that are part of getrusage struct.
+        my %dispatch = << "" "" "" "" # first 4 are special
+          max-rss  ix-rss id-rss is-rss   min-flt maj-flt nswap inblock
+          outblock msgsnd msgrcv nsignals nvcsw   invcsw  wallclock
+        >>.kv.map: -> int $index, $name {
+            if $name {
+                $name => $name.ends-with('rss') && $b2kb
+                  ?? -> Mu \data {
+                           nqp::bitshiftr_i(nqp::atpos_i(data,$index),$b2kb)
+                        }
+                  !! -> Mu \data {
+                           nqp::atpos_i(data,$index)
+                        }
+            }
+        }
+
+        # Allow for low-level dispatch hash access for speed
+        my $dispatch := nqp::getattr(%dispatch,Map,'$!storage');
+
+        # Add the special cases to the dispatch
+        %dispatch<cpu> = -> Mu \data {
+            nqp::atpos_i(data,UTIME_SEC) * 1000000
+              + nqp::atpos_i(data,UTIME_MSEC)
+              + nqp::atpos_i(data,STIME_SEC) * 1000000
+              + nqp::atpos_i(data,STIME_MSEC)
+        }
+        %dispatch<cpu-user> = -> Mu \data {
+            nqp::atpos_i(data,UTIME_SEC) * 1000000
+              + nqp::atpos_i(data,UTIME_MSEC)
+        }
+        %dispatch<cpu-sys> = -> Mu \data {
+            nqp::atpos_i(data,STIME_SEC) * 1000000
+              + nqp::atpos_i(data,STIME_MSEC)
+        }
+        %dispatch<cpus> = -> Mu \data {
+            (my int $wallclock = nqp::atkey($dispatch,'wallclock')(data))
+              ?? nqp::atkey($dispatch,'cpu')(data) / $wallclock
+              !! $cores
+        }
+        %dispatch<util%> = -> Mu \data {
+            $utilize * nqp::atkey($dispatch,'cpus')(data)
+        }
+
+        method AT-KEY(Str:D $key) {
+            nqp::ifnull(
+              nqp::atkey($dispatch,$key),
+              -> Mu \data { Nil }
+            )($!data)
+        }
+
+        method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
+
+        method !snap() is raw {
+            nqp::stmts(
+              nqp::bindpos_i(
+                (my $data := nqp::getrusage),
+                WALLCLOCK,
+                nqp::sub_i(nqp::fromnum_I(nqp::time_n() * 1000000,Int),$start)
+              ),
+              $data
+            )
+        }
     }
 
-    method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
-
-    method !snap() is raw {
-        nqp::stmts(
-          nqp::bindpos_i(
-            (my $data := nqp::getrusage),
-            WALLCLOCK,
-            nqp::sub_i(nqp::fromnum_I(nqp::time_n() * 1000000,Int),$start)
-          ),
-          $data
-        )
-    }
+    method snap() { Snap.new }
 }
 
 # Telemetry data from the ThreadPoolScheduler ----------------------------------
 class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
-
-    # Constants indexing into the data array
-    my constant SUPERVISOR =  0;
-    my constant GW         =  1;
-    my constant GTQ        =  2;
-    my constant GTC        =  3;
-    my constant TW         =  4;
-    my constant TTQ        =  5;
-    my constant TTC        =  6;
-    my constant AW         =  7;
-    my constant ATQ        =  8;
-    my constant ATC        =  9;
-    my constant COLUMNS    = 10;
-
-    # Initialize the dispatch hash using HLL features, as we only need to
-    # do this on module load time.  First handle the usable names of
-    # attributes that are part of getrusage struct.
-    my %dispatch = <<
-      s gw gtq gtc tw ttq ttc aw atq atc
-    >>.kv.map: -> int $index, $name {
-        $name => -> Mu \data { nqp::atpos_i(data,$index) }
-    }
-
-    # Allow for low-level dispatch hash access for speed
-    my $dispatch := nqp::getattr(%dispatch,Map,'$!storage');
-
-    # calculate number of tasks completed for a worker list
-    sub completed(\workers) is raw {
-        my int $elems = nqp::elems(workers);
-        my int $completed;
-        my int $i = -1;
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::stmts(
-            (my $w := nqp::atpos(workers,$i)),
-            ($completed = nqp::add_i(
-              $completed,
-              nqp::getattr_i($w,$w.WHAT,'$!total')
-            ))
-          )
-        );
-        $completed
-    }
 
     method formats() is raw {
            << atc 8d
@@ -256,72 +239,122 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
 
     method columns() { < gw gtc tw ttc aw atc > }
 
-    method AT-KEY(Str:D $key) {
-        nqp::ifnull(
-          nqp::atkey($dispatch,$key),
-          -> Mu \data { Nil }
-        )($!data)
-    }
+    # actual snapping logic
+    class Snap does Telemetry::Instrument::Snap {
 
-    method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
+        # Constants indexing into the data array
+        my constant SUPERVISOR =  0;
+        my constant GW         =  1;
+        my constant GTQ        =  2;
+        my constant GTC        =  3;
+        my constant TW         =  4;
+        my constant TTQ        =  5;
+        my constant TTC        =  6;
+        my constant AW         =  7;
+        my constant ATQ        =  8;
+        my constant ATC        =  9;
+        my constant COLUMNS    = 10;
 
-    method !snap() is raw {
-        my $data := nqp::setelems(nqp::list_i,COLUMNS);
-
-        if $*SCHEDULER -> \scheduler {
-            my $sched := nqp::decont(scheduler);
-
-            nqp::bindpos_i($data,SUPERVISOR,1)
-              if nqp::getattr($sched,ThreadPoolScheduler,'$!supervisor');
-
-            if nqp::getattr($sched,ThreadPoolScheduler,'$!general-workers')
-              -> \workers {
-                nqp::bindpos_i($data,GW,nqp::elems(workers));
-                if nqp::getattr($sched,ThreadPoolScheduler,'$!general-queue')
-                  -> \queue {
-                    nqp::bindpos_i($data,GTQ,nqp::elems(queue));
-                }
-                nqp::bindpos_i($data,GTC,completed(workers));
-            }
-
-            if nqp::getattr($sched,ThreadPoolScheduler,'$!timer-workers')
-              -> \workers {
-                nqp::bindpos_i($data,TW,nqp::elems(workers));
-                if nqp::getattr($sched,ThreadPoolScheduler,'$!timer-queue')
-                  -> \queue {
-                    nqp::bindpos_i($data,TTQ,nqp::elems(queue));
-                }
-                nqp::bindpos_i($data,TTC,completed(workers));
-            }
-
-            if nqp::getattr($sched,ThreadPoolScheduler,'$!affinity-workers')
-              -> \workers {
-                my int $elems = nqp::bindpos_i($data,AW,nqp::elems(workers));
-                my int $completed;
-                my int $queued;
-                my int $i = -1;
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::stmts(
-                    (my $w := nqp::atpos(workers,$i)),
-                    ($completed = nqp::add_i(
-                      $completed,
-                      nqp::getattr_i($w,$w.WHAT,'$!total')
-                    )),
-                    ($queued = nqp::add_i(
-                      $queued,
-                      nqp::elems(nqp::getattr($w,$w.WHAT,'$!queue'))
-                    ))
-                  )
-                );
-                nqp::bindpos_i($data,ATQ,$queued);
-                nqp::bindpos_i($data,ATC,$completed);
-            }
+        # Initialize the dispatch hash using HLL features, as we only need to
+        # do this on module load time.  First handle the usable names of
+        # attributes that are part of getrusage struct.
+        my %dispatch = <<
+          s gw gtq gtc tw ttq ttc aw atq atc
+        >>.kv.map: -> int $index, $name {
+            $name => -> Mu \data { nqp::atpos_i(data,$index) }
         }
 
-        # the final thing
-        $data
+        # Allow for low-level dispatch hash access for speed
+        my $dispatch := nqp::getattr(%dispatch,Map,'$!storage');
+
+        # calculate number of tasks completed for a worker list
+        sub completed(\workers) is raw {
+            my int $elems = nqp::elems(workers);
+            my int $completed;
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::stmts(
+                (my $w := nqp::atpos(workers,$i)),
+                ($completed = nqp::add_i(
+                  $completed,
+                  nqp::getattr_i($w,$w.WHAT,'$!total')
+                ))
+              )
+            );
+            $completed
+        }
+
+        method AT-KEY(Str:D $key) {
+            nqp::ifnull(
+              nqp::atkey($dispatch,$key),
+              -> Mu \data { Nil }
+            )($!data)
+        }
+
+        method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
+
+        method !snap() is raw {
+            my $data := nqp::setelems(nqp::list_i,COLUMNS);
+
+            if $*SCHEDULER -> \scheduler {
+                my $sched := nqp::decont(scheduler);
+
+                nqp::bindpos_i($data,SUPERVISOR,1)
+                  if nqp::getattr($sched,ThreadPoolScheduler,'$!supervisor');
+
+                if nqp::getattr($sched,ThreadPoolScheduler,'$!general-workers')
+                  -> \workers {
+                    nqp::bindpos_i($data,GW,nqp::elems(workers));
+                    if nqp::getattr($sched,ThreadPoolScheduler,'$!general-queue')
+                      -> \queue {
+                        nqp::bindpos_i($data,GTQ,nqp::elems(queue));
+                    }
+                    nqp::bindpos_i($data,GTC,completed(workers));
+                }
+
+                if nqp::getattr($sched,ThreadPoolScheduler,'$!timer-workers')
+                  -> \workers {
+                    nqp::bindpos_i($data,TW,nqp::elems(workers));
+                    if nqp::getattr($sched,ThreadPoolScheduler,'$!timer-queue')
+                      -> \queue {
+                        nqp::bindpos_i($data,TTQ,nqp::elems(queue));
+                    }
+                    nqp::bindpos_i($data,TTC,completed(workers));
+                }
+
+                if nqp::getattr($sched,ThreadPoolScheduler,'$!affinity-workers')
+                  -> \workers {
+                    my int $elems =
+                      nqp::bindpos_i($data,AW,nqp::elems(workers));
+                    my int $completed;
+                    my int $queued;
+                    my int $i = -1;
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::stmts(
+                        (my $w := nqp::atpos(workers,$i)),
+                        ($completed = nqp::add_i(
+                          $completed,
+                          nqp::getattr_i($w,$w.WHAT,'$!total')
+                        )),
+                        ($queued = nqp::add_i(
+                          $queued,
+                          nqp::elems(nqp::getattr($w,$w.WHAT,'$!queue'))
+                        ))
+                      )
+                    );
+                    nqp::bindpos_i($data,ATQ,$queued);
+                    nqp::bindpos_i($data,ATC,$completed);
+                }
+            }
+
+            # the final thing
+            $data
+        }
     }
+
+    method snap() { Snap.new }
 }
 
 # Telemetry::Sampler -----------------------------------------------------------
@@ -433,7 +466,7 @@ class Telemetry does Associative {
         my int $i = -1;
         nqp::while(
           ++$i < $elems,
-          nqp::bindpos($samples,$i,nqp::atpos($instruments,$i).new)
+          nqp::bindpos($samples,$i,nqp::atpos($instruments,$i).snap)
         );
 
         $self

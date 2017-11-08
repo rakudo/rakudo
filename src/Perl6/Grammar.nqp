@@ -216,7 +216,26 @@ role STD {
         nqp::push(@herestub_queue, Herestub.new(:$delim, :$grammar, :orignode(self)));
         return self;
     }
-
+    method fail-terminator ($/, $start, $stop, $line?) {
+        my $message;
+        if $start ne nqp::chr(nqp::ord($start)) {
+            $message := "Starter $start is immediately followed by a combining codepoint. Please use {nqp::chr(nqp::ord($start))} without a combining glyph";
+            if $line {
+                $message := "$message ($start was at line $line)";
+            }
+        }
+        else {
+            $message := "Couldn't find terminator $stop";
+            if $line {
+                $message := "$message (cooresponding $start was at line $line)";
+            }
+        }
+        $/.typed_panic('X::Comp::AdHoc',
+            payload => $message,
+            expected => [$stop]
+        );
+    }
+    # nibbler for q quoting
     token quibble($l, *@base_tweaks) {
         :my $lang;
         :my $start;
@@ -224,7 +243,7 @@ role STD {
         <babble($l, @base_tweaks)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
-        $start <nibble($lang)> [ $stop || { $/.typed_panic('X::Comp::AdHoc', payload => "Couldn't find terminator $stop (corresponding $start was at line {HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from(), :cache(1))})", expected => [$stop] ) } ]
+        $start <nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop, HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from(), :cache(1) )) } ]
 
         {
             nqp::can($lang, 'herelang') && self.queue_heredoc(
@@ -3819,6 +3838,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token setup_quotepair { '' }
 
+    # nibbler for s///
     token sibble($l, $lang2, @lang2tweaks?) {
         :my $lang;
         :my $start;
@@ -3828,7 +3848,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
         { $*SUBST_LHS_BLOCK := $*W.push_lexpad($/) }
-        $start <left=.nibble($lang)> [ $stop || <.panic("Couldn't find terminator $stop")> ]
+        $start <left=.nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop) } ]
         { $*W.pop_lexpad() }
         { $*SUBST_RHS_BLOCK := $*W.push_lexpad($/) }
         [ <?{ $start ne $stop }>
@@ -3859,7 +3879,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>
         [ <?{ $<sibble><infixish> }> || <.old_rx_mods>? ]
     }
-
+    # nibbler for tr///
     token tribble ($l, $lang2 = $l, @lang2tweaks?) {
         :my $lang;
         :my $start;
@@ -3868,10 +3888,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <babble($l, @lang2tweaks)>
         { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
 
-        $start <left=.nibble($lang)> [ $stop || <.panic: "Couldn't find terminator $stop"> ]
+        $start <left=.nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop) } ]
         { $*CCSTATE := ''; }
         [ <?{ $start ne $stop }>
-            $start <right=.nibble($lang)> [ $stop || { $/.panic("Couldn't find terminator $stop") } ]
+            $start <right=.nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop) } ]
         ||
             { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
             <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>

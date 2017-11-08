@@ -40,14 +40,8 @@ GetOptions(
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
-<<<<<<< HEAD
-
 $ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
 $ENV{'PERL6LIB'} = "lib"; 
-=======
-$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
-$ENV{'PERL6LIB'} = "lib";
->>>>>>> origin/nom
 
 my @slow;
 if ($list_file) {

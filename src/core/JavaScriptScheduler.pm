@@ -2,7 +2,8 @@
 # of threads in javascript
 
 my class JavaScriptScheduler does Scheduler {
-    use nqp;
+    # Initialize $*PID here, as it's done in the thread pool scheduler on other backends
+    PROCESS::<$PID> := nqp::p6box_i(my $pid := nqp::getpid);
 
     method handle_uncaught($exception) {
         $exception.throw

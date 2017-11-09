@@ -124,7 +124,7 @@ my class IO::Socket::INET does IO::Socket {
         }
 
         if $.listening {
-#?if moar
+#?if !js
             $!localport = nqp::getport($PIO) if !$!localport;
 #?endif
         }

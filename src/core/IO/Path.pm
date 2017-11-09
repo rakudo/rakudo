@@ -277,13 +277,14 @@ my class IO::Path is Cool does IO {
             if nqp::iseq_s($part, $up) {
                 next unless $res-list;
                 nqp::pop_s($res-list);
-                $resolved = $res-list ?? $sep ~ nqp::join($sep, $res-list)
-                                      !! $empty;
+                $resolved = $res-list
+                    ?? $!SPEC.catdir(|nqp::p6bindattrinvres((), List, '$!reified', $res-list))
+                    !! $empty;
                 next;
             }
 
             # Normal part, set as next path to test
-            my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
+            my str $next = $!SPEC.catdir($resolved, $part);
 
             # Path part doesn't exist...
             if !nqp::stat($next, nqp::const::STAT_EXISTS) {
@@ -299,7 +300,7 @@ my class IO::Path is Cool does IO {
                 while $parts {
                     $part = nqp::shift($parts);
                     next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
-                    $resolved = nqp::concat($resolved, nqp::concat($sep, $part));
+                    $resolved = $!SPEC.catdir($resolved, $part);
                 }
             }
             # Symlink; read it and act on absolute or relative link

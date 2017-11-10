@@ -2,12 +2,15 @@
 
 use nqp;
 
+# the place where the default snaps are stored
+my $snaps := nqp::create(IterationBuffer);
+
 # Role for building instruments --------------------------
 role Telemetry::Instrument is export {
 
     # Should return instantiated snap object
     method snap() is raw { ... } # Typically just Snap.new
-    
+
     # Should return a list of lists with:
     #  [0] name of the column, also used in headers and legends
     #  [1] printf format of the column, *without* '%' prefix
@@ -24,20 +27,16 @@ role Telemetry::Instrument::Snap does Associative is export {
     method data() is raw { $!data }
 
     multi method new(::?CLASS:) {
-        my $self := nqp::create(self);
-        nqp::bindattr($self,self,'$!data',$self!snap);
-        $self
+        nqp::p6bindattrinvres(nqp::create(self),self,'$!data',self!snap)
     }
-    multi method new(::?CLASS: Mu $data) {  # needed for creating a difference
-        my $self := nqp::create(self);
-        nqp::bindattr($self,::?CLASS,'$!data',nqp::decont($data));
-        $self
+    multi method new(::?CLASS:D: Mu \data) { # needed for creating a difference
+        nqp::p6bindattrinvres(
+          nqp::clone(self),::?CLASS,'$!data',nqp::decont(data))
     }
-    multi method new(::?CLASS: *@data) {    # provided for .perl roundtripping
-        my $self := nqp::create(self);
-        nqp::bindattr($self,self,'$!data',my $data := nqp::list_i);
+    multi method new(::?CLASS: *@data) {     # provided for .perl roundtripping
+        my $data := nqp::list_i;
         nqp::push_i($data,$_) for @data;
-        $self
+        nqp::p6bindattrinvres(nqp::create(self),self,'$!data',$data)
     }
 
     multi method perl(::?CLASS:D:) {
@@ -357,11 +356,128 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
     method snap() { Snap.new }
 }
 
+# Telemetry::Instrument::Adhoc -------------------------------------------------
+class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
+    has @!formats;
+    has @!columns;
+    has Mu $!containers;
+    has Mu $!dispatch;
+
+    multi method new(::?CLASS: *@vars is raw, *%vars is raw) {
+        nqp::create(self)!SET-SELF(@vars, %vars)
+    }
+
+    method !SET-SELF(\array, \hash) {
+        $!containers := nqp::create(IterationBuffer);
+        $!dispatch := nqp::create(Rakudo::Internals::IterationSet);
+
+        for array {
+            my int $index = nqp::elems($!containers);
+            if nqp::istype($_,Pair) {
+                my $variable := .value;
+                die "Must specify a container" unless nqp::iscont($variable);
+
+                my str $name = $variable.VAR.name.substr(1);
+                @!formats.push([$name,"{4 max nqp::chars($name)}d",.key]);
+                @!columns.push($name);
+                nqp::bindpos($!containers,$index,$variable.VAR);
+                nqp::bindkey($!dispatch,$name,
+                  -> Mu \data { nqp::atpos_i(data,$index) });
+            }
+            else {
+                die "Must specify a container" unless nqp::iscont($_);
+                my str $name  = .VAR.name;
+                @!formats.push([$name,"{4 max nqp::chars($name)}d",""]);
+                @!columns.push($name);
+                nqp::bindpos($!containers,$index,$_);
+                nqp::bindkey($!dispatch,$name,
+                  -> Mu \data { nqp::atpos_i(data,$index) });
+            }
+        }
+        self
+    }
+
+    # actual snapping logic
+    class Snap does Telemetry::Instrument::Snap {
+        has Mu $!instrument;
+
+        multi method new(::?CLASS: Telemetry::Instrument::AdHoc:D \instrument) {
+            my $self := nqp::create(self);
+            nqp::bindattr($self,::?CLASS,'$!instrument',instrument);
+            nqp::p6bindattrinvres($self,::?CLASS,'$!data',$self!snap)
+        }
+
+        method AT-KEY(Str:D $key) {
+            my $i := $!instrument;
+            nqp::ifnull(
+              nqp::atkey(
+                nqp::getattr(
+                  $i,Telemetry::Instrument::AdHoc,'$!dispatch'),
+                $key
+              ),
+              -> Mu \data { Nil }
+            )($!data)
+        }
+
+        method EXISTS-KEY(Str:D $key) {
+            nqp::existskey(
+              nqp::getattr(
+                $!instrument,Telemetry::Instrument::AdHoc,'$!dispatch'),
+              $key
+            )
+        }
+
+        method !snap() {
+            my $containers := nqp::getattr(
+              $!instrument,Telemetry::Instrument::AdHoc,'$!containers');
+            my int $i = -1;
+            my int $elems = nqp::elems($containers);
+            my $data := nqp::setelems(nqp::list_i,$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_i($data,$i,nqp::decont(nqp::atpos($containers,$i)))
+            );
+            $data
+        }
+    }
+
+    method formats() { @!formats }
+    method columns() { @!columns }
+    method snap() { Snap.new(self) }
+}
+
 # Telemetry::Sampler -----------------------------------------------------------
 class Telemetry::Sampler {
     has $!instruments;
     has $!dispatcher;
     has $!formats;
+
+    # helper sub for handling instruments specified with a Str
+    sub Str-instrument($name) {
+        (my $class := nqp::decont(Telemetry::Instrument::{$name})) =:= Any
+          ?? die "Could not find Telemetry::Instrument::$name class"
+          !! $class
+    }
+
+    method !set-up-instrument($instrument is copy --> Nil) {
+        my $class = nqp::istype($instrument,Str)
+          ?? Str-instrument($instrument)
+          !! $instrument;
+        my int $index = nqp::elems($!instruments);
+        $!instruments.push($class);
+
+        my constant KEY    = 0;
+        my constant FORMAT = 1;
+        my constant LEGEND = 2;
+
+        for $class.formats -> @info {
+            my str $key = @info[KEY];
+            nqp::bindkey($!dispatcher,$key, -> Mu \samples {
+              nqp::atpos(samples,$index).AT-KEY($key)
+            });
+            nqp::bindkey($!formats,$key,@info);
+        }
+    }
 
     multi method new(Telemetry::Sampler:) { self.new([]) }
     multi method new(Telemetry::Sampler: Mu \instrument) {
@@ -370,62 +486,44 @@ class Telemetry::Sampler {
     multi method new(Telemetry::Sampler: @spec) {
         my $self := nqp::create(self);
         nqp::bindattr($self,self,'$!instruments',
-          my $instruments := nqp::create(IterationBuffer));
+          nqp::create(IterationBuffer));
         nqp::bindattr($self,self,'$!dispatcher',
-          my $dispatcher := nqp::create(Rakudo::Internals::IterationSet));
+          nqp::create(Rakudo::Internals::IterationSet));
         nqp::bindattr($self,self,'$!formats',
-          my $formats := nqp::create(Rakudo::Internals::IterationSet));
-
-        # helper sub for handling instruments specified with a Str
-        sub Str-instrument($name) {
-            (my $class := nqp::decont(Telemetry::Instrument::{$name})) =:= Any
-              ?? die "Could not find Telemetry::Instrument::$name class"
-              !! $class
-        }
-
-        sub set-up-instrument($class --> Nil) {
-            my int $index = nqp::elems($instruments);
-            $instruments.push($class);
-
-            my constant KEY    = 0;
-            my constant FORMAT = 1;
-            my constant LEGEND = 2;
-
-            for $class.formats -> @info {
-                my str $key = @info[KEY];
-                nqp::bindkey($dispatcher,$key, -> Mu \samples {
-                  nqp::atpos(samples,$index).AT-KEY($key)
-                });
-                nqp::bindkey($formats,$key,@info);
-            }
-        }
+          nqp::create(Rakudo::Internals::IterationSet));
 
         # handle instrument specification
         if @spec {
-            for @spec {
-                when Str {
-                    set-up-instrument(Str-instrument($_));
-                }
-                default {
-                    set-up-instrument($_);
-                }
-            }
+            $self!set-up-instrument($_) for @spec;
         }
 
         # none specified, but we do have a default in the environment
         elsif %*ENV<RAKUDO_TELEMETRY_INSTRUMENTS> -> $rri {
-            set-up-instrument(Str-instrument($_)) for $rri.comb( /<[\w-]>+/ );
+            $self!set-up-instrument(Str-instrument($_))
+              for $rri.comb( /<[\w-]>+/ );
         }
 
         # no instruments to be found anywhere, use the default default
         else {
-            set-up-instrument($_) for 
+            $self!set-up-instrument($_) for
               Telemetry::Instrument::Usage,
               Telemetry::Instrument::ThreadPool,
             ;
         }
 
         $self
+    }
+
+    method set-instruments(Telemetry::Sampler:D: *@instruments --> Nil) {
+        nqp::bindattr(self,Telemetry::Sampler,'$!instruments',
+          nqp::create(IterationBuffer));
+        nqp::bindattr(self,Telemetry::Sampler,'$!dispatcher',
+          nqp::create(Rakudo::Internals::IterationSet));
+        nqp::bindattr(self,Telemetry::Sampler,'$!formats',
+          nqp::create(Rakudo::Internals::IterationSet));
+
+        self!set-up-instrument($_) for @instruments;
+        $snaps := nqp::create(IterationBuffer);
     }
 
     multi method perl(Telemetry::Sampler:D:) {
@@ -453,7 +551,7 @@ class Telemetry does Associative {
     has $!sampler;
     has $!samples;
 
-    method new() {
+    multi method new(Telemetry:) {
         my $self := nqp::create(self);
         nqp::bindattr($self,self,'$!sampler',
           my $sampler := nqp::decont($*SAMPLER));
@@ -471,6 +569,10 @@ class Telemetry does Associative {
 
         $self
     }
+    multi method new(Telemetry: *@samples) { # needed for .perl roundtripping
+    }
+
+    multi method perl(Telemetry:D:) { self.^name ~ ".new$!samples.perl()" }
 
     method sampler() { $!sampler }
 
@@ -550,9 +652,8 @@ multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
 }
 
 # Making a Telemetry object procedurally ---------------------------------------
-my @snaps;
 proto sub snap(|) is export {*}
-multi sub snap(--> Nil)    { @snaps.push(Telemetry.new) }
+multi sub snap(--> Nil)    { $snaps.push(Telemetry.new) }
 multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
 
 # Starting the snapper / changing the period size
@@ -561,7 +662,7 @@ my $snapper-wait;
 sub snapper($sleep = 0.1, :$stop, :$reset --> Nil) is export {
 
     $snapper-wait = $sleep;
-    nqp::bindattr(@snaps,List,'$!reified',nqp::list) if $reset;
+    $snaps := nqp::create(IterationBuffer) if $reset;
 
     if $snapper-running {
         $snapper-running = 0 if $stop;
@@ -581,31 +682,17 @@ sub snapper($sleep = 0.1, :$stop, :$reset --> Nil) is export {
 # Telemetry::Period objects from a list of Telemetry objects -------------------
 proto sub periods(|) is export {*}
 multi sub periods() {
-    my @s = @snaps;
-    @snaps = ();
-    @s.push(Telemetry.new) if @s == 1;
-    periods(@s)
+    my $new := $snaps;
+    $snaps := nqp::create(IterationBuffer);
+    $new.push(Telemetry.new) if $new.elems == 1;
+    periods(nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$new));
 }
 multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 # Telemetry reporting features -------------------------------------------------
 proto sub report(|) is export {*}
-multi sub report(:@columns, :$legend, :$header-repeat, :$csv, :@format) {
-
-    # race condition, but should be safe enough because installing new list
-    # and all access is done using HLL ops, so those will either see the old
-    # or the new nqp::list, and thus push to either the old or the new.
-    my $s := nqp::getattr(@snaps,List,'$!reified');
-    nqp::bindattr(@snaps,List,'$!reified',nqp::list);
-
-    report(
-      nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$s),
-      :@columns,
-      :$legend,
-      :$header-repeat,
-      :$csv,
-      :@format,
-    );
+multi sub report(*%_) {
+    report(nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$snaps),|%_)
 }
 
 # some constants for the %format list
@@ -791,7 +878,7 @@ sub EXPORT(*@args) {
 # Make sure we tell the world if we're implicitely told to do so ---------------
 END {
     $snapper-running = 0;  # stop any snapper
-    if @snaps {
+    if $snaps.elems {
         snap;
         note report;
     }

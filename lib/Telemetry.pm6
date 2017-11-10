@@ -108,6 +108,14 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
 
     method columns() { < wallclock util% max-rss > }
 
+    method preamble($first, $last, $total, @snaps) {
+        qq:to/HEADER/.chomp;
+Initial Size:    { @snaps[0]<max-rss>.fmt('%9d') } Kbytes
+Total Time:      { ($total<wallclock> / 1000000).fmt('%9.2f') } seconds
+Total CPU Usage: { ($total<cpu> / 1000000).fmt('%9.2f') } seconds
+HEADER
+    }
+
     # actual snapping logic
     class Snap does Telemetry::Instrument::Snap {
 
@@ -237,6 +245,24 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
     }
 
     method columns() { < gw gtc tw ttc aw atc > }
+
+    method preamble($first, $last, $total, @snaps) {
+        my $text := nqp::list_s;
+        if $first<s> {
+            nqp::push_s($text,"Supervisor thread ran the whole time");
+        }
+        elsif !$last<s> {
+            nqp::push_s($text,"No supervisor thread has been running");
+        }
+        else {
+            my $started = @snaps.first: *.<s>;
+            nqp::push_s($text,"Supervisor thread ran for {
+              (100 * ($last<wallclock> - $started<wallclock>)
+                / $total<wallclock>).fmt("%5.2f")
+            }% of the time");
+        }
+        nqp::join("\n",$text)
+    }
 
     # actual snapping logic
     class Snap does Telemetry::Instrument::Snap {
@@ -396,6 +422,8 @@ class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
         }
         self
     }
+
+    method preamble($first, $last, $total, @snaps) { Nil }
 
     # actual snapping logic
     class Snap does Telemetry::Instrument::Snap {
@@ -798,30 +826,9 @@ Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
 Number of Snapshots: {+@s}
 HEADER
 
-        # give the supervisor blurb if we can
-        if $sampler.instruments.grep( Telemetry::Instrument::ThreadPool ) {
-            if $first<s> {
-                nqp::push_s($text,"Supervisor thread ran the whole time");
-            }
-            elsif !$last<s> {
-                nqp::push_s($text,"No supervisor thread has been running");
-            }
-            else {
-                my $started = @s.first: *.<s>;
-                nqp::push_s($text,"Supervisor thread ran for {
-                  (100 * ($last<wallclock> - $started<wallclock>)
-                    / $total<wallclock>).fmt("%5.2f")
-                }% of the time");
-            }
-        }
-
-        # add general performance blurb if we can
-        if $sampler.instruments.grep( Telemetry::Instrument::Usage ) {
-            nqp::push_s($text,qq:to/HEADER/.chomp);
-Initial Size:    { @s[0]<max-rss>.fmt('%9d') } Kbytes
-Total Time:      { ($total<wallclock> / 1000000).fmt('%9.2f') } seconds
-Total CPU Usage: { ($total<cpu> / 1000000).fmt('%9.2f') } seconds
-HEADER
+        for $sampler.instruments -> \instrument {
+            nqp::push_s($text,$_)
+              with instrument.preamble: $first, $last, $total, @s;
         }
 
         sub push-period($period --> Nil) {

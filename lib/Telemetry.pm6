@@ -423,7 +423,15 @@ class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
         self
     }
 
-    method preamble($first, $last, $total, @snaps) { Nil }
+    method preamble($first, $, $, @) {
+        my $text := nqp::list_s;
+        for @!columns -> $name {
+            nqp::push_s($text,
+              "Initial $name.tc(): ".fmt('%-17s') ~ $first{$name}.fmt('%9d')
+            );
+        }
+        nqp::join("\n",$text)
+    }
 
     # actual snapping logic
     class Snap does Telemetry::Instrument::Snap {

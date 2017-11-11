@@ -16,17 +16,32 @@ BEGIN {
 use Test;
 use Telemetry;
 
-plan 24;
+plan 41;
 
 my $T = T;
 isa-ok $T, Telemetry, 'did we get a Telemetry object from T';
-ok $T{$_}, "did we get a non-zero value for $_"
+for <wallclock cpu max-rss> {
+    ok $T{$_}, "did we get a non-zero value for $_ using AT-KEY";
+    ok $T."$_"(), "did we get a non-zero value for $_ with a method";
+}
+
+my $T2 = $T.perl.EVAL;
+isa-ok $T2, Telemetry, 'did we get a Telemetry object from T.perl.EVAL';
+is $T2{$_}, $T{$_}, "did $_ roundtrip ok in Telemetry?"
   for <wallclock cpu max-rss>;
 
-my $period = T() - $T;
-isa-ok $period, Telemetry::Period, 'Did we get a Telemetry::Period';
-ok $period{$_}, "did we get a non-zero value for $_"
-  for <wallclock cpu>;
+my $P = T() - $T;
+isa-ok $P, Telemetry::Period, 'Did we get a Telemetry::Period';
+for <wallclock cpu> {
+    ok $P{$_}, "did we get a non-zero value for $_ using AT-KEY";
+    ok $P."$_"(), "did we get a non-zero value for $_ using AT-KEY";
+}
+
+my $P2 = $P.perl.EVAL;
+isa-ok $P2, Telemetry::Period,
+  'did we get a Telemetry::Period object from period.perl.EVAL';
+is $P2{$_}, $P{$_}, "did $_ roundtrip ok in Telemetry::Period?"
+  for <wallclock cpu max-rss>;
 
 my $sampler = $T.sampler;
 isa-ok $sampler, Telemetry::Sampler, 'did it contain a Sampler';
@@ -57,3 +72,14 @@ sleep .1;
 ok +periods() > 0, 'did the snapper start taking snaps';
 sleep .2;
 ok +periods() == 0, 'did the snapper actually stop';
+
+snapper(2);
+sleep .5;  # give snapper thread some time to start up
+is +periods(), 1, 'did the snapper start taking snaps';
+snapper(:stop);
+sleep 2;
+
+my @report = report.lines;
+is +@report, 2, 'did we only get the header of the report';
+ok @report[0].starts-with('Telemetry Report of Process'), 'line 1 of report';
+is @report[1], 'Number of Snapshots: 0', 'line 2 of report';

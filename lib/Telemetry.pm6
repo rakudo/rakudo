@@ -783,6 +783,15 @@ multi sub report(
   --> Str:D
 ) {
 
+    # set up basic header
+    my $text := nqp::list_s(qq:to/HEADER/.chomp);
+Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
+Number of Snapshots: {+@s}
+HEADER
+
+    # return that if there's nothing to tell otherwise
+    return nqp::atpos_s($text,0) unless @s;
+
     # get the sampler that was used
     my $sampler := @s[0].sampler;
 
@@ -821,7 +830,6 @@ multi sub report(
     }
 
     # some initializations
-    my $text   := nqp::list_s;
     my @periods = periods(@s);
 
     # only want CSV ready output
@@ -847,11 +855,6 @@ multi sub report(
         };
         my $header  = "\n%format{@columns}>>.[HEADER].join(' ')";
         my @formats = %format{@columns};
-
-        nqp::push_s($text,qq:to/HEADER/.chomp);
-Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
-Number of Snapshots: {+@s}
-HEADER
 
         for $sampler.instruments -> \instrument {
             nqp::push_s($text,$_)

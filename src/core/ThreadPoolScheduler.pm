@@ -503,6 +503,23 @@ my class ThreadPoolScheduler does Scheduler {
                 my @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
                 my int $cpu-cores = nqp::cpucores();
+
+                # These definitions used to live inside the supervisor loop.
+                # Moving them out of the loop does not improve CPU usage
+                # noticably, but does seem to save about 3M of memory for
+                # every 10 seconds of runtime.  Whether this is an actual
+                # leak, or just less churn on garbage collection, remains
+                # unclear until we have profiling options that also work
+                # when multiple threads are running.
+                my num $now;
+                my num $rusage-period;
+                my int $current-usage;
+                my int $usage-delta;
+                my num $normalized-delta;
+                my num $per-core;
+                my num $per-core-util;
+                my $smooth-per-core-util;
+
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
                     # Wait until the next time we should check how things
@@ -511,25 +528,24 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Work out the delta of CPU usage since last supervision
                     # and the time period that measurement spans.
-                    my num $now = nqp::time_n;
-                    my num $rusage-period = $now - $last-rusage-time;
+                    $now = nqp::time_n;
+                    $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
-                    my int $current-usage = getrusage-total();
-                    my int $usage-delta = $current-usage - $last-usage;
+                    $current-usage = getrusage-total();
+                    $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 
                     # Scale this by the time between rusage calls and turn it
                     # into a per-core utilization percentage.
-                    my num $normalized-delta = $usage-delta / $rusage-period;
-                    my num $per-core = $normalized-delta / $cpu-cores;
-                    my num $per-core-util =
-                      100 * ($per-core / (1000000 * NUM_SAMPLES));
+                    $normalized-delta = $usage-delta / $rusage-period;
+                    $per-core = $normalized-delta / $cpu-cores;
+                    $per-core-util = 100 * ($per-core / (1000000 * NUM_SAMPLES));
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
                     nqp::shift_n(@last-utils);
                     nqp::push_n(@last-utils,$per-core-util);
-                    my $smooth-per-core-util = @last-utils.sum;
+                    $smooth-per-core-util = @last-utils.sum;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 

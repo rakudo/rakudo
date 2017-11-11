@@ -315,6 +315,7 @@ my class ThreadPoolScheduler does Scheduler {
     has $!general-workers;
     has $!timer-workers;
     has $!affinity-workers;
+    has int $!exhausted;
 
     # The supervisor thread, if started.
     has Thread $!supervisor;
@@ -457,6 +458,7 @@ my class ThreadPoolScheduler does Scheduler {
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
             $!supervisor = Thread.start(:app_lifetime, :name<Supervisor>, {
+
                 sub add-general-worker(--> Nil) {
                     $!state-lock.protect: {
                         $!general-workers := push-worker(
@@ -531,18 +533,29 @@ my class ThreadPoolScheduler does Scheduler {
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 
-                    if $!general-queue.DEFINITE && $!general-queue.elems {
-                        self!tweak-workers: $!general-queue, $!general-workers,
-                            &add-general-worker, $cpu-cores, $smooth-per-core-util;
+                    unless $!exhausted {
+                        self!tweak-workers($!general-queue, $!general-workers,
+                          &add-general-worker, $cpu-cores, $smooth-per-core-util)
+                          if $!general-queue.DEFINITE && $!general-queue.elems;
+
+                        self!tweak-workers($!timer-queue, $!timer-workers,
+                          &add-timer-worker, $cpu-cores, $smooth-per-core-util)
+                          if $!timer-queue.DEFINITE && $!timer-queue.elems;
+
+                        self!prod-affinity-workers: $!affinity-workers
+                          if $!affinity-workers.DEFINITE;
                     }
-                    if $!timer-queue.DEFINITE && $!timer-queue.elems {
-                        self!tweak-workers: $!timer-queue, $!timer-workers,
-                            &add-timer-worker, $cpu-cores, $smooth-per-core-util;
-                    }
-                    self!prod-affinity-workers: $!affinity-workers
-                        if $!affinity-workers.DEFINITE;
 
                     CATCH {
+                        when X::AdHoc {
+                            if .payload.starts-with("Could not create a new Thread") {
+                                $!exhausted = 1;
+                                scheduler-debug "Refraining from trying to start new threads";
+                            }
+                            else {
+                                scheduler-debug .gist;
+                            }
+                        }
                         default {
                             scheduler-debug .gist;
                         }

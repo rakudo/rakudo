@@ -108,7 +108,7 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
 
     method columns() { < wallclock util% max-rss > }
 
-    method preamble($first, $last, $total, @snaps) {
+    method preamble($first, $last, $total, @snaps --> Str:D) {
         qq:to/HEADER/.chomp;
 Initial Size:    { @snaps[0]<max-rss>.fmt('%9d') } Kbytes
 Total Time:      { ($total<wallclock> / 1000000).fmt('%9.2f') } seconds
@@ -214,7 +214,7 @@ HEADER
         }
     }
 
-    method snap() { Snap.new }
+    method snap(--> Snap:D) { Snap.new }
 }
 
 # Telemetry data from the ThreadPoolScheduler ----------------------------------
@@ -246,7 +246,7 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
 
     method columns() { < gw gtc tw ttc aw atc > }
 
-    method preamble($first, $last, $total, @snaps) {
+    method preamble($first, $last, $total, @snaps --> Str:D) {
         my $text := nqp::list_s;
         if $first<s> {
             nqp::push_s($text,"Supervisor thread ran the whole time");
@@ -379,7 +379,7 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
         }
     }
 
-    method snap() { Snap.new }
+    method snap(--> Snap:D) { Snap.new }
 }
 
 # Telemetry::Instrument::Adhoc -------------------------------------------------
@@ -423,7 +423,7 @@ class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
         self
     }
 
-    method preamble($first, $, $, @) {
+    method preamble($first, $, $, @ --> Str:D) {
         my $text := nqp::list_s;
         for @!columns -> $name {
             nqp::push_s($text,
@@ -479,7 +479,7 @@ class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
 
     method formats() { @!formats }
     method columns() { @!columns }
-    method snap() { Snap.new(self) }
+    method snap(--> Snap:D) { Snap.new(self) }
 }
 
 # Telemetry::Sampler -----------------------------------------------------------
@@ -562,7 +562,7 @@ class Telemetry::Sampler {
         $snaps := nqp::create(IterationBuffer);
     }
 
-    multi method perl(Telemetry::Sampler:D:) {
+    multi method perl(Telemetry::Sampler:D: --> Str:D) {
         self.^name
           ~ '.new('
           ~ self.instruments.map(*.^name).join(",")
@@ -606,9 +606,20 @@ class Telemetry does Associative {
         $self
     }
     multi method new(Telemetry: *@samples) { # needed for .perl roundtripping
+        my $self := nqp::create(self);
+        nqp::bindattr($self,Telemetry,'$!sampler',
+          my $sampler := nqp::decont($*SAMPLER));
+        nqp::bindattr($self,Telemetry,'$!samples',
+          my $samples := nqp::create(IterationBuffer));
+
+        $samples.push($_) for @samples;
+
+        $self
     }
 
-    multi method perl(Telemetry:D:) { self.^name ~ ".new$!samples.perl()" }
+    multi method perl(Telemetry:D: --> Str:D) {
+        self.^name ~ ".new$!samples.perl()"
+    }
 
     method sampler() { $!sampler }
 
@@ -639,11 +650,18 @@ class Telemetry::Period is Telemetry {
 
 # Creating Telemetry::Period objects -------------------------------------------
 multi sub infix:<->(Telemetry:U \a, Telemetry:U \b) is export {
-    nqp::create(Telemetry::Period)
+    die "Cannot subtract Telemetry type objects";
 }
-multi sub infix:<->(Telemetry:D \a, Telemetry:U \b) is export { a - b.new }
-multi sub infix:<->(Telemetry:U \a, Telemetry:D \b) is export { a.new - b }
-multi sub infix:<->(Telemetry:D \a, Telemetry:D \b) is export {
+multi sub infix:<->(
+  Telemetry:D \a, Telemetry:U \b --> Telemetry::Period:D) is export {
+    a - b.new
+}
+multi sub infix:<->(
+  Telemetry:U \a, Telemetry:D \b --> Telemetry::Period:D) is export {
+    a.new - b
+}
+multi sub infix:<->(
+  Telemetry:D \a, Telemetry:D \b --> Telemetry::Period) is export {
     my $a := nqp::decont(a);
     my $b := nqp::decont(b);
     my $period := nqp::create(Telemetry::Period);
@@ -727,7 +745,7 @@ multi sub periods(@s) { (1..^@s).map: { @s[$_] - @s[$_ - 1] } }
 
 # Telemetry reporting features -------------------------------------------------
 proto sub report(|) is export {*}
-multi sub report(*%_) {
+multi sub report(*%_ --> Str:D) {
     report(nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$snaps),|%_)
 }
 
@@ -762,6 +780,7 @@ multi sub report(
   :$legend        is copy,
   :$csv           is copy,
   :@format,
+  --> Str:D
 ) {
 
     # get the sampler that was used
@@ -882,7 +901,7 @@ sub safe-ctrl-c(--> Nil) is export {
 
 # The special T<foo bar> functionality -----------------------------------------
 
-sub T () is export { Telemetry.new }
+sub T (--> Telemetry:D) is export { Telemetry.new }
 
 # Provide limited export capability --------------------------------------------
 

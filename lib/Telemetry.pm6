@@ -110,7 +110,7 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
 
     method preamble($first, $last, $total, @snaps --> Str:D) {
         qq:to/HEADER/.chomp;
-Initial Size:    { @snaps[0]<max-rss>.fmt('%9d') } Kbytes
+Initial/Final Size: { $first<max-rss> } / { $last<max-rss> } Kbytes
 Total Time:      { ($total<wallclock> / 1000000).fmt('%9.2f') } seconds
 Total CPU Usage: { ($total<cpu> / 1000000).fmt('%9.2f') } seconds
 HEADER
@@ -798,7 +798,7 @@ HEADER
     # determine columns to be displayed
     unless @columns {
         if %*ENV<RAKUDO_REPORT_COLUMNS> -> $rrc {
-            @columns = $rrc.comb( /<[\w-]>+/ );
+            @columns = $rrc.comb( /<[\w%-]>+/ );
         }
         else {
             @columns.append(.columns) for $sampler.instruments;

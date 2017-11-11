@@ -897,6 +897,16 @@ my class X::Trait::Scope is Exception {
 }
 my class X::Comp::Trait::Scope is X::Trait::Scope does X::Comp { };
 
+my class X::Exhausted is Exception {
+    has $.what;
+    has $.reason;
+    method message {
+        $.reason
+          ?? "Could not create another $.what because of: $.reason"
+          !! "Could not create another $.what"
+    }
+}
+
 my class X::OutOfRange is Exception {
     has $.what = 'Argument';
     has $.got = '<unknown>';

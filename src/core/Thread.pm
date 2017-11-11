@@ -18,6 +18,7 @@ my class Thread {
       Str()  :$!name         = "<anon>"
       --> Nil
     ) {
+        constant THREAD_ERROR = 'Could not create a new Thread: ';
         $!vm_thread := nqp::newthread(
             anon sub THREAD-ENTRY() {
                 my $*THREAD = self;
@@ -30,6 +31,16 @@ my class Thread {
                 code();
             },
             $!app_lifetime ?? 1 !! 0);
+        CATCH {
+            when X::AdHoc {
+                .payload.starts-with(THREAD_ERROR)
+                  ?? X::Exhausted.new(
+                       :what<thread>,
+                       :reason(.payload.substr(THREAD_ERROR.chars))
+                     ).throw
+                  !! .rethrow
+            }
+        }
     }
 
     method start(Thread:U: &code, *%adverbs) {

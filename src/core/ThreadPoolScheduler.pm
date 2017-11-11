@@ -535,7 +535,8 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # exhausted the system allotment of low level threads
                     if $!exhausted {
-                        $!exhausted = 0 if ++$!exhausted > EXHAUSTED_RETRY_AFTER;
+                        $!exhausted = 0  # try again in next run of supervisor
+                          if ++$!exhausted > EXHAUSTED_RETRY_AFTER;
                     }
 
                     # we can still add threads if necessary
@@ -555,14 +556,10 @@ my class ThreadPoolScheduler does Scheduler {
                       if $!affinity-workers.DEFINITE;
 
                     CATCH {
-                        when X::AdHoc {
-                            if .payload.starts-with("Could not create a new Thread") {
-                                $!exhausted = 1;
-                                scheduler-debug "Refraining from trying to start new threads";
-                            }
-                            else {
-                                scheduler-debug .gist;
-                            }
+                        when X::Exhausted {
+                            $!exhausted = 1;
+                            scheduler-debug .message;
+                            scheduler-debug "Refraining from trying to start new threads";
                         }
                         default {
                             scheduler-debug .gist;

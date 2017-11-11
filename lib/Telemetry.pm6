@@ -18,7 +18,10 @@ role Telemetry::Instrument is export {
     method formats() { ... }
 
     # Should a return a list of column names to be used by default
-    method columns() { ... }
+    method default-columns() { ... }
+
+    # Returns sorted list of all columns names
+    method columns() { self.formats.map( *[0] ).sort }
 }
 
 # Role for creating an instrument snap -------------
@@ -106,7 +109,7 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
         >>
     }
 
-    method columns() { < wallclock util% max-rss > }
+    method default-columns() { < wallclock util% max-rss > }
 
     method preamble($first, $last, $total, @snaps --> Str:D) {
         qq:to/HEADER/.chomp;
@@ -244,7 +247,7 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
         >>
     }
 
-    method columns() { < gw gtc tw ttc aw atc > }
+    method default-columns() { < gw gtc tw ttc aw atc > }
 
     method preamble($first, $last, $total, @snaps --> Str:D) {
         my $text := nqp::list_s;
@@ -478,7 +481,7 @@ class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
     }
 
     method formats() { @!formats }
-    method columns() { @!columns }
+    method default-columns() { @!columns }
     method snap(--> Snap:D) { Snap.new(self) }
 }
 
@@ -801,7 +804,7 @@ HEADER
             @columns = $rrc.comb( /<[\w%-]>+/ );
         }
         else {
-            @columns.append(.columns) for $sampler.instruments;
+            @columns.append(.default-columns) for $sampler.instruments;
         }
     }
 

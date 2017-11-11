@@ -431,14 +431,11 @@ my role Baggy does QuantHash {
     }
     multi method pick(Baggy:D: Whatever) { self.pick(Inf) }
     multi method pick(Baggy:D: $count) {
-        Seq.new(nqp::if(
-          (my $todo = nqp::if(
-            $count == Inf,
-            (my $total := self.total),
-            $count.Int                          # also handles NaN
-          )) < 1,
-          Rakudo::Iterator.Empty,               # nothing to do
-          class :: does Iterator {
+        Seq.new(
+          (my $total := self.total) < 1
+            || (my $todo = $count == Inf ?? $total !! $count.Int) < 1
+            ?? Rakudo::Iterator.Empty            # nothing to do
+            !! class :: does Iterator {
               has $!raw;      # the IterationSet of the Baggy
               has $!weights;  # clone of raw, but with just the weights
               has $!todo;     # number of draws to do
@@ -535,7 +532,7 @@ my role Baggy does QuantHash {
               method sink-all() { $!todo := 0 }
 
           }.new($!elems, $todo, nqp::ifnull($total,self.total))
-        ))
+        )
     }
 
     proto method roll(|) {*}

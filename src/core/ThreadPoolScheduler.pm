@@ -453,12 +453,12 @@ my class ThreadPoolScheduler does Scheduler {
     # The supervisor sits in a loop, mostly sleeping. Each time it wakes up,
     # it takes stock of the current situation and decides whether or not to
     # add threads.
-    my constant SUPERVISION_INTERVAL = 0.01;
-    my constant NUM_SAMPLES          = 5;
+    my constant SUPERVISION_INTERVAL  = 0.01;
+    my constant NUM_SAMPLES           = 5;
+    my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
             $!supervisor = Thread.start(:app_lifetime, :name<Supervisor>, {
-
                 sub add-general-worker(--> Nil) {
                     $!state-lock.protect: {
                         $!general-workers := push-worker(
@@ -533,7 +533,13 @@ my class ThreadPoolScheduler does Scheduler {
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 
-                    unless $!exhausted {
+                    # exhausted the system allotment of low level threads
+                    if $!exhausted {
+                        $!exhausted = 0 if ++$!exhausted > EXHAUSTED_RETRY_AFTER;
+                    }
+
+                    # we can still add threads if necessary
+                    else {
                         self!tweak-workers($!general-queue, $!general-workers,
                           &add-general-worker, $cpu-cores, $smooth-per-core-util)
                           if $!general-queue.DEFINITE && $!general-queue.elems;
@@ -542,9 +548,11 @@ my class ThreadPoolScheduler does Scheduler {
                           &add-timer-worker, $cpu-cores, $smooth-per-core-util)
                           if $!timer-queue.DEFINITE && $!timer-queue.elems;
 
-                        self!prod-affinity-workers: $!affinity-workers
-                          if $!affinity-workers.DEFINITE;
                     }
+
+                    # always need to prod affinity workers
+                    self!prod-affinity-workers: $!affinity-workers
+                      if $!affinity-workers.DEFINITE;
 
                     CATCH {
                         when X::AdHoc {

@@ -315,12 +315,7 @@ my class ThreadPoolScheduler does Scheduler {
     has $!general-workers;
     has $!timer-workers;
     has $!affinity-workers;
-#?if !jvm
     has int $!exhausted;
-#endif
-#?if jvm
-    has Int $!exhausted;
-#endif
 
     # The supervisor thread, if started.
     has Thread $!supervisor;

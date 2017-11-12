@@ -315,12 +315,6 @@ my class ThreadPoolScheduler does Scheduler {
     has $!general-workers;
     has $!timer-workers;
     has $!affinity-workers;
-#?if !jvm
-    has int $!exhausted;
-#?endif
-#?if jvm
-    has Int $!exhausted;
-#?endif
 
     # The supervisor thread, if started.
     has Thread $!supervisor;
@@ -516,6 +510,7 @@ my class ThreadPoolScheduler does Scheduler {
                 # leak, or just less churn on garbage collection, remains
                 # unclear until we have profiling options that also work
                 # when multiple threads are running.
+                my int $exhausted;
                 my num $now;
                 my num $rusage-period;
                 my int $current-usage;
@@ -555,9 +550,9 @@ my class ThreadPoolScheduler does Scheduler {
                       if $scheduler-debug-status;
 
                     # exhausted the system allotment of low level threads
-                    if $!exhausted {
-                        $!exhausted = 0  # try again in next run of supervisor
-                          if ++$!exhausted > EXHAUSTED_RETRY_AFTER;
+                    if $exhausted {
+                        $exhausted = 0  # for next run of supervisor
+                          if ++$exhausted > EXHAUSTED_RETRY_AFTER;
                     }
 
                     # we can still add threads if necessary
@@ -578,7 +573,7 @@ my class ThreadPoolScheduler does Scheduler {
 
                     CATCH {
                         when X::Exhausted {
-                            $!exhausted = 1;
+                            $exhausted = 1;
                             scheduler-debug .message;
                             scheduler-debug "Refraining from trying to start new threads";
                         }

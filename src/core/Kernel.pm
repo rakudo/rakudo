@@ -178,6 +178,11 @@ class Kernel does Systemic {
           + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
           + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
     }
+
+    my int $b2kb = nqp::atkey(nqp::backendconfig,'osname') eq 'darwin' ?? 10 !! 0;
+    method memory() is raw {
+        nqp::bitshiftr_i(nqp::atpos_i(nqp::getrusage,4),$b2kb)  # ru_maxrss
+    }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

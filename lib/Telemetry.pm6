@@ -76,7 +76,7 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
           'The amount of CPU used in system overhead (in microseconds)'
         >>,<< id-rss 8d
           'Integral unshared data size (in Kbytes)'
-        >>,<< inb 3d
+        >>,<< inb 4d
           'Number of block input operations'
         >>,<< invcsw 8d
           'Number of involuntary context switches'
@@ -84,23 +84,23 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
           'Integral unshared stack size (in Kbytes)'
         >>,<< ix-rss 8d
           'Integral shared text memory size (in Kbytes)'
-        >>,<< aft 3d
-          'Number of page reclaims (ru_majflt)'
+        >>,<< majf 4d
+          'Number of page reclaims'
         >>,<< max-rss 8d
           'Maximum resident set size (in Kbytes)'
-        >>,<< ift 3d
-          'Number of page reclaims (ru_minflt)'
-        >>,<< mrc 3d
+        >>,<< minf 4d
+          'Number of page reclaims'
+        >>,<< mrcv 4d
           'Number of messages received'
-        >>,<< msd 3d
+        >>,<< msnd 4d
           'Number of messages sent'
-        >>,<< ngs 3d
+        >>,<< nsig 4d
           'Number of signals received'
-        >>,<< nsw 3d
+        >>,<< nswp 4d
           'Number of swaps'
-        >>,<< vcs 4d
+        >>,<< volcsw 6d
           'Number of voluntary context switches'
-        >>,<< oub 3d
+        >>,<< outb 4d
           'Number of block output operations'
         >>,<< util% 6.2f
           'Percentage of CPU utilization (0..100%)'
@@ -155,8 +155,8 @@ HEADER
         # do this on module load time.  First handle the usable names of
         # attributes that are part of getrusage struct.
         my %dispatch = << "" "" "" "" # first 4 are special
-          max-rss  ix-rss id-rss is-rss   min-flt maj-flt nswap inblock
-          outblock msgsnd msgrcv nsignals nvcsw   invcsw  wallclock
+          max-rss ix-rss id-rss is-rss minf   majf   nswp inb
+          outb    msnd   mrcv   nsig   volcsw invcsw wallclock
         >>.kv.map: -> int $index, $name {
             if $name {
                 $name => $name.ends-with('rss') && $b2kb

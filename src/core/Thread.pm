@@ -12,6 +12,21 @@ my class Thread {
     # Thread's (user-defined) name.
     has Str $.name;
 
+#?if !jvm
+    my atomicint $started;
+    my atomicint $aborted;
+    my atomicint $completed;
+    my atomicint $joined;
+    my atomicint $yields;
+#?endif
+#?if jvm
+    my int $started;
+    my int $aborted;
+    my int $completed;
+    my int $joined;
+    my int $yields;
+#?endif
+
     submethod BUILD(
              :&code!,
       Bool() :$!app_lifetime = False,
@@ -24,11 +39,23 @@ my class Thread {
                 my $*THREAD = self;
                 CONTROL {
                     default {
+#?if !jvm
+                        ++⚛$aborted;
+#?endif
+#?if jvm
+                        ++$aborted;
+#?endif
                         my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
                         nqp::getcomp('perl6').handle-control($vm-ex);
                     }
                 }
                 code();
+#?if !jvm
+                ++⚛$completed;
+#?endif
+#?if jvm
+                ++$completed;
+#?endif
             },
             $!app_lifetime ?? 1 !! 0);
         CATCH {
@@ -48,6 +75,12 @@ my class Thread {
     }
 
     method run(Thread:D:) {
+#?if !jvm
+        ++⚛$started;
+#?endif
+#?if jvm
+        ++$started;
+#?endif
         nqp::threadrun($!vm_thread);
         self
     }
@@ -58,6 +91,12 @@ my class Thread {
 
     method finish(Thread:D:) {
         nqp::threadjoin($!vm_thread);
+#?if !jvm
+        ++⚛$joined;
+#?endif
+#?if jvm
+        ++$joined;
+#?endif
         self
     }
 
@@ -77,6 +116,12 @@ my class Thread {
     }
 
     method yield(Thread:U: --> Nil) {
+#?if !jvm
+        ++⚛$yields;
+#?endif
+#?if jvm
+        ++$yields;
+#?endif
         nqp::threadyield();
     }
 
@@ -89,6 +134,10 @@ my class Thread {
             nqp::threadid(Rakudo::Internals.INITTHREAD)
           )
         )
+    }
+
+    method usage(Thread:U:) is raw {
+        nqp::list_i($started,$aborted,$completed,$joined,$yields)
     }
 }
 

@@ -127,8 +127,7 @@ HEADER
           nqp::fromnum_I(Rakudo::Internals.INITTIME * 1000000,Int);
         my int $cores = Kernel.cpu-cores;
         my $utilize   = 100 / $cores;
-        my int $b2kb =
-          nqp::atkey(nqp::backendconfig,'osname') eq 'darwin' ?? 10 !! 0;
+        my int $b2kb = VM.osname eq 'darwin' ?? 10 !! 0;
 
         # Constants indexing into the data array
         my constant UTIME_SEC  =  0;

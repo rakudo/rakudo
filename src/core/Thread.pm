@@ -18,6 +18,7 @@ my class Thread {
     my atomicint $completed;
     my atomicint $joined;
     my atomicint $yields;
+    my atomicint $highest_id;
 #?endif
 #?if jvm
     my int $started;
@@ -25,6 +26,7 @@ my class Thread {
     my int $completed;
     my int $joined;
     my int $yields;
+    my int $highest_id;
 #?endif
 
     submethod BUILD(
@@ -58,6 +60,14 @@ my class Thread {
 #?endif
             },
             $!app_lifetime ?? 1 !! 0);
+
+#?if !jvm
+            $highest_id ⚛= nqp::threadid($!vm_thread);
+#?endif
+#?if jvm
+            $highest_id = nqp::threadid($!vm_thread);
+#?endif
+
         CATCH {
             when X::AdHoc {
                 .payload.starts-with(THREAD_ERROR)
@@ -137,7 +147,7 @@ my class Thread {
     }
 
     method usage(Thread:U:) is raw {
-        nqp::list_i($started,$aborted,$completed,$joined,$yields)
+        nqp::list_i($started,$aborted,$completed,$joined,$yields,$highest_id)
     }
 }
 

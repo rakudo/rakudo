@@ -238,13 +238,18 @@ my class IO::Path is Cool does IO {
         my str $cur       = $!SPEC.curdir;
         my str $up        = $!SPEC.updir;
         my str $empty     = '';
-        my str $resolved  = $empty;
         my Mu  $res-list := nqp::list_s();
+
+        my %parts         = $!SPEC.split: self.absolute;
+        my str $volume    = %parts<volume>;
+        my str $resolved  = $volume;
+        my $path          = $!SPEC.catpath: '', |%parts<dirname  basename>;
+
 #?if jvm
         # Apparently JVM doesn't know how to decode to utf8-c8 yet
         # so it's still afflicted by the bug that, say, "/\[x308]" in the path
         # doesn't get recognized as a path separator
-        my $parts := nqp::split($sep, nqp::unbox_s(self.absolute));
+        my $parts := nqp::split($sep, nqp::unbox_s($path));
 #?endif
 #?if !jvm
         # In this bit, we work with bytes, converting $sep (and assuming it's
@@ -254,7 +259,7 @@ my class IO::Path is Cool does IO {
         # part of the path part.
         nqp::stmts(
           (my $p := nqp::encode(
-            nqp::unbox_s(self.absolute), 'utf8-c8', buf8.new)),
+            nqp::unbox_s($path), 'utf8-c8', buf8.new)),
           (my int $ord-sep = nqp::ord($sep)),
           (my int $els = nqp::elems($p)),
           (my int $i = -1),
@@ -323,8 +328,8 @@ my class IO::Path is Cool does IO {
                 nqp::push_s($res-list, $part);
             }
         }
-        $resolved = $sep unless nqp::chars($resolved);
-        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
+        $resolved = $volume ~ $sep if $resolved eq $volume;
+        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($volume ~ $sep));
     }
     proto method parent(|) {*}
     multi method parent(IO::Path:D: UInt:D $depth) {

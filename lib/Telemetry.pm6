@@ -219,6 +219,60 @@ HEADER
     method snap(--> Snap:D) { Snap.new }
 }
 
+# Telemetry data of starting Threads -------------------------------------------
+class Telemetry::Instrument::Thread does Telemetry::Instrument {
+
+    method formats() is raw {
+           << tad 3d
+          'Number of threads that ended with an exception (aborted)'
+        >>,<< tcd 3d
+          'Number of threads that completed without any problem'
+        >>,<< thid 4d
+          'Highest OS thread ID seen'
+        >>,<< tjd 3d
+          'Number of threads that were joined'
+        >>,<< tsd 3d
+          'Number of threads that were started'
+        >>,<< tys 4d
+          'Number of times a thread was yielded'
+        >>
+    }
+
+    method default-columns() { < tsd tcd tad thid > }
+
+    method preamble($first, $last, $total, @snaps --> Str:D) {
+        qq:to/HEADER/.chomp;
+OS threads started: { ($last<thid> - $first<thid>).fmt('%4d') }{ " ($first<thid> started earlier)" if $first<thid> }
+HEADER
+    }
+
+    # actual snapping logic
+    class Snap does Telemetry::Instrument::Snap {
+
+        # Initialize the dispatch hash using HLL features, as we only need to
+        # do this on module load time.  Note that the order matters here!
+        my %dispatch = <tsd tad tcd tjd tys thid>.kv.map: -> int $index, $name {
+            $name => -> Mu \data { nqp::atpos_i(data,$index) }
+        }
+
+        # Allow for low-level dispatch hash access for speed
+        my $dispatch := nqp::getattr(%dispatch,Map,'$!storage');
+
+        method AT-KEY(Str:D $key) {
+            nqp::ifnull(
+              nqp::atkey($dispatch,$key),
+              -> Mu \data { Nil }
+            )($!data)
+        }
+
+        method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
+
+        method !snap() is raw { Thread.usage }
+    }
+
+    method snap(--> Snap:D) { Snap.new }
+}
+
 # Telemetry data from the ThreadPoolScheduler ----------------------------------
 class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
 

@@ -83,3 +83,5 @@ my @report = report.lines;
 is +@report, 2, 'did we only get the header of the report';
 ok @report[0].starts-with('Telemetry Report of Process'), 'line 1 of report';
 is @report[1], 'Number of Snapshots: 0', 'line 2 of report';
+
+# vim: ft=perl6 expandtab sw=4

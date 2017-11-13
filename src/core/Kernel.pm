@@ -179,7 +179,12 @@ class Kernel does Systemic {
           + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
     }
 
+#?if !jvm
     my int $b2kb = nqp::atkey(nqp::backendconfig,'osname') eq 'darwin' ?? 10 !! 0;
+#?endif
+#?if jvm
+    my int $b2kb = nqp::atkey(nqp::jvmgetproperties,'os.name') eq 'darwin' ?? 10 !! 0;
+#?endif
     method memory() is raw {
         nqp::bitshiftr_i(nqp::atpos_i(nqp::getrusage,4),$b2kb)  # ru_maxrss
     }

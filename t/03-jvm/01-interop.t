@@ -1,6 +1,8 @@
 use v6;
 use Test;
 
+BEGIN unless $*VM ~~ "jvm" { plan 0; skip-rest "jvm only test"; done-testing; exit 0; };
+
 plan 30;
 
 {

@@ -232,7 +232,6 @@ my class IO::Path is Cool does IO {
         self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
     }
     method resolve (IO::Path:D: :$completely) {
-        # XXXX: Not portable yet; assumes POSIX semantics
         my int $max-depth = 256;
         my str $sep       = $!SPEC.dir-sep;
         my str $cur       = $!SPEC.curdir;
@@ -266,6 +265,19 @@ my class IO::Path is Cool does IO {
           my $parts := nqp::split("\0", nqp::decode($p, 'utf8-c8')));
 #?endif
 
+        my sub resolve-it(Mu $list) {
+            if $list {
+                my str $ret;
+                nqp::unshift_s($res-list, '') unless nqp::istype($!SPEC, IO::Spec::Win32);
+                $ret = $!SPEC.catdir(|nqp::p6bindattrinvres((), List, '$!reified', $res-list));
+                nqp::shift_s($res-list) unless nqp::istype($!SPEC, IO::Spec::Win32);
+                return $ret;
+            }
+            else {
+                return $empty;
+            }
+        }
+
         while $parts {
             fail "Resolved path too deep!"
                 if $max-depth < nqp::elems($res-list) + nqp::elems($parts);
@@ -277,14 +289,13 @@ my class IO::Path is Cool does IO {
             if nqp::iseq_s($part, $up) {
                 next unless $res-list;
                 nqp::pop_s($res-list);
-                $resolved = $res-list ?? $sep ~ nqp::join($sep, $res-list)
-                                      !! $empty;
                 next;
             }
 
             # Normal part, set as next path to test
-            my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
+            nqp::push_s($res-list, $part);
 
+            my str $next = resolve-it($res-list);
             # Path part doesn't exist...
             if !nqp::stat($next, nqp::const::STAT_EXISTS) {
                 # fail() if we were asked for complete resolution and we still
@@ -295,12 +306,12 @@ my class IO::Path is Cool does IO {
                   && X::IO::Resolve.new(:path(self)).fail;
 
                 # ...or handle rest in non-resolving mode if not
-                $resolved = $next;
                 while $parts {
                     $part = nqp::shift($parts);
                     next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
-                    $resolved = nqp::concat($resolved, nqp::concat($sep, $part));
+                    nqp::push_s($res-list, $part);
                 }
+
             }
             # Symlink; read it and act on absolute or relative link
             elsif nqp::fileislink($next) {
@@ -310,20 +321,15 @@ my class IO::Path is Cool does IO {
 
                 # Symlink to absolute path
                 if nqp::iseq_s($link-parts[0], $empty) {
-                    $resolved  = nqp::shift($link-parts);
                     $res-list := nqp::list_s();
                 }
 
                 nqp::unshift($parts, nqp::pop($link-parts))
                     while $link-parts;
             }
-            # Just a plain old path part, so append it and go on
-            else {
-                $resolved = $next;
-                nqp::push_s($res-list, $part);
-            }
         }
-        $resolved = $sep unless nqp::chars($resolved);
+
+        $resolved = resolve-it($res-list);
         IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($sep));
     }
     proto method parent(|) {*}

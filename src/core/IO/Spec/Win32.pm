@@ -254,11 +254,11 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
           nqp::eqat($volume, ':', 1) # this chunk == ~~ /^<[A..Z a..z]>':'/
             && ( (nqp::isge_i($temp, 65) && nqp::isle_i($temp, 90))
               || (nqp::isge_i($temp, 97) && nqp::isle_i($temp, 122))),
-          ($volume = nqp::uc($volume)),
-          nqp::if(
-            ($temp = nqp::chars($volume))
-              && nqp::isfalse(nqp::eqat($volume, ｢\｣, nqp::sub_i($temp, 1))),
-            ($volume = nqp::concat($volume, ｢\｣))));
+          ($volume = nqp::uc($volume)));
+        nqp::if(
+          ($temp = nqp::chars($volume))
+            && nqp::isfalse(nqp::eqat($volume, ｢\｣, nqp::sub_i($temp, 1))),
+          ($volume = nqp::concat($volume, ｢\｣)));
 
         $path = join ｢\｣, $path, @rest.flat;
 

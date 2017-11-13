@@ -227,7 +227,7 @@ role STD {
         else {
             $message := "Couldn't find terminator $stop";
             if $line {
-                $message := "$message (cooresponding $start was at line $line)";
+                $message := "$message (corresponding $start was at line $line)";
             }
         }
         $/.typed_panic('X::Comp::AdHoc',

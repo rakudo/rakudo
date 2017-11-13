@@ -154,6 +154,7 @@ src/core/operators.pm
 src/core/metaops.pm
 src/core/precedence.pm
 src/core/Deprecations.pm
+src/core/atomicops.pm
 src/core/Thread.pm
 src/core/Lock.pm
 src/core/Lock/Async.pm
@@ -163,7 +164,6 @@ src/core/Awaitable.pm
 src/core/Awaiter.pm
 src/core/Scheduler.pm
 src/core/Env.pm
-src/core/atomicops.pm
 src/core/ThreadPoolScheduler.pm
 src/core/CurrentThreadScheduler.pm
 src/core/Promise.pm

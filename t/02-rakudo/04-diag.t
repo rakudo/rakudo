@@ -2,9 +2,11 @@ use v6;
 use Test;
 plan 2;
 
+my @includes = $*REPO.repo-chain.map({ slip "-I", .path-spec });
+
 # RT#128098
 {
-    my $proc = run :out, :err, $*EXECUTABLE, '-e',
+    my $proc = run :out, :err, $*EXECUTABLE, @includes, '-e',
         q/use Test; plan 1; diag 'test message'; ok 1;/;
 
     subtest 'diag at the start of file shows up in non-verbose prove run', {
@@ -14,7 +16,7 @@ plan 2;
 }
 
 {
-    my $proc = run :out, :err, $*EXECUTABLE, '-e',
+    my $proc = run :out, :err, $*EXECUTABLE, @includes, '-e',
         q/use Test; plan 1; todo 'meow'; diag 'test message'; ok 1;/;
 
     subtest 'using diag in the middle of TODO tests does not interfere', {

@@ -74,6 +74,8 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
           'The amount of CPU used in user code (in microseconds)'
         >>,<< cpu-sys 8d
           'The amount of CPU used in system overhead (in microseconds)'
+        >>,<< cpus 5.1f
+          "The number of CPU's that were busy on average"
         >>,<< id-rss 8d
           'Integral unshared data size (in Kbytes)'
         >>,<< inb 4d
@@ -187,8 +189,8 @@ HEADER
               + nqp::atpos_i(data,STIME_MSEC)
         }
         %dispatch<cpus> = -> Mu \data {
-            (my int $wallclock = nqp::atkey($dispatch,'wallclock')(data))
-              ?? nqp::atkey($dispatch,'cpu')(data) / $wallclock
+            (my int $wallclock = nqp::atpos_i(data,WALLCLOCK))
+              ?? (nqp::atkey($dispatch,'cpu')(data) / $wallclock)
               !! $cores
         }
         %dispatch<util%> = -> Mu \data {

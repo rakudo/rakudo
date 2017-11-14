@@ -2904,22 +2904,6 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 }
 
 my class Exceptions::JSON {
-    sub jsonify($ex) {
-        Rakudo::Internals::JSON.to-json( $ex.^name => Hash.new(
-          (message => $ex.?message),
-          $ex.^attributes.grep(*.has_accessor).map: {
-              with .name.substr(2) -> $attr {
-                  $attr => (
-                    (.defined and not $_ ~~ Real|Positional|Associative)
-                      ?? .Str
-                      !! $_ ~~ Exception
-                        ?? jsonify($_)
-                        !! $_
-                  ) given $ex."$attr"()
-              }
-          }
-        ))
-    }
     method process($ex) {
         $*ERR.print: Rakudo::Internals::JSON.to-json($ex);
         False  # done processing

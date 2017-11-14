@@ -34,10 +34,9 @@ S01-perl-5-integration/return.t             # perl5
 S01-perl-5-integration/roundtrip.t          # perl5
 S01-perl-5-integration/strings.t            # perl5
 S01-perl-5-integration/subs.t               # perl5
-S02-lexical-conventions/begin_end_pod.t
+S02-lexical-conventions/finish-pod.t
 S02-lexical-conventions/bom.t
 S02-lexical-conventions/comments.t
-S02-lexical-conventions/end-pod.t
 S02-lexical-conventions/minimal-whitespace.t
 S02-lexical-conventions/one-pass-parsing.t
 S02-lexical-conventions/pod-in-multi-line-exprs.t

@@ -1535,13 +1535,14 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
         unless $the-end-is-done {
             $the-end-locker.protect: {
                 unless $the-end-is-done {
-                    my $comp := nqp::getcomp('perl6');
-                    my $end  := nqp::getcurhllsym('@END_PHASERS');
+                    my $end := nqp::getcurhllsym('@END_PHASERS');
+                    my @exceptions;
                     while nqp::elems($end) {           # run all END blocks
-                        my $result := nqp::shift($end)();
-                        $result.sink if nqp::can($result,'sink');
-                        CATCH { $comp.handle-exception($_) }
-                        CONTROL { $comp.handle-control($_) }
+                        quietly {
+                            my $result := nqp::shift($end)();
+                            $result.sink if nqp::can($result,'sink');
+                            CATCH { default { @exceptions.push($_) } }
+                        }
                     }
 #?if moar
                     # close all open files
@@ -1549,6 +1550,10 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
                       'close-all-open-handles'
                     )(IO::Handle);
 #?endif
+                    if @exceptions {
+                        note "Some exceptions where thrown in END blocks:";
+                        note "  $_.^name(): $_.message()" for @exceptions;
+                    }
                     nqp::not_i(($the-end-is-done = 1)); # we're really done now
                 }
             }

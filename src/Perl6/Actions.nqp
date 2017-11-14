@@ -5831,7 +5831,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $past;
         }
         else {
-            my $past := capture_or_raw($/,$<args>.ast, ~$<identifier>);
+            my $past := handle_special_call_names($/,$<args>.ast, ~$<identifier>);
             $past.name('&' ~ $<identifier>);
             $past.node($/);
             make $past;
@@ -5927,7 +5927,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 });
             }
             else {
-                $past := capture_or_raw($/,$<args>.ast, ~$<longname>);
+                $past := handle_special_call_names($/,$<args>.ast, ~$<longname>);
                 if +@name == 1 {
                     $past.name(@name[0]);
                     $/.add_mystery(@name[0], $<args>.from, 'termish');
@@ -9323,12 +9323,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.apply_trait($/, '&trait_mod:<will>', $attr, :build($code));
     }
 
-    # This is the hook where, in the future, we'll use this as the hook to check
-    # if we have a proto or other declaration in scope that states that this sub
-    # has a signature of the form :(\|$raw), in which case we don't promote
-    # the raw object to a Capture when calling it. For now, we just worry about the
-    # special case, return.
-    sub capture_or_raw($/,$args, $name) {
+    # Some calls are handled specially by their name.
+    my %dispatchered := nqp::hash(
+        'callsame', NQPMu,
+        'callwith', NQPMu,
+        'nextsame', NQPMu,
+        'nextwith', NQPMu,
+        'nextcallee', NQPMu,
+        'lastcall', NQPMu
+    );
+    sub handle_special_call_names($/, $args, $name) {
         if $name eq 'sink' {
             return $args;   # Note that sink itself wants its args, to eat 'em...
         }
@@ -9356,7 +9360,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval($/);
         }
-        WANTALL($args, 'capture_or_raw');
+        elsif nqp::existskey(%dispatchered, $name) {
+            $*W.mark_no_inline_upto_dispatcher();
+        }
+        WANTALL($args, 'handle_special_call_names');
         $args;
     }
 

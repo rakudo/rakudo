@@ -1551,7 +1551,7 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
                     )(IO::Handle);
 #?endif
                     if @exceptions {
-                        note "Some exceptions where thrown in END blocks:";
+                        note "Some exceptions were thrown in END blocks:";
                         note "  $_.^name(): $_.message()" for @exceptions;
                     }
                     nqp::not_i(($the-end-is-done = 1)); # we're really done now

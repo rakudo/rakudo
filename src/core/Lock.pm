@@ -23,7 +23,7 @@ my class Lock {
     method protect(Lock:D: &code) {
         nqp::lock(self);
         LEAVE nqp::unlock(self);
-        code()
+        nqp::decont(code())
     }
 
     method condition(Lock:D:) {

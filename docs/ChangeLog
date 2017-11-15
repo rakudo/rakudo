@@ -4,6 +4,18 @@ New in 2017.11:
  + Deprecations:
  + Fixes:
  + Additions:
+    + Telemetry module providing an easy interface to system state reporting
+        [cbd4f212][273168d7][3e175c83][7f154fe2][3dfaa2ae][59a59be8][52440486]
+        [b30916f3][b30916f3][f7d21b5d][ae1f0fda][f72ad227][4b4429cc][58249a52]
+        [f51a3efc][8a0eb7fa][bc00894f][e95b02f1][ccbfaaa0][2f963b14][c1867ba1]
+        [dcf3e28c][0bdda086][a2ae00ed][86d541f4][474feb09][5e7dfe52][3b4f0c6c]
+        [7144dc29][73e1faaa][cf1742dc][91e00e68][96751ee8][7e00908c][d21c31e1]
+        [0dc4a0eb][c2baf95e][e1a1b8d8][b380230d][fccc7515][1c2c7d84][2f12bea1]
+        [4ed91ed6][fea5612c][360eb228][9344d35d][d5fc6cbb][3e4ef2e0][4d21ad67]
+        [0f2f0cd3][22939bc8][77142fdb][ab03b54c][fc9e7241][948a3fa4][f8e1a5fa]
+        [17db03eb][14e2016c][2dcefa1c][345fbf5a][b80d486c][3e4ccce9][86e9f44a]
+        [f87d8ef8][5f4b61b1][e5912337][de961b81][d6f1077d][ba49b343][1aa83a78]
+        [06cbe9c2][246f4101][d6a3a7a1]
  + Removals:
  + Build system:
  + Efficiency:

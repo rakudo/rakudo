@@ -5,7 +5,7 @@ use Test::Helpers;
 plan 48;
 
 # RT #129763
-throws-like '1++', X::Multi::NoMatch,
+throws-like 'constant \foo = 42; foo++', X::Multi::NoMatch,
     message => /'but require mutable arguments'/,
 'point out matching `is rw` candidates when passing non-rw';
 

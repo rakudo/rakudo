@@ -7,7 +7,8 @@ New in 2017.11:
     + Lock.protect no longer leaks Proxies out, RT #132225 [be9e19ef]
     + R:I:JSON handles (potentially recursive) Exceptions [3cba6204]
     + Empty Set/SetHash.perl corrected [af3624d4]
-        
+    + Some attribute defaults throw NYI instead of silently ignoring GH #1226
+        [9f54bc98][0973b307][6dab5aad]
  + Additions:
     + my %h is (Set|SetHash|Bag|BagHash|Mix|MixHash) now DWIM
         [1949a2bc][6ac2b15c][aab2b983][b6a4d5b5]

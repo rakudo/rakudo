@@ -325,19 +325,6 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
     # actual snapping logic
     class Snap does Telemetry::Instrument::Snap {
 
-        # Constants indexing into the data array
-        my constant SUPERVISOR =  0;
-        my constant GW         =  1;
-        my constant GTQ        =  2;
-        my constant GTC        =  3;
-        my constant TW         =  4;
-        my constant TTQ        =  5;
-        my constant TTC        =  6;
-        my constant AW         =  7;
-        my constant ATQ        =  8;
-        my constant ATC        =  9;
-        my constant COLUMNS    = 10;
-
         # Initialize the dispatch hash using HLL features, as we only need to
         # do this on module load time.  First handle the usable names of
         # attributes that are part of getrusage struct.
@@ -350,24 +337,6 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
         # Allow for low-level dispatch hash access for speed
         my $dispatch := nqp::getattr(%dispatch,Map,'$!storage');
 
-        # calculate number of tasks completed for a worker list
-        sub completed(\workers) is raw {
-            my int $elems = nqp::elems(workers);
-            my int $completed;
-            my int $i = -1;
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::stmts(
-                (my $w := nqp::atpos(workers,$i)),
-                ($completed = nqp::add_i(
-                  $completed,
-                  nqp::getattr_i($w,$w.WHAT,'$!total')
-                ))
-              )
-            );
-            $completed
-        }
-
         method AT-KEY(Str:D $key) {
             nqp::ifnull(
               nqp::atkey($dispatch,$key),
@@ -378,62 +347,7 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
         method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
 
         method !snap() is raw {
-            my $data := nqp::setelems(nqp::list_i,COLUMNS);
-
-            if $*SCHEDULER -> \scheduler {
-                my $sched := nqp::decont(scheduler);
-
-                nqp::bindpos_i($data,SUPERVISOR,1)
-                  if nqp::getattr($sched,ThreadPoolScheduler,'$!supervisor');
-
-                if nqp::getattr($sched,ThreadPoolScheduler,'$!general-workers')
-                  -> \workers {
-                    nqp::bindpos_i($data,GW,nqp::elems(workers));
-                    if nqp::getattr($sched,ThreadPoolScheduler,'$!general-queue')
-                      -> \queue {
-                        nqp::bindpos_i($data,GTQ,nqp::elems(queue));
-                    }
-                    nqp::bindpos_i($data,GTC,completed(workers));
-                }
-
-                if nqp::getattr($sched,ThreadPoolScheduler,'$!timer-workers')
-                  -> \workers {
-                    nqp::bindpos_i($data,TW,nqp::elems(workers));
-                    if nqp::getattr($sched,ThreadPoolScheduler,'$!timer-queue')
-                      -> \queue {
-                        nqp::bindpos_i($data,TTQ,nqp::elems(queue));
-                    }
-                    nqp::bindpos_i($data,TTC,completed(workers));
-                }
-
-                if nqp::getattr($sched,ThreadPoolScheduler,'$!affinity-workers')
-                  -> \workers {
-                    my int $elems =
-                      nqp::bindpos_i($data,AW,nqp::elems(workers));
-                    my int $completed;
-                    my int $queued;
-                    my int $i = -1;
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::stmts(
-                        (my $w := nqp::atpos(workers,$i)),
-                        ($completed = nqp::add_i(
-                          $completed,
-                          nqp::getattr_i($w,$w.WHAT,'$!total')
-                        )),
-                        ($queued = nqp::add_i(
-                          $queued,
-                          nqp::elems(nqp::getattr($w,$w.WHAT,'$!queue'))
-                        ))
-                      )
-                    );
-                    nqp::bindpos_i($data,ATQ,$queued);
-                    nqp::bindpos_i($data,ATC,$completed);
-                }
-            }
-
-            # the final thing
-            $data
+            $*SCHEDULER ?? $*SCHEDULER.usage !! ThreadPoolScheduler.usage
         }
     }
 

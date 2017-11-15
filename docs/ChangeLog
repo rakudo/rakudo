@@ -23,16 +23,21 @@ New in 2017.11:
         [0f2f0cd3][22939bc8][77142fdb][ab03b54c][fc9e7241][948a3fa4][f8e1a5fa]
         [17db03eb][14e2016c][2dcefa1c][345fbf5a][b80d486c][3e4ccce9][86e9f44a]
         [f87d8ef8][5f4b61b1][e5912337][de961b81][d6f1077d][ba49b343][1aa83a78]
-        [06cbe9c2][246f4101][d6a3a7a1][88a9cb25][2c84f77e]
+        [06cbe9c2][246f4101][d6a3a7a1][88a9cb25]
  + Removals:
  + Build system:
  + Efficiency:
     + .sum on native num arrays 11x faster [b849622e]
-    + Some ThreadPoolScheduler improvements
+    + signal() handling done on the timer worker queue [1bc9936a]
+    + Handle OS thread exhaustion more gracefully
+        [fe799a98][57374490][14fbb5e7][6d8ed287]
+    + Other more general ThreadPoolScheduler improvements
         [e513f19d][6ac53e42][2cd568f9][6bf58921][6de66df7][6aa150db][09e038cd]
-        [a7972a0c][260e4a3a][a9b8854a][09492179]
+        [a7972a0c][260e4a3a][a9b8854a][09492179][6959349e]
     + Minor IterationBuffer improvements [c15e80de]
  + Internal:
+    + ThreadPoolScheduler now keeping internal statistics, e.g. for Telemetry
+        [2c84f77e]
     + Thread now keeping internal statistics, e.g. for Telemetry
         [68b2891d][77048b6a][cb4d8b66]
 

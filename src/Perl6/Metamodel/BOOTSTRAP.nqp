@@ -2678,6 +2678,13 @@ BEGIN {
                         }
                     }
                     else {
+                        # A literal can never be passed to a rw parameter.
+                        if $literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i) {
+                            $type_mismatch := 1;
+                            $type_match_possible := 0;
+                            last;
+                        }
+
                         # Work out parameter.
                         my $param :=
                             $got_prim == $BIND_VAL_OBJ ?? nqp::atpos(@args, $i) !!

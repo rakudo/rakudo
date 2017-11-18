@@ -28,6 +28,7 @@ New in 2017.11:
  + Removals:
  + Build system:
  + Efficiency:
+    + Buf ~ Blob about 7x faster, Blob ~ Blob 1.8x [8b47adad]
     + .sum on native num arrays 11x faster [b849622e]
     + signal() handling done on the timer worker queue [1bc9936a]
     + Handle OS thread exhaustion more gracefully

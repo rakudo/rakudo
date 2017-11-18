@@ -1,47 +1,71 @@
 New in 2017.11:
  + SPECIAL NOTES:
- + Security:
- + Deprecations:
+    + Main development branch changed from “nom” to “master” [f40babb8]
  + Fixes:
-    + Exceptions in END blocks no longer cause LTA errors [142c1d65][fff43fd7]
-    + Lock.protect no longer leaks Proxies out, RT #132225 [be9e19ef]
-    + R:I:JSON handles (potentially recursive) Exceptions [3cba6204]
-    + Empty Set/SetHash.perl corrected [af3624d4]
-    + Some attribute defaults throw NYI instead of silently ignoring GH #1226
+    + Fixed Lock.protect to no longer leak Proxies [be9e19ef]
+    + Fixed R:I:JSON to handle recursive Exceptions [3cba6204]
+    + Fixed .perl output of an empty Set/SetHash [af3624d4]
+    + Made some attribute defaults throw NYI instead of silently ignoring
         [9f54bc98][0973b307][6dab5aad]
+    + Fixed quote lang cache regression [ad16c6fb]
+    + Improved stability by always setting up $*PID [a1866b7b]
+    + Implemented hypered nodality for all methodcall variations [3c4041ea]
+    + Fixed combinations with * endpoints [bdc73563]
+    + Made Range.sum sensible for -∞/∞ endpoints [5eeb72a9][21efe96f]
+    + Made multi sub(:@c is copy) { } work [be1e2879]
+    + Ensured CLOSE phasers have correct outer chain [96557571]
+    + Fixed segfault on Bag.new.pick(1) [fe1f8632]
+    + Improved handling of %b spacing sprintf [b2fbf893]
+    + Made .head and .tail only take WhateverCode [5a29a0ce]
+    + Moved signal() handling to the timer worker queue [1bc9936a]
+    + Fixed default Encoding::alternative-names [2f0da94c]
+    + Various improvements to warnings and error reporting [142c1d65][fff43fd7]
+        [c9360203][497e0582][ad7c97df][88d67516]
  + Additions:
-    + my %h is (Set|SetHash|Bag|BagHash|Mix|MixHash) now DWIM
-        [1949a2bc][6ac2b15c][aab2b983][b6a4d5b5]
+    + Channel can now be closed with sub close() [91543fe3][ef84aafc]
+    + my %h is (Set|SetHash|Bag|BagHash|Mix|MixHash) now DWIM [1949a2bc]
+        [6ac2b15c][aab2b983][b6a4d5b5]
+    + Implemented metamethod shorthand syntax [5c96d554]
     + Kernel.cpu-cores returning the number of CPU cores available [61af87bc]
+    + Kernel.cpu-usage exposed basic CPU usage information [c4d373c5]
     + Telemetry module providing an easy interface to system state reporting
         [cbd4f212][273168d7][3e175c83][7f154fe2][3dfaa2ae][59a59be8][52440486]
         [b30916f3][b30916f3][f7d21b5d][ae1f0fda][f72ad227][4b4429cc][58249a52]
         [f51a3efc][8a0eb7fa][bc00894f][e95b02f1][ccbfaaa0][2f963b14][c1867ba1]
-        [dcf3e28c][0bdda086][a2ae00ed][86d541f4][474feb09][5e7dfe52][3b4f0c6c]
-        [7144dc29][73e1faaa][cf1742dc][91e00e68][96751ee8][7e00908c][d21c31e1]
-        [0dc4a0eb][c2baf95e][e1a1b8d8][b380230d][fccc7515][1c2c7d84][2f12bea1]
-        [4ed91ed6][fea5612c][360eb228][9344d35d][d5fc6cbb][3e4ef2e0][4d21ad67]
-        [0f2f0cd3][22939bc8][77142fdb][ab03b54c][fc9e7241][948a3fa4][f8e1a5fa]
-        [17db03eb][14e2016c][2dcefa1c][345fbf5a][b80d486c][3e4ccce9][86e9f44a]
-        [f87d8ef8][5f4b61b1][e5912337][de961b81][d6f1077d][ba49b343][1aa83a78]
-        [06cbe9c2][246f4101][d6a3a7a1][88a9cb25]
- + Removals:
- + Build system:
+        [8e4d3248][0a809698][824a5dc2][dcf3e28c][0bdda086][a2ae00ed][86d541f4]
+        [474feb09][5e7dfe52][3b4f0c6c][7144dc29][73e1faaa][cf1742dc][91e00e68]
+        [96751ee8][7e00908c][d21c31e1][0dc4a0eb][c2baf95e][e1a1b8d8][b380230d]
+        [fccc7515][1c2c7d84][2f12bea1][4ed91ed6][fea5612c][360eb228][9344d35d]
+        [d5fc6cbb][3e4ef2e0][4d21ad67][0f2f0cd3][22939bc8][77142fdb][ab03b54c]
+        [fc9e7241][948a3fa4][f8e1a5fa][17db03eb][14e2016c][2dcefa1c][345fbf5a]
+        [b80d486c][3e4ccce9][86e9f44a][f87d8ef8][5f4b61b1][e5912337][de961b81]
+        [d6f1077d][ba49b343][1aa83a78][06cbe9c2][246f4101][d6a3a7a1][88a9cb25]
+        [9381ffbc]
  + Efficiency:
-    + Buf ~ Blob about 7x faster, Blob ~ Blob 1.8x [8b47adad]
-    + .sum on native num arrays 11x faster [b849622e]
-    + signal() handling done on the timer worker queue [1bc9936a]
-    + Handle OS thread exhaustion more gracefully
-        [fe799a98][57374490][14fbb5e7][6d8ed287]
-    + Other more general ThreadPoolScheduler improvements
-        [e513f19d][6ac53e42][2cd568f9][6bf58921][6de66df7][6aa150db][09e038cd]
-        [a7972a0c][260e4a3a][a9b8854a][09492179][6959349e]
+    + Made .sum on native num arrays 11x faster [b849622e]
+    + Made INITTIME a bit faster [e00f705d]
+    + Made interpolation of variables into regexes a bit faster [6bca84fa]
+        [c93dc9e6][fa8bc549]
+    + Made Buf ~ Blob about 7x faster, Blob ~ Blob 1.8x faster [8b47adad]
+    + OS thread exhaustion is now handled more gracefully [fe799a98][57374490]
+        [14fbb5e7][6d8ed287]
+    + Other more general ThreadPoolScheduler improvements [e513f19d][6ac53e42]
+        [2cd568f9][6bf58921][6de66df7][6aa150db][09e038cd][a7972a0c][260e4a3a]
+        [a9b8854a][09492179][6959349e][697e4ecf][b386963a][5d0ccf73][bfcc43ec]
+        [87e87202][92543962]
     + Minor IterationBuffer improvements [c15e80de]
  + Internal:
     + ThreadPoolScheduler now keeping internal statistics, e.g. for Telemetry
         [2c84f77e]
-    + Thread now keeping internal statistics, e.g. for Telemetry
-        [68b2891d][77048b6a][cb4d8b66]
+    + Thread now keeping internal statistics, e.g. for Telemetry [68b2891d]
+        [77048b6a][cb4d8b66]
+    + Changed how Int.new gets rid of mixins [6cb7ebfb]
+    + Normalized proto bodies [0edd0cc9][102fbd51]
+    + Set no_inline when the dispatcher is needed [c1df0b1b][0ff32c7f]
+    + Various JIT-related changes [3bd756f5][0a029db6]
+    + Repository cleanup [028b7d22][5baede59][825a8b0d][6ec6f1eb]
+    + Various improvements for the JVM backend [ac738b98][b2725c12][4849c733]
+        [d6cd0d2f][8b24bf5c][38f51db9][581edd58]
 
 New in 2017.10:
  + SPECIAL NOTES:

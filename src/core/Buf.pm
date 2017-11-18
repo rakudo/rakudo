@@ -712,7 +712,7 @@ multi sub pack(@template, *@items) {
 
 multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
-    my $res := ($a.WHAT === $b.WHAT ?? $a !! Buf).new;
+    my $res := nqp::create(nqp::eqaddr($a.WHAT,$b.WHAT) ?? $a !! Buf.^pun);
     my $adc := nqp::decont($a);
     my $bdc := nqp::decont($b);
     my int $alen = nqp::elems($adc);

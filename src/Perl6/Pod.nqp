@@ -377,81 +377,80 @@ class Perl6::Pod {
         return @result;
     }
 
-    our sub merge_twines(@twines) {
-        my @ret := @twines.shift.ast;
-        for @twines {
-            my @cur   := $_.ast;
-            @ret.push(
-                $*W.add_constant(
-                    'Str', 'str',
-                    nqp::unbox_s(@ret.pop) ~ ' ' ~ nqp::unbox_s(@cur.shift)
-                ).compile_time_value,
-            );
-            nqp::splice(@ret, @cur, +@ret, 0);
+    our sub pod_strings_from_matches(@string_matches) {
+        my @strings := [];
+        for @string_matches {
+            @strings.push($_.ast);
         }
-        return @ret;
+        return build_pod_strings(@strings);
     }
 
-    our sub build_pod_string(@content) {
-        return $*POD_IN_CODE_BLOCK
-            ?? build_pod_code_string(@content)
-            !! build_pod_regular_string(@content)
-    }
+    # Takes an array of arrays of pod characters (normal character or formatting code)
+    # returns an array of strings and formatting codes,
+    our sub build_pod_strings(@strings) {
+        my $in_code := $*POD_IN_CODE_BLOCK;
 
-    our sub build_pod_regular_string(@content) {
-        sub push_strings(@strings, @where) {
-            my $s := subst(nqp::join('', @strings), /\s+/, ' ', :global);
-            my $t := $*W.add_constant(
-                'Str', 'str', $s
-            ).compile_time_value;
-            @where.push($t);
-        }
-
-        my @res  := [];
-        my @strs := [];
-        for @content -> $elem {
-            if nqp::isstr($elem) {
-                # don't push the leading whitespace
-                if +@res + @strs == 0 && $elem eq ' ' {
-
-                } else {
-                    @strs.push($elem);
+        sub push_chars(@chars, @where) {
+            if @chars {
+                my $s := nqp::join('', @chars);
+                if ! $in_code {
+                    $s := subst($s, /\s+/, ' ', :global);
                 }
-            } else {
-                push_strings(@strs, @res);
-                @strs := [];
-                @res.push($elem);
+                $s := $*W.add_constant('Str', 'str', $s).compile_time_value;
+                @where.push($s);
             }
-        }
-        push_strings(@strs, @res);
-
-        return @res;
-    }
-
-    # Code strings need to be handled differently:
-    # Formatting codes need to be saved, but everything
-    # else should be verbatim
-    our sub build_pod_code_string(@content) {
-        sub push_strings(@strings, @where) {
-            my $s := nqp::join('', @strings);
-            my $t := $*W.add_constant('Str', 'str', $s).compile_time_value;
-            @where.push($t);
         }
 
         my @res  := [];
-        my @strs := [];
-        for @content -> $elem {
-            if nqp::isstr($elem) {
-                @strs.push($elem);
-            } else {
-                push_strings(@strs, @res);
-                @strs := [];
-                @res.push($elem);
+        my @chars := [];
+        my int $i := 0;
+        my int $last := nqp::elems(@strings) - 1;
+        while $i <= $last {
+            my @string := @strings[$i];
+            for @string -> $char {
+                if nqp::isstr($char) {
+                    # don't push the leading whitespace unless code block
+                    if $in_code || +@res + @chars != 0 || $char ne ' ' {
+                        @chars.push($char);
+                    }
+                }
+                else {
+                    # formatting code - join the preceeding characters
+                    # to the result, then add the formatting code
+                    push_chars(@chars, @res);
+                    @chars := [];
+                    @res.push($char);
+                }
+            }
+
+            if $i != $last {
+                # space inbetween each string
+                @chars.push(' ');
+            }
+            $i := $i + 1;
+        }
+
+        push_chars(@chars, @res);
+        return @res;
+    }
+
+    our sub build_pod_chars($pod_string_characters) {
+        my @chars := [];
+        if $pod_string_characters {
+            for $pod_string_characters {
+                my $char := $_.ast;
+                # $char can sometimes be an array because of the way
+                # pod_balanced_braces works
+                if nqp::istype($char,VMArray) {
+                    for $char {
+                        @chars.push($_);
+                    }
+                } else {
+                    @chars.push($_.ast);
+                }
             }
         }
-        push_strings(@strs, @res);
-
-        return @res;
+        return @chars;
     }
 
     # takes an array of strings (rows of a table)

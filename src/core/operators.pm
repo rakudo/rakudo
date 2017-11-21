@@ -34,9 +34,13 @@ multi sub infix:<does>(Mu:U \obj, Mu:U \role) is raw {
 multi sub infix:<does>(Mu:D \obj, **@roles) is raw {
     # XXX Mutability check.
     my \real-roles = eager @roles.map: -> \rolish {
-        rolish.HOW.archetypes.composable() ?? rolish !!
-            rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-            X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw
+        rolish.DEFINITE
+            ?? GENERATE-ROLE-FROM-VALUE(rolish)
+            !! rolish.HOW.archetypes.composable()
+                ?? rolish
+                !! rolish.HOW.archetypes.composalizable()
+                    ?? rolish.HOW.composalize(rolish)
+                    !! X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw
     }
     obj.^mixin(|real-roles).BUILD_LEAST_DERIVED({});
 }

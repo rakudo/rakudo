@@ -8,7 +8,7 @@ New in 2017.11:
     + Made some attribute defaults throw NYI instead of silently ignoring
         [9f54bc98][0973b307][6dab5aad]
     + Fixed quote lang cache regression [ad16c6fb]
-    + Improved stability by always setting up $*PID [a1866b7b]
+    + Improved stability by always setting up `$*PID` [a1866b7b]
     + Implemented hypered nodality for all methodcall variations [3c4041ea]
     + Fixed combinations with * endpoints [bdc73563]
     + Made Range.sum sensible for -∞/∞ endpoints [5eeb72a9][21efe96f]

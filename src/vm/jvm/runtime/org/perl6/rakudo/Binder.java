@@ -230,6 +230,11 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ,
             CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ
         }, null);
+    private static final CallSiteDescriptor bindConcreteThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_STR,
+            CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_STR,
+            CallSiteDescriptor.ARG_INT, CallSiteDescriptor.ARG_INT
+        }, null);
     private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, Object[] error) {
         /* Get parameter flags and variable name. */
@@ -439,29 +444,43 @@ public final class Binder {
 
                     /* Don't check decontValue for concreteness though, but arg_o,
                        seeing as we don't have a isconcrete_nodecont */
-                    if ((paramFlags & SIG_ELEM_UNDEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) == 1) {
+                    Boolean shouldBeConcrete = (paramFlags & SIG_ELEM_DEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) != 1;
+                    if (shouldBeConcrete || ((paramFlags & SIG_ELEM_UNDEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) == 1)) {
                         if (error != null) {
                             String typeName = Ops.typeName(param.get_attribute_boxed(tc,
                                 gcx.Parameter, "$!nominal_type", HINT_nominal_type), tc);
-                            String what = ((paramFlags & SIG_ELEM_INVOCANT) != 0)
-                                ? "Invocant"
-                                : String.format("Parameter '%s'", varName);
-                            error[0] = String.format(
-                                "%s requires a type object of type %s, but an object instance was passed.  Did you forget a 'multi'?",
-                                what, typeName);
-                        }
-                        return juncOrFail(tc, gcx, decontValue);
-                    }
-                    if ((paramFlags & SIG_ELEM_DEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) != 1) {
-                        if (error != null) {
-                            String typeName = Ops.typeName(param.get_attribute_boxed(tc,
-                                gcx.Parameter, "$!nominal_type", HINT_nominal_type), tc);
-                            String what = ((paramFlags & SIG_ELEM_INVOCANT) != 0)
-                                ? "Invocant"
-                                : String.format("Parameter '%s'", varName);
-                            error[0] = String.format(
-                                "%s requires an instance of type %s, but a type object was passed.  Did you forget a .new?",
-                                what, typeName);
+                            String argName = Ops.typeName(arg_o, tc);
+                            String methodName = cf.codeRef.name;
+                            SixModelObject thrower = RakOps.getThrower(tc, "X::Parameter::InvalidConcreteness");
+                            if (thrower != null) {
+                                error[0] = thrower;
+                                error[1] = bindConcreteThrower;
+                                error[2] = new Object[] { typeName, argName, methodName,
+                                    (varName != null ? varName : "<anon>"),
+                                    (long)(shouldBeConcrete ? 1 : 0),
+                                    (long)(paramFlags & SIG_ELEM_INVOCANT) };
+                            }
+                            else {
+                                if (methodName == null || methodName.isEmpty())
+                                    methodName = "<anon>";
+                                error[0] = ((paramFlags & SIG_ELEM_INVOCANT) != 0)
+                                    ? shouldBeConcrete
+                                        ? String.format(
+                                            "Invocant of method '%s' must be an object instance of type '%s', not a type object of type '%s'.  Did you forget a '.new'?",
+                                            methodName, typeName, argName)
+                                        : String.format(
+                                            "Invocant of method '%s' must be a type object of type '%s', not an object instance of type '%s'.  Did you forget a 'multi'?",
+                                            methodName, typeName, argName)
+                                    : shouldBeConcrete
+                                        ? String.format(
+                                            "Parameter '%s' of routine '%s' must be an object instance of type '%s', not a type object of type '%s'.  Did you forget a '.new'?",
+                                            (varName == null || varName.isEmpty() ? "<anon>" : varName),
+                                            methodName, typeName, argName)
+                                        : String.format(
+                                            "Parameter '%s' of routine '%s' must be a type object of type '%s', not an object instance of type '%s'.  Did you forget a 'multi'?",
+                                            (varName == null || varName.isEmpty() ? "<anon>" : varName),
+                                            methodName, typeName, argName);
+                            }
                         }
                         return juncOrFail(tc, gcx, decontValue);
                     }

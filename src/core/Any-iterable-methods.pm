@@ -1823,9 +1823,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
            Rakudo::Iterator.AllButLastNValues(self.iterator,-($w(0).Int))
         )
     }
-    multi method head(Any:D: Callable:D $cond) {
-        Seq.new(Rakudo::Iterator.While(self.iterator,$cond))
-    }
     multi method head(Any:D: $n) {
         Seq.new(Rakudo::Iterator.NextNValues(self.iterator,$n))
     }
@@ -1841,23 +1838,18 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           $pulled
         )
     }
-    multi method tail(Any:D: WhateverCode $w) {
+    multi method tail(Any:D: $n) {
         Seq.new(
           nqp::if(
-            nqp::isgt_i((my $skip := -($w(0).Int)),0),
+            nqp::istype($n,WhateverCode)
+              && nqp::isgt_i((my $skip := -($n(0).Int)),0),
             nqp::stmts(
               (my $iterator := self.iterator).skip-at-least($skip),
               $iterator
             ),
-            self.iterator
+            Rakudo::Iterator.LastNValues(self.iterator,$n,'tail')
           )
         )
-    }
-    multi method tail(Any:D: Callable:D $w) {
-        Seq.new(Rakudo::Iterator.Until(self.iterator,$w))
-    }
-    multi method tail(Any:D: $n) {
-        Seq.new(Rakudo::Iterator.LastNValues(self.iterator,$n,'tail'))
     }
 
     proto method minpairs(|) {*}

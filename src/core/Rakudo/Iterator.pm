@@ -3318,6 +3318,41 @@ class Rakudo::Iterator {
         }.new(iterator, with, unique)
     }
 
+    # Returns an iterator that takes a source iterator and a Callable.  It
+    # passes on all values from the source iterator from the moment the
+    # Callable returns a trueish value.
+    method Until(\iter, &cond) {
+        class :: does Iterator {
+            has $!iter;
+            has $!cond;
+
+            method SET-SELF(\iter, \cond) {
+                $!iter := iter;
+                $!cond := cond;
+                self
+            }
+            method new(\iter,\cond) { nqp::create(self).SET-SELF(iter,cond) }
+
+            method pull-one() is raw {
+                nqp::if(
+                  $!cond,
+                  nqp::stmts(
+                    nqp::until(
+                      nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
+                        || $!cond($pulled),
+                      nqp::null
+                    ),
+                    ($!cond := nqp::null),
+                    $pulled
+                  ),
+                  $!iter.pull-one
+                )
+            }
+            method is-lazy() { $!iter.is-lazy }
+            method sink-all(--> IterationEnd) { $!iter.sink-all }
+        }.new(iter, &cond)
+    }
+
     # Returns an iterator from a given iterator where the occurrence of
     # a Whatever value indicates that last value seen from the source
     # iterator should be repeated indefinitely until either another
@@ -3374,6 +3409,39 @@ class Rakudo::Iterator {
                 )
             }
         }.new(source)
+    }
+
+    # Returns an iterator that takes a source iterator and a Callable.  It
+    # passes on values from the source iterator while the Callable returns
+    # a trueish value.  Once a falsish value is returnedm, the iterator ends.
+    method While(\iter, &cond) {
+        class :: does Iterator {
+            has $!iter;
+            has &!cond;
+            has $!done;
+
+            method SET-SELF(\iter, \cond) {
+                $!iter := iter;
+                &!cond := cond;
+                $!done := nqp::null;
+                self
+            }
+            method new(\iter,\cond) { nqp::create(self).SET-SELF(iter,cond) }
+
+            method pull-one() is raw {
+                nqp::ifnull(
+                  $!done,
+                  nqp::if(
+                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
+                      || nqp::isfalse(&!cond($pulled)),
+                    ($!done := IterationEnd),
+                    $pulled
+                  )
+                )
+            }
+            method is-lazy() { $!iter.is-lazy }
+            method sink-all(--> IterationEnd) { $!iter.sink-all }
+        }.new(iter, &cond)
     }
 
     # Returns an iterator that handles all properties of a -while- with

@@ -3579,7 +3579,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <complex_number>
         | 'Inf' >>
         | $<uinf>='∞'
-        | <?{ nqp::existskey(nqp::backendconfig(), 'moarlib') }> <unum=:No+:Nl>
+        | <unum=:No+:Nl>
         ]
     }
 

@@ -141,7 +141,7 @@ multi sub infix:<(-)>(**@p) {
             nqp::create(Rakudo::Internals::IterationSet)
           ),
           nqp::unless(                           # something else, Mix it!
-            $p.Mix.RAW-HASH,
+            $p.Set.Mix.RAW-HASH,
             nqp::create(Rakudo::Internals::IterationSet)
           )
         )),

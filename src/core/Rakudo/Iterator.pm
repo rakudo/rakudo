@@ -3413,7 +3413,7 @@ class Rakudo::Iterator {
 
     # Returns an iterator that takes a source iterator and a Callable.  It
     # passes on values from the source iterator while the Callable returns
-    # a trueish value.  Once a falsish value is returnedm, the iterator ends.
+    # a trueish value.  Once a falsish value is returned, the iterator ends.
     method While(\iter, &cond) {
         class :: does Iterator {
             has $!iter;

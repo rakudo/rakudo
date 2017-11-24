@@ -198,7 +198,7 @@ my class IO::Socket::Async {
                                 # do nothing
                             }
                             elsif err {
-                                quit(X::AdHoc.new(message => err));
+                                quit(X::AdHoc.new(payload => err));
                                 $finished = 1;
                             }
                             else {

@@ -2045,16 +2045,16 @@ my class X::Str::Sprintf::Directives::Count is Exception {
 }
 
 my class X::Str::Sprintf::Directives::Unsupported is Exception {
-    has $.directive;
-    has $.sequence;
+    has str $.directive;
+    has str $.sequence;
     method message() {
         "Directive $.directive is not valid in sprintf format sequence $.sequence"
     }
 }
 
 my class X::Str::Sprintf::Directives::BadType is Exception {
-    has $.type;
-    has $.directive;
+    has str $.type;
+    has str $.directive;
     method message() {
         "Directive $.directive not applicable for type $.type"
     }

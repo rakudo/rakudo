@@ -1238,12 +1238,14 @@ my class Supply does Awaitable {
                     whenever $supply -> \val {
                         @values[$index].push(val);
                         emit( [[&with]] @values.map(*.shift) ) if all(@values);
+                        LAST { done }
                     }
                 }
                 else {
                     whenever $supply -> \val {
                         @values[$index].push(val);
                         emit( $(@values.map(*.shift).list.eager) ) if all(@values);
+                        LAST { done }
                     }
                 }
             }

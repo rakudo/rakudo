@@ -32,7 +32,7 @@ multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     else {
         X::Inheritance::Unsupported.new(
             :child-typename($child.^name),
-            :$parent,
+            :parent-typename($parent.^name),
         ).throw;
     }
 }
@@ -316,8 +316,8 @@ multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
     }
     else {
         X::Composition::NotComposable.new(
-            target-name => $doee.^name,
-            composer    => $role,
+            target-name   => $doee.^name,
+            composer-name => $role.^name,
         ).throw;
     }
 }
@@ -496,7 +496,7 @@ multi sub trait_mod:<hides>(Mu:U $child, Mu:U $parent) {
     else {
         X::Inheritance::Unsupported.new(
             :child-typename($child.^name),
-            :$parent,
+            :parent-typename($parent.^name),
         ).throw;
     }
 }

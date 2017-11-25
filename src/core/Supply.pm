@@ -1354,7 +1354,7 @@ my class Supply does Awaitable {
                         $bleed.emit(@buffer.shift) while @buffer;
                         $bleed.done;
                     }
-                    $done = 0;
+                    $done = 1;
                 }
             }
 

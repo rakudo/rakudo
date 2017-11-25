@@ -1280,6 +1280,7 @@ my class Supply does Awaitable {
                         if $uninitialised > 0 && not @values.EXISTS-POS($index);
                         @values[$index] = val;
                         emit( [[&with]] @values ) unless $uninitialised;
+                        LAST { done }
                     }
                 }
                 else {
@@ -1288,6 +1289,7 @@ my class Supply does Awaitable {
                             if $uninitialised > 0 && not @values.EXISTS-POS($index);
                         @values[$index] = val;
                         emit( @values.List.item ) unless $uninitialised;
+                        LAST { done }
                     }
                 }
             }

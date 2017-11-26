@@ -60,7 +60,7 @@ public class RakudoContainerSpec extends ContainerSpec {
         }
         SixModelObject of = desc.get_attribute_boxed(tc,
             gcx.ContainerDescriptor, "$!of", RakOps.HINT_CD_OF);
-        long ok = Ops.istype(value, of, tc);
+        long ok = of == gcx.Mu ? 1 : Ops.istype(value, of, tc);
         if (ok == 0) {
             desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
             String name = tc.native_s;

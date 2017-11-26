@@ -3076,6 +3076,157 @@ class Rakudo::Iterator {
         }.new(shape)
     }
 
+    # Returns an iterator that takes a source iterator, an iterator producing
+    # Callable blocks producing trueish/falsish values, and a flag indicating
+    # the initial state.  Iteration begins with taking the next Callable from
+    # the iterator taking Callables.  If there's no Callable found (anymore),
+    # either the result iterator will end (if the state is falsish), or the
+    # iterator will pass on all future values of the source iterator (if the
+    # state is truish).  Then values from the source iterator will be taken
+    # and fed to the block as long as the returned values matches the state.
+    # If the state if trueish, then values will be passed along.  If the
+    # state if falsish, then values will be dropped.  If the value returned
+    # by the Callable does not match the state, the next Callable will be
+    # taken (if any) and the process will be repeated until either the source
+    # iterator is exhausted, or the Callable block iterator is.
+    method Toggle(\iter, \conds, $on) {
+        class :: does Iterator {
+            has $!iter;
+            has $!conds;
+            has int $!on;
+            has $!current; # null if passing on
+            has $!done;    # IterationEnd if done
+
+            method SET-SELF(\iter, \conds, \on) {
+                nqp::stmts(
+                  ($!iter  := iter),
+                  ($!conds := conds),
+                  ($!on = nqp::istrue(on)),
+                  nqp::if(
+                    nqp::eqaddr((my $next := conds.pull-one),IterationEnd),
+                    nqp::if(
+                      $!on,
+                      ($!current := nqp::null),
+                      ($!done := IterationEnd)
+                    ),
+                    nqp::stmts(
+                      ($!current := $next),
+                      ($!done := nqp::null)
+                    )
+                  ),
+                  self
+                )
+            }
+            method new(\iter, \conds, \on) {
+                nqp::create(self).SET-SELF(iter, conds, on)
+            }
+
+
+# (1..15).toggle(* < 5, * > 10, * < 15) would give 1,2,3,4,11,12,13,14
+            method pull-one() is raw {
+                nqp::ifnull(
+                  $!done,                        # done if not null
+
+                  nqp::if(                       # source not exhausted yet
+                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                    ($!done := IterationEnd),    # source exhausted now
+
+                    nqp::if(
+                      nqp::isnull($!current),
+                      $pulled,                   # passing through rest
+
+                      nqp::if(                   # need to check if ok
+                        $!on,
+                        nqp::if(                 # passing on until off
+                          $!current($pulled),
+                          $pulled,               # still on
+
+                          nqp::if(               # was on, off now
+                            nqp::eqaddr(
+                              (my $next := $!conds.pull-one),
+                              IterationEnd
+                            ),
+                            ($!done := IterationEnd), # no next checker, done
+
+                            nqp::stmts(          # use next checker
+                              nqp::until(
+                               nqp::eqaddr(
+                                  ($pulled := $!iter.pull-one),
+                                  IterationEnd
+                                ) || $next($pulled),
+                                nqp::null
+                              ),
+                              nqp::if(           # ended looping, why?
+                                nqp::eqaddr($pulled,IterationEnd),
+                                ($!done := IterationEnd), # exhausted now
+
+                                nqp::stmts(      # on, passed off, on again
+                                  ($!current := nqp::if(
+                                    nqp::eqaddr(
+                                      ($next := $!conds.pull-one),
+                                      IterationEnd
+                                    ),
+                                    nqp::null,   # pass rest on
+                                    $next        # set next checker
+                                  )),
+                                  $pulled
+
+                                )
+                              )
+                            )
+                          )
+                        ),
+                        nqp::if(                 # off now (first time)
+                          $!current($pulled),
+                          nqp::stmts(
+                            nqp::if(             # on for first elem
+                              nqp::eqaddr(
+                                ($!current := $!conds.pull-one),
+                                IterationEnd
+                              ),
+                              ($!current := nqp::null), # no next, passing on
+                              ($!on = 1)         # there's next, keep going
+                            ),
+                            $pulled              # first hit is ok
+
+                          ),
+                          nqp::stmts(            # still off for first
+                            nqp::until(
+                             nqp::eqaddr(
+                                ($pulled := $!iter.pull-one),
+                                IterationEnd
+                              ) || $!current($pulled),
+                              nqp::null
+                            ),
+                            nqp::if(             # ended looping, why?
+                              nqp::eqaddr($pulled,IterationEnd),
+                              ($!done := IterationEnd), # exhausted now
+
+                              nqp::stmts(        # found ok
+                                nqp::if(
+                                  nqp::eqaddr(
+                                    ($!current := $!conds.pull-one),
+                                    IterationEnd
+                                  ),
+                                  ($!current := nqp::null), # no next, pass on
+                                  ($!on = 1)     # there's next, keep going
+                                ),
+                                $pulled
+
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+            }
+            method is-lazy() { $!iter.is-lazy }
+            method sink-all(--> IterationEnd) { $!iter.sink-all }
+        }.new(iter, conds, $on)
+    }
+
     # Return an iterator that only will return the two given values.
     method TwoValues(Mu \val1, Mu \val2) {
         class :: does Iterator {

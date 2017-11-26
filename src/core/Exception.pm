@@ -2161,9 +2161,9 @@ my class X::ControlFlow::Return is X::ControlFlow {
 
 my class X::Composition::NotComposable does X::Comp {
     has $.target-name;
-    has $.composer;
+    has $.composer-name;
     method message() {
-        $!composer.^name ~ " is not composable, so $!target-name cannot compose it";
+        $.composer-name ~ " is not composable, so $.target-name cannot compose it";
     }
 }
 
@@ -2328,10 +2328,10 @@ my class X::Inheritance::Unsupported does X::Comp {
     # has been composed, so it's useless to carry it around. Use the
     # name instead.
     has $.child-typename;
-    has $.parent;
+    has $.parent-typename;
     method message {
-        $!parent.^name ~ ' does not support inheritance, so '
-        ~ $!child-typename ~ ' cannot inherit from it';
+        $.parent-typename ~ ' does not support inheritance, so '
+        ~ $.child-typename ~ ' cannot inherit from it';
     }
 }
 

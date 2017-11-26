@@ -117,8 +117,8 @@ multi sub trait_mod:<does>(Variable:D $v, Mu:U $role) {
     }
     else {
         X::Composition::NotComposable.new(
-            target-name => 'a variable',
-            composer    => $role,
+            target-name   => 'a variable',
+            composer-name => $role.^name,
         ).throw;
     }
 }

@@ -671,7 +671,7 @@ my class Supply does Awaitable {
 
     my class ConcQueue is repr('ConcBlockingQueue') { }
     multi method list(Supply:D:) {
-        $.Seq.list
+        self.Seq.list
     }
     method Seq(Supply:D:) {
         gather {

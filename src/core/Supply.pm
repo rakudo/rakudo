@@ -671,6 +671,9 @@ my class Supply does Awaitable {
 
     my class ConcQueue is repr('ConcBlockingQueue') { }
     multi method list(Supply:D:) {
+        self.Seq.list
+    }
+    method Seq(Supply:D:) {
         gather {
             my Mu \queue = nqp::create(ConcQueue);
             my $exception;

@@ -1810,6 +1810,22 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         }
     }
 
+    proto method toggle(|) {*}
+    multi method toggle(Any:D: Callable:D \condition, :$off!) {
+        Seq.new( $off
+          ?? Rakudo::Iterator.Until(self.iterator, condition)
+          !! Rakudo::Iterator.While(self.iterator, condition)
+        )
+    }
+    multi method toggle(Any:D: Callable:D \condition) {
+        Seq.new(Rakudo::Iterator.While(self.iterator, condition))
+    }
+    multi method toggle(Any:D: *@conditions, :$off) {
+        Seq.new(
+          Rakudo::Iterator.Toggle(self.iterator, @conditions.iterator, !$off)
+        )
+    }
+
     proto method head(|) {*}
     multi method head(Any:D:) is raw {
         nqp::if(

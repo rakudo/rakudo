@@ -3121,8 +3121,6 @@ class Rakudo::Iterator {
                 nqp::create(self).SET-SELF(iter, conds, on)
             }
 
-
-# (1..15).toggle(* < 5, * > 10, * < 15) would give 1,2,3,4,11,12,13,14
             method pull-one() is raw {
                 nqp::ifnull(
                   $!done,                        # done if not null
@@ -3222,7 +3220,6 @@ class Rakudo::Iterator {
                   )
                 )
             }
-            method is-lazy() { $!iter.is-lazy }
             method sink-all(--> IterationEnd) { $!iter.sink-all }
         }.new(iter, conds, $on)
     }
@@ -3499,7 +3496,6 @@ class Rakudo::Iterator {
                   $!iter.pull-one
                 )
             }
-            method is-lazy() { $!iter.is-lazy }
             method sink-all(--> IterationEnd) { $!iter.sink-all }
         }.new(iter, &cond)
     }
@@ -3590,7 +3586,6 @@ class Rakudo::Iterator {
                   )
                 )
             }
-            method is-lazy() { $!iter.is-lazy }
             method sink-all(--> IterationEnd) { $!iter.sink-all }
         }.new(iter, &cond)
     }

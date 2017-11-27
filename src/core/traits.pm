@@ -254,16 +254,32 @@ my $_;
 
 multi sub trait_mod:<is>(Routine:D \r, :$export!, :$SYMBOL = '&' ~ r.name) {
     my $to_export := r.multi ?? r.dispatcher !! r;
-    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key() !!
-                            nqp::istype($export,Positional) ?? @($export)>>.key !!
-                            'DEFAULT');
+    my @tags = flat 'ALL', (
+        nqp::istype($export,Pair)
+            ?? $export.key()
+            !! nqp::istype($export,Positional)
+                ?? @($export)>>.key
+                !! nqp::istype($export,Bool) && $export
+                    ?? 'DEFAULT'
+                    !! die "Invalid value '$export.gist()' of type "
+                        ~ "'$export.^name()' in trait 'is export'. Use a Pair "
+                        ~ 'or a list of Pairs, with keys as tag names.'
+    );
     Rakudo::Internals.EXPORT_SYMBOL(nqp::decont($SYMBOL), @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.^shortname;
-    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
-                            nqp::istype($export,Positional) ?? @($export)>>.key !!
-                            'DEFAULT');
+    my @tags = flat 'ALL', (
+        nqp::istype($export,Pair)
+            ?? $export.key()
+            !! nqp::istype($export,Positional)
+                ?? @($export)>>.key
+                !! nqp::istype($export,Bool) && $export
+                    ?? 'DEFAULT'
+                    !! die "Invalid value '$export.gist()' of type "
+                        ~ "'$export.^name()' in trait 'is export'. Use a Pair "
+                        ~ 'or a list of Pairs, with keys as tag names.'
+    );
     Rakudo::Internals.EXPORT_SYMBOL($exp_name, @tags, type);
     if nqp::istype(type.HOW, Metamodel::EnumHOW) {
         type.^set_export_callback( {
@@ -276,9 +292,17 @@ multi sub trait_mod:<is>(Mu:U \type, :$export!) {
 }
 # for constants
 multi sub trait_mod:<is>(Mu \sym, :$export!, :$SYMBOL!) {
-    my @tags = flat 'ALL', (nqp::istype($export,Pair) ?? $export.key !!
-                            nqp::istype($export,Positional) ?? @($export)>>.key !!
-                            'DEFAULT');
+    my @tags = flat 'ALL', (
+        nqp::istype($export,Pair)
+            ?? $export.key()
+            !! nqp::istype($export,Positional)
+                ?? @($export)>>.key
+                !! nqp::istype($export,Bool) && $export
+                    ?? 'DEFAULT'
+                    !! die "Invalid value '$export.gist()' of type "
+                        ~ "'$export.^name()' in trait 'is export'. Use a Pair "
+                        ~ 'or a list of Pairs, with keys as tag names.'
+    );
     Rakudo::Internals.EXPORT_SYMBOL($SYMBOL, @tags, sym);
 }
 

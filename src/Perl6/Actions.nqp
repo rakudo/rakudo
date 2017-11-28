@@ -4693,12 +4693,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 if nqp::istype($_, QAST::Node) {
                     $cur_key := $*W.compile_time_evaluate($<term>, $_);
+                    $cur_value := $cur_value.succ();
+                }
+                elsif nqp::istype($_, $Pair) {
+                    $cur_key := $_.key;
+                    $cur_value := $_.value;
                 }
                 else {
                     $cur_key := $_;
+                    $cur_value := $cur_value.succ();
                 }
-
-                $cur_value := $cur_value.succ();
             }
             unless nqp::istype($cur_key, $*W.find_symbol(['Str'])) {
                 $cur_key := $cur_key.Str;

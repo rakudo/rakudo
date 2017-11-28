@@ -70,10 +70,10 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
     method formats() is raw {
            << cpu 8d
           'The total amount of CPU used (in microseconds)'
-        >>,<< cpu-user 8d
-          'The amount of CPU used in user code (in microseconds)'
         >>,<< cpu-sys 8d
           'The amount of CPU used in system overhead (in microseconds)'
+        >>,<< cpu-user 8d
+          'The amount of CPU used in user code (in microseconds)'
         >>,<< cpus 5.1f
           "The number of CPU's that were busy on average"
         >>,<< id-rss 8d

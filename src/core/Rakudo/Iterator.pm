@@ -3102,6 +3102,7 @@ class Rakudo::Iterator {
                   ($!iter  := iter),
                   ($!conds := conds),
                   ($!on = nqp::istrue(on)),
+                  ($!done := nqp::null),
                   nqp::if(
                     nqp::eqaddr((my $next := conds.pull-one),IterationEnd),
                     nqp::if(
@@ -3109,10 +3110,7 @@ class Rakudo::Iterator {
                       ($!current := nqp::null),
                       ($!done := IterationEnd)
                     ),
-                    nqp::stmts(
-                      ($!current := $next),
-                      ($!done := nqp::null)
-                    )
+                    ($!current := $next)
                   ),
                   self
                 )

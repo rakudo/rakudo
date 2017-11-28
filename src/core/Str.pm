@@ -2958,7 +2958,7 @@ sub UNBASE_BRACKET($base, @a) {
 }
 proto sub infix:<unicmp>(|) is pure {*}
 proto sub infix:<coll>(|) {*}
-#?if moar
+#?if !jvm
 multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
     ORDER(
         nqp::unicmp_s(

@@ -307,7 +307,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     let search = ctx.$$caller;
     while (search) {
       /* Do we have a dispatcher here? */
-      if (search.hasOwnProperty(["$*DISPATCHER"])) {
+      if (search.hasOwnProperty("$*DISPATCHER") && search["$*DISPATCHER"] !== Null) {
         dispatcher = search["$*DISPATCHER"];
         if (dispatcher.typeObject_) {
           dispatcher = dispatcher.vivify_for(ctx, null, dispatcher, search.codeRef().codeObj, search, new Capture(search.$$args[1], Array.prototype.slice.call(search.$$args, 2)));
@@ -318,8 +318,13 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       search = search.$$caller;
     }
 
-    /* TODO - throw X::NoDispatcher */
-    throw usage + ' is not in the dynamic scope of a dispatcher';
+    const thrower = getThrower("X::NoDispatcher");
+    if (thrower === Null) {
+        ctx.die(usage + ' is not in the dynamic scope of a dispatcher');
+    } else {
+        thrower.$$call(ctx, null, usage);
+    }
+
   };
 
   op.p6argsfordispatcher = function(ctx, dispatcher) {

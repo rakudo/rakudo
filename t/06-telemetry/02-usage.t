@@ -16,7 +16,7 @@ BEGIN {
 use Test;
 use Telemetry;
 
-plan 154;
+plan 194;
 
 # Check ways to create the T:I:Usage instrument
 for 'Usage', Telemetry::Instrument::Usage -> \instrument {
@@ -64,6 +64,7 @@ isa-ok $T1, Telemetry, 'did we get a Telemetry object from $S1';
 
 # Test all columns for sanity, we don't know which value winds up in which column
 for @columns {
+    ok $T1{$_}:exists, "does $_ exist in $T1.^name()?";
     diag $T1{$_}.perl unless
       ok $T1{$_}, "did we get a non-zero value for $_ using AT-KEY";
     diag $T1."$_"().perl unless
@@ -82,6 +83,7 @@ isa-ok $T2, Telemetry, 'did we get a Telemetry object from $S2';
 my $P1 = $T2 - $T1;
 isa-ok $P1, Telemetry::Period, 'Did we get a T::Period';
 for @columns {
+    ok $P1{$_}:exists, "does $_ exist in $P1.^name()?";
     ok $P1{$_} > 0, "did we get a positive value for $_ using AT-KEY";
     ok $P1."$_"() > 0, "did we get a positive value for $_ using AT-KEY";
     is $P1{$_}, $P1."$_"(), "did AT-KEY/method on T:P give same value for $_";

@@ -103,3 +103,4 @@ perl6-valgrind-m
 **/.precomp
 t/03-jvm/*.class
 /zef
+.DS_Store

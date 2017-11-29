@@ -204,7 +204,9 @@ HEADER
             )($!data)
         }
 
-        method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
+        method EXISTS-KEY(Str:D $key) {
+            nqp::p6bool(nqp::existskey($dispatch,$key))
+        }
 
         method !snap() is raw {
             nqp::stmts(
@@ -267,7 +269,9 @@ HEADER
             )($!data)
         }
 
-        method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
+        method EXISTS-KEY(Str:D $key) {
+            nqp::p6bool(nqp::existskey($dispatch,$key))
+        }
 
         method !snap() is raw { Thread.usage }
     }
@@ -344,7 +348,9 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
             )($!data)
         }
 
-        method EXISTS-KEY(Str:D $key) { nqp::existskey($dispatch,$key) }
+        method EXISTS-KEY(Str:D $key) {
+            nqp::p6bool(nqp::existskey($dispatch,$key))
+        }
 
         method !snap() is raw {
             $*SCHEDULER ?? $*SCHEDULER.usage !! ThreadPoolScheduler.usage
@@ -416,11 +422,10 @@ class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
         }
 
         method AT-KEY(Str:D $key) {
-            my $i := $!instrument;
             nqp::ifnull(
               nqp::atkey(
                 nqp::getattr(
-                  $i,Telemetry::Instrument::AdHoc,'$!dispatch'),
+                  $!instrument,Telemetry::Instrument::AdHoc,'$!dispatch'),
                 $key
               ),
               -> Mu \data { Nil }
@@ -428,10 +433,12 @@ class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
         }
 
         method EXISTS-KEY(Str:D $key) {
-            nqp::existskey(
-              nqp::getattr(
-                $!instrument,Telemetry::Instrument::AdHoc,'$!dispatch'),
-              $key
+            nqp::p6bool(
+              nqp::existskey(
+                nqp::getattr(
+                  $!instrument,Telemetry::Instrument::AdHoc,'$!dispatch'),
+                $key
+              )
             )
         }
 
@@ -607,6 +614,15 @@ class Telemetry does Associative {
           ),
           -> Mu \samples { Nil }
         )($!samples)
+    }
+
+    method EXISTS-KEY($key) {
+        nqp::p6bool(
+          nqp::existskey(
+            nqp::getattr($!sampler,Telemetry::Sampler,'$!dispatcher'),
+            $key
+          )
+        )
     }
 
     method FALLBACK(Telemetry:D: $method) is raw {

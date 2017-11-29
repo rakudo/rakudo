@@ -3259,7 +3259,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
         <trait>*
         :my %*MYSTERY;
-        <?[<(«]> <term> <.ws>
+        [ <?[<(«]> <term> <.ws> || <.panic: 'An enum must supply an expression using <>, «», or ()'> ]
         <.explain_mystery> <.cry_sorrows>
     }
 

@@ -4614,7 +4614,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Get list of either values or pairs; fail if we can't.
         my $Pair := $*W.find_symbol(['Pair']);
         my @values;
-        my $term_ast := WANTED($<term>.ast,'enum');
+        my $term_ast := $<term>.ast;
 
         # remove val call on a single item
         if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {
@@ -4624,33 +4624,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $term_ast.isa(QAST::Stmts) && +@($term_ast) == 1 {
             $term_ast := $term_ast[0];
         }
-        if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
-            wantall($term_ast, 'enum');
-            for @($term_ast) {
-                my $item_ast := $_;
-                if $item_ast.isa(QAST::Op) && $item_ast.name eq '&val' {
-                    $item_ast := $item_ast[0];
-                }
+        $term_ast := WANTED($term_ast,'enum');
+        if $*COMPILING_CORE_SETTING {  # must handle bootstrapping enums here
+            if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
+                wantall($term_ast, 'enum');
+                for @($term_ast) {
+                    my $item_ast := $_;
+                    if $item_ast.isa(QAST::Op) && $item_ast.name eq '&val' {
+                        $item_ast := $item_ast[0];
+                    }
 
-                if istype($item_ast.returns(), $Pair) && $item_ast[1].has_compile_time_value {
-                    @values.push($item_ast);
-                }
-                elsif $item_ast.has_compile_time_value {
-                    @values.push($item_ast);
-                }
-                else {
-                    @values.push($*W.compile_time_evaluate($<term>, $item_ast));
+                    if istype($item_ast.returns(), $Pair) && $item_ast[1].has_compile_time_value {
+                        @values.push($item_ast);
+                    }
+                    elsif $item_ast.has_compile_time_value {
+                        @values.push($item_ast);
+                    }
+                    else {
+                        @values.push($*W.compile_time_evaluate($<term>, $item_ast));
+                    }
                 }
             }
         }
-        elsif $term_ast.has_compile_time_value {
-            @values.push($term_ast);
-        }
-        elsif istype($term_ast.returns, $Pair) && $term_ast[1].has_compile_time_value {
-            @values.push($term_ast);
-        }
-        else {
-            @values := $*W.compile_time_evaluate($<term>, $<term>.ast).List.FLATTENABLE_LIST;
+        # After we finish compiling the setting, everyone uses the same evaluator without special cases.
+        unless @values {
+            @values := $*W.compile_time_evaluate($<term>, $term_ast).List.FLATTENABLE_LIST;
         }
 
         # Now we have them, we can go about computing the value
@@ -4661,6 +4659,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @redecl;
         my $block := $*W.cur_lexpad();
         my $index := -1;
+        unless nqp::elems(@values) {
+            my $term := $<term>.Str;
+            $term := nqp::substr($term,1,nqp::chars($term) - 2);
+            $<term>.worry("No values supplied to enum (does $term need to be declared constant?)") if $term ~~ /\w/;
+        }
         for @values {
             # If it's a pair, take that as the value; also find
             # key.
@@ -4686,7 +4689,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 unless $has_base_type {
-                    $base_type := $*W.find_symbol(['Int']);
+                    if nqp::istype($_, $Pair) {
+                        $base_type := $_.value.WHAT;
+                    }
+                    else {
+                        $base_type := $*W.find_symbol(['Int']);
+                    }
                     make_type_obj($base_type);
                     $has_base_type := 1;
                 }

@@ -93,6 +93,14 @@ my class Pod::Block::Declarator is Pod::Block {
 my class Pod::Block::Table is Pod::Block {
     has $.caption;
     has @.headers; # optional, may be empty
+
+    method caption {
+        my $s = %.config<caption> ?? %.config<caption> !! '';
+        # for some reason the caption is enclosed in single or double quotes--remove them
+        $s ~~ s/^ [\'|\"] //;
+        $s ~~ s/ [\'|\"] $//;
+        $s;
+    }
 }
 
 my class Pod::FormattingCode is Pod::Block {

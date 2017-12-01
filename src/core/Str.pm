@@ -1749,7 +1749,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $fired;
 
         # search using all needles
-        for @needles.kv -> int $index, $needle {
+        my int $index = 0;
+        for @needles -> $needle {
             my str $need  = nqp::unbox_s($needle.DEFINITE ?? $needle.Str !! "");
             my int $chars = nqp::chars($need);
             nqp::push_s($needles,$need);
@@ -1789,7 +1790,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 ($fired =
                   nqp::add_i($fired,nqp::isge_i(nqp::elems($positions),$seen)))
               )
-            )
+            );
+            $index = nqp::add_i($index, 1);
         }
 
         # no needle tried, assume we want chars

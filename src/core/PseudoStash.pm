@@ -54,14 +54,20 @@ my class PseudoStash is Map {
         },
         'OUTER' => sub ($cur) {
             my Mu $ctx := nqp::ctxouterskipthunks(
-                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
-            my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
-            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('OUTER')),
-                $stash);
+              nqp::getattr(nqp::decont($cur),PseudoStash,'$!ctx'));
+
+            if nqp::isnull($ctx) {
+                Nil
+            }
+            else {
+                my $stash := nqp::create(PseudoStash);
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
+                nqp::setwho(
+                    Metamodel::ModuleHOW.new_type(:name('OUTER')),
+                    $stash)
+            }
         },
         'LEXICAL' => sub ($cur) {
             my $stash := nqp::clone($cur);
@@ -73,13 +79,19 @@ my class PseudoStash is Map {
         'OUTERS' => sub ($cur) {
             my Mu $ctx := nqp::ctxouterskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
-            my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
-            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('OUTERS')),
-                $stash);
+
+            if nqp::isnull($ctx) {
+                Nil
+            }
+            else {
+                my $stash := nqp::create(PseudoStash);
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
+                nqp::setwho(
+                    Metamodel::ModuleHOW.new_type(:name('OUTERS')),
+                    $stash)
+            }
         },
         'DYNAMIC' => sub ($cur) {
             my $stash := nqp::clone($cur);

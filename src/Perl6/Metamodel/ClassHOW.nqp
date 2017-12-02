@@ -149,30 +149,26 @@ class Perl6::Metamodel::ClassHOW
             # Create BUILDPLAN.
             self.create_BUILDPLAN($obj);
 
-            # don't bother optimizing if we have our own .new
-            unless nqp::existskey($obj.HOW.method_table($obj),'new') {
+            # If the BUILDPLAN is not empty, we should attempt to auto-
+            # generate a BUILDALL method.  If the BUILDPLAN is empty, then
+            # the BUILDALL of the parent is already good enough.  We can
+            # only auto-generate a BUILDALL method if we have compiler
+            # services.  If we don't, then BUILDALL will fall back to the
+            # one in Mu, which will iterate over the BUILDALLPLAN.
+            if self.BUILDPLAN($obj) && nqp::isconcrete($compiler_services) {
 
-                # If the BUILDPLAN is not empty, we should attempt to auto-
-                # generate a BUILDALL method.  If the BUILDPLAN is empty, then
-                # the BUILDALL of the parent is already good enough.  We can
-                # only auto-generate a BUILDALL method if we have compiler
-                # services.  If we don't, then BUILDALL will fall back to the
-                # one in Mu, which will iterate over the BUILDALLPLAN.
-                if self.BUILDPLAN($obj) && nqp::isconcrete($compiler_services) {
-    
-                    # Class does not appear to have a BUILDALL yet
-                    unless nqp::existskey($obj.HOW.submethod_table($obj),'BUILDALL')
-                      || nqp::existskey($obj.HOW.method_table($obj),'BUILDALL') {
-                        my $builder := nqp::findmethod(
-                          $compiler_services,'generate_buildplan_executor');
-                        my $method :=
-                          $builder($compiler_services,$obj,self.BUILDALLPLAN($obj));
+                # Class does not appear to have a BUILDALL yet
+                unless nqp::existskey($obj.HOW.submethod_table($obj),'BUILDALL')
+                  || nqp::existskey($obj.HOW.method_table($obj),'BUILDALL') {
+                    my $builder := nqp::findmethod(
+                      $compiler_services,'generate_buildplan_executor');
+                    my $method :=
+                      $builder($compiler_services,$obj,self.BUILDALLPLAN($obj));
 
-                        # We have a generated BUILDALL submethod, so install!
-                        unless $method =:= NQPMu {
-                            $method.set_name('BUILDALL');
-                            self.add_method($obj,'BUILDALL',$method);
-                        }
+                    # We have a generated BUILDALL submethod, so install!
+                    unless $method =:= NQPMu {
+                        $method.set_name('BUILDALL');
+                        self.add_method($obj,'BUILDALL',$method);
                     }
                 }
             }

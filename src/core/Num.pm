@@ -257,7 +257,7 @@ my constant e   = 2.71828_18284_59045_235e0;
 
 my constant π := pi;
 my constant τ := tau;
-#?if moar
+#?if !jvm
 my constant 𝑒 := e;
 #?endif
 

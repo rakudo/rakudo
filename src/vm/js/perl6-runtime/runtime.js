@@ -292,7 +292,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   op.p6decodelocaltime = function(sinceEpoch) {
     let date = new Date(sinceEpoch * 1000);
 
-    return nqp.createArray([
+    return nqp.createIntArray([
       date.getSeconds(),
       date.getMinutes(),
       date.getHours(),

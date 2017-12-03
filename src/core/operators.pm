@@ -584,9 +584,9 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     nqp::if(
       # Note that each part of @chunks itself can contain double colons.
       # That's why joining and re-splitting is necessary
-      nqp::elems(my $parts :=
-        nqp::split('::',my str $name = @chunks.join('::'))),
+      (my str $name = @chunks.join('::')),
       nqp::stmts(
+        (my $parts := nqp::split('::',$name)),
         (my str $first = nqp::shift($parts)),
         nqp::if( # move the sigil to the last part of the name if available
           nqp::elems($parts),
@@ -598,8 +598,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
                 || nqp::iseq_s($sigil,'%')
                 || nqp::iseq_s($sigil,'&'),
               nqp::stmts(
-                nqp::push($parts,
-                  nqp::concat($sigil,nqp::unbox_s(nqp::pop($parts)))),
+                nqp::push($parts,nqp::concat($sigil,nqp::pop($parts))),
                 ($first = nqp::substr($first,1))
               )
             ),
@@ -615,8 +614,8 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
         (my Mu $thing := nqp::if(
           $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
             && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
-            && ($REQUIRE_SYMBOLS{$first}:exists),
-          $REQUIRE_SYMBOLS{$first},
+            && $REQUIRE_SYMBOLS.EXISTS-KEY($first),
+          $REQUIRE_SYMBOLS.AT-KEY($first),
           nqp::if(
             $root.EXISTS-KEY($first),
             $root.AT-KEY($first),
@@ -624,12 +623,13 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
               GLOBAL::.EXISTS-KEY($first),
               GLOBAL::.AT-KEY($first),
               nqp::if(
-		nqp::iseq_s($first, 'GLOBAL'),
-		GLOBAL,
+                nqp::iseq_s($first,'GLOBAL'),
+                GLOBAL,
                 X::NoSuchSymbol.new(symbol => $name).fail
               )
             )
-          ))),
+          )
+        )),
         nqp::while(
           nqp::elems($parts),
           nqp::if(
@@ -640,7 +640,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
         ),
         $thing
       ),
-      X::NoSuchSymbol.new(symbol => $name).fail
+      Failure.new(X::NoSuchSymbol.new(symbol => ""))
     )
 }
 

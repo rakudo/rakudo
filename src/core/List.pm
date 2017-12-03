@@ -518,6 +518,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
+    method ASSIGN-POS(List:D: Int:D \pos, \what) is raw {
+        nqp::iscont(self.AT-POS(pos))
+          ?? (nqp::atpos($!reified,nqp::unbox_i(pos)) = what)
+          !! X::Assignment::RO.new(value => self).throw
+    }
+
     method BIND-POS(List:D: Int:D \pos, \what) is raw {
         nqp::iscont(self.AT-POS(pos))
           ?? nqp::bindpos($!reified,nqp::unbox_i(pos),what)

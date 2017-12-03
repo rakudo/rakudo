@@ -1625,6 +1625,8 @@ BEGIN {
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
+            return $dcself unless nqp::isconcrete($dcself);
+
             my $cloned    := nqp::clone($dcself);
             my $do        := nqp::getattr($dcself, Code, '$!do');
             my $do_cloned := nqp::clone($do);
@@ -1683,6 +1685,8 @@ BEGIN {
     Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block, :!auto_viv_container));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
+            return $dcself unless nqp::isconcrete($dcself);
+
             my $cloned    := nqp::clone($dcself);
             my $do        := nqp::getattr($dcself, Code, '$!do');
             my $do_cloned := nqp::clone($do);

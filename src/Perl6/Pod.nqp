@@ -130,6 +130,22 @@ class Perl6::Pod {
                     $val := ~$val<semilist>;
                 }
 
+                if nqp::isstr($val) {
+                    # trim leading and trailing quotes
+                    if $val ~~ /^\'/ {
+                        $val := subst($val, /^\'/, '');
+                        $val := subst($val, /\'$/, '');
+                    }
+                    elsif $val ~~ /^\"/ {
+                        $val := subst($val, /^\"/, '');
+                        $val := subst($val, /\"$/, '');
+                    }
+                    elsif $val ~~ /^'Q|'/ {
+                        $val := subst($val, /^'Q|'/, '');
+                        $val := subst($val, /'|'$/, '');
+                    }
+                }
+
                 $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
             }
             else {
@@ -328,9 +344,14 @@ class Perl6::Pod {
     }
 
     our sub table($/) {
-        my $config := $<pod_configuration>
-            ?? $<pod_configuration>.ast
-            !! serialize_object('Hash').compile_time_value;
+        my $config;
+        # TODO extract any caption from $config
+        if $<pod_configuration> {
+            $config := $<pod_configuration>.ast;
+        }
+        else {
+            $config := serialize_object('Hash').compile_time_value;
+        }
 
         # increment the table number for user debugging and reporting
         ++$table_num;

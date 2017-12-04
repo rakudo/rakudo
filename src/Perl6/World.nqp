@@ -1826,6 +1826,7 @@ class Perl6::World is HLL::World {
         self.handle_OFTYPE_for_pragma($var,'variables');
         my %cont_info  := self.container_type_info(NQPMu, $var<sigil>,
             $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
+        %cont_info<value_type> := self.find_symbol(['Any'], :setting-only);
         my $descriptor := self.create_container_descriptor(%cont_info<value_type>, 1, $name);
 
         nqp::die("auto_declare_var") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LEAF.package);

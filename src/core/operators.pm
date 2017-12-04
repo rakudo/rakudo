@@ -523,7 +523,7 @@ multi sub undefine(Mu \x) is raw { x = Nil }
 multi sub undefine(Array \x) is raw { x = Empty }
 multi sub undefine(Hash \x) is raw { x = Empty }
 
-sub prefix:<temp>(\cont) is raw {
+sub prefix:<temp>(Mu \cont) is raw {
     my $temp_restore := nqp::getlexcaller('!TEMP-RESTORE');
     my int $i = nqp::elems($temp_restore);
     while $i > 0 {
@@ -551,7 +551,7 @@ sub prefix:<temp>(\cont) is raw {
     cont
 }
 
-sub prefix:<let>(\cont) is raw {
+sub prefix:<let>(Mu \cont) is raw {
     my $let_restore := nqp::getlexcaller('!LET-RESTORE');
     my int $i = nqp::elems($let_restore);
     while $i > 0 {

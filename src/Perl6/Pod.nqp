@@ -132,6 +132,10 @@ class Perl6::Pod {
 
                 if nqp::isstr($val) {
                     # trim leading and trailing quotes
+
+                    # TODO Determine if string was input with angle brackets. If
+                    #   so, this trimming should NOT be done.
+                    # TODO Add other valid quoting constructs for removal
                     if $val ~~ /^\'/ {
                         $val := subst($val, /^\'/, '');
                         $val := subst($val, /\'$/, '');

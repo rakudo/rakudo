@@ -35,31 +35,27 @@ my class FatRat is Cool does Rational[Int, Int] {
     }
 }
 
-sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {
-    my Int $gcd         := de == 0 ?? 1 !! nu gcd de;
-    my Int $numerator   := nu div $gcd;
-    my Int $denominator := de div $gcd;
-    my $r;
-    if $denominator < 0 {
-        $numerator   := -$numerator;
-        $denominator := -$denominator;
-    }
-    if nqp::istype($t1, FatRat) || nqp::istype($t2, FatRat) {
-        $r := nqp::create(FatRat);
-        nqp::bindattr($r, FatRat, '$!numerator',   nqp::decont($numerator));
-        nqp::bindattr($r, FatRat, '$!denominator', nqp::decont($denominator));
-    } elsif $denominator < $UINT64_UPPER {
-        $r := nqp::create(Rat);
-        nqp::bindattr($r, Rat, '$!numerator',   nqp::decont($numerator));
-        nqp::bindattr($r, Rat, '$!denominator', nqp::decont($denominator));
-    } else {
-        $r := nqp::p6box_n(nqp::div_In(
-                nqp::decont($numerator),
-                nqp::decont($denominator)
-            )
-        );
-    }
-    $r;
+sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
+    nqp::stmts(
+      (my Int $gcd         := de == 0 ?? 1 !! nu gcd de),
+      (my Int $numerator   := nu div $gcd),
+      (my Int $denominator := de div $gcd),
+      nqp::if(
+        $denominator < 0,
+        nqp::stmts(
+          ($numerator   := -$numerator),
+          ($denominator := -$denominator))),
+      nqp::if(
+        nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$numerator),
+          FatRat,'$!denominator',$denominator),
+        nqp::if(
+          $denominator < $UINT64_UPPER,
+          nqp::p6bindattrinvres(
+            nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$numerator),
+            Rat,'$!denominator',$denominator),
+          nqp::p6box_n(nqp::div_In($numerator, $denominator)))))
 }
 
 sub DON'T_DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {

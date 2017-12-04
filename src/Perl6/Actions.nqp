@@ -6324,21 +6324,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
-        elsif +@args {
-            if $size == 1
-            && nqp::istype($past[0],    QAST::Op)  && $past[0].op eq 'callmethod' && $past[0].name eq 'new'
-            && nqp::istype($past[0][0], QAST::Var) && $past[0][0].name eq 'Pair' {
-                $past := QAST::Stmts.new( :node($/),
-                    QAST::Op.new( :op('call'), :name('&infix:<,>'),
-                    $past[0], |@args)
-                )
-            }
-            else {
-                for @args {
-                    $past.push($_);
-                }
-            }
-        }
         make $past;
     }
 

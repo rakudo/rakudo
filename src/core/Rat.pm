@@ -84,18 +84,13 @@ multi sub prefix:<->(FatRat:D \a) {
 }
 
 multi sub infix:<+>(Rational \a, Rational \b) {
-    if a.denominator == b.denominator {
-        DON'T_DIVIDE_NUMBERS(a.numerator + b.numerator, a.denominator, a, b);
-    }
-    else {
-        my Int $gcd := a.denominator gcd b.denominator;
-        DIVIDE_NUMBERS(
-            (a.numerator * (b.denominator div $gcd) + b.numerator * (a.denominator div $gcd)),
-            ((a.denominator div $gcd) * b.denominator),
+    a.denominator == b.denominator
+        ?? DON'T_DIVIDE_NUMBERS(a.numerator + b.numerator, a.denominator, a, b)
+        !! DIVIDE_NUMBERS
+            a.numerator*b.denominator + b.numerator*a.denominator,
+            a.denominator*b.denominator,
             a,
-            b,
-        );
-    }
+            b
 }
 multi sub infix:<+>(Rational \a, Int \b) {
     DON'T_DIVIDE_NUMBERS(
@@ -115,17 +110,13 @@ multi sub infix:<+>(Int \a, Rational \b) {
 }
 
 multi sub infix:<->(Rational \a, Rational \b) {
-    if a.denominator == b.denominator {
-        DON'T_DIVIDE_NUMBERS(a.numerator - b.numerator, a.denominator, a, b);
-    }
-    else {
-        my Int $gcd = a.denominator gcd b.denominator;
-        DIVIDE_NUMBERS
-            a.numerator * (b.denominator div $gcd) - b.numerator * (a.denominator div $gcd),
-            (a.denominator div $gcd) * b.denominator,
+    a.denominator == b.denominator
+        ?? DON'T_DIVIDE_NUMBERS(a.numerator - b.numerator, a.denominator, a, b)
+        !! DIVIDE_NUMBERS
+            a.numerator*b.denominator - b.numerator*a.denominator,
+            a.denominator*b.denominator,
             a,
-            b;
-    }
+            b
 }
 
 multi sub infix:<->(Rational \a, Int \b) {

@@ -477,39 +477,41 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
+    multi method AT-POS(List:D: int $pos) is raw {
+        nqp::if(
+          nqp::isge_i($pos,0) && nqp::isconcrete($!reified),
+          nqp::ifnull(
+            nqp::atpos($!reified,$pos),
+            self!AT-POS-SLOW($pos)
+          ),
+          self!AT-POS-SLOW($pos)
+        )
+    }
+    # because this is a very hot path, we copied the code from the int candidate
     multi method AT-POS(List:D: Int:D $pos) is raw {
         nqp::if(
-          nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
-          nqp::if(
-            $!reified.DEFINITE,
-            nqp::ifnull(
-              nqp::atpos($!reified,$pos),
-              nqp::if(
-                ($!todo.DEFINITE && $!todo.reify-at-least(nqp::add_i($pos,1))),
-                nqp::ifnull(nqp::atpos($!reified,$pos),Nil),
-                Nil
-              )
-            ),
-            Nil
-          )
+          nqp::isge_i($pos,0) && nqp::isconcrete($!reified),
+          nqp::ifnull(
+            nqp::atpos($!reified,$pos),
+            self!AT-POS-SLOW($pos)
+          ),
+          self!AT-POS-SLOW($pos)
         )
     }
 
-    multi method AT-POS(List:D: int $pos) is raw {
+    method !AT-POS-SLOW(\pos) is raw {
         nqp::if(
-          nqp::islt_i($pos,0),
+          nqp::islt_i(pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
+            :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>)),
           nqp::if(
-            $!reified.DEFINITE,
-            nqp::if(
-              nqp::islt_i($pos,nqp::elems($!reified)),
-              nqp::atpos($!reified,$pos),
+            nqp::isconcrete($!reified),
+            nqp::ifnull(
+              nqp::atpos($!reified,pos),
               nqp::if(
-                ($!todo.DEFINITE && $!todo.reify-at-least(nqp::add_i($pos,1))),
-                nqp::ifnull(nqp::atpos($!reified,$pos),Nil),
+                nqp::isconcrete($!todo)
+                  && $!todo.reify-at-least(nqp::add_i(pos,1)),
+                nqp::ifnull(nqp::atpos($!reified,pos),Nil),
                 Nil
               )
             ),

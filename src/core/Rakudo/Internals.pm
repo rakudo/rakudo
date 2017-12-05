@@ -3,14 +3,16 @@ my role  IO { ... }
 my class IO::Handle { ... }
 my class IO::Path { ... }
 my class Rakudo::Metaops { ... }
+
+my class X::Assignment::ToShaped { ... }
 my class X::Cannot::Lazy { ... }
-my class X::IllegalOnFixedDimensionArray { ... };
-my class X::Assignment::ToShaped { ... };
-my class X::Str::Sprintf::Directives::BadType { ... };
-my class X::Str::Sprintf::Directives::Count { ... };
-my class X::Str::Sprintf::Directives::Unsupported { ... };
+my class X::IllegalDimensionInShape { ... }
+my class X::IllegalOnFixedDimensionArray { ... }
+my class X::Localizer::NoContainer { ... }
+my class X::Str::Sprintf::Directives::BadType { ... }
+my class X::Str::Sprintf::Directives::Count { ... }
+my class X::Str::Sprintf::Directives::Unsupported { ... }
 my class X::TypeCheck { ... }
-my class X::IllegalDimensionInShape { ... };
 
 my class Rakudo::Internals {
 

@@ -168,7 +168,7 @@ my class Rakudo::Internals {
     }
 
     # Helper method for prefix:<let>/prefix:<temp>, which really do the same
-    # thing apart from where they store data.  Takes the IteratonBuffer in
+    # thing apart from where they store data.  Takes the IterationBuffer in
     # which to save data, the container to be inspected, and the type of op
     # for any error messaging.
     method TEMP-LET(\restore, \cont, str $localizer) is raw {

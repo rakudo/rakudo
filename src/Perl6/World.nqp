@@ -2446,7 +2446,10 @@ class Perl6::World is HLL::World {
         $block[0].push(QAST::Op.new(
             :op('bind'),
             QAST::Var.new( :name($value_stash), :scope('lexical'), :decl('var') ),
-            QAST::Op.new( :op('list') )));
+            QAST::Op.new(
+              :op('create'),
+              QAST::WVal.new( :value(self.find_symbol(['IterationBuffer']))),
+            )));
         $block.symbol($value_stash, :scope('lexical'));
 
         # Create a phaser block that will do the restoration.
@@ -2454,7 +2457,10 @@ class Perl6::World is HLL::World {
         self.pop_lexpad();
         $phaser_block.push(QAST::Op.new(
             :op('while'),
-            QAST::Var.new( :name($value_stash), :scope('lexical') ),
+            QAST::Op.new(
+                :op('elems'),
+                QAST::Var.new( :name($value_stash), :scope('lexical') )
+            ),
             QAST::Op.new(
                 :op('p6store'),
                 QAST::Op.new(

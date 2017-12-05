@@ -459,36 +459,50 @@ my class Array { # declared in BOOTSTRAP
           Failure.new(X::OutOfRange.new(
             :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
-            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
-            nqp::if(
-              nqp::existspos($reified,$pos),
-              (nqp::atpos($reified,$pos) = assignee),         # found it!
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
+            nqp::ifnull(
+              nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
               nqp::if(
-                nqp::islt_i($pos,nqp::elems($reified)),       # it's a hole
-                (nqp::bindpos($reified,$pos,
-                  nqp::p6scalarfromdesc($!descriptor)) = assignee),
+                nqp::islt_i(                     # it's a hole
+                  $pos,
+                  nqp::elems(nqp::getattr(self,List,'$!reified'))
+                ),
+                nqp::bindpos(
+                  nqp::getattr(self,List,'$!reified'),
+                  $pos,
+                  nqp::p6scalarfromdesc($!descriptor)
+                ),
                 nqp::if(
-                  (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
-                  nqp::stmts(                                 # can reify
-                    $todo.reify-at-least(nqp::add_i($pos,1)),
-                    nqp::if(
-                      nqp::existspos($reified,$pos),
-                      (nqp::atpos($reified,$pos) = assignee), # reified
-                      (nqp::bindpos($reified,$pos,            # outlander
-                        nqp::p6scalarfromdesc($!descriptor)) = assignee),
+                  nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
+                  nqp::stmts(                    # can reify
+                    nqp::getattr(self,List,'$!todo')
+                      .reify-at-least(nqp::add_i($pos,1)),
+                    nqp::ifnull(
+                      nqp::atpos(                # reified
+                        nqp::getattr(self,List,'$!reified'),
+                        $pos
+                      ),
+                      nqp::bindpos(              # outlander
+                        nqp::getattr(self,List,'$!reified'),
+                        $pos,
+                        nqp::p6scalarfromdesc($!descriptor)
+                      )
                     )
                   ),
-                  (nqp::bindpos($reified,$pos,                # outlander
-                    nqp::p6scalarfromdesc($!descriptor)) = assignee)
+                  nqp::bindpos(                  # outlander without todo
+                    nqp::getattr(self,List,'$!reified'),
+                    $pos,
+                    nqp::p6scalarfromdesc($!descriptor)
+                  )
                 )
               )
             ),
-            nqp::stmts(                                       # new outlander
+            nqp::bindpos(                        # new outlander
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              (nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,
-                nqp::p6scalarfromdesc($!descriptor)) = assignee)
+              $pos,
+              nqp::p6scalarfromdesc($!descriptor)
             )
-          )
+          ) = assignee
         )
     }
     # because this is a very hot path, we copied the code from the int candidate
@@ -498,36 +512,50 @@ my class Array { # declared in BOOTSTRAP
           Failure.new(X::OutOfRange.new(
             :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
           nqp::if(
-            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
-            nqp::if(
-              nqp::existspos($reified,$pos),
-              (nqp::atpos($reified,$pos) = assignee),         # found it!
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
+            nqp::ifnull(
+              nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
               nqp::if(
-                nqp::islt_i($pos,nqp::elems($reified)),       # it's a hole
-                (nqp::bindpos($reified,$pos,
-                  nqp::p6scalarfromdesc($!descriptor)) = assignee),
+                nqp::islt_i(                     # it's a hole
+                  $pos,
+                  nqp::elems(nqp::getattr(self,List,'$!reified'))
+                ),
+                nqp::bindpos(
+                  nqp::getattr(self,List,'$!reified'),
+                  $pos,
+                  nqp::p6scalarfromdesc($!descriptor)
+                ),
                 nqp::if(
-                  (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
-                  nqp::stmts(                                 # can reify
-                    $todo.reify-at-least(nqp::add_i($pos,1)),
-                    nqp::if(
-                      nqp::existspos($reified,$pos),
-                      (nqp::atpos($reified,$pos) = assignee), # reified
-                      (nqp::bindpos($reified,$pos,            # outlander
-                        nqp::p6scalarfromdesc($!descriptor)) = assignee),
+                  nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
+                  nqp::stmts(                    # can reify
+                    nqp::getattr(self,List,'$!todo')
+                      .reify-at-least(nqp::add_i($pos,1)),
+                    nqp::ifnull(
+                      nqp::atpos(                # reified
+                        nqp::getattr(self,List,'$!reified'),
+                        $pos
+                      ),
+                      nqp::bindpos(              # outlander
+                        nqp::getattr(self,List,'$!reified'),
+                        $pos,
+                        nqp::p6scalarfromdesc($!descriptor)
+                      )
                     )
                   ),
-                  (nqp::bindpos($reified,$pos,                # outlander
-                    nqp::p6scalarfromdesc($!descriptor)) = assignee)
+                  nqp::bindpos(                  # outlander without todo
+                    nqp::getattr(self,List,'$!reified'),
+                    $pos,
+                    nqp::p6scalarfromdesc($!descriptor)
+                  )
                 )
               )
             ),
-            nqp::stmts(                                       # new outlander
+            nqp::bindpos(                        # new outlander
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              (nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,
-                nqp::p6scalarfromdesc($!descriptor)) = assignee)
+              $pos,
+              nqp::p6scalarfromdesc($!descriptor)
             )
-          )
+          ) = assignee
         )
     }
 

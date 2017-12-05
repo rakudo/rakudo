@@ -2414,17 +2414,20 @@ class Rakudo::Iterator {
             }
             method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
 
+            method !hole(int $i) is raw {
+                nqp::p6bindattrinvres(
+                  (my \v := nqp::p6scalarfromdesc($!descriptor)),
+                  Scalar,
+                  '$!whence',
+                  -> { nqp::bindpos($!reified,$i,v) }
+                )
+            }
             method pull-one() is raw {
                 nqp::ifnull(
                   nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
                   nqp::if(
                     nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
-                    nqp::p6bindattrinvres(
-                      (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                      Scalar,
-                      '$!whence',
-                      -> { nqp::bindpos($!reified,$!i,v) }
-                    ),
+                    self!hole($!i),
                     IterationEnd
                   )
                 )
@@ -2433,18 +2436,14 @@ class Rakudo::Iterator {
             method push-all($target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!reified)),
+                  (my int $i = $!i),
                   nqp::while(   # doesn't sink
-                    nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
-                    $target.push(nqp::ifnull(
-                      nqp::atpos($!reified,$!i),
-                      nqp::p6bindattrinvres(
-                        (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                        Scalar,
-                        '$!whence',
-                        -> { nqp::bindpos($!reified,$!i,v) }
-                      )
-                    ))
-                  )
+                    nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                    $target.push(
+                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
+                    )
+                  ),
+                  ($!i = $i)
                 )
             }
             method skip-one() {

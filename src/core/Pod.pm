@@ -91,8 +91,13 @@ my class Pod::Block::Declarator is Pod::Block {
 }
 
 my class Pod::Block::Table is Pod::Block {
-    has $.caption;
+    has $.caption; # optional, may be empty
     has @.headers; # optional, may be empty
+
+    # this method is defined until &Perl6::Pod::table defines $.caption
+    method caption {
+        %.config<caption> ?? %.config<caption> !! '';
+    }
 }
 
 my class Pod::FormattingCode is Pod::Block {

@@ -391,69 +391,55 @@ my class Array { # declared in BOOTSTRAP
 
     multi method AT-POS(Array:D: int $pos) is raw {
         nqp::if(
-          nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
-          nqp::if(
-            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
-            nqp::ifnull(
-              nqp::atpos($reified,$pos),           # found it!
-              nqp::if(
-                nqp::islt_i(
-                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))),
-                self!AT-POS-CONTAINER($pos),       # it's a hole
-                nqp::if(                           # too far out, try reifying
-                  (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
-                  nqp::stmts(
-                    $todo.reify-at-least(nqp::add_i($pos,1)),
-                    nqp::ifnull(
-                      nqp::atpos($reified,$pos),   # reified ok
-                      self!AT-POS-CONTAINER($pos)  # reifier didn't reach
-                    )
-                  ),
-                  self!AT-POS-CONTAINER($pos)      # create an outlander
-                )
-              )
-            ),
-            # no reified, implies no todo
-            nqp::stmts(                            # create reified
-              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              self!AT-POS-CONTAINER($pos)          # create an outlander
-            )
-          )
+          nqp::isge_i($pos,0)
+            && nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
+          nqp::ifnull(
+            nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
+            self!AT-POS-SLOW($pos)
+          ),
+          self!AT-POS-SLOW($pos)
         )
     }
     # because this is a very hot path, we copied the code from the int candidate
     multi method AT-POS(Array:D: Int:D $pos) is raw {
         nqp::if(
-          nqp::islt_i($pos,0),
+          nqp::isge_i($pos,0)
+            && nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
+          nqp::ifnull(
+            nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
+            self!AT-POS-SLOW($pos)
+          ),
+          self!AT-POS-SLOW($pos)
+        )
+    }
+
+    # handle any lookup that's not simple
+    method !AT-POS-SLOW(\pos) is raw {
+        nqp::if(
+          nqp::islt_i(pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
+            :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>)),
           nqp::if(
-            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
-            nqp::ifnull(
-              nqp::atpos($reified,$pos),           # found it!
-              nqp::if(
-                nqp::islt_i(
-                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))),
-                self!AT-POS-CONTAINER($pos),       # it's a hole
-                nqp::if(                           # too far out, try reifying
-                  (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
-                  nqp::stmts(
-                    $todo.reify-at-least(nqp::add_i($pos,1)),
-                    nqp::ifnull(
-                      nqp::atpos($reified,$pos),   # reified ok
-                      self!AT-POS-CONTAINER($pos)  # reifier didn't reach
-                    )
-                  ),
-                  self!AT-POS-CONTAINER($pos)      # create an outlander
-                )
+            nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
+            nqp::if(
+              nqp::islt_i(pos,nqp::elems($reified)),
+              self!AT-POS-CONTAINER(pos),        # it's a hole
+              nqp::if(                           # too far out, try reifying
+                nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
+                nqp::stmts(
+                  $todo.reify-at-least(nqp::add_i(pos,1)),
+                  nqp::ifnull(
+                    nqp::atpos($reified,pos),    # reified ok
+                    self!AT-POS-CONTAINER(pos)   # reifier didn't reach
+                  )
+                ),
+                self!AT-POS-CONTAINER(pos)       # create an outlander
               )
             ),
             # no reified, implies no todo
-            nqp::stmts(                            # create reified
+            nqp::stmts(                          # create reified
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              self!AT-POS-CONTAINER($pos)          # create an outlander
+              self!AT-POS-CONTAINER(pos)         # create an outlander
             )
           )
         )

@@ -165,6 +165,47 @@ my class Rakudo::Internals {
         )
     }
 
+    # Helper method for prefix:<let>/prefix:<temp>, which really do the same
+    # thing apart from where they store data.  Takes the IteratonBuffer in
+    # which to save data, the container to be inspected, and the type of op
+    # for any error messaging.
+    method TEMP-LET(\restore, \cont, str $localizer) is raw {
+        nqp::stmts(
+          (my int $i = nqp::elems(restore)),
+          nqp::while(
+            nqp::isgt_i($i,0),
+            nqp::if(
+              nqp::eqaddr(nqp::atpos(restore,($i = nqp::sub_i($i,2))),cont),
+              (return-rw cont)
+            )
+          ),
+          nqp::if(
+            nqp::istype(cont,Failure),
+            cont.exception.throw,
+            nqp::stmts(
+              nqp::push(restore,cont),
+              nqp::if(
+                nqp::iscont(cont),
+                nqp::push(restore,nqp::decont(cont)),
+                nqp::if(
+                  nqp::istype(cont,Array),
+                  nqp::push(restore,my @ = cont),
+                  nqp::if(
+                    nqp::istype(cont,Hash),
+                    nqp::push(restore,my % = cont),
+                    nqp::stmts(
+                      nqp::pop(restore),  # lose the erroneously pushed value
+                      X::Localizer::NoContainer.new(:$localizer).throw
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          cont
+        )
+    }
+
     # fast whitespace trim: str to trim, str to store trimmed str
     method TRIM(\string, \trimmed --> Nil) {
         my int $pos  = nqp::chars(string) - 1;

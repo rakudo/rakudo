@@ -524,59 +524,10 @@ multi sub undefine(Array \x) is raw { x = Empty }
 multi sub undefine(Hash \x) is raw { x = Empty }
 
 sub prefix:<temp>(Mu \cont) is raw {
-    my $temp_restore := nqp::getlexcaller('!TEMP-RESTORE');
-    my int $i = nqp::elems($temp_restore);
-    while $i > 0 {
-        $i = $i - 2;
-        return-rw cont if nqp::atpos($temp_restore, $i) =:= cont;
-    }
-    if nqp::iscont(cont) {
-        nqp::push($temp_restore, cont);
-        nqp::push($temp_restore, nqp::decont(cont));
-    }
-    elsif nqp::istype(cont, Array) {
-        nqp::push($temp_restore, cont);
-        nqp::push($temp_restore, my @a = cont);
-    }
-    elsif nqp::istype(cont, Hash) {
-        nqp::push($temp_restore, cont);
-        nqp::push($temp_restore, my %h = cont);
-    }
-    elsif nqp::istype(cont, Failure) {
-        cont.exception.throw
-    }
-    else {
-        X::Localizer::NoContainer.new(localizer => 'temp').throw;
-    }
-    cont
+    Rakudo::Internals.TEMP-LET(nqp::getlexcaller('!TEMP-RESTORE'),cont,'temp')
 }
-
 sub prefix:<let>(Mu \cont) is raw {
-    my $let_restore := nqp::getlexcaller('!LET-RESTORE');
-    my int $i = nqp::elems($let_restore);
-    while $i > 0 {
-        $i = $i - 2;
-        return-rw cont if nqp::atpos($let_restore, $i) =:= cont;
-    }
-    if nqp::iscont(cont) {
-        nqp::push($let_restore, cont);
-        nqp::push($let_restore, nqp::decont(cont));
-    }
-    elsif nqp::istype(cont, Array) {
-        nqp::push($let_restore, cont);
-        nqp::push($let_restore, my @a = cont);
-    }
-    elsif nqp::istype(cont, Hash) {
-        nqp::push($let_restore, cont);
-        nqp::push($let_restore, my %h = cont);
-    }
-    elsif nqp::istype(cont, Failure) {
-        cont.exception.throw
-    }
-    else {
-        X::Localizer::NoContainer.new(localizer => 'let').throw;
-    }
-    cont
+    Rakudo::Internals.TEMP-LET(nqp::getlexcaller('!LET-RESTORE'),cont,'let')
 }
 
 # this implements the ::() indirect lookup

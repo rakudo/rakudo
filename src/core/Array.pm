@@ -79,7 +79,7 @@ my class Array { # declared in BOOTSTRAP
                     nqp::ifnull(
                       nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
                       nqp::islt_i($!i,nqp::elems($!reified))
-                        ?? self!found-hole
+                        ?? self!hole($!i)
                         !! $!todo.DEFINITE
                           ?? nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
                             ?? nqp::atpos($!reified,$!i) # cannot be nqp::null
@@ -87,12 +87,12 @@ my class Array { # declared in BOOTSTRAP
                           !! IterationEnd
                     )
                 }
-                method !found-hole() {
+                method !hole(int $i) {
                    nqp::p6bindattrinvres(
                      (my \v := nqp::p6scalarfromdesc($!descriptor)),
                      Scalar,
                      '$!whence',
-                     -> { nqp::bindpos($!reified,$!i,v) }
+                     -> { nqp::bindpos($!reified,$i,v) }
                    )
                 }
                 method !done() is raw {
@@ -101,39 +101,40 @@ my class Array { # declared in BOOTSTRAP
                 }
 
                 method push-until-lazy($target) {
-                    if $!todo.DEFINITE {
-                        my int $elems = $!todo.reify-until-lazy;
+                    nqp::if(
+                      nqp::isconcrete($!todo),
+                      nqp::stmts(
+                        (my int $elems = $!todo.reify-until-lazy),
+                        (my int $i = $!i),   # lexicals faster than attributes
                         nqp::while(   # doesn't sink
-                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
-                          $target.push(nqp::atpos($!reified,$!i))
-                        );
+                          nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                          $target.push(nqp::atpos($!reified,$i))
+                        ),
                         nqp::if(
                           $!todo.fully-reified,
-                          self!done,
+                          nqp::stmts(
+                            ($!i = $i),
+                            self!done
+                          ),
                           nqp::stmts(
                             ($!i = nqp::sub_i($elems,1)),
                             Mu
                           )
                         )
-                    }
-                    else {
-                        my int $elems = nqp::elems($!reified);
+                      ),
+                      nqp::stmts(
+                        ($elems = nqp::elems($!reified)),
+                        ($i = $!i),
                         nqp::while(   # doesn't sink
-                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                          nqp::islt_i($i = nqp::add_i($i,1),$elems),
                           $target.push(
-                            nqp::ifnull(
-                              nqp::atpos($!reified,$!i),
-                              nqp::p6bindattrinvres(
-                                (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                                Scalar,
-                                '$!whence',
-                                -> { nqp::bindpos($!reified,$!i,v) }
-                              )
-                            )
+                            nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                           )
-                        );
+                        ),
+                        ($!i = $i),
                         IterationEnd
-                    }
+                      )
+                    )
                 }
 
                 method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }

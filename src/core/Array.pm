@@ -276,16 +276,21 @@ my class Array { # declared in BOOTSTRAP
             method iterator() {
                 Rakudo::Iterator.ReifiedArray(self,$!descriptor)
             }
-            multi method AT-POS(Int:D $pos) {
+
+            method !AT-POS-CONTAINER(Int:D \pos) {
+                nqp::p6bindattrinvres(
+                  (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
+                  Scalar,
+                  '$!whence',
+                  -> { nqp::bindpos(
+                         nqp::getattr(self,List,'$!reified'),pos,$scalar) }
+                )
+            }
+
+            multi method AT-POS(Int:D \pos) {
                 nqp::ifnull(
-                  nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
-                  nqp::p6bindattrinvres(
-                    (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
-                    Scalar,
-                    '$!whence',
-                    -> { nqp::bindpos(
-                           nqp::getattr(self,List,'$!reified'),$pos,$scalar) }
-                  )
+                  nqp::atpos(nqp::getattr(self,List,'$!reified'),pos),
+                  self!AT-POS-CONTAINER(pos)
                 )
             }
             method default() { $!descriptor.default }

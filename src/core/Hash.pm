@@ -45,7 +45,7 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
-    method !AT-KEY-WHENCE(Str:D \key) is raw {
+    method !AT-KEY-CONTAINER(Str:D \key) is raw {
         nqp::p6bindattrinvres(
           (my \v := nqp::p6scalarfromdesc($!descriptor)),
           Scalar,
@@ -65,9 +65,9 @@ my class Hash { # declared in BOOTSTRAP
           nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
           nqp::ifnull(
             nqp::atkey(nqp::getattr(self,Map,'$!storage'),key),
-            self!AT-KEY-WHENCE(key)
+            self!AT-KEY-CONTAINER(key)
           ),
-          self!AT-KEY-WHENCE(key)
+          self!AT-KEY-CONTAINER(key)
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
@@ -75,9 +75,9 @@ my class Hash { # declared in BOOTSTRAP
           nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
           nqp::ifnull(
             nqp::atkey(nqp::getattr(self,Map,'$!storage'),key.Str),
-            self!AT-KEY-WHENCE(key.Str)
+            self!AT-KEY-CONTAINER(key.Str)
           ),
-          self!AT-KEY-WHENCE(key.Str)
+          self!AT-KEY-CONTAINER(key.Str)
         )
     }
 

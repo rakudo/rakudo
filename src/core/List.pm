@@ -339,7 +339,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method new(**@things) {
+    method new(**@things is raw) {
         my \list = nqp::create(self);
         my \iterbuffer = nqp::create(IterationBuffer);
         nqp::bindattr(list, List, '$!reified', iterbuffer);

@@ -327,6 +327,8 @@ class Perl6::Pod {
         return $*W.add_constant($type, 'type_new', |@pos, |%named);
     }
 
+    # TODO This sub is for future work on pod formatting issues.
+    # It isn't currently used.
     sub string2twine($S) {
         # takes a simple string with unhandled formatting code
         # and converts it into a twine data structure. primarily
@@ -342,7 +344,7 @@ class Perl6::Pod {
 
 	while $idx > -1 {
             my $idx2 := nqp::index($s, '>', $idx+2); # and the end
-            nqp::die("FATAL:  Non-existent closing '>' for inline pod comment in string '$s' in Table $table_num") if $idx2 < 0;
+            nqp::die("FATAL:  Couldn't find terminator '>' for inline pod format code in string '$s' in Table $table_num") if $idx2 < 0;
             my $s0 := nqp::substr($s, 0, $idx); # the leading chunk (which may be empty)
             # assemble the cleaned string by parts
             $ret := nqp::concat($ret, $s0);
@@ -354,9 +356,8 @@ class Perl6::Pod {
 	}
 
 	# make sure we use up a non-empty string end
-	if $s {
-            $ret := nqp::concat($ret, $s);
-	}
+        $ret := nqp::concat($ret, $s) if $s;
+
 	return $ret;
     }
 

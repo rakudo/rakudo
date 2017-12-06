@@ -334,15 +334,15 @@ class Perl6::Pod {
         # and converts it into a twine data structure. primarily
         # designed for a table cell.
         # note all Z<> comments have already been removed.
-	my $s   := $S; # the raw string to be converted to a twine
-	my $ret := ''; # the cleaned string (i.e., without comments)
-	my $idx := nqp::index($s, '<'); # find the possible beginning of a formatting code
+        my $s   := $S; # the raw string to be converted to a twine
+        my $ret := ''; # the cleaned string (i.e., without comments)
+        my $idx := nqp::index($s, '<'); # find the possible beginning of a formatting code
         if $idx < 0 {
             # no '<' found so return the simple string
             return $s;
         }
 
-	while $idx > -1 {
+        while $idx > -1 {
             my $idx2 := nqp::index($s, '>', $idx+2); # and the end
             nqp::die("FATAL:  Couldn't find terminator '>' for inline pod format code in string '$s' in Table $table_num") if $idx2 < 0;
             my $s0 := nqp::substr($s, 0, $idx); # the leading chunk (which may be empty)
@@ -353,12 +353,12 @@ class Perl6::Pod {
             $s := nqp::substr($s, $idx2+1); # the trailing chunk
             # look for another comment in the remaining string
             $idx := nqp::index($s, 'Z<');
-	}
+        }
 
         # make sure we use up a non-empty string end
         $ret := nqp::concat($ret, $s) if $s;
 
-	return $ret;
+        return $ret;
     }
 
     our sub table($/) {

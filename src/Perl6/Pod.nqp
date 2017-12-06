@@ -355,7 +355,7 @@ class Perl6::Pod {
             $idx := nqp::index($s, 'Z<');
 	}
 
-	# make sure we use up a non-empty string end
+        # make sure we use up a non-empty string end
         $ret := nqp::concat($ret, $s) if $s;
 
 	return $ret;

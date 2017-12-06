@@ -57,29 +57,41 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
       (my $indices := nqp::getattr(@indices,List,'$!reified')),
       (my int $elems = nqp::elems($indices)),
       (my int $i = -1),
+      (my $idxs := nqp::list_i),
       nqp::while(
-        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-          && nqp::istype(nqp::atpos($indices,$i),Int),
-        nqp::null
-      ),
-      nqp::if(
-        nqp::islt_i($i,$elems),
-        MD-ARRAY-SLICE(SELF,@indices),
+        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
         nqp::if(
-          nqp::iseq_i($elems,2),
-          SELF.AT-POS(
-            nqp::atpos($indices,0),
-            nqp::atpos($indices,1)
-          ),
+          nqp::istype((my $index := nqp::atpos($indices,$i)),Int),
+          nqp::push_i($idxs,$index),             # it's an Int, use that
           nqp::if(
-            nqp::iseq_i($elems,3),
-            SELF.AT-POS(
-              nqp::atpos($indices,0),
-              nqp::atpos($indices,1),
-              nqp::atpos($indices,2)
-            ),
-            SELF.AT-POS(|@indices)
+            nqp::istype($index,Numeric),
+            nqp::push_i($idxs,$index.Int),       # can be safely coerced to Int
+            nqp::if(
+              nqp::istype($index,Str),
+              nqp::if(
+                nqp::istype((my $coerced := $index.Int),Failure),
+                $coerced.throw,                  # alas, not numeric, bye!
+                nqp::push_i($idxs,$coerced)      # could be coerced to Int
+              ),
+              (return-rw MD-ARRAY-SLICE(SELF,@indices)) # alas, slow path needed
+            )
           )
+        )
+      ),
+      nqp::if(                                   # we have all Ints
+        nqp::iseq_i($elems,2),
+        SELF.AT-POS(                             # fast pathing [n;n]
+          nqp::atpos_i($idxs,0),
+          nqp::atpos_i($idxs,1)
+        ),
+        nqp::if(
+          nqp::iseq_i($elems,3),
+          SELF.AT-POS(                           # fast pathing [n;n;n]
+            nqp::atpos_i($idxs,0),
+            nqp::atpos_i($idxs,1),
+            nqp::atpos_i($idxs,2)
+          ),
+          SELF.AT-POS(|@indices)                 # alas >3 dims, slow path
         )
       )
     )

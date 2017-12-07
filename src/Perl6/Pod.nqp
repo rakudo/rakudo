@@ -327,6 +327,40 @@ class Perl6::Pod {
         return $*W.add_constant($type, 'type_new', |@pos, |%named);
     }
 
+    # TODO This sub is for future work on pod formatting issues.
+    # It isn't currently used.
+    sub string2twine($S) {
+        # takes a simple string with unhandled formatting code
+        # and converts it into a twine data structure. primarily
+        # designed for a table cell.
+        # note all Z<> comments have already been removed.
+        my $s   := $S; # the raw string to be converted to a twine
+        my $ret := ''; # the cleaned string (i.e., without comments)
+        my $idx := nqp::index($s, '<'); # find the possible beginning of a formatting code
+        if $idx < 0 {
+            # no '<' found so return the simple string
+            return $s;
+        }
+
+        while $idx > -1 {
+            my $idx2 := nqp::index($s, '>', $idx+2); # and the end
+            nqp::die("FATAL:  Couldn't find terminator '>' for inline pod format code in string '$s' in Table $table_num") if $idx2 < 0;
+            my $s0 := nqp::substr($s, 0, $idx); # the leading chunk (which may be empty)
+            # assemble the cleaned string by parts
+            $ret := nqp::concat($ret, $s0);
+
+            # throw away the orig string up to the end of the found comment
+            $s := nqp::substr($s, $idx2+1); # the trailing chunk
+            # look for another comment in the remaining string
+            $idx := nqp::index($s, 'Z<');
+        }
+
+        # make sure we use up a non-empty string end
+        $ret := nqp::concat($ret, $s) if $s;
+
+        return $ret;
+    }
+
     our sub table($/) {
         my $config := $<pod_configuration>
             ?? $<pod_configuration>.ast
@@ -580,7 +614,7 @@ class Perl6::Pod {
             $content := @newrows;
         }
 
-        # show final table matrix (TODO put in a sub?? YES)
+        # show final table matrix
         if $debug || $udebug {
             # show final table matrix
             show_final_table_matrix($headers, $content);
@@ -598,6 +632,12 @@ class Perl6::Pod {
         return $past.compile_time_value;
 
         #===== TABLE-SPECIFIC SUBROUTINES =====
+        sub unescape-col-seps($S) {
+            my $s := subst($S, /'\+'/, '+', :global);
+            $s    := subst($s, /'\|'/, '|', :global);
+            return $s;
+        }
+
         sub handle_table_issues(@rows) {
             my $t := $table_num;
             #=== invalid tables generate exceptions
@@ -753,13 +793,15 @@ class Perl6::Pod {
                 elsif nqp::isstr($row) {
                     # just split the row
                     nqp::say("VIS BEFORE SPLIT: '$row'") if $debug;
-                    my @t := nqp::split('|', $row);
+                    # TODO split on ' | '
+                    # TODO unescape | and +
+                    my @t := nqp::split(' | ', $row);
                     my @tmp := [];
                     my $j := 0;
                     for @t {
                         my $c := $_;
                         nqp::say("  CELL $j: '$c'") if $debug;
-                        $c := normalize_text($c);
+                        $c := normalize_text(unescape-col-seps($c));
                         nqp::say("  CELL $j normalized: '$c'") if $debug;
                         @tmp.push($c);
                         ++$j;
@@ -869,12 +911,14 @@ class Perl6::Pod {
                     next if $a > nqp::chars($row);
                     if $b {
                         @tmp.push(
-                            normalize_text(nqp::substr($row, $a, $b - $a))
+                            # TODO unescape | and +
+                            normalize_text(unescape-col-seps(nqp::substr($row, $a, $b - $a)))
                         );
                     }
                     else {
                         @tmp.push(
-                            normalize_text(nqp::substr($row, $a))
+                            # TODO unescape | and +
+                            normalize_text(unescape-col-seps(nqp::substr($row, $a)))
                         );
                     }
                 }
@@ -904,6 +948,8 @@ class Perl6::Pod {
         sub normalize_row_cells($row) {
             # forces a pipe separator as the row cell separator
             my $s := $row;
+            # add trailing ws to ensure correct split later
+            $s := nqp::concat($s, ' ');
             $s := subst($s, /\h'+'\h/, $col_sep_pipe_literal, :global);
             return $s;
         }

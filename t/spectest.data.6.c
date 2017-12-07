@@ -842,6 +842,7 @@ S26-documentation/06-lists.t
 S26-documentation/07-tables.t
 S26-documentation/07a-tables.t
 S26-documentation/07b-tables.t
+S26-documentation/07c-tables.t
 S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t

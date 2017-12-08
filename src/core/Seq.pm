@@ -60,6 +60,10 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
+    method NUM-REIFIED(Seq:D:) {
+        nqp::elems( nqp::getattr(self.cache, List, '$!reified') )
+    }
+
     method Numeric() {
         nqp::if(
           ($!iter.DEFINITE && nqp::can($!iter,'count-only')),

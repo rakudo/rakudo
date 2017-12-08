@@ -18,7 +18,7 @@ multi sub POSITIONS(
       nqp::if(
         nqp::istype($idx,Whatever),
         nqp::if(nqp::isconcrete(SELF),SELF.elems,0),
-        SELF.EXISTS-POS($idx)
+        SELF.EXISTS-POS($idx) || nqp::islt_i($idx, SELF.NUM-REIFIED)
       )
   }
 ) {

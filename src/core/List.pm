@@ -477,6 +477,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
+    method NUM-REIFIED(List:D:) { nqp::elems($!reified) }
+
     multi method AT-POS(List:D: int $pos) is raw {
         nqp::if(
           nqp::isge_i($pos,0) && nqp::isconcrete($!reified),

@@ -1110,26 +1110,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method pod_block:sym<delimited_code>($/) {
         my $config  := $<pod_configuration>.ast;
         my @contents := $<delimited_code_content>.ast;
-        my $twine   := Perl6::Pod::serialize_array(@contents).compile_time_value;
-        make Perl6::Pod::serialize_object(
-            'Pod::Block::Code', :contents($twine),
-            :config($config),
-        ).compile_time_value
+        @contents  := Perl6::Pod::serialize_array(@contents).compile_time_value;
+        make Perl6::Pod::serialize_object('Pod::Block::Code',
+                                          :@contents,:$config).compile_time_value
     }
 
     method delimited_code_content($/) {
-        my @t := [];
+        my @contents := [];
         for $/[0] {
             if $_<pod_string> {
-                nqp::splice(@t, Perl6::Pod::merge_twines($_<pod_string>), +@t, 0);
-                nqp::push(@t, $*W.add_constant(
+                nqp::splice(@contents,
+                            Perl6::Pod::pod_strings_from_matches($_<pod_string>),
+                            +@contents, 0);
+                nqp::push(@contents, $*W.add_constant(
                     'Str', 'str', ~$_<pod_newline>
                 ).compile_time_value);
             } else {
-                @t.push($*W.add_constant('Str', 'str', "\n").compile_time_value);
+                @contents.push($*W.add_constant('Str', 'str', "\n").compile_time_value);
             }
         }
-        make @t;
+        make @contents;
     }
 
     method pod_block:sym<paragraph>($/) {
@@ -1146,15 +1146,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method pod_block:sym<paragraph_code>($/) {
         my $config := $<pod_configuration>.ast;
-        my @t := [];
+        my @contents := [];
         for $<pod_line> {
-            nqp::splice(@t, $_.ast, +@t, 0);
+            nqp::splice(@contents, $_.ast, +@contents, 0);
         }
-        my $twine  := Perl6::Pod::serialize_array(@t).compile_time_value;
-        make Perl6::Pod::serialize_object(
-            'Pod::Block::Code', :contents($twine),
-            :config($config),
-        ).compile_time_value
+        @contents  := Perl6::Pod::serialize_array(@contents).compile_time_value;
+        make Perl6::Pod::serialize_object('Pod::Block::Code',
+                                          :@contents,:$config).compile_time_value;
     }
 
     method pod_block:sym<abbreviated>($/) {
@@ -1170,22 +1168,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<abbreviated_code>($/) {
-        my @t := [];
+        my @contents := [];
         for $<pod_line> {
-            nqp::splice(@t, $_.ast, +@t, 0);
+            nqp::splice(@contents, $_.ast, +@contents, 0);
         }
-        my $twine := Perl6::Pod::serialize_array(@t).compile_time_value;
+        @contents := Perl6::Pod::serialize_array(@contents).compile_time_value;
         make Perl6::Pod::serialize_object(
-            'Pod::Block::Code', :contents($twine)
+            'Pod::Block::Code', :@contents
         ).compile_time_value
     }
 
     method pod_line ($/) {
-        my @t := Perl6::Pod::merge_twines($<pod_string>);
-        @t.push($*W.add_constant(
+        my @contents := Perl6::Pod::pod_strings_from_matches($<pod_string>);
+        @contents.push($*W.add_constant(
             'Str', 'str', ~$<pod_newline>
         ).compile_time_value);
-        make @t;
+        make @contents;
     }
 
     method pod_block:sym<finish>($/) {
@@ -1207,11 +1205,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_textcontent:sym<regular>($/) {
-        my @t     := Perl6::Pod::merge_twines($<pod_string>);
-        my $twine := Perl6::Pod::serialize_array(@t).compile_time_value;
-        make Perl6::Pod::serialize_object(
-            'Pod::Block::Para', :contents($twine)
-        ).compile_time_value
+        my @contents := Perl6::Pod::pod_strings_from_matches($<pod_string>);
+        @contents    := Perl6::Pod::serialize_array(@contents).compile_time_value;
+        make Perl6::Pod::serialize_object('Pod::Block::Para', :@contents).compile_time_value
     }
 
     method pod_textcontent:sym<code>($/) {
@@ -1259,10 +1255,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :@meta,
             ).compile_time_value;
         } else {
-            my @contents := [];
-            for $<pod_string_character> {
-                @contents.push($_.ast)
-            }
+            my @chars := Perl6::Pod::build_pod_chars($<pod_string_character>);
             my @meta := [];
             if $<code> eq 'X' {
                 for $/[0] {
@@ -1279,15 +1272,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 @meta := Perl6::Pod::serialize_aos(@meta).compile_time_value;
             }
-            my @t    := Perl6::Pod::build_pod_string(@contents);
+            my @contents  := Perl6::Pod::build_pod_strings([@chars]);
+            @contents := Perl6::Pod::serialize_array(@contents).compile_time_value;
             my $past := Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
-                :type(
-                    $*W.add_string_constant(~$<code>).compile_time_value
-                ),
-                :contents(
-                    Perl6::Pod::serialize_array(@t).compile_time_value
-                ),
+                :type($*W.add_string_constant(~$<code>).compile_time_value),
+                :@contents,
                 :meta(@meta),
             );
             make $past.compile_time_value;
@@ -1295,36 +1285,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_string($/) {
-        my @contents := [];
-        for $<pod_string_character> {
-            @contents.push($_.ast)
-        }
-        make Perl6::Pod::build_pod_string(@contents);
+        make Perl6::Pod::build_pod_chars($<pod_string_character>);
     }
 
     method pod_balanced_braces($/) {
         if $<endtag> {
-            my @contents := [];
-            my @stringparts := [];
-            @stringparts.push(~$<start>);
-            if $<pod_string_character> {
-                for $<pod_string_character> {
-                    if nqp::isstr($_.ast) {
-                        @stringparts.push($_.ast);
-                    } else {
-                        @contents.push(nqp::join("", @stringparts));
-                        @stringparts := nqp::list();
-                        @contents.push($_.ast);
-                    }
-                }
-            }
-            @stringparts.push(~$<endtag>);
-            @contents.push(nqp::join("", @stringparts));
-            if +@contents == 1 {
-                make @contents[0];
-            } else {
-                make Perl6::Pod::build_pod_string(@contents);
-            }
+            my @chars := Perl6::Pod::build_pod_chars($<pod_string_character>);
+            @chars.unshift(~$<start>);
+            @chars.push(~$<endtag>);
+            make @chars;
         } else {
             make ~$<braces>
         }

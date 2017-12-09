@@ -61,7 +61,14 @@ my class Seq is Cool does Iterable does Sequence {
     }
 
     method NUM-REIFIED(Seq:D:) {
-        nqp::elems( nqp::getattr(self.cache, List, '$!reified') )
+        nqp::stmts(
+            ( my \reifier = nqp::getattr(self.cache, List, '$!todo') ),
+            nqp::if(
+                nqp::defined(reifier) && nqp::not_i( reifier.fully-reified ),
+                reifier.reify-until-lazy
+            ),
+            nqp::elems( nqp::getattr(self.cache, List, '$!reified') )
+        )
     }
 
     method Numeric() {

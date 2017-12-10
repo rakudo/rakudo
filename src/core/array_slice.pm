@@ -81,7 +81,8 @@ multi sub POSITIONS(
     nqp::bindattr(pos-list, List, '$!reified', eager-indices);
     unless pos-iter.push-until-lazy(target) =:= IterationEnd {
         # There are lazy positions to care about too. We truncate at the first
-        # one that fails to exists.
+        # one that both fails to exists and whose index is not less than the
+        # number of known reified elements (so as not to end at a hole).
         my \rest-seq = Seq.new(pos-iter).flatmap: -> Int() $i {
             nqp::unless(
               $eagerize($i),

@@ -18,7 +18,18 @@ multi sub POSITIONS(
       nqp::if(
         nqp::istype($idx,Whatever),
         nqp::if(nqp::isconcrete(SELF),SELF.elems,0),
-        SELF.EXISTS-POS($idx) || nqp::islt_i($idx, SELF.NUM-REIFIED)
+        SELF.EXISTS-POS($idx)
+          || nqp::islt_i($idx, nqp::stmts(
+                ( my $target  := nqp::decont( nqp::if(
+                                    nqp::istype(SELF, Seq), SELF.cache, SELF
+                                 ))),
+                ( my $reifier := nqp::getattr($target, List, '$!todo') ),
+                nqp::if(
+                    nqp::defined($reifier) && nqp::not_i( $reifier.fully-reified ),
+                    $reifier.reify-until-lazy
+                ),
+                nqp::elems( nqp::getattr($target, List, '$!reified' ) )
+          ))
       )
   }
 ) {

@@ -163,8 +163,14 @@ my class Seq is Cool does Iterable does Sequence {
         Seq.new(Rakudo::Iterator.CStyleLoop(&body, &cond, &afterwards))
     }
 
-    multi method skip()         { nqp::stmts( $!iter.skip-one, self) }
-    multi method skip(Int() $n) { nqp::stmts( $!iter.skip-at-least($n), self) }
+    multi method skip() {
+        my $iter := self.iterator;
+        Seq.new( $iter.skip-one ?? $iter !! Rakudo::Iterator.Empty )
+    }
+    multi method skip(Int() $n) {
+        my $iter := self.iterator;
+        Seq.new( $iter.skip-at-least($n) ?? $iter !! Rakudo::Iterator.Empty )
+    }
 }
 
 sub GATHER(&block) {

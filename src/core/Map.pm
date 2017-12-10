@@ -206,9 +206,6 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                   )
                 )
             }
-            method count-only() {
-                nqp::mul_i(nqp::elems($!hash),2)
-            }
         }.new(self))
     }
     multi method antipairs(Map:D:) {

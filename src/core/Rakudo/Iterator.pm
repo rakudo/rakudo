@@ -53,13 +53,17 @@ class Rakudo::Iterator {
         }
         method count-only() {
             # we start off $!i at -1, so add back 1 to it to get right count
+            # if $i is >= elems, that means we're done iterating. We can't
+            # *just* substract in that case, as we'd get `-1`
             nqp::p6box_i(
-                nqp::sub_i(nqp::elems($!blob),nqp::add_i($!i,1)))
+              nqp::if(
+                nqp::islt_i($!i, nqp::elems($!blob)),
+                nqp::sub_i(nqp::elems($!blob),nqp::add_i($!i,1)),
+                0))
         }
         method bool-only()  {
-            # we start off $!i at -1, so add back 1 to it to get right count
             nqp::p6bool(
-                nqp::sub_i(nqp::elems($!blob),nqp::add_i($!i,1)))
+              nqp::islt_i($!i, nqp::sub_i(nqp::elems($!blob),1)))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!blob) }
     }
@@ -2393,8 +2397,10 @@ class Rakudo::Iterator {
                       IterationEnd
                     )
                 }
-                method count-only { nqp::p6box_i($!todo) }
-                method bool-only { nqp::p6bool($!todo) }
+                method count-only {
+                    nqp::isge_i($!todo, 0) ?? nqp::p6box_i($!todo) !! 0
+                }
+                method bool-only { nqp::p6bool(nqp::isgt_i($!todo, 0)) }
             }.new($n,$b)
           )
         )
@@ -2472,13 +2478,17 @@ class Rakudo::Iterator {
             }
             method count-only() {
                 # we start off $!i at -1, so add back 1 to it to get right count
+                # if $i is >= elems, that means we're done iterating. We can't
+                # *just* substract in that case, as we'd get `-1`
                 nqp::p6box_i(
-                    nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)))
+                  nqp::if(
+                    nqp::islt_i($!i, nqp::elems($!reified)),
+                    nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
+                    0))
             }
             method bool-only()  {
-                # we start off $!i at -1, so add back 1 to it to get right count
                 nqp::p6bool(
-                    nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)))
+                  nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
             }
             method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
         }.new(array, descriptor)
@@ -2546,13 +2556,17 @@ class Rakudo::Iterator {
             }
             method count-only() {
                 # we start off $!i at -1, so add back 1 to it to get right count
+                # if $i is >= elems, that means we're done iterating. We can't
+                # *just* substract in that case, as we'd get `-1`
                 nqp::p6box_i(
-                    nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)))
+                  nqp::if(
+                    nqp::islt_i($!i, nqp::elems($!reified)),
+                    nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
+                    0))
             }
             method bool-only()  {
-                # we start off $!i at -1, so add back 1 to it to get right count
                 nqp::p6bool(
-                    nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)))
+                  nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
             }
             method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
         }.new(list)

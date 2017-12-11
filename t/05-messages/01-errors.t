@@ -70,7 +70,7 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 {
     is-run ｢multi MAIN(q|foo bar|) {}｣,
        :err(qq|Usage:\n  -e '...' 'foo bar' \n|),
-       :status(*),
+       :exitcode(*),
        'a space in a literal param to a MAIN() multi makes the suggestion quoted';
 
     if $*DISTRO.is-win {
@@ -79,13 +79,13 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
     else {
         is-run ｢multi MAIN(q|foo"bar|) {}｣,
            :err(qq|Usage:\n  -e '...' 'foo"bar' \n|),
-           :status(*),
+           :exitcode(*),
            'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
     }
 
     is-run ｢multi MAIN(q|foo'bar|) {}｣,
        :err(qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|),
-       :status(*),
+       :exitcode(*),
        'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
 }
 
@@ -242,11 +242,11 @@ throws-like ｢use v5｣, X::Language::Unsupported,
 
 # RT#127341
 is-run 'Duration.new: Inf; Duration.new: "meow"',
-    :out{not .contains: '$!tai'}, :err{not .contains: '$!tai'}, :status(*),
+    :out{not .contains: '$!tai'}, :err{not .contains: '$!tai'}, :exitcode(*),
     'Duration.new with bad args does not reference guts';
 
 # RT#125902
-is-run ｢my Str where 'foo' $test｣, :status(*),
+is-run ｢my Str where 'foo' $test｣, :exitcode(*),
   :err{.contains: ｢forget a variable｣ and not .contains: ｢Did you mean 'Str'｣},
 'sane error when missing variables with my and where';
 

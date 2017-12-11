@@ -3,7 +3,7 @@ use Test;
 
 sub is-run (
     Str() $code, $desc = "$code runs",
-    Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$status = 0
+    Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
 ) is export {
     my @proc-args = flat do if $*DISTRO.is-win {
         # $*EXECUTABLE is a batch file on Windows, that goes through cmd.exe
@@ -18,19 +18,19 @@ sub is-run (
     with run :in, :out, :err, @proc-args {
         $in ~~ Blob ?? .in.write: $in !! .in.print: $in if $in;
         $ = .in.close;
-        my $proc-out    = .out.slurp: :close;
-        my $proc-err    = .err.slurp: :close;
-        my $proc-status = .status;
+        my $proc-out      = .out.slurp: :close;
+        my $proc-err      = .err.slurp: :close;
+        my $proc-exitcode = .exitcode;
 
-        my $wanted-status = $status // 0;
-        my $wanted-out    = $out    // '';
-        my $wanted-err    = $err    // '';
+        my $wanted-exitcode = $exitcode // 0;
+        my $wanted-out      = $out    // '';
+        my $wanted-err      = $err    // '';
 
         subtest $desc => {
             plan 3;
-            cmp-ok $proc-out,    '~~', $wanted-out,    'STDOUT';
-            cmp-ok $proc-err,    '~~', $wanted-err,    'STDERR';
-            cmp-ok $proc-status, '~~', $wanted-status, 'Status';
+            cmp-ok $proc-out,      '~~', $wanted-out,      'STDOUT';
+            cmp-ok $proc-err,      '~~', $wanted-err,      'STDERR';
+            cmp-ok $proc-exitcode, '~~', $wanted-exitcode, 'Exit code';
         }
     }
 }
@@ -111,11 +111,11 @@ multi sub doesn't-hang (
 
   sub is-run (
       Str() $code, $desc = "$code runs",
-      Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$status = 0
+      Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
   )
 
 Runs code with C<Proc::Async>, smartmatching STDOUT with C<$out>,
-STDERR with C<$err> and exit code with C<$status>. C<$in> can be a C<Str>
+STDERR with C<$err> and exit code with C<$exitcode>. C<$in> can be a C<Str>
 or a C<Blob>. C<@args> are arguments to the program, while C<@compiler-args>
 are arguments to the compiler.
 

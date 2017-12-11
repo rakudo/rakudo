@@ -6,7 +6,7 @@ plan 4;
 
 # RT #132295
 
-is-run ｢:2(1)｣, :err{.contains: ｢use 1.base(2) instead｣}, :status(* !== 0),
+is-run ｢:2(1)｣, :err{.contains: ｢use 1.base(2) instead｣}, :exitcode(* !== 0),
     ':2(1) suggests using 1.base(2)';
 
 # RT #132291

@@ -136,9 +136,9 @@ class Kernel does Systemic {
                             @!signals[$index] = $signal;
                         }
                     }
+                    $!signals-setup = True;
                 }
             }
-            $!signals-setup = True;
         }
         @!signals
     }
@@ -158,10 +158,10 @@ class Kernel does Systemic {
                       nqp::while(
                         nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
                         ($_ := @!signals.AT-POS($i)).defined
-                          && %!signals-by-Str.ASSIGN-KEY(.Str, nqp::decont($i))))
+                          && %!signals-by-Str.ASSIGN-KEY(.Str, nqp::decont($i))));
+                    $!signals-by-Str-setup = True;
                 }
             }
-            $!signals-by-Str-setup = True;
         }
         %!signals-by-Str{$signal} // %!signals-by-Str{"SIG$signal"} // Int;
     }

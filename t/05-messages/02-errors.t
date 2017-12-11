@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 3;
+plan 4;
 
 # RT #132295
 
@@ -22,6 +22,10 @@ throws-like {
     react whenever l() {
         whenever l() {} # try to listen on already open sock
     }
-}, X::AdHoc, message => /'something good'/
+}, X::AdHoc, message => /'something good'/;
+
+# RT #132283
+is-deeply class { has $.bar }.^methods».name.sort, <BUILDALL bar>,
+    'auto-generated methods present in .^methods';
 
 # vim: ft=perl6 expandtab sw=4

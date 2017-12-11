@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 40;
+plan 41;
 
 compile_test_lib('05-arrays');
 
@@ -163,5 +163,9 @@ compile_test_lib('05-arrays');
 {
     lives-ok { CArray[Str].new[my int $ = 1] }, 'native int as index to CArray does not crash'
 }
+
+# RT #131406
+is CArray[Pointer].^shortname, 'CArray[Pointer]',
+    'CArray.^shortname shows sane value';
 
 # vim:ft=perl6

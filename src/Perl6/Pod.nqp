@@ -1,9 +1,12 @@
 class Perl6::Pod {
 
     # various helper methods for Pod parsing and processing
+    my $caption := ''; # var to save table caption values between 
+                       # subs make_config and table
 
     # enable use of env vars for debug selections
     # TODO: track down possible nqp bug: inconsistent handling of the debug values
+    #       see possible solution in World.nqp, grep getenvhash
     my $debug    := 0; # for dev use
     my $udebug   := 0; # for users via an environment variable
     my $ddenvvar := 'RAKUDO_POD6_TABLE_DEBUG_DEV';
@@ -129,6 +132,8 @@ class Perl6::Pod {
                 else {
                     $val := ~$val<semilist>;
                 }
+                # save any caption to the global value for use by sub table
+                if $key eq 'caption' { $caption := $val };
 
                 $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
             }
@@ -328,7 +333,7 @@ class Perl6::Pod {
     }
 
     # TODO This sub is for future work on pod formatting issues.
-    # It isn't currently used.
+    #      It isn't currently used.
     sub string2twine($S) {
         # takes a simple string with unhandled formatting code
         # and converts it into a twine data structure. primarily
@@ -362,6 +367,13 @@ class Perl6::Pod {
     }
 
     our sub table($/) {
+        # extract any caption from $config and serialize it
+        my $cap := $caption 
+            ?? $*W.add_constant('Str', 'str', $caption).compile_time_value
+            !! serialize_object('Str').compile_time_value;
+        # reset global value for use of the next table
+        $caption := '';
+
         my $config := $<pod_configuration>
             ?? $<pod_configuration>.ast
             !! serialize_object('Hash').compile_time_value;
@@ -381,7 +393,6 @@ class Perl6::Pod {
         my $has_ws_col_sep   := / $col_sep_ws /;
         my $has_col_sep      := / $col_sep_pipe | $col_sep_plus | $col_sep_ws /;
         my $has_col_sep_plus := / $col_sep_plus /;
-
 
         # string literals for substitutions
         my $col_sep_pipe_literal := ' | '; # visible
@@ -623,7 +634,7 @@ class Perl6::Pod {
         # the table data are separated properly, now pack up
         # everything into a table object
         my $past := serialize_object(
-            'Pod::Block::Table', :config($config),
+            'Pod::Block::Table', :config($config), :caption($cap),
             :headers(serialize_aos($headers).compile_time_value),
             :contents(serialize_aoaos($content).compile_time_value),
         );
@@ -793,8 +804,8 @@ class Perl6::Pod {
                 elsif nqp::isstr($row) {
                     # just split the row
                     nqp::say("VIS BEFORE SPLIT: '$row'") if $debug;
-                    # TODO split on ' | '
-                    # TODO unescape | and +
+                    # split on ' | '
+                    # unescape | and +
                     my @t := nqp::split(' | ', $row);
                     my @tmp := [];
                     my $j := 0;
@@ -911,13 +922,13 @@ class Perl6::Pod {
                     next if $a > nqp::chars($row);
                     if $b {
                         @tmp.push(
-                            # TODO unescape | and +
+                            # must unescape | and +
                             normalize_text(unescape-col-seps(nqp::substr($row, $a, $b - $a)))
                         );
                     }
                     else {
                         @tmp.push(
-                            # TODO unescape | and +
+                            # must unescape | and +
                             normalize_text(unescape-col-seps(nqp::substr($row, $a)))
                         );
                     }

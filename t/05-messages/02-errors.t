@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 5;
+plan 6;
 
 # RT #132295
 
@@ -32,5 +32,9 @@ is-deeply class { has $.bar }.^methods».name.sort, <BUILDALL bar>,
 is-run ｢Failure.new(Exception.new); Nil｣, :1exitcode,
     :err{ .contains: "Died with Exception" },
     'Failure.new(Exception.new) does not segfault';
+
+throws-like { (1, 2, 3)[42] = 21 }, X::Assignment::RO,
+    :message{ .contains: "List" & none "Str" },
+'Trying to assign to immutable List element gives useful error';
 
 # vim: ft=perl6 expandtab sw=4

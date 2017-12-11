@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 4;
+plan 5;
 
 # RT #132295
 
@@ -27,5 +27,10 @@ throws-like {
 # RT #132283
 is-deeply class { has $.bar }.^methods».name.sort, <BUILDALL bar>,
     'auto-generated methods present in .^methods';
+
+# RT #124434
+is-run ｢Failure.new(Exception.new); Nil｣, :1exitcode,
+    :err{ .contains: "Died with Exception" },
+    'Failure.new(Exception.new) does not segfault';
 
 # vim: ft=perl6 expandtab sw=4

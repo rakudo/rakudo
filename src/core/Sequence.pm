@@ -48,6 +48,8 @@ my role Sequence does PositionalBindFailover {
         self.cache.Stringy
     }
 
+    method Numeric(::?CLASS:D:) { self.cache.elems }
+
     multi method AT-POS(::?CLASS:D: Int $idx) is raw {
         self.cache.AT-POS($idx)
     }

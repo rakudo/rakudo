@@ -579,10 +579,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token sublongname {
-        <subshortname> <sigterm=.subsigterm>?
-    }
-    token subsigterm {
-        [':' | <.ws> ] '(' ~ ')' <fakesignature>
+        <subshortname> <sigterm>?
     }
 
     token deftermnow { <defterm> }

@@ -4587,12 +4587,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $type_obj := $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'enum'), :$name, :$base_type);
             # Add roles (which will provide the enum-related methods).
             $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol(['Enumeration']));
+
             if istype($type_obj, $*W.find_symbol(['Numeric'])) {
-                $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol(['NumericEnumeration']));
+                $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol([
+                    istype($type_obj, $*W.find_symbol(['Stringy'])) # handle allomorphs
+                        ?? 'NumericStringyEnumeration'
+                        !! 'NumericEnumeration'
+                ]));
             }
-            if istype($type_obj, $*W.find_symbol(['Stringy'])) {
-                $*W.apply_trait($/, '&trait_mod:<does>', $type_obj, $*W.find_symbol(['StringyEnumeration']));
+            elsif istype($type_obj, $*W.find_symbol(['Stringy'])) {
+                $*W.apply_trait($/, '&trait_mod:<does>', $type_obj,
+                  $*W.find_symbol(['StringyEnumeration']));
             }
+
             # Apply traits, compose and install package.
             $*W.apply_traits($<trait>, $type_obj);
             $*W.pkg_compose($/, $type_obj);

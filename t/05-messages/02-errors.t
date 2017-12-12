@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 7;
 
 # RT #132295
 
@@ -36,5 +36,18 @@ is-run ｢Failure.new(Exception.new); Nil｣, :1exitcode,
 throws-like { (1, 2, 3)[42] = 21 }, X::Assignment::RO,
     :message{ .contains: "List" & none "Str" },
 'Trying to assign to immutable List element gives useful error';
+
+# RT #126184
+is-run ｢
+    # !!! NOTE !!! Code's structure is important, to keep correct line number
+    my $supply = supply {
+        die 'pass' # line 4
+    }
+    react {  # line 6
+        whenever $supply { }
+    }
+｣, :err{.contains: 'pass' & 'line 4' & 'line 6' }, :1exitcode,
+    'death in whenevered Supply referenced original location of throw';
+
 
 # vim: ft=perl6 expandtab sw=4

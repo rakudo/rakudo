@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 9;
+plan 10;
 
 # RT #132295
 
@@ -65,5 +65,11 @@ subtest 'using wrong sigil on var suggests correct variable name' => {
 throws-like ｢my $x; $x = 50; 42 = $x｣, X::Assignment::RO,
     :message{.contains: '42'},
 'RO assignment indicates value of the thing being assigned into';
+
+# RT #130446
+is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
+    .contains: 'No values supplied to enum'
+             & 'does %h need to be declared constant'
+}, 'declaring enum with uninitialized hash warns about it';
 
 # vim: ft=perl6 expandtab sw=4

@@ -2119,7 +2119,8 @@ my class X::Cannot::Capture is Exception {
         "Cannot unpack or Capture `$!what.gist()`.\n"
           ~ "To create a Capture, add parentheses: \\(...)\n"
           ~ 'If unpacking in a signature, perhaps you needlessly used'
-          ~ ' parentheses? -> ($x) {} vs. -> $x {}';
+          ~ ' parentheses? -> ($x) {} vs. -> $x {}'
+          ~ "\nor missed `:` in signature unpacking? -> \&c:(Int) \{}";
     }
 }
 

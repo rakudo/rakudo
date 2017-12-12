@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 8;
+plan 9;
 
 # RT #132295
 
@@ -60,5 +60,10 @@ subtest 'using wrong sigil on var suggests correct variable name' => {
       :message(/'Did you mean' .+ [ '@foo' .+ '%foo' | '%foo' .+ '@foo' ]/),
         '@foo and %foo for $foo, when both are declared';
 }
+
+# RT #131362
+throws-like ｢my $x; $x = 50; 42 = $x｣, X::Assignment::RO,
+    :message{.contains: '42'},
+'RO assignment indicates value of the thing being assigned into';
 
 # vim: ft=perl6 expandtab sw=4

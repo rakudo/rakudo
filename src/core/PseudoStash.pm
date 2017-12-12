@@ -42,15 +42,19 @@ my class PseudoStash is Map {
                 $stash);
         },
         'CALLER' => sub ($cur) {
-            my Mu $ctx := nqp::ctxcallerskipthunks(
-                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
-            my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
-            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('CALLER')),
-                $stash);
+            nqp::if(
+              nqp::isnull(
+                my Mu $ctx := nqp::ctxcallerskipthunks(
+                  nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'))),
+              Nil,
+              nqp::stmts(
+                (my $stash := nqp::create(PseudoStash)),
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC),
+                nqp::setwho(
+                    Metamodel::ModuleHOW.new_type(:name('CALLER')),
+                    $stash)))
         },
         'OUTER' => sub ($cur) {
             my Mu $ctx := nqp::ctxouterskipthunks(
@@ -101,15 +105,19 @@ my class PseudoStash is Map {
                 $stash);
         },
         'CALLERS' => sub ($cur) {
-            my Mu $ctx := nqp::ctxcallerskipthunks(
-                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
-            my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
-            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('CALLERS')),
-                $stash);
+            nqp::if(
+              nqp::isnull(
+                my Mu $ctx := nqp::ctxcallerskipthunks(
+                  nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'))),
+              Nil,
+              nqp::stmts(
+                (my $stash := nqp::create(PseudoStash)),
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC),
+                nqp::setwho(
+                  Metamodel::ModuleHOW.new_type(:name('CALLERS')),
+                  $stash)))
         },
         'UNIT' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
@@ -128,17 +136,20 @@ my class PseudoStash is Map {
             # Same as UNIT, but go a little further out (two steps, for
             # internals reasons).
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
+            until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
-            $ctx := nqp::ctxouter(nqp::ctxouter($ctx));
-            my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
-            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('SETTING')),
-                $stash);
+            nqp::if(
+              nqp::isnull($ctx) || nqp::isnull($ctx := nqp::ctxouter(nqp::ctxouter($ctx))),
+              Nil,
+              nqp::stmts(
+                (my $stash := nqp::create(PseudoStash)),
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN),
+                nqp::setwho(
+                  Metamodel::ModuleHOW.new_type(:name('SETTING')),
+                  $stash)))
         },
         'CLIENT' => sub ($cur) {
             my $pkg := nqp::getlexrel(

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 7;
+plan 8;
 
 # RT #132295
 
@@ -49,5 +49,16 @@ is-run ｢
 ｣, :err{.contains: 'pass' & 'line 4' & 'line 6' }, :1exitcode,
     'death in whenevered Supply referenced original location of throw';
 
+subtest 'using wrong sigil on var, suggests correct variable name' => {
+    plan 3;
+
+    throws-like ｢my @foo; $foo[1] = 42｣, X::Undeclared, :message(/'Did you mean' .+ '@foo'/),
+        '@array for $array';
+    throws-like ｢my %foo; $foo<2> = 42｣, X::Undeclared, :message(/'Did you mean' .+ '%foo'/),
+        '%hash for $hash';
+    throws-like ｢my @foo; my %foo; $foo<2> = 42｣, X::Undeclared,
+      :message(/'Did you mean' .+ [ '@foo' .+ '%foo' | '%foo' .+ '@foo' ]/),
+        '@foo and %foo for $foo, when both are declared';
+}
 
 # vim: ft=perl6 expandtab sw=4

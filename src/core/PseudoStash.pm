@@ -30,16 +30,20 @@ my class PseudoStash is Map {
         },
         'CORE' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
+            until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
-            my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
-            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('CORE')),
-                $stash);
+            nqp::if(
+              nqp::isnull($ctx),
+              Nil,
+              nqp::stmts(
+                (my $stash := nqp::create(PseudoStash)),
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
+                nqp::setwho(
+                  Metamodel::ModuleHOW.new_type(:name('CORE')),
+                    $stash)))
         },
         'CALLER' => sub ($cur) {
             nqp::if(
@@ -121,16 +125,20 @@ my class PseudoStash is Map {
         },
         'UNIT' => sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
-            until nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
+            until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
-            my $stash := nqp::create(PseudoStash);
-            nqp::bindattr($stash, Map, '$!storage',nqp::ctxlexpad($ctx));
-            nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('UNIT')),
-                $stash);
+            nqp::if(
+              nqp::isnull($ctx),
+              Nil,
+              nqp::stmts(
+                (my $stash := nqp::create(PseudoStash)),
+                nqp::bindattr($stash, Map, '$!storage',nqp::ctxlexpad($ctx)),
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
+                nqp::setwho(
+                  Metamodel::ModuleHOW.new_type(:name('UNIT')),
+                  $stash)))
         },
         'SETTING' => sub ($cur) {
             # Same as UNIT, but go a little further out (two steps, for

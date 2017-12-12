@@ -49,7 +49,7 @@ is-run ｢
 ｣, :err{.contains: 'pass' & 'line 4' & 'line 6' }, :1exitcode,
     'death in whenevered Supply referenced original location of throw';
 
-subtest 'using wrong sigil on var, suggests correct variable name' => {
+subtest 'using wrong sigil on var suggests correct variable name' => {
     plan 3;
 
     throws-like ｢my @foo; $foo[1] = 42｣, X::Undeclared, :message(/'Did you mean' .+ '@foo'/),

@@ -38,16 +38,21 @@ throws-like { (1, 2, 3)[42] = 21 }, X::Assignment::RO,
 'Trying to assign to immutable List element gives useful error';
 
 # RT #126184
-is-run ｢
-    # !!! NOTE !!! Code's structure is important, to keep correct line number
-    my $supply = supply {
-        die 'pass' # line 4
-    }
-    react {  # line 6
-        whenever $supply { }
-    }
-｣, :err{.contains: 'pass' & 'line 4' & 'line 6' }, :1exitcode,
-    'death in whenevered Supply referenced original location of throw';
+if $*DISTRO.is-win {
+    skip ｢is-run() routine doesn't quite work right on Windows｣;
+}
+else {
+    is-run ｢
+        # !! NOTE !! Code's structure is important, to keep correct line number
+        my $supply = supply {
+            die 'pass' # line 4
+        }
+        react {  # line 6
+            whenever $supply { }
+        }
+    ｣, :err{.contains: 'pass' & 'line 4' & 'line 6' }, :1exitcode,
+        'death in whenevered Supply referenced original location of throw';
+}
 
 subtest 'using wrong sigil on var suggests correct variable name' => {
     plan 3;

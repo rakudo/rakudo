@@ -3741,9 +3741,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token rx_adverbs {
+    token rx_adverbs($quotepair-kind = 'rxadverb') {
         [
-            <quotepair('rxadverb')> <.ws>
+            <quotepair($quotepair-kind)> <.ws>
             :my $*ADVERB;
             { $*ADVERB := $<quotepair>[-1] }
             <.setup_quotepair>
@@ -3903,7 +3903,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         {} <.qok($/)>
-        <rx_adverbs>
+        <rx_adverbs('tr-adverb')>
         <tribble(self.slang_grammar('Quote'), self.slang_grammar('Quote'), ['cc'])>
         <.old_rx_mods>?
     }

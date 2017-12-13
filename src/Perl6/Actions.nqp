@@ -8126,61 +8126,56 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method quote:sym<tr>($/) {
-        my $left  := $<tribble><left>.ast;
-        my $right := $<tribble><right>.ast;
-
-        # First we get ourselves a local variable to store the original LHS,
-        # which might be $_ or a LHS to ~~ - in both cases $_ holds the value.
-        my $orig_lhs := $*W.cur_lexpad.unique('orig_lhs');
-
-        # Next we build a Pair to pass to .trans.
-        $left.named('key');
-        $right.named('value');
-        my $pair := QAST::Op.new(
-            :op('callmethod'), :name('new'), :returns($*W.find_symbol(['Pair'])), :node($/),
-            QAST::Var.new( :name('Pair'), :scope('lexical'), :node($/) ),
-            $left, $right
-        );
-
-        # We store the value currently in $_ to get the distance later.
-        my $store := QAST::Op.new( :op<bind>,
-            QAST::Var.new( :name($orig_lhs), :scope<lexical>, :decl<var> ),
-            QAST::Op.new( :op<decont>,
-                WANTED(QAST::Var.new( :name('$_'), :scope<lexical> ),'tr')
-            )
-        );
-
-        # ...pass the Pair we build to &Str.trans.
-        my $trans := QAST::Op.new(
-            :node($/),
+        # Prep our .trans() call QAST
+        # $_.trans( Pair.new: left tribble, right tribble )
+        my $trans := QAST::Op.new: :node($/),
+            WANTED(QAST::Var.new(:name<$_>, :scope<lexical>), 'tr/call'),
             :op<callmethod>, :name<trans>,
-            WANTED(QAST::Var.new(:name('$_'), :scope<lexical>),'tr/call'),
-            $pair
-        );
+                QAST::Op.new: :node($/),
+                    :returns($*W.find_symbol: ['Pair']),
+                    QAST::Var.new(:name<Pair>, :scope<lexical>),
+                    :op<callmethod>, :name<new>,
+                        $<tribble><left>.ast,  # key
+                        $<tribble><right>.ast; # value
 
-        if nqp::elems($<rx_adverbs><quotepair>) {
-            self.handle_and_check_adverbs($/, %TRANS_ALLOWED_ADVERBS, 'transliteration', $trans);
-        }
+        self.handle_and_check_adverbs:
+            $/, %TRANS_ALLOWED_ADVERBS, 'transliteration', $trans
+        if nqp::elems($<rx_adverbs><quotepair>);
 
-        my $StrDistance := $*W.find_symbol(['StrDistance']);
-        # Putting it all together.
-        my $past := make QAST::Stmt.new(
-            $store,
-            QAST::Op.new(
+        # If we're just calling `TR///`, then we've got what we need already
+        return make $trans if $<sym> eq 'TR';
+
+        # We got here, that means we're using the `tr///`, so we'll grab
+        # ourselves a temporary variable and save $_ into it. Then we'll
+        # use our $trans QAST to call .trans() and will then save its result
+        # into $_. Once that's done, we'll create a StrDistance object,
+        # passing it our temp var with original $_ value and the new
+        # result now stored in $_. That's the object we'll use as our return
+        # value. Sounds fun and awesome! Let's do this \o/
+
+        # ask for a unique name for our temp var
+        my $original := $*W.cur_lexpad.unique: 'original_value_to_trans';
+
+        make QAST::Stmt.new:
+            QAST::Op.new( # save original $_ into our temp var
+                QAST::Var.new(:name($original), :scope<lexical>, :decl<var>),
+                :op<bind>, QAST::Op.new: :op<decont>,
+                WANTED(QAST::Var.new(:name<$_>, :scope<lexical>), 'tr')
+            ),
+            QAST::Op.new( # call .trans() and assign result to $_
+                WANTED(QAST::Var.new(:name<$_>, :scope<lexical>), 'tr/assign'),
                 :op<call>, :name('&infix:<=>'),
-                WANTED(QAST::Var.new(:name('$_'), :scope<lexical>),'tr/assign'),
                 $trans,
             ),
-            # We build a StrDistance here, which lazily gets us the distance.
-            QAST::Op.new(
-                :op<callmethod>, :name<new>, :returns($StrDistance),
-                WANTED(QAST::Var.new( :name<StrDistance>, :scope<lexical> ),'tr'),
-                QAST::Var.new( :name($orig_lhs), :scope<lexical>, :named('before') ),
-                QAST::Var.new( :name('$_'), :scope<lexical>, :named('after') )
-            )
-        );
-
-        $past
+            QAST::Op.new: # our return value: the StrDistance object
+                :returns($*W.find_symbol: ['StrDistance']),
+                WANTED(QAST::Var.new(
+                  :name<StrDistance>, :scope<lexical> ), 'tr'
+                ), :op<callmethod>, :name<new>,
+                    QAST::Var.new(
+                      :named<before>, :name($original), :scope<lexical>),
+                    QAST::Var.new:
+                      :named<after>,  :name<$_>, :scope<lexical>
     }
 
     method quote:sym<s>($/) {

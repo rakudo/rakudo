@@ -3899,7 +3899,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token quote:sym<tr> {
-        <sym>
+        $<sym>=['tr' | 'TR']
         :my %*RX;
         :my $*INTERPOLATE := 1;
         {} <.qok($/)>

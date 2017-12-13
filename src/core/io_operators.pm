@@ -1,6 +1,10 @@
 my class IO::ArgFiles { ... }
 
 proto sub print(|) {*}
+multi sub print(--> True) { }    # nothing to do
+multi sub print(Junction:D \j) {
+    j.THREAD(&print)
+}
 multi sub print(Str:D \x) {
     $*OUT.print(x);
 }
@@ -15,6 +19,9 @@ multi sub print(**@args is raw) {
 
 proto sub say(|) {*}
 multi sub say() { $*OUT.print-nl }
+multi sub say(Junction:D \j) {
+    j.THREAD(&say)
+}
 multi sub say(Str:D \x) {
     my $out := $*OUT;
     $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
@@ -35,6 +42,9 @@ multi sub say(**@args is raw) {
 
 proto sub put(|) {*}
 multi sub put() { $*OUT.print-nl }
+multi sub put(Junction:D \j) {
+    j.THREAD(&put)
+}
 multi sub put(Str:D \x) {
     my $out := $*OUT;
     $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
@@ -57,6 +67,9 @@ proto sub note(|) {*}
 multi sub note() {
     my $err := $*ERR;
     $err.print(nqp::concat("Noted",$err.nl-out));
+}
+multi sub note(Junction:D \j) {
+    j.THREAD(&note)
 }
 multi sub note(Str:D \x) {
     my $err := $*ERR;

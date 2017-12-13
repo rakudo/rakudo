@@ -279,6 +279,21 @@ my class Junction { # declared in BOOTSTRAP
         nqp::atpos($!storage,$i).sink while nqp::islt_i(++$i,$elems);
     }
 
+    # Helper method for handling those cases where auto-threading doesn't cut it.
+    # Call the given Callable with each of the Junction values, and return a
+    # Junction with the results of the calls.
+    method THREAD(&call) {
+        my $values := nqp::getattr(self,Junction,'$!storage');
+        my int $i = -1;
+        my int $elems = nqp::elems($values);
+        my $result := nqp::setelems(nqp::list,$elems);
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::bindpos($result,$i,call(nqp::atpos($values,$i)))
+        );
+        nqp::p6bindattrinvres(nqp::clone(self),Junction,'$!storage',$result)
+    }
+
     method AUTOTHREAD(&call, |args) {
         my Mu $positionals := nqp::getattr(nqp::decont(args),Capture,'@!list');
 

@@ -9502,6 +9502,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my %sig_info := hash(parameters => @params);
             my $signature := $*W.create_signature_and_params($/, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $signature, @params);
+
+            fatalize($block[1]) if $*FATAL;
+
             my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
             $past := block_closure(reference_to_code_object($code, $block));
             $past.returns($WhateverCode);

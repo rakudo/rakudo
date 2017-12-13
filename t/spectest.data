@@ -448,6 +448,8 @@ S05-substitution/subst.t
 S05-syntactic-categories/new-symbols.t
 S05-transliteration/79778.t
 S05-transliteration/trans.t
+S05-transliteration/trans-tr-lowercase-operator.t
+S05-transliteration/trans-TR-operator.t
 S05-transliteration/with-closure.t
 S06-advanced/callframe.t
 S06-advanced/callsame.t

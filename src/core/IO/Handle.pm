@@ -652,6 +652,7 @@ my class IO::Handle {
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.print(@list.join);
     }
+    multi method print(Junction:D \j) { j.THREAD: {self.print: $_} }
 
     proto method put(|) {*}
     multi method put(IO::Handle:D: Str:D \x --> True) {
@@ -662,6 +663,7 @@ my class IO::Handle {
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.put(@list.join);
     }
+    multi method put(Junction:D \j) { j.THREAD: {self.put: $_} }
 
     multi method say(IO::Handle:D: Str:D $x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);

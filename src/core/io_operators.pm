@@ -2,20 +2,10 @@ my class IO::ArgFiles { ... }
 
 proto sub print(|) {*}
 multi sub print(--> True) { }    # nothing to do
-multi sub print(Junction:D \j) {
-    j.THREAD(&print)
-}
-multi sub print(Str:D \x) {
-    $*OUT.print(x);
-}
-multi sub print(\x) {
-    $*OUT.print(x.Str);
-}
-multi sub print(**@args is raw) {
-    my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.Str)) for @args;
-    $*OUT.print($str);
-}
+multi sub print(Junction:D \j)  { j.THREAD(&print) }
+multi sub print(Str:D \x)       { $*OUT.print(x) }
+multi sub print(\x)             { $*OUT.print(x.Str) }
+multi sub print(**@args is raw) { $*OUT.print: @args.join }
 
 proto sub say(|) {*}
 multi sub say() { $*OUT.print-nl }
@@ -54,13 +44,8 @@ multi sub put(\x) {
     $out.print(nqp::concat(nqp::unbox_s(x.Str),$out.nl-out));
 }
 multi sub put(**@args is raw) {
-    my str $str;
-    my $iter := @args.iterator;
-    nqp::until(
-      nqp::eqaddr(($_ := $iter.pull-one), IterationEnd),
-      $str = nqp::concat($str, nqp::unbox_s(.Str)));
     my $out := $*OUT;
-    $out.print(nqp::concat($str,$out.nl-out));
+    $out.print: @args.join ~ $out.nl-out
 }
 
 proto sub note(|) {*}

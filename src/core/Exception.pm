@@ -1823,7 +1823,14 @@ my class X::Syntax::Extension::SpecialForm does X::Syntax {
 my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {
-        "Preceding context expects a term, but found infix {$.infix.trim} instead";
+        my $infix := $!infix.trim;
+        "Preceding context expects a term, but found infix $infix instead."
+        ~ (
+            $.post && $.post.starts-with('end ')
+                ?? "\nDid you forget '=begin $.post.substr(4)' Pod marker?"
+                !! "\nDid you make a mistake in Pod syntax?"
+            if $infix eq '='
+        )
     }
 }
 

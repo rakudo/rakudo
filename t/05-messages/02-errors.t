@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 10;
+plan 12;
 
 # RT #132295
 
@@ -76,5 +76,14 @@ is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
     .contains: 'No values supplied to enum'
              & 'does %h need to be declared constant'
 }, 'declaring enum with uninitialized hash warns about it';
+
+{ # RT #125300
+    is-run ｢=end MEOWS｣, :err{ /«Pod»/ && .contains: '=begin MEOWS' },
+        :exitcode(*),
+        'error with `=end FOO` suggests Pod mistake and offers `=begin FOO`';
+
+    is-run ｢=for｣, :err(/«Pod»/), :exitcode(*),
+        'error for `=for` suggests it might be a Pod mistake';
+}
 
 # vim: ft=perl6 expandtab sw=4

@@ -191,6 +191,7 @@ multi sub warn(*@msg) {
     nqp::throw($ex);
     0;
 }
+multi sub warn(Junction:D \j) { j.THREAD: &warn }
 
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());

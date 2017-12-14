@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 12;
+plan 14;
 
 # RT #132295
 
@@ -84,6 +84,18 @@ is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
 
     is-run ｢=for｣, :err(/«Pod»/), :exitcode(*),
         'error for `=for` suggests it might be a Pod mistake';
+}
+
+{ # RT #125596
+    is-run ｢say 1 if;｣, :err{
+            1 == .comb: 'Whitespace required'
+        and 1 == .comb: ｢keyword 'if'｣
+    }, :1exitcode, '`say 1 if;` does not repeat error';
+
+    is-run ｢say 1 unless;｣, :err{
+            1 == .comb: 'Whitespace required'
+        and 1 == .comb: ｢keyword 'unless'｣
+    }, :1exitcode, '`say 1 unless;` does not repeat error';
 }
 
 # vim: ft=perl6 expandtab sw=4

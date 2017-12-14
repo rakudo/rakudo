@@ -678,6 +678,26 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
+        multi method sort(Map:D:) is default {
+            Seq.new(
+              Rakudo::Iterator.ReifiedList(
+                Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
+                  nqp::p6bindattrinvres(
+                    nqp::create(List),List,'$!reified',self.IterationBuffer
+                  ),
+                  {
+                    nqp::if(
+                      nqp::istype(
+                        (my \key = nqp::getattr(nqp::decont($^a),Pair,'$!key')),
+                        Junction),
+                      nqp::getattr(<a b c>.any, Junction, '$!storage'),
+                      key)
+                  }
+                )
+              )
+            )
+        }
+
         method keys() {
             Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {

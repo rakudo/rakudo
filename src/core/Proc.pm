@@ -36,7 +36,7 @@ my class Proc {
                     $cur-promise .= then({ $!proc.close-stdin; });
                     self!await-if-last-handle
                 }));
-            ++$!active-handles;
+            $!active-handles++;
             $!w := True;
         }
         elsif nqp::istype($in, Str) && $in eq '-' {
@@ -52,7 +52,7 @@ my class Proc {
             $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
                 :on-read({ (try $chan.receive) // buf8 }),
                 :on-close({ self!await-if-last-handle }));
-            ++$!active-handles;
+            $!active-handles++;
             @!pre-spawn.push({
                 $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
                     done => { $chan.close },
@@ -81,7 +81,7 @@ my class Proc {
                         &!start-stdout = Nil;
                         await $stdout-supply.native-descriptor
                     }));
-                ++$!active-handles;
+                $!active-handles++;
                 @!pre-spawn.push({
                     $stdout-supply = $!proc.stdout(:bin)
                 });
@@ -119,7 +119,7 @@ my class Proc {
                         $!active-handles--;
                         await $stderr-supply.native-descriptor
                     }));
-                ++$!active-handles;
+                $!active-handles++;
                 @!pre-spawn.push({
                     $stderr-supply = $!proc.stderr(:bin);
                 });

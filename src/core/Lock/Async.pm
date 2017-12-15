@@ -166,7 +166,7 @@ my class Lock::Async {
         }
         else {
             my int $n = nqp::elems($rec-list);
-            loop (my int $i = 0; $i < $n; ++$i) {
+            loop (my int $i = 0; $i < $n; $i++) {
                 return True if nqp::eqaddr(nqp::atpos($rec-list, $i), self);
             }
             False
@@ -192,7 +192,7 @@ my class Lock::Async {
         else {
             $new-held := nqp::list();
             my int $n = nqp::elems($current);
-            loop (my int $i = 0; $i < $n; ++$i) {
+            loop (my int $i = 0; $i < $n; $i++) {
                 my $lock := nqp::atpos($current, $i);
                 nqp::push($new-held, $lock) unless nqp::eqaddr($lock, self);
             }

@@ -206,7 +206,7 @@ my class Block { # declared in BOOTSTRAP
         # Normal Positionals
         my Int $idx = -1;
         for $sig.params.grep(*.positional) -> $parm {
-            ++$idx;
+            $idx++;
             unless $idx < primers.list.elems {
                 @plist.push($parm);
                 @clist.push($capwrap ~ '[' ~ @plist.end ~ ']');
@@ -230,7 +230,7 @@ my class Block { # declared in BOOTSTRAP
         @tlist.push($slurp_p) if $slurp_p;
         @plist.push($slurp_p) if $slurp_p and not $slurp_p.capture;
 
-        ++$idx;
+        $idx++;
         my $cidx = 0;
 
         # Even if we prime above the arity, do it anyway, for errors.
@@ -254,7 +254,7 @@ my class Block { # declared in BOOTSTRAP
                     @clist.push("primers.list[$idx]");
                 }
             }
-            ++$idx;
+            $idx++;
         }
         if $slurp_p {
             @clist.push('|' ~ $capwrap ~ '[' ~ ++$widx ~ '..*-1]' );

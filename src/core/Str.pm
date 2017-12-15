@@ -2692,7 +2692,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $pos -= $pos % $?TABSTOP;
                     $pos += $?TABSTOP;
                 } else {
-                    ++$pos
+                    $pos++
                 }
             }
             if $l<indent-chars> and $pos % $?TABSTOP {

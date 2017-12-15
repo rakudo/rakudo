@@ -60,7 +60,7 @@ my class Awaiter::Blocking does Awaiter {
                 nqp::push_i(indices, $insert);
             }
 
-            ++$insert;
+            $insert++;
         }
 
         # See if we have anything that we need to really block on. If so, we
@@ -72,7 +72,7 @@ my class Awaiter::Blocking does Awaiter {
             my $l = Lock.new;
             my $ready = $l.condition();
             my int $remaining = $num-handles;
-            loop (my int $i = 0; $i < $num-handles; ++$i) {
+            loop (my int $i = 0; $i < $num-handles; $i++) {
                 my $handle := nqp::atpos(handles, $i);
                 my int $insert = nqp::atpos_i(indices, $i);
                 $handle.subscribe-awaiter(-> \success, \result {

@@ -159,8 +159,7 @@ public final class RakOps {
     
     public static SixModelObject p6definite(SixModelObject obj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        obj = Ops.decont(obj, tc);
-        return obj instanceof TypeObject ? gcx.False : gcx.True;
+        return obj == null || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
     }
     
     public static SixModelObject p6box_i(long value, ThreadContext tc) {

@@ -254,6 +254,8 @@ sub unwanted($ast, $by) {
             if $ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>' {
                 UNWANTALL($ast,$byby);
             }
+            elsif $ast.name eq '&postfix:<++>' { $ast.name('&prefix:<++>') }
+            elsif $ast.name eq '&postfix:<-->' { $ast.name('&prefix:<-->') }
             elsif $ast.name eq '&term:<now>' {
                 $ast.node.worry("Useless use of 'now' in sink context");
             }
@@ -377,6 +379,8 @@ sub unwanted($ast, $by) {
                             $node.node.worry("Useless use of $sym in sink context");
                         }
                     }
+                    elsif $node.name eq '&postfix:<++>' { $node.name('&prefix:<++>') }
+                    elsif $node.name eq '&postfix:<-->' { $node.name('&prefix:<-->') }
                     elsif $node.name eq '&term:<now>' {
                         $node.annotate('useless', "'now'");
                         $node.node.worry("Useless use of 'now' in sink context");

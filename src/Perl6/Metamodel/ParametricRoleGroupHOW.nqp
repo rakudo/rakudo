@@ -66,7 +66,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         my int $n := nqp::elems(@args);
         while $i < $n {
             @args[$i] := nqp::decont(@args[$i]);
-            $i++;
+            ++$i;
         }
         nqp::push(@args, %named_args || NO_NAMEDS);
         nqp::parameterizetype($obj, @args);

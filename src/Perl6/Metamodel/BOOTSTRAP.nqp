@@ -155,14 +155,14 @@ my class Binder {
                 $count := -1000;  # in case a pos can sneak past a slurpy somehow
             }
             elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
-                $count++
+                ++$count
             }
             else {
-                $count++;
-                $arity++;
+                ++$count;
+                ++$arity;
             }
 
-            $param_i++;
+            ++$param_i;
         }
         my str $s := $arity == 1 ?? "" !! "s";
         my str $routine := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
@@ -354,7 +354,7 @@ my class Binder {
             my int $i := 0;
             while $i < $num_type_caps {
                 nqp::bindkey($lexpad, nqp::atpos_s($type_caps, $i), $oval.WHAT);
-                $i++;
+                ++$i;
             }
         }
 
@@ -522,7 +522,7 @@ my class Binder {
                     }
                     return $BIND_RESULT_FAIL;
                 }
-                $i++;
+                ++$i;
             }
         }
 
@@ -695,7 +695,7 @@ my class Binder {
                         else {
                             nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                         }
-                        $k++;
+                        ++$k;
                     }
                     nqp::bindattr($capsnap, Capture, '@!list', @pos_args);
 
@@ -765,7 +765,7 @@ my class Binder {
                         else {
                             nqp::push($temp, nqp::box_s(nqp::captureposarg_s($capture, $cur_pos_arg), Str));
                         }
-                        $cur_pos_arg++;
+                        ++$cur_pos_arg;
                     }
                     my $slurpy_type := $flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
                     my $bindee := $flags +& $SIG_ELEM_SLURPY_ONEARG
@@ -801,7 +801,7 @@ my class Binder {
                                 $SIG_ELEM_NATIVE_STR_VALUE, nqp::null(), 0, 0.0, nqp::captureposarg_s($capture, $cur_pos_arg));
                         }
                         return $bind_fail if $bind_fail;
-                        $cur_pos_arg++;
+                        ++$cur_pos_arg;
                     }
                     else {
                         # No value. If it's optional, fetch a default and bind that;
@@ -930,7 +930,7 @@ my class Binder {
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
-                    $k++;
+                    ++$k;
                 }
                 my %named_args := nqp::capturenamedshash($capture);
                 return Junction.AUTOTHREAD($caller,
@@ -998,7 +998,7 @@ my class Binder {
         my int $i            := 0;
         while $i < $num_params {
             my $param := @params[$i];
-            $i++;
+            ++$i;
 
             # If the parameter is anything other than a boring old
             # positional parameter, we won't analyze it. */
@@ -1088,7 +1088,7 @@ my class Binder {
             }
 
             # Continue to next argument.
-            $cur_pos_arg++;
+            ++$cur_pos_arg;
         }
 
         # If we have any left over arguments, it's a binding fail.
@@ -1706,7 +1706,7 @@ BEGIN {
                         my int $i := 0;
                         while $i < nqp::elems(@nexts) {
                             @nexts[$i] := @nexts[$i].clone();
-                            $i++;
+                            ++$i;
                         }
                         %pclone<NEXT> := @nexts;
                     }
@@ -1717,7 +1717,7 @@ BEGIN {
                             nqp::captureinnerlex(nqp::getattr(
                                 (@lasts[$i] := @lasts[$i].clone()),
                                 Code, '$!do'));
-                            $i++;
+                            ++$i;
                         }
                         %pclone<LAST> := @lasts;
                     }
@@ -1728,7 +1728,7 @@ BEGIN {
                             nqp::captureinnerlex(nqp::getattr(
                                 (@quits[$i] := @quits[$i].clone()),
                                 Code, '$!do'));
-                            $i++;
+                            ++$i;
                         }
                         %pclone<QUIT> := @quits;
                     }
@@ -1739,7 +1739,7 @@ BEGIN {
                             nqp::captureinnerlex(nqp::getattr(
                                 (@closes[$i] := @closes[$i].clone()),
                                 Code, '$!do'));
-                            $i++;
+                            ++$i;
                         }
                         %pclone<CLOSE> := @closes;
                     }
@@ -1769,7 +1769,7 @@ BEGIN {
                     my int $i := 0;
                     while $i < nqp::elems(@next) {
                         nqp::p6capturelexwhere(@next[$i]);
-                        $i++;
+                        ++$i;
                     }
                 }
                 my @last := nqp::atkey($phasers, 'LAST');
@@ -1777,7 +1777,7 @@ BEGIN {
                     my int $i := 0;
                     while $i < nqp::elems(@last) {
                         nqp::p6capturelexwhere(@last[$i]);
-                        $i++;
+                        ++$i;
                     }
                 }
                 my @quit := nqp::atkey($phasers, 'QUIT');
@@ -1785,7 +1785,7 @@ BEGIN {
                     my int $i := 0;
                     while $i < nqp::elems(@quit) {
                         nqp::p6capturelexwhere(@quit[$i]);
-                        $i++;
+                        ++$i;
                     }
                 }
                 my @close := nqp::atkey($phasers, 'CLOSE');
@@ -1793,7 +1793,7 @@ BEGIN {
                     my int $i := 0;
                     while $i < nqp::elems(@close) {
                         nqp::p6capturelexwhere(@close[$i]);
-                        $i++;
+                        ++$i;
                     }
                 }
             }
@@ -1930,20 +1930,20 @@ BEGIN {
                         # narrower if first is rw and second isn't; tied if neither has
                         # constraints or both have constraints.
                         if %a<constraints>[$i] && !%b<constraints>[$i] {
-                            $narrower++;
+                            ++$narrower;
                         }
                         elsif nqp::atpos_i(%a<rwness>, $i) > nqp::atpos_i(%b<rwness>, $i) {
-                            $narrower++;
+                            ++$narrower;
                         }
                         elsif (!%a<constraints>[$i] && !%b<constraints>[$i])
                            || (%a<constraints>[$i] && %b<constraints>[$i]) {
-                            $tied++;
+                            ++$tied;
                         }
                     }
                     elsif (nqp::atpos_i(%a<type_flags>, $i) +& $TYPE_NATIVE_MASK)
                       && !(nqp::atpos_i(%b<type_flags>, $i) +& $TYPE_NATIVE_MASK) {
                         # Narrower because natives always are.
-                        $narrower++;
+                        ++$narrower;
                     }
                     elsif (nqp::atpos_i(%b<type_flags>, $i) +& $TYPE_NATIVE_MASK)
                       && !(nqp::atpos_i(%a<type_flags>, $i) +& $TYPE_NATIVE_MASK) {
@@ -1953,16 +1953,16 @@ BEGIN {
                     else {
                         if nqp::istype($type_obj_a, $type_obj_b) {
                             # Narrower - note it and we're done.
-                            $narrower++;
+                            ++$narrower;
                         }
                         else {
                             # Make sure it's tied, rather than the other way around.
                             unless nqp::istype($type_obj_b, $type_obj_a) {
-                                $tied++;
+                                ++$tied;
                             }
                         }
                     }
-                    $i++;
+                    ++$i;
                 }
 
                 # If one is narrower than the other from current analysis, we're done.
@@ -2054,11 +2054,11 @@ BEGIN {
                         next;
                     }
                     elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
-                        $max_arity++;
+                        ++$max_arity;
                     }
                     else {
-                        $max_arity++;
-                        $min_arity++;
+                        ++$max_arity;
+                        ++$min_arity;
                     }
 
                     # Record type info for this parameter.
@@ -2075,7 +2075,7 @@ BEGIN {
                         %info<constraints>[$significant_param] := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
-                        $num_types++;
+                        ++$num_types;
                     }
                     if $flags +& $SIG_ELEM_IS_RW {
                         nqp::bindpos_i(%info<rwness>, $significant_param, 1);
@@ -2107,7 +2107,7 @@ BEGIN {
                         nqp::push(@coerce_type_objs, $coerce_type);
                     }
 
-                    $significant_param++;
+                    ++$significant_param;
                 }
                 %info<min_arity> := $min_arity;
                 %info<max_arity> := $max_arity;
@@ -2129,7 +2129,7 @@ BEGIN {
                     my int $i      := 0;
                     while $i < nqp::elems(@coerce_type_idxs) {
                         %c_info<types>[@coerce_type_idxs[$i]] := @coerce_type_objs[$i];
-                        $i++;
+                        ++$i;
                     }
                     nqp::push(@graph, nqp::hash(
                         'info',      %c_info,
@@ -2151,13 +2151,13 @@ BEGIN {
                     unless $i == $j {
                         if is_narrower(@graph[$i]<info>, @graph[$j]<info>) {
                             @graph[$i]<edges>[@graph[$i]<edges_out>] := @graph[$j];
-                            @graph[$i]<edges_out>++;
-                            @graph[$j]<edges_in>++;
+                            ++@graph[$i]<edges_out>;
+                            ++@graph[$j]<edges_in>;
                         }
                     }
-                    $j++;
+                    ++$j;
                 }
-                $i++;
+                ++$i;
             }
 
             # Perform the topological sort.
@@ -2173,10 +2173,10 @@ BEGIN {
                     if @graph[$i]<edges_in> == 0 {
                         # Add to results.
                         nqp::push(@result, @graph[$i]<info>);
-                        $candidates_to_sort--;
+                        --$candidates_to_sort;
                         @graph[$i]<edges_in> := $EDGE_REMOVAL_TODO;
                     }
-                    $i++;
+                    ++$i;
                 }
                 if $rem_results == nqp::elems(@result) {
                     nqp::die("Circularity detected in multi sub types" ~ ($self.name ?? " for &" ~ $self.name !! ''));
@@ -2189,12 +2189,12 @@ BEGIN {
                     if @graph[$i]<edges_in> == $EDGE_REMOVAL_TODO {
                         $j := 0;
                         while $j < @graph[$i]<edges_out> {
-                            @graph[$i]<edges>[$j]<edges_in>--;
-                            $j++;
+                            --@graph[$i]<edges>[$j]<edges_in>;
+                            ++$j;
                         }
                         @graph[$i]<edges_in> := $EDGE_REMOVED;
                     }
-                    $i++;
+                    ++$i;
                 }
 
                 # This is end of a tied group, so leave a gap.
@@ -2337,7 +2337,7 @@ BEGIN {
                                     }
                                 }
                             }
-                            $i++;
+                            ++$i;
                         }
 
                         unless $type_mismatch || $rwness_mismatch {
@@ -2346,7 +2346,7 @@ BEGIN {
                         }
                     }
 
-                    $cur_idx++;
+                    ++$cur_idx;
                 } else {
                     # We've hit the end of a tied group now. If any of them have a
                     # bindability check requirement, we'll do any of those now.
@@ -2410,7 +2410,7 @@ BEGIN {
                             else {
                                 $new_possibles := [nqp::atpos(@possibles, $i)];
                             }
-                            $i++;
+                            ++$i;
                         }
 
                         # If we have an updated list of possibles, use this
@@ -2427,7 +2427,7 @@ BEGIN {
                         while @possibles {
                             nqp::push($many_res, nqp::atkey(nqp::shift(@possibles), 'sub'))
                         }
-                        $cur_idx++;
+                        ++$cur_idx;
                         unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
                             $done := 1;
                         }
@@ -2437,7 +2437,7 @@ BEGIN {
                     }
                     else {
                         # Keep looping and looking, unless we really hit the end.
-                        $cur_idx++;
+                        ++$cur_idx;
                         unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
                             $done := 1;
                         }
@@ -2524,7 +2524,7 @@ BEGIN {
                             $has_junc_args := 1;
                         }
                     }
-                    $i++;
+                    ++$i;
                 }
                 if $has_junc_args {
                     $junctional_res := -> *@pos, *%named {
@@ -2631,7 +2631,7 @@ BEGIN {
                 # typed candidates in which case we can look a bit further.
                 # We also exit if we found something.
                 unless nqp::isconcrete($cur_candidate) {
-                    $cur_idx++;
+                    ++$cur_idx;
                     if nqp::isconcrete(nqp::atpos(@candidates, $cur_idx))
                     && $all_native && !nqp::isconcrete($cur_result) {
                         next;
@@ -2645,7 +2645,7 @@ BEGIN {
                 # Check if it's admissible by arity.
                 if $num_args < nqp::atkey($cur_candidate, 'min_arity')
                 || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
-                    $cur_idx++;
+                    ++$cur_idx;
                     next;
                 }
 
@@ -2712,13 +2712,13 @@ BEGIN {
                             $used_defcon := 1;
                         }
                     }
-                    $i++;
+                    ++$i;
                 }
                 if $type_match_possible {
                     $type_possible := 1;
                 }
                 if $type_mismatch {
-                    $cur_idx++;
+                    ++$cur_idx;
                     next;
                 }
                 if ($used_defcon) {
@@ -2739,7 +2739,7 @@ BEGIN {
                 }
                 else {
                     $cur_result := nqp::atkey($cur_candidate, 'sub');
-                    $cur_idx++;
+                    ++$cur_idx;
                 }
             }
 
@@ -3267,7 +3267,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?endif
                         CATCH { nqp::push(@exceptions, $_) }
                     }
-                    $i++;
+                    ++$i;
                 }
             }
 
@@ -3284,7 +3284,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                         nqp::ifnull($resultish, Mu));
 #?endif
                     CATCH { nqp::push(@exceptions, $_); last; }
-                    $i++;
+                    ++$i;
                 }
             }
 
@@ -3329,7 +3329,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
-                    $k++;
+                    ++$k;
                 }
                 my %named_args := nqp::capturenamedshash($capture);
                 Junction.AUTOTHREAD($caller,

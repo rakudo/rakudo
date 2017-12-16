@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 14;
+plan 15;
 
 # RT #132295
 
@@ -96,6 +96,20 @@ is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
             1 == .comb: 'Whitespace required'
         and 1 == .comb: ｢keyword 'unless'｣
     }, :1exitcode, '`say 1 unless;` does not repeat error';
+}
+
+# RT #126539
+if $*DISTRO.is-win {
+    skip ｢is-run() routine doesn't quite work right on Windows｣;
+}
+else {
+    is-run ｢
+        # We're lookin...
+        # for...
+        # line number
+        class MyInt is Any is Int { } # line 5
+    ｣, :err{.contains: ':5' }, :1exitcode,
+        'C3 linearization mentions line number';
 }
 
 # vim: ft=perl6 expandtab sw=4

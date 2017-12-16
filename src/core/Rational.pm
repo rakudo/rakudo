@@ -87,7 +87,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             my $fract  = self.abs - $whole;
 
             # fight floating point noise issues RT#126016
-            if $fract.Num == 1e0 { $whole++; $fract = 0 }
+            if $fract.Num == 1e0 { ++$whole; $fract = 0 }
 
             my $result = nqp::if(
                 nqp::islt_I($!numerator, 0), '-', ''
@@ -105,7 +105,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                         $fract        -= $_;
                     }
                 }
-                $fract-result++ if 2*$fract >= 1; # round off fractional result
+                ++$fract-result if 2*$fract >= 1; # round off fractional result
 
                 $result ~= '.' ~ $fract-result;
             }

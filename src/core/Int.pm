@@ -152,7 +152,7 @@ my class Int does Real { # declared in BOOTSTRAP
         my $lsb = 0;
         my $x = self.abs;
         while $x +& 0xff == 0 { $lsb += 8; $x +>= 8; }
-        while $x +& 0x01 == 0 { $lsb++; $x +>= 1; }
+        while $x +& 0x01 == 0 { ++$lsb; $x +>= 1; }
         $lsb;
     }
 

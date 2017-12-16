@@ -3059,6 +3059,9 @@ multi sub substr(Str:D \what, Int:D \start, Int:D \want) {
 }
 multi sub substr(Str() $what, \start, $want?) {
 
+    die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314
+      if nqp::istype(start,Regex);
+
     # should really be int, but \ then doesn't work for rw access
     my $r := Rakudo::Internals.SUBSTR-SANITY($what, start, $want, my Int $from, my Int $chars);
     nqp::istype($r,Failure)

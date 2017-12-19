@@ -203,18 +203,46 @@ my class IO::CatHandle is IO::Handle {
           Nil)
     }
     method read (::?CLASS:D: Int(Cool:D) $bytes = $*DEFAULT-READ-ELEMS) {
-        nqp::if(
+        # The logic is:
+        #   read some stuff
+        #     do we have enough stuff?
+        #     -> [yes] -> return stuff
+        #     -> [no]
+        #       is current handle EOF or did we read zero stuff on last chunk?
+        #       -> [yes] -> switch handle -> repeat from start
+        #       -> [no] return stuff
+        # The extra gymnastics are due to:
+        #   (a) possibility of TTY handles returning
+        #       fewer than requested number of bytes without being entirely
+        #       exhausted. This means when we read fewer than $bytes bytes, we
+        #      don't yet know whether we should switch the handle and thus,
+        #       if we read at least some bytes in a chunk and don't have EOF,
+        #       we gotta return whatever we managed to read
+        #   (b) XXX TODO: (this actually seems to be a bug)
+        #       possibility of .seek being used on current handle. In such a
+        #       case we can read a zero-sized chunk and EOF would still be false
+        nqp::unless(
           nqp::defined($!active-handle),
+          buf8.new,
           nqp::stmts(
-            (my $ret := buf8.new: $!active-handle.read: $bytes),
-            nqp::while(
-              nqp::islt_i(nqp::elems($ret), $bytes)
-              && nqp::defined(self.next-handle),
-              $ret.append: $!active-handle.read:
-                nqp::sub_i($bytes, nqp::elems($ret))),
-            $ret
-          ),
-          buf8.new)
+            (my $ret := buf8.new),
+            (my int $stop = 0),
+            nqp::until(
+              $stop,
+              nqp::stmts(
+                (my $chunk := buf8.new: $!active-handle.read:
+                  nqp::sub_i($bytes,nqp::elems($ret))),
+                $ret.append($chunk),
+                nqp::if(
+                  nqp::isge_i(nqp::elems($ret),$bytes),
+                  ($stop = 1),
+                  nqp::if(
+                    $!active-handle.eof || nqp::isfalse(nqp::elems($chunk)),
+                    nqp::unless(
+                      nqp::defined(self.next-handle),
+                      $stop = 1),
+                    $stop = 1)))),
+            $ret))
     }
     method readchars (::?CLASS:D: Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
         nqp::if(

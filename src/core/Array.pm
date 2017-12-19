@@ -1208,6 +1208,9 @@ my class Array { # declared in BOOTSTRAP
              ~ ']'
         })
     }
+    multi method gist(Array:D:) {
+        self.gistseen('Array', { '[' ~ self.map({.gist}).join(' ') ~ ']' } )
+    }
     multi method WHICH(Array:D:) { self.Mu::WHICH }
 
 #=============== class Array is closed in src/core/TypedArray.pm ===============

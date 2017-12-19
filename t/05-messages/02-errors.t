@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 17;
+plan 18;
 
 # RT #132295
 
@@ -121,5 +121,10 @@ is-run 'use Test; cmp-ok 1, "!eqv", 2',
     :out{.starts-with: 'not ok 1'},
     :err{.contains: '!eqv' & 'pass it as a Callable' }, :1exitcode,
     'cmp-ok with Str metaop comparator suggests a working alternative`';
+
+throws-like {multi z (Int) { say "here" }; multi z (Str) { say "there" }; z <42>},
+  X::Multi::Ambiguous,
+  message => all(/<<z>>/, /<<IntStr>>/),
+  'an ambiguous call includes the arguments in the error message';
 
 # vim: ft=perl6 expandtab sw=4

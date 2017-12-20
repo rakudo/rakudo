@@ -15,9 +15,6 @@ multi sub await() {
 multi sub await(Any:U $x) {
     die "Must specify a defined Awaitable to await (got an undefined $x.^name())";
 }
-multi sub await(Any:D $x) {
-    die "Must specify an Awaitable to await (got a $x.^name())";
-}
 multi sub await(Awaitable:D \a) {
     CATCH {
         unless nqp::istype($_, X::Await::Died) {
@@ -25,14 +22,6 @@ multi sub await(Awaitable:D \a) {
         }
     }
     $*AWAITER.await(a)
-}
-multi sub await(Iterable:D \i) {
-    CATCH {
-        unless nqp::istype($_, X::Await::Died) {
-            ($_ but X::Await::Died(Backtrace.new(5))).rethrow
-        }
-    }
-    $*AWAITER.await-all(i)
 }
 multi sub await(*@awaitables) {
     CATCH {

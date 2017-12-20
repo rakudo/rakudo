@@ -66,7 +66,7 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
         $has-tested = True;
         %expected-loses{$file-name}{$uniprop}{$pvalue} = 0 if %expected-loses{$file-name}{$uniprop}:!exists or %expected-loses{$file-name}{$uniprop}{$pvalue}:!exists;
         todo "Expecting %expected-loses{$file-name}{$uniprop}{$pvalue} failures from $uniprop=$pvalue", 1
-            if %expected-loses{$file-name}{$uniprop}{$pvalue} <= %LOSES{$file-name}{$uniprop}{$pvalue};
+            if %expected-loses{$file-name}{$uniprop}{$pvalue} >= %LOSES{$file-name}{$uniprop}{$pvalue};
         ok %LOSES{$file-name}{$uniprop}{$pvalue} < %expected-loses{$file-name}{$uniprop}{$pvalue},
         format-test-text($uniprop, $file-name, %WINS{$file-name}{$uniprop}{$pvalue}, %LOSES{$file-name}{$uniprop}{$pvalue}, $pvalue, %expected-loses{$file-name}{$uniprop}{$pvalue});
     }
@@ -86,8 +86,9 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
         ok True, format-test-text($uniprop, $file-name, %WIN-NUM{$file-name}{$uniprop}, %LOSE-NUM{$file-name}{$uniprop});
     }
     if $*DEBUG {
-        dd %LOSES{$file-name}{$uniprop};
-        dd %WINS{$file-name}{$uniprop};
+        dd %FAILED{$file-name}{$uniprop};
+        #dd %LOSES{$file-name}{$uniprop};
+        #dd %WINS{$file-name}{$uniprop};
         note "Property: $uniprop win %WIN-NUM{$file-name}{$uniprop} lose %LOSE-NUM{$file-name}{$uniprop} percent: " ~ (%LOSE-NUM{$file-name}{$uniprop} == 0 ?? 1 !! %LOSE-NUM{$file-name}{$uniprop}/%WIN-NUM{$file-name}{$uniprop}) * 100;
     }
 }

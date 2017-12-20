@@ -50,8 +50,8 @@ multi sub await(Supply:D $s) {
     my $*RAKUDO-AWAIT-BLOCKING := True;
     $*AWAITER.await($s)
 }
-multi sub await(Iterable:D $i) { $i.eager.map({ await $_ }) }
-multi sub await(*@awaitables)  { @awaitables.eager.map({await $_}) }
+multi sub await(Iterable:D $i) { eager $i.eager.map({ await $_ }) }
+multi sub await(*@awaitables)  { eager @awaitables.eager.map({await $_}) }
 
 sub awaiterator(@promises) {
     Seq.new(class :: does Iterator {

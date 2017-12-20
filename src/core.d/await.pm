@@ -32,8 +32,7 @@ multi sub await(Iterable:D \i) {
             ($_ but X::Await::Died(Backtrace.new(5))).rethrow
         }
     }
-    # decont and flatten nested iterables
-    $*AWAITER.await-all: gather { i».take }
+    $*AWAITER.await-all(i)
 }
 multi sub await(*@awaitables) {
     CATCH {
@@ -41,8 +40,7 @@ multi sub await(*@awaitables) {
             ($_ but X::Await::Died(Backtrace.new(5))).rethrow
         }
     }
-    # decont and flatten nested iterables
-    $*AWAITER.await-all: gather { @awaitables».take }
+    $*AWAITER.await-all(@awaitables)
 }
 
 my role X::React::Died {

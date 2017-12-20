@@ -2,6 +2,7 @@
 # deep; a List may contain Scalar containers that can be assigned to. However,
 # it is not possible to shift/unshift/push/pop/splice/bind. A List is also
 # Positional, and so may be indexed.
+my class Array { ... }
 my class List does Iterable does Positional { # declared in BOOTSTRAP
     # class List is Cool
     #   The reified elements in the list so far (that is, those that we already
@@ -804,14 +805,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method gist(List:D:) {
-        self.gistseen('List', {
-            '(' ~ self.map( -> $elem {
+        self.gistseen(self.^name, {
+            (nqp::istype(self,Array) ?? '[' !! '(')
+            ~ self.map( -> $elem {
                 given ++$ {
                     when 101 { '...' }
                     when 102 { last }
                     default  { $elem.gist }
                 }
-            }).join(' ') ~ ')'
+            }).join(' ')
+            ~ (nqp::istype(self,Array) ?? ']' !! ')')
         })
     }
 

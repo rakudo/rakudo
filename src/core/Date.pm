@@ -82,7 +82,7 @@ my class Date does Dateish {
             ),
             nqp::unbox_i(self.daycount)
           ),
-          ObjAt
+          ValueObjAt
         )
     }
 

@@ -29,7 +29,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             ),
             nqp::sha1(self.decode("latin-1"))
           ),
-          ObjAt
+          ValueObjAt
         )
     }
 

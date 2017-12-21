@@ -17,7 +17,7 @@ my class Num does Real { # declared in BOOTSTRAP
             ),
             nqp::unbox_n(self)
           ),
-          ObjAt
+          ValueObjAt
         )
     }
     method Capture() { die X::Cannot::Capture.new: :what(self) }

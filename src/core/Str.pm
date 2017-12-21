@@ -30,7 +30,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ),
             $!value
           ),
-          ObjAt
+          ValueObjAt
         )
     }
     submethod BUILD(Str() :$value = '' --> Nil) {

@@ -115,7 +115,7 @@ class Version {
             ),
             $!string
           ),
-          ObjAt
+          ValueObjAt
         )
     }
 

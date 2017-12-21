@@ -20,7 +20,7 @@ my class Int does Real { # declared in BOOTSTRAP
             ),
             nqp::tostr_I(self)
           ),
-          ObjAt
+          ValueObjAt
         )
     }
 

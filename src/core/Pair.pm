@@ -32,7 +32,7 @@ my class Pair does Associative {
             callsame,
             nqp::box_s(
               "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH,
-              ObjAt
+              ValueObjAt
             )
           ))
         )

@@ -716,6 +716,7 @@ class Rakudo::Iterator {
               $n < 1 || $n < $k || $k < 0,            # must be HLL comparisons
               Rakudo::Iterator.Empty,                 # nothing to return
               class :: does Iterator {
+                  has int $!pulled-count = 0;
                   has int $!n;
                   has int $!k;
                   has int $!b;
@@ -759,24 +760,27 @@ class Rakudo::Iterator {
                         ),
                         nqp::if(
                           nqp::iseq_i($index,$k),
-                          nqp::if(
-                            $!b,
-                            nqp::clone($!combination),
-                            nqp::p6bindattrinvres(
-                              nqp::create(List),List,'$!reified',
-                              nqp::clone($!combination)
+                          nqp::stmts(
+                            ($!pulled-count = nqp::add_i($!pulled-count,1)),
+                            nqp::if(
+                              $!b,
+                              nqp::clone($!combination),
+                              nqp::p6bindattrinvres(
+                                nqp::create(List),List,'$!reified',
+                                nqp::clone($!combination)
+                              )
                             )
                           ),
                           IterationEnd
                         )
                       )
                   }
-                # XXX TODO: both methods need to account for the number of
-                #           items that were already pulled
-                #   method count-only {
-                #       ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int
-                #   }
-                #   method bool-only(--> True) { }
+
+                  method count-only(--> Int) {
+                      (([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int)
+                      - $!pulled-count
+                  }
+                  method bool-only(--> Bool) { nqp::p6bool(self.count-only) }
               }.new($n,$k,$b)
             )
           )

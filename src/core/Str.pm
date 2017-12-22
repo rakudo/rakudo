@@ -1410,24 +1410,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method parse-names(Str:D:) {
-        my     \names := nqp::split(',', self);
-        my int $elems  = nqp::elems(names);
-        my int $i      = -1;
-        my str $res    = '';
-        nqp::while(
-            nqp::islt_i( ($i = nqp::add_i($i,1)), $elems ),
-            ($res = nqp::concat($res,
-                nqp::unless(
-                    nqp::getstrfromname(nqp::atpos(names, $i).trim),
-                    X::Str::InvalidCharName.new(
-                        :name(nqp::atpos(names, $i).trim)
-                    ).fail
-            ))),
-        );
-        $res
-    }
-
     multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
 
@@ -2607,6 +2589,29 @@ my class Str does Stringy { # declared in BOOTSTRAP
             LSM.new(self,$substitutions,$squash,$complement).result;
         }
     }
+
+    method parse-names(Str:D:) {
+        # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
+        self.uniparse
+    }
+    method uniparse(Str:D:) {
+        my     \names := nqp::split(',', self);
+        my int $elems  = nqp::elems(names);
+        my int $i      = -1;
+        my str $res    = '';
+        nqp::while(
+            nqp::islt_i( ($i = nqp::add_i($i,1)), $elems ),
+            ($res = nqp::concat($res,
+                nqp::unless(
+                    nqp::getstrfromname(nqp::atpos(names, $i).trim),
+                    X::Str::InvalidCharName.new(
+                        :name(nqp::atpos(names, $i).trim)
+                    ).fail
+            ))),
+        );
+        $res
+    }
+
     proto method indent($) {*}
     # Zero indent does nothing
     multi method indent(Int() $steps where { $_ == 0 }) {
@@ -3020,8 +3025,6 @@ sub chrs(*@c --> Str:D) {
 proto sub parse-base(|) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 
-sub parse-names(Str:D $str) { $str.parse-names }
-
 proto sub substr(|) {*}
 multi sub substr(Str:D \what, Int:D \start) {
     my str $str  = nqp::unbox_s(what);
@@ -3110,5 +3113,11 @@ multi sub infix:<eqv>(Str:D \a, Str:D \b) {
 
 proto sub samemark(|) {*}
 multi sub samemark($s, $pat) { $s.samemark($pat) }
+
+sub parse-names(Str:D \names) {
+    # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
+    names.uniparse
+}
+sub uniparse (Str:D \names) { names.uniparse }
 
 # vim: ft=perl6 expandtab sw=4

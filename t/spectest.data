@@ -1143,7 +1143,6 @@ S32-str/numeric.t
 S32-str/ords.t
 S32-str/pack.t
 S32-str/parse-base.t
-S32-str/parse-names.t
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samemark.t
@@ -1160,6 +1159,7 @@ S32-str/tc.t
 S32-str/tclc.t
 S32-str/trim.t
 S32-str/uc.t
+S32-str/uniparse.t
 S32-str/unpack.t
 S32-str/utf8-c8.t       # moar
 S32-str/words.t

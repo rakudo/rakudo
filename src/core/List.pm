@@ -14,6 +14,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #   upset an ongoing iteration. (An easy way to create such a case is to
     #   assign an array with lazy parts into itself.)
     #   has $!todo;
+    #
+    #   ObjAt or ValueObjAt object representing this list
+    #   has $!WHICH
 
     # The object that goes into $!todo.
     class Reifier {
@@ -178,6 +181,46 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               $!current-iter.is-lazy
             )
         }
+    }
+
+    method !WHICH() {
+        nqp::if(
+          $!todo.DEFINITE,
+          self.Mu::WHICH,
+          nqp::box_s(
+            nqp::concat(
+              nqp::if(nqp::eqaddr(self.WHAT,List),'List|',self.^name),
+              nqp::if(
+                $!reified.DEFINITE,
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!reified)),
+                  (my int $i = -1),
+                  (my $whiches := nqp::list_s),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::if(
+                      nqp::iscont(my $value := nqp::atpos($!reified,$i))
+                        || nqp::eqaddr((my $which := $value.WHICH).WHAT,ObjAt),
+                      (return self.Mu::WHICH),
+                      nqp::push_s($whiches,$which)
+                    )
+                  ),
+                  nqp::sha1(nqp::join("\0",$whiches))
+                ),
+                ''
+              )
+            ),
+            ValueObjAt
+          )
+        )
+    }
+
+    multi method WHICH(List:D:) {
+        nqp::if(
+          nqp::attrinited(self,List,'$!WHICH'),
+          $!WHICH,
+          $!WHICH := self!WHICH
+        )
     }
 
     method from-iterator(List:U: Iterator $iter) {

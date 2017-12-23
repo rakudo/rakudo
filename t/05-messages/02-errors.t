@@ -118,6 +118,7 @@ is-run '(:::[])', :err(/"No such symbol ':<>'"/), :1exitcode,
 
 # https://github.com/rakudo/rakudo/issues/1333
 is-run 'use Test; cmp-ok 1, "!eqv", 2',
+    :out{.starts-with: 'not ok 1'},
     :err{.contains: '!eqv' & 'pass it as a Callable' }, :1exitcode,
     'cmp-ok with Str metaop comparator suggests a working alternative`';
 

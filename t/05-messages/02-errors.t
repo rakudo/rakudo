@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 15;
+plan 16;
 
 # RT #132295
 
@@ -111,5 +111,9 @@ else {
     ｣, :err{.contains: ':5' }, :1exitcode,
         'C3 linearization mentions line number';
 }
+
+#RT #115326
+is-run '(:::[])', :err(/"No such symbol ':<>'"/), :1exitcode,
+    'no guts spillage with `(:::[])`';
 
 # vim: ft=perl6 expandtab sw=4

@@ -1418,6 +1418,34 @@ class Rakudo::Iterator {
         }.new(&body,&cond,&afterwards)
     }
 
+    # Takes two iterators and mixes in a role into the second iterator that
+    # delegates .count-only and .bool-only methods to the first iterator
+    # if either exist in it. Returns the second iterator.
+    method delegate-iterator-opt-methods (Iterator:D \a, Iterator:D \b) {
+        my role CountOnlyDelegate[\iter] {
+            method count-only { iter.count-only }
+        }
+        my role BoolOnlyDelegate[\iter] {
+            method bool-only  { iter.bool-only }
+        }
+        my role CountOnlyBoolOnlyDelegate[\iter] {
+            method bool-only  { iter.bool-only  }
+            method count-only { iter.count-only }
+        }
+
+        nqp::if(
+          nqp::can(a, 'count-only') && nqp::can(a, 'bool-only'),
+          b.^mixin(CountOnlyBoolOnlyDelegate[a]),
+          nqp::if(
+            nqp::can(a, 'count-only'),
+            b.^mixin(CountOnlyDelegate[a]),
+            nqp::if(
+              nqp::can(a, 'bool-only'),
+              b.^mixin(BoolOnlyDelegate[a]),
+              b)))
+    }
+
+
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
     # was encountered, in which case it will repeat the last seen value

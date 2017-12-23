@@ -262,53 +262,15 @@ throws-like ｢callframe.callframe(1).my.perl｣, X::NYI,
 
 
 subtest '.new on native types works (deprecated; will die)' => {
-    plan 18;
+    my @types := int, int8, int16, int32, int64, num, num32, num64, str;
+    plan 2 * @types;
 
-    die "Time to remove deprecation and make .new on ints die"
-        if $*PERL.compiler.version after v2017.12.50;
-
-    # TODO XXX: remove deprecation in NativeHOW
-    # (see https://github.com/rakudo/rakudo/commit/9d9c7f9c3b )
-    # and make .new die, then remove
-    # the tests that test the values and uncomment tests that test the
-    # throwage and likely move them to roast
-
-    sub DEPRECATED (|) {};
-    is-deeply int.new(4), 4, 'int';
-    is-deeply int8.new(4), 4, 'int8';
-    is-deeply int16.new(4), 4, 'int16';
-    is-deeply int32.new(4), 4, 'int32';
-    is-deeply int64.new(4), 4, 'int64';
-
-    is-deeply num.new(4e0), 4e0, 'num';
-    is-deeply num32.new(4e0), 4e0, 'num32';
-    is-deeply num64.new(4e0), 4e0, 'num64';
-
-    is-deeply str.new('x'), 'x', 'str';
-
-    throws-like { int  .new }, Exception, :message{.contains: "Cannot instantiate"}, 'int no args';
-    throws-like { int8 .new }, Exception, :message{.contains: "Cannot instantiate"}, 'int8 no args';
-    throws-like { int16.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int16 no args';
-    throws-like { int32.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int32 no args';
-    throws-like { int64.new }, Exception, :message{.contains: "Cannot instantiate"}, 'int64 no args';
-
-    throws-like { num  .new }, Exception, :message{.contains: "Cannot instantiate"}, 'num no args';
-    throws-like { num32.new }, Exception, :message{.contains: "Cannot instantiate"}, 'num32 no args';
-    throws-like { num64.new }, Exception, :message{.contains: "Cannot instantiate"}, 'num64 no args';
-
-    throws-like { str.new   }, Exception, :message{.contains: "Cannot instantiate"}, 'str no args';
-
-    # throws-like { int  .new: 4   }, Exception, 'int';
-    # throws-like { int8 .new: 4   }, Exception, 'int8';
-    # throws-like { int16.new: 4   }, Exception, 'int16';
-    # throws-like { int32.new: 4   }, Exception, 'int32';
-    # throws-like { int64.new: 4   }, Exception, 'int64';
-    #
-    # throws-like { num  .new: 4e0 }, Exception, 'num';
-    # throws-like { num32.new: 4e0 }, Exception, 'num32';
-    # throws-like { num64.new: 4e0 }, Exception, 'num64';
-    #
-    # throws-like { str.new: 'x'   }, Exception, 'str';
+    for @types -> \T {
+        throws-like { T.new }, Exception,
+            :message{ .contains: "Cannot instantiate" }, T.^name ~ ' no args';
+        throws-like { T.new: 42 }, Exception,
+            :message{ .contains: "Cannot instantiate" }, T.^name ~ ' with args';
+    }
 }
 
 #### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE

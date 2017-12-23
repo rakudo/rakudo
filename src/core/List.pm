@@ -188,7 +188,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.elems.defined,  # reifies if necessary, false on lazy list
           nqp::box_s(
             nqp::concat(
-              nqp::if(nqp::eqaddr(self.WHAT,List),'List|',self.^name),
+              nqp::if(
+                nqp::eqaddr(self.WHAT,List),
+                'List|',
+                nqp::concat(self.^name,'|')
+              ),
               nqp::if(
                 $!reified.DEFINITE,
                 nqp::stmts(

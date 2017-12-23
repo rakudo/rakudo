@@ -185,8 +185,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method !WHICH() {
         nqp::if(
-          $!todo.DEFINITE,
-          self.Mu::WHICH,
+          self.elems.defined,  # reifies if necessary, false on lazy list
           nqp::box_s(
             nqp::concat(
               nqp::if(nqp::eqaddr(self.WHAT,List),'List|',self.^name),
@@ -211,7 +210,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               )
             ),
             ValueObjAt
-          )
+          ),
+          self.Mu::WHICH
         )
     }
 

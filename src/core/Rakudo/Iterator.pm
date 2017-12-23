@@ -3010,7 +3010,7 @@ class Rakudo::Iterator {
     }
 
     # Return an iterator from a source iterator that is supposed to
-    # generate iterators.  As soon as a iterator, the next iterator
+    # generate iterators. As soon as an iterator is exhausted, the next iterator
     # will be fetched and iterated over until exhausted.
     method SequentialIterators(\source) {
         class :: does Iterator {

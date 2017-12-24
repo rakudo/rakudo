@@ -122,10 +122,13 @@ is-run 'use Test; cmp-ok 1, "!eqv", 2',
     :err{.contains: '!eqv' & 'pass it as a Callable' }, :1exitcode,
     'cmp-ok with Str metaop comparator suggests a working alternative`';
 
-throws-like {multi z (Int) { say "here" }; multi z (Str) { say "there" }; z <42>},
-  X::Multi::Ambiguous,
-  message => all(/<<z>>/, /<<IntStr>>/),
-  'an ambiguous call includes the arguments in the error message';
+# https://github.com/rakudo/rakudo/pull/1321
+throws-like {
+    multi ambigu-arg-tester (Int) { say 'here'  }
+    multi ambigu-arg-tester (Str) { say 'there' }
+    ambigu-arg-tester <42>
+}, X::Multi::Ambiguous, :message{ .contains: 'ambigu-arg-tester' & 'IntStr' },
+    'an ambiguous call includes the arguments in the error message';
 
 # RT #122907
 throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,

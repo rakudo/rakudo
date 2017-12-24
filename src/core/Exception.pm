@@ -2552,7 +2552,7 @@ my class X::Multi::Ambiguous is Exception {
         else {
             @bits.push('...');
         }
-        if @.ambiguous[0].signature.gist ~~ /': '/ {
+        if @.ambiguous[0].signature.gist.contains: ': ' {
             my $invocant = @bits.shift;
             my $first = @bits ?? @bits.shift !! '';
             @bits.unshift($invocant ~ ': ' ~ $first);

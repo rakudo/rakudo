@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 19;
+plan 21;
 
 # RT #132295
 
@@ -135,5 +135,15 @@ throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
     :message('Your printf-style directives specify 1 argument, but no '
       ~ 'argument was supplied'),
     'sprintf %d directive with find a corresponding argument throws';
+
+{ # https://github.com/perl6/roast/commit/20fe657466
+    my int @arr;
+    throws-like { @arr[0] := my $a }, Exception,
+        :message('Cannot bind to a natively typed array'),
+        'error message when binding to natively typed array';
+    throws-like { @arr[0]:delete   }, Exception,
+        :message('Cannot delete from a natively typed array'),
+        'error message when :deleting from natively typed array';
+}
 
 # vim: ft=perl6 expandtab sw=4

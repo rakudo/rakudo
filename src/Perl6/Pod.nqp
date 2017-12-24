@@ -264,7 +264,7 @@ class Perl6::Pod {
                 elsif $val<pblock> {
                     # a pblock {} is interpreted as a hash and the
                     # process dies if it doesn't compute as such
-                    say("        pblock before  processing:   val: |$val|") if $debugp;
+                    say("        pblock before processing:   val: |$val|") if $debugp;
                     $val := make-config-hash($val<pblock>);
                 }
                 elsif $val<semilist> {

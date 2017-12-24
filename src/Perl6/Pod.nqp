@@ -141,14 +141,7 @@ class Perl6::Pod {
             $val := subst($val, /^ $first2 /, q{});
             $val := subst($val, / $last $/, q{});
         }
-
-        if $debugp {
-            say("  leading character is   [{$m[0]}]");
-            say("  second character is    [{$m[1]}]");
-            say("  content characters are [{$m[2]}]");
-            say("  last character is      [{$m[3]}]");
-        }
-
+        say("  capture groups: |{$m[0]}| |{$m[1]}| |{$m[2]}| |{$m[3]}|") if $debugp;
         return $val;
     }
 

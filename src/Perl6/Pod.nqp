@@ -12,7 +12,7 @@ class Perl6::Pod {
         '"',     '"', # double quote
     );
 
-    # pairs of quoting chars after a leading Q or q (this may not be an exaustive list)
+    # pairs of quoting chars after a leading Q or q (this may not be an exhaustive list)
     my %h2 := nqp::hash(
         '<',     '>', # angle brackets
         "'",     "'", # single quote

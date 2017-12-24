@@ -1,25 +1,33 @@
 class Perl6::Pod {
 
     # various helper methods for Pod parsing and processing
-    my $caption := ''; # var to save table caption values between 
+    my $caption := ''; # var to save table caption values between
                        # subs make_config and table
 
+    # hashes for quoting pairs in config semilist values
+    # pairs of stand-alone quoting chars
+    my %h  := nqp::hash(
+        #'<',    '>', # angle brackets (shouldn't be in a semilist)
+        "'",     "'", # single quote
+        '"',     '"', # double quote
+    );
+
+    # pairs of quoting chars after a leading Q or q (this may not be an exaustive list)
+    my %h2 := nqp::hash(
+        '<',     '>', # angle brackets
+        "'",     "'", # single quote
+        '"',     '"', # double quote
+        '|',     '|', # pipe
+        '[',     ']', # square brackets
+        '{',     '}', # curly braces
+    );
+
     # enable use of env vars for debug selections
-    # TODO: track down possible nqp bug: inconsistent handling of the debug values
-    #       see possible solution in World.nqp, grep getenvhash
-    my $debug    := 0; # for dev use
-    my $udebug   := 0; # for users via an environment variable
-    my $ddenvvar := 'RAKUDO_POD6_TABLE_DEBUG_DEV';
-    my $duenvvar := 'RAKUDO_POD6_TABLE_DEBUG';
-    my %env      := nqp::getenvhash();
-    if nqp::existskey(%env, $ddenvvar) {
-        my $val := nqp::atkey(%env, $ddenvvar);
-        $debug := $val;
-    }
-    if nqp::existskey(%env, $duenvvar) {
-        my $val := nqp::atkey(%env, $duenvvar);
-        $udebug := $val;
-    }
+    # for users
+    my $udebug := nqp::ifnull(  nqp::atkey(  nqp::getenvhash(), 'RAKUDO_POD6_TABLE_DEBUG'  ), 0  );
+    # for developers
+    my $debug  := nqp::ifnull(  nqp::atkey(  nqp::getenvhash(), 'RAKUDO_POD_TABLE_DEBUG_DEV'  ), 0  );
+    my $debugp := nqp::ifnull(  nqp::atkey(  nqp::getenvhash(), 'RAKUDO_POD_DEBUG_DEV'  ), 0  );
 
     my $show_warning :=  1; # flag used to track the first warning so no repeated warnings are given
     my $table_num    := -1; # for user debugging, incremented by one on each call to sub table
@@ -116,32 +124,175 @@ class Perl6::Pod {
         ).compile_time_value
     }
 
+    sub strip-quotes($val) {
+        say("DEBUG: incoming val for stripping: |$val|") if $debugp;
+        my $m := $val ~~ /^(.)(.)(.*)(.)$/;
+        my $first  := ~$m[0];
+        my $second := ~$m[1];
+        my $last   := ~$m[3];
+        if %h{$first} && $last eq %h{$first} {
+            say("DEBUG: found quote pair for val |$val|") if $debugp;
+            $val := subst($val, /^ $first /, q{});
+            $val := subst($val, / $last $/, q{});
+        }
+        elsif 'q' eq nqp::lc($first) && %h2{$second} && $last eq %h2{$second} {
+            say("DEBUG: found Q quote pair for val |$val|") if $debugp;
+            my $first2 := nqp::concat($first, $second);
+            $val := subst($val, /^ $first2 /, q{});
+            $val := subst($val, / $last $/, q{});
+        }
+
+        if $debugp {
+            say("  leading character is   [{$m[0]}]");
+            say("  second character is    [{$m[1]}]");
+            say("  content characters are [{$m[2]}]");
+            say("  last character is      [{$m[3]}]");
+        }
+
+        return $val;
+    }
+
+
+    sub trim-array(@raw) {
+        my @arr := nqp::list();
+        for @raw -> $S {
+            say("DEBUG: element to be trimmed: |$S|") if $debugp;
+            # trim right
+            my $s := subst($S, /\s*$/, '');
+            # trim left
+            $s := subst($s, /^\s*/, '');
+            say("       trimmed element: |$s|") if $debugp;
+            # convert the string numbers to int or num or bool types
+            if $s ~~ /^ \d+ $/ {
+                say("         converting to int: |$s|") if $debugp;
+                my int $i := $s;
+                @arr.push($i);
+            }
+            elsif $s ~~ /^ \d+ '.' \d+ $/ {
+                say("         converting to num: |$s|") if $debugp;
+                my num $n := $s;
+                @arr.push($n);
+            }
+            else {
+                $s := strip-quotes($s);
+                say("         leaving as str but stripped quotes: |$s|") if $debugp;
+                @arr.push($s);
+            }
+        }
+        return @arr;
+    }
+
+    sub make-config-list($st) {
+        # the incoming string format inside the pipes (note the
+        # original [] or () have been stripped by the ~$val<semilist>
+        # step):
+        #   |1, 'b', 3|
+        # break into an array
+        my @s := nqp::split(',', $st);
+        my @arr := trim-array(@s);
+        if !nqp::islist(@arr) {
+            nqp::die("DEBUG: \@arr is NOT a list");
+        }
+        if nqp::elems(@arr) > 1 {
+            # build the array object anew to handle bools
+            my @arr2 := nqp::list();
+            for @arr -> $v {
+                my $val := $v;
+                if $val ~~ /^ True | False $/ {
+                    my $truth   := $val ~~ /True/ ?? 1 !! 0;
+                    $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+                }
+                nqp::push(@arr2, $val);
+            }
+            return serialize_object('Array', |@arr2).compile_time_value;
+        }
+        else {
+            my $val := @arr[0];
+            if $val ~~ /^ True | False $/ {
+                my $truth   := $val ~~ /True/ ?? 1 !! 0;
+                $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+            }
+            return $val;
+        }
+    }
+
+    sub make-config-hash($st) {
+        # the incoming string format inside the pipes:
+        #   |{a => 1, b => 4, c => 10}|
+        # strip enclosing curly braces
+        my $s := subst($st, /^'{'/, '');
+        $s := subst($s, /'}'$/, '');
+        # change fat arrows to commas
+        $s := subst($s, /'=>'/, ',', :global);
+        # break into an array
+        my @s := nqp::split(',', $s);
+        my @arr := trim-array(@s);
+        my @pairs := [];
+        # iterate over the "hash" and create key/value pairs to be serialized
+        for @arr -> $k, $v {
+            my str $key := $k;
+            my $val     := $v;
+            say("DEBUG hash: '$key' => '$val'") if $debugp;
+
+            # special handling for a boolean
+            if $val ~~ /^ True | False $/ {
+                my $truth   := $val ~~ /True/ ?? 1 !! 0;
+                $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+            }
+
+            #$key := $*W.add_constant('Str', 'str', $key).compile_time_value;
+            @pairs.push(
+                serialize_object(
+                    'Pair', :key($key), :value($val)
+                ).compile_time_value
+            );
+        }
+        return serialize_object('Hash', |@pairs).compile_time_value;
+    }
+
     our sub make_config($/) {
         my @pairs;
         for $<colonpair> -> $colonpair {
             my $key := $colonpair<identifier>;
+            say("==DEBUG config colonpair key: |$key|") if $debugp;
             my $val;
-            # TODO This is a cheaty and evil hack. This is also the only way
-            # I can obtain this information without reimplementing
-            # <colonpair> entirely
+
+            # TODO document complete structure of $<colonpair>
             if $colonpair<coloncircumfix><circumfix> {
                 $val := $colonpair<coloncircumfix><circumfix>;
-                if $val<nibble> {
-                    $val := $*W.colonpair_nibble_to_str($/, $val<nibble>);
-                }
-                else {
-                    $val := ~$val<semilist>;
-                }
-                # save any caption to the global value for use by sub table
-                if $key eq 'caption' { $caption := $val };
+                say("  DEBUG incoming colonpair circumfix val: |$val|") if $debugp;
 
-                $val := $*W.add_constant('Str', 'str', $val).compile_time_value;
+                if $val<nibble> {
+                    # nibble values have enclosing <> stripped by the current process
+                    # and need no further processing
+                    $val := $*W.colonpair_nibble_to_str($/, $val<nibble>);
+                    say("        nibble is a string literal after processing:   val: |$val|") if $debugp;
+                }
+                elsif $val<pblock> {
+                    # a pblock {} is interpreted as a hash and the
+                    # process dies if it doesn't compute as such
+                    say("        pblock before  processing:   val: |$val|") if $debugp;
+                    $val := make-config-hash($val<pblock>);
+                }
+                elsif $val<semilist> {
+                    # a semilist is enclosed in outer () and [] and either is interpreted as a list.
+                    # a list with one element is converted to a single value of a str, bool, int, or num.
+                    # semilists may have enclosing quotes which need to be stripped
+                    say("        semilist BEFORE stringifying val: |$val|") if $debugp;
+                    $val := ~$val<semilist>;
+                    say("        semilist after stringifying val: |$val|") if $debugp;
+                    $val := make-config-list($val);
+                }
+
+                # save any caption to the global value for use by sub table
+                if $key eq 'caption' {
+                    $caption := $val;
+                }
             }
             else {
-                # and this is the worst hack of them all.
-                # TODO Hide your kids, hide your wife!
+                say("  DEBUG incoming colonpair non-circumfix val: |$colonpair|") if $debugp;
                 my $truth := !nqp::eqat($colonpair, '!', 1);
-
+                say("        non-circumfix after processing: val: |$truth|") if $debugp;
                 $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
             }
 
@@ -366,7 +517,7 @@ class Perl6::Pod {
 
     our sub table($/) {
         # extract any caption from $config and serialize it
-        my $cap := $caption 
+        my $cap := $caption
             ?? $*W.add_constant('Str', 'str', $caption).compile_time_value
             !! serialize_object('Str').compile_time_value;
         # reset global value for use of the next table

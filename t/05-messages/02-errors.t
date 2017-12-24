@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 18;
+plan 19;
 
 # RT #132295
 
@@ -126,5 +126,11 @@ throws-like {multi z (Int) { say "here" }; multi z (Str) { say "there" }; z <42>
   X::Multi::Ambiguous,
   message => all(/<<z>>/, /<<IntStr>>/),
   'an ambiguous call includes the arguments in the error message';
+
+# RT #122907
+throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
+    :message('Your printf-style directives specify 1 argument, but no '
+      ~ 'argument was supplied'),
+    'sprintf %d directive with find a corresponding argument throws';
 
 # vim: ft=perl6 expandtab sw=4

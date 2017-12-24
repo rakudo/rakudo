@@ -835,7 +835,7 @@ class Perl6::Pod {
             }
             elsif $warns && $show_warning {
                     nqp::say("===WARNING: One or more tables evidence bad practice.");
-                    nqp::say("==          Set environment variable 'RAKUDO_POD6_TABLE_DEBUG' for more details.");
+                    nqp::say("==          Set environment variable 'RAKUDO_POD_TABLE_DEBUG' for more details.");
                     $show_warning := 0;
             }
         }

@@ -2526,8 +2526,41 @@ my class X::Multi::Ambiguous is Exception {
     has @.ambiguous;
     has $.capture;
     method message {
-        join "\n",
-            "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
+        my @bits;
+        my @priors;
+        if $.capture {
+            for $.capture.list {
+                try @bits.push(.WHAT.perl);
+                @bits.push($_.^name) if $!;
+                when Failure {
+                    @priors.push(" " ~ .mess);
+                }
+            }
+            for $.capture.hash {
+                if .value ~~ Failure {
+                    @priors.push(" " ~ .value.mess);
+                }
+                if .value ~~ Bool {
+                    @bits.push(':' ~ ('!' x !.value) ~ .key);
+                }
+                else {
+                    try @bits.push(":$(.key)\($(.value.WHAT.?perl))");
+                    @bits.push(':' ~ .value.^name) if $!;
+                }
+            }
+        }
+        else {
+            @bits.push('...');
+        }
+        if @.ambiguous[0].signature.gist ~~ /': '/ {
+            my $invocant = @bits.shift;
+            my $first = @bits ?? @bits.shift !! '';
+            @bits.unshift($invocant ~ ': ' ~ $first);
+        }
+        my $cap = '(' ~ @bits.join(", ") ~ ')';
+        @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
+        @priors.join ~ join "\n",
+            "Ambiguous call to '$.dispatcher.name()$cap'; these signatures all match:",
             @.ambiguous.map(*.signature.perl)
     }
 }

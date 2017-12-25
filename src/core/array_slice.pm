@@ -19,6 +19,17 @@ multi sub POSITIONS(
         nqp::istype($idx,Whatever),
         nqp::if(nqp::isconcrete(SELF),SELF.elems,0),
         SELF.EXISTS-POS($idx)
+          || nqp::islt_i($idx, nqp::stmts(
+                ( my $target  := nqp::decont( nqp::if(
+                                    nqp::istype(SELF, Seq), SELF.cache, SELF
+                                 ))),
+                ( my $reifier := nqp::getattr($target, List, '$!todo') ),
+                nqp::if(
+                    nqp::defined($reifier) && nqp::not_i( $reifier.fully-reified ),
+                    $reifier.reify-until-lazy
+                ),
+                nqp::elems( nqp::getattr($target, List, '$!reified' ) )
+          ))
       )
   }
 ) {
@@ -70,7 +81,8 @@ multi sub POSITIONS(
     nqp::bindattr(pos-list, List, '$!reified', eager-indices);
     unless pos-iter.push-until-lazy(target) =:= IterationEnd {
         # There are lazy positions to care about too. We truncate at the first
-        # one that fails to exists.
+        # one that both fails to exists and whose index is not less than the
+        # number of known reified elements (so as not to end at a hole).
         my \rest-seq = Seq.new(pos-iter).flatmap: -> Int() $i {
             nqp::unless(
               $eagerize($i),

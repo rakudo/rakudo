@@ -5179,7 +5179,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             %*PARAM_INFO<dummy> := $*PRECEDING_DECL;
         }
 
-        if $<name><sigterm> {
+        if $<name><sigterm> || $<sigterm> -> $sig {
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
@@ -5188,7 +5188,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :name('signature'),
                 WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'param_var')
             );
-            my $fakesig := $<name><sigterm><fakesignature>;
+            my $fakesig := $sig<fakesignature>;
             my $closure_signature := $fakesig.ast;
 
             my $where := make_where_block($fakesig, $closure_signature, $get_signature_past);

@@ -3096,8 +3096,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | '(' ~ ')' <signature>
         | <sigil> <twigil>?
           [
-          || <?{ $<sigil>.Str eq '&' }> <?identifier> {}
-             <name=.sublongname>
+          || <?{ $<sigil>.Str eq '&' }>
+              [<?identifier> {} <name=.sublongname> | <sigterm>]
           || <name=.identifier>
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]

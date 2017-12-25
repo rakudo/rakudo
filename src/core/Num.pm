@@ -242,6 +242,18 @@ my class Num does Real { # declared in BOOTSTRAP
     multi method acotanh(Num:D: ) {
         (1e0 / self).atanh;
     }
+    method is-prime(--> Bool:D) {
+        nqp::p6bool(
+          nqp::if(
+            nqp::isnanorinf(self),
+            False,
+            nqp::if(
+              nqp::iseq_n(self,nqp::floor_n(self)),
+              nqp::fromnum_I(self,Int).is-prime
+            )
+          )
+        )
+    }
 
     method narrow(Num:D:) {
         my $i := self.Int;

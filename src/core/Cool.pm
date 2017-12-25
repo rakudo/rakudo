@@ -35,6 +35,8 @@ my class Cool { # declared in BOOTSTRAP
     method acotanh() { self.Numeric.acotanh }
     method cis()     { self.Numeric.cis }
 
+    method is-prime(--> Bool:D) { self.Int.is-prime }
+
     proto method log(|) {*}
     multi method log(Cool:D: )      { self.Numeric.log          }
     multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }

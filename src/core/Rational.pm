@@ -82,6 +82,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method is-prime(--> Bool:D) {
+        self.REDUCE-ME;
         nqp::if($!denominator == 1,$!numerator.is-prime)
     }
 

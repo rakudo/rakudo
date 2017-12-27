@@ -454,6 +454,8 @@ my class Range is Cool does Iterable does Positional {
                     && !(!topic.excludes-max && $!excludes-max))
     }
 
+    method ASSIGN-POS(Range:D: |) { X::Assignment::RO.new(value => self).throw }
+
     multi method AT-POS(Range:D: int \pos) {
         $!is-int
             ?? self.EXISTS-POS(pos)

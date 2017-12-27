@@ -521,7 +521,7 @@ sub rand(--> Num:D) {
     nqp::p6box_n(nqp::rand_n(1e0));
 }
 
-sub srand(Int $seed --> Int:D) {
+sub srand(Int:D $seed --> Int:D) {
     nqp::p6box_i(nqp::srand($seed))
 }
 

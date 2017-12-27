@@ -2763,7 +2763,7 @@ my class array does Iterable {
     multi method EXISTS-POS(array:D: int $idx) {
         $idx >= 0 && $idx < nqp::elems(self)
     }
-    multi method EXISTS-POS(array:D: Int $idx) {
+    multi method EXISTS-POS(array:D: Int:D $idx) {
         $idx >= 0 && $idx < nqp::elems(self)
     }
 

@@ -47,7 +47,7 @@ multi sub prefix:<⚛>(atomicint $source is rw) {
 multi sub atomic-assign(atomicint $target is rw, int $value) {
     nqp::atomicstore_i($target, $value)
 }
-multi sub atomic-assign(atomicint $target is rw, Int $value) {
+multi sub atomic-assign(atomicint $target is rw, Int:D $value) {
     nqp::atomicstore_i($target, $value)
 }
 multi sub atomic-assign(atomicint $target is rw, $value) {
@@ -61,7 +61,7 @@ multi sub infix:<⚛=>($target is rw, \value) {
 multi sub infix:<⚛=>(atomicint $target is rw, int $value) {
     nqp::atomicstore_i($target, $value)
 }
-multi sub infix:<⚛=>(atomicint $target is rw, Int $value) {
+multi sub infix:<⚛=>(atomicint $target is rw, Int:D $value) {
     nqp::atomicstore_i($target, $value)
 }
 multi sub infix:<⚛=>(atomicint $target is rw, $value) {
@@ -107,7 +107,7 @@ proto sub atomic-fetch-add($, $) {*}
 multi sub atomic-fetch-add(atomicint $target is rw, int $add --> atomicint) {
     nqp::atomicadd_i($target, $add)
 }
-multi sub atomic-fetch-add(atomicint $target is rw, Int $add --> atomicint) {
+multi sub atomic-fetch-add(atomicint $target is rw, Int:D $add --> atomicint) {
     nqp::atomicadd_i($target, $add)
 }
 multi sub atomic-fetch-add(atomicint $target is rw, $add --> atomicint) {
@@ -119,7 +119,7 @@ proto sub atomic-add-fetch($, $) {*}
 multi sub atomic-add-fetch(atomicint $target is rw, int $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add) + $add
 }
-multi sub atomic-add-fetch(atomicint $target is rw, Int $add --> atomicint) {
+multi sub atomic-add-fetch(atomicint $target is rw, Int:D $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add) + $add
 }
 multi sub atomic-add-fetch(atomicint $target is rw, $add --> atomicint) {
@@ -131,7 +131,7 @@ proto sub infix:<⚛+=>($, $) {*}
 multi sub infix:<⚛+=>(atomicint $target is rw, int $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add) + $add
 }
-multi sub infix:<⚛+=>(atomicint $target is rw, Int $add --> atomicint) {
+multi sub infix:<⚛+=>(atomicint $target is rw, Int:D $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add) + $add
 }
 multi sub infix:<⚛+=>(atomicint $target is rw, $add --> atomicint) {
@@ -144,7 +144,7 @@ proto sub atomic-fetch-sub($, $) {*}
 multi sub atomic-fetch-sub(atomicint $target is rw, int $add --> atomicint) {
     nqp::atomicadd_i($target, nqp::neg_i($add))
 }
-multi sub atomic-fetch-sub(atomicint $target is rw, Int $add --> atomicint) {
+multi sub atomic-fetch-sub(atomicint $target is rw, Int:D $add --> atomicint) {
     nqp::atomicadd_i($target, nqp::neg_i($add))
 }
 multi sub atomic-fetch-sub(atomicint $target is rw, $add --> atomicint) {
@@ -156,7 +156,7 @@ proto sub atomic-sub-fetch($, $) {*}
 multi sub atomic-sub-fetch(atomicint $target is rw, int $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
 }
-multi sub atomic-sub-fetch(atomicint $target is rw, Int $add --> atomicint) {
+multi sub atomic-sub-fetch(atomicint $target is rw, Int:D $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
 }
 multi sub atomic-sub-fetch(atomicint $target is rw, $add --> atomicint) {
@@ -168,7 +168,7 @@ proto sub infix:<⚛-=>($, $) {*}
 multi sub infix:<⚛-=>(atomicint $target is rw, int $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
 }
-multi sub infix:<⚛-=>(atomicint $target is rw, Int $add --> atomicint) {
+multi sub infix:<⚛-=>(atomicint $target is rw, Int:D $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
 }
 multi sub infix:<⚛-=>(atomicint $target is rw, $add --> atomicint) {
@@ -187,7 +187,7 @@ multi sub cas(atomicint $target is rw, int $expected, int $value) {
     nqp::cas_i($target, $expected, $value)
 }
 
-multi sub cas(atomicint $target is rw, Int $expected, Int $value) {
+multi sub cas(atomicint $target is rw, Int:D $expected, Int:D $value) {
     nqp::cas_i($target, $expected, $value)
 }
 

@@ -61,7 +61,7 @@ my class Rakudo::Internals::HyperPipeline {
         }
     }
 
-    method !maybe-processor-workers(@processors, Channel $dest-channel, Int $degree) {
+    method !maybe-processor-workers(@processors, Channel $dest-channel, Int:D $degree) {
         return $dest-channel unless @processors;
         my $source-channel := Channel.new;
         for ^$degree {

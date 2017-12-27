@@ -248,12 +248,12 @@ multi sub infix:<%%>(\a, \b) {
 }
 
 proto sub infix:<lcm>(Mu $?, Mu $?) is pure  {*}
-multi sub infix:<lcm>(Int $x = 1) { $x }
+multi sub infix:<lcm>(Int:D $x = 1) { $x }
 multi sub infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
 proto sub infix:<gcd>(Mu $?, Mu $?) is pure {*}
 multi sub infix:<gcd>() { Failure.new('No zero-arg meaning for infix:<gcd>') }
-multi sub infix:<gcd>(Int $x)    { $x }
+multi sub infix:<gcd>(Int:D $x)    { $x }
 multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
 proto sub infix:<**>(Mu $?, Mu $?) is pure  {*}

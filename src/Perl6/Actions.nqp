@@ -2265,22 +2265,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_prefix:sym<once>($/) {
         # create state variable to remember whether we ran the block
-        my $pad := $*W.cur_lexpad();
-        my $sym := $pad.unique('once_');
+
+        my $sym := QAST::Node.unique('once_');
         my $mu := $*W.find_symbol(['Mu']);
         my $descriptor := $*W.create_container_descriptor($mu, 1, $sym);
         my %info;
         %info<container_type> := %info<container_base> := $*W.find_symbol(['Scalar']);
         %info<scalar_value> := %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
-        $*W.install_lexical_container($pad, $sym, %info, $descriptor, :scope('state'));
-        for @($pad[0]) {
-            if nqp::istype($_, QAST::Var) && $_.name eq $sym {
-                # Mark, so we can migrate the once into a correct scope.
-                $_.annotate('statement_id', $*STATEMENT_ID);
-                $_.annotate('in_stmt_mod', $*IN_STMT_MOD);
-                last;
-            }
-        }
+
+        my $cont := $*W.build_container_and_add_to_sc(%info, $descriptor);
 
         # generate code that runs the block only once
         make QAST::Op.new(
@@ -2288,7 +2281,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Op.new( :op('p6stateinit') ),
             QAST::Op.new(
                 :op('p6store'),
-                WANTED(QAST::Var.new( :name($sym), :scope('lexical') ),'once'),
+                WANTED(QAST::Var.new( :name($sym), :scope('lexical'), :decl('statevar'), :value($cont) ),'once'),
                 QAST::Op.new( :op('call'), wanted($<blorst>.ast,'once') )
             ),
             WANTED(QAST::Var.new( :name($sym), :scope('lexical') ),'once')

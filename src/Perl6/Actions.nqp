@@ -1626,12 +1626,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 placeholder => $name,
             );
         }
-        ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
+
+        my $uninst := QAST::Stmts.new($block);
+
         $*W.attach_signature($*DECLARAND,
             $*W.create_signature(nqp::hash('parameter_objects', [])));
         $*W.finish_code_object($*DECLARAND, $block);
         $*W.add_phasers_handling_code($*DECLARAND, $block);
-        my $ref := reference_to_code_object($*DECLARAND, $block);
+
+        unless $*INLINE_BLOCK_SETUP {
+          ($*W.cur_lexpad())[0].push($uninst);
+        }
+
+        my $ref := reference_to_code_object($*DECLARAND, $block, :setup($*INLINE_BLOCK_SETUP && $uninst));
         $ref.annotate('uninstall_if_immediately_used', $uninst);
         make $ref;
     }
@@ -9042,8 +9049,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         QAST::Var.new( :name($name), :scope('lexical') )
     }
 
-    sub reference_to_code_object($code_obj, $past_block) {
-        my $ref := QAST::WVal.new( :value($code_obj) );
+    sub reference_to_code_object($code_obj, $past_block, :$setup) {
+        my $wval := QAST::WVal.new( :value($code_obj) );
+        my $ref := $setup ?? QAST::Stmts.new($setup, $wval) !! $wval;
         $ref.annotate('past_block', $past_block);
         $ref.annotate('code_object', $code_obj);
         $ref

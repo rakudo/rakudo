@@ -1390,7 +1390,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token lambda { '->' | '<->' }
 
-    token block($*IMPLICIT = 0) {
+    token block($*IMPLICIT = 0, $*INLINE_BLOCK_SETUP = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
         :my $*CODE_OBJECT := $*DECLARAND;
         :dba('scoped block')
@@ -1775,7 +1775,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<try>     {
         :my $*FATAL := 1;
         <!!{ $/.clone_braid_from(self).set_pragma('fatal',1); }>
-        <sym><.kok> <blorst>
+        <sym><.kok> <blorst(1)>
         <.set_braid_from(self)>
 
     }
@@ -1791,8 +1791,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <blorst>
     }
 
-    token blorst {
-        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc>? || <.missing: 'block or statement'> ]
+    token blorst($inline_setup = 0) {
+        [ <?[{]> <block(0, $inline_setup)> | <![;]> <statement> <.cheat_heredoc>? || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers
@@ -5056,7 +5056,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     role c1 {
-        token escape:sym<{ }> { :my $*ESCAPEBLOCK := 1; <?[{]> <!RESTRICTED> <block=.LANG('MAIN','block')> }
+        token escape:sym<{ }> { :my $*ESCAPEBLOCK := 1; <?[{]> <!RESTRICTED> <block=.LANG('MAIN','block', 0, 1)> }
     }
 
     role c0 {

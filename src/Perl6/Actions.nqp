@@ -2427,7 +2427,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $stmt := $<statement>.ast;
             $block := make_thunk_ref($stmt, $/);
             migrate_blocks($*W.cur_lexpad, $block.ann('past_block'),
-                -> $b { ($b.ann('statement_id') // -1) == $stmt.ann('statement_id') });
+                -> $b { ($b.ann('statement_id') // -1) == $stmt.ann('statement_id') }, :obsolete);
         }
         make block_closure($block);
     }
@@ -6458,14 +6458,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # hash). Others get thunked and so need to have certain blocks in an
     # expression moved into the thunk. This performs the migration. Takes an
     # optional predicate to decide whether to move a block.
-    sub migrate_blocks($from, $to, $predicate?) {
+    sub migrate_blocks($from, $to, $predicate?, :$obsolete) {
         my @decls := @($from[0]);
         my int $n := nqp::elems(@decls);
         my int $i := 0;
+        my int $debug := $obsolete && nqp::existskey(nqp::getenvhash(), 'MIGRATE_BLOCKS');
         while $i < $n {
             my $decl := @decls[$i];
             if nqp::istype($decl, QAST::Block) {
                 if !$predicate || $predicate($decl) {
+                    stderr().print("migrating: " ~ $decl.dump()) if $debug;
                     $to[0].push($decl);
                     @decls[$i] := QAST::Op.new( :op('null') );
                 }
@@ -6473,11 +6475,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif (nqp::istype($decl, QAST::Stmt) || nqp::istype($decl, QAST::Stmts)) &&
                   nqp::istype($decl[0], QAST::Block) {
                 if !$predicate || $predicate($decl[0]) {
+                    stderr().print("migrating: " ~ $decl.dump()) if $debug;
                     $to[0].push($decl[0]);
                     $decl[0] := QAST::Op.new( :op('null') );
                 }
             }
             elsif nqp::istype($decl, QAST::Var) && $predicate && $predicate($decl) {
+                stderr().print("migrating: " ~ $decl.dump()) if $debug;
                 $to[0].push($decl);
                 @decls[$i] := QAST::Op.new( :op('null') );
             }
@@ -9066,7 +9070,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::defined($migrate_stmt_id) {
             migrate_blocks($*W.cur_lexpad(), $block, -> $b {
                 !$b.ann('in_stmt_mod') && ($b.ann('statement_id') // -1) == $migrate_stmt_id
-            });
+            }, :obsolete);
         }
         ($*W.cur_lexpad())[0].push($block);
         my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));

@@ -3655,7 +3655,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token escale { <[Ee]> <sign> <decint> }
+    token escale { <[Ee⏨]> <sign> <decint> }
 
     token sign { '+' | '-' | '−' | '' }
 

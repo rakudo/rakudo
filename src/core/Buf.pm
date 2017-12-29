@@ -151,48 +151,47 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     method subbuf(Blob:D: $from, $length?) {
-
-        my int $elems = nqp::elems(self);
-        X::OutOfRange.new(
-          what => "Len element to subbuf",
-          got  => $length,
-          range => "0..$elems",
-        ).fail if $length.DEFINITE && $length < 0;
-
-        my int $pos;
-        my int $todo;
-        if nqp::istype($from,Range) {
-            $from.int-bounds($pos, my int $max);
-            $todo = $pos < $max ?? $max - $pos + 1 !! 0;
-        }
-        else {
-            $pos = nqp::istype($from, Callable) ?? $from($elems) !! $from.Int;
-            $todo = $length.DEFINITE
-              ?? $length.Int min $elems - $pos
-              !! $elems - $pos;
-        }
-
-        X::OutOfRange.new(
-          what    => 'From argument to subbuf',
-          got     => $from.gist,
-          range   => "0..$elems",
-          comment => "use *-{abs $pos} if you want to index relative to the end",
-        ).fail if $pos < 0;
-        X::OutOfRange.new(
-          what => 'From argument to subbuf',
-          got  => $from.gist,
-          range => "0..$elems",
-        ).fail if $pos > $elems;
-
-        my $subbuf := nqp::create(self);
-        if $todo {
-            nqp::setelems($subbuf, $todo);
-            my int $i = -1;
-            --$pos;
-            nqp::bindpos_i($subbuf,$i,nqp::atpos_i(self,++$pos))
-              while nqp::islt_i(++$i,$todo);
-        }
-        $subbuf
+        nqp::stmts(
+          (my int $elems = nqp::elems(self)),
+          nqp::if(
+            $length.DEFINITE && $length < 0,
+            X::OutOfRange.new(
+              :what('Len element to subbuf'), :got($length), :range("0..$elems"),
+            ).fail,
+            nqp::stmts(
+              (my int $pos),
+              (my int $todo),
+              nqp::if(
+                nqp::istype($from,Range),
+                nqp::stmts(
+                  $from.int-bounds($pos, my int $max),
+                  ($todo = nqp::add_i(nqp::sub_i($max, $pos), 1))),
+                nqp::stmts(
+                  ($pos = nqp::istype($from, Callable) ?? $from($elems) !! $from.Int),
+                  ($todo = $length.DEFINITE ?? $length.Int min $elems - $pos !! $elems - $pos))),
+              nqp::if(
+                nqp::islt_i($pos, 0),
+                X::OutOfRange.new(
+                  :what('From argument to subbuf'), :got($from.gist), :range("0..$elems"),
+                  :comment("use *-{abs $pos} if you want to index relative to the end"),
+                ).fail,
+                nqp::if(
+                  nqp::isgt_i($pos, $elems),
+                  X::OutOfRange.new(
+                    :what('From argument to subbuf'), :got($from.gist), :range("0..$elems"),
+                  ).fail,
+                  nqp::if(
+                    nqp::isle_i($todo, 0),
+                    nqp::create(self), # we want zero elements; return empty Blob
+                    nqp::stmts(
+                      (my $subbuf := nqp::create(self)),
+                      nqp::setelems($subbuf, $todo),
+                      (my int $i = -1),
+                      --$pos,
+                      nqp::while(
+                        nqp::islt_i(++$i,$todo),
+                        nqp::bindpos_i($subbuf, $i, nqp::atpos_i(self, ++$pos))),
+                      $subbuf)))))))
     }
 
     method reverse(Blob:D:) {

@@ -1,3 +1,6 @@
+See https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft for the draft changelog
+since the previous release.
+
 New in 2017.12:
  + Fixes:
     + Various POD-related fixes [41514235][11d90cac][061c36d6][2cd266fe]

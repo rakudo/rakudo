@@ -263,7 +263,7 @@ public final class Binder {
                 if (gotNative != 0 || Ops.iscont_i((SixModelObject)origArg) == 0) {
                     if (error != null)
                         error[0] = String.format(
-                            "Expected a native int argument for '%s'",
+                            "Expected a modifiable native int argument for '%s'",
                             varName);
                     return BIND_RESULT_FAIL;
                 }
@@ -272,7 +272,7 @@ public final class Binder {
                 if (gotNative != 0 || Ops.iscont_n((SixModelObject)origArg) == 0) {
                     if (error != null)
                         error[0] = String.format(
-                            "Expected a native num argument for '%s'",
+                            "Expected a modifiable native num argument for '%s'",
                             varName);
                     return BIND_RESULT_FAIL;
                 }
@@ -281,7 +281,7 @@ public final class Binder {
                 if (gotNative != 0 || Ops.iscont_s((SixModelObject)origArg) == 0) {
                     if (error != null)
                         error[0] = String.format(
-                            "Expected a native str argument for '%s'",
+                            "Expected a modifiable native str argument for '%s'",
                             varName);
                     return BIND_RESULT_FAIL;
                 }

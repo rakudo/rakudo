@@ -2077,7 +2077,7 @@ class Perl6::Optimizer {
                             $value := '""' if $value eq '';
                             my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                             unless $value eq 'Nil' {
-                                my $warning := qq[Useless use of constant value {~$visit.node} in sink context$suggest];
+                                my $warning := qq[Useless use of constant value $value in sink context$suggest];
                                 note($warning) if $!debug;
                                 $!problems.add_worry($visit, $warning)
                             }

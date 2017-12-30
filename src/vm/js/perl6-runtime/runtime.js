@@ -44,8 +44,18 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
   op.p6typecheckrv = function(ctx, rv, routine, bypassType) {
     const sig = routine.$$getattr(Code, '$!signature');
-    const rtype = sig.$$getattr(Signature, '$!returns');
+    let rtype = sig.$$getattr(Signature, '$!returns');
     if (rtype !== Null && nqp.op.objprimspec(rtype) === 0) {
+      let targetType;
+      const how = rtype._STable.HOW;
+      const archetypes = how.archetypes(ctx, null, how);
+      const isCoercive = archetypes.coercive(ctx, null, archetypes).$$toBool(ctx);
+
+      if (isCoercive) {
+        targetType = how.target_type(ctx, null, how, rtype);
+        rtype = how.constraint_type(ctx, null, how, rtype);
+      }
+
       const decontValue = rv.$$decont(ctx);
       if (decontValue.$$istype(ctx, rtype) === 0 && decontValue.$$istype(ctx, bypassType) === 0) {
         const thrower = getThrower("X::TypeCheck::Return");
@@ -53,6 +63,19 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
             ctx.die("Type check failed for return value");
         } else {
             thrower.$$call(ctx, null, decontValue, rtype);
+        }
+      }
+
+      if (targetType !== undefined && targetType !== rtype) {
+        const targetTypeName = targetType._STable.HOW.name(
+          ctx, null, targetType._STable.HOW, targetType).$$getStr();
+        if (rv.$$can(ctx, targetTypeName)) {
+          return rv[targetTypeName](ctx, null, rv);
+        } else {
+          const rtypeName = rtype._STable.HOW.name(ctx, null, rtype._STable.HOW, rtype).$$getStr();
+          throw new nqp.NQPException(
+            `Unable to coerce the return value from ${rtypeName} to ${targetTypeName} ;` +
+              `no coercion method defined`);
         }
       }
     }

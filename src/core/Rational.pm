@@ -46,12 +46,9 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     method nude() { self.REDUCE-ME; $!numerator, $!denominator }
     method Num() {
-        nqp::istype($!numerator,Int)
-          ?? nqp::p6box_n(nqp::div_In(
-               nqp::decont($!numerator),
-               nqp::decont($!denominator)
-             ))
-          !! $!numerator
+        nqp::p6box_n(nqp::div_In(
+          nqp::decont($!numerator),
+          nqp::decont($!denominator)))
     }
 
     method floor(Rational:D:) {
@@ -75,10 +72,8 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
     method Bridge() { self.Num }
     method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
-    method isNaN {
-        nqp::p6bool(
-            nqp::isfalse(self.numerator) && nqp::isfalse(self.denominator)
-        )
+    method isNaN (--> Bool:D) {
+        nqp::p6bool(nqp::isfalse($!denominator) && nqp::isfalse($!numerator))
     }
 
     method is-prime(--> Bool:D) {
@@ -87,38 +82,33 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     multi method Str(::?CLASS:D:) {
-        if nqp::istype($!numerator,Int) {
-            my $whole  = self.abs.floor;
-            my $fract  = self.abs - $whole;
+        my $whole  = self.abs.floor;
+        my $fract  = self.abs - $whole;
 
-            # fight floating point noise issues RT#126016
-            if $fract.Num == 1e0 { ++$whole; $fract = 0 }
+        # fight floating point noise issues RT#126016
+        if $fract.Num == 1e0 { ++$whole; $fract = 0 }
 
-            my $result = nqp::if(
-                nqp::islt_I($!numerator, 0), '-', ''
-            ) ~ $whole;
+        my $result = nqp::if(
+            nqp::islt_I($!numerator, 0), '-', ''
+        ) ~ $whole;
 
-            if $fract {
-                my $precision = $!denominator < 100_000
-                    ?? 6 !! $!denominator.Str.chars + 1;
+        if $fract {
+            my $precision = $!denominator < 100_000
+                ?? 6 !! $!denominator.Str.chars + 1;
 
-                my $fract-result = '';
-                while $fract and $fract-result.chars < $precision {
-                    $fract *= 10;
-                    given $fract.floor {
-                        $fract-result ~= $_;
-                        $fract        -= $_;
-                    }
+            my $fract-result = '';
+            while $fract and $fract-result.chars < $precision {
+                $fract *= 10;
+                given $fract.floor {
+                    $fract-result ~= $_;
+                    $fract        -= $_;
                 }
-                ++$fract-result if 2*$fract >= 1; # round off fractional result
-
-                $result ~= '.' ~ $fract-result;
             }
-            $result
+            ++$fract-result if 2*$fract >= 1; # round off fractional result
+
+            $result ~= '.' ~ $fract-result;
         }
-        else {
-            $!numerator.Str
-        }
+        $result
     }
 
     method base($base, Any $digits? is copy) {

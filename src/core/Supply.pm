@@ -1310,7 +1310,7 @@ my class Supply does Awaitable {
     ) {
         my $timer = Supply.interval($seconds,$delay,:$scheduler);
         my int $limit   = $elems;
-        my int $vent = $vent-at if $bleed;;
+        my int $vent = $vent-at if $bleed;
         supply {
             my @buffer;
             my int $allowed = $limit;

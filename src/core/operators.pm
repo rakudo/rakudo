@@ -746,7 +746,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
         trait_mod:<is>($r, equiv => ::(nm));
         return;
     }
-    die "Routine given to equiv does not appear to be an operator";;
+    die "Routine given to equiv does not appear to be an operator";
 }
 
 multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
@@ -755,7 +755,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
         trait_mod:<is>($r, tighter => ::(nm));
         return;
     }
-    die "Routine given to tighter does not appear to be an operator";;
+    die "Routine given to tighter does not appear to be an operator";
 }
 
 multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
@@ -764,7 +764,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
         trait_mod:<is>($r, looser => ::(nm));
         return;
     }
-    die "Routine given to looser does not appear to be an operator";;
+    die "Routine given to looser does not appear to be an operator";
 }
 
 proto sub infix:<∘> (&?, &?) {*}

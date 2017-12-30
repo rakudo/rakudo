@@ -520,7 +520,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
     }
 
     public static Object parseSingleArg(SixModelObject inArg, ThreadContext tc) {
-        Object outArg = null;;
+        Object outArg = null;
         // there doesn't seem to be an actual type Bool in gc or gcx
         if( !Ops.typeName((SixModelObject) inArg, tc).equals("Bool") ) {
             // one decont for native types...

@@ -2068,14 +2068,19 @@ class Perl6::Optimizer {
                     QRegex::Optimizer.new().optimize($visit, $!symbols.top_block, |%!adverbs);
                 }
                 elsif nqp::istype($visit, QAST::WVal) {
-                    if $!void_context && $visit.has_compile_time_value && $visit.node {
-                        my $value := ~$visit.node;
-                        $value := '""' if $value eq '';
-                        my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
-                        unless $value eq 'Nil' {
-                            my $warning := qq[Useless use of constant value {~$visit.node} in sink context$suggest];
-                            note($warning) if $!debug;
-                            $!problems.add_worry($visit, $warning)
+                    if $!void_context {
+                        if $visit.ann: 'ok_to_null_if_sunk' {
+                            $node[$i] := $NULL;
+                        }
+                        elsif $visit.has_compile_time_value && $visit.node {
+                            my $value := ~$visit.node;
+                            $value := '""' if $value eq '';
+                            my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
+                            unless $value eq 'Nil' {
+                                my $warning := qq[Useless use of constant value {~$visit.node} in sink context$suggest];
+                                note($warning) if $!debug;
+                                $!problems.add_worry($visit, $warning)
+                            }
                         }
                     }
                     if $visit.value =:= $!symbols.PseudoStash {

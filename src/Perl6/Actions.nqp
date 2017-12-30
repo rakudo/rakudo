@@ -1781,21 +1781,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<if>($/) {
         my $count := +$<xblock> - 1;
         my $past;
+        (my $empty := QAST::WVal.new: :value($*W.find_symbol: ['Empty'])
+        ).annotate: 'ok_to_null_if_sunk', 1;
         if ~$<sym>[$count] ~~ /with/ {
             $past := xblock_immediate_with( $<xblock>[$count].ast );
             $past.op('with');
-            $past.push( $<else>
-                        ?? pblock_immediate_with( $<else>.ast )
-                        !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
-            );
+            $past.push: $<else> ?? pblock_immediate_with($<else>.ast) !! $empty;
         }
         else {
             $past := xblock_immediate( $<xblock>[$count].ast );
             $past.op('if');
-            $past.push( $<else>
-                        ?? pblock_immediate( $<else>.ast )
-                        !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
-            );
+            $past.push: $<else> ?? pblock_immediate($<else>.ast) !! $empty;
         }
         # build if/then/elsif structure
         while $count > 0 {

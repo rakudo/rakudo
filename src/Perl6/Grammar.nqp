@@ -366,8 +366,9 @@ role STD {
             when        => $when,
         );
     }
-    method obsvar($name) {
-        $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'], :$name);
+    method obsvar($name, $identifier-name?) {
+        $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
+          :$name, :$identifier-name);
     }
     method sorryobs($old, $new, $when = 'in Perl 6') {
         $*W.throw(self.MATCH(), ['X', 'Obsolete'],
@@ -2015,10 +2016,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('$@')>
     }
 
-    # TODO: use actual variable in error message
     token special_variable:sym<$#> {
-        <sym>
-        <.obs('$#variable', '@variable.end')>
+        <sym> [<identifier>]?
+        {}
+        <.obsvar('$#', $<identifier> && ~$<identifier>)>
     }
 
     token special_variable:sym<$$> {

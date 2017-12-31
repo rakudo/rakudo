@@ -1535,8 +1535,7 @@ sub permutations(Int() $n) {
     Seq.new(Rakudo::Iterator.Permutations($n,0))
 }
 
-multi list(+l) { l }
-multi list(Seq:D \seq) { seq.list }
+sub list(+l) { l }
 
 # Use **@list and then .flat it, otherwise we'll end up remembering all the
 # things we flatten, which would be different semantics to .flat which gives

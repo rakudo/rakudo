@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 22;
+plan 24;
 
 # RT #132295
 
@@ -172,6 +172,14 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
 
     uhas ｢$don't｣, ｢<don't>｣,
         'variable name does not get special quote treatment';
+}
+
+# RT #128039
+{
+    throws-like { 'foo'.substr(5) }, X::OutOfRange,
+        :message(/'Start argument to substr' .+ 'should be in 0..3' .+ '*-5'/);
+    throws-like { ''.substr(1000) }, X::OutOfRange,
+        :message(/'should be in 0..0' .+ '*-1000'/);
 }
 
 # vim: ft=perl6 expandtab sw=4

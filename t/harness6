@@ -29,7 +29,7 @@ sub MAIN(
     Str  :$tests-from-file is copy = Str,
     Bool :$fudge = False,
     Int  :$verbosity = (%*ENV<TEST_VERBOSE> // 0).Int,
-    Int  :$jobs = (%*ENV<TEST_JOBS> // 1).Int,
+    Int  :$jobs = (%*ENV<TEST_JOBS> || Int(1.3 * Kernel.cpu-cores) || 6).Int,
     Bool :$quick = False,
     Bool :$stress = False,
     Bool :$randomize = False,
@@ -38,6 +38,7 @@ sub MAIN(
     Str  :$perl5path = 'perl',
     *@files,
 ) {
+    say "Using $jobs test jobs";
     my @slow;
     with $tests-from-file {
         $tests-from-file .= &convert-to-versioned-file;

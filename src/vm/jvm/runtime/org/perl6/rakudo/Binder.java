@@ -242,6 +242,11 @@ public final class Binder {
         int paramFlags = (int)tc.native_i;
         param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
         String varName = tc.native_s;
+        boolean hasVarName = true;
+        if (varName == null || varName.isEmpty()) {
+            varName = "<anon>";
+            hasVarName = false;
+        }
         if (RakOps.DEBUG_MODE)
             System.err.println(varName);
         
@@ -426,7 +431,7 @@ public final class Binder {
                             error[0] = thrower;
                             error[1] = bindParamThrower;
                             error[2] = new Object[] { decontValue, nomType.st.WHAT,
-                                (varName != null ? varName : "<anon>"), param };
+                                varName, param };
                         }
                         else {
                             error[0] = String.format(
@@ -456,8 +461,7 @@ public final class Binder {
                                 error[0] = thrower;
                                 error[1] = bindConcreteThrower;
                                 error[2] = new Object[] { typeName, argName, methodName,
-                                    (varName != null ? varName : "<anon>"),
-                                    (long)(shouldBeConcrete ? 1 : 0),
+                                    varName, (long)(shouldBeConcrete ? 1 : 0),
                                     (long)(paramFlags & SIG_ELEM_INVOCANT) };
                             }
                             else {
@@ -474,12 +478,10 @@ public final class Binder {
                                     : shouldBeConcrete
                                         ? String.format(
                                             "Parameter '%s' of routine '%s' must be an object instance of type '%s', not a type object of type '%s'.  Did you forget a '.new'?",
-                                            (varName == null || varName.isEmpty() ? "<anon>" : varName),
-                                            methodName, typeName, argName)
+                                            varName, methodName, typeName, argName)
                                         : String.format(
                                             "Parameter '%s' of routine '%s' must be a type object of type '%s', not an object instance of type '%s'.  Did you forget a 'multi'?",
-                                            (varName == null || varName.isEmpty() ? "<anon>" : varName),
-                                            methodName, typeName, argName);
+                                            varName, methodName, typeName, argName);
                             }
                         }
                         return juncOrFail(tc, gcx, decontValue);
@@ -532,19 +534,21 @@ public final class Binder {
         /* If it's not got attributive binding, we'll go about binding it into the
          * lex pad. */
         StaticCodeInfo sci = cf.codeRef.staticInfo;
-        if ((paramFlags & SIG_ELEM_BIND_ATTRIBUTIVE) == 0 && varName != null) {
+        if ((paramFlags & SIG_ELEM_BIND_ATTRIBUTIVE) == 0) {
             /* Is it native? If so, just go ahead and bind it. */
             if (flag != CallSiteDescriptor.ARG_OBJ) {
-                switch (flag) {
-                    case CallSiteDescriptor.ARG_INT:
-                        cf.iLex[sci.iTryGetLexicalIdx(varName)] = arg_i;
-                        break;
-                    case CallSiteDescriptor.ARG_NUM:
-                        cf.nLex[sci.nTryGetLexicalIdx(varName)] = arg_n;
-                        break;
-                    case CallSiteDescriptor.ARG_STR:
-                        cf.sLex[sci.sTryGetLexicalIdx(varName)] = arg_s;
-                        break;
+                if (hasVarName) {
+                    switch (flag) {
+                        case CallSiteDescriptor.ARG_INT:
+                            cf.iLex[sci.iTryGetLexicalIdx(varName)] = arg_i;
+                            break;
+                        case CallSiteDescriptor.ARG_NUM:
+                            cf.nLex[sci.nTryGetLexicalIdx(varName)] = arg_n;
+                            break;
+                        case CallSiteDescriptor.ARG_STR:
+                            cf.sLex[sci.sTryGetLexicalIdx(varName)] = arg_s;
+                            break;
+                    }
                 }
             }
             
@@ -552,63 +556,66 @@ public final class Binder {
             else if (is_rw) {
                 /* XXX TODO Check if rw flag is set; also need to have a
                  * wrapper container that carries extra constraints. */
-                cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
+                if (hasVarName)
+                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
             }
-            else if ((paramFlags & SIG_ELEM_IS_RAW) != 0) {
-                /* Just bind the thing as is into the lexpad. */
-                cf.oLex[sci.oTryGetLexicalIdx(varName)] = didHLLTransform ? decontValue : arg_o;
-            }
-            else {
-                /* If it's an array, copy means make a new one and store,
-                 * and a normal bind is a straightforward binding plus
-                 * adding a constraint. */
-                if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                    SixModelObject bindee = decontValue;
-                    if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        SixModelObject BOOTArray = tc.gc.BOOTArray;
-                        bindee = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
-                        bindee.bind_attribute_boxed(tc, gcx.List, "$!reified",
-                            HINT_LIST_reified, BOOTArray.st.REPR.allocate(tc, BOOTArray.st));
-                        RakOps.p6store(bindee, decontValue, tc);
-                    }
-                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
+            else if (hasVarName) {
+                if ((paramFlags & SIG_ELEM_IS_RAW) != 0) {
+                    /* Just bind the thing as is into the lexpad. */
+                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = didHLLTransform ? decontValue : arg_o;
                 }
-                
-                /* If it's a hash, similar approach to array. */
-                else if ((paramFlags & SIG_ELEM_HASH_SIGIL) != 0) {
-                    SixModelObject bindee = decontValue;
-                    if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        SixModelObject BOOTHash = tc.gc.BOOTHash;
-                        bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
-                        bindee.bind_attribute_boxed(tc, gcx.Map, "$!storage",
-                            HINT_ENUMMAP_storage, BOOTHash.st.REPR.allocate(tc, BOOTHash.st));
-                        RakOps.p6store(bindee, decontValue, tc);
-                    }
-                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
-                }
-                
-                /* If it's a scalar, we always need to wrap it into a new
-                 * container and store it, for copy or ro case (the rw bit
-                 * in the container descriptor takes care of the rest). */
                 else {
-                    boolean wrap = (paramFlags & SIG_ELEM_IS_COPY) != 0;
-                    if (!wrap && nomType != null && gcx.Iterable != null) {
-                        wrap = Ops.istype(gcx.Iterable, nomType, tc) != 0
-                            || Ops.istype(nomType, gcx.Iterable, tc) != 0;
+                    /* If it's an array, copy means make a new one and store,
+                     * and a normal bind is a straightforward binding plus
+                     * adding a constraint. */
+                    if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
+                        SixModelObject bindee = decontValue;
+                        if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
+                            SixModelObject BOOTArray = tc.gc.BOOTArray;
+                            bindee = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
+                            bindee.bind_attribute_boxed(tc, gcx.List, "$!reified",
+                                HINT_LIST_reified, BOOTArray.st.REPR.allocate(tc, BOOTArray.st));
+                            RakOps.p6store(bindee, decontValue, tc);
+                        }
+                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                     }
-                    if (wrap || varName.equals("$_")) {
-                        STable stScalar = gcx.Scalar.st;
-                        SixModelObject new_cont = stScalar.REPR.allocate(tc, stScalar);
-                        SixModelObject desc = param.get_attribute_boxed(tc, gcx.Parameter,
-                            "$!container_descriptor", HINT_container_descriptor);
-                        new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
-                            RakudoContainerSpec.HINT_descriptor, desc);
-                        new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                            RakudoContainerSpec.HINT_value, decontValue);
-                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = new_cont;
+
+                    /* If it's a hash, similar approach to array. */
+                    else if ((paramFlags & SIG_ELEM_HASH_SIGIL) != 0) {
+                        SixModelObject bindee = decontValue;
+                        if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
+                            SixModelObject BOOTHash = tc.gc.BOOTHash;
+                            bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
+                            bindee.bind_attribute_boxed(tc, gcx.Map, "$!storage",
+                                HINT_ENUMMAP_storage, BOOTHash.st.REPR.allocate(tc, BOOTHash.st));
+                            RakOps.p6store(bindee, decontValue, tc);
+                        }
+                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                     }
+
+                    /* If it's a scalar, we always need to wrap it into a new
+                     * container and store it, for copy or ro case (the rw bit
+                     * in the container descriptor takes care of the rest). */
                     else {
-                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+                        boolean wrap = (paramFlags & SIG_ELEM_IS_COPY) != 0;
+                        if (!wrap && nomType != null && gcx.Iterable != null) {
+                            wrap = Ops.istype(gcx.Iterable, nomType, tc) != 0
+                                || Ops.istype(nomType, gcx.Iterable, tc) != 0;
+                        }
+                        if (wrap || varName.equals("$_")) {
+                            STable stScalar = gcx.Scalar.st;
+                            SixModelObject new_cont = stScalar.REPR.allocate(tc, stScalar);
+                            SixModelObject desc = param.get_attribute_boxed(tc, gcx.Parameter,
+                                "$!container_descriptor", HINT_container_descriptor);
+                            new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
+                                RakudoContainerSpec.HINT_descriptor, desc);
+                            new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
+                                RakudoContainerSpec.HINT_value, decontValue);
+                            cf.oLex[sci.oTryGetLexicalIdx(varName)] = new_cont;
+                        }
+                        else {
+                            cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+                        }
                     }
                 }
             }

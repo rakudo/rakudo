@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 21;
+plan 22;
 
 # RT #132295
 
@@ -144,6 +144,29 @@ throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
     throws-like { @arr[0]:delete   }, Exception,
         :message('Cannot delete from a natively typed array'),
         'error message when :deleting from natively typed array';
+}
+
+# https://github.com/rakudo/rakudo/issues/1346
+subtest 'USAGE with subsets/where' => {
+    sub uhas (\sig, Mu \c, \desc)  {
+        is-run ｢sub MAIN (｣ ~ sig ~ ｢) {}｣,
+            :err{.contains: c}, :out(*), :exitcode(*), desc
+    }
+
+    subtest 'named params' => {
+        uhas ｢UInt :$x!｣,          '<UInt>', 'mentions subset name';
+        uhas ｢Int :$x! where 42｣,  '<Int where { ... }>',
+            'Type + where clauses shown sanely';
+        uhas ｢UInt :$x! where 42｣, '<UInt where { ... }>',
+            'subset + where clauses shown sanely';
+    }
+    subtest 'anon positional params' => {
+        uhas ｢UInt $｣,          '<UInt>', 'mentions subset name';
+        uhas ｢Int $ where 42｣,  '<Int where { ... }>',
+            'where clauses shown sanely';
+        uhas ｢UInt $ where 42｣, '<UInt where { ... }>',
+            'subset + where clauses shown sanely';
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

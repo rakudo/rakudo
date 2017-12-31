@@ -1,4 +1,4 @@
-# for our tantrums
+my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real { ... }
 my class X::Numeric::DivideByZero { ... }
 
 my role Numeric {
@@ -32,12 +32,21 @@ my role Numeric {
     method pred() { self - 1 }
 }
 
-multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b) {
-    nqp::p6bool( # RT #127951
-        nqp::eqaddr(a,b) || (
-            nqp::eqaddr(a.WHAT,b.WHAT)
-            && nqp::if(nqp::istype(a, Num), (a === b), (a == b))
-    )) # for Nums use === to properly handle signed zeros and NaNs
+multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b --> Bool:D) {
+    # Use === for Nums, to properly handle signed zeros and NaNs
+    # For Rationals, properly handle NaN-y Rationals
+    nqp::p6bool(
+      nqp::eqaddr(a,b)
+        || nqp::eqaddr(a.WHAT,b.WHAT)
+        && nqp::if(
+          nqp::istype(a,Num),
+          a === b,
+          nqp::if(
+            nqp::istype(a,Rational)
+              && nqp::isfalse(a.denominator) && nqp::isfalse(b.denominator)
+              && nqp::isfalse(a.numerator)   && nqp::isfalse(b.numerator),
+            True, # got two NaN Rationals
+            a == b)))
 }
 
 ## arithmetic operators

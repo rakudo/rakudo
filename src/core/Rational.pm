@@ -1,3 +1,5 @@
+# stub of this role is also present in Numeric.pm; be sure to update
+# definition there as well, if changing this one
 my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     has NuT $.numerator   = 0;
     has DeT $.denominator = 1;

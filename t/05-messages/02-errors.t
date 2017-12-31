@@ -147,7 +147,9 @@ throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
 }
 
 # https://github.com/rakudo/rakudo/issues/1346
-subtest 'USAGE with subsets/where' => {
+subtest 'USAGE with subsets/where and variables with quotes' => {
+    plan 3;
+
     sub uhas (\sig, Mu \c, \desc)  {
         is-run ｢sub MAIN (｣ ~ sig ~ ｢) {}｣,
             :err{.contains: c}, :out(*), :exitcode(*), desc
@@ -167,6 +169,9 @@ subtest 'USAGE with subsets/where' => {
         uhas ｢UInt $ where 42｣, '<UInt where { ... }>',
             'subset + where clauses shown sanely';
     }
+
+    uhas ｢$don't｣, ｢<don't>｣,
+        'variable name does not get special quote treatment';
 }
 
 # vim: ft=perl6 expandtab sw=4

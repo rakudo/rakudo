@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 26;
+plan 27;
 
 # RT #132295
 
@@ -190,5 +190,9 @@ for ThreadPoolScheduler.new, CurrentThreadScheduler -> $*SCHEDULER {
         'Too many positionals' .+ 'expected 0 arguments but got 1'
     /), '.tap block with incorrect signature must fail';
 }
+
+# RT #128050
+is-run ｢133742.print｣, :compiler-args[<--rxtrace>], :out{ .ends-with: 133742 },
+    '--rxtrace does not crash';
 
 # vim: ft=perl6 expandtab sw=4

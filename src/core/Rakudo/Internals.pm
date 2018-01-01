@@ -603,6 +603,12 @@ my class Rakudo::Internals {
         }
     }
 
+    method SHORT-GIST(\thing) {
+        nqp::if(
+          nqp::isgt_i(nqp::chars(my str $gist = thing.gist), 23),
+          nqp::concat(nqp::substr($gist, 0, 20), '...'),
+          $gist);
+    }
     method SUBSTR-START-OOR(\from,\max) {
         X::OutOfRange.new(
           :what('Start argument to substr'),

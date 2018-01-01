@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 24;
+plan 26;
 
 # RT #132295
 
@@ -180,6 +180,15 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
         :message(/'Start argument to substr' .+ 'should be in 0..3' .+ '*-5'/);
     throws-like { ''.substr(1000) }, X::OutOfRange,
         :message(/'should be in 0..0' .+ '*-1000'/);
+}
+
+for ThreadPoolScheduler.new, CurrentThreadScheduler -> $*SCHEDULER {
+    # RT #126379
+    is-run q[Supply.interval(1).tap(-> { say 'hi' }); sleep 3;],
+    :1exitcode, :err(/
+        'Unhandled exception in code scheduled on thread' .+
+        'Too many positionals' .+ 'expected 0 arguments but got 1'
+    /), '.tap block with incorrect signature must fail';
 }
 
 # vim: ft=perl6 expandtab sw=4

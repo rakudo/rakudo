@@ -1,8 +1,3 @@
-# Coercion types, of the form TargetType(ConstraintType), are implemented with
-# 6model parametrics. We create a single BEGIN-time "root" for the coercion
-# type family, and the target and constraint types are stored as parameters.
-# This means we get cross-compilation-unit interning "for free", as well as
-# avoiding a meta-object instance per coercion type created.
 class Perl6::Metamodel::DefiniteHOW
     #~ does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting

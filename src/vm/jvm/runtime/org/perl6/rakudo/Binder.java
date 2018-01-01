@@ -235,6 +235,8 @@ public final class Binder {
             CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_STR,
             CallSiteDescriptor.ARG_INT, CallSiteDescriptor.ARG_INT
         }, null);
+    private static final CallSiteDescriptor paramReadWriteThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
     private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, Object[] error) {
         /* Get parameter flags and variable name. */
@@ -554,10 +556,21 @@ public final class Binder {
             
             /* Otherwise it's some objecty case. */
             else if (is_rw) {
-                /* XXX TODO Check if rw flag is set; also need to have a
-                 * wrapper container that carries extra constraints. */
-                if (hasVarName)
-                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
+                if (Ops.isrwcont(arg_o, tc) == 1) {
+                    if (hasVarName)
+                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
+                } else {
+                    SixModelObject thrower = RakOps.getThrower(tc, "X::Parameter::RW");
+                    if (thrower == null) {
+                        error[0] = "Parameter expected a writable container";
+                    } else {
+                        error[0] = thrower;
+                        error[1] = paramReadWriteThrower;
+                        error[2] = new Object[] { decontValue, varName};
+                    }
+                    return BIND_RESULT_FAIL;
+                }
+
             }
             else if (hasVarName) {
                 if ((paramFlags & SIG_ELEM_IS_RAW) != 0) {

@@ -2298,9 +2298,9 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 my class X::Assignment::RO is Exception {
     has $.value = "value";
     method message {
-        my $gist = $.value.gist;
-        $gist = "$gist.substr(0,20)..." if $gist.chars > 23;
-        "Cannot modify an immutable {$.value.^name} ($gist)"
+        "Cannot modify an immutable {$!value.^name} ({
+            Rakudo::Internals.SHORT-GIST: $!value
+        })"
     }
     method typename { $.value.^name }
 }
@@ -2597,7 +2597,9 @@ my class X::Multi::NoMatch is Exception {
         my @priors;
         if $.capture {
             for $.capture.list {
-                try @bits.push($where ?? .perl !! .WHAT.perl );
+                try @bits.push(
+                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl
+                );
                 @bits.push($_.^name) if $!;
                 when Failure {
                     @priors.push(" " ~ .mess);
@@ -2611,7 +2613,10 @@ my class X::Multi::NoMatch is Exception {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    try @bits.push(":$(.key)\($($where ?? .value.?perl !! .value.WHAT.?perl ))");
+                    try @bits.push(":$(.key)\($($where
+                        ?? Rakudo::Internals.SHORT-GIST: .value
+                        !! .value.WHAT.?perl
+                    ))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
             }

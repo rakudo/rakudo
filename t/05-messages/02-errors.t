@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 27;
+plan 29;
 
 # RT #132295
 
@@ -194,5 +194,18 @@ for ThreadPoolScheduler.new, CurrentThreadScheduler -> $*SCHEDULER {
 # RT #128050
 is-run ｢133742.print｣, :compiler-args[<--rxtrace>], :out{ .ends-with: 133742 },
     '--rxtrace does not crash';
+
+# https://github.com/rakudo/rakudo/issues/1336
+throws-like ｢
+    multi z (@a, Int, :$x where 1) {}
+    multi z (@a, Str, :$x where 1) {}
+    my @a = 1..200; z(@a, <1>, :x[1..200])
+｣, X::Multi::NoMatch, :message{ .chars < 200 },
+    'X::Multi::NoMatch does not dump entire contents of variables';
+
+# RT #132353
+throws-like ｢Set.new(1..300)<42> = 42｣,
+    X::Assignment::RO, :message{ .chars < 100 },
+    'X::Assignment::RO does not dump entire contents of variables';
 
 # vim: ft=perl6 expandtab sw=4

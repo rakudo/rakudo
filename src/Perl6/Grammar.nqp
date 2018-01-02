@@ -3479,20 +3479,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     || $<accept_any>=<?>
                 ] <.ws> ')'
             ]?
-            {
-                for $<longname><colonpair> {
-                    if $_<identifier> {
-                        my $name := $_<identifier>.Str;
-                        if $name eq 'D' || $name eq 'U' || $name eq '_' {
-                            %colonpairs{$name} := 1;
-                        }
-                        else {
-                            $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
-                        }
-                    }
-                }
-            }
-            [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
+            [
+                <?{
+                    %colonpairs
+                    := $*W.validate_type_smiley: $/, $<longname><colonpair>
+                }> <colonpairs=.O(|%colonpairs)>
+            ]?
         || [ \\ <?before '('> ]? <args(1)>
             {
                 if !$<args><invocant> {
@@ -3688,20 +3680,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
-        {
-            for ($<longname> ?? $<longname><colonpair> !! $<colonpair>) {
-                if $_<identifier> {
-                    my $name := $_<identifier>.Str;
-                    if $name eq 'D' || $name eq 'U' || $name eq '_' {
-                        %colonpairs{$name} := 1;
-                    }
-                    else {
-                        $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
-                    }
-                }
-            }
-        }
-        [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
+        [
+            <?{
+                %colonpairs := $*W.validate_type_smiley: $/, $<longname>
+                    ?? $<longname><colonpair> !! $<colonpair>
+            }> <colonpairs=.O(|%colonpairs)>
+        ]?
     }
 
     token typo_typename($panic = 0) {

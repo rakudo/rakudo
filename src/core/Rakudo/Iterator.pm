@@ -716,6 +716,7 @@ class Rakudo::Iterator {
               $n < 1 || $n < $k || $k < 0,            # must be HLL comparisons
               Rakudo::Iterator.Empty,                 # nothing to return
               class :: does Iterator {
+                  has int $!pulled-count = 0;
                   has int $!n;
                   has int $!k;
                   has int $!b;
@@ -759,24 +760,27 @@ class Rakudo::Iterator {
                         ),
                         nqp::if(
                           nqp::iseq_i($index,$k),
-                          nqp::if(
-                            $!b,
-                            nqp::clone($!combination),
-                            nqp::p6bindattrinvres(
-                              nqp::create(List),List,'$!reified',
-                              nqp::clone($!combination)
+                          nqp::stmts(
+                            ($!pulled-count = nqp::add_i($!pulled-count,1)),
+                            nqp::if(
+                              $!b,
+                              nqp::clone($!combination),
+                              nqp::p6bindattrinvres(
+                                nqp::create(List),List,'$!reified',
+                                nqp::clone($!combination)
+                              )
                             )
                           ),
                           IterationEnd
                         )
                       )
                   }
-                # XXX TODO: both methods need to account for the number of
-                #           items that were already pulled
-                #   method count-only {
-                #       ([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int
-                #   }
-                #   method bool-only(--> True) { }
+
+                  method count-only(--> Int) {
+                      (([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int)
+                      - $!pulled-count
+                  }
+                  method bool-only(--> Bool) { nqp::p6bool(self.count-only) }
               }.new($n,$k,$b)
             )
           )
@@ -1413,6 +1417,34 @@ class Rakudo::Iterator {
             }
         }.new(&body,&cond,&afterwards)
     }
+
+    # Takes two iterators and mixes in a role into the second iterator that
+    # delegates .count-only and .bool-only methods to the first iterator
+    # if either exist in it. Returns the second iterator.
+    method delegate-iterator-opt-methods (Iterator:D \a, Iterator:D \b) {
+        my role CountOnlyDelegate[\iter] {
+            method count-only { iter.count-only }
+        }
+        my role BoolOnlyDelegate[\iter] {
+            method bool-only  { iter.bool-only }
+        }
+        my role CountOnlyBoolOnlyDelegate[\iter] {
+            method bool-only  { iter.bool-only  }
+            method count-only { iter.count-only }
+        }
+
+        nqp::if(
+          nqp::can(a, 'count-only') && nqp::can(a, 'bool-only'),
+          b.^mixin(CountOnlyBoolOnlyDelegate[a]),
+          nqp::if(
+            nqp::can(a, 'count-only'),
+            b.^mixin(CountOnlyDelegate[a]),
+            nqp::if(
+              nqp::can(a, 'bool-only'),
+              b.^mixin(BoolOnlyDelegate[a]),
+              b)))
+    }
+
 
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
@@ -3006,7 +3038,7 @@ class Rakudo::Iterator {
     }
 
     # Return an iterator from a source iterator that is supposed to
-    # generate iterators.  As soon as a iterator, the next iterator
+    # generate iterators. As soon as an iterator is exhausted, the next iterator
     # will be fetched and iterated over until exhausted.
     method SequentialIterators(\source) {
         class :: does Iterator {

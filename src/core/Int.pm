@@ -20,7 +20,7 @@ my class Int does Real { # declared in BOOTSTRAP
             ),
             nqp::tostr_I(self)
           ),
-          ObjAt
+          ValueObjAt
         )
     }
 
@@ -137,9 +137,7 @@ my class Int does Real { # declared in BOOTSTRAP
     method expmod(Int:D: Int:D \base, Int:D \mod) {
         nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }
-    method is-prime(Int:D: --> Bool:D) {
-        nqp::p6bool(nqp::isprime_I(self, nqp::unbox_i(100)));
-    }
+    method is-prime(--> Bool:D) { nqp::p6bool(nqp::isprime_I(self,100)) }
 
     method floor(Int:D:) { self }
     method ceiling(Int:D:) { self }
@@ -446,14 +444,7 @@ multi sub chr(int $x --> str) {
     nqp::chr($x);
 }
 
-proto sub is-prime($) is pure  {*}
-multi sub is-prime(Int:D \i) {
-    nqp::p6bool(nqp::isprime_I(nqp::decont(i), nqp::unbox_i(100)));
-}
-multi sub is-prime(\i) {
-    i == i.floor
-     && nqp::p6bool(nqp::isprime_I(nqp::decont(i.Int), nqp::unbox_i(100)));
-}
+sub is-prime(\x) is pure { x.is-prime }
 
 proto sub expmod($, $, $) is pure  {*}
 multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {

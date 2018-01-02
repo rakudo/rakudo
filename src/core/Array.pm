@@ -1208,10 +1208,13 @@ my class Array { # declared in BOOTSTRAP
              ~ ']'
         })
     }
-    multi method gist(Array:D:) {
-        self.gistseen('Array', { '[' ~ self.map({.gist}).join(' ') ~ ']' } )
+    multi method WHICH(Array:D:) {
+        nqp::if(
+          nqp::attrinited(self,List,'$!WHICH'),
+          nqp::getattr(   self,List,'$!WHICH'),
+          nqp::bindattr(  self,List,'$!WHICH',self.Mu::WHICH)
+        )
     }
-    multi method WHICH(Array:D:) { self.Mu::WHICH }
 
 #=============== class Array is closed in src/core/TypedArray.pm ===============
 

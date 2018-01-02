@@ -2,6 +2,7 @@
 # deep; a List may contain Scalar containers that can be assigned to. However,
 # it is not possible to shift/unshift/push/pop/splice/bind. A List is also
 # Positional, and so may be indexed.
+my class Array { ... }
 my class List does Iterable does Positional { # declared in BOOTSTRAP
     # class List is Cool
     #   The reified elements in the list so far (that is, those that we already
@@ -13,6 +14,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #   upset an ongoing iteration. (An easy way to create such a case is to
     #   assign an array with lazy parts into itself.)
     #   has $!todo;
+    #
+    #   ObjAt or ValueObjAt object representing this list
+    #   has $!WHICH
 
     # The object that goes into $!todo.
     class Reifier {
@@ -177,6 +181,50 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               $!current-iter.is-lazy
             )
         }
+    }
+
+    method !WHICH() {
+        nqp::if(
+          self.elems.defined,  # reifies if necessary, false on lazy list
+          nqp::box_s(
+            nqp::concat(
+              nqp::if(
+                nqp::eqaddr(self.WHAT,List),
+                'List|',
+                nqp::concat(self.^name,'|')
+              ),
+              nqp::if(
+                $!reified.DEFINITE,
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!reified)),
+                  (my int $i = -1),
+                  (my $whiches := nqp::list_s),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::if(
+                      nqp::iscont(my $value := nqp::atpos($!reified,$i))
+                        || nqp::eqaddr((my $which := $value.WHICH).WHAT,ObjAt),
+                      (return self.Mu::WHICH),
+                      nqp::push_s($whiches,$which)
+                    )
+                  ),
+                  nqp::sha1(nqp::join("\0",$whiches))
+                ),
+                ''
+              )
+            ),
+            ValueObjAt
+          ),
+          self.Mu::WHICH
+        )
+    }
+
+    multi method WHICH(List:D:) {
+        nqp::if(
+          nqp::attrinited(self,List,'$!WHICH'),
+          $!WHICH,
+          $!WHICH := self!WHICH
+        )
     }
 
     method from-iterator(List:U: Iterator $iter) {
@@ -804,14 +852,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method gist(List:D:) {
-        self.gistseen('List', {
-            '(' ~ self.map( -> $elem {
+        self.gistseen(self.^name, {
+            (nqp::istype(self,Array) ?? '[' !! '(')
+            ~ self.map( -> $elem {
                 given ++$ {
                     when 101 { '...' }
                     when 102 { last }
                     default  { $elem.gist }
                 }
-            }).join(' ') ~ ')'
+            }).join(' ')
+            ~ (nqp::istype(self,Array) ?? ']' !! ')')
         })
     }
 
@@ -1164,11 +1214,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method permutations(|) is nodal {*}
     multi method permutations() {
-        Seq.new(
-          Rakudo::Iterator.ListIndexes(
-            self, Rakudo::Iterator.Permutations( self.elems, 1)
-          )
-        )
+        my \perm-iter = Rakudo::Iterator.Permutations: self.elems, 1;
+        Seq.new: Rakudo::Iterator.delegate-iterator-opt-methods:
+            perm-iter, Rakudo::Iterator.ListIndexes: self, perm-iter
     }
 
     method join(List:D: Str(Cool) $separator = '') is nodal {

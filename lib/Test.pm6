@@ -1,7 +1,7 @@
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2017 The Perl Foundation.
+# Copyright (C) 2007 - 2018 The Perl Foundation.
 
 # settable from outside
 my int $perl6_test_times = ?%*ENV<PERL6_TEST_TIMES>;
@@ -240,7 +240,7 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     #  #2 handles ops that don't have '«' or '»'
     #  #3 handles all the rest by escaping '<' and '>' with backslashes.
     #     Note: #3 doesn't eliminate #1, as #3 fails with '<' operator
-    my $matcher = $op ~~ Callable ?? $op
+    my $matcher = nqp::istype($op, Callable) ?? $op
         !! &CALLERS::("infix:<$op>") #1
             // &CALLERS::("infix:«$op»") #2
             // &CALLERS::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
@@ -257,7 +257,11 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     }
     else {
         $ok = proclaim(False, $desc);
-        _diag "Could not use '$op.perl()' as a comparator.";
+        _diag "Could not use '$op.perl()' as a comparator." ~ (
+            ' If you are trying to use a meta operator, pass it as a '
+            ~ "Callable instead of a string: \&[$op]"
+            unless nqp::istype($op, Callable)
+        );
     }
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;

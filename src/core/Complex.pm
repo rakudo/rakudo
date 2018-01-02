@@ -22,7 +22,7 @@ my class Complex is Cool does Numeric {
             ),
             nqp::concat($!re, nqp::concat('|', $!im))
           ),
-          ObjAt
+          ValueObjAt
         )
     }
 

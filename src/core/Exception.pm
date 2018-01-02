@@ -1541,6 +1541,7 @@ my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
 
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
+    has $.identifier-name;
     my %m =
       '$*'  => '^^ and $$',
       '$"'  => '.join() method',
@@ -1598,12 +1599,22 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '%^H' => '$?FOO variables',
     ;
     method message() {
-        my $v = $.name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
+        my $name = $!name;
+        my $v    = $name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
+        my $sugg = %m{~$v};
+        if $!identifier-name and $name eq '$#' {
+            # Currently only `$#` var has this identifier business handling as
+            # there are two versions of it: $# (number formatting) and $#var
+            # https://metacpan.org/pod/perlvar#Deprecated-and-removed-variables
+            # Should generalize the logic if we get more of stuff like this.
+            $name ~= $!identifier-name;
+            $sugg  = '@' ~ $!identifier-name ~ '.end';
+        }
         $v
-          ?? %m{~$v}
-            ?? "Unsupported use of $v variable; in Perl 6 please use {%m{~$v}}"
-            !! "Unsupported use of $v variable"
-          !! 'Weird unrecognized variable name: ' ~ $.name;
+          ?? $sugg
+            ?? "Unsupported use of $name variable; in Perl 6 please use $sugg"
+            !! "Unsupported use of $name variable"
+          !! 'Weird unrecognized variable name: ' ~ $name;
     }
 }
 
@@ -2287,9 +2298,9 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 my class X::Assignment::RO is Exception {
     has $.value = "value";
     method message {
-        my $gist = $.value.gist;
-        $gist = "$gist.substr(0,20)..." if $gist.chars > 23;
-        "Cannot modify an immutable {$.value.^name} ($gist)"
+        "Cannot modify an immutable {$!value.^name} ({
+            Rakudo::Internals.SHORT-GIST: $!value
+        })"
     }
     method typename { $.value.^name }
 }
@@ -2526,8 +2537,41 @@ my class X::Multi::Ambiguous is Exception {
     has @.ambiguous;
     has $.capture;
     method message {
-        join "\n",
-            "Ambiguous call to '$.dispatcher.name()'; these signatures all match:",
+        my @bits;
+        my @priors;
+        if $.capture {
+            for $.capture.list {
+                try @bits.push(.WHAT.perl);
+                @bits.push($_.^name) if $!;
+                when Failure {
+                    @priors.push(" " ~ .mess);
+                }
+            }
+            for $.capture.hash {
+                if .value ~~ Failure {
+                    @priors.push(" " ~ .value.mess);
+                }
+                if .value ~~ Bool {
+                    @bits.push(':' ~ ('!' x !.value) ~ .key);
+                }
+                else {
+                    try @bits.push(":$(.key)\($(.value.WHAT.?perl))");
+                    @bits.push(':' ~ .value.^name) if $!;
+                }
+            }
+        }
+        else {
+            @bits.push('...');
+        }
+        if @.ambiguous[0].signature.gist.contains: ': ' {
+            my $invocant = @bits.shift;
+            my $first = @bits ?? @bits.shift !! '';
+            @bits.unshift($invocant ~ ': ' ~ $first);
+        }
+        my $cap = '(' ~ @bits.join(", ") ~ ')';
+        @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
+        @priors.join ~ join "\n",
+            "Ambiguous call to '$.dispatcher.name()$cap'; these signatures all match:",
             @.ambiguous.map(*.signature.perl)
     }
 }
@@ -2553,7 +2597,9 @@ my class X::Multi::NoMatch is Exception {
         my @priors;
         if $.capture {
             for $.capture.list {
-                try @bits.push($where ?? .perl !! .WHAT.perl );
+                try @bits.push(
+                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl
+                );
                 @bits.push($_.^name) if $!;
                 when Failure {
                     @priors.push(" " ~ .mess);
@@ -2567,7 +2613,10 @@ my class X::Multi::NoMatch is Exception {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    try @bits.push(":$(.key)\($($where ?? .value.?perl !! .value.WHAT.?perl ))");
+                    try @bits.push(":$(.key)\($($where
+                        ?? Rakudo::Internals.SHORT-GIST: .value
+                        !! .value.WHAT.?perl
+                    ))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
             }
@@ -2803,7 +2852,7 @@ my class X::InvalidTypeSmiley does X::Comp {
 
 my class X::Seq::Consumed is Exception {
     method message() {
-        "This Seq has already been iterated, and its values consumed\n" ~
+        "The iterator of this Seq is already in use/consumed by another Seq\n" ~
         "(you might solve this by adding .cache on usages of the Seq, or\n" ~
         "by assigning the Seq into an array)"
     }

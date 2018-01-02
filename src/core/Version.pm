@@ -115,7 +115,7 @@ class Version {
             ),
             $!string
           ),
-          ObjAt
+          ValueObjAt
         )
     }
 
@@ -126,11 +126,11 @@ class Version {
 
 multi sub infix:<eqv>(Version:D \a, Version:D \b) {
     nqp::p6bool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && nqp::iseq_s(
-               nqp::getattr_s(a,Version,'$!string'),
-               nqp::getattr_s(b,Version,'$!string')
+               nqp::getattr_s(nqp::decont(a),Version,'$!string'),
+               nqp::getattr_s(nqp::decont(b),Version,'$!string')
              ))
     )
 }

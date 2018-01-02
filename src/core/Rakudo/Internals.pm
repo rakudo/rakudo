@@ -603,6 +603,12 @@ my class Rakudo::Internals {
         }
     }
 
+    method SHORT-GIST(\thing) {
+        nqp::if(
+          nqp::isgt_i(nqp::chars(my str $gist = thing.gist), 23),
+          nqp::concat(nqp::substr($gist, 0, 20), '...'),
+          $gist);
+    }
     method SUBSTR-START-OOR(\from,\max) {
         X::OutOfRange.new(
           :what('Start argument to substr'),
@@ -1583,7 +1589,8 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
                     while nqp::elems($end) {           # run all END blocks
                         quietly {
                             my $result := nqp::shift($end)();
-                            $result.sink if nqp::can($result,'sink');
+                            nqp::isfalse(nqp::isnull($result))
+                                && nqp::can($result, 'sink') && $result.sink;
                             CATCH { default { @exceptions.push($_) } }
                         }
                     }

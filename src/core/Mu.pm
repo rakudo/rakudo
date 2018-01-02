@@ -4,6 +4,8 @@ my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
 
+my class ValueObjAt is ObjAt { }
+
 my class Mu { # declared in BOOTSTRAP
 
     method self { self }
@@ -29,7 +31,7 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::concat(nqp::unbox_s(self.^name), '|U'),
                 nqp::objectid(self)
             ),
-            ObjAt
+            ValueObjAt
         )
     }
     multi method WHICH(Mu:D:) {

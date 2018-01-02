@@ -283,7 +283,7 @@ my class IO::Handle {
         nqp::eoffh($!PIO)
     }
 
-    method read-internal(Int $bytes) {
+    method read-internal(Int:D $bytes) {
         nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
     }
 

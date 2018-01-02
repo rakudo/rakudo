@@ -7,7 +7,7 @@ my class Bag does Baggy {
         nqp::if(
           nqp::attrinited(self,Bag,'$!WHICH'),
           $!WHICH,
-          $!WHICH := ObjAt.new('Bag!' ~ nqp::sha1(
+          $!WHICH := ValueObjAt.new('Bag!' ~ nqp::sha1(
             nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
               Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
             ))

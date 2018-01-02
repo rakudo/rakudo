@@ -26,7 +26,7 @@ my role Enumeration {
     multi method WHICH(::?CLASS:D:) {
         nqp::box_s(
           nqp::concat(self.^name,nqp::concat("|",$!index)),
-          ObjAt
+          ValueObjAt
         )
     }
 

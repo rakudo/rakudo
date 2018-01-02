@@ -6,7 +6,7 @@ use nqp;
 my $snaps := nqp::create(IterationBuffer);
 
 # Role for building instruments --------------------------
-role Telemetry::Instrument is export {
+role Telemetry::Instrument {
 
     # Should return instantiated snap object
     method snap() is raw { ... } # Typically just Snap.new
@@ -25,7 +25,7 @@ role Telemetry::Instrument is export {
 }
 
 # Role for creating an instrument snap -------------
-role Telemetry::Instrument::Snap does Associative is export {
+role Telemetry::Instrument::Snap does Associative {
     has Mu $!data;
     method data() is raw { $!data }
 
@@ -738,12 +738,12 @@ multi sub report(*%_ --> Str:D) {
 }
 
 # some constants for the %format list
-constant NAME    = 0; # short name
-constant FORMAT  = 1; # format (without % prefixed)
-constant LEGEND  = 2; # legend
-constant HEADER  = 3; # generated: column header
-constant FOOTER  = 4; # generated: column footer
-constant DISPLAY = 5; # generated: code to execute to display
+my constant NAME    = 0; # short name
+my constant FORMAT  = 1; # format (without % prefixed)
+my constant LEGEND  = 2; # legend
+my constant HEADER  = 3; # generated: column header
+my constant FOOTER  = 4; # generated: column footer
+my constant DISPLAY = 5; # generated: code to execute to display
 
 sub prepare-format(@raw, %format --> Nil) is raw {
 

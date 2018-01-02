@@ -256,7 +256,7 @@ my class Promise does Awaitable {
     method anyof(Promise:U: *@p) { self!until_n_kept(@p,   1, 'anyof') }
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
-    method !until_n_kept(@promises, Int $N, Str $combinator) {
+    method !until_n_kept(@promises, Int:D $N, Str $combinator) {
         my $p = self.new;
         unless @promises {
             $p.keep;

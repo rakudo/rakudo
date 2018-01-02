@@ -1,6 +1,6 @@
 # the uses of add_I in this class are a trick to make bigints work right
 my class IntStr is Int is Str {
-    method new(Int $i, Str $s) {
+    method new(Int:D $i, Str:D $s) {
         my \SELF = nqp::add_I($i, 0, self);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
@@ -159,9 +159,16 @@ multi sub val(Mu) {
     Mu
 }
 
-# needed to preserve slip-ness
-multi sub val(Slip:D $maybevals) {
-    val(|$maybevals).Slip
+# if Slip, preserve slipness
+multi sub val(List:D $maybevals) {
+    nqp::stmts(
+        (my $output := val(|$maybevals)),
+        nqp::if(
+            nqp::istype($maybevals, Slip),
+            $output.Slip,
+            $output
+        )
+    )
 }
 
 multi sub val(Pair:D \ww-thing) is raw {

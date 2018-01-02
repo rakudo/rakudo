@@ -454,6 +454,8 @@ my class Range is Cool does Iterable does Positional {
                     && !(!topic.excludes-max && $!excludes-max))
     }
 
+    method ASSIGN-POS(Range:D: |) { X::Assignment::RO.new(value => self).throw }
+
     multi method AT-POS(Range:D: int \pos) {
         $!is-int
             ?? self.EXISTS-POS(pos)
@@ -500,19 +502,23 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.roll(*)
         }
         else {
-            Nil xx *
+            Seq.new(Rakudo::Iterator.Empty)
         }
     }
     multi method roll(Range:D:) {
-        if $!is-int {
-            my $elems = $!max - $!excludes-max - $!min - $!excludes-min + 1;
-            $elems > 0
-              ?? $!min + $!excludes-min + nqp::rand_I(nqp::decont($elems),Int)
-              !! Nil
-        }
-        else {
-            self.list.roll
-        }
+        nqp::if(
+          $!is-int,
+          nqp::if(
+            (my $elems := $!max - $!excludes-max - $!min - $!excludes-min+1) > 0,
+            $!min + $!excludes-min + nqp::rand_I($elems,Int),
+            Nil
+          ),
+          nqp::if(
+            self.elems,
+            self.list.roll,
+            Nil
+          )
+        )
     }
     multi method roll(Int(Cool) $todo) {
         if self.elems -> $elems {
@@ -541,13 +547,17 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.roll($todo)
         }
         else {
-            Nil xx $todo
+            Seq.new(Rakudo::Iterator.Empty)
         }
     }
 
     proto method pick(|)        {*}
     multi method pick()          { self.roll };
-    multi method pick(Whatever)  { self.list.pick(*) };
+    multi method pick(Whatever)  {
+        self.elems
+          ?? self.list.pick(*)
+          !! Seq.new(Rakudo::Iterator.Empty)
+    }
     multi method pick(Int(Cool) $todo) {
         if self.elems -> $elems {
             $!is-int && $elems > 3 * $todo # heuristic for sparse lookup
@@ -596,7 +606,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.pick($todo)
         }
         else {
-            Nil xx $todo
+            Seq.new(Rakudo::Iterator.Empty)
         }
     }
 

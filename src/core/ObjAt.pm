@@ -15,7 +15,7 @@ my class ObjAt { # declared in BOOTSTRAP
             ),
             $!value
           ),
-          ObjAt
+          self.WHAT
         )
     }
     multi method Str(ObjAt:D:) {

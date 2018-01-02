@@ -1781,21 +1781,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_control:sym<if>($/) {
         my $count := +$<xblock> - 1;
         my $past;
+        (my $empty := QAST::WVal.new: :value($*W.find_symbol: ['Empty'])
+        ).annotate: 'ok_to_null_if_sunk', 1;
         if ~$<sym>[$count] ~~ /with/ {
             $past := xblock_immediate_with( $<xblock>[$count].ast );
             $past.op('with');
-            $past.push( $<else>
-                        ?? pblock_immediate_with( $<else>.ast )
-                        !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
-            );
+            $past.push: $<else> ?? pblock_immediate_with($<else>.ast) !! $empty;
         }
         else {
             $past := xblock_immediate( $<xblock>[$count].ast );
             $past.op('if');
-            $past.push( $<else>
-                        ?? pblock_immediate( $<else>.ast )
-                        !! QAST::WVal.new( :value($*W.find_symbol(['Empty'])) )
-            );
+            $past.push: $<else> ?? pblock_immediate($<else>.ast) !! $empty;
         }
         # build if/then/elsif structure
         while $count > 0 {
@@ -5179,7 +5175,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             %*PARAM_INFO<dummy> := $*PRECEDING_DECL;
         }
 
-        if $<name><sigterm> {
+        if $<name><sigterm> || $<sigterm> -> $sig {
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
@@ -5188,7 +5184,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :name('signature'),
                 WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'param_var')
             );
-            my $fakesig := $<name><sigterm><fakesignature>;
+            my $fakesig := $sig<fakesignature>;
             my $closure_signature := $fakesig.ast;
 
             my $where := make_where_block($fakesig, $closure_signature, $get_signature_past);
@@ -9778,7 +9774,17 @@ class Perl6::QActions is HLL::Actions does STDActions {
             }
         }
         walk($past);
-        +@($result) == 1 ?? $result[0] !! QAST::Stmts.new( $result )
+
+        # Strip out list op and possible Slip if only one resulting word
+        nqp::if(
+            +@($result) == 1,
+            nqp::if(
+                nqp::istype($result[0], QAST::Op) && $result[0].name eq 'Slip',
+                $result[0][0],
+                $result[0]
+            ),
+            QAST::Stmts.new( $result )
+        )
     }
 
     method postprocess_heredoc($/, $past) {

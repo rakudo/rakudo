@@ -105,6 +105,27 @@ my sub MAIN_HELPER($retval = 0) {
 
             for $sub.signature.params -> $param {
                 my $argument;
+
+                my int $literals-as-constraint = 0;
+                my int $total-constraints = 0;
+                my $constraints = ~unique $param.constraint_list.map: {
+                    ++$total-constraints;
+                    nqp::if(
+                      nqp::istype($_, Callable),
+                      'where { ... }',
+                      nqp::stmts(
+                        (my \g = .gist),
+                        nqp::if(
+                          nqp::isconcrete($_),
+                          nqp::stmts(
+                            ++$literals-as-constraint,
+                            g), # we constrained by some literal; gist as is
+                          nqp::substr(g, 1, nqp::chars(g)-2))))
+                          # ^ remove ( ) parens around name in the gist
+                }
+                $_ eq 'where { ... }' and $_ = "$param.type.^name() $_"
+                    with $constraints;
+
                 if $param.named {
                     if $param.slurpy {
                         if $param.name { # ignore anon *%
@@ -116,7 +137,9 @@ my sub MAIN_HELPER($retval = 0) {
                         my @names  = $param.named_names.reverse;
                         $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
                         if $param.type !=== Bool {
-                            $argument ~= "=<{$param.type.^name}>";
+                            $argument ~= "=<{
+                                $constraints || $param.type.^name
+                            }>";
                             if Metamodel::EnumHOW.ACCEPTS($param.type.HOW) {
                                 my $options = $param.type.^enum_values.keys.sort.Str;
                                 $argument ~= $options.chars > 50
@@ -133,16 +156,23 @@ my sub MAIN_HELPER($retval = 0) {
                     }
                 }
                 else {
-                    my $constraints  = $param.constraint_list.map(*.gist).join(' ');
-                    my $simple-const = $constraints && $constraints !~~ /^_block/;
-                    $argument = $param.name   ?? "<$param.usage-name()>" !!
-                                $simple-const ??       $constraints                !!
-                                                 '<' ~ $param.type.^name     ~ '>' ;
+                    $argument = $param.name
+                        ?? "<$param.usage-name()>"
+                        !! $constraints
+                            ?? ($literals-as-constraint == $total-constraints)
+                                ?? $constraints
+                                !! "<{$constraints}>"
+                            !! "<$param.type.^name()>";
 
-                    $argument  = "[$argument ...]"          if $param.slurpy;
-                    $argument  = "[$argument]"              if $param.optional;
-                    $argument .= trans(["'"] => [q|'"'"'|]) if $argument.contains("'");
-                    $argument  = "'$argument'"              if $argument.contains(' ' | '"');
+                    $argument  = "[$argument ...]" if $param.slurpy;
+                    $argument  = "[$argument]"     if $param.optional;
+                    if $total-constraints
+                    && $literals-as-constraint == $total-constraints {
+                        $argument .= trans(["'"] => [q|'"'"'|])
+                            if $argument.contains("'");
+                        $argument  = "'$argument'"
+                            if $argument.contains(' ' | '"');
+                    }
                     @positional.push($argument);
                 }
                 @arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty;  # Use first defined

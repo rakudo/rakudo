@@ -16,12 +16,12 @@ public final class Binder {
     public static final int BIND_RESULT_OK       = 0;
     public static final int BIND_RESULT_FAIL     = 1;
     public static final int BIND_RESULT_JUNCTION = 2;
-    
+
     /* Compile time trial binding result indicators. */
     public static final int TRIAL_BIND_NOT_SURE =  0;  /* Plausible, but need to check at runtime. */
     public static final int TRIAL_BIND_OK       =  1;  /* Bind will always work out. */
     public static final int TRIAL_BIND_NO_WAY   = -1;  /* Bind could never work out. */
-    
+
     /* Flags. */
     private static final int SIG_ELEM_BIND_CAPTURE        = 1;
     private static final int SIG_ELEM_BIND_PRIVATE_ATTR   = 2;
@@ -51,7 +51,7 @@ public final class Binder {
     private static final int SIG_ELEM_NATIVE_VALUE        = (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE);
     private static final int SIG_ELEM_SLURPY_ONEARG       = 16777216;
     private static final int SIG_ELEM_SLURPY              = (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG);
-    
+
     /* Hints for Parameter attributes. */
     private static final int HINT_variable_name = 0;
     private static final int HINT_named_names = 1;
@@ -65,7 +65,7 @@ public final class Binder {
     private static final int HINT_default_value = 9;
     private static final int HINT_container_descriptor = 10;
     private static final int HINT_attr_package = 11;
-    
+
     /* Other hints. */
     private static final int HINT_ENUMMAP_storage = 0;
     private static final int HINT_CAPTURE_list = 0;
@@ -85,7 +85,7 @@ public final class Binder {
                 throw new RuntimeException("Impossible case reached in createBox");
         }
     }
-    
+
     private static String arityFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject params,
             int numParams, int numPosArgs, boolean tooMany) {
         int arity = 0;
@@ -130,7 +130,7 @@ public final class Binder {
                 "%s positionals passed; expected %d %s %d arguments but got %d",
                 fail, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
     }
-    
+
     /* Binds any type captures. */
     public static void bindTypeCaptures(ThreadContext tc, SixModelObject typeCaps, CallFrame cf, SixModelObject type) {
         long elems = typeCaps.elems(tc);
@@ -141,7 +141,7 @@ public final class Binder {
             cf.oLex[sci.oTryGetLexicalIdx(name)] = type;
         }
     }
-    
+
     /* Assigns an attributive parameter to the desired attribute. */
     private static int assignAttributive(ThreadContext tc, CallFrame cf, String varName,
             int paramFlags, SixModelObject attrPackage, SixModelObject value, Object[] error) {
@@ -166,7 +166,7 @@ public final class Binder {
         /* If it's private, just need to fetch the attribute. */
         SixModelObject assignee;
         if ((paramFlags & SIG_ELEM_BIND_PRIVATE_ATTR) != 0) {
-            /* If we have a native Attribute we can't get a container for it, and 
+            /* If we have a native Attribute we can't get a container for it, and
                since *trying* to get a container would throw already, we first check
                if the target Attribute is native. */
             int hint = -1;
@@ -204,7 +204,7 @@ public final class Binder {
         }
         return BIND_RESULT_OK;
     }
-    
+
     /* Returns an appropriate failure mode (junction fail or normal fail). */
     private static int juncOrFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject value) {
         if (value.st.WHAT == gcx.Junction && Ops.isconcrete(value, tc) != 0)
@@ -212,7 +212,7 @@ public final class Binder {
         else
             return BIND_RESULT_FAIL;
     }
-    
+
     /* Binds a single argument into the lexpad, after doing any checks that are
      * needed. Also handles any type captures. If there is a sub signature, then
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
@@ -235,6 +235,8 @@ public final class Binder {
             CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_STR,
             CallSiteDescriptor.ARG_INT, CallSiteDescriptor.ARG_INT
         }, null);
+    private static final CallSiteDescriptor paramReadWriteThrower = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
     private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
             Object origArg, byte origFlag, boolean noNomTypeCheck, Object[] error) {
         /* Get parameter flags and variable name. */
@@ -242,9 +244,14 @@ public final class Binder {
         int paramFlags = (int)tc.native_i;
         param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
         String varName = tc.native_s;
+        boolean hasVarName = true;
+        if (varName == null || varName.isEmpty()) {
+            varName = "<anon>";
+            hasVarName = false;
+        }
         if (RakOps.DEBUG_MODE)
             System.err.println(varName);
-        
+
         /* We'll put the value to bind into one of the following locals, and
          * flag will indicate what type of thing it is. */
         int flag;
@@ -252,7 +259,7 @@ public final class Binder {
         double arg_n = 0.0;
         String arg_s = null;
         SixModelObject arg_o = null;
-        
+
         /* Check if boxed/unboxed expectations are met. */
         int desiredNative = paramFlags & SIG_ELEM_NATIVE_VALUE;
         boolean is_rw = (paramFlags & SIG_ELEM_IS_RW) != 0;
@@ -263,7 +270,7 @@ public final class Binder {
                 if (gotNative != 0 || Ops.iscont_i((SixModelObject)origArg) == 0) {
                     if (error != null)
                         error[0] = String.format(
-                            "Expected a native int argument for '%s'",
+                            "Expected a modifiable native int argument for '%s'",
                             varName);
                     return BIND_RESULT_FAIL;
                 }
@@ -272,7 +279,7 @@ public final class Binder {
                 if (gotNative != 0 || Ops.iscont_n((SixModelObject)origArg) == 0) {
                     if (error != null)
                         error[0] = String.format(
-                            "Expected a native num argument for '%s'",
+                            "Expected a modifiable native num argument for '%s'",
                             varName);
                     return BIND_RESULT_FAIL;
                 }
@@ -281,7 +288,7 @@ public final class Binder {
                 if (gotNative != 0 || Ops.iscont_s((SixModelObject)origArg) == 0) {
                     if (error != null)
                         error[0] = String.format(
-                            "Expected a native str argument for '%s'",
+                            "Expected a modifiable native str argument for '%s'",
                             varName);
                     return BIND_RESULT_FAIL;
                 }
@@ -363,7 +370,7 @@ public final class Binder {
                     return BIND_RESULT_FAIL;
             }
         }
-        
+
         /* By this point, we'll either have an object that we might be able to
          * bind if it passes the type check, or a native value that needs no
          * further checking. */
@@ -373,13 +380,13 @@ public final class Binder {
         if (flag == CallSiteDescriptor.ARG_OBJ && !(is_rw && desiredNative != 0)) {
             /* We need to work on the decontainerized value. */
             decontValue = Ops.decont(arg_o, tc);
-            
+
             /* HLL map it as needed. */
             SixModelObject beforeHLLize = decontValue;
             decontValue = Ops.hllize(decontValue, tc);
             if (decontValue != beforeHLLize)
                 didHLLTransform = true;
-            
+
             /* Skip nominal type check if not needed. */
             if (!noNomTypeCheck) {
                 /* Is the nominal type generic and in need of instantiation? (This
@@ -426,7 +433,7 @@ public final class Binder {
                             error[0] = thrower;
                             error[1] = bindParamThrower;
                             error[2] = new Object[] { decontValue, nomType.st.WHAT,
-                                (varName != null ? varName : "<anon>"), param };
+                                varName, param };
                         }
                         else {
                             error[0] = String.format(
@@ -434,7 +441,7 @@ public final class Binder {
                                 varName);
                         }
                     }
-                
+
                     /* Report junction failure mode if it's a junction. */
                     return juncOrFail(tc, gcx, decontValue);
                 }
@@ -456,8 +463,7 @@ public final class Binder {
                                 error[0] = thrower;
                                 error[1] = bindConcreteThrower;
                                 error[2] = new Object[] { typeName, argName, methodName,
-                                    (varName != null ? varName : "<anon>"),
-                                    (long)(shouldBeConcrete ? 1 : 0),
+                                    varName, (long)(shouldBeConcrete ? 1 : 0),
                                     (long)(paramFlags & SIG_ELEM_INVOCANT) };
                             }
                             else {
@@ -474,12 +480,10 @@ public final class Binder {
                                     : shouldBeConcrete
                                         ? String.format(
                                             "Parameter '%s' of routine '%s' must be an object instance of type '%s', not a type object of type '%s'.  Did you forget a '.new'?",
-                                            (varName == null || varName.isEmpty() ? "<anon>" : varName),
-                                            methodName, typeName, argName)
+                                            varName, methodName, typeName, argName)
                                         : String.format(
                                             "Parameter '%s' of routine '%s' must be a type object of type '%s', not an object instance of type '%s'.  Did you forget a 'multi'?",
-                                            (varName == null || varName.isEmpty() ? "<anon>" : varName),
-                                            methodName, typeName, argName);
+                                            varName, methodName, typeName, argName);
                             }
                         }
                         return juncOrFail(tc, gcx, decontValue);
@@ -487,13 +491,13 @@ public final class Binder {
                 }
             }
         }
-        
+
         /* Type captures. */
         SixModelObject typeCaps = param.get_attribute_boxed(tc, gcx.Parameter,
             "@!type_captures", HINT_type_captures);
         if (typeCaps != null)
             bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
-        
+
         /* Do a coercion, if one is needed. */
         SixModelObject coerceType = param.get_attribute_boxed(tc, gcx.Parameter,
             "$!coerce_type", HINT_coerce_type);
@@ -506,7 +510,7 @@ public final class Binder {
                         varName);
                 return BIND_RESULT_FAIL;
             }
-            
+
             /* Only coerce if we don't already have the correct type. */
             if (Ops.istype(decontValue, coerceType, tc) == 0) {
                 param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
@@ -528,92 +532,108 @@ public final class Binder {
                 }
             }
         }
-        
+
         /* If it's not got attributive binding, we'll go about binding it into the
          * lex pad. */
         StaticCodeInfo sci = cf.codeRef.staticInfo;
-        if ((paramFlags & SIG_ELEM_BIND_ATTRIBUTIVE) == 0 && varName != null) {
+        if ((paramFlags & SIG_ELEM_BIND_ATTRIBUTIVE) == 0) {
             /* Is it native? If so, just go ahead and bind it. */
             if (flag != CallSiteDescriptor.ARG_OBJ) {
-                switch (flag) {
-                    case CallSiteDescriptor.ARG_INT:
-                        cf.iLex[sci.iTryGetLexicalIdx(varName)] = arg_i;
-                        break;
-                    case CallSiteDescriptor.ARG_NUM:
-                        cf.nLex[sci.nTryGetLexicalIdx(varName)] = arg_n;
-                        break;
-                    case CallSiteDescriptor.ARG_STR:
-                        cf.sLex[sci.sTryGetLexicalIdx(varName)] = arg_s;
-                        break;
+                if (hasVarName) {
+                    switch (flag) {
+                        case CallSiteDescriptor.ARG_INT:
+                            cf.iLex[sci.iTryGetLexicalIdx(varName)] = arg_i;
+                            break;
+                        case CallSiteDescriptor.ARG_NUM:
+                            cf.nLex[sci.nTryGetLexicalIdx(varName)] = arg_n;
+                            break;
+                        case CallSiteDescriptor.ARG_STR:
+                            cf.sLex[sci.sTryGetLexicalIdx(varName)] = arg_s;
+                            break;
+                    }
                 }
             }
-            
+
             /* Otherwise it's some objecty case. */
             else if (is_rw) {
-                /* XXX TODO Check if rw flag is set; also need to have a
-                 * wrapper container that carries extra constraints. */
-                cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
-            }
-            else if ((paramFlags & SIG_ELEM_IS_RAW) != 0) {
-                /* Just bind the thing as is into the lexpad. */
-                cf.oLex[sci.oTryGetLexicalIdx(varName)] = didHLLTransform ? decontValue : arg_o;
-            }
-            else {
-                /* If it's an array, copy means make a new one and store,
-                 * and a normal bind is a straightforward binding plus
-                 * adding a constraint. */
-                if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                    SixModelObject bindee = decontValue;
-                    if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        SixModelObject BOOTArray = tc.gc.BOOTArray;
-                        bindee = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
-                        bindee.bind_attribute_boxed(tc, gcx.List, "$!reified",
-                            HINT_LIST_reified, BOOTArray.st.REPR.allocate(tc, BOOTArray.st));
-                        RakOps.p6store(bindee, decontValue, tc);
+                if (Ops.isrwcont(arg_o, tc) == 1) {
+                    if (hasVarName)
+                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = arg_o;
+                } else {
+                    SixModelObject thrower = RakOps.getThrower(tc, "X::Parameter::RW");
+                    if (thrower == null) {
+                        error[0] = "Parameter expected a writable container";
+                    } else {
+                        error[0] = thrower;
+                        error[1] = paramReadWriteThrower;
+                        error[2] = new Object[] { decontValue, varName};
                     }
-                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
+                    return BIND_RESULT_FAIL;
                 }
-                
-                /* If it's a hash, similar approach to array. */
-                else if ((paramFlags & SIG_ELEM_HASH_SIGIL) != 0) {
-                    SixModelObject bindee = decontValue;
-                    if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
-                        SixModelObject BOOTHash = tc.gc.BOOTHash;
-                        bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
-                        bindee.bind_attribute_boxed(tc, gcx.Map, "$!storage",
-                            HINT_ENUMMAP_storage, BOOTHash.st.REPR.allocate(tc, BOOTHash.st));
-                        RakOps.p6store(bindee, decontValue, tc);
-                    }
-                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
+
+            }
+            else if (hasVarName) {
+                if ((paramFlags & SIG_ELEM_IS_RAW) != 0) {
+                    /* Just bind the thing as is into the lexpad. */
+                    cf.oLex[sci.oTryGetLexicalIdx(varName)] = didHLLTransform ? decontValue : arg_o;
                 }
-                
-                /* If it's a scalar, we always need to wrap it into a new
-                 * container and store it, for copy or ro case (the rw bit
-                 * in the container descriptor takes care of the rest). */
                 else {
-                    boolean wrap = (paramFlags & SIG_ELEM_IS_COPY) != 0;
-                    if (!wrap && nomType != null && gcx.Iterable != null) {
-                        wrap = Ops.istype(gcx.Iterable, nomType, tc) != 0
-                            || Ops.istype(nomType, gcx.Iterable, tc) != 0;
+                    /* If it's an array, copy means make a new one and store,
+                     * and a normal bind is a straightforward binding plus
+                     * adding a constraint. */
+                    if ((paramFlags & SIG_ELEM_ARRAY_SIGIL) != 0) {
+                        SixModelObject bindee = decontValue;
+                        if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
+                            SixModelObject BOOTArray = tc.gc.BOOTArray;
+                            bindee = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
+                            bindee.bind_attribute_boxed(tc, gcx.List, "$!reified",
+                                HINT_LIST_reified, BOOTArray.st.REPR.allocate(tc, BOOTArray.st));
+                            RakOps.p6store(bindee, decontValue, tc);
+                        }
+                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                     }
-                    if (wrap || varName.equals("$_")) {
-                        STable stScalar = gcx.Scalar.st;
-                        SixModelObject new_cont = stScalar.REPR.allocate(tc, stScalar);
-                        SixModelObject desc = param.get_attribute_boxed(tc, gcx.Parameter,
-                            "$!container_descriptor", HINT_container_descriptor);
-                        new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
-                            RakudoContainerSpec.HINT_descriptor, desc);
-                        new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                            RakudoContainerSpec.HINT_value, decontValue);
-                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = new_cont;
+
+                    /* If it's a hash, similar approach to array. */
+                    else if ((paramFlags & SIG_ELEM_HASH_SIGIL) != 0) {
+                        SixModelObject bindee = decontValue;
+                        if ((paramFlags & SIG_ELEM_IS_COPY) != 0) {
+                            SixModelObject BOOTHash = tc.gc.BOOTHash;
+                            bindee = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
+                            bindee.bind_attribute_boxed(tc, gcx.Map, "$!storage",
+                                HINT_ENUMMAP_storage, BOOTHash.st.REPR.allocate(tc, BOOTHash.st));
+                            RakOps.p6store(bindee, decontValue, tc);
+                        }
+                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = bindee;
                     }
+
+                    /* If it's a scalar, we always need to wrap it into a new
+                     * container and store it, for copy or ro case (the rw bit
+                     * in the container descriptor takes care of the rest). */
                     else {
-                        cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+                        boolean wrap = (paramFlags & SIG_ELEM_IS_COPY) != 0;
+                        if (!wrap && nomType != null && gcx.Iterable != null) {
+                            wrap = Ops.istype(gcx.Iterable, nomType, tc) != 0
+                                || Ops.istype(nomType, gcx.Iterable, tc) != 0;
+                        }
+                        if (wrap || varName.equals("$_")) {
+                            STable stScalar = gcx.Scalar.st;
+                            SixModelObject new_cont = stScalar.REPR.allocate(tc, stScalar);
+                            SixModelObject desc = param.get_attribute_boxed(tc, gcx.Parameter,
+                                "$!container_descriptor", HINT_container_descriptor);
+                            new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
+                                RakudoContainerSpec.HINT_descriptor, desc);
+                            new_cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
+                                RakudoContainerSpec.HINT_value, decontValue);
+                            cf.oLex[sci.oTryGetLexicalIdx(varName)] = new_cont;
+                        }
+                        else {
+                            cf.oLex[sci.oTryGetLexicalIdx(varName)] = decontValue;
+                        }
                     }
                 }
             }
         }
-        
+
         /* Is it the invocant? If so, also have to bind to self lexical. */
         if ((paramFlags & SIG_ELEM_INVOCANT) != 0)
             cf.oLex[sci.oTryGetLexicalIdx("self")] = decontValue;
@@ -715,7 +735,7 @@ public final class Binder {
 
         if (RakOps.DEBUG_MODE)
             System.err.println("bindOneParam NYFI");
-        
+
         return BIND_RESULT_OK;
     }
 
@@ -783,7 +803,7 @@ public final class Binder {
             }
         }
     }
-    
+
     /* Takes a signature along with positional and named arguments and binds them
      * into the provided callframe. Returns BIND_RESULT_OK if binding works out,
      * BIND_RESULT_FAIL if there is a failure and BIND_RESULT_JUNCTION if the
@@ -795,11 +815,11 @@ public final class Binder {
             boolean noNomTypeCheck, Object[] error) {
         int bindFail = BIND_RESULT_OK;
         int curPosArg = 0;
-        
+
         /* If we have a |$foo that's followed by slurpies, then we can suppress
          * any future arity checks. */
         boolean suppressArityFail = false;
-        
+
         /* If we do have some named args, we want to make a clone of the hash
          * to work on. We'll delete stuff from it as we bind, and what we have
          * left over can become the slurpy hash or - if we aren't meant to be
@@ -807,7 +827,7 @@ public final class Binder {
         HashMap<String, Integer> namedArgsCopy = csd.nameMap == null
             ? null
             : new HashMap<String, Integer>(csd.nameMap);
-        
+
         /* Now we'll walk through the signature and go about binding things. */
         int numPosArgs = csd.numPositionals;
         long numParams = params.elems(tc);
@@ -818,7 +838,7 @@ public final class Binder {
             int flags = (int)tc.native_i;
             SixModelObject namedNames = param.get_attribute_boxed(tc,
                 gcx.Parameter, "@!named_names", HINT_named_names);
-            
+
             /* Is it looking for us to bind a capture here? */
             if ((flags & SIG_ELEM_IS_CAPTURE) != 0) {
                 /* Capture the arguments from this point forwards into a Capture.
@@ -845,16 +865,16 @@ public final class Binder {
                             posArgs.push_boxed(tc, RakOps.p6box_s((String)args[k], tc));
                             break;
                         }
-                    }                    
+                    }
                     SixModelObject namedArgs = vmHashOfRemainingNameds(tc, gcx, namedArgsCopy, args);
-                    
+
                     SixModelObject capType = gcx.Capture;
                     SixModelObject capSnap = capType.st.REPR.allocate(tc, capType.st);
                     capSnap.bind_attribute_boxed(tc, capType, "@!list", HINT_CAPTURE_list, posArgs);
                     capSnap.bind_attribute_boxed(tc, capType, "%!hash", HINT_CAPTURE_hash, namedArgs);
-                    
+
                     bindFail = bindOneParam(tc, gcx, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
-                        noNomTypeCheck, error);               
+                        noNomTypeCheck, error);
                 }
                 if (bindFail != 0) {
                     return bindFail;
@@ -872,7 +892,7 @@ public final class Binder {
                         suppressArityFail = true;
                 }
             }
-            
+
             /* Could it be a named slurpy? */
             else if ((flags & SIG_ELEM_SLURPY_NAMED) != 0) {
                 SixModelObject slurpy = vmHashOfRemainingNameds(tc, gcx, namedArgsCopy, args);
@@ -883,12 +903,12 @@ public final class Binder {
                     noNomTypeCheck, error);
                 if (bindFail != 0)
                     return bindFail;
-                
+
                 /* Nullify named arguments hash now we've consumed it, to mark all
                  * is well. */
                 namedArgsCopy = null;
             }
-            
+
             /* Otherwise, maybe it's a positional of some kind. */
             else if (namedNames == null) {
                 /* Slurpy or LoL-slurpy? */
@@ -927,7 +947,7 @@ public final class Binder {
                     if (bindFail != 0)
                         return bindFail;
                 }
-                
+
                 /* Otherwise, a positional. */
                 else {
                     /* Do we have a value?. */
@@ -958,7 +978,7 @@ public final class Binder {
                     }
                 }
             }
-            
+
             /* Else, it's a non-slurpy named. */
             else {
                 /* Try and get hold of value. */
@@ -973,7 +993,7 @@ public final class Binder {
                             break;
                     }
                 }
-                
+
                 /* Did we get one? */
                 if (lookup == null) {
                     /* Nope. We'd better hope this param was optional... */
@@ -1002,7 +1022,7 @@ public final class Binder {
                     return bindFail;
             }
         }
-        
+
         /* Do we have any left-over args? */
         if (curPosArg < numPosArgs && !suppressArityFail) {
             /* Oh noes, too many positionals passed. */
@@ -1037,7 +1057,7 @@ public final class Binder {
         /* If we get here, we're done. */
         return BIND_RESULT_OK;
     }
-    
+
     /* Takes any nameds we didn't capture yet and makes a VM Hash of them. */
     private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, RakOps.GlobalExt gcx, HashMap<String, Integer> namedArgsCopy, Object[] args) {
         SixModelObject slurpy = gcx.Mu;

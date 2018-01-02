@@ -1,7 +1,6 @@
 my class X::Cannot::Capture        { ... }
 my class X::Numeric::DivideByZero  { ... }
 my class X::Numeric::CannotConvert { ... }
-my role Rational { ... }
 
 my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool
@@ -17,7 +16,7 @@ my class Num does Real { # declared in BOOTSTRAP
             ),
             nqp::unbox_n(self)
           ),
-          ObjAt
+          ValueObjAt
         )
     }
     method Capture() { die X::Cannot::Capture.new: :what(self) }
@@ -44,8 +43,12 @@ my class Num does Real { # declared in BOOTSTRAP
     }
 
     method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
-        return Rational[Num,Int].new(self,0)
-          if nqp::isnanorinf(nqp::unbox_n(self));
+        my \RAT = $fat ?? FatRat !! Rat;
+
+        return RAT.new: (
+            nqp::iseq_n(self, self) ?? nqp::iseq_n(self, Inf) ?? 1 !! -1 !! 0
+          ), 0
+        if nqp::isnanorinf(nqp::unbox_n(self));
 
         my Num $num = self;
         $num = -$num if (my int $signum = $num < 0);
@@ -53,9 +56,7 @@ my class Num does Real { # declared in BOOTSTRAP
 
         # basically have an Int
         if nqp::iseq_n($r,0e0) {
-            $fat
-              ?? FatRat.new(nqp::fromnum_I(self,Int),1)
-              !!    Rat.new(nqp::fromnum_I(self,Int),1)
+            RAT.new(nqp::fromnum_I(self,Int),1)
         }
 
         # find convergents of the continued fraction.
@@ -84,9 +85,7 @@ my class Num does Real { # declared in BOOTSTRAP
             # smaller denominator but it is not (necessarily) the Rational
             # with the smallest denominator that has less than $epsilon error.
             # However, to find that Rational would take more processing.
-            $fat
-              ?? FatRat.new($signum ?? -$b !! $b, $d)
-              !!    Rat.new($signum ?? -$b !! $b, $d)
+            RAT.new($signum ?? -$b !! $b, $d)
         }
     }
     method FatRat(Num:D: Real $epsilon = 1.0e-6) {
@@ -241,6 +240,18 @@ my class Num does Real { # declared in BOOTSTRAP
     proto method acotanh(|) {*}
     multi method acotanh(Num:D: ) {
         (1e0 / self).atanh;
+    }
+    method is-prime(--> Bool:D) {
+        nqp::p6bool(
+          nqp::if(
+            nqp::isnanorinf(self),
+            False,
+            nqp::if(
+              nqp::iseq_n(self,nqp::floor_n(self)),
+              nqp::fromnum_I(self,Int).is-prime
+            )
+          )
+        )
     }
 
     method narrow(Num:D:) {
@@ -509,7 +520,7 @@ sub rand(--> Num:D) {
     nqp::p6box_n(nqp::rand_n(1e0));
 }
 
-sub srand(Int $seed --> Int:D) {
+sub srand(Int:D $seed --> Int:D) {
     nqp::p6box_i(nqp::srand($seed))
 }
 

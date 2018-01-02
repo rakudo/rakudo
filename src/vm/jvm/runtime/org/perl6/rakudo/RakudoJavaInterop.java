@@ -454,9 +454,9 @@ public class RakudoJavaInterop extends BootJavaInterop {
             Ops.invokeDirect(tc, methOf, Ops.invocantCallSite, new Object[] { p6list });
             SixModelObject ofType = Ops.result_o(tc.curFrame);
             SixModelObject methAtPos = Ops.findmethod(p6list, "AT-POS", tc);
-            
+
             for(int i = 0; i < size; i++) {
-                Ops.invokeDirect(tc, methAtPos, 
+                Ops.invokeDirect(tc, methAtPos,
                     Ops.storeCallSite,
                     new Object[] { p6list, Ops.box_i((long)i, gcx.Int, tc) });
                 Object cur = Ops.result_o(tc.curFrame);
@@ -494,7 +494,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
             SixModelObject p6keyList = Ops.result_o(tc.curFrame);
             SixModelObject methAtPos = Ops.findmethod(p6keyList, "AT-POS", tc);
             SixModelObject methAtKey = Ops.findmethod(p6hash, "AT-KEY", tc);
-            
+
             out = new HashMap<String, Object>();
             for(int i = 0; i < size; i++) {
                 Ops.invokeDirect(tc, methAtPos, Ops.storeCallSite, new Object[] { p6keyList, Ops.box_i((long)i, gcx.Int, tc) });
@@ -514,13 +514,13 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 ((HashMap) out).put(Ops.unbox_s(p6key, tc), value);
             }
         }
-        // TODO associative types, which could for starters default to Map<Object> similar 
+        // TODO associative types, which could for starters default to Map<Object> similar
         //      to how Positionals currently do, but we will want "of" checking there too
         return out;
     }
 
     public static Object parseSingleArg(SixModelObject inArg, ThreadContext tc) {
-        Object outArg = null;;
+        Object outArg = null;
         // there doesn't seem to be an actual type Bool in gc or gcx
         if( !Ops.typeName((SixModelObject) inArg, tc).equals("Bool") ) {
             // one decont for native types...

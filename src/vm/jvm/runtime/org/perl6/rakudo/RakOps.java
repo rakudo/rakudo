@@ -74,7 +74,7 @@ public final class RakOps {
     public static final int HINT_CD_RW = 1;
     public static final int HINT_CD_NAME = 2;
     public static final int HINT_CD_DEFAULT = 3;
-    
+
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (!gcx.initialized) {
@@ -94,7 +94,7 @@ public final class RakOps {
         gcx.Iterable = type;
         return type;
     }
-    
+
     public static SixModelObject p6settypes(SixModelObject conf, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         gcx.Mu = conf.at_key_boxed(tc, "Mu");
@@ -121,7 +121,7 @@ public final class RakOps {
         gcx.True = conf.at_key_boxed(tc, "True");
         gcx.Associative = conf.at_key_boxed(tc, "Associative");
         gcx.JavaHOW = conf.at_key_boxed(tc, "Metamodel").st.WHO.at_key_boxed(tc, "JavaHOW");
-        
+
         SixModelObject defCD = gcx.ContainerDescriptor.st.REPR.allocate(tc,
             gcx.ContainerDescriptor.st);
         defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
@@ -135,10 +135,10 @@ public final class RakOps {
         defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
             "$!default", HINT_CD_DEFAULT, gcx.Any);
         gcx.defaultContainerDescriptor = defCD;
-        
+
         return conf;
     }
-    
+
     public static SixModelObject p6setautothreader(SixModelObject autoThreader, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         gcx.AutoThreader = autoThreader;
@@ -156,26 +156,26 @@ public final class RakOps {
         GlobalExt gcx = key.getGC(tc);
         return x == 0 ? gcx.False : gcx.True;
     }
-    
+
     public static SixModelObject p6definite(SixModelObject obj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         return obj == null || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
     }
-    
+
     public static SixModelObject p6box_i(long value, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         SixModelObject res = gcx.Int.st.REPR.allocate(tc, gcx.Int.st);
         res.set_int(tc, value);
         return res;
     }
-    
+
     public static SixModelObject p6box_n(double value, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         SixModelObject res = gcx.Num.st.REPR.allocate(tc, gcx.Num.st);
         res.set_num(tc, value);
         return res;
     }
-    
+
     public static SixModelObject p6box_s(String value, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         SixModelObject res = gcx.Str.st.REPR.allocate(tc, gcx.Str.st);
@@ -206,7 +206,7 @@ public final class RakOps {
         }
         return res;
     }
-    
+
     public static CallSiteDescriptor p6bindsig(ThreadContext tc, CallSiteDescriptor csd, Object[] args) {
         /* Do any flattening before processing begins. */
         CallFrame cf = tc.curFrame;
@@ -227,7 +227,7 @@ public final class RakOps {
             .get_attribute_boxed(tc, gcx.Code, "$!signature", HINT_CODE_SIG);
         SixModelObject params = sig
             .get_attribute_boxed(tc, gcx.Signature, "@!params", HINT_SIG_PARAMS);
-        
+
         /* Run binder, and handle any errors. */
         Object[] error = new Object[3];
         switch (Binder.bind(tc, gcx, cf, params, csd, args, false, error)) {
@@ -246,7 +246,7 @@ public final class RakOps {
                 Ops.invokeDirect(tc, gcx.AutoThreader, csd, args);
                 Ops.return_o(
                     Ops.result_o(cf), cf);
-                
+
                 /* Return null to indicate immediate return to the routine. */
                 return null;
         }
@@ -255,15 +255,15 @@ public final class RakOps {
         tc.flatArgs = args;
         return csd;
     }
-    
+
     public static SixModelObject p6bindcaptosig(SixModelObject sig, SixModelObject cap, ThreadContext tc) {
         CallFrame cf = tc.curFrame;
-        
+
         GlobalExt gcx = key.getGC(tc);
         CallSiteDescriptor csd = Binder.explodeCapture(tc, gcx, cap);
         SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature,
             "@!params", HINT_SIG_PARAMS);
-        
+
         Object[] error = new Object[3];
         switch (Binder.bind(tc, gcx, cf, params, csd, tc.flatArgs, false, error)) {
             case Binder.BIND_RESULT_FAIL:
@@ -277,12 +277,12 @@ public final class RakOps {
                 }
             default:
                 return sig;
-        }        
+        }
     }
-    
+
     public static long p6isbindable(SixModelObject sig, SixModelObject cap, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        
+
         CallSiteDescriptor csd;
         Object[] args;
         if (cap instanceof CallCaptureInstance) {
@@ -293,7 +293,7 @@ public final class RakOps {
             csd = Binder.explodeCapture(tc, gcx, cap);
             args = tc.flatArgs;
         }
-        
+
         SixModelObject params = sig.get_attribute_boxed(tc, gcx.Signature,
             "@!params", HINT_SIG_PARAMS);
         SixModelObject codeObj = sig.get_attribute_boxed(tc, gcx.Signature,
@@ -314,7 +314,7 @@ public final class RakOps {
             tc.curFrame = tc.curFrame.caller;
         }
     }
-    
+
     private static final CallSiteDescriptor STORE = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
@@ -341,7 +341,7 @@ public final class RakOps {
         }
         return cont;
     }
-    
+
     public static SixModelObject p6decontrv(SixModelObject routine, SixModelObject cont, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (cont != null) {
@@ -364,7 +364,7 @@ public final class RakOps {
         }
         return cont;
     }
-    
+
     public static SixModelObject p6scalarfromdesc(SixModelObject desc, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
 
@@ -381,7 +381,7 @@ public final class RakOps {
 
         return cont;
     }
-    
+
     public static SixModelObject p6recont_ro(SixModelObject cont, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (isRWScalar(tc, gcx, cont)) {
@@ -393,7 +393,7 @@ public final class RakOps {
         }
         return cont;
     }
-    
+
     private static boolean isRWScalar(ThreadContext tc, GlobalExt gcx, SixModelObject check) {
         if (!(check instanceof TypeObject) && check.st.WHAT == gcx.Scalar) {
             SixModelObject desc = check.get_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
@@ -405,7 +405,7 @@ public final class RakOps {
         }
         return false;
     }
-    
+
     public static SixModelObject p6var(SixModelObject cont, ThreadContext tc) {
         if (cont != null && cont.st.ContainerSpec != null) {
             GlobalExt gcx = key.getGC(tc);
@@ -427,7 +427,7 @@ public final class RakOps {
         name.set_str(tc, obj.st.REPR.name);
         return name;
     }
-    
+
     private static final CallSiteDescriptor rvThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, SixModelObject bypassType, ThreadContext tc) {
@@ -455,7 +455,7 @@ public final class RakOps {
         }
         return rv;
     }
-    
+
     private static final CallSiteDescriptor baThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public static SixModelObject p6bindassert(SixModelObject value, SixModelObject type, ThreadContext tc) {
@@ -474,7 +474,7 @@ public final class RakOps {
         }
         return value;
     }
-    
+
     public static SixModelObject p6capturelex(SixModelObject codeObj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
@@ -486,7 +486,7 @@ public final class RakOps {
             closure.outer = tc.curFrame.outer;
         return codeObj;
     }
-    
+
     public static SixModelObject p6getouterctx(SixModelObject codeObj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         codeObj = Ops.decont(codeObj, tc);
@@ -497,7 +497,7 @@ public final class RakOps {
         ((ContextRefInstance)wrap).context = closure.outer;
         return wrap;
     }
-    
+
     public static SixModelObject p6captureouters2(SixModelObject capList, SixModelObject target, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (!(target instanceof CodeRef))
@@ -515,7 +515,7 @@ public final class RakOps {
         }
         return capList;
     }
-    
+
     public static SixModelObject p6bindattrinvres(SixModelObject obj, SixModelObject ch, String name, SixModelObject value, ThreadContext tc) {
         obj.bind_attribute_boxed(tc, Ops.decont(ch, tc),
             name, STable.NO_HINT, value);
@@ -523,7 +523,7 @@ public final class RakOps {
             Ops.scwbObject(tc, obj);
         return obj;
     }
-    
+
     public static SixModelObject getThrower(ThreadContext tc, String type) {
         SixModelObject exHash = Ops.gethllsym("perl6", "P6EX", tc);
         return exHash == null ? null : Ops.atkey(exHash, type, tc);
@@ -561,7 +561,7 @@ public final class RakOps {
         }
         return null;
     }
-    
+
     public static String tclc(String in, ThreadContext tc) {
         if (in.length() == 0)
             return in;
@@ -569,7 +569,7 @@ public final class RakOps {
         return new String(Character.toChars(Character.toTitleCase(first)))
             + in.substring(Character.charCount(first)).toLowerCase();
     }
-    
+
     private static final CallSiteDescriptor SortCSD = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public static SixModelObject p6sort(SixModelObject indices, final SixModelObject comparator, final ThreadContext tc) {
@@ -588,11 +588,11 @@ public final class RakOps {
             indices.bind_pos_boxed(tc, i, sortable[i]);
         return indices;
     }
-    
+
     public static long p6stateinit(ThreadContext tc) {
         return tc.curFrame.stateInit ? 1 : 0;
     }
-    
+
     public static SixModelObject p6setfirstflag(SixModelObject codeObj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         ThreadExt tcx = key.getTC(tc);
@@ -600,31 +600,31 @@ public final class RakOps {
             gcx.Code, "$!do", HINT_CODE_DO);
         return codeObj;
     }
-    
+
     public static long p6takefirstflag(ThreadContext tc) {
         ThreadExt tcx = key.getTC(tc);
         boolean matches = tcx.firstPhaserCodeBlock == tc.curFrame.codeRef;
         tcx.firstPhaserCodeBlock = null;
         return matches ? 1 : 0;
     }
-    
+
     public static SixModelObject p6setpre(ThreadContext tc) {
         ThreadExt tcx = key.getTC(tc);
         tcx.prePhaserFrames.add(tc.curFrame);
         return null;
     }
-    
+
     public static SixModelObject p6clearpre(ThreadContext tc) {
         ThreadExt tcx = key.getTC(tc);
         tcx.prePhaserFrames.remove(tc.curFrame);
         return null;
     }
-    
+
     public static long p6inpre(ThreadContext tc) {
         ThreadExt tcx = key.getTC(tc);
         return tcx.prePhaserFrames.remove(tc.curFrame.caller) ? 1 : 0;
     }
-    
+
     private static final CallSiteDescriptor dispVivifier = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ,
                      CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
@@ -632,7 +632,7 @@ public final class RakOps {
         new byte[] { CallSiteDescriptor.ARG_STR }, null);
     public static SixModelObject p6finddispatcher(String usage, ThreadContext tc) {
         SixModelObject dispatcher = null;
-        
+
         CallFrame ctx = tc.curFrame.caller;
         while (ctx != null) {
             /* Do we have a dispatcher here? */
@@ -646,16 +646,16 @@ public final class RakOps {
                         /* Need to vivify it. */
                         SixModelObject meth = Ops.findmethod(dispatcher, "vivify_for", tc);
                         SixModelObject p6sub = ctx.codeRef.codeObject;
-                        
+
                         SixModelObject ContextRef = tc.gc.ContextRef;
                         SixModelObject wrap = ContextRef.st.REPR.allocate(tc, ContextRef.st);
                         ((ContextRefInstance)wrap).context = ctx;
-                        
+
                         SixModelObject CallCapture = tc.gc.CallCapture;
                         CallCaptureInstance cc = (CallCaptureInstance)CallCapture.st.REPR.allocate(tc, CallCapture.st);
                         cc.descriptor = ctx.csd;
                         cc.args = ctx.args;
-                        
+
                         Ops.invokeDirect(tc, meth,
                             dispVivifier, new Object[] { dispatcher, p6sub, wrap, cc });
                         dispatcher = Ops.result_o(tc.curFrame);
@@ -668,7 +668,7 @@ public final class RakOps {
             /* Follow dynamic chain. */
             ctx = ctx.caller;
         }
-        
+
         if (dispatcher == null) {
             SixModelObject thrower = getThrower(tc, "X::NoDispatcher");
             if (thrower == null) {
@@ -679,13 +679,13 @@ public final class RakOps {
                     dispThrower, new Object[] { usage });
             }
         }
-        
+
         return dispatcher;
     }
-    
+
     public static SixModelObject p6argsfordispatcher(SixModelObject disp, ThreadContext tc) {
         SixModelObject result = null;
-        
+
         CallFrame ctx = tc.curFrame;
         while (ctx != null) {
             /* Do we have the dispatcher we're looking for? */
@@ -707,18 +707,18 @@ public final class RakOps {
             /* Follow dynamic chain. */
             ctx = ctx.caller;
         }
-        
+
         if (result == null)
             throw ExceptionHandling.dieInternal(tc,
                 "Could not find arguments for dispatcher");
         return result;
     }
-    
+
     public static SixModelObject p6decodelocaltime(long sinceEpoch, ThreadContext tc) {
         // Get calendar for current local host's timezone.
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(sinceEpoch * 1000);
-        
+
         // Populate result int array.
         SixModelObject BOOTIntArray = tc.gc.BOOTIntArray;
         SixModelObject result = BOOTIntArray.st.REPR.allocate(tc, BOOTIntArray.st);
@@ -734,10 +734,10 @@ public final class RakOps {
         result.bind_pos_native(tc, 4);
         tc.native_i = c.get(Calendar.YEAR);
         result.bind_pos_native(tc, 5);
-        
+
         return result;
     }
-    
+
     public static SixModelObject p6staticouter(SixModelObject code, ThreadContext tc) {
         if (code instanceof CodeRef)
             return ((CodeRef)code).staticInfo.outerStaticInfo.staticCode;

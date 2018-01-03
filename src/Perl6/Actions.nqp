@@ -6012,7 +6012,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # If needed, try to form a coercion type.
-            if $<accept> || $<accept_any> {
+            my $accept := $<accept>
+              ?? $<accept>.ast
+              !! $<accept_any>
+                ?? $*W.find_symbol: ['Any']
+                !! $<colonpairs>
+                  && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>)
+                  && nqp::istype($<longname><colonpair>[0].ast[2], QAST::WVal)
+                  ?? $<longname><colonpair>[0].ast[2].value
+                  !! nqp::null;
+
+            unless nqp::isnull($accept) {
                 my $value;
                 if nqp::istype($past, QAST::WVal) {
                     $value := $past.value;
@@ -6024,8 +6034,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $/.panic("Target type too complex to form a coercion type");
                 }
 
-                my $type := $*W.create_coercion_type($/, $value,
-                    $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
+                my $type := $*W.create_coercion_type($/, $value, $accept);
                 $past := QAST::WVal.new( :value($type) );
             }
         }
@@ -7863,12 +7872,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 0);
                 }
 
-                if $<accept> || $<accept_any> {
+                my $accept := $<accept>
+                  ?? $<accept>.ast
+                  !! $<accept_any>
+                    ?? $*W.find_symbol: ['Any']
+                    !! $<colonpairs>
+                      && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>)
+                      && nqp::istype(
+                        $<longname><colonpair>[0].ast[2], QAST::WVal)
+                      ?? $<longname><colonpair>[0].ast[2].value
+                      !! nqp::null;
+
+                if ! nqp::isnull($accept) {
                     if $<typename> {
                         $/.panic("Cannot put 'of' constraint on a coercion type");
                     }
-                    $type := $*W.create_coercion_type($/, $type,
-                        $<accept> ?? $<accept>.ast !! $*W.find_symbol(['Any']));
+                    $type := $*W.create_coercion_type($/, $type, $accept);
                 }
                 elsif $<typename> {
                     $type := $*W.parameterize_type_with_args($/, $type,

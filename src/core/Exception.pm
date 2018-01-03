@@ -2850,6 +2850,12 @@ my class X::InvalidTypeSmiley does X::Comp {
     }
 }
 
+my class X::MultipleTypeSmiley does X::Comp {
+    method message() {
+        "Multiple type smileys cannot be used";
+    }
+}
+
 my class X::Seq::Consumed is Exception {
     method message() {
         "The iterator of this Seq is already in use/consumed by another Seq\n" ~

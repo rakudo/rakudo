@@ -4188,6 +4188,20 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method validate_type_smiley ($/, $colonpairs) {
+        1 < $colonpairs && self.throw: $/, ['X', 'MultipleTypeSmiley'];
+        my %colonpairs;
+        for $colonpairs {
+            if $_<identifier> {
+                my $name := $_<identifier>.Str;
+                $name eq 'D' || $name eq 'U' || $name eq '_'
+                    ?? (%colonpairs{$name} := 1)
+                    !! self.throw: $/, ['X', 'InvalidTypeSmiley'], :$name
+            }
+        }
+        %colonpairs
+    }
+
     # Takes a longname and turns it into an object representing the
     # name.
     method dissect_longname($longname) {

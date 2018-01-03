@@ -1598,7 +1598,10 @@ BEGIN {
         }));
     Parameter.HOW.add_method(Parameter, 'set_coercion', nqp::getstaticcode(sub ($self, $type) {
             my $dcself := nqp::decont($self);
-            nqp::bindattr_s($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
+            nqp::bindattr_s($dcself, Parameter, '$!coerce_method',
+              nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW)
+              ?? $type.HOW.base_type($type).HOW.name($type.HOW.base_type: $type)
+              !! $type.HOW.name($type));
             nqp::bindattr($dcself, Parameter, '$!coerce_type', nqp::decont($type));
             $dcself
         }));

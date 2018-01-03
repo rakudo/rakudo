@@ -79,7 +79,7 @@ multi sub prefix:<->(FatRat:D \a) {
     FatRat.new(-a.numerator, a.denominator);
 }
 
-multi sub infix:<+>(Rational \a, Rational \b) {
+multi sub infix:<+>(Rational:D \a, Rational:D \b) {
     a.denominator == b.denominator
         ?? DON'T_DIVIDE_NUMBERS(a.numerator + b.numerator, a.denominator, a, b)
         !! DIVIDE_NUMBERS
@@ -88,7 +88,7 @@ multi sub infix:<+>(Rational \a, Rational \b) {
             a,
             b
 }
-multi sub infix:<+>(Rational \a, Int \b) {
+multi sub infix:<+>(Rational:D \a, Int:D \b) {
     DON'T_DIVIDE_NUMBERS(
         (a.numerator + b * a.denominator),
         a.denominator,
@@ -96,7 +96,7 @@ multi sub infix:<+>(Rational \a, Int \b) {
         b,
     );
 }
-multi sub infix:<+>(Int \a, Rational \b) {
+multi sub infix:<+>(Int:D \a, Rational:D \b) {
     DON'T_DIVIDE_NUMBERS(
         (a * b.denominator + b.numerator),
         b.denominator,
@@ -105,7 +105,7 @@ multi sub infix:<+>(Int \a, Rational \b) {
     );
 }
 
-multi sub infix:<->(Rational \a, Rational \b) {
+multi sub infix:<->(Rational:D \a, Rational:D \b) {
     a.denominator == b.denominator
         ?? DON'T_DIVIDE_NUMBERS(a.numerator - b.numerator, a.denominator, a, b)
         !! DIVIDE_NUMBERS
@@ -115,7 +115,7 @@ multi sub infix:<->(Rational \a, Rational \b) {
             b
 }
 
-multi sub infix:<->(Rational \a, Int \b) {
+multi sub infix:<->(Rational:D \a, Int:D \b) {
     DON'T_DIVIDE_NUMBERS
         a.numerator - b * a.denominator,
         a.denominator,
@@ -123,7 +123,7 @@ multi sub infix:<->(Rational \a, Int \b) {
         b;
 }
 
-multi sub infix:<->(Int \a, Rational \b) {
+multi sub infix:<->(Int:D \a, Rational:D \b) {
     DON'T_DIVIDE_NUMBERS
         a * b.denominator - b.numerator,
         b.denominator,
@@ -131,7 +131,7 @@ multi sub infix:<->(Int \a, Rational \b) {
         b;
 }
 
-multi sub infix:<*>(Rational \a, Rational \b) {
+multi sub infix:<*>(Rational:D \a, Rational:D \b) {
     DIVIDE_NUMBERS
         a.numerator * b.numerator,
         a.denominator * b.denominator,
@@ -139,7 +139,7 @@ multi sub infix:<*>(Rational \a, Rational \b) {
         b;
 }
 
-multi sub infix:<*>(Rational \a, Int \b) {
+multi sub infix:<*>(Rational:D \a, Int:D \b) {
     DIVIDE_NUMBERS
         a.numerator * b,
         a.denominator,
@@ -147,7 +147,7 @@ multi sub infix:<*>(Rational \a, Int \b) {
         b;
 }
 
-multi sub infix:<*>(Int \a, Rational \b) {
+multi sub infix:<*>(Int:D \a, Rational:D \b) {
     DIVIDE_NUMBERS
         a * b.numerator,
         b.denominator,
@@ -155,7 +155,7 @@ multi sub infix:<*>(Int \a, Rational \b) {
         b;
 }
 
-multi sub infix:</>(Rational \a, Rational \b) {
+multi sub infix:</>(Rational:D \a, Rational:D \b) {
     DIVIDE_NUMBERS
         a.numerator * b.denominator,
         a.denominator * b.numerator,
@@ -163,7 +163,7 @@ multi sub infix:</>(Rational \a, Rational \b) {
         b;
 }
 
-multi sub infix:</>(Rational \a, Int \b) {
+multi sub infix:</>(Rational:D \a, Int:D \b) {
     DIVIDE_NUMBERS
         a.numerator,
         a.denominator * b,
@@ -171,7 +171,7 @@ multi sub infix:</>(Rational \a, Int \b) {
         b;
 }
 
-multi sub infix:</>(Int \a, Rational \b) {
+multi sub infix:</>(Int:D \a, Rational:D \b) {
     b.REDUCE-ME; # RT #126391: [BUG] Bad "divide by 0" error message
     DIVIDE_NUMBERS
         b.denominator * a,
@@ -180,23 +180,23 @@ multi sub infix:</>(Int \a, Rational \b) {
         b;
 }
 
-multi sub infix:</>(Int \a, Int \b) {
+multi sub infix:</>(Int:D \a, Int:D \b) {
     DIVIDE_NUMBERS a, b, a, b
 }
 
-multi sub infix:<%>(Rational \a, Int \b) {
+multi sub infix:<%>(Rational:D \a, Int:D \b) {
     a - floor(a / b) * b
 }
 
-multi sub infix:<%>(Int \a, Rational \b) {
+multi sub infix:<%>(Int:D \a, Rational:D \b) {
     a - floor(a / b) * b
 }
 
-multi sub infix:<%>(Rational \a, Rational \b) {
+multi sub infix:<%>(Rational:D \a, Rational:D \b) {
     a - floor(a / b) * b
 }
 
-multi sub infix:<**>(Rational \a, Int \b) {
+multi sub infix:<**>(Rational:D \a, Int:D \b) {
     b >= 0
         ?? DIVIDE_NUMBERS
             (a.numerator ** b // fail (a.numerator.abs > a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),

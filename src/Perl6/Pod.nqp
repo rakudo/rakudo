@@ -4,24 +4,6 @@ class Perl6::Pod {
     my $caption := ''; # var to save table caption values between
                        # subs make_config and table
 
-    # hashes for quoting pairs in config semilist values
-    # pairs of stand-alone quoting chars
-    my %h  := nqp::hash(
-        #'<',    '>', # angle brackets (shouldn't be in a semilist)
-        "'",     "'", # single quote
-        '"',     '"', # double quote
-    );
-
-    # pairs of quoting chars after a leading Q or q (this may not be an exhaustive list)
-    my %h2 := nqp::hash(
-        '<',     '>', # angle brackets
-        "'",     "'", # single quote
-        '"',     '"', # double quote
-        '|',     '|', # pipe
-        '[',     ']', # square brackets
-        '{',     '}', # curly braces
-    );
-
     # enable use of env vars for debug selections
     # for users
     my $udebug := nqp::ifnull(  nqp::atkey(  nqp::getenvhash(), 'RAKUDO_POD_TABLE_DEBUG'  ), 0  );
@@ -124,27 +106,6 @@ class Perl6::Pod {
         ).compile_time_value
     }
 
-    sub strip-quotes($val) {
-        say("DEBUG: incoming val for stripping: |$val|") if $debugp;
-        my $m := $val ~~ /^(.)(.)(.*)(.)$/;
-        my $first  := ~$m[0];
-        my $second := ~$m[1];
-        my $last   := ~$m[3];
-        if %h{$first} && $last eq %h{$first} {
-            say("DEBUG: found quote pair for val |$val|") if $debugp;
-            $val := subst($val, /^ $first /, q{});
-            $val := subst($val, / $last $/, q{});
-        }
-        elsif 'q' eq nqp::lc($first) && %h2{$second} && $last eq %h2{$second} {
-            say("DEBUG: found Q quote pair for val |$val|") if $debugp;
-            my $first2 := nqp::concat($first, $second);
-            $val := subst($val, /^ $first2 /, q{});
-            $val := subst($val, / $last $/, q{});
-        }
-        say("  capture groups: |{$m[0]}| |{$m[1]}| |{$m[2]}| |{$m[3]}|") if $debugp;
-        return $val;
-    }
-
     sub convert-array(@raw) {
         # input is an array of strings to be converted to a list or hash
         my @arr := nqp::list();
@@ -181,9 +142,9 @@ class Perl6::Pod {
             }
             elsif $s ~~ /^ <["']>? <[+-]>? \d+ '.' \d+ [ <[eE]>? <[+-]>? \d+ ]? <["']>? $/ ||
                   $s ~~ /^ <["']>? <[+-]>? \d+ <[eE]> <[+-]>? \d+ <["']>? $/ {
-               say("         converting to num: |$s|") if $debugp;
-               my num $n := $s;
-               @arr.push($n);
+                say("         converting to num: |$s|") if $debugp;
+                my num $n := $s;
+                @arr.push($n);
             }
             else {
                 @arr.push($s);
@@ -272,7 +233,7 @@ class Perl6::Pod {
                 $quoted := subst($quoted, /\\(<[\\']>)/, $m[0], :global);
             }
             else {
-    	        $unquoted := $quote;
+                $unquoted := $quote;
                 $delim    := $quoted;
                 $quote    := nqp::null();
                 $quoted   := nqp::null();
@@ -288,7 +249,7 @@ class Perl6::Pod {
             if nqp::defined($delim) {
                 @pieces.push($word) if nqp::chars($word);
                 @pieces.push($delim) if ($keep eq 'delimiters');
-                $word := ''; #nqp::null();
+                $word := '';
             }
             if !nqp::chars($line) && nqp::chars($word) {
                 @pieces.push($word);

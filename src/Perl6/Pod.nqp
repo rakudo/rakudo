@@ -145,47 +145,171 @@ class Perl6::Pod {
         return $val;
     }
 
-
-    sub trim-array(@raw) {
+    sub convert-array(@raw) {
+        # input is an array of strings to be converted to a list or hash
         my @arr := nqp::list();
-        for @raw -> $S {
-            say("DEBUG: element to be trimmed: |$S|") if $debugp;
-            # trim right
-            my $s := subst($S, /\s*$/, '');
-            # trim left
-            $s := subst($s, /^\s*/, '');
-            say("       trimmed element: |$s|") if $debugp;
-            # convert the string numbers to int or num or bool types
-            if $s ~~ /^ \d+ $/ {
-                say("         converting to int: |$s|") if $debugp;
-                my int $i := $s;
-                @arr.push($i);
+        for @raw -> $s {
+            #my $s := $S;
+            say("DEBUG: element to be converted: |$s|") if $debugp;
+
+            # Convert the strings of numbers or True|False to int,
+            # bigint, num, or bool types.
+            if $s ~~ /^ <[+-]>? \d+ $/ {
+                my $n := nqp::chars($s);
+                # delete 1 char for leading +-
+                if $s ~~ / <[+-]> / { --$n }
+
+                # convert the int to a bigint if required
+                #   max val int (int32): +2_147_483_647 <= 10 digits
+                #   max val int (int64): +9_223_372_036_854_775_807 <= 19 digits
+                # we convert to bigint after 9 digits
+                # we convert to string after 18 digits
+                if $n > 18 {
+                    say("         too big for bigint, keeping as string: |$s|") if $debugp;
+                    @arr.push($s);
+                }
+                elsif $n > 9 {
+                    say("         converting to bigint: |$s|") if $debugp;
+                    my int64 $I := $s; # nqp::unbox_i($s);
+                    @arr.push($I);
+                }
+                else {
+                    say("         converting to int: |$s|") if $debugp;
+                    my int $i := $s;
+                    @arr.push($i);
+                }
             }
-            elsif $s ~~ /^ \d+ '.' \d+ $/ {
-                say("         converting to num: |$s|") if $debugp;
-                my num $n := $s;
-                @arr.push($n);
+            elsif $s ~~ /^ <["']>? <[+-]>? \d+ '.' \d+ [ <[eE]>? <[+-]>? \d+ ]? <["']>? $/ ||
+                  $s ~~ /^ <["']>? <[+-]>? \d+ <[eE]> <[+-]>? \d+ <["']>? $/ {
+               say("         converting to num: |$s|") if $debugp;
+               my num $n := $s;
+               @arr.push($n);
             }
             else {
-                $s := strip-quotes($s);
-                say("         leaving as str but stripped quotes: |$s|") if $debugp;
                 @arr.push($s);
             }
         }
         return @arr;
     }
 
+    sub string2array($Line,
+                     :$hash?,
+                     :$Delimiter?,
+                     :$keep?,
+                    ) {
+        # Based on the 'parse_line' function in CPAN Perl 5 module
+        # Text::ParseString, but with many changes due to Perl 6 and
+        # nqp differences from Perl 5.
+
+        # Options:
+        #   $hash      - set true for a hash (default: array)
+        #   $Delimiter - may be a regex (defaults are set for hash and array)
+        #   $keep      - set true to keep enclosing quotes
+        my $delimiter := $Delimiter ?? $Delimiter
+                                    !! $hash ?? /','| '=>'/
+                                    !! /','/;
+        my $line   := $Line;
+        my @pieces := [];
+        my $word   := '';
+
+        my $regex := /^
+                       [
+                         # double-quoted string
+                         (<["]>)                                         # $0 - $quote
+                         # |<== this group should not backtrack
+                         ( [:r <-[\\"]>* [ \\ . <-[\\"]>* ]* ] ) <["]>   # $1 - $quoted (:r no backtracking)
+                       ]
+                     | # --OR--
+                       [
+                         # single-quoted string
+                         (<[']>)                                         # $0 - quote
+                         # |<== this group should not backtrack
+                         ( [:r <-[\\']>* [ \\ . <-[\\']>* ]* ] ) <[']>   # $1 - $quoted (:r no backtracking)
+                       ]
+                     | # --OR--
+                       [
+                         # trimmed, unquoted string
+                         \s* ( [ \\ . | <-[\\"']> ]*? ) \s*              # $0
+                         # followed by
+                         (                                               # $1
+                           | $                # EOL
+                           | # --OR--
+                             $delimiter
+                           | # --OR--
+                             <before <["']> > # the next quote
+                         )
+                       ]/;
+
+        my $pass := 0;
+        while nqp::chars($line) {
+            ++$pass;
+            my $m := match($line, $regex);
+            if !$m {
+                say("DEBUG: no line match after pass $pass!") if $debugp;
+            }
+
+            $line := subst($line, $regex, '');
+            say("DEBUG pass $pass, postmatch:\n  \$line    = |$line|") if $debugp;
+
+            # as opposed to the Perl 5 version, only two match vars are recognized: $m[0] and $m[1]
+            my $quote    := $m[0];
+            my $quoted   := $m[1];
+            my $unquoted;
+            my $delim;
+            if !nqp::defined($quote) {
+                say("DEBUG: returning null unexpectedly!");
+                return [];
+            }
+
+            if $keep && $quote ~~ /^ <['"]> $/ {
+                $quoted := nqp::concat($quote, nqp::concat($quoted, $quote));
+            }
+
+            if $quote eq '"' {
+                $quoted := subst($quoted, /:s\\(.)/, $m[0], :global);
+            }
+            elsif $quote eq "'" {
+                $quoted := subst($quoted, /\\(<[\\']>)/, $m[0], :global);
+            }
+            else {
+    	        $unquoted := $quote;
+                $delim    := $quoted;
+                $quote    := nqp::null();
+                $quoted   := nqp::null();
+            }
+
+            if nqp::chars($quoted) {
+                $word := nqp::concat($word, $quoted);
+            }
+            elsif nqp::chars($unquoted) {
+                $word := nqp::concat($word, $unquoted);
+            }
+
+            if nqp::defined($delim) {
+                @pieces.push($word) if nqp::chars($word);
+                @pieces.push($delim) if ($keep eq 'delimiters');
+                $word := ''; #nqp::null();
+            }
+            if !nqp::chars($line) && nqp::chars($word) {
+                @pieces.push($word);
+            }
+        }
+
+        # array elements should have no enclosing quotes, but they need
+        # to be converted to the correct types for their content.
+        @pieces := convert-array(@pieces);
+
+        return @pieces;
+    }
+
     sub make-config-list($st) {
-        # the incoming string format inside the pipes (note the
+        # the typical incoming string format inside the pipes (note the
         # original [] or () have been stripped by the ~$val<semilist>
         # step):
         #   |1, 'b', 3|
         # break into an array
-        my @s := nqp::split(',', $st);
-        my @arr := trim-array(@s);
-        if !nqp::islist(@arr) {
-            nqp::die("DEBUG: \@arr is NOT a list");
-        }
+        my @arr := string2array($st);
+
         if nqp::elems(@arr) > 1 {
             # build the array object anew to handle bools
             my @arr2 := nqp::list();
@@ -200,6 +324,7 @@ class Perl6::Pod {
             return serialize_object('Array', |@arr2).compile_time_value;
         }
         else {
+            # convert a single-element list to a single value
             my $val := @arr[0];
             if $val ~~ /^ True | False $/ {
                 my $truth   := $val ~~ /True/ ?? 1 !! 0;
@@ -210,16 +335,14 @@ class Perl6::Pod {
     }
 
     sub make-config-hash($st) {
-        # the incoming string format inside the pipes:
+        # the normally valid incoming string format inside the pipes:
         #   |{a => 1, b => 4, c => 10}|
         # strip enclosing curly braces
         my $s := subst($st, /^'{'/, '');
         $s := subst($s, /'}'$/, '');
-        # change fat arrows to commas
-        $s := subst($s, /'=>'/, ',', :global);
         # break into an array
-        my @s := nqp::split(',', $s);
-        my @arr := trim-array(@s);
+        my @arr := string2array($s, :hash);
+
         my @pairs := [];
         # iterate over the "hash" and create key/value pairs to be serialized
         for @arr -> $k, $v {
@@ -233,7 +356,6 @@ class Perl6::Pod {
                 $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
             }
 
-            #$key := $*W.add_constant('Str', 'str', $key).compile_time_value;
             @pairs.push(
                 serialize_object(
                     'Pair', :key($key), :value($val)

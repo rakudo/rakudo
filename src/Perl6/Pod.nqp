@@ -201,7 +201,7 @@ class Perl6::Pod {
                          )
                        ]/;
 
-        my $pass := 0;
+        my $pass := 0; # for debugging
         while nqp::chars($line) {
             ++$pass;
             my $m := match($line, $regex);
@@ -209,10 +209,14 @@ class Perl6::Pod {
                 say("DEBUG: no line match after pass $pass!") if $debugp;
             }
 
+            # The original algorithm uses s/// but we need to do the match first and
+            # then the substitution to delete the matched string from the current, 
+            # remaining line.
             $line := subst($line, $regex, '');
             say("DEBUG pass $pass, postmatch:\n  \$line    = |$line|") if $debugp;
 
-            # as opposed to the Perl 5 version, only two match vars are recognized: $m[0] and $m[1]
+            # As opposed to the Perl 5 version, only two match vars are recognized:
+            # $m[0] and $m[1].
             my $quote    := $m[0];
             my $quoted   := $m[1];
             my $unquoted;
@@ -253,10 +257,18 @@ class Perl6::Pod {
             }
             if !nqp::chars($line) && nqp::chars($word) {
                 @pieces.push($word);
+                $word := '';
             }
         }
 
-        # array elements should have no enclosing quotes, but they need
+        # just in case there are chars in word
+        if nqp::chars($word) {
+            say("WARNING: Unexpected chars not matched.");
+            @pieces.push($word);
+            $word := '';
+        } 
+
+        # Array elements should have no enclosing quotes, but they need
         # to be converted to the correct types for their content.
         @pieces := convert-array(@pieces);
 

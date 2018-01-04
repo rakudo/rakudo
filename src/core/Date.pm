@@ -47,7 +47,7 @@ my class Date does Dateish {
           '-'
           (\d\d)                                         # day
         $/;
-        self.new($0,$1,$2,:&formatter,|%_)
+        self.new(+$0,+$1,+$2,:&formatter,|%_)
     }
     multi method new(Date: Dateish $d, :&formatter, *%_) {
         self === Date

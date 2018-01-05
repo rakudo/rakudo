@@ -21,14 +21,14 @@ my class Date does Dateish {
     method !SET-SELF($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
 
     proto method new(|) {*}
-    multi method new(Date: Int:D $year, Int:D $month, Int:D $day, :&formatter, *%_) {
+    multi method new(Date: Int:D() $year, Int:D() $month, Int:D() $day, :&formatter, *%_) {
         (1..12).in-range($month,'Month');
         (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
-    multi method new(Date: Int:D :$year!, Int:D :$month = 1, Int:D :$day = 1, :&formatter, *%_) {
+    multi method new(Date: Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter, *%_) {
         (1..12).in-range($month,'Month');
         (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
         self === Date

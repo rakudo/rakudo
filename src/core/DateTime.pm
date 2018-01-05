@@ -46,13 +46,15 @@ my class DateTime does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method !SET-SELF(
-      $!year,$!month,$!day,$hour,$minute,$!second,$timezone,&!formatter
-    ) {
-        # can't assign native in attributes inside signature yet
-        $!hour     = $hour,
-        $!minute   = $minute,
-        $!timezone = $timezone;
+    method !SET-SELF(\y,\mo,\d,\h,\mi,\s,\t,\f) {
+        $!year      = y;
+        $!month     = mo;
+        $!day       = d;
+        $!hour      = h;
+        $!minute    = mi;
+        $!second    = s;
+        $!timezone  = t;
+        &!formatter = f;
         self
     }
     method !new-from-positional(DateTime:
@@ -61,42 +63,53 @@ my class DateTime does Dateish {
       Int() $day,
       Int() $hour,
       Int() $minute,
-            $second,
+            $second,  # can have fractional seconds
             %extra,
       :$timezone = 0,
       :&formatter,
     ) {
-        (1..12).in-range($month,'Month');
-        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
-        (0..23).in-range($hour,'Hour');
-        (0..59).in-range($minute,'Minute');
-        (^61).in-range($second,'Second');
-        my $dt = self === DateTime
+        1 <= $month <= 12
+          || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
+        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+          || X::OutOfRange.new(
+               :what<Day>,
+               :got($day),
+               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+             ).throw;
+        0 <= $hour <= 23
+          || X::OutOfRange.new(:what<Hour>,:got($hour),:range<0..23>).throw;
+        0 <= $minute <= 59
+          || X::OutOfRange.new(:what<Minute>,:got($minute),:range<0..59>).throw;
+        (^61).in-range($second,'Second'); # some weird semantics need this
+
+        my $dt = nqp::eqaddr(self.WHAT,DateTime)
           ?? nqp::create(self)!SET-SELF(
                $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
           !! self.bless(
                :$year,:$month,:$day,
                :$hour,:$minute,:$second,:$timezone,:&formatter,|%extra);
 
-        # check leap second spec
-        if $second >= 60 {
-            my $utc = $timezone ?? $dt.utc !! $dt;
-            X::OutOfRange.new(
-              what  => 'Second',
-              range => "0..^60",
-              got   => $second,
-              comment => 'a leap second can occur only at 23:59',
-            ).throw unless $utc.hour == 23 && $utc.minute == 59;
-            my $date = $utc.yyyy-mm-dd;
-            X::OutOfRange.new(
-              what  => 'Second',
-              range => "0..^60",
-              got   => $second,
-              comment => "There is no leap second on UTC $date",
-            ).throw unless Rakudo::Internals.is-leap-second-date($date);
-        }
+        $second >= 60 ?? $dt!check-leap-second !! $dt
+    }
 
-        $dt
+    method !check-leap-second {
+        my $utc := $!timezone ?? self.utc !! self;
+        X::OutOfRange.new(
+          what  => 'Second',
+          range => "0..^60",
+          got   => $!second,
+          comment => 'a leap second can occur only at 23:59',
+        ).throw unless $utc.hour == 23 && $utc.minute == 59;
+
+        my $date := $utc.yyyy-mm-dd;
+        X::OutOfRange.new(
+          what  => 'Second',
+          range => "0..^60",
+          got   => $!second,
+          comment => "There is no leap second on UTC $date",
+        ).throw unless Rakudo::Internals.is-leap-second-date($date);
+
+        self
     }
 
     proto method new(|) {*}

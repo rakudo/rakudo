@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 30;
+plan 31;
 
 # RT #132295
 
@@ -255,5 +255,10 @@ subtest 'cannot use Int type object as an operand' => {
         X::Parameter::InvalidConcreteness,
         'A Rational instance cannot be powered by an Int type object';
 }
+
+# https://github.com/rakudo/rakudo/issues/1364
+throws-like ｢sub meows;｣, X::UnitScope::Invalid, :message(/
+    "placed a semicolon right after routine's definition"
+/), 'unit-scoped sub def mentions potential unwanted semicolon';
 
 # vim: ft=perl6 expandtab sw=4

@@ -258,7 +258,7 @@ subtest 'cannot use Int type object as an operand' => {
 
 # https://github.com/rakudo/rakudo/issues/1364
 throws-like ｢sub meows;｣, X::UnitScope::Invalid, :message(/
-    "placed a semicolon right after routine's definition"
+    "placed a semicolon after routine's definition"
 /), 'unit-scoped sub def mentions potential unwanted semicolon';
 
 # vim: ft=perl6 expandtab sw=4

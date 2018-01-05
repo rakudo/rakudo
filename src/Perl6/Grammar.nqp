@@ -2807,7 +2807,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         where => "except on a MAIN sub", suggestion =>
                         'Please use the block form. If you did not mean to '
                         ~ "declare a unit-scoped sub,\nperhaps you accidentally "
-                        ~ "placed a semicolon right after routine's definition?"
+                        ~ "placed a semicolon after routine's definition?"
                     );
                 }
                 unless $*begin_compunit {

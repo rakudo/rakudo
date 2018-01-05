@@ -4199,7 +4199,7 @@ class Perl6::World is HLL::World {
             my $val := $<longname><colonpair>[0].ast[2];
             nqp::istype($val, QAST::Op)
               ?? $val.op eq 'p6bool'
-                ?? nqp::null # we just got a regular DefiniteHOW
+                ?? nqp::null # not a coercer, but just got a regular DefiniteHOW
                 !! $val.name eq '&infix:<,>' && @($val) == 0
                   ?? self.find_symbol: ['Any'] # empty coercer source type
                   !! self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
@@ -4208,7 +4208,7 @@ class Perl6::World is HLL::World {
                 !! self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
         }
         else {
-            nqp::null
+            nqp::null # we didn't find any coercers
         }
     }
 

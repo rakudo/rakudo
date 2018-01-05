@@ -9990,6 +9990,10 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             }
         }
 
+        if $<var><sigil> eq '%' {
+            $<var>.typed_panic('X::Syntax::Reserved', :reserved('use of hash variables in regexes'))
+        }
+
         # Otherwise, slow path that checks what we have.
         make QAST::Regex.new(QAST::NodeList.new(
                 QAST::SVal.new( :value('INTERPOLATE') ),

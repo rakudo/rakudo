@@ -151,10 +151,10 @@ my class Proc {
     }
 
     method !wait-for-finish {
-        CATCH { default { self.status(0x100) } }
+        CATCH { default { self!set-status(0x100) } }
         &!start-stdout() if &!start-stdout;
         &!start-stderr() if &!start-stderr;
-        self.status(await($!finished).status) if $!exitcode == -1;
+        self!set-status(await($!finished).status) if $!exitcode == -1;
     }
 
     method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {
@@ -176,7 +176,7 @@ my class Proc {
         .() for @!pre-spawn;
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         my $is-spawned := do {
-            CATCH { default { self.status(0x100) } }
+            CATCH { default { self!set-status(0x100) } }
             await $!proc.ready;
             True
         } // False;
@@ -185,6 +185,17 @@ my class Proc {
         $is-spawned
     }
 
+    method !set-status($new_status) {
+        $!exitcode = $new_status +> 8;
+        $!signal   = $new_status +& 0xFF;
+    }
+    method !status() {
+        self!wait-for-finish;
+        ($!exitcode +< 8) +| $!signal
+    }
+
+    # see https://github.com/rakudo/rakudo/issues/1366
+    # should be deprecated and removed
     proto method status(|) {*}
     multi method status($new_status) {
         $!exitcode = $new_status +> 8;
@@ -194,6 +205,7 @@ my class Proc {
         self!wait-for-finish;
         ($!exitcode +< 8) +| $!signal
     }
+
     multi method Numeric(Proc:D:) {
         self!wait-for-finish;
         $!exitcode

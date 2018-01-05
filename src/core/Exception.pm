@@ -1821,6 +1821,13 @@ my class X::Syntax::Extension::TooComplex does X::Syntax {
     }
 }
 
+my class X::Syntax::Coercer::TooComplex does X::Syntax {
+    method message() {
+        'Coercer is too complex. Only type objects, with optional type'
+        ~ " smileys, or empty parentheses, implying 'Any', are supported."
+    }
+}
+
 my class X::Syntax::Extension::SpecialForm does X::Syntax {
     has $.category;
     has $.opname;

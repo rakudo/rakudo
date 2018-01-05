@@ -8,9 +8,9 @@ use QRegex;
 #
 # One particular circularity we break here is that you can't have
 # inheritance in Perl 6 without traits, but that needs multiple
-# dispatch, which can't function without some a type hierarchy in
-# place. It also needs us to be able to declare a signature with
-# parameters and a code objects with dispatchees, which in turn need
+# dispatch, which can't function without some type hierarchy in
+# place. It also needs us to be able to declare signatures with
+# parameters and code objects with dispatchees, which in turn needs
 # attributes. So, we set up quite a few bits in here, though the aim
 # is to keep it "lagom". :-)
 

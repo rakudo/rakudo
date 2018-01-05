@@ -2803,7 +2803,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || ';'
             {
                 if $<deflongname> ne 'MAIN' {
-                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub",
+                        where => "except on a MAIN sub", suggestion =>
+                        'Please use the block form. If you did not mean to '
+                        ~ "declare a unit-scoped sub,\nperhaps you accidentally "
+                        ~ "placed a semicolon right after routine's definition?"
+                    );
                 }
                 unless $*begin_compunit {
                     $/.typed_panic("X::UnitScope::TooLate", what => "sub");

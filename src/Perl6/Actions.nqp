@@ -6012,17 +6012,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # If needed, try to form a coercion type.
-            my $accept := $<accept>
-              ?? $<accept>.ast
-              !! $<accept_any>
-                ?? $*W.find_symbol: ['Any']
-                !! $<colonpairs>
-                  && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>)
-                  && nqp::istype($<longname><colonpair>[0].ast[2], QAST::WVal)
-                  ?? $<longname><colonpair>[0].ast[2].value
-                  !! nqp::null;
-
-            unless nqp::isnull($accept) {
+            unless nqp::isnull(my $accept := $*W.can_has_coercerz: $/) {
                 my $value;
                 if nqp::istype($past, QAST::WVal) {
                     $value := $past.value;
@@ -7872,18 +7862,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $type := $*W.create_definite_type($*W.resolve_mo($/, 'definite'), $type, 0);
                 }
 
-                my $accept := $<accept>
-                  ?? $<accept>.ast
-                  !! $<accept_any>
-                    ?? $*W.find_symbol: ['Any']
-                    !! $<colonpairs>
-                      && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>)
-                      && nqp::istype(
-                        $<longname><colonpair>[0].ast[2], QAST::WVal)
-                      ?? $<longname><colonpair>[0].ast[2].value
-                      !! nqp::null;
-
-                if ! nqp::isnull($accept) {
+                if ! nqp::isnull(my $accept := $*W.can_has_coercerz: $/) {
                     if $<typename> {
                         $/.panic("Cannot put 'of' constraint on a coercion type");
                     }

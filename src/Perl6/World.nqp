@@ -4188,6 +4188,30 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method can_has_coercerz($/) {
+        if $<accept> {
+            $<accept>.ast
+        }
+        elsif $<accept_any> {
+            self.find_symbol: ['Any']
+        }
+        elsif $<colonpairs> && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>) {
+            my $val := $<longname><colonpair>[0].ast[2];
+            nqp::istype($val, QAST::Op)
+              ?? $val.op eq 'p6bool'
+                ?? nqp::null # not a coercer, but just got a regular DefiniteHOW
+                !! $val.name eq '&infix:<,>' && @($val) == 0
+                  ?? self.find_symbol: ['Any'] # empty coercer source type
+                  !! self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
+              !! nqp::istype($val, QAST::WVal)
+                ?? $val.value
+                !! self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
+        }
+        else {
+            nqp::null # we didn't find any coercers
+        }
+    }
+
     method validate_type_smiley ($/, $colonpairs) {
         1 < $colonpairs && self.throw: $/, ['X', 'MultipleTypeSmiley'];
         my %colonpairs;

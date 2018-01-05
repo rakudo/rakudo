@@ -22,15 +22,27 @@ my class Date does Dateish {
 
     proto method new(|) {*}
     multi method new(Date: Int:D() $year, Int:D() $month, Int:D() $day, :&formatter, *%_) {
-        (1..12).in-range($month,'Month');
-        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        1 <= $month <= 12
+          || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
+        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+          || X::OutOfRange.new(
+               :what<Day>,
+               :got($day),
+               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+             ).throw;
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
     multi method new(Date: Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter, *%_) {
-        (1..12).in-range($month,'Month');
-        (1 .. self.DAYS-IN-MONTH($year,$month)).in-range($day,'Day');
+        1 <= $month <= 12
+          || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
+        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+          || X::OutOfRange.new(
+               :what<Day>,
+               :got($day),
+               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+             ).throw;
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)

@@ -221,7 +221,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         my int $start  = 1;
         my int $nomod  = im == 0;
 
-        my Mu $order := nqp::list();
+        my Mu $order;
 
         # Looks something we need to loop over
         if !nqp::iscont(var) {
@@ -280,7 +280,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                 # Now run the NFA
                 my Mu \fates := nqp::findmethod(nfa,'run')(nfa,$tgt,$pos);
                 my int $count = nqp::elems(fates);
-                nqp::setelems($order,$count);
+                nqp::setelems(($order := nqp::list),$count);
                 $j = -1;
                 nqp::bindpos($order,$j,
                   nqp::atpos(alts,nqp::atpos_i(fates,$j)))
@@ -290,7 +290,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
         # Use the var as it is if it's not array-ish.
         else {
-            nqp::push($order, var);
+            $order := nqp::list(var);
         }
 
         my str $topic_str;

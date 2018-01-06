@@ -225,8 +225,8 @@ my class Match is Capture is Cool does NQPMatchRole {
 
         # Looks something we need to loop over
         if !nqp::iscont(var) {
-            X::NYI.new(
-              feature => "Interpolating a Hash in a regex"
+            X::Syntax::Reserved.new(
+              reserved => "use of hash variables in regexes",
             ).throw if nqp::istype(var,Hash);
 
             my \varlist  := var.list;

@@ -223,11 +223,12 @@ my class Match is Capture is Cool does NQPMatchRole {
 
         my Mu $order;
 
+        X::Syntax::Reserved.new(
+            reserved => "use of hashes in regexes",
+        ).throw if nqp::istype(var,Hash);
+
         # Looks something we need to loop over
         if !nqp::iscont(var) {
-            X::Syntax::Reserved.new(
-              reserved => "use of hash variables in regexes",
-            ).throw if nqp::istype(var,Hash);
 
             my \varlist  := var.list;
             my int $elems = varlist.elems; # reifies

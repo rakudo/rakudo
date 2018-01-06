@@ -4011,7 +4011,7 @@ class Perl6::World is HLL::World {
                 else {
                     my $past := QAST::Op.new(:op<call>, :name('&infix:<,>'));
                     for @!components {
-                        $past.push: $_ ~~ QAST::Node ?? $_ !! QAST::SVal.new(:value($_));
+                        $past.push: nqp::istype($_, QAST::Node) ?? $_ !! QAST::SVal.new(:value($_));
                     }
                     return QAST::Op.new(:op<callmethod>, :name<join>,
                         $past,

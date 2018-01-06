@@ -6348,41 +6348,46 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $stmts == 1 {
             my $elem := try $past.ann('past_block')[1][0][0];
-            $elem := $elem[0] if $elem ~~ QAST::Want;
+            $elem := $elem[0] if nqp::istype($elem, QAST::Want);
             $elem := $elem[0] if nqp::istype($elem, QAST::Op) && $elem.op eq 'p6fatalize';
-            if $elem ~~ QAST::Op && $elem.name eq '&infix:<,>' {
+            if nqp::istype($elem, QAST::Op) && $elem.name eq '&infix:<,>' {
                 # block contains a list, so test the first element
                 $elem := $elem[0];
             }
             $elem := $elem[0] if nqp::istype($elem, QAST::Op) && $elem.op eq 'p6fatalize';
             my $subelem := $elem;
-            while $subelem ~~ QAST::Op && ($subelem.op eq 'p6capturelex' || $subelem.op eq 'if' || $subelem.op eq 'unless') {
+            while nqp::istype($subelem, QAST::Op)
+            && ($subelem.op eq 'p6capturelex' || $subelem.op eq 'if'
+              || $subelem.op eq 'unless') {
                 $subelem := $subelem[0];
-                if $subelem ~~ QAST::Op && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
+                if nqp::istype($subelem, QAST::Op)
+                && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
                     $subelem := $subelem[0];
-                    if $subelem ~~ QAST::WVal && nqp::istype($subelem.value, $*W.find_symbol(['WhateverCode'], :setting-only)) {
+                    if nqp::istype($subelem, QAST::WVal)
+                    && nqp::istype($subelem.value, $*W.find_symbol(['WhateverCode'], :setting-only)) {
                         $/.malformed("double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *");
                     }
                 }
             }
-            if $elem ~~ QAST::Op
+            if nqp::istype($elem, QAST::Op)
                     && (istype($elem.returns, $Pair) || $elem.name eq '&infix:«=>»') {
                 # first item is a pair
                 $is_hash := 1;
             }
-            elsif $elem ~~ QAST::Op && $elem.op eq 'call' &&
-                    $elem[0] ~~ QAST::Op && $elem[0].name eq '&METAOP_REVERSE' &&
-                    $elem[0][0] ~~ QAST::Var && $elem[0][0].name eq '&infix:«=>»' {
+            elsif nqp::istype($elem, QAST::Op) && $elem.op eq 'call'
+                && nqp::istype($elem[0], QAST::Op) && $elem[0].name eq '&METAOP_REVERSE' &&
+                    nqp::istype($elem[0][0], QAST::Var) && $elem[0][0].name eq '&infix:«=>»' {
                 # first item is a pair constructed with R=>
                 $is_hash := 1;
             }
-            elsif $elem ~~ QAST::Var && nqp::eqat($elem.name, '%', 0) {
+            elsif nqp::istype($elem, QAST::Var) && nqp::eqat($elem.name, '%', 0) {
                 # first item is a hash (%foo or %!foo)
                 $is_hash := 1;
             }
-            elsif $elem ~~ QAST::Op && $elem.name eq '&DYNAMIC' &&
-                    $elem[0] ~~ QAST::Want && $elem[0][1] eq 'Ss' &&
-                    $elem[0][2] ~~ QAST::SVal && nqp::eqat($elem[0][2].value, '%', 0) {
+            elsif nqp::istype($elem, QAST::Op) && $elem.name eq '&DYNAMIC' &&
+                    nqp::istype($elem[0], QAST::Want) && $elem[0][1] eq 'Ss' &&
+                    nqp::istype($elem[0][2], QAST::SVal)
+                    && nqp::eqat($elem[0][2].value, '%', 0) {
                 # first item is a hash (%*foo)
                 $is_hash := 1;
             }
@@ -6730,7 +6735,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # as its last argument.
                 $stage.push(QAST::Op.new( :op('call'), $result ));
             }
-            elsif $stage ~~ QAST::Var {
+            elsif nqp::istype($stage, QAST::Var) {
                 # It's a variable. We need code that gets the results, pushes
                 # them onto the variable and then returns them (since this
                 # could well be a tap.
@@ -6775,7 +6780,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $/.PRECURSOR.worry('Smartmatch with S/// is not useful. You can use given instead: S/// given $foo');
         }
 
-        if $pat ~~ QAST::WVal && istype($pat.returns, $*W.find_symbol(['Bool'])) && nqp::isconcrete($pat.value) {
+        if nqp::istype($pat, QAST::WVal)
+        && istype($pat.returns, $*W.find_symbol(['Bool']))
+        && nqp::isconcrete($pat.value) {
             my $p := ~$pat.compile_time_value;
             if $p eq 'True' {
                 $/.PRECURSOR.worry("Smartmatch against True always matches; if you mean to test the topic for truthiness, use :so or *.so or ?* instead")
@@ -6791,8 +6798,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $rhs := wanted($/[1].ast,'smartmatch/rhs');
         check_smartmatch($/[1],$rhs);
         # autoprime only on Whatever with explicit *
-        return 0 if $lhs ~~ QAST::WVal && istype($lhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($lhs.value);
-        return 0 if $rhs ~~ QAST::WVal && istype($rhs.returns, $*W.find_symbol(['Whatever'])) && nqp::isconcrete($rhs.value);
+        return 0 if nqp::istype($lhs, QAST::WVal)
+            && istype($lhs.returns, $*W.find_symbol(['Whatever']))
+            && nqp::isconcrete($lhs.value);
+        return 0 if nqp::istype($rhs, QAST::WVal)
+            && istype($rhs.returns, $*W.find_symbol(['Whatever']))
+            && nqp::isconcrete($rhs.value);
 
         # don't need topicalization, so allow chaining?
         return 0 if !$*COMPILING_CORE_SETTING && (
@@ -7966,7 +7977,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
 
     method quotepair($/) {
-        unless $*value ~~ QAST::Node {
+        unless nqp::istype($*value, QAST::Node) {
             if $*purpose eq 'rxadverb' && ($*key eq 'c' || $*key eq 'continue'
             || $*key eq 'p' || $*key eq 'pos') && $*value == 1 {
                 $*value := QAST::Op.new(
@@ -7999,7 +8010,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my %h;
         my $key := $*ADVERB.ast.named;
         my $value := $*ADVERB.ast;
-        if $value ~~ QAST::IVal || $value ~~ QAST::SVal {
+        if nqp::istype($value, QAST::IVal) || nqp::istype($value, QAST::SVal) {
             $value := $value.value;
         }
         elsif $value.has_compile_time_value {
@@ -9423,8 +9434,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $check := $check[0] if (nqp::istype($check, QAST::Stmts) ||
                                     nqp::istype($check, QAST::Stmt)) &&
                                    +@($check) == 1;
-            $whatevers++ if nqp::bitand_i($curried, 1) && istype($check.returns, $Whatever) && nqp::isconcrete($check.value)
-                         || nqp::bitand_i($curried, 2) && istype($check.returns, $WhateverCode) && $check ~~ QAST::Op;
+            $whatevers++ if nqp::bitand_i($curried, 1)
+                && istype($check.returns, $Whatever)
+                && nqp::isconcrete($check.value)
+                || nqp::bitand_i($curried, 2)
+                && istype($check.returns, $WhateverCode)
+                && nqp::istype($check, QAST::Op);
             if nqp::bitand_i($curried, 1) && istype($check.returns, $HyperWhatever) {
                 $hyperwhatever := 1;
                 $whatevers++;
@@ -9446,7 +9461,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $old := $old[0] if (nqp::istype($old, QAST::Stmts) ||
                                     nqp::istype($old, QAST::Stmt)) &&
                                    +@($old) == 1;
-                if nqp::bitand_i($curried, 2) && istype($old.returns, $WhateverCode) && $old ~~ QAST::Op {
+                if nqp::bitand_i($curried, 2) && istype($old.returns, $WhateverCode) && nqp::istype($old, QAST::Op) {
                     my $new;
                     if $was_chain && $old.has_ann("chain_args") {
                         $new := QAST::Op.new( :op<chain>, :name($old.ann('chain_name')), :node($/) );

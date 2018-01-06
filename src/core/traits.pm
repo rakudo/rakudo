@@ -426,7 +426,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                         }
                         0;
                     }
-                    elsif $expr.isa(Whatever) {
+                    elsif nqp::istype($expr, Whatever) {
                         $pkg.^add_fallback(
                             -> $obj, $name {
                                 so $attr.get_value($obj).can($name);
@@ -437,7 +437,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                                 }
                             });
                     }
-                    elsif $expr.isa(HyperWhatever) {
+                    elsif nqp::istype($expr, HyperWhatever) {
                         $pkg.^add_fallback(
                             -> $obj, $name { True },
                             -> $obj, $name {

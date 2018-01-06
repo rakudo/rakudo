@@ -2513,7 +2513,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif $*value ~~ NQPCapture {
                 my $val_ast := $*value.ast;
-                if $val_ast.isa(QAST::Stmts) && +@($val_ast) == 1 {
+                if nqp::istype($val_ast, QAST::Stmts) && +@($val_ast) == 1 {
                     $val_ast := $val_ast[0];
                 }
                 make make_pair($/,$*key, $val_ast);
@@ -3183,7 +3183,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $past := QAST::Var.new( :name($_<variable_name>) );
                     $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
                         $_<desigilname>, $<trait>);
-                    unless $past.isa(QAST::Op) && $past.op eq 'null' {
+                    unless nqp::istype($past, QAST::Op) && $past.op eq 'null' {
                         $list.push($past);
                         if $_<sigil> eq '' {
                             nqp::push(@nosigil, ~$_<desigilname>);
@@ -3488,7 +3488,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Set scope and type on container, and if needed emit code to
             # reify a generic type or create a fresh container.
-            if $past.isa(QAST::Var) {
+            if nqp::istype($past, QAST::Var) {
                 my $bind_type := %cont_info<bind_constraint>;
                 $past.name($name);
                 $past.returns($bind_type);
@@ -4589,20 +4589,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $term_ast := $<term>.ast;
 
         # remove val call on a single item
-        if $term_ast.isa(QAST::Op) && $term_ast.name eq '&val' {
+        if nqp::istype($term_ast, QAST::Op) && $term_ast.name eq '&val' {
             $term_ast := $term_ast[0];
         }
 
-        if $term_ast.isa(QAST::Stmts) && +@($term_ast) == 1 {
+        if nqp::istype($term_ast, QAST::Stmts) && +@($term_ast) == 1 {
             $term_ast := $term_ast[0];
         }
         $term_ast := WANTED($term_ast,'enum');
         if $*COMPILING_CORE_SETTING {  # must handle bootstrapping enums here
-            if $term_ast.isa(QAST::Op) && $term_ast.name eq '&infix:<,>' {
+            if nqp::istype($term_ast, QAST::Op)
+            && $term_ast.name eq '&infix:<,>' {
                 wantall($term_ast, 'enum');
                 for @($term_ast) {
                     my $item_ast := $_;
-                    if $item_ast.isa(QAST::Op) && $item_ast.name eq '&val' {
+                    if nqp::istype($item_ast, QAST::Op)
+                    && $item_ast.name eq '&val' {
                         $item_ast := $item_ast[0];
                     }
 
@@ -5510,7 +5512,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method dotty:sym<.*>($/) {
         my $past := $<dottyop>.ast;
-        unless $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
+        unless nqp::istype($past, QAST::Op) && $past.op() eq 'callmethod' {
             $/.panic("Cannot use " ~ $<sym>.Str ~ " on a non-identifier method call");
         }
         if $<sym> eq '.^' {
@@ -5854,7 +5856,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         );
         $past.push($*W.add_string_constant($sigil)) if $sigil;
         for @components {
-            if nqp::can($_, 'isa') && $_.isa(QAST::Node) {
+            if nqp::istype($_, QAST::Node) {
                 $past.push($_);
             } else {
                 $past.push($*W.add_string_constant(~$_));
@@ -6590,7 +6592,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $<OPER><sym> {
                 my $name;
-                if $past.isa(QAST::Op) && !$past.name {
+                if nqp::istype($past, QAST::Op) && !$past.name {
                     $name := $key ~ $*W.canonicalize_pair('', $<OPER><sym>);
                     $past.name('&' ~ $name);
                 }
@@ -6646,7 +6648,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Perl 6 land.
             $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
-            if $past.isa(QAST::Op) && $past.op eq 'callmethod' {
+            if nqp::istype($past, QAST::Op) && $past.op eq 'callmethod' {
                 unless $<OPER> && ($<OPER><sym> eq '.=' || $<OPER><sym> eq '.+' || $<OPER><sym> eq '.?') {
                     $return_map := 1
                 }
@@ -6723,7 +6725,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Check what we have. XXX Real first step should be looking
             # for @(*) since if we find that it overrides all other things.
             # But that's todo...soon. :-)
-            if $stage.isa(QAST::Op) && $stage.op eq 'call' {
+            if nqp::istype($stage, QAST::Op) && $stage.op eq 'call' {
                 # It's a call. Stick a call to the current supplier in
                 # as its last argument.
                 $stage.push(QAST::Op.new( :op('call'), $result ));
@@ -6753,7 +6755,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 my str $error := "Only routine calls or variables that can '.push' may appear on either side of feed operators.";
-                if $stage.isa(QAST::Op) && $stage.op eq 'ifnull' && $stage[0].isa(QAST::Var) && nqp::eqat($stage[0].name, '&', 0) {
+                if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
+                && nqp::istype($stage[0], QAST::Var)
+                && nqp::eqat($stage[0].name, '&', 0) {
                     $error := "A feed may not sink values into a code object. Did you mean a call like '"
                             ~ nqp::substr($stage[0].name, 1) ~ "()' instead?";
                 }
@@ -6851,7 +6855,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub bind_op($/, $target, $source, $sigish) {
         # Check we know how to bind to the thing on the LHS.
         $target := WANTED($target,'bind_op');
-        if $target.isa(QAST::Var) {
+        if nqp::istype($target, QAST::Var) {
             # Check it's not a native type; we can't bind to those.
             if nqp::objprimspec($target.returns) {
                 $*W.throw($/, ['X', 'Bind', 'NativeType'],
@@ -6901,8 +6905,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Finally, just need to make a bind.
             make QAST::Op.new( :op('bind'), $target, $source );
         }
-        elsif $target.isa(QAST::Op) && $target.op eq 'hllize' &&
-                $target[0].isa(QAST::Op) && $target[0].op eq 'call' &&
+        elsif nqp::istype($target, QAST::Op) && $target.op eq 'hllize' &&
+                nqp::istype($target[0], QAST::Op) && $target[0].op eq 'call' &&
                 ($target[0].name eq '&postcircumfix:<[ ]>' ||
                  $target[0].name eq '&postcircumfix:<{ }>' ||
                  $target[0].name eq '&postcircumfix:<[; ]>') {
@@ -6911,7 +6915,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $target.nosink(1);
             make $target;
         }
-        elsif $target.isa(QAST::Op) && $target.op eq 'call' &&
+        elsif nqp::istype($target, QAST::Op) && $target.op eq 'call' &&
               ($target.name eq '&postcircumfix:<[ ]>' ||
                $target.name eq '&postcircumfix:<{ }>' ||
                $target.name eq '&postcircumfix:<[; ]>') {
@@ -6920,7 +6924,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $target.nosink(1);
             make $target;
         }
-        elsif $target.isa(QAST::WVal) && nqp::istype($target.value, $*W.find_symbol(['Signature'], :setting-only)) {
+        elsif nqp::istype($target, QAST::WVal)
+        && nqp::istype($target.value,
+          $*W.find_symbol(['Signature'], :setting-only)) {
             make QAST::Op.new(
                 :op('p6bindcaptosig'),
                 $target,
@@ -6929,8 +6935,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $source
                 ));
         }
-        elsif $target.isa(QAST::Op) && $target.op eq 'call' && $target.name eq '&DYNAMIC' &&
-            $target[0][1] eq 'Ss' {
+        elsif nqp::istype($target, QAST::Op) && $target.op eq 'call'
+        && $target.name eq '&DYNAMIC' && $target[0][1] eq 'Ss' {
             my $complain := QAST::Op.new(
                 :op('die_s'),
                 QAST::SVal.new( :value('Contextual ' ~ ~$/ ~ ' not found') )
@@ -7007,7 +7013,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # low level assign op.
             $past := QAST::Op.new( :op('assign'), $lhs_ast, $rhs_ast );
         }
-        elsif $lhs_ast.isa(QAST::Op) && $lhs_ast.op eq 'call' &&
+        elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'call' &&
               ($lhs_ast.name eq '&postcircumfix:<[ ]>' ||
                $lhs_ast.name eq '&postcircumfix:<{ }>' ||
                $lhs_ast.name eq '&postcircumfix:<[; ]>') &&
@@ -7016,8 +7022,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $lhs_ast;
             $past.nosink(1);
         }
-        elsif $lhs_ast.isa(QAST::Op) && $lhs_ast.op eq 'hllize' &&
-                $lhs_ast[0].isa(QAST::Op) && $lhs_ast[0].op eq 'call' &&
+        elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'hllize' &&
+                nqp::istype($lhs_ast[0],QAST::Op) && $lhs_ast[0].op eq 'call' &&
                 ($lhs_ast[0].name eq '&postcircumfix:<[ ]>' || $lhs_ast[0].name eq '&postcircumfix:<{ }>') &&
                 +@($lhs_ast[0]) == 2 { # no adverbs
             $lhs_ast[0].push($rhs_ast);
@@ -7038,7 +7044,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := QAST::Op.new(
             :op('call'), :name('&infix' ~ $*W.canonicalize_pair('', $sym)),
             $lhs);
-        if $rhs.isa(QAST::Op) && $rhs.op eq 'call' {
+        if nqp::istype($rhs, QAST::Op) && $rhs.op eq 'call' {
             if $rhs.name && +@($rhs) == 1 {
                 try {
                     $past.push(QAST::WVal.new( :value($*W.find_symbol([nqp::substr($rhs.name, 1)])) ));
@@ -7057,8 +7063,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
-        elsif $rhs.isa(QAST::Stmts) && +@($rhs) == 1 &&
-                $rhs[0].isa(QAST::Op) && $rhs[0].name eq '&infix:<,>' {
+        elsif nqp::istype($rhs, QAST::Stmts) && +@($rhs) == 1 &&
+                nqp::istype($rhs[0], QAST::Op) && $rhs[0].name eq '&infix:<,>' {
             for @($rhs[0]) {
                 $past.push($_);
             }
@@ -7472,8 +7478,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # dispatch, so we can pass it to our hyper call for nodality calculation
         my $nodal-name := $past[1];
 
-        if $nodal-name.isa(QAST::Want) && nqp::elems($nodal-name) == 3
-        && $nodal-name[2].isa(QAST::SVal) {
+        if nqp::istype($nodal-name, QAST::Want) && nqp::elems($nodal-name) == 3
+        && nqp::istype($nodal-name[2], QAST::SVal) {
             # the new nodal name might be another level of
             # dispatch:<...>; dig one level deeper for real name
             $nodal-name := $past[2]
@@ -7500,11 +7506,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<postfix_prefix_meta_operator> {
             my $past := $<OPER>.ast || QAST::Op.new( :name('&postfix' ~ $*W.canonicalize_pair('', $<OPER>.Str)),
                                                      :op<call> );
-            if $past.isa(QAST::Op) && $past.op() eq 'callmethod' {
+            if nqp::istype($past, QAST::Op) && $past.op() eq 'callmethod' {
                 self.hyper-nodal-name-tweak($past);
                 $past.name('dispatch:<hyper>');
             }
-            elsif $past.isa(QAST::Op) && $past.op() eq 'call' {
+            elsif nqp::istype($past, QAST::Op) && $past.op() eq 'call' {
                 if $<dotty> {
                     $past.name('&METAOP_HYPER_CALL');
                 }

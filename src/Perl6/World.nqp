@@ -1644,11 +1644,12 @@ class Perl6::World is HLL::World {
             if $shape {
                 @value_type[0] := self.find_symbol(['Any']) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
-                if $shape_ast.isa(QAST::Stmts) {
+                if nqp::istype($shape_ast, QAST::Stmts) {
                     if +@($shape_ast) == 1 {
                         if $shape_ast[0].has_compile_time_value {
                             @value_type[1] := $shape_ast[0].compile_time_value;
-                        } elsif (my $op_ast := $shape_ast[0]).isa(QAST::Op) {
+                        } elsif nqp::istype(
+                          (my $op_ast := $shape_ast[0]), QAST::Op) {
                             if $op_ast.op eq "call" && +@($op_ast) == 2 {
                                 if !nqp::isconcrete($op_ast[0].value) && !nqp::isconcrete($op_ast[1].value) {
                                     self.throw($/, 'X::Comp::NYI',
@@ -1833,7 +1834,7 @@ class Perl6::World is HLL::World {
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
             :scope('our'), :package($*LANG.package));
 
-        if $varast.isa(QAST::Var) {
+        if nqp::istype($varast, QAST::Var) {
             $varast.scope('lexical');
             $varast.returns(%cont_info<bind_constraint>);
             if %cont_info<bind_constraint>.HOW.archetypes.generic {

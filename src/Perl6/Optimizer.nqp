@@ -1214,9 +1214,10 @@ class Perl6::Optimizer {
             }
         }
 
-        # A chain with exactly two children can become the op itself.
         if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;
+
+            # A chain with exactly two children can become the op itself.
             $optype := 'call' if $!chain_depth == 1 &&
                 !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');

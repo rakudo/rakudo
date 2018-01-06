@@ -58,7 +58,7 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method isa($obj, $type) {
-        nqp::istype($!refinee, $type)
+        $!refinee.isa($type)
             || nqp::p6bool(nqp::istrue($type.HOW =:= self))
     }
 

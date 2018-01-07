@@ -133,7 +133,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                   IterationEnd
                 )
             }
-        }.new(self))
+        }.new(self)).cache
     }
 
     multi method gist(Blob:D:) {
@@ -494,7 +494,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
                   IterationEnd
                 )
             }
-        }.new(self))
+        }.new(self)).cache
     }
 
     multi method pop(Buf:D:) {

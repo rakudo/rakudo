@@ -1320,7 +1320,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 my int $nextpos = nqp::findcclass(
                   nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
                 my str $found = nqp::substr($!str, $!pos, $nextpos - $!pos);
+
+#?if moar
                 $!pos = $nextpos + 1;
+#?endif
+#?if !moar
+                $!pos = $nextpos +
+                  (nqp::iseq_s(nqp::substr($!str, $nextpos, 2), "\r\n") ?? 2 !! 1);
+#?endif
                 $found;
             }
             method push-all($target --> IterationEnd) {
@@ -1332,7 +1339,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
 
                     $target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
+#?if moar
                     $!pos = $nextpos + 1;
+#?endif
+#?if !moar
+                    $!pos = $nextpos +
+                      (nqp::iseq_s(nqp::substr($!str, $nextpos, 2), "\r\n") ?? 2 !! 1);
+#?endif
                 }
             }
         }.new(self));

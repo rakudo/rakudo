@@ -1868,6 +1868,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
+    proto method skip(|) {*}
+    multi method skip() {
+        my $iter := self.iterator;
+        Seq.new( $iter.skip-one ?? $iter !! Rakudo::Iterator.Empty )
+    }
+    multi method skip(Int() $n) {
+        my $iter := self.iterator;
+        Seq.new( $iter.skip-at-least($n) ?? $iter !! Rakudo::Iterator.Empty )
+    }
+
     proto method minpairs(|) {*}
     multi method minpairs(Any:D:) {
         my @found;
@@ -1919,10 +1929,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method rotor(Any:D: *@cycle, :$partial) {
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
-
-    proto method skip(|) {*}
-    multi method skip()         { Seq.new(self.iterator).skip }
-    multi method skip(Int() $n) { Seq.new(self.iterator).skip($n) }
 }
 
 BEGIN Attribute.^compose;

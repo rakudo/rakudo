@@ -8653,24 +8653,49 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Handle coercion.
             my $coerce_to := nqp::getattr($param_obj, $Param, '$!coerce_type');
             unless nqp::isnull($coerce_to) {
-                if $coerce_to.HOW.archetypes.generic {
-                    return 0;
-                }
-                $var.push(QAST::Op.new(
-                    :op('unless'),
-                    QAST::Op.new(
-                        :op('istype'),
-                        QAST::Var.new( :name($name), :scope('local') ),
-                        QAST::WVal.new( :value($coerce_to) )
-                    ),
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($name), :scope('local') ),
-                        QAST::Op.new(
-                            :op('callmethod'),
-                            :name(nqp::getattr_s($param_obj, $Param, '$!coerce_method')),
-                            QAST::Var.new( :name($name), :scope('local') )
-                        ))));
+                return 0 if $coerce_to.HOW.archetypes.generic;
+                my $qvar := QAST::Var.new: :$name, :scope<local>;
+                my $qto  := QAST::WVal.new: :value($coerce_to);
+
+                # QAST is:
+                # nqp::unless(
+                #   nqp::istype($qvar, $qto),
+                #   nqp::handle($var.coercer-meth,
+                #     "CATCH", nqp::handle($qto.new($var),
+                #       "CATCH", die "Cannot coerce");
+                $var.push:
+                    QAST::Op.new: :op<unless>,
+                      QAST::Op.new(:op<istype>, $qvar, $qto),
+                      QAST::Op.new: :op<handle>,
+                        QAST::Op.new(:op<bind>, $qvar,
+                          QAST::Op.new: :op<callmethod>, $qvar,
+                            :name(nqp::getattr_s(
+                              $param_obj, $Param, '$!coerce_method'))),
+                        # 'CATCH', #QAST::SVal.new(:value<CATCH>),
+                        # QAST::Op.new: :op<handle>,
+                        #   QAST::Op.new(:op<bind>, $qvar,
+                        #     QAST::Op.new: :op<callmethod>,
+                        #       $qto, :name<new>, $qvar);
+                          'CATCH', # QAST::SVal.new(:value<CATCH>),
+                          QAST::Op.new: :op<call>, :name<&say>,
+                              QAST::SVal.new: :value('Cannot coerce');
+                #
+                #
+                # $var.push(QAST::Op.new(
+                #     :op('unless'),
+                #     QAST::Op.new(
+                #         :op('istype'),
+                #         QAST::Var.new( :name($name), :scope('local') ),
+                #         QAST::WVal.new( :value($coerce_to) )
+                #     ),
+                #     QAST::Op.new(
+                #         :op('bind'),
+                #         QAST::Var.new( :name($name), :scope('local') ),
+                #         QAST::Op.new(
+                #             :op('callmethod'),
+                #             :name(nqp::getattr_s($param_obj, $Param, '$!coerce_method')),
+                #             QAST::Var.new( :name($name), :scope('local') )
+                #         ))));
             }
 
             # If it's optional, do any default handling.

@@ -25,7 +25,7 @@ script:
     - perl Configure.pl $RAKUDO_OPTIONS --moar-option=--cc=$(command -v gcc-6 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "gcc"; else printf "gcc-6"; fi)
     - "make test"
     - "make install"
-    - (cd /home/travis/build/rakudo/rakudo/ && prove -e /home/travis/build/rakudo/rakudo/install/bin/perl6 -vlr t)
+    - (cd ~/build/rakudo/rakudo/ && prove -e ~/build/rakudo/rakudo/install/bin/perl6 -vlr t)
 
 branches:
    only:

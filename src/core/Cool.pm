@@ -322,8 +322,15 @@ sub split($pat, Cool $target, |c)         { $target.split($pat, |c) }
 
 proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
+
+#?if !js
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
 multi sub chars(str $x --> int) { nqp::chars($x) }
+#?endif
+#?if js
+multi sub chars(Str:D $x) { nqp::p6box_i(nqp::charsnfg($x)) }
+multi sub chars(str $x --> int) { nqp::charsnfg($x) }
+#?endif
 
 # These probably belong in a separate unicodey file
 

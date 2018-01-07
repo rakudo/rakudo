@@ -1350,9 +1350,26 @@ class Perl6::Optimizer {
             self.optimize_private_method_call($op);
         }
 
-        # If we end up here, just leave op as is.
+        # See if we can staticalize a chain op
         if $op.op eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
+
+            my $obj;
+            my $found;
+            try {
+                $obj   := $!symbols.find_lexical($op.name);
+                $found := 1;
+            }
+            if $found {
+                if nqp::can($obj, 'is-pure') {
+                    $op.op: 'chainstatic'
+                }
+                else {
+                    my $scopes := $!symbols.scopes_in: $op.name;
+                    $op.op: 'chainstatic'
+                      if $scopes <= 1 && nqp::can($obj, 'soft') && ! $obj.soft;
+                }
+            }
         }
         $op
     }

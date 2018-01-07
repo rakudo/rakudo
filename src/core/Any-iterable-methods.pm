@@ -1873,6 +1873,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         my $iter := self.iterator;
         Seq.new( $iter.skip-one ?? $iter !! Rakudo::Iterator.Empty )
     }
+    multi method skip(Whatever) { Seq.new(Rakudo::Iterator.Empty) }
+    multi method skip(Callable:D $w) {
+       nqp::if(
+         nqp::isgt_i((my $tail := -($w(0).Int)),0),
+         self.tail($tail),
+         Seq.new(Rakudo::Iterator.Empty)
+       )
+    }
     multi method skip(Int() $n) {
         my $iter := self.iterator;
         Seq.new( $iter.skip-at-least($n) ?? $iter !! Rakudo::Iterator.Empty )

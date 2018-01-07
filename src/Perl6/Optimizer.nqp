@@ -1350,10 +1350,10 @@ class Perl6::Optimizer {
             self.optimize_private_method_call($op);
         }
 
-        # See if we can staticalize a chain op
         if $op.op eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
 
+            # See if we can staticalize this op
             my $obj;
             my $found;
             try {

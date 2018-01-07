@@ -115,7 +115,8 @@ my class IO::CatHandle is IO::Handle {
           nqp::while(
             nqp::defined(self.next-handle),
             take $!active-handle.words)}),
-        Seq.new: Rakudo::Iterator.Empty)
+        EmptySeq
+      )
     }
     multi method words(::?CLASS:D \SELF: $limit, :$close) {
         nqp::istype($limit,Whatever) || $limit == Inf
@@ -140,7 +141,8 @@ my class IO::CatHandle is IO::Handle {
           nqp::while(
             nqp::defined(self.next-handle),
             take $!active-handle.lines)}),
-        Seq.new: Rakudo::Iterator.Empty)
+        EmptySeq
+      )
     }
     multi method lines(::?CLASS:D \SELF: $limit, :$close) {
         nqp::istype($limit,Whatever) || $limit == Inf

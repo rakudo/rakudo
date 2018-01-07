@@ -502,7 +502,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.roll(*)
         }
         else {
-            Seq.new(Rakudo::Iterator.Empty)
+            EmptySeq
         }
     }
     multi method roll(Range:D:) {
@@ -547,7 +547,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.roll($todo)
         }
         else {
-            Seq.new(Rakudo::Iterator.Empty)
+            EmptySeq
         }
     }
 
@@ -556,7 +556,7 @@ my class Range is Cool does Iterable does Positional {
     multi method pick(Whatever)  {
         self.elems
           ?? self.list.pick(*)
-          !! Seq.new(Rakudo::Iterator.Empty)
+          !! EmptySeq
     }
     multi method pick(Int(Cool) $todo) {
         if self.elems -> $elems {
@@ -606,7 +606,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.pick($todo)
         }
         else {
-            Seq.new(Rakudo::Iterator.Empty)
+            EmptySeq
         }
     }
 

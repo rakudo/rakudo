@@ -7343,7 +7343,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             my $t        := $basepast.ann('thunky') || $base<OPER><O>.made<thunky>;
             my $helper   := '';
-            if    $metasym eq '!' { $helper := '&METAOP_NEGATE'; }
+            my $astop    := 'call';
+
+            if $metasym eq '!' {
+                $helper := '&METAOP_NEGATE';
+                if $base<OPER><O>.made<pasttype> eq 'chain' { $astop := 'chain' }
+            }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
             elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; $t := nqp::uc($t); }  # disable transitive thunking for now
             elsif $metasym eq 'Z' { $helper := '&METAOP_ZIP'; $t := nqp::uc($t); }
@@ -7354,7 +7359,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $metasym eq 'X' || $metasym eq 'Z';
             $metapast.annotate('thunky', $t) if $t;
             $metapast.annotate('is_pure', $purity) if $purity;
-            $ast := QAST::Op.new( :node($/), :op<call>, $metapast );
+            $ast := QAST::Op.new( :node($/), :op($astop), $metapast );
             $ast.annotate('thunky', $t) if $t;
         }
 

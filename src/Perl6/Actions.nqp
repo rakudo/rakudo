@@ -7347,7 +7347,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             if $metasym eq '!' {
                 $helper := '&METAOP_NEGATE';
+#?if moar
                 if $base<OPER><O>.made<pasttype> eq 'chain' { $astop := 'chain' }
+#?endif
             }
             if    $metasym eq 'R' { $helper := '&METAOP_REVERSE'; $t := nqp::flip($t) if $t; }
             elsif $metasym eq 'X' { $helper := '&METAOP_CROSS'; $t := nqp::uc($t); }  # disable transitive thunking for now

@@ -1560,14 +1560,13 @@ multi sub infix:<xx>(&x, Bool:D $b) {
     $b ?? infix:<xx>(&x, 1) !! EmptySeq
 }
 multi sub infix:<xx>(&x, Int:D $n) {
-    my int $todo = $n + 1;
-    my Mu $pulled;
+    my int $todo = $n;
     my Mu $list := nqp::create(IterationBuffer);
     nqp::while(
-      nqp::isgt_i($todo = nqp::sub_i($todo,1),0),
+      nqp::isgt_i($todo = nqp::sub_i($todo,1),-1),
       nqp::if(
-        nqp::istype(($pulled := &x.()),Slip),
-        (nqp::push($list,$_) for $pulled),
+        nqp::istype((my $pulled := x()),Slip),
+        $pulled.iterator.push-all($list),
         nqp::if(
           nqp::istype($pulled,Seq),
           nqp::push($list,$pulled.cache),

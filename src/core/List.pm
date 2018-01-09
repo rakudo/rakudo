@@ -1550,13 +1550,13 @@ sub cache(+@l) { @l }
 proto sub infix:<xx>(|) {*}
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
-multi sub infix:<xx>(&x, Num() $n) {
+multi sub infix:<xx>(&x, Num:D() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(&x, Whatever) {
     Seq.new(Rakudo::Iterator.Callable-xx-Whatever(&x))
 }
-multi sub infix:<xx>(&x, Int $n) {
+multi sub infix:<xx>(&x, Int:D $n) {
     my int $todo = $n + 1;
     my Mu $pulled;
     my Mu $list := nqp::create(IterationBuffer);
@@ -1574,7 +1574,7 @@ multi sub infix:<xx>(&x, Int $n) {
     );
     Seq.new(Rakudo::Iterator.ReifiedList($list))
 }
-multi sub infix:<xx>(Mu \x, Num() $n) {
+multi sub infix:<xx>(Mu \x, Num:D() $n) {
     Seq.new(nqp::if(
       $n == Inf,
       Rakudo::Iterator.UnendingValue(x),

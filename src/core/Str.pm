@@ -2809,13 +2809,14 @@ multi sub infix:<~>(Str:D \a, Any:D \b) {
 }
 multi sub infix:<~>(*@args) { @args.join }
 
+multi sub infix:<x>(Str:D $s, Bool:D $repetition --> Str:D) {
+    nqp::if($repetition, $s, '')
+}
 multi sub infix:<x>(Str:D $s, Int:D $repetition --> Str:D) {
-    nqp::if(nqp::islt_i($repetition, 0),
-        '',
-        nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition))))
+    nqp::if(nqp::islt_i($repetition, 1), '', nqp::x($s, $repetition))
 }
 multi sub infix:<x>(str $s, int $repetition --> str) {
-    nqp::if(nqp::islt_i($repetition, 0), '', nqp::x($s, $repetition))
+    nqp::if(nqp::islt_i($repetition, 1), '', nqp::x($s, $repetition))
 }
 
 multi sub infix:<cmp>(Str:D \a, Str:D \b --> Order:D) {

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 31;
+plan 32;
 
 # RT #132295
 
@@ -260,5 +260,10 @@ subtest 'cannot use Int type object as an operand' => {
 throws-like ｢sub meows;｣, X::UnitScope::Invalid, :message(/
     "placed a semicolon after routine's definition"
 /), 'unit-scoped sub def mentions potential unwanted semicolon';
+
+# Github Issue #1305 (https://github.com/rakudo/rakudo/issues/1305)
+throws-like { my $r = 1..5; $r[42] = 21 }, X::Assignment::RO,
+    :message{ .contains: 'Range' & none 'Str', '(Nil)' },
+    'Trying to assign to immutable Range element gives useful error';
 
 # vim: ft=perl6 expandtab sw=4

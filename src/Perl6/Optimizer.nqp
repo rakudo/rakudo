@@ -1432,8 +1432,8 @@ class Perl6::Optimizer {
                 }
                 elsif $op.node && $!void_context {
                     my str $op_txt := nqp::escape($op.node.Str);
-                    my str $expr   := nqp::escape(widen($op.node));
                     unless $op_txt eq '/' && $op[1].has_compile_time_value && $op[1].compile_time_value == 0 {
+                        my str $expr   := nqp::escape(widen($op.node));
                         my $warning := qq[Useless use of "$op_txt" in expression "$expr" in sink context];
                         note($warning) if $!debug;
                         $!problems.add_worry($op, $warning);

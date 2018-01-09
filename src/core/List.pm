@@ -1556,6 +1556,9 @@ multi sub infix:<xx>(&x, Num:D() $n) {
 multi sub infix:<xx>(&x, Whatever) {
     Seq.new(Rakudo::Iterator.Callable-xx-Whatever(&x))
 }
+multi sub infix:<xx>(&x, Bool:D $b) {
+    $b ?? infix:<xx>(&x, 1) !! EmptySeq
+}
 multi sub infix:<xx>(&x, Int:D $n) {
     my int $todo = $n + 1;
     my Mu $pulled;
@@ -1583,6 +1586,9 @@ multi sub infix:<xx>(Mu \x, Num:D() $n) {
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))
+}
+multi sub infix:<xx>(Mu \x, Bool:D $b) {
+    $b ?? Seq.new(Rakudo::Iterator.OneValue(x)) !! EmptySeq
 }
 multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
     Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))

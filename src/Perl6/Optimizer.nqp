@@ -930,6 +930,10 @@ class Perl6::Optimizer {
         $!symbols.push_block($block);
         @!block_var_stack.push(BlockVarOptimizer.new);
 
+        # we don't want any "blah in sink context" warnings emitted here
+        get_last_stmt($block[1]).annotate: 'sink-quietly', 1
+            if $block.ann: 'WANTMEPLEASE';
+
         # Visit children.
         if $block.ann('DYNAMICALLY_COMPILED') {
             my $*DYNAMICALLY_COMPILED := 1;
@@ -1837,7 +1841,8 @@ class Perl6::Optimizer {
         # (Check the following after we've checked children, since they may have useless bits too.)
 
         # Any literal in void context deserves a warning.
-        if $!void_context && +@($want) == 3 && $want.node {
+        if $!void_context && +@($want) == 3 && $want.node
+        && ! $want.ann('sink-quietly') {
 
             my str $warning;
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
@@ -2094,7 +2099,8 @@ class Perl6::Optimizer {
                             my $value := ~$visit.node;
                             $value := '""' if $value eq '';
                             my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
-                            unless $value eq 'Nil' {
+                            unless $value eq 'Nil'
+                            || $visit.ann('sink-quietly') {
                                 my $warning := qq[Useless use of constant value $value in sink context$suggest];
                                 note($warning) if $!debug;
                                 $!problems.add_worry($visit, $warning)

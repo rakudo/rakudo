@@ -6140,7 +6140,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Thus, we need to find chained adverbs. They show up on the parse
         # tree as colonpair rules followed by a fake_infix.
 
-        if nqp::getenvhash<COLONPAIR> eq 'trace' { say($/.dump) }
+        # if nqp::getenvhash<COLONPAIR> eq 'trace' { say($/.dump) }
         if +$/.list == 1 && nqp::istype($/[0].ast, QAST::Op) && $/[0].ast.op eq 'call' && $/[0].ast.name ne 'infix:<,>' {
             nqp::die("these adverbs belong to a deeper-nested thing");
         }

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 2;
+plan 3;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -39,4 +39,26 @@ else {
         ｣, :err(''), 'no warnings with UNDO phaser';
     }
 }
+
+if $*DISTRO.is-win {
+    skip 'is-run code is too complex to run on Windows (RT#132258)';
+}
+else {
+    subtest 'no useless-use warning in andthen/notandthen/orelse/ chains' => {
+        plan 2;
+        is-run ｢
+            1 notandthen 2 notandthen 3  notandthen 4;
+            5 andthen    6 andthen    7  andthen    8;
+            9 orelse     10 orelse    11 orelse     12;
+        ｣, :err{ 3 == .comb: 'Useless use' },
+            'we get warnings when last value is useless';
+
+        is-run ｢
+            2 notandthen 2 notandthen 2 notandthen 2.uc;
+            2 andthen    2 andthen    2 andthen    2.uc;
+            2 orelse     2 orelse     2 orelse     2.uc;
+        ｣, 'no warnings when last value is useful';
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

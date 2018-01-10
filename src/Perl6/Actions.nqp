@@ -6585,6 +6585,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := thunkity_thunk($/, $thunky,
                 QAST::Op.new( :op('call'), :name("&infix" ~ $*W.canonicalize_pair('', $sym))),
                 $/.list);
+
+            unless $sym eq 'xx' {
+                # andthen/notandthen/orelse ops can be chained and since all but last
+                # args affect the outcome of the chain, all but last args are wanted
+                my $up-to := @($past) - 2;
+                my $i     := 1; # first arg gets marked as wanted elsewhere; skip it
+                wanted($past[$i++], "$sym/args") while $i <= $up-to;
+            }
+
             make $past;
             return 1;
         }

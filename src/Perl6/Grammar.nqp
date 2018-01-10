@@ -2803,7 +2803,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || ';'
             {
                 if $<deflongname> ne 'MAIN' {
-                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub",
+                        where => "except on a MAIN sub", suggestion =>
+                        'Please use the block form. If you did not mean to '
+                        ~ "declare a unit-scoped sub,\nperhaps you accidentally "
+                        ~ "placed a semicolon after routine's definition?"
+                    );
                 }
                 unless $*begin_compunit {
                     $/.typed_panic("X::UnitScope::TooLate", what => "sub");
@@ -3479,20 +3484,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     || $<accept_any>=<?>
                 ] <.ws> ')'
             ]?
-            {
-                for $<longname><colonpair> {
-                    if $_<identifier> {
-                        my $name := $_<identifier>.Str;
-                        if $name eq 'D' || $name eq 'U' || $name eq '_' {
-                            %colonpairs{$name} := 1;
-                        }
-                        else {
-                            $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
-                        }
-                    }
-                }
-            }
-            [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
+            [
+                <?{
+                    %colonpairs
+                    := $*W.validate_type_smiley: $/, $<longname><colonpair>
+                }> <colonpairs=.O(|%colonpairs)>
+            ]?
         || [ \\ <?before '('> ]? <args(1)>
             {
                 if !$<args><invocant> {
@@ -3688,20 +3685,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
-        {
-            for ($<longname> ?? $<longname><colonpair> !! $<colonpair>) {
-                if $_<identifier> {
-                    my $name := $_<identifier>.Str;
-                    if $name eq 'D' || $name eq 'U' || $name eq '_' {
-                        %colonpairs{$name} := 1;
-                    }
-                    else {
-                        $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
-                    }
-                }
-            }
-        }
-        [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
+        [
+            <?{
+                %colonpairs := $*W.validate_type_smiley: $/, $<longname>
+                    ?? $<longname><colonpair> !! $<colonpair>
+            }> <colonpairs=.O(|%colonpairs)>
+        ]?
     }
 
     token typo_typename($panic = 0) {

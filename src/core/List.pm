@@ -574,10 +574,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! X::Assignment::RO.new(value => self).throw
     }
 
-    method BIND-POS(List:D: Int:D \pos, \what) is raw {
-        nqp::iscont(self.AT-POS(pos))
-          ?? nqp::bindpos($!reified,nqp::unbox_i(pos),what)
-          !! X::Bind.new.throw
+    method BIND-POS(List:D: Int:D \pos, \what) {
+        X::Bind.new.throw
     }
 
     multi method EXISTS-POS(List:D: int $pos) {
@@ -1550,21 +1548,23 @@ sub cache(+@l) { @l }
 proto sub infix:<xx>(|) {*}
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
-multi sub infix:<xx>(&x, Num() $n) {
+multi sub infix:<xx>(&x, Num:D() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(&x, Whatever) {
     Seq.new(Rakudo::Iterator.Callable-xx-Whatever(&x))
 }
-multi sub infix:<xx>(&x, Int $n) {
-    my int $todo = $n + 1;
-    my Mu $pulled;
+multi sub infix:<xx>(&x, Bool:D $b) {
+    $b ?? infix:<xx>(&x, 1) !! EmptySeq
+}
+multi sub infix:<xx>(&x, Int:D $n) {
+    my int $todo = $n;
     my Mu $list := nqp::create(IterationBuffer);
     nqp::while(
-      nqp::isgt_i($todo = nqp::sub_i($todo,1),0),
+      nqp::isgt_i($todo = nqp::sub_i($todo,1),-1),
       nqp::if(
-        nqp::istype(($pulled := &x.()),Slip),
-        (nqp::push($list,$_) for $pulled),
+        nqp::istype((my $pulled := x()),Slip),
+        $pulled.iterator.push-all($list),
         nqp::if(
           nqp::istype($pulled,Seq),
           nqp::push($list,$pulled.cache),
@@ -1574,7 +1574,7 @@ multi sub infix:<xx>(&x, Int $n) {
     );
     Seq.new(Rakudo::Iterator.ReifiedList($list))
 }
-multi sub infix:<xx>(Mu \x, Num() $n) {
+multi sub infix:<xx>(Mu \x, Num:D() $n) {
     Seq.new(nqp::if(
       $n == Inf,
       Rakudo::Iterator.UnendingValue(x),
@@ -1583,6 +1583,9 @@ multi sub infix:<xx>(Mu \x, Num() $n) {
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))
+}
+multi sub infix:<xx>(Mu \x, Bool:D $b) {
+    $b ?? Seq.new(Rakudo::Iterator.OneValue(x)) !! EmptySeq
 }
 multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
     Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))

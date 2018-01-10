@@ -1821,6 +1821,13 @@ my class X::Syntax::Extension::TooComplex does X::Syntax {
     }
 }
 
+my class X::Syntax::Coercer::TooComplex does X::Syntax {
+    method message() {
+        'Coercer is too complex. Only type objects, with optional type'
+        ~ " smileys, or empty parentheses, implying 'Any', are supported."
+    }
+}
+
 my class X::Syntax::Extension::SpecialForm does X::Syntax {
     has $.category;
     has $.opname;
@@ -2793,9 +2800,9 @@ my class X::EXPORTHOW::Conflict does X::Comp {
 my class X::UnitScope::Invalid does X::Syntax {
     has $.what;
     has $.where;
+    has Str:D $.suggestion = 'Please use the block form.';
     method message() {
-        "A unit-scoped $.what definition is not allowed $.where;\n"
-        ~ "Please use the block form."
+        "A unit-scoped $.what definition is not allowed $.where;\n$!suggestion"
     }
 }
 
@@ -2847,6 +2854,12 @@ my class X::InvalidTypeSmiley does X::Comp {
     has $.name;
     method message() {
         "Invalid type smiley '$.name' used in type name";
+    }
+}
+
+my class X::MultipleTypeSmiley does X::Comp {
+    method message() {
+        "Multiple type smileys cannot be used";
     }
 }
 

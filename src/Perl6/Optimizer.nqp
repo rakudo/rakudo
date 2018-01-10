@@ -930,6 +930,10 @@ class Perl6::Optimizer {
         $!symbols.push_block($block);
         @!block_var_stack.push(BlockVarOptimizer.new);
 
+        # we don't want any "blah in sink context" warnings emitted here
+        get_last_stmt($block[1]).annotate: 'sink-quietly', 1
+            if $block.ann: 'WANTMEPLEASE';
+
         # Visit children.
         if $block.ann('DYNAMICALLY_COMPILED') {
             my $*DYNAMICALLY_COMPILED := 1;
@@ -1214,9 +1218,10 @@ class Perl6::Optimizer {
             }
         }
 
-        # A chain with exactly two children can become the op itself.
         if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;
+
+            # A chain with exactly two children can become the op itself.
             $optype := 'call' if $!chain_depth == 1 &&
                 !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
@@ -1349,9 +1354,26 @@ class Perl6::Optimizer {
             self.optimize_private_method_call($op);
         }
 
-        # If we end up here, just leave op as is.
         if $op.op eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
+
+            # See if we can staticalize this op
+            my $obj;
+            my $found;
+            try {
+                $obj   := $!symbols.find_lexical($op.name);
+                $found := 1;
+            }
+            if $found {
+                if nqp::can($obj, 'is-pure') {
+                    $op.op: 'chainstatic'
+                }
+                else {
+                    my $scopes := $!symbols.scopes_in: $op.name;
+                    $op.op: 'chainstatic'
+                      if $scopes <= 1 && nqp::can($obj, 'soft') && ! $obj.soft;
+                }
+            }
         }
         $op
     }
@@ -1414,8 +1436,8 @@ class Perl6::Optimizer {
                 }
                 elsif $op.node && $!void_context {
                     my str $op_txt := nqp::escape($op.node.Str);
-                    my str $expr   := nqp::escape(widen($op.node));
                     unless $op_txt eq '/' && $op[1].has_compile_time_value && $op[1].compile_time_value == 0 {
+                        my str $expr   := nqp::escape(widen($op.node));
                         my $warning := qq[Useless use of "$op_txt" in expression "$expr" in sink context];
                         note($warning) if $!debug;
                         $!problems.add_worry($op, $warning);
@@ -1819,7 +1841,8 @@ class Perl6::Optimizer {
         # (Check the following after we've checked children, since they may have useless bits too.)
 
         # Any literal in void context deserves a warning.
-        if $!void_context && +@($want) == 3 && $want.node {
+        if $!void_context && +@($want) == 3 && $want.node
+        && ! $want.ann('sink-quietly') {
 
             my str $warning;
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
@@ -2076,7 +2099,8 @@ class Perl6::Optimizer {
                             my $value := ~$visit.node;
                             $value := '""' if $value eq '';
                             my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
-                            unless $value eq 'Nil' {
+                            unless $value eq 'Nil'
+                            || $visit.ann('sink-quietly') {
                                 my $warning := qq[Useless use of constant value $value in sink context$suggest];
                                 note($warning) if $!debug;
                                 $!problems.add_worry($visit, $warning)

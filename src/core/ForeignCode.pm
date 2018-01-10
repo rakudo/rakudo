@@ -46,36 +46,20 @@ proto sub EVAL($code is copy where Blob|Cool, Str() :$lang = 'perl6', PseudoStas
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
     my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     my \mast_frames := nqp::hash();
-    my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the currently compiling compilation unit
-    my $compiled;
-    my $LANG := $context<%?LANG>;
-    if !$LANG {
-        $LANG := CALLERS::<%?LANG>;
-    }
-    if $LANG {
-        # XXX
-        my $grammar := $LANG<MAIN>;
-        my $actions := $LANG<MAIN-actions>;
-        $compiled := $compiler.compile(
-            $code,
-            :outer_ctx($eval_ctx),
-            :global(GLOBAL),
-            :mast_frames(mast_frames),
-            :grammar($grammar),
-            :actions($actions),
-        );
-    }
-    else {
-        $compiled := $compiler.compile(
-            $code,
-            :outer_ctx($eval_ctx),
-            :global(GLOBAL),
-            :mast_frames(mast_frames),
-        );
-    }
-    if $*W and $*W.is_precompilation_mode() { # we are still compiling
-        $*W.add_additional_frames(mast_frames);
-    }
+    my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
+                  # currently compiling compilation unit
+
+    my $LANG := $context<%?LANG> || CALLERS::<%?LANG>;
+    my $compiled := $compiler.compile:
+        $code,
+        :outer_ctx($eval_ctx),
+        :global(GLOBAL),
+        :mast_frames(mast_frames),
+        |(:optimize($_) with nqp::getcomp('perl6').cli-options<optimize>),
+        |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
+
+    $*W.add_additional_frames(mast_frames)
+        if $*W and $*W.is_precompilation_mode; # we are still compiling
     nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
     $compiled();
 }

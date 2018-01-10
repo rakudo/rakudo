@@ -1644,11 +1644,12 @@ class Perl6::World is HLL::World {
             if $shape {
                 @value_type[0] := self.find_symbol(['Any']) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
-                if $shape_ast.isa(QAST::Stmts) {
+                if nqp::istype($shape_ast, QAST::Stmts) {
                     if +@($shape_ast) == 1 {
                         if $shape_ast[0].has_compile_time_value {
                             @value_type[1] := $shape_ast[0].compile_time_value;
-                        } elsif (my $op_ast := $shape_ast[0]).isa(QAST::Op) {
+                        } elsif nqp::istype(
+                          (my $op_ast := $shape_ast[0]), QAST::Op) {
                             if $op_ast.op eq "call" && +@($op_ast) == 2 {
                                 if !nqp::isconcrete($op_ast[0].value) && !nqp::isconcrete($op_ast[1].value) {
                                     self.throw($/, 'X::Comp::NYI',
@@ -1833,7 +1834,7 @@ class Perl6::World is HLL::World {
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
             :scope('our'), :package($*LANG.package));
 
-        if $varast.isa(QAST::Var) {
+        if nqp::istype($varast, QAST::Var) {
             $varast.scope('lexical');
             $varast.returns(%cont_info<bind_constraint>);
             if %cont_info<bind_constraint>.HOW.archetypes.generic {
@@ -4010,7 +4011,7 @@ class Perl6::World is HLL::World {
                 else {
                     my $past := QAST::Op.new(:op<call>, :name('&infix:<,>'));
                     for @!components {
-                        $past.push: $_ ~~ QAST::Node ?? $_ !! QAST::SVal.new(:value($_));
+                        $past.push: nqp::istype($_, QAST::Node) ?? $_ !! QAST::SVal.new(:value($_));
                     }
                     return QAST::Op.new(:op<callmethod>, :name<join>,
                         $past,
@@ -4186,6 +4187,44 @@ class Perl6::World is HLL::World {
               && @!components[0]   # need this to fix crash on OS X
               && @!components[0] eq 'GLOBAL';
         }
+    }
+
+    method can_has_coercerz($/) {
+        if $<accept> {
+            $<accept>.ast
+        }
+        elsif $<accept_any> {
+            self.find_symbol: ['Any']
+        }
+        elsif $<colonpairs> && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>) {
+            my $val := $<longname><colonpair>[0].ast[2];
+            nqp::istype($val, QAST::Op)
+              ?? $val.op eq 'p6bool'
+                ?? nqp::null # not a coercer, but just got a regular DefiniteHOW
+                !! $val.name eq '&infix:<,>' && @($val) == 0
+                  ?? self.find_symbol: ['Any'] # empty coercer source type
+                  !! self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
+              !! nqp::istype($val, QAST::WVal)
+                ?? $val.value
+                !! self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
+        }
+        else {
+            nqp::null # we didn't find any coercers
+        }
+    }
+
+    method validate_type_smiley ($/, $colonpairs) {
+        1 < $colonpairs && self.throw: $/, ['X', 'MultipleTypeSmiley'];
+        my %colonpairs;
+        for $colonpairs {
+            if $_<identifier> {
+                my $name := $_<identifier>.Str;
+                $name eq 'D' || $name eq 'U' || $name eq '_'
+                    ?? (%colonpairs{$name} := 1)
+                    !! self.throw: $/, ['X', 'InvalidTypeSmiley'], :$name
+            }
+        }
+        %colonpairs
     }
 
     # Takes a longname and turns it into an object representing the

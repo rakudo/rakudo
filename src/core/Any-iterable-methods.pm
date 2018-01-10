@@ -1834,7 +1834,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           $pulled
         )
     }
-    multi method head(Any:D: WhateverCode:D $w) {
+    multi method head(Any:D: Callable:D $w) {
         Seq.new(
            Rakudo::Iterator.AllButLastNValues(self.iterator,-($w(0).Int))
         )
@@ -1857,7 +1857,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method tail(Any:D: $n) {
         Seq.new(
           nqp::if(
-            nqp::istype($n,WhateverCode)
+            nqp::istype($n,Callable)
               && nqp::isgt_i((my $skip := -($n(0).Int)),0),
             nqp::stmts(
               (my $iterator := self.iterator).skip-at-least($skip),
@@ -1866,6 +1866,24 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             Rakudo::Iterator.LastNValues(self.iterator,$n,'tail')
           )
         )
+    }
+
+    proto method skip(|) {*}
+    multi method skip() {
+        my $iter := self.iterator;
+        Seq.new( $iter.skip-one ?? $iter !! Rakudo::Iterator.Empty )
+    }
+    multi method skip(Whatever) { Seq.new(Rakudo::Iterator.Empty) }
+    multi method skip(Callable:D $w) {
+       nqp::if(
+         nqp::isgt_i((my $tail := -($w(0).Int)),0),
+         self.tail($tail),
+         Seq.new(Rakudo::Iterator.Empty)
+       )
+    }
+    multi method skip(Int() $n) {
+        my $iter := self.iterator;
+        Seq.new( $iter.skip-at-least($n) ?? $iter !! Rakudo::Iterator.Empty )
     }
 
     proto method minpairs(|) {*}
@@ -1919,10 +1937,6 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method rotor(Any:D: *@cycle, :$partial) {
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
-
-    proto method skip(|) {*}
-    multi method skip()         { Seq.new(self.iterator).skip }
-    multi method skip(Int() $n) { Seq.new(self.iterator).skip($n) }
 }
 
 BEGIN Attribute.^compose;

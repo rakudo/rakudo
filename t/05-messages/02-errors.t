@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 29;
+plan 33;
 
 # RT #132295
 
@@ -207,5 +207,69 @@ throws-like ｢
 throws-like ｢Set.new(1..300)<42> = 42｣,
     X::Assignment::RO, :message{ .chars < 100 },
     'X::Assignment::RO does not dump entire contents of variables';
+
+# RT #127051
+subtest 'cannot use Int type object as an operand' => {
+    plan 14;
+
+    throws-like ｢(1/1)+Int｣,
+        X::Parameter::InvalidConcreteness,
+        'A Rational instance cannot be added by an Int type object';
+    throws-like ｢Int+(1/1)｣,
+        X::Parameter::InvalidConcreteness,
+        'An Int type object cannot be added by a Rational instance';
+    throws-like ｢(1/1)-Int｣,
+        X::Parameter::InvalidConcreteness,
+        'A Rational instance cannot be subtracted by an Int type object';
+    throws-like ｢Int-(1/1)｣,
+        X::Parameter::InvalidConcreteness,
+        'An Int type object cannot be subtracted by a Rational instance';
+    throws-like ｢(1/1)*Int｣,
+        X::Parameter::InvalidConcreteness,
+        'A Rational instance cannot be multiplied by an Int type object';
+    throws-like ｢Int*(1/1)｣,
+        X::Parameter::InvalidConcreteness,
+        'An Int type object cannot be multiplied by a Rational instance';
+    throws-like ｢(1/1)/Int｣,
+        X::Parameter::InvalidConcreteness,
+        'A Rational instance cannot be divided by an Int type object';
+    throws-like ｢Int/(1/1)｣,
+        X::Parameter::InvalidConcreteness,
+        'An Int type object cannot be divided by a Rational instance';
+    throws-like ｢Int/Int｣,
+        X::Parameter::InvalidConcreteness,
+        'An Int type object cannot be divided by an Int type object';
+    throws-like ｢Int/1｣,
+        X::Parameter::InvalidConcreteness,
+        'An Int type object cannot be divided by an Int instance';
+    throws-like ｢1/Int｣,
+        X::Parameter::InvalidConcreteness,
+        'An Int instance cannot be divided by an Int type object';
+    throws-like ｢(1/1)%Int｣,
+        X::Parameter::InvalidConcreteness,
+        'A Rational instance modulo an Int type object is incalculable';
+    throws-like ｢Int%(1/1)｣,
+        X::Parameter::InvalidConcreteness,
+        'An Int type object modulo a Rational instance is incalculable';
+    throws-like ｢(1/1)**Int｣,
+        X::Parameter::InvalidConcreteness,
+        'A Rational instance cannot be powered by an Int type object';
+}
+
+# https://github.com/rakudo/rakudo/issues/1364
+throws-like ｢sub meows;｣, X::UnitScope::Invalid, :message(/
+    "placed a semicolon after routine's definition"
+/), 'unit-scoped sub def mentions potential unwanted semicolon';
+
+# Github Issue #1305 (https://github.com/rakudo/rakudo/issues/1305)
+throws-like { my $r = 1..5; $r[42] = 21 }, X::Assignment::RO,
+    :message{ .contains: 'Range' & none 'Str', '(Nil)' },
+    'Trying to assign to immutable Range element gives useful error';
+
+# The warning for `*+*` in void context is handled by the optimizer so
+# if we turn off the optimizer, we'd get clean STDERR/STDOUT, which is what
+# the this test checks.
+is-run 'EVAL "*+*"', :compiler-args[<--optimize=off>],
+    'optimizer flag gets propagated to EVAL';
 
 # vim: ft=perl6 expandtab sw=4

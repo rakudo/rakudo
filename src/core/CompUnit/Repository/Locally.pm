@@ -18,7 +18,7 @@ role CompUnit::Repository::Locally {
         self.path-spec
     }
     multi method perl(CompUnit::Repository::Locally:D:) {
-        $?CLASS.perl ~ '.new(' ~ $!prefix.absolute.perl ~ ')';
+        $?CLASS.perl ~ '.new(prefix => ' ~ $!prefix.absolute.perl ~ ')';
     }
 
     multi method WHICH(CompUnit::Repository::Locally:D:) { $!WHICH }

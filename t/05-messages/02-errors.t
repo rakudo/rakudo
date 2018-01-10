@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 32;
+plan 33;
 
 # RT #132295
 
@@ -265,5 +265,8 @@ throws-like ｢sub meows;｣, X::UnitScope::Invalid, :message(/
 throws-like { my $r = 1..5; $r[42] = 21 }, X::Assignment::RO,
     :message{ .contains: 'Range' & none 'Str', '(Nil)' },
     'Trying to assign to immutable Range element gives useful error';
+
+is-run 'EVAL "*+*"', :compiler-args[<--optimize=off>],
+    'optimizer flag gets propagated to EVAL';
 
 # vim: ft=perl6 expandtab sw=4

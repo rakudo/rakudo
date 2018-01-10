@@ -483,17 +483,18 @@ my class Array { # declared in BOOTSTRAP
         # Fast path: index > 0, $!reified is set up, either have a container
         # or no $!todo so can just bind there
         my \reified := nqp::getattr(self,List,'$!reified');
+        my int $ipos = $pos;
         nqp::if(
-          nqp::isge_I($pos, 0) && nqp::isconcrete(reified),
+          nqp::isge_i($ipos, 0) && nqp::isconcrete(reified),
           nqp::stmts(
-            (my \target := nqp::atpos(reified, $pos)),
+            (my \target := nqp::atpos(reified, $ipos)),
             nqp::if(
               nqp::isnull(target),
               nqp::if(
                 nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
                 self!ASSIGN-POS-SLOW-PATH($pos, assignee),
                 nqp::assign(
-                  nqp::bindpos(reified, $pos, nqp::p6scalarfromdesc($!descriptor)),
+                  nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)),
                   assignee
                 )
               ),

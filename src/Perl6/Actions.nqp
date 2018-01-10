@@ -7617,7 +7617,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method postcircumfix:sym<( )>($/) {
-        make $<arglist>.ast;
+        make wanted($<arglist>.ast, 'postcircumfix()/args');
     }
 
     method value:sym<quote>($/) {

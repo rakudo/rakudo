@@ -1928,7 +1928,7 @@ augment class Rakudo::Internals {
             my @run-after;
             my $queued := $state.run-async-lock.protect-or-queue-on-recursion: {
                 if $state.active > 0 {
-                    my &*ADD-WHENEVER = &add-whenever;
+                    my &*ADD-WHENEVER := &add-whenever;
                     my $emitter = {
                         if $state.active {
                             my \ex := nqp::exception();
@@ -2012,10 +2012,10 @@ sub SUPPLY(&block) {
 }
 
 sub WHENEVER(Supply() $supply, &block) {
-    my \adder = &*ADD-WHENEVER;
-    adder.defined
-        ?? adder.($supply, &block)
-        !! X::WheneverOutOfScope.new.throw
+    my \adder = nqp::getlexdyn('&*ADD-WHENEVER');
+    nqp::isnull(adder)
+        ?? X::WheneverOutOfScope.new.throw
+        !! adder.($supply, &block)
 }
 
 sub REACT(&block) {

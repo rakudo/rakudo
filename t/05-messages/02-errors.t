@@ -266,6 +266,9 @@ throws-like { my $r = 1..5; $r[42] = 21 }, X::Assignment::RO,
     :message{ .contains: 'Range' & none 'Str', '(Nil)' },
     'Trying to assign to immutable Range element gives useful error';
 
+# The warning for `*+*` in void context is handled by the optimizer so
+# if we turn off the optimizer, we'd get clean STDERR/STDOUT, which is what
+# the this test checks.
 is-run 'EVAL "*+*"', :compiler-args[<--optimize=off>],
     'optimizer flag gets propagated to EVAL';
 

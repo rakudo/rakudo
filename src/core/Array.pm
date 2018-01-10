@@ -417,9 +417,8 @@ my class Array { # declared in BOOTSTRAP
     # handle any lookup that's not simple
     method !AT-POS-SLOW(\pos) is raw {
         nqp::if(
-          nqp::islt_i(pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>)),
+          nqp::islt_i(pos, 0),
+          self!index-oor(pos),
           nqp::if(
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::if(
@@ -455,63 +454,60 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) {
+        # Fast path: index > 0, $!reified is set up, either have a container
+        # or no $!todo so can just bind there
+        my \reified := nqp::getattr(self,List,'$!reified');
         nqp::if(
-          nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
-          nqp::if(
-            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-            nqp::ifnull(
-              nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
+          nqp::isge_i($pos, 0) && nqp::isconcrete(reified),
+          nqp::stmts(
+            (my \target := nqp::atpos(reified, $pos)),
+            nqp::if(
+              nqp::isnull(target),
               nqp::if(
-                nqp::islt_i(                     # it's a hole
-                  $pos,
-                  nqp::elems(nqp::getattr(self,List,'$!reified'))
-                ),
-                nqp::bindpos(
-                  nqp::getattr(self,List,'$!reified'),
-                  $pos,
-                  nqp::p6scalarfromdesc($!descriptor)
-                ),
-                nqp::if(
-                  nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-                  nqp::stmts(                    # can reify
-                    nqp::getattr(self,List,'$!todo')
-                      .reify-at-least(nqp::add_i($pos,1)),
-                    nqp::ifnull(
-                      nqp::atpos(                # reified
-                        nqp::getattr(self,List,'$!reified'),
-                        $pos
-                      ),
-                      nqp::bindpos(              # outlander
-                        nqp::getattr(self,List,'$!reified'),
-                        $pos,
-                        nqp::p6scalarfromdesc($!descriptor)
-                      )
-                    )
-                  ),
-                  nqp::bindpos(                  # outlander without todo
-                    nqp::getattr(self,List,'$!reified'),
-                    $pos,
-                    nqp::p6scalarfromdesc($!descriptor)
-                  )
+                nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
+                self!ASSIGN-POS-SLOW-PATH($pos, assignee),
+                nqp::assign(
+                  nqp::bindpos(reified, $pos, nqp::p6scalarfromdesc($!descriptor)),
+                  assignee
                 )
-              )
-            ),
-            nqp::bindpos(                        # new outlander
-              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              $pos,
-              nqp::p6scalarfromdesc($!descriptor)
+              ),
+              nqp::assign(target, assignee)
             )
-          ) = assignee
+          ),
+          self!ASSIGN-POS-SLOW-PATH($pos, assignee)
         )
     }
+
     # because this is a very hot path, we copied the code from the int candidate
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) {
+        # Fast path: index > 0, $!reified is set up, either have a container
+        # or no $!todo so can just bind there
+        my \reified := nqp::getattr(self,List,'$!reified');
+        nqp::if(
+          nqp::isge_I($pos, 0) && nqp::isconcrete(reified),
+          nqp::stmts(
+            (my \target := nqp::atpos(reified, $pos)),
+            nqp::if(
+              nqp::isnull(target),
+              nqp::if(
+                nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
+                self!ASSIGN-POS-SLOW-PATH($pos, assignee),
+                nqp::assign(
+                  nqp::bindpos(reified, $pos, nqp::p6scalarfromdesc($!descriptor)),
+                  assignee
+                )
+              ),
+              nqp::assign(target, assignee)
+            )
+          ),
+          self!ASSIGN-POS-SLOW-PATH($pos, assignee)
+        )
+    }
+
+    method !ASSIGN-POS-SLOW-PATH(Array:D: Int:D $pos, Mu \assignee) {
         nqp::if(
           nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
+          self!index-oor($pos),
           nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
             nqp::ifnull(
@@ -563,8 +559,7 @@ my class Array { # declared in BOOTSTRAP
     multi method BIND-POS(Array:D: int $pos, Mu \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
+          self!index-oor($pos),
           nqp::stmts(
             nqp::if(
               nqp::getattr(self,List,'$!reified').DEFINITE,
@@ -585,8 +580,7 @@ my class Array { # declared in BOOTSTRAP
     multi method BIND-POS(Array:D: Int:D $pos, Mu \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
+          self!index-oor($pos),
           nqp::stmts(
             nqp::if(
               nqp::getattr(self,List,'$!reified').DEFINITE,
@@ -607,8 +601,7 @@ my class Array { # declared in BOOTSTRAP
     multi method DELETE-POS(Array:D: int $pos) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
+          self!index-oor($pos),
           nqp::if(
             (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
             nqp::stmts(
@@ -648,6 +641,12 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method DELETE-POS(Array:D: Int:D $pos) is raw {
         self.DELETE-POS(nqp::unbox_i($pos))
+    }
+
+    method !index-oor($pos) {
+      Failure.new(X::OutOfRange.new(
+          :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>
+      ))
     }
 
     # MUST have a separate Slip variant to have it slip

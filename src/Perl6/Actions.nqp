@@ -629,9 +629,8 @@ sub monkey_see_no_eval($/) {
     my $msne := $*LANG.pragma('MONKEY-SEE-NO-EVAL');
     nqp::defined($msne)
         ?? $msne   # prevails if defined, can be either 1 or 0
-        !! $*COMPILING_CORE_SETTING ||
-           try { $*W.find_symbol(['&MONKEY-SEE-NO-EVAL'])() } ||
-           nqp::getenvhash<RAKUDO_MONKEY_BUSINESS>;
+        !! $*COMPILING_CORE_SETTING
+            || try { $*W.find_symbol(['&MONKEY-SEE-NO-EVAL'])() };
 }
 
 role STDActions {

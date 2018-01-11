@@ -52,7 +52,7 @@ $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
         "p6bindsig", $TYPE_CSD, $TYPE_TC, $TYPE_CSD, "[$TYPE_OBJ" ));
     $il.append(JAST::Instruction.new( :op('dup') ));
-    
+
     my $natlbl := JAST::Label.new( :name('p6bindsig_no_autothread') );
     $il.append(JAST::Instruction.new( :op('ifnonnull'), $natlbl ));
     $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
@@ -60,7 +60,7 @@ $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
         $TYPE_CF, 'leave', 'Void' ));
     $il.append(JAST::Instruction.new( :op('return') ));
     $il.append($natlbl);
-    
+
     $il.append(JAST::Instruction.new( :op('astore'), 'csd' ));
     $il.append(JAST::Instruction.new( :op('aload_1') ));
     $il.append(JAST::Instruction.new( :op('getfield'), $TYPE_TC, 'flatArgs', "[$TYPE_OBJ" ));
@@ -145,7 +145,7 @@ my $p6bool := -> $qastcomp, $op {
     my $exprres := $qastcomp.as_jast($op[0]);
     $il.append($exprres.jast);
     $*STACK.obtain($il, $exprres);
-    
+
     my $cond_type := $exprres.type;
     if $cond_type == $RT_INT {
         $il.append(JAST::PushIVal.new( :value(0) ));

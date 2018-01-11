@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 3;
+plan 4;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -60,5 +60,11 @@ else {
         ｣, 'no warnings when last value is useful';
     }
 }
+
+# RT #131305
+is-run ｢
+    sub prefix:<ᔑ> (Pair $p --> Pair) is tighter(&postcircumfix:<[ ]>) {};
+    print postcircumfix:<[ ]>(<foo bar ber>, 1)
+｣, :out<bar>, 'no spurious warnings when invoking colonpaired routine';
 
 # vim: ft=perl6 expandtab sw=4

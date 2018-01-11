@@ -2147,27 +2147,29 @@ class Perl6::World is HLL::World {
         $signature
     }
 
-    method compile_time_evaluate($/, $ast) {
+    method compile_time_evaluate($/, $ast, :$no-install) {
         return $ast.compile_time_value if $ast.has_compile_time_value;
-        my $thunk := self.create_thunk($/, $ast);
+        my $thunk := self.create_thunk($/, $ast, :$no-install);
         $thunk();
     }
 
     # Turn a QAST tree into a code object, to be called immediately.
-    method create_thunk($/, $to_thunk) {
+    method create_thunk($/, $to_thunk, :$no-install) {
         my $block := self.push_lexpad($/);
         $block.push($to_thunk);
         self.pop_lexpad();
-        self.create_simple_code_object($block, 'Code');
+        self.create_simple_code_object($block, 'Code', :$no-install);
     }
 
     # Creates a simple code object with an empty signature
-    method create_simple_code_object($block, $type) {
-        if $*WANTEDOUTERBLOCK {
-            $*WANTEDOUTERBLOCK[0].push($block);
-        }
-        else {
-            self.cur_lexpad()[0].push($block);
+    method create_simple_code_object($block, $type, :$no-install) {
+        unless $no-install {
+            if $*WANTEDOUTERBLOCK {
+                $*WANTEDOUTERBLOCK[0].push($block);
+            }
+            else {
+                self.cur_lexpad()[0].push($block);
+            }
         }
         my $sig := self.create_signature(nqp::hash('parameter_objects', []));
         return self.create_code_object($block, $type, $sig);
@@ -4291,7 +4293,8 @@ class Perl6::World is HLL::World {
                     }
                     else {
                         # Safe to evaluate it directly; no bootstrap issues.
-                        $cp_str := self.canonicalize_pair('',self.compile_time_evaluate($_, $_.ast));
+                        $cp_str := self.canonicalize_pair('',self.compile_time_evaluate:
+                          $_, $_.ast, :no-install);
                     }
                     if +@components {
                         @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;

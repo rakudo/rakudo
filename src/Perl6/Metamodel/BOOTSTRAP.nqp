@@ -1717,6 +1717,7 @@ BEGIN {
             }
         }));
     Block.HOW.add_method(Block, '!clone_phasers', nqp::getstaticcode(sub ($self, $cloned, $phasers) {
+#?if moar
             my int $next := nqp::existskey($phasers, 'NEXT');
             my int $last := nqp::existskey($phasers, 'LAST');
             my int $quit := nqp::existskey($phasers, 'QUIT');
@@ -1767,6 +1768,7 @@ BEGIN {
                 }
                 nqp::bindattr($cloned, Block, '$!phasers', %pclone);
             }
+#?endif
         }));
     Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);

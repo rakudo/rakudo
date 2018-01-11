@@ -5,7 +5,7 @@ my class Tap {
 
     submethod BUILD(:&!on-close --> Nil) { }
 
-    method new(&on-close) {
+    method new(&on-close = Callable) {
         self.bless(:&on-close)
     }
 
@@ -2005,6 +2005,32 @@ augment class Rakudo::Internals {
         method sane(--> True) { }
         method serial(--> True) { }
     }
+
+    class OneEmitTappable does Tappable {
+        has &!block;
+
+        submethod BUILD(:&!block! --> Nil) {}
+
+        method tap(&emit, &done, &quit, &tap) {
+            my int $closed = 0;
+            my $t = Tap.new;
+            tap($t);
+            try {
+                emit(&!block());
+                done();
+                CATCH {
+                    default {
+                        quit($_);
+                    }
+                }
+            }
+            $t
+        }
+
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
+    }
 }
 
 sub SUPPLY(&block) {
@@ -2026,6 +2052,10 @@ sub REACT(&block) {
         done => { $p.keep(Nil) },
         quit => { $p.break($_) });
     await $p;
+}
+
+sub SUPPLY-ONE-EMIT(&block) {
+    Supply.new(Rakudo::Internals::OneEmitTappable.new(:&block))
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -2251,7 +2251,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<supply>($/) {
+        # Case-analyze what's inside of the Supply, to spot cases that can be
+        # turned into something cheap rather than needing the whole supply
+        # concurrency control mechanism.
         my $past := $<blorst>.ast;
+        my $block := $past.ann('past_block');
+        if $*WHENEVER_COUNT == 0 {
+            my $stmts := $block[1];
+            if nqp::istype($stmts, QAST::Stmts) && nqp::elems($stmts) == 1 {
+                my $stmt := $stmts[0];
+                $stmt := $stmt[0] if nqp::istype($stmt, QAST::Want);
+                if nqp::istype($stmt, QAST::Op) && $stmt.op eq 'call' && $stmt.name eq '&emit'
+                    && nqp::elems($stmt.list) == 1 {
+                    # Single statement emit; make block just return the expression
+                    # (or die) and pass it to something that'll cheaply do a one
+                    # shot emit.
+                    $stmts[0] := $stmt[0];
+                    make QAST::Op.new( :op('call'), :name('&SUPPLY-ONE-EMIT'), $past );
+                    return 1;
+                }
+            }
+        }
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past );
     }

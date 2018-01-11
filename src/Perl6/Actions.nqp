@@ -22,28 +22,28 @@ sub block_closure($code) {
 
 sub wantall($ast, $by) {
     my int $i := 0;
-    my int $e := $ast ?? +@($ast) !! 0;
+    my int $e := $ast ?? nqp::elems(@($ast)) !! 0;
     while $i < $e { $ast[$i] := wanted($ast[$i], $by ~ ' wa'); $i := $i + 1 }
     Nil;
 }
 
 sub WANTALL($ast, $by) {
     my int $i := 0;
-    my int $e := $ast ?? +@($ast) !! 0;
+    my int $e := $ast ?? nqp::elems(@($ast)) !! 0;
     while $i < $e { $ast[$i] := WANTED($ast[$i], $by ~ ' WA'); $i := $i + 1 }
     Nil;
 }
 
 sub unwantall($ast, $by) {
     my int $i := 0;
-    my int $e := $ast ?? +@($ast) !! 0;
+    my int $e := $ast ?? nqp::elems(@($ast)) !! 0;
     while $i < $e { $ast[$i] := unwanted($ast[$i], $by ~ ' ua'); $i := $i + 1 }
     Nil;
 }
 
 sub UNWANTALL($ast, $by) {
     my int $i := 0;
-    my int $e := $ast ?? +@($ast) !! 0;
+    my int $e := $ast ?? nqp::elems(@($ast)) !! 0;
     while $i < $e { $ast[$i] := UNWANTED($ast[$i], $by ~ ' ua'); $i := $i + 1 }
     Nil;
 }
@@ -64,7 +64,7 @@ sub wanted($ast,$by) {
 #        note("Oops, already sunk node is now wanted!?! \n" ~ $ast.dump);
 #        $ast.sunk(0);
 #    }
-    my $e := +@($ast) - 1;
+    my $e := nqp::elems(@($ast)) - 1;
     $ast.annotate('BY',$byby) if $wantwant;
 
     if nqp::istype($ast,QAST::Stmt) || nqp::istype($ast,QAST::Stmts) {
@@ -108,11 +108,11 @@ sub wanted($ast,$by) {
               $ast.op eq 'locallifetime' ||
               $ast.op eq 'p6typecheckrv' ||
               $ast.op eq 'handlepayload' {
-            $ast[0] := WANTED($ast[0], $byby) if +@($ast);
+            $ast[0] := WANTED($ast[0], $byby) if nqp::elems(@($ast));
             $ast.wanted(1);
         }
         elsif $ast.op eq 'p6decontrv' {
-            $ast[1] := WANTED($ast[1], $byby) if +@($ast);
+            $ast[1] := WANTED($ast[1], $byby) if nqp::elems(@($ast));
             $ast.wanted(1);
         }
         elsif $ast.op eq 'while' ||
@@ -139,7 +139,7 @@ sub wanted($ast,$by) {
             }
 
             # 3rd part of loop, if any
-            if +@($ast) > 2 {
+            if nqp::elems(@($ast)) > 2 {
                 $block := Perl6::Actions::make_thunk_ref($ast[2], $ast[2].node);
                 $block.annotate('outer',$*WANTEDOUTERBLOCK) if $*WANTEDOUTERBLOCK;
                 $past.push( UNWANTED(block_closure($block),$byby) )
@@ -159,7 +159,8 @@ sub wanted($ast,$by) {
               $ast.op eq 'with' ||
               $ast.op eq 'without' {
             $ast[1] := WANTED($ast[1], $byby);
-            $ast[2] := WANTED($ast[2], $byby) if +@($ast) > 2 && nqp::istype($ast[2],QAST::Node);
+            $ast[2] := WANTED($ast[2], $byby)
+                if nqp::elems(@($ast)) > 2 && nqp::istype($ast[2],QAST::Node);
             $ast.wanted(1);
         }
     }
@@ -198,7 +199,9 @@ sub wanted($ast,$by) {
                   $node.op eq 'with' ||
                   $node.op eq 'without' {
                 $node[1] := WANTED($node[1], $byby);
-                $node[2] := WANTED($node[2], $byby) if +@($node) > 2 && nqp::istype($node[2],QAST::Node);
+                $node[2] := WANTED($node[2], $byby)
+                    if nqp::elems(@($node)) > 2
+                        && nqp::istype($node[2],QAST::Node);
                 $node.wanted(1);
             }
         }
@@ -226,7 +229,7 @@ sub unwanted($ast, $by) {
     return $ast if $ast.sunk;
     return $ast if $ast.wanted;  # probably a loose thunk just stashed somewhere random
     $ast.annotate('BY',$byby) if $wantwant;
-    my $e := +@($ast) - 1;
+    my $e := nqp::elems(@($ast)) - 1;
     note('unwanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if $wantwant;
     if nqp::istype($ast,QAST::Stmt) || nqp::istype($ast,QAST::Stmts) {
         # Unwant all kids, not just last one, so we recurse into blocks and such,
@@ -258,7 +261,7 @@ sub unwanted($ast, $by) {
                 $ast.node.worry("Useless use of 'now' in sink context");
             }
             else {
-                $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
+                $ast[0] := UNWANTED($ast[0], $byby) if nqp::elems(@($ast));
             }
             $ast.sunk(1);
         }
@@ -272,7 +275,7 @@ sub unwanted($ast, $by) {
               $ast.op eq 'p6typecheckrv' ||
               $ast.op eq 'handlepayload' ||
               $ast.op eq 'ifnull' {
-            $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
+            $ast[0] := UNWANTED($ast[0], $byby) if nqp::elems(@($ast));
             $ast.sunk(1);
         }
         elsif $ast.op eq 'hllize' {
@@ -294,11 +297,11 @@ sub unwanted($ast, $by) {
                 $ast.sunk(1);
                 return $ast;
             }
-            $ast[0] := UNWANTED($ast[0], $byby) if +@($ast);
+            $ast[0] := UNWANTED($ast[0], $byby) if nqp::elems(@($ast));
             $ast.sunk(1);
         }
         elsif $ast.op eq 'p6decontrv' {
-            $ast[1] := UNWANTED($ast[1], $byby) if +@($ast);
+            $ast[1] := UNWANTED($ast[1], $byby) if nqp::elems(@($ast));
             $ast.sunk(1);
         }
         elsif $ast.op eq 'while' ||
@@ -319,7 +322,8 @@ sub unwanted($ast, $by) {
               $ast.op eq 'with' ||
               $ast.op eq 'without' {
             $ast[1] := UNWANTED($ast[1], $byby);
-            $ast[2] := UNWANTED($ast[2], $byby) if +@($ast) > 2 && nqp::istype($ast[2],QAST::Node);
+            $ast[2] := UNWANTED($ast[2], $byby)
+                if nqp::elems(@($ast)) > 2 && nqp::istype($ast[2],QAST::Node);
             $ast.sunk(1);
         }
         elsif $ast.op eq 'bind' {
@@ -411,7 +415,8 @@ sub unwanted($ast, $by) {
             }
             elsif $node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without' {
                 for 1,2 {
-                    if +@($node) > $_ && nqp::istype($node[$_],QAST::Node) {
+                    if nqp::elems(@($node)) > $_
+                    && nqp::istype($node[$_],QAST::Node) {
                         if nqp::istype($node[$_],QAST::Op) && $node[$_].op eq 'bind' {
                             $node[$_] := QAST::Stmts.new(
                                             $node[$_],

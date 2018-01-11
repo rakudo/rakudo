@@ -61,6 +61,22 @@ my class RatStr is Rat is Str {
             self.Str.ACCEPTS(a),
             self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)))
     }
+    method succ(RatStr:D: --> Rat:D) {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
+            nqp::add_I(
+              nqp::getattr(self, Rat, '$!numerator'),
+              nqp::getattr(self, Rat, '$!denominator'), Int)),
+          Rat, '$!denominator', nqp::getattr(self, Rat, '$!denominator'))
+    }
+    method pred(RatStr:D: --> Rat:D) {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
+            nqp::sub_I(
+              nqp::getattr(self, Rat, '$!numerator'),
+              nqp::getattr(self, Rat, '$!denominator'), Int)),
+          Rat, '$!denominator', nqp::getattr(self, Rat, '$!denominator'))
+    }
     method Capture(RatStr:D:) { self.Mu::Capture }
     multi method Numeric(RatStr:D:) { self.Rat }
     method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }

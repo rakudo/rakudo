@@ -8328,7 +8328,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Stmts.new(
                             QAST::Op.new( :op('bind'),
                                 QAST::Var.new( :name($list_result), :scope('local'), :decl('var') ),
-                                QAST::Op.new( :op('callmethod'), :name('CREATE'),
+                                QAST::Op.new( :op('create'),
                                     QAST::WVal.new( :value($List) )
                                 )
                             ),

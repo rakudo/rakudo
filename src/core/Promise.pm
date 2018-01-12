@@ -34,10 +34,11 @@ my class Promise does Awaitable {
     has $!thens;
     has Mu $!dynamic_context;
 
-    submethod BUILD(:$!scheduler = $*SCHEDULER --> Nil) {
+    submethod BUILD(:$scheduler = $*SCHEDULER --> Nil) {
+        $!scheduler       := $scheduler;
         $!lock            := nqp::create(Lock);
         $!cond            := $!lock.condition();
-        $!status           = Planned;
+        $!status          := Planned;
         $!thens           := nqp::list();
     }
 
@@ -91,7 +92,7 @@ my class Promise does Awaitable {
     method !keep(Mu \result --> Nil) {
         $!lock.protect({
             $!result := result;
-            $!status = Kept;
+            $!status := Kept;
             self!schedule_thens();
             $!cond.signal_all;
         });
@@ -122,7 +123,7 @@ my class Promise does Awaitable {
             $!result = nqp::istype(result, Exception)
                 ?? result
                 !! X::AdHoc.new(payload => result);
-            $!status = Broken;
+            $!status := Broken;
             self!schedule_thens();
             $!cond.signal_all;
         });
@@ -158,7 +159,7 @@ my class Promise does Awaitable {
     }
 
     method cause(Promise:D:) {
-        my $status = $!status;
+        my $status := $!status;
         if $status == Broken {
             $!result
         } else {

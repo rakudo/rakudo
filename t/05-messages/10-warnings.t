@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 4;
+plan 5;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -66,5 +66,8 @@ is-run ｢
     sub prefix:<ᔑ> (Pair $p --> Pair) is tighter(&postcircumfix:<[ ]>) {};
     print postcircumfix:<[ ]>(<foo bar ber>, 1)
 ｣, :out<bar>, 'no spurious warnings when invoking colonpaired routine';
+
+is-run ｢my $a; $a [R~]= "b"; $a [Z~]= "b"; $a [X~]= "b"｣,
+    'metaops + metaassign op do not produce spurious warnings';
 
 # vim: ft=perl6 expandtab sw=4

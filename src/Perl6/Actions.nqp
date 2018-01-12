@@ -350,7 +350,7 @@ sub unwanted($ast, $by) {
                         $op := nqp::substr($op, 0, $t) if $t > 0;
                         my $purity := 0;
                         if $node0[0].ann('is_pure') {
-                            $purity := 1;
+                            $purity := 1 unless $node0.name eq '&METAOP_ASSIGN';
                         }
                         else {
                             my $subname := $node0[0].name;

@@ -1559,10 +1559,20 @@ class Perl6::World is HLL::World {
                     %cont_info<scalar_value>);
             }
         }
-        elsif nqp::istype($cont_type, self.find_symbol(['Array'])) ||
-              nqp::istype($cont_type, self.find_symbol(['Hash'])) {
+        elsif nqp::istype($cont_type, self.find_symbol(['Array'])) {
             $cont := nqp::create($cont_type);
             nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+            my $List := self.find_symbol(['List']);
+            my $Mu := self.find_symbol(['Mu']);
+            nqp::bindattr($cont, $List, '$!reified', $Mu);
+            nqp::bindattr($cont, $List, '$!todo', $Mu);
+        }
+        elsif nqp::istype($cont_type, self.find_symbol(['Hash'])) {
+            $cont := nqp::create($cont_type);
+            nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
+            my $Map := self.find_symbol(['Map']);
+            my $Mu := self.find_symbol(['Mu']);
+            nqp::bindattr($cont, $Map, '$!storage', $Mu);
         }
         else {
             $cont := $cont_type.new;

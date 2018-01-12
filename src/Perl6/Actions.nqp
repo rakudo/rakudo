@@ -329,6 +329,15 @@ sub unwanted($ast, $by) {
         elsif $ast.op eq 'bind' {
             $ast.sunk(1);
         }
+        elsif $ast.op eq 'xor' {
+            my int $i := 1;
+            my int $elems := nqp::elems($ast);
+            while $i <= $e {
+                $ast[$i] := UNWANTED($ast[$i], $byby);
+                ++$i;
+            }
+            $ast.sunk: 1;
+        }
     }
     elsif nqp::istype($ast,QAST::Want) {
         $ast.sunk(1);

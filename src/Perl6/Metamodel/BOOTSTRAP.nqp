@@ -3240,10 +3240,10 @@ nqp::sethllconfig('perl6', nqp::hash(
         my %phasers := nqp::getattr($code, Block, '$!phasers');
         unless nqp::isnull(%phasers) || nqp::p6inpre() {
             my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
-            my @keeps  := nqp::atkey(%phasers, 'KEEP');
-            my @undos  := nqp::atkey(%phasers, 'UNDO');
             my @exceptions;
             unless nqp::isnull(@leaves) {
+                my @keeps  := nqp::atkey(%phasers, 'KEEP');
+                my @undos  := nqp::atkey(%phasers, 'UNDO');
                 my int $n := nqp::elems(@leaves);
                 my int $i := -1;
                 my int $run;
@@ -3253,7 +3253,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                     $run := 1;
                     unless nqp::isnull(@keeps) {
                         for @keeps {
-                            if nqp::decont($_) =:= $phaser {
+                            if nqp::eqaddr(nqp::decont($_),$phaser) {
                                 $run := !nqp::isnull($resultish) &&
                                          nqp::isconcrete($resultish) &&
                                          $resultish.defined;
@@ -3263,7 +3263,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                     }
                     unless nqp::isnull(@undos) {
                         for @undos {
-                            if nqp::decont($_) =:= $phaser {
+                            if nqp::eqaddr(nqp::decont($_),$phaser) {
                                 $run := nqp::isnull($resultish) ||
                                         !nqp::isconcrete($resultish) ||
                                         !$resultish.defined;

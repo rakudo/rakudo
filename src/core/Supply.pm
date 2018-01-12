@@ -1864,7 +1864,7 @@ augment class Rakudo::Internals {
                     nqp::continuationreset(ADD_WHENEVER_PROMPT, {
                         $supply.tap(
                             tap => {
-                                $tap = $_;
+                                $tap := $_;
                                 $state.add-active-tap($tap);
                             },
                             -> \value {

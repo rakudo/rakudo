@@ -2032,7 +2032,7 @@ class Perl6::Optimizer {
         @sigs
     }
 
-    # Visits all of a nodes children, and dispatches appropriately.
+    # Visits all of a node's children, and dispatches appropriately.
     method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default) {
         my int $r := $resultchild // -1;
         my int $i := 0;

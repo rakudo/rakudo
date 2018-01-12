@@ -1704,6 +1704,9 @@ class Perl6::Optimizer {
                                     $assignee_var,
                                     $operand));
                             } else {
+                                # We end up with two calls of the op if var
+                                # is not definite. This is by design:
+                                # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
                                 $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
                                     QAST::Op.new( :op('if'),
                                         QAST::Op.new( :op('p6definite'), $assignee_var),

@@ -3236,64 +3236,84 @@ nqp::sethllconfig('perl6', nqp::hash(
         $result
     },
     'exit_handler', -> $coderef, $resultish {
-        my $code := nqp::getcodeobj($coderef);
-        my %phasers := nqp::getattr($code, Block, '$!phasers');
+        my %phasers :=
+          nqp::getattr(nqp::getcodeobj($coderef),Block,'$!phasers');
         unless nqp::isnull(%phasers) || nqp::p6inpre() {
             my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
+            my @posts  := nqp::atkey(%phasers, 'POST');
             my @exceptions;
             unless nqp::isnull(@leaves) {
                 my @keeps  := nqp::atkey(%phasers, 'KEEP');
                 my @undos  := nqp::atkey(%phasers, 'UNDO');
                 my int $n := nqp::elems(@leaves);
-                my int $i := -1;
-                my int $run;
-                my $phaser;
-                while ++$i < $n {
-                    $phaser := nqp::decont(nqp::atpos(@leaves, $i));
-                    $run := 1;
-                    unless nqp::isnull(@keeps) {
-                        for @keeps {
-                            if nqp::eqaddr(nqp::decont($_),$phaser) {
-                                $run := !nqp::isnull($resultish) &&
-                                         nqp::isconcrete($resultish) &&
-                                         $resultish.defined;
-                                last;
-                            }
-                        }
-                    }
-                    unless nqp::isnull(@undos) {
-                        for @undos {
-                            if nqp::eqaddr(nqp::decont($_),$phaser) {
-                                $run := nqp::isnull($resultish) ||
-                                        !nqp::isconcrete($resultish) ||
-                                        !$resultish.defined;
-                                last;
-                            }
-                        }
-                    }
-                    if $run {
+
+                # only have a single LEAVEish phaser, so no frills needed
+                if nqp::isnull(@keeps)
+                  && nqp::isnull(@undos)
+                  && nqp::isnull(@posts)
+                  && $n == 1
+                {
 #?if jvm
-                        $phaser();
+                    nqp::decont(nqp::atpos(@leaves,0))();
 #?endif
 #?if moar
-                        nqp::p6capturelexwhere($phaser.clone())();
+                    nqp::p6capturelexwhere(
+                      nqp::decont(nqp::atpos(@leaves,0)).clone)();
 #?endif
-                        CATCH { nqp::push(@exceptions, $_) }
+                    # don't bother to CATCH, there can only be one exception
+                }
+
+                # slow path here
+                else {
+                    my int $i := -1;
+                    my int $run;
+                    my $phaser;
+                    while ++$i < $n {
+                        $phaser := nqp::decont(nqp::atpos(@leaves, $i));
+                        $run := 1;
+                        unless nqp::isnull(@keeps) {
+                            for @keeps {
+                                if nqp::eqaddr(nqp::decont($_),$phaser) {
+                                    $run := !nqp::isnull($resultish) &&
+                                             nqp::isconcrete($resultish) &&
+                                             $resultish.defined;
+                                    last;
+                                }
+                            }
+                        }
+                        unless nqp::isnull(@undos) {
+                            for @undos {
+                                if nqp::eqaddr(nqp::decont($_),$phaser) {
+                                    $run := nqp::isnull($resultish) ||
+                                            !nqp::isconcrete($resultish) ||
+                                            !$resultish.defined;
+                                    last;
+                                }
+                            }
+                        }
+                        if $run {
+#?if jvm
+                            $phaser();
+#?endif
+#?if moar
+                            nqp::p6capturelexwhere($phaser.clone())();
+#?endif
+                            CATCH { nqp::push(@exceptions, $_) }
+                        }
                     }
                 }
             }
 
-            my @posts := nqp::atkey(%phasers, 'POST');
             unless nqp::isnull(@posts) {
+                my $value := nqp::ifnull($resultish,Mu);
                 my int $n := nqp::elems(@posts);
                 my int $i := -1;
                 while ++$i < $n {
 #?if jvm
-                    nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
+                    nqp::atpos(@posts, $i)($value));
 #?endif
 #?if moar
-                    nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
-                        nqp::ifnull($resultish, Mu));
+                    nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);
 #?endif
                     CATCH { nqp::push(@exceptions, $_); last; }
                 }

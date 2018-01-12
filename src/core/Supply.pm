@@ -1853,7 +1853,7 @@ augment class Rakudo::Internals {
 
         method tap(&emit, &done, &quit, &tap) {
             # Create state for this tapping.
-            my $state = Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
+            my $state := Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
 
             # Placed here so it can close over $state, but we only need to
             # closure-clone it once per Supply block, not once per whenever.
@@ -1883,11 +1883,11 @@ augment class Rakudo::Internals {
                             },
                             quit => -> \ex {
                                 $state.delete-active-tap($tap);
-                                my $handled;
+                                my $handled := False;
                                 self!run-supply-code({
                                     my $phaser := &whenever-block.phasers('QUIT')[0];
                                     if $phaser.DEFINITE {
-                                        $handled = $phaser(ex) === Nil;
+                                        $handled := $phaser(ex) === Nil;
                                     }
                                     if !$handled && $state.get-and-zero-active() {
                                         $state.quit().(ex) if $state.quit;
@@ -1911,7 +1911,7 @@ augment class Rakudo::Internals {
 
             # Create and pass on tap; when closed, tear down the state and all
             # of our subscriptions.
-            my $t = Tap.new(-> { self!teardown($state) });
+            my $t := Tap.new(-> { self!teardown($state) });
             tap($t);
 
             # Run the Supply block, then decrease active count afterwards (it
@@ -1987,7 +1987,7 @@ augment class Rakudo::Internals {
 
         method !deactivate-one-internal($state) {
             if $state.decrement-active() == 0 {
-                my $done-handler = $state.done;
+                my $done-handler := $state.done;
                 $done-handler() if $done-handler;
                 self!teardown($state);
             }
@@ -2012,8 +2012,7 @@ augment class Rakudo::Internals {
         submethod BUILD(:&!block! --> Nil) {}
 
         method tap(&emit, &done, &quit, &tap) {
-            my int $closed = 0;
-            my $t = Tap.new;
+            my $t := Tap.new;
             tap($t);
             try {
                 emit(&!block());

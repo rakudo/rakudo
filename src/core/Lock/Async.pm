@@ -161,46 +161,45 @@ my class Lock::Async {
 
     method !on-recursion-list() {
         my $rec-list := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
-        if nqp::isnull($rec-list) {
-            False
+        nqp::isnull($rec-list) ?? False !! self!search-recursion-list($rec-list)
+    }
+
+    method !search-recursion-list(IterationBuffer \rec-list) {
+        my int $n = nqp::elems(rec-list);
+        loop (my int $i = 0; $i < $n; ++$i) {
+            return True if nqp::eqaddr(nqp::atpos(rec-list, $i), self);
         }
-        else {
-            my int $n = nqp::elems($rec-list);
-            loop (my int $i = 0; $i < $n; ++$i) {
-                return True if nqp::eqaddr(nqp::atpos($rec-list, $i), self);
-            }
-            False
-        }
+        False
     }
 
     method !run-with-updated-recursion-list(&code) {
         my $current := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
-        my $new-held := nqp::isnull($current) ?? nqp::list() !! nqp::clone($current);
+        my $new-held := nqp::isnull($current)
+            ?? nqp::create(IterationBuffer)
+            !! nqp::clone($current);
         nqp::push($new-held, self);
-        {
-            my $*LOCK-ASYNC-RECURSION-LIST := $new-held;
-            code();
-        }
+        self!run-under-recursion-list($new-held, &code);
     }
 
     method with-lock-hidden-from-recursion-check(&code) {
         my $current := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
-        my $new-held;
-        if nqp::isnull($current) {
-            $new-held := nqp::null();
+        nqp::isnull($current)
+            ?? code()
+            !! self!hidden-in-recursion-list($current, &code)
+    }
+
+    method !hidden-in-recursion-list(IterationBuffer \current, &code) {
+        my $new-held := nqp::create(IterationBuffer);
+        my int $n = nqp::elems(current);
+        loop (my int $i = 0; $i < $n; ++$i) {
+            my $lock := nqp::atpos(current, $i);
+            nqp::push($new-held, $lock) unless nqp::eqaddr($lock, self);
         }
-        else {
-            $new-held := nqp::list();
-            my int $n = nqp::elems($current);
-            loop (my int $i = 0; $i < $n; ++$i) {
-                my $lock := nqp::atpos($current, $i);
-                nqp::push($new-held, $lock) unless nqp::eqaddr($lock, self);
-            }
-        }
-        {
-            my $*LOCK-ASYNC-RECURSION-LIST := $new-held;
-            code();
-        }
+        self!run-under-recursion-list($new-held, &code);
+    }
+
+    method !run-under-recursion-list(IterationBuffer $*LOCK-ASYNC-RECURSION-LIST, &code) {
+        code()
     }
 }
 

@@ -137,23 +137,18 @@ my class Lock::Async {
         my $try-acquire := self.lock();
         if $try-acquire {
             # We could acquire the lock. Run the code right now.
-            LEAVE self.unlock();
             self!run-with-updated-recursion-list(&code);
             Nil
         }
         elsif self!on-recursion-list() {
             # Lock is already held on the stack, so we're recursing. Queue.
             $try-acquire.then({
-                LEAVE self.unlock();
                 self!run-with-updated-recursion-list(&code);
             });
         }
         else {
             # Lock is held but by something else. Await it's availability.
-            my int $acquired = 0;
             $*AWAITER.await($try-acquire);
-            $acquired = 1;
-            LEAVE self.unlock() if $acquired;
             self!run-with-updated-recursion-list(&code);
             Nil
         }
@@ -173,6 +168,7 @@ my class Lock::Async {
     }
 
     method !run-with-updated-recursion-list(&code) {
+        LEAVE self.unlock();
         my $current := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
         my $new-held := nqp::isnull($current)
             ?? nqp::create(IterationBuffer)

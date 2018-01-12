@@ -1,6 +1,11 @@
 class Perl6::Pod {
 
-    # various helper methods for Pod parsing and processing
+    # various helpers for Pod parsing and processing
+
+    # hardware int checks (from Actions.nqp):
+    my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
+    my $max-dec-intchars := $?BITS == 64 ?? 16 !! 9;
+
     my $caption := ''; # var to save table caption values between
                        # subs make_config and table
 
@@ -106,47 +111,59 @@ class Perl6::Pod {
         ).compile_time_value
     }
 
+    sub decint($s) {
+        # code copied from Actions.nqp and locally modified
+        my int $base := 10;
+        my int $chars := nqp::chars($s);
+        $chars > $max-dec-intchars
+          ?? string_to_bigint($s, $base, $chars)
+          !! string_to_int($s, $base, $chars);
+    }
+
+    sub string_to_int($src, int $base, int $chars) {
+        # code copied from Actions.nqp and locally modified
+        my $res := nqp::radix($base, ~$src, 0, 2);
+        $src.panic("'$src' is not a valid number")
+            unless nqp::iseq_i(nqp::atpos($res, 2), $chars);
+        nqp::box_i(nqp::atpos($res, 0), $*W.find_symbol(['Int']));
+    }
+
+    sub string_to_bigint($src, int $base, int $chars) {
+        # code copied from Actions.nqp and locally modified
+        my $res := nqp::radix_I($base, ~$src, 0, 2, $*W.find_symbol(['Int']));
+        $src.panic("'$src' is not a valid number")
+            unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), $chars);
+        nqp::atpos($res, 0);
+    }
+
     sub convert-array(@raw) {
         # input is an array of strings to be converted to a list or hash
         my @arr := nqp::list();
-        for @raw -> $s {
-            #my $s := $S;
-            say("DEBUG: element to be converted: |$s|") if $debugp;
+        for @raw -> $S {
+            my $s := $S;
+            say("===DEBUG: element to be converted: |$s|") if $debugp;
 
-            # Convert the strings of numbers or True|False to int,
-            # bigint, num, or bool types.
-            if $s ~~ /^ <[+-]>? \d+ $/ {
-                my $n := nqp::chars($s);
-                # delete 1 char for leading +-
-                if $s ~~ / <[+-]> / { --$n }
-
-                # convert the int to a bigint if required
-                #   max val int (int32): +2_147_483_647 <= 10 digits
-                #   max val int (int64): +9_223_372_036_854_775_807 <= 19 digits
-                # we convert to bigint after 9 digits
-                # we convert to string after 18 digits
-                if $n > 18 {
-                    say("         too big for bigint, keeping as string: |$s|") if $debugp;
-                    @arr.push($s);
-                }
-                elsif $n > 9 {
-                    say("         converting to bigint: |$s|") if $debugp;
-                    my int64 $I := $s; # nqp::unbox_i($s);
-                    @arr.push($I);
-                }
-                else {
-                    say("         converting to int: |$s|") if $debugp;
-                    my int $i := $s;
-                    @arr.push($i);
-                }
+            # Convert the strings of numbers to int (or bigint) or num types.
+            #=== integers ====================================================================
+            if $s ~~ /^ <[+-]>? \d+ $/ ||
+               $s ~~ /^ <[+-]>? \d+ % '_' $/ {
+                # decint
+                say("       element type is Int (dec)") if $debugp;
+                my $val := decint($s);
+                @arr.push($val);
             }
+            #=== numbers ====================================================================
             elsif $s ~~ /^ <["']>? <[+-]>? \d+ '.' \d+ [ <[eE]>? <[+-]>? \d+ ]? <["']>? $/ ||
                   $s ~~ /^ <["']>? <[+-]>? \d+ <[eE]> <[+-]>? \d+ <["']>? $/ {
-                say("         converting to num: |$s|") if $debugp;
-                my num $n := $s;
-                @arr.push($n);
+                say("       element type is Num") if $debugp;
+                my num $i := $s;
+                my $val := $*W.add_constant('Num', 'num', $i).compile_time_value;
+                @arr.push($val);
             }
+            #=== strings ====================================================================
             else {
+                say("       element type is Str") if $debugp;
+                # leave as the default str
                 @arr.push($s);
             }
         }
@@ -210,7 +227,7 @@ class Perl6::Pod {
             }
 
             # The original algorithm uses s/// but we need to do the match first and
-            # then the substitution to delete the matched string from the current, 
+            # then the substitution to delete the matched string from the current,
             # remaining line.
             $line := subst($line, $regex, '');
             say("DEBUG pass $pass, postmatch:\n  \$line    = |$line|") if $debugp;
@@ -266,7 +283,7 @@ class Perl6::Pod {
             say("WARNING: Unexpected chars not matched.");
             @pieces.push($word);
             $word := '';
-        } 
+        }
 
         # Array elements should have no enclosing quotes, but they need
         # to be converted to the correct types for their content.
@@ -288,9 +305,11 @@ class Perl6::Pod {
             my @arr2 := nqp::list();
             for @arr -> $v {
                 my $val := $v;
-                if $val ~~ /^ True | False $/ {
-                    my $truth   := $val ~~ /True/ ?? 1 !! 0;
-                    $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+                if nqp::isstr($val) {
+                    if $val ~~ /^ True | False $/ {
+                        my $truth   := $val ~~ /True/ ?? 1 !! 0;
+                        $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+                    }
                 }
                 nqp::push(@arr2, $val);
             }
@@ -299,9 +318,11 @@ class Perl6::Pod {
         else {
             # convert a single-element list to a single value
             my $val := @arr[0];
-            if $val ~~ /^ True | False $/ {
-                my $truth   := $val ~~ /True/ ?? 1 !! 0;
-                $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+            if nqp::isstr($val) {
+                if $val ~~ /^ True | False $/ {
+                    my $truth   := $val ~~ /True/ ?? 1 !! 0;
+                    $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+                }
             }
             return $val;
         }

@@ -3245,10 +3245,10 @@ nqp::sethllconfig('perl6', nqp::hash(
             my @exceptions;
             unless nqp::isnull(@leaves) {
                 my int $n := nqp::elems(@leaves);
-                my int $i := 0;
+                my int $i := -1;
                 my int $run;
                 my $phaser;
-                while $i < $n {
+                while ++$i < $n {
                     $phaser := nqp::decont(nqp::atpos(@leaves, $i));
                     $run := 1;
                     unless nqp::isnull(@keeps) {
@@ -3280,15 +3280,14 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?endif
                         CATCH { nqp::push(@exceptions, $_) }
                     }
-                    ++$i;
                 }
             }
 
             my @posts := nqp::atkey(%phasers, 'POST');
             unless nqp::isnull(@posts) {
                 my int $n := nqp::elems(@posts);
-                my int $i := 0;
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
 #?if jvm
                     nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
 #?endif
@@ -3297,7 +3296,6 @@ nqp::sethllconfig('perl6', nqp::hash(
                         nqp::ifnull($resultish, Mu));
 #?endif
                     CATCH { nqp::push(@exceptions, $_); last; }
-                    ++$i;
                 }
             }
 

@@ -1758,26 +1758,35 @@ class Perl6::Optimizer {
     }
 
     method optimize_private_method_call($op) {
-        if $op[1].has_compile_time_value && $op[2].has_compile_time_value &&
-                nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
-            my str $name := $op[1][2].value; # get raw string name
-            my $pkg  := $op[2].returns;      # actions sets this unless in role
-            my $meth := $pkg.HOW.find_private_method($pkg, $name);
-            if nqp::defined($meth) && $meth {
-                unless nqp::isnull(nqp::getobjsc($meth)) {
-                    my $call := QAST::WVal.new( :value($meth) );
-                    my $inv  := $op.shift;
-                    $op.shift; $op.shift; # name, package (both pre-resolved now)
-                    $op.unshift($inv);
-                    $op.unshift($call);
-                    $op.op('call');
-                    $op.name(NQPMu);
+        my $name_node := $op[1];
+        if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
+            $name_node := $name_node[2];
+        }
+        my $pkg_node := $op[2];
+        if nqp::istype($name_node, QAST::SVal) && $pkg_node.has_compile_time_value {
+            my str $name := $name_node.value; # get raw string name
+            my $pkg := $pkg_node.returns;     # actions sets this unless in role
+            if nqp::can($pkg.HOW, 'find_private_method') {
+                my $meth := $pkg.HOW.find_private_method($pkg, $name);
+                if nqp::defined($meth) && $meth {
+                    if nqp::isnull(nqp::getobjsc($meth)) {
+                        try $*W.add_object($meth);
+                    }
+                    unless nqp::isnull(nqp::getobjsc($meth)) {
+                        my $call := QAST::WVal.new( :value($meth) );
+                        my $inv  := $op.shift;
+                        $op.shift; $op.shift; # name, package (both pre-resolved now)
+                        $op.unshift($inv);
+                        $op.unshift($call);
+                        $op.op('call');
+                        $op.name(NQPMu);
+                    }
                 }
-            }
-            else {
-                $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
-                    :private(nqp::p6bool(1)), :method($name),
-                    :typename($pkg.HOW.name($pkg)), :invocant($pkg));
+                else {
+                    $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
+                        :private(nqp::p6bool(1)), :method($name),
+                        :typename($pkg.HOW.name($pkg)), :invocant($pkg));
+                }
             }
         }
     }

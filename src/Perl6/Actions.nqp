@@ -5651,7 +5651,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $name := @parts.pop;
             wantall($past, 'methodop/longname');
             if +@parts {
-                $past.unshift($*W.symbol_lookup(@parts, $/));
+                my int $found_wval := 0;
+                try {
+                    my $sym := $*W.find_symbol(@parts);
+                    unless $sym.HOW.archetypes.generic {
+                        $past.unshift(QAST::WVal.new( :value($sym) ));
+                        $found_wval := 1;
+                    }
+                }
+                unless $found_wval {
+                    $past.unshift($*W.symbol_lookup(@parts, $/));
+                }
                 $past.unshift($*W.add_string_constant($name));
                 $past.name('dispatch:<::>');
                 make $past;

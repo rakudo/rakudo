@@ -8889,18 +8889,39 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Apply post-constraints (must come after variable bind, as constraints can
             # refer to the var).
             if %info<post_constraints> {
+                my $wInt := $*W.find_symbol: ['Int'], :setting-only;
+                my $wStr := $*W.find_symbol: ['Str'], :setting-only;
+                my $wNum := $*W.find_symbol: ['Num'], :setting-only;
+
                 for %info<post_constraints> {
-                    my $wval := QAST::WVal.new( :value($_) );
-                    $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                        :op('istrue'),
-                        QAST::Op.new(
-                            :op('callmethod'), :name('ACCEPTS'),
-                            nqp::istype($_, $*W.find_symbol(['Code'], :setting-only))
-                                ?? QAST::Op.new( :op('p6capturelex'),
-                                      QAST::Op.new( :op('callmethod'), :name('clone'), $wval ) )
-                                !! $wval,
-                            QAST::Var.new( :name($name), :scope('local') )
-                        ))));
+                    my $var-qast := QAST::Var.new: :$name, :scope<local>;
+                    my $wval     := QAST::WVal.new: :value($_);
+                    my $what     := nqp::what($_);
+                    $var.push: QAST::ParamTypeCheck.new:
+                        nqp::eqaddr($what, $wInt)
+                          ?? QAST::Op.new(:op<if>,
+                              QAST::Op.new(:op<isconcrete>, $var-qast),
+                              QAST::Op.new(:op<iseq_I>, $wval,
+                                QAST::Op.new: :op<decont>, $var-qast))
+                          !! nqp::eqaddr($what, $wNum)
+                            ?? QAST::Op.new(:op<if>,
+                                QAST::Op.new(:op<isconcrete>, $var-qast),
+                                QAST::Op.new(:op<unless>,
+                                  QAST::Op.new(:op<iseq_n>, $wval, $var-qast), # equal
+                                  QAST::Op.new(:op<if>, # or both are NaNs
+                                    QAST::Op.new(:op<isne_n>, $wval, $wval),
+                                    QAST::Op.new(:op<isne_n>, $var-qast, $var-qast))))
+                            !! nqp::eqaddr($what, $wStr)
+                              ?? QAST::Op.new(:op<if>,
+                                  QAST::Op.new(:op<isconcrete>, $var-qast),
+                                  QAST::Op.new(:op<iseq_s>, $wval, $var-qast))
+                              !! QAST::Op.new: :op<istrue>, QAST::Op.new: :op<callmethod>,
+                                  :name<ACCEPTS>,
+                                  nqp::istype($_, $*W.find_symbol: ['Code'], :setting-only)
+                                    ?? QAST::Op.new(:op<p6capturelex>,
+                                      QAST::Op.new: :op<callmethod>, :name<clone>, $wval)
+                                    !! $wval,
+                                  $var-qast
                 }
             }
 

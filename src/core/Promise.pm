@@ -31,13 +31,14 @@ my class Promise does Awaitable {
     has int $!vow_taken;
     has $!lock;
     has $!cond;
-    has @!thens;
+    has $!thens;
     has Mu $!dynamic_context;
 
     submethod BUILD(:$!scheduler = $*SCHEDULER --> Nil) {
         $!lock            := nqp::create(Lock);
         $!cond            := $!lock.condition();
         $!status           = Planned;
+        $!thens           := nqp::list();
     }
 
     # A Vow is used to enable the right to keep/break a promise
@@ -128,8 +129,8 @@ my class Promise does Awaitable {
     }
 
     method !schedule_thens(--> Nil) {
-        while @!thens {
-            $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
+        while nqp::elems($!thens) {
+            $!scheduler.cue(nqp::shift($!thens), :catch(nqp::shift($!thens)))
         }
     }
 
@@ -176,15 +177,15 @@ my class Promise does Awaitable {
             self.WHAT.start( { code(self) }, :$!scheduler);
         }
         else {
-            # Create a Promise, and push 2 entries to @!thens: something that
+            # Create a Promise, and push 2 entries to $!thens: something that
             # starts the then code, and something that handles its exceptions.
             # They will be sent to the scheduler when this promise is kept or
             # broken.
             my $then-p := self.new(:$!scheduler);
             nqp::bindattr($then-p, Promise, '$!dynamic_context', nqp::ctx());
             my $vow = $then-p.vow;
-            @!thens.push({ my $*PROMISE := $then-p; $vow.keep(code(self)) });
-            @!thens.push(-> $ex { $vow.break($ex) });
+            nqp::push($!thens, { my $*PROMISE := $then-p; $vow.keep(code(self)) });
+            nqp::push($!thens, -> $ex { $vow.break($ex) });
             nqp::unlock($!lock);
             $then-p
         }
@@ -223,10 +224,10 @@ my class Promise does Awaitable {
                     on-ready($!status == Kept, $!result)
                 }
                 else {
-                    # Push 2 entries to @!thens (only need the first one in
+                    # Push 2 entries to $!thens (only need the first one in
                     # this case; second we push 'cus .then uses it).
-                    @!thens.push({ on-ready($!status == Kept, $!result) });
-                    @!thens.push(Callable);
+                    nqp::push($!thens, { on-ready($!status == Kept, $!result) });
+                    nqp::push($!thens, Callable);
                     nqp::unlock($!lock);
                 }
             }

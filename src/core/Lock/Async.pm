@@ -67,7 +67,7 @@ my class Lock::Async {
             if $holder.DEFINITE {
                 my $p := Promise.new;
                 my $v := $p.vow;
-                my $holder-update = $holder.queue-vow($v);
+                my $holder-update := $holder.queue-vow($v);
                 if cas($!holder, $holder, $holder-update) =:= $holder {
                     return $p;
                 }
@@ -134,7 +134,7 @@ my class Lock::Async {
     # later on. Returns Nil if the code was run now (maybe after blocking), or
     # a Promise if it was queued for running later.
     method protect-or-queue-on-recursion(Lock::Async:D: &code) {
-        my $try-acquire = self.lock();
+        my $try-acquire := self.lock();
         if $try-acquire {
             # We could acquire the lock. Run the code right now.
             LEAVE self.unlock();

@@ -100,7 +100,7 @@ perl6-gdb-m
 perl6-valgrind-m
 *.rakudo.moar
 *.rakudo.jvm
-**/.precomp
+.precomp
 t/03-jvm/*.class
 /zef
 .DS_Store

@@ -1564,8 +1564,10 @@ class Perl6::Optimizer {
                         }
                     }
                     elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
-                        self.report_inevitable_dispatch_failure($op, @types, @flags, $obj,
-                            :protoguilt($ct_result_proto == -1));
+                        self.report_inevitable_dispatch_failure(
+                            $op, @types, @flags, $obj,
+                            :protoguilt($ct_result_proto == -1)
+                        ) unless $*NO-COMPILE-TIME-THROWAGE;
                     }
                 }
                 if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
@@ -1591,7 +1593,9 @@ class Perl6::Optimizer {
                         }
                     }
                     elsif $ct_result == -1 {
-                        self.report_inevitable_dispatch_failure($op, @types, @flags, $obj);
+                        self.report_inevitable_dispatch_failure(
+                            $op, @types, @flags, $obj
+                        ) unless $*NO-COMPILE-TIME-THROWAGE;
                     }
                 }
             }
@@ -1687,37 +1691,28 @@ class Perl6::Optimizer {
 
                             $op.push($assignee);
 
-                            my $call := 'call';
-                            my $obj;
-                            try {
-                                $obj := $!symbols.find_lexical($metaop[0].name);
-                            }
-                            if $obj {
-                                my $scopes := $!symbols.scopes_in($metaop[0].name);
-                                if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
-                                    $call := 'callstatic';
-                                }
-                            }
-
                             if ($is-always-definite) {
-                                $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
+                                $op.push(QAST::Op.new( :op<call>, :name($metaop[0].name),
                                     $assignee_var,
                                     $operand));
                             } else {
                                 # We end up with two calls of the op if var
                                 # is not definite. This is by design:
                                 # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
-                                $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
+                                $op.push(QAST::Op.new( :op<call>, :name($metaop[0].name),
                                     QAST::Op.new( :op('if'),
                                         QAST::Op.new( :op('p6definite'), $assignee_var),
                                         $assignee_var,
-                                        QAST::Op.new( :op($call), :name($metaop[0].name) ) ),
+                                        QAST::Op.new( :op<call>, :name($metaop[0].name) ) ),
                                     $operand));
                             }
 
                             if $assignop ne 'assign' && nqp::objprimspec($assignee.returns) {
                                 $op.returns($assignee.returns);
                             }
+
+                            my $*NO-COMPILE-TIME-THROWAGE := 1;
+                            return self.visit_op: $op;
                         }
                     }
                 } elsif $metaop.name eq '&METAOP_NEGATE' && $!symbols.is_from_core('&METAOP_NEGATE') {

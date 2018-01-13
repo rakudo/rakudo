@@ -2054,6 +2054,7 @@ class Perl6::Optimizer {
 
     # Visits all of a node's children, and dispatches appropriately.
     method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default) {
+        note("method visit_children $!void_context\n" ~ $node.dump) if $!debug;
         my int $r := $resultchild // -1;
         my int $i := 0;
         my int $n := +@($node);

@@ -1638,8 +1638,17 @@ class Perl6::Optimizer {
       # if we know we're directly calling the result, we can be smarter
       # about METAOPs
       if self.op_eq_core($metaop, '&METAOP_ASSIGN') {
-        if nqp::istype($metaop[0], QAST::Var) {
-          if (nqp::istype($op[1], QAST::Var) && (my int $is_var := 1))
+        if nqp::atkey(nqp::getenvhash(),'ZZ') {
+            nqp::say('ZZ1: ' ~ $op.dump);
+        };
+        if nqp::istype($metaop[0], QAST::Var) # lexical sub
+        || (nqp::istype($metaop[0], QAST::Op) # or a REVERSE metaop with lex sub
+          && self.op_eq_core($metaop[0], '&METAOP_REVERSE') # and nothing else
+          && nqp::istype($metaop[0][0], QAST::Var)
+          && nqp::elems($metaop[0]) == 1
+          && (my $is-reverse := 1)) {
+          if $is-reverse
+          || (nqp::istype($op[1], QAST::Var) && (my int $is_var := 1))
           # instead of $foo += 1 we may have $foo.bar += 1, which
           # we really want to unpack here as well. this second branch
           # of the if statement achieves this.
@@ -1669,11 +1678,13 @@ class Perl6::Optimizer {
                 return NQPMu;
               }
               $assignee := $assignee_var := $op[1];
-            } else {
+            }
+            else {
               $assignop := "assign";
-
-              # We want to be careful to only call $foo.bar once,
-              # so we bind to a local var and assign to that.
+              # We want to be careful to only call $foo.bar once, if that's what
+              # we have, so we bind to a local var and assign to that. The
+              # var is also needed when we're unpacking a REVERSE op, since
+              # we'd still need to assign into the variable on LHS w/o REVERSE
               my $lhs_ast := $op[1];
               my $target_name := QAST::Node.unique: 'METAOP_assign_';
               $assignee     :=
@@ -1695,7 +1706,20 @@ class Perl6::Optimizer {
             if $is-always-definite {
               $op.push: QAST::Op.new: :op<call>, :name($metaop[0].name),
                           $assignee_var, $operand;
-            } else {
+            }
+            elsif $is-reverse {
+              # We end up with two calls of the op if var is not definite.
+              # This is by design:
+              # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
+              $op.push:
+              QAST::Op.new: :op<call>, :name($metaop[0][0].name),
+                $operand,
+                QAST::Op.new(:op<if>,
+                  QAST::Op.new(:op<p6definite>, $assignee_var),
+                  $assignee_var,
+                  QAST::Op.new(:op<call>, :name($metaop[0][0].name)));
+            }
+            else {
               # We end up with two calls of the op if var is not definite.
               # This is by design:
               # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388

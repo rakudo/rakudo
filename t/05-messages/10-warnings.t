@@ -67,6 +67,7 @@ is-run ｢
     print postcircumfix:<[ ]>(<foo bar ber>, 1)
 ｣, :out<bar>, 'no spurious warnings when invoking colonpaired routine';
 
+# RT #131251
 is-run ｢my $a; $a [R~]= "b"; $a [Z~]= "b"; $a [X~]= "b"｣,
     'metaops + metaassign op do not produce spurious warnings';
 

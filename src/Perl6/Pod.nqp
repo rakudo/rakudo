@@ -160,6 +160,14 @@ class Perl6::Pod {
                 my $val := $*W.add_constant('Num', 'num', $i).compile_time_value;
                 @arr.push($val);
             }
+            #=== booleans ===================================================================
+            elsif $s ~~ /^ True | False $/ {
+                # consolidate all True/False boolean handling here
+                say("       element type is boolean") if $debugp;
+                my $truth := $s ~~ /True/ ?? 1 !! 0;
+                my $val   := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+                @arr.push($val);
+            }
             #=== strings ====================================================================
             else {
                 say("       element type is Str") if $debugp;
@@ -301,29 +309,11 @@ class Perl6::Pod {
         my @arr := string2array($st);
 
         if nqp::elems(@arr) > 1 {
-            # build the array object anew to handle bools
-            my @arr2 := nqp::list();
-            for @arr -> $v {
-                my $val := $v;
-                if nqp::isstr($val) {
-                    if $val ~~ /^ True | False $/ {
-                        my $truth   := $val ~~ /True/ ?? 1 !! 0;
-                        $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
-                    }
-                }
-                nqp::push(@arr2, $val);
-            }
-            return serialize_object('Array', |@arr2).compile_time_value;
+            return serialize_object('Array', |@arr).compile_time_value;
         }
         else {
             # convert a single-element list to a single value
             my $val := @arr[0];
-            if nqp::isstr($val) {
-                if $val ~~ /^ True | False $/ {
-                    my $truth   := $val ~~ /True/ ?? 1 !! 0;
-                    $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
-                }
-            }
             return $val;
         }
     }
@@ -343,13 +333,6 @@ class Perl6::Pod {
             my str $key := $k;
             my $val     := $v;
             say("DEBUG hash: '$key' => '$val'") if $debugp;
-
-            # special handling for a boolean
-            if $val ~~ /^ True | False $/ {
-                my $truth   := $val ~~ /True/ ?? 1 !! 0;
-                $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
-            }
-
             @pairs.push(
                 serialize_object(
                     'Pair', :key($key), :value($val)

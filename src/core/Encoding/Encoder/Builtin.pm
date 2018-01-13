@@ -34,12 +34,7 @@ my class Encoding::Encoder::Builtin::Replacement does Encoding::Encoder {
     }
 
     method encode-chars(str $str --> Blob:D) {
-#?if moar
         nqp::encoderep($str, $!encoding, $!replacement, nqp::create($!type))
-#?endif
-#?if !moar
-        X::NYI.new(feature => 'encoding with replacement').throw
-#?endif
     }
 }
 

@@ -2367,14 +2367,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<sink>($/) {
-        make QAST::Stmts.new(
-            QAST::Op.new(
-                :op('callmethod'), :name('sink'),
-                QAST::Op.new( :op('call'), $<blorst>.ast )
-            ),
-            QAST::Var.new( :name('Nil'), :scope('lexical')),
-            :node($/)
-        );
+        my $qast :=
+        QAST::Stmts.new: :node($/),
+          QAST::Op.new(:op<callmethod>, :name<sink>,
+            QAST::Op.new(:op<call>, $<blorst>.ast)),
+          QAST::Var.new: :name<Nil>, :scope<lexical>;
+
+        # if user is trying to sink a variable, don't complain about uselessness
+        my $block-stmts := $<blorst>.ast.ann('past_block')[1];
+        $block-stmts[0] := WANTED($block-stmts[0], 'statement_prefix/sink')
+          if nqp::istype($block-stmts[0], QAST::Var);
+
+        make $qast;
     }
 
     method statement_prefix:sym<try>($/) {

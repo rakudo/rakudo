@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 7;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -75,5 +75,8 @@ is-run ｢my $a; $a [R~]= "b"; $a [Z~]= "b"; $a [X~]= "b"｣,
 # RT # 131123
 is-run ｢my $ = ^2 .grep: {try 1 after 0}; my $ = {try 5 == 5}()｣,
     'no spurious warnings with `try` thunks in blocks';
+
+is-run ｢my @a; sink @a; my $b := gather { print 'meow' }; sink $b｣,
+    :out<meow>, 'no warnings when sinking variables';
 
 # vim: ft=perl6 expandtab sw=4

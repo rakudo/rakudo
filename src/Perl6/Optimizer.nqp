@@ -1878,10 +1878,17 @@ class Perl6::Optimizer {
                          ~ ~$want[2].value
                          ~ qq[ in sink context];
             }
-            elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
-                $warning := qq[Useless use of constant floating-point number ]
-                         ~ ~$want[2].value
-                         ~ qq[ in sink context];
+            elsif $want[1] eq 'Nn' {
+                if nqp::istype($want[2], QAST::NVal) {
+                  $warning := qq[Useless use of constant floating-point number ]
+                    ~ $want[2].value ~ qq[ in sink context];
+                }
+                elsif nqp::istype($want[2], QAST::Op)
+                &&  ($want[2].op eq 'inf' || $want[2].op eq 'nan'
+                  || $want[2].op eq 'neginf') {
+                  $warning := qq[Useless use of constant floating-point number ]
+                    ~ $want[2].node ~ qq[ in sink context];
+                }
             }
             if $warning {
                 $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;

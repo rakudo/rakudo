@@ -2,10 +2,6 @@ class Perl6::Pod {
 
     # various helpers for Pod parsing and processing
 
-    # hardware int checks (from Actions.nqp):
-    my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
-    my $max-dec-intchars := $?BITS == 64 ?? 16 !! 9;
-
     my $caption := ''; # var to save table caption values between
                        # subs make_config and table
 

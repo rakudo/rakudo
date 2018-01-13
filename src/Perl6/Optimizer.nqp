@@ -1630,106 +1630,110 @@ class Perl6::Optimizer {
 
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
     method optimize_nameless_call($op) {
-        if +@($op) > 0 {
-            # if we know we're directly calling the result, we can be smarter
-            # about METAOPs
-            my int $is_var := 0;
-            if nqp::istype((my $metaop := $op[0]), QAST::Op) && ($metaop.op eq 'call' || $metaop.op eq 'callstatic') {
-                if $metaop.name eq '&METAOP_ASSIGN' && $!symbols.is_from_core('&METAOP_ASSIGN') {
-                    if nqp::istype($metaop[0], QAST::Var) {
-                        if (nqp::istype($op[1], QAST::Var) && ($is_var := 1))
-                            # instead of $foo += 1 we may have $foo.bar += 1, which we really want to
-                            # unpack here as well. this second branch of the if statement achieves this.
-                            || (nqp::istype($op[1], QAST::Op)
-                                && ($op[1].op eq 'callmethod'
-                                    || ($op[1].op eq 'hllize'
-                                        && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'callmethod')
-                                    || $op[1].op eq 'call' || $op[1].op eq 'callstatic')) {
-                            my str $assignop;
-                            my $assignee;
-                            my $assignee_var;
-                            my int $is-always-definite;
-                            if $is_var {
-                                my str $sigil := nqp::substr($op[1].name, 0, 1);
+      return NQPMu
+        unless nqp::elems($op)
+        && nqp::istype((my $metaop := $op[0]), QAST::Op)
+        && ($metaop.op eq 'call' || $metaop.op eq 'callstatic');
 
-                                if nqp::objprimspec($op[1].returns) -> $spec {
-                                    $assignop := @native_assign_ops[$spec];
-                                    $is-always-definite := 1;
-                                } elsif $sigil eq '$' {
-                                    $assignop := 'assign';
-                                } else {
-                                    # TODO support @ and % sigils
-                                    # TODO check what else we need to "copy" from assign_op in Actions
-                                    return NQPMu;
-                                }
+      # if we know we're directly calling the result, we can be smarter
+      # about METAOPs
+      if self.op_eq_core($metaop, '&METAOP_ASSIGN') {
+        if nqp::istype($metaop[0], QAST::Var) {
+          if (nqp::istype($op[1], QAST::Var) && (my int $is_var := 1))
+          # instead of $foo += 1 we may have $foo.bar += 1, which
+          # we really want to unpack here as well. this second branch
+          # of the if statement achieves this.
+          || (nqp::istype($op[1], QAST::Op)
+            && ($op[1].op eq 'callmethod'
+              || ($op[1].op eq 'hllize' && nqp::istype($op[1][0], QAST::Op)
+                && $op[1][0].op eq 'callmethod')
+              || $op[1].op eq 'call' || $op[1].op eq 'callstatic')
+          ) {
+            my str $assignop;
+            my $assignee;
+            my $assignee_var;
+            my int $is-always-definite;
 
-                                $assignee := $assignee_var := $op[1];
-                            } else {
-                                $assignop := "assign";
+            if $is_var {
+              my str $sigil := nqp::substr($op[1].name, 0, 1);
+              if nqp::objprimspec($op[1].returns) -> $spec {
+                $assignop := @native_assign_ops[$spec];
+                $is-always-definite := 1;
+              }
+              elsif $sigil eq '$' {
+                $assignop := 'assign';
+              }
+              else {
+                # TODO support @ and % sigils and check what else we need
+                # to "copy" from assign_op in Actions
+                return NQPMu;
+              }
+              $assignee := $assignee_var := $op[1];
+            } else {
+              $assignop := "assign";
 
-                                # We want to be careful to only call $foo.bar once,
-                                # so we bind to a local var and assign to that.
-                                my $lhs_ast := $op[1];
-                                my $target_name := QAST::Node.unique('METAOP_assign_');
-                                $assignee := QAST::Op.new( :op('bind'),
-                                    QAST::Var.new(:name($target_name), :scope('local'), :decl('var')),
-                                    $lhs_ast);
-                                $assignee_var := QAST::Var.new(:name($target_name), :scope('local'));
-
-                            }
-
-                            # since the optimizer will only ever walk the first
-                            # branch of a Want node, we have to make sure to change
-                            # the node in place, since it's most likely shared with
-                            # the other branch.
-                            $op.op($assignop);
-                            my $operand := $op[2];
-
-                            $op.pop;
-                            $op.pop;
-                            $op.pop;
-
-                            $op.push($assignee);
-
-                            if ($is-always-definite) {
-                                $op.push(QAST::Op.new( :op<call>, :name($metaop[0].name),
-                                    $assignee_var,
-                                    $operand));
-                            } else {
-                                # We end up with two calls of the op if var
-                                # is not definite. This is by design:
-                                # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
-                                $op.push(QAST::Op.new( :op<call>, :name($metaop[0].name),
-                                    QAST::Op.new( :op('if'),
-                                        QAST::Op.new( :op('p6definite'), $assignee_var),
-                                        $assignee_var,
-                                        QAST::Op.new( :op<call>, :name($metaop[0].name) ) ),
-                                    $operand));
-                            }
-
-                            if $assignop ne 'assign' && nqp::objprimspec($assignee.returns) {
-                                $op.returns($assignee.returns);
-                            }
-
-                            my $*NO-COMPILE-TIME-THROWAGE := 1;
-                            return self.visit_op: $op;
-                        }
-                    }
-                } elsif $metaop.name eq '&METAOP_NEGATE' && $!symbols.is_from_core('&METAOP_NEGATE') {
-                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
-                    return QAST::Op.new( :op('call'), :name('&prefix:<!>'),
-                            QAST::Op.new( :op('call'), :name($metaop[0].name),
-                                $op[1],
-                                $op[2]) );
-                } elsif $metaop.name eq '&METAOP_REVERSE' && $!symbols.is_from_core('&METAOP_REVERSE') {
-                    return NQPMu unless nqp::istype($metaop[0], QAST::Var) && +@($op) == 3;
-                    return QAST::Op.new( :op('call'), :name($metaop[0].name),
-                                $op[2],
-                                $op[1]);
-                }
+              # We want to be careful to only call $foo.bar once,
+              # so we bind to a local var and assign to that.
+              my $lhs_ast := $op[1];
+              my $target_name := QAST::Node.unique: 'METAOP_assign_';
+              $assignee     :=
+              QAST::Op.new: :op<bind>,
+                QAST::Var.new(:name($target_name), :scope<local>, :decl<var>),
+                $lhs_ast;
+              $assignee_var :=
+              QAST::Var.new: :name($target_name),:scope<local>;
             }
+
+            # since the optimizer will only ever walk the first branch of a Want
+            # node, we have to make sure to change the node in place, since it's
+            # most likely shared with the other branch.
+            $op.op: $assignop;
+            my $operand := $op[2];
+            $op.pop; $op.pop; $op.pop;
+            $op.push: $assignee;
+
+            if $is-always-definite {
+              $op.push: QAST::Op.new: :op<call>, :name($metaop[0].name),
+                          $assignee_var, $operand;
+            } else {
+              # We end up with two calls of the op if var is not definite.
+              # This is by design:
+              # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
+              $op.push:
+              QAST::Op.new: :op<call>, :name($metaop[0].name),
+                QAST::Op.new(:op<if>,
+                  QAST::Op.new(:op<p6definite>, $assignee_var),
+                  $assignee_var,
+                  QAST::Op.new(:op<call>, :name($metaop[0].name))),
+                $operand;
+            }
+
+            $op.returns: $assignee.returns
+                if $assignop ne 'assign'
+                && nqp::objprimspec($assignee.returns);
+
+            my $*NO-COMPILE-TIME-THROWAGE := 1;
+            return self.visit_op: $op;
+          }
         }
-        NQPMu;
+      }
+      elsif self.op_eq_core($metaop, '&METAOP_NEGATE') {
+        return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+        return QAST::Op.new: :op<call>, :name('&prefix:<!>'),
+                QAST::Op.new: :op<call>, :name($metaop[0].name),
+                    $op[1], $op[2];
+      }
+      elsif self.op_eq_core($metaop, '&METAOP_REVERSE') {
+        return NQPMu unless nqp::istype($metaop[0], QAST::Var)
+          && nqp::elems($op) == 3;
+        return QAST::Op.new: :op<call>, :name($metaop[0].name),
+                $op[2], $op[1];
+      }
+      NQPMu
+    }
+
+    method op_eq_core($op, $name) {
+        $op.name eq $name && $!symbols.is_from_core: $name
     }
 
     method optimize_private_method_call($op) {

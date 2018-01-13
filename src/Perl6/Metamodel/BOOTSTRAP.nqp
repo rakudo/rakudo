@@ -3306,7 +3306,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                 my int $i := -1;
                 while ++$i < $n {
 #?if jvm
-                    nqp::atpos(@posts, $i)($value));
+                    nqp::atpos(@posts, $i)($value);
 #?endif
 #?if moar
                     nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);

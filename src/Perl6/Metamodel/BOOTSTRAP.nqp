@@ -3236,23 +3236,16 @@ nqp::sethllconfig('perl6', nqp::hash(
         $result
     },
     'exit_handler', -> $coderef, $resultish {
-        my %phasers :=
-          nqp::getattr(nqp::getcodeobj($coderef),Block,'$!phasers');
         unless nqp::p6inpre() {
+            my %phasers :=
+              nqp::getattr(nqp::getcodeobj($coderef),Block,'$!phasers');
             my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
             my @posts  := nqp::atkey(%phasers, 'POST');
             my @exceptions;
             unless nqp::isnull(@leaves) {
-                my @keeps  := nqp::atkey(%phasers, 'KEEP');
-                my @undos  := nqp::atkey(%phasers, 'UNDO');
-                my int $n := nqp::elems(@leaves);
 
                 # only have a single LEAVEish phaser, so no frills needed
-                if nqp::isnull(@keeps)
-                  && nqp::isnull(@undos)
-                  && nqp::isnull(@posts)
-                  && $n == 1
-                {
+                if nqp::elems(@leaves) == 1 && nqp::elems(%phasers) == 1 {
 #?if jvm
                     nqp::decont(nqp::atpos(@leaves,0))();
 #?endif
@@ -3265,6 +3258,9 @@ nqp::sethllconfig('perl6', nqp::hash(
 
                 # slow path here
                 else {
+                    my @keeps  := nqp::atkey(%phasers, 'KEEP');
+                    my @undos  := nqp::atkey(%phasers, 'UNDO');
+                    my int $n := nqp::elems(@leaves);
                     my int $i := -1;
                     my int $run;
                     my $phaser;

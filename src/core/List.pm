@@ -426,15 +426,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           Failure.new(X::Cannot::Lazy.new(:action('.sum'))),
           nqp::if(
             $!reified.DEFINITE && (my int $elems = self.elems),      # reifies
-            nqp::stmts(
-              (my $list := $!reified),
-              (my $sum = nqp::ifnull(nqp::atpos($list,0),0)),
-              (my int $i),
-              nqp::while(
-                nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                ($sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0))
+            nqp::if(
+              nqp::isgt_i($elems,2),
+              nqp::stmts(
+                (my $list := $!reified),
+                (my $sum = nqp::ifnull(nqp::atpos($list,0),0)),
+                (my int $i),
+                nqp::while(
+                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                  ($sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0))
+                ),
+                $sum
               ),
-              $sum
+              nqp::ifnull(nqp::atpos($!reified,0),0)
+                + nqp::ifnull(nqp::atpos($!reified,1),0)
             ),
             0
           )

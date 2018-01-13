@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 5;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -70,10 +70,5 @@ is-run ｢
 # RT #131251
 is-run ｢my $a; $a [R~]= "b"; $a [Z~]= "b"; $a [X~]= "b"｣,
     'metaops + metaassign op do not produce spurious warnings';
-
-# RT # 131331
-# RT # 131123
-is-run ｢my $ = ^2 .grep: {try 1 after 0}; my $ = {try 5 == 5}()｣,
-    'no spurious warnings with `try` thunks in blocks';
 
 # vim: ft=perl6 expandtab sw=4

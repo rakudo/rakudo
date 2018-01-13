@@ -1638,9 +1638,6 @@ class Perl6::Optimizer {
       # if we know we're directly calling the result, we can be smarter
       # about METAOPs
       if self.op_eq_core($metaop, '&METAOP_ASSIGN') {
-        if nqp::atkey(nqp::getenvhash(),'ZZ') {
-            nqp::say('ZZ1: ' ~ $op.dump);
-        };
         if nqp::istype($metaop[0], QAST::Var) # lexical sub
         || (nqp::istype($metaop[0], QAST::Op) # or a REVERSE metaop with lex sub
           && self.op_eq_core($metaop[0], '&METAOP_REVERSE') # and nothing else

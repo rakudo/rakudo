@@ -111,23 +111,6 @@ class Perl6::Pod {
         ).compile_time_value
     }
 
-    sub decint($s) {
-        # code copied from Actions.nqp and locally modified
-        my int $base := 10;
-        my int $chars := nqp::chars($s);
-        $chars > $max-dec-intchars
-          ?? string_to_bigint($s, $base, $chars)
-          !! string_to_int($s, $base, $chars);
-    }
-
-    sub string_to_int($src, int $base, int $chars) {
-        # code copied from Actions.nqp and locally modified
-        my $res := nqp::radix($base, ~$src, 0, 2);
-        $src.panic("'$src' is not a valid number")
-            unless nqp::iseq_i(nqp::atpos($res, 2), $chars);
-        nqp::box_i(nqp::atpos($res, 0), $*W.find_symbol(['Int']));
-    }
-
     sub string_to_bigint($src, int $base, int $chars) {
         # code copied from Actions.nqp and locally modified
         my $res := nqp::radix_I($base, ~$src, 0, 2, $*W.find_symbol(['Int']));
@@ -149,7 +132,8 @@ class Perl6::Pod {
                $s ~~ /^ <[+-]>? \d+ % '_' $/ {
                 # decint
                 say("       element type is Int (dec)") if $debugp;
-                my $val := decint($s);
+                my int $base := 10;
+                my $val := string_to_bigint($s, $base, nqp::chars($s));
                 @arr.push($val);
             }
             #=== numbers ====================================================================

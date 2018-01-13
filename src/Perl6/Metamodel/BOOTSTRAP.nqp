@@ -3238,7 +3238,7 @@ nqp::sethllconfig('perl6', nqp::hash(
     'exit_handler', -> $coderef, $resultish {
         my %phasers :=
           nqp::getattr(nqp::getcodeobj($coderef),Block,'$!phasers');
-        unless nqp::isnull(%phasers) || nqp::p6inpre() {
+        unless nqp::p6inpre() {
             my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
             my @posts  := nqp::atkey(%phasers, 'POST');
             my @exceptions;

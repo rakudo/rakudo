@@ -3755,8 +3755,17 @@ class Perl6::World is HLL::World {
     }
 
     # Applies a list of traits, by calling the apply method on each.
+    my %is-traits-to-warn-on-duplicate := nqp::hash(
+        'tighter',  1,  'looser', 1,  'equiv', 1,  'rw',   1,  'default', 1,
+        'readonly', 1,  'raw',    1,  'assoc', 1,  'pure', 1,  'export',  1
+    );
     method apply_traits($traits, $declarand) {
+        my %seen;
         for $traits {
+            my $name := ~$_<trait_mod><longname>;
+            %is-traits-to-warn-on-duplicate{$name}
+                && %seen{$name}++ && $_.worry: "Duplicate 'is $name' trait";
+
             my $ast := $_.ast;
             $ast.apply($declarand) if $ast;
         }

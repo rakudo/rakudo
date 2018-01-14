@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 35;
+plan 36;
 
 # RT #132295
 
@@ -279,8 +279,14 @@ throws-like { EVAL "use 6.0;" }, X::Undeclared::Symbols,
     :message{ .contains: 'use "v" prefix for pragma (e.g., "use v6;", "use v6.c;")' },
     'suggests to use "use v6;" or "use v6.c;" when "use 6.0" is called';
 
+# RT132214
+
 throws-like { EVAL "need 6.0;" }, X::Undeclared::Symbols,
-    :message{ .contains: 'use "v" prefix for pragma (e.g., "need v6;", "need v6.c;")' },
-    'suggests to use "need v6;" or "need v6.c;" when "need 6.0" is called';
+    :message{ .contains: 'use "v" prefix and "use" for pragma (e.g., "use v6;", "use v6.c;")' },
+    'suggests to use "use v6;" or "use v6.c;" when "need 6.0" is called';
+
+throws-like { EVAL "need v6.0;" }, Exception,
+    :message{ .contains: 'In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").' },
+    'suggests to use "use v6;" or "use v6.c;" when "need 6.0" is called';
 
 # vim: ft=perl6 expandtab sw=4

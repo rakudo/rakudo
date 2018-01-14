@@ -311,7 +311,7 @@ my class IO::Socket::Async {
     }
 
     method print-to(IO::Socket::Async:D: Str() $host, Int() $port, Str() $str, :$scheduler = $*SCHEDULER) {
-        self.write-to($host, $port, $!encoder.encode-chars($str))
+        self.write-to($host, $port, $!encoder.encode-chars($str), :$scheduler)
     }
 
     method write-to(IO::Socket::Async:D: Str() $host, Int() $port, Blob $b, :$scheduler = $*SCHEDULER) {

@@ -191,7 +191,7 @@ multi sub trait_mod:<is>(Routine $r, :&tighter!) {
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
         trait_mod:<is>($r, :prec(&tighter.prec))
     }
-    $r.prec<prec> := $r.prec<prec>.subst(/\=/, '@=');
+    $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', '@=');
     $r.prec<assoc>:delete;
 }
 multi sub trait_mod:<is>(Routine $r, :&looser!) {
@@ -200,7 +200,7 @@ multi sub trait_mod:<is>(Routine $r, :&looser!) {
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
         trait_mod:<is>($r, :prec(&looser.prec))
     }
-    $r.prec<prec> := $r.prec<prec>.subst(/\=/, ':=');
+    $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', ':=');
     $r.prec<assoc>:delete;
 }
 multi sub trait_mod:<is>(Routine $r, :$assoc!) {

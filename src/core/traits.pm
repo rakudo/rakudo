@@ -155,9 +155,13 @@ multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
 multi sub trait_mod:<is>(Routine:D $r, :$onlystar!) {
     $r.set_onlystar();
 }
-multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
+multi sub trait_mod:<is>(Routine:D \r-trait-from, :prec(%spec)!) {
+    my \r-trait-mix-into := r-trait-from.multi
+        ?? r-trait-from.dispatcher !! r-trait-from;
+
     my role Precedence {
         has %!prec;
+        has $!precedence-traits-from; # track if we mix from multiple routines
         proto method prec(|) {*}
         multi method prec() is raw { %!prec }
         multi method prec(Str:D $key) {
@@ -167,14 +171,30 @@ multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
             )
         }
     }
-    if nqp::istype($r, Precedence) {
-        for %spec {
-            $r.prec.{.key} := .value;
+    if nqp::istype(r-trait-mix-into, Precedence) {
+        my $from;
+        for r-trait-mix-into.^attributes {
+            nqp::iseq_s(.name, '$!precedence-traits-from')
+            && ($from := .^get_value: r-trait-mix-into)
         }
+        nqp::eqaddr(nqp::decont(r-trait-from), from)
+        || warn "Saw traits modifying precedence or associativy applied on\n"
+            ~ "multiple declarations of multi routines. Precedence affects\n"
+            ~ "only the proto. Please move all traits to the proto or, if\n"
+            ~ "using an implied proto, to the first multi that uses them.";
+            # XXX TODO: somehow suggest to the user where to move the traits
+            # to (file/line). Note that .file/.line methods on our Routines
+            # don't give right thing here, because they're are still stubs from
+            # the World and .file/.line reference that stub
+        r-trait-mix-into.prec.{.key} := .value for %spec;
     }
     else {
-        $r.^mixin(Precedence);
-        nqp::bindattr(nqp::decont($r), $r.WHAT, '%!prec', %spec);
+        r-trait-mix-into.^mixin(Precedence);
+        nqp::bindattr(nqp::decont(r-trait-mix-into),
+          r-trait-mix-into.WHAT, '%!prec', %spec);
+        nqp::bindattr(nqp::decont(r-trait-mix-into),
+          r-trait-mix-into.WHAT, '$!traits-from',
+            nqp::decont(r-trait-mix-into));
     }
     0;
 }
@@ -188,6 +208,7 @@ multi sub trait_mod:<is>(Routine $r, :&equiv!) {
 multi sub trait_mod:<is>(Routine $r, :&tighter!) {
     die "Routine given to tighter does not appear to be an operator"
         unless nqp::can(&tighter, 'prec');
+
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
         trait_mod:<is>($r, :prec(&tighter.prec))
     }

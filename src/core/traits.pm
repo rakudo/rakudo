@@ -155,7 +155,8 @@ multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
 multi sub trait_mod:<is>(Routine:D $r, :$onlystar!) {
     $r.set_onlystar();
 }
-multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
+multi sub trait_mod:<is>(Routine:D \r, :prec(%spec)!) {
+    my $r := r.multi ?? r.dispatcher !! r;
     my role Precedence {
         has %!prec;
         proto method prec(|) {*}
@@ -174,36 +175,40 @@ multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     }
     else {
         $r.^mixin(Precedence);
-        nqp::bindattr(nqp::decont($r), $r.WHAT, '%!prec', %spec);
+        nqp::bindattr(nqp::decont($r), $r.WHAT, '%!prec', %spec.clone);
     }
     0;
 }
 # three other trait_mod sub for equiv/tighter/looser in operators.pm
-multi sub trait_mod:<is>(Routine $r, :&equiv!) {
-    nqp::can(&equiv, 'prec')
-        ?? trait_mod:<is>($r, :prec(&equiv.prec))
-        !! die "Routine given to equiv does not appear to be an operator";
+multi sub trait_mod:<is>(Routine \r, :&equiv!) {
+    die "Routine given to equiv does not appear to be an operator"
+      unless nqp::can(&equiv, 'prec');
+    my $r := r.multi ?? r.dispatcher !! r;
+    trait_mod:<is>($r, :prec(&equiv.prec));
     $r.prec<assoc>:delete;
 }
-multi sub trait_mod:<is>(Routine $r, :&tighter!) {
+multi sub trait_mod:<is>(Routine \r, :&tighter!) {
     die "Routine given to tighter does not appear to be an operator"
         unless nqp::can(&tighter, 'prec');
+    my $r := r.multi ?? r.dispatcher !! r;
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
         trait_mod:<is>($r, :prec(&tighter.prec))
     }
-    $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', '@=');
+    $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: /<[@:]>?\=/, '@=');
     $r.prec<assoc>:delete;
 }
-multi sub trait_mod:<is>(Routine $r, :&looser!) {
+multi sub trait_mod:<is>(Routine \r, :&looser!) {
     die "Routine given to looser does not appear to be an operator"
         unless nqp::can(&looser, 'prec');
+    my $r := r.multi ?? r.dispatcher !! r;
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
         trait_mod:<is>($r, :prec(&looser.prec))
     }
-    $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', ':=');
+    $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: /<[@:]>?\=/, ':=');
     $r.prec<assoc>:delete;
 }
-multi sub trait_mod:<is>(Routine $r, :$assoc!) {
+multi sub trait_mod:<is>(Routine \r, :$assoc!) {
+    my $r := r.multi ?? r.dispatcher !! r;
     trait_mod:<is>($r, :prec({ :$assoc }))
 }
 

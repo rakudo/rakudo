@@ -1574,9 +1574,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<need> {
         <sym>
         [
-        | <version>
+        | <version> <.sorry('In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").')>
         | <module_name>
-        ] +% ','
+        ]+ % ','
         {
             for $<module_name> {
                 my $lnd  := $*W.dissect_longname($_<longname>);

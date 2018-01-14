@@ -31,7 +31,7 @@ some releases to ensure any compatibility issues are resolved.
   2018-11-17   Rakudo #129
   2018-12-15   Rakudo #130
 
-(More planned dates can be generated with F<tools/release-dates.pl>).
+(More planned dates can be generated with F<tools/release-dates.p6>).
 
 =head2 Steps to create a release (for release managers)
 

@@ -1050,7 +1050,7 @@ my class X::Undeclared::Symbols does X::Comp {
                 new => "method call syntax",
                 foreach => "for",
                 use => '"v" prefix for pragma (e.g., "use v6;", "use v6.c;")',
-                need => '"v" prefix for pragma (e.g., "need v6;", "need v6.c;")',
+                need => '"v" prefix and "use" for pragma (e.g., "use v6;", "use v6.c;")',
             }
             $r ~= "Undeclared routine" ~ (%.unk_routines.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.unk_routines.sort(*.key) {

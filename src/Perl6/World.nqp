@@ -3764,7 +3764,8 @@ class Perl6::World is HLL::World {
         for $traits {
             my $name := ~$_<trait_mod><longname>;
             %is-traits-to-warn-on-duplicate{$name}
-                && %seen{$name}++ && $_.worry: "Duplicate 'is $name' trait";
+                && %seen{$name}++
+                && $_.PRECURSOR.worry: "Duplicate 'is $name' trait";
 
             my $ast := $_.ast;
             $ast.apply($declarand) if $ast;

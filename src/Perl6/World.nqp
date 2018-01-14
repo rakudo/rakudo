@@ -3736,7 +3736,7 @@ class Perl6::World is HLL::World {
             CATCH { $ex := $_; }
             CONTROL {
                 if nqp::getextype($_) == nqp::const::CONTROL_WARN {
-                    $/.worry(nqp::getmessage($_));
+                    $/.PRECURSOR.worry(nqp::getmessage($_));
                     nqp::resume($_);
                 }
                 nqp::rethrow($_);

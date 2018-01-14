@@ -2795,6 +2795,7 @@ class Rakudo::Iterator {
             has $!cycle;
             has $!buffer;
             has int $!complete;
+            has int $!is-exhausted = 0;
             method !SET-SELF(\iterator,\cycle,\partial) {
                 nqp::stmts(
                   ($!iterator := iterator),
@@ -2812,6 +2813,9 @@ class Rakudo::Iterator {
                 )
             }
             method pull-one() is raw {
+              nqp::if(
+                $!is-exhausted,
+                IterationEnd,
                 nqp::stmts(
                   nqp::if(
                     nqp::istype((my $todo := $!cycle.pull-one),Pair),
@@ -2896,6 +2900,7 @@ class Rakudo::Iterator {
                   nqp::if(
                     nqp::not_i(nqp::elems($!buffer))
                       || (nqp::eqaddr($pulled,IterationEnd)
+                           && ($!is-exhausted = 1)
                            && $!complete
                            && nqp::islt_i(nqp::elems($!buffer),$elems)
                          ),
@@ -2946,6 +2951,7 @@ class Rakudo::Iterator {
                     )
                   )
                 )
+              )
             }
             method is-lazy() { $!iterator.is-lazy }
         }.new(iterator,cycle,partial)

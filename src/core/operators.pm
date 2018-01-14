@@ -9,7 +9,11 @@ sub infix:<=>(Mu \a, Mu \b) is raw {
 
 my class X::Does::TypeObject is Exception {
     has Mu $.type;
-    method message() { "Cannot use 'does' operator with a type object." }
+    has %.nameds;
+    method message() {
+        "Cannot use 'does' operator on a type object {$!type.^name}."
+          ~ ("\nAdditional named parameters: {%!nameds.perl}." if %!nameds)
+    }
 }
 
 proto sub infix:<does>(|) {*}
@@ -28,8 +32,8 @@ multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is raw) is raw {
     my \mixedin = obj.^mixin($role, :need-mixin-attribute);
     mixedin.BUILD_LEAST_DERIVED({ substr(mixedin.^mixin_attribute.Str,2) => $value });
 }
-multi sub infix:<does>(Mu:U \obj, Mu:U \role) is raw {
-    X::Does::TypeObject.new(type => obj).throw
+multi sub infix:<does>(Mu:U \obj, Mu:U \role, *%_) is raw {
+    X::Does::TypeObject.new(type => obj, nameds => %_).throw
 }
 multi sub infix:<does>(Mu:D \obj, **@roles) is raw {
     # XXX Mutability check.

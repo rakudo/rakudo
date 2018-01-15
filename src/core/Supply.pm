@@ -5,8 +5,12 @@ my class Tap {
 
     submethod BUILD(:&!on-close --> Nil) { }
 
-    method new(&on-close = Callable) {
-        self.bless(:&on-close)
+    submethod new(&on-close = Callable) {
+        nqp::create(self)!SET-SELF(&on-close)
+    }
+    method !SET-SELF(&on-close) {
+        &!on-close := &on-close;
+        self
     }
 
     method close() {
@@ -64,9 +68,15 @@ my class Supply does Awaitable {
         X::Supply::New.new.throw
     }
     multi method new(Tappable $tappable) {
-        self.bless(:$tappable);
+        self.WHAT =:= Supply
+            ?? nqp::create(self)!SET-SELF($tappable)
+            !! self.bless(:$tappable)
     }
-    submethod BUILD(:$!tappable! --> Nil) { }
+    submethod BUILD(Tappable :$!tappable! --> Nil) { }
+    method !SET-SELF(Tappable $tappable) {
+        $!tappable := $tappable;
+        self
+    }
 
     method Capture(Supply:D:) { self.List.Capture }
 

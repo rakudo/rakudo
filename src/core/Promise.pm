@@ -120,7 +120,7 @@ my class Promise does Awaitable {
 
     method !break(\result --> Nil) {
         $!lock.protect({
-            $!result = nqp::istype(result, Exception)
+            $!result := nqp::istype(result, Exception)
                 ?? result
                 !! X::AdHoc.new(payload => result);
             $!status := Broken;
@@ -184,7 +184,7 @@ my class Promise does Awaitable {
             # broken.
             my $then-p := self.new(:$!scheduler);
             nqp::bindattr($then-p, Promise, '$!dynamic_context', nqp::ctx());
-            my $vow = $then-p.vow;
+            my $vow := $then-p.vow;
             nqp::push($!thens, { my $*PROMISE := $then-p; $vow.keep(code(self)) });
             nqp::push($!thens, -> $ex { $vow.break($ex) });
             nqp::unlock($!lock);
@@ -238,7 +238,7 @@ my class Promise does Awaitable {
     method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER, |c) {
         my $p := self.new(:$scheduler);
         nqp::bindattr($p, Promise, '$!dynamic_context', nqp::ctx());
-        my $vow = $p.vow;
+        my $vow := $p.vow;
         $scheduler.cue(
             { my $*PROMISE := $p; $vow.keep(code(|c)) },
             :catch(-> $ex { catch($ex) if &catch; $vow.break($ex); }) );
@@ -246,8 +246,8 @@ my class Promise does Awaitable {
     }
 
     method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
-        my $p   = self.new(:$scheduler);
-        my $vow = $p.vow;
+        my $p   := self.new(:$scheduler);
+        my $vow := $p.vow;
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));
         $p
     }
@@ -259,7 +259,7 @@ my class Promise does Awaitable {
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
     method !until_n_kept(@promises, Int:D $N, Str $combinator) {
-        my $p = self.new;
+        my $p := self.new;
         unless @promises {
             $p.keep;
             return $p
@@ -271,7 +271,7 @@ my class Promise does Awaitable {
         my int $n  = $N;
         my int $c  = $n;
         my $lock  := nqp::create(Lock);
-        my $vow    = $p.vow;
+        my $vow   := $p.vow;
         for @promises -> $cand {
             $cand.then({
                 if $lock.protect({ $c = $c - 1 }) == 0 {

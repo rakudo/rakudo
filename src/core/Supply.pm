@@ -1969,7 +1969,7 @@ augment class Rakudo::Internals {
             $t
         }
 
-        method !run-supply-code(&code, \value, $state, &add-whenever) {
+        method !run-supply-code(&code, \value, SupplyBlockState $state, &add-whenever) {
             my @run-after;
             my $queued := $state.run-async-lock.protect-or-queue-on-recursion: {
                 my &*ADD-WHENEVER := &add-whenever;
@@ -2002,12 +2002,12 @@ augment class Rakudo::Internals {
             }
         }
 
-        method !deactivate-one($state) {
+        method !deactivate-one(SupplyBlockState $state) {
             $state.run-async-lock.protect-or-queue-on-recursion:
                 { self!deactivate-one-internal($state) };
         }
 
-        method !deactivate-one-internal($state) {
+        method !deactivate-one-internal(SupplyBlockState $state) {
             if $state.decrement-active() == 0 {
                 my $done-handler := $state.done;
                 $done-handler() if $done-handler;
@@ -2084,10 +2084,10 @@ augment class Rakudo::Internals {
             # We only expcet one whenever; detect getting a second and complain.
             my $*WHENEVER-SUPPLY-TO-ADD := Nil;
             my &*WHENEVER-BLOCK-TO-ADD := Nil;
-            sub add-whenever($supply, &whenever-block) {
+            sub add-whenever(\the-supply, \the-whenever-block) {
                 if $*WHENEVER-SUPPLY-TO-ADD =:= Nil {
-                    $*WHENEVER-SUPPLY-TO-ADD := $supply;
-                    &*WHENEVER-BLOCK-TO-ADD := &whenever-block;
+                    $*WHENEVER-SUPPLY-TO-ADD := the-supply;
+                    &*WHENEVER-BLOCK-TO-ADD := the-whenever-block;
                 }
                 else {
                     die "Single whenever block special case tried to add second whenever";
@@ -2162,7 +2162,7 @@ augment class Rakudo::Internals {
             $t
         }
 
-        method !run-supply-code(&code, \value, $state, &add-whenever) {
+        method !run-supply-code(&code, \value, SupplyOneWheneverState $state, &add-whenever) {
             my &*ADD-WHENEVER := &add-whenever;
             {
                 $state.active > 0 and nqp::handle(code(value),
@@ -2173,7 +2173,7 @@ augment class Rakudo::Internals {
             }(); # XXX Workaround for optimizer bug
         }
 
-        method !deactivate($state) {
+        method !deactivate(SupplyOneWheneverState $state) {
             my $done-handler := $state.done;
             $done-handler() if $done-handler;
             $state.teardown();

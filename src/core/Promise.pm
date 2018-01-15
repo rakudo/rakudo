@@ -34,6 +34,12 @@ my class Promise does Awaitable {
     has $!thens;
     has Mu $!dynamic_context;
 
+    submethod new(:$scheduler = $*SCHEDULER) {
+        my \p = nqp::create(self);
+        p.BUILD(:$scheduler);
+        p
+    }
+
     submethod BUILD(:$scheduler = $*SCHEDULER --> Nil) {
         $!scheduler       := $scheduler;
         $!lock            := nqp::create(Lock);

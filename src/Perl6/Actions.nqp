@@ -10,14 +10,13 @@ my $wantwant := Mu;
 my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
 sub block_closure($code) {
-    my $closure := QAST::Op.new(
+    QAST::Op.new( :op('p6capturelex'),
+      QAST::Op.new(
         :op('callmethod'), :name('clone'),
-        $code
-    );
-    $closure := QAST::Op.new( :op('p6capturelex'), $closure);
-    $closure.annotate('past_block', $code.ann('past_block'));
-    $closure.annotate('code_object', $code.ann('code_object'));
-    $closure
+        $code)
+    ).annotate_self(
+      'past_block', $code.ann('past_block')
+    ).annotate_self('code_object', $code.ann('code_object'))
 }
 
 sub wantall($ast, $by) {
@@ -1008,7 +1007,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $unit.blocktype('declaration_static');
 
         # Wrap everything in a QAST::CompUnit.
-        my $compunit := QAST::CompUnit.new(
+        make QAST::CompUnit.new(
             :hll('perl6'),
 
             # Serialization related bits.
@@ -1034,13 +1033,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Finally, the outer block, which in turn contains all of the
             # other program elements.
             $outer
-        );
-
-        # Pass some extra bits along to the optimizer.
-        $compunit.annotate('UNIT', $unit);
-        $compunit.annotate('GLOBALish', $*GLOBALish);
-        $compunit.annotate('W', $*W);
-        make $compunit;
+        ).annotate_self( # Pass some extra bits along to the optimizer.
+            'UNIT', $unit
+        ).annotate_self('GLOBALish', $*GLOBALish).annotate_self('W', $*W)
     }
 
     method install_doc_phaser($/) {
@@ -1620,9 +1615,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.attach_signature($*DECLARAND, $signature);
             $*W.finish_code_object($*DECLARAND, $block);
             $*W.add_phasers_handling_code($*DECLARAND, $block);
-            my $ref := reference_to_code_object($*DECLARAND, $block);
-            $ref.annotate('uninstall_if_immediately_used', $uninst);
-            make $ref;
+            make reference_to_code_object($*DECLARAND, $block).annotate_self(
+                'uninstall_if_immediately_used', $uninst
+            )
         }
     }
 
@@ -1742,8 +1737,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method newpad($/) {
-        my $new_block := $*W.cur_lexpad();
-        $new_block.annotate('IN_DECL', $*IN_DECL);
+        $*W.cur_lexpad().annotate_self('IN_DECL', $*IN_DECL);
     }
 
     method finishpad($/) {
@@ -3841,9 +3835,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.add_proto_to_sort($code);
         }
 
-        my $closure := block_closure(reference_to_code_object($code, $block));
-        $closure.annotate('sink_ast', QAST::Op.new( :op('null') ));
-        make $closure;
+        make block_closure(
+            reference_to_code_object($code, $block)
+        ).annotate_self('sink_ast', QAST::Op.new( :op('null') ));
     }
 
     method autogenerate_proto($/, $name, $install_in) {
@@ -4170,9 +4164,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.add_proto_to_sort($code);
         }
 
-        my $closure := block_closure(reference_to_code_object($code, $past));
-        $closure.annotate('sink_ast', QAST::Op.new( :op('null') ));
-        make $closure;
+        make block_closure(
+            reference_to_code_object($code, $past)
+        ).annotate_self('sink_ast', QAST::Op.new( :op('null') ))
     }
 
     method macro_def($/) {
@@ -4252,9 +4246,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.apply_traits($<trait>, $code);
         $*W.add_phasers_handling_code($code, $block);
 
-        my $closure := block_closure(reference_to_code_object($code, $block));
-        $closure.annotate('sink_ast', QAST::Op.new( :op('null') ));
-        make $closure;
+        make block_closure(
+            reference_to_code_object($code, $block)
+        ).annotate_self('sink_ast', QAST::Op.new( :op('null') ))
     }
 
     sub methodize_block($/, $code, $past, $signature, %sig_info, :$yada) {
@@ -4480,9 +4474,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Return closure if not in sink context.
-        my $closure := block_closure($coderef);
-        $closure.annotate('sink_ast', QAST::Op.new( :op('null') ));
-        make $closure;
+        make block_closure($coderef).annotate_self(
+            'sink_ast', QAST::Op.new( :op('null') ))
     }
 
     sub regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto, :$use_outer_match) {
@@ -4766,9 +4759,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*PRECEDING_DECL := $type_obj;
 
         # We evaluate to the enums values, if we need to.
-        my $ast := QAST::Op.new( :op('call'), :name('&ENUM_VALUES'), $term_ast );
-        $ast.annotate('sink_ast', QAST::Op.new( :op('null') ));
-        make $ast;
+        make QAST::Op.new(
+            :op('call'), :name('&ENUM_VALUES'), $term_ast
+        ).annotate_self('sink_ast', QAST::Op.new( :op('null') ))
     }
 
     method type_declarator:sym<subset>($/) {
@@ -9104,10 +9097,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub reference_to_code_object($code_obj, $past_block) {
-        my $ref := QAST::WVal.new( :value($code_obj) );
-        $ref.annotate('past_block', $past_block);
-        $ref.annotate('code_object', $code_obj);
-        $ref
+        QAST::WVal.new(
+            :value($code_obj)
+        ).annotate_self(
+            'past_block', $past_block
+        ).annotate_self('code_object', $code_obj)
     }
 
     our sub make_thunk_ref($to_thunk, $/) {

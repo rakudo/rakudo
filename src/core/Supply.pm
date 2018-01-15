@@ -2211,8 +2211,8 @@ sub WHENEVER(Supply() $supply, &block) {
 }
 
 sub REACT(&block) {
-    my $s = SUPPLY(&block);
-    my $p = Promise.new;
+    my $s := SUPPLY(&block);
+    my $p := Promise.new;
     $s.tap(
         { warn "Useless use of emit in react" },
         done => { $p.keep(Nil) },
@@ -2229,8 +2229,8 @@ sub SUPPLY-ONE-WHENEVER(&block) {
 }
 
 sub REACT-ONE-WHENEVER(&block) {
-    my $s = SUPPLY-ONE-WHENEVER(&block);
-    my $p = Promise.new;
+    my $s := SUPPLY-ONE-WHENEVER(&block);
+    my $p := Promise.new;
     $s.tap(
         { warn "Useless use of emit in react" },
         done => { $p.keep(Nil) },

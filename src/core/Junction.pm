@@ -2,6 +2,8 @@ my class Junction { # declared in BOOTSTRAP
     # class Junction is Mu
     #     has Mu $!storage;              # elements of Junction
     #     has str $!type;                # type of Junction
+    # Both of these are also accessed directly inside optimizer when
+    # optimizing param typechecks with where clauses
 
     method !SET-SELF(\type,\values) {
         nqp::stmts(

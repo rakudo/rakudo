@@ -2142,8 +2142,10 @@ class Perl6::Optimizer {
                         self.poison_var_lowering();
                     }
                 }
-                elsif nqp::istype($visit, QAST::ParamTypeCheck) ||
-                      nqp::istype($visit, QAST::SVal) ||
+                elsif nqp::istype($visit, QAST::ParamTypeCheck) {
+                  self.optimize-param-typecheck: $visit;
+                }
+                elsif nqp::istype($visit, QAST::SVal) ||
                       nqp::istype($visit, QAST::IVal) ||
                       nqp::istype($visit, QAST::NVal) ||
                       nqp::istype($visit, QAST::VM)
@@ -2157,6 +2159,50 @@ class Perl6::Optimizer {
             $!in_declaration := $outer_decl;
         }
         $node;
+    }
+
+    # See if we can simplify QAST::ParamTypeCheck
+    method optimize-param-typecheck($node) {
+        # We're looking for a structure like this:
+        # - QAST::ParamTypeCheck  :code-post-constraint<?>
+        #   - QAST::Op(istrue)
+        #     - QAST::Op(callmethod ACCEPTS)
+        #       - QAST::Op(p6capturelex)
+        #         - QAST::Op(callmethod clone)
+        #           - QAST::WVal(Block)
+        #       - QAST::Var(local __lowered_param__16753)
+
+        return NQPMu unless $node.has_ann('code-post-constraint');
+        my $wv-block   := $node[0][0][0][0][0];
+        my $param-var  := $node[0][0][1];
+        my $qast-block := nqp::getattr($wv-block.value,
+            $!symbols.find_symbol(['Code']), '@!compstuff')[0];
+
+        # do we have an "any" Junction we can inline?
+        if nqp::istype($qast-block[1], QAST::Op)
+        && $qast-block[1].op eq 'callmethod' && $qast-block[1].name eq 'ACCEPTS'
+        && @($qast-block[1]) == 2
+        && nqp::istype($qast-block[1][0], QAST::WVal)
+        && nqp::istype((my $j := $qast-block[1][0].value),
+            (my $symJunction := $!symbols.find_symbol: ['Junction']))
+        && nqp::getattr($j, $symJunction, '$!type') eq 'any'
+        {
+            my @types := nqp::getattr($j, $symJunction, '$!storage');
+            return NQPMu if nqp::isconcrete($_) for @types;
+
+            my $op := my $qast := QAST::Stmts.new;
+            for @types {
+                $op.push: my $new-op := QAST::Op.new: :op<unless>,
+                    QAST::Op.new: :op<istype>, $param-var,
+                      QAST::WVal.new: :value($_);
+                $op := $new-op;
+            }
+            # rewrite last `unless` into `istype` in the second branch of
+            # parent `unless` (or just the top node, if we only got one WVal)
+            $op.op: 'istype'; $op.push: $op[0][1]; $op[0] := $op[0][0];
+            $qast := $qast[0]; # toss Stmts, we no longer need 'em;
+            $node[0] := $qast;
+        }
     }
 
     # Inlines an immediate block.

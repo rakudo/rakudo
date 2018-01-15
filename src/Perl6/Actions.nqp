@@ -8903,7 +8903,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $var-qast := QAST::Var.new: :$name, :scope<local>;
                     my $wval     := QAST::WVal.new: :value($_);
                     my $what     := nqp::what($_);
-                    $var.push: QAST::ParamTypeCheck.new:
+                    my $isCode   := nqp::istype($_,
+                        $*W.find_symbol: ['Code'], :setting-only);
+                    my $param    := QAST::ParamTypeCheck.new(
                         nqp::eqaddr($what, $wInt)
                           ?? QAST::Op.new(:op<if>,
                               QAST::Op.new(:op<isconcrete>, $var-qast),
@@ -8923,11 +8925,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                   QAST::Op.new(:op<iseq_s>, $wval, $var-qast))
                               !! QAST::Op.new: :op<istrue>, QAST::Op.new: :op<callmethod>,
                                   :name<ACCEPTS>,
-                                  nqp::istype($_, $*W.find_symbol: ['Code'], :setting-only)
+                                  $isCode
                                     ?? QAST::Op.new(:op<p6capturelex>,
                                       QAST::Op.new: :op<callmethod>, :name<clone>, $wval)
                                     !! $wval,
+
                                   $var-qast
+                    );
+                    $param.annotate: 'code-post-constraint', 1 if $isCode;
+                    $var.push: $param;
                 }
             }
 

@@ -2272,14 +2272,47 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
+        elsif single_top_level_whenever($block) {
+            $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            make QAST::Op.new( :op('call'), :name('&SUPPLY-ONE-WHENEVER'), $past );
+            return 1;
+        }
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past );
     }
 
+    sub single_top_level_whenever($block) {
+        if $*WHENEVER_COUNT == 1 {
+            my $stmts := $block[1];
+            if nqp::istype($stmts, QAST::Stmts) {
+                my @stmts := $stmts.list;
+                my $last := @stmts[nqp::elems(@stmts) - 1];
+                if nqp::istype($last, QAST::Stmt) {
+                    return 0 if nqp::elems($last.list) != 1;
+                    $last := $last[0];
+                }
+                if nqp::istype($last, QAST::Want) {
+                    $last := $last[0];
+                }
+                if nqp::istype($last, QAST::Op) && $last.op eq 'call' && $last.name eq '&WHENEVER' {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+
     method statement_prefix:sym<react>($/) {
         my $past := $<blorst>.ast;
-        $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
-        make QAST::Op.new( :op('call'), :name('&REACT'), $past );
+        my $block := $past.ann('past_block');
+        if single_top_level_whenever($block) {
+            $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            make QAST::Op.new( :op('call'), :name('&REACT-ONE-WHENEVER'), $past );
+        }
+        else {
+            $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            make QAST::Op.new( :op('call'), :name('&REACT'), $past );
+        }
     }
 
     method statement_prefix:sym<once>($/) {

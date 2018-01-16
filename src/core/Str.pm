@@ -2908,7 +2908,7 @@ multi sub infix:<eq>(Str:D \a, Str:D \b --> Bool:D) {
 }
 multi sub infix:<eq>(str $a, str $b --> Bool:D) {
 #?if !js
-    nqp::p6bool(nqp::iseq_snfg($a, $b))
+    nqp::p6bool(nqp::iseq_s($a, $b))
 #?endif
 #?if js
     nqp::p6bool(nqp::iseq_snfg($a, $b))

@@ -4223,7 +4223,9 @@ class Perl6::World is HLL::World {
         elsif $<colonpairs> && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>) {
             my $val := $<longname><colonpair>[0].ast[2];
             nqp::istype($val, QAST::Op)
-              ?? $val.op eq 'p6bool'
+              # XXX TODO: the circumfix:<[ ]> path is a misparse of parameterization,
+              # e.g. List:D[Int]. When parse is fixed, the circumfix branch likely can be removed
+              ?? $val.op eq 'p6bool' || $val.op eq 'call' && $val.name eq '&circumfix:<[ ]>'
                 ?? nqp::null # not a coercer, but just got a regular DefiniteHOW
                 !! $val.name eq '&infix:<,>' && @($val) == 0
                   ?? self.find_symbol: ['Any'], :setting-only # empty coercer source type

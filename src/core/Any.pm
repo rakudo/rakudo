@@ -605,9 +605,11 @@ sub dd(|) {
             my $var  := nqp::shift($args);
             my $name := try $var.VAR.?name;
             my $type := $var.WHAT.^name;
-            my $what := (try $var.?is-lazy)
+            my $what := nqp::can($var, 'is-lazy') && $var.is-lazy
               ?? $var[^10].perl.chop ~ "... lazy list)"
-              !! (try $var.perl) // "(low-level $var.^name())";
+              !! nqp::can($var, 'perl')
+                ?? $var.perl
+                !! "($var.^name() without .perl method)";
             note $name ?? "$type $name = $what" !! $what;
         }
     }

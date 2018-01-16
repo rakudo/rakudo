@@ -550,7 +550,8 @@ class Rakudo::Iterator {
             }
             method new(\it,\si,\pa) { nqp::create(self)!SET-SELF(it,si,pa) }
             method pull-one() is raw {
-              nqp::if($!is-exhausted,
+              nqp::if(
+                $!is-exhausted,
                 IterationEnd,
                 nqp::stmts(
                   (my $reified := nqp::create(IterationBuffer)),
@@ -2795,7 +2796,7 @@ class Rakudo::Iterator {
             has $!cycle;
             has $!buffer;
             has int $!complete;
-            has int $!is-exhausted = 0;
+            has int $!is-exhausted;
             method !SET-SELF(\iterator,\cycle,\partial) {
                 nqp::stmts(
                   ($!iterator := iterator),

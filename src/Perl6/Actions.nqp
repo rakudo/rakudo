@@ -1950,9 +1950,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement_control:sym<need>($/) {
         my $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
-        for $<version> {
-            # XXX TODO: Version checks.
-        }
         make $past;
     }
 

@@ -417,7 +417,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       let rw = desc === Null ? 0 : desc.$$getattr_i(ContainerDescriptor, '$!rw');
 
       if (!rw) {
-        if (desc === Null) {
+        if (desc !== Null) {
           let name = desc.$$getattr_s(ContainerDescriptor, '$!name');
           ctx.die("Cannot assign to a readonly variable (" + name + ") or a value");
         } else {

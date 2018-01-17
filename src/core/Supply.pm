@@ -2174,9 +2174,11 @@ augment class Rakudo::Internals {
         }
 
         method !deactivate(SupplyOneWheneverState $state) {
-            my $done-handler := $state.done;
-            $done-handler() if $done-handler;
-            $state.teardown();
+            if $state.active {
+                my $done-handler := $state.done;
+                $done-handler() if $done-handler;
+                $state.teardown();
+            }
         }
 
         method live(--> False) { }

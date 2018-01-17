@@ -2116,9 +2116,9 @@ augment class Rakudo::Internals {
                 # only one, and we know from compile-time analysis it is the last
                 # thing in the block, then it's safe to do it now the block is
                 # completed and without any concurrency control. However, we do
-                # call .serialize just in case, to ensure that we have a serial
-                # Supply. That is enough.
-                my $supply := $*WHENEVER-SUPPLY-TO-ADD.serialize;
+                # call .sanitize just in case, to ensure that we have a serial and
+                # protocol-following Supply. That is enough.
+                my $supply := $*WHENEVER-SUPPLY-TO-ADD.sanitize;
                 my &whenever-block := &*WHENEVER-BLOCK-TO-ADD;
                 my $tap;
                 $supply.tap(

@@ -2059,16 +2059,20 @@ augment class Rakudo::Internals {
         }
 
         method run-done(--> Nil) {
-            self.teardown();
-            my $done-handler := &!done;
-            $done-handler() if $done-handler.DEFINITE;
+            if $!active {
+                self.teardown();
+                my $done-handler := &!done;
+                $done-handler() if $done-handler.DEFINITE;
+            }
         }
 
         method run-catch(--> Nil) {
-            my \ex = EXCEPTION(nqp::exception());
-            self.teardown();
-            my $quit-handler = &!quit;
-            $quit-handler(ex) if $quit-handler;
+            if $!active {
+                my \ex = EXCEPTION(nqp::exception());
+                self.teardown();
+                my $quit-handler = &!quit;
+                $quit-handler(ex) if $quit-handler;
+            }
         }
     }
 
@@ -2137,7 +2141,7 @@ augment class Rakudo::Internals {
                                 &add-whenever)
                         }
                         $tap.close;
-                        self!deactivate($state);
+                        $state.run-done();
                     },
                     quit => -> \ex {
                         my $handled := False;
@@ -2153,7 +2157,7 @@ augment class Rakudo::Internals {
                         }, Nil, $state, &add-whenever);
                         if $handled {
                             $tap.close;
-                            self!deactivate($state);
+                            $state.run-done();
                         }
                     });
             }
@@ -2171,14 +2175,6 @@ augment class Rakudo::Internals {
                     'CATCH', $state.run-catch(),
                     'NEXT', 0);
             }(); # XXX Workaround for optimizer bug
-        }
-
-        method !deactivate(SupplyOneWheneverState $state) {
-            if $state.active {
-                my $done-handler := $state.done;
-                $done-handler() if $done-handler;
-                $state.teardown();
-            }
         }
 
         method live(--> False) { }

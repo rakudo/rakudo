@@ -40,7 +40,6 @@ src/core/Real.pm
 src/core/Int.pm
 src/core/Bool.pm
 src/core/Order.pm
-src/core/UInt64.pm
 src/core/Num.pm
 src/core/Buf.pm
 src/core/Uni.pm

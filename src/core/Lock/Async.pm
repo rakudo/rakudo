@@ -67,7 +67,7 @@ my class Lock::Async {
             if $holder.DEFINITE {
                 my $p := Promise.new;
                 my $v := $p.vow;
-                my $holder-update = $holder.queue-vow($v);
+                my $holder-update := $holder.queue-vow($v);
                 if cas($!holder, $holder, $holder-update) =:= $holder {
                     return $p;
                 }
@@ -134,26 +134,21 @@ my class Lock::Async {
     # later on. Returns Nil if the code was run now (maybe after blocking), or
     # a Promise if it was queued for running later.
     method protect-or-queue-on-recursion(Lock::Async:D: &code) {
-        my $try-acquire = self.lock();
+        my $try-acquire := self.lock();
         if $try-acquire {
             # We could acquire the lock. Run the code right now.
-            LEAVE self.unlock();
             self!run-with-updated-recursion-list(&code);
             Nil
         }
         elsif self!on-recursion-list() {
             # Lock is already held on the stack, so we're recursing. Queue.
             $try-acquire.then({
-                LEAVE self.unlock();
                 self!run-with-updated-recursion-list(&code);
             });
         }
         else {
             # Lock is held but by something else. Await it's availability.
-            my int $acquired = 0;
             $*AWAITER.await($try-acquire);
-            $acquired = 1;
-            LEAVE self.unlock() if $acquired;
             self!run-with-updated-recursion-list(&code);
             Nil
         }
@@ -161,46 +156,46 @@ my class Lock::Async {
 
     method !on-recursion-list() {
         my $rec-list := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
-        if nqp::isnull($rec-list) {
-            False
+        nqp::isnull($rec-list) ?? False !! self!search-recursion-list($rec-list)
+    }
+
+    method !search-recursion-list(IterationBuffer \rec-list) {
+        my int $n = nqp::elems(rec-list);
+        loop (my int $i = 0; $i < $n; ++$i) {
+            return True if nqp::eqaddr(nqp::atpos(rec-list, $i), self);
         }
-        else {
-            my int $n = nqp::elems($rec-list);
-            loop (my int $i = 0; $i < $n; ++$i) {
-                return True if nqp::eqaddr(nqp::atpos($rec-list, $i), self);
-            }
-            False
-        }
+        False
     }
 
     method !run-with-updated-recursion-list(&code) {
+        LEAVE self.unlock();
         my $current := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
-        my $new-held := nqp::isnull($current) ?? nqp::list() !! nqp::clone($current);
+        my $new-held := nqp::isnull($current)
+            ?? nqp::create(IterationBuffer)
+            !! nqp::clone($current);
         nqp::push($new-held, self);
-        {
-            my $*LOCK-ASYNC-RECURSION-LIST := $new-held;
-            code();
-        }
+        self!run-under-recursion-list($new-held, &code);
     }
 
     method with-lock-hidden-from-recursion-check(&code) {
         my $current := nqp::getlexdyn('$*LOCK-ASYNC-RECURSION-LIST');
-        my $new-held;
-        if nqp::isnull($current) {
-            $new-held := nqp::null();
+        nqp::isnull($current)
+            ?? code()
+            !! self!hidden-in-recursion-list($current, &code)
+    }
+
+    method !hidden-in-recursion-list(IterationBuffer \current, &code) {
+        my $new-held := nqp::create(IterationBuffer);
+        my int $n = nqp::elems(current);
+        loop (my int $i = 0; $i < $n; ++$i) {
+            my $lock := nqp::atpos(current, $i);
+            nqp::push($new-held, $lock) unless nqp::eqaddr($lock, self);
         }
-        else {
-            $new-held := nqp::list();
-            my int $n = nqp::elems($current);
-            loop (my int $i = 0; $i < $n; ++$i) {
-                my $lock := nqp::atpos($current, $i);
-                nqp::push($new-held, $lock) unless nqp::eqaddr($lock, self);
-            }
-        }
-        {
-            my $*LOCK-ASYNC-RECURSION-LIST := $new-held;
-            code();
-        }
+        self!run-under-recursion-list($new-held, &code);
+    }
+
+    method !run-under-recursion-list(IterationBuffer $*LOCK-ASYNC-RECURSION-LIST, &code) {
+        code()
     }
 }
 

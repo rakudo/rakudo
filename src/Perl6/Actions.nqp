@@ -2245,15 +2245,68 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<supply>($/) {
+        # Case-analyze what's inside of the Supply, to spot cases that can be
+        # turned into something cheap rather than needing the whole supply
+        # concurrency control mechanism.
         my $past := $<blorst>.ast;
+        my $block := $past.ann('past_block');
+        if $*WHENEVER_COUNT == 0 {
+            my $stmts := $block[1];
+            if nqp::istype($stmts, QAST::Stmts) && nqp::elems($stmts) == 1 {
+                my $stmt := $stmts[0];
+                $stmt := $stmt[0] if nqp::istype($stmt, QAST::Want);
+                if nqp::istype($stmt, QAST::Op) && $stmt.op eq 'call' && $stmt.name eq '&emit'
+                    && nqp::elems($stmt.list) == 1 {
+                    # Single statement emit; make block just return the expression
+                    # (or die) and pass it to something that'll cheaply do a one
+                    # shot emit.
+                    $stmts[0] := $stmt[0];
+                    make QAST::Op.new( :op('call'), :name('&SUPPLY-ONE-EMIT'), $past );
+                    return 1;
+                }
+            }
+        }
+        elsif single_top_level_whenever($block) {
+            $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            make QAST::Op.new( :op('call'), :name('&SUPPLY-ONE-WHENEVER'), $past );
+            return 1;
+        }
         $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         make QAST::Op.new( :op('call'), :name('&SUPPLY'), $past );
     }
 
+    sub single_top_level_whenever($block) {
+        if $*WHENEVER_COUNT == 1 {
+            my $stmts := $block[1];
+            if nqp::istype($stmts, QAST::Stmts) {
+                my @stmts := $stmts.list;
+                my $last := @stmts[nqp::elems(@stmts) - 1];
+                if nqp::istype($last, QAST::Stmt) {
+                    return 0 if nqp::elems($last.list) != 1;
+                    $last := $last[0];
+                }
+                if nqp::istype($last, QAST::Want) {
+                    $last := $last[0];
+                }
+                if nqp::istype($last, QAST::Op) && $last.op eq 'call' && $last.name eq '&WHENEVER' {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+
     method statement_prefix:sym<react>($/) {
         my $past := $<blorst>.ast;
-        $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
-        make QAST::Op.new( :op('call'), :name('&REACT'), $past );
+        my $block := $past.ann('past_block');
+        if single_top_level_whenever($block) {
+            $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            make QAST::Op.new( :op('call'), :name('&REACT-ONE-WHENEVER'), $past );
+        }
+        else {
+            $past.ann('past_block').push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            make QAST::Op.new( :op('call'), :name('&REACT'), $past );
+        }
     }
 
     method statement_prefix:sym<once>($/) {
@@ -5624,7 +5677,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $name := @parts.pop;
             wantall($past, 'methodop/longname');
             if +@parts {
-                $past.unshift($*W.symbol_lookup(@parts, $/));
+                my int $found_wval := 0;
+                try {
+                    my $sym := $*W.find_symbol(@parts);
+                    unless $sym.HOW.archetypes.generic {
+                        $past.unshift(QAST::WVal.new( :value($sym) ));
+                        $found_wval := 1;
+                    }
+                }
+                unless $found_wval {
+                    $past.unshift($*W.symbol_lookup(@parts, $/));
+                }
                 $past.unshift($*W.add_string_constant($name));
                 $past.name('dispatch:<::>');
                 make $past;

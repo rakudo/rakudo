@@ -2881,7 +2881,13 @@ my class X::Seq::NotIndexable is Exception {
 
 my class X::WheneverOutOfScope is Exception {
     method message() {
-        "Cannot have a 'whenever' block outside the scope of a 'supply' block"
+        "Cannot have a 'whenever' block outside the scope of a 'supply' or 'react' block"
+    }
+}
+
+my class X::Comp::WheneverOutOfScope does X::Comp {
+    method message() {
+        "Cannot have a 'whenever' block outside the scope of a 'supply' or 'react' block"
     }
 }
 

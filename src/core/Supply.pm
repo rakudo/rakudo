@@ -5,14 +5,19 @@ my class Tap {
 
     submethod BUILD(:&!on-close --> Nil) { }
 
-    method new(&on-close) {
-        self.bless(:&on-close)
+    submethod new(&on-close = Callable) {
+        nqp::create(self)!SET-SELF(&on-close)
+    }
+    method !SET-SELF(&on-close) {
+        &!on-close := &on-close;
+        self
     }
 
     method close() {
-        if &!on-close {
-            my \close-result = &!on-close();
-            await close-result if nqp::istype(close-result, Promise);
+        my &closer := &!on-close;
+        my \close-result = &closer ?? closer() !! Nil;
+        if nqp::istype(close-result, Promise) {
+            await close-result;
         }
         True
     }
@@ -64,9 +69,15 @@ my class Supply does Awaitable {
         X::Supply::New.new.throw
     }
     multi method new(Tappable $tappable) {
-        self.bless(:$tappable);
+        self.WHAT =:= Supply
+            ?? nqp::create(self)!SET-SELF($tappable)
+            !! self.bless(:$tappable)
     }
-    submethod BUILD(:$!tappable! --> Nil) { }
+    submethod BUILD(Tappable :$!tappable! --> Nil) { }
+    method !SET-SELF(Tappable $tappable) {
+        $!tappable := $tappable;
+        self
+    }
 
     method Capture(Supply:D:) { self.List.Capture }
 
@@ -1802,7 +1813,10 @@ augment class Rakudo::Internals {
             self.CREATE!SET-SELF(&emit, &done, &quit)
         }
 
-        method !SET-SELF(&!emit, &!done, &!quit) {
+        method !SET-SELF(&emit, &done, &quit) {
+            &!emit := &emit;
+            &!done := &done;
+            &!quit := &quit;
             $!active = 1;
             $!lock := Lock.new;
             $!run-async-lock := Lock::Async.new;
@@ -1835,14 +1849,45 @@ augment class Rakudo::Internals {
             }
         }
 
-        method consume-active-taps() {
-            my @active;
+        method teardown(--> Nil) {
+            my $to-close := nqp::create(IterationBuffer);
             $!lock.protect: {
-                @active = %!active-taps.values;
+                %!active-taps.values.iterator.push-all($to-close);
                 %!active-taps = ();
                 $!active = 0;
             }
-            @active
+            my int $n = nqp::elems($to-close);
+            loop (my int $i = 0; $i < $n; $i++) {
+                nqp::atpos($to-close, $i).close();
+            }
+            my @close-phasers := @!close-phasers;
+            while @close-phasers {
+                @close-phasers.pop()();
+            }
+        }
+
+        method run-emit(--> Nil) {
+            if $!active {
+                my \ex := nqp::exception();
+                my $emit-handler := &!emit;
+                $emit-handler(nqp::getpayload(ex)) if $emit-handler.DEFINITE;
+                nqp::resume(ex)
+            }
+        }
+
+        method run-done(--> Nil) {
+            self.get-and-zero-active();
+            self.teardown();
+            my $done-handler := &!done;
+            $done-handler() if $done-handler.DEFINITE;
+        }
+
+        method run-catch(--> Nil) {
+            my \ex = EXCEPTION(nqp::exception());
+            self.get-and-zero-active();
+            self.teardown();
+            my $quit-handler = &!quit;
+            $quit-handler(ex) if $quit-handler;
         }
     }
 
@@ -1853,7 +1898,7 @@ augment class Rakudo::Internals {
 
         method tap(&emit, &done, &quit, &tap) {
             # Create state for this tapping.
-            my $state = Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
+            my $state := Rakudo::Internals::SupplyBlockState.new(:&emit, :&done, :&quit);
 
             # Placed here so it can close over $state, but we only need to
             # closure-clone it once per Supply block, not once per whenever.
@@ -1864,7 +1909,7 @@ augment class Rakudo::Internals {
                     nqp::continuationreset(ADD_WHENEVER_PROMPT, {
                         $supply.tap(
                             tap => {
-                                $tap = $_;
+                                $tap := $_;
                                 $state.add-active-tap($tap);
                             },
                             -> \value {
@@ -1883,15 +1928,15 @@ augment class Rakudo::Internals {
                             },
                             quit => -> \ex {
                                 $state.delete-active-tap($tap);
-                                my $handled;
+                                my $handled := False;
                                 self!run-supply-code({
                                     my $phaser := &whenever-block.phasers('QUIT')[0];
                                     if $phaser.DEFINITE {
-                                        $handled = $phaser(ex) === Nil;
+                                        $handled := $phaser(ex) === Nil;
                                     }
                                     if !$handled && $state.get-and-zero-active() {
                                         $state.quit().(ex) if $state.quit;
-                                        self!teardown($state);
+                                        $state.teardown();
                                     }
                                 }, Nil, $state, &add-whenever);
                                 if $handled {
@@ -1911,7 +1956,7 @@ augment class Rakudo::Internals {
 
             # Create and pass on tap; when closed, tear down the state and all
             # of our subscriptions.
-            my $t = Tap.new(-> { self!teardown($state) });
+            my $t := Tap.new(-> { $state.teardown() });
             tap($t);
 
             # Run the Supply block, then decrease active count afterwards (it
@@ -1924,39 +1969,16 @@ augment class Rakudo::Internals {
             $t
         }
 
-        method !run-supply-code(&code, \value, $state, &add-whenever) {
+        method !run-supply-code(&code, \value, SupplyBlockState $state, &add-whenever) {
             my @run-after;
             my $queued := $state.run-async-lock.protect-or-queue-on-recursion: {
-                if $state.active > 0 {
-                    my &*ADD-WHENEVER := &add-whenever;
-                    my $emitter = {
-                        if $state.active {
-                            my \ex := nqp::exception();
-                            my $emit-handler := $state.emit;
-                            $emit-handler(nqp::getpayload(ex)) if $emit-handler.DEFINITE;
-                            nqp::resume(ex)
-                        }
-                    }
-                    my $done = {
-                        $state.get-and-zero-active();
-                        self!teardown($state);
-                        my $done-handler := $state.done;
-                        $done-handler() if $done-handler.DEFINITE;
-                    }
-                    my $catch = {
-                        my \ex = EXCEPTION(nqp::exception());
-                        $state.get-and-zero-active();
-                        self!teardown($state);
-                        my $quit-handler = $state.quit;
-                        $quit-handler(ex) if $quit-handler;
-                    }
-                    nqp::handle(code(value),
-                        'EMIT', $emitter(),
-                        'DONE', $done(),
-                        'CATCH', $catch(),
-                        'NEXT', 0);
-                    @run-after = $state.awaiter.take-all;
-                }
+                my &*ADD-WHENEVER := &add-whenever;
+                $state.active > 0 and nqp::handle(code(value),
+                    'EMIT', $state.run-emit(),
+                    'DONE', $state.run-done(),
+                    'CATCH', $state.run-catch(),
+                    'NEXT', 0);
+                @run-after = $state.awaiter.take-all;
             }
             if $queued.defined {
                 $queued.then({ self!run-add-whenever-awaits(@run-after) });
@@ -1980,25 +2002,204 @@ augment class Rakudo::Internals {
             }
         }
 
-        method !deactivate-one($state) {
+        method !deactivate-one(SupplyBlockState $state) {
             $state.run-async-lock.protect-or-queue-on-recursion:
                 { self!deactivate-one-internal($state) };
         }
 
-        method !deactivate-one-internal($state) {
+        method !deactivate-one-internal(SupplyBlockState $state) {
             if $state.decrement-active() == 0 {
-                my $done-handler = $state.done;
+                my $done-handler := $state.done;
                 $done-handler() if $done-handler;
-                self!teardown($state);
+                $state.teardown();
             }
         }
 
-        method !teardown($state) {
-            .close for $state.consume-active-taps;
-            my @close-phasers := $state.close-phasers;
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
+    }
+
+    class SupplyOneWheneverState {
+        has &.emit;
+        has &.done;
+        has &.quit;
+        has @.close-phasers;
+        has $.tap is rw;
+        has $.active;
+
+        method new(:&emit!, :&done!, :&quit!) {
+            self.CREATE!SET-SELF(&emit, &done, &quit)
+        }
+
+        method !SET-SELF(&emit, &done, &quit) {
+            &!emit := &emit;
+            &!done := &done;
+            &!quit := &quit;
+            $!active = 1;
+            self
+        }
+
+        method teardown(--> Nil) {
+            $!active = 0;
+            $!tap.close if $!tap;
+            my @close-phasers := @!close-phasers;
             while @close-phasers {
                 @close-phasers.pop()();
             }
+        }
+
+        method run-emit(--> Nil) {
+            if $!active {
+                my \ex := nqp::exception();
+                my $emit-handler := &!emit;
+                $emit-handler(nqp::getpayload(ex)) if $emit-handler.DEFINITE;
+                nqp::resume(ex)
+            }
+        }
+
+        method run-done(--> Nil) {
+            if $!active {
+                self.teardown();
+                my $done-handler := &!done;
+                $done-handler() if $done-handler.DEFINITE;
+            }
+        }
+
+        method run-catch(--> Nil) {
+            if $!active {
+                my \ex = EXCEPTION(nqp::exception());
+                self.teardown();
+                my $quit-handler = &!quit;
+                $quit-handler(ex) if $quit-handler;
+            }
+        }
+    }
+
+    class SupplyOneWheneverTappable does Tappable {
+        has &!block;
+
+        submethod BUILD(:&!block --> Nil) { }
+
+        method tap(&emit, &done, &quit, &tap) {
+            # Create state for this tapping.
+            my $state := Rakudo::Internals::SupplyOneWheneverState.new(:&emit, :&done, :&quit);
+
+            # We only expcet one whenever; detect getting a second and complain.
+            my $*WHENEVER-SUPPLY-TO-ADD := Nil;
+            my &*WHENEVER-BLOCK-TO-ADD := Nil;
+            sub add-whenever(\the-supply, \the-whenever-block) {
+                if $*WHENEVER-SUPPLY-TO-ADD =:= Nil {
+                    $*WHENEVER-SUPPLY-TO-ADD := the-supply;
+                    &*WHENEVER-BLOCK-TO-ADD := the-whenever-block;
+                }
+                else {
+                    die "Single whenever block special case tried to add second whenever";
+                }
+            }
+
+            # Stash away any CLOSE phasers.
+            if nqp::istype(&!block, Block) {
+                $state.close-phasers.append(&!block.phasers('CLOSE'));
+            }
+
+            # Create and pass on tap; when closed, tear down the state and all
+            # of our subscriptions.
+            my $t := Tap.new(-> { $state.teardown() });
+            tap($t);
+
+            # Run the Supply block. Only proceed if it didn't send done/quit.
+            self!run-supply-code: { &!block() }, Nil, $state, &add-whenever;
+            if $state.active {
+                # If we didn't get a whenever, something is badly wrong.
+                if $*WHENEVER-SUPPLY-TO-ADD =:= Nil {
+                    die "Single whenever block special case did not get a whenever block";
+                }
+
+                # Otherwise, we can now tap that whenever block. Since it is the
+                # only one, and we know from compile-time analysis it is the last
+                # thing in the block, then it's safe to do it now the block is
+                # completed and without any concurrency control. However, we do
+                # call .sanitize just in case, to ensure that we have a serial and
+                # protocol-following Supply. That is enough.
+                my $supply := $*WHENEVER-SUPPLY-TO-ADD.sanitize;
+                my &whenever-block := &*WHENEVER-BLOCK-TO-ADD;
+                my $tap;
+                $supply.tap(
+                    tap => {
+                        $tap := $_;
+                        $state.tap = $tap;
+                    },
+                    -> \value {
+                        self!run-supply-code(&whenever-block, value, $state,
+                            &add-whenever)
+                    },
+                    done => {
+                        my @phasers := &whenever-block.phasers('LAST');
+                        if @phasers {
+                            self!run-supply-code({ .() for @phasers }, Nil, $state,
+                                &add-whenever)
+                        }
+                        $tap.close;
+                        $state.run-done();
+                    },
+                    quit => -> \ex {
+                        my $handled := False;
+                        self!run-supply-code({
+                            my $phaser := &whenever-block.phasers('QUIT')[0];
+                            if $phaser.DEFINITE {
+                                $handled := $phaser(ex) === Nil;
+                            }
+                            if !$handled {
+                                $state.quit().(ex) if $state.quit;
+                                $state.teardown();
+                            }
+                        }, Nil, $state, &add-whenever);
+                        if $handled {
+                            $tap.close;
+                            $state.run-done();
+                        }
+                    });
+            }
+
+            # Evaluate to the Tap.
+            $t
+        }
+
+        method !run-supply-code(&code, \value, SupplyOneWheneverState $state, &add-whenever) {
+            my &*ADD-WHENEVER := &add-whenever;
+            {
+                $state.active > 0 and nqp::handle(code(value),
+                    'EMIT', $state.run-emit(),
+                    'DONE', $state.run-done(),
+                    'CATCH', $state.run-catch(),
+                    'NEXT', 0);
+            }(); # XXX Workaround for optimizer bug
+        }
+
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
+    }
+
+    class OneEmitTappable does Tappable {
+        has &!block;
+
+        submethod BUILD(:&!block! --> Nil) {}
+
+        method tap(&emit, &done, &quit, &tap) {
+            my $t := Tap.new;
+            tap($t);
+            try {
+                emit(&!block());
+                done();
+                CATCH {
+                    default {
+                        quit($_);
+                    }
+                }
+            }
+            $t
         }
 
         method live(--> False) { }
@@ -2019,8 +2220,26 @@ sub WHENEVER(Supply() $supply, &block) {
 }
 
 sub REACT(&block) {
-    my $s = SUPPLY(&block);
-    my $p = Promise.new;
+    my $s := SUPPLY(&block);
+    my $p := Promise.new;
+    $s.tap(
+        { warn "Useless use of emit in react" },
+        done => { $p.keep(Nil) },
+        quit => { $p.break($_) });
+    await $p;
+}
+
+sub SUPPLY-ONE-EMIT(&block) {
+    Supply.new(Rakudo::Internals::OneEmitTappable.new(:&block))
+}
+
+sub SUPPLY-ONE-WHENEVER(&block) {
+    Supply.new(Rakudo::Internals::SupplyOneWheneverTappable.new(:&block))
+}
+
+sub REACT-ONE-WHENEVER(&block) {
+    my $s := SUPPLY-ONE-WHENEVER(&block);
+    my $p := Promise.new;
     $s.tap(
         { warn "Useless use of emit in react" },
         done => { $p.keep(Nil) },

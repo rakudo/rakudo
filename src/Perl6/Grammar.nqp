@@ -1171,6 +1171,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INVOCANT_OK := 0;
         :my $*INVOCANT;
         :my $*ARG_FLAT_OK := 0;
+        :my $*WHENEVER_COUNT := -1;                # -1 indicates whenever not valid here
 
         # Error related. There are three levels: worry (just a warning), sorry
         # (fatal but not immediately so) and panic (immediately deadly). There
@@ -1552,7 +1553,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule statement_control:sym<whenever> {
-        <sym><.kok> {}
+        <sym><.kok>
+        [
+        || <?{ $*WHENEVER_COUNT >= 0 }>#
+        || <.typed_panic('X::Comp::WheneverOutOfScope')>
+        ]
+        { $*WHENEVER_COUNT++ }
         <xblock(1)>
     }
 
@@ -1803,8 +1809,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<gather>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<once>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<start>   { <sym><.kok> <blorst> }
-    token statement_prefix:sym<supply>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<react>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<supply>  {
+        :my $*WHENEVER_COUNT := 0;
+        <sym><.kok> <blorst>
+    }
+    token statement_prefix:sym<react>   {
+        :my $*WHENEVER_COUNT := 0;
+        <sym><.kok> <blorst>
+    }
     token statement_prefix:sym<do>      { <sym><.kok> <blorst> }
     token statement_prefix:sym<DOC>     {
         <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>

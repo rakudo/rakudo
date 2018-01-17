@@ -753,6 +753,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     multi method list(List:D:) { self }
 
+    # We don't sink contents by design https://github.com/rakudo/rakudo/issues/1393
     method sink(--> Nil) { }
 
     multi method values(List:D:) {

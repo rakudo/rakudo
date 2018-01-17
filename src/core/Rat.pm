@@ -1,4 +1,4 @@
-# XXX: should be Rational[Int, UInt64]
+# XXX: should be Rational[Int, uint]
 my class Rat is Cool does Rational[Int, Int] {
     method Rat   (Rat:D: Real $?) { self }
     method FatRat(Rat:D: Real $?) { FatRat.new($!numerator, $!denominator); }
@@ -23,10 +23,12 @@ my class Rat is Cool does Rational[Int, Int] {
     }
 }
 
+my constant UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
+
 my class FatRat is Cool does Rational[Int, Int] {
     method FatRat(FatRat:D: Real $?) { self }
     method Rat   (FatRat:D: Real $?) {
-        $!denominator < $UINT64_UPPER
+        $!denominator < UINT64_UPPER
           ?? Rat.new($!numerator, $!denominator)
           !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
@@ -51,7 +53,7 @@ sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
           nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$numerator),
           FatRat,'$!denominator',$denominator),
         nqp::if(
-          $denominator < $UINT64_UPPER,
+          $denominator < UINT64_UPPER,
           nqp::p6bindattrinvres(
             nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$numerator),
             Rat,'$!denominator',$denominator),

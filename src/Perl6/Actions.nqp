@@ -2542,7 +2542,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<circumfix>($/)          { make $<circumfix>.ast; }
     method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
     method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
-    method term:sym<∞>($/)                  { make QAST::WVal.new( :value($*W.find_symbol(['Inf'])) ); }
     method term:sym<lambda>($/) {
         my $ast   := $<pblock>.ast;
         my $block := $ast.ann('past_block');

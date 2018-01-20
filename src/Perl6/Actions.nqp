@@ -3240,10 +3240,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $*OFTYPE := $_<of_type_match>;
                     $*OFTYPE.make($_<of_type>);
                 }
+
+                my $post := $_<post_constraints> ?? $_<post_constraints> !! [];
                 if $_<variable_name> {
                     my $past := QAST::Var.new( :name($_<variable_name>) );
                     $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
-                        $_<desigilname>, $<trait>);
+                        $_<desigilname>, $<trait>, :$post);
                     unless nqp::istype($past, QAST::Op) && $past.op eq 'null' {
                         $list.push($past);
                         if $_<sigil> eq '' {
@@ -3253,8 +3255,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     $*W.handle_OFTYPE_for_pragma($/,'parameters');
-                    my %cont_info := $*W.container_type_info($/, $_<sigil> || '$',
-                        $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
+                    my %cont_info := $*W.container_type_info($/, :$post,
+                      $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
                     $list.push($*W.build_container_past(
                       %cont_info,
                       $*W.create_container_descriptor(

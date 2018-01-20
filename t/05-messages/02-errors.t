@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 36;
+plan 37;
 
 # RT #132295
 
@@ -288,5 +288,10 @@ throws-like { EVAL "need 6.0;" }, X::Undeclared::Symbols,
 throws-like { EVAL "need v6.0;" }, Exception,
     :message{ .contains: 'In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").' },
     'suggests to use "use v6;" or "use v6.c;" when "need 6.0" is called';
+
+# RT #126856
+throws-like ｢^42  .^methods.say｣, X::Syntax::Malformed,
+    :message{ .contains: 'only alphabetic methods may be detached' },
+    'detached non-alpha method says what the problem is';
 
 # vim: ft=perl6 expandtab sw=4

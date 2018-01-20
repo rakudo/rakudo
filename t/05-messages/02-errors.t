@@ -293,4 +293,6 @@ throws-like ｢^42  .^methods.say｣, X::Syntax::Malformed,
     :message{ .contains: 'only alphabetic methods may be detached' },
     'detached non-alpha method says what the problem is';
 
+#### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE
+
 # vim: ft=perl6 expandtab sw=4

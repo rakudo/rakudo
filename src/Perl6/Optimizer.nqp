@@ -1086,7 +1086,10 @@ class Perl6::Optimizer {
             my $theop := $op[0];
             if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
 
-            if nqp::istype($theop, QAST::Op) && nqp::existskey(%range_bounds, $theop.name) && $!symbols.is_from_core($theop.name) {
+            if nqp::istype($theop, QAST::Op)
+            && nqp::existskey(%range_bounds, $theop.name)
+            && $!symbols.is_from_core($theop.name)
+            && $op[1].has_ann('code_object') {
                 self.optimize_for_range($op, $op[1], $theop);
                 self.visit_op_children($op);
                 return $op;
@@ -1095,14 +1098,18 @@ class Perl6::Optimizer {
 
         # It could also be that the user explicitly spelled out the for loop
         # with a method call to "map".
-        if $optype eq 'callmethod' && $op.name eq 'sink' &&
-              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
-                (nqp::istype((my $c1 := $op[0][0]), QAST::Op) &&
-                        nqp::existskey(%range_bounds, $c1.name)
-                 || nqp::istype($op[0][0], QAST::Stmts) &&
-                        nqp::istype(($c1 := $op[0][0][0]), QAST::Op) &&
-                        nqp::existskey(%range_bounds, $c1.name)) &&
-              $!symbols.is_from_core($c1.name) {
+        if $optype eq 'callmethod' && $op.name eq 'sink'
+        && nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod'
+        && $op[0].name eq 'map' && @($op[0]) == 2
+        && $op[0][1].has_ann('code_object')
+        && (
+               nqp::istype((my $c1 := $op[0][0]), QAST::Op)
+            && nqp::existskey(%range_bounds, $c1.name)
+            || nqp::istype($op[0][0], QAST::Stmts)
+            && nqp::istype(($c1 := $op[0][0][0]), QAST::Op)
+            && nqp::existskey(%range_bounds, $c1.name)
+        ) && $!symbols.is_from_core($c1.name)
+        {
             self.optimize_for_range($op, $op[0][1], $c1);
             self.visit_op_children($op);
             return $op;

@@ -51,7 +51,9 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method new(Real \min, Real() $max, :$excludes-min, :$excludes-max) {
         nqp::create(self)!SET-SELF(
-          min,$max,$excludes-min,$excludes-max,$max == Inf || min == -Inf);
+          min,$max,$excludes-min,$excludes-max,
+          $max == Inf || $max === NaN || min == -Inf || min === NaN
+        );
     }
     multi method new(List:D \min, \max, :$excludes-min, :$excludes-max) {
         nqp::create(self)!SET-SELF(

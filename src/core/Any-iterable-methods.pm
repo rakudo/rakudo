@@ -1857,12 +1857,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method tail($n) {
         Seq.new(
           nqp::if(
-            nqp::istype($n,Callable)
-              && nqp::isgt_i((my $skip := -($n(0).Int)),0),
+            nqp::istype($n,Callable),
             nqp::stmts(
-              (my $iterator := self.iterator).skip-at-least($skip),
-              $iterator
-            ),
+              (my $iterator := self.iterator),
+              nqp::if(
+                nqp::isgt_i((my $skip := -($n(0).Int)),0),
+                $iterator.skip-at-least($skip)),
+              $iterator),
             Rakudo::Iterator.LastNValues(self.iterator,$n,'tail')
           )
         )

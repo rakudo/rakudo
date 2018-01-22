@@ -1844,7 +1844,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method tail(|) {*}
-    multi method tail(Any:D:) is raw {
+    multi method tail() is raw {
         nqp::if(
           nqp::eqaddr((my $pulled :=
             Rakudo::Iterator.LastValue(self.iterator,'tail')),
@@ -1854,7 +1854,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           $pulled
         )
     }
-    multi method tail(Any:D: $n) {
+    multi method tail($n) {
         Seq.new(
           nqp::if(
             nqp::istype($n,Callable)
@@ -1874,13 +1874,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new( $iter.skip-one ?? $iter !! Rakudo::Iterator.Empty )
     }
     multi method skip(Whatever) { Seq.new(Rakudo::Iterator.Empty) }
-    multi method skip(Callable:D $w) {
-       nqp::if(
-         nqp::isgt_i((my $tail := -($w(0).Int)),0),
-         self.tail($tail),
-         Seq.new(Rakudo::Iterator.Empty)
-       )
-    }
+    multi method skip(Callable:D \w) { self.tail: w }
     multi method skip(Int() $n) {
         my $iter := self.iterator;
         Seq.new( $iter.skip-at-least($n) ?? $iter !! Rakudo::Iterator.Empty )

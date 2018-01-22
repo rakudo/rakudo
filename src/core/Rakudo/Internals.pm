@@ -194,7 +194,7 @@ my class Rakudo::Internals {
                   nqp::push(restore,my @ = cont),
                   nqp::if(
                     nqp::istype(cont,Hash),
-                    nqp::push(restore,my % = cont),
+                    nqp::push(restore,Hash.^parameterize(Mu,Mu).new: cont),
                     nqp::stmts(
                       nqp::pop(restore),  # lose the erroneously pushed value
                       X::Localizer::NoContainer.new(:$localizer).throw

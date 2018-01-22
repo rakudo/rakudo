@@ -1949,6 +1949,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token coloncircumfix($front) {
+        # reset $*IN_DECL in case this colonpair is part of var we're
+        # declaring, since colonpair might have other vars. Don't make those
+        # think we're declaring them
+        :my $*IN_DECL := '';
         [
         | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
         | {} <circumfix>

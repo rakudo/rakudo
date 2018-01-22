@@ -2282,7 +2282,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub single_top_level_whenever($block) {
-        if $*WHENEVER_COUNT == 1 {
+        if $*WHENEVER_COUNT == 1
+        && nqp::getcomp('perl6').language_version ne '6.c' {
             my $stmts := $block[1];
             if nqp::istype($stmts, QAST::Stmts) {
                 my @stmts := $stmts.list;

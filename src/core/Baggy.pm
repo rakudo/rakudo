@@ -433,7 +433,7 @@ my role Baggy does QuantHash {
     multi method pick(Baggy:D: $count) {
         Seq.new(
           (my $total := self.total) < 1
-            || (my $todo = $count == Inf ?? $total !! $count.Int) < 1
+            || (my $todo := $count == Inf ?? $total !! $count.Int) < 1
             ?? Rakudo::Iterator.Empty            # nothing to do
             !! class :: does Iterator {
               has $!raw;      # the IterationSet of the Baggy

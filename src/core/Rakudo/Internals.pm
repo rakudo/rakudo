@@ -191,10 +191,14 @@ my class Rakudo::Internals {
                 nqp::push(restore,nqp::decont(cont)),
                 nqp::if(
                   nqp::istype(cont,Array),
-                  nqp::push(restore,my @ = cont),
+                  nqp::push(restore,cont.clone),
                   nqp::if(
                     nqp::istype(cont,Hash),
-                    nqp::push(restore,Hash.^parameterize(Mu,Mu).new: cont),
+                    nqp::push(restore,
+                      nqp::p6bindattrinvres(
+                        Hash.^parameterize(Mu,Mu).new,
+                        Hash, '$!descriptor',
+                        nqp::getattr(cont, Hash, '$!descriptor')).STORE: cont),
                     nqp::stmts(
                       nqp::pop(restore),  # lose the erroneously pushed value
                       X::Localizer::NoContainer.new(:$localizer).throw

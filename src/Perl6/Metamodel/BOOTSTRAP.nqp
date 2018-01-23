@@ -2893,11 +2893,9 @@ BEGIN {
     # class List is Cool {
     #     has Mu $!reified;
     #     has Mu $!todo;
-    #     has Mu $!WHICH;
     List.HOW.add_parent(List, Cool);
     List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
     List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!WHICH', Mu, List));
     List.HOW.compose_repr(List);
 
     # class Slip is List {

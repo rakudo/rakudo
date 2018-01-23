@@ -2276,7 +2276,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub single_top_level_whenever($block) {
-        if $*WHENEVER_COUNT == 1 {
+        if $*WHENEVER_COUNT == 1
+        && nqp::getcomp('perl6').language_version ne '6.c' {
             my $stmts := $block[1];
             if nqp::istype($stmts, QAST::Stmts) {
                 my @stmts := $stmts.list;
@@ -2536,7 +2537,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<circumfix>($/)          { make $<circumfix>.ast; }
     method term:sym<statement_prefix>($/)   { make $<statement_prefix>.ast; }
     method term:sym<sigterm>($/)            { make $<sigterm>.ast; }
-    method term:sym<∞>($/)                  { make QAST::WVal.new( :value($*W.find_symbol(['Inf'])) ); }
     method term:sym<lambda>($/) {
         my $ast   := $<pblock>.ast;
         my $block := $ast.ann('past_block');

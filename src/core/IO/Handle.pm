@@ -68,15 +68,8 @@ my class IO::Handle {
       :$chomp = $!chomp,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
-      :$buffer,
       :$out-buffer is copy,
     ) {
-        nqp::if(
-            $buffer.DEFINITE,
-            nqp::stmts(
-              ($out-buffer = $buffer),
-              DEPRECATED ':out-buffer argument to control handle buffering',
-                '2017.09.455.g.2.fba.0.ba.0.d', '2018.01'));
 
         nqp::if(
           $bin,

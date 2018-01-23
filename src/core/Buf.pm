@@ -475,7 +475,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         nqp::islt_i(pos,0)
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-          !! nqp::bindpos_i(self,\pos,assignee)
+          !! nqp::bindpos_i(self,pos,assignee)
     }
     multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) {
         my int $pos = nqp::unbox_i(pos);

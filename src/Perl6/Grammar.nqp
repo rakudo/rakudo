@@ -1555,7 +1555,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<whenever> {
         <sym><.kok>
         [
-        || <?{ $*WHENEVER_COUNT >= 0 }>#
+        || <?{
+              nqp::getcomp('perl6').language_version eq '6.c'
+            || $*WHENEVER_COUNT >= 0
+          }>
         || <.typed_panic('X::Comp::WheneverOutOfScope')>
         ]
         { $*WHENEVER_COUNT++ }
@@ -1871,7 +1874,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
     token term:sym<!!>                 { '!!' <?before \s> }  # actual error produced inside infix:<?? !!>
-    token term:sym<∞>                  { <sym> }
 
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »

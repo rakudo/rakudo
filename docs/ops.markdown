@@ -117,7 +117,7 @@ Clears the "pre" flag in the current frame.
 ## p6configposbindfailover
 * p6configposbindfailover(Mu $type, Mu $failover-type)
 
-Configers the Binder to allow $failover-type to bind to $type in subroutine invocation.
+Configures the Binder to allow $failover-type to bind to $type in subroutine invocation.
 
 ## p6decodelocaltime
 * p6decodelocaltime(int $epoch)

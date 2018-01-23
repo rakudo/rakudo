@@ -103,6 +103,9 @@ Box a native uint into a Perl 6 UInt.
 ## p6capturelex
 * p6capturelex(Mu $closure)
 
+Given the specified code object, sets its outer to the current scope.
+Must be called in the immediate outer scope of the block in question.
+
 ## p6capturelexwhere
 * p6capturelexwhere(Mu $closure)
 

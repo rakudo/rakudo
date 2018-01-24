@@ -1844,7 +1844,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method tail(|) {*}
-    multi method tail(Any:D:) is raw {
+    multi method tail() is raw {
         nqp::if(
           nqp::eqaddr((my $pulled :=
             Rakudo::Iterator.LastValue(self.iterator,'tail')),
@@ -1854,7 +1854,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           $pulled
         )
     }
-    multi method tail(Any:D: $n) {
+    multi method tail($n) {
         Seq.new(
           nqp::if(
             nqp::istype($n,Callable),

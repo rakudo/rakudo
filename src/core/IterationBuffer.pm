@@ -43,4 +43,8 @@ my class IterationBuffer {
     }
 }
 
+#?if jvm
+nqp::p6setiterbuftype(IterationBuffer);
+#?endif
+
 # vim: ft=perl6 expandtab sw=4

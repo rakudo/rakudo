@@ -675,8 +675,14 @@ public class RakudoJavaInterop extends BootJavaInterop {
                         Ops.bindpos((SixModelObject) out, i, cur, tc);
                     }
                 }
-                throw ExceptionHandling.dieInternal(tc, "List interop NYI after GLR");
-                //out = RakOps.p6list((SixModelObject) out, gcx.List, gcx.Mu, tc);
+                SixModelObject outList = Ops.create(gcx.List, tc);
+                SixModelObject iterbuffer = Ops.create(gcx.IterationBuffer, tc);
+                Ops.bindattr(outList, gcx.List, "$!reified", iterbuffer, tc);
+                long elems = Ops.elems((SixModelObject) out, tc);
+                for( int i = 0; i < elems; ++i ) {
+                    Ops.bindpos(iterbuffer, i, Ops.atpos((SixModelObject) out, i, tc), tc);
+                }
+                out = outList;
             }
             else {
                 out = RuntimeSupport.boxJava(in, gcx.rakudoInterop.getSTableForClass(what));

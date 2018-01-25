@@ -287,17 +287,19 @@ my class IO::Handle {
 
     method !get-line-slow-path() {
         my $line := Nil;
-        loop {
-            my $buf := self.read-internal(0x100000);
-            if $buf.elems {
-                $!decoder.add-bytes($buf);
-                $line := $!decoder.consume-line-chars(:$!chomp);
-                last if nqp::isconcrete($line);
-            }
-            else {
-                $line := $!decoder.consume-line-chars(:$!chomp, :eof)
-                    unless self.eof-internal && $!decoder.is-empty;
-                last;
+        unless self.eof-internal && $!decoder.is-empty {
+            loop {
+                my $buf := self.read-internal(0x100000);
+                if $buf.elems {
+                    $!decoder.add-bytes($buf);
+                    $line := $!decoder.consume-line-chars(:$!chomp);
+                    last if nqp::isconcrete($line);
+                }
+                else {
+                    $line := $!decoder.consume-line-chars(:$!chomp, :eof)
+                        unless self.eof-internal && $!decoder.is-empty;
+                    last;
+                }
             }
         }
         $line

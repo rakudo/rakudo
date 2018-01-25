@@ -47,7 +47,29 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
-    multi method clone(Array:D:) { [self] }
+    multi method clone(Array:D:) {
+        nqp::stmts(
+          (my \iter := self.iterator),
+          (my \result := nqp::p6bindattrinvres(nqp::create(self),
+              Array, '$!descriptor', nqp::clone($!descriptor))),
+          nqp::if(
+            nqp::eqaddr(
+              IterationEnd,
+              iter.push-until-lazy:
+                my \target := ArrayReificationTarget.new(
+                  (my \buffer := nqp::create(IterationBuffer)),
+                  nqp::clone($!descriptor))),
+            nqp::p6bindattrinvres(result, List, '$!reified', buffer),
+            nqp::stmts(
+              nqp::bindattr(result, List, '$!reified', buffer),
+              nqp::bindattr((my \todo := nqp::create(List::Reifier)),
+                List::Reifier,'$!current-iter', iter),
+              nqp::bindattr(todo,
+                List::Reifier,'$!reified', buffer),
+              nqp::bindattr(todo,
+                List::Reifier,'$!reification-target', target),
+              nqp::p6bindattrinvres(result, List, '$!todo', todo))))
+    }
 
     method iterator(Array:D:) {
 

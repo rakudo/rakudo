@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 36;
+plan 37;
 
 # RT #132295
 
@@ -272,21 +272,27 @@ throws-like { my $r = 1..5; $r[42] = 21 }, X::Assignment::RO,
 is-run 'EVAL "*+*"', :compiler-args[<--optimize=off>],
     'optimizer flag gets propagated to EVAL';
 
+# RT #126669
+throws-like ｢use 6.0;｣, X::Undeclared::Symbols, :message{
+    .contains: 'use "v" prefix for pragma (e.g., "use v6;", "use v6.c;")'
+}, 'suggests to use "use v6;" or "use v6.c;" when "use 6.0" is called';
 
-# RT126669
+# RT #132214
+throws-like ｢need 6.0;｣, X::Undeclared::Symbols, :message{
+    .contains: 'use "v" prefix and "use" for pragma (e.g., "use v6;", '
+               ~ '"use v6.c;")'
+}, 'suggests to use "use v6;" or "use v6.c;" when "need 6.0" is called';
 
-throws-like { EVAL "use 6.0;" }, X::Undeclared::Symbols,
-    :message{ .contains: 'use "v" prefix for pragma (e.g., "use v6;", "use v6.c;")' },
-    'suggests to use "use v6;" or "use v6.c;" when "use 6.0" is called';
+throws-like ｢need v6.0;｣, Exception, :message{
+    .contains: 'In case of using pragma, use "use" instead (e.g., '
+                ~ '"use v6;", "use v6.c;").'
+}, 'suggests to use "use v6;" or "use v6.c;" when "need 6.0" is called';
 
-# RT132214
+# RT #126856
+throws-like ｢^42  .^methods.say｣, X::Syntax::Malformed,
+    :message{ .contains: 'only alphabetic methods may be detached' },
+    'detached non-alpha method says what the problem is';
 
-throws-like { EVAL "need 6.0;" }, X::Undeclared::Symbols,
-    :message{ .contains: 'use "v" prefix and "use" for pragma (e.g., "use v6;", "use v6.c;")' },
-    'suggests to use "use v6;" or "use v6.c;" when "need 6.0" is called';
-
-throws-like { EVAL "need v6.0;" }, Exception,
-    :message{ .contains: 'In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").' },
-    'suggests to use "use v6;" or "use v6.c;" when "need 6.0" is called';
+#### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE
 
 # vim: ft=perl6 expandtab sw=4

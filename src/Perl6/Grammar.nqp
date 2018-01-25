@@ -304,7 +304,7 @@ role STD {
         self
     }
     method typed_worry($type_str, *%opts) {
-        unless self.pragma('no-worries') {
+        if self.pragma('worries') {
             self.pragma('fatal')
               ?? self.typed_sorry($type_str, |%opts)
               !! @*WORRIES.push($*W.typed_exception(
@@ -489,6 +489,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         # We could start out TOP with a fatalizing language in self, conceivably...
         my $*FATAL := self.pragma('fatal');  # also set if somebody calls 'use fatal' in mainline
+        self.set_pragma('worries', 1);
 
         # A cacheable false dynvar value.
         my $*WANTEDOUTERBLOCK := 0;
@@ -1950,6 +1951,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token coloncircumfix($front) {
+        # reset $*IN_DECL in case this colonpair is part of var we're
+        # declaring, since colonpair might have other vars. Don't make those
+        # think we're declaring them
+        :my $*IN_DECL := '';
         [
         | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
         | {} <circumfix>

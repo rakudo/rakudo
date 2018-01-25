@@ -11,15 +11,13 @@ class CompUnit::Repository::JavaRuntime { ... }
 
 class CompUnit::RepositoryRegistry {
     my $lock     = Lock.new;
+    my %include-spec2cur;
 
     method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
-        state %include-spec2cur;
-        state $lock = Lock.new;
-
         my ($short-id,%options,$path) := parse-include-spec($spec);
         my $class := short-id2class($short-id);
         return CompUnit::Repository::Unknown.new(:path-spec($spec), :short-name($short-id))
-            if so $class && nqp::istype($class, Failure) or $class === Any;
+            if so $class && nqp::istype($class, Failure) or !nqp::istype($class, CompUnit::Repository);
 
         my $abspath = $class.?absolutify($path) // $path;
         my $id      = "$short-id#$abspath";
@@ -28,6 +26,14 @@ class CompUnit::RepositoryRegistry {
             %include-spec2cur{$id}:exists
               ?? %include-spec2cur{$id}
               !! (%include-spec2cur{$id} := $class.new(:prefix($abspath), |%options));
+        } );
+    }
+
+    method !register-repository($id, CompUnit::Repository $repo) {
+        $lock.protect( {
+            %include-spec2cur{$id}:exists
+              ?? %include-spec2cur{$id}
+              !! (%include-spec2cur{$id} := $repo);
         } );
     }
 
@@ -72,6 +78,7 @@ class CompUnit::RepositoryRegistry {
              );
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
+        my str $home;
         try {
             if nqp::existskey($ENV,'HOME')
               ?? nqp::atkey($ENV,'HOME')
@@ -80,25 +87,22 @@ class CompUnit::RepositoryRegistry {
                      ?? nqp::atkey($ENV,'HOMEDRIVE') !! ''),
                    (nqp::existskey($ENV,'HOMEPATH')
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
-                 ) -> $home {
+                 ) -> $home-path {
+                $home = $home-path;
                 my str $path = "inst#$home/.perl6";
                 nqp::bindkey($custom-lib,'home',$path);
-                nqp::push($raw-specs, $path) unless $precomp-specs;
             }
         }
 
         # set up custom libs
         my str $site = "inst#$prefix/site";
         nqp::bindkey($custom-lib,'site',$site);
-        nqp::push($raw-specs, $site) unless $precomp-specs;
 
         my str $vendor = "inst#$prefix/vendor";
         nqp::bindkey($custom-lib,'vendor',$vendor);
-        nqp::push($raw-specs, $vendor) unless $precomp-specs;
 
         my str $perl = "inst#$prefix";
         nqp::bindkey($custom-lib,'perl',$perl);
-        nqp::push($raw-specs, $perl) unless $precomp-specs;
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=
@@ -136,9 +140,28 @@ class CompUnit::RepositoryRegistry {
             }
         }
 
+        my $repos := nqp::hash();
+        unless $precomp-specs {
+            nqp::bindkey($repos, $perl, $next-repo := self!register-repository(
+                $perl,
+                CompUnit::Repository::Installation.new(:prefix($prefix), :$next-repo)
+            )) unless nqp::existskey($unique, $perl);
+            nqp::bindkey($repos, $vendor, $next-repo := self!register-repository(
+                $vendor,
+                CompUnit::Repository::Installation.new(:prefix("$prefix/vendor"), :$next-repo)
+            )) unless nqp::existskey($unique, $vendor);
+            nqp::bindkey($repos, $site, $next-repo := self!register-repository(
+                $site,
+                CompUnit::Repository::Installation.new(:prefix("$prefix/site"), :$next-repo)
+            )) unless nqp::existskey($unique, $site);
+            nqp::bindkey($repos, "inst#$home/.perl6", $next-repo := self!register-repository(
+                "inst#$home/.perl6",
+                CompUnit::Repository::Installation.new(:prefix($home), :$next-repo)
+            )) if $home and not nqp::existskey($unique, $home);
+        }
+
         # convert path-specs to repos
         $iter := nqp::iterator($specs);
-        my $repos := nqp::hash();
         while $iter {
             my str $spec = nqp::shift($iter);
             $next-repo := self.use-repository(

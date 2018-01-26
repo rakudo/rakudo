@@ -365,18 +365,23 @@ class CompUnit::RepositoryRegistry {
 
     sub parse-include-spec(Str:D $spec, Str:D $default-short-id = 'file') {
         # something we understand
-        if $spec ~~ /^
-          <before .>
-          [
-            $<type>=[ <.ident>+ % '::' ]
-            [ '#' $<option-name>=\w+
-              <[ < ( [ { ]> $<option-value>=<[\w-]>+? <[ > ) \] } ]>
-            ]*
-            '#'
-          ]?
-          $<path>=.*
-        $/ {
-            ( ~($<type> // $default-short-id), %($<option-name>>>.Str Z=> $<option-value>>>.Str), ~$<path> );
+        if $spec.contains('#') or $spec eq '' {
+            if $spec ~~ /^
+              <before .>
+              [
+                $<type>=[ <.ident>+ % '::' ]
+                [ '#' $<option-name>=\w+
+                  <[ < ( [ { ]> $<option-value>=<[\w-]>+? <[ > ) \] } ]>
+                ]*
+                '#'
+              ]?
+              $<path>=.*
+            $/ {
+                ( ~($<type> // $default-short-id), %($<option-name>>>.Str Z=> $<option-value>>>.Str), ~$<path> );
+            }
+        }
+        else {
+            ($default-short-id, Map.new, $spec)
         }
     }
 

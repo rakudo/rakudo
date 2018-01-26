@@ -193,6 +193,7 @@ src/core/CompUnit/PrecompilationStore.pm
 src/core/CompUnit/PrecompilationStore/File.pm
 src/core/CompUnit/PrecompilationRepository.pm
 src/core/CompUnit/Repository.pm
+src/core/CompUnit/Repository/Spec.pm
 src/core/CompUnit/Repository/Installable.pm
 src/core/CompUnit.pm
 src/core/CompUnit/RepositoryRegistry.pm

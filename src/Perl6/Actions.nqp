@@ -7167,14 +7167,34 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past
     }
 
+    sub mark_blocks_as_andnotelse_first_arg($ast) {
+        if $ast && nqp::can($ast, 'ann') && $ast.ann('past_block') {
+            $ast.ann('past_block').annotate: 'in_stmt_mod_andnotelse', 1;
+            $ast.ann('past_block').annotate: 'in_stmt_mod', 0;
+        }
+        elsif nqp::istype($ast, QAST::Op)
+        || nqp::istype($ast, QAST::Stmt)
+        || nqp::istype($ast, QAST::Stmts) {
+            mark_blocks_as_andnotelse_first_arg($_) for @($ast)
+        }
+    }
+
     sub thunkity_thunk($/,$thunky,$past,@clause) {
         my int $i := 0;
         my int $e := nqp::elems(@clause);
         my int $te := nqp::chars($thunky);
         my $type := nqp::substr($thunky,0,1);
+        my $andnotelse_thunk := nqp::istype($past, QAST::Op)
+          && $past.op eq 'call'
+          && ( $past.name eq '&infix:<andthen>'
+            || $past.name eq '&infix:<notandthen>'
+            || $past.name eq '&infix:<orelse>');
+
         while $i < $e {
             my $ast := @clause[$i];
             $ast := $ast.ast if nqp::can($ast,'ast');  # reduce already passes ast...
+            mark_blocks_as_andnotelse_first_arg($ast)
+                if $andnotelse_thunk && $i == 0;
 
             if $type eq 'T' || $type eq 'B' || $type eq 'A' {
                 my $argast := $ast;
@@ -7217,7 +7237,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif $type eq 'b' {  # thunk and topicalize to a block
                 unless $ast.ann('bare_block') || $ast.ann('past_block') {
-                    $ast := block_closure(make_topic_block_ref(@clause[$i], $ast, migrate_stmt_id => $*STATEMENT_ID));
+                    $ast := block_closure(make_topic_block_ref(
+                      @clause[$i], $ast, :$andnotelse_thunk,
+                      migrate_stmt_id => $*STATEMENT_ID,
+                    ));
                 }
                 $past.push($ast);
             }
@@ -9186,14 +9209,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block);
     }
 
-    sub make_topic_block_ref($/, $past, :$copy, :$migrate_stmt_id) {
+    sub make_topic_block_ref(
+        $/, $past, :$copy, :$migrate_stmt_id, :$andnotelse_thunk,
+    ) {
         my $block := $*W.push_lexpad($/);
+        $block.annotate: 'andnotelse_thunk', 1 if $andnotelse_thunk;
+
         $block[0].push(QAST::Var.new( :name('$_'), :scope('lexical'), :decl('var') ));
         $block.push($past);
         $*W.pop_lexpad();
         if nqp::defined($migrate_stmt_id) {
             migrate_blocks($*W.cur_lexpad(), $block, -> $b {
-                !$b.ann('in_stmt_mod') && ($b.ann('statement_id') // -1) == $migrate_stmt_id
+                (    (! $b.ann('in_stmt_mod_andnotelse') &&   $andnotelse_thunk)
+                  || (! $b.ann('in_stmt_mod')            && ! $andnotelse_thunk)
+                )
+                && ($b.ann('statement_id') // -1) >= $migrate_stmt_id
+                && ! $b.has_ann('andnotelse_thunk')
             });
         }
         ($*W.cur_lexpad())[0].push($block);
@@ -9571,7 +9602,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my int $i := 0;
             my @params;
             my @old_args;
-            my $block := QAST::Block.new(QAST::Stmts.new(), $past);
+            my $block := QAST::Block.new(
+                QAST::Stmts.new(), $past
+            ).annotate_self: 'statement_id', $*STATEMENT_ID;
             $*W.cur_lexpad()[0].push($block);
             while $i < $e {
                 my $old := $past[$i];

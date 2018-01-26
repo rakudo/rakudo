@@ -392,11 +392,14 @@ class CompUnit::RepositoryRegistry {
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Parsing specs: $specs") }
 
         # for all possible specs
-        for $specs.split(',') -> $spec {
+        my $spec-list := nqp::split(',', $specs);
+        my $iter      := nqp::iterator($spec-list);
+        while $iter {
+            my $spec := nqp::shift($iter);
             if parse-include-spec($spec.trim, $default-short-id) -> $triplet {
                 @found.push: join "#",
                   $triplet[0],
-                  $triplet[1].map({ .key ~ "<" ~ .value ~ ">" }),
+                  $triplet[1] ?? $triplet[1].map({ .key ~ "<" ~ .value ~ ">" }) !! Empty,
                   $triplet[2];
                 $default-short-id = $triplet[0];
             }

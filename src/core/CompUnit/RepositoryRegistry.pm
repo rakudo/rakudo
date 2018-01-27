@@ -291,30 +291,32 @@ class CompUnit::RepositoryRegistry {
         $*REPO
     }
 
-    method resolve-unknown-repos(@repos) {
+    method resolve-unknown-repos($repo is copy) {
         # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
         my $global := nqp::list("GLOBAL");
-        for @repos.pairs {
-            if nqp::istype($_.value, CompUnit::Repository::Unknown) {
-                my $i = $_.key;
-                my $next-repo := @repos[$i + 1];
+        my $prev-repo;
+        while defined $repo {
+            if nqp::istype($repo, CompUnit::Repository::Unknown) {
+                my $next-repo := $repo.next-repo;
 
                 my $head := PROCESS<$REPO>;
                 PROCESS::<$REPO> := $next-repo;
                 my $comp_unit = $next-repo.need(
-                    CompUnit::DependencySpecification.new(:short-name($_.value.short-name))
+                    CompUnit::DependencySpecification.new(:short-name($repo.short-name))
                 );
                 PROCESS::<$REPO> := $head;
 
                 $*W.find_symbol($global).WHO.merge-symbols($comp_unit.handle.globalish-package);
-                my $new-repo = self.repository-for-spec($_.value.path-spec, :$next-repo);
-                if $i > 0 {
-                    @repos[$i - 1].next-repo = $new-repo if $i > 0;
+                $repo = self.repository-for-spec($repo.path-spec, :$next-repo);
+                if defined $prev-repo {
+                    $prev-repo.next-repo = $repo;
                 }
                 else {
-                    PROCESS::<$REPO> := $new-repo;
+                    PROCESS::<$REPO> := nqp::decont($repo);
                 }
             }
+            $prev-repo = $repo;
+            $repo = $repo.next-repo;
         }
     }
 

@@ -106,7 +106,14 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method !precomp-stores() {
         $!precomp-stores //= Array[CompUnit::PrecompilationStore].new(
-            self.repo-chain.map(*.precomp-store).grep(*.defined)
+            gather {
+                my $repo = $*REPO;
+                while $repo {
+                    my \store = $repo.precomp-store;
+                    take store if store.defined;
+                    $repo = $repo.next-repo;
+                }
+            }
         )
     }
 

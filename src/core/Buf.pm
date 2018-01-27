@@ -497,11 +497,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         }.new(self)).cache
     }
 
+    proto method pop(|) { * }
     multi method pop(Buf:D:) {
         nqp::elems(self)
           ?? nqp::pop_i(self)
           !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
     }
+    proto method shift(|) { * }
     multi method shift(Buf:D:) {
         nqp::elems(self)
           ?? nqp::shift_i(self)
@@ -511,6 +513,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     method reallocate(Buf:D: Int:D $elements) { nqp::setelems(self,$elements) }
 
     my $empty := nqp::list_i;
+    proto method splice(|) { * }
     multi method splice(Buf:D \SELF:) { my $buf = SELF; SELF = Buf.new; $buf }
     multi method splice(Buf:D: Int:D $offset, $size = Whatever) {
         my int $remove = self!remove($offset,$size);
@@ -558,6 +561,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         $result
     }
 
+    proto method push(|) { * }
     multi method push(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Int:D $got) { nqp::push_i(self,$got); self }
     multi method push(Buf:D: Mu:D $got) { self!fail-typecheck('push',$got) }
@@ -565,6 +569,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         nqp::splice(self,$buf,nqp::elems(self),0)
     }
     multi method push(Buf:D: **@values) { self!pend(@values,'push') }
+    proto method append(|) { * }
 
     multi method append(Buf:D: int $got) { nqp::push_i(self,$got); self }
     multi method append(Buf:D: Int:D $got) { nqp::push_i(self,$got); self }
@@ -577,6 +582,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
     multi method append(Buf:D:  @values) { self!pend(@values,'append') }
     multi method append(Buf:D: *@values) { self!pend(@values,'append') }
+    proto method unshift(|) { * }
 
     multi method unshift(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
     multi method unshift(Buf:D: Int:D $got) { nqp::unshift_i(self,$got); self }
@@ -584,6 +590,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method unshift(Buf:D: Blob:D $buf) { nqp::splice(self,$buf,0,0) }
     multi method unshift(Buf:D: **@values) { self!pend(@values,'unshift') }
 
+    proto method prepend(|) { * }
     multi method prepend(Buf:D: int $got) { nqp::unshift_i(self,$got); self }
     multi method prepend(Buf:D: Int:D $got) { nqp::unshift_i(self,$got); self }
     multi method prepend(Buf:D: Mu:D $got) { self!fail-typecheck('prepend',$got) }
@@ -612,10 +619,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
 }
 
-constant buf8 = Buf[uint8];
+constant buf8  = Buf[uint8];
 constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
+
+# Create pun at compile time as buf8 is used extensively in file I/O and module laoding
+buf8.elems;
 
 proto sub pack(|) {*}
 multi sub pack(Str $template, *@items) {

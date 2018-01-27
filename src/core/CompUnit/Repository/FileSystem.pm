@@ -55,7 +55,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !comp-unit-id($name) {
-        CompUnit::PrecompilationId.new(nqp::sha1($name));
+        CompUnit::PrecompilationId.new-from-string($name);
     }
 
     method id() {

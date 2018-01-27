@@ -12,6 +12,18 @@ class CompUnit::PrecompilationId {
         }
     }
 
+    method new-from-string(Str:D $id) {
+        $cache-lock.protect: {
+            %cache{$id} //= self.bless(:id(nqp::sha1($id)))
+        }
+    }
+
+    method new-without-check(Str:D $id) {
+        $cache-lock.protect: {
+            %cache{$id} //= self.bless(:id($id))
+        }
+    }
+
     method Str()      { $!id }
     method IO()       { $!id.IO }
     method substr(|c) { $!id.substr(|c) }
@@ -76,7 +88,7 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
     method deserialize(Str $str) {
         my ($id, $src, $checksum, $spec) = $str.split("\0", 4);
         nqp::p6bindattrinvres(
-            self.new(:id(CompUnit::PrecompilationId.new($id)), :$src, :$checksum),
+            self.new(:id(CompUnit::PrecompilationId.new-without-check($id)), :$src, :$checksum),
             CompUnit::PrecompilationDependency::File,
             '$!serialized-spec',
             $spec,

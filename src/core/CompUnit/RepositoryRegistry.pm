@@ -97,7 +97,6 @@ class CompUnit::RepositoryRegistry {
                  ) -> $home-path {
                 $home = $home-path;
                 my str $path = "inst#$home/.perl6";
-                nqp::bindkey($custom-lib,'home',$path);
             }
         }
 

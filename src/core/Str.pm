@@ -1580,7 +1580,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             # make the sequence
             Seq.new(class :: does Iterator {
                 has str $!string;
-                has str $!chars;
+                has int $!chars;
                 has str $!match;
                 has int $!match-chars;
                 has int $!todo;

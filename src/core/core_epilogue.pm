@@ -18,6 +18,11 @@ BEGIN {
     Perl6::Metamodel::WrapDispatcher.HOW.compose(Perl6::Metamodel::WrapDispatcher);
 }
 
+BEGIN {
+    # Create pun at compile time as buf8 is used extensively in file I/O and module loading
+    buf8.elems;
+}
+
 {YOU_ARE_HERE}
 
 # vim: ft=perl6 expandtab sw=4

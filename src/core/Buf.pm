@@ -624,9 +624,6 @@ constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
 
-# Create pun at compile time as buf8 is used extensively in file I/O and module laoding
-buf8.elems;
-
 proto sub pack(|) {*}
 multi sub pack(Str $template, *@items) {
     nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(

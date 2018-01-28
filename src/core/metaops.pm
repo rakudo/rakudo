@@ -669,11 +669,7 @@ multi sub nodemap(\op, \obj) {
     nqp::while(
         nqp::isge_i($i, 0),
         nqp::stmts(
-            ($o := nqp::atpos($items, $i)),
-            nqp::bindpos($rpa, $i,
-                nqp::if(Mu,             # hack cuz I don't understand nqp
-                        $o.new(nodemap(op, $o)).item,
-                        op.($o))),
+            nqp::bindpos($rpa, $i, op.(nqp::atpos($items, $i))),
             $i = nqp::sub_i($i, 2)
         )
     );
@@ -681,11 +677,7 @@ multi sub nodemap(\op, \obj) {
     nqp::while(
         nqp::isge_i($i, 0),
         nqp::stmts(
-            ($o := nqp::atpos($items, $i)),
-            nqp::bindpos($rpa, $i,
-                nqp::if(Mu,             # hack cuz I don't understand nqp
-                        $o.new(nodemap(op, $o)).item,
-                        op.($o))),
+            nqp::bindpos($rpa, $i, op.(nqp::atpos($items, $i))),
             $i = nqp::sub_i($i, 2)
         )
     );

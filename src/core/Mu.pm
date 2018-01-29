@@ -855,6 +855,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {
+        # Note: basic calls to this dispatch method are optimized to bypass
+        # it by the `inline-dispatch-methodcall-hyper` method in Perl6::Actions
         nqp::if(
           nqp::if(
             nqp::istype($nodality,Str),

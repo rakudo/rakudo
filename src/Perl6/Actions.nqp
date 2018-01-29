@@ -6735,9 +6735,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # values may need type mapping into Perl 6 land.
             $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
             if nqp::istype($past, QAST::Op) && $past.op eq 'callmethod' {
-                unless $<OPER> && ($<OPER><sym> eq '.=' || $<OPER><sym> eq '.+' || $<OPER><sym> eq '.?') {
-                    $return_map := 1
-                }
+                $return_map := 1 unless $<OPER> && (
+                       $<OPER><sym> eq '.='
+                    || $<OPER><sym> eq '.+'
+                    || $<OPER><sym> eq '.?');
+
+                $past := self.inline-dispatch-methodcall-hyper: $past
+                    if $past.name eq 'dispatch:<hyper>';
             }
         }
         elsif $past.ann('thunky') {
@@ -7575,6 +7579,104 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         $power := nqp::neg_I($power, $Int) if $<sign> eq '⁻' || $<sign> eq '¯';
         make QAST::Op.new(:op<call>, :name('&postfix:<ⁿ>'), $*W.add_numeric_constant($/, 'Int', $power));
+    }
+
+    method inline-dispatch-methodcall-hyper ($orig-qast) {
+        # bail out for anything but basic $foo».bar(...) calls
+        # XXX TODO: handle more cases, such as $foo»."bar"(...) and ilk
+        return $orig-qast
+          unless nqp::istype($orig-qast[1], QAST::SVal)
+              && nqp::istype($orig-qast[2], QAST::SVal)
+              && ! $*COMPILING_CORE_SETTING; # <- currently explodes,
+              # when compiling setting, saying no `.hash` on `Capture`
+
+        # In here, we're inlining the following bit of code. Doing this lets
+        # us avoid dealing with Captures and their flattening, which prevents
+        # dispatch caching:
+        #
+        # nqp::if(
+        #   nqp::if(
+        #     nqp::istype($nodality,Str),
+        #     nqp::if(
+        #       $nodality,
+        #          nqp::can(List,$nodality)
+        #       && nqp::can(List.can($nodality ).AT-POS(0),'nodal'),
+        #          nqp::can(List,$meth-name)
+        #       && nqp::can(List.can($meth-name).AT-POS(0),'nodal')),
+        #     nqp::can($nodality, 'nodal')),
+        #   HYPER( sub (\obj) is nodal { obj."$meth-name"(|c) }, SELF ),
+        #   HYPER(   -> \obj           { obj."$meth-name"(|c) }, SELF )
+        #
+
+        my $node      := $orig-qast.node;
+        my $invocant  := $orig-qast.shift;
+        my $nodality  := $orig-qast.shift;
+        my $meth-name := $orig-qast.shift;
+
+
+        my $hyper-param := $*W.cur_lexpad()[0].unique: 'hypered_invocant_';
+        $*W.cur_lexpad()[0].push: my $hyperthunk-qast := QAST::Block.new:
+          QAST::Stmts.new(
+            QAST::Var.new: :name($hyper-param), :scope<local>, :decl<param>),
+          QAST::Stmts.new:
+            QAST::Op.new: :op<callmethod>, :name($meth-name.value), :$node,
+              QAST::Var.new(:name($hyper-param), :scope<local>),
+              |@($orig-qast);
+
+        my @params := [hash(
+            :variable_name($hyper-param), :is_raw(1),
+            :nominal_type($*W.find_symbol: ['Mu'], :setting-only),
+        )];
+        my $signature := $*W.create_signature_and_params:
+            $/, hash(parameters => @params), $hyperthunk-qast, 'Mu';
+        # add_signature_binding_code($hyperthunk-qast, $signature, @params);
+
+        my $hyperthunk-code := $*W.create_code_object:
+            $hyperthunk-qast, 'Routine', $signature;
+        my $hyperthunk := block_closure(reference_to_code_object(
+          $hyperthunk-code, $hyperthunk-qast));
+        $hyperthunk.returns: $*W.find_symbol: ['Block'], :setting-only;
+        $hyperthunk.arity: 1;
+
+        my $nodal := QAST::Op.new: :op<p6bool>, QAST::IVal.new: :value(1);
+        $nodal.named: 'nodal';
+        my $hyperthunk-nodal := QAST::WVal.new: value =>
+          $*W.compile_time_evaluate: $node,
+            QAST::Op.new: :op<call>, :name('&trait_mod:<is>'), :$node,
+              $hyperthunk, $nodal;
+
+        my $wList := QAST::WVal.new:
+          :value($*W.find_symbol: ['List'], :setting-only);
+
+        my $qast :=
+        QAST::Op.new: :op<if>, :$node,
+          QAST::Op.new(:op<if>, :$node,
+            QAST::Op.new(:op<istype>, $nodality,
+              QAST::WVal.new: :value($*W.find_symbol: ['Str'], :setting-only)),
+            QAST::Op.new(:op<if>,
+              $nodality,
+              QAST::Op.new(:op<if>,
+                QAST::Op.new(:op<can>, $wList, $nodality),
+                QAST::Op.new(:op<can>,
+                  QAST::Op.new(:op<callmethod>, :name<AT-POS>, :$node,
+                    QAST::Op.new(:op<callmethod>, :name<can>, :$node,
+                      $wList, $nodality),
+                    QAST::IVal.new: :value(0)),
+                  QAST::SVal.new: :value<nodal>)),
+              QAST::Op.new(:op<if>,
+                QAST::Op.new(:op<can>, $wList, $meth-name),
+                QAST::Op.new(:op<can>,
+                  QAST::Op.new(:op<callmethod>, :name<AT-POS>, :$node,
+                    QAST::Op.new(:op<callmethod>, :name<can>, :$node,
+                      $wList, $meth-name),
+                    QAST::IVal.new: :value(0)),
+                  QAST::SVal.new: :value<nodal>))),
+            QAST::Op.new(:op<can>, $nodality, QAST::SVal.new: :value<nodal>)),
+          QAST::Op.new(:op<call>, :name<&HYPER>, :$node,
+            $hyperthunk-nodal, $invocant),
+          QAST::Op.new: :op<call>, :name<&HYPER>, :$node,
+            $hyperthunk, $invocant;
+        $qast
     }
 
     method hyper-nodal-name-tweak ($past) {

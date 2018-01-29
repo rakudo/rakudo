@@ -790,6 +790,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     # XXX TODO: Handle positional case.
     method dispatch:<var>(Mu \SELF: $var, |c) is raw {
+        # Note: many cases of this dispatch are rewritten in Perl6::Actions
+        # to directly call the stuff in $var, bypassing this method
         $var(SELF, |c)
     }
 

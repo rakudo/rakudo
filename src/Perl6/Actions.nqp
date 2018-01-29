@@ -6738,6 +6738,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless $<OPER> && ($<OPER><sym> eq '.=' || $<OPER><sym> eq '.+' || $<OPER><sym> eq '.?') {
                     $return_map := 1
                 }
+
+                if $past.name eq 'dispatch:<var>' && ! (
+                       nqp::istype($past[0], QAST::WVal)
+                    && nqp::istype($past[0].value,
+                      $*W.find_symbol: ['Whatever'], :setting-only)
+                ) {
+                    # Unpack the method call into nameless-calling the argument.
+                    # Don't do it if invocant is a Whatever, as we'll curry it
+                    $past.op: 'call';
+                    $past.name: '';
+                    my $invocant := $past[0];
+                    $past[0] := $past[1];
+                    $past[1] := $invocant;
+                }
             }
         }
         elsif $past.ann('thunky') {

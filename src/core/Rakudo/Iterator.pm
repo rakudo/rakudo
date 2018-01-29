@@ -2891,12 +2891,17 @@ class Rakudo::Iterator {
                     )
                   ),
                   nqp::until(                          # fill the buffer
-                    nqp::isge_i(nqp::elems($!buffer),$elems)
+                    (nqp::isge_i(nqp::elems($!buffer),$elems)
+                      && nqp::isne_i($elems,-1))       # eat everything
                       || nqp::eqaddr(
                            (my $pulled := $!iterator.pull-one),
                            IterationEnd
                          ),
                     nqp::push($!buffer,$pulled)
+                  ),
+                  nqp::if(
+                      nqp::iseq_i($elems,-1),
+                      ($elems = nqp::elems($!buffer))
                   ),
                   nqp::if(
                     nqp::not_i(nqp::elems($!buffer))

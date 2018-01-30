@@ -361,7 +361,7 @@ do {
                     self.repl-print($exception);
                 }
                 elsif $initial_out_position == $*OUT.tell
-                    or $output ~~ Failure and not $output.handled {
+                    or nqp::istype($output, Failure) and not $output.handled {
                     self.repl-print($output);
                 }
 

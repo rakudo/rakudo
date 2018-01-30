@@ -3,7 +3,7 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-plan 39;
+plan 40;
 
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
@@ -271,3 +271,8 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
         :out{.contains('failed').not},
     ｢REPL can handle `Mu` as line's return value｣;
 }
+
+# RT #132780
+is-run-repl "say 42; none True\n", :err(''), :out{
+    .contains('42') and not .contains: 'No such method';
+}, 'REPL does not explode with none Junction return values';

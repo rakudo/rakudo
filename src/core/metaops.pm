@@ -659,7 +659,7 @@ multi sub nodemap(\op, \obj) {
     my Mu $rpa := nqp::create(IterationBuffer);
     my \objs := obj.list;
     # as a wanted side-effect is-lazy reifies the list
-    fail X::Cannot::Lazy.new(:action('deepmap')) if objs.is-lazy;
+    fail X::Cannot::Lazy.new(:action<nodemap>) if objs.is-lazy;
     my Mu $items := nqp::getattr(objs, List, '$!reified');
     my Mu $o;
     # We process the elements in two passes, end to start, to

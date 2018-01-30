@@ -5074,6 +5074,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
         token backslash:sym<1> { <[1..9]>\d* {} <.sorry("Unrecognized backslash sequence (did you mean \${$/ - 1}?)")> }
+        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
+        token backslash:sym<misc> { \W }
     }
 
     role b0 {
@@ -5176,9 +5178,6 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     role qq does b1 does c1 does s1 does a1 does h1 does f1 {
         token starter { \" }
         token stopper { \" }
-        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
-        token backslash:sym<misc> { \W }
-
         method tweak_q($v) { self.panic("Too late for :q") }
         method tweak_qq($v) { self.panic("Too late for :qq") }
     }

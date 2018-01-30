@@ -3956,10 +3956,10 @@ class Perl6::World is HLL::World {
             self.context().cur_code_object().add_phaser($phaser, $block);
             my $enclosing := self.context().cur_lexpad();
             my $enter_tmp := $enclosing.unique('enter_result_');
-            $enclosing[0].push(QAST::Var.new( :name($enter_tmp), :scope('local'), :decl('var') ));
+            $enclosing[0].push(QAST::Var.new( :name($enter_tmp), :scope('lexical'), :decl('var') ));
             my @pres := $enclosing.ann('phaser_results') || $enclosing.annotate('phaser_results', []);
             @pres.push($block);
-            @pres.push(my $var := QAST::Var.new( :name($enter_tmp), :scope('local') ));
+            @pres.push(my $var := QAST::Var.new( :name($enter_tmp), :scope('lexical') ));
             $var.wanted(1);  # don't really know if wanted, but suppress warning
             return $var;
         }

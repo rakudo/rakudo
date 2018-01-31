@@ -8947,7 +8947,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 else {
-                    # If the type means there's no way this could possible be
+                    # If the type means there's no way this could possibly be
                     # Iterable, we know it can't flatten. This in turn means
                     # we need not wrap it in a read-only scalar.
                     my $wrap := $flags +& $SIG_ELEM_IS_COPY;

@@ -6783,7 +6783,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :op('hllize'), :returns($past.returns()));
             }
         }
-	if $key eq 'infix' && nqp::existskey(%worrisome, ~$/<OPER>) {
+        if $key eq 'infix' && nqp::existskey(%worrisome, ~$/<OPER>) {
             if ~$/[0]<prefix> eq '|' {
                 $/[0].typed_worry('X::Worry::Precedence::Range', action => "apply a Slip flattener to", precursor => 1);
             }

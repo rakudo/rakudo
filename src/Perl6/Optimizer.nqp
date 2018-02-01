@@ -2217,7 +2217,19 @@ class Perl6::Optimizer {
             # parent `unless` (or just the top node, if we only got one WVal)
             $op.op: 'istype'; $op.push: $op[0][1]; $op[0] := $op[0][0];
             $qast := $qast[0]; # toss Stmts, we no longer need 'em;
-            $node[0] := $qast;
+
+            if $node.has_ann('no-autothread') {
+                # Our param won't autothread; inject special hangling of
+                # Junction arguments to make them go through the slower
+                # path of using the original ACCEPTS call
+                $node[0] := QAST::Op.new: :op<if>,
+                  QAST::Op.new(:op<istype>,
+                    $param-var, QAST::WVal.new: :value($symJunction)),
+                  $node[0], $qast;
+            }
+            else {
+                $node[0] := $qast;
+            }
         }
     }
 

@@ -9042,7 +9042,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                                   $var-qast
                     );
-                    $param.annotate: 'code-post-constraint', 1 if $isCode;
+
+                    if $isCode {
+                        $param.annotate: 'code-post-constraint', 1;
+                        # Some optimizations we must handle specially if no
+                        # autothreading of Junctions will happen:
+                        $param.annotate: 'no-autothread', 1
+                          unless nqp::istype(%info<nominal_type>,
+                            $*W.find_symbol: ['Any'], :setting-only);
+                    }
+
                     $var.push: $param;
                 }
             }

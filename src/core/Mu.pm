@@ -819,11 +819,6 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             ).throw;
     }
 
-    method dispatch:<.=>(\mutate: Str() $name, |c) is raw {
-        $/ := nqp::getlexcaller('$/');
-        mutate = mutate."$name"(|c)
-    }
-
     method dispatch:<.?>(Mu \SELF: Str() $name, |c) is raw {
         nqp::can(SELF,$name) ??
             SELF."$name"(|c) !!

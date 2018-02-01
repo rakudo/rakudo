@@ -9646,7 +9646,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @old_args;
             my $block := QAST::Block.new(
                 QAST::Stmts.new(), $past
-            ).annotate_self: 'statement_id', $*STATEMENT_ID;
+            ).annotate_self('statement_id', $*STATEMENT_ID
+            ).annotate_self: 'outer', $*W.cur_lexpad;
             $*W.cur_lexpad()[0].push($block);
             while $i < $e {
                 my $old := $past[$i];

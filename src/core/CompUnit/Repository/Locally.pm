@@ -5,7 +5,7 @@ role CompUnit::Repository::Locally {
 
     method new(CompUnit::Repository::Locally: Str:D :$prefix, CompUnit::Repository :$next-repo, *%args) {
         my $abspath := $*SPEC.rel2abs($prefix);
-        my $IO      := $abspath.IO;
+        my $IO      := IO::Path.new($abspath);
 
         state %instances;
         my $WHICH = self.^name ~ '|' ~ $abspath;

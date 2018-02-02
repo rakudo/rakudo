@@ -23,6 +23,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             if $!bytecode {
                 $!initialized = True;
                 $!checksum = nqp::sha1($!bytecode.decode('iso-8859-1'));
+                #$!checksum = nqp::sha1bin(nqp::decont($!bytecode));
             }
         }
 

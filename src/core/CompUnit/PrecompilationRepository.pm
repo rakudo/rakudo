@@ -189,7 +189,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
             if (not $since or $unit.modified > $since)
-                and (not $source or ($checksum //= nqp::sha1($source.slurp(:enc<iso-8859-1>))) eq $unit.source-checksum)
+                and (not $source or ($checksum //= nqp::sha1bin($source.slurp(:bin))) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
                 my \loaded = self!load-handle-for-path($unit);
@@ -233,7 +233,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             self.store.unlock;
             return True;
         }
-        my $source-checksum = nqp::sha1($path.slurp(:enc<iso-8859-1>));
+        my $source-checksum = nqp::sha1bin($path.slurp(:bin));
         my $bc = "$io.bc".IO;
 
         $lle     //= Rakudo::Internals.LL-EXCEPTION;

@@ -60,7 +60,7 @@ role CompUnit::PrecompilationUnit {
             unless $srcIO {
                 return False unless $srcIO.e;
             }
-            my $current-source-checksum := nqp::sha1($srcIO.slurp(:enc<iso-8859-1>));
+            my $current-source-checksum := nqp::sha1bin($srcIO.slurp(:bin));
             $RMD(
                 "$.path\nspec: $dependency.spec()\nsource: $srcIO\n"
                 ~ "source-checksum: $source-checksum\ncurrent-source-checksum: $current-source-checksum"

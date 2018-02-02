@@ -42,7 +42,7 @@ any administrator privileges for carrying out this step.
 
 To automatically download, build, and install a fresh MoarVM and NQP, run:
 
-    perl Configure.pl --gen-moar --gen-nqp --backends=moar
+    $ perl Configure.pl --gen-moar --gen-nqp --backends=moar
 
 Please be aware, that this will install MoarVM and NQP into your given
 --prefix before Configure.pl exits.
@@ -50,12 +50,34 @@ Please be aware, that this will install MoarVM and NQP into your given
 Alternatively, feel free to git clone https://github.com/perl6/nqp and
 https://github.com/MoarVM/MoarVM manually and install them individually.
 
+Configuration flags can be passed to MoarVM's Configure.pl using the
+--moar-option flag. For example, if you wish to use Clang when GCC is the
+default compiler selected for your OS, use the --compiler flag:
+
+    $ perl Configure.pl --gen-moar --moar-option='--compiler=clang' \
+        --gen-nqp --backends=moar
+
+If the compiler you want to use isn't known by MoarVM or you have multiple
+versions of the same compiler installed, the --cc flag can be used to pass its
+exact binary:
+
+    $ perl Configure.pl --gen-moar --moar-option='--cc=egcc' \
+        --gen-nqp --backends=moar
+
+Custom optimization and debugging levels may also be passed through:
+
+    $ perl Configure.pl --gen-moar --moar-option='--optimize=0 --debug=3' \
+        --gen-nqp --backends=moar
+
+For more information on how MoarVM can be configured, view MoarVM's
+Configure.pl.
+
 ### Configuring Rakudo to run on the JVM
 
 Note that to run Rakudo on JVM, JDK 1.8 must be installed. To automatically
 download, build, and install a fresh NQP, run:
 
-    perl Configure.pl --gen-nqp --backends=jvm
+    $ perl Configure.pl --gen-nqp --backends=jvm
 
 If you get an out of memory error building rakudo on the JVM, you may
 need to modify your NQP runner to limit memory use. e.g. edit the
@@ -125,7 +147,7 @@ If you would like simple history and tab completion in the perl6 executable,
 you need to install the Linenoise module.  The recommended way to install
 Linenoise is via [zef](https://github.com/ugexe/zef):
 
-    zef install Linenoise
+    $ zef install Linenoise
 
 An alternative is to use a third-party program such as [rlwrap](http://utopia.knoware.nl/~hlub/uck/rlwrap/#rlwrap).
 

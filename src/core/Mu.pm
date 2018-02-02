@@ -642,15 +642,17 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         nqp::if(
           nqp::eqaddr(self,IterationEnd),
           "IterationEnd",
-          self.perlseen(self.^name, {
-              my @attrs;
-              for self.^attributes().flat.grep: { .has_accessor } -> $attr {
-                  my $name := substr($attr.Str,2);
-                  @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
-              }
-              self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
-          })
-        )
+          nqp::if(
+            nqp::iscont(self), # a Proxy object would have a conted `self`
+            nqp::decont(self).perl,
+            self.perlseen: self.^name, {
+                my @attrs;
+                for self.^attributes().flat.grep: { .has_accessor } -> $attr {
+                    my $name := substr($attr.Str,2);
+                    @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
+                }
+                self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
+            }))
     }
 
     proto method DUMP(|) {*}

@@ -272,7 +272,11 @@ my class Rakudo::Internals {
       'ascii',           'ascii',
       'iso-8859-1',      'iso-8859-1',
       'windows-1252',    'windows-1252',
-      # with dash
+      'windows-1251',    'windows-1251',
+      # windows without dash
+      'windows1251',    'windows-1252',
+      'windows1252',    'windows-1251',
+      # utf with dash
       'utf-8',           'utf8',
       'utf-16',          'utf16',
       'utf-32',          'utf32',

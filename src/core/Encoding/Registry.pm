@@ -16,7 +16,8 @@ my class Encoding::Registry {
           nqp::list("utf8-c8","utf-8-c8"),
           nqp::list("utf16","utf-16"),
           nqp::list("utf32","utf-32"),
-          nqp::list("windows-1252")
+          nqp::list("windows-1252"),
+          nqp::list("windows-1251")
         );
         my int $i = -1;
         my int $elems = nqp::elems($encodings);

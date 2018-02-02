@@ -9724,6 +9724,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past[$i] := QAST::Var.new(:name($pname), :scope<lexical>);
                     nqp::push(@old_args, $past[$i]) if $was_chain;
                 } else {
+                    if (my $old_ast := $old.ann: 'past_block') {
+                        remove_block($*W.cur_lexpad(), $old_ast);
+                        $block[0].push: $old_ast;
+                    }
                     nqp::push(@old_args, $past[$i]) if $was_chain;
                 }
                 $i++;

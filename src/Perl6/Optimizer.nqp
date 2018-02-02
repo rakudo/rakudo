@@ -2219,7 +2219,7 @@ class Perl6::Optimizer {
             $qast := $qast[0]; # toss Stmts, we no longer need 'em;
 
             if $node.has_ann('no-autothread') {
-                # Our param won't autothread; inject special hangling of
+                # Our param won't autothread; inject special handling of
                 # Junction arguments to make them go through the slower
                 # path of using the original ACCEPTS call
                 $node[0] := QAST::Op.new: :op<if>,

@@ -9307,7 +9307,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     :op('callmethod'), :name('ACCEPTS'),
                     $expr,
                     $operand,
-                )));
+                ))).annotate_self: 'outer', $*W.cur_lexpad;
         ($*W.cur_lexpad())[0].push($past);
 
         # Give it a signature and create code object.

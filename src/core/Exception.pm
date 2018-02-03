@@ -737,6 +737,7 @@ my class X::Comp::BeginTime does X::Comp {
     has $.exception;
 
     method message() {
+        $!use-case = $!use-case.exception.message unless $!use-case ~~ Str;
         $!exception ~~ X::MOP
             ?? $!exception.message
             !! "An exception occurred while $!use-case"

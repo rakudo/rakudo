@@ -9605,6 +9605,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %curried{'&postcircumfix:<[ ]>'} := 3;
         %curried{'&postcircumfix:<{ }>'} := 3;
     }
+    my $whatever_sym := nqp::null;
+    method whatever_sym() {
+        nqp::isnull($whatever_sym)
+            ?? ($whatever_sym := $*W.find_symbol: ['Whatever'], :setting-only)
+            !! $whatever_sym
+    }
+    my $whatever_code_sym := nqp::null;
+    method whatever_code_sym() {
+        nqp::isnull($whatever_code_sym)
+            ?? ($whatever_code_sym
+                := $*W.find_symbol: ['WhateverCode'], :setting-only)
+            !! $whatever_code_sym
+    }
+    my $hyper_whatever_sym := nqp::null;
+    method hyper_whatever_sym() {
+        nqp::isnull($hyper_whatever_sym)
+            ?? ($hyper_whatever_sym
+                := $*W.find_symbol: ['HyperWhatever'], :setting-only)
+            !! $hyper_whatever_sym
+    }
     method whatever_curry($/, $past, $upto_arity) {
         my int $curried :=
             # It must be an op and...
@@ -9636,9 +9656,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my int $whatevers := 0;
         my int $hyperwhatever := 0;
 
-        my $Whatever := $*W.find_symbol(['Whatever'], :setting-only);
-        my $WhateverCode := $*W.find_symbol(['WhateverCode'], :setting-only);
-        my $HyperWhatever := $*W.find_symbol(['HyperWhatever']);
+        my $Whatever      := self.whatever_sym;
+        my $WhateverCode  := self.whatever_code_sym;
+        my $HyperWhatever := self.hyper_whatever_sym;
 
         while $i < $e {
             my $check := $past[$i];

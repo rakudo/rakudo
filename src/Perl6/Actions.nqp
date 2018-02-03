@@ -130,14 +130,6 @@ sub wanted($ast,$by) {
                 QAST::WVal.new( :value($*W.find_symbol(['Seq']))),
                 block_closure($block) );
 
-            # Elevate statevars to enclosing thunk
-            if $body.has_ann('has_statevar') && $block.has_ann('past_block') {
-                Perl6::Actions::migrate_blocks(
-                    $body, $block.ann('past_block'),
-                    -> $n { nqp::istype($n, QAST::Var) && $n.decl eq 'statevar' }
-                )
-            }
-
             # conditional (if not always true (or if repeat))
             if $repeat || !$cond.has_compile_time_value || !$cond.compile_time_value == $while {
                 $cond := QAST::Op.new( :op<callmethod>, :name<not>, $cond ) unless $while;
@@ -3209,10 +3201,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $<initializer><sym> eq '::=');
                 }
                 if $*SCOPE eq 'state' {
-                    if nqp::istype( (my $outer_block := $*W.cur_lexpad), QAST::Block) {
-                        $outer_block.annotate('has_statevar', $outer_block[0]);
-                    }
-
                     $past := QAST::Op.new( :op('if'),
                         QAST::Op.new( :op('p6stateinit') ),
                         $past,
@@ -6549,7 +6537,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # hash). Others get thunked and so need to have certain blocks in an
     # expression moved into the thunk. This performs the migration. Takes an
     # optional predicate to decide whether to move a block.
-    our sub migrate_blocks($from, $to, $predicate?) {
+    sub migrate_blocks($from, $to, $predicate?) {
         my @decls := @($from[0]);
         my int $n := nqp::elems(@decls);
         my int $i := 0;

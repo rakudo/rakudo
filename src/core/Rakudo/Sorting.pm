@@ -174,8 +174,8 @@ my class Rakudo::Sorting {
           ),
           nqp::if(
             nqp::islt_i($n,2)
-              || nqp::iseq_i(
-                  comparator(nqp::atpos($A,0),nqp::atpos($A,1)),-1),
+              || nqp::islt_i(
+                  comparator(nqp::atpos($A,0),nqp::atpos($A,1)),1),
             list,  # nothing to be done, we already have the result
             nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
               IB2(nqp::atpos($A,1),nqp::atpos($A,0)))

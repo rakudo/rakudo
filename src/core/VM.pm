@@ -15,7 +15,7 @@ class VM does Systemic {
 
     submethod BUILD(
       :$!config,
-      :$desc,
+      :$!desc = Str,
 #?if jvm
       :$!properties,
 #?endif
@@ -23,7 +23,6 @@ class VM does Systemic {
     ) {
 #?if moar
         $!name           = 'moar';
-        $!desc           = $desc // 'Short for "Metamodel On A Runtime", MoarVM is a modern virtual machine built for the Rakudo Perl 6 compiler and the NQP Compiler Toolchain.';
         $!auth           = "The MoarVM Team";
         $!version        = Version.new($!config<version> // "unknown");
         $!prefix         = $!config<prefix>;
@@ -32,7 +31,6 @@ class VM does Systemic {
 #?endif
 #?if jvm
         $!name           = 'jvm';
-        $!desc           = $desc // 'The Java Virtual Machine';
         $!auth           = $!properties<java.vendor> // "unknown";
         $!version        = Version.new($!properties<java.specification.version> // "unknown");
         $!prefix         = $!properties<perl6.prefix>;
@@ -91,8 +89,9 @@ class VM does Systemic {
 }
 
 sub INITIALIZE-A-VM-NOW() {
+    my $desc := DateTime.now.Str;
 #?if moar
-    VM.new(:config(nqp::backendconfig));
+    VM.new(:config(nqp::backendconfig),:$desc);
 #?endif
 #?if jvm
     my $config := do {
@@ -117,7 +116,7 @@ sub INITIALIZE-A-VM-NOW() {
         }
         %PROPS;
     }
-    VM.new(:$config,:$properties);
+    VM.new(:$config,:$desc,:$properties);
 #?endif
 }
 

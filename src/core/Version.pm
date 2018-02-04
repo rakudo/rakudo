@@ -21,14 +21,17 @@ class Version {
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$string)
     }
+
+    my $v6;
+    my $v6c;
     multi method new(Version: Str() $s) {
 
         # highlanderize most common
         if $s eq '6' {
-            INIT nqp::create(Version)!SET-SELF(nqp::list(6),0,"6") # should be once
+            $v6 //= nqp::create(Version)!SET-SELF(nqp::list(6),0,"6") # should be once
         }
-        elsif $s eq '6.c' {
-            INIT nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c") # should be once
+        elsif $s eq '6.c' { # also adapt src/core/core_epilogue.pm if you make changes here
+            $v6c //= nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c") # should be once
         }
 
         # something sensible given

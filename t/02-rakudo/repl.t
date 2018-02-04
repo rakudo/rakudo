@@ -279,6 +279,7 @@ is-run-repl "say 42; none True\n", :err(''), :out{
 
 # RT #112986
 is-run-repl '$_**2',
-    :err{!.contains('message') and !.contains('not found')},
-    :out(''),
+    :out{!.contains('message') and !.contains('not found')
+         and !.contains('No such method')},
+    :err(''),
     'no complaints about .message';

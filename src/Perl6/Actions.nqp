@@ -9625,154 +9625,156 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 := $*W.find_symbol: ['HyperWhatever'], :setting-only)
             !! $hyper_whatever_sym
     }
-    method whatever_curry($/, $past, $upto_arity) {
+    method whatever_curry($/, $qast, $upto_arity) {
         my int $curried :=
             # It must be an op and...
-            nqp::istype($past, QAST::Op) && (
+            nqp::istype($qast, QAST::Op) && (
 
             # Either a call that we're allowed to curry...
-                (($past.op eq 'call' || $past.op eq 'chain') &&
-                    (nqp::eqat($past.name, '&infix:', 0) ||
-                     nqp::eqat($past.name, '&prefix:', 0) ||
-                     nqp::eqat($past.name, '&postfix:', 0) ||
-                     (nqp::istype($past[0], QAST::Op) &&
-                        nqp::eqat($past[0].name, '&METAOP', 0))) &&
-                    %curried{$past.name} // 3)
+                (($qast.op eq 'call' || $qast.op eq 'chain') &&
+                    (nqp::eqat($qast.name, '&infix:', 0) ||
+                     nqp::eqat($qast.name, '&prefix:', 0) ||
+                     nqp::eqat($qast.name, '&postfix:', 0) ||
+                     (nqp::istype($qast[0], QAST::Op) &&
+                        nqp::eqat($qast[0].name, '&METAOP', 0))) &&
+                    %curried{$qast.name} // 3)
 
             # Or not a call and an op in the list of alloweds.
-                || ($past.op ne 'call' && %curried{$past.op} // 0)
+                || ($qast.op ne 'call' && %curried{$qast.op} // 0)
 
             # or one of our new postcircumfix subs that used to be methods
-                || ($past.op eq 'call' && nqp::eqat($past.name, '&postcircumfix:', 0) &&
-                    %curried{$past.name} // 0)
+                || ($qast.op eq 'call' && nqp::eqat($qast.name, '&postcircumfix:', 0) &&
+                    %curried{$qast.name} // 0)
             );
 
-        return $past unless $curried;
+        return $qast unless $curried;
 
-        my int $offset := 0;
-        $offset := nqp::elems($past) - $upto_arity if $past.op eq 'call' && !nqp::eqat($past.name,"&postcircumfix:",0);
+        # Some constructs, like &METAOP things, have metaop construction as
+        # first few kids of the QAST. We'll skip them while raking for Whatevers
+        my int $offset := $qast.op eq 'call'
+            && ! nqp::eqat($qast.name,'&postcircumfix:', 0)
+            ?? nqp::elems($qast) - $upto_arity !! 0;
         my int $i := $offset;
         my int $e := $upto_arity + $offset;
-        my int $whatevers := 0;
+        my int $whatevers     := 0;
         my int $hyperwhatever := 0;
 
         my $Whatever      := self.whatever_sym;
         my $WhateverCode  := self.whatever_code_sym;
         my $HyperWhatever := self.hyper_whatever_sym;
 
+        # Find anything we might need to curry and bail out if there's nothing
         while $i < $e {
-            my $check := $past[$i];
-            $check := $check[0] if (nqp::istype($check, QAST::Stmts) ||
-                                    nqp::istype($check, QAST::Stmt)) &&
-                                   +@($check) == 1;
-            $whatevers++ if nqp::bitand_i($curried, 1)
-                && istype($check.returns, $Whatever)
-                && nqp::isconcrete($check.value)
+            my $check := $qast[$i];
+            $check := $check[0]
+                if ( nqp::istype($check, QAST::Stmts)
+                  || nqp::istype($check, QAST::Stmt))
+                && nqp::elems($check) == 1;
+
+            $whatevers++
+                if nqp::bitand_i($curried, 1)
+                  && istype($check.returns, $Whatever)
+                  && nqp::isconcrete($check.value)
                 || nqp::bitand_i($curried, 2)
-                && istype($check.returns, $WhateverCode)
-                && nqp::istype($check, QAST::Op);
-            if nqp::bitand_i($curried, 1) && istype($check.returns, $HyperWhatever) {
+                  && istype($check.returns, $WhateverCode)
+                  && nqp::istype($check, QAST::Op);
+
+            if nqp::bitand_i($curried, 1)
+            && istype($check.returns, $HyperWhatever) {
                 $hyperwhatever := 1;
                 $whatevers++;
             }
             $i++;
         }
-        if $whatevers {
-            if $hyperwhatever && $whatevers > 1 {
-                $*W.throw($/, ['X', 'HyperWhatever', 'Multiple']);
-            }
-            my $was_chain := $past.op eq 'chain' ?? $past.name !! NQPMu;
-            my int $i := 0;
-            my @params;
-            my @old_args;
-            my $block := QAST::Block.new(
-                QAST::Stmts.new(), $past
-            ).annotate_self('statement_id', $*STATEMENT_ID
-            ).annotate_self: 'outer', $*W.cur_lexpad;
-            $*W.cur_lexpad()[0].push($block);
-            while $i < $e {
-                my $old := $past[$i];
-                $old := $old[0] if (nqp::istype($old, QAST::Stmts) ||
-                                    nqp::istype($old, QAST::Stmt)) &&
-                                   +@($old) == 1;
-                if nqp::bitand_i($curried, 2) && istype($old.returns, $WhateverCode) && nqp::istype($old, QAST::Op) {
-                    my $new;
-                    if $was_chain && $old.has_ann("chain_args") {
-                        $new := QAST::Op.new( :op<chain>, :name($old.ann('chain_name')), :node($/) );
-                        $old.ann('chain_block')[1] := QAST::Op.new( :op<die>, QAST::SVal.new( :value('This WhateverCode has been inlined into another WhateverCode and should not have been called!') ) );
-                        $old.ann('chain_block')[0] := QAST::Stmts.new( );
-                        for $old.ann('chain_past') {
-                            $new.push($_);
-                        }
-                        for $old.ann('chain_args') -> %arg {
-                            @params.push(%arg);
-                            $block[0].push(QAST::Var.new(:name(%arg<variable_name>), :scope<lexical>, :decl<var>));
-                        }
-                        nqp::push(@old_args, $new);
-                    } else {
-                        # Have to move the nested thunk inside this one, to get the
-                        # correct lexical scoping.
-                        my $old_ast := $old.ann('past_block');
-                        remove_block($*W.cur_lexpad(), $old_ast);
-                        $block[0].push($old_ast);
-                        $new := QAST::Op.new( :op<call>, :node($/), $old );
-                        my $acount := 0;
-                        while $acount < $old.arity {
-                            my $pname := $*W.cur_lexpad()[0].unique('$whatevercode_arg');
-                            @params.push(hash(
-                                :variable_name($pname),
-                                :nominal_type($*W.find_symbol(['Mu'])),
-                                :is_raw(1),
-                            ));
-                            $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl<var>));
-                            my $to_push := QAST::Var.new(:name($pname), :scope<lexical>);
-                            $new.push($to_push);
-                            nqp::push(@old_args, $to_push) if $was_chain;
-                            $acount++;
+        return $qast unless $whatevers;
+
+        $*W.throw: $/, ['X', 'HyperWhatever', 'Multiple']
+            if $hyperwhatever && $whatevers > 1;
+
+        my $was_chain := $qast.op eq 'chain' ?? $qast.name !! NQPMu;
+        my @params;
+        my @old_args;
+        my $curry := QAST::Block.new(QAST::Stmts.new, $qast
+            ).annotate_self( 'statement_id', $*STATEMENT_ID
+            ).annotate_self: 'outer',        $*W.cur_lexpad;
+        $*W.cur_lexpad[0].push: $curry;
+
+        $i := 0;
+        while $i < $e {
+            my $orig := $qast[$i];
+            $orig := $orig[0]
+              if (nqp::istype($orig, QAST::Stmts)
+              ||  nqp::istype($orig, QAST::Stmt)
+            ) && nqp::elems($orig) == 1;
+
+            if nqp::bitand_i($curried, 2) # can curry WhateverCode for this op
+            && istype($orig.returns, $WhateverCode)
+            && nqp::istype($orig, QAST::Op) {
+                my $orig-past := $orig.ann: 'past_block';
+                $qast[$i] := $orig-past[1];
+                for @($orig-past[0]) {
+                    if nqp::istype($_, QAST::Var) {
+                        # For QAST::Vars, ignore the params signature maker made
+                        unless $_.decl eq 'param' {
+                            $curry[0].push: nqp::clone($_);
+                            @params.push: hash(
+                              :variable_name($_.name),
+                              :nominal_type(
+                                  $*W.find_symbol: ['Mu'], :setting-only),
+                              :is_raw(1))
                         }
                     }
-                    $past[$i] := $new;
-                }
-                elsif nqp::bitand_i($curried, 1) && (istype($old.returns, $Whatever) || istype($old.returns, $HyperWhatever)) && nqp::isconcrete($old.value) {
-                    my $pname := $*W.cur_lexpad()[0].unique('$whatevercode_arg');
-                    @params.push(hash(
-                        :variable_name($pname),
-                        :nominal_type($*W.find_symbol(['Mu'])),
-                        :is_raw(1),
-                    ));
-                    $block[0].push(QAST::Var.new(:name($pname), :scope<lexical>, :decl('var')));
-                    $past[$i] := QAST::Var.new(:name($pname), :scope<lexical>);
-                    nqp::push(@old_args, $past[$i]) if $was_chain;
-                } else {
-                    if (my $old_ast := $old.ann: 'past_block') {
-                        remove_block($*W.cur_lexpad(), $old_ast);
-                        $block[0].push: $old_ast;
+                    else {
+                        $curry[0].push: $_;
                     }
-                    nqp::push(@old_args, $past[$i]) if $was_chain;
                 }
-                $i++;
+                $orig-past[1] := QAST::Op.new: :op<die>,
+                    QAST::SVal.new: :value('This WhateverCode has been inlined into another WhateverCode and should not have been called!');
             }
-            my %sig_info := hash(parameters => @params);
-            my $signature := $*W.create_signature_and_params($/, %sig_info, $block, 'Mu');
-            add_signature_binding_code($block, $signature, @params);
-
-            fatalize($block[1]) if $*FATAL;
-
-            my $code := $*W.create_code_object($block, 'WhateverCode', $signature);
-            $past := block_closure(reference_to_code_object($code, $block));
-            $past.returns($WhateverCode);
-            $past.arity(+@params);
-            if $was_chain {
-                $past.annotate('chain_past', @old_args);
-                $past.annotate('chain_args', @params);
-                $past.annotate('chain_name', $was_chain);
-                $past.annotate('chain_block', $block);
+            elsif nqp::bitand_i($curried, 1) # can curry [Hyper]Whatever for op
+            && ( istype($orig.returns, $Whatever)
+              || istype($orig.returns, $HyperWhatever))
+            && nqp::isconcrete($orig.value) {
+                # simply replace this child with a variable that will be set
+                # from the param of the curry we're making
+                my $param := QAST::Var.new(:scope<lexical>,
+                    :name($*W.cur_lexpad[0].unique: '$whatevercode_arg')
+                  ).annotate_self: 'whatever-var', 1;
+                @params.push: hash(
+                    :variable_name($param.name),
+                    :nominal_type($*W.find_symbol: ['Mu'], :setting-only),
+                    :is_raw(1));
+                $curry[0].push: $param.decl_as: <var>;
+                $qast[$i] := $param;
+                nqp::push(@old_args, $param) if $was_chain;
+            } elsif (my $orig_ast := $orig.ann: 'past_block') {
+                # This child is not one of the Whatevers or we're in an op
+                # that's not allowed to curry some of them. Simply ignore it,
+                # but ensure we migrate any QAST::Blocks, for correct scoping
+                remove_block($*W.cur_lexpad, $orig_ast);
+                $curry[0].push: $orig_ast;
             }
-            if $hyperwhatever {
-                $past := QAST::Op.new( :op<call>, :name<&HYPERWHATEVER>, $past );
-            }
+            $i++;
         }
-        $past;
+
+        # Bake the signature for our curry
+        my %sig_info := hash(parameters => @params);
+        my $signature := $*W.create_signature_and_params:
+            $/, %sig_info, $curry, 'Mu';
+        add_signature_binding_code($curry, $signature, @params);
+
+        fatalize($curry[1]) if $*FATAL;
+
+        # Create a code object for our curry
+        my $code := $*W.create_code_object: $curry, 'WhateverCode', $signature;
+        $qast := block_closure(reference_to_code_object($code, $curry));
+        $qast.returns: $WhateverCode;
+        $qast.arity: nqp::elems(@params);
+
+        # Hyperspace!
+        $qast := QAST::Op.new: :op<call>, :name<&HYPERWHATEVER>, $qast
+            if $hyperwhatever;
+        $qast;
     }
 
     sub remove_block($from, $block) {

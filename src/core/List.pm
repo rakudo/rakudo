@@ -1057,6 +1057,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                              IterationEnd
                          }
                      }
+                     method push-all($target --> IterationEnd) {
+                         nqp::while(
+                             $!todo,
+                             nqp::stmts(
+                                 ($target.push(nqp::atpos($!list,$!elems.rand.floor))),
+                                 ($!todo = $!todo - 1)
+                             )
+                         )
+                     }
                  }.new(self,number.Int))
               !! Seq.new(Rakudo::Iterator.Empty)
     }

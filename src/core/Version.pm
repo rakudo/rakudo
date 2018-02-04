@@ -65,6 +65,30 @@ class Version {
             self.new
         }
     }
+    # for use by the setting where we may not use regexes to parse
+    method new-from-git-describe(Version: str $v) {
+        my $strings  := nqp::split('.', $v);
+        my \minor = nqp::pop($strings);
+        my \extra = nqp::split('-', minor);
+        nqp::push($strings, nqp::shift(extra)) while nqp::elems(extra);
+            my int $elems = nqp::elems($strings);
+            my $parts    := nqp::setelems(nqp::list, $elems);
+
+            my int $i = -1;
+            while nqp::islt_i(++$i, $elems) {
+                my $s = nqp::atpos($strings, $i);
+                if nqp::iseq_s($s, '0') {
+                    nqp::bindpos($parts, $i, 0);
+                }
+                else {
+                    nqp::bindpos($parts, $i, $s);
+                    my $num := nqp::radix(10, $s, 0, 0);
+                    nqp::bindpos($parts, $i, nqp::atpos($num, 0) ?? nqp::atpos($num, 0) !! $s);
+                }
+            }
+        my str $string = nqp::join(".", $strings);
+        nqp::create(self)!SET-SELF($parts, 0, $string);
+    }
 
     multi method Str(Version:D:)  { $!string }
     multi method gist(Version:D:) { nqp::concat("v",$!string) }

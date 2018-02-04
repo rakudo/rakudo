@@ -4,8 +4,8 @@ class Perl does Systemic {
     submethod BUILD(
       :$!name      = 'Perl 6',
       :$!auth      = "The Perl Foundation",
-      :$!version   = Version.new(nqp::getcomp('perl6').language_version()),
-      :$!compiler  = Compiler.new
+      :$!version   = Version.new(nqp::p6box_s(nqp::getcomp('perl6').language_version())),
+      :$!compiler  = Compiler.new,
       --> Nil
     ) { }
 

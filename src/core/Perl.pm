@@ -25,8 +25,4 @@ class Perl does Systemic {
     method KERNELnames { <darwin linux freebsd openbsd netbsd dragonfly win32> }
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
-    PROCESS::<$PERL> := Perl.new;
-}
-
 # vim: ft=perl6 expandtab sw=4

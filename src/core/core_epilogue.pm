@@ -23,6 +23,17 @@ BEGIN {
     buf8.elems;
 }
 
+{
+    # Pre-fill caches to avoid concurrency issues
+    Version.new('6');
+    Version.new('6.c');
+
+    my $perl := Perl.new;
+    Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
+        PROCESS::<$PERL> := $perl;
+    }
+}
+
 {YOU_ARE_HERE}
 
 # vim: ft=perl6 expandtab sw=4

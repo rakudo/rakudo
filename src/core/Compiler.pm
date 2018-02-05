@@ -17,8 +17,9 @@ class Compiler does Systemic {
 # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
         $!id = nqp::p6box_s(nqp::ifnull(nqp::atkey($compiler,'id'),$id));
-        $!version = Version.new(
-          $version // nqp::p6box_s(nqp::atkey($compiler, 'version')) );
+        # looks like: 2018.01-50-g8afd791c1
+        $!version = $version
+            // Version.new-from-git-describe(nqp::atkey($compiler, 'version'));
         $!release =
           $release // nqp::p6box_s(nqp::atkey($compiler, 'release-number'));
         $!build-date =

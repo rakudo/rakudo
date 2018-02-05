@@ -28,7 +28,7 @@ BEGIN {
     Version.new('6');
     Version.new('6.c');
 
-    my $perl := Perl.new;
+    my $perl := BEGIN Perl.new;
     Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
         PROCESS::<$PERL> := $perl;
     }

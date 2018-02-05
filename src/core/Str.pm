@@ -30,7 +30,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ),
             $!value
           ),
-          ObjAt
+          ValueObjAt
         )
     }
     submethod BUILD(Str() :$value = '' --> Nil) {
@@ -1410,24 +1410,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method parse-names(Str:D:) {
-        my     \names := nqp::split(',', self);
-        my int $elems  = nqp::elems(names);
-        my int $i      = -1;
-        my str $res    = '';
-        nqp::while(
-            nqp::islt_i( ($i = nqp::add_i($i,1)), $elems ),
-            ($res = nqp::concat($res,
-                nqp::unless(
-                    nqp::getstrfromname(nqp::atpos(names, $i).trim),
-                    X::Str::InvalidCharName.new(
-                        :name(nqp::atpos(names, $i).trim)
-                    ).fail
-            ))),
-        );
-        $res
-    }
-
     multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
 
@@ -1598,7 +1580,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             # make the sequence
             Seq.new(class :: does Iterator {
                 has str $!string;
-                has str $!chars;
+                has int $!chars;
                 has str $!match;
                 has int $!match-chars;
                 has int $!todo;
@@ -2607,6 +2589,29 @@ my class Str does Stringy { # declared in BOOTSTRAP
             LSM.new(self,$substitutions,$squash,$complement).result;
         }
     }
+
+    method parse-names(Str:D:) {
+        # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
+        self.uniparse
+    }
+    method uniparse(Str:D:) {
+        my     \names := nqp::split(',', self);
+        my int $elems  = nqp::elems(names);
+        my int $i      = -1;
+        my str $res    = '';
+        nqp::while(
+            nqp::islt_i( ($i = nqp::add_i($i,1)), $elems ),
+            ($res = nqp::concat($res,
+                nqp::unless(
+                    nqp::getstrfromname(nqp::atpos(names, $i).trim),
+                    X::Str::InvalidCharName.new(
+                        :name(nqp::atpos(names, $i).trim)
+                    ).fail
+            ))),
+        );
+        $res
+    }
+
     proto method indent($) {*}
     # Zero indent does nothing
     multi method indent(Int() $steps where { $_ == 0 }) {
@@ -2692,7 +2697,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $pos -= $pos % $?TABSTOP;
                     $pos += $?TABSTOP;
                 } else {
-                    $pos++
+                    ++$pos
                 }
             }
             if $l<indent-chars> and $pos % $?TABSTOP {
@@ -2804,13 +2809,14 @@ multi sub infix:<~>(Str:D \a, Any:D \b) {
 }
 multi sub infix:<~>(*@args) { @args.join }
 
+multi sub infix:<x>(Str:D $s, Bool:D $repetition --> Str:D) {
+    nqp::if($repetition, $s, '')
+}
 multi sub infix:<x>(Str:D $s, Int:D $repetition --> Str:D) {
-    nqp::if(nqp::islt_i($repetition, 0),
-        '',
-        nqp::p6box_s(nqp::x(nqp::unbox_s($s), nqp::unbox_i($repetition))))
+    nqp::if(nqp::islt_i($repetition, 1), '', nqp::x($s, $repetition))
 }
 multi sub infix:<x>(str $s, int $repetition --> str) {
-    nqp::if(nqp::islt_i($repetition, 0), '', nqp::x($s, $repetition))
+    nqp::if(nqp::islt_i($repetition, 1), '', nqp::x($s, $repetition))
 }
 
 multi sub infix:<cmp>(Str:D \a, Str:D \b --> Order:D) {
@@ -3020,8 +3026,6 @@ sub chrs(*@c --> Str:D) {
 proto sub parse-base(|) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 
-sub parse-names(Str:D $str) { $str.parse-names }
-
 proto sub substr(|) {*}
 multi sub substr(Str:D \what, Int:D \start) {
     my str $str  = nqp::unbox_s(what);
@@ -3058,6 +3062,9 @@ multi sub substr(Str:D \what, Int:D \start, Int:D \want) {
     nqp::p6box_s(nqp::substr($str,$from,$chars));
 }
 multi sub substr(Str() $what, \start, $want?) {
+
+    die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314
+      if nqp::istype(start,Regex);
 
     # should really be int, but \ then doesn't work for rw access
     my $r := Rakudo::Internals.SUBSTR-SANITY($what, start, $want, my Int $from, my Int $chars);
@@ -3107,5 +3114,11 @@ multi sub infix:<eqv>(Str:D \a, Str:D \b) {
 
 proto sub samemark(|) {*}
 multi sub samemark($s, $pat) { $s.samemark($pat) }
+
+sub parse-names(Str:D \names) {
+    # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
+    names.uniparse
+}
+sub uniparse (Str:D \names) { names.uniparse }
 
 # vim: ft=perl6 expandtab sw=4

@@ -162,15 +162,6 @@ my class Seq is Cool does Iterable does Sequence {
     multi method from-loop(&body, &cond, &afterwards) {
         Seq.new(Rakudo::Iterator.CStyleLoop(&body, &cond, &afterwards))
     }
-
-    multi method skip() {
-        my $iter := self.iterator;
-        Seq.new( $iter.skip-one ?? $iter !! Rakudo::Iterator.Empty )
-    }
-    multi method skip(Int() $n) {
-        my $iter := self.iterator;
-        Seq.new( $iter.skip-at-least($n) ?? $iter !! Rakudo::Iterator.Empty )
-    }
 }
 
 sub GATHER(&block) {
@@ -348,5 +339,11 @@ multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
       )
     )
 }
+
+# The Empty Sequence
+my constant EmptySeq = nqp::p6bindattrinvres(
+  nqp::create( class EmptySeq is Seq {
+      method iterator() { nqp::getattr(self,Seq,'$!iter') }
+  }),Seq,'$!iter',Rakudo::Iterator.Empty);
 
 # vim: ft=perl6 expandtab sw=4

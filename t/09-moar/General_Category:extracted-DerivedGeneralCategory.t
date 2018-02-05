@@ -1,5 +1,5 @@
 use Test;
-use lib 't/08-moar';
+use lib 't/09-moar';
 use UnipropCheck;
 # Please edit UnipropCheck.pm6 to change todo settings!
 sub MAIN (Str $folder?, Bool:D :$debug = False) {

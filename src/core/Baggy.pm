@@ -433,7 +433,7 @@ my role Baggy does QuantHash {
     multi method pick(Baggy:D: $count) {
         Seq.new(
           (my $total := self.total) < 1
-            || (my $todo = $count == Inf ?? $total !! $count.Int) < 1
+            || (my $todo := $count == Inf ?? $total !! $count.Int) < 1
             ?? Rakudo::Iterator.Empty            # nothing to do
             !! class :: does Iterator {
               has $!raw;      # the IterationSet of the Baggy
@@ -611,7 +611,7 @@ my role Baggy does QuantHash {
                 ).throw;
             }
             else {
-                self{$tested}++;
+                ++self{$tested};
             }
         }
         self;
@@ -647,7 +647,7 @@ my role Baggy does QuantHash {
             # simple categorize
             else {
                 loop {
-                    self{$_}++ for @$tested;
+                    ++self{$_} for @$tested;
                     last if ($value := iter.pull-one) =:= IterationEnd;
                     nqp::istype(($tested := test($value))[0], Iterable)
                         and X::Invalid::ComputedValue.new(

@@ -105,6 +105,41 @@ multi sub doesn't-hang (
     };
 }
 
+sub make-rand-path (--> IO::Path:D) {
+    my $p = $*TMPDIR;
+    # XXX TODO .resolve is broken on Windows in Rakudo; .resolve for all OSes
+    # when it is fixed
+    $p .= resolve unless $*DISTRO.is-win;
+    $p.child: (
+        'perl6_roast_',
+        $*PROGRAM.basename, '_line',
+        ((try callframe(3).code.line)||''), '_',
+        rand,
+        time,
+    ).join.subst: :g, /\W/, '_';
+}
+my @FILES-FOR-make-temp-file;
+my @DIRS-FOR-make-temp-dir;
+END {
+    unlink @FILES-FOR-make-temp-file;
+    rmdir  @DIRS-FOR-make-temp-dir;
+}
+sub make-temp-path(|c) is export { make-temp-file |c }
+sub make-temp-file
+    (:$content where Any:U|Blob|Cool, Int :$chmod --> IO::Path:D) is export
+{
+    @FILES-FOR-make-temp-file.push: my \p = make-rand-path;
+    with   $chmod   { p.spurt: $content // ''; p.chmod: $_ }
+    orwith $content { p.spurt: $_ }
+    p
+}
+sub make-temp-dir (Int $chmod? --> IO::Path:D) is export {
+    @DIRS-FOR-make-temp-dir.push: my \p = make-rand-path;
+    p.mkdir;
+    p.chmod: $_ with $chmod;
+    p
+}
+
 =begin pod
 
 =head2 is-run
@@ -194,5 +229,26 @@ B<Optional>. Takes a C<.defined> object that will be smartmatched against
 C<Str> containing program's STDERR. If the program doesn't finish before
 C<:wait> seconds, no attempt to check STDERR will be made. B<By default>
 not specified.
+
+=head2  make-temp-file(:$content, :$chmod)
+
+    sub make-temp-file(:$content where Blob|Cool, Int :$chmod --> IO::Path:D)
+
+Creates a semi-random path in C<$*TMPDIR>, optionally setting C<$chmod> and
+spurting C<$content> into it. If C<$chmod> is set, but C<$content> isn't,
+spurts an empty string. Automatically deletes the file with C<END> phaser.
+
+=head2  make-temp-path(:$content, :$chmod)
+
+Alias for C<make-temp-file>
+
+=head2 make-temp-dir($chmod?)
+
+    sub make-temp-dir (Int $chmod? --> IO::Path:D)
+
+Creates a semi-randomly named directory in C<$*TMPDIR>, optionally setting
+C<$chmod>, and returns an C<IO::Path> pointing to it. Automatically
+C<rmdir>s it with C<END> phaser. It's your responsibility to ensure the
+directory is empty at that time.
 
 =end pod

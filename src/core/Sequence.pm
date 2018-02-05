@@ -50,7 +50,7 @@ my role Sequence does PositionalBindFailover {
 
     method Numeric(::?CLASS:D:) { self.cache.elems }
 
-    multi method AT-POS(::?CLASS:D: Int $idx) is raw {
+    multi method AT-POS(::?CLASS:D: Int:D $idx) is raw {
         self.cache.AT-POS($idx)
     }
 
@@ -58,7 +58,7 @@ my role Sequence does PositionalBindFailover {
         self.cache.AT-POS($idx)
     }
 
-    multi method EXISTS-POS(::?CLASS:D: Int $idx) {
+    multi method EXISTS-POS(::?CLASS:D: Int:D $idx) {
         self.cache.EXISTS-POS($idx)
     }
 

@@ -21,14 +21,17 @@ class Version {
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$string)
     }
+
+    my $v6;
+    my $v6c;
     multi method new(Version: Str() $s) {
 
         # highlanderize most common
         if $s eq '6' {
-            INIT nqp::create(Version)!SET-SELF(nqp::list(6),0,"6") # should be once
+            $v6 //= nqp::create(Version)!SET-SELF(nqp::list(6),0,"6") # should be once
         }
-        elsif $s eq '6.c' {
-            INIT nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c") # should be once
+        elsif $s eq '6.c' { # also adapt src/core/core_epilogue.pm if you make changes here
+            $v6c //= nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c") # should be once
         }
 
         # something sensible given
@@ -64,6 +67,30 @@ class Version {
         else {
             self.new
         }
+    }
+    # for use by the setting where we may not use regexes to parse
+    method new-from-git-describe(Version: str $v) {
+        my $strings  := nqp::split('.', $v);
+        my \minor = nqp::pop($strings);
+        my \extra = nqp::split('-', minor);
+        nqp::push($strings, nqp::shift(extra)) while nqp::elems(extra);
+            my int $elems = nqp::elems($strings);
+            my $parts    := nqp::setelems(nqp::list, $elems);
+
+            my int $i = -1;
+            while nqp::islt_i(++$i, $elems) {
+                my $s = nqp::atpos($strings, $i);
+                if nqp::iseq_s($s, '0') {
+                    nqp::bindpos($parts, $i, 0);
+                }
+                else {
+                    nqp::bindpos($parts, $i, $s);
+                    my $num := nqp::radix(10, $s, 0, 0);
+                    nqp::bindpos($parts, $i, nqp::atpos($num, 0) ?? nqp::atpos($num, 0) !! $s);
+                }
+            }
+        my str $string = nqp::join(".", $strings);
+        nqp::create(self)!SET-SELF($parts, 0, $string);
     }
 
     multi method Str(Version:D:)  { $!string }
@@ -115,7 +142,7 @@ class Version {
             ),
             $!string
           ),
-          ObjAt
+          ValueObjAt
         )
     }
 
@@ -126,11 +153,11 @@ class Version {
 
 multi sub infix:<eqv>(Version:D \a, Version:D \b) {
     nqp::p6bool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && nqp::iseq_s(
-               nqp::getattr_s(a,Version,'$!string'),
-               nqp::getattr_s(b,Version,'$!string')
+               nqp::getattr_s(nqp::decont(a),Version,'$!string'),
+               nqp::getattr_s(nqp::decont(b),Version,'$!string')
              ))
     )
 }

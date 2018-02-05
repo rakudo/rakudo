@@ -31,13 +31,21 @@ my class Promise does Awaitable {
     has int $!vow_taken;
     has $!lock;
     has $!cond;
-    has @!thens;
+    has $!thens;
     has Mu $!dynamic_context;
 
-    submethod BUILD(:$!scheduler = $*SCHEDULER --> Nil) {
+    submethod new(:$scheduler = $*SCHEDULER) {
+        my \p = nqp::create(self);
+        p.BUILD(:$scheduler);
+        p
+    }
+
+    submethod BUILD(:$scheduler = $*SCHEDULER --> Nil) {
+        $!scheduler       := $scheduler;
         $!lock            := nqp::create(Lock);
         $!cond            := $!lock.condition();
-        $!status           = Planned;
+        $!status          := Planned;
+        $!thens           := nqp::list();
     }
 
     # A Vow is used to enable the right to keep/break a promise
@@ -90,7 +98,7 @@ my class Promise does Awaitable {
     method !keep(Mu \result --> Nil) {
         $!lock.protect({
             $!result := result;
-            $!status = Kept;
+            $!status := Kept;
             self!schedule_thens();
             $!cond.signal_all;
         });
@@ -118,18 +126,18 @@ my class Promise does Awaitable {
 
     method !break(\result --> Nil) {
         $!lock.protect({
-            $!result = nqp::istype(result, Exception)
+            $!result := nqp::istype(result, Exception)
                 ?? result
                 !! X::AdHoc.new(payload => result);
-            $!status = Broken;
+            $!status := Broken;
             self!schedule_thens();
             $!cond.signal_all;
         });
     }
 
     method !schedule_thens(--> Nil) {
-        while @!thens {
-            $!scheduler.cue(@!thens.shift, :catch(@!thens.shift))
+        while nqp::elems($!thens) {
+            $!scheduler.cue(nqp::shift($!thens), :catch(nqp::shift($!thens)))
         }
     }
 
@@ -157,7 +165,7 @@ my class Promise does Awaitable {
     }
 
     method cause(Promise:D:) {
-        my $status = $!status;
+        my $status := $!status;
         if $status == Broken {
             $!result
         } else {
@@ -176,15 +184,15 @@ my class Promise does Awaitable {
             self.WHAT.start( { code(self) }, :$!scheduler);
         }
         else {
-            # Create a Promise, and push 2 entries to @!thens: something that
+            # Create a Promise, and push 2 entries to $!thens: something that
             # starts the then code, and something that handles its exceptions.
             # They will be sent to the scheduler when this promise is kept or
             # broken.
             my $then-p := self.new(:$!scheduler);
             nqp::bindattr($then-p, Promise, '$!dynamic_context', nqp::ctx());
-            my $vow = $then-p.vow;
-            @!thens.push({ my $*PROMISE := $then-p; $vow.keep(code(self)) });
-            @!thens.push(-> $ex { $vow.break($ex) });
+            my $vow := $then-p.vow;
+            nqp::push($!thens, { my $*PROMISE := $then-p; $vow.keep(code(self)) });
+            nqp::push($!thens, -> $ex { $vow.break($ex) });
             nqp::unlock($!lock);
             $then-p
         }
@@ -223,10 +231,10 @@ my class Promise does Awaitable {
                     on-ready($!status == Kept, $!result)
                 }
                 else {
-                    # Push 2 entries to @!thens (only need the first one in
+                    # Push 2 entries to $!thens (only need the first one in
                     # this case; second we push 'cus .then uses it).
-                    @!thens.push({ on-ready($!status == Kept, $!result) });
-                    @!thens.push(Callable);
+                    nqp::push($!thens, { on-ready($!status == Kept, $!result) });
+                    nqp::push($!thens, Callable);
                     nqp::unlock($!lock);
                 }
             }
@@ -236,7 +244,7 @@ my class Promise does Awaitable {
     method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER, |c) {
         my $p := self.new(:$scheduler);
         nqp::bindattr($p, Promise, '$!dynamic_context', nqp::ctx());
-        my $vow = $p.vow;
+        my $vow := $p.vow;
         $scheduler.cue(
             { my $*PROMISE := $p; $vow.keep(code(|c)) },
             :catch(-> $ex { catch($ex) if &catch; $vow.break($ex); }) );
@@ -244,8 +252,8 @@ my class Promise does Awaitable {
     }
 
     method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) {
-        my $p   = self.new(:$scheduler);
-        my $vow = $p.vow;
+        my $p   := self.new(:$scheduler);
+        my $vow := $p.vow;
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));
         $p
     }
@@ -256,8 +264,8 @@ my class Promise does Awaitable {
     method anyof(Promise:U: *@p) { self!until_n_kept(@p,   1, 'anyof') }
     method allof(Promise:U: *@p) { self!until_n_kept(@p, +@p, 'allof') }
 
-    method !until_n_kept(@promises, Int $N, Str $combinator) {
-        my $p = self.new;
+    method !until_n_kept(@promises, Int:D $N, Str $combinator) {
+        my $p := self.new;
         unless @promises {
             $p.keep;
             return $p
@@ -269,7 +277,7 @@ my class Promise does Awaitable {
         my int $n  = $N;
         my int $c  = $n;
         my $lock  := nqp::create(Lock);
-        my $vow    = $p.vow;
+        my $vow   := $p.vow;
         for @promises -> $cand {
             $cand.then({
                 if $lock.protect({ $c = $c - 1 }) == 0 {

@@ -8,9 +8,9 @@ use QRegex;
 #
 # One particular circularity we break here is that you can't have
 # inheritance in Perl 6 without traits, but that needs multiple
-# dispatch, which can't function without some a type hierarchy in
-# place. It also needs us to be able to declare a signature with
-# parameters and a code objects with dispatchees, which in turn need
+# dispatch, which can't function without some type hierarchy in
+# place. It also needs us to be able to declare signatures with
+# parameters and code objects with dispatchees, which in turn needs
 # attributes. So, we set up quite a few bits in here, though the aim
 # is to keep it "lagom". :-)
 
@@ -1598,7 +1598,10 @@ BEGIN {
         }));
     Parameter.HOW.add_method(Parameter, 'set_coercion', nqp::getstaticcode(sub ($self, $type) {
             my $dcself := nqp::decont($self);
-            nqp::bindattr_s($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
+            nqp::bindattr_s($dcself, Parameter, '$!coerce_method',
+              nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW)
+              ?? $type.HOW.base_type($type).HOW.name($type.HOW.base_type: $type)
+              !! $type.HOW.name($type));
             nqp::bindattr($dcself, Parameter, '$!coerce_type', nqp::decont($type));
             $dcself
         }));
@@ -1684,80 +1687,88 @@ BEGIN {
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
     Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block, :!auto_viv_container));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
-            my $dcself    := nqp::decont($self);
-            return $dcself unless nqp::isconcrete($dcself);
-
-            my $cloned    := nqp::clone($dcself);
-            my $do        := nqp::getattr($dcself, Code, '$!do');
-            my $do_cloned := nqp::clone($do);
-            nqp::bindattr($cloned, Code, '$!do', $do_cloned);
-            nqp::setcodeobj($do_cloned, $cloned);
+            my $dcself := nqp::decont($self);
+            if nqp::isconcrete($dcself) {
+                my $cloned    := nqp::clone($dcself);
+                my $do        := nqp::getattr($dcself, Code, '$!do');
+                my $do_cloned := nqp::clone($do);
+                nqp::bindattr($cloned, Code, '$!do', $do_cloned);
+                nqp::setcodeobj($do_cloned, $cloned);
 #?if moar
-            my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
-            if nqp::isconcrete($phasers) {
-                my int $next := nqp::existskey($phasers, 'NEXT');
-                my int $last := nqp::existskey($phasers, 'LAST');
-                my int $quit := nqp::existskey($phasers, 'QUIT');
-                my int $close := nqp::existskey($phasers, 'CLOSE');
-                if $next +| $last +| $quit +| $close {
-                    my %pclone := nqp::clone($phasers);
-                    if $next {
-                        my @nexts := nqp::clone($phasers<NEXT>);
-                        my int $i := 0;
-                        while $i < nqp::elems(@nexts) {
-                            @nexts[$i] := @nexts[$i].clone();
-                            ++$i;
-                        }
-                        %pclone<NEXT> := @nexts;
-                    }
-                    if $last {
-                        my @lasts := nqp::clone($phasers<LAST>);
-                        my int $i := 0;
-                        while $i < nqp::elems(@lasts) {
-                            nqp::captureinnerlex(nqp::getattr(
-                                (@lasts[$i] := @lasts[$i].clone()),
-                                Code, '$!do'));
-                            ++$i;
-                        }
-                        %pclone<LAST> := @lasts;
-                    }
-                    if $quit {
-                        my @quits := nqp::clone($phasers<QUIT>);
-                        my int $i := 0;
-                        while $i < nqp::elems(@quits) {
-                            nqp::captureinnerlex(nqp::getattr(
-                                (@quits[$i] := @quits[$i].clone()),
-                                Code, '$!do'));
-                            ++$i;
-                        }
-                        %pclone<QUIT> := @quits;
-                    }
-                    if $close {
-                        my @closes := nqp::clone($phasers<CLOSE>);
-                        my int $i := 0;
-                        while $i < nqp::elems(@closes) {
-                            nqp::captureinnerlex(nqp::getattr(
-                                (@closes[$i] := @closes[$i].clone()),
-                                Code, '$!do'));
-                            ++$i;
-                        }
-                        %pclone<CLOSE> := @closes;
-                    }
-                    nqp::bindattr($cloned, Block, '$!phasers', %pclone);
+                my $phasers := nqp::getattr($dcself, Block, '$!phasers');
+                if nqp::isconcrete($phasers) {
+                    $dcself."!clone_phasers"($cloned, $phasers);
                 }
+#?endif
+                my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
+                unless nqp::isnull($compstuff) {
+                    nqp::atpos($compstuff, 2)($do, $cloned);
+                }
+                # XXX this should probably be done after the clone that installs
+                #     the sub
+                my $why := nqp::getattr($dcself, Block, '$!why');
+                unless nqp::isnull($why) {
+                    $why.set_docee($cloned);
+                }
+                $cloned
+            }
+            else {
+                $dcself
+            }
+        }));
+    Block.HOW.add_method(Block, '!clone_phasers', nqp::getstaticcode(sub ($self, $cloned, $phasers) {
+#?if moar
+            my int $next := nqp::existskey($phasers, 'NEXT');
+            my int $last := nqp::existskey($phasers, 'LAST');
+            my int $quit := nqp::existskey($phasers, 'QUIT');
+            my int $close := nqp::existskey($phasers, 'CLOSE');
+            if $next +| $last +| $quit +| $close {
+                my %pclone := nqp::clone($phasers);
+                if $next {
+                    my @nexts := nqp::clone($phasers<NEXT>);
+                    my int $i := 0;
+                    while $i < nqp::elems(@nexts) {
+                        @nexts[$i] := @nexts[$i].clone();
+                        ++$i;
+                    }
+                    %pclone<NEXT> := @nexts;
+                }
+                if $last {
+                    my @lasts := nqp::clone($phasers<LAST>);
+                    my int $i := 0;
+                    while $i < nqp::elems(@lasts) {
+                        nqp::captureinnerlex(nqp::getattr(
+                            (@lasts[$i] := @lasts[$i].clone()),
+                            Code, '$!do'));
+                        ++$i;
+                    }
+                    %pclone<LAST> := @lasts;
+                }
+                if $quit {
+                    my @quits := nqp::clone($phasers<QUIT>);
+                    my int $i := 0;
+                    while $i < nqp::elems(@quits) {
+                        nqp::captureinnerlex(nqp::getattr(
+                            (@quits[$i] := @quits[$i].clone()),
+                            Code, '$!do'));
+                        ++$i;
+                    }
+                    %pclone<QUIT> := @quits;
+                }
+                if $close {
+                    my @closes := nqp::clone($phasers<CLOSE>);
+                    my int $i := 0;
+                    while $i < nqp::elems(@closes) {
+                        nqp::captureinnerlex(nqp::getattr(
+                            (@closes[$i] := @closes[$i].clone()),
+                            Code, '$!do'));
+                        ++$i;
+                    }
+                    %pclone<CLOSE> := @closes;
+                }
+                nqp::bindattr($cloned, Block, '$!phasers', %pclone);
             }
 #?endif
-            my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
-            unless nqp::isnull($compstuff) {
-                $compstuff[2]($do, $cloned);
-            }
-            # XXX this should probably be done after the clone that installs
-            #     the sub
-            my $why := nqp::getattr($dcself, Block, '$!why');
-            unless nqp::isnull($why) {
-                $why.set_docee($cloned);
-            }
-            $cloned
         }));
     Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
@@ -3223,68 +3234,82 @@ nqp::sethllconfig('perl6', nqp::hash(
         $result
     },
     'exit_handler', -> $coderef, $resultish {
-        my $code := nqp::getcodeobj($coderef);
-        my %phasers := nqp::getattr($code, Block, '$!phasers');
-        unless nqp::isnull(%phasers) || nqp::p6inpre() {
+        unless nqp::p6inpre() {
+            my %phasers :=
+              nqp::getattr(nqp::getcodeobj($coderef),Block,'$!phasers');
             my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
-            my @keeps  := nqp::atkey(%phasers, 'KEEP');
-            my @undos  := nqp::atkey(%phasers, 'UNDO');
+            my @posts  := nqp::atkey(%phasers, 'POST');
             my @exceptions;
             unless nqp::isnull(@leaves) {
-                my int $n := nqp::elems(@leaves);
-                my int $i := 0;
-                my int $run;
-                my $phaser;
-                while $i < $n {
-                    $phaser := nqp::decont(nqp::atpos(@leaves, $i));
-                    $run := 1;
-                    unless nqp::isnull(@keeps) {
-                        for @keeps {
-                            if nqp::decont($_) =:= $phaser {
-                                $run := !nqp::isnull($resultish) &&
-                                         nqp::isconcrete($resultish) &&
-                                         $resultish.defined;
-                                last;
-                            }
-                        }
-                    }
-                    unless nqp::isnull(@undos) {
-                        for @undos {
-                            if nqp::decont($_) =:= $phaser {
-                                $run := nqp::isnull($resultish) ||
-                                        !nqp::isconcrete($resultish) ||
-                                        !$resultish.defined;
-                                last;
-                            }
-                        }
-                    }
-                    if $run {
+
+                # only have a single LEAVEish phaser, so no frills needed
+                if nqp::elems(@leaves) == 1 && nqp::elems(%phasers) == 1 {
 #?if jvm
-                        $phaser();
+                    nqp::decont(nqp::atpos(@leaves,0))();
 #?endif
 #?if moar
-                        nqp::p6capturelexwhere($phaser.clone())();
+                    nqp::p6capturelexwhere(
+                      nqp::decont(nqp::atpos(@leaves,0)).clone)();
 #?endif
-                        CATCH { nqp::push(@exceptions, $_) }
+                    # don't bother to CATCH, there can only be one exception
+                }
+
+                # slow path here
+                else {
+                    my @keeps  := nqp::atkey(%phasers, 'KEEP');
+                    my @undos  := nqp::atkey(%phasers, 'UNDO');
+                    my int $n := nqp::elems(@leaves);
+                    my int $i := -1;
+                    my int $run;
+                    my $phaser;
+                    while ++$i < $n {
+                        $phaser := nqp::decont(nqp::atpos(@leaves, $i));
+                        $run := 1;
+                        unless nqp::isnull(@keeps) {
+                            for @keeps {
+                                if nqp::eqaddr(nqp::decont($_),$phaser) {
+                                    $run := !nqp::isnull($resultish) &&
+                                             nqp::isconcrete($resultish) &&
+                                             $resultish.defined;
+                                    last;
+                                }
+                            }
+                        }
+                        unless nqp::isnull(@undos) {
+                            for @undos {
+                                if nqp::eqaddr(nqp::decont($_),$phaser) {
+                                    $run := nqp::isnull($resultish) ||
+                                            !nqp::isconcrete($resultish) ||
+                                            !$resultish.defined;
+                                    last;
+                                }
+                            }
+                        }
+                        if $run {
+#?if jvm
+                            $phaser();
+#?endif
+#?if moar
+                            nqp::p6capturelexwhere($phaser.clone())();
+#?endif
+                            CATCH { nqp::push(@exceptions, $_) }
+                        }
                     }
-                    ++$i;
                 }
             }
 
-            my @posts := nqp::atkey(%phasers, 'POST');
             unless nqp::isnull(@posts) {
+                my $value := nqp::ifnull($resultish,Mu);
                 my int $n := nqp::elems(@posts);
-                my int $i := 0;
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
 #?if jvm
-                    nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
+                    nqp::atpos(@posts, $i)($value);
 #?endif
 #?if moar
-                    nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
-                        nqp::ifnull($resultish, Mu));
+                    nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);
 #?endif
                     CATCH { nqp::push(@exceptions, $_); last; }
-                    ++$i;
                 }
             }
 

@@ -1,5 +1,5 @@
 #! perl6
-# Copyright (C) 2013-2017, The Perl Foundation.
+# Copyright (C) 2013-2018, The Perl Foundation.
 
 use v6;
 my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, $blib, @libpaths) = @*ARGS;

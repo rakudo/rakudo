@@ -36,7 +36,7 @@ my class Proc {
                     $cur-promise .= then({ $!proc.close-stdin; });
                     self!await-if-last-handle
                 }));
-            $!active-handles++;
+            ++$!active-handles;
             $!w := True;
         }
         elsif nqp::istype($in, Str) && $in eq '-' {
@@ -52,7 +52,7 @@ my class Proc {
             $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
                 :on-read({ (try $chan.receive) // buf8 }),
                 :on-close({ self!await-if-last-handle }));
-            $!active-handles++;
+            ++$!active-handles;
             @!pre-spawn.push({
                 $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
                     done => { $chan.close },
@@ -81,7 +81,7 @@ my class Proc {
                         &!start-stdout = Nil;
                         await $stdout-supply.native-descriptor
                     }));
-                $!active-handles++;
+                ++$!active-handles;
                 @!pre-spawn.push({
                     $stdout-supply = $!proc.stdout(:bin)
                 });
@@ -119,7 +119,7 @@ my class Proc {
                         $!active-handles--;
                         await $stderr-supply.native-descriptor
                     }));
-                $!active-handles++;
+                ++$!active-handles;
                 @!pre-spawn.push({
                     $stderr-supply = $!proc.stderr(:bin);
                 });
@@ -151,10 +151,10 @@ my class Proc {
     }
 
     method !wait-for-finish {
-        CATCH { default { self.status(0x100) } }
+        CATCH { default { self!set-status(0x100) } }
         &!start-stdout() if &!start-stdout;
         &!start-stderr() if &!start-stderr;
-        self.status(await($!finished).status) if $!exitcode == -1;
+        self!set-status(await($!finished).status) if $!exitcode == -1;
     }
 
     method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {
@@ -176,7 +176,7 @@ my class Proc {
         .() for @!pre-spawn;
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         my $is-spawned := do {
-            CATCH { default { self.status(0x100) } }
+            CATCH { default { self!set-status(0x100) } }
             await $!proc.ready;
             True
         } // False;
@@ -185,6 +185,17 @@ my class Proc {
         $is-spawned
     }
 
+    method !set-status($new_status) {
+        $!exitcode = $new_status +> 8;
+        $!signal   = $new_status +& 0xFF;
+    }
+    method !status() {
+        self!wait-for-finish;
+        ($!exitcode +< 8) +| $!signal
+    }
+
+    # see https://github.com/rakudo/rakudo/issues/1366
+    # should be deprecated and removed
     proto method status(|) {*}
     multi method status($new_status) {
         $!exitcode = $new_status +> 8;
@@ -194,6 +205,7 @@ my class Proc {
         self!wait-for-finish;
         ($!exitcode +< 8) +| $!signal
     }
+
     multi method Numeric(Proc:D:) {
         self!wait-for-finish;
         $!exitcode

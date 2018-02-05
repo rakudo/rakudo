@@ -1,6 +1,6 @@
 # the uses of add_I in this class are a trick to make bigints work right
 my class IntStr is Int is Str {
-    method new(Int $i, Str $s) {
+    method new(Int:D $i, Str:D $s) {
         my \SELF = nqp::add_I($i, 0, self);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;
@@ -60,6 +60,22 @@ my class RatStr is Rat is Str {
             nqp::istype(a, Str),
             self.Str.ACCEPTS(a),
             self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)))
+    }
+    method succ(RatStr:D: --> Rat:D) {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
+            nqp::add_I(
+              nqp::getattr(self, Rat, '$!numerator'),
+              nqp::getattr(self, Rat, '$!denominator'), Int)),
+          Rat, '$!denominator', nqp::getattr(self, Rat, '$!denominator'))
+    }
+    method pred(RatStr:D: --> Rat:D) {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
+            nqp::sub_I(
+              nqp::getattr(self, Rat, '$!numerator'),
+              nqp::getattr(self, Rat, '$!denominator'), Int)),
+          Rat, '$!denominator', nqp::getattr(self, Rat, '$!denominator'))
     }
     method Capture(RatStr:D:) { self.Mu::Capture }
     multi method Numeric(RatStr:D:) { self.Rat }
@@ -159,9 +175,16 @@ multi sub val(Mu) {
     Mu
 }
 
-# needed to preserve slip-ness
-multi sub val(Slip:D $maybevals) {
-    val(|$maybevals).Slip
+# if Slip, preserve slipness
+multi sub val(List:D $maybevals) {
+    nqp::stmts(
+        (my $output := val(|$maybevals)),
+        nqp::if(
+            nqp::istype($maybevals, Slip),
+            $output.Slip,
+            $output
+        )
+    )
 }
 
 multi sub val(Pair:D \ww-thing) is raw {

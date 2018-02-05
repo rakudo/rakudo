@@ -4,6 +4,8 @@ my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
 
+my class ValueObjAt is ObjAt { }
+
 my class Mu { # declared in BOOTSTRAP
 
     method self { self }
@@ -29,7 +31,7 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::concat(nqp::unbox_s(self.^name), '|U'),
                 nqp::objectid(self)
             ),
-            ObjAt
+            ValueObjAt
         )
     }
     multi method WHICH(Mu:D:) {
@@ -640,15 +642,17 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         nqp::if(
           nqp::eqaddr(self,IterationEnd),
           "IterationEnd",
-          self.perlseen(self.^name, {
-              my @attrs;
-              for self.^attributes().flat.grep: { .has_accessor } -> $attr {
-                  my $name := substr($attr.Str,2);
-                  @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
-              }
-              self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
-          })
-        )
+          nqp::if(
+            nqp::iscont(self), # a Proxy object would have a conted `self`
+            nqp::decont(self).perl,
+            self.perlseen: self.^name, {
+                my @attrs;
+                for self.^attributes().flat.grep: { .has_accessor } -> $attr {
+                    my $name := substr($attr.Str,2);
+                    @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
+                }
+                self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
+            }))
     }
 
     proto method DUMP(|) {*}
@@ -788,6 +792,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     # XXX TODO: Handle positional case.
     method dispatch:<var>(Mu \SELF: $var, |c) is raw {
+        # Note: many cases of this dispatch are rewritten in Perl6::Actions
+        # to directly call the stuff in $var, bypassing this method
         $var(SELF, |c)
     }
 
@@ -813,11 +819,6 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
               typename => type.^name,
               :private,
             ).throw;
-    }
-
-    method dispatch:<.=>(\mutate: Str() $name, |c) is raw {
-        $/ := nqp::getlexcaller('$/');
-        mutate = mutate."$name"(|c)
     }
 
     method dispatch:<.?>(Mu \SELF: Str() $name, |c) is raw {

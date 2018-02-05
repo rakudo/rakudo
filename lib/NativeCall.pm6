@@ -654,9 +654,19 @@ multi sub nativecast(Signature $target-type, $source) is export(:DEFAULT) {
     $r
 }
 
+multi sub nativecast(Int $target-type, $source) is export(:DEFAULT) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        Int, nqp::decont($source));
+}
+
+multi sub nativecast(Num $target-type, $source) is export(:DEFAULT) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        Num, nqp::decont($source));
+}
+
 multi sub nativecast($target-type, $source) is export(:DEFAULT) {
     nqp::nativecallcast(nqp::decont($target-type),
-        nqp::decont(map_return_type($target-type)), nqp::decont($source));
+        nqp::decont($target-type), nqp::decont($source));
 }
 
 sub nativesizeof($obj) is export(:DEFAULT) {

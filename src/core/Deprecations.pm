@@ -101,7 +101,7 @@ sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool 
     die $dep.report if $fatal;
 
     # update callsite
-    $dep.callsites{$file // $callsite.file.IO}{$line // $callsite.line}++;
+    ++$dep.callsites{$file // $callsite.file.IO}{$line // $callsite.line};
 }
 
 END {

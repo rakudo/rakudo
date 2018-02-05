@@ -23,8 +23,8 @@ my class CallFrame {
         )
     }
 
-    only method new(CallFrame: Int $level = 0) {  # MUST BE AN only
-        nqp::create(CallFrame).SET-SELF(          # wrt to backtrace levels
+    only method new(CallFrame: Int:D $level = 0) {  # MUST BE AN only
+        nqp::create(CallFrame).SET-SELF(            # wrt to backtrace levels
           $level,
           nqp::ctxcaller(nqp::ctx),
           nqp::backtrace(nqp::handle(nqp::die(''),'CATCH',nqp::exception))
@@ -37,7 +37,7 @@ my class CallFrame {
         my \vm-code = nqp::ctxcode(nqp::getattr($!my,Map,'$!storage'));
         nqp::isnull(vm-code) ?? Nil !! nqp::getcodeobj(vm-code)
     }
-    method callframe(Int $?) {
+    method callframe(Int:D $?) {
         X::NYI.new(feature => 'Callframe.callframe').throw;
     }
 
@@ -52,7 +52,7 @@ my class CallFrame {
     }
 }
 
-only sub callframe(Int $level = 0) {  # MUST BE an only wrt to backtrace levels
+only sub callframe(Int:D $level = 0) { # MUST BE an only wrt to backtrace levels
     nqp::create(CallFrame).SET-SELF(
       $level,
       nqp::ctxcaller(nqp::ctx),

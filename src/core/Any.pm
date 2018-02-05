@@ -422,7 +422,7 @@ my class Any { # declared in BOOTSTRAP
 
     proto method BIND-KEY(|) is nodal {*}
     multi method BIND-KEY(Any:D: \k, \v) is raw {
-        Failure.new(X::Bind.new(target => self.^name))
+        X::Bind.new(target => self.^name).throw
     }
     multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is raw {
         SELF = Hash.new;
@@ -605,9 +605,11 @@ sub dd(|) {
             my $var  := nqp::shift($args);
             my $name := try $var.VAR.?name;
             my $type := $var.WHAT.^name;
-            my $what := $var.?is-lazy
+            my $what := nqp::can($var, 'is-lazy') && $var.is-lazy
               ?? $var[^10].perl.chop ~ "... lazy list)"
-              !! $var.perl;
+              !! nqp::can($var, 'perl')
+                ?? $var.perl
+                !! "($var.^name() without .perl method)";
             note $name ?? "$type $name = $what" !! $what;
         }
     }

@@ -51,7 +51,9 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method new(Real \min, Real() $max, :$excludes-min, :$excludes-max) {
         nqp::create(self)!SET-SELF(
-          min,$max,$excludes-min,$excludes-max,$max == Inf || min == -Inf);
+          min,$max,$excludes-min,$excludes-max,
+          $max == Inf || $max === NaN || min == -Inf || min === NaN
+        );
     }
     multi method new(List:D \min, \max, :$excludes-min, :$excludes-max) {
         nqp::create(self)!SET-SELF(
@@ -454,6 +456,8 @@ my class Range is Cool does Iterable does Positional {
                     && !(!topic.excludes-max && $!excludes-max))
     }
 
+    method ASSIGN-POS(Range:D: |) { X::Assignment::RO.new(value => self).throw }
+
     multi method AT-POS(Range:D: int \pos) {
         $!is-int
             ?? self.EXISTS-POS(pos)
@@ -500,19 +504,23 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.roll(*)
         }
         else {
-            Nil xx *
+            EmptySeq
         }
     }
     multi method roll(Range:D:) {
-        if $!is-int {
-            my $elems = $!max - $!excludes-max - $!min - $!excludes-min + 1;
-            $elems > 0
-              ?? $!min + $!excludes-min + nqp::rand_I(nqp::decont($elems),Int)
-              !! Nil
-        }
-        else {
-            self.list.roll
-        }
+        nqp::if(
+          $!is-int,
+          nqp::if(
+            (my $elems := $!max - $!excludes-max - $!min - $!excludes-min+1) > 0,
+            $!min + $!excludes-min + nqp::rand_I($elems,Int),
+            Nil
+          ),
+          nqp::if(
+            self.elems,
+            self.list.roll,
+            Nil
+          )
+        )
     }
     multi method roll(Int(Cool) $todo) {
         if self.elems -> $elems {
@@ -541,13 +549,17 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.roll($todo)
         }
         else {
-            Nil xx $todo
+            EmptySeq
         }
     }
 
     proto method pick(|)        {*}
     multi method pick()          { self.roll };
-    multi method pick(Whatever)  { self.list.pick(*) };
+    multi method pick(Whatever)  {
+        self.elems
+          ?? self.list.pick(*)
+          !! EmptySeq
+    }
     multi method pick(Int(Cool) $todo) {
         if self.elems -> $elems {
             $!is-int && $elems > 3 * $todo # heuristic for sparse lookup
@@ -596,7 +608,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.pick($todo)
         }
         else {
-            Nil xx $todo
+            EmptySeq
         }
     }
 
@@ -698,7 +710,7 @@ my class Range is Cool does Iterable does Positional {
 
     method in-range($got, $what?) {
         self.ACCEPTS($got)
-          || X::OutOfRange.new(:what($what // 'Value'),:got($got.perl),:range(self)).throw
+          || X::OutOfRange.new(:what($what // 'Value'),:got($got.perl),:range(self.gist)).throw
     }
 
     multi method minmax(Range:D:) {

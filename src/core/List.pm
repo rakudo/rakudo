@@ -2,6 +2,7 @@
 # deep; a List may contain Scalar containers that can be assigned to. However,
 # it is not possible to shift/unshift/push/pop/splice/bind. A List is also
 # Positional, and so may be indexed.
+my class Array { ... }
 my class List does Iterable does Positional { # declared in BOOTSTRAP
     # class List is Cool
     #   The reified elements in the list so far (that is, those that we already
@@ -378,15 +379,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           Failure.new(X::Cannot::Lazy.new(:action('.sum'))),
           nqp::if(
             $!reified.DEFINITE && (my int $elems = self.elems),      # reifies
-            nqp::stmts(
-              (my $list := $!reified),
-              (my $sum = nqp::ifnull(nqp::atpos($list,0),0)),
-              (my int $i),
-              nqp::while(
-                nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                ($sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0))
+            nqp::if(
+              nqp::isgt_i($elems,2),
+              nqp::stmts(
+                (my $list := $!reified),
+                (my $sum = nqp::ifnull(nqp::atpos($list,0),0)),
+                (my int $i),
+                nqp::while(
+                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                  ($sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0))
+                ),
+                $sum
               ),
-              $sum
+              nqp::ifnull(nqp::atpos($!reified,0),0)
+                + nqp::ifnull(nqp::atpos($!reified,1),0)
             ),
             0
           )
@@ -526,10 +532,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! X::Assignment::RO.new(value => self).throw
     }
 
-    method BIND-POS(List:D: Int:D \pos, \what) is raw {
-        nqp::iscont(self.AT-POS(pos))
-          ?? nqp::bindpos($!reified,nqp::unbox_i(pos),what)
-          !! X::Bind.new.throw
+    method BIND-POS(List:D: Int:D \pos, \what) {
+        X::Bind.new.throw
     }
 
     multi method EXISTS-POS(List:D: int $pos) {
@@ -702,6 +706,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     multi method list(List:D:) { self }
 
+    # We don't sink contents by design https://github.com/rakudo/rakudo/issues/1393
     method sink(--> Nil) { }
 
     multi method values(List:D:) {
@@ -804,14 +809,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method gist(List:D:) {
-        self.gistseen('List', {
-            '(' ~ self.map( -> $elem {
+        self.gistseen(self.^name, {
+            (nqp::istype(self,Array) ?? '[' !! '(')
+            ~ self.map( -> $elem {
                 given ++$ {
                     when 101 { '...' }
                     when 102 { last }
                     default  { $elem.gist }
                 }
-            }).join(' ') ~ ')'
+            }).join(' ')
+            ~ (nqp::istype(self,Array) ?? ']' !! ')')
         })
     }
 
@@ -1164,11 +1171,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method permutations(|) is nodal {*}
     multi method permutations() {
-        Seq.new(
-          Rakudo::Iterator.ListIndexes(
-            self, Rakudo::Iterator.Permutations( self.elems, 1)
-          )
-        )
+        my \perm-iter = Rakudo::Iterator.Permutations: self.elems, 1;
+        Seq.new: Rakudo::Iterator.delegate-iterator-opt-methods:
+            perm-iter, Rakudo::Iterator.ListIndexes: self, perm-iter
     }
 
     method join(List:D: Str(Cool) $separator = '') is nodal {
@@ -1404,9 +1409,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::stmts(
                 (my $iterator := Rakudo::Iterator.ReifiedList(self)),
                 nqp::if(
-                  nqp::istype($n,Callable)
-                    && nqp::isgt_i((my $skip := -($n(0).Int)),0),
-                  $iterator.skip-at-least($skip),
+                  nqp::istype($n,Callable),
+                  nqp::if(
+                    nqp::isgt_i((my $skip := -($n(0).Int)),0),
+                    $iterator.skip-at-least($skip)
+                  ),
                   nqp::unless(
                     nqp::istype($n,Whatever) || $n == Inf,
                     $iterator.skip-at-least(nqp::elems($!reified) - $n)
@@ -1502,21 +1509,23 @@ sub cache(+@l) { @l }
 proto sub infix:<xx>(|) {*}
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
-multi sub infix:<xx>(&x, Num() $n) {
+multi sub infix:<xx>(&x, Num:D() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);
 }
 multi sub infix:<xx>(&x, Whatever) {
     Seq.new(Rakudo::Iterator.Callable-xx-Whatever(&x))
 }
-multi sub infix:<xx>(&x, Int $n) {
-    my int $todo = $n + 1;
-    my Mu $pulled;
+multi sub infix:<xx>(&x, Bool:D $b) {
+    $b ?? infix:<xx>(&x, 1) !! EmptySeq
+}
+multi sub infix:<xx>(&x, Int:D $n) {
+    my int $todo = $n;
     my Mu $list := nqp::create(IterationBuffer);
     nqp::while(
-      nqp::isgt_i($todo = nqp::sub_i($todo,1),0),
+      nqp::isgt_i($todo = nqp::sub_i($todo,1),-1),
       nqp::if(
-        nqp::istype(($pulled := &x.()),Slip),
-        (nqp::push($list,$_) for $pulled),
+        nqp::istype((my $pulled := x()),Slip),
+        $pulled.iterator.push-all($list),
         nqp::if(
           nqp::istype($pulled,Seq),
           nqp::push($list,$pulled.cache),
@@ -1526,7 +1535,7 @@ multi sub infix:<xx>(&x, Int $n) {
     );
     Seq.new(Rakudo::Iterator.ReifiedList($list))
 }
-multi sub infix:<xx>(Mu \x, Num() $n) {
+multi sub infix:<xx>(Mu \x, Num:D() $n) {
     Seq.new(nqp::if(
       $n == Inf,
       Rakudo::Iterator.UnendingValue(x),
@@ -1535,6 +1544,9 @@ multi sub infix:<xx>(Mu \x, Num() $n) {
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))
+}
+multi sub infix:<xx>(Mu \x, Bool:D $b) {
+    $b ?? Seq.new(Rakudo::Iterator.OneValue(x)) !! EmptySeq
 }
 multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
     Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))

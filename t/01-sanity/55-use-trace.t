@@ -5,7 +5,8 @@ use Test;
 
 plan 3;
 
-my $filename = "$?FILE.trace";
+my $filename = $*TMPDIR.add: "$?FILE.IO.basename().trace";
+LEAVE unlink $filename;
 
 spurt( $filename, q:to/CODE/ );
 my $a = 42;
@@ -31,5 +32,3 @@ is $p.err.lines.join("\n"), qq:to/STDERR/.chomp, "is the trace ok?";
 10 ($filename line 10)
 \$a -= 1
 STDERR
-
-unlink $filename;

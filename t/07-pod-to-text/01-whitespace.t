@@ -1,5 +1,4 @@
 use v6.c;
-use lib <t/spec/packages>;
 use Test;
 
 use Pod::To::Text;

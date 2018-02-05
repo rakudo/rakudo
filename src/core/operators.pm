@@ -9,7 +9,11 @@ sub infix:<=>(Mu \a, Mu \b) is raw {
 
 my class X::Does::TypeObject is Exception {
     has Mu $.type;
-    method message() { "Cannot use 'does' operator with a type object." }
+    has %.nameds;
+    method message() {
+        "Cannot use 'does' operator on a type object {$!type.^name}."
+          ~ ("\nAdditional named parameters: {%!nameds.perl}." if %!nameds)
+    }
 }
 
 proto sub infix:<does>(|) {*}
@@ -28,8 +32,8 @@ multi sub infix:<does>(Mu:D \obj, Mu:U \rolish, :$value! is raw) is raw {
     my \mixedin = obj.^mixin($role, :need-mixin-attribute);
     mixedin.BUILD_LEAST_DERIVED({ substr(mixedin.^mixin_attribute.Str,2) => $value });
 }
-multi sub infix:<does>(Mu:U \obj, Mu:U \role) is raw {
-    X::Does::TypeObject.new(type => obj).throw
+multi sub infix:<does>(Mu:U \obj, Mu:U \role, *%_) is raw {
+    X::Does::TypeObject.new(type => obj, nameds => %_).throw
 }
 multi sub infix:<does>(Mu:D \obj, **@roles) is raw {
     # XXX Mutability check.
@@ -746,7 +750,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
         trait_mod:<is>($r, equiv => ::(nm));
         return;
     }
-    die "Routine given to equiv does not appear to be an operator";;
+    die "Routine given to equiv does not appear to be an operator";
 }
 
 multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
@@ -755,7 +759,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
         trait_mod:<is>($r, tighter => ::(nm));
         return;
     }
-    die "Routine given to tighter does not appear to be an operator";;
+    die "Routine given to tighter does not appear to be an operator";
 }
 
 multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
@@ -764,7 +768,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
         trait_mod:<is>($r, looser => ::(nm));
         return;
     }
-    die "Routine given to looser does not appear to be an operator";;
+    die "Routine given to looser does not appear to be an operator";
 }
 
 proto sub infix:<∘> (&?, &?) {*}

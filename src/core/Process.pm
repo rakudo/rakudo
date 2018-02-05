@@ -47,7 +47,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
     my $repo := PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
     my $world := $*W;
     $world.suspend_recording_precompilation_dependencies if $world;
-    CompUnit::RepositoryRegistry.resolve-unknown-repos($repo.repo-chain);
+    CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
     $world.resume_recording_precompilation_dependencies if $world;
     PROCESS::<$REPO>
 }

@@ -200,6 +200,9 @@ sub git_checkout {
     else {
         chdir($dir);
         system_or_die('git', 'fetch');
+        # pre-git 1.9/2.0 `--tags` did not fetch tags in addition to normal
+        # fetch https://stackoverflow.com/a/20608181/2410502 so do it separately
+        system_or_die('git', 'fetch', '--tags');
     }
 
     if ($checkout) {

@@ -191,10 +191,14 @@ my class Rakudo::Internals {
                 nqp::push(restore,nqp::decont(cont)),
                 nqp::if(
                   nqp::istype(cont,Array),
-                  nqp::push(restore,my @ = cont),
+                  nqp::push(restore,cont.clone),
                   nqp::if(
                     nqp::istype(cont,Hash),
-                    nqp::push(restore,my % = cont),
+                    nqp::push(restore,
+                      nqp::p6bindattrinvres(
+                        Hash.^parameterize(Mu,Mu).new,
+                        Hash, '$!descriptor',
+                        nqp::getattr(cont, Hash, '$!descriptor')).STORE: cont),
                     nqp::stmts(
                       nqp::pop(restore),  # lose the erroneously pushed value
                       X::Localizer::NoContainer.new(:$localizer).throw
@@ -268,7 +272,11 @@ my class Rakudo::Internals {
       'ascii',           'ascii',
       'iso-8859-1',      'iso-8859-1',
       'windows-1252',    'windows-1252',
-      # with dash
+      'windows-1251',    'windows-1251',
+      # windows without dash
+      'windows1251',    'windows-1252',
+      'windows1252',    'windows-1251',
+      # utf with dash
       'utf-8',           'utf8',
       'utf-16',          'utf16',
       'utf-32',          'utf32',
@@ -603,6 +611,12 @@ my class Rakudo::Internals {
         }
     }
 
+    method SHORT-GIST(\thing) {
+        nqp::if(
+          nqp::isgt_i(nqp::chars(my str $gist = thing.gist), 23),
+          nqp::concat(nqp::substr($gist, 0, 20), '...'),
+          $gist);
+    }
     method SUBSTR-START-OOR(\from,\max) {
         X::OutOfRange.new(
           :what('Start argument to substr'),
@@ -1583,7 +1597,8 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
                     while nqp::elems($end) {           # run all END blocks
                         quietly {
                             my $result := nqp::shift($end)();
-                            $result.sink if nqp::can($result,'sink');
+                            nqp::isfalse(nqp::isnull($result))
+                                && nqp::can($result, 'sink') && $result.sink;
                             CATCH { default { @exceptions.push($_) } }
                         }
                     }

@@ -2,10 +2,6 @@
 
 =head1 release_guide.pod - guide to Rakudo releases
 
-B<< NOTE: this guide is for a manual release process. You may want
-to use the automated process described in
-L<docs/release_guide_automated.md|https://github.com/rakudo/rakudo/blob/master/docs/release_guide_automated.md> >>
-
 Rakudo’s development release cycle is the third Saturday of
 each month.
 
@@ -22,9 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2017-12-16   Rakudo #118 (AlexDaniel + Releasable)
-  2018-01-20   Rakudo #119
-  2018-02-17   Rakudo #120
+  2018-02-17   Rakudo #120 (AlexDaniel + Releasable)
   2018-03-17   Rakudo #121
   2018-04-21   Rakudo #122
   2018-05-19   Rakudo #123
@@ -36,7 +30,7 @@ some releases to ensure any compatibility issues are resolved.
   2018-11-17   Rakudo #129
   2018-12-15   Rakudo #130
 
-(More planned dates can be generated with F<tools/release-dates.pl>).
+(More planned dates can be generated with F<tools/release-dates.p6>).
 
 =head2 Steps to create a release (for release managers)
 
@@ -451,10 +445,12 @@ Previous releases were bundled as part of monthly Parrot releases.
   2017-09-18   Rakudo #115 "2017.09"           (AlexDaniel + Releasable)
   2017-10-26   Rakudo #116 "2017.10"           (AlexDaniel + Releasable)
   2017-11-21   Rakudo #117 "2017.11"           (AlexDaniel + Releasable)
+  2017-12-21   Rakudo #118 "2017.12"           (AlexDaniel + Releasable)
+  2018-01-25   Rakudo #119 "2018.01"           (AlexDaniel + Releasable)
 
 =head1 COPYRIGHT
 
-Copyright (C) 2009-2017, The Perl Foundation.
+Copyright © 2009-2018, The Perl Foundation.
 
 =cut
 

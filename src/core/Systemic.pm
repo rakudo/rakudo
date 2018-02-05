@@ -8,7 +8,7 @@ role Systemic {
     submethod BUILD(
       :$!name    = "unknown",
       :$!auth    = "unknown",
-      :$!version = Version.new("unknown")
+      :$!version = Version.new(["unknown"], "unknown")
       --> Nil
     ) { }
     multi method gist(Systemic:D:) {

@@ -304,7 +304,7 @@ role STD {
         self
     }
     method typed_worry($type_str, *%opts) {
-        unless self.pragma('no-worries') {
+        if self.pragma('worries') {
             self.pragma('fatal')
               ?? self.typed_sorry($type_str, |%opts)
               !! @*WORRIES.push($*W.typed_exception(
@@ -366,8 +366,9 @@ role STD {
             when        => $when,
         );
     }
-    method obsvar($name) {
-        $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'], :$name);
+    method obsvar($name, $identifier-name?) {
+        $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
+          :$name, :$identifier-name);
     }
     method sorryobs($old, $new, $when = 'in Perl 6') {
         $*W.throw(self.MATCH(), ['X', 'Obsolete'],
@@ -488,6 +489,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         # We could start out TOP with a fatalizing language in self, conceivably...
         my $*FATAL := self.pragma('fatal');  # also set if somebody calls 'use fatal' in mainline
+        self.set_pragma('worries', 1);
 
         # A cacheable false dynvar value.
         my $*WANTEDOUTERBLOCK := 0;
@@ -1169,6 +1171,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*INVOCANT_OK := 0;
         :my $*INVOCANT;
         :my $*ARG_FLAT_OK := 0;
+        :my $*WHENEVER_COUNT := -1;                # -1 indicates whenever not valid here
 
         # Error related. There are three levels: worry (just a warning), sorry
         # (fatal but not immediately so) and panic (immediately deadly). There
@@ -1550,7 +1553,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule statement_control:sym<whenever> {
-        <sym><.kok> {}
+        <sym><.kok>
+        [
+        || <?{
+              nqp::getcomp('perl6').language_version eq '6.c'
+            || $*WHENEVER_COUNT >= 0
+          }>
+        || <.typed_panic('X::Comp::WheneverOutOfScope')>
+        ]
+        { $*WHENEVER_COUNT++ }
         <xblock(1)>
     }
 
@@ -1573,9 +1584,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<need> {
         <sym>
         [
-        | <version>
+        | <version> <.sorry('In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").')>
         | <module_name>
-        ] +% ','
+        ]+ % ','
         {
             for $<module_name> {
                 my $lnd  := $*W.dissect_longname($_<longname>);
@@ -1801,8 +1812,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<gather>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<once>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<start>   { <sym><.kok> <blorst> }
-    token statement_prefix:sym<supply>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<react>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<supply>  {
+        :my $*WHENEVER_COUNT := 0;
+        <sym><.kok> <blorst>
+    }
+    token statement_prefix:sym<react>   {
+        :my $*WHENEVER_COUNT := 0;
+        <sym><.kok> <blorst>
+    }
     token statement_prefix:sym<do>      { <sym><.kok> <blorst> }
     token statement_prefix:sym<DOC>     {
         <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>
@@ -1857,7 +1874,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<value>              { <value> }
     token term:sym<unquote>            { '{{{' <?{ $*IN_QUASI }> <statementlist> '}}}' }
     token term:sym<!!>                 { '!!' <?before \s> }  # actual error produced inside infix:<?? !!>
-    token term:sym<∞>                  { <sym> }
 
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
@@ -1935,6 +1951,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token coloncircumfix($front) {
+        # reset $*IN_DECL in case this colonpair is part of var we're
+        # declaring, since colonpair might have other vars. Don't make those
+        # think we're declaring them
+        :my $*IN_DECL := '';
         [
         | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
         | {} <circumfix>
@@ -2015,10 +2035,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('$@')>
     }
 
-    # TODO: use actual variable in error message
     token special_variable:sym<$#> {
-        <sym>
-        <.obs('$#variable', '@variable.end')>
+        <sym> [<identifier>]?
+        {}
+        <.obsvar('$#', $<identifier> && ~$<identifier>)>
     }
 
     token special_variable:sym<$$> {
@@ -2802,7 +2822,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || ';'
             {
                 if $<deflongname> ne 'MAIN' {
-                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "except on a MAIN sub");
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub",
+                        where => "except on a MAIN sub", suggestion =>
+                        'Please use the block form. If you did not mean to '
+                        ~ "declare a unit-scoped sub,\nperhaps you accidentally "
+                        ~ "placed a semicolon after routine's definition?"
+                    );
                 }
                 unless $*begin_compunit {
                     $/.typed_panic("X::UnitScope::TooLate", what => "sub");
@@ -3096,8 +3121,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | '(' ~ ')' <signature>
         | <sigil> <twigil>?
           [
-          || <?{ $<sigil>.Str eq '&' }> <?identifier> {}
-             <name=.sublongname>
+          || <?{ $<sigil>.Str eq '&' }>
+              [<?identifier> {} <name=.sublongname> | <sigterm>]
           || <name=.identifier>
           || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
           || $<name>=[<[/!]>]
@@ -3440,8 +3465,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     my %deftrap := nqp::hash(
         'say', 1, 'print', 1, 'abs', 1, 'chomp', 1, 'chop', 1, 'chr', 1, 'cos', 1,
         'defined', 1, 'exp', 1, 'lc', 1, 'log', 1, 'mkdir', 1, 'ord', 1, 'reverse', 1,
-        'rmdir', 1, 'sin', 1, 'split', 1, 'sqrt', 1, 'uc', 1, 'unlink', 1, 'WHAT', 2,
-        'WHICH', 2, 'WHERE', 2, 'HOW', 2, 'WHENCE', 2, 'WHO', 2, 'VAR', 2, 'any', 2,
+        'rmdir', 1, 'sin', 1, 'split', 1, 'sqrt', 1, 'uc', 1, 'unlink', 1, 'fc', 1,
+
+        'WHAT', 2, 'WHICH', 2, 'WHERE', 2, 'HOW', 2, 'WHENCE', 2, 'WHO', 2, 'VAR', 2, 'any', 2,
         'all', 2, 'none', 2, 'one', 2, 'set', 2, 'bag', 2, 'tclc', 2, 'wordcase', 2, 'put', 2,
     );
 
@@ -3478,20 +3504,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     || $<accept_any>=<?>
                 ] <.ws> ')'
             ]?
-            {
-                for $<longname><colonpair> {
-                    if $_<identifier> {
-                        my $name := $_<identifier>.Str;
-                        if $name eq 'D' || $name eq 'U' || $name eq '_' {
-                            %colonpairs{$name} := 1;
-                        }
-                        else {
-                            $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
-                        }
-                    }
-                }
-            }
-            [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
+            [
+                <?{
+                    %colonpairs
+                    := $*W.validate_type_smiley: $/, $<longname><colonpair>
+                }> <colonpairs=.O(|%colonpairs)>
+            ]?
         || [ \\ <?before '('> ]? <args(1)>
             {
                 if !$<args><invocant> {
@@ -3687,20 +3705,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
-        {
-            for ($<longname> ?? $<longname><colonpair> !! $<colonpair>) {
-                if $_<identifier> {
-                    my $name := $_<identifier>.Str;
-                    if $name eq 'D' || $name eq 'U' || $name eq '_' {
-                        %colonpairs{$name} := 1;
-                    }
-                    else {
-                        $*W.throw($/, ['X', 'InvalidTypeSmiley'], :$name)
-                    }
-                }
-            }
-        }
-        [<?{ %colonpairs }> <colonpairs=.O(|%colonpairs)>]?
+        [
+            <?{
+                %colonpairs := $*W.validate_type_smiley: $/, $<longname>
+                    ?? $<longname><colonpair> !! $<colonpair>
+            }> <colonpairs=.O(|%colonpairs)>
+        ]?
     }
 
     token typo_typename($panic = 0) {
@@ -5064,6 +5074,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
         token backslash:sym<1> { <[1..9]>\d* {} <.sorry("Unrecognized backslash sequence (did you mean \${$/ - 1}?)")> }
+        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
+        token backslash:sym<misc> { \W }
     }
 
     role b0 {
@@ -5166,9 +5178,6 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     role qq does b1 does c1 does s1 does a1 does h1 does f1 {
         token starter { \" }
         token stopper { \" }
-        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
-        token backslash:sym<misc> { \W }
-
         method tweak_q($v) { self.panic("Too late for :q") }
         method tweak_qq($v) { self.panic("Too late for :qq") }
     }

@@ -1,3 +1,4 @@
+#!/usr/bin/env perl6
 use v6;
 
 constant release-number-offset = 2016;

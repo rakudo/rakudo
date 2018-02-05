@@ -28,11 +28,19 @@ my class Pair does Associative {
         nqp::unless(
           $!WHICH,
           ($!WHICH := nqp::if(
-            nqp::iscont($!value),
-            callsame,
+            nqp::iscont($!value)
+              || nqp::not_i(nqp::istype((my $VALUE := $!value.WHICH),ValueObjAt)),
+            self.Mu::WHICH,
             nqp::box_s(
-              "Pair|" ~ $!key.WHICH ~ "|" ~ $!value.WHICH,
-              ObjAt
+              nqp::concat(
+                nqp::if(
+                  nqp::eqaddr(self.WHAT,Pair),
+                  'Pair|',
+                  nqp::concat(self.^name,'|')
+                ),
+                nqp::sha1(nqp::concat(nqp::concat($!key.WHICH,"\0"),$VALUE))
+              ),
+              ValueObjAt
             )
           ))
         )

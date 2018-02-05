@@ -107,11 +107,11 @@ my role Real does Numeric {
                 for @frac_digits-1 ... 0 -> $x {
                     last if ++@frac_digits[$x] < $base;
                     @frac_digits[$x] = 0;
-                    $int_part++ if $x == 0
+                    ++$int_part if $x == 0
                 }
             }
             else {
-                $int_part++;
+                ++$int_part;
             }
         }
         my Str $r = $int_part.base($base);

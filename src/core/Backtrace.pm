@@ -77,7 +77,7 @@ my class Backtrace {
 
     method !SET-SELF($!bt,$!bt-next) {
         once $RAKUDO-VERBOSE-STACKFRAME =
-          +(%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0);
+          (%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0).Num;
         $!frames := nqp::list;
         self
     }

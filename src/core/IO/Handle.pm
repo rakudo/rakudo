@@ -68,15 +68,8 @@ my class IO::Handle {
       :$chomp = $!chomp,
       :$nl-in is copy = $!nl-in,
       Str:D :$nl-out is copy = $!nl-out,
-      :$buffer,
       :$out-buffer is copy,
     ) {
-        nqp::if(
-            $buffer.DEFINITE,
-            nqp::stmts(
-              ($out-buffer = $buffer),
-              DEPRECATED ':out-buffer argument to control handle buffering',
-                '2017.09.455.g.2.fba.0.ba.0.d', '2018.01'));
 
         nqp::if(
           $bin,
@@ -283,7 +276,7 @@ my class IO::Handle {
         nqp::eoffh($!PIO)
     }
 
-    method read-internal(Int $bytes) {
+    method read-internal(Int:D $bytes) {
         nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
     }
 
@@ -294,17 +287,19 @@ my class IO::Handle {
 
     method !get-line-slow-path() {
         my $line := Nil;
-        loop {
-            my $buf := self.read-internal(0x100000);
-            if $buf.elems {
-                $!decoder.add-bytes($buf);
-                $line := $!decoder.consume-line-chars(:$!chomp);
-                last if nqp::isconcrete($line);
-            }
-            else {
-                $line := $!decoder.consume-line-chars(:$!chomp, :eof)
-                    unless self.eof-internal && $!decoder.is-empty;
-                last;
+        unless self.eof-internal && $!decoder.is-empty {
+            loop {
+                my $buf := self.read-internal(0x100000);
+                if $buf.elems {
+                    $!decoder.add-bytes($buf);
+                    $line := $!decoder.consume-line-chars(:$!chomp);
+                    last if nqp::isconcrete($line);
+                }
+                else {
+                    $line := $!decoder.consume-line-chars(:$!chomp, :eof)
+                        unless self.eof-internal && $!decoder.is-empty;
+                    last;
+                }
             }
         }
         $line

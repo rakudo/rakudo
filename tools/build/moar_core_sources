@@ -40,7 +40,6 @@ src/core/Real.pm
 src/core/Int.pm
 src/core/Bool.pm
 src/core/Order.pm
-src/core/UInt64.pm
 src/core/Num.pm
 src/core/Buf.pm
 src/core/Uni.pm
@@ -194,6 +193,7 @@ src/core/CompUnit/PrecompilationStore.pm
 src/core/CompUnit/PrecompilationStore/File.pm
 src/core/CompUnit/PrecompilationRepository.pm
 src/core/CompUnit/Repository.pm
+src/core/CompUnit/Repository/Spec.pm
 src/core/CompUnit/Repository/Installable.pm
 src/core/CompUnit.pm
 src/core/CompUnit/RepositoryRegistry.pm

@@ -2,7 +2,7 @@ my class X::Cannot::Capture { ... }
 my class X::Cannot::New     { ... }
 
 my class Whatever {
-    multi method ACCEPTS(Whatever:D: $ --> True) { }
+    multi method ACCEPTS(Whatever:D: Mu --> True) { }
     multi method perl(Whatever:D: --> '*') { }
     multi method Str(Whatever:D: --> '*') { }
     method Capture() { die X::Cannot::Capture.new: :what(self) }

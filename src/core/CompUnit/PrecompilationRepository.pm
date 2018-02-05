@@ -89,7 +89,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         CompUnit::PrecompilationId $id,
         :$repo-id,
     ) {
-        my $compiler-id = CompUnit::PrecompilationId.new($*PERL.compiler.id);
+        my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         for @precomp-stores -> $store {
             $RMD("Trying to load {$id ~ ($repo-id ?? '.repo-id' !! '')} from $store.prefix()") if $RMD;
@@ -102,7 +102,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     }
 
     method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, @precomp-stores) {
-        my $compiler-id = CompUnit::PrecompilationId.new($*PERL.compiler.id);
+        my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $resolve = False;
         my $repo = $*REPO;
@@ -185,7 +185,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             return %loaded{$id} if %loaded{$id}:exists;
         }
         my $RMD = $*RAKUDO_MODULE_DEBUG;
-        my $compiler-id = CompUnit::PrecompilationId.new($*PERL.compiler.id);
+        my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
             if (not $since or $unit.modified > $since)
@@ -224,7 +224,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         Bool :$force = False,
         :$source-name = $path.Str
     ) {
-        my $compiler-id = CompUnit::PrecompilationId.new($*PERL.compiler.id);
+        my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
         my $io = self.store.destination($compiler-id, $id);
         return False unless $io;
         my $RMD = $*RAKUDO_MODULE_DEBUG;

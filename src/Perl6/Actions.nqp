@@ -9757,6 +9757,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $i++;
         }
 
+        # go through any remaining children and just migrate QAST::Blocks
+        my $qels := nqp::elems($qast);
+        while $i < $qels {
+            my $node := $qast[$i];
+            $node := $node[0]
+                if (nqp::istype($node, QAST::Stmts)
+                ||  nqp::istype($node, QAST::Stmt))
+                && nqp::elems($node) == 1;
+            if (my $orig_ast := $node.ann: 'past_block') {
+                remove_block($*W.cur_lexpad, $orig_ast);
+                $curry[0].push: $orig_ast;
+            }
+            $i++;
+        }
+
         # Bake the signature for our curry
         my %sig_info := hash(parameters => @params);
         my $signature := $*W.create_signature_and_params:

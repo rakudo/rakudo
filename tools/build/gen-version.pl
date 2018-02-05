@@ -18,7 +18,8 @@ chomp $VERSION;
 my ($version, $release, $codename) = split(' ', $VERSION, 3);
 
 if (-d '.git' && open(my $GIT, '-|', q|git describe --match "2*"|)) {
-    $version = <$GIT>;
+    my $git_version = <$GIT>;
+    $version = $git_version if $git_version; # may be empty if we didn't fetch any tags
     close($GIT);
 }
 

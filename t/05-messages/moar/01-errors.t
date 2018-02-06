@@ -10,7 +10,7 @@ subtest 'no SEGV with failed opens of MVM debug files' => {
     plan +my @vars := <
         MVM_SPESH_LOG  MVM_JIT_LOG  MVM_DYNVAR_LOG  MVM_COVERAGE_LOG
     >;
-    my $file := (make-temp-file :0chmod).absolute;
+    my $file := (make-temp-dir).absolute;
     for @vars {
         (temp %*ENV){$_} = $file;
         is-run ｢42.say｣, :out(*), :err{.contains: 'Failed to open file'},

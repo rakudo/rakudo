@@ -22,51 +22,79 @@ class Version {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$string)
     }
 
-    my $v6;
-    my $v6c;
+    method !SLOW-NEW(str $s) {
+        # we comb the version string for /:r '*' || \d+ || <.alpha>+/, which
+        # will become our parts. The `*` becomes a Whatever, numbers Numeric,
+        # and the rest of the parts remain as strings
+        nqp::stmts(
+          (my int $pos),
+          (my int $chars = nqp::chars($s)),
+          (my int $mark),
+          (my $strings := nqp::list_s),
+          (my $parts   := nqp::list),
+          nqp::while(
+            nqp::islt_i($pos, $chars),
+            nqp::if(
+              nqp::eqat($s, '*', $pos),
+              nqp::stmts( # Whatever portion
+                nqp::push_s($strings, '*'),
+                nqp::push($parts,      * ),
+                ($pos = nqp::add_i($pos, 1))),
+              nqp::if(
+                nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
+                nqp::stmts( # we're at the start of a numeric portion
+                  ($mark = $pos),
+                  ($pos = nqp::add_i($pos, 1)),
+                  nqp::while( # seek the end of numeric portion
+                    nqp::islt_i($pos, $chars)
+                    && nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
+                    ($pos = nqp::add_i($pos, 1))),
+                  nqp::push($parts, # grab numeric portion
+                    nqp::atpos(
+                      nqp::radix(
+                        10,
+                        nqp::push_s($strings, nqp::substr($s, $mark,
+                          nqp::sub_i($pos, $mark))),
+                        0, 0),
+                      0))),
+                nqp::if( # same idea as for numerics, except for <.alpha> class
+                  nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
+                  || nqp::iseq_i(nqp::ord($s, $pos), 95),
+                  nqp::stmts( # we're at the start of a alpha portion
+                    ($mark = $pos),
+                    ($pos = nqp::add_i($pos, 1)),
+                    nqp::while( # seek the end of alpha portion
+                      nqp::islt_i($pos, $chars)
+                      && (nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
+                        || nqp::iseq_i(nqp::ord($s, $pos), 95)),
+                      ($pos = nqp::add_i($pos, 1))),
+                    nqp::push($parts, # grab alpha portion
+                      nqp::push_s($strings, nqp::substr($s, $mark,
+                        nqp::sub_i($pos, $mark))))),
+                  ($pos = nqp::add_i($pos, 1)))))),
+          nqp::if(
+            nqp::elems($strings), # return false if we didn't get any parts
+            nqp::stmts(
+              (my int $plus = nqp::eqat($s, '+',
+                nqp::sub_i(nqp::chars($s), 1))),
+              nqp::create(self)!SET-SELF($parts, $plus,
+                nqp::concat(nqp::join('.', $strings), $plus ?? '+' !! '')))))
+    }
+    # highlander cache
+    my $v6; my $v6c; my $vplus;
     multi method new(Version: Str() $s) {
-
-        # highlanderize most common
-        if $s eq '6' {
-            $v6 //= nqp::create(Version)!SET-SELF(nqp::list(6),0,"6") # should be once
-        }
-        elsif $s eq '6.c' { # also adapt src/core/core_epilogue.pm if you make changes here
-            $v6c //= nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c") # should be once
-        }
-
-        # something sensible given
-        elsif $s.comb(/:r '*' || \d+ || <.alpha>+/).eager -> @s {
-            my $strings  := nqp::getattr(@s,List,'$!reified');
-            my int $elems = nqp::elems($strings);
-            my $parts    := nqp::setelems(nqp::list,$elems);
-
-            my int $i = -1;
-            while nqp::islt_i(++$i,$elems) {
-                my str $s = nqp::atpos($strings,$i);
-                nqp::bindpos($parts,$i, nqp::iseq_s($s,"*")
-                  ?? *
-                  !! (my $numeric = $s.Numeric).defined
-                    ?? nqp::decont($numeric)
-                    !! nqp::unbox_s($s)
-                );
-            }
-
-            my str $string = nqp::join(".", $strings);
-            my int $plus   = $s.ends-with("+");
-            nqp::create(self)!SET-SELF($parts,$plus,$plus
-              ?? nqp::concat($string,"+")
-              !! $string
-            )
-        }
-
-        # "v+" highlander
-        elsif $s.ends-with("+") {
-            INIT nqp::create(Version)!SET-SELF(nqp::list,1,"") # should be once
-        }
-        # get "v" highlander
-        else {
-            self.new
-        }
+        nqp::if(
+          nqp::iseq_s($s, '6'), # highlanderize most common
+          ($v6 //= nqp::create(Version)!SET-SELF(nqp::list(6),0,"6")),
+          nqp::if(
+            nqp::iseq_s($s, '6.c'),
+            ($v6c //= nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c")),
+            nqp::unless(
+              self!SLOW-NEW($s),
+              nqp::if(
+                nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
+                ($vplus //= nqp::create(Version)!SET-SELF(nqp::list,1,"")),
+                self.new))))
     }
     # for use by the setting where we may not use regexes to parse
     method new-from-git-describe(Version: str $v) {

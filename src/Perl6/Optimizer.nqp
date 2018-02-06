@@ -1524,27 +1524,12 @@ class Perl6::Optimizer {
                     }
                 }
             }
-            elsif $!level >= 2 && ($op.name eq '&prefix:<++>' || $op.name eq '&postfix:<++>' ||
-                                   $op.name eq '&prefix:<-->' || $op.name eq '&postfix:<-->') {
-                my $var := $op[0];
-                if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref' && nqp::objprimspec($var.returns) == 1 {
-                    my $add := nqp::eqat($op.name,'++', -3) ?? 'add_i' !! 'sub_i';
-                    my $sub := nqp::eqat($op.name,'++', -3) ?? 'sub_i' !! 'add_i';
-                    my $one := QAST::Want.new(
-                                QAST::WVal.new( :value($!symbols.find_lexical('Int')) ),
-                                'Ii',
-                                QAST::IVal.new( :value(1) ));
-                    if $!void_context || nqp::eqat($op.name,'&pre',0) {  # can use simple add?
-                        # $i = $i + 1  (or $i = $i - 1)
-                        return QAST::Op.new( :op('assign_i'), :returns($var.returns), $var, QAST::Op.new(:op($add), $var, $one));
-                    }
-                    else {             # can't, but still much faster to subtract 1 back out than to allocate temp
-                        # ($i = $i + 1) - 1  (or ($i = $i - 1) + 1)
-                        return QAST::Op.new( :op($sub), :returns($var.returns),
-                            QAST::Op.new( :op('assign_i'), :returns($var.returns), $var, QAST::Op.new(:op($add), $var, $one)),
-                            $one);
-                    }
-                }
+            elsif $!level >= 2 && (
+                 $op.name eq '&prefix:<++>' || $op.name eq '&postfix:<++>'
+              || $op.name eq '&prefix:<-->' || $op.name eq '&postfix:<-->'
+            ) && $!symbols.is_from_core($op.name)
+            && self.optimize-post-pre-inc-dec-ops($op) -> $qast {
+                return $qast;
             }
             # If it's an onlystar proto, we have a couple of options.
             # The first is that we may be able to work out what to
@@ -1626,6 +1611,57 @@ class Perl6::Optimizer {
             }
         }
         return NQPMu;
+    }
+
+    method optimize-post-pre-inc-dec-ops($op) {
+        my $var  := $op[0];
+        my $node := $op.node;
+
+        # if we got a native int/num, we can rewrite into nqp ops
+        if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref'
+        && ((my $primspec := nqp::objprimspec($var.returns)) == 1 # native int
+          || $primspec == 2) # native num
+        {
+            my $returns := $var.returns;
+            if $primspec == 1 { # native int
+                my $one := QAST::Want.new: :$node,
+                  QAST::WVal.new(:value($!symbols.find_lexical: 'Int')),
+                    'Ii', QAST::IVal.new: :value(1);
+                if $!void_context || nqp::eqat($op.name, '&pre', 0) {
+                    # we can just use (or ignore) the result
+                    return QAST::Op.new: :op<assign_i>, :$node, :$returns, $var,
+                      QAST::Op.new: :op<add_i>, :$returns, $var, $one
+                }
+                else {
+                    # need to assign original value; it's cheaper to just
+                    # do the reverse operation than to use a temp var
+                    return QAST::Op.new: :op<sub_i>, :$node, :$returns,
+                        QAST::Op.new(:op<assign_i>, :$returns, $var,
+                          QAST::Op.new: :op<add_i>, :$returns, $var, $one),
+                        $one
+                }
+            }
+            elsif $primspec == 2 { # native num
+                my $one := QAST::Want.new: :$node,
+                  QAST::WVal.new: :value($!symbols.find_lexical: 'Num'),
+                    'Nn', QAST::NVal.new: :value(1);
+                if $!void_context || nqp::eqat($op.name, '&pre', 0) {
+                    # we can just use (or ignore) the result
+                    return QAST::Op.new: :op<assign_n>, :$node, :$returns, $var,
+                      QAST::Op.new: :op<add_n>, :$returns, $var, $one
+                }
+                else {
+                    # need to assign original value; it's cheaper to just
+                    # do the reverse operation than to use a temp var
+                    return QAST::Op.new: :op<sub_n>, :$node, :$returns,
+                        QAST::Op.new(:op<assign_n>, :$returns, $var,
+                          QAST::Op.new: :op<add_n>, :$returns, $var, $one),
+                        $one
+                }
+            }
+        }
+
+        NQPMu
     }
 
     method constant_foldable_type($value) {

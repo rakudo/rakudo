@@ -24,10 +24,6 @@ BEGIN {
 }
 
 {
-    # Pre-fill caches to avoid concurrency issues
-    Version.new('6');
-    Version.new('6.c');
-
     my $perl := BEGIN Perl.new;
     Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
         PROCESS::<$PERL> := $perl;

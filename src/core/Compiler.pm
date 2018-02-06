@@ -19,7 +19,7 @@ class Compiler does Systemic {
         $!id = nqp::p6box_s(nqp::ifnull(nqp::atkey($compiler,'id'),$id));
         # looks like: 2018.01-50-g8afd791c1
         $!version = $version
-            // Version.new-from-git-describe(nqp::atkey($compiler, 'version'));
+            // Version.new(nqp::atkey($compiler, 'version'));
         $!release =
           $release // nqp::p6box_s(nqp::atkey($compiler, 'release-number'));
         $!build-date =

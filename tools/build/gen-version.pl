@@ -18,8 +18,8 @@ chomp $VERSION;
 my ($version, $release, $codename) = split(' ', $VERSION, 3);
 
 if (-d '.git' && open(my $GIT, '-|', q|git describe --match "2*"|)) {
-    my $git_version = <$GIT>;
-    $version = $git_version if $git_version; # may be empty if we didn't fetch any tags
+    my $git_version = <$GIT>; # may be empty if we didn't fetch any tags
+    $version = $git_version || "$version.0000.1";
     close($GIT);
 }
 
@@ -41,4 +41,3 @@ sub hll-config(\$config) {
 END_VERSION
 
 0;
-

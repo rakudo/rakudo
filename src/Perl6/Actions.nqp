@@ -8333,7 +8333,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $rep_block := $*SUBST_RHS_BLOCK;
         $rep_block.push(QAST::Stmts.new($right, :node($<sibble><right>)));
-        $*W.cur_lexpad()[0].push($rep_block);
         my $closure := block_closure(reference_to_code_object(
             $*W.create_code_obj_and_add_child($rep_block, 'Code'),
             $rep_block));

@@ -9716,7 +9716,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     if nqp::istype($_, QAST::Var) {
                         # For QAST::Vars, ignore the params signature maker made
                         unless $_.decl eq 'param' {
-                            $curry[0].push: nqp::clone($_);
+                            $curry[0].push: $_;
                             @params.push: hash(
                               :variable_name($_.name),
                               :nominal_type(
@@ -9728,6 +9728,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $curry[0].push: $_;
                     }
                 }
+                $orig-past[0] := QAST::Stmts.new;
                 $orig-past[1] := QAST::Op.new: :op<die>,
                     QAST::SVal.new: :value('This WhateverCode has been inlined into another WhateverCode and should not have been called!');
             }

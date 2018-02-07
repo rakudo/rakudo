@@ -1084,6 +1084,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
 
             $*W.pop_lexpad();
+            $*W.add_child_to_outer_block($block);
             $*W.add_phaser(
                 $/, 'INIT', $*W.create_simple_code_object($block, 'Block'), $block
             );
@@ -4928,6 +4929,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $con_block.push($value_ast);
+            $*W.add_child_to_outer_block($con_block);
             my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
             $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
             $*W.add_constant_folded_result($value);
@@ -8334,6 +8336,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $rep_block := $*SUBST_RHS_BLOCK;
         $rep_block.push(QAST::Stmts.new($right, :node($<sibble><right>)));
         $*W.cur_lexpad()[0].push($rep_block);
+        $*W.add_child_to_outer_block($rep_block);
         my $closure := block_closure(reference_to_code_object(
             $*W.create_simple_code_object($rep_block, 'Code'),
             $rep_block));
@@ -8492,6 +8495,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         nqp::bindattr($quasi_ast, $ast_class, '$!Str', $/.Str());
         $*W.add_object($quasi_ast);
         my $throwaway_block := QAST::Block.new();
+        $*W.add_child_to_outer_block($throwaway_block);
         my $quasi_context := block_closure(
             reference_to_code_object(
                 $*W.create_simple_code_object($throwaway_block, 'Block'),
@@ -9249,6 +9253,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block.push(QAST::Stmts.new(autosink($to_thunk)));
         }
         $*W.pop_lexpad();
+
+        $*W.add_child_to_outer_block($block);
         reference_to_code_object(
             $*W.create_simple_code_object($block, 'Code'),
             $block);

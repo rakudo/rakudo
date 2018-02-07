@@ -6725,7 +6725,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if nqp::istype($target, QAST::Op) && $target.op eq 'hllize' {
                     $target := $target[0];
                 }
-                unless nqp::istype($target, QAST::Op) && ($target.op eq 'call' || $target.op eq 'callmethod') {
+
+                unless nqp::istype($target, QAST::Op)
+                && ($target.op eq 'call' || $target.op eq 'callmethod')
+                || $target.has_ann('dot_equals_call') {
                     if nqp::can($target, 'name') {
                         $/.typed_panic('X::Syntax::Adverb', what => $target.name);
                     }
@@ -6735,7 +6738,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 my $cpast := $<colonpair>.ast;
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
-                $target.push(WANTED($cpast[2],'EXPR/POSTFIX'));
+                (
+                  $target.has_ann('dot_equals_call')
+                    ?? nqp::istype($target, QAST::Op)
+                        ?? $target[1] !! $target[1][1]
+                    !! $target
+                ).push(WANTED($cpast[2],'EXPR/POSTFIX'));
 
                 if nqp::istype($past, QAST::Op) && $past.op eq 'hllize' {
                     $past[0] := WANTED($target,'EXPR/POSTFIX');
@@ -9362,6 +9370,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub make_dot_equals($t, $call) {
         my $target := WANTED($t,'make_dot_equals');
         my $qast;
+
         # clear the annotation so we don't double-dot-equals the QAST
         $call.annotate: 'dot_equals', 0 if $call.ann: 'dot_equals';
         if nqp::istype($target, QAST::Var) {
@@ -9384,7 +9393,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $qast.nosink: 1;
         wantall($qast, 'make_dot_equals');
-        $qast
+        $qast.annotate_self: 'dot_equals_call', 1; # ann. for fakeinfix adverbs
     }
 
     sub make_dot($target, $call) {

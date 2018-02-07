@@ -1616,6 +1616,7 @@ class Perl6::Optimizer {
     method optimize-post-pre-inc-dec-ops($op) {
         my $var  := $op[0];
         my $node := $op.node;
+        $op.op: 'callstatic'; # by now we know 'tis a core op
 
         # if we got a native int/num, we can rewrite into nqp ops
         if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref'
@@ -1668,6 +1669,32 @@ class Perl6::Optimizer {
                 }
             }
         }
+
+        # XXX TODO: my tests show the opt below makes things 25% slower.
+        # Even without the temp var business, and unoptimized version:
+        # my $i = 1; my $z; { for ^10000_000 { $z = 1 + ++$i }; say now - ENTER now }
+        # comes out slower than
+        # my $i = 1; my $z; { for ^10000_000 { $z = 1 + $i++ }; say now - ENTER now }
+        #
+        # Don't know what's going on. Leaving the code below commented out
+        # Filed as https://github.com/rakudo/rakudo/issues/1491
+
+        # elsif nqp::eqat($op.name, 'post', 1) { # try to optimize postfix ops
+            # just rewrite to prefix-assign
+            # $op.name: '&prefix:<' ~ nqp::substr($op.name, -3);
+
+            # if original value isn't needed, we're done here
+            # return $op if $!void_context;
+
+            # use a local temp var to store original value
+            # my $temp := QAST::Var.new: :$node, :scope<local>,
+            #   :name(QAST::Node.unique: 'post_pre_op_rewrite_');
+            #
+            # return QAST::Stmts.new: :$node,
+            #   QAST::Op.new(:$node, :op<bind>, $temp.decl_as('var'),
+            #     QAST::Op.new: :op<decont>, $var),
+            #   $op, $temp
+        # }
 
         NQPMu
     }

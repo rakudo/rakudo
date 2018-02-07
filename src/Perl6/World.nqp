@@ -1622,7 +1622,7 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := self.parameterize_type_with_args($/,
                     %info<bind_constraint>, [$vtype], nqp::hash());
                 %info<value_type>      := $vtype;
-                %info<default_value>   := $vtype;
+                %info<default_value>   := self.maybe-definite-how-base: $vtype;
             }
             else {
                 %info<container_type> := %info<container_base>;
@@ -1689,7 +1689,8 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := self.parameterize_type_with_args($/,
                     %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
-                %info<default_value>   := @value_type[0];
+                %info<default_value>
+                    := self.maybe-definite-how-base: @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
@@ -1730,7 +1731,8 @@ class Perl6::World is HLL::World {
             if @value_type {
                 %info<bind_constraint> := @value_type[0];
                 %info<value_type>      := @value_type[0];
-                %info<default_value>   := @value_type[0];
+                %info<default_value>
+                    := self.maybe-definite-how-base: @value_type[0];
             }
             else {
                 %info<bind_constraint> := self.find_symbol(['Mu'], :setting-only);
@@ -1740,6 +1742,13 @@ class Perl6::World is HLL::World {
             %info<scalar_value> := %info<default_value>;
         }
         %info
+    }
+    method maybe-definite-how-base ($v) {
+        # returns the value itself, unless it's a DefiniteHOW, in which case,
+        # it returns its base type
+        nqp::eqaddr($v.HOW,
+            $*W.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
+        ) ?? $v.HOW.base_type: $v !! $v
     }
 
     # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to

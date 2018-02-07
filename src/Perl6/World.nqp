@@ -2172,11 +2172,12 @@ class Perl6::World is HLL::World {
         $to_thunk.wanted: 1 if $mark-wanted;
         $block.push($to_thunk);
         self.pop_lexpad();
-        self.create_simple_code_object($block, 'Code');
+        self.create_code_obj_and_add_child($block, 'Code');
     }
 
     # Creates a simple code object with an empty signature
-    method create_simple_code_object($block, $type) {
+    # Also makes the passed block a child of outer block on lexpad
+    method create_code_obj_and_add_child($block, $type) {
         if $*WANTEDOUTERBLOCK {
             $*WANTEDOUTERBLOCK[0].push($block);
         }
@@ -3844,7 +3845,7 @@ class Perl6::World is HLL::World {
         my $capturer := self.cur_lexpad();
         my $c_block  := QAST::Block.new( :blocktype('declaration_static'),
                                          :name('!LEXICAL_FIXUP_CSCOPE') );
-        self.create_simple_code_object($c_block, 'Code');
+        self.create_code_obj_and_add_child($c_block, 'Code');
         $capturer[0].push(QAST::Op.new(
             :op('callmethod'), :name('resolve'),
             QAST::WVal.new( :value($fixup_list) ),

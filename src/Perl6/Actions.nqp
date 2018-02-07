@@ -1085,7 +1085,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             $*W.pop_lexpad();
             $*W.add_phaser(
-                $/, 'INIT', $*W.create_simple_code_object($block, 'Block'), $block
+                $/, 'INIT', $*W.create_code_obj_and_add_child($block, 'Block'), $block
             );
         }
     }
@@ -4928,7 +4928,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $con_block.push($value_ast);
-            my $value_thunk := $*W.create_simple_code_object($con_block, 'Block');
+            my $value_thunk := $*W.create_code_obj_and_add_child($con_block, 'Block');
             $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
             $*W.add_constant_folded_result($value);
         }
@@ -8335,7 +8335,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $rep_block.push(QAST::Stmts.new($right, :node($<sibble><right>)));
         $*W.cur_lexpad()[0].push($rep_block);
         my $closure := block_closure(reference_to_code_object(
-            $*W.create_simple_code_object($rep_block, 'Code'),
+            $*W.create_code_obj_and_add_child($rep_block, 'Code'),
             $rep_block));
 
         # self.match($rx_coderef, |%options);
@@ -8494,7 +8494,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $throwaway_block := QAST::Block.new();
         my $quasi_context := block_closure(
             reference_to_code_object(
-                $*W.create_simple_code_object($throwaway_block, 'Block'),
+                $*W.create_code_obj_and_add_child($throwaway_block, 'Block'),
                 $throwaway_block
             ));
         make QAST::Op.new(:op<callmethod>, :name<incarnate>,
@@ -9249,8 +9249,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block.push(QAST::Stmts.new(autosink($to_thunk)));
         }
         $*W.pop_lexpad();
+
         reference_to_code_object(
-            $*W.create_simple_code_object($block, 'Code'),
+            $*W.create_code_obj_and_add_child($block, 'Code'),
             $block);
     }
 

@@ -4591,6 +4591,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Install PAST block so that it gets capture_lex'd correctly.
         my $outer := $*W.cur_lexpad();
+        find_block_calls_and_migrate($outer, $past, $qast);
         $outer[0].push($past);
 
         # Apply traits.
@@ -9793,7 +9794,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $qast;
     }
 
-    sub remove_block($from, $block) {
+    sub find_block_calls_and_migrate($from, $to, $qast) {
+        if nqp::can($qast, 'ann') && $qast.ann('past_block') -> $block {
+            $to[0].push: $block;
+            remove_block($from, $block, :ignore-not-found);
+        }
+        elsif nqp::istype($qast, QAST::Block)
+        || nqp::istype($qast, QAST::Stmts) || nqp::istype($qast, QAST::Stmt)
+        || nqp::istype($qast, QAST::Op)    || nqp::istype($qast, QAST::Regex) {
+            for @($qast) {
+                find_block_calls_and_migrate($from, $to, $_);
+            }
+        }
+    }
+
+    sub remove_block($from, $block, :$ignore-not-found) {
         # Remove the QAST::Block $block from $from[0]; die if not found.
         my @decls := $from[0].list;
         my int $i := 0;
@@ -9812,7 +9827,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $i++;
         }
-        nqp::die('Internal error: failed to remove block');
+        nqp::die('Internal error: failed to remove block')
+            unless $ignore-not-found;
     }
 
     sub wrap_return_type_check($wrappee, $code_obj) {

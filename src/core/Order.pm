@@ -8,7 +8,7 @@ sub ORDER(int $i) {
 
 proto sub infix:<cmp>(Mu $, Mu $) is pure {*}
 multi sub infix:<cmp>(\a, \b) {
-    nqp::eqaddr(a,b)
+    nqp::eqaddr(nqp::decont(a), nqp::decont(b))
       ?? Same
       !! a.Stringy cmp b.Stringy
 }

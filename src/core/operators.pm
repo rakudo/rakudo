@@ -86,17 +86,25 @@ multi sub infix:<but>(Mu:U \obj, Mu:U \rolish) {
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.^mixin($role);
 }
-sub GENERATE-ROLE-FROM-VALUE($val) {
+sub GENERATE-ROLE-FROM-VALUE($val, $perl_meth?) {
     my $role := Metamodel::ParametricRoleHOW.new_type();
     my $meth := method () { $val };
     $meth.set_name($val.^name);
     $role.^add_method($meth.name, $meth);
+
+    if $perl_meth {
+        $perl_meth.set_name('perl');
+        $role.^add_method('perl', $perl_meth);
+    }
+
     $role.^set_body_block(
       -> |c { nqp::list($role, nqp::hash('$?CLASS', c<$?CLASS>)) });
     $role.^compose;
 }
 multi sub infix:<but>(Mu \obj, Mu:D $val) is raw {
-    obj.clone.^mixin(GENERATE-ROLE-FROM-VALUE($val));
+    my $perl_meth := method () { obj.perl ~ " but $val" };
+
+    obj.clone.^mixin(GENERATE-ROLE-FROM-VALUE($val, $perl_meth));
 }
 multi sub infix:<but>(Mu:D \obj, **@roles) {
     my \real-roles := eager @roles.map: -> \rolish {

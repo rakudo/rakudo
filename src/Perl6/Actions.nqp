@@ -6729,7 +6729,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 unless nqp::istype($target, QAST::Op)
                 && ($target.op eq 'call' || $target.op eq 'callmethod')
                 || $target.has_ann('dot_equals_call') {
-                    if nqp::can($target, 'name') {
+                    if nqp::can($target, 'name') && $target.name {
                         $/.typed_panic('X::Syntax::Adverb', what => $target.name);
                     }
                     else {

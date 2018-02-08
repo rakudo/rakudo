@@ -6726,24 +6726,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $target := $target[0];
                 }
 
+                my $push-target := $target;
+                $/.typed_panic: 'X::Syntax::Adverb', what =>
+                  nqp::can($target, 'name') && $target.name
+                    ?? $target.name !! ~$/[0]
                 unless nqp::istype($target, QAST::Op)
                 && ($target.op eq 'call' || $target.op eq 'callmethod')
-                || $target.has_ann('dot_equals_call') {
-                    if nqp::can($target, 'name') && $target.name {
-                        $/.typed_panic('X::Syntax::Adverb', what => $target.name);
-                    }
-                    else {
-                        $/.typed_panic('X::Syntax::Adverb', what => ~$/[0]);
-                    }
-                }
+                || $target.has_ann('fake_infix_adverb_target')
+                && ($push-target := $target.ann: 'fake_infix_adverb_target');
+
                 my $cpast := $<colonpair>.ast;
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
-                (
-                  $target.has_ann('dot_equals_call')
-                    ?? nqp::istype($target, QAST::Op)
-                        ?? $target[1] !! $target[1][1]
-                    !! $target
-                ).push(WANTED($cpast[2],'EXPR/POSTFIX'));
+                $push-target.push(WANTED($cpast[2],'EXPR/POSTFIX'));
 
                 if nqp::istype($past, QAST::Op) && $past.op eq 'hllize' {
                     $past[0] := WANTED($target,'EXPR/POSTFIX');
@@ -9393,7 +9387,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         $qast.nosink: 1;
         wantall($qast, 'make_dot_equals');
-        $qast.annotate_self: 'dot_equals_call', 1; # ann. for fakeinfix adverbs
+        $qast.annotate_self: 'fake_infix_adverb_target', $call;
     }
 
     sub make_dot($target, $call) {

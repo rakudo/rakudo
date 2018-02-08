@@ -3325,28 +3325,39 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<deftermnow> {
             # 'my \foo' style declaration
-            my $name       :=  $<deftermnow>.ast;
+            my $name      := $<deftermnow>.ast;
+            my $init-qast := $<term_init>.ast;
+
+            $init-qast.unshift:
+              QAST::WVal.new: value => nqp::defined($*OFTYPE)
+                ?? $*OFTYPE.ast !! $*W.find_symbol: ['Mu']
+            if $<term_init><sym> eq '.=';
+
+            my $qast;
             if $*OFTYPE {
                 my $type := $*OFTYPE.ast;
-                make QAST::Op.new(
+                $qast := QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:$name, :scope<lexical>),
                     $type =:= $*W.find_symbol(['Mu'])
-                        ?? WANTED($<term_init>.ast, 'declarator/deftermnow1')
+                        ?? WANTED($init-qast, 'declarator/deftermnow3')
                         !! QAST::Op.new(
                             :op('p6bindassert'),
-                            WANTED($<term_init>.ast, 'declarator/deftermnow2'),
+                            WANTED($init-qast, 'declarator/deftermnow2'),
                             QAST::WVal.new( :value($type) ),
                         )
                 );
             }
             else {
-                make QAST::Op.new(
+                $qast := QAST::Op.new(
                     :op<bind>,
                     QAST::Var.new(:$name, :scope<lexical>),
-                        WANTED($<term_init>.ast, 'declarator/bind')
+                        WANTED($init-qast, 'declarator/bind')
                 );
             }
+            make $<term_init><sym> eq '.='
+              ?? $qast.annotate_self: 'fake_infix_adverb_target', $init-qast
+              !! $qast
         }
         else {
             $/.panic('Unknown declarator type');

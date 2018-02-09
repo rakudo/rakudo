@@ -5603,11 +5603,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<sym> eq '.^' {
             $past.op('p6callmethodhow');
         }
-        elsif $<sym> eq '.=' {
-            # we'll just mark it for now and wait until we get a
-            # hold of the invocant to prepare the final QAST
-            $past.annotate: 'dot_equals', 1;
-        }
         else {
             $past.unshift($*W.add_string_constant($past.name))
                 if $past.name ne '';
@@ -6622,11 +6617,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         'R^..^', 1
     );
     method EXPR($/, $KEY?) {
-        unless $KEY {
-            return make make_dot_equals($<dotty>.ast.shift, $<dotty>.ast)
-                if $<dotty><sym> eq '.=' && $<dotty>.ast.ann: 'dot_equals';
-            return 0;
-        }
+        unless $KEY { return 0; }
         my $past := $/.ast // $<OPER>.ast;
         my $key := nqp::lc($KEY // 'infix');
         $key := 'infix' if $key eq 'list';
@@ -6773,10 +6764,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $return_map := 1
                 }
 
-                if $past.ann('dot_equals') {
-                    return make make_dot_equals($past.shift, $past);
-                }
-                elsif $past.name eq 'dispatch:<var>' && ! (
+                if $past.name eq 'dispatch:<var>' && ! (
                        nqp::istype($past[0], QAST::WVal)
                     && nqp::istype($past[0].value,
                       $*W.find_symbol: ['Whatever'], :setting-only)
@@ -9371,33 +9359,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         )
     }
 
-    sub make_dot_equals($t, $call) {
-        my $target := WANTED($t,'make_dot_equals');
-        my $qast;
-
-        # clear the annotation so we don't double-dot-equals the QAST
-        $call.annotate: 'dot_equals', 0 if $call.ann: 'dot_equals';
-        if nqp::istype($target, QAST::Var) {
-            # we have a plain variable as target. Safe to Just Use It™
-            $call.unshift: $target;
-            $qast := QAST::Op.new: :op<p6store>, $target, $call
-        }
-        else {
-            # we have something more complex as target. Use a temp var to
-            # save the result of it into and then to call method on it
-            my $name := QAST::Node.unique: 'make_dot_equals_temp_';
-            $call.unshift: QAST::Var.new: :$name, :scope<local>;
-            $qast := QAST::Stmts.new:
-              QAST::Op.new(:op<bind>,
-                QAST::Var.new(:$name, :scope<local>, :decl<var>),
-                $target),
-              QAST::Op.new: :op<p6store>,
-                QAST::Var.new(:$name, :scope<local>),
-                $call
-        }
-        $qast.nosink: 1;
-        wantall($qast, 'make_dot_equals');
-        $qast.annotate_self: 'fake_infix_adverb_target', $call;
+    sub make_dot_equals($target, $call) {
+        $call.unshift($*W.add_string_constant($call.name)) if $call.name || !$call.list;
+        $call.unshift(WANTED($target,'make_dot_equals'));
+        $call.name('dispatch:<.=>');
+        $call.op('callmethod');
+        $call.nosink(1);
+        wantall($call, 'make_dot_equals');
+        $call;
     }
 
     sub make_dot($target, $call) {

@@ -3180,9 +3180,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $initast, $*ATTR_INIT_BLOCK);
                     }
                     elsif $<initializer><sym> eq '.=' {
-                        my $type := $*W.find_symbol(
-                            nqp::split('::', $*OFTYPE // 'Any')
-                        );
+                        my $type := nqp::defined($*OFTYPE)
+                          ?? $*OFTYPE.ast !! $*W.find_symbol: ['Any'];
                         my $dot_equals := $initast;
                         $dot_equals.unshift(QAST::WVal.new(:value($type)));
                         $dot_equals.returns($type);

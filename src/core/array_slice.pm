@@ -14,11 +14,11 @@ proto sub POSITIONS(|) {*}
 multi sub POSITIONS(
   \SELF,
   \pos,
-  Callable :$eagerize = -> $idx {
+  Callable :$eagerize = -> \idx {
       nqp::if(
-        nqp::istype($idx,Whatever),
+        nqp::istype(idx,Whatever),
         nqp::if(nqp::isconcrete(SELF),SELF.elems,0),
-        SELF.EXISTS-POS($idx)
+        SELF.EXISTS-POS(idx)
       )
   }
 ) {

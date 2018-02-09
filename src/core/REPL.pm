@@ -54,7 +54,7 @@ do {
         method repl-read(Mu \prompt) {
             my $line = $read.readline(prompt);
 
-            if $line.defined {
+            if $line.defined && $line.match(/\S/) {
                 $read.add-history($line);
                 $read.append-history(1, $.history-file);
             }
@@ -92,7 +92,7 @@ do {
             self.update-completions;
             my $line = linenoise(prompt);
 
-            if $line.defined {
+            if $line.defined && $line.match(/\S/) {
                 linenoiseHistoryAdd($line);
             }
 

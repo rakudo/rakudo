@@ -2752,7 +2752,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]?
 
         [ <.ws> <trait>+ ]?
-        [ <.ws> <post_constraint('var')>+ ]?
+        [ <.ws> :my $*HAS_SELF :=
+              $*SCOPE eq 'has' ?? nqp::null !! nqp::getlexdyn('$*HAS_SELF')
+          ; <post_constraint('var')>+ ]?
     }
 
     proto token routine_declarator { <...> }

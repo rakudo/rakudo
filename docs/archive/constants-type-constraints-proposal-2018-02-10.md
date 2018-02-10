@@ -18,7 +18,7 @@
 * Constants bind initializer to them
 * Constants with `@` sigil
     * Typecheck initializer for `Positional`
-        * When `.=` op is used, method is called `List` type object
+        * When `.=` op is used, method is called on `List` type object
     * If initializer isn't positional, call `.cache` on it
 * Constants with `%` sigil
     * Typecheck initializer for `Associative`
@@ -59,8 +59,12 @@ foo.push: 42; # it's an Array, so this works
 
 ## Behaviour with `@`-, `%`-, and `&`-sigiled constants
 
-Some cases don't have a clear and obvious meaning, so for them, I propose
-throwing a `X::ParametricConstant` exception, defined something like:
+Some cases don't have a clear and obvious meaning, as `constant @foo .=new: 1,
+2, 3` makes a `List`, yet `my Numeric constant @foo .=new: 1, 2, 3` would have
+to make an `Array`, because `List` cannot be parametarized.
+
+So for them, I propose throwing a `X::ParametricConstant` exception, defined
+something like:
 
 ```perl6
 my class X::ParametricConstant is Exception {

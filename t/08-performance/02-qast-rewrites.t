@@ -1,7 +1,7 @@
 use lib <t/packages>;
 use Test::Helpers::QAST;
 use Test;
-plan 1;
+plan 2;
 
 subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
     plan 8;
@@ -53,4 +53,28 @@ subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
         and not qast-contains-call v, '&prefix:<-->'
         and not qast-contains-call v, '&postfix:<-->'
     }, 'num, non-void context --';
+}
+
+
+subtest '.dispatch:<.=> gets rewritten to simple ops' => {
+    plan +my @codes :=
+      ｢(my Int $x .=new).="{"new"}"(42);｣,
+      ｢my Int $x; .=new andthen .=new orelse .=new;｣,
+      ｢my \foo .= new｣,
+      ｢my Int \foo .= new｣,
+      ｢my Int $a; .=new without $a｣,
+      ｢my Int $a; .=new with $a｣,
+      ｢my Int $a; $a .= new｣,
+      ｢my @a; @a .= new｣,   ｢my @a .= new｣,
+      ｢my %a; %a .= new｣,   ｢my %a .= new｣,
+      ｢my &a; &a .= new｣,   ｢my &a .= new｣,
+      ｢my $b = "meows"; $b .= WHAT｣,
+      ｢my @b = <z a b d e>; @b .= sort｣,
+    ;
+
+    for @codes -> \code {
+        qast-is code, -> \v {
+            not qast-contains-callmethod v, 'dispatch:<.=>'
+        }, code;
+    }
 }

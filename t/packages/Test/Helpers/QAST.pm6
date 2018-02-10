@@ -15,6 +15,19 @@ sub qast-contains-op (Mu $qast, Str:D $name --> Bool:D) is export {
     False
 }
 
+sub qast-contains-callmethod (Mu $qast, Str:D $name --> Bool:D) is export {
+    if nqp::istype($qast, QAST::Op)
+    && $qast.op eq 'callmethod' && $qast.name eq $name {
+        return True;
+    }
+    elsif qast-descendable $qast {
+        for $qast.list {
+            qast-contains-call $_, $name and return True;
+        }
+    }
+    False
+}
+
 sub qast-contains-call (Mu $qast, Str:D $name --> Bool:D) is export {
     if nqp::istype($qast, QAST::Op)
     && ( $qast.op eq 'call'  || $qast.op eq 'callstatic'
@@ -168,5 +181,17 @@ Defined as:
 Takes a QAST tree and tests whether it has QAST::Op with C<.op> set to
 C<call>, C<callstatic>, C<chain>, or C<chainstatic>, and with C<.name> set
 to C<$name>. Recurses into descendable ops.
+
+=head2 C<qast-contains-callmethod>
+
+Defined as:
+
+    sub qast-contains-callmethod (Mu $qast, Str:D $name --> Bool:D);
+
+Takes a QAST tree and tests whether it has QAST::Op with C<.op> set to
+C<callmethod> and with C<.name> set to C<$name>. Recurses into descendable ops.
+
+B<NOTE:> C<callmethod> op can also take the name as second positional arg.
+This routine does B<NOT> inspect such nodes.
 
 =end pod

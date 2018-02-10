@@ -51,7 +51,10 @@ my class Parameter { # declared in BOOTSTRAP
     method usage-name() {
         nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
           ?? $!variable_name
-          !! nqp::substr($!variable_name,1)
+          !! nqp::iseq_i(nqp::index('*!',nqp::substr($!variable_name,1,1)),-1)
+            ?? nqp::substr($!variable_name,1)
+            !! nqp::substr($!variable_name,2)
+
     }
 
     method sigil() {

@@ -4926,7 +4926,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Get constant value.
-        my $type := $*W.find_symbol([ $*OFTYPE // 'Any']);
+        my $type := nqp::defined($*OFTYPE)
+          ?? $*OFTYPE.ast !! $*W.find_symbol: ['Mu'];
         if $<initializer><sym> eq '.=' {
             $value_ast.unshift(QAST::WVal.new(:value($type)));
         }

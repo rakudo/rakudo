@@ -90,7 +90,10 @@ my class Failure is Nil {
     multi method Str(Failure:D:)  { $!handled ?? $.mess !! self!throw(); }
     multi method gist(Failure:D:) { $!handled ?? $.mess !! self!throw(); }
     multi method gist(Failure:U:) { '(' ~ self.^name ~ ')' }
-    multi method perl(Failure:D:) { self.Mu::perl() }
+    multi method perl(Failure:D:) {
+        $!handled ?? '&CORE::infix:<orelse>(' ~ self.Mu::perl ~ ', *.self)'
+                  !! self.Mu::perl
+    }
     multi method perl(Failure:U:) { self.^name }
     method mess (Failure:D:) {
         "(HANDLED) " x $!handled ~ self.exception.message ~ "\n" ~ self.backtrace;

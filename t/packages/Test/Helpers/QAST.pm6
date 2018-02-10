@@ -22,7 +22,7 @@ sub qast-contains-callmethod (Mu $qast, Str:D $name --> Bool:D) is export {
     }
     elsif qast-descendable $qast {
         for $qast.list {
-            qast-contains-call $_, $name and return True;
+            qast-contains-callmethod $_, $name and return True;
         }
     }
     False

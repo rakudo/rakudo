@@ -2,7 +2,22 @@
 
 *Feb. 10, 2018 proposal by Zoffix*
 
------------
+# TABLE OF CONTENTS
+- [Type Constraints on Constants](#type-constraints-on-constants)
+    - [General Spec of Behaviour](#general-spec-of-behaviour)
+    - [Examples of behaviour](#examples-of-behaviour)
+    - [Sigilless/`$`-sigiled constants](#sigilless-sigiled-constants)
+    - [Behaviour with `@`-, `%`-, and `&amp;`-sigiled constants](#behaviour-with-----and--sigiled-constants)
+        - [`@`-sigiled constants](#-sigiled-constants)
+        - [`%`-sigiled constants](#-sigiled-constants-1)
+    - [Deviations from Current Behaviour](#deviations-from-current-behaviour)
+    - [Examples of behaviour](#examples-of-behaviour-1)
+    - [Behaviour with `@`-, `%`-, and `&amp;`-sigiled constants](#behaviour-with-----and--sigiled-constants-1)
+        - [`@`-sigiled constants](#-sigiled-constants-2)
+        - [`%`-sigiled constants](#-sigiled-constants-3)
+        - [`&amp;`-sigiled constants](#-sigiled-constants-4)
+    - [Deviations from Current Behaviour](#deviations-from-current-behaviour-1)
+
 
 ## General Spec of Behaviour
 

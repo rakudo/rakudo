@@ -73,7 +73,7 @@ subtest '.dispatch:<.=> gets rewritten to simple ops' => {
     ;
 
     for @codes -> \code {
-        qast-is code, -> \v {
+        qast-is code, :full, -> \v {
             not qast-contains-callmethod v, 'dispatch:<.=>'
         }, code;
     }

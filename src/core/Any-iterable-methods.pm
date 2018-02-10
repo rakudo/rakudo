@@ -1862,8 +1862,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               (my $iterator := self.iterator),
               nqp::if(
                 nqp::isgt_i((my $skip := -($n(0).Int)),0),
-                $iterator.skip-at-least($skip)),
-              $iterator),
+                nqp::if(
+                  $iterator.skip-at-least($skip),
+                  $iterator,
+                  Rakudo::Iterator.Empty),
+                $iterator)),
             Rakudo::Iterator.LastNValues(self.iterator,$n,'tail')
           )
         )

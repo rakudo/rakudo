@@ -1354,11 +1354,19 @@ class Perl6::Optimizer {
                  return $opt_result;
             }
         }
-
-        # If it's a private method call, we can sometimes resolve it at
-        # compile time. If so, we can reduce it to a sub call in some cases.
-        elsif $!level >= 2 && $optype eq 'callmethod' && $op.name eq 'dispatch:<!>' {
-            self.optimize_private_method_call($op);
+        # Some .dispatch:<....> calls can be simplified
+        elsif $!level >= 2 && $optype eq 'callmethod'
+        && nqp::eqat($op.name, 'dispatch:<', 0) {
+            if $op.name eq 'dispatch:<!>' {
+                # If it's a private method call, we can sometimes resolve
+                # it at compile time. If so, we can reduce it to a
+                # sub call in some cases.
+                self.optimize_private_method_call: $op;
+            }
+            elsif $op.name eq 'dispatch:<.=>' {
+                # .= calls can be unpacked entirely
+                return self.optimize_dot_equals_method_call: $op;
+            }
         }
 
         if $op.op eq 'chain' {
@@ -1383,6 +1391,33 @@ class Perl6::Optimizer {
             }
         }
         $op
+    }
+
+    method optimize_dot_equals_method_call($call) {
+        my $target := $call[0];
+        my $qast;
+        $call.name: ''; # second kid already is the method name the op will use
+
+        if nqp::istype($target, QAST::Var) {
+            # we have a plain variable as target. Safe to Just Use It™
+            $qast := QAST::Op.new: :op<p6store>, $target, $call
+        }
+        else {
+            # we have something more complex as target. Use a temp var to
+            # save the result of it into and then to call method on it
+            $target := $call.shift;
+            my $name := QAST::Node.unique: 'make_dot_equals_temp_';
+            $call.unshift: QAST::Var.new: :$name, :scope<local>;
+            $qast := QAST::Stmts.new:
+              QAST::Op.new(:op<bind>,
+                QAST::Var.new(:$name, :scope<local>, :decl<var>),
+                $target),
+              QAST::Op.new: :op<p6store>,
+                QAST::Var.new(:$name, :scope<local>),
+                $call
+        }
+
+        $qast
     }
 
     method visit_op_children($op) {

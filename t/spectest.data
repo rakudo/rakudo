@@ -135,6 +135,7 @@ S02-types/fatrat.t
 S02-types/flattening.t
 S02-types/hash_ref.t
 S02-types/hash.t
+S02-types/hyperwhatever.t
 S02-types/infinity.t
 S02-types/instants-and-durations.t
 S02-types/int-uint.t

@@ -1,7 +1,7 @@
 use lib <t/packages>;
 use Test::Helpers::QAST;
 use Test;
-plan 4;
+plan 5;
 
 subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
     plan 8;
@@ -87,3 +87,8 @@ qast-is ｢for ^10 {}｣, -> \v {
 qast-is ｢for ^10 {}｣, :target<ast>, -> \v {
     qast-contains-op v, 'p6forstmt'
 }, 'simple `for ^10 {}` case gets `p6forstmt` op to use';
+
+qast-is ｢for ^10 -> $, :$foo {}｣, :target<ast>, -> \v {
+            qast-contains-op   v, 'p6forstmt'
+    and not qast-contains-op   v, 'p6for'
+}, 'named arg does not accidentally get counted as a positional';

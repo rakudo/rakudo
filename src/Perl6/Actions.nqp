@@ -9667,7 +9667,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                   && nqp::istype($check, QAST::Op);
 
             if nqp::bitand_i($curried, 1)
-            && istype($check.returns, $HyperWhatever) {
+            && istype($check.returns, $HyperWhatever)
+            && nqp::isconcrete($check.value) {
                 $hyperwhatever := 1;
                 $whatevers++;
             }

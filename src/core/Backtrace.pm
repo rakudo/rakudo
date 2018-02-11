@@ -154,7 +154,7 @@ my class Backtrace {
                     next unless $annotations;
                     my $file := $annotations<file>;
                     next unless $file;
-                    if $file.ends-with('.setting') {
+                    if $file.starts-with('SETTING::') {
                         $!bt-next--; # re-visit this frame
                         last;
                     }

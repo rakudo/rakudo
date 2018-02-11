@@ -1329,24 +1329,23 @@ my class Rakudo::Internals {
         my \payload := nqp::getpayload($vmex);
         if nqp::elems(payload) == 1 {
             if nqp::existskey(payload, 'BAD_TYPE_FOR_DIRECTIVE') {
-                X::Str::Sprintf::Directives::BadType.new(
+                X::Str::Sprintf::Directives::BadType.new:
                     type      => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'TYPE'),
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'DIRECTIVE'),
-                ).throw
             }
-            if nqp::existskey(payload, 'BAD_DIRECTIVE') {
-                X::Str::Sprintf::Directives::Unsupported.new(
+            elsif nqp::existskey(payload, 'BAD_DIRECTIVE') {
+                X::Str::Sprintf::Directives::Unsupported.new:
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_DIRECTIVE'), 'DIRECTIVE'),
                     sequence  => nqp::atkey(nqp::atkey(payload, 'BAD_DIRECTIVE'), 'SEQUENCE'),
-                ).throw
             }
-            if nqp::existskey(payload, 'DIRECTIVES_COUNT') {
-                X::Str::Sprintf::Directives::Count.new(
+            elsif nqp::existskey(payload, 'DIRECTIVES_COUNT') {
+                X::Str::Sprintf::Directives::Count.new:
                     args-have => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_HAVE'),
                     args-used => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_USED'),
-                ).throw
             }
+            else { exception }
         }
+        else { exception }
     }
 
 #- start of generated part of succ/pred ---------------------------------------

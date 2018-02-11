@@ -603,7 +603,14 @@ my class Rakudo::Internals {
     method initialize-sprintf-handler(--> Nil) {
         class SprintfHandler {
             method mine($x) { nqp::reprname($x) eq "P6opaque"; }
-            method int($x) { $x.Int }
+
+            proto method int(|) {*}
+            multi method int(Mu:D \n) { n.Int }
+            multi method int(Mu:U \n) { n.Numeric.Int }
+
+            proto method float(|) {*}
+            multi method float(Numeric:D \n) { n }
+            multi method float(Mu \n) { n.Numeric }
         }
         unless $sprintfHandlerInitialized {
             nqp::sprintfaddargumenthandler(SprintfHandler.new);

@@ -8511,7 +8511,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my int $arity := 0;
         my int $count := 0;
         for @params {
-            last if $_<named_names> || $_<named_slurpy>;
             if $_<pos_slurpy> || $_<pos_onearg> {
                 $count := nqp::inf;
                 last;

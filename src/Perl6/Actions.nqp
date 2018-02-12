@@ -8870,8 +8870,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $var.default(QAST::SVal.new( :value('') ));
                         }
                         else {
-                            $var.default: QAST::WVal.new: value =>
-                              nqp::ifnull($coerce_to, $nomtype);
+                            $var.default(QAST::WVal.new( :value($nomtype) ));
                         }
                     }
                 }

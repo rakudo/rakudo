@@ -595,7 +595,7 @@ public final class RakOps {
         return indices;
     }
 
-    public static long p6stateinit(ThreadContext tc) {
+    public static long p6stateinit(SixModelObject obj, ThreadContext tc) {
         return tc.curFrame.stateInit ? 1 : 0;
     }
 

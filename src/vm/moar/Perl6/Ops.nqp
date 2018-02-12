@@ -63,7 +63,8 @@ MAST::ExtOpRegistry.register_extop('p6capturelexwhere',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6stateinit',
-    $MVM_operand_int64 +| $MVM_operand_write_reg);
+    $MVM_operand_int64 +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6setfirstflag',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);

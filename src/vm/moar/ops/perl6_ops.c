@@ -467,10 +467,25 @@ static void p6captureouters(MVMThreadContext *tc, MVMuint8 *cur_op) {
 }
 
 static MVMuint8 s_p6stateinit[] = {
-    MVM_operand_int64 | MVM_operand_write_reg
+    MVM_operand_int64 | MVM_operand_write_reg,
+    MVM_operand_obj   | MVM_operand_read_reg
 };
 static void p6stateinit(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    GET_REG(tc, 0).i64 = tc->cur_frame->flags & MVM_FRAME_FLAG_STATE_INIT ? 1 : 0;
+    MVMint64 do_init = tc->cur_frame->flags & MVM_FRAME_FLAG_STATE_INIT ? 1 : 0;
+
+    /* Find num of lexical, so that we can mark it as HLL inited */
+    MVMObject   *var    = GET_REG(tc, 2).o;
+    MVMCodeBody *crbody = &((MVMCode *)tc->cur_frame->code_ref)->body;
+    for (MVMuint32 i = 0; i < tc->cur_frame->static_info->body.num_lexicals; i++) {
+        MVMRegister *env_val     = &tc->cur_frame->env[i];
+        MVMuint8    *is_hll_init = &crbody->state_vars_is_hll_init[i];
+        if (env_val && var == env_val->o) {
+            GET_REG(tc, 0).i64 = do_init || !*is_hll_init;
+            *is_hll_init = 1;
+            return;
+        }
+    }
+    GET_REG(tc, 0).i64 = do_init;
 }
 
 /* First FIRST, use a flag in the object header. */
@@ -750,7 +765,7 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 2, s_p6captureouters, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit, NULL, NULL, 0);
+    MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 2, s_p6stateinit, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6setfirstflag", p6setfirstflag, 2, s_p6setfirstflag, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6takefirstflag", p6takefirstflag, 1, s_p6takefirstflag, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6setpre", p6setpre, 1, s_p6setpre, NULL, NULL, 0);

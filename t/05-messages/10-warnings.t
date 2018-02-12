@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 7;
+plan 8;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -78,5 +78,9 @@ is-run ｢my $ = ^2 .grep: {try 1 after 0}; my $ = {try 5 == 5}()｣,
 
 is-run ｢my @a; sink @a; my $b := gather { print 'meow' }; sink $b｣,
     :out<meow>, 'no warnings when sinking variables';
+
+is-run ｢use experimental :macros; macro z($) { quasi {} };
+    z $; z <x>; print "pass"｣, :out<pass>,
+    'args to macros do not cause useless use warnings';
 
 # vim: ft=perl6 expandtab sw=4

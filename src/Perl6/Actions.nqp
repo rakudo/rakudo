@@ -213,6 +213,9 @@ sub wanted($ast,$by) {
             }
         }
     }
+    else {
+        $ast.wanted: 1;
+    }
     $ast;
 }
 

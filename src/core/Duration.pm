@@ -6,7 +6,6 @@ my class Duration is Cool does Real {
         nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',$tai.Rat.self) # .self blows up Failures
     }
 
-    method Bridge(Duration:D:) { $!tai.Num    }
     method Num   (Duration:D:) { $!tai.Num    }
     method Rat   (Duration:D:) { $!tai        }
     method narrow(Duration:D:) { $!tai.narrow }

@@ -1,41 +1,41 @@
 my class Complex { ... }
 
 my role Real does Numeric {
-    method Rat(Real:D: Real $epsilon = 1.0e-6) { self.Bridge.Rat($epsilon) }
+    method Rat(Real:D: Real $epsilon = 1.0e-6) { self.Num.Rat($epsilon) }
     method abs()  { self < 0 ?? -self !! self }
     method sign(Real:D:) { self > 0 ?? 1 !! self < 0 ?? -1 !! +self }
     method conj(Real:D:) { self }
-    method sqrt() { self.Bridge.sqrt }
-    method rand() { self.Bridge.rand }
-    method sin()  { self.Bridge.sin }
-    method asin() { self.Bridge.asin }
-    method cos()  { self.Bridge.cos }
-    method acos() { self.Bridge.acos }
-    method tan()  { self.Bridge.tan }
-    method atan() { self.Bridge.atan }
+    method sqrt() { self.Num.sqrt }
+    method rand() { self.Num.rand }
+    method sin()  { self.Num.sin }
+    method asin() { self.Num.asin }
+    method cos()  { self.Num.cos }
+    method acos() { self.Num.acos }
+    method tan()  { self.Num.tan }
+    method atan() { self.Num.atan }
     proto method atan2(|) {*}
-    multi method atan2(Real $x = 1e0) { self.Bridge.atan2($x.Bridge) }
-    multi method atan2(Cool $x = 1e0) { self.Bridge.atan2($x.Numeric.Bridge) }
-    method sec() { self.Bridge.sec }
-    method asec() { self.Bridge.asec }
-    method cosec() { self.Bridge.cosec }
-    method acosec() { self.Bridge.acosec }
-    method cotan()  { self.Bridge.cotan }
-    method acotan() { self.Bridge.acotan }
-    method sinh() { self.Bridge.sinh }
-    method asinh() { self.Bridge.asinh }
-    method cosh() { self.Bridge.cosh }
-    method acosh() { self.Bridge.acosh }
-    method tanh() { self.Bridge.tanh }
-    method atanh() { self.Bridge.atanh }
-    method sech() { self.Bridge.sech }
-    method asech() { self.Bridge.asech }
-    method cosech() { self.Bridge.cosech }
-    method acosech() { self.Bridge.acosech }
-    method cotanh() { self.Bridge.cotanh }
-    method acotanh() { self.Bridge.acotanh }
-    method floor() { self.Bridge.floor }
-    method ceiling() { self.Bridge.ceiling }
+    multi method atan2(Real $x = 1e0) { self.Num.atan2($x.Num) }
+    multi method atan2(Cool $x = 1e0) { self.Num.atan2($x.Numeric.Num) }
+    method sec() { self.Num.sec }
+    method asec() { self.Num.asec }
+    method cosec() { self.Num.cosec }
+    method acosec() { self.Num.acosec }
+    method cotan()  { self.Num.cotan }
+    method acotan() { self.Num.acotan }
+    method sinh() { self.Num.sinh }
+    method asinh() { self.Num.asinh }
+    method cosh() { self.Num.cosh }
+    method acosh() { self.Num.acosh }
+    method tanh() { self.Num.tanh }
+    method atanh() { self.Num.atanh }
+    method sech() { self.Num.sech }
+    method asech() { self.Num.asech }
+    method cosech() { self.Num.cosech }
+    method acosech() { self.Num.acosech }
+    method cotanh() { self.Num.cotanh }
+    method acotanh() { self.Num.acotanh }
+    method floor() { self.Num.floor }
+    method ceiling() { self.Num.ceiling }
 
     proto method round(|) {*}
     multi method round(Real:D:) {
@@ -53,10 +53,10 @@ my role Real does Numeric {
     }
     method Complex() { Complex.new(self.Num, 0e0) }
     proto method log(|) {*}
-    multi method log(Real:D: )           { self.Bridge.log               }
-    multi method log(Real:D: Real $base) { self.Bridge.log($base.Bridge) }
+    multi method log(Real:D: )           { self.Num.log               }
+    multi method log(Real:D: Real $base) { self.Num.log($base.Num) }
     proto method exp(|) {*}
-    multi method exp(Real:D: )           { self.Bridge.exp               }
+    multi method exp(Real:D: )           { self.Num.exp               }
     method truncate(Real:D:) {
         self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
     }
@@ -121,42 +121,41 @@ my role Real does Numeric {
     }
 
     method Real(Real:D:) { self }
-    method Bridge(Real:D:) { self.Num }
-    method Int(Real:D:) { self.Bridge.Int }
-    method Num(Real:D:) { self.Bridge.Num }
-    multi method Str(Real:D:) { self.Bridge.Str }
+    method Int(Real:D:) { self.Int }
+    method Num(Real:D:) { self.Num }
+    multi method Str(Real:D:) { self.Str }
 }
 
 proto sub cis($) {*}
 multi sub cis(Real $a) { $a.cis }
 
-multi sub infix:<+>(Real \a, Real \b)   { a.Bridge + b.Bridge }
+multi sub infix:<+>(Real \a, Real \b)   { a.Num + b.Num }
 
-multi sub infix:<->(Real \a, Real \b)   { a.Bridge - b.Bridge }
+multi sub infix:<->(Real \a, Real \b)   { a.Num - b.Num }
 
-multi sub infix:<*>(Real \a, Real \b)   { a.Bridge * b.Bridge }
+multi sub infix:<*>(Real \a, Real \b)   { a.Num * b.Num }
 
-multi sub infix:</>(Real \a, Real \b)   { a.Bridge / b.Bridge }
+multi sub infix:</>(Real \a, Real \b)   { a.Num / b.Num }
 
-multi sub infix:<%>(Real \a, Real \b)   { a.Bridge % b.Bridge }
+multi sub infix:<%>(Real \a, Real \b)   { a.Num % b.Num }
 
-multi sub infix:<**>(Real \a, Real \b)  { a.Bridge ** b.Bridge }
+multi sub infix:<**>(Real \a, Real \b)  { a.Num ** b.Num }
 
-multi sub infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }
+multi sub infix:«<=>»(Real \a, Real \b) { a.Num <=> b.Num }
 
-multi sub infix:<==>(Real \a, Real \b)  { a.Bridge == b.Bridge }
+multi sub infix:<==>(Real \a, Real \b)  { a.Num == b.Num }
 
-multi sub infix:«<»(Real \a, Real \b)   { a.Bridge < b.Bridge }
+multi sub infix:«<»(Real \a, Real \b)   { a.Num < b.Num }
 
-multi sub infix:«<=»(Real \a, Real \b)  { a.Bridge <= b.Bridge }
-multi sub infix:«≤» (Real \a, Real \b)  { a.Bridge  ≤ b.Bridge }
+multi sub infix:«<=»(Real \a, Real \b)  { a.Num <= b.Num }
+multi sub infix:«≤» (Real \a, Real \b)  { a.Num  ≤ b.Num }
 
-multi sub infix:«>»(Real \a, Real \b)   { a.Bridge > b.Bridge }
+multi sub infix:«>»(Real \a, Real \b)   { a.Num > b.Num }
 
-multi sub infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
-multi sub infix:«≥» (Real \a, Real \b)  { a.Bridge  ≥ b.Bridge }
+multi sub infix:«>=»(Real \a, Real \b)  { a.Num >= b.Num }
+multi sub infix:«≥» (Real \a, Real \b)  { a.Num  ≥ b.Num }
 
-multi sub prefix:<->(Real:D \a)            { -a.Bridge }
+multi sub prefix:<->(Real:D \a)            { -a.Num }
 
 # NOTE: According to the spec, infix:<mod> is "Not coercive,
 # so fails on differing types."  Thus no casts here.
@@ -175,7 +174,7 @@ multi sub truncate(Cool:D $x) { $x.Numeric.truncate }
 
 
 proto sub atan2($, $?)    {*}
-multi sub atan2(Real \a, Real \b = 1e0) { a.Bridge.atan2(b.Bridge) }
+multi sub atan2(Real \a, Real \b = 1e0) { a.Num.atan2(b.Num) }
 # should really be (Cool, Cool), and then (Cool, Real) and (Real, Cool)
 # candidates, but since Int both conforms to Cool and Real, we'd get lots
 # of ambiguous dispatches. So just go with (Any, Any) for now.

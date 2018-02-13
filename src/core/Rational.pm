@@ -72,7 +72,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             !! fail X::Numeric::DivideByZero.new:
                    :details('when coercing Rational to Int')
     }
-    method Bridge() { self.Num }
     method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
     method isNaN (--> Bool:D) {
         nqp::p6bool(nqp::isfalse($!denominator) && nqp::isfalse($!numerator))

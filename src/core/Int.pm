@@ -65,10 +65,6 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::abs_I(self, Int)
     }
 
-    method Bridge(Int:D:) {
-        nqp::p6box_n(nqp::tonum_I(self));
-    }
-
     method chr(Int:D:) {
         nqp::if(
           nqp::isbig_I(self),

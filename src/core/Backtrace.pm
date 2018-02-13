@@ -283,6 +283,10 @@ my class Backtrace {
         }
     }
 
+    multi method gist(Backtrace:D:) {
+        my $els := +self.list;
+        'Backtrace(' ~ $els ~ ' frame' ~ 's' x ($els != 1) ~ ')'
+    }
     multi method Str(Backtrace:D:)  { self.nice }
     multi method flat(Backtrace:D:) { self.list }
     multi method map(Backtrace:D: &block) {

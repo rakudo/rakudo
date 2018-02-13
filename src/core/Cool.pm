@@ -180,7 +180,7 @@ my class Cool { # declared in BOOTSTRAP
     method subst-mutate(Cool:D $value-to-subst-mutate is rw: |c) {
         $/ := nqp::getlexcaller('$/');
         my $str   = $value-to-subst-mutate.Str;
-        my $match = $str.subst-mutate(|c);
+        my $match := $str.subst-mutate(|c);
         $value-to-subst-mutate = $str;
         $match
     }

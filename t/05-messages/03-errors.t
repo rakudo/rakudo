@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 3;
+plan 4;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -21,5 +21,10 @@ throws-like ｢(lazy <a b c>).nodemap: {;}｣, X::Cannot::Lazy, :action<nodemap>
 throws-like ｢'x'.substr: /x/, 'x'｣, Exception,
             message => /｢did you mean 'subst'｣/,
             'using substr instead of subst';
+
+# RT #132846
+throws-like ｢sprintf "%d", class Foo {}.new｣,
+    X::Str::Sprintf::Directives::BadType, :gist(/«line\s+\d+$$/),
+'errors from sprintf include location of error';
 
 # vim: ft=perl6 expandtab sw=4

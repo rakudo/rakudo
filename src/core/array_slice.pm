@@ -14,11 +14,11 @@ proto sub POSITIONS(|) {*}
 multi sub POSITIONS(
   \SELF,
   \pos,
-  Callable :$eagerize = -> $idx {
+  Callable :$eagerize = -> \idx {
       nqp::if(
-        nqp::istype($idx,Whatever),
+        nqp::istype(idx,Whatever),
         nqp::if(nqp::isconcrete(SELF),SELF.elems,0),
-        SELF.EXISTS-POS($idx)
+        SELF.EXISTS-POS(idx)
       )
   }
 ) {
@@ -55,7 +55,8 @@ multi sub POSITIONS(
     }
 
     # we can optimize `42..*` Ranges; as long as they're from core, unmodified
-    my \pos-iter = nqp::eqaddr(pos.WHAT,Range)
+    my \is-pos-lazy = pos.is-lazy;
+    my \pos-iter    = nqp::eqaddr(pos.WHAT,Range)
         && nqp::eqaddr(pos.max,Inf)
         && nqp::isfalse(SELF.is-lazy)
           ?? Range.new(pos.min, SELF.elems-1,
@@ -68,9 +69,9 @@ multi sub POSITIONS(
     my \eager-indices = nqp::create(IterationBuffer);
     my \target = IndicesReificationTarget.new(eager-indices, $eagerize);
     nqp::bindattr(pos-list, List, '$!reified', eager-indices);
-    unless pos-iter.push-until-lazy(target) =:= IterationEnd {
-        # There are lazy positions to care about too. We truncate at the first
-        # one that fails to exists.
+
+    if is-pos-lazy {
+        # With lazy indices, we truncate at the first one that fails to exists.
         my \rest-seq = Seq.new(pos-iter).flatmap: -> Int() $i {
             nqp::unless(
               $eagerize($i),
@@ -83,6 +84,9 @@ multi sub POSITIONS(
         nqp::bindattr(todo, List::Reifier, '$!current-iter', rest-seq.iterator);
         nqp::bindattr(todo, List::Reifier, '$!reification-target', eager-indices);
         nqp::bindattr(pos-list, List, '$!todo', todo);
+    }
+    else {
+        pos-iter.push-all: target;
     }
     pos-list
 }

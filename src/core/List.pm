@@ -1009,14 +1009,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     proto method roll(|) is nodal {*}
-    multi method roll() {
+    multi method roll(List:D:) {
         self.is-lazy
           ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
           !! (my Int $elems = self.elems)
             ?? nqp::atpos($!reified, $elems.rand.floor)
             !! Nil
     }
-    multi method roll(Whatever) {
+    multi method roll(List:D: Whatever) {
         nqp::if(
           self.is-lazy,
           X::Cannot::Lazy.new(:action('.roll from')).throw,
@@ -1029,7 +1029,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           ))
         )
     }
-    multi method roll(\number) {
+    multi method roll(List:D: \number) {
         number == Inf
           ?? self.roll(*)
           !! self.is-lazy

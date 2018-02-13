@@ -603,7 +603,14 @@ my class Rakudo::Internals {
     method initialize-sprintf-handler(--> Nil) {
         class SprintfHandler {
             method mine($x) { nqp::reprname($x) eq "P6opaque"; }
-            method int($x) { $x.Int }
+
+            proto method int(|) {*}
+            multi method int(Mu:D \n) { n.Int }
+            multi method int(Mu:U \n) { n.Numeric.Int }
+
+            proto method float(|) {*}
+            multi method float(Numeric:D \n) { n }
+            multi method float(Mu \n) { n.Numeric }
         }
         unless $sprintfHandlerInitialized {
             nqp::sprintfaddargumenthandler(SprintfHandler.new);
@@ -1322,24 +1329,23 @@ my class Rakudo::Internals {
         my \payload := nqp::getpayload($vmex);
         if nqp::elems(payload) == 1 {
             if nqp::existskey(payload, 'BAD_TYPE_FOR_DIRECTIVE') {
-                X::Str::Sprintf::Directives::BadType.new(
+                X::Str::Sprintf::Directives::BadType.new:
                     type      => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'TYPE'),
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'DIRECTIVE'),
-                ).throw
             }
-            if nqp::existskey(payload, 'BAD_DIRECTIVE') {
-                X::Str::Sprintf::Directives::Unsupported.new(
+            elsif nqp::existskey(payload, 'BAD_DIRECTIVE') {
+                X::Str::Sprintf::Directives::Unsupported.new:
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_DIRECTIVE'), 'DIRECTIVE'),
                     sequence  => nqp::atkey(nqp::atkey(payload, 'BAD_DIRECTIVE'), 'SEQUENCE'),
-                ).throw
             }
-            if nqp::existskey(payload, 'DIRECTIVES_COUNT') {
-                X::Str::Sprintf::Directives::Count.new(
+            elsif nqp::existskey(payload, 'DIRECTIVES_COUNT') {
+                X::Str::Sprintf::Directives::Count.new:
                     args-have => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_HAVE'),
                     args-used => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_USED'),
-                ).throw
             }
+            else { exception }
         }
+        else { exception }
     }
 
 #- start of generated part of succ/pred ---------------------------------------

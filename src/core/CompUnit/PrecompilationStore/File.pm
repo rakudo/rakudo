@@ -140,16 +140,15 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method !lock(--> Nil) {
         return if $*W && $*W.is_precompilation_mode();
-        my int $acquire-file-lock = $!update-lock.protect: {
-            $!lock //= $.prefix.add('.lock').open(:create, :rw);
-            $!lock-count++
-        }
-        $!lock.lock if $acquire-file-lock == 0;
+        $!update-lock.lock;
+        $!lock //= $.prefix.add('.lock').open(:create, :rw);
+        $!lock.lock if $!lock-count++ == 0;
     }
 
     method unlock() {
         return if $*W && $*W.is_precompilation_mode();
-        $!update-lock.protect: {
+        {
+            LEAVE $!update-lock.unlock;
             die "unlock when we're not locked!" if $!lock-count == 0;
             $!lock-count-- if $!lock-count > 0;
             $!lock && $!lock-count == 0 ?? $!lock.unlock !! True

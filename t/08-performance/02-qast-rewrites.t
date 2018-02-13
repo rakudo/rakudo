@@ -1,7 +1,7 @@
 use lib <t/packages>;
 use Test::Helpers::QAST;
 use Test;
-plan 1;
+plan 5;
 
 subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
     plan 8;
@@ -54,3 +54,41 @@ subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
         and not qast-contains-call v, '&postfix:<-->'
     }, 'num, non-void context --';
 }
+
+
+subtest '.dispatch:<.=> gets rewritten to simple ops' => {
+    plan +my @codes :=
+      ｢(my Int $x .=new).="{"new"}"(42);｣,
+      ｢my Int $x; .=new andthen .=new orelse .=new;｣,
+      ｢my \foo .= new｣,
+      ｢my Int \foo .= new｣,
+      ｢my Int $a; .=new without $a｣,
+      ｢my Int $a; .=new with $a｣,
+      ｢my Int $a; $a .= new｣,
+      ｢my @a; @a .= new｣,   ｢my @a .= new｣,
+      ｢my %a; %a .= new｣,   ｢my %a .= new｣,
+      ｢my &a; &a .= new｣,   ｢my &a .= new｣,
+      ｢my $b = "meows"; $b .= WHAT｣,
+      ｢my @b = <z a b d e>; @b .= sort｣,
+    ;
+
+    for @codes -> \code {
+        qast-is code, :full, -> \v {
+            not qast-contains-callmethod v, 'dispatch:<.=>'
+        }, code;
+    }
+}
+
+qast-is ｢for ^10 {}｣, -> \v {
+        not qast-contains-op   v, 'p6forstmt'
+    and not qast-contains-op   v, 'p6for'
+}, 'simple `for ^10 {}` case gets optimized entirely';
+
+qast-is ｢for ^10 {}｣, :target<ast>, -> \v {
+    qast-contains-op v, 'p6forstmt'
+}, 'simple `for ^10 {}` case gets `p6forstmt` op to use';
+
+qast-is ｢for ^10 -> $, :$foo {}｣, :target<ast>, -> \v {
+            qast-contains-op   v, 'p6forstmt'
+    and not qast-contains-op   v, 'p6for'
+}, 'named arg does not accidentally get counted as a positional';

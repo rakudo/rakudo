@@ -1105,7 +1105,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             @matches[0];
         }
         elsif !@matches || (@matches == 1 && !@matches[0]) {
-            Nil;
+            $global ?? Empty !! Nil
         }
         else {
             $self = $self!APPLY-MATCHES(

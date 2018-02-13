@@ -181,7 +181,7 @@ my class Cool { # declared in BOOTSTRAP
         $/ := nqp::getlexcaller('$/');
         my $str   = $value-to-subst-mutate.Str;
         my $match := $str.subst-mutate(|c);
-        $value-to-subst-mutate = $str;
+        $value-to-subst-mutate = $str if $match;  # only change if successful
         $match
     }
 

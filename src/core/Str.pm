@@ -1097,19 +1097,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
         try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
-        my @matches = %options
+        my $matches := %options
           ?? self.match($matcher, |%options)
           !! self.match($matcher);  # 30% faster
 
-        if nqp::istype(@matches[0], Failure) {
-            @matches[0];
-        }
-        elsif !@matches || (@matches == 1 && !@matches[0]) {
-            $global ?? Empty !! Nil
+        if nqp::istype($matches, Failure) || ! $matches {
+            $matches;
         }
         else {
             $self = $self!APPLY-MATCHES(
-              @matches,
+              $matches,
               $replacement,
               $caller_dollar_slash,
               $SET_DOLLAR_SLASH,
@@ -1118,16 +1115,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               $samecase,
               $samemark,
             );
-            nqp::if(
-              $global || %options<x>,
-              nqp::p6bindattrinvres(
-                nqp::create(List),
-                List,
-                '$!reified',
-                nqp::getattr(@matches,List,'$!reified')
-              ),
-              @matches[0]
-            )
+            $matches
         }
     }
 

@@ -120,7 +120,11 @@ my role Real does Numeric {
         $int_part == 0 && self < 0 ?? '-' ~ $r !! $r;
     }
 
-    method Real(Real:D:) { self }
+    multi method Real(Real:D:) { self }
+    multi method Real(Real:U:) {
+        self.Mu::Real; # issue a warning;
+        self.new
+    }
     method Bridge(Real:D:) { self.Num }
     method Int(Real:D:) { self.Bridge.Int }
     method Num(Real:D:) { self.Bridge.Num }

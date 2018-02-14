@@ -15,6 +15,15 @@ my class IntStr is Int is Str {
             self.Str.ACCEPTS(a) && self.Int.ACCEPTS(a)))
     }
     multi method Numeric(IntStr:D:) { self.Int }
+    multi method Numeric(IntStr:U:) {
+        self.Mu::Numeric; # issue warning;
+        0
+    }
+    multi method Real(IntStr:D:) { self.Int }
+    multi method Real(IntStr:U:) {
+        self.Mu::Real; # issue warning;
+        0
+    }
     method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
@@ -38,6 +47,15 @@ my class NumStr is Num is Str {
             self.Str.ACCEPTS(a) && self.Num.ACCEPTS(a)))
     }
     multi method Numeric(NumStr:D:) { self.Num }
+    multi method Numeric(NumStr:U:) {
+        self.Mu::Numeric; # issue warning;
+        0e0
+    }
+    multi method Real(NumStr:D:) { self.Num }
+    multi method Real(NumStr:U:) {
+        self.Mu::Real; # issue warning;
+        0e0
+    }
     method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
     multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
@@ -79,6 +97,15 @@ my class RatStr is Rat is Str {
     }
     method Capture(RatStr:D:) { self.Mu::Capture }
     multi method Numeric(RatStr:D:) { self.Rat }
+    multi method Numeric(RatStr:U:) {
+        self.Mu::Numeric; # issue warning;
+        0.0
+    }
+    multi method Real(RatStr:D:) { self.Rat }
+    multi method Real(RatStr:U:) {
+        self.Mu::Real; # issue warning;
+        0.0
+    }
     method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
@@ -104,6 +131,15 @@ my class ComplexStr is Complex is Str {
     }
     method Capture(ComplexStr:D:) { self.Mu::Capture }
     multi method Numeric(ComplexStr:D:) { self.Complex }
+    multi method Numeric(ComplexStr:U:) {
+        self.Mu::Numeric; # issue warning;
+        <0+0i>
+    }
+    multi method Real(ComplexStr:D:) { self.Complex.Real }
+    multi method Real(ComplexStr:U:) {
+        self.Mu::Real; # issue warning;
+        <0+0i>.Real
+    }
     method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
     multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 

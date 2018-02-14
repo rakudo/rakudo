@@ -3,6 +3,10 @@ my class X::Numeric::DivideByZero { ... }
 
 my role Numeric {
     multi method Numeric(Numeric:D:) { self }
+    multi method Numeric(Numeric:U:) {
+        self.Mu::Numeric; # issue a warning
+        self.new
+    }
 
     multi method ACCEPTS(Numeric:D: Any:D \a) {
         (try my \numeric = a.Numeric).defined

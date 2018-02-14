@@ -1131,7 +1131,9 @@ class Perl6::Optimizer {
 
         # Let's see if we can catch a type mismatch in assignment at compile-time.
         # Especially with Num, Rat, and Int there's often surprises at run-time.
-        if $optype eq 'assign' && nqp::istype($op[0], QAST::Var) && $op[0].scope eq 'lexical' {
+        if ($optype eq 'assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
+            && nqp::istype($op[0], QAST::Var)
+            && ($op[0].scope eq 'lexical' || $op[0].scope eq 'lexicalref') {
             if nqp::istype($op[1], QAST::Want) {
                 # grab the var's symbol from our blocks
                 my $varsym := $!symbols.find_lexical_symbol($op[0].name);
@@ -1141,10 +1143,11 @@ class Perl6::Optimizer {
                 my $varname := $op[0].name;
 
                 if $want_type eq 'Ii' {
-                    if $type =:= $!symbols.find_in_setting("Num") {
+                    if $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
-                                :valuetype<Int>
+                                :$varname, :vartype($numtype), :value($op[1][2].value), :suggestiontype<Real>,
+                                :valuetype<Int>,
+                                :native(!($type =:= $numtype))
                             );
                     } elsif $type =:= $!symbols.find_in_setting("Rat") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
@@ -1160,10 +1163,11 @@ class Perl6::Optimizer {
                 } elsif $want_type eq 'Nn' {
                     my $value := $op[1][2];
                     if $value.HOW.name($value) eq 'QAST::NVal' {
-                        if $type =:= $!symbols.find_in_setting("Int") {
+                        if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                    :$varname, :vartype($type), :value($value.value), :suggestiontype<Real>,
-                                    :valuetype<Num>
+                                    :$varname, :vartype($inttype), :value($value.value), :suggestiontype<Real>,
+                                    :valuetype<Num>,
+                                    :native(!($type =:= $inttype))
                                 );
                         } elsif $type =:= $!symbols.find_in_setting("Rat") {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
@@ -1189,35 +1193,38 @@ class Perl6::Optimizer {
                 if $val_type eq 'Rat' || $val_type eq 'RatStr' {
                     if $type =:= $!symbols.find_in_setting("Int") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value(+$value), :suggestiontype<Real>,
+                                :$varname, :vartype($type), :value($value), :suggestiontype<Real>,
                                 :valuetype<Rat>
                             );
-                    } elsif $type =:= $!symbols.find_in_setting("Num") {
+                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value(+$value), :suggestiontype<Real>,
-                                :valuetype<Rat>
+                                :$varname, :vartype($numtype), :value($value), :suggestiontype<Real>,
+                                :valuetype<Rat>,
+                                :native(!($type =:= $numtype))
                             );
                     } elsif $type =:= $!symbols.find_in_setting("Complex") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value(+$value), :suggestiontype<Numeric>,
+                                :$varname, :vartype($type), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Rat>
                             );
                     }
                 }
                 elsif $val_type eq 'Complex' || $val_type eq 'ComplexStr' {
-                    if $type =:= $!symbols.find_in_setting("Int") {
+                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value.Numeric), :suggestiontype<Numeric>,
-                                :valuetype<Complex>
+                                :$varname, :vartype($inttype), :value($value), :suggestiontype<Numeric>,
+                                :valuetype<Complex>,
+                                :native(!($type =:= $inttype))
                             );
-                    } elsif $type =:= $!symbols.find_in_setting("Num") {
+                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value.Numeric), :suggestiontype<Numeric>,
-                                :valuetype<Complex>
+                                :$varname, :vartype($numtype), :value($value), :suggestiontype<Numeric>,
+                                :valuetype<Complex>,
+                                :native(!($type =:= $numtype))
                             );
                     } elsif $type =:= $!symbols.find_in_setting("Rat") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value.Numeric), :suggestiontype<Numeric>,
+                                :$varname, :vartype($type), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Complex>
                             );
                     }

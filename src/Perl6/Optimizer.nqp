@@ -1191,10 +1191,11 @@ class Perl6::Optimizer {
                 my $val_type := $value.HOW.name($value);
                 my $varname := $op[0].name;
                 if $val_type eq 'Rat' || $val_type eq 'RatStr' {
-                    if $type =:= $!symbols.find_in_setting("Int") {
+                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value), :suggestiontype<Real>,
-                                :valuetype<Rat>
+                                :$varname, :vartype($inttype), :value($value), :suggestiontype<Real>,
+                                :valuetype<Rat>,
+                                :native(!($type =:= $inttype))
                             );
                     } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],

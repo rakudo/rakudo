@@ -91,6 +91,7 @@ sub GENERATE-ROLE-FROM-VALUE($val) {
     my $meth := method () { $val };
     $meth.set_name($val.^name);
     $role.^add_method($meth.name, $meth);
+
     $role.^set_body_block(
       -> |c { nqp::list($role, nqp::hash('$?CLASS', c<$?CLASS>)) });
     $role.^compose;

@@ -9715,7 +9715,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                               :is_raw(1))
                         }
                     }
-                    else {
+                    elsif ! (nqp::istype($_, QAST::Op)
+                    && $_.op eq 'p6bindsig') {
                         $curry[0].push: $_;
                     }
                 }

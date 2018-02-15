@@ -1651,11 +1651,13 @@ my class X::Syntax::Number::LiteralType does X::Syntax {
 
     method message() {
         my $vartype := $!vartype.WHAT.^name;
+        my $conversionmethod := $vartype;
+        $vartype := $vartype.lc if $.native;
         my $vt := $!value.^name;
         my $value := $vt eq "IntStr" || $vt eq "NumStr" || $vt eq "RatStr" || $vt eq "ComplexStr"
             ?? $!value.Str
             !! $!value.perl;
-        my $val = "Cannot assign a literal of type {$.valuetype} ($value) to { $.native ?? "a native" !! "a" } variable of type $vartype. You can declare the variable to be of type $.suggestiontype, or try to coerce the value with { $value ~ '.' ~ $vartype } or $vartype\($value\)";
+        my $val = "Cannot assign a literal of type {$.valuetype} ($value) to { $.native ?? "a native" !! "a" } variable of type $vartype. You can declare the variable to be of type $.suggestiontype, or try to coerce the value with { $value ~ '.' ~ $conversionmethod } or $conversionmethod\($value\)";
         try $val ~= ", or just write the value as " ~ $!value."$vartype"().perl;
         $val;
     }

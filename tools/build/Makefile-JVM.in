@@ -102,7 +102,7 @@ $(PERL6_W_JAR): $(PERL6_ML_JAR) $(PERL6_OPS_JAR) $(PERL6_P_JAR) src/Perl6/World.
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
 
-$(PERL6_P_JAR): src/Perl6/Pod.nqp 
+$(PERL6_P_JAR): src/Perl6/Pod.nqp
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_P_JAR) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 

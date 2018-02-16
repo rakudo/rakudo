@@ -720,7 +720,7 @@ my class Rakudo::Internals {
     );
 
     method PERLIFY-STR(Str \string) {
-        sub char-to-escapes(Str $char) {
+        sub char-to-escapes(Str $char) is pure {
 #?if moar
             '\x[' ~ $char.NFC.list.map({.base: 16}).join(',') ~ ']'
 #?endif

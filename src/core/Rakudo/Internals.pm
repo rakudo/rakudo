@@ -722,10 +722,10 @@ my class Rakudo::Internals {
     method PERLIFY-STR(Str \string) {
         sub char-to-escapes(Str $char) {
 #?if moar
-            '\x[' ~ $char.NFC.list.map({ .fmt('%0x') }).join(',') ~ ']'
+            '\x[' ~ $char.NFC.list.map({.base: 16}).join(',') ~ ']'
 #?endif
 #?if !moar
-            $char.ord.fmt('\x[%x]')
+            '\x[' ~ $char.ord.base(16) ~ ']'
 #?endif
         }
 

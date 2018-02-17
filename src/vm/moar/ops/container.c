@@ -234,7 +234,6 @@ static void rakudo_scalar_spesh(MVMThreadContext *tc, MVMSTable *st, MVMSpeshGra
         ins->operands[0] = old_operands[0];
         ins->operands[1] = old_operands[1];
         ins->operands[2].lit_i16 = offsetof( Rakudo_Scalar, value ) - offsetof( MVMObjectStooge, data );
-        MVM_spesh_manipulate_remove_handler_successors(tc, bb);
         break;
         }
     default: break;

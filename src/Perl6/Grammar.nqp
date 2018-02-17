@@ -1325,7 +1325,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
         :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
-        :my $*IN_STMT_MOD := 0;
+        :my $*IN_STMT_MOD := nqp::getlexdyn('$*IN_STMT_MOD');
         :my $*ESCAPEBLOCK := 0;
         :my $actions := self.slang_actions('MAIN');
         <!!{ $/.set_actions($actions); 1 }>

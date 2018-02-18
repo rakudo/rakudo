@@ -49,7 +49,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       let targetType;
       const how = rtype._STable.HOW;
       const archetypes = how.archetypes(ctx, null, how);
-      const isCoercive = archetypes.coercive(ctx, null, archetypes).$$toBool(ctx);
+      const isCoercive = nqp.retval_bool(ctx, archetypes.coercive(ctx, null, archetypes));
 
       if (isCoercive) {
         targetType = how.target_type(ctx, null, how, rtype);

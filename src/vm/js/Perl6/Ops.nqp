@@ -76,7 +76,7 @@ $ops.add_simple_op('p6trialbind', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ], :!in
 });
 
 $ops.add_simple_op('p6isbindable', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :!inlinable, sub ($sig, $cap) {
-    "nqp.p6binder.is_bindable($*CTX, null, nqp.p6binder, $sig, $cap)"
+    "nqp.retval(HLL, nqp.p6binder.is_bindable($*CTX, null, nqp.p6binder, $sig, $cap))"
 });
 
 $ops.add_simple_op('p6bindcaptosig', $ops.OBJ, [$ops.OBJ, $ops.OBJ], sub ($sig, $cap) {
@@ -86,7 +86,7 @@ $ops.add_simple_op('p6bindcaptosig', $ops.OBJ, [$ops.OBJ, $ops.OBJ], sub ($sig, 
 $ops.add_op('p6bindattrinvres', $ops.bindattr($ops.OBJ, :inverted_result));
 
 $ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :side_effects, sub ($fake, $code) {
-    "$code.\$\$call($*CTX, null)"
+    "nqp.retval(HLL, $code.\$\$call($*CTX, null))"
 });
 
 $ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :side_effects);

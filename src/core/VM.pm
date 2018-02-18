@@ -1,8 +1,8 @@
 my constant $?COMPILATION-ID :=
-  nqp::sha1(nqp::concat(
+  nqp::p6box_s(nqp::sha1(nqp::concat(
     $*W.handle,
     nqp::getcomp('perl6').compilation-id
-  ));
+  )));
 
 class VM does Systemic {
     has $.config;

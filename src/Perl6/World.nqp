@@ -2778,6 +2778,12 @@ class Perl6::World is HLL::World {
         if nqp::isnull($r) {
             QAST::Op.new( :op<null> )
         }
+        elsif nqp::isstr($r) {
+            QAST::SVal.new( :value($r) )
+        }
+        elsif nqp::isint($r) {
+            QAST::IVal.new( :value($r) )
+        }
         else {
             self.add_object_if_no_sc($r);
             QAST::WVal.new( :value($r) )

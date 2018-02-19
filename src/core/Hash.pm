@@ -43,7 +43,7 @@ my class Hash { # declared in BOOTSTRAP
           nqp::p6bindattrinvres(
             nqp::create(self),Map,'$!storage',
             nqp::clone(nqp::getattr(self,Map,'$!storage'))),
-          Hash, '$!descriptor', nqp::clone($!descriptor))
+          Hash, '$!descriptor', nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor))
     }
 
     method !AT-KEY-CONTAINER(Str:D \key) is raw {

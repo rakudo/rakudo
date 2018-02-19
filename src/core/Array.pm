@@ -51,14 +51,14 @@ my class Array { # declared in BOOTSTRAP
         nqp::stmts(
           (my \iter := self.iterator),
           (my \result := nqp::p6bindattrinvres(nqp::create(self),
-              Array, '$!descriptor', nqp::clone($!descriptor))),
+              Array, '$!descriptor', nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor))),
           nqp::if(
             nqp::eqaddr(
               IterationEnd,
               iter.push-until-lazy:
                 my \target := ArrayReificationTarget.new(
                   (my \buffer := nqp::create(IterationBuffer)),
-                  nqp::clone($!descriptor))),
+                  nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor))),
             nqp::p6bindattrinvres(result, List, '$!reified', buffer),
             nqp::stmts(
               nqp::bindattr(result, List, '$!reified', buffer),

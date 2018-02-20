@@ -59,11 +59,19 @@ multi sub pop(@a) { @a.pop }
 proto sub shift(@) {*}
 multi sub shift(@a) { @a.shift }
 
-sub push   (\a, |elems) { a.push:    |elems }
-sub append (\a, |elems) { a.append:  |elems }
-sub unshift(\a, |elems) { a.unshift: |elems }
-sub prepend(\a, |elems) { a.prepend: |elems }
+proto sub push(|) {*}
+multi sub push(\a, |elems) { a.push: |elems }
 
-sub splice(@arr, |c)         { @arr.splice(|c) }
+proto sub append(|) {*}
+multi sub append(\a, |elems) { a.append: |elems }
+
+proto sub unshift(|) {*}
+multi sub unshift(\a, |elems) { a.unshift: |elems }
+
+proto sub prepend(|) {*}
+multi sub prepend(\a, |elems) { a.prepend: |elems }
+
+proto sub splice(|) {*}
+multi sub splice(@arr, |c) { @arr.splice(|c) }
 
 # vim: ft=perl6 expandtab sw=4

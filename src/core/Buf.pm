@@ -825,8 +825,15 @@ multi sub infix:<gt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) ==  1      }
 multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1      }
 multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1      }
 
-sub subbuf-rw(Buf:D \b, $from = 0, $elems = b.elems - $from) is rw {
-    b.subbuf-rw($from, $elems);
+proto sub subbuf-rw(|) {*}
+multi sub subbuf-rw(Buf:D \b) is rw {
+    b.subbuf-rw(0, b.elems);
+}
+multi sub subbuf-rw(Buf:D \b, Int() $from) is rw {
+    b.subbuf-rw($from, b.elems - $from)
+}
+multi sub subbuf-rw(Buf:D \b, $from, $elems) is rw {
+    b.subbuf-rw($from, $elems)
 }
 
 # vim: ft=perl6 expandtab sw=4

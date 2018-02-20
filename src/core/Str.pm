@@ -1178,6 +1178,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                      );
     }
 
+    # NOTE: this method is also called by s/// op in src/Perl6/Actions.nqp
     method !APPLY-MATCHES(\matches,$replacement,\cds,\SDS,\word_by_word,\space,\case,\mark) {
         my \callable       := nqp::istype($replacement,Callable);
 

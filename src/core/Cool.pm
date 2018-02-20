@@ -446,25 +446,46 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
     ## End generated code
     $propname := nqp::atkey($prop-mappings, $propname) if nqp::existskey($prop-mappings,$propname);
     my $prop := nqp::unipropcode($propname);
-    given nqp::atkey($prefs, $propname) {
-        when 'S'   { nqp::getuniprop_str($code,$prop) }
-        when 'I'   { nqp::getuniprop_int($code,$prop) }
-        when 'B'   { nqp::p6bool(nqp::getuniprop_bool($code,$prop)) }
-        when 'lc'  { nqp::lc( nqp::chr( nqp::unbox_i($code) ) ) }
-        when 'tc'  { nqp::tc( nqp::chr( nqp::unbox_i($code) ) ) }
-        when 'uc'  { nqp::uc( nqp::chr( nqp::unbox_i($code) ) ) }
-        when 'na'  { nqp::getuniname($code) }
-        when 'nv'  { unival($code) }
-        when 'bmg' {
-            my int $bmg-ord = nqp::getuniprop_int($code, $prop);
-            $bmg-ord ?? nqp::chr($bmg-ord) !! '';
-        }
-        default {
-            my $result = nqp::getuniprop_str($code,$prop);
-            if $result ne '' { nqp::bindkey($prefs, $propname, 'S'); $result }
-            else             { nqp::bindkey($prefs, $propname, 'I'); nqp::getuniprop_int($code,$prop) }
-        }
-    }
+    my str $pref = nqp::ifnull(nqp::atkey($prefs, $propname),'');
+    nqp::if(
+      nqp::iseq_s($pref, 'S'),
+      nqp::getuniprop_str($code,$prop),
+      nqp::if(
+        nqp::iseq_s($pref, 'I'),
+        nqp::getuniprop_int($code,$prop),
+        nqp::if(
+          nqp::iseq_s($pref, 'B'),
+          nqp::p6bool(nqp::getuniprop_bool($code,$prop)),
+          nqp::if(
+            nqp::iseq_s($pref, 'lc'),
+            nqp::lc(nqp::chr(nqp::unbox_i($code))),
+            nqp::if(
+              nqp::iseq_s($pref, 'tc'),
+              nqp::tc(nqp::chr(nqp::unbox_i($code))),
+              nqp::if(
+                nqp::iseq_s($pref, 'uc'),
+                nqp::uc(nqp::chr(nqp::unbox_i($code))),
+                nqp::if(
+                  nqp::iseq_s($pref, 'na'),
+                  nqp::getuniname($code),
+                  nqp::if(
+                    nqp::iseq_s($pref, 'nv'),
+                    unival($code),
+                    nqp::if(
+                      nqp::iseq_s($pref, 'bmg'),
+                      nqp::stmts(
+                        (my int $bmg-ord = nqp::getuniprop_int($code, $prop)),
+                        $bmg-ord ?? nqp::chr($bmg-ord) !! ''),
+                      nqp::stmts(
+                        (my $result := nqp::getuniprop_str($code,$prop)),
+                        nqp::if(
+                          nqp::istrue($result),
+                          nqp::stmts(
+                            nqp::bindkey($prefs, $propname, 'S'),
+                            $result),
+                          nqp::stmts(
+                            nqp::bindkey($prefs, $propname, 'I'),
+                            nqp::getuniprop_int($code,$prop)))))))))))))
 }
 # Unicode functions
 proto sub uniprop-int(|) {*}

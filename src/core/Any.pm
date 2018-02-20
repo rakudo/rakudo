@@ -544,23 +544,20 @@ multi sub sum() { 0 }
 multi sub sum(\SELF) { SELF.sum }
 multi sub sum(+SELF) { SELF.sum }
 
-sub classify( $test, +items, *%named ) {
-    if %named.EXISTS-KEY("into") {
-        my $into := %named.DELETE-KEY("into");
-        ( $into // $into.new).classify-list($test, items, |%named);
-    }
-    else {
-        Hash.^parameterize(Any,Any).new.classify-list($test, items, |%named);
-    }
+proto sub classify(|) {*}
+multi sub classify($test, +items, :$into!, *%named ) {
+    ( $into // $into.new).classify-list($test, items, |%named)
 }
-sub categorize( $test, +items, *%named ) {
-    if %named.EXISTS-KEY("into") {
-        my $into := %named.DELETE-KEY("into");
-        ( $into // $into.new).categorize-list($test, items, |%named);
-    }
-    else {
-        Hash.^parameterize(Any,Any).new.categorize-list($test, items, |%named);
-    }
+multi sub classify($test, +items, *%named ) {
+    Hash.^parameterize(Any,Any).new.classify-list($test, items, |%named);
+}
+
+proto sub categorize(|) {*}
+multi sub categorize($test, +items, :$into!, *%named ) {
+    ( $into // $into.new).categorize-list($test, items, |%named)
+}
+multi sub categorize($test, +items, *%named ) {
+    Hash.^parameterize(Any,Any).new.categorize-list($test, items, |%named)
 }
 
 proto sub item(|) is pure {*}

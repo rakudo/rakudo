@@ -73,19 +73,18 @@ multi sub infix:<(elem)>(Any $a, Any $b) { infix:<(elem)>($a,$b.Set) }
 my constant &infix:<∈> := &infix:<(elem)>;
 
 # U+2209 NOT AN ELEMENT OF
-only sub infix:<∉>($a, $b --> Bool:D) is pure {
-    not $a (elem) $b;
-}
+proto sub infix:<∉>(|) {*}
+multi sub infix:<∉>($a, $b --> Bool:D) is pure { not $a (elem) $b }
 
-only sub infix:<(cont)>($a, $b --> Bool:D) is pure { $b (elem) $a }
+proto sub infix:<(cont)>(|) {*}
+multi sub infix:<(cont)>($a, $b --> Bool:D) is pure { $b (elem) $a }
 
 # U+220B CONTAINS AS MEMBER
-only sub infix:<∋>($a, $b --> Bool:D) is pure {
-    $b (elem) $a;
-}
+proto sub infix:<∋>(|) {*}
+multi sub infix:<∋>($a, $b --> Bool:D) is pure { $b (elem) $a }
+
 # U+220C DOES NOT CONTAIN AS MEMBER
-only sub infix:<∌>($a, $b --> Bool:D) is pure {
-    not $b (elem) $a;
-}
+proto sub infix:<∌>(|) {*}
+multi sub infix:<∌>($a, $b --> Bool:D) is pure { not $b (elem) $a }
 
 # vim: ft=perl6 expandtab sw=4

@@ -115,20 +115,18 @@ multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
 my constant &infix:<⊂> := &infix:<<(<)>>;
 
 # U+2284 NOT A SUBSET OF
-only sub infix:<⊄>($a, $b --> Bool:D) is pure {
-    not $a (<) $b;
-}
+proto sub infix:<⊄>(|) {*}
+multi sub infix:<⊄>($a, $b --> Bool:D) is pure { not $a (<) $b }
 
-only sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) {
-    $b (<) $a
-}
+proto sub infix:<<(>)>>(|) {*}
+multi sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) is pure { $b (<) $a }
+
 # U+2283 SUPERSET OF
-only sub infix:<⊃>($a, $b --> Bool:D) is pure {
-    $b (<) $a
-}
+proto sub infix:<⊃>(|) {*}
+multi sub infix:<⊃>($a, $b --> Bool:D) is pure { $b (<) $a }
+
 # U+2285 NOT A SUPERSET OF
-only sub infix:<⊅>($a, $b --> Bool:D) is pure {
-    not $b (<) $a
-}
+proto sub infix:<⊅>(|) {*}
+multi sub infix:<⊅>($a, $b --> Bool:D) is pure { not $b (<) $a }
 
 # vim: ft=perl6 expandtab sw=4

@@ -1954,7 +1954,10 @@ multi sub infix:<min>(int   \a, int   \b) { nqp::if(nqp::islt_i(nqp::cmp_i(a, b)
 multi sub infix:<min>(Num:D \a, Num:D \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<min>(num   \a, num   \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<min>(+args is raw) { args.min }
-sub min(+args, :&by = &infix:<cmp>) { args.min(&by) }
+
+proto sub min(|) is pure {*}
+multi sub min(+args, :&by!) { args.min(&by) }
+multi sub min(+args)        { args.min      }
 
 proto sub infix:<max>(|) is pure {*}
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
@@ -1965,11 +1968,17 @@ multi sub infix:<max>(int   \a, int   \b) { nqp::if(nqp::isgt_i(nqp::cmp_i(a, b)
 multi sub infix:<max>(Num:D \a, Num:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<max>(num   \a, num   \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<max>(+args) { args.max }
-sub max(+args, :&by = &infix:<cmp>) { args.max(&by) }
+
+proto sub max(|) is pure {*}
+multi sub max(+args, :&by!) { args.max(&by) }
+multi sub max(+args)        { args.max }
 
 proto sub infix:<minmax>(|) is pure {*}
 multi sub infix:<minmax>(+args) { args.minmax }
-sub minmax(+args, :&by = &infix:<cmp>) { args.minmax(&by) }
+
+proto sub minmax(|) is pure {*}
+multi sub minmax(+args, :&by!) { args.minmax(&by) }
+multi sub minmax(+args)        { args.minmax      }
 
 proto sub map(|) {*}
 multi sub map(&code, +values) { my $laze = values.is-lazy; values.map(&code).lazy-if($laze) }

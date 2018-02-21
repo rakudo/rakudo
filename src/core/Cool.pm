@@ -268,29 +268,45 @@ proto sub chop(|) {*}
 multi sub chop(Cool:D $s --> Str:D) { $s.chop }
 multi sub chop(Cool:D $s, Int() $n --> Str:D) { $s.chop($n) }
 
-sub chomp(Cool:D $s --> Str:D) { $s.chomp }
+proto sub chomp(|) {*}
+multi sub chomp(Cool $s --> Str:D) { $s.chomp }
 
-sub flip(Cool $s --> Str:D)      { $s.flip }
-sub index(Cool $s,$needle,$pos=0)  { $s.index($needle,$pos) }
-sub lc(Cool $s)                    { $s.lc }
-sub ord(Cool $s)                   { $s.ord }
-sub uc(Cool $s)                    { $s.uc }
-sub tc(Cool $s)                    { $s.tc }
-sub fc(Cool $s)                    { $s.fc }
-sub tclc(Cool $s)                  { $s.tclc }
+proto sub flip(|) {*}
+multi sub flip(Cool $s --> Str:D) { $s.flip }
 
-sub indices(Cool $s, |c) {
-    $s.indices(|c);
-}
+proto sub index(|) {*}
+multi sub index(Cool $s, Cool $needle)            { $s.index($needle)      }
+multi sub index(Cool $s, Cool $needle, Cool $pos) { $s.index($needle,$pos) }
 
-proto sub rindex($, $, $?) is pure {*};
-multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) };
-multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) };
+proto sub rindex(|) {*}
+multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) }
+multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) }
 
-proto sub ords($) is pure     {*}
-multi sub ords(Cool $s)       { ords($s.Stringy) }
+proto sub lc(|) {*}
+multi sub lc(Cool $s) { $s.lc }
 
-proto sub comb($, $, $?)            {*}
+proto sub ord(|) {*}
+multi sub ord(Cool $s) { $s.ord }
+
+proto sub uc(|) {*}
+multi sub uc(Cool $s) { $s.uc }
+
+proto sub tc(|) {*}
+multi sub tc(Cool $s) { $s.tc }
+
+proto sub fc(|) {*}
+multi sub fc(Cool $s) { $s.fc }
+
+proto sub tclc(|) {*}
+multi sub tclc(Cool $s) { $s.tclc }
+
+proto sub indices(|) {*}
+multi sub indices(Cool $s, |c) { $s.indices(|c) }
+
+proto sub ords($) {*}
+multi sub ords(Cool $s) { ords($s.Stringy) }
+
+proto sub comb($, $, $?) {*}
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Int:D $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }

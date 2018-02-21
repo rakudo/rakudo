@@ -218,7 +218,7 @@ multi sub infix:«>»(Date:D $a, Date:D $b) {
 sub sleep($seconds = Inf --> Nil) {
     # 1e9 seconds is a large enough value that still makes VMs sleep
     # larger values cause nqp::sleep() to exit immediatelly (esp. on 32-bit)
-    if $seconds == Inf || nqp::istype($seconds,Whatever) {
+    if nqp::istype($seconds,Whatever) || $seconds == Inf {
         nqp::sleep(1e9) while True;
     }
     elsif $seconds > 1e9 {
@@ -232,15 +232,10 @@ sub sleep($seconds = Inf --> Nil) {
     }
 }
 
-sub sleep-timer(Real() $seconds = Inf --> Duration:D) {
-    if $seconds <= 0 {
-        Duration.new(0);
-    }
-    else {
-        my $time1 = now;
-        nqp::sleep($seconds.Num);
-        Duration.new( ( $seconds - (now - $time1) ) max 0 );
-    }
+sub sleep-timer($seconds = Inf --> Duration:D) {
+    my $time1 = now;
+    sleep($seconds);
+    Duration.new( ( $seconds - (now - $time1) ) max 0 );
 }
 
 sub sleep-until(Instant() $until --> Bool:D) {

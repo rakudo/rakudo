@@ -10058,15 +10058,11 @@ class Perl6::QActions is HLL::Actions does STDActions {
         walk($past);
 
         # Strip out list op and possible Slip if only one resulting word
-        nqp::if(
-            +@($result) == 1,
-            nqp::if(
-                nqp::istype($result[0], QAST::Op) && $result[0].name eq 'Slip',
-                $result[0][0],
-                $result[0]
-            ),
-            QAST::Stmts.new( $result )
-        )
+        +@($result) == 1
+            ?? nqp::istype($result[0], QAST::Op) && $result[0].name eq 'Slip'
+                ?? $result[0][0]
+                !! $result[0]
+            !! QAST::Stmts.new( $result );
     }
 
     method postprocess_heredoc($/, $past) {

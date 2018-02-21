@@ -25,7 +25,9 @@ my class Rakudo::Internals::EvalIdSource {
         $lock.protect: { $count++ }
     }
 }
-proto sub EVAL($code is copy where Blob|Cool, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
+proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
+    die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
+      if nqp::istype($code,Callable);
     # First look in compiler registry.
     my $compiler := nqp::getcomp($lang);
     if nqp::isnull($compiler) {

@@ -1324,8 +1324,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement($*LABEL = '') {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
+
+        # NOTE: annotations that use STATEMENT_ID often also need IN_STMT_MOD annotation, in order
+        # to correctly migrate QAST::Blocks in constructs inside topics of statement modifiers
         :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
         :my $*IN_STMT_MOD := nqp::getlexdyn('$*IN_STMT_MOD');
+
         :my $*ESCAPEBLOCK := 0;
         :my $actions := self.slang_actions('MAIN');
         <!!{ $/.set_actions($actions); 1 }>

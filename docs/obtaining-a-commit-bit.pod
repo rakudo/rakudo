@@ -17,10 +17,7 @@ L<our IRC chat|https://webchat.freenode.net/?channels=#perl6> for details about
 the process as well as follow up on whether your CLA has been received by
 The Perl Foundation.
 
-Why is a signed CLA necessary for commit access? Historically, it is
-because Rakudo used to be part of the Parrot project and that project
-required a signed CLA. But the reasons that Parrot required a CLA are
-also valid for Rakudo. That is, the CLA helps protect the Perl
+Why is a signed CLA necessary for commit access? The CLA helps protect the Perl
 Foundation and the Rakudo project and contributors alike from
 intellectual property issues. The CLA warrants that your contributions
 are yours to give and that they are not encumbered by anyone else's

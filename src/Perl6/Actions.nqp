@@ -9686,8 +9686,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @params;
         my @old_args;
         my $curry := QAST::Block.new(QAST::Stmts.new, $qast
-            ).annotate_self( 'statement_id', $*STATEMENT_ID
-            ).annotate_self: 'outer',        $*W.cur_lexpad;
+            ).annotate_self('statement_id', $*STATEMENT_ID
+            ).annotate_self( 'in_stmt_mod', $*IN_STMT_MOD,
+            ).annotate_self: 'outer',       $*W.cur_lexpad;
         $*W.cur_lexpad[0].push: $curry;
 
         $i := 0;

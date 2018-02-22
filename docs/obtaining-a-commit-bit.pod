@@ -2,9 +2,10 @@
 
 Firstly, what's a "commit bit"? If you don't know what it is, you
 probably don't need one :-) But, in any case, a "commit bit" is the
-colloquial way that #perl6 describes how you obtain access to make
-commits directly to the rakudo repository. (i.e., not via a fork and
-pull request, but directly to https://github.com/rakudo/rakudo)
+colloquial way that [#perl6](https://webchat.freenode.net/?channels=#perl6)
+describes how you obtain access to make commits directly to the rakudo
+repository. (i.e., not via a fork and pull request, but directly
+to https://github.com/rakudo/rakudo)
 
 Step one, if you haven't already, is to send a signed copy of the
 Contributor License Agreement (CLA) to the Perl Foundation. The CLA can

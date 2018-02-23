@@ -1,3 +1,7 @@
+New in 2018.02.1:
+  + Fixes:
+    + Fixed Whatever curry QAST::Block migration in stmt mods [5270471c]
+
 New in 2018.02:
   + Fixes:
     + Fixed `no worries` pragma [f5b4d89f]

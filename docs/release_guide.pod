@@ -447,6 +447,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2017-12-21   Rakudo #118 "2017.12"           (AlexDaniel + Releasable)
   2018-01-25   Rakudo #119 "2018.01"           (AlexDaniel + Releasable)
   2018-02-20   Rakudo #120 "2018.02"           (AlexDaniel + Releasable)
+  2018-02-23   2018.02.1                       (AlexDaniel + Releasable)
 
 =head1 COPYRIGHT
 

@@ -444,7 +444,8 @@ multi sub chr(int $x --> str) {
     nqp::chr($x);
 }
 
-sub is-prime(\x) is pure { x.is-prime }
+proto sub is-prime(|) is pure {*}
+multi sub is-prime(\x) { x.is-prime }
 
 proto sub expmod($, $, $) is pure  {*}
 multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {

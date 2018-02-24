@@ -130,7 +130,8 @@ multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
     PROCESS::<&chdir> := &chdir;
 }
 
-sub chdir(|c) {
+proto sub chdir(|) {*}
+multi sub chdir(|c) {
     nqp::if(nqp::istype(($_ := $*CWD.chdir(|c)), Failure), $_, $*CWD = $_)
 }
 
@@ -211,30 +212,49 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     PROCESS::<$ERR> = activate-handle(STDERR, nqp::getstderr);
 }
 
-sub chmod($mode, *@filenames) {
+proto sub chmod(|) {*}
+multi sub chmod($mode, *@filenames) {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
     @ok;
 }
-sub unlink(*@filenames) {
+
+proto sub unlink(|) {*}
+multi sub unlink(*@filenames) {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
     @ok;
 }
-sub rmdir(*@filenames) {
+
+proto sub rmdir(|) {*}
+multi sub rmdir(*@filenames) {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }
     @ok;
 }
-sub mkdir(IO() $path, Int() $mode = 0o777) { $path.mkdir($mode) }
 
-sub rename(IO() $from, IO() $to, :$createonly) {
+proto sub mkdir(|) {*}
+multi sub mkdir(IO() $path, Int() $mode = 0o777) { $path.mkdir($mode) }
+
+proto sub rename(|) {*}
+multi sub rename(IO() $from, IO() $to, :$createonly) {
     $from.rename($to, :$createonly)
 }
-sub copy(IO() $from, IO() $to, :$createonly) { $from.copy($to, :$createonly) }
-sub move(IO() $from, IO() $to, :$createonly) { $from.move($to, :$createonly) }
 
-sub symlink(IO() $target, IO() $name) { $target.symlink($name) }
-sub    link(IO() $target, IO() $name) { $target   .link($name) }
+proto sub copy(|) {*}
+multi sub copy(IO() $from, IO() $to, :$createonly) {
+    $from.copy($to, :$createonly)
+}
+
+proto sub move(|) {*}
+multi sub move(IO() $from, IO() $to, :$createonly) {
+    $from.move($to, :$createonly)
+}
+
+proto sub symlink(|) {*}
+multi sub symlink(IO() $target, IO() $name) { $target.symlink($name) }
+
+proto sub link(|) {*}
+multi sub link(IO() $target, IO() $name) { $target.link($name) }
 
 # vim: ft=perl6 expandtab sw=4

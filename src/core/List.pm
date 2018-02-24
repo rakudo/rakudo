@@ -1495,11 +1495,13 @@ multi sub infix:<,>(|) {
     )
 }
 
-sub combinations(Int() $n, Int() $k) {
+proto sub combinations(|) {*}
+multi sub combinations(Int() $n, Int() $k) {
     Seq.new(Rakudo::Iterator.Combinations($n,$k,0))
 }
 
-sub permutations(Int() $n) {
+proto sub permutations(|) {*}
+multi sub permutations(Int() $n) {
     Seq.new(Rakudo::Iterator.Permutations($n,0))
 }
 

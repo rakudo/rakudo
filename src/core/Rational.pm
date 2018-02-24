@@ -47,6 +47,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method nude() { self.REDUCE-ME; $!numerator, $!denominator }
+
     method Num() {
         nqp::p6box_n(nqp::div_In(
           nqp::decont($!numerator),
@@ -72,9 +73,13 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             !! fail X::Numeric::DivideByZero.new:
                    :details('when coercing Rational to Int')
     }
+
     multi method Bool(::?CLASS:D:) { nqp::p6bool($!numerator) }
+
     method Bridge() { self.Num }
+
     method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
+
     method isNaN (--> Bool:D) {
         nqp::p6bool(nqp::isfalse($!denominator) && nqp::isfalse($!numerator))
     }
@@ -199,9 +204,9 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             $nu *= $base;
             push @quotients, $nu div $de;
         }
-        @quotients.=map(*.base($base));
+        @quotients .= map(*.base($base));
         my @cycle = $nu
-          ?? splice(@quotients, @remainders.first($nu,:k) + 1)
+          ?? splice @quotients, @remainders.first($nu,:k) + 1
           !! ();
         splice @quotients, 1, 0, '.';
         '-' x (self < 0) ~ @quotients.join, @cycle.join;
@@ -228,8 +233,8 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         if $!denominator > 1 {
             my $gcd = $!denominator gcd $!numerator;
             if $gcd > 1 {
-                nqp::bindattr(self, self.WHAT, '$!numerator',     $!numerator   div $gcd);
-                nqp::bindattr(self, self.WHAT, '$!denominator',   $!denominator div $gcd);
+                nqp::bindattr(self,self.WHAT,'$!numerator',  $!numerator   div $gcd);
+                nqp::bindattr(self,self.WHAT,'$!denominator',$!denominator div $gcd);
             }
         }
     }

@@ -67,7 +67,8 @@ multi sub note(**@args is raw) {
     $err.print(nqp::concat($str,$err.nl-out));
 }
 
-sub gist(|) {
+proto sub gist(|) {*}
+multi sub gist(|) {
     my \args := nqp::p6argvmarray();
     nqp::elems(args) == 1
         ?? nqp::atpos(args, 0).gist

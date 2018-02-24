@@ -836,12 +836,13 @@ my class Hash { # declared in BOOTSTRAP
 }
 
 sub circumfix:<{ }>(*@elems) { my % = @elems }
+# XXX parse dies with 'don't change grammar in the setting, please!'
+# with ordinary sub declaration
+#sub circumfix:<:{ }>(*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }
+BEGIN my &circumfix:<:{ }> = sub (*@e) { Hash.^parameterize(Mu,Any).new(@e) }
 
 proto sub hash(|) {*}
 multi sub hash(*%h) { %h }
 multi sub hash(*@a, *%h) { my % = flat @a, %h }
-
-# XXX parse hangs with ordinary sub declaration
-BEGIN my &circumfix:<:{ }> = sub (*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }
 
 # vim: ft=perl6 expandtab sw=4

@@ -215,7 +215,9 @@ multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-sub sleep($seconds = Inf --> Nil) {
+proto sub sleep(|) {*}
+multi sub sleep(--> Nil) { sleep(*) }
+multi sub sleep($seconds --> Nil) {
     # 1e9 seconds is a large enough value that still makes VMs sleep
     # larger values cause nqp::sleep() to exit immediatelly (esp. on 32-bit)
     if nqp::istype($seconds,Whatever) || $seconds == Inf {
@@ -232,13 +234,16 @@ sub sleep($seconds = Inf --> Nil) {
     }
 }
 
-sub sleep-timer($seconds = Inf --> Duration:D) {
+proto sub sleep-timer(|) {*}
+multi sub sleep-timer(--> Duration:D) { sleep-timer(*) }
+multi sub sleep-timer($seconds --> Duration:D) {
     my $time1 = now;
     sleep($seconds);
-    Duration.new( ( $seconds - (now - $time1) ) max 0 );
+    Duration.new( ( $seconds - (now - $time1) ) max 0 )
 }
 
-sub sleep-until(Instant() $until --> Bool:D) {
+proto sub sleep-until(|) {*}
+multi sub sleep-until(Instant() $until --> Bool:D) {
     my $seconds = $until - now;
     return False if $seconds < 0;
 

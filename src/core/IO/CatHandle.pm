@@ -95,6 +95,31 @@ my class IO::CatHandle is IO::Handle {
         $!active-handle)
     }
 
+    method handles(IO::Handle:D: --> Seq:D) {
+        Seq.new: class :: does Iterator {
+            has $.cat;
+            has $!gave-active;
+
+            method !SET-SELF(\cat) { $!cat := cat; self }
+            method new(\cat) { nqp::create(self)!SET-SELF: cat }
+
+            method pull-one {
+                nqp::if(
+                  $!gave-active,
+                  nqp::if(
+                    nqp::eqaddr((my $h := $!cat.next-handle), Nil),
+                    IterationEnd,
+                    $h),
+                  nqp::stmts(
+                    ($!gave-active := True),
+                    nqp::eqaddr(
+                      (my $ah := nqp::decont(nqp::getattr($!cat, IO::CatHandle,
+                        '$!active-handle'))),
+                      Nil) ?? IterationEnd !! $ah))
+            }
+        }.new: self
+    }
+
     method chomp (::?CLASS:D:) is rw {
         Proxy.new:
           :FETCH{ $!chomp },

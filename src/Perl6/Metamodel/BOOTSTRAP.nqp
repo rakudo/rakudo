@@ -304,7 +304,6 @@ my class Binder {
                       (my $post := nqp::getattr($param, Parameter,
                         '@!post_constraints'))
                       && ! nqp::istype(nqp::atpos($post, 0), Code)
-                      && (my $is-constraint := 1)
                     ) ?? nqp::atpos($post, 0) !! $nom_type;
 
                     if nqp::defined($error) {

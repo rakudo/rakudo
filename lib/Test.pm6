@@ -483,47 +483,25 @@ multi sub can-ok(
 }
 
 multi sub like(
-    $got, Regex $expected,
-    $desc = "text matches '$expected.perl()'"
+    Str() $got, Regex:D $expected,
+    $desc = "text matches $expected.perl()"
 ) is export {
     $time_after = nqp::time_n;
-    $got.defined; # Hack to deal with Failures
-    my $ok;
-    if $got ~~ Str:D {
-        my $test = $got ~~ $expected;
-        $ok = proclaim($test, $desc);
-        if !$test {
-            _diag "     expected: '$expected.perl()'\n"
-                ~ "     got: '$got'";
-        }
-    } else {
-        $ok = proclaim(False, $desc);
-        _diag "    expected a Str that matches '$expected.perl()'\n"
-            ~ "    got: '$got.perl()'";
-    }
+    my $ok := proclaim $got ~~ $expected, $desc
+        or _diag "expected a match with: $expected.perl()\n"
+               ~ "                  got: $got.perl()";
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub unlike(
-    $got, Regex $expected,
-    $desc = "text does not match '$expected.perl()'"
+    Str() $got, Regex:D $expected,
+    $desc = "text does not match $expected.perl()"
 ) is export {
     $time_after = nqp::time_n;
-    $got.defined; # Hack to deal with Failures
-    my $ok;
-    if $got ~~ Str:D {
-        my $test = !($got ~~ $expected);
-        $ok = proclaim($test, $desc);
-        if !$test {
-            _diag "     expected: '$expected.perl()'\n"
-                ~ "     got: '$got'";
-        }
-    } else {
-        $ok = proclaim(False, $desc);
-        _diag "     expected: a Str that matches '$expected.perl()'\n"
-            ~ "     got: '$got.perl()'";
-    }
+    my $ok := proclaim !($got ~~ $expected), $desc
+        or _diag "expected no match with: $expected.perl()\n"
+               ~ "                   got: $got.perl()";
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }

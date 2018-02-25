@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 5;
+plan 6;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -47,6 +47,16 @@ subtest 'subsets get named in typecheck errors' => {
     throws-like { -> MeowMix $ where .self {}(0) },
         X::TypeCheck::Binding::Parameter, :message{.contains: 'MeowMix'},
     'type + where, with failing constraint';
+}
+
+subtest 'like/unlike failures give useful diagnostics' => {
+    plan 2;
+    is-run ｢use Test; plan 1; like 42, /43/｣,
+        :1exitcode, :out(*), :err{.contains: 'expected a match with'},
+    '`like` says it wanted a match, not just "expected"';
+    is-run ｢use Test; plan 1; unlike 42, /42/｣,
+        :1exitcode, :out(*), :err{.contains: 'expected no match with'},
+    '`unlike` says it wanted no match, not just "expected"';
 }
 
 # vim: ft=perl6 expandtab sw=4

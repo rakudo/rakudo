@@ -489,7 +489,7 @@ multi sub like(
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $ok;
-    if $got ~~ Str:D {
+    if Str($got) ~~ Str:D {
         my $test = $got ~~ $expected;
         $ok = proclaim($test, $desc);
         if !$test {
@@ -512,7 +512,7 @@ multi sub unlike(
     $time_after = nqp::time_n;
     $got.defined; # Hack to deal with Failures
     my $ok;
-    if $got ~~ Str:D {
+    if Str($got) ~~ Str:D {
         my $test = !($got ~~ $expected);
         $ok = proclaim($test, $desc);
         if !$test {

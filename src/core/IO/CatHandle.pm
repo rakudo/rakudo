@@ -97,7 +97,7 @@ my class IO::CatHandle is IO::Handle {
 
     method handles(IO::Handle:D: --> Seq:D) {
         Seq.new: class :: does Iterator {
-            has $.cat;
+            has $!cat;
             has $!gave-active;
 
             method !SET-SELF(\cat) { $!cat := cat; self }

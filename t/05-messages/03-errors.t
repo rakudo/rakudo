@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 4;
+plan 5;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -26,5 +26,27 @@ throws-like ｢'x'.substr: /x/, 'x'｣, Exception,
 throws-like ｢sprintf "%d", class Foo {}.new｣,
     X::Str::Sprintf::Directives::BadType, :gist(/«line\s+\d+$$/),
 'errors from sprintf include location of error';
+
+# https://github.com/rakudo/rakudo/issues/1560
+subtest 'subsets get named in typecheck errors' => {
+    plan 4;
+    my subset MeowMix of Int where .so;
+
+    throws-like { -> MeowMix {}("x") },
+        X::TypeCheck::Binding::Parameter, :message{.contains: 'MeowMix'},
+    'type only, with wrong type given';
+
+    throws-like { -> MeowMix $ where .self {}("x") },
+        X::TypeCheck::Binding::Parameter, :message{.contains: 'MeowMix'},
+    'type + where, with wrong type given';
+
+    throws-like { -> MeowMix {}(0) },
+        X::TypeCheck::Binding::Parameter, :message{.contains: 'MeowMix'},
+    'type only, with failing constraint';
+
+    throws-like { -> MeowMix $ where .self {}(0) },
+        X::TypeCheck::Binding::Parameter, :message{.contains: 'MeowMix'},
+    'type + where, with failing constraint';
+}
 
 # vim: ft=perl6 expandtab sw=4

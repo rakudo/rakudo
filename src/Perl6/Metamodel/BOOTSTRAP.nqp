@@ -298,15 +298,24 @@ my class Binder {
                 # anything goes.
                 unless $nom_type =:= Mu || nqp::istype($oval, $nom_type) {
                     # Type check failed; produce error if needed.
+
+                    # Try to figure out the most helpful name for the expected
+                    my $expected := (
+                      (my $post := nqp::getattr($param, Parameter,
+                        '@!post_constraints'))
+                      && ! nqp::istype(nqp::atpos($post, 0), Code)
+                      && (my $is-constraint := 1)
+                    ) ?? nqp::atpos($post, 0) !! $nom_type;
+
                     if nqp::defined($error) {
                         my %ex := nqp::gethllsym('perl6', 'P6EX');
                         if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
                             $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
-                                "'; expected " ~ $nom_type.HOW.name($nom_type) ~
+                                "'; expected " ~ $expected.HOW.name($expected) ~
                                 " but got " ~ $oval.HOW.name($oval);
                         } else {
                             $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')($oval,
-                                $nom_type.WHAT, $varname, $param) };
+                                $expected.WHAT, $varname, $param) };
                         }
                     }
 

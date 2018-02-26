@@ -420,6 +420,8 @@ sub unwanted($ast, $by) {
             elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
+                    add-sink-to-final-call($node.ann('past_block'), 1)
+                        unless $*COMPILING_CORE_SETTING;
                     $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
                 }
             }
@@ -452,6 +454,19 @@ sub unwanted($ast, $by) {
         }
     }
     $ast;
+}
+
+sub add-sink-to-final-call($parent, $pos, $qast = $parent[$pos]) {
+    if (nqp::istype($qast, QAST::Stmts) || nqp::istype($qast, QAST::Stmt))
+    && nqp::elems($qast) {
+        add-sink-to-final-call($qast, nqp::elems($qast)-1)
+    }
+    elsif nqp::istype($qast, QAST::Want) {
+        add-sink-to-final-call($parent, $pos, $qast[0])
+    }
+    elsif nqp::istype($qast, QAST::Op) && $qast.op eq 'call' {
+        $parent[$pos] := QAST::Op.new: :op<callmethod>, :name<sink>, $qast
+    }
 }
 
 sub UNWANTED($ast, $by) {

@@ -1505,7 +1505,11 @@ multi sub permutations(Int() $n) {
     Seq.new(Rakudo::Iterator.Permutations($n,0))
 }
 
-sub list(+l) { l }
+proto sub list(|) {*}
+multi sub list(+l) { l }
+
+proto sub cache(|) {*}
+multi sub cache(+@l) { @l }
 
 # Use **@list and then .flat it, otherwise we'll end up remembering all the
 # things we flatten, which would be different semantics to .flat which gives
@@ -1514,8 +1518,6 @@ sub list(+l) { l }
 proto flat(|) {*}
 multi flat(**@list is raw) { @list.flat }
 multi flat(Iterable \a)    {     a.flat }
-
-sub cache(+@l) { @l }
 
 proto sub infix:<xx>(|) {*}
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }

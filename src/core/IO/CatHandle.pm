@@ -107,15 +107,14 @@ my class IO::CatHandle is IO::Handle {
                 nqp::if(
                   $!gave-active,
                   nqp::if(
-                    nqp::eqaddr((my $h := $!cat.next-handle), Nil),
-                    IterationEnd,
-                    $h),
+                    nqp::defined(my $h := $!cat.next-handle),
+                    $h,
+                    IterationEnd),
                   nqp::stmts(
                     ($!gave-active := True),
-                    nqp::eqaddr(
-                      (my $ah := nqp::decont(nqp::getattr($!cat, IO::CatHandle,
-                        '$!active-handle'))),
-                      Nil) ?? IterationEnd !! $ah))
+                    nqp::defined(my $ah := nqp::decont(
+                      nqp::getattr($!cat, IO::CatHandle, '$!active-handle')))
+                    ?? $ah !! IterationEnd))
             }
         }.new: self
     }

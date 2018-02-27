@@ -12,10 +12,6 @@ multi sub say() { $*OUT.print-nl }
 multi sub say(Junction:D \j) {
     j.THREAD(&say)
 }
-multi sub say(Str:D \x) {
-    my $out := $*OUT;
-    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
-}
 multi sub say(\x) {
     my $out := $*OUT;
     $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out));
@@ -55,10 +51,6 @@ multi sub note() {
 }
 multi sub note(Junction:D \j) {
     j.THREAD(&note)
-}
-multi sub note(Str:D \x) {
-    my $err := $*ERR;
-    $err.print(nqp::concat(nqp::unbox_s(x),$err.nl-out));
 }
 multi sub note(**@args is raw) {
     my $err := $*ERR;

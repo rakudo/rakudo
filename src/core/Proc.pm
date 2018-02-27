@@ -225,7 +225,8 @@ my class Proc {
     }
 }
 
-sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
+proto sub run(|) {*}
+multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
@@ -233,7 +234,8 @@ sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
     $proc
 }
 
-sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
+proto sub shell(|) {*}
+multi sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
     my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);

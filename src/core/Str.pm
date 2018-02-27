@@ -3114,6 +3114,8 @@ sub parse-names(Str:D \names) {
     # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
     names.uniparse
 }
-sub uniparse (Str:D \names) { names.uniparse }
+
+proto sub uniparse(|) {*}
+multi sub uniparse(Str:D \names) { names.uniparse }
 
 # vim: ft=perl6 expandtab sw=4

@@ -929,9 +929,9 @@ multi sub infix:<eqv>(Match:D \a, Match:D \b) {
 }
 
 
-sub make(Mu \made) {
-    my $slash := nqp::getlexcaller('$/');
-    nqp::bindattr( nqp::decont($slash),        Match,  '$!made', made );
+proto sub make(|) { $/ := nqp::getlexcaller('$/'); {*} }
+multi sub make(Mu \made) {
+    nqp::bindattr(nqp::decont(nqp::getlexcaller('$/')),Match,'$!made',made)
 }
 
 

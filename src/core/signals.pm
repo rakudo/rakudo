@@ -6,7 +6,8 @@ my enum Signal ( :SIGHUP(1), :SIGINT(2), :SIGQUIT(3), :SIGILL(4), :SIGTRAP(5),
     :SIGPROF(27), :SIGWINCH(28), :SIGINFO(29), :SIGUSR1(30), :SIGUSR2(31),
     :SIGTHR(32), :SIGSTKFLT(116), :SIGPWR(130), :SIGBREAK(221) );
 
-sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
+proto sub signal(|) {*}
+multi sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
 
     if @signals.grep( { !nqp::istype($_,Signal) } ).list -> @invalid {
         die "Found invalid signals: {@invalid}";

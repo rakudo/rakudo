@@ -136,8 +136,7 @@ sub infix:«=>»(Mu $key, Mu \value) is pure {
     Pair.new($key, value)
 }
 
-sub pair(Mu $key, \value) is pure {
-    Pair.new($key, value)
-}
+proto sub pair(|) is pure {*}
+multi sub pair(Mu $key, \value) { Pair.new($key, value) }
 
 # vim: ft=perl6 expandtab sw=4

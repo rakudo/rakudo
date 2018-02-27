@@ -2993,7 +2993,8 @@ multi sub infix:<unicmp>(Str:D \a, Str:D \b) { die "unicmp NYI on JVM" }
 multi sub infix:<coll>(Str:D \a, Str:D \b)   { die "coll NYI on JVM" }
 #?endif
 
-sub chrs(*@c --> Str:D) {
+proto sub chrs(|) {*}
+multi sub chrs(*@c --> Str:D) {
     fail X::Cannot::Lazy.new(action => 'chrs') if @c.is-lazy;
     my $list     := nqp::getattr(@c,List,'$!reified');
     my int $i     = -1;

@@ -107,24 +107,24 @@ multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool:D) {
 }
 
 # U+227C PRECEDES OR EQUAL TO
-proto sub infix:<≼>(|) {*}
-multi sub infix:<≼>($a, $b --> Bool:D) is pure {
+proto sub infix:<≼>(|) is pure {*}
+multi sub infix:<≼>($a, $b --> Bool:D) {
     my $*WHAT    = "≼";
     my $*INSTEAD = "⊆";
     infix:<<(<+)>>($a, $b)
 }
 
 # $a (>+) $b === $a R(<+) $b
-proto sub infix:<<(>+)>>(|) {*}
-multi sub infix:<<(>+)>>($a, $b --> Bool:D) is pure {
+proto sub infix:<<(>+)>>(|) is pure {*}
+multi sub infix:<<(>+)>>($a, $b --> Bool:D) {
     my $*WHAT    = "(>+)";
     my $*INSTEAD = "(>=)";
     infix:<<(<+)>>($b, $a)
 }
 
 # U+227D SUCCEEDS OR EQUAL TO
-proto sub infix:<≽>(|) {*}
-multi sub infix:<≽>($a, $b --> Bool:D) is pure {
+proto sub infix:<≽>(|) is pure {*}
+multi sub infix:<≽>($a, $b --> Bool:D) {
     my $*WHAT    = "≽";
     my $*INSTEAD = "⊇";
     infix:<<(<+)>>($b, $a)

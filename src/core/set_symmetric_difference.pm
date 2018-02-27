@@ -224,7 +224,7 @@ multi sub infix:<(^)>(Any $a, Any $b) {
     )
 }
 
-multi sub infix:<(^)>(**@p) is pure {
+multi sub infix:<(^)>(**@p) {
 
     # positions / size in minmax info
     my constant COUNT   = 0;

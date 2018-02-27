@@ -9,9 +9,6 @@ multi sub print(**@args is raw) { $*OUT.print: @args.join }
 
 proto sub say(|) {*}
 multi sub say() { $*OUT.print-nl }
-multi sub say(Junction:D \j) {
-    j.THREAD(&say)
-}
 multi sub say(\x) {
     my $out := $*OUT;
     $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out));

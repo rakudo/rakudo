@@ -72,37 +72,46 @@ multi sub infix:<⚛=>(atomicint $target is rw, $value) {
 }
 
 #-- atomically fetch native integer value and increment it
-sub atomic-fetch-inc(atomicint $target is rw --> atomicint) {
+proto sub atomic-fetch-inc(|) {*}
+multi sub atomic-fetch-inc(atomicint $target is rw --> atomicint) {
     nqp::atomicinc_i($target)
 }
 
-sub postfix:<⚛++>(atomicint $target is rw --> atomicint) {
+proto sub postfix:<⚛++>(|) {*}
+multi sub postfix:<⚛++>(atomicint $target is rw --> atomicint) {
     nqp::atomicinc_i($target)
 }
 
 #-- atomically increment native integer value and fetch it
-sub atomic-inc-fetch(atomicint $target is rw --> atomicint) {
+proto sub atomic-inc-fetch(|) {*}
+multi sub atomic-inc-fetch(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicinc_i($target) + 1
 }
 
-sub prefix:<++⚛>(atomicint $target is rw --> atomicint) {
+proto sub prefix:<++⚛>(|) {*}
+multi sub prefix:<++⚛>(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicinc_i($target) + 1
 }
 
 #-- atomically fetch native integer value and decrement it
-sub atomic-fetch-dec(atomicint $target is rw --> atomicint) {
+proto sub atomic-fetch-dec(|) {*}
+multi sub atomic-fetch-dec(atomicint $target is rw --> atomicint) {
     nqp::atomicdec_i($target)
 }
 
-sub postfix:<⚛-->(atomicint $target is rw --> atomicint) {
+proto sub postfix:<⚛-->(|) {*}
+multi sub postfix:<⚛-->(atomicint $target is rw --> atomicint) {
     nqp::atomicdec_i($target)
 }
 
 #-- atomically decrement native integer value and fetch it
-sub atomic-dec-fetch(atomicint $target is rw --> atomicint) {
+proto sub atomic-dec-fetch(|) {*}
+multi sub atomic-dec-fetch(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicdec_i($target) - 1
 }
-sub prefix:<--⚛>(atomicint $target is rw --> atomicint) {
+
+proto sub prefix:<--⚛>(|) {*}
+multi sub prefix:<--⚛>(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicdec_i($target) - 1
 }
 
@@ -182,7 +191,8 @@ multi sub infix:<⚛-=>(atomicint $target is rw, $add --> atomicint) {
 my constant &infix:<⚛−=> := &infix:<⚛-=>;
 
 #-- provide full barrier semantics
-sub full-barrier(--> Nil) {
+proto sub full-barrier(|) {*}
+multi sub full-barrier(--> Nil) {
     nqp::barrierfull()
 }
 

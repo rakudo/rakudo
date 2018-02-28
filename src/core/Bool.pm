@@ -66,12 +66,12 @@ multi sub postfix:<-->(Bool:D $a is rw) {
 proto sub prefix:<?>(Mu $) is pure {*}
 multi sub prefix:<?>(Bool:D \a) { a }
 multi sub prefix:<?>(Bool:U \a) { Bool::False }
-multi sub prefix:<?>(Mu \a) { a.Bool }
+multi sub prefix:<?>(Mu \a) { nqp::p6bool(a) }
 
 proto sub prefix:<so>(Mu $) is pure {*}
 multi sub prefix:<so>(Bool:D \a) { a }
 multi sub prefix:<so>(Bool:U \a) { Bool::False }
-multi sub prefix:<so>(Mu \a) { a.Bool }
+multi sub prefix:<so>(Mu \a) { nqp::p6bool(a) }
 
 proto sub prefix:<!>(Mu $) is pure {*}
 multi sub prefix:<!>(Bool \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
@@ -85,16 +85,18 @@ proto sub prefix:<?^>(Mu $) is pure {*}
 multi sub prefix:<?^>(Mu \a) { not a }
 
 proto sub infix:<?&>(Mu $?, Mu $?) is pure {*}
-multi sub infix:<?&>(Mu $x = Bool::True) { $x.Bool }
-multi sub infix:<?&>(Mu \a, Mu \b)       { a.Bool && b.Bool }
+multi sub infix:<?&>(Mu $x = Bool::True) { nqp::p6bool($x) }
+multi sub infix:<?&>(Mu \a, Mu \b)       { nqp::p6bool(a && b) }
 
 proto sub infix:<?|>(Mu $?, Mu $?) is pure {*}
-multi sub infix:<?|>(Mu $x = Bool::False) { $x.Bool }
-multi sub infix:<?|>(Mu \a, Mu \b)        { a.Bool || b.Bool }
+multi sub infix:<?|>(Mu $x = Bool::False) { nqp::p6bool($x) }
+multi sub infix:<?|>(Mu \a, Mu \b)        { nqp::p6bool(a || b) }
 
 proto sub infix:<?^>(Mu $?, Mu $?) is pure {*}
-multi sub infix:<?^>(Mu $x = Bool::False) { $x.Bool }
-multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::p6bool(nqp::ifnull(nqp::xor(a.Bool,b.Bool), 0)) }
+multi sub infix:<?^>(Mu $x = Bool::False) { nqp::p6bool($x) }
+multi sub infix:<?^>(Mu \a, Mu \b) {
+    nqp::p6bool(nqp::ifnull(nqp::xor(nqp::p6bool(a),nqp::p6bool(b)), 0))
+}
 
 # These operators are normally handled as macros in the compiler;
 # we define them here for use as arguments to functions.

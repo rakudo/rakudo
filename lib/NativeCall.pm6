@@ -273,7 +273,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     method !setup() {
         $setup-lock.protect: {
             return if $!setup;
-            # Make sure that C++ methotds are treated as mangled (unless set otherwise)
+            # Make sure that C++ methods are treated as mangled (unless set otherwise)
             if self.package.REPR eq 'CPPStruct' and not self.does(NativeCallMangled) {
               self does NativeCallMangled[True];
             }

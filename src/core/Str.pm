@@ -2702,6 +2702,94 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
+    multi method substr(Str:D:) {
+        die "Must at least specify a 'from' value with 'substr'"
+    }
+    multi method substr(Str:D: Int:D \start) {
+        nqp::if(
+          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
+            || nqp::isgt_i($from,nqp::chars($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::substr($!value,$from)
+        )
+    }
+    multi method substr(Str:D: Int:D \start, Int:D \want) {
+        nqp::if(
+          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
+            || nqp::isgt_i($from,nqp::chars($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::if(
+            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
+            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
+            nqp::substr($!value,$from,$chars)
+          )
+        )
+    }
+    multi method substr(Str:D: Int:D \start, Callable:D \want) {
+        nqp::if(
+          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
+            || nqp::isgt_i($from,nqp::chars($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::if(
+            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from)),0),
+            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
+            nqp::substr($!value,$from,$chars)
+          )
+        )
+    }
+    multi method substr(Str:D: Callable:D \start) {
+        nqp::if(
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
+            || nqp::isgt_i($from,nqp::chars($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::substr($!value,$from)
+        )
+    }
+    multi method substr(Str:D: Callable:D \start, Int:D \want) {
+        nqp::if(
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
+            || nqp::isgt_i($from,nqp::chars($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::if(
+            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
+            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
+            nqp::substr($!value,$from,$chars)
+          )
+        )
+    }
+    multi method substr(Str:D: Callable:D \start, Callable:D \want) {
+        nqp::if(
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
+            || nqp::isgt_i($from,nqp::chars($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::if(
+            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from)),0),
+            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
+            nqp::substr($!value,$from,$chars)
+          )
+        )
+    }
+    multi method substr(Str:D: Range:D \start) {
+        nqp::if(
+          nqp::islt_i((my int $from = start.min + start.excludes-min),0)
+            || nqp::isgt_i($from,nqp::chars($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::if(
+            start.max == Inf,
+            nqp::substr($!value,$from),
+            nqp::substr($!value,$from,start.max - start.excludes-max - $from + 1)
+          )
+        )
+    }
+    multi method substr(Str:D: Regex:D, |c) {
+        die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314
+    }
+    multi method substr(Str:D: \start, \want) {
+        nqp::istype(want,Whatever) || want == Inf
+          ?? self.substr(start)
+          !! self.substr(start.Int,want.Int)
+    }
+
     proto method codes(|) {*}
     multi method codes(Str:D: --> Int:D) {
 #?if moar
@@ -3022,53 +3110,9 @@ proto sub parse-base(|) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 
 proto sub substr(|) {*}
-multi sub substr(Str:D \what, Int:D \start) {
-    my str $str  = nqp::unbox_s(what);
-    my int $max  = nqp::chars($str);
-    my int $from = nqp::unbox_i(start);
-
-    Rakudo::Internals.SUBSTR-START-OOR($from,$max).fail
-      if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
-
-    nqp::p6box_s(nqp::substr($str,$from));
-}
-multi sub substr(Str:D \what, Callable:D \start) {
-    my str $str  = nqp::unbox_s(what);
-    my int $max  = nqp::chars($str);
-    my int $from = nqp::unbox_i((start)(nqp::p6box_i($max)));
-
-    Rakudo::Internals.SUBSTR-START-OOR($from,$max).fail
-      if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
-
-    nqp::p6box_s(nqp::substr($str,$from));
-}
-multi sub substr(Str:D \what, Int:D \start, Int:D \want) {
-    my str $str   = nqp::unbox_s(what);
-    my int $max   = nqp::chars($str);
-    my int $from  = nqp::unbox_i(start);
-
-    Rakudo::Internals.SUBSTR-START-OOR($from,$max).fail
-     if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
-
-    my int $chars = nqp::unbox_i(want);
-    Rakudo::Internals.SUBSTR-CHARS-OOR($chars).fail
-      if nqp::islt_i($chars,0);
-
-    nqp::p6box_s(nqp::substr($str,$from,$chars));
-}
-multi sub substr(Str() $what, \start, $want?) {
-
-    die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314
-      if nqp::istype(start,Regex);
-
-    # should really be int, but \ then doesn't work for rw access
-    my $r := Rakudo::Internals.SUBSTR-SANITY($what, start, $want, my Int $from, my Int $chars);
-    nqp::istype($r,Failure)
-      ?? $r
-      !! nqp::p6box_s(nqp::substr(
-           nqp::unbox_s($what),nqp::unbox_i($from),nqp::unbox_i($chars)
-         ))
-}
+multi sub substr(\what)                { what.substr             }
+multi sub substr(\what, \from)         { what.substr(from)       }
+multi sub substr(\what, \from, \chars) { what.substr(from,chars) }
 
 sub substr-rw(\what, \start, $want?) is rw {
     my $Str := nqp::istype(what,Str) ?? what !! what.Str;

@@ -625,22 +625,22 @@ my class Rakudo::Internals {
           $gist);
     }
     method SUBSTR-START-OOR(\from,\max) {
-        X::OutOfRange.new(
+        Failure.new(X::OutOfRange.new(
           :what('Start argument to substr'),
           :got(from.gist),
           :range("0.." ~ max),
           :comment( nqp::istype(from, Callable) || -from > max
             ?? ''
             !! "use *-{abs from} if you want to index relative to the end"),
-        );
+        ))
     }
     method SUBSTR-CHARS-OOR(\chars) {
-        X::OutOfRange.new(
+        Failure.new(X::OutOfRange.new(
           :what('Number of characters argument to substr'),
           :got(chars.gist),
           :range<0..^Inf>,
           :comment("use *-{abs chars} if you want to index relative to the end"),
-        );
+        ))
     }
     method SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
         my Int $max := what.chars;
@@ -649,7 +649,7 @@ my class Rakudo::Internals {
           !! nqp::istype($start, Range)
             ?? $start.min + $start.excludes-min
             !! $start.Int;
-        Rakudo::Internals.SUBSTR-START-OOR(from,$max).fail
+        return Rakudo::Internals.SUBSTR-START-OOR(from,$max)
           if from < 0 || from > $max;
 
         chars = nqp::istype($start, Range)
@@ -663,7 +663,7 @@ my class Rakudo::Internals {
                 ?? $want($max - from)
                 !! (nqp::istype($want,Int) ?? $want !! $want.Int)
             !! $max - from;
-        chars < 0 ?? Rakudo::Internals.SUBSTR-CHARS-OOR(chars).fail !! 1;
+        chars < 0 ?? Rakudo::Internals.SUBSTR-CHARS-OOR(chars) !! 1;
     }
 
     my $IS-WIN = do {

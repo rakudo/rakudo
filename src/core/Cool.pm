@@ -72,7 +72,6 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    method substr($from, $length?)           { substr(   self,$from,$length) }
     method substr-rw(\SELF: $from, $length?) { substr-rw(SELF,$from,$length) }
 
     method uc() {

@@ -384,9 +384,14 @@ proto sub none(|) is pure {*}
 multi sub none(@values) { @values.none }
 multi sub none(+values) {  values.none }
 
-sub infix:<|>(+values) is pure { values.any }
-sub infix:<&>(+values) is pure { values.all }
-sub infix:<^>(+values) is pure { values.one }
+proto sub infix:<|>(|) is pure {*}
+multi sub infix:<|>(+values) { values.any }
+
+proto sub infix:<&>(|) is pure {*}
+multi sub infix:<&>(+values) { values.all }
+
+proto sub infix:<^>(|) is pure {*}
+multi sub infix:<^>(+values) is pure { values.one }
 
 multi sub infix:<~>(Str:D $a, Junction:D $b) {
     nqp::if(

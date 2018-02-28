@@ -2790,6 +2790,46 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self.substr(start.Int,want.Int)
     }
 
+    multi method substr-rw(Str:D \SELF: \start, $want = Inf) is rw {
+        my int $max  = nqp::chars($!value);
+        my int $from = nqp::istype(start,Callable)
+          ?? (start)($max)
+          !! nqp::istype(start,Range)
+            ?? start.min + start.excludes-min
+            !! start.Int;
+        return Rakudo::Internals.SUBSTR-START-OOR($from,$max)
+          if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
+
+        my int $chars = nqp::istype(start,Range)
+          ?? start.max == Inf
+            ?? nqp::sub_i($max,$from)
+            !! start.max - start.excludes-max - $from + 1
+          !! nqp::istype($want,Whatever) || $want == Inf
+            ?? nqp::sub_i($max,$from)
+            !! nqp::istype($want,Callable)
+              ?? $want(nqp::sub_i($max,$from))
+              !! $want.Int;
+
+        nqp::islt_i($chars,0)
+          ?? Rakudo::Internals.SUBSTR-CHARS-OOR($chars)
+          !! Proxy.new(
+               FETCH => sub ($) {        # need to access updated HLL Str
+                   nqp::substr(nqp::unbox_s(SELF),$from,$chars)
+               },
+               STORE => sub ($, Str() $new) {
+                   SELF = nqp::p6box_s(  # need to make it a new HLL Str
+                     nqp::concat(
+                       nqp::substr($!value,0,$from),
+                       nqp::concat(
+                         nqp::unbox_s($new),
+                         nqp::substr($!value,nqp::add_i($from,$chars))
+                       )
+                     )
+                   )
+               }
+             )
+    }
+
     proto method codes(|) {*}
     multi method codes(Str:D: --> Int:D) {
 #?if moar
@@ -3114,33 +3154,10 @@ multi sub substr(\what)                { what.substr             }
 multi sub substr(\what, \from)         { what.substr(from)       }
 multi sub substr(\what, \from, \chars) { what.substr(from,chars) }
 
-sub substr-rw(\what, \start, $want?) is rw {
-    my $Str := nqp::istype(what,Str) ?? what !! what.Str;
-
-    # should really be int, but \ then doesn't work for rw access
-    my $r := Rakudo::Internals.SUBSTR-SANITY($Str, start, $want, my Int $from, my Int $chars);
-    nqp::istype($r,Failure)
-      ?? $r
-      !! Proxy.new(
-           FETCH => sub ($) {
-               nqp::p6box_s(nqp::substr(
-                 nqp::unbox_s($Str), nqp::unbox_i($from), nqp::unbox_i($chars)
-               ));
-           },
-           STORE => sub ($, Str() $new) {
-               my $str = nqp::unbox_s($Str);
-               what = nqp::p6box_s(
-                 nqp::concat(
-                   nqp::substr($str,0,nqp::unbox_i($from)),
-                   nqp::concat(
-                     nqp::unbox_s($new),
-                     nqp::substr($str,nqp::unbox_i($from + $chars))
-                   )
-                 )
-               );
-           },
-         )
-}
+proto sub substr-rw(|) {*}
+multi sub substr-rw(\what)                { what.substr-rw             }
+multi sub substr-rw(\what, \from)         { what.substr-rw(from)       }
+multi sub substr-rw(\what, \from, \chars) { what.substr-rw(from,chars) }
 
 multi sub infix:<eqv>(Str:D \a, Str:D \b) {
     nqp::p6bool(

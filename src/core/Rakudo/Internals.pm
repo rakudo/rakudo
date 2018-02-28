@@ -642,29 +642,6 @@ my class Rakudo::Internals {
           :comment("use *-{abs chars} if you want to index relative to the end"),
         ))
     }
-    method SUBSTR-SANITY(Str \what, $start, $want, \from, \chars) {
-        my Int $max := what.chars;
-        from = nqp::istype($start, Callable)
-          ?? $start($max)
-          !! nqp::istype($start, Range)
-            ?? $start.min + $start.excludes-min
-            !! $start.Int;
-        return Rakudo::Internals.SUBSTR-START-OOR(from,$max)
-          if from < 0 || from > $max;
-
-        chars = nqp::istype($start, Range)
-          ?? $start == Inf
-            ?? $max - from
-            !! $start.max - $start.excludes-max - from + 1
-          !! $want.defined
-            ?? $want === Inf
-              ?? $max - from
-              !! nqp::istype($want, Callable)
-                ?? $want($max - from)
-                !! (nqp::istype($want,Int) ?? $want !! $want.Int)
-            !! $max - from;
-        chars < 0 ?? Rakudo::Internals.SUBSTR-CHARS-OOR(chars) !! 1;
-    }
 
     my $IS-WIN = do {
         my str $os = Rakudo::Internals.TRANSPOSE(nqp::lc(

@@ -835,7 +835,9 @@ my class Hash { # declared in BOOTSTRAP
     }
 }
 
-sub circumfix:<{ }>(*@elems) { my % = @elems }
+proto sub circumfix:<{ }>(|) {*}
+multi sub circumfix:<{ }>(*@elems) { my % = @elems }
+
 # XXX parse dies with 'don't change grammar in the setting, please!'
 # with ordinary sub declaration
 #sub circumfix:<:{ }>(*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }

@@ -479,22 +479,6 @@ my class Any { # declared in BOOTSTRAP
         );
         $sum;
     }
-
-    proto method substr(|) {*}
-    multi method substr()              { self.Str.substr             }
-    multi method substr(\from)         { self.Str.substr(from)       }
-    multi method substr(\from, \chars) { self.Str.substr(from,chars) }
-
-    proto method substr-rw(|) {*}
-    multi method substr-rw(\SELF:) is rw {
-        (SELF = self.Str).substr-rw
-    }
-    multi method substr-rw(\SELF: \from) is rw {
-        (SELF = self.Str).substr-rw(from)
-    }
-    multi method substr-rw(\SELF: \from, \chars) is rw {
-        (SELF = self.Str).substr-rw(from,chars)
-    }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

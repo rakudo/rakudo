@@ -583,18 +583,6 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
     ))
 } #SLICE_HUH
 
-sub DELETEKEY(Mu \d, str $key) {
-    nqp::if(
-      nqp::existskey(d,$key),
-      nqp::stmts(
-        (my Mu $value := nqp::atkey(d,$key)),
-        (nqp::deletekey(d,$key)),
-        $value
-      ),
-      Nil
-    )
-} #DELETEKEY
-
 sub dd(|) {
     my Mu $args := nqp::p6argvmarray();
     if nqp::elems($args) {

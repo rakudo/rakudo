@@ -328,7 +328,8 @@ proto sub wordcase($) is pure {*}
 multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
-sub sprintf(Cool $format, *@args) {
+proto sub sprintf(|) {*}
+multi sub sprintf(Cool:D $format, *@args) {
     CATCH {
         when X::Cannot::Lazy {
             X::Cannot::Lazy.new(:action('(s)printf')).throw
@@ -346,9 +347,14 @@ sub sprintf(Cool $format, *@args) {
     )
 }
 
-sub printf(Cool $format, *@args)          { print sprintf $format, @args }
-sub samecase(Cool $string, Cool $pattern) { $string.samecase($pattern) }
-sub split($pat, Cool $target, |c)         { $target.split($pat, |c) }
+proto sub printf(|) {*}
+multi sub printf(Cool:D $format, *@args) { print sprintf $format, @args }
+
+proto sub samecase(|) {*}
+multi sub samecase(Cool:D $string, Cool:D $pattern) { $string.samecase($pattern) }
+
+proto sub split(|) {*}
+multi sub split($pat, Cool:D $target, |c) { $target.split($pat, |c) }
 
 proto sub chars($) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }

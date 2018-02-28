@@ -2781,7 +2781,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    multi method substr(Str:D: Regex:D, |c) {
+    multi method substr(Str:D: Regex:D, $) {
         die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314
     }
     multi method substr(Str:D: \start, \want) {

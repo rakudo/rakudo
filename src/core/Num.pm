@@ -19,6 +19,7 @@ my class Num does Real { # declared in BOOTSTRAP
           ValueObjAt
         )
     }
+    multi method Bool(Num:D:) { nqp::p6bool(nqp::isne_n(self,0e0)) }
     method Capture() { die X::Cannot::Capture.new: :what(self) }
     method Num() { self }
     method Bridge(Num:D:) { self }

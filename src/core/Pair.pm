@@ -132,9 +132,8 @@ multi sub infix:<cmp>(Pair:D \a, Pair:D \b) {
     (a.key cmp b.key) || (a.value cmp b.value)
 }
 
-sub infix:«=>»(Mu $key, Mu \value) is pure {
-    Pair.new($key, value)
-}
+proto sub infix:«=>»(|) is pure {*}
+multi sub infix:«=>»(Mu $key, Mu \value) { Pair.new($key, value) }
 
 proto sub pair(|) is pure {*}
 multi sub pair(Mu $key, \value) { Pair.new($key, value) }

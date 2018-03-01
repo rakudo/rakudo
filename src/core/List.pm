@@ -1573,7 +1573,8 @@ proto sub rotate(|) {*}
 multi sub rotate(@a)           { @a.rotate     }
 multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 
-sub prefix:<|>(\x) { x.Slip }
+proto sub prefix:<|>(|) {*}
+multi sub prefix:<|>(\x) { x.Slip }
 
 multi sub infix:<cmp>(@a, @b) {
     (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b

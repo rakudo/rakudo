@@ -43,8 +43,8 @@ class VM does Systemic {
         $!auth           = "unknown";
         $!version        = Version.new("unknown");
         $!prefix         = 'todo-prefix';
-        $!precomp-ext    = "todo-precomp-exit";
-        $!precomp-target = "todo-precomp-target";
+        $!precomp-ext    = "js";
+        $!precomp-target = "js";
 #?endif
 # add new backends here please
     }

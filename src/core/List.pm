@@ -1569,7 +1569,9 @@ proto sub reverse(|)   {*}
 multi sub reverse(@a)  { @a.reverse }
 multi sub reverse(+@a) { @a.reverse }
 
-sub rotate(@a, Int $n = 1)  { @a.rotate($n) }
+proto sub rotate(|) {*}
+multi sub rotate(@a)           { @a.rotate     }
+multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 
 sub prefix:<|>(\x) { x.Slip }
 

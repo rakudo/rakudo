@@ -1597,8 +1597,7 @@ multi sub infix:<Z>(+lol) {
 }
 my constant &zip := &infix:<Z>;
 
-sub roundrobin(+lol) {
-    Seq.new(Rakudo::Iterator.RoundrobinIterables(lol))
-}
+proto sub roundrobin(|) {*}
+multi sub roundrobin(+lol) { Seq.new(Rakudo::Iterator.RoundrobinIterables(lol)) }
 
 # vim: ft=perl6 expandtab sw=4

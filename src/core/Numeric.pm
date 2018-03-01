@@ -210,15 +210,15 @@ multi sub infix:<->(\a, \b)    { a.Numeric - b.Numeric }
 proto sub infix:<*>(Mu $?, Mu $?) is pure   {*}
 multi sub infix:<*>($x = 1)      { $x.Numeric }
 multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
-
-sub infix:<×>(|c) is pure { infix:<*>(|c) }
+# U+00D7 MULTIPLICATION SIGN
+my constant &infix:<×> = &infix:<*>;
 
 proto sub infix:</>(Mu $?, Mu $?) is pure {*}
 multi sub infix:</>() { Failure.new("No zero-arg meaning for infix:</>") }
 multi sub infix:</>($x)          { $x.Numeric }
 multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
-
-sub infix:<÷>(|c) is pure { infix:</>(|c) }
+# U+00F7 DIVISION SIGN
+my constant &infix:<÷> = &infix:</>;
 
 proto sub infix:<div>(Mu $?, Mu $?) is pure  {*}
 # rest of infix:<div> is in Int.pm

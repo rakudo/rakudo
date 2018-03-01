@@ -381,12 +381,6 @@ multi sub infix:«>=»(Int:D \a, Int:D \b) {
 multi sub infix:«>=»(int $a, int $b) {
     nqp::p6bool(nqp::isge_i($a, $b))
 }
-multi sub infix:«≥»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isge_I(nqp::decont(a), nqp::decont(b)))
-}
-multi sub infix:«≥»(int $a, int $b) {
-    nqp::p6bool(nqp::isge_i($a, $b))
-}
 
 multi sub infix:<+|>(Int:D \a, Int:D \b) {
     nqp::bitor_I(nqp::decont(a), nqp::decont(b), Int)

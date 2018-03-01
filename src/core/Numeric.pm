@@ -303,6 +303,7 @@ my constant &infix:<≅> = &infix:<=~=>;
 proto sub infix:<!=>(Mu $?, Mu $?) is pure  {*}
 multi sub infix:<!=>($?)                    { Bool::True }
 multi sub infix:<!=>(Mu \a, Mu \b)          { not a == b }
+# U+2260 NOT EQUAL TO
 my constant &infix:<≠> := &infix:<!=>;
 
 proto sub infix:«<»(Mu $?, Mu $?) is pure   {*}
@@ -322,10 +323,8 @@ multi sub infix:«>»(\a, \b)    { a.Real > b.Real }
 proto sub infix:«>=»(Mu $?, Mu $?) is pure  {*}
 multi sub infix:«>=»($?)                    { Bool::True }
 multi sub infix:«>=»(\a, \b)                { a.Real >= b.Real }
-proto sub infix:«≥» (Mu $?, Mu $?) is pure  {*}
-multi sub infix:«≥» ($?)                    { Bool::True }
-multi sub infix:«≥» (\a, \b)                { a.Real  ≥ b.Real }
-
+# U+2265 GREATER-THAN OR EQUAL TO
+my constant &infix:<≥> := &infix:«>=»;
 
 ## bitwise operators
 

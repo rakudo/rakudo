@@ -157,7 +157,6 @@ multi sub infix:«<=»(Real \a, Real \b)  { a.Bridge <= b.Bridge }
 multi sub infix:«>»(Real \a, Real \b)   { a.Bridge > b.Bridge }
 
 multi sub infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
-multi sub infix:«≥» (Real \a, Real \b)  { a.Bridge  ≥ b.Bridge }
 
 multi sub prefix:<->(Real:D \a)            { -a.Bridge }
 

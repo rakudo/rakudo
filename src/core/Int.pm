@@ -353,7 +353,6 @@ multi sub infix:<==>(int $a, int $b) {
 }
 
 multi sub infix:<!=>(int $a, int $b) { nqp::p6bool(nqp::isne_i($a, $b)) }
-multi sub infix:<≠> (int $a, int $b) { nqp::p6bool(nqp::isne_i($a, $b)) }
 
 multi sub infix:«<»(Int:D \a, Int:D \b) {
     nqp::p6bool(nqp::islt_I(nqp::decont(a), nqp::decont(b)))

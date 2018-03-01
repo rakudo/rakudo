@@ -303,9 +303,7 @@ my constant &infix:<≅> = &infix:<=~=>;
 proto sub infix:<!=>(Mu $?, Mu $?) is pure  {*}
 multi sub infix:<!=>($?)                    { Bool::True }
 multi sub infix:<!=>(Mu \a, Mu \b)          { not a == b }
-proto sub infix:<≠> (Mu $?, Mu $?) is pure  {*}
-multi sub infix:<≠> ($?)                    { Bool::True }
-multi sub infix:<≠> (Mu \a, Mu \b)          { not a == b }
+my constant &infix:<≠> := &infix:<!=>;
 
 proto sub infix:«<»(Mu $?, Mu $?) is pure   {*}
 multi sub infix:«<»($?)         { Bool::True }

@@ -656,7 +656,8 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
     );
 }
 
-sub infix:<andthen>(+a) {
+proto sub infix:<andthen>(|) {*}
+multi sub infix:<andthen>(+a) {
     # We need to be able to process `Empty` in our args, which we can get
     # when we're chained with, say, `andthen`. Since Empty disappears in normal
     # arg handling, we use nqp::p6argvmarray op to fetch the args, and then
@@ -687,7 +688,8 @@ sub infix:<andthen>(+a) {
       True) # We were given no args, return True
 }
 
-sub infix:<notandthen>(+a) {
+proto sub infix:<notandthen>(|) {*}
+multi sub infix:<notandthen>(+a) {
     # We need to be able to process `Empty` in our args, which we can get
     # when we're chained with, say, `andthen`. Since Empty disappears in normal
     # arg handling, we use nqp::p6argvmarray op to fetch the args, and then
@@ -718,7 +720,8 @@ sub infix:<notandthen>(+a) {
       True) # We were given no args, return True
 }
 
-sub infix:<orelse>(+$) {
+proto sub infix:<orelse>(|) {*}
+multi sub infix:<orelse>(+$) {
     # We need to be able to process `Empty` in our args, which we can get
     # when we're chained with, say, `andthen`. Since Empty disappears in normal
     # arg handling, we use nqp::p6argvmarray op to fetch the args, and then

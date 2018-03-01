@@ -3,7 +3,10 @@
 ##   generic string operators are in Stringy.pm
 ##   Int/Rat/Num operators are in {Int|Rat|Num}.pm
 
-sub infix:<=>(Mu \a, Mu \b) is raw {
+# infix:<=> only exists to allow it to be referenced as an operator in
+# meta-operator usage.  You cannot add other candidates for it.  Therefore
+# it doesn't make sense to make it a multi.
+only sub infix:<=>(Mu \a, Mu \b) is raw {
     nqp::p6store(a, b)
 }
 

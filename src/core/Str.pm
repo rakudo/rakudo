@@ -473,21 +473,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }.new(self, $pat, $limit));
     }
     multi method comb(Str:D: Regex:D $pattern, :$match) {
-        nqp::if(
+        Seq.new(nqp::if(
           $match,
           self.match($pattern, :g),
           self.match($pattern, :g, :as(Str))
-        )
+        ).iterator)
     }
     multi method comb(Str:D: Regex:D $pattern, $limit, :$match) {
         nqp::if(
           nqp::istype($limit,Whatever) || $limit == Inf,
           self.comb($pattern, :$match),
-          nqp::if(
+          Seq.new(nqp::if(
             $match,
             self.match($pattern, :x(1..$limit)),
             self.match($pattern, :x(1..$limit), :as(Str))
-          )
+          ).iterator)
         )
     }
 

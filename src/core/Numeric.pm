@@ -285,9 +285,9 @@ proto sub infix:<==>(Mu $?, Mu $?) is pure {*}
 multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
-proto sub infix:<≅>(Mu $?, Mu $?, *%) {*}  # note, can't be pure due to dynvar
-multi sub infix:<≅>($?) { Bool::True }
-multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
+proto sub infix:<=~=>(Mu $?, Mu $?, *%) {*}  # note, can't be pure due to dynvar
+multi sub infix:<=~=>($?) { Bool::True }
+multi sub infix:<=~=>(\a, \b, :$tolerance = $*TOLERANCE)    {
     # If operands are non-0, scale the tolerance to the larger of the abs values.
     # We test b first since $value ≅ 0 is the usual idiom and falsifies faster.
     if b && a && $tolerance {
@@ -297,7 +297,8 @@ multi sub infix:<≅>(\a, \b, :$tolerance = $*TOLERANCE)    {
         abs(a.Num - b.Num) < $tolerance;
     }
 }
-sub infix:<=~=>(|c) { infix:<≅>(|c) }
+# U+2245 APPROXIMATELY EQUAL TO
+my constant &infix:<≅> = &infix:<=~=>;
 
 proto sub infix:<!=>(Mu $?, Mu $?) is pure  {*}
 multi sub infix:<!=>($?)                    { Bool::True }

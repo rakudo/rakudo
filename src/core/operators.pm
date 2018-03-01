@@ -777,10 +777,10 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
     die "Routine given to looser does not appear to be an operator";
 }
 
-proto sub infix:<∘> (&?, &?) {*}
-multi sub infix:<∘> () { *.self }
-multi sub infix:<∘> (&f) { &f }
-multi sub infix:<∘> (&f, &g --> Block:D) {
+proto sub infix:<o> (&?, &?) {*}
+multi sub infix:<o> () { *.self }
+multi sub infix:<o> (&f) { &f }
+multi sub infix:<o> (&f, &g --> Block:D) {
     my \ret = &f.count > 1
         ?? -> |args { f |g |args }
         !! -> |args { f  g |args }
@@ -793,6 +793,7 @@ multi sub infix:<∘> (&f, &g --> Block:D) {
     ret.^mixin(FakeSignature[&g.arity, &g.count, &f.of]);
     ret
 }
-my &infix:<o> := &infix:<∘>;
+# U+2218 RING OPERATOR
+my constant &infix:<∘> := &infix:<o>;
 
 # vim: ft=perl6 expandtab sw=4

@@ -722,21 +722,22 @@ my class Range is Cool does Iterable does Positional {
     }
 }
 
-sub infix:<..>($min, $max) is pure {
-    Range.new($min, $max)
-}
-sub infix:<^..>($min, $max) is pure {
-    Range.new($min, $max, :excludes-min)
-}
-sub infix:<..^>($min, $max) is pure {
-    Range.new($min, $max, :excludes-max)
-}
-sub infix:<^..^>($min, $max) is pure {
+proto sub infix:<..>(|) is pure {*}
+multi sub infix:<..>($min, $max) { Range.new($min, $max) }
+
+proto sub infix:<^..>(|) is pure {*}
+multi sub infix:<^..>($min, $max) { Range.new($min, $max, :excludes-min) }
+
+proto sub infix:<..^>(|) is pure {*}
+multi sub infix:<..^>($min, $max) { Range.new($min, $max, :excludes-max) }
+
+proto sub infix:<^..^>(|) is pure {*}
+multi sub infix:<^..^>($min, $max) {
     Range.new($min, $max, :excludes-min, :excludes-max)
 }
-sub prefix:<^>($max) is pure {
-    Range.new(0, $max.Numeric, :excludes-max)
-}
+
+proto sub prefix:<^>(|) is pure {*}
+multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b) {
     nqp::p6bool(

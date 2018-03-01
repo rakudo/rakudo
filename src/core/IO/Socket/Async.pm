@@ -42,17 +42,28 @@ my class IO::Socket::Async {
         $p
     }
 
+    my class Datagram {
+        has $.data;
+        has $.hostname;
+        has $.port;
+
+        method decode(|c) {
+            return self.clone(data => $!data.decode(|c));
+        }
+    }
+
     my class SocketReaderTappable does Tappable {
         has $!VMIO;
         has $!scheduler;
         has $!buf;
         has $!close-promise;
+        has $!udp;
 
-        method new(Mu :$VMIO!, :$scheduler!, :$buf!, :$close-promise!) {
-            self.CREATE!SET-SELF($VMIO, $scheduler, $buf, $close-promise)
+        method new(Mu :$VMIO!, :$scheduler!, :$buf!, :$close-promise!, :$udp!) {
+            self.CREATE!SET-SELF($VMIO, $scheduler, $buf, $close-promise, $udp)
         }
 
-        method !SET-SELF(Mu $!VMIO, $!scheduler, $!buf, $!close-promise) { self }
+        method !SET-SELF(Mu $!VMIO, $!scheduler, $!buf, $!close-promise, $!udp) { self }
 
         method tap(&emit, &done, &quit, &tap) {
             my $buffer := nqp::list();
@@ -76,7 +87,7 @@ my class IO::Socket::Async {
             $lock.protect: {
                 my $cancellation := nqp::asyncreadbytes(nqp::decont($!VMIO),
                     $!scheduler.queue(:hint-affinity),
-                    -> Mu \seq, Mu \data, Mu \err {
+                    -> Mu \seq, Mu \data, Mu \err, Mu \hostname = Str, Mu \port = Int {
                         $lock.protect: {
                             unless $finished {
                                 if err {
@@ -85,7 +96,15 @@ my class IO::Socket::Async {
                                 }
                                 elsif nqp::isconcrete(data) {
                                     my int $insert-pos = seq - $buffer-start-seq;
-                                    nqp::bindpos($buffer, $insert-pos, data);
+                                    if $!udp && nqp::isconcrete(hostname) && nqp::isconcrete(port) {
+                                        nqp::bindpos($buffer, $insert-pos, Datagram.new(
+                                            data => data,
+                                            hostname => hostname,
+                                            port => port
+                                        ));
+                                    } else {
+                                        nqp::bindpos($buffer, $insert-pos, data);
+                                    }
                                     emit-events();
                                 }
                                 else {
@@ -116,13 +135,13 @@ my class IO::Socket::Async {
         method serial(--> True) { }
     }
 
-    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$enc, :$scheduler = $*SCHEDULER) {
+    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$datagrams, :$enc, :$scheduler = $*SCHEDULER) {
         if $bin {
             Supply.new: SocketReaderTappable.new:
-                :$!VMIO, :$scheduler, :$buf, :$!close-promise
+                :$!VMIO, :$scheduler, :$buf, :$!close-promise, udp => $!udp && $datagrams
         }
         else {
-            my $bin-supply = self.Supply(:bin);
+            my $bin-supply = self.Supply(:bin, :$datagrams);
             if $!udp {
                 supply {
                     whenever $bin-supply {

@@ -86,9 +86,6 @@ multi sub infix:«>»(Instant:D $a, Instant:D $b) {
 multi sub infix:«<=»(Instant:D $a, Instant:D $b) {
     $a.tai <= $b.tai
 }
-multi sub infix:«≤»(Instant:D $a, Instant:D $b) {
-    $a.tai ≤ $b.tai
-}
 
 multi sub infix:«>=»(Instant:D $a, Instant:D $b) {
     $a.tai >= $b.tai

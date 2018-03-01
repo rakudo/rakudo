@@ -490,12 +490,6 @@ multi sub infix:«<=»(Num:D \a, Num:D \b --> Bool:D) {
 multi sub infix:«<=»(num $a, num $b --> Bool:D) {
     nqp::p6bool(nqp::isle_n($a, $b))
 }
-multi sub infix:«≤»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
-}
-multi sub infix:«≤»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isle_n($a, $b))
-}
 
 multi sub infix:«>»(Num:D \a, Num:D \b --> Bool:D) {
     nqp::p6bool(nqp::isgt_n(nqp::unbox_n(a), nqp::unbox_n(b)))

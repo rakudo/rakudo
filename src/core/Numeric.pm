@@ -314,9 +314,8 @@ multi sub infix:«<»(\a, \b)    { a.Real < b.Real }
 proto sub infix:«<=»(Mu $?, Mu $?) is pure {*}
 multi sub infix:«<=»($?)                   { Bool::True }
 multi sub infix:«<=»(\a, \b)               { a.Real <= b.Real }
-proto sub infix:«≤» (Mu $?, Mu $?) is pure {*}
-multi sub infix:«≤» ($?)                   { Bool::True }
-multi sub infix:«≤» (\a, \b)               { a.Real  ≤ b.Real }
+# U+2264 LESS-THAN OR EQUAL TO
+my constant &infix:<≤> := &infix:«<=»;
 
 proto sub infix:«>»(Mu $?, Mu $?) is pure   {*}
 multi sub infix:«>»($?)         { Bool::True }

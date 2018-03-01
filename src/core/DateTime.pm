@@ -405,9 +405,6 @@ multi sub infix:«>»(DateTime:D \a, DateTime:D \b) {
 multi sub infix:«<=»(DateTime:D \a, DateTime:D \b) {
     a.Instant <= b.Instant
 }
-multi sub infix:«≤»(DateTime:D \a, DateTime:D \b) {
-    a.Instant ≤ b.Instant
-}
 multi sub infix:«>=»(DateTime:D \a, DateTime:D \b) {
     a.Instant >= b.Instant
 }

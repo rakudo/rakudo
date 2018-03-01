@@ -473,9 +473,9 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
 }
 
 # XXX Wants to be macros when we have them.
-sub WHAT(Mu \x) { x.WHAT }
-sub HOW (Mu \x) { x.HOW }
-sub VAR (Mu \x) { x.VAR }
+only sub WHAT(Mu \x) { x.WHAT }
+only sub HOW (Mu \x) { x.HOW }
+only sub VAR (Mu \x) { x.VAR }
 
 proto sub infix:<...>(|) {*}
 multi sub infix:<...>(\a, Mu \b) { Seq.new(SEQUENCE(a, b).iterator) }

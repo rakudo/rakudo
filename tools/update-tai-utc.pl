@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Updates src/core/tai-utc.pm.
+# Updates src/core/tai-utc.pm6.
 
 use warnings;
 use strict;
@@ -9,7 +9,7 @@ use LWP::Simple 'get';
 
 my $url = 'ftp://hpiers.obspm.fr/iers/bul/bulc/TimeSteps.history';
 
-$ARGV[0] ||= 'src/core/Rakudo/Internals.pm';
+$ARGV[0] ||= 'src/core/Rakudo/Internals.pm6';
 my $tu_path = $ARGV[0];
 
 my @dates = do {

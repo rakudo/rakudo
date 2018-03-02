@@ -1,4 +1,4 @@
-# This script reads the native_array.pm file from STDIN, and generates the
+# This script reads the native_array.pm6 file from STDIN, and generates the
 # intarray, numarray and strarray roles in it, and writes it to STDOUT.
 
 use v6;

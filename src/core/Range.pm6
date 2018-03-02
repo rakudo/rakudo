@@ -632,15 +632,6 @@ my class Range is Cool does Iterable does Positional {
             !! self.flat.elems
     }
 
-    method clone-with-op(&op, $value) {
-        my $min    = $!min [&op] $value;
-        my $max    = $!max [&op] $value;
-        my $is-int = nqp::istype($min,Int) && nqp::istype($max,Int);
-        my $clone := self.clone( :$min, :$max );
-        nqp::bindattr_i($clone, $clone.WHAT, '$!is-int', $is-int);
-        $clone;
-    }
-
     method push(|) is nodal {
         X::Immutable.new(:typename<Range>,:method<push>).throw
     }
@@ -756,12 +747,24 @@ multi sub infix:<eqv>(Range:D \a, Range:D \b) {
     )
 }
 
-multi sub infix:<+>(Range:D \a, Real:D \b) { a.clone-with-op(&[+], b) }
-multi sub infix:<+>(Real:D \a, Range:D \b) { b.clone-with-op(&[+], a) }
-multi sub infix:<->(Range:D \a, Real:D \b) { a.clone-with-op(&[-], b) }
-multi sub infix:<*>(Range:D \a, Real:D \b) { a.clone-with-op(&[*], b) }
-multi sub infix:<*>(Real:D \a, Range:D \b) { b.clone-with-op(&[*], a) }
-multi sub infix:</>(Range:D \a, Real:D \b) { a.clone-with-op(&[/], b) }
+multi sub infix:<+>(Range:D \r, Real:D \v) {
+    r.new: r.min + v, r.max + v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+}
+multi sub infix:<+>(Real:D \v, Range:D \r) {
+    r.new: v + r.min, v + r.max, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+}
+multi sub infix:<->(Range:D \r, Real:D \v) {
+    r.new: r.min - v, r.max - v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+}
+multi sub infix:<*>(Range:D \r, Real:D \v) {
+    r.new: r.min * v, r.max * v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+}
+multi sub infix:<*>(Real:D \v, Range:D \r) {
+    r.new: v * r.min, v * r.max, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+}
+multi sub infix:</>(Range:D \r, Real:D \v) {
+    r.new: r.min / v, r.max / v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+}
 
 multi sub infix:<cmp>(Range:D \a, Range:D \b --> Order:D) {
     a.min cmp b.min || a.excludes-min cmp b.excludes-min || a.max cmp b.max || b.excludes-max cmp a.excludes-max

@@ -524,7 +524,7 @@ my class ThreadPoolScheduler does Scheduler {
                 loop {
                     # Wait until the next time we should check how things
                     # are.
-                    sleep SUPERVISION_INTERVAL;
+                    nqp::sleep(SUPERVISION_INTERVAL);
 
                     # Work out the delta of CPU usage since last supervision
                     # and the time period that measurement spans.

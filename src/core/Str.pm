@@ -1254,10 +1254,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
 #?if moar
-    method ords(Str:D:) { self.NFC.list }
+    multi method ords(Str:D:) { self.NFC.list }
 #?endif
 #?if !moar
-    method ords(Str:D:) {
+    multi method ords(Str:D:) {
         Seq.new(class :: does Iterator {
             has str $!str;
             has int $!chars;
@@ -3033,10 +3033,6 @@ multi sub infix:«~<»(Str:D \a, Int:D \b --> Str:D) {
 }
 multi sub infix:«~<»(str $a, int $b) {
     X::NYI.new(feature => "infix:«~<»").throw;
-}
-
-multi sub ords(Str $s) {
-    $s.ords
 }
 
 proto sub trim(|) {*}

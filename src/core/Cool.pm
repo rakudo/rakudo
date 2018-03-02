@@ -121,7 +121,8 @@ my class Cool { # declared in BOOTSTRAP
     proto method chrs(|) {*}
     multi method chrs(Cool:D:) { self.list.chrs }
 
-    method ords(Cool:D:) { self.Str.ords }
+    proto method ords(|) {*}
+    multi method ords(Cool:D:) { self.Str.ords }
 
     method flip() {
         self.Str.flip
@@ -319,7 +320,7 @@ proto sub indices(|) {*}
 multi sub indices(Cool $s, |c) { $s.indices(|c) }
 
 proto sub ords($) {*}
-multi sub ords(Cool $s) { ords($s.Stringy) }
+multi sub ords(Cool:D $s) { $s.ords }
 
 proto sub comb($, $, $?) {*}
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }

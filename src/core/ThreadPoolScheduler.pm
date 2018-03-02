@@ -832,7 +832,7 @@ my class ThreadPoolScheduler does Scheduler {
         my int $i = -1;
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::stmts( 
+          nqp::stmts(
             (my $w := nqp::atpos(workers,$i)),
             ($completed = nqp::add_i(
               $completed,

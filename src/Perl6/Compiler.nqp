@@ -109,12 +109,21 @@ and, by default, also executes the compiled code.
                          instrumented - performance measurements (default)
                          heap - record heap snapshots after every garbage
                          collector run
+  --profile-compile[=kind]
+                       write compile-time profile information to an HTML
+                       file (MoarVM)
+                         instrumented - performance measurements (default)
+                         heap - record heap snapshots after every garbage
+                         collector run
   --profile-filename=name
                        provide a different filename for profile.
                        Extension controls format:
                          .json outputs in JSON
                          .sql  outputs in SQL
                          any other extension outputs in HTML
+  --profile-stage=stage
+                       write profile information for the given compilation
+                       stage to an HTML file (MoarVM)
   --doc=module         use Pod::To::[module] to render inline documentation
 
   --repl-mode=interactive|non-interactive

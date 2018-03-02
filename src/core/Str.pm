@@ -3122,29 +3122,7 @@ multi sub infix:<coll>(Str:D \a, Str:D \b)   { die "coll NYI on JVM" }
 #?endif
 
 proto sub chrs(|) {*}
-multi sub chrs(*@c --> Str:D) {
-    fail X::Cannot::Lazy.new(action => 'chrs') if @c.is-lazy;
-    my $list     := nqp::getattr(@c,List,'$!reified');
-    my int $i     = -1;
-    my int $elems = nqp::elems($list);
-    my $result   := nqp::list_s;
-    nqp::setelems($result,$elems);
-
-    my $value;
-    nqp::istype(($value := nqp::atpos($list,$i)),Int)
-      ?? nqp::bindpos_s($result,$i,nqp::chr($value))
-      !! nqp::istype($value, Str)
-          ?? (nqp::istype(($value := +$value), Failure)
-              ?? return $value
-              !! nqp::bindpos_s($result,$i,nqp::chr($value)))
-          !! fail X::TypeCheck.new(
-                operation => "converting element #$i to .chr",
-                got       => $value,
-                expected  => Int)
-      while nqp::islt_i(++$i,$elems);
-
-    nqp::join("",$result)
-}
+multi sub chrs(*@c --> Str:D) { @c.chrs }
 
 proto sub parse-base(|) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }

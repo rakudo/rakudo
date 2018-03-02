@@ -117,9 +117,11 @@ my class Cool { # declared in BOOTSTRAP
     method chr() {
         self.Int.chr;
     }
-    method chrs(Cool:D:) { chrs(self.list) }
-    method ords(Cool:D:) { self.Str.ords }
 
+    proto method chrs(|) {*}
+    multi method chrs(Cool:D:) { self.list.chrs }
+
+    method ords(Cool:D:) { self.Str.ords }
 
     method flip() {
         self.Str.flip

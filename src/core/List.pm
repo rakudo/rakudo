@@ -1454,6 +1454,39 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method pop(|) is nodal {
         X::Immutable.new(:typename<List>, :method<pop>).throw
     }
+
+    multi method chrs(List:D: --> Str:D) {
+        nqp::if(
+          self.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(action => 'chrs')),
+          nqp::stmts(
+            (my int $i     = -1),
+            (my int $elems = self.elems),    # reifies
+            (my $result   := nqp::setelems(nqp::list_s,$elems)),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::istype((my $value := nqp::atpos($!reified,$i)),Int),
+                nqp::bindpos_s($result,$i,nqp::chr($value)),
+                nqp::if(
+                  nqp::istype($value,Str),
+                  nqp::if(
+                    nqp::istype(($value := +$value),Failure),
+                    (return $value),
+                    nqp::bindpos_s($result,$i,nqp::chr($value))
+                  ),
+                  (return Failure.new(X::TypeCheck.new(
+                    operation => "converting element #$i to .chr",
+                    got       => $value,
+                    expected  => Int
+                  )))
+                )
+              )
+            ),
+            nqp::join("",$result)
+          )
+        )
+    }
 }
 
 # The , operator produces a List.

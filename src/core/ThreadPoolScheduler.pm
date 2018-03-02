@@ -452,7 +452,7 @@ my class ThreadPoolScheduler does Scheduler {
     # The supervisor sits in a loop, mostly sleeping. Each time it wakes up,
     # it takes stock of the current situation and decides whether or not to
     # add threads.
-    my constant SUPERVISION_INTERVAL  = 0.01;
+    my constant SUPERVISION_INTERVAL  = 1e-2;
     my constant NUM_SAMPLES           = 5;
     my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {

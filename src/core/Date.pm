@@ -223,7 +223,7 @@ multi sub sleep($seconds --> Nil) {
             take $seconds - 1e9 * ($seconds / 1e9).Int;
         }
     }
-    elsif $seconds > 0 {
+    elsif $seconds > 0e0 {
         nqp::sleep($seconds.Num);
     }
 }

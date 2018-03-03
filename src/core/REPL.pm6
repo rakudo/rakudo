@@ -178,7 +178,10 @@ do {
             my Bool $problem = False;
             try {
                 CATCH {
-                    when X::CompUnit::UnsatisfiedDependency & { .specification ~~ /"$module-name"/ } {
+                    when {
+                        $_ ~~ X::CompUnit::UnsatisfiedDependency
+                        and .specification.contains: $module-name
+                    } {
                         # ignore it
                     }
                     default {

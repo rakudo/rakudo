@@ -345,7 +345,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     if (thrower === Null) {
         ctx.die(usage + ' is not in the dynamic scope of a dispatcher');
     } else {
-        thrower.$$call(ctx, null, usage);
+        thrower.$$call(ctx, null, new nqp.NativeStrArg(usage));
     }
 
   };
@@ -440,7 +440,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
         if (thrower === null) {
             ctx.die("Type check failed in assignment to '" + name + "'");
         } else {
-            thrower.$$call(ctx, null, name, value, of);
+            thrower.$$call(ctx, null, new nqp.NativeStrArg(name), value, of);
         }
       }
 

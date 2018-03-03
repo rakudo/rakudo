@@ -209,6 +209,7 @@ my class Cool { # declared in BOOTSTRAP
     method printf (*@args) {  printf(self, @args) };
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
+    method path() { self.Stringy.IO }
     method trim         () { self.Stringy.trim          };
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };

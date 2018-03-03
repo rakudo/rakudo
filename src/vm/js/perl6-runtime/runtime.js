@@ -154,41 +154,41 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   op.p6box_i = function(int) {
-    var repr = Int._STable.REPR;
-    var boxed = repr.allocate(Int._STable);
+    const repr = Int._STable.REPR;
+    const boxed = repr.allocate(Int._STable);
     boxed.$$setInt(int);
     return boxed;
   };
 
   op.p6box_n = function(num) {
-    var repr = Num._STable.REPR;
-    var boxed = repr.allocate(Num._STable);
+    const repr = Num._STable.REPR;
+    const boxed = repr.allocate(Num._STable);
     boxed.$$setNum(num);
     return boxed;
   };
 
   op.p6box_s = function(str) {
-    var repr = Str._STable.REPR;
-    var boxed = repr.allocate(Str._STable);
+    const repr = Str._STable.REPR;
+    const boxed = repr.allocate(Str._STable);
     boxed.$$setStr(str);
     return boxed;
   };
 
   op.p6captureouters2 = function(ctx, capList, target) {
-    var cf = target.outerCtx;
+    const cf = target.outerCtx;
 
     if (cf === Null) {
       return capList;
     }
 
-    var elems = capList.$$elems();
+    const elems = capList.$$elems();
 
-    for (var i = 0; i < elems; i++) {
-        var codeObj = capList.$$atpos(i);
+    for (let i = 0; i < elems; i++) {
+        const codeObj = capList.$$atpos(i);
 
-        var closure = codeObj.$$getattr(Code, "$!do");
+        const closure = codeObj.$$getattr(Code, "$!do");
 
-        var ctxToDiddle = closure.outerCtx;
+        const ctxToDiddle = closure.outerCtx;
         if (ctxToDiddle) {
           ctxToDiddle.$$outer = cf;
         } else {
@@ -200,8 +200,8 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   op.p6capturelex = function(ctx, codeObj) {
-    var closure = codeObj.$$getattr(Code, "$!do");
-    var wantedStaticInfo = closure.staticCode.outerCodeRef;
+    const closure = codeObj.$$getattr(Code, "$!do");
+    const wantedStaticInfo = closure.staticCode.outerCodeRef;
 
     if (ctx.codeRef().staticCode === wantedStaticInfo) {
       closure.outerCtx = ctx;
@@ -215,10 +215,10 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   op.p6capturelexwhere = function(ctx, codeObj) {
-    var closure = codeObj.$$getattr(Code, "$!do");
-    var wantedStaticInfo = closure.staticCode.outerCodeRef;
+    const closure = codeObj.$$getattr(Code, "$!do");
+    const wantedStaticInfo = closure.staticCode.outerCodeRef;
 
-    var find = ctx;
+    let find = ctx;
 
     while (find) {
         if (find.codeRef().staticCode === wantedStaticInfo) {
@@ -235,7 +235,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
   op.p6var = function(cont) {
     if (cont.$$iscont && cont.$$iscont()) {
-      var wrapper = Scalar._STable.REPR.allocate(Scalar._STable);
+      const wrapper = Scalar._STable.REPR.allocate(Scalar._STable);
       wrapper.$$bindattr(Scalar, '$!value', cont);
       return wrapper;
     } else {
@@ -280,8 +280,8 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   const p6HLL = nqp.getHLL('perl6');
 
   op.p6argvmarray = function(ctx, args) {
-    var array = [];
-    for (var i=2; i < args.length; i++) {
+    const array = [];
+    for (let i=2; i < args.length; i++) {
       array[i-2] = nqp.op.hllizefor(ctx, nqp.arg(p6HLL, args[i]), 'perl6');
     }
     return nqp.createArray(array);

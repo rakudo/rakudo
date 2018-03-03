@@ -85,9 +85,7 @@ $ops.add_simple_op('p6bindcaptosig', $ops.OBJ, [$ops.OBJ, $ops.OBJ], sub ($sig, 
 
 $ops.add_op('p6bindattrinvres', $ops.bindattr($ops.OBJ, :inverted_result));
 
-$ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :side_effects, sub ($fake, $code) {
-    "nqp.retval(HLL, $code.\$\$call($*CTX, null))"
-});
+$ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :side_effects, :ctx, :takes_hll);
 
 $ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :side_effects);
 $ops.add_simple_op('p6init', $ops.OBJ, [], :side_effects, -> {"nqp.extraRuntime('perl6', {$ops.quote_string($*PERL6_RUNTIME)})"});

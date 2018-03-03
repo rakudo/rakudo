@@ -391,6 +391,17 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return closure.outerCtx || Null;
   };
 
+  op.p6invokeunder = function(ctx, currentHLL, fake, code) {
+    const spec = fake._STable.invocationSpec;
+
+    const fakeCode = fake.$$getattr(spec.classHandle, spec.attrName);
+
+    const invokingUnder = new nqp.Ctx(ctx, fakeCode.outerCtx, fakeCode);
+
+    return nqp.retval(currentHLL, code.$$call(invokingUnder, null));
+
+  };
+
   function RakudoScalar(STable) {
     this.STable = STable;
   }

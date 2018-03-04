@@ -588,7 +588,8 @@ sub dd(|) {
     if nqp::elems($args) {
         while $args {
             my $var  := nqp::shift($args);
-            my $name := try $var.VAR.?name;
+            my $name := ! nqp::istype($var.VAR, Failure)
+                && nqp::can($var.VAR, 'name') && $var.VAR.name;
             my $type := $var.WHAT.^name;
             my $what := nqp::can($var, 'is-lazy') && $var.is-lazy
               ?? $var[^10].perl.chop ~ "... lazy list)"

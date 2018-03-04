@@ -1,6 +1,6 @@
 # Implementations shared between HyperSeq and RaceSeq.
 class Rakudo::Internals::HyperRaceSharedImpl {
-    my class GrepSM does Rakudo::Internals::HyperProcessor {
+    my class Grep does Rakudo::Internals::HyperProcessor {
         has $!matcher;
 
         submethod TWEAK(:$!matcher) {}
@@ -9,9 +9,19 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             my $result := IterationBuffer.new;
             my $items := $batch.items;
             my int $n = $items.elems;
-            loop (my int $i = 0; $i < $n; ++$i) {
-                my \item := nqp::atpos($items, $i);
-                $result.push(item) if $!matcher.ACCEPTS(item);
+            my \matcher := nqp::istype($!matcher, Callable)
+                ?? $!matcher.clone !! $!matcher;
+            if nqp::istype(matcher, Callable) && ! nqp::istype(matcher, Regex) {
+                loop (my int $i = 0; $i < $n; ++$i) {
+                    my \item := nqp::atpos($items, $i);
+                    $result.push(item) if matcher.(item);
+                }
+            }
+            else {
+                loop (my int $i = 0; $i < $n; ++$i) {
+                    my \item := nqp::atpos($items, $i);
+                    $result.push(item) if matcher.ACCEPTS(item);
+                }
             }
             $batch.replace-with($result);
         }
@@ -21,42 +31,13 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             # Fall back to sequential grep for cases we can't yet handle
             self.rehyper(hyper, hyper.Any::grep(matcher, |%options))
         }
-        else {
-            hyper.bless:
-                configuration => hyper.configuration,
-                work-stage-head => GrepSM.new(:$source, :matcher(matcher))
-        }
-    }
-
-    my class GrepCode does Rakudo::Internals::HyperProcessor {
-        has &!matcher;
-
-        submethod TWEAK(:&!matcher) {}
-
-        method process-batch(Rakudo::Internals::HyperWorkBatch $batch) {
-            my $result := IterationBuffer.new;
-            my $items := $batch.items;
-            my int $n = $items.elems;
-            my &matcher = &!matcher.clone;
-            loop (my int $i = 0; $i < $n; ++$i) {
-                my \item := nqp::atpos($items, $i);
-                $result.push(item) if matcher(item);
-            }
-            $batch.replace-with($result);
-        }
-    }
-    multi method grep(\hyper, $source, &matcher, %options) {
-        X::NYI.new(feature => 'Phasers in hyper/race').throw
-          if nqp::istype(&matcher,Block) && &matcher.has-phasers;
-
-        if %options || &matcher.count > 1 {
-            # Fall back to sequential grep for cases we can't yet handle
-            self.rehyper(hyper, hyper.Any::grep(&matcher, |%options))
+        elsif nqp::istype(matcher,Block) && matcher.has-phasers {
+            X::NYI.new(feature => 'Phasers in hyper/race').throw
         }
         else {
             hyper.bless:
                 configuration => hyper.configuration,
-                work-stage-head => GrepCode.new(:$source, :&matcher)
+                work-stage-head => Grep.new(:$source, :matcher(matcher))
         }
     }
 

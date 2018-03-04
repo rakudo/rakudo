@@ -40,7 +40,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             my &matcher = &!matcher.clone;
             loop (my int $i = 0; $i < $n; ++$i) {
                 my \item := nqp::atpos($items, $i);
-                $result.push(item) if matcher(item);
+                $result.push(item) if &matcher ~~ Regex ?? item ~~ &matcher !! matcher(item);
             }
             $batch.replace-with($result);
         }

@@ -4592,7 +4592,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 !! $/.slang_actions('Regex').qbuildsub($qast, $block, code_obj => $code);
         }
         $past.name($name);
-        $past.blocktype("declaration_static");
+        $past.annotate_self('statement_id', $*STATEMENT_ID
+            ).annotate_self( 'in_stmt_mod', $*IN_STMT_MOD,
+            ).annotate_self(       'outer', $*W.cur_lexpad
+            ).blocktype("declaration_static");
 
         # Install a $?REGEX (mostly for the benefit of <~~>).
         $block[0].push(QAST::Op.new(
@@ -9808,7 +9811,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif nqp::istype($qast, QAST::Block)
         || nqp::istype($qast, QAST::Stmts) || nqp::istype($qast, QAST::Stmt)
-        || nqp::istype($qast, QAST::Op)    || nqp::istype($qast, QAST::Regex) {
+        || nqp::istype($qast, QAST::Op)    || nqp::istype($qast, QAST::Regex)
+        || nqp::istype($qast, QAST::NodeList) {
             for @($qast) {
                 find_block_calls_and_migrate($from, $to, $_);
             }

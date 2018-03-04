@@ -180,7 +180,7 @@ do {
                 CATCH {
                     when {
                         $_ ~~ X::CompUnit::UnsatisfiedDependency
-                        and .specification.contains: $module-name
+                        and .specification.Str.contains: $module-name
                     } {
                         # ignore it
                     }

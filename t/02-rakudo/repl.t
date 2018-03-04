@@ -3,7 +3,7 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-plan 41;
+plan 42;
 
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
@@ -13,6 +13,16 @@ my $*REPL-SCRUBBER = -> $_ is copy {
     s:g/    ">" $ //; # Strip out the final prompt
     s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
     $_
+}
+
+subtest 'sanity check; load without tweaking line editor' => {
+    plan 3;
+    my $p := run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
+    $p.in.say: '133742.flip.say';
+    $p.in.close;
+    like $p.out.slurp(:close),     /247331/, 'result of code is on STDOUT';
+    is $p.err.slurp(:close).chars, 0,        'no STDERR output';
+    is $p.exitcode,                0,        'successful exit code';
 }
 
 # RT #123187

@@ -618,7 +618,7 @@ my class Binder {
                 $default_value;
             }
             else {
-                $default_value()
+                nqp::p6capturelexwhere($default_value.clone)();
             }
         }
 

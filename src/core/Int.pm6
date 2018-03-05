@@ -385,44 +385,44 @@ multi sub infix:«>=»(int $a, int $b) {
 multi sub infix:<+|>(Int:D \a, Int:D \b) {
     nqp::bitor_I(nqp::decont(a), nqp::decont(b), Int)
 }
-#multi sub infix:<+|>(int $a, int $b) { RT#128655
-#    nqp::bitor_i($a, $b)
-#}
+multi sub infix:<+|>(int $a, int $b) {
+   nqp::bitor_i($a, $b)
+}
 
 multi sub infix:<+&>(Int:D \a, Int:D \b) {
     nqp::bitand_I(nqp::decont(a), nqp::decont(b), Int)
 }
-#multi sub infix:<+&>(int $a, int $b) { RT#128655
-#    nqp::bitand_i($a, $b)
-#}
+multi sub infix:<+&>(int $a, int $b) {
+   nqp::bitand_i($a, $b)
+}
 
 multi sub infix:<+^>(Int:D \a, Int:D \b) {
     nqp::bitxor_I(nqp::decont(a), nqp::decont(b), Int)
 }
-#multi sub infix:<+^>(int $a, int $b) { RT#128655
-#    nqp::bitxor_i($a, $b);
-#}
+multi sub infix:<+^>(int $a, int $b) {
+   nqp::bitxor_i($a, $b);
+}
 
 multi sub infix:«+<»(Int:D \a, Int:D \b --> Int:D) {
     nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
-#multi sub infix:«+<»(int $a, int $b) { RT#128655
-#    nqp::bitshiftl_i($a, $b);
-#}
+multi sub infix:«+<»(int $a, int $b) {
+   nqp::bitshiftl_i($a, $b);
+}
 
 multi sub infix:«+>»(Int:D \a, Int:D \b --> Int:D) {
     nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
-#multi sub infix:«+>»(int $a, int $b) { RT#128655
-#    nqp::bitshiftr_i($a, $b)
-#}
+multi sub infix:«+>»(int $a, int $b) {
+   nqp::bitshiftr_i($a, $b)
+}
 
 multi sub prefix:<+^>(Int:D \a) {
     nqp::bitneg_I(nqp::decont(a), Int);
 }
-#multi sub prefix:<+^>(int $a) { RT#128655
-#    nqp::bitneg_i($a);
-#}
+multi sub prefix:<+^>(int $a) {
+   nqp::bitneg_i($a);
+}
 
 proto sub chr($) is pure  {*}
 multi sub chr(Int:D  \x --> Str:D) { x.chr     }

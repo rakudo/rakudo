@@ -341,10 +341,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 nqp::setelems(to, $j + $elems);  # presize for efficiency
                 my int $i = -1;
                 my $got;
-                nqp::istype(($got := nqp::atpos($from,$i)),Int)
-                  ?? nqp::bindpos_i(to,$j++,$got)
-                  !! self!fail-typecheck-element(action,$i,$got).throw
-                  while nqp::islt_i(++$i,$elems);
+                nqp::while(
+                  nqp::islt_i(++$i,$elems),
+                  nqp::stmts(
+                    ($got := nqp::atpos($from,$i)),
+                    nqp::istype(nqp::hllize($got),Int)
+                      ?? nqp::bindpos_i(to,$j++,$got)
+                      !! self!fail-typecheck-element(action,$i,$got).throw))
             }
         }
         else {

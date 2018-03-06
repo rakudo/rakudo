@@ -543,8 +543,14 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
+#?if !jvm
                     nqp::shift_n(@last-utils);
                     nqp::push_n(@last-utils,$per-core-util);
+#?endif
+#?if jvm
+                    @last-utils.shift;
+                    @last-utils.push($per-core-util);
+#?endif
                     $smooth-per-core-util = @last-utils.sum;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;

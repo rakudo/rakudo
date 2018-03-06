@@ -2,15 +2,23 @@
 
 Mar. 4, 2018 proposal by Zoffix
 
+## Revision #2
+
+Previous revisions: [rev. 1](https://github.com/rakudo/rakudo/blob/a918028e058fd39646a5f24e1734d69821d67469/docs/archive/2018-03-04--Polishing-Rationals.md)
+
 ## Executive Summary
 
-1. `Rat` literals with denominators over 64-bit to be returned as a `FatRat`
-2. `RatStr` types with denominators over 64-bit to be returned as a newly-implemented type `FatRatStr`
-3. If `Rat.new` is called with denominator that is (after reduction) over 64-bit, construct a `FatRat` instead
-4. Remove the optimization that requires the use of .REDUCE-ME method, as
+1. Modify `RatStr` to behave as a `Rat`↔`FatRat`↔`Str` allomorph, with
+    the numeric portion behaving as a non-infectious `FatRat`
+2. Ensure all methods and operators that work with `FatRat`s are able to take
+    a fatty `RatStr` equally well.
+3. `Rat` literals with denominators over 64-bit to be returned as a `RatStr`
+4. If `Rat.new` is called with denominator that is (after reduction) over
+    64-bit, construct a `RatStr` instead
+5. Remove the optimization that requires the use of `.REDUCE-ME` method, as
     the optimization has bugs, race conditions, and is detrimental in many
     cases. Preliminary testing (with some new optimizations) showed an 18% improvement in performance, so we're still getting a win here.
-5. Always normalize zero-denominator Rationals to `<1/0>`, `<-1/0>`, and `<0/0>`
+6. Always normalize zero-denominator Rationals to `<1/0>`, `<-1/0>`, and `<0/0>`
     - Try mixing in `ZeroDenominatorRational` role into these to get
         performance boost in operators (in dispatch). If improvement is low,
         don't implement this part (the role mixing).
@@ -66,19 +74,23 @@ As can be seen from the last example above, there is loss of precision involved 
 
 ### **I propose:**
 
-1. `Rat` literals with denominators over 64-bit are returned as a `FatRat`
-2. `RatStr` types with denominators over 64-bit are returned as a newly-implemented type `FatRatStr`
-3. If `Rat.new` is called with denominator that is (after reduction) over 64-bit, construct a `FatRat` instead
+1. Modify `RatStr` to behave as a `Rat`↔`FatRat`↔`Str` allomorph, with
+    the numeric portion behaving as a non-infectious `FatRat`. I dub the
+    `RatStr` that has extra precision available as *"fatty `RatStr`"*. The
+    string portion will be used to produce the extra precision (when available)
+    when used in contexts able to utilize `FatRat`s (performance measurements
+    will be made, and it's possible the `FatRat`tiness will be instead stored in a form of an
+    extra private `Int` attribute that will contain the denominator of the
+    `FatRat` form).
+2. `Rat` literals with denominators over 64-bit are returned as a `RatStr`
+3. If `Rat.new` is called with denominator that is (after reduction) over 64-bit, construct a `RatStr` instead
 
 ### Reasoning
 
 1. The new system makes the `Rat` literals be `Rational` literals, with
     precision handling based on how much precision the user provided.
-2. We fill the allomorphs with the only missing type, making all `Numeric`s
-    available as an allomoprhic variant.
 3. While it may be somewhat unusual for `Rat.new` to create a type that isn't
-    a `Rat`, I believe creating a `FatRat` instead of throwing is more user-
-    friendly, as it can be hard to discern whether the denominator would fit, especially because the fit-test is done **after** reduction. For example, try guessing which of this would fit into a Rat:
+    a `Rat`, I believe creating a fatty `RatStr` instead of throwing is more user-friendly, as it can be hard to discern whether the denominator would fit, especially because the fit-test is done **after** reduction. For example, try guessing which of this would fit into a Rat:
 
 ```perl-6
     Rat.new: 48112959837032048697, 48112959837082048697
@@ -87,11 +99,21 @@ As can be seen from the last example above, there is loss of precision involved 
              1361129467683753853853498429727072845824
 ```
 
-The first one would end up as a `FatRat` with it's 66-bit denominator, while the second one becomes a `Rat` with value `0.5` after reduction.
+The first one would end up as a fatty `RatStr` with it's 66-bit denominator,
+while the second one becomes a `Rat` with value `0.5` after reduction.
 
 ### Discarded Ideas
 
-These are the alternatives I've considered and found inadequate.
+These are the alternatives I (and others) have considered and found inadequate.
+
+- *Discarded Idea #0:* Create a `FatRat` instead of a `Rat` in cases where
+    we currently create a broken `Rat`
+
+    This is the idea in [rev. 1](https://github.com/rakudo/rakudo/blob/a918028e058fd39646a5f24e1734d69821d67469/docs/archive/2018-03-04--Polishing-Rationals.md) of this proposal,
+    but [further discussion](https://irclog.perlgeek.de/perl6-dev/2018-03-05#i_15887340)
+    showed it would be more useful to have an equivalent of a non-infectious
+    `FatRat` to, for example, facilitate extra precision in `π` and `e`
+    constants without forcing the use of the infectious `FatRat` type for them.
 
 - *Discarded Idea #1:* All of problematic cases to produce a `Num` (or `NumStr`)
 
@@ -109,6 +131,9 @@ These are the alternatives I've considered and found inadequate.
     ```
 
 - *Discarded Idea #2:* Make literals produce `FatRat` and val/quotewords produce `RatStr` that can be either `FatRat` or `Rat` in the numeric portion.
+
+    *(N.B.: unlike current version of the proposal, in this scenario
+        a fatty `RatStr` behaves like an* **infectious** *`FatRat`)*
 
     This creates a problem with infectiousness in that, say `Num` + `RatStr`
     produce a `Num`. In a scenario where `RatStr` could contain a `FatRat` as

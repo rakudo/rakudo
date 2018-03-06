@@ -62,13 +62,30 @@ multi sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
     my @known_signals := $*KERNEL.signals;
 
     my class SignalCancellation is repr('AsyncTask') { }
-    Supply.merge( @signals.map(-> $sig {
-        my $s = Supplier.new;
-        nqp::signal($scheduler.queue(:hint-time-sensitive),
-            -> $signum { $s.emit(@known_signals[$signum] // $signum) },
-            nqp::unbox_i(%sigmap{$sig}),
-            SignalCancellation);
-        $s.Supply
+    Supply.merge( @signals.map(-> $signal {
+        class SignalTappable does Tappable {
+            has $!scheduler;
+            has @!known_signals;
+            has %!sigmap;
+            has $!signal;
+
+            submethod BUILD(:$!scheduler, :@!known_signals, :%!sigmap, :$!signal) { }
+
+            method tap(&emit, &, &, &tap) {
+                my $cancellation := nqp::signal($!scheduler.queue(:hint-time-sensitive),
+                    -> $signum { emit(@!known_signals[$signum] // $signum) },
+                    nqp::unbox_i(%!sigmap{$!signal}),
+                    SignalCancellation);
+                my $t = Tap.new({ nqp::cancel($cancellation) });
+                tap($t);
+                $t;
+            }
+
+            method live(--> False) { }
+            method sane(--> True) { }
+            method serial(--> False) { }
+        }
+        Supply.new(SignalTappable.new(:$scheduler, :@known_signals, :%sigmap, :$signal));
     }) );
 }
 

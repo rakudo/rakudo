@@ -42,14 +42,20 @@ multi sub infix:<(elem)>(Any $a, Map:D $b --> Bool:D) {
            )
     )
 }
+multi sub infix:<(elem)>(Int:D $a, Range:D $b --> Bool:D) {
+    $b.is-int ?? $b.ACCEPTS($a) !! infix:<(elem)>($a,$b.iterator)
+}
 multi sub infix:<(elem)>(Any $a, Iterable:D $b --> Bool:D) {
+    infix:<(elem)>($a,$b.iterator)
+}
+multi sub infix:<(elem)>(Any $a, Iterator:D $b --> Bool:D) {
     nqp::if(
-      (my $iterator := $b.iterator).is-lazy,
+      $b.is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action<(elem)>)),
       nqp::stmts(
         (my str $needle = $a.WHICH),
         nqp::until(
-          nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+          nqp::eqaddr((my $pulled := $b.pull-one),IterationEnd),
           nqp::if(
             nqp::iseq_s($needle,$pulled.WHICH),
             return True

@@ -44,11 +44,16 @@ my class IO::Socket::Async {
 
     my class Datagram {
         has $.data;
-        has $.hostname;
-        has $.port;
+        has str $.hostname;
+        has int $.port;
 
         method decode(|c) {
+            die "Cannot decode a datagram with Str data" if $!data ~~ Str;
             return self.clone(data => $!data.decode(|c));
+        }
+        method encode(|c) {
+            die "Cannot encode a datagram with Blob data" if $!data ~~ Blob;
+            return self.clone(data => $!data.encode(|c));
         }
     }
 
@@ -135,13 +140,13 @@ my class IO::Socket::Async {
         method serial(--> True) { }
     }
 
-    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$datagrams, :$enc, :$scheduler = $*SCHEDULER) {
+    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$datagram, :$enc, :$scheduler = $*SCHEDULER) {
         if $bin {
             Supply.new: SocketReaderTappable.new:
-                :$!VMIO, :$scheduler, :$buf, :$!close-promise, udp => $!udp && $datagrams
+                :$!VMIO, :$scheduler, :$buf, :$!close-promise, udp => $!udp && $datagram
         }
         else {
-            my $bin-supply = self.Supply(:bin, :$datagrams);
+            my $bin-supply = self.Supply(:bin, :$datagram);
             if $!udp {
                 supply {
                     whenever $bin-supply {

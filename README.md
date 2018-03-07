@@ -19,6 +19,10 @@ please visit [the features page on perl6.org](http://perl6.org/compilers/feature
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
+To receive important notifications from the core developer team, please
+subscribe to [the p6lert service](https://alerts.perl6.org) using the RSS feed,
+twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-p6lert).
+
 ## Building and Installing Rakudo
 
 [![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)

@@ -1955,10 +1955,6 @@ multi sub infix:<min>(Num:D \a, Num:D \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b)
 multi sub infix:<min>(num   \a, num   \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
 multi sub infix:<min>(+args is raw) { args.min }
 
-proto sub min(|) is pure {*}
-multi sub min(+args, :&by!) { args.min(&by) }
-multi sub min(+args)        { args.min      }
-
 proto sub infix:<max>(|) is pure {*}
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }

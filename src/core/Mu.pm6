@@ -55,7 +55,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method split(|) {*}
-    proto method splice(|) is nodal {*}
+    proto method splice(|) is nodal {*} # TRAITED in traited-routines.pm6
 
     method emit {
         emit self;
@@ -871,8 +871,10 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             nqp::can($nodality, 'nodal')),
           nqp::if(
             c,
-            HYPER( sub (\obj) is nodal { obj."$meth-name"(|c) }, SELF ),
-            HYPER( sub (\obj) is nodal { obj."$meth-name"()   }, SELF )),
+            HYPER( sub (\obj) is nodal { # IGNORE for traited-routines.pm6 test
+                obj."$meth-name"(|c) }, SELF ),
+            HYPER( sub (\obj) is nodal { # IGNORE for traited-routines.pm6 test
+                obj."$meth-name"()   }, SELF )),
           nqp::if(
             c,
             HYPER( -> \obj { obj."$meth-name"(|c) }, SELF ),
@@ -947,10 +949,6 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 }
 
-
-proto sub defined(Mu) is pure {*}
-multi sub defined(Mu \x) { x.defined }
-
 proto sub infix:<~~>(Mu \topic, Mu \matcher) {*}
 multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
@@ -959,64 +957,6 @@ multi sub infix:<~~>(Mu \topic, Mu \matcher) {
 proto sub infix:<!~~>(Mu \topic, Mu \matcher) {*}
 multi sub infix:<!~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).not;
-}
-
-proto sub infix:<=:=>(Mu $?, Mu $?) is pure {*}
-multi sub infix:<=:=>($?)      { Bool::True }
-multi sub infix:<=:=>(Mu \a, Mu \b) {
-    nqp::p6bool(nqp::eqaddr(a, b));
-}
-
-proto sub infix:<eqv>(Any $?, Any $?) is pure {*}
-multi sub infix:<eqv>($?)            { Bool::True }
-
-# Last ditch snapshot semantics.  We shouldn't come here too often, so
-# please do not change this to be faster but wronger.  (Instead, add
-# specialized multis for datatypes that can be tested piecemeal.)
-multi sub infix:<eqv>(Any:U \a, Any:U \b) {
-    nqp::p6bool(nqp::eqaddr(nqp::decont(a),nqp::decont(b)))
-}
-multi sub infix:<eqv>(Any:D \a, Any:U \b) { False }
-multi sub infix:<eqv>(Any:U \a, Any:D \b) { False }
-multi sub infix:<eqv>(Any:D \a, Any:D \b) {
-    nqp::p6bool(
-      nqp::eqaddr(a,b)
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.perl,b.perl))
-    )
-}
-
-multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
-    nqp::p6bool(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-        nqp::if(                                 # not same object
-          nqp::eqaddr(a.WHAT,b.WHAT),
-          nqp::if(                               # same type
-            a.is-lazy,
-            nqp::if(                             # a lazy
-              b.is-lazy,
-              die(X::Cannot::Lazy.new: :action<eqv>) # a && b lazy
-            ),
-            nqp::if(                             # a NOT lazy
-              b.is-lazy,
-              0,                                 # b lazy
-              nqp::if(                           # a && b NOT lazy
-                nqp::iseq_i((my int $elems = a.elems),b.elems),
-                nqp::stmts(                      # same # elems
-                  (my int $i = -1),
-                  nqp::while(
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems) # not exhausted
-                      && a.AT-POS($i) eqv b.AT-POS($i),         # still same
-                    nqp::null
-                  ),
-                  nqp::iseq_i($i,$elems)         # exhausted = success!
-                )
-              )
-            )
-          )
-        )
-      )
-    )
 }
 
 sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {

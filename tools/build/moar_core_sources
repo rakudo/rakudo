@@ -7,7 +7,6 @@ src/core/natives.pm6
 src/core/stubs.pm6
 src/core/control.pm6
 src/core/Mu.pm6
-src/core/Stringy.pm6
 src/core/Any.pm6
 src/core/Attribute.pm6
 src/core/Iterator.pm6
@@ -32,6 +31,8 @@ src/core/Sub.pm6
 src/core/Macro.pm6
 src/core/Method.pm6
 src/core/Submethod.pm6
+src/core/Stringy.pm6
+src/core/traited-routines.pm6
 src/core/Junction.pm6
 src/core/Cool.pm6
 src/core/Enumeration.pm6

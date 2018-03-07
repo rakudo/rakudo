@@ -32,6 +32,7 @@ src/core/Sub.pm6
 src/core/Macro.pm6
 src/core/Method.pm6
 src/core/Submethod.pm6
+src/core/traited-routines.pm6
 src/core/Junction.pm6
 src/core/Cool.pm6
 src/core/Enumeration.pm6

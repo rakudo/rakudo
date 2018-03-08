@@ -1092,31 +1092,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options
     ) {
         my $global = %options<g> || %options<global>;
-        my $caller_dollar_slash := nqp::getlexcaller('$/');
+        my \caller_dollar_slash := nqp::getlexcaller('$/');
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
-        try $caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
-        my $matches := %options
+        my \matches := %options
           ?? self.match($matcher, |%options)
           !! self.match($matcher);  # 30% faster
-
-        if nqp::istype($matches, Failure) || ! $matches {
-            $matches;
-        }
-        else {
-            $self = $self!APPLY-MATCHES(
-              $matches,
-              $replacement,
-              $caller_dollar_slash,
-              $SET_DOLLAR_SLASH,
-              $word_by_word,
-              $samespace,
-              $samecase,
-              $samemark,
-            );
-            $matches
-        }
+        nqp::if(
+          nqp::istype(matches, Failure) || nqp::isfalse(matches),
+          nqp::stmts(
+            $SET_DOLLAR_SLASH && (try caller_dollar_slash = $/),
+            matches),
+          nqp::stmts(
+            ($self = $self!APPLY-MATCHES: matches, $replacement,
+              caller_dollar_slash, $SET_DOLLAR_SLASH, $word_by_word,
+              $samespace, $samecase, $samemark),
+            $SET_DOLLAR_SLASH && (try caller_dollar_slash = matches),
+            matches))
     }
 
     proto method subst(|) {
@@ -1156,26 +1149,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $SET_DOLLAR_SLASH = nqp::istype($matcher, Regex);
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
-        # nothing to do
-        try caller_dollar_slash = $/ if $SET_DOLLAR_SLASH;
-        my @matches = %options
+        my \matches := %options
           ?? self.match($matcher, :$g, |%options)
           !! self.match($matcher, :$g);  # 30% faster
-
-        nqp::istype(@matches[0], Failure)
-            ?? @matches[0]
-            !! !@matches || (@matches == 1 && !@matches[0])
-                  ?? self
-                  !! self!APPLY-MATCHES(
-                       @matches,
-                       $replacement,
-                       caller_dollar_slash,
-                       $SET_DOLLAR_SLASH,
-                       $word_by_word,
-                       $samespace,
-                       $samecase,
-                       $samemark,
-                     );
+        nqp::if(
+          nqp::istype(matches, Failure),
+          nqp::stmts(
+            $SET_DOLLAR_SLASH && (try caller_dollar_slash = Nil),
+            matches),
+          nqp::if(
+            matches,
+            nqp::stmts(
+              (my \res := self!APPLY-MATCHES: matches, $replacement,
+                   caller_dollar_slash, $SET_DOLLAR_SLASH, $word_by_word,
+                   $samespace, $samecase, $samemark),
+              $SET_DOLLAR_SLASH && (try caller_dollar_slash = matches),
+              res),
+            nqp::stmts(
+              $SET_DOLLAR_SLASH && (try caller_dollar_slash = matches),
+              self)))
     }
 
     # NOTE: this method is also called by s/// op in src/Perl6/Actions.nqp
@@ -1185,7 +1177,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $prev;
         my str $str    = nqp::unbox_s(self);
         my Mu $result := nqp::list_s();
-        try cds = $/ if SDS;
 
         # need to do something special
         if SDS || space || case || mark || callable {

@@ -952,6 +952,12 @@ class Perl6::World is HLL::World {
       'worries',            1,
     );
 
+    # pragmas that imply `no precompilation`
+    my %no_precompilation_pragmas := nqp::hash(
+        'MONKEY',           1,
+        'MONKEY-TYPING',    1,
+    );
+
     # not yet implemented pragmas
     my %nyi_pragma := nqp::hash(
       'internals',  1,
@@ -1076,6 +1082,12 @@ class Perl6::World is HLL::World {
         else {
             $RMD("  '$name' is not a valid pragma") if $RMD;
             return 0;                        # go try module
+        }
+
+        if nqp::existskey(%no_precompilation_pragmas, $name) {
+            unless $*COMPILING_CORE_SETTING {
+                self.do_pragma($/, 'precompilation', 0, NQPMu);
+            }
         }
 
         $RMD("Successfully handled '$name' as a pragma") if $RMD;

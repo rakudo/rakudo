@@ -1,4 +1,5 @@
 # XXX: should be Rational[Int, uint]
+my class MidRat {…}
 my class Rat is Cool does Rational[Int, Int] {
     method Rat   (Rat:D: Real $?) { self }
     method FatRat(Rat:D: Real $?) { FatRat.new($!numerator, $!denominator); }
@@ -37,6 +38,13 @@ my class FatRat is Cool does Rational[Int, Int] {
     }
 }
 
+my class MidRat is FatRat is Rat {
+    multi method perl(::?CLASS:D:) { ::?CLASS.^name ~ '.new('
+        ~ nqp::getattr(self, FatRat, '$!numerator')
+        ~ ', '
+        ~ nqp::getattr(self, FatRat, '$!denominator') ~ ')'}
+}
+
 sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
     nqp::stmts(
       (my Int $gcd         := de == 0 ?? 1 !! nu gcd de),
@@ -48,7 +56,8 @@ sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
           ($numerator   := -$numerator),
           ($denominator := -$denominator))),
       nqp::if(
-        nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),
+           (nqp::istype(t1, FatRat) && nqp::isfalse(nqp::istype(t1, MidRat)))
+        || (nqp::istype(t2, FatRat) && nqp::isfalse(nqp::istype(t2, MidRat))),
         nqp::p6bindattrinvres(
           nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$numerator),
           FatRat,'$!denominator',$denominator),
@@ -60,8 +69,9 @@ sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
           nqp::p6box_n(nqp::div_In($numerator, $denominator)))))
 }
 
-sub DON'T_DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {
-    nqp::istype($t1, FatRat) || nqp::istype($t2, FatRat)
+sub DON'T_DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
+       (nqp::istype(t1, FatRat) && nqp::isfalse(nqp::istype(t1, MidRat)))
+    || (nqp::istype(t2, FatRat) && nqp::isfalse(nqp::istype(t2, MidRat)))
         ?? nqp::p6bindattrinvres(
               nqp::p6bindattrinvres(
                   nqp::create(FatRat),
@@ -79,6 +89,9 @@ multi sub prefix:<->(Rat:D \a) {
 }
 multi sub prefix:<->(FatRat:D \a) {
     FatRat.new(-a.numerator, a.denominator);
+}
+multi sub prefix:<->(MidRat:D \a) {
+    MidRat.new(-a.numerator, a.denominator);
 }
 
 multi sub infix:<+>(Rational:D \a, Rational:D \b) {

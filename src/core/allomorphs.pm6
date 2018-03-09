@@ -112,6 +112,57 @@ my class RatStr is Rat is Str {
     multi method perl(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
+my class MidRatStr is MidRat is Str {
+    method new(MidRat $r, Str $s) {
+        my \SELF = nqp::create(self);
+        nqp::bindattr(SELF, FatRat, '$!numerator', $r.numerator);
+        nqp::bindattr(SELF, FatRat, '$!denominator', $r.denominator);
+        nqp::bindattr_s(SELF, Str, '$!value', $s);
+        SELF;
+    }
+    multi method ACCEPTS(::?CLASS:D: Any:D \a) {
+        nqp::if(
+          nqp::istype(a, Numeric),
+          self.MidRat.ACCEPTS(a),
+          nqp::if(
+            nqp::istype(a, Str),
+            self.Str.ACCEPTS(a),
+            self.Str.ACCEPTS(a) && self.MidRat.ACCEPTS(a)))
+    }
+    method succ(::?CLASS:D: --> MidRat:D) {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(MidRat), FatRat, '$!numerator',
+            nqp::add_I(
+              nqp::getattr(self, FatRat, '$!numerator'),
+              nqp::getattr(self, FatRat, '$!denominator'), Int)),
+          FatRat, '$!denominator', nqp::getattr(self, FatRat, '$!denominator'))
+    }
+    method pred(::?CLASS:D: --> MidRat:D) {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(MidRat), FatRat, '$!numerator',
+            nqp::sub_I(
+              nqp::getattr(self, FatRat, '$!numerator'),
+              nqp::getattr(self, FatRat, '$!denominator'), Int)),
+          FatRat, '$!denominator', nqp::getattr(self, FatRat, '$!denominator'))
+    }
+    method Capture(::?CLASS:D:) { self.Mu::Capture }
+    multi method Numeric(::?CLASS:D:) { self.Rat }
+    multi method Numeric(::?CLASS:U:) {
+        self.Mu::Numeric; # issue warning;
+        0.0
+    }
+    multi method Real(::?CLASS:D:) { self.MidRat }
+    multi method Real(::?CLASS:U:) {
+        self.Mu::Real; # issue warning;
+        MidRat.new: 0, 1
+    }
+    method MidRat(::?CLASS:D:) { MidRat.new(nqp::getattr(self, FatRat, '$!numerator'), nqp::getattr(self, FatRat, '$!denominator')) }
+    multi method Str(::?CLASS:D:) { nqp::getattr_s(self, Str, '$!value') }
+
+    multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.MidRat.perl ~ ', ' ~ self.Str.perl ~ ')' }
+}
+
+
 my class ComplexStr is Complex is Str {
     method new(Complex $c, Str $s) {
         my \SELF = nqp::create(self);

@@ -2,19 +2,21 @@
 
 Mar. 4, 2018 proposal by Zoffix
 
-## Revision #2
+## Revision #3
 
-Previous revisions: [rev. 1](https://github.com/rakudo/rakudo/blob/a918028e058fd39646a5f24e1734d69821d67469/docs/archive/2018-03-04--Polishing-Rationals.md)
+Previous revisions: [rev. 2](https://github.com/rakudo/rakudo/blob/5feb6bbec3582831b3daef39b027597040ff5a92/docs/archive/2018-03-04--Polishing-Rationals.md)
+[rev. 1](https://github.com/rakudo/rakudo/blob/a918028e058fd39646a5f24e1734d69821d67469/docs/archive/2018-03-04--Polishing-Rationals.md)
 
 ## Executive Summary
 
-1. Modify `RatStr` to behave as a `Rat`↔`FatRat`↔`Str` allomorph, with
-    the numeric portion behaving as a non-infectious `FatRat`
-2. Ensure all methods and operators that work with `FatRat`s are able to take
-    a fatty `RatStr` equally well.
-3. `Rat` literals with denominators over 64-bit to be returned as a `RatStr`
-4. If `Rat.new` is called with denominator that is (after reduction) over
-    64-bit, construct a `RatStr` instead
+1. Implement `MidRat` and `MidRatStr` types. A `MidRat` is a `Rat`/`FatRat`
+    allomorph. It has the precision of a `FatRat`, but is has infectiousness
+    of a `Rat`. `MidRatStr` is the `MidRat`/`Str` allomorph.
+2. `Rat` literals with denominators over 64-bit to be returned as a `MidRat`
+3. If `Rat.new` is called with denominator that is (after reduction) over
+    64-bit, construct a `MidRat` instead
+4. Cases that currently create a `RatStr` with denominators over 64-bit
+    will return `MidRatStr` instead.
 5. Remove the optimization that requires the use of `.REDUCE-ME` method, as
     the optimization has bugs, race conditions, and is detrimental in many
     cases. Preliminary testing (with some new optimizations) showed an 18% improvement in performance, so we're still getting a win here.
@@ -22,6 +24,11 @@ Previous revisions: [rev. 1](https://github.com/rakudo/rakudo/blob/a918028e058fd
     - Try mixing in `ZeroDenominatorRational` role into these to get
         performance boost in operators (in dispatch). If improvement is low,
         don't implement this part (the role mixing).
+
+## Crude Trial Implementation
+
+A trial implementation that partially implements `MidRat`/`MidRatStr`
+is available in [`ratlab-fattish-rat` branch](https://github.com/rakudo/rakudo/tree/ratlab-fattish-rat)
 
 # TABLE OF CONTENTS
 - [Problems Being Addressed](#problems-being-addressed)
@@ -74,23 +81,21 @@ As can be seen from the last example above, there is loss of precision involved 
 
 ### **I propose:**
 
-1. Modify `RatStr` to behave as a `Rat`↔`FatRat`↔`Str` allomorph, with
-    the numeric portion behaving as a non-infectious `FatRat`. I dub the
-    `RatStr` that has extra precision available as *"fatty `RatStr`"*. The
-    string portion will be used to produce the extra precision (when available)
-    when used in contexts able to utilize `FatRat`s (performance measurements
-    will be made, and it's possible the `FatRat`tiness will be instead stored in a form of an
-    extra private `Int` attribute that will contain the denominator of the
-    `FatRat` form).
-2. `Rat` literals with denominators over 64-bit are returned as a `RatStr`
-3. If `Rat.new` is called with denominator that is (after reduction) over 64-bit, construct a `RatStr` instead
+
+1. Implement `MidRat` and `MidRatStr` types. A `MidRat` is a `Rat`/`FatRat`
+    allomorph. It has the precision of a `FatRat`, but is has infectiousness
+    of a `Rat`. `MidRatStr` is the `MidRat`/`Str` allomorph.
+2. `Rat` literals with denominators over 64-bit are returned as a `MidRat`
+3. If `Rat.new` is called with denominator that is (after reduction) over 64-bit, construct a `MidRat` instead
+4. Cases that currently create a `RatStr` with denominators over 64-bit
+    will return `MidRatStr` instead.
 
 ### Reasoning
 
 1. The new system makes the `Rat` literals be `Rational` literals, with
     precision handling based on how much precision the user provided.
 3. While it may be somewhat unusual for `Rat.new` to create a type that isn't
-    a `Rat`, I believe creating a fatty `RatStr` instead of throwing is more user-friendly, as it can be hard to discern whether the denominator would fit, especially because the fit-test is done **after** reduction. For example, try guessing which of this would fit into a Rat:
+    a `Rat`, I believe creating a `MidRat` instead of throwing is more user-friendly, as it can be hard to discern whether the denominator would fit, especially because the fit-test is done **after** reduction. For example, try guessing which of this would fit into a Rat:
 
 ```perl-6
     Rat.new: 48112959837032048697, 48112959837082048697
@@ -99,12 +104,28 @@ As can be seen from the last example above, there is loss of precision involved 
              1361129467683753853853498429727072845824
 ```
 
-The first one would end up as a fatty `RatStr` with it's 66-bit denominator,
+The first one would end up as a `MidRat` with it's 66-bit denominator,
 while the second one becomes a `Rat` with value `0.5` after reduction.
 
 ### Discarded Ideas
 
 These are the alternatives I (and others) have considered and found inadequate.
+
+- *Discarded Idea #-1:* Make `RatStr` a non-infectious `FatRat` able to
+    handle the extra precision.
+
+    This is the idea in [rev. 2](https://github.com/rakudo/rakudo/blob/5feb6bbec3582831b3daef39b027597040ff5a92/docs/archive/2018-03-04--Polishing-Rationals.md), however:
+    it feels a lot like abuse of a type for things it wasn't meant to be:
+    - This idea means typing `my Str $x = 1.1111111111111111111` is a
+        typecheck error, but typing `my Str $x = 1.11111111111111111111` is all OK. It feels very weird to me that we switch to producing `Str`
+        subclasses from numeric literals.
+    - This idea means we either have to lug around an additional `Int`
+        denominator in all `RatStr` types and somehow make it available whenever
+        the object is used as a `Rational` or make their performance a lot
+        slower, as we'd be re-parsing the `Str` portion to extract
+        high-precision denominator
+    - This idea means when presented with a `RatStr`, we've no real idea
+        whether it actually contains high-precision data.
 
 - *Discarded Idea #0:* Create a `FatRat` instead of a `Rat` in cases where
     we currently create a broken `Rat`

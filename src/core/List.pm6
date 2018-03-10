@@ -1492,6 +1492,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 # The , operator produces a List.
 proto sub infix:<,>(|) is pure {*}
 multi sub infix:<,>() { nqp::create(List) }
+multi sub infix:<,>(Int \a, Int \b) is default {
+    nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',nqp::list(a,b))
+}
+multi sub infix:<,>(Str \a, Str \b) {
+    nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',nqp::list(a,b))
+}
 multi sub infix:<,>(|) {
 
     # look for a Slip in the parameters

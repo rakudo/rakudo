@@ -1506,14 +1506,14 @@ sub INFIX_COMMA_SLIP_HELPER(\reified, \future) {
 proto sub infix:<,>(|) is pure {*}
 multi sub infix:<,>() { nqp::create(List) }
 multi sub infix:<,>(Slip:D \a, Slip:D \b) {
-    nqp::stmts(  # Slip seen, first copy non-slippy things
+    nqp::stmts(
       (my $reified := nqp::create(IterationBuffer)),
       # now set up the List with a future
       INFIX_COMMA_SLIP_HELPER($reified, nqp::list(a,b))
     )
 }
 multi sub infix:<,>(Any \a, Slip:D \b) {
-    nqp::stmts(  # Slip seen, first copy non-slippy things
+    nqp::stmts(  # Slip seen, first copy non-slippy thing
       (my $reified := nqp::setelems(nqp::create(IterationBuffer),1)),
       nqp::bindpos($reified,0,a),
       # now set up the List with a future
@@ -1521,7 +1521,7 @@ multi sub infix:<,>(Any \a, Slip:D \b) {
     )
 }
 multi sub infix:<,>(Slip:D \a, Any \b) {
-    nqp::stmts(  # Slip seen, first copy non-slippy things
+    nqp::stmts(
       (my $reified := nqp::create(IterationBuffer)),
       # now set up the List with a future
       INFIX_COMMA_SLIP_HELPER($reified, nqp::list(a,b))

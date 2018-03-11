@@ -1492,10 +1492,50 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 # The , operator produces a List.
 proto sub infix:<,>(|) is pure {*}
 multi sub infix:<,>() { nqp::create(List) }
-multi sub infix:<,>(Int \a, Int \b) is default {
-    nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',nqp::list(a,b))
+multi sub infix:<,>(Slip:D \a, Slip:D \b) {
+    nqp::stmts(  # Slip seen, first copy non-slippy things
+      (my $reified := nqp::create(IterationBuffer)),
+      # now set up the List with a future
+      (my $list :=
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$reified)),
+      nqp::bindattr($list,List,'$!todo',
+        my $todo:= nqp::create(List::Reifier)),
+      nqp::bindattr($todo,List::Reifier,'$!reified',$reified),
+      nqp::bindattr($todo,List::Reifier,'$!future',nqp::list(a,b)),
+      nqp::bindattr($todo,List::Reifier,'$!reification-target',$reified),
+      $list
+    )
 }
-multi sub infix:<,>(Str \a, Str \b) {
+multi sub infix:<,>(Any \a, Slip:D \b) {
+    nqp::stmts(  # Slip seen, first copy non-slippy things
+      (my $reified := nqp::setelems(nqp::create(IterationBuffer),1)),
+      nqp::bindpos($reified,0,a),
+      # now set up the List with a future
+      (my $list :=
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$reified)),
+      nqp::bindattr($list,List,'$!todo',
+        my $todo:= nqp::create(List::Reifier)),
+      nqp::bindattr($todo,List::Reifier,'$!reified',$reified),
+      nqp::bindattr($todo,List::Reifier,'$!future',nqp::list(b)),
+      nqp::bindattr($todo,List::Reifier,'$!reification-target',$reified),
+      $list
+    )
+}
+multi sub infix:<,>(Slip:D \a, Any \b) {
+    nqp::stmts(  # Slip seen, first copy non-slippy things
+      (my $reified := nqp::create(IterationBuffer)),
+      # now set up the List with a future
+      (my $list :=
+        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$reified)),
+      nqp::bindattr($list,List,'$!todo',
+        my $todo:= nqp::create(List::Reifier)),
+      nqp::bindattr($todo,List::Reifier,'$!reified',$reified),
+      nqp::bindattr($todo,List::Reifier,'$!future',nqp::list(a,b)),
+      nqp::bindattr($todo,List::Reifier,'$!reification-target',$reified),
+      $list
+    )
+}
+multi sub infix:<,>(Any \a, Any \b) {
     nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',nqp::list(a,b))
 }
 multi sub infix:<,>(|) {

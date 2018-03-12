@@ -1489,43 +1489,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 }
 
-sub INFIX_COMMA_SLIP_HELPER(\reified, \future) {
-    nqp::stmts(
-      (my $list :=
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',reified)),
-      nqp::bindattr($list,List,'$!todo',
-        my $todo:= nqp::create(List::Reifier)),
-      nqp::bindattr($todo,List::Reifier,'$!reified',reified),
-      nqp::bindattr($todo,List::Reifier,'$!future',nqp::getattr(future,List,'$!reified')),
-      nqp::bindattr($todo,List::Reifier,'$!reification-target',reified),
-      $list
-    )
-}
-
 # The , operator produces a List.
 proto sub infix:<,>(|) is pure {*}
 multi sub infix:<,>() { nqp::create(List) }
 multi sub infix:<,>(Slip:D \a, Slip:D \b) {
-    nqp::stmts(
-      (my $reified := nqp::create(IterationBuffer)),
-      # now set up the List with a future
-      INFIX_COMMA_SLIP_HELPER($reified, nqp::list(a,b))
-    )
+    # now set up the List with a future
+    Rakudo::Internals.INFIX_COMMA_SLIP_HELPER(nqp::create(IterationBuffer), nqp::list(a,b))
 }
 multi sub infix:<,>(Any \a, Slip:D \b) {
     nqp::stmts(  # Slip seen, first copy non-slippy thing
-      (my $reified := nqp::setelems(nqp::create(IterationBuffer),1)),
+      (my $reified := nqp::create(IterationBuffer)),
       nqp::bindpos($reified,0,a),
       # now set up the List with a future
-      INFIX_COMMA_SLIP_HELPER($reified, nqp::list(b))
+      Rakudo::Internals.INFIX_COMMA_SLIP_HELPER($reified, nqp::list(b))
     )
 }
 multi sub infix:<,>(Slip:D \a, Any \b) {
-    nqp::stmts(
-      (my $reified := nqp::create(IterationBuffer)),
-      # now set up the List with a future
-      INFIX_COMMA_SLIP_HELPER($reified, nqp::list(a,b))
-    )
+    # now set up the List with a future
+    Rakudo::Internals.INFIX_COMMA_SLIP_HELPER(nqp::create(IterationBuffer), nqp::list(a,b))
 }
 multi sub infix:<,>(Any \a, Any \b) {
     nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',nqp::list(a,b))
@@ -1554,7 +1535,7 @@ multi sub infix:<,>(|) {
           nqp::bindpos($reified,$i,nqp::shift(in))
         ),
         # now set up the List with a future
-        INFIX_COMMA_SLIP_HELPER($reified, in)
+        Rakudo::Internals.INFIX_COMMA_SLIP_HELPER($reified, in)
       )
     )
 }

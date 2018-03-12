@@ -3,6 +3,7 @@ my role  IO { ... }
 my class IO::Handle { ... }
 my class IO::Path { ... }
 my class Rakudo::Metaops { ... }
+my class List::Reifier { ... }
 
 my class X::Assignment::ToShaped { ... }
 my class X::Cannot::Lazy { ... }
@@ -1560,6 +1561,19 @@ my class Rakudo::Internals {
         my \retval = $type.new;
         nqp::bindattr(retval, List, '$!reified', buffer);
         nqp::iscont(obj) ?? retval.item !! retval;
+    }
+
+    method INFIX_COMMA_SLIP_HELPER(\reified, \future) {
+        nqp::stmts(
+          (my $list :=
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',reified)),
+          nqp::bindattr($list,List,'$!todo',
+            my $todo:= nqp::create(List::Reifier)),
+          nqp::bindattr($todo,List::Reifier,'$!reified',reified),
+          nqp::bindattr($todo,List::Reifier,'$!future',nqp::getattr(future,List,'$!reified')),
+          nqp::bindattr($todo,List::Reifier,'$!reification-target',reified),
+          $list
+        )
     }
 
 }

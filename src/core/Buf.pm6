@@ -119,10 +119,30 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method decode(Blob:D:) {
         nqp::p6box_s(nqp::decode(self, 'utf8'))
     }
-    multi method decode(Blob:D: $encoding) {
+#?if moar
+    multi method decode(Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False) {
+        nqp::p6box_s(
+          nqp::decoderepconf(self,
+            Rakudo::Internals.NORMALIZE_ENCODING($encoding),
+            $replacement,
+            $strict ?? 0 !! 1))
+    }
+    multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
+        nqp::p6box_s(
+          nqp::decodeconf(self,
+            Rakudo::Internals.NORMALIZE_ENCODING($encoding),
+            $strict ?? 0 !! 1))
+    }
+#?endif
+#?if !moar
+    multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
         nqp::p6box_s(
           nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
     }
+    multi method decode(Blob:D: $encoding, Str:D :$replacement!, Bool:D :$strict = False) {
+        X::NYI.new(:feature<decode-with-replacement>).throw
+    }
+#?endif
 
     multi method list(Blob:D:) {
         Seq.new(class :: does Rakudo::Iterator::Blobby {

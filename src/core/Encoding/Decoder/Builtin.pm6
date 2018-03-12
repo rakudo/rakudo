@@ -1,7 +1,18 @@
 my class Encoding::Decoder::Builtin is repr('Decoder') does Encoding::Decoder {
-    method new(str $encoding, :$translate-nl) {
+    method new(str $encoding, :$translate-nl, Str :$replacement, Bool:D :$strict = False) {
         nqp::decoderconfigure(nqp::create(self), $encoding,
-            $translate-nl ?? nqp::hash('translate_newlines', 1) !! nqp::null())
+            nqp::hash(
+                'translate_newlines', $translate-nl ?? 1 !! 0,
+                'replacement', $replacement.defined ?? nqp::unbox_s($replacement) !! nqp::null(),
+                'config', $strict ?? 0 !! 1
+                # Config set to 0 uses the decoder's new default, which is strict
+                # decoding. Setting to 1 uses the 6.c specced functionality where
+                # unmapped codepoints will still decode, e.g. codepoint 129, which
+                # in windows-1252 does not exist.
+
+                # In 6.d, 'config' will default to 0
+            )
+        )
     }
 
     method add-bytes(Blob:D $bytes --> Nil) {

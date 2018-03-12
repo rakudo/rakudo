@@ -124,7 +124,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::p6box_s(
           nqp::decoderepconf(self,
             Rakudo::Internals.NORMALIZE_ENCODING($encoding),
-            $replacement,
+            $replacement.defined ?? $replacement !! nqp::null_s(),
             $strict ?? 0 !! 1))
     }
     multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {

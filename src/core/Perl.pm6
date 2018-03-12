@@ -11,18 +11,8 @@ class Perl does Systemic {
 
     method VMnames { <moar jvm > }
 
-    method DISTROnames {
-        (
-#?if jvm
-        <macosx linux freebsd mswin32 openbsd dragonfly netbsd>
-#?endif
-#?if moar
-        <macosx linux freebsd mswin32 openbsd dragonfly netbsd>
-#?endif
-        )
-    }
-
-    method KERNELnames { <darwin linux freebsd openbsd netbsd dragonfly win32> }
+    method DISTROnames { <macosx linux freebsd mswin32 openbsd dragonfly netbsd> }
+    method KERNELnames { <darwin linux freebsd openbsd netbsd  dragonfly win32>  }
 }
 
 # vim: ft=perl6 expandtab sw=4

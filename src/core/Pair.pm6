@@ -24,6 +24,9 @@ my class Pair does Associative {
         p
     }
 
+    multi method clone(Pair:D:) {
+        nqp::p6bindattrinvres(self.Mu::clone, Pair, '$!WHICH', nqp::null)
+    }
     multi method WHICH(Pair:D:) {
         nqp::unless(
           $!WHICH,

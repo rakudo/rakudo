@@ -844,6 +844,7 @@ multi sub circumfix:<{ }>(*@elems) { my % = @elems }
 BEGIN my &circumfix:<:{ }> = sub (*@e) { Hash.^parameterize(Mu,Any).new(@e) }
 
 proto sub hash(|) {*}
+multi sub hash(Iterable \l, *%h) { nqp::istype(l, Map) ?? nqp::decont(l) !! l.hash }
 multi sub hash(*%h) { %h }
 multi sub hash(*@a, *%h) { my % = flat @a, %h }
 

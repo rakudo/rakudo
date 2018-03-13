@@ -139,6 +139,7 @@ proto sub infix:«=>»(|) is pure {*}
 multi sub infix:«=>»(Mu $key, Mu \value) { Pair.new($key, value) }
 
 proto sub pair(|) is pure {*}
+multi sub pair(Pair \p) { nqp::decont(p) }
 multi sub pair(Mu $key, \value) { Pair.new($key, value) }
 
 # vim: ft=perl6 expandtab sw=4

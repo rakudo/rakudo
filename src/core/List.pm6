@@ -1551,6 +1551,12 @@ multi sub permutations(Int() $n) {
 }
 
 proto sub list(|) {*}
+multi sub list(List \l) { nqp::decont(l) }
+multi sub list(Iterable \l) {
+    nqp::istype(l, Seq)
+      ?? nqp::decont(l) # special case until https://github.com/rakudo/rakudo/issues/1355 resolved
+      !! nqp::decont(l.list)
+}
 multi sub list(+l) { l }
 
 proto sub cache(|) {*}

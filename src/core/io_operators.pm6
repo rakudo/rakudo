@@ -46,9 +46,6 @@ multi sub note() {
     my $err := $*ERR;
     $err.print(nqp::concat("Noted",$err.nl-out));
 }
-multi sub note(Junction:D \j) {
-    j.THREAD(&note)
-}
 multi sub note(**@args is raw) {
     my $err := $*ERR;
     my str $str;

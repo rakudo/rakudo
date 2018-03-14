@@ -46,27 +46,44 @@ my class Channel does Awaitable {
         Nil
     }
 
-    method !receive(Channel:D: $fail-on-close) {
-        my \msg := nqp::shift($!queue);
-        if nqp::istype(msg, CHANNEL_CLOSE) {
-            nqp::push($!queue, msg);  # make sure other readers see it
-            $!closed_promise_vow.keep(Nil);
+    method receive(Channel:D:) {
+        nqp::if(
+          nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
+          nqp::stmts(
+            nqp::push($!queue, msg),    # make sure other readers see it
+            $!closed_promise_vow.keep(Nil),
             X::Channel::ReceiveOnClosed.new(channel => self).throw
-              if $fail-on-close;
-            Nil
-        }
-        elsif nqp::istype(msg, CHANNEL_FAIL) {
-            nqp::push($!queue, msg);  # make sure other readers see it
-            $!closed_promise_vow.break(msg.error);
-            msg.error.rethrow;
-        }
-        else {
+          ),
+          nqp::if(
+            nqp::istype(msg,CHANNEL_FAIL),
+            nqp::stmts(
+              nqp::push($!queue,msg),   # make sure other readers see it
+              $!closed_promise_vow.break(my $error := msg.error),
+              $error.rethrow
+            ),
             msg
-        }
+          )
+        )
     }
-
-    method receive(Channel:D:)              { self!receive(1) }
-    method receive-nil-on-close(Channel:D:) { self!receive(0) }
+    method receive-nil-on-close(Channel:D:) {
+        nqp::if(
+          nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
+          nqp::stmts(
+            nqp::push($!queue, msg),    # make sure other readers see it
+            $!closed_promise_vow.keep(Nil),
+            Nil
+          ),
+          nqp::if(
+            nqp::istype(msg,CHANNEL_FAIL),
+            nqp::stmts(
+              nqp::push($!queue,msg),   # make sure other readers see it
+              $!closed_promise_vow.break(my $error := msg.error),
+              $error.rethrow
+            ),
+            msg
+          )
+        )
+    }
 
     method poll(Channel:D:) {
         my \msg := nqp::queuepoll($!queue);

@@ -19,7 +19,7 @@ Previous revisions: [rev. 2](https://github.com/rakudo/rakudo/blob/5feb6bbec3582
     will return `MidRatStr` instead.
 5. Remove the optimization that requires the use of `.REDUCE-ME` method, as
     the optimization has bugs, race conditions, and is detrimental in many
-    cases. Preliminary testing (with some new optimizations) showed an 18% improvement in performance, so we're still getting a win here.
+    cases. Preliminary testing (with some new optimizations) showed an 8% improvement in performance, so we're still getting a win here.
 6. Always normalize zero-denominator Rationals to `<1/0>`, `<-1/0>`, and `<0/0>`
     - Try mixing in `ZeroDenominatorRational` role into these to get
         performance boost in operators (in dispatch). If improvement is low,
@@ -269,7 +269,7 @@ as `.floor`:
     my $r := ½ + ½;
     my $ = $r.floor for ^5000_000;
 
-The above construct becomes 20% faster if we reduce the rational *before* going
+The above construct becomes 10% faster if we reduce the rational *before* going
 into the `for` loop, thanks to the fast-path on `$!denominator == 1` in the
 `.floor` routine. While that may seem trivial, `.floor` is actually used
 *multiple times* by each `.Str` call, and so this…
@@ -277,7 +277,7 @@ into the `for` loop, thanks to the fast-path on `$!denominator == 1` in the
     my $r := ½ + ½;
     my $ = $r.Str for ^500_000;
 
-…becomes 30% faster if reduction is performed during addition.
+…becomes 15% faster if reduction is performed during addition.
 
 ------
 
@@ -297,7 +297,7 @@ altogether.
 I've performed preliminary testing using a bench that calls all Rational methods enough times for each method's bench to run for 1 second. When running all the
 benches together (thus, having some GC runs), with **removed** `REDUCE_ME`
 optimization and a couple of new optimizations applied, I was able to get
-the bench to run **16% faster**. So, I think after this proposal is
+the bench to run **8% faster**. So, I think after this proposal is
 fully-implemented, we'll see some performance wins, not losses.
 
 ## 3) Fix bugs with operations on zero-denominator `Rational`s

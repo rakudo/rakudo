@@ -8,10 +8,19 @@ my class Rakudo::Internals::HyperWorkBatch does Iterable {
     # Sequence number of the batch, starting from zero.
     has int $.sequence-number;
 
-    # Is this the first batch that was produced at the last fork point or the last batch that the
-    # fork point will produce?
+    # Is this the first batch that was produced at the last fork point or the
+    # last batch that the fork point will produce?
     has Bool $.first;
     has Bool $.last;
+
+    method SET-SELF(\sequence-number, \items, \first, \last) {
+        $!sequence-number = sequence-number;
+        $!items := items;
+        $!first = first.Bool;
+        $!last  = last.Bool;
+        self
+    }
+    method new(\sn,\it,\f,\l) { nqp::create(self).SET-SELF(sn,it,f,l) }
 
     # Iterator for a HyperWorkBatch;
     my class HyperWorkBatchIterator does Iterator {

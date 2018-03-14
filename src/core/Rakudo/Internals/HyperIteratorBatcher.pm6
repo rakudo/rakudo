@@ -3,6 +3,7 @@ my role Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBat
     my constant NO_LOOKAHEAD = Mu.CREATE;
     has Iterator $!iterator;
     has $!lookahead;
+    has int $!seq-num;
    
     submethod BUILD(Iterator :$iterator!) {
         $!iterator := $iterator;
@@ -10,32 +11,27 @@ my role Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBat
     }
     
     method produce-batch(int $batch-size --> Rakudo::Internals::HyperWorkBatch) {
-        my IterationBuffer $items .= new;
-        my Bool $first;
-        my Bool $last;
-        if $!lookahead =:= NO_LOOKAHEAD {
-            $first = True;
-            if $!iterator.push-exactly($items, $batch-size) =:= IterationEnd {
-                $last = True;
-            }
-            else {
-                $!lookahead := $!iterator.pull-one;
-                $last = True if $!lookahead =:= IterationEnd;
-            }
-        }
-        else {
-            $first = False;
-            $items.push($!lookahead);
-            if $!iterator.push-exactly($items, $batch-size - 1) =:= IterationEnd {
-                $last = True;
-            }
-            else {
-                $!lookahead := $!iterator.pull-one;
-                $last = True if $!lookahead =:= IterationEnd;
-            }
-        }
-        my $sequence-number = self.next-sequence-number();
-        return Rakudo::Internals::HyperWorkBatch.new(:$sequence-number, :$items, :$first, :$last);
+        nqp::stmts(
+          (my $items := nqp::create(IterationBuffer)),
+          nqp::unless(
+            (my int $first = nqp::eqaddr($!lookahead,NO_LOOKAHEAD)),
+            nqp::push($items,$!lookahead)        # not first, get from previous
+          ),
+          nqp::unless(
+            (my int $last = nqp::eqaddr(
+              $!iterator.push-exactly(
+                $items,
+                nqp::sub_i($batch-size,nqp::not_i($first))
+              ),
+              IterationEnd
+            )),
+            ($last = nqp::eqaddr(                # not last batch
+              ($!lookahead := $!iterator.pull-one),
+              IterationEnd                       # but is in this case
+            ))
+          ),
+          Rakudo::Internals::HyperWorkBatch.new($!seq-num++,$items,$first,$last)
+        )
     }
 }
 

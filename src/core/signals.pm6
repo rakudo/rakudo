@@ -1,4 +1,17 @@
-my enum Signal ( |nqp::getsignals() );
+my enum Signal (
+    |nqp::stmts(
+        ( my $res  := nqp::hash ),
+        ( my $iter := nqp::iterator(nqp::getsignals) ),
+        nqp::while(
+            $iter,
+            nqp::stmts(
+                ( my $p := nqp::shift($iter) ),
+                nqp::bindkey($res, nqp::iterkey_s($p), nqp::abs_i(nqp::iterval($p)) )
+            )
+        ),
+        $res
+    )
+);
 
 proto sub signal(|) {*}
 multi sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
@@ -7,15 +20,21 @@ multi sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
     }
     @signals.unshift: $signal;
 
-    my @valid;
-    my @invalid;
+    # 0: Signal not supported by host, Negative: Signal not supported by backend
+    my &do-warning = -> $desc, $name, @sigs {
+        warn "The following signals are not supported on this $desc ({$name}): "
+             ~ "{@sigs.join(', ')}"
+    };
+    my %vm-sigs = nqp::getsignals();
+    my ( @valid, @host-unsupported, @vm-unsupported );
     for @signals.unique {
-        $_ ?? @valid.push($_) !! @invalid.push($_)
+        $_  ??  0 < %vm-sigs{$_}
+                ?? @valid.push($_)
+                !! @vm-unsupported.push($_)
+            !! @host-unsupported.push($_)
     }
-    if @invalid {
-        warn "The following signals are not supported on this system ({$*KERNEL.name}): "
-             ~ "{@invalid.join(', ')}"
-    }
+    if @host-unsupported -> @s { do-warning 'system',  $*KERNEL.name, @s }
+    if @vm-unsupported   -> @s { do-warning 'backend', $*VM\   .name, @s }
 
     my class SignalCancellation is repr('AsyncTask') { }
     Supply.merge( @valid.map(-> $signal {

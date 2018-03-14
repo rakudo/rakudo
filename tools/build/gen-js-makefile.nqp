@@ -42,7 +42,7 @@ sub nqp($file, $output, :$deps=[], :$execname) {
     my $options := $execname ?? "--execname $execname" !! "";
     rule($output, nqp::join(' ', $deps),
         make_parents($output),
-        "\$(JS_NQP) \$(JS_FLAGS) $options --substagestats --stagestats --target=js --output=$output --encoding=utf8 $file",
+        "\$(JS_NQP) \$(JS_FLAGS) $options --substagestats --stagestats --target=js --source-map --output=$output --encoding=utf8 $file",
     );
 }
 
@@ -120,7 +120,7 @@ my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6-BOOTSTRAP.js",  :de
 
 my $CORE := "$blib/CORE.setting.js";
 rule($CORE, "$CORE-combined rakudo.js $Perl6-Bootstrap",
-    "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --target=js --setting=NULL --output=node_modules/CORE.setting.js $CORE-combined"
+    "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --source-map --target=js --setting=NULL --output=node_modules/CORE.setting.js $CORE-combined"
 );
 
 

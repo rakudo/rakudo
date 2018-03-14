@@ -86,22 +86,25 @@ my class Channel does Awaitable {
     }
 
     method poll(Channel:D:) {
-        my \msg := nqp::queuepoll($!queue);
-        if nqp::isnull(msg) {
-            Nil
-        } else {
-            if nqp::istype(msg, CHANNEL_CLOSE) {
-                $!closed_promise_vow.keep(Nil);
+        nqp::if(
+          nqp::isnull(my \msg := nqp::queuepoll($!queue)),
+          Nil,
+          nqp::if(
+            nqp::istype(msg, CHANNEL_CLOSE),
+            nqp::stmts(
+              $!closed_promise_vow.keep(Nil),
+              Nil
+            ),
+            nqp::if(
+              nqp::istype(msg, CHANNEL_FAIL),
+              nqp::stmts(
+                $!closed_promise_vow.break(msg.error),
                 Nil
-            }
-            elsif nqp::istype(msg, CHANNEL_FAIL) {
-                $!closed_promise_vow.break(msg.error);
-                Nil
-            }
-            else {
-                msg
-            }
-        }
+              ),
+              msg
+            )
+          )
+        )
     }
 
     method !peek(Channel:D:) {

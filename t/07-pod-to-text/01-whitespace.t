@@ -63,11 +63,11 @@ subtest 'Tables' => {
 =end table
     is Pod::To::Text.render($=pod[++$ix]),
         q:to/END/, "Final table row is not space-padded";
-        +term          prefix
-        term1 + term2  infix
-        term++         postfix
-        (term)         circumfix
-        term1[term2]   postcircumfix
+          +term          prefix
+          term1 + term2  infix
+          term++         postfix
+          (term)         circumfix
+          term1[term2]   postcircumfix
         END
 }
 

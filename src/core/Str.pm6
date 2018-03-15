@@ -2179,9 +2179,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method encode(|) {*}
-    multi method encode(Str:D $encoding = 'utf8', :$replacement, Bool() :$translate-nl = False) {
+    multi method encode(Str:D $encoding = 'utf8', :$replacement, Bool() :$translate-nl = False, :$strict) {
         Encoding::Registry.find($encoding)
-            .encoder(:$replacement, :$translate-nl)
+            .encoder(:$replacement, :$translate-nl, :$strict)
             .encode-chars(self)
     }
 

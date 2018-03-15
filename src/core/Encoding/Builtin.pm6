@@ -17,15 +17,16 @@ class Encoding::Builtin does Encoding {
     method alternative-names() { $!alternative-names }
 
     method decoder(*%options --> Encoding::Decoder) {
+        %options<replacement> = self!rep-char(%options<replacement>) if %options<replacement>:exists && %options<replacement>.DEFINITE && %options<replacement> !=== False;
         Encoding::Decoder::Builtin.new($!name, |%options)
     }
 
     my int $is-win = Rakudo::Internals.IS-WIN;
-    method encoder(:$replacement, :$translate-nl --> Encoding::Encoder) {
+    method encoder(:$replacement, :$translate-nl, :$strict --> Encoding::Encoder) {
         my $encoder = $replacement.DEFINITE && $replacement !=== False
-            ?? Encoding::Encoder::Builtin::Replacement.new($!name,
-                    self!buf-type(), self!rep-char($replacement))
-            !! Encoding::Encoder::Builtin.new($!name, self!buf-type());
+            ?? Encoding::Encoder::Builtin.new($!name, self!buf-type(), :$strict, :replacement(self!rep-char($replacement)))
+            !! Encoding::Encoder::Builtin.new($!name, self!buf-type(), :$strict);
+
         $translate-nl && $is-win
             ?? Encoding::Encoder::TranslateNewlineWrapper.new($encoder)
             !! $encoder

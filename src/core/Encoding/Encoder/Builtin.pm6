@@ -1,44 +1,35 @@
 my class Encoding::Encoder::Builtin does Encoding::Encoder {
     has str $!encoding;
     has Blob $!type;
+    has $!replacement;
+    has int $!config;
 
-    method new(Str $encoding, Blob:U $type) {
-        nqp::create(self)!setup($encoding, $type)
+    method new(Str $encoding, Blob:U $type, :$replacement, :$strict) {
+        nqp::create(self)!setup($encoding, $type, :$replacement, :$strict)
     }
-
-    method !setup($encoding, $type) {
+    method !setup($encoding, $type, :$replacement, :$strict) {
         $!encoding = $encoding;
         $!type := nqp::can($type.HOW, 'pun') ?? $type.^pun !! $type.WHAT;
-        self
-    }
-
-    method encode-chars(str $str --> Blob:D) {
-        nqp::encode($str, $!encoding, nqp::create($!type))
-    }
-}
-
-my class Encoding::Encoder::Builtin::Replacement does Encoding::Encoder {
-    has str $!encoding;
-    has Blob $!type;
-    has str $!replacement;
-
-    method new(Str $encoding, Blob:U $type, Str $replacement) {
-        nqp::create(self)!setup($encoding, $type, $replacement)
-    }
-
-    method !setup($encoding, $type, $replacement) {
-        $!encoding = $encoding;
-        $!type := nqp::can($type.HOW, 'pun') ?? $type.^pun !! $type.WHAT;
-        $!replacement = $replacement;
+        $!replacement = $replacement.defined ?? $replacement !! nqp::null_s();
+        $!config = $strict ?? 0 !! 1;
+#?if !moar
+        X::NYI.new(feature => 'encoding with replacement').throw if $replacement.defined;
+        X::NYI.new(feature => 'encoding with strict').throw if $strict;
+#?endif
         self
     }
 
     method encode-chars(str $str --> Blob:D) {
 #?if moar
-        nqp::encoderep($str, $!encoding, $!replacement, nqp::create($!type))
+        nqp::encoderepconf($str,
+            $!encoding,
+            $!replacement,
+            nqp::create($!type),
+            $!config)
 #?endif
 #?if !moar
-        X::NYI.new(feature => 'encoding with replacement').throw
+        nqp::encode($str, $!encoding, nqp::create($!type));
+
 #?endif
     }
 }

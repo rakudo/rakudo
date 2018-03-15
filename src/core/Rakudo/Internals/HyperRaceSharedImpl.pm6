@@ -6,44 +6,24 @@ class Rakudo::Internals::HyperRaceSharedImpl {
         submethod TWEAK(:$!matcher) {}
 
         method process-batch(Rakudo::Internals::HyperWorkBatch $batch) {
-            nqp::stmts(
-              (my $items := $batch.items),
-              (my $elems := nqp::elems($items)),
-              (my &matcher := nqp::if(
-                nqp::istype($!matcher, Callable),
-                $!matcher.clone,
-                $!matcher
-              )),
-              (my int $from = -1),
-              (my int $to   = -1),
-              nqp::if(
-                nqp::istype(&matcher,Callable)
-                  && nqp::not_i(nqp::istype(&matcher,Regex)),
-                nqp::while(
-                  nqp::islt_i(($from = nqp::add_i($from,1)),$elems),
-                  nqp::if(
-                    matcher(nqp::atpos($items,$from)),
-                    nqp::bindpos(
-                      $items,
-                      ($to = nqp::add_i($to,1)),
-                      nqp::atpos($items,$from)
-                    )
-                  )
-                ),
-                nqp::while(
-                  nqp::islt_i(($from = nqp::add_i($from,1)),$elems),
-                  nqp::if(
-                    matcher.ACCEPTS(nqp::atpos($items,$from)),
-                    nqp::bindpos(
-                      $items,
-                      ($to = nqp::add_i($to,1)),
-                      nqp::atpos($items,$from)
-                    )
-                  )
-                )
-              ),
-              nqp::setelems($items,nqp::add_i($to,1))
-            )
+            my $result := IterationBuffer.new;
+            my $items := $batch.items;
+            my int $n = $items.elems;
+            my \matcher := nqp::istype($!matcher, Callable)
+                ?? $!matcher.clone !! $!matcher;
+            if nqp::istype(matcher, Callable) && ! nqp::istype(matcher, Regex) {
+                loop (my int $i = 0; $i < $n; ++$i) {
+                    my \item := nqp::atpos($items, $i);
+                    $result.push(item) if matcher.(item);
+                }
+            }
+            else {
+                loop (my int $i = 0; $i < $n; ++$i) {
+                    my \item := nqp::atpos($items, $i);
+                    $result.push(item) if matcher.ACCEPTS(item);
+                }
+            }
+            $batch.replace-with($result);
         }
     }
     multi method grep(\hyper, $source, \matcher, %options) {

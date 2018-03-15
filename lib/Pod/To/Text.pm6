@@ -74,7 +74,7 @@ sub table2text($pod) {
     }
     for @rows -> $row {
         # Gutter of two spaces between columns
-        $ret ~= join '  ',
+        $ret ~= '  ' ~ join '  ',
             (@maxes Z=> @$row).map: { .value.fmt("%-{.key}s") };
         $ret ~= "\n";
     }

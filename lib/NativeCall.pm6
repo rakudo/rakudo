@@ -495,11 +495,11 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         $block
     }
 
-    my $perl6comp := nqp::getcomp("perl6");
-    my @stages = $perl6comp.stages;
-    Nil until @stages.shift eq 'optimize';
-
     method !compile-function-body(Mu $block) {
+        my $perl6comp := nqp::getcomp("perl6");
+        my @stages = $perl6comp.stages;
+        Nil until @stages.shift eq 'optimize';
+
         my $result := $block;
         $result := $perl6comp.^can($_)
             ?? $perl6comp."$_"($result)

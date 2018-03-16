@@ -81,40 +81,16 @@ my class IO::Handle {
             $enc = $!encoding));
 
         $mode = nqp::if(
-          $mode,
-          nqp::if(nqp::istype($mode, Str), $mode, $mode.Str),
-          nqp::if(
-            nqp::unless(nqp::if($r, $w), $rw), # $r && $w || $rw
-            nqp::stmts(($create = True), 'rw'),
-            nqp::if(
-              nqp::unless(nqp::if($r, $x), $rx),
-              nqp::stmts(($create = $exclusive = True), 'rw'),
-              nqp::if(
-                nqp::unless(nqp::if($r, $a), $ra),
-                nqp::stmts(($create = $append = True), 'rw'),
-                nqp::if(
-                  $r, 'ro',
-                  nqp::if(
-                    $w,
-                    nqp::stmts(($create = $truncate = True), 'wo'),
-                    nqp::if(
-                      $x,
-                      nqp::stmts(($create = $exclusive = True), 'wo'),
-                      nqp::if(
-                        $a,
-                        nqp::stmts(($create = $append = True), 'wo'),
-                        nqp::if(
-                          $update, 'rw',
-                          'ro'
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
+          $mode, nqp::if(nqp::istype($mode, Str), $mode, $mode.Str),
+          nqp::if($w && $r || $rw, nqp::stmts(($create              = True), 'rw'),
+          nqp::if($x && $r || $rx, nqp::stmts(($create = $exclusive = True), 'rw'),
+          nqp::if($a && $r || $ra, nqp::stmts(($create = $append    = True), 'rw'),
+          nqp::if($r,                                                        'ro',
+          nqp::if($w,              nqp::stmts(($create = $truncate  = True), 'wo'),
+          nqp::if($x,              nqp::stmts(($create = $exclusive = True), 'wo'),
+          nqp::if($a,              nqp::stmts(($create = $append    = True), 'wo'),
+          nqp::if($update,                                                   'rw',
+                                                                             'ro')))))))));
 
         nqp::if(
           nqp::iseq_s($!path.Str, '-'),
@@ -178,30 +154,16 @@ my class IO::Handle {
         {
             CATCH { .fail }
             $!PIO := nqp::open(
-                $!path.absolute,
-                nqp::concat(
-                    nqp::if(
-                        nqp::iseq_s($mode, 'ro'), 'r',
-                        nqp::if(
-                            nqp::iseq_s($mode, 'wo'), '-',
-                            nqp::if(
-                                nqp::iseq_s($mode, 'rw'), '+',
-                                die("Unknown mode '$mode'")
-                            ),
-                        ),
-                    ),
-                    nqp::concat(
-                        nqp::if($create, 'c', ''),
-                        nqp::concat(
-                            nqp::if($append, 'a', ''),
-                            nqp::concat(
-                                nqp::if($truncate,  't', ''),
-                                nqp::if($exclusive, 'x', ''),
-                            ),
-                        ),
-                    )
-                ),
-            );
+              $!path.absolute,
+              nqp::concat(
+                nqp::if(nqp::iseq_s($mode, 'ro'), 'r',
+                nqp::if(nqp::iseq_s($mode, 'wo'), '-',
+                nqp::if(nqp::iseq_s($mode, 'rw'), '+',
+                  die "Unknown mode '$mode'"))),
+                nqp::concat(nqp::if($create,      'c', ''),
+                nqp::concat(nqp::if($append,      'a', ''),
+                nqp::concat(nqp::if($truncate,    't', ''),
+                            nqp::if($exclusive,   'x', ''))))));
 #?if moar
             self!remember-to-close;
 #?endif

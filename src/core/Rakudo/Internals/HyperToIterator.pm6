@@ -14,10 +14,13 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
     has int $!offset;
     has $!batches;
     has $!waiting;
+    has $!current-items;
 
+    my constant EMPTY_BUFFER = nqp::create(IterationBuffer);
     submethod TWEAK() {
         $!batches := Channel.new;
         $!waiting := nqp::list;
+        $!current-items := EMPTY_BUFFER;
     }
 
     method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
@@ -49,25 +52,21 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
         $!batches.fail($e);
     }
 
-    my constant EMPTY_BUFFER = IterationBuffer.CREATE;
-    has IterationBuffer $!current-items = EMPTY_BUFFER;
-    method pull-one() {
-        until nqp::elems(nqp::decont($!current-items)) { # Handles empty batches
-            my $batch = $!batches.receive;
+    method pull-one() is raw {
+        until nqp::elems($!current-items) {      # handles empty batches
+            $!current-items := $!batches.receive.items;
             self.batch-used();
-            $!current-items = $batch.items;
             CATCH {
                 when X::Channel::ReceiveOnClosed {
                     return IterationEnd;
                 }
                 default {
-                    unless nqp::istype($_, X::HyperRace::Died) {
-                        ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
-                    }
+                    ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                      unless nqp::istype($_, X::HyperRace::Died);
                 }
             }
         }
-        nqp::shift(nqp::decont($!current-items))
+        nqp::shift($!current-items)
     }
 }
 

@@ -778,7 +778,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
 }
 
 proto sub infix:<o> (&?, &?) {*}
-multi sub infix:<o> () { *.self }
+multi sub infix:<o> () { -> \v { v } }
 multi sub infix:<o> (&f) { &f }
 multi sub infix:<o> (&f, &g --> Block:D) {
     my \ret = &f.count > 1

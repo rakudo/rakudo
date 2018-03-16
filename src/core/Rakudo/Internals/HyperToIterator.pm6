@@ -10,36 +10,39 @@ my role X::HyperRace::Died {
 }
 
 my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner does Iterator {
-    has Channel $.batches .= new;
+    has int $!seen-last;
+    has int $!offset;
+    has $!batches;
+    has $!waiting;
 
-    has int $!last-target = -1;
-    has int $!next-to-send = 0;
-    has @!held-back;
-    method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
-        if $batch.last {
-            $!last-target = $batch.sequence-number;
-        }
-        self!handle-batch($batch);
-        if $!last-target >= 0 && $!next-to-send > $!last-target {
-            $!batches.close;
-        }
+    submethod TWEAK() {
+        $!batches := Channel.new;
+        $!waiting := nqp::list;
     }
-    method !handle-batch($batch) {
-        my int $seq = $batch.sequence-number;
-        if $seq == $!next-to-send {
-            $!batches.send($batch);
-            ++$!next-to-send;
-            if @!held-back {
-                @!held-back.=sort(*.sequence-number);
-                while @!held-back && @!held-back[0].sequence-number == $!next-to-send {
-                    $!batches.send(@!held-back.shift);
-                    ++$!next-to-send;
-                }
-            }
-        }
-        else {
-            @!held-back.push($batch);
-        }
+
+    method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
+        nqp::stmts(
+          nqp::bindpos(                          # store the batch at its place
+            $!waiting,
+            nqp::sub_i($batch.sequence-number,$!offset),
+            $batch
+          ),
+          nqp::until(                            # feed valid batches in order
+            nqp::isnull(nqp::atpos($!waiting,0)),
+            nqp::stmts(
+              $!batches.send(nqp::shift($!waiting)),
+              ($!offset = nqp::add_i($!offset,1))
+            )
+          ),
+          nqp::if(                               # set flag we've seen last one
+            $batch.last,
+            ($!seen-last = 1)
+          ),
+          nqp::if(                               # close channel if we're done
+            $!seen-last && nqp::not_i(nqp::elems($!waiting)),
+            $!batches.close
+          )
+        )
     }
 
     method consume-error(Exception $e --> Nil) {

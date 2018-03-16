@@ -117,6 +117,14 @@ my class IO::Handle {
         );
 
         nqp::if(
+            nqp::if(:$truncate, :$create),
+            nqp::if(
+                nqp::iseq_s($mode, 'ro'),
+                die("Cannot open read-only file with flags ':truncate :create'")
+            )
+        );
+
+        nqp::if(
           nqp::iseq_s($!path.Str, '-'),
           nqp::if(
             nqp::iseq_s($mode, 'ro'),

@@ -9555,7 +9555,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         'nextsame', NQPMu,
         'nextwith', NQPMu,
         'nextcallee', NQPMu,
-        'lastcall', NQPMu
+        'lastcall', NQPMu,
+        'samewith', NQPMu,
     );
     sub handle_special_call_names($/, $args, $name) {
         if $name eq 'sink' {

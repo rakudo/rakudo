@@ -5686,7 +5686,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
                 if $package.HOW.archetypes.parametric {
-                    $past.unshift(QAST::Var.new( :name('::?CLASS'), :scope('typevar') ));
+                    $past.unshift(typevar_or_lexical_lookup('::?CLASS'));
                 }
                 else {
                     $past.unshift(QAST::WVal.new( :value($package) ));
@@ -5699,7 +5699,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $<methodop><quote> {
             my $name := $past.shift;
             if $package.HOW.archetypes.parametric {
-                $past.unshift(QAST::Var.new( :name('::?CLASS'), :scope('typevar') ));
+                $past.unshift(typevar_or_lexical_lookup('::?CLASS'));
             }
             else {
                 $past.unshift(QAST::WVal.new( :value($package) ));
@@ -5711,6 +5711,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $/.panic("Cannot use this form of method call with a private method");
         }
         make $past;
+    }
+
+    # We can generate typevar scope when we're in a method and the enclosing
+    # role declares the symbol we're looking for.
+    sub typevar_or_lexical_lookup($name) {
+        if $*HAS_SELF {
+            my $outer := $*W.cur_lexpad().ann('outer');
+            if $outer && $outer.symbol($name) {
+                return QAST::Var.new( :$name, :scope('typevar') );
+            }
+        }
+        return QAST::Var.new( :$name, :scope('lexical') );
     }
 
     method methodop($/) {

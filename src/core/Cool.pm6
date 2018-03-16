@@ -1,3 +1,16 @@
+BEGIN {
+    # Workaround for regression in https://github.com/rakudo/rakudo/issues/1566
+    # The actual bug is that Callable role gets mixed in into routines
+    # before it's composed, and when it is composed, the routines end up
+    # not "doing" `Callable` role, even though they do. There are many more
+    # routines suffering this issue, but these three regressed since last
+    # release and we don't have the time to fix the primary bug before the
+    # release, so in this fudge goes.
+    &min.^compose;
+    &max.^compose;
+    &minmax.^compose;
+}
+
 my class Cool { # declared in BOOTSTRAP
     # class Cool is Any
 

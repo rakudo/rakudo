@@ -295,7 +295,7 @@ my class Rakudo::Sorting {
           # $A has the items to sort; $B is a work array
           nqp::stmts(
             (my Mu $A := sortable),
-            (my Mu $B := nqp::setelems(nqp::list_s,$n)),
+            (my Mu $B := nqp::setelems(nqp::create(nqp::what(sortable)),$n)),
 
             # Each 1-element run in $A is already "sorted"
             # Make successively longer sorted runs of length 2, 4, 8, 16...
@@ -385,7 +385,7 @@ my class Rakudo::Sorting {
           # $A has the items to sort; $B is a work array
           nqp::stmts(
             (my Mu $A := sortable),
-            (my Mu $B := nqp::setelems(nqp::list_i,$n)),
+            (my Mu $B := nqp::setelems(nqp::create(nqp::what(sortable)),$n)),
 
             # Each 1-element run in $A is already "sorted"
             # Make successively longer sorted runs of length 2, 4, 8, 16...
@@ -475,7 +475,7 @@ my class Rakudo::Sorting {
           # $A has the items to sort; $B is a work array
           nqp::stmts(
             (my Mu $A := sortable),
-            (my Mu $B := nqp::setelems(nqp::list_n,$n)),
+            (my Mu $B := nqp::setelems(nqp::create(nqp::what(sortable)),$n)),
 
             # Each 1-element run in $A is already "sorted"
             # Make successively longer sorted runs of length 2, 4, 8, 16...

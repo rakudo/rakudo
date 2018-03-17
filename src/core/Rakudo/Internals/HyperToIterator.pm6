@@ -68,6 +68,30 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
         }
         nqp::shift($!current-items)
     }
+
+    method skip-at-least(int $skipping) {
+        my int $toskip = $skipping;
+        while $toskip {
+            $!current-items := $!batches.receive.items;
+            self.batch-used();
+            if nqp::isge_i(nqp::elems($!current-items),$toskip) {
+                nqp::splice($!current-items,EMPTY_BUFFER,0,$toskip);
+                return 1;
+            }
+            $toskip = nqp::sub_i($toskip,nqp::elems($!current-items));
+
+            CATCH {
+                when X::Channel::ReceiveOnClosed {
+                    return 0;
+                }
+                default {
+                    ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                      unless nqp::istype($_, X::HyperRace::Died);
+                }
+            }
+        }
+        0
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

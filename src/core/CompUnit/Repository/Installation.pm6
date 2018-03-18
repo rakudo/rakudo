@@ -179,6 +179,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my %meta6 = %(
             name     => $dist.?name,
             ver      => $dist.?ver // $dist.?version,
+            api      => $dist.?api,
             auth     => $dist.?auth // $dist.?authority,
             provides => %sources,
             files    => %files,
@@ -439,6 +440,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                             })
                     ).grep({
                         $_.value<auth> ~~ $spec.auth-matcher
+                        and $_.value<api> ~~ $spec.api-matcher
                         and $_.value<ver> ~~ (($spec.version-matcher ~~ Bool)
                             ?? $spec.version-matcher # fast path for matching Version.new(*)
                             !! Version.new($spec.version-matcher))

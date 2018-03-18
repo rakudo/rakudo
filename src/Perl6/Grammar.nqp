@@ -2353,6 +2353,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*ATTR_USAGES;
         :my $*REPR;
         :my $*VER;
+        :my $*API;
         :my $*AUTH;
 
         # Default to our scoped.
@@ -2385,6 +2386,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 $*VER := $*W.handle-begin-time-exceptions($/,
                                     'parsing package version',
                                     -> { $*W.find_symbol(['Version']).new($adverb.value) });
+                            }
+                            elsif $key eq 'api' {
+                                $*API := $adverb.value;
                             }
                             elsif $key eq 'auth' {
                                 $*AUTH := $adverb.value;
@@ -2435,6 +2439,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         if @name {
                             %args<name> := $fullname;
                             %args<ver> := $*VER;
+                            %args<api> := $*API;
                             %args<auth> := $*AUTH;
                         }
                         if $*REPR ne '' {
@@ -2472,7 +2477,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             return nqp::elems(@params) > 1 || !@params[0]<optional>;
                         }
                         $*PACKAGE := $package := $*W.pkg_create_mo($/, $*W.resolve_mo($/, $*PKGDECL),
-                            :name($fullname), :ver($*VER), :auth($*AUTH), :repr($*REPR),
+                            :name($fullname), :ver($*VER), :api($*API), :auth($*AUTH), :repr($*REPR),
                             :group($group), :signatured(needs_args($<signature>)));
                         $/.set_package($package);
                     }

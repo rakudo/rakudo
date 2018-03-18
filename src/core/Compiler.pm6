@@ -3,7 +3,10 @@ class Compiler does Systemic {
     has Str $.release;
     has Str $!build-date;
     has Str $.codename;
-    BEGIN my $id = $*W.handle.Str ~ '.' ~ nqp::time_n();
+    BEGIN my $id = nqp::sha1(
+        $*W.handle.Str
+        ~ nqp::atkey(nqp::getcurhllsym('$COMPILER_CONFIG'), 'source-digest')
+    );
 
     submethod BUILD (
       :$!name      = 'rakudo',

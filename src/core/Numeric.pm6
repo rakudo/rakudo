@@ -225,7 +225,7 @@ multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 my constant &infix:<÷> = &infix:</>;
 
 proto sub infix:<div>(Mu $?, Mu $?) is pure  {*}
-# rest of infix:<div> is in Int.pm
+# rest of infix:<div> is in Int.pm6
 
 proto sub infix:<%>(Mu $?, Mu $?) is pure   {*}
 multi sub infix:<%>() { Failure.new("No zero-arg meaning for infix:<%>") }

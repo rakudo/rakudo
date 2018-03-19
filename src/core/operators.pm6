@@ -1,7 +1,7 @@
 ## miscellaneous operators can go here.
-##   generic numeric operators are in Numeric.pm
-##   generic string operators are in Stringy.pm
-##   Int/Rat/Num operators are in {Int|Rat|Num}.pm
+##   generic numeric operators are in Numeric.pm6
+##   generic string operators are in Stringy.pm6
+##   Int/Rat/Num operators are in {Int|Rat|Num}.pm6
 
 # infix:<=> only exists to allow it to be referenced as an operator in
 # meta-operator usage.  You cannot add other candidates for it.  Therefore
@@ -748,7 +748,7 @@ multi sub infix:<orelse>(+$) {
       Nil) # We were given no args, return Nil
 }
 
-# next three sub would belong to traits.pm if PseudoStash were available
+# next three sub would belong to traits.pm6 if PseudoStash were available
 # so early in the setting compunit
 multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
     if (my $i = nqp::index($r.name, ':')) > 0 {

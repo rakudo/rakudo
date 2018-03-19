@@ -32,6 +32,22 @@ my class Array { # declared in BOOTSTRAP
             nqp::push($!target,
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value));
         }
+
+        method append(IterationBuffer:D $buffer) {
+            nqp::if(
+              (my int $elems = nqp::elems($buffer)),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::push($!target,nqp::assign(
+                    nqp::p6scalarfromdesc($!descriptor),
+                    nqp::atpos($buffer,$i)
+                  ))
+                )
+              )
+            )
+        }
     }
 
     my class ListReificationTarget {
@@ -44,6 +60,10 @@ my class Array { # declared in BOOTSTRAP
         method push(Mu \value) {
             nqp::push($!target,
                 nqp::decont(value));
+        }
+
+        method append(IterationBuffer:D \buffer) {
+            nqp::splice($!target,buffer,nqp::elems($!target),0)
         }
     }
 

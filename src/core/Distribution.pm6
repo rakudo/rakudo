@@ -54,6 +54,7 @@ role Distribution {
                         :$!name,
                         :$.auth,
                         :$.ver,
+                        :$.api,
                         :$!description,
                         :@!depends,
                         :%!provides,

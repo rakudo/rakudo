@@ -6,6 +6,8 @@ gen-version.pl -- script to generate version information for HLL compilers
 
 =cut
 
+use Digest::SHA;
+use File::Find;
 use POSIX 'strftime';
 
 my $prefix = shift;
@@ -27,6 +29,10 @@ chomp $version;
 
 my $builddate = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime);
 
+my $sha = Digest::SHA->new;
+find(sub { next unless /\.(nqp|pm6)\z/; $sha->addfile($_) }, "src");
+my $source_digest = $sha->hexdigest;
+
 print <<"END_VERSION";
 sub hll-config(\$config) {
     \$config<implementation>   := 'Rakudo';
@@ -37,6 +43,7 @@ sub hll-config(\$config) {
     \$config<language_version> := '6.c';
     \$config<prefix>           := '$prefix';
     \$config<libdir>           := '$libdir';
+    \$config<source-digest>    := '$source_digest';
 }
 END_VERSION
 

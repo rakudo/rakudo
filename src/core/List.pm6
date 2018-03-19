@@ -1150,12 +1150,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::stmts(
               nqp::unless(
                 $ofrange.min < 0,   # $i already 0 if not
-                ($i = $ofrange.min + $ofrange.excludes-min)
+                ($i = ($ofrange.min + $ofrange.excludes-min).Int)
               ),
               nqp::if(
                 $ofrange.max > $elems,
                 ($to = $elems),
-                ($to = $ofrange.max - $ofrange.excludes-max)
+                ($to = ($ofrange.max - $ofrange.excludes-max).Int)
               )
             )
           ),

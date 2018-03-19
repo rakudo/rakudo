@@ -126,7 +126,7 @@ sub find-contributors(
     :$last_release, :$rakudo, :$doc, :$nqp, :$moar, :$roast,
 ) {
     my $proc = run :out, :!err, $*EXECUTABLE,
-            $*RAKUDO_DIR.child('tools/contributors.pl6'),
+            $*RAKUDO_DIR.child('tools/contributors.p6'),
                 "--rakudo=$rakudo",
                 "--doc=$doc",
                 "--nqp=$nqp",

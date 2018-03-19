@@ -1541,14 +1541,14 @@ multi sub infix:<,>(|) {
 }
 
 proto sub combinations(|) {*}
-multi sub combinations(Int() $n, Int() $k) {
-    Seq.new(Rakudo::Iterator.Combinations($n,$k,0))
-}
+multi sub combinations(Int()    \n, Int()   \k) { Seq.new(Rakudo::Iterator.Combinations(n,k,0)) }
+multi sub combinations(Int()    \n, Range:D \k)            { ^n .combinations: k   }
+multi sub combinations(Iterable \n,         \k) is default {  n .combinations: k   }
+multi sub combinations(\n                     )            {  n .combinations: 0..* }
 
 proto sub permutations(|) {*}
-multi sub permutations(Int() $n) {
-    Seq.new(Rakudo::Iterator.Permutations($n,0))
-}
+multi sub permutations(Int()    \n) { Seq.new(Rakudo::Iterator.Permutations(n,0)) }
+multi sub permutations(Iterable \n) { n.permutations }
 
 proto sub list(|) {*}
 multi sub list(+l) { l }

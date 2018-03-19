@@ -7714,6 +7714,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method dec_number($/) {
         my $Int := $*W.find_symbol(['Int']);
+        my $Num := $*W.find_symbol(['Num']);
         my $parti;
         my $partf;
 
@@ -7736,12 +7737,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         if $<escale> { # wants a Num
-            $parti := nqp::div_In($parti, $partf);
-            if $parti != 0.0 {
-                $parti := nqp::mul_n($parti, nqp::pow_n(10, nqp::tonum_I($<escale>.ast)));
+            my num $n;
+
+            if nqp::iseq_I($parti, nqp::box_i(0, $Int)) {
+                $n := 0;
+            } else {
+                my $power := nqp::pow_I(nqp::box_i(10, $Int), nqp::abs_I($<escale>.ast, $Int), $Num, $Int);
+                $n := nqp::islt_I($<escale>.ast, nqp::box_i(0, $Int))
+                    ?? nqp::div_In($parti, nqp::mul_I($partf, $power, $Int))
+                    !! nqp::div_In(nqp::mul_I($parti, $power, $Int), $partf);
             }
 
-            make $*W.add_numeric_constant($/, 'Num', $parti);
+            make $*W.add_numeric_constant($/, 'Num', $n);
+
         } else { # wants a Rat
             my $ast := $*W.add_constant('Rat', 'type_new', $parti, $partf, :nocache(1));
             $ast.node($/);

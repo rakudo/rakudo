@@ -72,13 +72,13 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
     method skip-at-least(int $skipping) {
         my int $toskip = $skipping;
         while $toskip {
-            $!current-items := $!batches.receive.items;
-            self.batch-used();
             if nqp::isge_i(nqp::elems($!current-items),$toskip) {
                 nqp::splice($!current-items,EMPTY_BUFFER,0,$toskip);
                 return 1;
             }
             $toskip = nqp::sub_i($toskip,nqp::elems($!current-items));
+            $!current-items := $!batches.receive.items;
+            self.batch-used();
 
             CATCH {
                 when X::Channel::ReceiveOnClosed {

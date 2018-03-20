@@ -542,7 +542,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             $match = nqp::eqat($tgt, $topic_str, $pos);
         }
 
-#?if moar
+#?if !jvm
         # ignoremark+ignorecase
         elsif im == 3 {
             $match = nqp::eqaticim($tgt, $topic_str, $pos);
@@ -558,7 +558,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             $match = nqp::eqatic($tgt, $topic_str, $pos);
         }
 #?endif
-#?if !moar
+#?if jvm
 
 # This branch is required because neither the JVM nor the JS implementations
 # have the nqp::eqat* ops. However, nqp::ordbaseat just throws a NYI

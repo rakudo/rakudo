@@ -730,7 +730,7 @@ my class IO::Handle {
 
     proto method encoding(|) {*}
     multi method encoding(IO::Handle:D:) { $!encoding // Nil }
-    multi method encoding(IO::Handle:D: $new-encoding is copy) {
+    multi method encoding(IO::Handle:D: $new-encoding is copy, :$replacement, :$strict) {
         with $new-encoding {
             if $_ eq 'bin' {
                 $_ = Nil;
@@ -751,7 +751,7 @@ my class IO::Handle {
                 $!decoder.set-line-separators($!nl-in.list);
                 $!decoder.add-bytes($prev-decoder.consume-exactly-bytes($available))
                     if $available;
-                $!encoder := $encoding.encoder(:translate-nl);
+                $!encoder := $encoding.encoder(:translate-nl, :$replacement, :$strict);
                 $!encoding = $encoding.name;
             }
             else {
@@ -768,7 +768,7 @@ my class IO::Handle {
                 my $encoding = Encoding::Registry.find($new-encoding);
                 $!decoder := $encoding.decoder(:translate-nl);
                 $!decoder.set-line-separators($!nl-in.list);
-                $!encoder := $encoding.encoder(:translate-nl);
+                $!encoder := $encoding.encoder(:translate-nl, :$replacement, :$strict);
                 $!encoding = $encoding.name;
             }
             else {

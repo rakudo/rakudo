@@ -275,8 +275,8 @@ my class Rakudo::Internals {
       'windows-1252',    'windows-1252',
       'windows-1251',    'windows-1251',
       # windows without dash
-      'windows1251',    'windows-1252',
-      'windows1252',    'windows-1251',
+      'windows1251',    'windows-1251',
+      'windows1252',    'windows-1252',
       # utf with dash
       'utf-8',           'utf8',
       'utf-16',          'utf16',

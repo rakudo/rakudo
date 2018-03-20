@@ -68,10 +68,13 @@ multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '',
 
 multi sub doesn't-hang (Str $args, $desc, :$in, :$wait = 5, :$out, :$err)
 is export {
-    doesn't-hang \($*EXECUTABLE, '-e', $args), $desc,
+    doesn't-hang \($*EXECUTABLE.absolute, '-e', $args), $desc,
         :$in, :$wait, :$out, :$err;
 }
 
+# TODO XXX: for some reason shoving this variable inside the routine and
+# using `state` instead of `my` results in it having value 0
+my $VM-time-scale-multiplier = $*VM.name eq 'jvm' ?? 20/3 !! 1;
 multi sub doesn't-hang (
     Capture $args, $desc = 'code does not hang',
     :$in, :$wait = 5, :$out, :$err,
@@ -86,8 +89,9 @@ multi sub doesn't-hang (
     # await returns and we follow the path that assumes the code we ran hung.
     my $promise = $prog.start;
     await $prog.write: $in.encode if $in.defined;
-    await Promise.anyof: Promise.in($wait * (%*ENV<ROAST_TIMING_SCALE>//1)),
-                         $promise;
+    await Promise.anyof: Promise.in(
+        $wait * $VM-time-scale-multiplier * (%*ENV<ROAST_TIMING_SCALE>//1)
+    ), $promise;
 
     my $did-not-hang = False;
     given $promise.status {
@@ -97,7 +101,10 @@ multi sub doesn't-hang (
 
     subtest $desc, {
         plan 1 + ( $did-not-hang ?? ($out, $err).grep(*.defined) !! 0 );
-        ok $did-not-hang, 'program did not hang';
+        ok $did-not-hang, 'program did not hang'
+          or diag "\nHang in doesn't-hang() test detected by heuristic.\n"
+            ~ "You can set \%*ENV<ROAST_TIMING_SCALE> to a value higher than 1\n"
+            ~ "to make it wait longer.\n";
         if $did-not-hang {
             cmp-ok $stdout, '~~', $out, 'STDOUT' if $out.defined;
             cmp-ok $stderr, '~~', $err, 'STDERR' if $err.defined;

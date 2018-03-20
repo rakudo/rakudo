@@ -71,7 +71,7 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
 
     method skip-at-least(int $skipping) {
         my int $toskip = $skipping;
-        while $toskip {
+        loop {
             if nqp::isge_i(nqp::elems($!current-items),$toskip) {
                 nqp::splice($!current-items,EMPTY_BUFFER,0,$toskip);
                 return 1;
@@ -90,12 +90,21 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
                 }
             }
         }
-        0
     }
 
-    method push-all($target) {
+    method push-exactly($target, int $pushing) {
+        my int $topush = $pushing;
+        my int $pushed = 0;
         loop {
+            if nqp::isge_i(nqp::elems($!current-items),$topush) {
+                $target.append(
+                  nqp::clone(nqp::setelems($!current-items,$topush))
+                );
+                nqp::splice($!current-items,EMPTY_BUFFER,0,$topush);
+                return $pushed + $topush;
+            }
             $target.append($!current-items);
+            $pushed = $pushed + nqp::elems($!current-items);
             $!current-items := $!batches.receive.items;
             self.batch-used();
 

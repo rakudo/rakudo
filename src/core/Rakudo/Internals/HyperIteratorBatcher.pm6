@@ -1,5 +1,5 @@
 # Batches values sourced from an iterator, producing a work batch from them.
-my role Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBatcher {
+my class Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBatcher {
     my constant NO_LOOKAHEAD = Mu.CREATE;
     has Iterator $!iterator;
     has $!lookahead;

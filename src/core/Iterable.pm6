@@ -9,7 +9,7 @@
 # here, so they can use any Iterable as a source.
 my class HyperSeq { ... }
 my class RaceSeq { ... }
-my role Rakudo::Internals::HyperIteratorBatcher { ... }
+my class Rakudo::Internals::HyperIteratorBatcher { ... }
 my class X::Invalid::Value { ... }
 my role Iterable {
     method iterator() { ... }

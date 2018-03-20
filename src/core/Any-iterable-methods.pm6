@@ -1459,18 +1459,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method reduce(|) {*}
-    multi method reduce(&with) is nodal {
-        return unless self.DEFINITE;
-        my $reducer := find-reducer-for-op(&with);
-        $reducer(&with)(self) if $reducer;
+    proto method reduce(|) is nodal {*}
+    multi method reduce(Any:U: & --> Nil) { }
+    multi method reduce(Any:D: &with) {
+        (find-reducer-for-op(&with))(&with)(self)
     }
 
-    proto method produce(|) {*}
-    multi method produce(&with) is nodal {
-        return unless self.DEFINITE;
-        my $reducer := find-reducer-for-op(&with);
-        $reducer(&with,1)(self) if $reducer;
+    proto method produce(|) is nodal {*}
+    multi method produce(Any:U: & --> Nil) { }
+    multi method produce(Any:D: &with) {
+        (find-reducer-for-op(&with))(&with,1)(self)
     }
 
     proto method unique(|) is nodal {*}

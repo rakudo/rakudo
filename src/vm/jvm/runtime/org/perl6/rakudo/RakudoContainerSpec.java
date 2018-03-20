@@ -11,11 +11,11 @@ public class RakudoContainerSpec extends ContainerSpec {
     public static final int HINT_descriptor = 0;
     public static final int HINT_value = 1;
     public static final int HINT_whence = 2;
-    
+
     /* Callsite descriptor for WHENCEs. */
     private static final CallSiteDescriptor WHENCE = new CallSiteDescriptor(
         new byte[] { }, null);
-    
+
     /* Fetches a value out of a container. Used for decontainerization. */
     public SixModelObject fetch(ThreadContext tc, SixModelObject cont) {
         return cont.get_attribute_boxed(tc, RakOps.key.getGC(tc).Scalar, "$!value", HINT_value);
@@ -29,7 +29,7 @@ public class RakudoContainerSpec extends ContainerSpec {
     public String fetch_s(ThreadContext tc, SixModelObject cont) {
         return fetch(tc, cont).get_str(tc);
     }
-    
+
     /* Stores a value in a container. Used for assignment. */
     private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
@@ -60,7 +60,7 @@ public class RakudoContainerSpec extends ContainerSpec {
         }
         SixModelObject of = desc.get_attribute_boxed(tc,
             gcx.ContainerDescriptor, "$!of", RakOps.HINT_CD_OF);
-        long ok = Ops.istype(value, of, tc);
+        long ok = of == gcx.Mu ? 1 : Ops.istype(value, of, tc);
         if (ok == 0) {
             desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
             String name = tc.native_s;
@@ -97,7 +97,7 @@ public class RakudoContainerSpec extends ContainerSpec {
     public void store_s(ThreadContext tc, SixModelObject cont, String value) {
         store(tc, cont, RakOps.p6box_s(value, tc));
     }
-    
+
     /* Stores a value in a container, without any checking of it (this
      * assumes an optimizer or something else already did it). Used for
      * assignment. */
@@ -107,20 +107,20 @@ public class RakudoContainerSpec extends ContainerSpec {
         if (whence != null)
             Ops.invokeDirect(tc, whence,
                 WHENCE, new Object[] { });
-        
+
         cont.bind_attribute_boxed(tc, Scalar, "$!value", HINT_value, obj);
     }
-    
+
     /* Name of this container specification. */
     public String name() {
         return "rakudo_scalar";
     }
-    
+
     /* Serializes the container data, if any. */
     public void serialize(ThreadContext tc, STable st, SerializationWriter writer) {
         /* No data to serialize. */
     }
-    
+
     /* Deserializes the container data, if any. */
     public void deserialize(ThreadContext tc, STable st, SerializationReader reader) {
         /* No data to deserialize. */

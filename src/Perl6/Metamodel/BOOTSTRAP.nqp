@@ -8,9 +8,9 @@ use QRegex;
 #
 # One particular circularity we break here is that you can't have
 # inheritance in Perl 6 without traits, but that needs multiple
-# dispatch, which can't function without some a type hierarchy in
-# place. It also needs us to be able to declare a signature with
-# parameters and a code objects with dispatchees, which in turn need
+# dispatch, which can't function without some type hierarchy in
+# place. It also needs us to be able to declare signatures with
+# parameters and code objects with dispatchees, which in turn needs
 # attributes. So, we set up quite a few bits in here, though the aim
 # is to keep it "lagom". :-)
 
@@ -153,14 +153,14 @@ my class Binder {
                 $count := -1000;  # in case a pos can sneak past a slurpy somehow
             }
             elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
-                $count++
+                ++$count
             }
             else {
-                $count++;
-                $arity++;
+                ++$count;
+                ++$arity;
             }
 
-            $param_i++;
+            ++$param_i;
         }
         my str $s := $arity == 1 ?? "" !! "s";
         my str $routine := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
@@ -296,15 +296,23 @@ my class Binder {
                 # anything goes.
                 unless $nom_type =:= Mu || nqp::istype($oval, $nom_type) {
                     # Type check failed; produce error if needed.
+
+                    # Try to figure out the most helpful name for the expected
+                    my $expected := (
+                      (my $post := nqp::getattr($param, Parameter,
+                        '@!post_constraints'))
+                      && ! nqp::istype(nqp::atpos($post, 0), Code)
+                    ) ?? nqp::atpos($post, 0) !! $nom_type;
+
                     if nqp::defined($error) {
                         my %ex := nqp::gethllsym('perl6', 'P6EX');
                         if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
                             $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
-                                "'; expected " ~ $nom_type.HOW.name($nom_type) ~
+                                "'; expected " ~ $expected.HOW.name($expected) ~
                                 " but got " ~ $oval.HOW.name($oval);
                         } else {
                             $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')($oval,
-                                $nom_type.WHAT, $varname, $param) };
+                                $expected.WHAT, $varname, $param) };
                         }
                     }
 
@@ -352,7 +360,7 @@ my class Binder {
             my int $i := 0;
             while $i < $num_type_caps {
                 nqp::bindkey($lexpad, nqp::atpos_s($type_caps, $i), $oval.WHAT);
-                $i++;
+                ++$i;
             }
         }
 
@@ -520,7 +528,7 @@ my class Binder {
                     }
                     return $BIND_RESULT_FAIL;
                 }
-                $i++;
+                ++$i;
             }
         }
 
@@ -693,7 +701,7 @@ my class Binder {
                         else {
                             nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                         }
-                        $k++;
+                        ++$k;
                     }
                     nqp::bindattr($capsnap, Capture, '@!list', @pos_args);
 
@@ -768,7 +776,7 @@ my class Binder {
                         else {
                             nqp::push($temp, nqp::box_s(nqp::captureposarg_s($capture, $cur_pos_arg), Str));
                         }
-                        $cur_pos_arg++;
+                        ++$cur_pos_arg;
                     }
                     my $slurpy_type := $flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
                     my $bindee := $flags +& $SIG_ELEM_SLURPY_ONEARG
@@ -804,7 +812,7 @@ my class Binder {
                                 $SIG_ELEM_NATIVE_STR_VALUE, nqp::null(), 0, 0.0, nqp::captureposarg_s($capture, $cur_pos_arg));
                         }
                         return $bind_fail if $bind_fail;
-                        $cur_pos_arg++;
+                        ++$cur_pos_arg;
                     }
                     else {
                         # No value. If it's optional, fetch a default and bind that;
@@ -933,7 +941,7 @@ my class Binder {
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
-                    $k++;
+                    ++$k;
                 }
                 my %named_args := nqp::capturenamedshash($capture);
                 return Junction.AUTOTHREAD($caller,
@@ -1001,7 +1009,7 @@ my class Binder {
         my int $i            := 0;
         while $i < $num_params {
             my $param := @params[$i];
-            $i++;
+            ++$i;
 
             # If the parameter is anything other than a boring old
             # positional parameter, we won't analyze it. */
@@ -1091,7 +1099,7 @@ my class Binder {
             }
 
             # Continue to next argument.
-            $cur_pos_arg++;
+            ++$cur_pos_arg;
         }
 
         # If we have any left over arguments, it's a binding fail.
@@ -1599,7 +1607,10 @@ BEGIN {
         }));
     Parameter.HOW.add_method(Parameter, 'set_coercion', nqp::getstaticcode(sub ($self, $type) {
             my $dcself := nqp::decont($self);
-            nqp::bindattr_s($dcself, Parameter, '$!coerce_method', $type.HOW.name($type));
+            nqp::bindattr_s($dcself, Parameter, '$!coerce_method',
+              nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW)
+              ?? $type.HOW.base_type($type).HOW.name($type.HOW.base_type: $type)
+              !! $type.HOW.name($type));
             nqp::bindattr($dcself, Parameter, '$!coerce_type', nqp::decont($type));
             $dcself
         }));
@@ -1626,6 +1637,8 @@ BEGIN {
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
+            return $dcself unless nqp::isconcrete($dcself);
+
             my $cloned    := nqp::clone($dcself);
             my $do        := nqp::getattr($dcself, Code, '$!do');
             my $do_cloned := nqp::clone($do);
@@ -1683,66 +1696,88 @@ BEGIN {
     Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
     Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block, :!auto_viv_container));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
-            my $dcself    := nqp::decont($self);
-            my $cloned    := nqp::clone($dcself);
-            my $do        := nqp::getattr($dcself, Code, '$!do');
-            my $do_cloned := nqp::clone($do);
-            nqp::bindattr($cloned, Code, '$!do', $do_cloned);
-            nqp::setcodeobj($do_cloned, $cloned);
+            my $dcself := nqp::decont($self);
+            if nqp::isconcrete($dcself) {
+                my $cloned    := nqp::clone($dcself);
+                my $do        := nqp::getattr($dcself, Code, '$!do');
+                my $do_cloned := nqp::clone($do);
+                nqp::bindattr($cloned, Code, '$!do', $do_cloned);
+                nqp::setcodeobj($do_cloned, $cloned);
 #?if !jvm
-            my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
-            if nqp::isconcrete($phasers) {
-                my int $next := nqp::existskey($phasers, 'NEXT');
-                my int $last := nqp::existskey($phasers, 'LAST');
-                my int $quit := nqp::existskey($phasers, 'QUIT');
-                if $next +| $last +| $quit {
-                    my %pclone := nqp::clone($phasers);
-                    if $next {
-                        my @nexts := nqp::clone($phasers<NEXT>);
-                        my int $i := 0;
-                        while $i < nqp::elems(@nexts) {
-                            @nexts[$i] := @nexts[$i].clone();
-                            $i++;
-                        }
-                        %pclone<NEXT> := @nexts;
-                    }
-                    if $last {
-                        my @lasts := nqp::clone($phasers<LAST>);
-                        my int $i := 0;
-                        while $i < nqp::elems(@lasts) {
-                            nqp::captureinnerlex(nqp::getattr(
-                                (@lasts[$i] := @lasts[$i].clone()),
-                                Code, '$!do'));
-                            $i++;
-                        }
-                        %pclone<LAST> := @lasts;
-                    }
-                    if $quit {
-                        my @quits := nqp::clone($phasers<QUIT>);
-                        my int $i := 0;
-                        while $i < nqp::elems(@quits) {
-                            nqp::captureinnerlex(nqp::getattr(
-                                (@quits[$i] := @quits[$i].clone()),
-                                Code, '$!do'));
-                            $i++;
-                        }
-                        %pclone<QUIT> := @quits;
-                    }
-                    nqp::bindattr($cloned, Block, '$!phasers', %pclone);
+                my $phasers := nqp::getattr($dcself, Block, '$!phasers');
+                if nqp::isconcrete($phasers) {
+                    $dcself."!clone_phasers"($cloned, $phasers);
                 }
+#?endif
+                my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
+                unless nqp::isnull($compstuff) {
+                    nqp::atpos($compstuff, 2)($do, $cloned);
+                }
+                # XXX this should probably be done after the clone that installs
+                #     the sub
+                my $why := nqp::getattr($dcself, Block, '$!why');
+                unless nqp::isnull($why) {
+                    $why.set_docee($cloned);
+                }
+                $cloned
+            }
+            else {
+                $dcself
+            }
+        }));
+    Block.HOW.add_method(Block, '!clone_phasers', nqp::getstaticcode(sub ($self, $cloned, $phasers) {
+#?if moar
+            my int $next := nqp::existskey($phasers, 'NEXT');
+            my int $last := nqp::existskey($phasers, 'LAST');
+            my int $quit := nqp::existskey($phasers, 'QUIT');
+            my int $close := nqp::existskey($phasers, 'CLOSE');
+            if $next +| $last +| $quit +| $close {
+                my %pclone := nqp::clone($phasers);
+                if $next {
+                    my @nexts := nqp::clone($phasers<NEXT>);
+                    my int $i := 0;
+                    while $i < nqp::elems(@nexts) {
+                        @nexts[$i] := @nexts[$i].clone();
+                        ++$i;
+                    }
+                    %pclone<NEXT> := @nexts;
+                }
+                if $last {
+                    my @lasts := nqp::clone($phasers<LAST>);
+                    my int $i := 0;
+                    while $i < nqp::elems(@lasts) {
+                        nqp::captureinnerlex(nqp::getattr(
+                            (@lasts[$i] := @lasts[$i].clone()),
+                            Code, '$!do'));
+                        ++$i;
+                    }
+                    %pclone<LAST> := @lasts;
+                }
+                if $quit {
+                    my @quits := nqp::clone($phasers<QUIT>);
+                    my int $i := 0;
+                    while $i < nqp::elems(@quits) {
+                        nqp::captureinnerlex(nqp::getattr(
+                            (@quits[$i] := @quits[$i].clone()),
+                            Code, '$!do'));
+                        ++$i;
+                    }
+                    %pclone<QUIT> := @quits;
+                }
+                if $close {
+                    my @closes := nqp::clone($phasers<CLOSE>);
+                    my int $i := 0;
+                    while $i < nqp::elems(@closes) {
+                        nqp::captureinnerlex(nqp::getattr(
+                            (@closes[$i] := @closes[$i].clone()),
+                            Code, '$!do'));
+                        ++$i;
+                    }
+                    %pclone<CLOSE> := @closes;
+                }
+                nqp::bindattr($cloned, Block, '$!phasers', %pclone);
             }
 #?endif
-            my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
-            unless nqp::isnull($compstuff) {
-                $compstuff[2]($do, $cloned);
-            }
-            # XXX this should probably be done after the clone that installs
-            #     the sub
-            my $why := nqp::getattr($dcself, Block, '$!why');
-            unless nqp::isnull($why) {
-                $why.set_docee($cloned);
-            }
-            $cloned
         }));
     Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
@@ -1754,7 +1789,7 @@ BEGIN {
                     my int $i := 0;
                     while $i < nqp::elems(@next) {
                         nqp::p6capturelexwhere(@next[$i]);
-                        $i++;
+                        ++$i;
                     }
                 }
                 my @last := nqp::atkey($phasers, 'LAST');
@@ -1762,7 +1797,7 @@ BEGIN {
                     my int $i := 0;
                     while $i < nqp::elems(@last) {
                         nqp::p6capturelexwhere(@last[$i]);
-                        $i++;
+                        ++$i;
                     }
                 }
                 my @quit := nqp::atkey($phasers, 'QUIT');
@@ -1770,7 +1805,15 @@ BEGIN {
                     my int $i := 0;
                     while $i < nqp::elems(@quit) {
                         nqp::p6capturelexwhere(@quit[$i]);
-                        $i++;
+                        ++$i;
+                    }
+                }
+                my @close := nqp::atkey($phasers, 'CLOSE');
+                if nqp::islist(@close) {
+                    my int $i := 0;
+                    while $i < nqp::elems(@close) {
+                        nqp::p6capturelexwhere(@close[$i]);
+                        ++$i;
                     }
                 }
             }
@@ -1907,20 +1950,20 @@ BEGIN {
                         # narrower if first is rw and second isn't; tied if neither has
                         # constraints or both have constraints.
                         if %a<constraints>[$i] && !%b<constraints>[$i] {
-                            $narrower++;
+                            ++$narrower;
                         }
                         elsif nqp::atpos_i(%a<rwness>, $i) > nqp::atpos_i(%b<rwness>, $i) {
-                            $narrower++;
+                            ++$narrower;
                         }
                         elsif (!%a<constraints>[$i] && !%b<constraints>[$i])
                            || (%a<constraints>[$i] && %b<constraints>[$i]) {
-                            $tied++;
+                            ++$tied;
                         }
                     }
                     elsif (nqp::atpos_i(%a<type_flags>, $i) +& $TYPE_NATIVE_MASK)
                       && !(nqp::atpos_i(%b<type_flags>, $i) +& $TYPE_NATIVE_MASK) {
                         # Narrower because natives always are.
-                        $narrower++;
+                        ++$narrower;
                     }
                     elsif (nqp::atpos_i(%b<type_flags>, $i) +& $TYPE_NATIVE_MASK)
                       && !(nqp::atpos_i(%a<type_flags>, $i) +& $TYPE_NATIVE_MASK) {
@@ -1930,16 +1973,16 @@ BEGIN {
                     else {
                         if nqp::istype($type_obj_a, $type_obj_b) {
                             # Narrower - note it and we're done.
-                            $narrower++;
+                            ++$narrower;
                         }
                         else {
                             # Make sure it's tied, rather than the other way around.
                             unless nqp::istype($type_obj_b, $type_obj_a) {
-                                $tied++;
+                                ++$tied;
                             }
                         }
                     }
-                    $i++;
+                    ++$i;
                 }
 
                 # If one is narrower than the other from current analysis, we're done.
@@ -2031,11 +2074,11 @@ BEGIN {
                         next;
                     }
                     elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
-                        $max_arity++;
+                        ++$max_arity;
                     }
                     else {
-                        $max_arity++;
-                        $min_arity++;
+                        ++$max_arity;
+                        ++$min_arity;
                     }
 
                     # Record type info for this parameter.
@@ -2052,7 +2095,7 @@ BEGIN {
                         %info<constraints>[$significant_param] := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
-                        $num_types++;
+                        ++$num_types;
                     }
                     if $flags +& $SIG_ELEM_IS_RW {
                         nqp::bindpos_i(%info<rwness>, $significant_param, 1);
@@ -2084,7 +2127,7 @@ BEGIN {
                         nqp::push(@coerce_type_objs, $coerce_type);
                     }
 
-                    $significant_param++;
+                    ++$significant_param;
                 }
                 %info<min_arity> := $min_arity;
                 %info<max_arity> := $max_arity;
@@ -2106,7 +2149,7 @@ BEGIN {
                     my int $i      := 0;
                     while $i < nqp::elems(@coerce_type_idxs) {
                         %c_info<types>[@coerce_type_idxs[$i]] := @coerce_type_objs[$i];
-                        $i++;
+                        ++$i;
                     }
                     nqp::push(@graph, nqp::hash(
                         'info',      %c_info,
@@ -2128,13 +2171,13 @@ BEGIN {
                     unless $i == $j {
                         if is_narrower(@graph[$i]<info>, @graph[$j]<info>) {
                             @graph[$i]<edges>[@graph[$i]<edges_out>] := @graph[$j];
-                            @graph[$i]<edges_out>++;
-                            @graph[$j]<edges_in>++;
+                            ++@graph[$i]<edges_out>;
+                            ++@graph[$j]<edges_in>;
                         }
                     }
-                    $j++;
+                    ++$j;
                 }
-                $i++;
+                ++$i;
             }
 
             # Perform the topological sort.
@@ -2150,10 +2193,10 @@ BEGIN {
                     if @graph[$i]<edges_in> == 0 {
                         # Add to results.
                         nqp::push(@result, @graph[$i]<info>);
-                        $candidates_to_sort--;
+                        --$candidates_to_sort;
                         @graph[$i]<edges_in> := $EDGE_REMOVAL_TODO;
                     }
-                    $i++;
+                    ++$i;
                 }
                 if $rem_results == nqp::elems(@result) {
                     nqp::die("Circularity detected in multi sub types" ~ ($self.name ?? " for &" ~ $self.name !! ''));
@@ -2166,12 +2209,12 @@ BEGIN {
                     if @graph[$i]<edges_in> == $EDGE_REMOVAL_TODO {
                         $j := 0;
                         while $j < @graph[$i]<edges_out> {
-                            @graph[$i]<edges>[$j]<edges_in>--;
-                            $j++;
+                            --@graph[$i]<edges>[$j]<edges_in>;
+                            ++$j;
                         }
                         @graph[$i]<edges_in> := $EDGE_REMOVED;
                     }
-                    $i++;
+                    ++$i;
                 }
 
                 # This is end of a tied group, so leave a gap.
@@ -2314,7 +2357,7 @@ BEGIN {
                                     }
                                 }
                             }
-                            $i++;
+                            ++$i;
                         }
 
                         unless $type_mismatch || $rwness_mismatch {
@@ -2323,7 +2366,7 @@ BEGIN {
                         }
                     }
 
-                    $cur_idx++;
+                    ++$cur_idx;
                 } else {
                     # We've hit the end of a tied group now. If any of them have a
                     # bindability check requirement, we'll do any of those now.
@@ -2387,7 +2430,7 @@ BEGIN {
                             else {
                                 $new_possibles := [nqp::atpos(@possibles, $i)];
                             }
-                            $i++;
+                            ++$i;
                         }
 
                         # If we have an updated list of possibles, use this
@@ -2404,7 +2447,7 @@ BEGIN {
                         while @possibles {
                             nqp::push($many_res, nqp::atkey(nqp::shift(@possibles), 'sub'))
                         }
-                        $cur_idx++;
+                        ++$cur_idx;
                         unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
                             $done := 1;
                         }
@@ -2414,7 +2457,7 @@ BEGIN {
                     }
                     else {
                         # Keep looping and looking, unless we really hit the end.
-                        $cur_idx++;
+                        ++$cur_idx;
                         unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
                             $done := 1;
                         }
@@ -2504,7 +2547,7 @@ BEGIN {
                             $has_junc_args := 1;
                         }
                     }
-                    $i++;
+                    ++$i;
                 }
                 if $has_junc_args {
                     $junctional_res := -> *@pos, *%named {
@@ -2610,7 +2653,7 @@ BEGIN {
                 # typed candidates in which case we can look a bit further.
                 # We also exit if we found something.
                 unless nqp::isconcrete($cur_candidate) {
-                    $cur_idx++;
+                    ++$cur_idx;
                     if nqp::isconcrete(nqp::atpos(@candidates, $cur_idx))
                     && $all_native && !nqp::isconcrete($cur_result) {
                         next;
@@ -2624,7 +2667,7 @@ BEGIN {
                 # Check if it's admissible by arity.
                 if $num_args < nqp::atkey($cur_candidate, 'min_arity')
                 || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
-                    $cur_idx++;
+                    ++$cur_idx;
                     next;
                 }
 
@@ -2689,13 +2732,13 @@ BEGIN {
                             $used_defcon := 1;
                         }
                     }
-                    $i++;
+                    ++$i;
                 }
                 if $type_match_possible {
                     $type_possible := 1;
                 }
                 if $type_mismatch {
-                    $cur_idx++;
+                    ++$cur_idx;
                     next;
                 }
                 if ($used_defcon) {
@@ -2716,7 +2759,7 @@ BEGIN {
                 }
                 else {
                     $cur_result := nqp::atkey($cur_candidate, 'sub');
-                    $cur_idx++;
+                    ++$cur_idx;
                 }
             }
 
@@ -3198,68 +3241,82 @@ nqp::sethllconfig('perl6', nqp::hash(
         $result
     },
     'exit_handler', -> $coderef, $resultish {
-        my $code := nqp::getcodeobj($coderef);
-        my %phasers := nqp::getattr($code, Block, '$!phasers');
-        unless nqp::isnull(%phasers) || nqp::p6inpre() {
+        unless nqp::p6inpre() {
+            my %phasers :=
+              nqp::getattr(nqp::getcodeobj($coderef),Block,'$!phasers');
             my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
-            my @keeps  := nqp::atkey(%phasers, 'KEEP');
-            my @undos  := nqp::atkey(%phasers, 'UNDO');
+            my @posts  := nqp::atkey(%phasers, 'POST');
             my @exceptions;
             unless nqp::isnull(@leaves) {
-                my int $n := nqp::elems(@leaves);
-                my int $i := 0;
-                my int $run;
-                my $phaser;
-                while $i < $n {
-                    $phaser := nqp::decont(nqp::atpos(@leaves, $i));
-                    $run := 1;
-                    unless nqp::isnull(@keeps) {
-                        for @keeps {
-                            if nqp::decont($_) =:= $phaser {
-                                $run := !nqp::isnull($resultish) &&
-                                         nqp::isconcrete($resultish) &&
-                                         $resultish.defined;
-                                last;
-                            }
-                        }
-                    }
-                    unless nqp::isnull(@undos) {
-                        for @undos {
-                            if nqp::decont($_) =:= $phaser {
-                                $run := nqp::isnull($resultish) ||
-                                        !nqp::isconcrete($resultish) ||
-                                        !$resultish.defined;
-                                last;
-                            }
-                        }
-                    }
-                    if $run {
+
+                # only have a single LEAVEish phaser, so no frills needed
+                if nqp::elems(@leaves) == 1 && nqp::elems(%phasers) == 1 {
 #?if jvm
-                        $phaser();
+                    nqp::decont(nqp::atpos(@leaves,0))();
+#?endif
+#?if moar
+                    nqp::p6capturelexwhere(
+                      nqp::decont(nqp::atpos(@leaves,0)).clone)();
+#?endif
+                    # don't bother to CATCH, there can only be one exception
+                }
+
+                # slow path here
+                else {
+                    my @keeps  := nqp::atkey(%phasers, 'KEEP');
+                    my @undos  := nqp::atkey(%phasers, 'UNDO');
+                    my int $n := nqp::elems(@leaves);
+                    my int $i := -1;
+                    my int $run;
+                    my $phaser;
+                    while ++$i < $n {
+                        $phaser := nqp::decont(nqp::atpos(@leaves, $i));
+                        $run := 1;
+                        unless nqp::isnull(@keeps) {
+                            for @keeps {
+                                if nqp::eqaddr(nqp::decont($_),$phaser) {
+                                    $run := !nqp::isnull($resultish) &&
+                                             nqp::isconcrete($resultish) &&
+                                             $resultish.defined;
+                                    last;
+                                }
+                            }
+                        }
+                        unless nqp::isnull(@undos) {
+                            for @undos {
+                                if nqp::eqaddr(nqp::decont($_),$phaser) {
+                                    $run := nqp::isnull($resultish) ||
+                                            !nqp::isconcrete($resultish) ||
+                                            !$resultish.defined;
+                                    last;
+                                }
+                            }
+                        }
+                        if $run {
+#?if jvm
+                            $phaser();
 #?endif
 #?if !jvm
-                        nqp::p6capturelexwhere($phaser.clone())();
+                            nqp::p6capturelexwhere($phaser.clone())();
 #?endif
-                        CATCH { nqp::push(@exceptions, $_) }
+                            CATCH { nqp::push(@exceptions, $_) }
+                        }
                     }
-                    $i++;
                 }
             }
 
-            my @posts := nqp::atkey(%phasers, 'POST');
             unless nqp::isnull(@posts) {
+                my $value := nqp::ifnull($resultish,Mu);
                 my int $n := nqp::elems(@posts);
-                my int $i := 0;
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
 #?if jvm
-                    nqp::atpos(@posts, $i)(nqp::ifnull($resultish, Mu));
+                    nqp::atpos(@posts, $i)($value);
 #?endif
 #?if !jvm
-                    nqp::p6capturelexwhere(nqp::atpos(@posts, $i).clone())(
-                        nqp::ifnull($resultish, Mu));
+                    nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);
 #?endif
                     CATCH { nqp::push(@exceptions, $_); last; }
-                    $i++;
                 }
             }
 
@@ -3304,7 +3361,7 @@ nqp::sethllconfig('perl6', nqp::hash(
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
-                    $k++;
+                    ++$k;
                 }
                 my %named_args := nqp::capturenamedshash($capture);
                 Junction.AUTOTHREAD($caller,

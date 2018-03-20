@@ -3,7 +3,7 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-plan 39;
+plan 42;
 
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
@@ -13,6 +13,19 @@ my $*REPL-SCRUBBER = -> $_ is copy {
     s:g/    ">" $ //; # Strip out the final prompt
     s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
     $_
+}
+
+{
+    (temp %*ENV)<RAKUDO_ERROR_COLOR  RAKUDO_LINE_EDITOR>:delete;
+    subtest 'sanity check; load without tweaking line editor' => {
+        plan 3;
+        my $p := run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
+        $p.in.say: '133742.flip.say';
+        $p.in.close;
+        like $p.out.slurp(:close),     /247331/, 'result of code is on STDOUT';
+        is $p.err.slurp(:close).chars, 0,        'no STDERR output';
+        is $p.exitcode,                0,        'successful exit code';
+    }
 }
 
 # RT #123187
@@ -271,3 +284,15 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
         :out{.contains('failed').not},
     ｢REPL can handle `Mu` as line's return value｣;
 }
+
+# RT #132780
+is-run-repl "say 42; none True\n", :err(''), :out{
+    .contains('42') and not .contains: 'No such method';
+}, 'REPL does not explode with none Junction return values';
+
+# RT #112986
+is-run-repl '$_**2',
+    :out{!.contains('message') and !.contains('not found')
+         and !.contains('No such method')},
+    :err(''),
+    'no complaints about .message';

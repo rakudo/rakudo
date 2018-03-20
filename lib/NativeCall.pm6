@@ -260,6 +260,7 @@ my Lock $setup-lock .= new;
 # native call.
 our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource] {
     has int $!setup;
+    has int $!precomp-setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;
     has $!cpp-name-mangler;
@@ -272,8 +273,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 
     method !setup() {
         $setup-lock.protect: {
-            return if $!setup;
-            # Make sure that C++ methotds are treated as mangled (unless set otherwise)
+            return if $!setup || $*W && $*W.is_precompilation_mode && $!precomp-setup;
+            # Make sure that C++ methods are treated as mangled (unless set otherwise)
             if self.package.REPR eq 'CPPStruct' and not self.does(NativeCallMangled) {
               self does NativeCallMangled[True];
             }
@@ -294,7 +295,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 return_hash_for($r.signature, $r, :$!entry-point));
             $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
             $!arity = $r.signature.arity;
-            $!setup = $jitted ?? 2 !! 1;
+            ($*W && $*W.is_precompilation_mode ?? $!precomp-setup !! $!setup) = $jitted ?? 2 !! 1;
 
             $!any-optionals = self!any-optionals;
 
@@ -494,11 +495,11 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         $block
     }
 
-    my $perl6comp := nqp::getcomp("perl6");
-    my @stages = $perl6comp.stages;
-    Nil until @stages.shift eq 'optimize';
-
     method !compile-function-body(Mu $block) {
+        my $perl6comp := nqp::getcomp("perl6");
+        my @stages = $perl6comp.stages;
+        Nil until @stages.shift eq 'optimize';
+
         my $result := $block;
         $result := $perl6comp.^can($_)
             ?? $perl6comp."$_"($result)
@@ -654,9 +655,19 @@ multi sub nativecast(Signature $target-type, $source) is export(:DEFAULT) {
     $r
 }
 
+multi sub nativecast(Int $target-type, $source) is export(:DEFAULT) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        Int, nqp::decont($source));
+}
+
+multi sub nativecast(Num $target-type, $source) is export(:DEFAULT) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        Num, nqp::decont($source));
+}
+
 multi sub nativecast($target-type, $source) is export(:DEFAULT) {
     nqp::nativecallcast(nqp::decont($target-type),
-        nqp::decont(map_return_type($target-type)), nqp::decont($source));
+        nqp::decont($target-type), nqp::decont($source));
 }
 
 sub nativesizeof($obj) is export(:DEFAULT) {

@@ -118,7 +118,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
     push_ilist(@ops, $cont_res);
     push_ilist(@ops, $value_res);
-    
+
     my $iscont_reg  := $*REGALLOC.fresh_i();
     my $decont_reg  := $*REGALLOC.fresh_o();
     my $no_cont_lbl := MAST::Label.new();
@@ -130,7 +130,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('assign'), $cont_res.result_reg, $decont_reg ));
     $*REGALLOC.release_register($decont_reg, $MVM_reg_obj);
     nqp::push(@ops, MAST::Op.new( :op('goto'), $done_lbl ));
-    
+
     my $meth_reg := $*REGALLOC.fresh_o();
     nqp::push(@ops, $no_cont_lbl);
     nqp::push(@ops, MAST::Op.new( :op('findmeth'), $meth_reg, $cont_res.result_reg,
@@ -142,7 +142,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     ));
     nqp::push(@ops, $done_lbl);
     $*REGALLOC.release_register($meth_reg, $MVM_reg_obj);
-    
+
     MAST::InstructionList.new(@ops, $cont_res.result_reg, $MVM_reg_obj)
 });
 $ops.add_hll_moarop_mapping('perl6', 'p6var', 'p6var');
@@ -169,7 +169,7 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     my $type_res  := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
     push_ilist(@ops, $value_res);
     push_ilist(@ops, $type_res);
-    
+
     # Emit a type check.
     my $tcr_reg  := $*REGALLOC.fresh_i();
     my $dc_reg   := $*REGALLOC.fresh_o();
@@ -179,7 +179,7 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('if_i'), $tcr_reg, $lbl_done ));
     $*REGALLOC.release_register($dc_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($tcr_reg, $MVM_reg_int64);
-    
+
     # Error generation.
     proto bind_error($got, $wanted) {
         my %ex := nqp::gethllsym('perl6', 'P6EX');

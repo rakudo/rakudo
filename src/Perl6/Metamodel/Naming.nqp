@@ -5,18 +5,22 @@ role Perl6::Metamodel::Naming {
         $!name := $name;
         nqp::setdebugtypename($obj, $name);
         if $name {
-            my @names := nqp::split('[', $name);
-            if nqp::elems(@names) > 1 {
-                my @main := nqp::split('::', @names[0]);
-                my @sub  := nqp::split('::', @names[1]);
-                $!shortname :=
-                  @main[nqp::elems(@main) - 1]
-                    ~ '[' ~ @sub[nqp::elems(@sub) - 1];
+            while (my int $colon := nqp::rindex($name, '::')) != -1 {
+                my int $paren := nqp::rindex($name, '[', $colon - 1);
+                my int $comma := nqp::rindex($name, ',', $colon - 1);
+                my int $chop-start :=
+                    ($paren < 0 && $comma < 0)
+                    ?? 0
+                    !! ($paren != -1 && $paren < $comma)
+                        ?? $comma + 1
+                        !! $paren + 1;
+                $name := nqp::concat(
+                    nqp::substr($name, 0, $chop-start),
+                    nqp::substr($name, $colon + 2)
+                );
             }
-            else {
-                my @parts := nqp::split('::', $name);
-                $!shortname := @parts[nqp::elems(@parts) - 1];
-            }
+
+            $!shortname := $name;
         }
         else {
             $!shortname := '';

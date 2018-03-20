@@ -930,6 +930,10 @@ class Perl6::Optimizer {
         $!symbols.push_block($block);
         @!block_var_stack.push(BlockVarOptimizer.new);
 
+        # we don't want any "blah in sink context" warnings emitted here
+        get_last_stmt($block[1]).annotate: 'sink-quietly', 1
+            if $block.ann: 'WANTMEPLEASE';
+
         # Visit children.
         if $block.ann('DYNAMICALLY_COMPILED') {
             my $*DYNAMICALLY_COMPILED := 1;
@@ -1082,7 +1086,10 @@ class Perl6::Optimizer {
             my $theop := $op[0];
             if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
 
-            if nqp::istype($theop, QAST::Op) && nqp::existskey(%range_bounds, $theop.name) && $!symbols.is_from_core($theop.name) {
+            if nqp::istype($theop, QAST::Op)
+            && nqp::existskey(%range_bounds, $theop.name)
+            && $!symbols.is_from_core($theop.name)
+            && $op[1].has_ann('code_object') {
                 self.optimize_for_range($op, $op[1], $theop);
                 self.visit_op_children($op);
                 return $op;
@@ -1091,14 +1098,18 @@ class Perl6::Optimizer {
 
         # It could also be that the user explicitly spelled out the for loop
         # with a method call to "map".
-        if $optype eq 'callmethod' && $op.name eq 'sink' &&
-              nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod' && $op[0].name eq 'map' && @($op[0]) == 2 &&
-                (nqp::istype((my $c1 := $op[0][0]), QAST::Op) &&
-                        nqp::existskey(%range_bounds, $c1.name)
-                 || nqp::istype($op[0][0], QAST::Stmts) &&
-                        nqp::istype(($c1 := $op[0][0][0]), QAST::Op) &&
-                        nqp::existskey(%range_bounds, $c1.name)) &&
-              $!symbols.is_from_core($c1.name) {
+        if $optype eq 'callmethod' && $op.name eq 'sink'
+        && nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod'
+        && $op[0].name eq 'map' && @($op[0]) == 2
+        && $op[0][1].has_ann('code_object')
+        && (
+               nqp::istype((my $c1 := $op[0][0]), QAST::Op)
+            && nqp::existskey(%range_bounds, $c1.name)
+            || nqp::istype($op[0][0], QAST::Stmts)
+            && nqp::istype(($c1 := $op[0][0][0]), QAST::Op)
+            && nqp::existskey(%range_bounds, $c1.name)
+        ) && $!symbols.is_from_core($c1.name)
+        {
             self.optimize_for_range($op, $op[0][1], $c1);
             self.visit_op_children($op);
             return $op;
@@ -1120,7 +1131,9 @@ class Perl6::Optimizer {
 
         # Let's see if we can catch a type mismatch in assignment at compile-time.
         # Especially with Num, Rat, and Int there's often surprises at run-time.
-        if $optype eq 'assign' && nqp::istype($op[0], QAST::Var) && $op[0].scope eq 'lexical' {
+        if ($optype eq 'assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
+            && nqp::istype($op[0], QAST::Var)
+            && ($op[0].scope eq 'lexical' || $op[0].scope eq 'lexicalref') {
             if nqp::istype($op[1], QAST::Want) {
                 # grab the var's symbol from our blocks
                 my $varsym := $!symbols.find_lexical_symbol($op[0].name);
@@ -1130,10 +1143,11 @@ class Perl6::Optimizer {
                 my $varname := $op[0].name;
 
                 if $want_type eq 'Ii' {
-                    if $type =:= $!symbols.find_in_setting("Num") {
+                    if $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
-                                :valuetype<Int>
+                                :$varname, :vartype($numtype), :value($op[1][2].value), :suggestiontype<Real>,
+                                :valuetype<Int>,
+                                :native(!($type =:= $numtype))
                             );
                     } elsif $type =:= $!symbols.find_in_setting("Rat") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
@@ -1149,10 +1163,11 @@ class Perl6::Optimizer {
                 } elsif $want_type eq 'Nn' {
                     my $value := $op[1][2];
                     if $value.HOW.name($value) eq 'QAST::NVal' {
-                        if $type =:= $!symbols.find_in_setting("Int") {
+                        if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                    :$varname, :vartype($type), :value($value.value), :suggestiontype<Real>,
-                                    :valuetype<Num>
+                                    :$varname, :vartype($inttype), :value($value.value), :suggestiontype<Real>,
+                                    :valuetype<Num>,
+                                    :native(!($type =:= $inttype))
                                 );
                         } elsif $type =:= $!symbols.find_in_setting("Rat") {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
@@ -1176,37 +1191,41 @@ class Perl6::Optimizer {
                 my $val_type := $value.HOW.name($value);
                 my $varname := $op[0].name;
                 if $val_type eq 'Rat' || $val_type eq 'RatStr' {
-                    if $type =:= $!symbols.find_in_setting("Int") {
+                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value(+$value), :suggestiontype<Real>,
-                                :valuetype<Rat>
+                                :$varname, :vartype($inttype), :value($value), :suggestiontype<Real>,
+                                :valuetype<Rat>,
+                                :native(!($type =:= $inttype))
                             );
-                    } elsif $type =:= $!symbols.find_in_setting("Num") {
+                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value(+$value), :suggestiontype<Real>,
-                                :valuetype<Rat>
+                                :$varname, :vartype($numtype), :value($value), :suggestiontype<Real>,
+                                :valuetype<Rat>,
+                                :native(!($type =:= $numtype))
                             );
                     } elsif $type =:= $!symbols.find_in_setting("Complex") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value(+$value), :suggestiontype<Numeric>,
+                                :$varname, :vartype($type), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Rat>
                             );
                     }
                 }
                 elsif $val_type eq 'Complex' || $val_type eq 'ComplexStr' {
-                    if $type =:= $!symbols.find_in_setting("Int") {
+                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value.Numeric), :suggestiontype<Numeric>,
-                                :valuetype<Complex>
+                                :$varname, :vartype($inttype), :value($value), :suggestiontype<Numeric>,
+                                :valuetype<Complex>,
+                                :native(!($type =:= $inttype))
                             );
-                    } elsif $type =:= $!symbols.find_in_setting("Num") {
+                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value.Numeric), :suggestiontype<Numeric>,
-                                :valuetype<Complex>
+                                :$varname, :vartype($numtype), :value($value), :suggestiontype<Numeric>,
+                                :valuetype<Complex>,
+                                :native(!($type =:= $numtype))
                             );
                     } elsif $type =:= $!symbols.find_in_setting("Rat") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value.Numeric), :suggestiontype<Numeric>,
+                                :$varname, :vartype($type), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Complex>
                             );
                     }
@@ -1214,9 +1233,10 @@ class Perl6::Optimizer {
             }
         }
 
-        # A chain with exactly two children can become the op itself.
         if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;
+
+            # A chain with exactly two children can become the op itself.
             $optype := 'call' if $!chain_depth == 1 &&
                 !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
@@ -1342,18 +1362,70 @@ class Perl6::Optimizer {
                  return $opt_result;
             }
         }
-
-        # If it's a private method call, we can sometimes resolve it at
-        # compile time. If so, we can reduce it to a sub call in some cases.
-        elsif $!level >= 2 && $optype eq 'callmethod' && $op.name eq 'dispatch:<!>' {
-            self.optimize_private_method_call($op);
+        # Some .dispatch:<....> calls can be simplified
+        elsif $!level >= 2 && $optype eq 'callmethod'
+        && nqp::eqat($op.name, 'dispatch:<', 0) {
+            if $op.name eq 'dispatch:<!>' {
+                # If it's a private method call, we can sometimes resolve
+                # it at compile time. If so, we can reduce it to a
+                # sub call in some cases.
+                self.optimize_private_method_call: $op;
+            }
+            elsif $op.name eq 'dispatch:<.=>' {
+                # .= calls can be unpacked entirely
+                return self.optimize_dot_equals_method_call: $op;
+            }
         }
 
-        # If we end up here, just leave op as is.
         if $op.op eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
+
+            # See if we can staticalize this op
+            my $obj;
+            my $found;
+            try {
+                $obj   := $!symbols.find_lexical($op.name);
+                $found := 1;
+            }
+            if $found {
+                if nqp::can($obj, 'is-pure') {
+                    $op.op: 'chainstatic'
+                }
+                else {
+                    my $scopes := $!symbols.scopes_in: $op.name;
+                    $op.op: 'chainstatic'
+                      if $scopes <= 1 && nqp::can($obj, 'soft') && ! $obj.soft;
+                }
+            }
         }
         $op
+    }
+
+    method optimize_dot_equals_method_call($call) {
+        my $target := $call[0];
+        my $qast;
+        $call.name: ''; # second kid already is the method name the op will use
+
+        if nqp::istype($target, QAST::Var) {
+            # we have a plain variable as target. Safe to Just Use It™
+            $qast := QAST::Op.new: :op<p6store>, $target, $call
+        }
+        else {
+            # we have something more complex as target. Use a temp var to
+            # save the result of it into and then to call method on it
+            $target := $call.shift;
+            my $name := QAST::Node.unique: 'make_dot_equals_temp_';
+            $call.unshift: QAST::Var.new: :$name, :scope<local>;
+            $qast := QAST::Stmts.new:
+              QAST::Op.new(:op<bind>,
+                QAST::Var.new(:$name, :scope<local>, :decl<var>),
+                $target),
+              QAST::Op.new: :op<p6store>,
+                QAST::Var.new(:$name, :scope<local>),
+                $call
+        }
+
+        $qast
     }
 
     method visit_op_children($op) {
@@ -1414,8 +1486,8 @@ class Perl6::Optimizer {
                 }
                 elsif $op.node && $!void_context {
                     my str $op_txt := nqp::escape($op.node.Str);
-                    my str $expr   := nqp::escape(widen($op.node));
                     unless $op_txt eq '/' && $op[1].has_compile_time_value && $op[1].compile_time_value == 0 {
+                        my str $expr   := nqp::escape(widen($op.node));
                         my $warning := qq[Useless use of "$op_txt" in expression "$expr" in sink context];
                         note($warning) if $!debug;
                         $!problems.add_worry($op, $warning);
@@ -1439,7 +1511,7 @@ class Perl6::Optimizer {
 
                 # Don't constant fold the 'x' operator if the resulting string would be too big.
                 # 1024 is just a heuristic, measuring might show a bigger value would be fine.
-                if $all_args_known && $op.name eq '&infix:<x>' && $!symbols.is_from_core('&infix:<x>') {
+                if $all_args_known && self.op_eq_core($op, '&infix:<x>') {
                     my int $survived := 0;
                     my int $size;
                     try {
@@ -1496,27 +1568,12 @@ class Perl6::Optimizer {
                     }
                 }
             }
-            elsif $!level >= 2 && ($op.name eq '&prefix:<++>' || $op.name eq '&postfix:<++>' ||
-                                   $op.name eq '&prefix:<-->' || $op.name eq '&postfix:<-->') {
-                my $var := $op[0];
-                if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref' && nqp::objprimspec($var.returns) == 1 {
-                    my $add := nqp::eqat($op.name,'++', -3) ?? 'add_i' !! 'sub_i';
-                    my $sub := nqp::eqat($op.name,'++', -3) ?? 'sub_i' !! 'add_i';
-                    my $one := QAST::Want.new(
-                                QAST::WVal.new( :value($!symbols.find_lexical('Int')) ),
-                                'Ii',
-                                QAST::IVal.new( :value(1) ));
-                    if $!void_context || nqp::eqat($op.name,'&pre',0) {  # can use simple add?
-                        # $i = $i + 1  (or $i = $i - 1)
-                        return QAST::Op.new( :op('assign_i'), :returns($var.returns), $var, QAST::Op.new(:op($add), $var, $one));
-                    }
-                    else {             # can't, but still much faster to subtract 1 back out than to allocate temp
-                        # ($i = $i + 1) - 1  (or ($i = $i - 1) + 1)
-                        return QAST::Op.new( :op($sub), :returns($var.returns),
-                            QAST::Op.new( :op('assign_i'), :returns($var.returns), $var, QAST::Op.new(:op($add), $var, $one)),
-                            $one);
-                    }
-                }
+            elsif $!level >= 2 && (
+                 $op.name eq '&prefix:<++>' || $op.name eq '&postfix:<++>'
+              || $op.name eq '&prefix:<-->' || $op.name eq '&postfix:<-->'
+            ) && $!symbols.is_from_core($op.name)
+            && self.optimize-post-pre-inc-dec-ops($op) -> $qast {
+                return $qast;
             }
             # If it's an onlystar proto, we have a couple of options.
             # The first is that we may be able to work out what to
@@ -1543,8 +1600,10 @@ class Perl6::Optimizer {
                         }
                     }
                     elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
-                        self.report_inevitable_dispatch_failure($op, @types, @flags, $obj,
-                            :protoguilt($ct_result_proto == -1));
+                        self.report_inevitable_dispatch_failure(
+                            $op, @types, @flags, $obj,
+                            :protoguilt($ct_result_proto == -1)
+                        ) unless $*NO-COMPILE-TIME-THROWAGE;
                     }
                 }
                 if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
@@ -1570,7 +1629,9 @@ class Perl6::Optimizer {
                         }
                     }
                     elsif $ct_result == -1 {
-                        self.report_inevitable_dispatch_failure($op, @types, @flags, $obj);
+                        self.report_inevitable_dispatch_failure(
+                            $op, @types, @flags, $obj
+                        ) unless $*NO-COMPILE-TIME-THROWAGE;
                     }
                 }
             }
@@ -1596,6 +1657,92 @@ class Perl6::Optimizer {
         return NQPMu;
     }
 
+    method optimize-post-pre-inc-dec-ops($op) {
+        my $var  := $op[0];
+        my $node := $op.node;
+        $op.op: 'callstatic'; # by now we know 'tis a core op
+
+        # if we got a native int/num, we can rewrite into nqp ops
+        if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref'
+        && ((my $primspec := nqp::objprimspec($var.returns)) == 1 # native int
+          || $primspec == 2) # native num
+        {
+            my $returns := $var.returns;
+            my $is-dec := nqp::eqat($op.name, '--', -3);
+
+            if $primspec == 1 { # native int
+                my $one := QAST::Want.new: :$node,
+                  QAST::WVal.new(:value($!symbols.find_lexical: 'Int')),
+                    'Ii', QAST::IVal.new: :value(1);
+                if $!void_context || nqp::eqat($op.name, '&pre', 0) {
+                    # we can just use (or ignore) the result
+                    return QAST::Op.new: :op<assign_i>, :$node, :$returns, $var,
+                      QAST::Op.new: :op($is-dec ?? 'sub_i' !! 'add_i'),
+                        :$returns, $var, $one
+                }
+                else {
+                    # need to assign original value; it's cheaper to just
+                    # do the reverse operation than to use a temp var
+                    return QAST::Op.new: :op($is-dec ?? 'add_i' !! 'sub_i'),
+                          :$node, :$returns,
+                        QAST::Op.new(:op<assign_i>, :$returns, $var,
+                          QAST::Op.new: :op($is-dec ?? 'sub_i' !! 'add_i'),
+                           :$returns, $var, $one),
+                        $one
+                }
+            }
+            elsif $primspec == 2 { # native num
+                my $one := QAST::Want.new: :$node,
+                  QAST::WVal.new(:value($!symbols.find_lexical: 'Num')),
+                    'Nn', QAST::NVal.new: :value(1);
+                if $!void_context || nqp::eqat($op.name, '&pre', 0) {
+                    # we can just use (or ignore) the result
+                    return QAST::Op.new: :op<assign_n>, :$node, :$returns, $var,
+                      QAST::Op.new: :op($is-dec ?? 'sub_n' !! 'add_n'),
+                        :$returns, $var, $one
+                }
+                else {
+                    # need to assign original value; it's cheaper to just
+                    # do the reverse operation than to use a temp var
+                    return QAST::Op.new: :op($is-dec ?? 'add_n' !! 'sub_n'),
+                        :$node, :$returns,
+                      QAST::Op.new(:op<assign_n>, :$returns, $var,
+                        QAST::Op.new: :op($is-dec ?? 'sub_n' !! 'add_n'),
+                          :$returns, $var, $one),
+                      $one
+                }
+            }
+        }
+
+        # XXX TODO: my tests show the opt below makes things 25% slower.
+        # Even without the temp var business, and unoptimized version:
+        # my $i = 1; my $z; { for ^10000_000 { $z = 1 + ++$i }; say now - ENTER now }
+        # comes out slower than
+        # my $i = 1; my $z; { for ^10000_000 { $z = 1 + $i++ }; say now - ENTER now }
+        #
+        # Don't know what's going on. Leaving the code below commented out
+        # Filed as https://github.com/rakudo/rakudo/issues/1491
+
+        # elsif nqp::eqat($op.name, 'post', 1) { # try to optimize postfix ops
+            # just rewrite to prefix-assign
+            # $op.name: '&prefix:<' ~ nqp::substr($op.name, -3);
+
+            # if original value isn't needed, we're done here
+            # return $op if $!void_context;
+
+            # use a local temp var to store original value
+            # my $temp := QAST::Var.new: :$node, :scope<local>,
+            #   :name(QAST::Node.unique: 'post_pre_op_rewrite_');
+            #
+            # return QAST::Stmts.new: :$node,
+            #   QAST::Op.new(:$node, :op<bind>, $temp.decl_as('var'),
+            #     QAST::Op.new: :op<decont>, $var),
+            #   $op, $temp
+        # }
+
+        NQPMu
+    }
+
     method constant_foldable_type($value) {
         !(
             nqp::istype($value, $!symbols.Seq) ||
@@ -1605,135 +1752,163 @@ class Perl6::Optimizer {
 
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
     method optimize_nameless_call($op) {
-        if +@($op) > 0 {
-            # if we know we're directly calling the result, we can be smarter
-            # about METAOPs
-            my int $is_var := 0;
-            if nqp::istype((my $metaop := $op[0]), QAST::Op) && ($metaop.op eq 'call' || $metaop.op eq 'callstatic') {
-                if $metaop.name eq '&METAOP_ASSIGN' && $!symbols.is_from_core('&METAOP_ASSIGN') {
-                    if nqp::istype($metaop[0], QAST::Var) {
-                        if (nqp::istype($op[1], QAST::Var) && ($is_var := 1))
-                            # instead of $foo += 1 we may have $foo.bar += 1, which we really want to
-                            # unpack here as well. this second branch of the if statement achieves this.
-                            || (nqp::istype($op[1], QAST::Op)
-                                && ($op[1].op eq 'callmethod'
-                                    || ($op[1].op eq 'hllize'
-                                        && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'callmethod')
-                                    || $op[1].op eq 'call' || $op[1].op eq 'callstatic')) {
-                            my str $assignop;
-                            my $assignee;
-                            my $assignee_var;
-                            my int $is-always-definite;
-                            if $is_var {
-                                my str $sigil := nqp::substr($op[1].name, 0, 1);
+      return NQPMu
+        unless nqp::elems($op)
+        && nqp::istype((my $metaop := $op[0]), QAST::Op)
+        && ($metaop.op eq 'call' || $metaop.op eq 'callstatic');
 
-                                if nqp::objprimspec($op[1].returns) -> $spec {
-                                    $assignop := @native_assign_ops[$spec];
-                                    $is-always-definite := 1;
-                                } elsif $sigil eq '$' {
-                                    $assignop := 'assign';
-                                } else {
-                                    # TODO support @ and % sigils
-                                    # TODO check what else we need to "copy" from assign_op in Actions
-                                    return NQPMu;
-                                }
+      # if we know we're directly calling the result, we can be smarter
+      # about METAOPs
+      if self.op_eq_core($metaop, '&METAOP_ASSIGN') {
+        if nqp::istype($metaop[0], QAST::Var) # lexical sub
+        || (nqp::istype($metaop[0], QAST::Op) # or a REVERSE metaop with lex sub
+          && self.op_eq_core($metaop[0], '&METAOP_REVERSE') # and nothing else
+          && nqp::istype($metaop[0][0], QAST::Var)
+          && nqp::elems($metaop[0]) == 1
+          && (my $is-reverse := 1)) {
+          if $is-reverse
+          || (nqp::istype($op[1], QAST::Var) && (my int $is_var := 1))
+          # instead of $foo += 1 we may have $foo.bar += 1, which
+          # we really want to unpack here as well. this second branch
+          # of the if statement achieves this.
+          || (nqp::istype($op[1], QAST::Op)
+            && ($op[1].op eq 'callmethod'
+              || ($op[1].op eq 'hllize' && nqp::istype($op[1][0], QAST::Op)
+                && $op[1][0].op eq 'callmethod')
+              || $op[1].op eq 'call' || $op[1].op eq 'callstatic')
+          ) {
+            my str $assignop;
+            my $assignee;
+            my $assignee_var;
+            my int $is-always-definite;
 
-                                $assignee := $assignee_var := $op[1];
-                            } else {
-                                $assignop := "assign";
-
-                                # We want to be careful to only call $foo.bar once,
-                                # so we bind to a local var and assign to that.
-                                my $lhs_ast := $op[1];
-                                my $target_name := QAST::Node.unique('METAOP_assign_');
-                                $assignee := QAST::Op.new( :op('bind'),
-                                    QAST::Var.new(:name($target_name), :scope('local'), :decl('var')),
-                                    $lhs_ast);
-                                $assignee_var := QAST::Var.new(:name($target_name), :scope('local'));
-
-                            }
-
-                            # since the optimizer will only ever walk the first
-                            # branch of a Want node, we have to make sure to change
-                            # the node in place, since it's most likely shared with
-                            # the other branch.
-                            $op.op($assignop);
-                            my $operand := $op[2];
-
-                            $op.pop;
-                            $op.pop;
-                            $op.pop;
-
-                            $op.push($assignee);
-
-                            my $call := 'call';
-                            my $obj;
-                            try {
-                                $obj := $!symbols.find_lexical($metaop[0].name);
-                            }
-                            if $obj {
-                                my $scopes := $!symbols.scopes_in($metaop[0].name);
-                                if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
-                                    $call := 'callstatic';
-                                }
-                            }
-
-                            if ($is-always-definite) {
-                                $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
-                                    $assignee_var,
-                                    $operand));
-                            } else {
-                                $op.push(QAST::Op.new( :op($call), :name($metaop[0].name),
-                                    QAST::Op.new( :op('if'),
-                                        QAST::Op.new( :op('p6definite'), $assignee_var),
-                                        $assignee_var,
-                                        QAST::Op.new( :op($call), :name($metaop[0].name) ) ),
-                                    $operand));
-                            }
-
-                            if $assignop ne 'assign' && nqp::objprimspec($assignee.returns) {
-                                $op.returns($assignee.returns);
-                            }
-                        }
-                    }
-                } elsif $metaop.name eq '&METAOP_NEGATE' && $!symbols.is_from_core('&METAOP_NEGATE') {
-                    return NQPMu unless nqp::istype($metaop[0], QAST::Var);
-                    return QAST::Op.new( :op('call'), :name('&prefix:<!>'),
-                            QAST::Op.new( :op('call'), :name($metaop[0].name),
-                                $op[1],
-                                $op[2]) );
-                } elsif $metaop.name eq '&METAOP_REVERSE' && $!symbols.is_from_core('&METAOP_REVERSE') {
-                    return NQPMu unless nqp::istype($metaop[0], QAST::Var) && +@($op) == 3;
-                    return QAST::Op.new( :op('call'), :name($metaop[0].name),
-                                $op[2],
-                                $op[1]);
-                }
+            if $is_var {
+              my str $sigil := nqp::substr($op[1].name, 0, 1);
+              if nqp::objprimspec($op[1].returns) -> $spec {
+                $assignop := @native_assign_ops[$spec];
+                $is-always-definite := 1;
+              }
+              elsif $sigil eq '$' {
+                $assignop := 'assign';
+              }
+              else {
+                # TODO support @ and % sigils and check what else we need
+                # to "copy" from assign_op in Actions
+                return NQPMu;
+              }
+              $assignee := $assignee_var := $op[1];
             }
+            else {
+              $assignop := "assign";
+              # We want to be careful to only call $foo.bar once, if that's what
+              # we have, so we bind to a local var and assign to that. The
+              # var is also needed when we're unpacking a REVERSE op, since
+              # we'd still need to assign into the variable on LHS w/o REVERSE
+              my $lhs_ast := $op[1];
+              my $target_name := QAST::Node.unique: 'METAOP_assign_';
+              $assignee     :=
+              QAST::Op.new: :op<bind>,
+                QAST::Var.new(:name($target_name), :scope<local>, :decl<var>),
+                $lhs_ast;
+              $assignee_var :=
+              QAST::Var.new: :name($target_name),:scope<local>;
+            }
+
+            # since the optimizer will only ever walk the first branch of a Want
+            # node, we have to make sure to change the node in place, since it's
+            # most likely shared with the other branch.
+            $op.op: $assignop;
+            my $operand := $op[2];
+            $op.pop; $op.pop; $op.pop;
+            $op.push: $assignee;
+
+            if $is-always-definite {
+              $op.push: QAST::Op.new: :op<call>, :name($metaop[0].name),
+                          $assignee_var, $operand;
+            }
+            elsif $is-reverse {
+              # We end up with two calls of the op if var is not definite.
+              # This is by design:
+              # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
+              $op.push:
+              QAST::Op.new: :op<call>, :name($metaop[0][0].name),
+                $operand,
+                QAST::Op.new(:op<if>,
+                  QAST::Op.new(:op<p6definite>, $assignee_var),
+                  $assignee_var,
+                  QAST::Op.new(:op<call>, :name($metaop[0][0].name)));
+            }
+            else {
+              # We end up with two calls of the op if var is not definite.
+              # This is by design:
+              # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
+              $op.push:
+              QAST::Op.new: :op<call>, :name($metaop[0].name),
+                QAST::Op.new(:op<if>,
+                  QAST::Op.new(:op<p6definite>, $assignee_var),
+                  $assignee_var,
+                  QAST::Op.new(:op<call>, :name($metaop[0].name))),
+                $operand;
+            }
+
+            $op.returns: $assignee.returns
+                if $assignop ne 'assign'
+                && nqp::objprimspec($assignee.returns);
+
+            my $*NO-COMPILE-TIME-THROWAGE := 1;
+            return self.visit_op: $op;
+          }
         }
-        NQPMu;
+      }
+      elsif self.op_eq_core($metaop, '&METAOP_NEGATE') {
+        return NQPMu unless nqp::istype($metaop[0], QAST::Var);
+        return QAST::Op.new: :op<call>, :name('&prefix:<!>'),
+                QAST::Op.new: :op<call>, :name($metaop[0].name),
+                    $op[1], $op[2];
+      }
+      elsif self.op_eq_core($metaop, '&METAOP_REVERSE') {
+        return NQPMu unless nqp::istype($metaop[0], QAST::Var)
+          && nqp::elems($op) == 3;
+        return QAST::Op.new: :op<call>, :name($metaop[0].name),
+                $op[2], $op[1];
+      }
+      NQPMu
+    }
+
+    method op_eq_core($op, $name) {
+        $op.name eq $name && $!symbols.is_from_core: $name
     }
 
     method optimize_private_method_call($op) {
-        if $op[1].has_compile_time_value && $op[2].has_compile_time_value &&
-                nqp::istype($op[1], QAST::Want) && $op[1][1] eq 'Ss' {
-            my str $name := $op[1][2].value; # get raw string name
-            my $pkg  := $op[2].returns;      # actions sets this unless in role
-            my $meth := $pkg.HOW.find_private_method($pkg, $name);
-            if nqp::defined($meth) && $meth {
-                unless nqp::isnull(nqp::getobjsc($meth)) {
-                    my $call := QAST::WVal.new( :value($meth) );
-                    my $inv  := $op.shift;
-                    $op.shift; $op.shift; # name, package (both pre-resolved now)
-                    $op.unshift($inv);
-                    $op.unshift($call);
-                    $op.op('call');
-                    $op.name(NQPMu);
+        my $name_node := $op[1];
+        if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
+            $name_node := $name_node[2];
+        }
+        my $pkg_node := $op[2];
+        if nqp::istype($name_node, QAST::SVal) && $pkg_node.has_compile_time_value {
+            my str $name := $name_node.value; # get raw string name
+            my $pkg := $pkg_node.returns;     # actions sets this unless in role
+            if nqp::can($pkg.HOW, 'find_private_method') {
+                my $meth := $pkg.HOW.find_private_method($pkg, $name);
+                if nqp::defined($meth) && $meth {
+                    if nqp::isnull(nqp::getobjsc($meth)) {
+                        try $*W.add_object($meth);
+                    }
+                    unless nqp::isnull(nqp::getobjsc($meth)) {
+                        my $call := QAST::WVal.new( :value($meth) );
+                        my $inv  := $op.shift;
+                        $op.shift; $op.shift; # name, package (both pre-resolved now)
+                        $op.unshift($inv);
+                        $op.unshift($call);
+                        $op.op('call');
+                        $op.name(NQPMu);
+                    }
                 }
-            }
-            else {
-                $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
-                    :private(nqp::p6bool(1)), :method($name),
-                    :typename($pkg.HOW.name($pkg)), :invocant($pkg));
+                else {
+                    $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
+                        :private(nqp::p6bool(1)), :method($name),
+                        :typename($pkg.HOW.name($pkg)), :invocant($pkg));
+                }
             }
         }
     }
@@ -1820,7 +1995,8 @@ class Perl6::Optimizer {
         # (Check the following after we've checked children, since they may have useless bits too.)
 
         # Any literal in void context deserves a warning.
-        if $!void_context && +@($want) == 3 && $want.node {
+        if $!void_context && +@($want) == 3 && $want.node
+        && ! $want.ann('sink-quietly') {
 
             my str $warning;
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
@@ -1833,10 +2009,17 @@ class Perl6::Optimizer {
                          ~ ~$want[2].value
                          ~ qq[ in sink context];
             }
-            elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
-                $warning := qq[Useless use of constant floating-point number ]
-                         ~ ~$want[2].value
-                         ~ qq[ in sink context];
+            elsif $want[1] eq 'Nn' {
+                if nqp::istype($want[2], QAST::NVal) {
+                  $warning := qq[Useless use of constant floating-point number ]
+                    ~ $want[2].value ~ qq[ in sink context];
+                }
+                elsif nqp::istype($want[2], QAST::Op)
+                &&  ($want[2].op eq 'inf' || $want[2].op eq 'nan'
+                  || $want[2].op eq 'neginf') {
+                  $warning := qq[Useless use of constant floating-point number ]
+                    ~ $want[2].node ~ qq[ in sink context];
+                }
             }
             if $warning {
                 $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
@@ -2007,8 +2190,9 @@ class Perl6::Optimizer {
         @sigs
     }
 
-    # Visits all of a nodes children, and dispatches appropriately.
+    # Visits all of a node's children, and dispatches appropriately.
     method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default) {
+        note("method visit_children $!void_context\n" ~ $node.dump) if $!debug;
         my int $r := $resultchild // -1;
         my int $i := 0;
         my int $n := +@($node);
@@ -2069,22 +2253,30 @@ class Perl6::Optimizer {
                     QRegex::Optimizer.new().optimize($visit, $!symbols.top_block, |%!adverbs);
                 }
                 elsif nqp::istype($visit, QAST::WVal) {
-                    if $!void_context && $visit.has_compile_time_value && $visit.node {
-                        my $value := ~$visit.node;
-                        $value := '""' if $value eq '';
-                        my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
-                        unless $value eq 'Nil' {
-                            my $warning := qq[Useless use of constant value {~$visit.node} in sink context$suggest];
-                            note($warning) if $!debug;
-                            $!problems.add_worry($visit, $warning)
+                    if $!void_context {
+                        if $visit.ann: 'ok_to_null_if_sunk' {
+                            $node[$i] := $NULL;
+                        }
+                        elsif $visit.has_compile_time_value && $visit.node {
+                            my $value := ~$visit.node;
+                            $value := '""' if $value eq '';
+                            my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
+                            unless $value eq 'Nil'
+                            || $visit.ann('sink-quietly') {
+                                my $warning := qq[Useless use of constant value $value in sink context$suggest];
+                                note($warning) if $!debug;
+                                $!problems.add_worry($visit, $warning)
+                            }
                         }
                     }
                     if $visit.value =:= $!symbols.PseudoStash {
                         self.poison_var_lowering();
                     }
                 }
-                elsif nqp::istype($visit, QAST::ParamTypeCheck) ||
-                      nqp::istype($visit, QAST::SVal) ||
+                elsif nqp::istype($visit, QAST::ParamTypeCheck) {
+                  self.optimize-param-typecheck: $visit;
+                }
+                elsif nqp::istype($visit, QAST::SVal) ||
                       nqp::istype($visit, QAST::IVal) ||
                       nqp::istype($visit, QAST::NVal) ||
                       nqp::istype($visit, QAST::VM)
@@ -2098,6 +2290,62 @@ class Perl6::Optimizer {
             $!in_declaration := $outer_decl;
         }
         $node;
+    }
+
+    # See if we can simplify QAST::ParamTypeCheck
+    method optimize-param-typecheck($node) {
+        # We're looking for a structure like this:
+        # - QAST::ParamTypeCheck  :code-post-constraint<?>
+        #   - QAST::Op(istrue)
+        #     - QAST::Op(callmethod ACCEPTS)
+        #       - QAST::Op(p6capturelex)
+        #         - QAST::Op(callmethod clone)
+        #           - QAST::WVal(Block)
+        #       - QAST::Var(local __lowered_param__16753)
+
+        return NQPMu unless $node.has_ann('code-post-constraint');
+        my $wv-block   := $node[0][0][0][0][0];
+        my $param-var  := $node[0][0][1];
+        my $qast-block := nqp::getattr($wv-block.value,
+            $!symbols.find_symbol(['Code']), '@!compstuff')[0];
+
+        # do we have an "any" Junction we can inline?
+        if nqp::istype($qast-block[1], QAST::Op)
+        && $qast-block[1].op eq 'callmethod' && $qast-block[1].name eq 'ACCEPTS'
+        && @($qast-block[1]) == 2
+        && nqp::istype($qast-block[1][0], QAST::WVal)
+        && nqp::istype((my $j := $qast-block[1][0].value),
+            (my $symJunction := $!symbols.find_symbol: ['Junction']))
+        && nqp::getattr($j, $symJunction, '$!type') eq 'any'
+        {
+            my @types := nqp::getattr($j, $symJunction, '$!storage');
+            return NQPMu if nqp::isconcrete($_) for @types;
+
+            my $op := my $qast := QAST::Stmts.new;
+            for @types {
+                $op.push: my $new-op := QAST::Op.new: :op<unless>,
+                    QAST::Op.new: :op<istype>, $param-var,
+                      QAST::WVal.new: :value($_);
+                $op := $new-op;
+            }
+            # rewrite last `unless` into `istype` in the second branch of
+            # parent `unless` (or just the top node, if we only got one WVal)
+            $op.op: 'istype'; $op.push: $op[0][1]; $op[0] := $op[0][0];
+            $qast := $qast[0]; # toss Stmts, we no longer need 'em;
+
+            if $node.has_ann('no-autothread') {
+                # Our param won't autothread; inject special handling of
+                # Junction arguments to make them go through the slower
+                # path of using the original ACCEPTS call
+                $node[0] := QAST::Op.new: :op<if>,
+                  QAST::Op.new(:op<istype>,
+                    $param-var, QAST::WVal.new: :value($symJunction)),
+                  $node[0], $qast;
+            }
+            else {
+                $node[0] := $qast;
+            }
+        }
     }
 
     # Inlines an immediate block.

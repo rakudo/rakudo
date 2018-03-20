@@ -20,6 +20,8 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
+MISC/bug-coverage.t
+MISC/bug-coverage-6.d.t
 MISC/bug-coverage-stress.t                  # stress
 S01-perl-5-integration/array.t              # perl5
 S01-perl-5-integration/basic.t              # perl5
@@ -34,10 +36,9 @@ S01-perl-5-integration/return.t             # perl5
 S01-perl-5-integration/roundtrip.t          # perl5
 S01-perl-5-integration/strings.t            # perl5
 S01-perl-5-integration/subs.t               # perl5
-S02-lexical-conventions/begin_end_pod.t
+S02-lexical-conventions/finish-pod.t
 S02-lexical-conventions/bom.t
 S02-lexical-conventions/comments.t
-S02-lexical-conventions/end-pod.t
 S02-lexical-conventions/minimal-whitespace.t
 S02-lexical-conventions/one-pass-parsing.t
 S02-lexical-conventions/pod-in-multi-line-exprs.t
@@ -134,6 +135,7 @@ S02-types/fatrat.t
 S02-types/flattening.t
 S02-types/hash_ref.t
 S02-types/hash.t
+S02-types/hyperwhatever.t
 S02-types/infinity.t
 S02-types/instants-and-durations.t
 S02-types/int-uint.t
@@ -179,7 +181,6 @@ S03-binding/attributes.t
 S03-binding/closure.t
 S03-binding/hashes.t
 S03-binding/nested.t
-S03-binding/nonsense.t
 S03-binding/ro.t
 S03-binding/scalars.t
 S03-feeds/basic.t
@@ -437,6 +438,7 @@ S05-modifier/perl5_6.t
 S05-modifier/perl5_7.t
 S05-modifier/perl5_8.t
 S05-modifier/perl5_9.t
+S05-modifier/perl5_10.t
 S05-modifier/pos.t
 S05-modifier/repetition-exhaustive.t
 S05-modifier/repetition.t
@@ -448,6 +450,8 @@ S05-substitution/subst.t
 S05-syntactic-categories/new-symbols.t
 S05-transliteration/79778.t
 S05-transliteration/trans.t
+S05-transliteration/trans-tr-lowercase-operator.t
+S05-transliteration/trans-TR-operator.t
 S05-transliteration/with-closure.t
 S06-advanced/callframe.t
 S06-advanced/callsame.t
@@ -542,9 +546,8 @@ S06-traits/native-is-rw.t
 S06-traits/precedence.t
 S07-slip/slip.t
 S07-iterators/range-iterator.t
+S07-hyperrace/basics.t # moar
 S07-hyperrace/for.t
-S07-hyperrace/hyper.t  # moar
-S07-hyperrace/race.t   # moar
 S07-hyperrace/stress.t # moar stress
 S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
@@ -838,8 +841,8 @@ S17-promise/anyof.t
 S17-promise/basic.t
 S17-promise/in.t         # slow
 S17-promise/lock-async.t
-S17-promise/lock-async-stress.t # stress slow
-S17-promise/lock-async-stress2.t # stress slow
+S17-promise/lock-async-stress.t # moar stress slow
+S17-promise/lock-async-stress2.t # moar stress slow
 S17-promise/start.t      # slow
 S17-promise/stress.t     # stress
 S17-promise/then.t
@@ -899,12 +902,11 @@ S17-supply/zip-latest.t
 S19-command-line/arguments.t
 S19-command-line/dash-e.t
 S19-command-line/help.t
-S19-command-line/repl.t    # moar
+S19-command-line/repl.t
 S19-command-line-options/02-dash-n.t
 S19-command-line-options/03-dash-p.t
 S19-command-line-options/04-negation.t
 S19-command-line-options/05-delimited-options.t
-S19-command-line-options/06-dash-rxtrace.t
 S22-package-format/local.t
 S24-testing/0-compile.t
 S24-testing/3-output.t
@@ -916,6 +918,7 @@ S24-testing/11-plan-skip-all.t            # stress
 S24-testing/11-plan-skip-all-subtests.t
 S24-testing/12-subtest-todo.t
 S24-testing/13-cmp-ok.t
+S24-testing/14-like-unlike.t
 S24-testing/line-numbers.t
 S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
@@ -924,7 +927,9 @@ S26-documentation/04-code.t
 S26-documentation/05-comment.t
 S26-documentation/06-lists.t
 S26-documentation/07-tables.t
-S26-documentation/07a-tables-todo-skipped.t
+S26-documentation/07a-tables.t
+S26-documentation/07b-tables.t
+S26-documentation/07c-tables.t
 S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t
@@ -1086,6 +1091,7 @@ S32-list/seq.t
 S32-list/skip.t
 S32-list/sort.t
 S32-list/tail.t
+S32-list/toggle.t
 S32-list/unique.t
 S32-list/squish.t
 S32-num/abs.t
@@ -1139,7 +1145,6 @@ S32-str/numeric.t
 S32-str/ords.t
 S32-str/pack.t
 S32-str/parse-base.t
-S32-str/parse-names.t
 S32-str/pos.t
 S32-str/rindex.t
 S32-str/samemark.t
@@ -1156,8 +1161,10 @@ S32-str/tc.t
 S32-str/tclc.t
 S32-str/trim.t
 S32-str/uc.t
+S32-str/uniparse.t
 S32-str/unpack.t
 S32-str/utf8-c8.t       # moar
+S32-str/windows-1251-windows-1252-encode-decode.t
 S32-str/words.t
 S32-str/CollationTest_NON_IGNORABLE-0.t # moar
 S32-str/CollationTest_NON_IGNORABLE-1.t # moar

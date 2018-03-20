@@ -1,7 +1,7 @@
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2017 The Perl Foundation.
+# Copyright (C) 2007 - 2018 The Perl Foundation.
 
 # settable from outside
 my int $perl6_test_times = ?%*ENV<PERL6_TEST_TIMES>;
@@ -240,7 +240,7 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     #  #2 handles ops that don't have '«' or '»'
     #  #3 handles all the rest by escaping '<' and '>' with backslashes.
     #     Note: #3 doesn't eliminate #1, as #3 fails with '<' operator
-    my $matcher = $op ~~ Callable ?? $op
+    my $matcher = nqp::istype($op, Callable) ?? $op
         !! &CALLERS::("infix:<$op>") #1
             // &CALLERS::("infix:«$op»") #2
             // &CALLERS::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
@@ -257,7 +257,11 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     }
     else {
         $ok = proclaim(False, $desc);
-        _diag "Could not use '$op.perl()' as a comparator.";
+        _diag "Could not use '$op.perl()' as a comparator." ~ (
+            ' If you are trying to use a meta operator, pass it as a '
+            ~ "Callable instead of a string: \&[$op]"
+            unless nqp::istype($op, Callable)
+        );
     }
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
@@ -406,11 +410,9 @@ multi sub subtest(&subtests, $desc = '') is export {
     $subtest_todo_reason   = $parent_todo;
     $subtest_callable_type = &subtests.WHAT;
     $indents ~= "    ";
-    ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<++> does not die here
-    $subtest_level += 1;
+    $subtest_level++;
     subtests();
-    ## TODO: remove workaround for rakudo-j RT #128123 when postfix:<--> does not die here
-    $subtest_level -= 1;
+    $subtest_level--;
     done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
     my $status = $num_of_tests_failed == 0
         && $num_of_tests_planned == $num_of_tests_run
@@ -481,47 +483,25 @@ multi sub can-ok(
 }
 
 multi sub like(
-    $got, Regex $expected,
-    $desc = "text matches '$expected.perl()'"
+    Str() $got, Regex:D $expected,
+    $desc = "text matches $expected.perl()"
 ) is export {
     $time_after = nqp::time_n;
-    $got.defined; # Hack to deal with Failures
-    my $ok;
-    if $got ~~ Str:D {
-        my $test = $got ~~ $expected;
-        $ok = proclaim($test, $desc);
-        if !$test {
-            _diag "     expected: '$expected.perl()'\n"
-                ~ "     got: '$got'";
-        }
-    } else {
-        $ok = proclaim(False, $desc);
-        _diag "    expected a Str that matches '$expected.perl()'\n"
-            ~ "    got: '$got.perl()'";
-    }
+    my $ok := proclaim $got ~~ $expected, $desc
+        or _diag "expected a match with: $expected.perl()\n"
+               ~ "                  got: $got.perl()";
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub unlike(
-    $got, Regex $expected,
-    $desc = "text does not match '$expected.perl()'"
+    Str() $got, Regex:D $expected,
+    $desc = "text does not match $expected.perl()"
 ) is export {
     $time_after = nqp::time_n;
-    $got.defined; # Hack to deal with Failures
-    my $ok;
-    if $got ~~ Str:D {
-        my $test = !($got ~~ $expected);
-        $ok = proclaim($test, $desc);
-        if !$test {
-            _diag "     expected: '$expected.perl()'\n"
-                ~ "     got: '$got'";
-        }
-    } else {
-        $ok = proclaim(False, $desc);
-        _diag "     expected: a Str that matches '$expected.perl()'\n"
-            ~ "     got: '$got.perl()'";
-    }
+    my $ok := proclaim !($got ~~ $expected), $desc
+        or _diag "expected no match with: $expected.perl()\n"
+               ~ "                   got: $got.perl()";
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }

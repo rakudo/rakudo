@@ -427,6 +427,7 @@ General Options:
     --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'
                        Options to pass to MoarVM's Configure.pl
+                       For example: --moar-option='--compiler=clang'
     --git-protocol={ssh,https,git}
                        Protocol used for cloning git repos
     --git-depth=<number>
@@ -442,7 +443,9 @@ General Options:
 Please note that the --gen-moar and --gen-nqp options are there for convenience
 only and will actually immediately - at Configure time - compile and install
 moar and nqp respectively. They will live under the path given to --prefix,
-unless other targeting options are used.
+unless other targeting options are used. To configure how MoarVM should be
+compiled, use the --moar-option flag and view MoarVM's Configure.pl for more
+information on its configuration options.
 
 Configure.pl also reads options from 'config.default' in the current directory.
 END

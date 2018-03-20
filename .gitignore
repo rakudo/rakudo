@@ -7,6 +7,7 @@ Makefile
 *.pir
 *.lib
 *.dll
+/*.dll.a
 *.so
 *.o
 *.obj
@@ -101,7 +102,8 @@ perl6-gdb-m
 perl6-valgrind-m
 *.rakudo.moar
 *.rakudo.jvm
-**/.precomp
+.precomp
 t/03-jvm/*.class
 rakudo.js
 /zef
+.DS_Store

@@ -52,7 +52,7 @@ $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
         "p6bindsig", $TYPE_CSD, $TYPE_TC, $TYPE_CSD, "[$TYPE_OBJ" ));
     $il.append(JAST::Instruction.new( :op('dup') ));
-    
+
     my $natlbl := JAST::Label.new( :name('p6bindsig_no_autothread') );
     $il.append(JAST::Instruction.new( :op('ifnonnull'), $natlbl ));
     $il.append(JAST::Instruction.new( :op('aload'), 'cf' ));
@@ -60,7 +60,7 @@ $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
         $TYPE_CF, 'leave', 'Void' ));
     $il.append(JAST::Instruction.new( :op('return') ));
     $il.append($natlbl);
-    
+
     $il.append(JAST::Instruction.new( :op('astore'), 'csd' ));
     $il.append(JAST::Instruction.new( :op('aload_1') ));
     $il.append(JAST::Instruction.new( :op('getfield'), $TYPE_TC, 'flatArgs', "[$TYPE_OBJ" ));
@@ -91,6 +91,7 @@ $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
 $ops.add_hll_op('perl6', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.add_hll_op('nqp', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.map_classlib_hll_op('perl6', 'p6setitertype', $TYPE_P6OPS, 'p6setitertype', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('perl6', 'p6setiterbuftype', $TYPE_P6OPS, 'p6setiterbuftype', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6typecheckrv', $TYPE_P6OPS, 'p6typecheckrv', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
@@ -145,7 +146,7 @@ my $p6bool := -> $qastcomp, $op {
     my $exprres := $qastcomp.as_jast($op[0]);
     $il.append($exprres.jast);
     $*STACK.obtain($il, $exprres);
-    
+
     my $cond_type := $exprres.type;
     if $cond_type == $RT_INT {
         $il.append(JAST::PushIVal.new( :value(0) ));
@@ -217,6 +218,7 @@ $ops.add_hll_op('nqp', 'p6bool', $p6bool);
 $ops.map_classlib_hll_op('nqp', 'p6init', $TYPE_P6OPS, 'p6init', [], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6settypes', $TYPE_P6OPS, 'p6settypes', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6setitertype', $TYPE_P6OPS, 'p6setitertype', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('nqp', 'p6setiterbuftype', $TYPE_P6OPS, 'p6setiterbuftype', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6inpre', $TYPE_P6OPS, 'p6inpre', [], $RT_INT, :tc);

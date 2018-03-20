@@ -34,7 +34,7 @@ DLLEXPORT int* ArglessPointer()
 }
 
 char *my_str = "Just a string";
-DLLEXPORT int* ArglessUTF8String()
+DLLEXPORT char* ArglessUTF8String()
 {
     return my_str;
 }

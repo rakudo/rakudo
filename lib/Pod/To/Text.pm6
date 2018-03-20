@@ -36,7 +36,7 @@ sub heading2text($pod) {
 }
 
 sub code2text($pod) {
-    "    " ~ $pod.contents>>.&pod2text.subst(/\n/, "\n    ", :g)
+    $pod.contents>>.&pod2text.join.indent(4)
 }
 
 sub item2text($pod) {
@@ -64,17 +64,18 @@ sub table2text($pod) {
     @rows.unshift($pod.headers.item) if $pod.headers;
     my @maxes;
     my $cols = [max] @rows.map({ .elems });
-    for 0..^$cols -> $i {
+    for ^$cols -> $i {
         @maxes.push([max] @rows.map({ $i < $_ ?? $_[$i].chars !! 0 }));
     }
+    @maxes[*-1] = 0;  # Don't pad last column with spaces
     my $ret;
     if $pod.config<caption> {
         $ret = $pod.config<caption> ~ "\n"
     }
     for @rows -> $row {
-        for 0..($row.elems - 1) -> $i {
-            $ret ~= $row[$i].fmt("%-{@maxes[$i]}s") ~ "  ";
-        }
+        # Gutter of two spaces between columns
+        $ret ~= '  ' ~ join '  ',
+            (@maxes Z=> @$row).map: { .value.fmt("%-{.key}s") };
         $ret ~= "\n";
     }
     $ret

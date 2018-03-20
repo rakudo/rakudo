@@ -30,7 +30,7 @@ role Perl6::Metamodel::Mixins {
         my int $n := nqp::elems(@roles);
         while $i < $n {
             @roles[$i] := nqp::decont(@roles[$i]);
-            $i++;
+            ++$i;
         }
         # XXX Workaround for mixing in to non-composed types; when this takes
         # place (a bunch during CORE.setting) the mixin is missing bits. This

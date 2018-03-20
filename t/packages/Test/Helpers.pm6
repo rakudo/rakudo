@@ -3,7 +3,7 @@ use Test;
 
 sub is-run (
     Str() $code, $desc = "$code runs",
-    Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$status = 0
+    Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
 ) is export {
     my @proc-args = flat do if $*DISTRO.is-win {
         # $*EXECUTABLE is a batch file on Windows, that goes through cmd.exe
@@ -18,19 +18,19 @@ sub is-run (
     with run :in, :out, :err, @proc-args {
         $in ~~ Blob ?? .in.write: $in !! .in.print: $in if $in;
         $ = .in.close;
-        my $proc-out    = .out.slurp: :close;
-        my $proc-err    = .err.slurp: :close;
-        my $proc-status = .status;
+        my $proc-out      = .out.slurp: :close;
+        my $proc-err      = .err.slurp: :close;
+        my $proc-exitcode = .exitcode;
 
-        my $wanted-status = $status // 0;
-        my $wanted-out    = $out    // '';
-        my $wanted-err    = $err    // '';
+        my $wanted-exitcode = $exitcode // 0;
+        my $wanted-out      = $out    // '';
+        my $wanted-err      = $err    // '';
 
         subtest $desc => {
             plan 3;
-            cmp-ok $proc-out,    '~~', $wanted-out,    'STDOUT';
-            cmp-ok $proc-err,    '~~', $wanted-err,    'STDERR';
-            cmp-ok $proc-status, '~~', $wanted-status, 'Status';
+            cmp-ok $proc-out,      '~~', $wanted-out,      'STDOUT';
+            cmp-ok $proc-err,      '~~', $wanted-err,      'STDERR';
+            cmp-ok $proc-exitcode, '~~', $wanted-exitcode, 'Exit code';
         }
     }
 }
@@ -105,17 +105,52 @@ multi sub doesn't-hang (
     };
 }
 
+sub make-rand-path (--> IO::Path:D) {
+    my $p = $*TMPDIR;
+    # XXX TODO .resolve is broken on Windows in Rakudo; .resolve for all OSes
+    # when it is fixed
+    $p .= resolve unless $*DISTRO.is-win;
+    $p.child: (
+        'perl6_roast_',
+        $*PROGRAM.basename, '_line',
+        ((try callframe(3).code.line)||''), '_',
+        rand,
+        time,
+    ).join.subst: :g, /\W/, '_';
+}
+my @FILES-FOR-make-temp-file;
+my @DIRS-FOR-make-temp-dir;
+END {
+    unlink @FILES-FOR-make-temp-file;
+    rmdir  @DIRS-FOR-make-temp-dir;
+}
+sub make-temp-path(|c) is export { make-temp-file |c }
+sub make-temp-file
+    (:$content where Any:U|Blob|Cool, Int :$chmod --> IO::Path:D) is export
+{
+    @FILES-FOR-make-temp-file.push: my \p = make-rand-path;
+    with   $chmod   { p.spurt: $content // ''; p.chmod: $_ }
+    orwith $content { p.spurt: $_ }
+    p
+}
+sub make-temp-dir (Int $chmod? --> IO::Path:D) is export {
+    @DIRS-FOR-make-temp-dir.push: my \p = make-rand-path;
+    p.mkdir;
+    p.chmod: $_ with $chmod;
+    p
+}
+
 =begin pod
 
 =head2 is-run
 
   sub is-run (
       Str() $code, $desc = "$code runs",
-      Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$status = 0
+      Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
   )
 
 Runs code with C<Proc::Async>, smartmatching STDOUT with C<$out>,
-STDERR with C<$err> and exit code with C<$status>. C<$in> can be a C<Str>
+STDERR with C<$err> and exit code with C<$exitcode>. C<$in> can be a C<Str>
 or a C<Blob>. C<@args> are arguments to the program, while C<@compiler-args>
 are arguments to the compiler.
 
@@ -194,5 +229,26 @@ B<Optional>. Takes a C<.defined> object that will be smartmatched against
 C<Str> containing program's STDERR. If the program doesn't finish before
 C<:wait> seconds, no attempt to check STDERR will be made. B<By default>
 not specified.
+
+=head2  make-temp-file(:$content, :$chmod)
+
+    sub make-temp-file(:$content where Blob|Cool, Int :$chmod --> IO::Path:D)
+
+Creates a semi-random path in C<$*TMPDIR>, optionally setting C<$chmod> and
+spurting C<$content> into it. If C<$chmod> is set, but C<$content> isn't,
+spurts an empty string. Automatically deletes the file with C<END> phaser.
+
+=head2  make-temp-path(:$content, :$chmod)
+
+Alias for C<make-temp-file>
+
+=head2 make-temp-dir($chmod?)
+
+    sub make-temp-dir (Int $chmod? --> IO::Path:D)
+
+Creates a semi-randomly named directory in C<$*TMPDIR>, optionally setting
+C<$chmod>, and returns an C<IO::Path> pointing to it. Automatically
+C<rmdir>s it with C<END> phaser. It's your responsibility to ensure the
+directory is empty at that time.
 
 =end pod

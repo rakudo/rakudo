@@ -1,2 +1,2 @@
-src/core.d/core_prologue.pm
-src/core.d/await.pm
+src/core.d/core_prologue.pm6
+src/core.d/await.pm6

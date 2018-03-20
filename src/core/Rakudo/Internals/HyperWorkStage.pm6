@@ -10,12 +10,6 @@ my role Rakudo::Internals::HyperWorkStage {
 # of the appropriate size. Such a stage always lives at the start of a piece
 # of parallel processing pipeline.
 my role Rakudo::Internals::HyperBatcher does Rakudo::Internals::HyperWorkStage {
-    has $!sequence = -1;
-
-    method next-sequence-number() {
-        ++$!sequence
-    }
-
     method produce-batch(int $batch-size --> Rakudo::Internals::HyperWorkBatch) { ... }
 }
 

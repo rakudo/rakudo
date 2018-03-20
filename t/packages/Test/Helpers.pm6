@@ -66,7 +66,7 @@ multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '',
     }, $desc;
 }
 
-multi sub doesn't-hang (Str $args, $desc, :$in, :$wait = 1.5, :$out, :$err)
+multi sub doesn't-hang (Str $args, $desc, :$in, :$wait = 5, :$out, :$err)
 is export {
     doesn't-hang \($*EXECUTABLE, '-e', $args), $desc,
         :$in, :$wait, :$out, :$err;
@@ -74,7 +74,7 @@ is export {
 
 multi sub doesn't-hang (
     Capture $args, $desc = 'code does not hang',
-    :$in, :$wait = 1.5, :$out, :$err,
+    :$in, :$wait = 5, :$out, :$err,
 ) is export {
     my $prog = Proc::Async.new: |$args;
     my ($stdout, $stderr) = '', '';

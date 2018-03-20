@@ -10,7 +10,6 @@
 my class HyperSeq { ... }
 my class RaceSeq { ... }
 my class Rakudo::Internals::HyperIteratorBatcher { ... }
-my class X::Invalid::Value { ... }
 my role Iterable {
     method iterator() { ... }
 
@@ -110,32 +109,20 @@ my role Iterable {
         }.new(self))
     }
 
-    method !valid-hyper-race($method,$batch,$degree --> Nil) {
-        $batch <= 0
-          ?? X::Invalid::Value.new(
-               :$method,:name<batch>,:value($batch)).throw
-          !! $degree <= 0
-            ?? X::Invalid::Value.new(
-                 :$method,:name<degree>,:value($degree)).throw
-            !! Nil
-    }
-
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
-        self!valid-hyper-race('hyper', $batch, $degree);
         HyperSeq.new:
-            configuration => HyperConfiguration.new(:$degree, :$batch),
-            work-stage-head => Rakudo::Internals::HyperIteratorBatcher.new(
-                iterator => self.iterator
-            )
+          configuration =>
+            HyperConfiguration.new(:$degree, :$batch, :method<hyper>),
+          work-stage-head =>
+            Rakudo::Internals::HyperIteratorBatcher.new(:$.iterator)
     }
 
     method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
-        self!valid-hyper-race('race', $batch, $degree);
         RaceSeq.new:
-            configuration => HyperConfiguration.new(:$degree, :$batch),
-            work-stage-head => Rakudo::Internals::HyperIteratorBatcher.new(
-                iterator => self.iterator
-            )
+          configuration =>
+            HyperConfiguration.new(:$degree, :$batch, :method<race>),
+          work-stage-head =>
+            Rakudo::Internals::HyperIteratorBatcher.new(:$.iterator)
     }
 
     sub MIXIFY(\iterable, \type) {

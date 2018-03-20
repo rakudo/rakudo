@@ -92,6 +92,24 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
         }
         0
     }
+
+    method push-all($target) {
+        loop {
+            $target.append($!current-items);
+            $!current-items := $!batches.receive.items;
+            self.batch-used();
+
+            CATCH {
+                when X::Channel::ReceiveOnClosed {
+                    return IterationEnd;
+                }
+                default {
+                    ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                      unless nqp::istype($_, X::HyperRace::Died);
+                }
+            }
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

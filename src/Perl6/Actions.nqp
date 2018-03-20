@@ -9285,7 +9285,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub reference_to_code_object($code_obj, $past_block, :$setup) {
         my $wval := QAST::WVal.new( :value($code_obj) );
         my $ref := $setup ?? QAST::Stmts.new($setup, $wval) !! $wval;
-        $ref.annotate_self('past_block', $past_block).annotate_self('code_object', $code_obj)
+        $ref.annotate_self('past_block', $past_block).annotate_self('code_object', $code_obj);
         $ref
     }
 

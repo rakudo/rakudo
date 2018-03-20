@@ -319,10 +319,10 @@ class Perl6::World is HLL::World {
         # Marks all blocks upto and including one declaring a $*DISPATCHER as
         # being no-inline.
         method mark_no_inline_upto_dispatcher() {
-            my $i := +@!BLOCKS;
+            my $i := +@!PADS_AND_THUNKS;
             while $i > 0 {
                 $i := $i - 1;
-                my $block := @!BLOCKS[$i];
+                my $block := @!PADS_AND_THUNKS[$i];
                 $block.no_inline(1);
                 last if $block.symbol('$*DISPATCHER');
             }
@@ -2212,13 +2212,13 @@ class Perl6::World is HLL::World {
     }
 
     # Turn a QAST tree into a code object, to be called immediately.
-    method create_thunk($/, $to_thunk, $block = self.context().create_block($/)) {
+    method create_thunk($/, $to_thunk, $block = self.context().create_block($/), :$mark-wanted) {
         # XXX TODO: Wantedness fixes warnings in RT#131305, but perhaps
         # it's safe to not install the block in the first place? (old attempt
         # to do so caused JVM breakage mentioned in the ticket)
         $to_thunk.wanted: 1 if $mark-wanted;
         $block.push($to_thunk);
-        self.create_simple_code_object($block, 'Code');
+        self.create_code_obj_and_add_child($block, 'Code');
     }
 
     # Creates a simple code object with an empty signature

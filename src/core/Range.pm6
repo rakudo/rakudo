@@ -612,6 +612,18 @@ my class Range is Cool does Iterable does Positional {
         }
     }
 
+#    method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+#        HyperSeq.new:
+#          configuration => HyperConfiguration.new(:$degree, :$batch),
+#          work-stage-head => Rakudo::Internals::HyperRangeBatcher.new(self)
+#    }
+
+#    method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+#        RaceSeq.new:
+#          configuration => HyperConfiguration.new(:$degree, :$batch),
+#          work-stage-head => Rakudo::Internals::HyperRangeBatcher.new(self)
+#    }
+
     method Capture(Range:D:) {
         \( :$!min, :$!max,
            excludes-min => self.excludes-min,

@@ -7,45 +7,33 @@ my class Rakudo::Internals::HyperRangeBatcher does Rakudo::Internals::HyperBatch
    
     method new(\r) {
         nqp::if(
-          r.is-int,
-          nqp::create(self).SET-FINITE(r),       # yes, can fast path finitely
-          nqp::if(
-            nqp::istype(nqp::getattr(r,Range,'$!min'),Int)
-              && nqp::getattr(r,Range,'$!max') == Inf,
-            nqp::create(self).SET-INFINITE(r),   # yes, can fast path infinitely
-            Rakudo::Internals::HyperIteratorBatcher.new(
-              iterator => r.iterator)            # no, use slower iterator path
-          )
+          nqp::istype(nqp::getattr(r,Range,'$!min'),Int)
+            && (nqp::istype(nqp::getattr(r,Range,'$!max'),Int)
+                 || nqp::getattr(r,Range,'$!max') == Inf),
+          nqp::create(self).SET-SELF(r),         # yes, can use fast path
+          Rakudo::Internals::HyperIteratorBatcher.new(
+            iterator => r.iterator)              # no, use slower iterator path
         )
     }
 
-    method SET-FINITE(\range) {
+    method SET-SELF(\range) {
         nqp::stmts(
           ($!first = 1),
           ($!this = nqp::add_i(
             nqp::sub_i(nqp::getattr(range,Range,'$!min'),1),
             nqp::getattr_i(range,Range,'$!excludes-min')
           )),
-          ($!end = nqp::sub_i(
-            nqp::getattr(range,Range,'$!max'),
-            nqp::getattr_i(range,Range,'$!excludes-max')
+          ($!end = nqp::if(
+            nqp::getattr(range,Range,'$!max') == Inf,
+            int.Range.max,
+            nqp::sub_i(
+              nqp::getattr(range,Range,'$!max'),
+              nqp::getattr_i(range,Range,'$!excludes-max')
+            )
           )),
           self
         )
     }
-
-    method SET-INFINITE(\range) {
-        nqp::stmts(
-          ($!first = 1),
-          ($!this = nqp::add_i(
-            nqp::sub_i(nqp::getattr(range,Range,'$!min'),1),
-            nqp::getattr_i(range,Range,'$!excludes-min')
-          )),
-          ($!end = int.Range.max),
-          self
-        )
-    }
-
 
     method produce-batch(int $batch-size --> Rakudo::Internals::HyperWorkBatch) {
         nqp::stmts(

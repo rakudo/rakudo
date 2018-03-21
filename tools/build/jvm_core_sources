@@ -59,6 +59,7 @@ src/core/Rakudo/Internals/HyperWorkBatch.pm6
 src/core/Rakudo/Internals/HyperWorkStage.pm6
 src/core/Rakudo/Internals/HyperPipeline.pm6
 src/core/Rakudo/Internals/HyperIteratorBatcher.pm6
+src/core/Rakudo/Internals/HyperRangeBatcher.pm6
 src/core/Rakudo/Internals/HyperToIterator.pm6
 src/core/Rakudo/Internals/RaceToIterator.pm6
 src/core/Rakudo/Internals/HyperRaceSharedImpl.pm6

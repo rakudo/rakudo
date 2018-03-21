@@ -55,10 +55,7 @@ my class IO::Socket::INET does IO::Socket {
 
     method !correct-family(Int:D $family) {
         if ($family == 3) {
-            note "You're using the old value (3) for IPv6 / PF_NET6, " ~
-                "please use the constant PF_INET6 to specify IPv6";
-            note Backtrace.new.Str;
-
+            DEPRECATED('PF_INET6', :what("You're using the old value (3) for IPv6 / PF_NET6"), :up(*));
             return PF_INET6;
         }
 

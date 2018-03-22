@@ -1593,11 +1593,11 @@ my class Supplier {
     }
     submethod BUILD(:$!taplist! --> Nil) { }
 
-    method emit(Supplier:D: Mu \value) {
+    method emit(Supplier:D: Mu \value --> Nil) {
         $!taplist.emit(value);
     }
 
-    method done(Supplier:D:) {
+    method done(Supplier:D: --> Nil) {
         $!taplist.done();
     }
 

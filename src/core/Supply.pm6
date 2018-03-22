@@ -72,19 +72,19 @@ my class Supply does Awaitable {
     has Tappable $!tappable;
 
     proto method new(|) {*}
-    multi method new() {
+    multi method new(Supply:) {
         X::Supply::New.new.throw
     }
-    multi method new(Tappable $tappable) {
-        self.WHAT =:= Supply
-            ?? nqp::create(self)!SET-SELF($tappable)
-            !! self.bless(:$tappable)
+    multi method new(Supply: Tappable $tappable) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Supply),
+          nqp::p6bindattrinvres(                 # we're a real Supply, fast path
+            nqp::create(self),Supply,'$!tappable',$tappable
+          ),
+          self.bless(:$tappable)                 # subclass, use slow path
+        )
     }
-    submethod BUILD(Tappable :$!tappable! --> Nil) { }
-    method !SET-SELF(Tappable $tappable) {
-        $!tappable := $tappable;
-        self
-    }
+    submethod BUILD(Tappable :$!tappable! --> Nil) { }  # for subclasses
 
     method Capture(Supply:D:) { self.List.Capture }
 

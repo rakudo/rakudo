@@ -1690,11 +1690,16 @@ class Rakudo::Iterator {
         class :: does Iterator {
             has int $!i;
             has int $!last;
+            has $!is-lazy;
 
-            method !SET-SELF(int $i, int $last) {
+            method !SET-SELF(int $i, $last) {
                 nqp::stmts(
                   ($!i    = nqp::sub_i($i,1)),
-                  ($!last = $last),
+                  ($!last = nqp::if(
+                    ($!is-lazy := $last == Inf),
+                    int.Range.max,
+                    $last
+                  )),
                   self
                 )
             }
@@ -1705,6 +1710,24 @@ class Rakudo::Iterator {
                   nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last),
                   $!i,
                   IterationEnd
+                )
+            }
+            method push-exactly($target, int $batch-size) {
+                nqp::stmts(
+                  (my int $todo = nqp::add_i($batch-size,1)),
+                  (my int $i    = $!i),      # lexicals are faster than attrs
+                  (my int $last = $!last),
+                  nqp::while(
+                    ($todo = nqp::sub_i($todo,1))
+                      && nqp::isle_i(($i = nqp::add_i($i,1)),$last),
+                    $target.push(nqp::p6box_i($i))
+                  ),
+                  ($!i = $i),                # make sure pull-one ends
+                  nqp::if(
+                    nqp::isgt_i($i,$last),
+                    IterationEnd,
+                    $batch-size
+                  )
                 )
             }
             method push-all($target --> IterationEnd) {
@@ -1718,6 +1741,7 @@ class Rakudo::Iterator {
                   ($!i = $i),                # make sure pull-one ends
                 )
             }
+            method is-lazy(--> Bool:D) { $!is-lazy }
             method count-only() { nqp::p6box_i(nqp::sub_i($!last,$!i)) }
             method bool-only()  { nqp::p6bool(nqp::isgt_i($!last,$!i)) }
             method sink-all(--> IterationEnd) { $!i = $!last }

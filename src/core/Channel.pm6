@@ -21,7 +21,7 @@ my class Channel does Awaitable {
     has $!closed_promise_vow;
 
     # Flag for if the channel is closed to senders.
-    has $!closed;
+    has int $!closed;
 
     # We use a Supplier to send async notifications that there may be a new
     # message to read from the channel (there may be many things competing
@@ -257,14 +257,13 @@ my class Channel does Awaitable {
         }
     }
 
-    method close() {
+    method close(--> Nil) {
         $!closed = 1;
         nqp::push($!queue, CHANNEL_CLOSE);
         # if $!queue is otherwise empty, make sure that $!closed_promise
         # learns about the new value
         self!peek();
         $!async-notify.emit(True);
-        Nil
     }
 
     method elems() {

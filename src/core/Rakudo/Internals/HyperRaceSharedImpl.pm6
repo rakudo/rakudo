@@ -74,6 +74,11 @@ class Rakudo::Internals::HyperRaceSharedImpl {
                 work-stage-head => Map.new(:$source, :&mapper)
         }
     }
+    multi method invert(\hyper, $source) {
+        hyper.bless:
+          configuration => hyper.configuration,
+          work-stage-head => Map.new(:$source,:mapper(-> Pair:D $p {$p.antipair}))
+    }
 
     my class Sink does Rakudo::Internals::HyperJoiner {
         has Promise $.complete .= new;

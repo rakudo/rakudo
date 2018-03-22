@@ -39,11 +39,15 @@ my class Channel does Awaitable {
         $!async-notify = Supplier.new;
     }
 
-    method send(Channel:D: \item) {
-        X::Channel::SendOnClosed.new(channel => self).throw if $!closed;
-        nqp::push($!queue, nqp::decont(item));
-        $!async-notify.emit(True);
-        Nil
+    method send(Channel:D: \item --> Nil) {
+        nqp::if(
+          $!closed,
+          X::Channel::SendOnClosed.new(channel => self).throw,
+          nqp::stmts(
+            nqp::push($!queue,nqp::decont(item)),
+            $!async-notify.emit(True)
+          )
+        )
     }
 
     method receive(Channel:D:) {

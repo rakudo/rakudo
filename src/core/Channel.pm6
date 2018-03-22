@@ -69,25 +69,6 @@ my class Channel does Awaitable {
           )
         )
     }
-    method receive-nil-on-close(Channel:D:) {
-        nqp::if(
-          nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
-          nqp::stmts(
-            nqp::push($!queue, msg),    # make sure other readers see it
-            $!closed_promise_vow.keep(Nil),
-            Nil
-          ),
-          nqp::if(
-            nqp::istype(msg,CHANNEL_FAIL),
-            nqp::stmts(
-              nqp::push($!queue,msg),   # make sure other readers see it
-              $!closed_promise_vow.break(my $error := msg.error),
-              $error.rethrow
-            ),
-            msg
-          )
-        )
-    }
 
     method poll(Channel:D:) {
         nqp::if(
@@ -169,14 +150,30 @@ my class Channel does Awaitable {
 
     method iterator(Channel:D:) {
         class :: does Iterator {
-            has $!channel;
-            method !SET-SELF($!channel) { self }
-            method new(\c) { nqp::create(self)!SET-SELF(c) }
+            has $!queue;
+            has $!vow;
+            method new(\queue,\vow) { nqp::create(self).SET-SELF(queue,vow) }
+            method SET-SELF(\queue,\vow) { $!queue := queue; $!vow := vow; self }
             method pull-one() {
-                my Mu \got = $!channel.receive-nil-on-close;
-                nqp::eqaddr(got, Nil) ?? IterationEnd !! got
+                nqp::if(
+                  nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
+                  nqp::stmts(
+                    nqp::push($!queue,msg),     # make sure other readers see it
+                    $!vow.keep(Nil),
+                    IterationEnd
+                  ),
+                  nqp::if(
+                    nqp::istype(msg,CHANNEL_FAIL),
+                    nqp::stmts(
+                      nqp::push($!queue,msg),   # make sure other readers see it
+                      $!vow.break(my $error := msg.error),
+                      $error.rethrow
+                    ),
+                    msg
+                  )
+                )
             }
-        }.new(self)
+        }.new($!queue,$!closed_promise_vow)
     }
 
     method list(Channel:D:) { self.Seq.list }

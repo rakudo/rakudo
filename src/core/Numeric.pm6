@@ -240,7 +240,7 @@ multi sub infix:<%%>(Int:D \a, Int:D \b) {
       nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
       nqp::if(
         b,
-        nqp::p6bool(nqp::not_i(nqp::mod_I(nqp::decont(a),nqp::decont(b),Int))),
+        !nqp::mod_I(nqp::decont(a),nqp::decont(b),Int),
         Failure.new(
           X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
         )

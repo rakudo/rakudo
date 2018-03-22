@@ -730,7 +730,7 @@ my class IO::Handle {
 
     proto method encoding(|) {*}
     multi method encoding(IO::Handle:D:) { $!encoding // Nil }
-    multi method encoding(IO::Handle:D: $new-encoding is copy, :$replacement, :$strict) {
+    multi method encoding(IO::Handle:D: $new-encoding is copy, :$replacement, :$strict, Bool:D :$translate-nl = True) {
         with $new-encoding {
             if $_ eq 'bin' {
                 $_ = Nil;
@@ -747,11 +747,11 @@ my class IO::Handle {
             with $new-encoding {
                 my $prev-decoder := $!decoder;
                 my $encoding = Encoding::Registry.find($new-encoding);
-                $!decoder := $encoding.decoder(:translate-nl);
+                $!decoder := $encoding.decoder(:$translate-nl, :$replacement, :$strict);
                 $!decoder.set-line-separators($!nl-in.list);
                 $!decoder.add-bytes($prev-decoder.consume-exactly-bytes($available))
                     if $available;
-                $!encoder := $encoding.encoder(:translate-nl, :$replacement, :$strict);
+                $!encoder := $encoding.encoder(:$translate-nl, :$replacement, :$strict);
                 $!encoding = $encoding.name;
             }
             else {
@@ -766,9 +766,9 @@ my class IO::Handle {
             # No previous decoder; make a new one if needed, otherwise no change.
             with $new-encoding {
                 my $encoding = Encoding::Registry.find($new-encoding);
-                $!decoder := $encoding.decoder(:translate-nl);
+                $!decoder := $encoding.decoder(:$translate-nl, :$replacement, :$strict);
                 $!decoder.set-line-separators($!nl-in.list);
-                $!encoder := $encoding.encoder(:translate-nl, :$replacement, :$strict);
+                $!encoder := $encoding.encoder(:$translate-nl, :$replacement, :$strict);
                 $!encoding = $encoding.name;
             }
             else {

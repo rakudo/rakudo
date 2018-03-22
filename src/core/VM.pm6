@@ -42,6 +42,7 @@ class VM does Systemic {
 #?endif
 #?if js
         $!name           = 'js';
+        $!desc           = $desc // 'JavaScript';
         $!auth           = "unknown";
         $!version        = Version.new("unknown");
         $!prefix         = 'todo-prefix';

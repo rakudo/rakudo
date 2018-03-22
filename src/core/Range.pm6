@@ -106,11 +106,12 @@ my class Range is Cool does Iterable does Positional {
 
     method iterator() {
         # can use native ints
-        if $!is-int
-          && !nqp::isbig_I(nqp::decont($!min))
-          && !nqp::isbig_I(nqp::decont($!max)) {
+        if nqp::istype($!min,Int) && nqp::not_i(nqp::isbig_I(nqp::decont($!min)))
+          && ((nqp::istype($!max,Int) && nqp::not_i(nqp::isbig_I(nqp::decont($!max)))) || $!max == Inf) {
             Rakudo::Iterator.IntRange(
-              $!min + $!excludes-min, $!max - $!excludes-max)
+              $!min + $!excludes-min,
+              $!max - $!excludes-max
+            )
         }
 
         # doesn't make much sense, but there you go
@@ -611,18 +612,6 @@ my class Range is Cool does Iterable does Positional {
             EmptySeq
         }
     }
-
-#    method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
-#        HyperSeq.new:
-#          configuration => HyperConfiguration.new(:$degree, :$batch),
-#          work-stage-head => Rakudo::Internals::HyperRangeBatcher.new(self)
-#    }
-
-#    method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
-#        RaceSeq.new:
-#          configuration => HyperConfiguration.new(:$degree, :$batch),
-#          work-stage-head => Rakudo::Internals::HyperRangeBatcher.new(self)
-#    }
 
     method Capture(Range:D:) {
         \( :$!min, :$!max,

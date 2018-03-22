@@ -280,7 +280,7 @@ my class Array { # declared in BOOTSTRAP
         my \iter = iterable.iterator;
         my \target = ArrayReificationTarget.new(new-storage,
             nqp::decont($!descriptor));
-        if iter.push-until-lazy(target) =:= IterationEnd {
+        if nqp::eqaddr(iter.push-until-lazy(target),IterationEnd) {
             nqp::bindattr(self, List, '$!todo', Mu);
         }
         else {
@@ -290,8 +290,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindattr(new-todo, List::Reifier, '$!reification-target', target);
             nqp::bindattr(self, List, '$!todo', new-todo);
         }
-        nqp::bindattr(self, List, '$!reified', new-storage);
-        self
+        nqp::p6bindattrinvres(self,List,'$!reified',new-storage)
     }
     method !STORE-ONE(Mu \item) {
         my \new-storage = nqp::create(IterationBuffer);

@@ -3,23 +3,30 @@
 my class Tap {
     has &!on-close;
 
-    submethod BUILD(:&!on-close --> Nil) { }
+    submethod BUILD(:&!on-close --> Nil) { } # for subclasses of Tap
 
-    submethod new(&on-close = Callable) {
-        nqp::create(self)!SET-SELF(&on-close)
+    multi method new(Tap: --> Tap:D) {
+        nqp::create(self)
     }
-    method !SET-SELF(&on-close) {
-        &!on-close := &on-close;
-        self
+    multi method new(Tap: &on-close --> Tap:D) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Tap),
+          nqp::p6bindattrinvres(                 # we're a real Tap, fast path
+            nqp::create(self),Tap,'&!on-close',&on-close
+          ),
+          self.bless(:&on-close)                 # subclass, use slow path
+        )
     }
+    
 
-    method close() {
-        my &closer := &!on-close;
-        my \close-result = &closer ?? closer() !! Nil;
-        if nqp::istype(close-result, Promise) {
-            await close-result;
-        }
-        True
+    method close(--> True) {
+        nqp::if(
+          nqp::isconcrete(&!on-close),
+          nqp::if(
+            nqp::istype((my \close-result := &!on-close()),Promise),
+            (await close-result)
+          )
+        )
     }
 }
 

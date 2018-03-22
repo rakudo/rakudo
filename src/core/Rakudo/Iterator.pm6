@@ -2501,6 +2501,27 @@ class Rakudo::Iterator {
                 )
             }
 
+            method push-exactly($target, int $batch-size) {
+                nqp::stmts(
+                  (my int $todo = nqp::add_i($batch-size,1)),
+                  (my int $i    = $!i),      # lexicals are faster than attrs
+                  (my int $elems = nqp::elems($!reified)),
+                  nqp::while(
+                    ($todo = nqp::sub_i($todo,1))
+                      && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    $target.push(
+                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
+                    )
+                  ),
+                  ($!i = $i),                # make sure pull-one ends
+                  nqp::if(
+                    nqp::isge_i($i,$elems),
+                    IterationEnd,
+                    $batch-size
+                  )
+                )
+            }
+
             method push-all($target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!reified)),
@@ -2559,7 +2580,7 @@ class Rakudo::Iterator {
             has $!reified;
             has int $!i;
 
-            method !SET-SELF(\list) {
+            method SET-SELF(\list) {
                 nqp::stmts(
                   ($!reified := nqp::if(
                     nqp::istype(list,List),
@@ -2569,7 +2590,7 @@ class Rakudo::Iterator {
                   self
                 )
             }
-            method new(\list) { nqp::create(self)!SET-SELF(list) }
+            method new(\list) { nqp::create(self).SET-SELF(list) }
 
             method pull-one() is raw {
                 nqp::ifnull(
@@ -2578,6 +2599,24 @@ class Rakudo::Iterator {
                     nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
                     nqp::null,                              # it's a hole
                     IterationEnd                            # it's the end
+                  )
+                )
+            }
+            method push-exactly($target, int $batch-size) {
+                nqp::stmts(
+                  (my int $todo = nqp::add_i($batch-size,1)),
+                  (my int $i    = $!i),      # lexicals are faster than attrs
+                  (my int $elems = nqp::elems($!reified)),
+                  nqp::while(
+                    ($todo = nqp::sub_i($todo,1))
+                      && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    $target.push(nqp::atpos($!reified,$i))
+                  ),
+                  ($!i = $i),                # make sure pull-one ends
+                  nqp::if(
+                    nqp::isge_i($i,$elems),
+                    IterationEnd,
+                    $batch-size
                   )
                 )
             }

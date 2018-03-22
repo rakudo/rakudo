@@ -1559,13 +1559,21 @@ my class Supplier {
         }
 
         method emit(\value --> Nil) {
-            my $snapshot := $!tappers;
-            if nqp::isconcrete($snapshot) {
-                my int $n = nqp::elems($snapshot);
-                loop (my int $i = 0; $i < $n; $i = $i + 1) {
-                    nqp::atpos($snapshot, $i).emit()(value);
-                }
-            }
+            nqp::if(
+              nqp::isconcrete(my $snapshot := $!tappers)
+                && (my int $n = nqp::elems($snapshot)),
+              nqp::if(                                 # at least one tap
+                nqp::isgt_i($n,1),
+                nqp::stmts(                            # multiple taps
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$n),
+                    nqp::atpos($snapshot,$i).emit()(value)
+                  )
+                ),
+                nqp::atpos($snapshot,0).emit()(value)  # only one tap
+              )
+            )
         }
 
         method done(--> Nil) {

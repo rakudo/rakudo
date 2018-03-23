@@ -268,37 +268,48 @@ my class Array { # declared in BOOTSTRAP
 
     proto method STORE(|) {*}
     multi method STORE(Array:D: Iterable:D \iterable) {
-        nqp::iscont(iterable)
-            ?? self!STORE-ONE(iterable)
-            !! self!STORE-ITERABLE(iterable)
+        nqp::stmts(
+          (my \buffer = nqp::create(IterationBuffer)),
+          nqp::if(
+            nqp::iscont(iterable),
+            nqp::stmts(                          # only a single element
+              nqp::push(
+                buffer,
+                nqp::assign(nqp::p6scalarfromdesc($!descriptor),iterable)
+              ),
+              nqp::bindattr(self,List,'$!todo',Mu)
+            ),
+            nqp::if(                             # a real iterator with N elems
+              nqp::eqaddr(
+                (my \iter = iterable.iterator).push-until-lazy(
+                  (my \target = ArrayReificationTarget.new(
+                    buffer,nqp::decont($!descriptor)
+                  ))
+                ),
+                IterationEnd
+              ),
+              nqp::bindattr(self,List,'$!todo',Mu),  # exhausted
+              nqp::stmts(                            # still left to do
+                nqp::bindattr(self,List,'$!todo',
+                  my \todo = nqp::create(List::Reifier)),
+                nqp::bindattr(todo,List::Reifier,'$!reified',buffer),
+                nqp::bindattr(todo,List::Reifier,'$!current-iter',iter),
+                nqp::bindattr(todo,List::Reifier,'$!reification-target',target),
+              )
+            )
+          ),
+          nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+        )
     }
     multi method STORE(Array:D: Mu \item) {
-        self!STORE-ONE(item)
-    }
-    method !STORE-ITERABLE(\iterable) {
-        my \new-storage = nqp::create(IterationBuffer);
-        my \iter = iterable.iterator;
-        my \target = ArrayReificationTarget.new(new-storage,
-            nqp::decont($!descriptor));
-        if nqp::eqaddr(iter.push-until-lazy(target),IterationEnd) {
-            nqp::bindattr(self, List, '$!todo', Mu);
-        }
-        else {
-            my \new-todo = nqp::create(List::Reifier);
-            nqp::bindattr(new-todo, List::Reifier, '$!reified', new-storage);
-            nqp::bindattr(new-todo, List::Reifier, '$!current-iter', iter);
-            nqp::bindattr(new-todo, List::Reifier, '$!reification-target', target);
-            nqp::bindattr(self, List, '$!todo', new-todo);
-        }
-        nqp::p6bindattrinvres(self,List,'$!reified',new-storage)
-    }
-    method !STORE-ONE(Mu \item) {
-        my \new-storage = nqp::create(IterationBuffer);
-        nqp::push(new-storage,
-            nqp::assign(nqp::p6scalarfromdesc($!descriptor), item));
-        nqp::bindattr(self, List, '$!reified', new-storage);
-        nqp::bindattr(self, List, '$!todo', Mu);
-        self
+        nqp::stmts(
+          nqp::push(
+            (my \buffer = nqp::create(IterationBuffer)),
+            nqp::assign(nqp::p6scalarfromdesc($!descriptor), item)
+          ),
+          nqp::bindattr(self,List,'$!todo',Mu),
+          nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+        )
     }
 
     method reification-target() {

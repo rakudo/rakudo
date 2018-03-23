@@ -588,12 +588,13 @@ class Telemetry does Associative {
         my $self := nqp::create(self);
         nqp::bindattr($self,Telemetry,'$!sampler',
           my $sampler := nqp::decont($*SAMPLER));
-        nqp::bindattr($self,Telemetry,'$!samples',
-          my $samples := nqp::create(IterationBuffer));
 
-        $samples.push($_) for @samples;
+        my $samples  := nqp::create(IterationBuffer);
+        my int $elems = +@samples;  # reify
+        my $reified  := nqp::getattr(@samples,List,'$!reified');
+        nqp::if($reified,nqp::splice($samples,$reified,0,$elems));
 
-        $self
+        nqp::p6bindattrinvres($self,Telemetry,'$!samples',$samples);
     }
 
     multi method perl(Telemetry:D: --> Str:D) {

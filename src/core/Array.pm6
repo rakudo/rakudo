@@ -102,7 +102,7 @@ my class Array { # declared in BOOTSTRAP
                 has $!todo;
                 has $!descriptor;
 
-                method !SET-SELF(\array) {
+                method SET-SELF(\array) {
                     $!i           = -1;
                     $!array      := array;
                     $!reified    :=
@@ -115,21 +115,21 @@ my class Array { # declared in BOOTSTRAP
                     $!descriptor := nqp::getattr(array,Array,'$!descriptor');
                     self
                 }
-                method new(\array) { nqp::create(self)!SET-SELF(array) }
+                method new(\array) { nqp::create(self).SET-SELF(array) }
 
                 method pull-one() is raw {
                     nqp::ifnull(
                       nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
                       nqp::islt_i($!i,nqp::elems($!reified))
-                        ?? self!hole($!i)
+                        ?? self.hole($!i)
                         !! $!todo.DEFINITE
                           ?? nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
                             ?? nqp::atpos($!reified,$!i) # cannot be nqp::null
-                            !! self!done
+                            !! self.done
                           !! IterationEnd
                     )
                 }
-                method !hole(int $i) {
+                method hole(int $i) {
                    nqp::p6bindattrinvres(
                      (my \v := nqp::p6scalarfromdesc($!descriptor)),
                      Scalar,
@@ -137,7 +137,7 @@ my class Array { # declared in BOOTSTRAP
                      -> { nqp::bindpos($!reified,$i,v) }
                    )
                 }
-                method !done() is raw {
+                method done() is raw {
                     $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
                     IterationEnd
                 }
@@ -156,7 +156,7 @@ my class Array { # declared in BOOTSTRAP
                           $!todo.fully-reified,
                           nqp::stmts(
                             ($!i = $i),
-                            self!done
+                            self.done
                           ),
                           nqp::stmts(
                             ($!i = nqp::sub_i($elems,1)),
@@ -170,7 +170,7 @@ my class Array { # declared in BOOTSTRAP
                         nqp::while(   # doesn't sink
                           nqp::islt_i($i = nqp::add_i($i,1),$elems),
                           $target.push(
-                            nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
+                            nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
                           )
                         ),
                         ($!i = $i),

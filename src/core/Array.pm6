@@ -93,9 +93,9 @@ my class Array { # declared in BOOTSTRAP
 
     method iterator(Array:D:) {
 
-        # something to iterate over in the future
-        if nqp::getattr(self,List,'$!todo').DEFINITE {
-            class :: does Iterator {
+        nqp::if(
+          nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
+            class :: does Iterator {             # something to iterate over
                 has int $!i;
                 has $!array;
                 has $!reified;
@@ -120,13 +120,22 @@ my class Array { # declared in BOOTSTRAP
                 method pull-one() is raw {
                     nqp::ifnull(
                       nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      nqp::islt_i($!i,nqp::elems($!reified))
-                        ?? self.hole($!i)
-                        !! $!todo.DEFINITE
-                          ?? nqp::islt_i($!i,$!todo.reify-at-least(nqp::add_i($!i,1)))
-                            ?? nqp::atpos($!reified,$!i) # cannot be nqp::null
-                            !! self.done
-                          !! IterationEnd
+                      nqp::if(
+                        nqp::islt_i($!i,nqp::elems($!reified)),
+                        self.hole($!i),
+                        nqp::if(
+                          nqp::isconcrete($!todo),
+                          nqp::if(
+                            nqp::islt_i(
+                              $!i,
+                              $!todo.reify-at-least(nqp::add_i($!i,1))
+                            ),
+                            nqp::atpos($!reified,$!i), # cannot be nqp::null
+                            self.done
+                          ),
+                          IterationEnd
+                        )
+                      )
                     )
                 }
                 method hole(int $i) {
@@ -180,21 +189,16 @@ my class Array { # declared in BOOTSTRAP
                 }
 
                 method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
-            }.new(self)
-        }
-
-        # everything we need is already there
-        elsif nqp::getattr(self,List,'$!reified').DEFINITE {
-            Rakudo::Iterator.ReifiedArray(
+            }.new(self),
+          nqp::if(
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
+            Rakudo::Iterator.ReifiedArray(       # everything is already there
               self,
               nqp::getattr(self,Array,'$!descriptor')
-            )
-        }
-
-        # nothing now or in the future to iterate over
-        else {
-            Rakudo::Iterator.Empty
-        }
+            ),
+            Rakudo::Iterator.Empty               # nothing now or in the future
+          )
+        )
     }
     method from-iterator(Array:U: Iterator $iter) {
         nqp::if(
@@ -347,7 +351,7 @@ my class Array { # declared in BOOTSTRAP
         BEGIN Slip-With-Descriptor.^set_name("Slip");
 
         nqp::if(
-          nqp::getattr(self,List,'$!todo').DEFINITE,
+          nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
           # We're not fully reified, and so have internal mutability still.
           # The safe thing to do is to take an iterator of ourself and build
           # the Slip out of that.
@@ -355,7 +359,7 @@ my class Array { # declared in BOOTSTRAP
           # We're fully reified.  Make a Slip that shares our reified buffer
           # but that will fill in default values for nulls.
           nqp::if(
-            nqp::getattr(self,List,'$!reified').DEFINITE,
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
             nqp::p6bindattrinvres(
               nqp::p6bindattrinvres(
                 nqp::create(Slip-With-Descriptor),
@@ -374,13 +378,13 @@ my class Array { # declared in BOOTSTRAP
 
     method FLATTENABLE_LIST() {
         nqp::if(
-          nqp::getattr(self,List,'$!todo').DEFINITE,
+          nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
           nqp::stmts(
             nqp::getattr(self,List,'$!todo').reify-all,
             nqp::getattr(self,List,'$!reified')
           ),
           nqp::if(
-            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::stmts(
               nqp::if(
                 (my int $elems = nqp::elems($reified)),
@@ -415,7 +419,7 @@ my class Array { # declared in BOOTSTRAP
           X::Cannot::Lazy.new(:action<List>).throw,
 
           nqp::if(                                # all reified
-            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::if(
               $view,                              # assume no change in array
               nqp::p6bindattrinvres(
@@ -611,13 +615,14 @@ my class Array { # declared in BOOTSTRAP
           self!index-oor($pos),
           nqp::stmts(
             nqp::if(
-              nqp::getattr(self,List,'$!reified').DEFINITE,
+              nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
               nqp::if(
-                (nqp::isge_i(
-                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
-                    && nqp::getattr(self,List,'$!todo').DEFINITE),
+                nqp::isge_i(
+                  $pos,
+                  nqp::elems(nqp::getattr(self,List,'$!reified'))
+                ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
                 nqp::getattr(self,List,'$!todo').reify-at-least(
-                  nqp::add_i($pos,1)),
+                  nqp::add_i($pos,1))
               ),
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
             ),
@@ -632,11 +637,12 @@ my class Array { # declared in BOOTSTRAP
           self!index-oor($pos),
           nqp::stmts(
             nqp::if(
-              nqp::getattr(self,List,'$!reified').DEFINITE,
+              nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
               nqp::if(
-                (nqp::isge_i(
-                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
-                    && nqp::getattr(self,List,'$!todo').DEFINITE),
+                nqp::isge_i(
+                  $pos,
+                  nqp::elems(nqp::getattr(self,List,'$!reified'))
+                ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
                 nqp::getattr(self,List,'$!todo').reify-at-least(
                   nqp::add_i($pos,1)),
               ),
@@ -652,10 +658,10 @@ my class Array { # declared in BOOTSTRAP
           nqp::islt_i($pos,0),
           self!index-oor($pos),
           nqp::if(
-            (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE,
+            nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::stmts(
               nqp::if(
-                (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+                nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
                 $todo.reify-at-least(nqp::add_i($pos,1)),
               ),
               nqp::if(
@@ -711,7 +717,7 @@ my class Array { # declared in BOOTSTRAP
           nqp::stmts(
             nqp::push(
               nqp::if(
-                nqp::getattr(self,List,'$!reified').DEFINITE,
+                nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                 nqp::getattr(self,List,'$!reified'),
                 nqp::bindattr(self,List,'$!reified',
                   nqp::create(IterationBuffer))
@@ -737,7 +743,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::stmts(
               nqp::push(
                 nqp::if(
-                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                   nqp::getattr(self,List,'$!reified'),
                   nqp::bindattr(self,List,'$!reified',
                     nqp::create(IterationBuffer))
@@ -761,7 +767,7 @@ my class Array { # declared in BOOTSTRAP
             @values.iterator.push-until-lazy(
               ArrayReificationTarget.new(
                 nqp::if(
-                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                   nqp::getattr(self,List,'$!reified'),
                   nqp::bindattr(self,List,'$!reified',
                     nqp::create(IterationBuffer))
@@ -783,7 +789,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::stmts(
           nqp::unshift(
             nqp::if(
-              nqp::getattr(self,List,'$!reified').DEFINITE,
+              nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
               nqp::getattr(self,List,'$!reified'),
               nqp::bindattr(self,List,'$!reified',
                 nqp::create(IterationBuffer))
@@ -802,7 +808,7 @@ my class Array { # declared in BOOTSTRAP
           nqp::stmts(
             nqp::unshift(
               nqp::if(
-                nqp::getattr(self,List,'$!reified').DEFINITE,
+                nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                 nqp::getattr(self,List,'$!reified'),
                 nqp::bindattr(self,List,'$!reified',
                   nqp::create(IterationBuffer))
@@ -820,7 +826,7 @@ my class Array { # declared in BOOTSTRAP
     method !prepend-list(@values) {
         nqp::stmts(
           nqp::if(
-            nqp::getattr(self,List,'$!reified').DEFINITE,
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
             nqp::splice(nqp::getattr(self,List,'$!reified'), # prepend existing
               nqp::stmts(
                 @values.iterator.push-all(
@@ -851,8 +857,8 @@ my class Array { # declared in BOOTSTRAP
           self.is-lazy,
           Failure.new(X::Cannot::Lazy.new(action => 'pop from')),
           nqp::if(
-            (nqp::getattr(self,List,'$!reified').DEFINITE
-              && nqp::elems(nqp::getattr(self,List,'$!reified'))),
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
+              && nqp::elems(nqp::getattr(self,List,'$!reified')),
             nqp::pop(nqp::getattr(self,List,'$!reified')),
             Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
           )
@@ -861,15 +867,15 @@ my class Array { # declared in BOOTSTRAP
 
     method shift(Array:D:) is raw is nodal {
         nqp::if(
-          nqp::getattr(self,List,'$!reified').DEFINITE
+          nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
             && nqp::elems(nqp::getattr(self,List,'$!reified')),
           nqp::ifnull(  # handle holes
             nqp::shift(nqp::getattr(self,List,'$!reified')),
             Nil
           ),
           nqp::if(
-            (nqp::getattr(self,List,'$!todo').DEFINITE
-              && nqp::getattr(self,List,'$!todo').reify-at-least(1)),
+            nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
+              && nqp::getattr(self,List,'$!todo').reify-at-least(1),
             nqp::shift(nqp::getattr(self,List,'$!reified')),
             Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
           )
@@ -880,7 +886,7 @@ my class Array { # declared in BOOTSTRAP
     #------ splice() candidates
     multi method splice(Array:D \SELF:) {
         nqp::if(
-          nqp::getattr(SELF,List,'$!reified').DEFINITE,
+          nqp::isconcrete(nqp::getattr(SELF,List,'$!reified')),
           nqp::stmts(
             (my $result := nqp::create(SELF)),
             nqp::bindattr($result,Array,'$!descriptor',$!descriptor),
@@ -888,7 +894,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::bindattr($result,List,'$!reified',
                 nqp::getattr(SELF,List,'$!reified')),
               nqp::if(
-                nqp::getattr(SELF,List,'$!todo').DEFINITE,
+                nqp::isconcrete(nqp::getattr(SELF,List,'$!todo')),
                 nqp::bindattr($result,List,'$!todo',
                   nqp::getattr(SELF,List,'$!todo')),
               )
@@ -916,7 +922,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::islt_i(nqp::unbox_i($offset),0),
             self!splice-offset-fail($offset),
             nqp::if(
-              (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+              nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
               nqp::if(
                 nqp::isge_i(
                   $todo.reify-at-least($offset),nqp::unbox_i($offset)),
@@ -924,10 +930,11 @@ my class Array { # declared in BOOTSTRAP
                 self!splice-offset-fail($offset)
               ),
               nqp::if(
-                (nqp::getattr(self,List,'$!reified').DEFINITE
+                nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
                   && nqp::isge_i(
                     nqp::elems(nqp::getattr(self,List,'$!reified')),
-                    nqp::unbox_i($offset))),
+                    nqp::unbox_i($offset)
+                ),
                 self!splice-offset(nqp::unbox_i($offset)),
                 self!splice-offset-fail($offset)
               )
@@ -999,7 +1006,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::islt_i(nqp::unbox_i($size),0),
             self!splice-size-fail($size,$offset),
             nqp::if(
-              (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+              nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
               nqp::if(
                 nqp::isge_i(
                   $todo.reify-at-least(
@@ -1010,7 +1017,7 @@ my class Array { # declared in BOOTSTRAP
                 self!splice-size-fail($size,$offset)
               ),
               nqp::if(
-                nqp::getattr(self,List,'$!reified').DEFINITE,
+                nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                 nqp::if(
                   nqp::isge_i(
                     nqp::elems(nqp::getattr(self,List,'$!reified')),
@@ -1134,7 +1141,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::islt_i(nqp::unbox_i($size),0),
             self!splice-size-fail($size,$offset),
             nqp::if(
-              (my $todo := nqp::getattr(self,List,'$!todo')).DEFINITE,
+              nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
               nqp::if(
                 nqp::isge_i(
                   $todo.reify-at-least(
@@ -1147,7 +1154,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::if(
                 nqp::isge_i(
                   nqp::elems(nqp::if(
-                    nqp::getattr(self,List,'$!reified').DEFINITE,
+                    nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                     nqp::getattr(self,List,'$!reified'),
                     nqp::bindattr(self,List,'$!reified',
                       nqp::create(IterationBuffer))
@@ -1205,12 +1212,13 @@ my class Array { # declared in BOOTSTRAP
 
     multi method tail(Array:D: $n) {
         nqp::if(
-          nqp::getattr(self,List,'$!todo').DEFINITE,
+          nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
           self.Any::tail($n),
           Seq.new(
             nqp::if(
-              (my $reified := nqp::getattr(self,List,'$!reified')).DEFINITE
-                && nqp::elems($reified),
+              nqp::isconcrete(
+                my $reified := nqp::getattr(self,List,'$!reified')
+              ) && nqp::elems($reified),
               nqp::stmts(
                 (my $iterator := Rakudo::Iterator.ReifiedArray(
                   self,

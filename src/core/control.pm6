@@ -200,7 +200,7 @@ constant NaN = nqp::p6box_n(nqp::nan());
 # method, because then the return value is always HLLized :-(
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
     nqp::if(
-      nqp::getattr(hash,Map,'$!storage').DEFINITE,
+      nqp::isconcrete(nqp::getattr(hash,Map,'$!storage')),
       nqp::stmts(
         (my $clone := nqp::hash),
         (my $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),

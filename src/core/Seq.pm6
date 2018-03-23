@@ -17,13 +17,13 @@ my class Seq is Cool does Iterable does Sequence {
 
     method iterator(Seq:D:) {
         nqp::if(
-          (my \iter = $!iter).DEFINITE,
+          nqp::isconcrete(my \iter = $!iter),
           nqp::stmts(
             ($!iter := Iterator),
             iter
           ),
           nqp::if(
-            $!list.DEFINITE,
+            nqp::isconcrete($!list),
             $!list.iterator,
             X::Seq::Consumed.new.throw
           )
@@ -32,10 +32,10 @@ my class Seq is Cool does Iterable does Sequence {
 
     multi method is-lazy(Seq:D:) {
         nqp::if(
-          $!iter.DEFINITE,
+          nqp::isconcrete($!iter),
           $!iter.is-lazy,
           nqp::if(
-            $!list.DEFINITE,
+            nqp::isconcrete($!list),
             $!list.is-lazy,
             X::Seq::Consumed.new.throw
           )
@@ -53,7 +53,7 @@ my class Seq is Cool does Iterable does Sequence {
           self.is-lazy,
           Failure.new(X::Cannot::Lazy.new(action => '.elems')),
           nqp::if(
-            ($!iter.DEFINITE && nqp::can($!iter,'count-only')),
+            nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
             $!iter.count-only,
             self.cache.elems
           )
@@ -62,7 +62,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Numeric() {
         nqp::if(
-          ($!iter.DEFINITE && nqp::can($!iter,'count-only')),
+          nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
           $!iter.count-only,
           self.cache.Numeric
         )
@@ -70,7 +70,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Int() {
         nqp::if(
-          ($!iter.DEFINITE && nqp::can($!iter,'count-only')),
+          nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
           $!iter.count-only,
           self.cache.Int
         )
@@ -78,7 +78,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Bool(Seq:D:) {
         nqp::if(
-          $!iter.DEFINITE,
+          nqp::isconcrete($!iter),
           nqp::if(
             nqp::can($!iter,'bool-only'),
             $!iter.bool-only,
@@ -134,13 +134,13 @@ my class Seq is Cool does Iterable does Sequence {
 
     method sink(--> Nil) {
         nqp::if(
-          $!iter.DEFINITE,
+          nqp::isconcrete($!iter),
           nqp::stmts(
             $!iter.sink-all,
             ($!iter := Iterator)
           ),
           nqp::if(
-            $!list.DEFINITE,
+            nqp::isconcrete($!list),
             $!list.sink
           )
         )
@@ -219,13 +219,13 @@ sub GATHER(&block) {
               result,
               nqp::stmts(
                 nqp::unless(
-                  $!push-target.DEFINITE,
+                  nqp::isconcrete($!push-target),
                   ($!push-target := nqp::create(IterationBuffer))
                 ),
                 ($!wanted = 1),
                 nqp::continuationreset(PROMPT, &!resumption),
                 nqp::if(
-                  &!resumption.DEFINITE,
+                  nqp::isconcrete(&!resumption),
                   nqp::shift($!push-target),
                   IterationEnd
                 )
@@ -251,7 +251,7 @@ sub GATHER(&block) {
                     nqp::continuationreset(PROMPT, &!resumption),
                     ($!push-target := nqp::null),
                     nqp::if(
-                      &!resumption.DEFINITE,
+                      nqp::isconcrete(&!resumption),
                       ($n - $!wanted),
                       IterationEnd
                     )

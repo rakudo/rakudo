@@ -99,7 +99,7 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method ASSIGN-KEY(Hash:D: Str:D \key, Mu \assignval) is raw {
         nqp::if(
-          nqp::getattr(self,Map,'$!storage').DEFINITE,
+          nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
           (nqp::ifnull(
              nqp::atkey(
                nqp::getattr(self,Map,'$!storage'),
@@ -120,7 +120,7 @@ my class Hash { # declared in BOOTSTRAP
     }
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
         nqp::if(
-          nqp::getattr(self,Map,'$!storage').DEFINITE,
+          nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
           (nqp::ifnull(
              nqp::atkey(
                nqp::getattr(self,Map,'$!storage'),
@@ -152,9 +152,9 @@ my class Hash { # declared in BOOTSTRAP
     multi method DELETE-KEY(Hash:U: --> Nil) { }
     multi method DELETE-KEY(Hash:D: Str:D \key) {
         nqp::if(
-          (nqp::getattr(self,Map,'$!storage').DEFINITE
+          nqp::isconcrete(nqp::getattr(self,Map,'$!storage'))
             && nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                 nqp::unbox_s(key))),
+                 nqp::unbox_s(key)),
           nqp::stmts(
             (my $value = nqp::atkey(nqp::getattr(self,Map,'$!storage'),
                nqp::unbox_s(key))),
@@ -169,8 +169,8 @@ my class Hash { # declared in BOOTSTRAP
         nqp::stmts(
           (my str $key = nqp::unbox_s(key.Str)),
           nqp::if(
-            (nqp::getattr(self,Map,'$!storage').DEFINITE
-              && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key)),
+            nqp::isconcrete(nqp::getattr(self,Map,'$!storage'))
+              && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
             nqp::stmts(
               (my $value = nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key)),
               nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$key),
@@ -443,7 +443,7 @@ my class Hash { # declared in BOOTSTRAP
         # eventuality, so to appease roast, we need these.
         multi method ASSIGN-KEY(::?CLASS:D: Str:D \key, Mu \assignval) is raw {
             nqp::if(
-              nqp::getattr(self,Map,'$!storage').DEFINITE,
+              nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
               nqp::if(
                 nqp::existskey(
                   nqp::getattr(self,Map,'$!storage'),
@@ -472,7 +472,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::stmts(
               (my str $key = nqp::unbox_s(key.Str)),
               nqp::if(
-                nqp::getattr(self,Map,'$!storage').DEFINITE,
+                nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
                 nqp::if(
                   nqp::existskey(
                     nqp::getattr(self,Map,'$!storage'),
@@ -514,7 +514,7 @@ my class Hash { # declared in BOOTSTRAP
         method keyof () { TKey }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
             nqp::if(
-              nqp::getattr(self,Map,'$!storage').DEFINITE,
+              nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
               nqp::if(
                 nqp::existskey(nqp::getattr(self,Map,'$!storage'),
                   (my str $which = nqp::unbox_s(key.WHICH))),
@@ -537,7 +537,7 @@ my class Hash { # declared in BOOTSTRAP
                 '$!whence',
                 -> { nqp::bindkey(
                        nqp::if(
-                         nqp::getattr(self,Map,'$!storage').DEFINITE,
+                         nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
                          nqp::getattr(self,Map,'$!storage'),
                          nqp::bindattr(self,Map,'$!storage',nqp::hash)
                        ),
@@ -560,7 +560,7 @@ my class Hash { # declared in BOOTSTRAP
 
         method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) is raw {
             nqp::if(
-              nqp::getattr(self,Map,'$!storage').DEFINITE,
+              nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
               nqp::if(
                 nqp::existskey(nqp::getattr(self,Map,'$!storage'),
                   my str $which = nqp::unbox_s(key.WHICH)),
@@ -585,7 +585,7 @@ my class Hash { # declared in BOOTSTRAP
         method BIND-KEY(TKey \key, TValue \bindval) is raw {
             nqp::getattr(
               nqp::if(
-                nqp::getattr(self,Map,'$!storage').DEFINITE,
+                nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
                 nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
                   nqp::unbox_s(key.WHICH),
                   Pair.new(key,bindval)),
@@ -606,9 +606,9 @@ my class Hash { # declared in BOOTSTRAP
 
         method DELETE-KEY(TKey \key) {
             nqp::if(
-              (nqp::getattr(self,Map,'$!storage').DEFINITE
+              nqp::isconcrete(nqp::getattr(self,Map,'$!storage'))
                 && nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                     (my str $which = key.WHICH))),
+                     (my str $which = key.WHICH)),
               nqp::stmts(
                 (my TValue $value =
                   nqp::getattr(
@@ -625,7 +625,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::stmts(
               (my $flattened := nqp::hash),
               nqp::if(
-                (my $raw := nqp::getattr(self,Map,'$!storage'))
+                nqp::isconcrete(my $raw := nqp::getattr(self,Map,'$!storage'))
                  && (my $iter := nqp::iterator($raw)),
                 nqp::while(
                   $iter,
@@ -655,11 +655,8 @@ my class Hash { # declared in BOOTSTRAP
             nqp::stmts(
               (my $buffer := nqp::create(IterationBuffer)),
               nqp::if(
-                nqp::defined(
-                  nqp::getattr(self,Map,'$!storage')
-                ) && nqp::elems(
-                  nqp::getattr(self,Map,'$!storage')
-                ),
+                nqp::isconcrete(nqp::getattr(self,Map,'$!storage'))
+                  && nqp::elems(nqp::getattr(self,Map,'$!storage')),
                 nqp::stmts(
                   (my $iterator := nqp::iterator(
                     nqp::getattr(self,Map,'$!storage')

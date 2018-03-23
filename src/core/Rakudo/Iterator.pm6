@@ -832,13 +832,15 @@ class Rakudo::Iterator {
                         # something more elaborate
                         nqp::if(
                           nqp::istype($elem,List)
-                            && nqp::not_i(
-                                 nqp::getattr($elem,List,'$!todo').DEFINITE),
+                            && nqp::not_i(nqp::isconcrete(
+                                 nqp::getattr($elem,List,'$!todo')
+                          )),
 
                           # it's a List, may have a reified we can use directly
                           nqp::if(
-                            ($elem := nqp::getattr($elem,List,'$!reified'))
-                              && nqp::isgt_i(nqp::elems($elem),0),
+                            nqp::isconcrete(
+                              $elem := nqp::getattr($elem,List,'$!reified')
+                            ) && nqp::isgt_i(nqp::elems($elem),0),
 
                             # use the available reified directly
                             nqp::stmts(
@@ -1103,14 +1105,15 @@ class Rakudo::Iterator {
                         # something more elaborate
                         nqp::if(
                           nqp::istype($elem,List)
-                            && nqp::not_i(
-                                 nqp::getattr($elem,List,'$!todo').DEFINITE),
+                            && nqp::not_i(nqp::isconcrete(
+                                 nqp::getattr($elem,List,'$!todo')
+                          )),
 
                           # it's a List, may have a reified we can use directly
                           nqp::if(
                             nqp::isnull(
-                              $elem := nqp::getattr($elem,List,'$!reified'))
-                              || nqp::iseq_i(nqp::elems($elem),0),
+                              $elem := nqp::getattr($elem,List,'$!reified')
+                            ) || nqp::iseq_i(nqp::elems($elem),0),
 
                             # cross with an empty list is always an empty list
                             (return Rakudo::Iterator.Empty),

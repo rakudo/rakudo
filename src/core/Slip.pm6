@@ -22,12 +22,12 @@ my class Slip { # is List
         nqp::stmts(
           (my $list := nqp::create(List)),
           nqp::if(
-            nqp::getattr(self,List,'$!todo').DEFINITE,
+            nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
             nqp::bindattr($list,List,'$!todo',
               nqp::getattr(self,List,'$!todo'))
           ),
           nqp::if(
-            nqp::getattr(self,List,'$!reified').DEFINITE,
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
             nqp::bindattr($list,List,'$!reified',
               nqp::getattr(self,List,'$!reified'))
           ),

@@ -68,11 +68,11 @@
                 :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
               nqp::stmts(
                 nqp::if(
-                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                   nqp::if(
-                    (nqp::isge_i(
-                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
-                        && nqp::getattr(self,List,'$!todo').DEFINITE),
+                    nqp::isge_i(
+                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))
+                    ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
                     nqp::getattr(self,List,'$!todo').reify-at-least(
                       nqp::add_i($pos,1)),
                   ),
@@ -90,11 +90,11 @@
                 :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
               nqp::stmts(
                 nqp::if(
-                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                   nqp::if(
-                    (nqp::isge_i(
-                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
-                        && nqp::getattr(self,List,'$!todo').DEFINITE),
+                    nqp::isge_i(
+                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))
+                    ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
                     nqp::getattr(self,List,'$!todo').reify-at-least(
                       nqp::add_i($pos,1)),
                   ),

@@ -426,14 +426,14 @@ my class IO::Handle {
                 }
                 method pull-one() {
                     nqp::if(
-                      (my $line := $!handle.get).DEFINITE,
+                      nqp::isconcrete(my $line := $!handle.get),
                       $line,
                       IterationEnd
                     )
                 }
                 method push-all($target --> IterationEnd) {
                     nqp::while(
-                      (my $line := $!handle.get).DEFINITE,
+                      nqp::isconcrete(my $line := $!handle.get),
                       $target.push($line)
                     )
                 }

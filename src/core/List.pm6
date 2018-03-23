@@ -341,19 +341,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method new(**@things is raw) {
-        my \list = nqp::create(self);
-        my \iterbuffer = nqp::create(IterationBuffer);
-        nqp::bindattr(list, List, '$!reified', iterbuffer);
-
         my int $elems = +@things;  # reify
-        my int $i     = -1;
         my $reified  := nqp::getattr(@things,List,'$!reified');
 
-        nqp::while(  # doesn't sink
-          nqp::islt_i($i = nqp::add_i($i,1),$elems),
-          nqp::bindpos(iterbuffer,$i,(nqp::atpos($reified,$i)))
-        );
-        list
+        my \iterbuffer = nqp::create(IterationBuffer);
+        nqp::if($reified,nqp::splice(iterbuffer,$reified,0,$elems));
+
+        nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',iterbuffer);
     }
 
     multi method Bool(List:D:) {

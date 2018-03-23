@@ -1047,14 +1047,13 @@ my class Array { # declared in BOOTSTRAP
               nqp::bindattr((my $saved:= nqp::create(self)),List,'$!reified',
                 (my $buffer :=
                   nqp::setelems(nqp::create(IterationBuffer),removed))),
-              nqp::bindattr($saved,Array,'$!descriptor',$!descriptor),
               (my int $i = -1),
+              (my $reified := nqp::getattr(self,List,'$!reified')),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),removed),
-                nqp::bindpos($buffer,$i,nqp::atpos(
-                  nqp::getattr(self,List,'$!reified'),nqp::add_i($offset,$i)))
+                nqp::bindpos($buffer,$i,nqp::atpos($reified,nqp::add_i($offset,$i)))
               ),
-              $saved
+              nqp::p6bindattrinvres($saved,Array,'$!descriptor',$!descriptor)
             ),
             nqp::p6bindattrinvres(     # effective size = 0, create new one
               nqp::create(self),Array,'$!descriptor',$!descriptor)

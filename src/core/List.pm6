@@ -490,9 +490,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           nqp::isge_i($pos,0) && nqp::isconcrete($!reified),
           nqp::ifnull(
             nqp::atpos($!reified,$pos),
-            self!AT-POS-SLOW($pos)
+            self.AT_POS_SLOW($pos)
           ),
-          self!AT-POS-SLOW($pos)
+          self.AT_POS_SLOW($pos)
         )
     }
     # because this is a very hot path, we copied the code from the int candidate
@@ -501,13 +501,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           nqp::isge_i($pos,0) && nqp::isconcrete($!reified),
           nqp::ifnull(
             nqp::atpos($!reified,$pos),
-            self!AT-POS-SLOW($pos)
+            self.AT_POS_SLOW($pos)
           ),
-          self!AT-POS-SLOW($pos)
+          self.AT_POS_SLOW($pos)
         )
     }
 
-    method !AT-POS-SLOW(\pos) is raw {
+    method AT_POS_SLOW(\pos) is raw {
         nqp::if(
           nqp::islt_i(pos,0),
           Failure.new(X::OutOfRange.new(
@@ -992,13 +992,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             has Int $!elems;
             has int $!number;
 
-            method !SET-SELF(\list,$!elems,\number) {
+            method SET-SELF(\list,$!elems,\number) {
                 $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
                 $!number = number + 1;
                 self
             }
             method new(\list,\elems,\number) {
-                nqp::create(self)!SET-SELF(list,elems,number)
+                nqp::create(self).SET-SELF(list,elems,number)
             }
             method pull-one() {
                 if ($!number = nqp::sub_i($!number,1)) {
@@ -1058,14 +1058,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                      has $!list;
                      has Int $!elems;
                      has int $!todo;
-                     method !SET-SELF(\list,\todo) {
+                     method SET-SELF(\list,\todo) {
                          $!list := nqp::getattr(list,List,'$!reified');
                          $!elems = nqp::elems($!list);
                          $!todo  = todo;
                          self
                      }
                      method new(\list,\todo) {
-                         nqp::create(self)!SET-SELF(list,todo)
+                         nqp::create(self).SET-SELF(list,todo)
                      }
                      method pull-one() is raw {
                          if $!todo {
@@ -1242,7 +1242,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     nqp::isconcrete($tmp),
                     nqp::if(                     # not a type object
                       nqp::istype($tmp,Junction),
-                      (return self!junctionize(  # follow Junction path
+                      (return self.JUNCTIONIZE(  # follow Junction path
                         $separator, $strings, $i, $elems, $tmp
                       )),
                       nqp::push_s(               # no special action needed
@@ -1273,7 +1273,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # When we find a Junction in the list, start handling the rest
     # of the list as junctions, and stringify the parts between Junctions
     # normally, for performance.
-    method !junctionize(\sep, Mu \strings, \i, \elems, Mu \initial) {
+    method JUNCTIONIZE(\sep, Mu \strings, \i, \elems, Mu \initial) {
         nqp::stmts(
           nqp::if(
             nqp::elems(strings),

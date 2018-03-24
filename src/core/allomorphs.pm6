@@ -367,12 +367,34 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                     if nqp::iseq_i($p, -1);
                 $pos    = $p;
 
+#?if js
+                my $power := nqp::pow_I(nqp::box_i(10, Int), nqp::abs_I(nqp::atpos($parse, 0), Int), Num, Int);
+                my num $n;
+
+                if nqp::iseq_I($base, 0) {
+                    $n = nqp::islt_i(nqp::atpos($parse, 0), 0)
+                        ?? nqp::div_In($int, $power)
+                        !! nqp::tonum_I(nqp::mul_I($power, $int, Int));
+                }
+                else {
+                    my $meat := nqp::add_I(nqp::mul_I($int, $base, Int), $frac, Int);
+                    $n = nqp::islt_i(nqp::atpos($parse, 0), 0)
+                        ?? nqp::div_In($meat, nqp::mul_I($base, $power, Int))
+                        !! nqp::div_In(nqp::mul_I($power, $meat, Int), $base);
+                }
+
+                return nqp::p6box_n($n) # if we have a zero, handle the sign correctly
+                || nqp::if(nqp::iseq_i($neg, 1), -0e0, 0e0);
+#?endif
+#?if !js
+                # nqp::div_In is broken on moar
                 return nqp::p6box_n(nqp::mul_n(
                     $frac ?? nqp::add_n( $int.Num, nqp::div_n($frac.Num, $base.Num) )
                           !! $int.Num,
                     nqp::pow_n(10e0, nqp::atpos($parse, 0).Num)
                 )) # if we have a zero, handle the sign correctly
                 || nqp::if(nqp::iseq_i($neg, 1), -0e0, 0e0);
+#?endif
             }
 
             # Multiplier with exponent, if single '*' is present

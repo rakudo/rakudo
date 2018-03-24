@@ -122,20 +122,30 @@ my role Iterable {
 
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
         self!valid-hyper-race('hyper', $batch, $degree);
+#?if !js
         HyperSeq.new:
             configuration => HyperConfiguration.new(:$degree, :$batch),
             work-stage-head => Rakudo::Internals::HyperIteratorBatcher.new(
                 iterator => self.iterator
             )
+#?endif
+#?if js
+        self
+#?endif
     }
 
     method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
         self!valid-hyper-race('race', $batch, $degree);
+#?if !js
         RaceSeq.new:
             configuration => HyperConfiguration.new(:$degree, :$batch),
             work-stage-head => Rakudo::Internals::HyperIteratorBatcher.new(
                 iterator => self.iterator
             )
+#?endif
+#?if js
+        self
+#?endif
     }
 
     sub MIXIFY(\iterable, \type) {

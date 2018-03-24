@@ -8554,7 +8554,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub add_signature_binding_code($block, $sig_obj, @params) {
         # Set arity.
         my int $arity := 0;
-        my int $count := 0;
+        my $count := 0;
         for @params {
             next if $_<named_names> || $_<named_slurpy>;
             if $_<pos_slurpy> || $_<pos_onearg> {

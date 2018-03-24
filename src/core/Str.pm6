@@ -2745,14 +2745,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
         die "Must at least specify a 'from' value with 'substr'"
     }
     multi method substr(Str:D: Int:D \start) {
+#?if !js
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
           Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
           nqp::substr($!value,$from)
         )
+#?endif
+#?if js
+        nqp::if(
+          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
+            || nqp::isgt_i($from,nqp::charsnfg($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
+          nqp::substrnfg($!value,$from)
+        )
+#?endif
     }
     multi method substr(Str:D: Int:D \start, Int:D \want) {
+#?if !js
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
@@ -2763,8 +2774,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::substr($!value,$from,$chars)
           )
         )
+#?endif
+#?if js
+        nqp::if(
+          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
+            || nqp::isgt_i($from,nqp::charsnfg($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
+          nqp::if(
+            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
+            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
+            nqp::substrnfg($!value,$from,$chars)
+          )
+        )
+#?endif
     }
     multi method substr(Str:D: Int:D \start, Callable:D \want) {
+#?if !js
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
@@ -2775,16 +2800,40 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::substr($!value,$from,$chars)
           )
         )
+#?endif
+#?if js
+        nqp::if(
+          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
+            || nqp::isgt_i($from,nqp::charsnfg($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
+          nqp::if(
+            nqp::islt_i((my int $chars = (want)(nqp::charsnfg($!value) - $from)),0),
+            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
+            nqp::substrnfg($!value,$from,$chars)
+          )
+        )
+#?endif
     }
     multi method substr(Str:D: Callable:D \start) {
+#?if !js
         nqp::if(
           nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
           Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
           nqp::substr($!value,$from)
         )
+#?endif
+#?if js
+        nqp::if(
+          nqp::islt_i((my int $from = (start)(nqp::charsnfg($!value))),0)
+            || nqp::isgt_i($from,nqp::charsnfg($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
+          nqp::substr($!value,$from)
+        )
+#?endif
     }
     multi method substr(Str:D: Callable:D \start, Int:D \want) {
+#?if !js
         nqp::if(
           nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
@@ -2795,8 +2844,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::substr($!value,$from,$chars)
           )
         )
+#?endif
+#?if js
+        nqp::if(
+          nqp::islt_i((my int $from = (start)(nqp::charsnfg($!value))),0)
+            || nqp::isgt_i($from,nqp::charsnfg($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
+          nqp::if(
+            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
+            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
+            nqp::substrnfg($!value,$from,$chars)
+          )
+        )
+#?endif
     }
     multi method substr(Str:D: Callable:D \start, Callable:D \want) {
+#?if !js
         nqp::if(
           nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
@@ -2807,8 +2870,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::substr($!value,$from,$chars)
           )
         )
+#?endif
+#?if js
+        nqp::if(
+          nqp::islt_i((my int $from = (start)(nqp::charsnfg($!value))),0)
+            || nqp::isgt_i($from,nqp::charsnfg($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
+          nqp::if(
+            nqp::islt_i((my int $chars = (want)(nqp::charsnfg($!value) - $from)),0),
+            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
+            nqp::substrnfg($!value,$from,$chars)
+          )
+        )
+#?endif
     }
     multi method substr(Str:D: Range:D \start) {
+#?if !js
         nqp::if(
           nqp::islt_i((my int $from = start.min + start.excludes-min),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
@@ -2819,6 +2896,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::substr($!value,$from,start.max - start.excludes-max - $from + 1)
           )
         )
+#?endif
+#?if js
+        nqp::if(
+          nqp::islt_i((my int $from = start.min + start.excludes-min),0)
+            || nqp::isgt_i($from,nqp::charsnfg($!value)),
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
+          nqp::if(
+            start.max == Inf,
+            nqp::substrnfg($!value,$from),
+            nqp::substrnfg($!value,$from,start.max - start.excludes-max - $from + 1)
+          )
+        )
+#?endif
     }
     multi method substr(Str:D: Regex:D, $) {
         die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314

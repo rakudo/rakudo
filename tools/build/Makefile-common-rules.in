@@ -16,6 +16,3 @@ realclean: clean
 	$(RM_RF) lib/.precomp/ t/04-nativecall/.precomp/
 
 distclean: realclean
-
-check_nqp_version: tools/build/check-nqp-version.pl
-	$(PERL5) tools/build/check-nqp-version.pl

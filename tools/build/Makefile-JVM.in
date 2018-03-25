@@ -84,6 +84,9 @@ J_HARNESS5_WITH_FUDGE = $(J_HARNESS5) --fudge --keep-exit-code
 
 j-all: check_nqp_version $(PERL6_JAR) $(SETTING_JAR) $(SETTING_D_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
+check_nqp_version: tools/build/check-nqp-version.pl
+	$(PERL5) tools/build/check-nqp-version.pl $(J_NQP)
+
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(MKPATH) bin
 	$(JAVAC) -source 1.8 -cp $(BLD_NQP_JARS) -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)

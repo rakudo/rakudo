@@ -11,7 +11,9 @@ use warnings;
 
 use constant NQP_VERSION_FILE => 'gen/nqp-version';
 
-my @config = qx(nqp --show-config);
+my $nqp = shift;
+
+my @config = qx($nqp --show-config);
 foreach (@config) {
     chomp;
     if (my ($digest) = /nqp::source-digest=(.*)/) {

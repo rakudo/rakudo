@@ -23,6 +23,7 @@ my constant ulonglong     is export(:types, :DEFAULT) = NativeCall::Types::ulong
 my constant bool          is export(:types, :DEFAULT) = NativeCall::Types::bool;
 my constant size_t        is export(:types, :DEFAULT) = NativeCall::Types::size_t;
 my constant ssize_t       is export(:types, :DEFAULT) = NativeCall::Types::ssize_t;
+my constant wchar_t       is export(:types, :DEFAULT) = NativeCall::Types::wchar_t;
 my constant void          is export(:types, :DEFAULT) = NativeCall::Types::void;
 my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArray;
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
@@ -146,6 +147,7 @@ my $type_map := nqp::hash(
   "num64",      "double",
   "size_t",     nqp::atpos_s($signed_ints_by_size,nativesizeof(size_t)),
   "ssize_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(ssize_t)),
+  "wchar_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(wchar_t)),
   "uint",       "ulong",
   "uint16",     "ushort",
   "uint32",     "uint",

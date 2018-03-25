@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stddef.h>
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
@@ -109,5 +110,12 @@ DLLEXPORT int TakeSSizeT(ssize_t x)
 {
     if (x == -42)
         return 14;
+    return 0;
+}
+
+DLLEXPORT int TakeWCharT(wchar_t x)
+{
+    if (x == 42)
+        return 15;
     return 0;
 }

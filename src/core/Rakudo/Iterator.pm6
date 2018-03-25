@@ -1427,13 +1427,13 @@ class Rakudo::Iterator {
 
         method count-only { $!count-only-delegate-target.count-only }
 
-        method !SET-DELEGATE-TARGET(Mu \target) { $!count-only-delegate-target = target unless $!count-only-delegate-target; self }
+        method SET-DELEGATE-TARGET(Mu \target) { $!count-only-delegate-target = target unless $!count-only-delegate-target; self }
     }
     my role BoolOnlyDelegate {
         has Mu $!bool-only-delegate-target;
 
         method bool-only  { $!bool-only-delegate-target.bool-only }
-        method !SET-DELEGATE-TARGET(Mu \target) { $!bool-only-delegate-target = target unless $!bool-only-delegate-target; self }
+        method SET-DELEGATE-TARGET(Mu \target) { $!bool-only-delegate-target = target unless $!bool-only-delegate-target; self }
     }
     my role CountOnlyBoolOnlyDelegate {
         has Mu $!bool-only-count-only-delegate-target;

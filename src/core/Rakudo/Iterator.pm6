@@ -1422,30 +1422,40 @@ class Rakudo::Iterator {
         }.new(&body,&cond,&afterwards)
     }
 
+    my role CountOnlyDelegate {
+        has Mu $!count-only-delegate-target;
+
+        method count-only { $!count-only-delegate-target.count-only }
+
+        method !SET-DELEGATE-TARGET(Mu \target) { $!count-only-delegate-target = target unless $!count-only-delegate-target; self }
+    }
+    my role BoolOnlyDelegate {
+        has Mu $!bool-only-delegate-target;
+
+        method bool-only  { $!bool-only-delegate-target.bool-only }
+        method !SET-DELEGATE-TARGET(Mu \target) { $!bool-only-delegate-target = target unless $!bool-only-delegate-target; self }
+    }
+    my role CountOnlyBoolOnlyDelegate {
+        has Mu $!bool-only-count-only-delegate-target;
+
+        method bool-only  { $!bool-only-count-only-delegate-target.bool-only  }
+        method count-only { $!bool-only-count-only-delegate-target.count-only }
+        method SET-DELEGATE-TARGET(Mu \target) { $!bool-only-count-only-delegate-target = target unless $!bool-only-count-only-delegate-target; self }
+    }
+
     # Takes two iterators and mixes in a role into the second iterator that
     # delegates .count-only and .bool-only methods to the first iterator
     # if either exist in it. Returns the second iterator.
     method delegate-iterator-opt-methods (Iterator:D \a, Iterator:D \b) {
-        my role CountOnlyDelegate[\iter] {
-            method count-only { iter.count-only }
-        }
-        my role BoolOnlyDelegate[\iter] {
-            method bool-only  { iter.bool-only }
-        }
-        my role CountOnlyBoolOnlyDelegate[\iter] {
-            method bool-only  { iter.bool-only  }
-            method count-only { iter.count-only }
-        }
-
         nqp::if(
           nqp::can(a, 'count-only') && nqp::can(a, 'bool-only'),
-          b.^mixin(CountOnlyBoolOnlyDelegate[a]),
+          b.^mixin(CountOnlyBoolOnlyDelegate).SET-DELEGATE-TARGET(a),
           nqp::if(
             nqp::can(a, 'count-only'),
-            b.^mixin(CountOnlyDelegate[a]),
+            b.^mixin(CountOnlyDelegate).SET-DELEGATE-TARGET(a),
             nqp::if(
               nqp::can(a, 'bool-only'),
-              b.^mixin(BoolOnlyDelegate[a]),
+              b.^mixin(BoolOnlyDelegate).SET-DELEGATE-TARGET(a),
               b)))
     }
 

@@ -82,19 +82,19 @@ HARNESS_TYPE =
 J_HARNESS5 = $(PERL5) t/harness5 --jvm
 J_HARNESS5_WITH_FUDGE = $(J_HARNESS5) --fudge --keep-exit-code
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(SETTING_D_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+j-all: check_nqp_version $(PERL6_JAR) $(SETTING_JAR) $(SETTING_D_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(MKPATH) bin
 	$(JAVAC) -source 1.8 -cp $(BLD_NQP_JARS) -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
 
-$(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp
+$(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp gen/nqp-version
 	$(J_NQP) $(J_GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp > $(J_BUILD_DIR)/ModuleLoader.nqp
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_ML_JAR) --encoding=utf8 \
 	    $(J_BUILD_DIR)/ModuleLoader.nqp
 
-$(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp
+$(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp gen/nqp-version
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_OPS_JAR) --encoding=utf8 \
 	    src/vm/jvm/Perl6/Ops.nqp
 
@@ -102,7 +102,7 @@ $(PERL6_W_JAR): $(PERL6_ML_JAR) $(PERL6_OPS_JAR) $(PERL6_P_JAR) src/Perl6/World.
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
 
-$(PERL6_P_JAR): src/Perl6/Pod.nqp
+$(PERL6_P_JAR): src/Perl6/Pod.nqp gen/nqp-version
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_P_JAR) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 

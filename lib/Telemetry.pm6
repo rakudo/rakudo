@@ -210,8 +210,10 @@ HEADER
 
         method !snap() is raw {
             nqp::stmts(
+              (my int @data),
+              (nqp::getrusage(@data)),
               nqp::bindpos_i(
-                (my int @data; nqp::getrusage(@data)),
+                @data,
                 WALLCLOCK,
                 nqp::sub_i(nqp::fromnum_I(nqp::time_n() * 1000000,Int),$start)
               ),

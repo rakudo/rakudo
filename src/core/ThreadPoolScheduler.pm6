@@ -485,17 +485,20 @@ my class ThreadPoolScheduler does Scheduler {
                     scheduler-debug "Added a timer worker thread";
                 }
 
-                sub getrusage-total() is raw {
-                    my \rusage = nqp::getrusage();
-                    my int $ = nqp::mul_i(nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC), 1000000)
-                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
-                      + nqp::mul_i(nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC), 1000000)
-                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
-                }
-
                 scheduler-debug "Supervisor started";
                 my num $last-rusage-time = nqp::time_n;
-                my int $last-usage = getrusage-total;
+                my $rusage := nqp::getrusage;
+                my int $last-usage =
+                  nqp::mul_i(
+                    nqp::atpos_i($rusage,nqp::const::RUSAGE_UTIME_SEC),
+                    1000000
+                  ) + nqp::atpos_i($rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                    + nqp::mul_i(
+                        nqp::atpos_i($rusage,nqp::const::RUSAGE_STIME_SEC),
+                        1000000
+                      )
+                    + nqp::atpos_i($rusage, nqp::const::RUSAGE_STIME_MSEC);
+
 #?if !jvm
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
@@ -532,7 +535,17 @@ my class ThreadPoolScheduler does Scheduler {
                     $now = nqp::time_n;
                     $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
-                    $current-usage = getrusage-total();
+                    $rusage := nqp::getrusage;
+                    $current-usage =
+                      nqp::mul_i(
+                        nqp::atpos_i($rusage,nqp::const::RUSAGE_UTIME_SEC),
+                        1000000
+                      ) + nqp::atpos_i($rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                        + nqp::mul_i(
+                            nqp::atpos_i($rusage,nqp::const::RUSAGE_STIME_SEC),
+                            1000000
+                          )
+                        + nqp::atpos_i($rusage,nqp::const::RUSAGE_STIME_MSEC);
                     $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 

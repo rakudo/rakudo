@@ -20,7 +20,9 @@ my class Lock {
 
     method unlock(Lock:D:) { nqp::unlock(self) }
 
-    method protect(Lock:D: &code) {
+    # use a multi to ensure LEAVE isn't run when bad args are given
+    proto method protect(|) {*}
+    multi method protect(Lock:D: &code) {
         nqp::lock(self);
         LEAVE nqp::unlock(self);
         nqp::decont(code())

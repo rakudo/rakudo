@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 7;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -58,5 +58,9 @@ subtest 'like/unlike failures give useful diagnostics' => {
         :1exitcode, :out(*), :err{.contains: 'expected no match with'},
     '`unlike` says it wanted no match, not just "expected"';
 }
+
+# https://github.com/rakudo/rakudo/issues/1644
+throws-like ｢Lock.protect: %()｣, X::Multi::NoMatch,
+    'Lock.protect with wrong args gives sane error';
 
 # vim: ft=perl6 expandtab sw=4

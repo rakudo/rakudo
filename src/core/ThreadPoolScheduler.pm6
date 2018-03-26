@@ -454,6 +454,7 @@ my class ThreadPoolScheduler does Scheduler {
     # add threads.
     my constant SUPERVISION_INTERVAL  = 1e-2;
     my constant NUM_SAMPLES           = 5;
+    my constant NUM_SAMPLES_NUM       = 5e0;
     my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
@@ -486,9 +487,9 @@ my class ThreadPoolScheduler does Scheduler {
 
                 sub getrusage-total() is raw {
                     my \rusage = nqp::getrusage();
-                    nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
+                    my int $ = nqp::mul_i(nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC), 1000000)
                       + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
-                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
+                      + nqp::mul_i(nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC), 1000000)
                       + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
                 }
 
@@ -518,7 +519,7 @@ my class ThreadPoolScheduler does Scheduler {
                 my num $normalized-delta;
                 my num $per-core;
                 my num $per-core-util;
-                my $smooth-per-core-util;
+                my num $smooth-per-core-util = 0e0;
 
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
@@ -537,21 +538,26 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Scale this by the time between rusage calls and turn it
                     # into a per-core utilization percentage.
-                    $normalized-delta = $usage-delta / $rusage-period;
-                    $per-core = $normalized-delta / $cpu-cores;
-                    $per-core-util = 100 * ($per-core / (1000000 * NUM_SAMPLES));
+                    $normalized-delta = nqp::div_n($usage-delta, $rusage-period);
+                    $per-core = nqp::div_n($normalized-delta, $cpu-cores);
+                    # used to have a "100 *" in the front, but for speed
+                    # and mostly memory usage reasons it got constant-folded
+                    # into the 1000000 instead.
+                    $per-core-util = nqp::div_n($per-core, (10000e0 * NUM_SAMPLES_NUM));
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
 #?if !jvm
-                    nqp::shift_n(@last-utils);
+                    $smooth-per-core-util -= nqp::shift_n(@last-utils);
+                    $smooth-per-core-util += $per-core-util;
                     nqp::push_n(@last-utils,$per-core-util);
 #?endif
 #?if jvm
+                    $smooth-per-core-util -= @last-utils.shift;
+                    $smooth-per-core-util += $per-core-util;
                     @last-utils.shift;
                     @last-utils.push($per-core-util);
 #?endif
-                    $smooth-per-core-util = @last-utils.sum;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 
@@ -593,8 +599,11 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method !prod-affinity-workers (\worker-list --> Nil) {
-        for ^worker-list.elems {
-            my $worker := worker-list[$_];
+        my int $count = worker-list.elems;
+        my $worker;
+        my $item;
+        loop (my int $idx = 0; $idx < $count; $idx++) {
+            $worker := nqp::atpos(worker-list, $idx);
             if $worker.working {
                 $worker.take-completed;
 
@@ -603,7 +612,7 @@ my class ThreadPoolScheduler does Scheduler {
                 # This resolves deadlocks in certain cases.
                 if $worker.times-nothing-completed > 10 {
                     scheduler-debug "Stealing queue from affinity worker";
-                    my $item := nqp::queuepoll($worker.queue);
+                    $item := nqp::queuepoll($worker.queue);
                     nqp::push(self!general-queue, $item)
                       unless nqp::isnull($item);
                 }

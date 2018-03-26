@@ -172,11 +172,12 @@ class Kernel does Systemic {
     method cpu-cores() is raw { nqp::cpucores }
 
     method cpu-usage() is raw {
-        my \rusage = nqp::getrusage();
-        nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
-          + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
+        my int @rusage;
+        nqp::getrusage(@rusage);
+        nqp::atpos_i(@rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
+          + nqp::atpos_i(@rusage, nqp::const::RUSAGE_UTIME_MSEC)
+          + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
+          + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC)
     }
 }
 

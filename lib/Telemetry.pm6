@@ -211,11 +211,11 @@ HEADER
         method !snap() is raw {
             nqp::stmts(
               nqp::bindpos_i(
-                (my $data := nqp::getrusage),
+                (my int @data; nqp::getrusage(@data)),
                 WALLCLOCK,
                 nqp::sub_i(nqp::fromnum_I(nqp::time_n() * 1000000,Int),$start)
               ),
-              $data
+              @data
             )
         }
     }

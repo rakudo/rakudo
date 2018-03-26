@@ -487,17 +487,18 @@ my class ThreadPoolScheduler does Scheduler {
 
                 scheduler-debug "Supervisor started";
                 my num $last-rusage-time = nqp::time_n;
-                my $rusage := nqp::getrusage;
+                my int @rusage;
+                nqp::getrusage(@rusage);
                 my int $last-usage =
                   nqp::mul_i(
-                    nqp::atpos_i($rusage,nqp::const::RUSAGE_UTIME_SEC),
+                    nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_SEC),
                     1000000
-                  ) + nqp::atpos_i($rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                  ) + nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
                     + nqp::mul_i(
-                        nqp::atpos_i($rusage,nqp::const::RUSAGE_STIME_SEC),
+                        nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_SEC),
                         1000000
                       )
-                    + nqp::atpos_i($rusage, nqp::const::RUSAGE_STIME_MSEC);
+                    + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
 #?if !jvm
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
@@ -535,17 +536,17 @@ my class ThreadPoolScheduler does Scheduler {
                     $now = nqp::time_n;
                     $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
-                    $rusage := nqp::getrusage;
+                    nqp::getrusage(@rusage);
                     $current-usage =
                       nqp::mul_i(
-                        nqp::atpos_i($rusage,nqp::const::RUSAGE_UTIME_SEC),
+                        nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_SEC),
                         1000000
-                      ) + nqp::atpos_i($rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                      ) + nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
                         + nqp::mul_i(
-                            nqp::atpos_i($rusage,nqp::const::RUSAGE_STIME_SEC),
+                            nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_SEC),
                             1000000
                           )
-                        + nqp::atpos_i($rusage,nqp::const::RUSAGE_STIME_MSEC);
+                        + nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_MSEC);
                     $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 
@@ -593,8 +594,27 @@ my class ThreadPoolScheduler does Scheduler {
                     }
 
                     # always need to prod affinity workers
-                    self!prod-affinity-workers: $!affinity-workers
-                      if $!affinity-workers.DEFINITE;
+                    if $!affinity-workers.DEFINITE {
+                        my int $count = $!affinity-workers.elems;
+                        my $worker;
+                        my $item;
+                        loop (my int $idx = 0; $idx < $count; $idx++) {
+                            $worker := nqp::atpos($!affinity-workers, $idx);
+                            if $worker.working {
+                                $worker.take-completed;
+
+                                # If an affinity worker completed nothing for some time,
+                                # steal an item from its queue, moving it to general queue.
+                                # This resolves deadlocks in certain cases.
+                                if $worker.times-nothing-completed > 10 {
+                                    scheduler-debug "Stealing queue from affinity worker";
+                                    $item := nqp::queuepoll($worker.queue);
+                                    nqp::push(self!general-queue, $item)
+                                      unless nqp::isnull($item);
+                                }
+                            }
+                        }
+                    }
 
                     CATCH {
                         when X::Exhausted {
@@ -608,28 +628,6 @@ my class ThreadPoolScheduler does Scheduler {
                     }
                 }
             });
-        }
-    }
-
-    method !prod-affinity-workers (\worker-list --> Nil) {
-        my int $count = worker-list.elems;
-        my $worker;
-        my $item;
-        loop (my int $idx = 0; $idx < $count; $idx++) {
-            $worker := nqp::atpos(worker-list, $idx);
-            if $worker.working {
-                $worker.take-completed;
-
-                # If an affinity worker completed nothing for some time,
-                # steal an item from its queue, moving it to general queue.
-                # This resolves deadlocks in certain cases.
-                if $worker.times-nothing-completed > 10 {
-                    scheduler-debug "Stealing queue from affinity worker";
-                    $item := nqp::queuepoll($worker.queue);
-                    nqp::push(self!general-queue, $item)
-                      unless nqp::isnull($item);
-                }
-            }
         }
     }
 

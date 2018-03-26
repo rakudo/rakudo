@@ -1165,6 +1165,7 @@ S32-str/uniparse.t
 S32-str/unpack.t
 S32-str/utf8-c8.t       # moar
 S32-str/windows-1251-windows-1252-encode-decode.t
+S32-str/shiftjis-encode-decode.t # moar
 S32-str/words.t
 S32-str/CollationTest_NON_IGNORABLE-0.t # moar
 S32-str/CollationTest_NON_IGNORABLE-1.t # moar

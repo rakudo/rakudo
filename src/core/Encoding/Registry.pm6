@@ -19,6 +19,7 @@ my class Encoding::Registry {
             'latin1','latin-1','csisolatin1','l1','ibm819','cp819'),
           nqp::list('windows-1251', 'windows1251'),
           nqp::list('windows-1252', 'windows1252'),
+          nqp::list('windows-932', 'windows932')
         );
         my int $i = -1;
         my int $elems = nqp::elems($encodings);

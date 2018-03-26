@@ -299,6 +299,9 @@ my class Rakudo::Internals {
       # windows-1252
       'windows-1252',    'windows-1252',
       'windows1252',    'windows-1252',
+      # ShiftJIS
+      'windows-932',     'windows-932',
+      'windows932',      'windows-932',
     );
     method NORMALIZE_ENCODING(Str:D \encoding) {
         my str $key = nqp::unbox_s(encoding);

@@ -5,7 +5,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
 
         submethod TWEAK(:$!matcher) {}
 
-        method process-batch(Rakudo::Internals::HyperWorkBatch $batch) {
+        method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
             nqp::stmts(
               (my $items := $batch.items),
               (my $elems := nqp::elems($items)),
@@ -58,18 +58,24 @@ class Rakudo::Internals::HyperRaceSharedImpl {
 
         submethod TWEAK(:&!mapper) {}
 
-        method process-batch(Rakudo::Internals::HyperWorkBatch $batch) {
-            my $result := IterationBuffer.new;
-            my $items := $batch.items;
-            my int $n = $items.elems;
-            my &mapper := &!mapper.clone;
-            loop (my int $i = 0; $i < $n; ++$i) {
-                my \mapped = mapper(nqp::atpos($items, $i));
-                nqp::istype(mapped, Slip) && !nqp::iscont(mapped)
-                    ?? mapped.iterator.push-all($result)
-                    !! $result.push(mapped)
-            }
-            $batch.replace-with($result);
+        method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
+            nqp::stmts(
+              (my $result := nqp::create(IterationBuffer)),
+              (my $items := $batch.items),
+              (my int $n = $items.elems),
+              (my &mapper := &!mapper.clone),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$n),
+                nqp::if(
+                  nqp::istype((my \val = mapper(nqp::atpos($items, $i))),Slip)
+                    && nqp::not_i(nqp::iscont(val)),
+                  val.iterator.push-all($result),
+                  nqp::push($result,val)
+                )
+              ),
+              $batch.replace-with($result)
+            )
         }
     }
     multi method map(\hyper, $source, &mapper, %options) {

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 7;
+plan 8;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -62,5 +62,7 @@ subtest 'like/unlike failures give useful diagnostics' => {
 # https://github.com/rakudo/rakudo/issues/1644
 throws-like ｢Lock.protect: %()｣, X::Multi::NoMatch,
     'Lock.protect with wrong args gives sane error';
+throws-like ｢Lock::Async.protect: %()｣, X::Multi::NoMatch,
+    'Lock::Async.protect with wrong args gives sane error';
 
 # vim: ft=perl6 expandtab sw=4

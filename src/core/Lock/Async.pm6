@@ -118,7 +118,8 @@ my class Lock::Async {
         }
     }
 
-    method protect(Lock::Async:D: &code) {
+    proto method protect(|) {*}
+    multi method protect(Lock::Async:D: &code) {
         my int $acquired = 0;
         $*AWAITER.await(self.lock());
         $acquired = 1;

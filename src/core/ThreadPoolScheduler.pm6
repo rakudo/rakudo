@@ -454,6 +454,7 @@ my class ThreadPoolScheduler does Scheduler {
     # add threads.
     my constant SUPERVISION_INTERVAL  = 1e-2;
     my constant NUM_SAMPLES           = 5;
+    my constant NUM_SAMPLES_NUM       = 5e0;
     my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
@@ -518,7 +519,7 @@ my class ThreadPoolScheduler does Scheduler {
                 my num $normalized-delta;
                 my num $per-core;
                 my num $per-core-util;
-                my $smooth-per-core-util;
+                my num $smooth-per-core-util = 0e0;
 
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
@@ -544,14 +545,16 @@ my class ThreadPoolScheduler does Scheduler {
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
 #?if !jvm
-                    nqp::shift_n(@last-utils);
+                    $smooth-per-core-util -= nqp::shift_n(@last-utils);
+                    $smooth-per-core-util += $per-core-util;
                     nqp::push_n(@last-utils,$per-core-util);
 #?endif
 #?if jvm
+                    $smooth-per-core-util -= @last-utils.shift;
+                    $smooth-per-core-util += $per-core-util;
                     @last-utils.shift;
                     @last-utils.push($per-core-util);
 #?endif
-                    $smooth-per-core-util = @last-utils.sum;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 

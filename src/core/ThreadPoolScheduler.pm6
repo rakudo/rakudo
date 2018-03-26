@@ -596,8 +596,11 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method !prod-affinity-workers (\worker-list --> Nil) {
-        for ^worker-list.elems {
-            my $worker := worker-list[$_];
+        my int $count = worker-list.elems;
+        my $worker;
+        my $item;
+        loop (my int $idx = 0; $idx < $count; $idx++) {
+            $worker := nqp::atpos(worker-list, $idx);
             if $worker.working {
                 $worker.take-completed;
 
@@ -606,7 +609,7 @@ my class ThreadPoolScheduler does Scheduler {
                 # This resolves deadlocks in certain cases.
                 if $worker.times-nothing-completed > 10 {
                     scheduler-debug "Stealing queue from affinity worker";
-                    my $item := nqp::queuepoll($worker.queue);
+                    $item := nqp::queuepoll($worker.queue);
                     nqp::push(self!general-queue, $item)
                       unless nqp::isnull($item);
                 }

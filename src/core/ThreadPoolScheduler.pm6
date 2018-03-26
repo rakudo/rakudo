@@ -487,9 +487,9 @@ my class ThreadPoolScheduler does Scheduler {
 
                 sub getrusage-total() is raw {
                     my \rusage = nqp::getrusage();
-                    nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
+                    my int $ = nqp::mul_i(nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC), 1000000)
                       + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
-                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
+                      + nqp::mul_i(nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC), 1000000)
                       + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
                 }
 
@@ -538,9 +538,12 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Scale this by the time between rusage calls and turn it
                     # into a per-core utilization percentage.
-                    $normalized-delta = $usage-delta / $rusage-period;
-                    $per-core = $normalized-delta / $cpu-cores;
-                    $per-core-util = 100 * ($per-core / (1000000 * NUM_SAMPLES));
+                    $normalized-delta = nqp::div_n($usage-delta, $rusage-period);
+                    $per-core = nqp::div_n($normalized-delta, $cpu-cores);
+                    # used to have a "100 *" in the front, but for speed
+                    # and mostly memory usage reasons it got constant-folded
+                    # into the 1000000 instead.
+                    $per-core-util = nqp::div_n($per-core, (10000e0 * NUM_SAMPLES_NUM));
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.

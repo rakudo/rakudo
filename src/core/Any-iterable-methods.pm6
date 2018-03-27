@@ -1692,30 +1692,38 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has &!with;
             has $!last_as;
             has int $!first;
-            method SET-SELF(\list, &!as, &!with) {
-                $!iter  = list.iterator;
+            method SET-SELF($!iter, &!as, &!with) {
                 $!first = 1;
                 self
             }
-            method new(\list, &as, &with) {
-                nqp::create(self).SET-SELF(list, &as, &with)
+            method new(\iter, \as, \with) {
+                nqp::create(self).SET-SELF(iter, as, with)
             }
             method pull-one() is raw {
-                my Mu $value := $!iter.pull-one;
-                unless nqp::eqaddr($value,IterationEnd) {
-                    my $which := &!as($value);
-                    if $!first {
-                        $!first = 0;
-                    }
-                    else {
-                        until !with($!last_as, $which) or ($value := $!iter.pull-one) =:= IterationEnd {
-                            $!last_as = $which;
-                            $which := &!as($value);
-                        }
-                    }
-                    $!last_as = $which;
-                }
-                $value;
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                  IterationEnd,
+                  nqp::stmts(
+                    (my $which := as($pulled)),
+                    nqp::if(
+                      $!first,
+                      ($!first = 0),
+                      nqp::until(
+                        nqp::isfalse(with($!last_as,$which))
+                          || nqp::eqaddr(
+                               ($pulled := $!iter.pull-one),
+                               IterationEnd
+                             ),
+                        nqp::stmts(
+                          ($!last_as := $which),
+                          ($which := as($pulled))
+                        )
+                      )
+                    ),
+                    ($!last_as := $which),
+                    $pulled
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
                 my Mu $value := $!iter.pull-one;
@@ -1745,7 +1753,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
             }
             method is-lazy() { $!iter.is-lazy }
-        }.new(self, &as, &with))
+        }.new(self.iterator, &as, &with))
     }
     multi method squish( :&with = &[===] ) {
         Seq.new(class :: does Iterator {

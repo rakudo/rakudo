@@ -1726,7 +1726,7 @@ BEGIN {
             }
         }));
     Block.HOW.add_method(Block, '!clone_phasers', nqp::getstaticcode(sub ($self, $cloned, $phasers) {
-#?if moar
+#?if !jvm
             my int $next := nqp::existskey($phasers, 'NEXT');
             my int $last := nqp::existskey($phasers, 'LAST');
             my int $quit := nqp::existskey($phasers, 'QUIT');
@@ -3254,7 +3254,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                     nqp::decont(nqp::atpos(@leaves,0))();
 #?endif
-#?if moar
+#?if !jvm
                     nqp::p6capturelexwhere(
                       nqp::decont(nqp::atpos(@leaves,0)).clone)();
 #?endif

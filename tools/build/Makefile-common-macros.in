@@ -1,5 +1,7 @@
 # Copyright (C) 2015 The Perl Foundation
 
+.NOTPARALLEL:
+
 PERL5   = @perl@
 MKPATH  = @mkpath@
 CHMOD   = @chmod@

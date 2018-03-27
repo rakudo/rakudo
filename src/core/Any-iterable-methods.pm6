@@ -1761,29 +1761,37 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has &!with;
             has Mu $!last;
             has int $!first;
-            method SET-SELF(\list, &!with) {
-                $!iter  = list.iterator;
+            method SET-SELF($!iter, &!with) {
                 $!first = 1;
                 self
             }
-            method new(\list, &with) { nqp::create(self).SET-SELF(list, &with) }
+            method new(\iter, \with) { nqp::create(self).SET-SELF(iter, with) }
             method pull-one() is raw {
-                my Mu $value := $!iter.pull-one;
-                unless nqp::eqaddr($value,IterationEnd) {
-                    if $!first {
-                        $!first = 0;
-                    }
-                    else {
-                        my $ov = $value;
-                        until !with($!last, $value)
-                           or ($value := $!iter.pull-one) =:= IterationEnd {
-                            $!last = $ov;
-                            $ov = $value;
-                        }
-                    }
-                    $!last = $value
-                }
-                $value;
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                  IterationEnd,
+                  nqp::stmts(
+                    nqp::if(
+                      $!first,
+                      ($!first = 0),
+                      nqp::stmts(
+                        (my $old := $pulled),
+                        nqp::until(
+                          nqp::isfalse(with($!last,$pulled))
+                            || nqp::eqaddr(
+                                 ($pulled := $!iter.pull-one),
+                                 IterationEnd
+                               ),
+                          nqp::stmts(
+                            ($!last := $old),
+                            ($old := $pulled)
+                          )
+                        )
+                      )
+                    ),
+                    ($!last := $pulled)
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
                 my Mu $value := $!iter.pull-one;
@@ -1811,7 +1819,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
             }
             method is-lazy() { $!iter.is-lazy }
-        }.new(self, &with))
+        }.new(self.iterator, &with))
     }
 
     proto method pairup(|) is nodal {*}

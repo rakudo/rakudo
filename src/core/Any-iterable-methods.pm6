@@ -869,17 +869,36 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method new(\list,Mu \test) { nqp::create(self).SET-SELF(list,test) }
             method pull-one() is raw {
-                $!index = $!index + 1
-                  until ($_ := $!iter.pull-one) =:= IterationEnd || $!test($_);
-                $_ =:= IterationEnd
-                  ?? IterationEnd
-                  !! Pair.new($!index = $!index + 1,$_)
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                      || $!test($_),
+                    ($!index = nqp::add_i($!index,1))
+                  ),
+                  nqp::if(
+                    nqp::eqaddr($_,IterationEnd),
+                    IterationEnd,
+                    Pair.new(($!index = nqp::add_i($!index,1)),$_)
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
-                until ($_ := $!iter.pull-one) =:= IterationEnd {
-                    $!index = $!index + 1;
-                    $target.push(Pair.new($!index,$_)) if $!test($_);
-                }
+                nqp::stmts(
+                  (my $iter := $!iter),   # lexicals are faster than attrs
+                  (my $test := $!test),
+                  (my int $i = $!index),
+                  nqp::until(
+                    nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
+                    nqp::stmts(
+                      ($i = nqp::add_i($i,1)),
+                      nqp::if(
+                        $test($_),
+                        $target.push(Pair.new($i,$_))
+                      )
+                    )
+                  ),
+                  ($!index = $i)
+                )
             }
         }.new(self, $test))
     }

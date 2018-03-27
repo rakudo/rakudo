@@ -688,11 +688,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   if &!block.has-phaser('FIRST');
             }
 
-            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
+            if $!slipping && nqp::not_i(
+              nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
                 # $result will be returned at the end
             }
-            elsif $!source.push-exactly($!value-buffer, $!count) =:= IterationEnd
-                    && nqp::elems($!value-buffer) == 0 {
+            elsif nqp::eqaddr(
+              $!source.push-exactly($!value-buffer,$!count),IterationEnd)
+                && nqp::elems($!value-buffer) == 0 {
                 $result := IterationEnd
             }
             else {

@@ -806,7 +806,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has  Mu $!iter;
             has  Mu $!test;
             has int $!index;
-            has Mu $!value;
+            has  Mu $!value;
             method SET-SELF(\list,Mu \test) {
                 $!iter  = list.iterator;
                 $!test := test;
@@ -815,23 +815,29 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method new(\list,Mu \test) { nqp::create(self).SET-SELF(list,test) }
             method pull-one() is raw {
-                if $!value.DEFINITE {
-                    my \tmp  = $!value;
-                    $!value := nqp::null;
-                    tmp
-                }
-                else {
-                    $!index = $!index + 1
-                      until ($_ := $!iter.pull-one) =:= IterationEnd
-                        || $!test($_);
-                    if $_ =:= IterationEnd {
-                        IterationEnd;
-                    }
-                    else {
-                        $!value := $_;
-                        nqp::p6box_i($!index = $!index + 1)
-                    }
-                }
+                nqp::if(
+                  nqp::isconcrete($!value),
+                  nqp::stmts(
+                    ($_ := $!value),
+                    ($!value := nqp::null),
+                    $_
+                  ),
+                  nqp::stmts(
+                    nqp::until(
+                      nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                        || $!test($_),
+                      ($!index = nqp::add_i($!index,1))
+                    ),
+                    nqp::if(
+                      nqp::eqaddr($_,IterationEnd),
+                      IterationEnd,
+                      nqp::stmts(
+                        ($!value := $_),
+                        ($!index = nqp::add_i($!index,1))
+                      )
+                    )
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
                 nqp::until(

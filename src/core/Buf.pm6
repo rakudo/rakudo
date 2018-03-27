@@ -228,31 +228,44 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     method COMPARE(Blob:D: Blob:D \other) {
-        my $other := nqp::decont(other);
-        my int $elems = nqp::elems(self);
-        if nqp::cmp_i($elems,nqp::elems($other)) -> $diff {
-            $diff
-        }
-        else {
-            my int $i = -1;
-            return nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-              if nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-              while nqp::islt_i(++$i,$elems);
-            0
-        }
+        nqp::unless(
+          nqp::cmp_i(
+            (my int $elems = nqp::elems(self)),
+            nqp::elems(my $other := nqp::decont(other))
+          ),
+          nqp::stmts(                            # same number of elements
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::not_i(
+                     nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+                   ),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::isne_i($i,$elems),
+              nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+            )
+          )
+        )
     }
 
     method SAME(Blob:D: Blob:D \other) {
-        my $other := nqp::decont(other);
-        my int $elems = nqp::elems(self);
-        return False unless nqp::iseq_i($elems,nqp::elems($other));
-
-        my int $i = -1;
-        return False
-          unless nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-          while nqp::islt_i(++$i,$elems);
-
-        True
+        nqp::if(
+          nqp::iseq_i(
+            (my int $elems = nqp::elems(self)),
+            nqp::elems(my $other := nqp::decont(other))
+          ),
+          nqp::stmts(                            # same number of elements
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i)),
+              nqp::null
+            ),
+            nqp::iseq_i($i,$elems)
+          )
+        )
     }
 
     method join(Blob:D: $delim = '') {
@@ -373,13 +386,17 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         else {
             my $iter := from.iterator;
             my int $i = 0;
-            my $got;
-            until ($got := $iter.pull-one) =:= IterationEnd {
-                nqp::istype($got,Int)
-                  ?? nqp::push_i(to,$got)
-                  !! self!fail-typecheck-element(action,$i,$got).throw;
-                ++$i;
-            }
+            nqp::until(
+              nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(nqp::hllize($got),Int),
+                nqp::stmts(
+                  nqp::push_i(to,$got),
+                  ($i = nqp::add_i($i,1))
+                ),
+                self!fail-typecheck-element(action,$i,$got).throw
+              )
+            )
         }
         to
     }
@@ -837,16 +854,30 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b)))
+    nqp::p6bool(
+      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
+    )
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
-multi sub infix:<eq> (Blob:D \a, Blob:D \b) {   a =:= b || a.SAME(b)  }
-multi sub infix:<ne> (Blob:D \a, Blob:D \b) { !(a =:= b || a.SAME(b)) }
-multi sub infix:<lt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) == -1      }
-multi sub infix:<gt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) ==  1      }
-multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1      }
-multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1      }
+multi sub infix:<eq> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::eqaddr(a,b) || a.SAME(b))
+}
+multi sub infix:<ne> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
+}
+multi sub infix:<lt> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),-1))
+}
+multi sub infix:<gt> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),1))
+}
+multi sub infix:<le> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::isne_i(a.COMPARE(b),1))
+}
+multi sub infix:<ge> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::isne_i(a.COMPARE(b),-1))
+}
 
 proto sub subbuf-rw(|) {*}
 multi sub subbuf-rw(Buf:D \b) is rw {

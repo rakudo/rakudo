@@ -672,9 +672,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            $!value-buffer.DEFINITE
-                ?? nqp::setelems($!value-buffer, 0)
-                !! ($!value-buffer := IterationBuffer.new);
+            nqp::if(
+              nqp::isconcrete($!value-buffer),
+              nqp::setelems($!value-buffer,0),
+              ($!value-buffer := nqp::create(IterationBuffer))
+            );
             my int $redo = 1;
             my $result;
 

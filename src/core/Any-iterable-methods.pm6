@@ -26,7 +26,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         has Int $!did-init;     # SHOULD BE int, but has Int performs better
         has Int $!did-iterate;  # SHOULD BE int, but has Int performs better
 
-        method !SET-SELF(\block,\source,\label) {
+        method SET-SELF(\block,\source,\label) {
             nqp::stmts(
               (&!block  := block),
               ($!source := source),
@@ -35,7 +35,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               self
             )
         }
-        method new(\bl,\sou,\la) { nqp::create(self)!SET-SELF(bl,sou,la) }
+        method new(\bl,\sou,\la) { nqp::create(self).SET-SELF(bl,sou,la) }
 
         method is-lazy() { $!source.is-lazy }
 
@@ -779,13 +779,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has  Mu $!iter;
             has  Mu $!test;
             has int $!index;
-            method !SET-SELF(\list,Mu \test) {
+            method SET-SELF(\list,Mu \test) {
                 $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
             }
-            method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
+            method new(\list,Mu \test) { nqp::create(self).SET-SELF(list,test) }
             method pull-one() is raw {
                 $!index = $!index + 1
                   until ($_ := $!iter.pull-one) =:= IterationEnd || $!test($_);
@@ -807,13 +807,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has  Mu $!test;
             has int $!index;
             has Mu $!value;
-            method !SET-SELF(\list,Mu \test) {
+            method SET-SELF(\list,Mu \test) {
                 $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
             }
-            method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
+            method new(\list,Mu \test) { nqp::create(self).SET-SELF(list,test) }
             method pull-one() is raw {
                 if $!value.DEFINITE {
                     my \tmp  = $!value;
@@ -855,13 +855,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has  Mu $!iter;
             has  Mu $!test;
             has int $!index;
-            method !SET-SELF(\list,Mu \test) {
+            method SET-SELF(\list,Mu \test) {
                 $!iter  = list.iterator;
                 $!test := test;
                 $!index = -1;
                 self
             }
-            method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
+            method new(\list,Mu \test) { nqp::create(self).SET-SELF(list,test) }
             method pull-one() is raw {
                 $!index = $!index + 1
                   until ($_ := $!iter.pull-one) =:= IterationEnd || $!test($_);
@@ -1478,14 +1478,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new(class :: does Iterator {
             has $!iter;
             has $!seen;
-            method !SET-SELF(\list) {
+            method SET-SELF(\list) {
                 nqp::stmts(
                   ($!iter := list.iterator),
                   ($!seen := nqp::hash),
                   self
                 )
             }
-            method new(\list) { nqp::create(self)!SET-SELF(list) }
+            method new(\list) { nqp::create(self).SET-SELF(list) }
             method pull-one() is raw {
                 nqp::stmts(
                   nqp::until(
@@ -1529,12 +1529,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has Mu $!iter;
             has &!as;
             has $!seen;
-            method !SET-SELF(\list, &!as) {
+            method SET-SELF(\list, &!as) {
                 $!iter  = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
-            method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
+            method new(\list, &as) { nqp::create(self).SET-SELF(list, &as) }
             method pull-one() is raw {
                 nqp::stmts(
                   nqp::until(
@@ -1577,12 +1577,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new(class :: does Iterator {
             has Mu $!iter;
             has $!seen;
-            method !SET-SELF(\list) {
+            method SET-SELF(\list) {
                 $!iter = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
-            method new(\list) { nqp::create(self)!SET-SELF(list) }
+            method new(\list) { nqp::create(self).SET-SELF(list) }
             method pull-one() is raw {
                 my Mu $value;
                 my str $needle;
@@ -1621,12 +1621,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has Mu $!iter;
             has &!as;
             has $!seen;
-            method !SET-SELF(\list, &!as) {
+            method SET-SELF(\list, &!as) {
                 $!iter  = list.iterator;
                 $!seen := nqp::hash();
                 self
             }
-            method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
+            method new(\list, &as) { nqp::create(self).SET-SELF(list, &as) }
             method pull-one() is raw {
                 my Mu $value;
                 my str $needle;
@@ -1667,13 +1667,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has &!with;
             has $!last_as;
             has int $!first;
-            method !SET-SELF(\list, &!as, &!with) {
+            method SET-SELF(\list, &!as, &!with) {
                 $!iter  = list.iterator;
                 $!first = 1;
                 self
             }
             method new(\list, &as, &with) {
-                nqp::create(self)!SET-SELF(list, &as, &with)
+                nqp::create(self).SET-SELF(list, &as, &with)
             }
             method pull-one() is raw {
                 my Mu $value := $!iter.pull-one;
@@ -1728,12 +1728,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has &!with;
             has Mu $!last;
             has int $!first;
-            method !SET-SELF(\list, &!with) {
+            method SET-SELF(\list, &!with) {
                 $!iter  = list.iterator;
                 $!first = 1;
                 self
             }
-            method new(\list, &with) { nqp::create(self)!SET-SELF(list, &with) }
+            method new(\list, &with) { nqp::create(self).SET-SELF(list, &with) }
             method pull-one() is raw {
                 my Mu $value := $!iter.pull-one;
                 unless nqp::eqaddr($value,IterationEnd) {

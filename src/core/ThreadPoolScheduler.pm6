@@ -373,7 +373,7 @@ my class ThreadPoolScheduler does Scheduler {
         )
     }
 
-    constant @affinity-add-thresholds = 1, 5, 10, 20, 50, 100;
+    constant @affinity-add-thresholds = 0, 1, 5, 10, 20, 50, 100;
     method !affinity-queue() {
         # If there's no affinity workers, start one.
         nqp::unless(
@@ -434,7 +434,7 @@ my class ThreadPoolScheduler does Scheduler {
         # worker thread.
         my $chosen-queue := $most-free-worker.queue;
         my $threshold = @affinity-add-thresholds[
-            ($cur-affinity-workers.elems min @affinity-add-thresholds) - 1
+            $cur-affinity-workers.elems min @affinity-add-thresholds
         ];
         if $chosen-queue.elems > $threshold {
             # Add another one, unless another thread did too.

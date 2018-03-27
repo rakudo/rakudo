@@ -439,7 +439,10 @@ my class ThreadPoolScheduler does Scheduler {
         if $chosen-queue.elems > $threshold {
             # Add another one, unless another thread did too.
             $!state-lock.protect: {
-                if self!total-workers() >= $!max_threads {
+                if nqp::elems($!general-workers)
+                  + nqp::elems($!timer-workers)
+                  + nqp::elems($!affinity-workers)
+                  >= $!max_threads {
                     scheduler-debug "Will not add extra affinity worker; hit $!max_threads thread limit";
                     return $chosen-queue;
                 }
@@ -687,7 +690,9 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         # If we didn't complete anything, then consider adding more threads.
-        my int $total-workers = self!total-workers();
+        my int $total-workers = nqp::elems($!general-workers)
+          + nqp::elems($!timer-workers)
+          + nqp::elems($!affinity-workers);
         if $total-completed == 0 {
             if $total-workers < $!max_threads {
                 # There's something in the queue and we haven't completed it.
@@ -723,12 +728,6 @@ my class ThreadPoolScheduler does Scheduler {
                 scheduler-debug "Will not add extra worker; hit $!max_threads thread limit [branch with some total completed]";
             }
         }
-    }
-
-    method !total-workers() is raw {
-        nqp::elems($!general-workers)
-          + nqp::elems($!timer-workers)
-          + nqp::elems($!affinity-workers)
     }
 
     submethod BUILD(

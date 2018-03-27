@@ -1641,7 +1641,19 @@ proto sub prefix:<|>(|) {*}
 multi sub prefix:<|>(\x) { x.Slip }
 
 multi sub infix:<cmp>(@a, @b) {
-    (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b
+    nqp::stmts(
+        ( my int $ord = nqp::cmp_i( ( my int $n_a = @a.elems ), ( my int $n_b = @b.elems ) ) ),
+        ( my int $res = ( my int $i = 0) ),
+        ( my int $total_iters = nqp::islt_i($ord, 0) ?? $n_a !! $n_b ),
+        nqp::while(
+            nqp::not_i($res) && nqp::islt_i($i, $total_iters),
+            nqp::stmts(
+                $res = &infix:<cmp>(@a.AT-POS($i), @b.AT-POS($i)),
+                $i   = nqp::add_i($i, 1)
+            )
+        ),
+        ORDER( $res ?? $res !! $ord )
+    )
 }
 
 proto sub infix:<X>(|) is pure {*}

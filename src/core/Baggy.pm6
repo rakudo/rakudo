@@ -599,7 +599,7 @@ my role Baggy does QuantHash {
         fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
 
-        while (my $value := iter.pull-one) !=:= IterationEnd {
+        until nqp::eqaddr((my $value := iter.pull-one),IterationEnd) {
             my $tested := test($value);
             if nqp::istype($tested, Iterable) { # multi-level classify
                 X::Invalid::ComputedValue.new(
@@ -631,7 +631,7 @@ my role Baggy does QuantHash {
         fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
-        unless $value =:= IterationEnd {
+        unless nqp::eqaddr($value,IterationEnd) {
             my $tested := test($value);
 
             # multi-level categorize
@@ -648,7 +648,7 @@ my role Baggy does QuantHash {
             else {
                 loop {
                     ++self{$_} for @$tested;
-                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    last if nqp::eqaddr(($value := iter.pull-one),IterationEnd);
                     nqp::istype(($tested := test($value))[0], Iterable)
                         and X::Invalid::ComputedValue.new(
                             :name<mapper>,

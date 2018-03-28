@@ -55,7 +55,6 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method split(|) {*}
-    proto method splice(|) is nodal {*}
 
     method emit {
         emit self;

@@ -115,6 +115,8 @@ my class Any { # declared in BOOTSTRAP
     multi method invert(Any:U:) { () }
     multi method invert(Any:D:) { self.list.invert }
 
+    proto method splice(|) is nodal {*}
+
     proto method pick(|) is nodal {*}
     multi method pick()   { self.list.pick     }
     multi method pick($n) { self.list.pick($n) }

@@ -1899,7 +1899,7 @@ class Perl6::Optimizer {
                         $op.shift; $op.shift; # name, package (both pre-resolved now)
                         $op.unshift($inv);
                         $op.unshift($call);
-                        $op.op('call');
+                        $op.op('callstatic');
                         $op.name(NQPMu);
                     }
                 }

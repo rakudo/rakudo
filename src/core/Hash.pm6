@@ -143,10 +143,19 @@ my class Hash { # declared in BOOTSTRAP
     # for some reason, this can't be turned into a multi without
     # making setting compilation get very confused indeed
     method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
-        nqp::bindattr(self,Map,'$!storage',nqp::hash)
-          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
-          nqp::unbox_s(nqp::istype(key,Str) ?? key !! key.Str), bindval)
+        nqp::bindkey(
+          nqp::if(
+            nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
+            nqp::getattr(self,Map,'$!storage'),
+            nqp::bindattr(self,Map,'$!storage',nqp::hash)
+          ),
+          nqp::if(
+            nqp::istype(key,Str),
+            key,
+            key.Str)
+          ,
+          bindval
+        )
     }
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }
@@ -584,16 +593,17 @@ my class Hash { # declared in BOOTSTRAP
 
         method BIND-KEY(TKey \key, TValue \bindval) is raw {
             nqp::getattr(
-              nqp::if(
-                nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-                nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
-                  nqp::unbox_s(key.WHICH),
-                  Pair.new(key,bindval)),
-                nqp::bindkey(nqp::bindattr(self,Map,'$!storage',nqp::hash),
-                  nqp::unbox_s(key.WHICH),
-                  Pair.new(key,bindval))
+              nqp::bindkey(
+                nqp::if(
+                  nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
+                  nqp::getattr(self,Map,'$!storage'),
+                  nqp::bindattr(self,Map,'$!storage',nqp::hash)
+                ),
+                key.WHICH,
+                Pair.new(key,bindval)
               ),
-              Pair,'$!value'
+              Pair,
+              '$!value'
             )
         }
 

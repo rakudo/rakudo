@@ -1241,6 +1241,72 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
+    proto method grab(|) {*}
+    multi method grab() {
+        nqp::if(
+          self.is-lazy,
+          X::Cannot::Lazy.new(:action('.grab from')).throw,  # can't make a List
+          nqp::if(
+            (my $elems := self.elems),      # reifies, bind to keep the HLL Int
+            self.GRAB_ONE,
+            Nil
+          )
+        )
+    }
+    multi method grab(Callable:D $calculate) { self.grab($calculate(self.elems)) }
+    multi method grab(Whatever) { self.grab(Inf) }
+    multi method grab($count) {
+        Seq.new(nqp::if(
+          self.elems,                        # reifies
+          class :: does Iterator {
+              has $!array;
+              has int $!count;
+
+              method SET-SELF(\array,\count) {
+                  nqp::stmts(
+                    (my int $elems =
+                      nqp::elems(nqp::getattr(array,List,'$!reified'))),
+                    ($!array := array),
+                    nqp::if(
+                      count == Inf,
+                      ($!count = $elems),
+                      nqp::if(
+                        nqp::isgt_i(($!count = count.Int),$elems),
+                        ($!count = $elems)
+                      )
+                    ),
+                    self
+                  )
+
+              }
+              method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+              method pull-one() {
+                  nqp::if(
+                    $!count && nqp::elems(nqp::getattr($!array,List,'$!reified')),
+                    nqp::stmts(
+                      ($!count = nqp::sub_i($!count,1)),
+                      $!array.GRAB_ONE
+                    ),
+                    IterationEnd
+                  )
+              }
+          }.new(self,$count),
+          Rakudo::Iterator.Empty
+        ))
+    }
+
+    method GRAB_ONE() {
+        nqp::stmts(
+          (my $reified := nqp::getattr(self,List,'$!reified')),
+          (my $value := nqp::atpos(
+            $reified,
+            (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems($reified)))),
+          )),
+          nqp::splice($reified,$empty,$pos,1),
+          $value
+        )
+    }
+
     # introspection
     method name() {
         nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name

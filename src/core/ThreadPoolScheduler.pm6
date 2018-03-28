@@ -373,91 +373,124 @@ my class ThreadPoolScheduler does Scheduler {
         )
     }
 
-    constant @affinity-add-thresholds = 1, 5, 10, 20, 50, 100;
-    method !affinity-queue() {
-        # If there's no affinity workers, start one.
-        nqp::unless(
-          nqp::elems(my $cur-affinity-workers := $!affinity-workers),
-          nqp::stmts(
-            $!state-lock.protect( {
-                nqp::unless(
-                  nqp::elems($!affinity-workers),
-                  nqp::stmts(
-                    # We don't have any affinity workers yet, so start one
-                    # and return its queue.
-                    ($!affinity-workers := first-worker(
-                      AffinityWorker.new(
-                        scheduler => self
-                      )
-                    )),
-                    scheduler-debug("Created initial affinity worker thread"),
-                    self!maybe-start-supervisor,
-                    (return $!affinity-workers[0].queue)
-                  )
-                )
-            } ),
-            ($cur-affinity-workers := $!affinity-workers) # lost race for first
-          )
-        );
+    # set up affinity threshold information
+    my $affinity-add-thresholds := nqp::list_i(0, 1, 5, 10, 20, 50, 100);
+    my int $affinity-max-index =
+      nqp::sub_i(nqp::elems($affinity-add-thresholds),1);
+    my $affinity-max-threshold =
+      nqp::atpos_i($affinity-add-thresholds,$affinity-max-index );
 
-        # Otherwise, see which has the least load (this is inherently racey
-        # and approximate, but enough to help us avoid a busy worker). If we
-        # find an empty queue, return it immediately.
-        my $most-free-worker;
-        my int $i = -1;
-        nqp::while(
-          nqp::islt_i(
-            ($i = nqp::add_i($i,1)),
-            nqp::elems($cur-affinity-workers)
-          ),
-          nqp::if(
-            nqp::isconcrete($most-free-worker),
+    method !affinity-queue() {
+        nqp::stmts(
+          # If there are no affinity workers, start one.
+          nqp::unless(
+            nqp::elems(my $cur-affinity-workers := $!affinity-workers),
             nqp::stmts(
-              (my $cand := nqp::atpos($cur-affinity-workers,$i)),
-              nqp::unless(
-                nqp::elems(my $queue := $cand.queue),
-                (return $queue)
+              $!state-lock.protect( {
+                  nqp::unless(
+                    nqp::elems($!affinity-workers),
+                    nqp::stmts(
+                      # We don't have any affinity workers yet, so start one
+                      # and return its queue.
+                      ($!affinity-workers := first-worker(
+                        AffinityWorker.new(
+                          scheduler => self
+                        )
+                      )),
+                      scheduler-debug("Created initial affinity worker thread"),
+                      self!maybe-start-supervisor,
+                      (return nqp::atpos($!affinity-workers,0).queue)
+                    )
+                  )
+              } ),
+              ($cur-affinity-workers := $!affinity-workers) # lost race
+            )
+          ),
+
+          # Otherwise, see which has the least load (this is inherently racey
+          # and approximate, but enough to help us avoid a busy worker). If we
+          # find an empty queue, return it immediately.
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(
+              ($i = nqp::add_i($i,1)),
+              nqp::elems($cur-affinity-workers)
+            ),
+            nqp::if(
+              nqp::isconcrete(my $most-free-worker),
+              nqp::stmts(
+                (my $cand := nqp::atpos($cur-affinity-workers,$i)),
+                nqp::unless(
+                  nqp::elems(my $queue := $cand.queue),
+                  (return $queue)
+                ),
+                nqp::if(
+                  nqp::islt_i(
+                    nqp::elems($queue),
+                    nqp::elems($most-free-worker.queue)
+                  ),
+                  $most-free-worker := $cand
+                )
               ),
+              ($most-free-worker := nqp::atpos($cur-affinity-workers,$i))
+            )
+          ),
+
+          # Otherwise, check if the queue beats the threshold to add another
+          # worker thread.
+          nqp::if(
+            nqp::isle_i(
+              nqp::elems(my $chosen-queue := $most-free-worker.queue),
               nqp::if(
                 nqp::islt_i(
-                  nqp::elems($queue),
-                  nqp::elems($most-free-worker.queue)
+                  nqp::elems($cur-affinity-workers),
+                  $affinity-max-index
                 ),
-                $most-free-worker := $cand
+                $affinity-max-threshold,
+                nqp::atpos_i(
+                  $affinity-add-thresholds,
+                  nqp::elems($cur-affinity-workers)
+                )
               )
             ),
-            ($most-free-worker := nqp::atpos($cur-affinity-workers,$i))
-          )
-        );
+            # found one that is empty enough
+            $chosen-queue,
+            # need to add another one, unless another thread did already
+            $!state-lock.protect( {
+                nqp::stmts(
+                  nqp::if(
+                    nqp::isgt_i(
+                      nqp::elems($!general-workers)
+                        + nqp::elems($!timer-workers)
+                        + nqp::elems($!affinity-workers),
+                      $!max_threads
+                    ),
+                    # alas, no way to add more threads
+                    nqp::stmts(
+                      scheduler-debug("Will not add extra affinity worker; hit $!max_threads thread limit"),
+                      (return $chosen-queue)
+                    )
+                  ),
+                  nqp::if(
+                    nqp::isne_i(
+                      nqp::elems($cur-affinity-workers),
+                      nqp::elems($!affinity-workers)
+                    ),
+                    # different load found, take this one
+                    (return $chosen-queue)
+                  ),
 
-        # Otherwise, check if the queue beats the threshold to add another
-        # worker thread.
-        my $chosen-queue := $most-free-worker.queue;
-        my $threshold = @affinity-add-thresholds[
-            ($cur-affinity-workers.elems min @affinity-add-thresholds) - 1
-        ];
-        if $chosen-queue.elems > $threshold {
-            # Add another one, unless another thread did too.
-            $!state-lock.protect: {
-                if nqp::elems($!general-workers)
-                  + nqp::elems($!timer-workers)
-                  + nqp::elems($!affinity-workers)
-                  >= $!max_threads {
-                    scheduler-debug "Will not add extra affinity worker; hit $!max_threads thread limit";
-                    return $chosen-queue;
-                }
-                if $cur-affinity-workers.elems != $!affinity-workers.elems {
-                    return $chosen-queue;
-                }
-                my $new-worker := AffinityWorker.new(scheduler => self);
-                $!affinity-workers := push-worker($!affinity-workers,$new-worker);
-                scheduler-debug "Added an affinity worker thread";
-                $new-worker.queue
-            }
-        }
-        else {
-            $chosen-queue
-        }
+                  # ok ok, add new worker
+                  ($!affinity-workers := push-worker(
+                    $!affinity-workers,
+                    (my $new-worker := AffinityWorker.new(scheduler => self))
+                  )),
+                  scheduler-debug("Added an affinity worker thread"),
+                  $new-worker.queue
+                )
+            } )
+          )
+        )
     }
 
     # Initializing a worker list with a worker, is straightforward and devoid

@@ -548,6 +548,7 @@ my class ThreadPoolScheduler does Scheduler {
 
                 scheduler-debug "Supervisor started";
                 my num $last-rusage-time = nqp::time_n;
+#?if !jvm
                 my int @rusage;
                 nqp::getrusage(@rusage);
                 my int $last-usage =
@@ -561,10 +562,20 @@ my class ThreadPoolScheduler does Scheduler {
                       )
                     + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
-#?if !jvm
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
 #?if jvm
+                ## dirty hack, that relies on rusage being a VMArrayInstance
+                ## instead of VMArrayInstance_i
+                ## see https://github.com/rakudo/rakudo/issues/1666
+                my int @rusage;
+                nqp::getrusage(@rusage);
+                my int $last-usage =
+                  1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
+                    + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                    + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
+                    + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
+
                 my @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
                 my int $cpu-cores = nqp::cpucores();
@@ -598,6 +609,7 @@ my class ThreadPoolScheduler does Scheduler {
                     $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
                     nqp::getrusage(@rusage);
+#?if !jvm
                     $current-usage =
                       nqp::mul_i(
                         nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_SEC),
@@ -608,6 +620,17 @@ my class ThreadPoolScheduler does Scheduler {
                             1000000
                           )
                         + nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_MSEC);
+#?endif
+#?if jvm
+                    ## dirty hack, that relies on rusage being a VMArrayInstance
+                    ## instead of VMArrayInstance_i
+                    ## see https://github.com/rakudo/rakudo/issues/1666
+                    $current-usage =
+                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
+                        + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                        + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
+                        + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
+#?endif
                     $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 

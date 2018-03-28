@@ -628,6 +628,25 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
     }, $reason // "did we throws-like $ex_type.^name()?";
 }
 
+sub fails-like (
+    \test where Callable:D|Str:D, $ex-type, $reason?, *%matcher
+) is export {
+    subtest sub {
+        plan 2;
+        CATCH { default {
+            with "expected code to fail but it threw {.^name} instead" {
+                .&flunk;
+                .&skip;
+                return False;
+            }
+        }}
+        my $res = test ~~ Callable ?? test.() !! test.EVAL;
+        isa-ok $res, Failure, 'code returned a Failure';
+        throws-like { $res.sink }, $ex-type,
+            'Failure threw when sunk', |%matcher,
+    }, $reason // "did we fails-like $ex-type.^name()?"
+}
+
 sub _is_deeply(Mu $got, Mu $expected) {
     $got eqv $expected;
 }

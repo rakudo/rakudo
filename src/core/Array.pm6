@@ -1247,7 +1247,7 @@ my class Array { # declared in BOOTSTRAP
           self.is-lazy,
           X::Cannot::Lazy.new(:action('.grab from')).throw,  # can't make a List
           nqp::if(
-            (my $elems := self.elems),      # reifies, bind to keep the HLL Int
+            self.elems,                      # reifies
             self.GRAB_ONE,
             Nil
           )

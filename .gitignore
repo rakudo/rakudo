@@ -1,4 +1,4 @@
-src/gen/*
+/gen/*
 nqp/
 repo/
 install/
@@ -104,4 +104,3 @@ perl6-valgrind-m
 t/03-jvm/*.class
 /zef
 .DS_Store
-/gen/nqp-version

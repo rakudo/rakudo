@@ -324,6 +324,64 @@ for $*IN.lines -> $line {
         multi method sort(#type#array:D:) {
             Rakudo::Sorting.MERGESORT-#type#(nqp::clone(self))
         }
+        proto method grab(|) {*}
+        multi method grab(#type#array:D:) {
+            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+        }
+        multi method grab(#type#array:D: Callable:D $calculate) {
+            self.grab($calculate(nqp::elems(self)))
+        }
+        multi method grab(#type#array:D: Whatever) { self.grab(Inf) }
+        multi method grab(#type#array:D: $count) {
+            Seq.new(nqp::if(
+              nqp::elems(self),
+              class :: does Iterator {
+                  has $!array;
+                  has int $!count;
+
+                  method SET-SELF(\array,\count) {
+                      nqp::stmts(
+                        (my int $elems = nqp::elems(array)),
+                        ($!array := array),
+                        nqp::if(
+                          count == Inf,
+                          ($!count = $elems),
+                          nqp::if(
+                            nqp::isgt_i(($!count = count.Int),$elems),
+                            ($!count = $elems)
+                          )
+                        ),
+                        self
+                      )
+
+                  }
+                  method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+                  method pull-one() {
+                      nqp::if(
+                        $!count && nqp::elems($!array),
+                        nqp::stmts(
+                          ($!count = nqp::sub_i($!count,1)),
+                          $!array.GRAB_ONE
+                        ),
+                        IterationEnd
+                      )
+                  }
+              }.new(self,$count),
+              Rakudo::Iterator.Empty
+            ))
+        }
+
+        my $empty_#postfix# := nqp::list_#postfix#;
+        method GRAB_ONE(#type#array:D:) {
+            nqp::stmts(
+              (my $value := nqp::atpos_#postfix#(
+                self,
+                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+              )),
+              nqp::splice(self,$empty_#postfix#,$pos,1),
+              $value
+            )
+        }
 SOURCE
 
     # we're done for this role

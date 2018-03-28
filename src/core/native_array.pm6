@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-03-28T22:17:44+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -337,6 +337,64 @@ my class array does Iterable {
         multi method sort(strarray:D:) {
             Rakudo::Sorting.MERGESORT-str(nqp::clone(self))
         }
+        proto method grab(|) {*}
+        multi method grab(strarray:D:) {
+            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+        }
+        multi method grab(strarray:D: Callable:D $calculate) {
+            self.grab($calculate(nqp::elems(self)))
+        }
+        multi method grab(strarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(strarray:D: $count) {
+            Seq.new(nqp::if(
+              nqp::elems(self),
+              class :: does Iterator {
+                  has $!array;
+                  has int $!count;
+
+                  method SET-SELF(\array,\count) {
+                      nqp::stmts(
+                        (my int $elems = nqp::elems(array)),
+                        ($!array := array),
+                        nqp::if(
+                          count == Inf,
+                          ($!count = $elems),
+                          nqp::if(
+                            nqp::isgt_i(($!count = count.Int),$elems),
+                            ($!count = $elems)
+                          )
+                        ),
+                        self
+                      )
+
+                  }
+                  method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+                  method pull-one() {
+                      nqp::if(
+                        $!count && nqp::elems($!array),
+                        nqp::stmts(
+                          ($!count = nqp::sub_i($!count,1)),
+                          $!array.GRAB_ONE
+                        ),
+                        IterationEnd
+                      )
+                  }
+              }.new(self,$count),
+              Rakudo::Iterator.Empty
+            ))
+        }
+
+        my $empty_s := nqp::list_s;
+        method GRAB_ONE(strarray:D:) {
+            nqp::stmts(
+              (my $value := nqp::atpos_s(
+                self,
+                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+              )),
+              nqp::splice(self,$empty_s,$pos,1),
+              $value
+            )
+        }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of strarray role -------------------------------------
 
@@ -355,7 +413,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-03-28T22:17:44+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -635,6 +693,64 @@ my class array does Iterable {
         multi method sort(intarray:D:) {
             Rakudo::Sorting.MERGESORT-int(nqp::clone(self))
         }
+        proto method grab(|) {*}
+        multi method grab(intarray:D:) {
+            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+        }
+        multi method grab(intarray:D: Callable:D $calculate) {
+            self.grab($calculate(nqp::elems(self)))
+        }
+        multi method grab(intarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(intarray:D: $count) {
+            Seq.new(nqp::if(
+              nqp::elems(self),
+              class :: does Iterator {
+                  has $!array;
+                  has int $!count;
+
+                  method SET-SELF(\array,\count) {
+                      nqp::stmts(
+                        (my int $elems = nqp::elems(array)),
+                        ($!array := array),
+                        nqp::if(
+                          count == Inf,
+                          ($!count = $elems),
+                          nqp::if(
+                            nqp::isgt_i(($!count = count.Int),$elems),
+                            ($!count = $elems)
+                          )
+                        ),
+                        self
+                      )
+
+                  }
+                  method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+                  method pull-one() {
+                      nqp::if(
+                        $!count && nqp::elems($!array),
+                        nqp::stmts(
+                          ($!count = nqp::sub_i($!count,1)),
+                          $!array.GRAB_ONE
+                        ),
+                        IterationEnd
+                      )
+                  }
+              }.new(self,$count),
+              Rakudo::Iterator.Empty
+            ))
+        }
+
+        my $empty_i := nqp::list_i;
+        method GRAB_ONE(intarray:D:) {
+            nqp::stmts(
+              (my $value := nqp::atpos_i(
+                self,
+                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+              )),
+              nqp::splice(self,$empty_i,$pos,1),
+              $value
+            )
+        }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
@@ -672,7 +788,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-03-28T22:17:44+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -951,6 +1067,64 @@ my class array does Iterable {
         }
         multi method sort(numarray:D:) {
             Rakudo::Sorting.MERGESORT-num(nqp::clone(self))
+        }
+        proto method grab(|) {*}
+        multi method grab(numarray:D:) {
+            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+        }
+        multi method grab(numarray:D: Callable:D $calculate) {
+            self.grab($calculate(nqp::elems(self)))
+        }
+        multi method grab(numarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(numarray:D: $count) {
+            Seq.new(nqp::if(
+              nqp::elems(self),
+              class :: does Iterator {
+                  has $!array;
+                  has int $!count;
+
+                  method SET-SELF(\array,\count) {
+                      nqp::stmts(
+                        (my int $elems = nqp::elems(array)),
+                        ($!array := array),
+                        nqp::if(
+                          count == Inf,
+                          ($!count = $elems),
+                          nqp::if(
+                            nqp::isgt_i(($!count = count.Int),$elems),
+                            ($!count = $elems)
+                          )
+                        ),
+                        self
+                      )
+
+                  }
+                  method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+                  method pull-one() {
+                      nqp::if(
+                        $!count && nqp::elems($!array),
+                        nqp::stmts(
+                          ($!count = nqp::sub_i($!count,1)),
+                          $!array.GRAB_ONE
+                        ),
+                        IterationEnd
+                      )
+                  }
+              }.new(self,$count),
+              Rakudo::Iterator.Empty
+            ))
+        }
+
+        my $empty_n := nqp::list_n;
+        method GRAB_ONE(numarray:D:) {
+            nqp::stmts(
+              (my $value := nqp::atpos_n(
+                self,
+                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+              )),
+              nqp::splice(self,$empty_n,$pos,1),
+              $value
+            )
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------

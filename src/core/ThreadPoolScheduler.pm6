@@ -678,8 +678,8 @@ my class ThreadPoolScheduler does Scheduler {
                     }
 
                     # always need to prod affinity workers
-                    if $!affinity-workers.DEFINITE {
-                        my int $count = nqp::elems($!affinity-workers);
+                    if nqp::isconcrete($!affinity-workers)
+                      && nqp::elems($!affinity-workers) -> int $count {
                         my $worker;
                         my $item;
                         loop (my int $idx = 0; $idx < $count; $idx++) {

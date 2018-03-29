@@ -669,17 +669,17 @@ my class ThreadPoolScheduler does Scheduler {
                     else {
                         self!tweak-workers($!general-queue, $!general-workers,
                           &add-general-worker, $cpu-cores, $smooth-per-core-util)
-                          if $!general-queue.DEFINITE && $!general-queue.elems;
+                          if $!general-queue.DEFINITE && nqp::elems($!general-queue);
 
                         self!tweak-workers($!timer-queue, $!timer-workers,
                           &add-timer-worker, $cpu-cores, $smooth-per-core-util)
-                          if $!timer-queue.DEFINITE && $!timer-queue.elems;
+                          if $!timer-queue.DEFINITE && nqp::elems($!timer-queue);
 
                     }
 
                     # always need to prod affinity workers
                     if $!affinity-workers.DEFINITE {
-                        my int $count = $!affinity-workers.elems;
+                        my int $count = nqp::elems($!affinity-workers);
                         my $worker;
                         my $item;
                         loop (my int $idx = 0; $idx < $count; $idx++) {
@@ -738,7 +738,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         sub heuristic-check-for-deadlock(--> Nil) {
             my int $average-times-nothing-completed
-            = $total-times-nothing-completed div (worker-list.elems || 1);
+            = $total-times-nothing-completed div (nqp::elems(worker-list) || 1);
             if $average-times-nothing-completed > 20 {
                 scheduler-debug "Heuristic queue progress deadlock situation detected";
                 add-worker();
@@ -906,13 +906,13 @@ my class ThreadPoolScheduler does Scheduler {
 
     method loads() is raw {
         my int $loads = 0;
-        $loads = $loads + $!general-queue.elems if $!general-queue;
-        $loads = $loads + $!timer-queue.elems   if $!timer-queue;
+        $loads = $loads + nqp::elems($!general-queue) if $!general-queue;
+        $loads = $loads + nqp::elems($!timer-queue)   if $!timer-queue;
 
         my int $i = -1;
         nqp::while(
           ++$i < nqp::elems($!affinity-workers),
-          $loads = $loads + nqp::atpos($!affinity-workers,$i).queue.elems
+          $loads = $loads + nqp::elems(nqp::atpos($!affinity-workers,$i).queue)
         );
 
         $loads

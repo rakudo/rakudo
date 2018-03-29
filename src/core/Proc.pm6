@@ -7,7 +7,7 @@ my class Proc {
     has IO::Pipe $.err;
     has $.exitcode = -1;  # distinguish uninitialized from 0 status
     has $.signal;
-    has $.pid;
+    has $.pid is default(Nil);
     has @.command;
 
     has Proc::Async $!proc;

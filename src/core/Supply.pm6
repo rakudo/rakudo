@@ -165,7 +165,7 @@ my class Supply does Awaitable {
             $lock.protect: {
                 my $cancellation = $!scheduler.cue(
                     {
-                        emit($lock.protect: { $i++ });
+                        $lock.protect: { emit $i++ };
                         CATCH { $cancellation.cancel if $cancellation }
                     },
                     :every($!interval), :in($!delay)
@@ -178,7 +178,7 @@ my class Supply does Awaitable {
 
         method live(--> False) { }
         method sane(--> True) { }
-        method serial(--> False) { }
+        method serial(--> True) { }
     }
     method interval(Supply:U: $interval, $delay = 0, :$scheduler = $*SCHEDULER) {
         Supply.new(Interval.new(:$interval, :$delay, :$scheduler));

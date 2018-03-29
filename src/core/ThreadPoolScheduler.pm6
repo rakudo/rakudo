@@ -653,7 +653,6 @@ my class ThreadPoolScheduler does Scheduler {
 #?if jvm
                     $smooth-per-core-util -= @last-utils.shift;
                     $smooth-per-core-util += $per-core-util;
-                    @last-utils.shift;
                     @last-utils.push($per-core-util);
 #?endif
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"

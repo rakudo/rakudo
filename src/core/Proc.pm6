@@ -7,6 +7,7 @@ my class Proc {
     has IO::Pipe $.err;
     has $.exitcode = -1;  # distinguish uninitialized from 0 status
     has $.signal;
+    has $.pid;
     has @.command;
 
     has Proc::Async $!proc;
@@ -177,7 +178,7 @@ my class Proc {
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         my $is-spawned := do {
             CATCH { default { self!set-status(0x100) } }
-            await $!proc.ready;
+            $!pid = await $!proc.ready;
             True
         } // False;
         .() for @!post-spawn;

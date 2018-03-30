@@ -1633,9 +1633,11 @@ my class Supplier {
     }
 }
 
-# A preserving supplier holds on to emitted values and state when nobody is
-# tapping. As soon as there a tap is made, any preserved events will be
-# immediately sent to that tapper.
+# When there are no tappers, a preserving supplier collects emit/done/quit
+# into a replay buffer and immediately returns. When a tap is made, then
+# those events in the buffer are emitted to that tapper. Any further emit,
+# done, or quit on the supplier async-block until the replay has taken
+# place, and then proceed in order.
 my class Supplier::Preserving is Supplier {
     my class PreservingTapList does Tappable {
         my class TapListEntry {
@@ -1644,114 +1646,163 @@ my class Supplier::Preserving is Supplier {
             has &.quit;
         }
 
-        # Lock serializes updates to tappers.
-        has Lock $!lock = Lock.new;
+        # Lock serializes updates to tappers. We never emit values while
+        # holding this lock. Also, we only flip from record mode (when no
+        # tappers) to live mode (when tappers) while holding this lock.
+        has Lock $!tapper-lock = Lock.new;
 
         # An immutable list of tappers. Always replaced on change, never
         # mutated in-place ==> thread safe together with lock (and only
         # need lock on modification).
         has Mu $!tappers;
 
-        # Events to reply, whether the replay was done, and a lock to protect
-        # updates to these.
+        # Events to replay.
         has @!replay;
-        has int $!replay-done;
-        has $!replay-lock = Lock.new;
+
+        # Is the replay "in progress"? We set this once we've decided we
+        # are going to do a replay, and clear it when the replay is done.
+        has $!replay-in-progress;
+
+        # An async lock we hold when we're either replaying events or
+        # doing an send. We only work with @!replay while under this.
+        has $!send-lock = Lock::Async.new;
 
         method tap(&emit, &done, &quit, &tap) {
             my $tle := TapListEntry.new(:&emit, :&done, :&quit);
-            my int $replay = 0;
+            my $replay-lock;
             my $t = Tap.new({
-                $!lock.protect({
+                $!tapper-lock.protect({
                     my Mu $update := nqp::list();
                     for nqp::hllize($!tappers) -> \entry {
                         nqp::push($update, entry) unless entry =:= $tle;
                     }
-                    $!replay-done = 0 if nqp::elems($update) == 0;
                     $!tappers := $update;
                 });
             });
             tap($t);
-            $!lock.protect({
+            $!tapper-lock.protect({
                 my Mu $update := nqp::isconcrete($!tappers)
                     ?? nqp::clone($!tappers)
                     !! nqp::list();
                 nqp::push($update, $tle);
-                $replay = 1 if nqp::elems($update) == 1;
-                self!replay($tle) if $replay;
+                if nqp::elems($update) == 1 {
+                    # First tapper, so we'll set up a replay. We first get
+                    # hold of the send lock. Since it is a fair lock, then we
+                    # know that any message before this point will have been
+                    # put into the replay queue OR will be because we've set
+                    # $!replay-in-progress to True, and any message after this
+                    # will not be considered until we have done the replaying.
+                    # Also note that since the send lock is async, we don't
+                    # block on the .lock call, but just establish ourselves in
+                    # the queue. The Promise it returns will be kept when that
+                    # lock is available. We can thus release the tappers lock,
+                    # without any blocking on send lock, which itself may not
+                    # become available because the current sender wants to get
+                    # the tapper lock. Effectively, the async nature of the
+                    # send lock prevents a circular wait.
+                    $replay-lock = $!send-lock.lock;
+                    $!replay-in-progress = True;
+                }
                 $!tappers := $update;
             });
+            if $replay-lock {
+                # Lock acquired; replay now.
+                self!replay($tle);
+            }
+            elsif $replay-lock.defined {
+                # Locked but not yet acquired; queue replay.
+                $replay-lock.then: {
+                    self!replay($tle);
+                }
+            }
             $t
         }
 
         method emit(\value --> Nil) {
-            loop {
+            $!send-lock.protect-or-queue-on-recursion: {
                 my int $sent = 0;
-                my $snapshot := $!tappers;
-                if nqp::isconcrete($snapshot) {
-                    $sent = nqp::elems($snapshot);
-                    loop (my int $i = 0; $i < $sent; $i = $i + 1) {
-                        nqp::atpos($snapshot, $i).emit()(value);
+                until $sent {
+                    my $snapshot := $!tappers;
+                    if nqp::isconcrete($snapshot) {
+                        $sent = nqp::elems($snapshot);
+                        loop (my int $i = 0; $i < $sent; $i = $i + 1) {
+                            nqp::atpos($snapshot, $i).emit()(value);
+                        }
+                    }
+                    unless $sent {
+                        $sent = self!maybe-add-replay({ .emit()(value) });
                     }
                 }
-                return if $sent;
-                return if self!add-replay({ $_.emit()(value) });
             }
         }
 
         method done(--> Nil) {
-            loop {
+            $!send-lock.protect-or-queue-on-recursion: {
                 my int $sent = 0;
-                my $snapshot := $!tappers;
-                if nqp::isconcrete($snapshot) {
-                    $sent = nqp::elems($snapshot);
-                    loop (my int $i = 0; $i < $sent; $i = $i + 1) {
-                        nqp::atpos($snapshot, $i).done()();
+                until $sent {
+                    my $snapshot := $!tappers;
+                    if nqp::isconcrete($snapshot) {
+                        $sent = nqp::elems($snapshot);
+                        loop (my int $i = 0; $i < $sent; $i = $i + 1) {
+                            nqp::atpos($snapshot, $i).done()();
+                        }
+                    }
+                    unless $sent {
+                        $sent = self!maybe-add-replay({ .done()() });
                     }
                 }
-                return if $sent;
-                return if self!add-replay({ $_.done()() });
             }
         }
 
         method quit($ex --> Nil) {
-            loop {
+            $!send-lock.protect-or-queue-on-recursion: {
                 my int $sent = 0;
-                my $snapshot := $!tappers;
-                if nqp::isconcrete($snapshot) {
-                    $sent = nqp::elems($snapshot);
-                    loop (my int $i = 0; $i < $sent; $i = $i + 1) {
-                        nqp::atpos($snapshot, $i).quit()($ex);
+                until $sent {
+                    my $snapshot := $!tappers;
+                    if nqp::isconcrete($snapshot) {
+                        $sent = nqp::elems($snapshot);
+                        loop (my int $i = 0; $i < $sent; $i = $i + 1) {
+                            nqp::atpos($snapshot, $i).quit()($ex);
+                        }
+                    }
+                    unless $sent {
+                        $sent = self!maybe-add-replay({ .quit()($ex) });
                     }
                 }
-                return if $sent;
-                return if self!add-replay({ $_.quit()($ex) });
             }
         }
 
-        method !add-replay(&replay --> Bool) {
-            $!replay-lock.protect: {
-                if $!replay-done {
-                    False
+        method !maybe-add-replay(&replay --> Int) {
+            # We acquire the tappers lock, which also controls the switch
+            # from record to reply mode. This means we can be sure on events
+            # will be lost.
+            $!tapper-lock.protect: {
+                if !$!replay-in-progress && nqp::isconcrete($!tappers) && nqp::elems($!tappers) {
+                    # A tapper showed up in the meantime, so we won't add it
+                    # to replay, and instead send it.
+                    0
                 }
                 else {
+                    # Really still no tappers; put the event onto the replay
+                    # list. Note that this is safe because when we call this,
+                    # we are holding the send lock, which is what removes from
+                    # this replay list also.
                     @!replay.push(&replay);
-                    True
+                    1
                 }
             }
         }
 
         method !replay($tle) {
-            $!replay-lock.protect: {
-                while @!replay.shift -> $rep {
-                    $rep($tle);
-                }
-                $!replay-done = 1;
+            while @!replay.shift -> $rep {
+                $rep($tle);
             }
+            $!replay-in-progress = False;
+            LEAVE $!send-lock.unlock;
         }
 
         method live(--> True) { }
-        method serial(--> False) { }
+        method serial(--> True) { }
         method sane(--> False) { }
     }
 

@@ -2357,18 +2357,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # generate code that runs the block only once
         make QAST::Op.new(
-          :op('if'),
-          QAST::Op.new( :op('p6stateinit') ),
+          :op('decont'),
           QAST::Op.new(
-            :op('decont'),
+            :op('if'),
+            QAST::Op.new( :op('p6stateinit') ),
             QAST::Op.new(
               :op('p6store'),
               WANTED(QAST::Var.new(:name($sym), :scope('lexical')),'once'),
               QAST::Op.new( :op('call'), wanted($<blorst>.ast,'once') )
-            )
-          ),
-          QAST::Op.new(
-            :op('decont'),
+            ),
             WANTED(QAST::Var.new( :name($sym), :scope('lexical') ),'once')
           )
         );

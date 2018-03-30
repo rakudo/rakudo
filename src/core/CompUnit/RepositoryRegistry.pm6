@@ -96,7 +96,12 @@ class CompUnit::RepositoryRegistry {
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                  ) -> $home-path {
                 $home = "$home-path/.perl6";
-                my str $path = "inst#$home";
+                nqp::mkdir($home, 0o700) unless nqp::stat($home, nqp::const::STAT_EXISTS);
+
+                if !nqp::stat($home, nqp::const::STAT_ISDIR) {
+                    $home = "$*TMPDIR/.perl6_{+$*USER}";
+                    nqp::mkdir($home, 0o700) unless nqp::stat($home, nqp::const::STAT_EXISTS);
+                }
             }
         }
 

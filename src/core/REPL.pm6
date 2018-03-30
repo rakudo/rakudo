@@ -402,9 +402,18 @@ do {
         method history-file(--> Str:D) {
             return $!history-file.absolute if $!history-file.defined;
 
-            $!history-file = $*ENV<RAKUDO_HIST>
-                ?? $*ENV<RAKUDO_HIST>.IO
-                !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
+            with $*ENV<RAKUDO_HIST> {
+                $!history-file = $_.IO;
+            }
+            else {
+                # looking up the home thingy from the CompUnit Repository Registry would be more elegant
+                my IO::Path $home = "$*HOME/.perl6".IO;
+                $home.mkdir(0o700) unless $home.e;
+                if !$home.d {
+                    $home = "$*TMPDIR/.perl6_{+$*USER}".IO;
+                }
+                $!history-file = $home.add('rakudo-history');
+            }
 
             without mkdir $!history-file.parent {
                 note "I ran into a problem trying to set up history: {.exception.message}";

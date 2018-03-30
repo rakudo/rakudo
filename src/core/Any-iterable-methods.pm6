@@ -854,7 +854,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       IterationEnd,
                       nqp::stmts(
                         ($!value := $_),
-                        ($!index = nqp::add_i($!index,1))
+                        nqp::p6box_i($!index = nqp::add_i($!index,1))
                       )
                     )
                   )

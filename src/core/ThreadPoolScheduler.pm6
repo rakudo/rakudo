@@ -835,18 +835,28 @@ my class ThreadPoolScheduler does Scheduler {
         die "Cannot specify :every, :times and :stop at the same time"
           if $every.defined and $times > 1 and &stop;
 
-        # For $in/$at times, if the resultant delay is less than 0.001 (including
-        # negatives) equate those to zero. For $every intervals, we convert
-        # such values to minimum resolution of 0.001 and warn about that
-        sub to-millis(Numeric() $value, $allow-zero = False) {
-            my $proposed := (1000 * $value).Int;
-            $proposed > 0 ?? $proposed
-                !! $allow-zero ?? 0
-                    !! do {warn "Minimum timer resolution is 1ms; using that "
-                            ~ "instead of {1000 * $value}ms";
-                        1}
+        # For $in/$at times, if the resultant delay is less than 0.001
+        # (including negatives) equate those to zero. For $every intervals,
+        # we convert such values to minimum resolution of 0.001 and warn
+        # about that
+        sub to-millis(Numeric() $value) {
+            nqp::if(
+              nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
+              $proposed,
+              nqp::stmts(
+                warn("Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms"),
+                1
+              )
+            )
         }
-        my $delay = to-millis ($at ?? $at - now !! $in // 0), True;
+        sub to-millis-allow-zero(Numeric() $value) {
+            nqp::if(
+              nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
+              $proposed
+              # not true == 0 == what we need
+            )
+        }
+        my $delay = to-millis-allow-zero($at ?? $at - now !! $in // 0);
 
         # Wrap any catch handler around the code to run.
         my &run := &catch ?? wrap-catch(&code, &catch) !! &code;

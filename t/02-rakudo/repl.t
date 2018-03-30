@@ -5,13 +5,15 @@ use Test::Helpers;
 
 plan 42;
 
+my $exit-char = ($*VM.osname eq 'win32') ?? '^Z' !! '^D';
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
         " or use rlwrap for a line editor\n\n"//;
-    s/^^ "To exit type 'exit' or '^D'\n"//;
+    s/^^ "To exit, type 'exit' or '{$exit-char}'.\n"//;
     s:g/ ^^ "> "  //; # Strip out the prompts
     s:g/    ">" $ //; # Strip out the final prompt
     s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
+    s/^^ "Type '{$exit-char}' once more to exit.\n"//;
     $_
 }
 

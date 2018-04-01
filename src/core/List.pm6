@@ -1641,7 +1641,7 @@ proto sub prefix:<|>(|) {*}
 multi sub prefix:<|>(\x) { x.Slip }
 
 sub CMP-SLOW(@a, @b) {
-    (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b
+    (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
 }
 
 multi sub infix:<cmp>(@a, @b) {

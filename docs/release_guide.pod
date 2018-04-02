@@ -32,6 +32,26 @@ some releases to ensure any compatibility issues are resolved.
 
 =head2 Steps to create a release (for release managers)
 
+B<⚠ Please try to rely on automation instead of doing the release
+manually.> This document describes steps that should be performed
+by tools, and in a way serves as a documentation for them.
+
+Currently there are two tools:
+
+=over
+
+=item *
+Release Sakefile (not published yet) which is meant to be used together with
+L<Releasable|https://github.com/perl6/whateverable/wiki/Releasable> bot
+
+=item *
+L<NeuralAnomaly|https://github.com/zoffixznet/na> bot
+
+=back
+
+Some things are hard to automate, and you have to understand what is
+(and what is not) done by the tool you are using, so read on.
+
 =over 4
 
 =item 1.

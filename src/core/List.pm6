@@ -1078,15 +1078,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                      }
                      method push-all($target --> IterationEnd) {
                          nqp::stmts(
-                             (my int $todo  = $!todo),
+                             (my int $todo  = $!todo + 1),
                              (my int $elems = $!elems),
                              nqp::while(
-                                 $todo,
-                                 nqp::stmts(
-                                     ($target.push(nqp::atpos($!list,$elems.rand.floor))),
-                                     ($todo = $todo - 1)
-                                 )
-                             )
+                                 ($todo = $todo - 1),
+                                 ($target.push(nqp::atpos($!list,$elems.rand.floor))),
+                             ),
+                             ($!todo = $todo)
                          )
                      }
                  }.new(self,number.Int))

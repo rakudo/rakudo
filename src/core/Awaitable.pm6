@@ -25,19 +25,18 @@ my role Awaitable::Handle {
     has Exception $.cause;
 
     method already-success(Mu \result) {
-        nqp::create(self)!already-success(result)
+        nqp::create(self).ALREADY_SUCCESS(result)
     }
-    method !already-success(Mu \result) {
-        $!already := True;
-        $!success := True;
+    method ALREADY_SUCCESS(Mu \result) {
+        $!already := $!success := True;
         $!result := result;
         self
     }
 
     method already-failure(Mu \cause) {
-        self.CREATE!already-failure(cause)
+        nqp::create(self).ALREADY_FAILURE(cause)
     }
-    method !already-failure(Mu \cause) {
+    method ALREADY_FAILURE(Mu \cause) {
         $!already := True;
         $!success := False;
         $!cause := cause;

@@ -338,7 +338,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::if(
           $!storage && nqp::elems($!storage),
           nqp::stmts(
-            (my int $i = nqp::add_i(nqp::elems($!storage).rand.floor,1)),
+            (my int $i =
+              nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems($!storage))),1)),
             (my $iter := nqp::iterator($!storage)),
             nqp::while(
               nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
@@ -387,7 +388,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                       nqp::ifnull(
                         nqp::atpos(
                           $!pairs,
-                          (my int $i = nqp::elems($!keys).rand.floor)
+                          (my int $i =
+                            nqp::floor_n(nqp::rand_n(nqp::elems($!keys))))
                         ),
                         nqp::bindpos($!pairs,$i,
                           Pair.new(

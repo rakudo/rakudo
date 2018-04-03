@@ -1048,8 +1048,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method roll(List:D:) {
         self.is-lazy
           ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
-          !! (my Int $elems = self.elems)
-            ?? nqp::atpos($!reified, $elems.rand.floor)
+          !! (my int $elems = self.elems)    # reify
+            ?? nqp::atpos($!reified,nqp::floor_n(nqp::rand_n($elems)))
             !! Nil
     }
     multi method roll(List:D: Whatever) {
@@ -1057,10 +1057,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.is-lazy,
           X::Cannot::Lazy.new(:action('.roll from')).throw,
           Seq.new(nqp::if(
-            (my $elems := self.elems),
-            Rakudo::Iterator.Callable( {
-                nqp::atpos($!reified, $elems.rand.floor)
-            }, True ),
+            (my int $elems = self.elems),
+            nqp::stmts(
+              (my $reified := $!reified),
+              Rakudo::Iterator.Callable( {
+                  nqp::atpos($reified,nqp::floor_n(nqp::rand_n($elems)))
+              }, True )
+            ),
             Rakudo::Iterator.Empty
           ))
         )
@@ -1073,35 +1076,39 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! self.elems   # this allocates/reifies
               ?? Seq.new(class :: does Iterator {
                      has $!list;
-                     has Int $!elems;
+                     has int $!elems;
                      has int $!todo;
                      method SET-SELF(\list,\todo) {
                          $!list := nqp::getattr(list,List,'$!reified');
                          $!elems = nqp::elems($!list);
-                         $!todo  = todo;
+                         $!todo  = todo + 1;
                          self
                      }
                      method new(\list,\todo) {
                          nqp::create(self).SET-SELF(list,todo)
                      }
                      method pull-one() is raw {
-                         if $!todo {
-                             $!todo = $!todo - 1;
-                             nqp::atpos($!list,$!elems.rand.floor)
-                         }
-                         else {
-                             IterationEnd
-                         }
+                         nqp::if(
+                           ($!todo = nqp::sub_i($!todo,1)),
+                           nqp::atpos(
+                             $!list,
+                             nqp::floor_n(nqp::rand_n($!elems))
+                           ),
+                           IterationEnd
+                         )
                      }
                      method push-all($target --> IterationEnd) {
                          nqp::stmts(
-                             (my int $todo  = $!todo + 1),
-                             (my int $elems = $!elems),
-                             nqp::while(
-                                 ($todo = $todo - 1),
-                                 ($target.push(nqp::atpos($!list,$elems.rand.floor))),
-                             ),
-                             ($!todo = $todo)
+                           (my int $todo  = $!todo),
+                           (my int $elems = $!elems),
+                           nqp::while(
+                             ($todo = nqp::sub_i($todo,1)),
+                             $target.push(nqp::atpos(
+                               $!list,
+                               nqp::floor_n(nqp::rand_n($elems))
+                             ))
+                           ),
+                           ($!todo = $todo)
                          )
                      }
                  }.new(self,number.Int))

@@ -970,8 +970,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method pick(List:D:) {
         self.is-lazy
          ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
-         !! (my Int $elems = self.elems)
-           ?? nqp::atpos($!reified, $elems.rand.floor)
+         !! (my int $elems = self.elems)   # reifies
+           ?? nqp::atpos($!reified,nqp::floor_n(nqp::rand_n($elems)))
            !! Nil
     }
     multi method pick(List:D: Callable:D $calculate) {
@@ -989,7 +989,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! $number.UInt min $elems;
         Seq.new(class :: does Iterator {
             has $!list;
-            has Int $!elems;
+            has int $!elems;
             has int $!number;
 
             method SET-SELF(\list,$!elems,\number) {
@@ -1001,27 +1001,44 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::create(self).SET-SELF(list,elems,number)
             }
             method pull-one() {
-                if ($!number = nqp::sub_i($!number,1)) {
-                    my int $i;
-                    my \tmp = nqp::atpos($!list,$i = $!elems.rand.floor);
-                    nqp::bindpos($!list,$i,
-                      nqp::atpos($!list,nqp::unbox_i(--$!elems))
-                    );
+                nqp::if(
+                  ($!number = nqp::sub_i($!number,1)),
+                  nqp::stmts(
+                    (my \tmp = nqp::atpos(
+                      $!list,
+                      my int $i = nqp::floor_n(nqp::rand_n($!elems))
+                    )),
+                    nqp::bindpos(
+                      $!list,
+                      $i,
+                      nqp::atpos($!list,($!elems = nqp::sub_i($!elems,1)))
+                    ),
                     tmp
-                }
-                else {
-                    IterationEnd
-                }
+                  ),
+                  IterationEnd
+                )
             }
             method push-all($target --> IterationEnd) {
-                my int $i;
-                nqp::while(
-                  ($!number = nqp::sub_i($!number,1)),
-                  nqp::stmts(  # doesn't sink
-                    ($target.push(nqp::atpos($!list,$i = $!elems.rand.floor))),
-                    (nqp::bindpos($!list,$i,
-                      nqp::atpos($!list,nqp::unbox_i(--$!elems))))
-                  )
+                nqp::stmts(
+                  (my $list := $!list),
+                  (my int $number = $!number),
+                  (my int $elems  = $!elems),
+                  nqp::while(
+                    ($number = nqp::sub_i($number,1)),
+                    nqp::stmts(  # doesn't sink
+                      $target.push(nqp::atpos(
+                        $list,
+                        (my int $i = nqp::floor_n(nqp::rand_n($elems)))
+                      )),
+                      nqp::bindpos(
+                        $list,
+                        $i,
+                        nqp::atpos($list,($elems = nqp::sub_i($elems,1)))
+                      )
+                    )
+                  ),
+                  ($!number = $number),
+                  ($!elems  = $elems)
                 )
             }
         }.new(self,$elems,$number))

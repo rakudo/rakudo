@@ -777,7 +777,7 @@ my class Hash { # declared in BOOTSTRAP
                             $!storage,
                             nqp::atpos_s(
                               $!keys,
-                              nqp::floor_n(nqp::rand_n(nqp::elems($!keys)))i
+                              nqp::floor_n(nqp::rand_n(nqp::elems($!keys)))
                             )
                           )
                         ),

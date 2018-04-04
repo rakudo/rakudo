@@ -723,7 +723,7 @@ my class Rakudo::Internals {
 #?if moar
             my int $ord = nqp::ord($char);
             $escaped ~= nqp::isge_i($ord,256)
-              && +uniprop($ord,'Canonical_Combining_Class')
+              && +uniprop-str($ord,'Canonical_Combining_Class')
               ?? char-to-escapes($char)
               !! nqp::iseq_s($char,"\r\n") ?? '\r\n' !!
 #?endif

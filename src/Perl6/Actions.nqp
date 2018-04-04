@@ -9024,7 +9024,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     # we need not wrap it in a read-only scalar.
                     my $wrap := $flags +& $SIG_ELEM_IS_COPY;
                     unless $wrap {
-                        $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);
+                        $wrap := nqp::isnull($coerce_to)
+                            ?? nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype)
+                            !! nqp::istype($coerce_to, $Iterable) || nqp::istype($Iterable, $coerce_to);
                     }
                     if $wrap {
                         $var.push(QAST::Op.new(

@@ -60,8 +60,8 @@ sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
           nqp::p6box_n(nqp::div_In($numerator, $denominator)))))
 }
 
-sub DON'T_DIVIDE_NUMBERS(Int:D \nu, Int:D \de, $t1, $t2) {
-    nqp::istype($t1, FatRat) || nqp::istype($t2, FatRat)
+sub DON'T_DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
+    nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat)
         ?? nqp::p6bindattrinvres(
               nqp::p6bindattrinvres(
                   nqp::create(FatRat),

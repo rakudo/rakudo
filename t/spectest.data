@@ -1119,6 +1119,7 @@ S32-num/rounders.t
 S32-num/rshift_pos_amount.t
 S32-num/sign.t
 S32-num/sqrt.t
+S32-num/stress.t     # stress
 S32-num/stringify.t
 S32-num/unpolar.t
 S32-scalar/defined.t

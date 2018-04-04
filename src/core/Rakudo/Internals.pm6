@@ -701,10 +701,10 @@ my class Rakudo::Internals {
 
     method PERLIFY-STR(Str \string) {
         sub char-to-escapes(Str $char) is pure {
-#?if moar
+#?if !jvm
             '\x[' ~ $char.NFC.list.map({.base: 16}).join(',') ~ ']'
 #?endif
-#?if !moar
+#?if jvm
             '\x[' ~ $char.ord.base(16) ~ ']'
 #?endif
         }
@@ -720,14 +720,14 @@ my class Rakudo::Internals {
         my int $i = -1;
         while ($i = $i + 1) < $chars {
             my str $char = nqp::substr($to-escape, $i, 1);
-#?if moar
+#?if !jvm
             my int $ord = nqp::ord($char);
             $escaped ~= nqp::isge_i($ord,256)
               && +uniprop-str($ord,'Canonical_Combining_Class')
               ?? char-to-escapes($char)
               !! nqp::iseq_s($char,"\r\n") ?? '\r\n' !!
 #?endif
-#?if !moar
+#?if jvm
             $escaped ~=
 #?endif
 

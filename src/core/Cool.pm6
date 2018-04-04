@@ -421,7 +421,9 @@ multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
 multi sub uniprop(|)      { die 'uniprop NYI on js backend' }
 multi sub uniprop-int(|)  { die 'uniprop-int NYI on js backend' }
 multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
-multi sub uniprop-str(|)  { die 'uniprop-str NYI on js backend' }
+multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
+    nqp::getuniprop_str($code,nqp::unipropcode($propname));
+}
 multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
 #?endif

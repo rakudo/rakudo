@@ -2729,10 +2729,10 @@ class Perl6::World is HLL::World {
         }
         else {
             $past := QAST::Want.new($const, 'Nn',
-                $value eq 'Inf'  ?? QAST::Op.new(:node($/), :op<inf>) !!
-                $value eq '-Inf' ?? QAST::Op.new(:node($/), :op<neginf>) !!
-                $value eq 'NaN'  ?? QAST::Op.new(:node($/), :op<nan>) !!
-                                    QAST::NVal.new( :value($value) ) );
+                $value == nqp::inf    ?? QAST::Op.new(:node($/), :op<inf>) !!
+                $value == nqp::neginf ?? QAST::Op.new(:node($/), :op<neginf>) !!
+                $value == nqp::nan    ?? QAST::Op.new(:node($/), :op<nan>) !!
+                                         QAST::NVal.new( :value($value) ) );
         }
         $past.returns($const.returns);
         if $/ {

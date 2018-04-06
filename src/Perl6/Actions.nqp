@@ -1914,7 +1914,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<loop>($/) {
-        my $cond := $<e2> ?? WANTED($<e2>.ast, 'statement_control/e2') !! QAST::IVal.new( :value(1) );
+        my $cond;
+        $<e2> ?? ($cond := WANTED($<e2>.ast, 'statement_control/e2'))
+          !! nqp::stmts(($cond := QAST::IVal.new: :value(1)),
+            $cond.set_compile_time_value: 1);
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         $loop.push($<block>.ast);
         if $<e3> {

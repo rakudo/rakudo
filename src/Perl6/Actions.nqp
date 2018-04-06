@@ -1941,34 +1941,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $loop[1] := pblock_immediate($loop[1]);
         }
         else {
+            my $node := $loop.node;
             if nqp::existskey($phasers, 'NEXT') {
                 my $phascode := $*W.run_phasers_code($code, $loop[1], $block_type, 'NEXT');
                 if +@($loop) == 2 {
                     $loop.push($phascode);
                 }
                 else {
-                    $loop[2] := QAST::Stmts.new($phascode, $loop[2]);
+                    $loop[2] := QAST::Stmts.new: :$node, $phascode, $loop[2];
                 }
             }
             if nqp::existskey($phasers, 'FIRST') {
                 my $tmp := QAST::Node.unique('LOOP_BLOCK');
-                $loop := QAST::Stmts.new(
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
-                        QAST::Op.new( :op('p6setfirstflag'), $loop[1] )
-                    ),
+                my $var := QAST::Var.new: :$node, :name($tmp), :scope<local>;
+                $loop := QAST::Stmts.new(:$node,
+                    QAST::Op.new(:$node, :op<bind>, $var.decl_as('var'),
+                        QAST::Op.new(:$node, :op<p6setfirstflag>, $loop[1])),
                     $loop);
-                $loop[1][1] := QAST::Op.new( :op('call'), QAST::Var.new( :name($tmp), :scope('local') ) );
+                $loop[1][1] := QAST::Op.new: :$node, :op<call>, $var;
             }
             else {
                 $loop[1] := pblock_immediate($loop[1]);
             }
             if nqp::existskey($phasers, 'LAST') {
-                $loop := QAST::Stmts.new(
-                    :resultchild(0),
-                    $loop,
-                    $*W.run_phasers_code($code, $loop[1], $block_type, 'LAST'));
+                $loop := QAST::Stmts.new(:$node, :resultchild(0), $loop,
+                  $*W.run_phasers_code: $code, $loop[1], $block_type, 'LAST');
             }
         }
         $loop

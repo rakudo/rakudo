@@ -22,11 +22,13 @@ my class BOOTSTRAPATTR {
     has $!box_target;
     has $!package;
     has $!inlined;
+    has $!dimensions;
     method name() { $!name }
     method type() { $!type }
     method box_target() { $!box_target }
     method package() { $!package }
     method inlined() { $!inlined }
+    method dimensions() { $!dimensions }
     method has_accessor() { 0 }
     method positional_delegate() { 0 }
     method associative_delegate() { 0 }
@@ -1145,6 +1147,8 @@ BEGIN {
     #     has Mu $!auto_viv_container;
     #     has Mu $!build_closure;
     #     has Mu $!package;
+    #     has int $!inlined;
+    #     has Mu $!dimensions;
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
     #     has Mu $!why;
@@ -1161,6 +1165,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!inlined>, :type(int), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!dimensions>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!positional_delegate>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!associative_delegate>, :type(int), :package(Attribute)));

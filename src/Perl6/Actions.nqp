@@ -3204,6 +3204,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::objprimspec($attr.type) != 0 {
             $/.worry('Useless use of HAS scope on ' ~ $attr.type.HOW.name($attr.type) ~ ' typed attribute.');
         }
+
+        if $attr.type.REPR eq 'CArray' {
+            if $<scoped><DECL><declarator><variable_declarator><semilist> -> $semilist {
+                my @dimensions := nqp::list_i();
+                for $semilist -> $dimension {
+                    $dimension.ast.nosink(1);
+                    my $elems := nqp::unbox_i($*W.compile_time_evaluate($/, $dimension.ast));
+                    nqp::push_i(@dimensions, $elems);
+                }
+                nqp::bindattr($attr, $attr.WHAT, '$!dimensions', @dimensions);
+            }
+        }
+
         # Mark $attr as inlined, that's why we do all this.
         nqp::bindattr_i($attr, $attr.WHAT, '$!inlined', 1);
         make $scoped;

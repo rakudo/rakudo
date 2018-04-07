@@ -9693,7 +9693,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                   (nqp::eqat($qast.name, '&postcircumfix:', 0) &&
                     %curried{$qast.name} // 0)
                   # or it's one of the curriable things rewritten to `call`
-                  || $qast.ann('curriable-call-offset') && 3)
+                  || $qast.has_ann('curriable-call-offset') && 3)
             );
 
         return $qast unless $curried;

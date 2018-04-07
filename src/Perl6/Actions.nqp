@@ -125,10 +125,28 @@ sub wanted($ast,$by) {
             # we always have a body
             my $cond := WANTED($ast[0],$byby);
             my $body := WANTED($ast[1],$byby);
-            my $block := Perl6::Actions::make_thunk_ref($body, $body.node);
-            my $past := QAST::Op.new(:op<callmethod>, :name<from-loop>, :node($body.node),
-                QAST::WVal.new( :value($*W.find_symbol(['Seq']))),
-                block_closure($block) );
+            my $block;
+            my $block-closure;
+            if $body.ann('loop-already-block-first-phaser') -> $loop-goods {
+                $block := $loop-goods[0][1][0];
+                $block-closure := QAST::Op.new: :node($body.node),
+                    :op<p6setfirstflag>, block_closure($block);
+
+                # get rid of now-useless var and other bits of the QAST.
+                # If we .shift off all items, the QAST::Stmts gets a null
+                # in them that I can't figure out where it's coming from,
+                # so shove an empty QAST::Smts to replace last item.
+                $loop-goods.shift;
+                $loop-goods[0] := QAST::Stmts.new;
+            }
+            else {
+                $block := Perl6::Actions::make_thunk_ref($body, $body.node);
+                $block-closure := block_closure($block);
+            }
+            my $past := QAST::Op.new: :node($body.node),
+                :op<callmethod>, :name<from-loop>,
+                QAST::WVal.new(:value($*W.find_symbol(['Seq']))),
+                $block-closure;
 
             # Elevate statevars to enclosing thunk
             if $body.has_ann('has_statevar') && $block.has_ann('past_block') {
@@ -1952,13 +1970,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
             if nqp::existskey($phasers, 'FIRST') {
-                my $tmp := QAST::Node.unique('LOOP_BLOCK');
-                my $var := QAST::Var.new: :$node, :name($tmp), :scope<local>;
+                my $tmp  := QAST::Node.unique('LOOP_BLOCK');
+                my $var  := QAST::Var.new: :$node, :name($tmp), :scope<local>;
                 $loop := QAST::Stmts.new(:$node,
                     QAST::Op.new(:$node, :op<bind>, $var.decl_as('var'),
-                        QAST::Op.new(:$node, :op<p6setfirstflag>, $loop[1])),
+                      QAST::Op.new: :$node, :op<p6setfirstflag>, $loop[1]),
                     $loop);
-                $loop[1][1] := QAST::Op.new: :$node, :op<call>, $var;
+                $loop[1][1] := QAST::Op.new(:$node, :op<call>, $var
+                  ).annotate_self: 'loop-already-block-first-phaser', $loop;
             }
             else {
                 $loop[1] := pblock_immediate($loop[1]);

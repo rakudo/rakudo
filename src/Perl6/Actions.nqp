@@ -7262,7 +7262,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif nqp::istype($ast, QAST::Op)
         || nqp::istype($ast, QAST::Stmt)
-        || nqp::istype($ast, QAST::Stmts) {
+        || nqp::istype($ast, QAST::Stmts)
+        || nqp::istype($ast, QAST::Want) {
             mark_blocks_as_andnotelse_first_arg($_) for @($ast)
         }
     }

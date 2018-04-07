@@ -6817,15 +6817,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $return_map := 1
                 }
 
-                if $past.name eq 'dispatch:<var>' && ! (
-                       nqp::istype($past[0], QAST::WVal)
-                    && nqp::istype($past[0].value,
-                      $*W.find_symbol: ['Whatever'], :setting-only)
-                ) {
-                    # Unpack the method call into nameless-calling the argument.
-                    # Don't do it if invocant is a Whatever, as we'll curry it
+                if $past.name eq 'dispatch:<var>' {
+                    # Unpack the method call into nameless-calling the argument:
                     $past.op: 'call';
                     $past.name: '';
+                    $past.annotate: 'curriable-call-offset', 1;
                     my $invocant := $past[0];
                     $past[0] := $past[1];
                     $past[1] := $invocant;
@@ -9693,16 +9689,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 || ($qast.op ne 'call' && %curried{$qast.op} // 0)
 
             # or one of our new postcircumfix subs that used to be methods
-                || ($qast.op eq 'call' && nqp::eqat($qast.name, '&postcircumfix:', 0) &&
+                || ($qast.op eq 'call' &&
+                  (nqp::eqat($qast.name, '&postcircumfix:', 0) &&
                     %curried{$qast.name} // 0)
+                  # or it's one of the curriable things rewritten to `call`
+                  || $qast.ann('curriable-call-offset') && 3)
             );
 
         return $qast unless $curried;
 
         # Some constructs, like &METAOP things, have metaop construction as
         # first few kids of the QAST. We'll skip them while raking for Whatevers
-        my int $offset := $qast.op eq 'call'
-            && ! nqp::eqat($qast.name,'&postcircumfix:', 0)
+        my int $offset := $qast.ann('curriable-call-offset')
+          ?? $qast.ann('curriable-call-offset')
+          !! $qast.op eq 'call' && ! nqp::eqat($qast.name,'&postcircumfix:', 0)
             ?? nqp::elems($qast) - $upto_arity !! 0;
         my int $i := $offset;
         my int $e := $upto_arity + $offset;

@@ -9700,7 +9700,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Some constructs, like &METAOP things, have metaop construction as
         # first few kids of the QAST. We'll skip them while raking for Whatevers
-        my int $offset := $qast.ann('curriable-call-offset')
+        my int $offset := $qast.has_ann('curriable-call-offset')
           ?? $qast.ann('curriable-call-offset')
           !! $qast.op eq 'call' && ! nqp::eqat($qast.name,'&postcircumfix:', 0)
             ?? nqp::elems($qast) - $upto_arity !! 0;

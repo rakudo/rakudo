@@ -2000,25 +2000,17 @@ class Perl6::Optimizer {
             my str $warning;
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
                 $warning := qq[Useless use of constant string "]
-                         ~ nqp::escape($want[2].value)
+                         ~ nqp::escape($want[2].node // $want[2].value)
                          ~ qq[" in sink context];
             }
             elsif $want[1] eq 'Ii' && nqp::istype($want[2], QAST::IVal) {
                 $warning := qq[Useless use of constant integer ]
-                         ~ ~$want[2].value
+                         ~ ($want[2].node // $want[2].value)
                          ~ qq[ in sink context];
             }
-            elsif $want[1] eq 'Nn' {
-                if nqp::istype($want[2], QAST::NVal) {
-                  $warning := qq[Useless use of constant floating-point number ]
-                    ~ $want[2].value ~ qq[ in sink context];
-                }
-                elsif nqp::istype($want[2], QAST::Op)
-                &&  ($want[2].op eq 'inf' || $want[2].op eq 'nan'
-                  || $want[2].op eq 'neginf') {
-                  $warning := qq[Useless use of constant floating-point number ]
-                    ~ $want[2].node ~ qq[ in sink context];
-                }
+            elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
+                $warning := qq[Useless use of constant floating-point number ]
+                  ~ ($want[2].node // $want[2].value) ~ qq[ in sink context];
             }
             if $warning {
                 $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
@@ -2262,7 +2254,12 @@ class Perl6::Optimizer {
                             my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                             unless $value eq 'Nil'
                             || $visit.ann('sink-quietly') {
-                                my $warning := qq[Useless use of constant value $value in sink context$suggest];
+                                my $thing :=    nqp::istype($visit.value,
+                                  $!symbols.find_in_setting: 'Int')
+                                ?? 'integer' !! nqp::istype($visit.value,
+                                  $!symbols.find_in_setting: 'Rational')
+                                ?? 'rational' !! 'value';
+                                my $warning := qq[Useless use of constant $thing $value in sink context$suggest];
                                 note($warning) if $!debug;
                                 $!problems.add_worry($visit, $warning)
                             }

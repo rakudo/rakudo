@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 8;
+plan 9;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -64,5 +64,14 @@ throws-like ｢Lock.protect: %()｣, X::Multi::NoMatch,
     'Lock.protect with wrong args gives sane error';
 throws-like ｢Lock::Async.protect: %()｣, X::Multi::NoMatch,
     'Lock::Async.protect with wrong args gives sane error';
+
+# https://github.com/rakudo/rakudo/issues/1699
+throws-like {
+    with Proc::Async.new: :out, :!err, $*EXECUTABLE, '-e', '' {
+        .bind-stdout: IO::Handle.new;
+        .start;
+    }
+}, Exception, :message{.contains: 'handle not open'},
+  'trying to bind Proc::Async to unopened handle gives useful error';
 
 # vim: ft=perl6 expandtab sw=4

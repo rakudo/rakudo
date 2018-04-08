@@ -93,7 +93,7 @@ is @report[1], 'Number of Snapshots: 0', 'line 2 of report';
       use snapper;
       for ^1_000 {
           (^100).race(batch=>1).map({ $_ }).List
-      }
+      };
       print 'pass'
     ｣, :err{.contains: 'Unknown Telemetry column `blahblah`'}, :out<pass>,
     'giving unknown column in RAKUDO_REPORT_COLUMNS warns instead of crashing'

@@ -79,15 +79,13 @@ subtest 'unclosed hash quote index operator <> message' => {
     plan 2;
     throws-like "\n\nsay \$<\n\n", X::Comp::AdHoc,
         'good error message for unclosed <> hash operator',
-        message => /:i[:s unable to parse<|w>]
-            .* <|w>find\s+\'\>\'
-            .* [:s at line 3]
-        /;
+        gist => all(
+            /:i:s<<unable to parse /, /<<find\h+\'\>\'/, /:s<<at line 3 /
+        );
     todo 'RT #132238 - remove "expecting any of:"';
     throws-like "say \$<", X::Comp::AdHoc,
         'better and shorter error message for unclosed <> hash operator',
-        # somewhat tricky does not contain "expecting any of"
-        gist => /^ [. <!before [:s expecting any of:]>]* $ /;
+        :gist{ not .match: /:i:s<<expecting any of: / };
 }
 
 # vim: ft=perl6 expandtab sw=4

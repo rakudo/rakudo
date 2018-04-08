@@ -320,6 +320,7 @@ sub unwanted($ast, $by) {
         }
         elsif $ast.op eq 'callmethod' {
             if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
+                return $ast if $*ALREADY_ADDED_SINK_CALL;
                 $ast.sunk(1);
                 $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
                 $ast.sunk(1);
@@ -438,9 +439,11 @@ sub unwanted($ast, $by) {
             elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                    add-sink-to-final-call($node.ann('past_block'), 1)
-                        unless $*COMPILING_CORE_SETTING;
-                    $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+                    unless $*COMPILING_CORE_SETTING {
+                        add-sink-to-final-call($node.ann('past_block'), 1);
+                        my $*ALREADY_ADDED_SINK_CALL := 1;
+                        $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+                    }
                 }
             }
             elsif $node.op eq 'while' || $node.op eq 'until' {

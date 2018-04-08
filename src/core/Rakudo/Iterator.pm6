@@ -3489,6 +3489,9 @@ class Rakudo::Iterator {
                 nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
             }
             method pull-one() is raw { $!value }
+            method sink-all(--> IterationEnd) { }
+            method count-only(--> Inf) { }
+            method bool-only(--> True) { }
             method is-lazy(--> True) { }
         }.new(value)
     }

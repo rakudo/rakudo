@@ -766,12 +766,18 @@ my class array does Iterable {
             nqp::join($delim.Str,$list)
         }
 
-        multi method STORE(intarray:D: Range:D $range) {
+        multi method STORE(intarray:D: Range:D \range) {
             nqp::if(
-              $range.is-int,
+              range.is-int,
               nqp::stmts(
-                (my int $val = $range.min + $range.excludes-min),
-                (my int $max = $range.max - $range.excludes-max),
+                (my int $val = nqp::add_i(
+                  nqp::getattr(range,Range,'$!min'),
+                  nqp::getattr_i(range,Range,'$!excludes-min')
+                )),
+                (my int $max = nqp::sub_i(
+                  nqp::getattr(range,Range,'$!max'),
+                  nqp::getattr_i(range,Range,'$!excludes-max')
+                )),
                 nqp::setelems(self, nqp::add_i(nqp::sub_i($max,$val),1)),
                 (my int $i = -1),
                 ($val = nqp::sub_i($val,1)),

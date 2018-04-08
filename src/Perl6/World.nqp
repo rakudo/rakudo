@@ -3743,7 +3743,9 @@ class Perl6::World is HLL::World {
     method create_definite_type($how, $base_type, $definite) {
        # Create the meta-object and add to root objects.
         my $mo := $how.new_type(:$base_type, :$definite);
-        self.add_object($mo);
+
+        if nqp::isnull(nqp::getobjsc($mo)) { self.add_object($mo); }
+
         return $mo;
     }
 

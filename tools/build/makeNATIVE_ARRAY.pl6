@@ -80,8 +80,8 @@ for $*IN.lines -> $line {
             self
         }
         multi method STORE(#type#array:D: #type# @values) {
-            nqp::setelems(self,@values.elems);
-            nqp::splice(self,@values,0,@values.elems)
+            nqp::setelems(self,nqp::elems(@values));
+            nqp::splice(self,@values,0,nqp::elems(@values))
         }
         multi method STORE(#type#array:D: @values) {
             my int $elems = @values.elems;
@@ -165,7 +165,7 @@ for $*IN.lines -> $line {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
-            my $elems = self.elems;
+            my int $elems = nqp::elems(self);
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -204,7 +204,7 @@ for $*IN.lines -> $line {
 
         multi method min(#type#array:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my #type# $min = nqp::atpos_#postfix#(self,0)),
@@ -222,7 +222,7 @@ for $*IN.lines -> $line {
         }
         multi method max(#type#array:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my #type# $max = nqp::atpos_#postfix#(self,0)),
@@ -240,7 +240,7 @@ for $*IN.lines -> $line {
         }
         multi method minmax(#type#array:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my #type# $min =

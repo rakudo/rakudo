@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-03-28T22:17:44+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-08T20:44:41+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -93,8 +93,8 @@ my class array does Iterable {
             self
         }
         multi method STORE(strarray:D: str @values) {
-            nqp::setelems(self,@values.elems);
-            nqp::splice(self,@values,0,@values.elems)
+            nqp::setelems(self,nqp::elems(@values));
+            nqp::splice(self,@values,0,nqp::elems(@values))
         }
         multi method STORE(strarray:D: @values) {
             my int $elems = @values.elems;
@@ -178,7 +178,7 @@ my class array does Iterable {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
-            my $elems = self.elems;
+            my int $elems = nqp::elems(self);
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -217,7 +217,7 @@ my class array does Iterable {
 
         multi method min(strarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my str $min = nqp::atpos_s(self,0)),
@@ -235,7 +235,7 @@ my class array does Iterable {
         }
         multi method max(strarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my str $max = nqp::atpos_s(self,0)),
@@ -253,7 +253,7 @@ my class array does Iterable {
         }
         multi method minmax(strarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my str $min =
@@ -413,7 +413,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-03-28T22:17:44+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-08T20:44:41+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -449,8 +449,8 @@ my class array does Iterable {
             self
         }
         multi method STORE(intarray:D: int @values) {
-            nqp::setelems(self,@values.elems);
-            nqp::splice(self,@values,0,@values.elems)
+            nqp::setelems(self,nqp::elems(@values));
+            nqp::splice(self,@values,0,nqp::elems(@values))
         }
         multi method STORE(intarray:D: @values) {
             my int $elems = @values.elems;
@@ -534,7 +534,7 @@ my class array does Iterable {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
-            my $elems = self.elems;
+            my int $elems = nqp::elems(self);
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -573,7 +573,7 @@ my class array does Iterable {
 
         multi method min(intarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my int $min = nqp::atpos_i(self,0)),
@@ -591,7 +591,7 @@ my class array does Iterable {
         }
         multi method max(intarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my int $max = nqp::atpos_i(self,0)),
@@ -609,7 +609,7 @@ my class array does Iterable {
         }
         multi method minmax(intarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my int $min =
@@ -788,7 +788,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-03-28T22:17:44+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-08T20:44:41+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -824,8 +824,8 @@ my class array does Iterable {
             self
         }
         multi method STORE(numarray:D: num @values) {
-            nqp::setelems(self,@values.elems);
-            nqp::splice(self,@values,0,@values.elems)
+            nqp::setelems(self,nqp::elems(@values));
+            nqp::splice(self,@values,0,nqp::elems(@values))
         }
         multi method STORE(numarray:D: @values) {
             my int $elems = @values.elems;
@@ -909,7 +909,7 @@ my class array does Iterable {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
-            my $elems = self.elems;
+            my int $elems = nqp::elems(self);
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -948,7 +948,7 @@ my class array does Iterable {
 
         multi method min(numarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my num $min = nqp::atpos_n(self,0)),
@@ -966,7 +966,7 @@ my class array does Iterable {
         }
         multi method max(numarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my num $max = nqp::atpos_n(self,0)),
@@ -984,7 +984,7 @@ my class array does Iterable {
         }
         multi method minmax(numarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my num $min =

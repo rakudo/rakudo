@@ -79,9 +79,9 @@ for $*IN.lines -> $line {
             nqp::bindpos_#postfix#(self, 0, nqp::unbox_#postfix#($value));
             self
         }
-        multi method STORE(#type#array:D: #type# @values) {
-            nqp::setelems(self,nqp::elems(@values));
-            nqp::splice(self,@values,0,nqp::elems(@values))
+        multi method STORE(#type#array:D: #type#array:D \values) {
+            nqp::setelems(self,nqp::elems(values));
+            nqp::splice(self,values,0,nqp::elems(values))
         }
         multi method STORE(#type#array:D: @values) {
             my int $elems = @values.elems;

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 10;
+plan 11;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -87,5 +87,10 @@ subtest 'unclosed hash quote index operator <> message' => {
         'better and shorter error message for unclosed <> hash operator',
         :gist{ not .match: /:i:s<<expecting any of: / };
 }
+
+# RT #122980
+throws-like 'Int:erator:$;', X::InvalidTypeSmiley,
+    ｢Don't report "missing semicolon" when semicolon present with complicated punctuation.｣,
+    :message{ not .match: /:i:s<<missing semicolon/ };
 
 # vim: ft=perl6 expandtab sw=4

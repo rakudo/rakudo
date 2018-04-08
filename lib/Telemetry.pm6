@@ -842,7 +842,9 @@ HEADER
 
         # remove the columns that don't have any values
         @columns = @columns.grep: -> $column {
-            @periods.first: { .{%format{$column}[NAME]} }
+            (%format{$column}[NAME]
+              or note "WARNING: Unknown Telemetry column `$column`\n" and 0
+            ) and @periods.first: { .{%format{$column}[NAME]} }
         };
         my $header  = "\n%format{@columns}>>.[HEADER].join(' ')";
         my @formats = %format{@columns};

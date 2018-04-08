@@ -28,12 +28,12 @@ my class Array { # declared in BOOTSTRAP
             )
         }
 
-        method push(Mu \value) {
+        method push(Mu \value --> Nil) {
             nqp::push($!target,
                 nqp::assign(nqp::p6scalarfromdesc($!descriptor), value));
         }
 
-        method append(IterationBuffer:D $buffer) {
+        method append(IterationBuffer:D $buffer --> Nil) {
             nqp::if(
               (my int $elems = nqp::elems($buffer)),
               nqp::stmts(
@@ -57,12 +57,12 @@ my class Array { # declared in BOOTSTRAP
             nqp::p6bindattrinvres(nqp::create(self), self, '$!target', target);
         }
 
-        method push(Mu \value) {
+        method push(Mu \value --> Nil) {
             nqp::push($!target,
                 nqp::decont(value));
         }
 
-        method append(IterationBuffer:D \buffer) {
+        method append(IterationBuffer:D \buffer --> Nil) {
             nqp::splice($!target,buffer,nqp::elems($!target),0)
         }
     }

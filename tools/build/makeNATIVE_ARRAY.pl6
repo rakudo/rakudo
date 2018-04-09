@@ -297,8 +297,10 @@ for $*IN.lines -> $line {
                 method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
-                    $target.push(nqp::atposref_#postfix#($!array,$i))
-                      while ($i = $i + 1) < $elems;
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $target.push(nqp::atposref_#postfix#($!array,$i))
+                    );
                     $!i = $i;
                 }
             }.new(self)

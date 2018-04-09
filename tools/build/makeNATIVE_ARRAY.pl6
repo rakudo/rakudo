@@ -280,6 +280,24 @@ for $*IN.lines -> $line {
             );
             $slice
         }
+        multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq) {
+            nqp::if(
+              seq.is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<splice>, :what(self.^name)
+              )),
+              nqp::stmts(
+                nqp::unless(
+                  nqp::istype(
+                    (my $slice := CLONE_SLICE(self,$offset,$size)),
+                    Failure
+                  ),
+                  nqp::splice(self,nqp::create(self).STORE(seq),$offset,$size)
+                ),
+                $slice
+              )
+            )
+        }
         multi method splice(#type#array:D: $offset=0, $size=Whatever, *@values) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;

@@ -3209,8 +3209,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $<scoped><DECL><declarator><variable_declarator><semilist> -> $semilist {
                 my @dimensions := nqp::list_i();
                 for $semilist -> $dimension {
-                    $dimension.ast.nosink(1);
-                    my $elems := nqp::unbox_i($*W.compile_time_evaluate($/, $dimension.ast));
+                    my $elems := nqp::unbox_i($*W.compile_time_evaluate($/, $dimension.ast, :mark-wanted));
                     nqp::push_i(@dimensions, $elems);
                 }
                 nqp::bindattr($attr, $attr.WHAT, '$!dimensions', @dimensions);

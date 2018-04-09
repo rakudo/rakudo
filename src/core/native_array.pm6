@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-04-09T18:47:39+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T19:28:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -415,6 +415,18 @@ my class array does Iterable {
                       ?? nqp::atposref_s($!array,$!i)
                       !! IterationEnd
                 }
+                method skip-one() {
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                }
+                method skip-at-least(int $toskip) {
+                    nqp::unless(
+                      ($!i = $!i + $toskip) < nqp::elems($!array),
+                      nqp::stmts(
+                        ($!i = nqp::elems($!array)),
+                        0
+                      )
+                    )
+                }
                 method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
@@ -537,7 +549,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-04-09T18:47:39+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T19:28:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -895,6 +907,18 @@ my class array does Iterable {
                       ?? nqp::atposref_i($!array,$!i)
                       !! IterationEnd
                 }
+                method skip-one() {
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                }
+                method skip-at-least(int $toskip) {
+                    nqp::unless(
+                      ($!i = $!i + $toskip) < nqp::elems($!array),
+                      nqp::stmts(
+                        ($!i = nqp::elems($!array)),
+                        0
+                      )
+                    )
+                }
                 method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
@@ -1042,7 +1066,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-04-09T18:47:39+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T19:28:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1399,6 +1423,18 @@ my class array does Iterable {
                     ($!i = $!i + 1) < nqp::elems($!array)
                       ?? nqp::atposref_n($!array,$!i)
                       !! IterationEnd
+                }
+                method skip-one() {
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                }
+                method skip-at-least(int $toskip) {
+                    nqp::unless(
+                      ($!i = $!i + $toskip) < nqp::elems($!array),
+                      nqp::stmts(
+                        ($!i = nqp::elems($!array)),
+                        0
+                      )
+                    )
                 }
                 method push-all($target --> IterationEnd) {
                     my int $i     = $!i;

@@ -402,6 +402,18 @@ for $*IN.lines -> $line {
                       ?? nqp::atposref_#postfix#($!array,$!i)
                       !! IterationEnd
                 }
+                method skip-one() {
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                }
+                method skip-at-least(int $toskip) {
+                    nqp::unless(
+                      ($!i = $!i + $toskip) < nqp::elems($!array),
+                      nqp::stmts(
+                        ($!i = nqp::elems($!array)),
+                        0
+                      )
+                    )
+                }
                 method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);

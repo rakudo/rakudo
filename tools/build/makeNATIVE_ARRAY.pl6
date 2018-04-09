@@ -90,10 +90,7 @@ for $*IN.lines -> $line {
                 :action<store>, :what(self.^name)
               )),
               nqp::stmts(
-                nqp::until(
-                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-                  nqp::push_#postfix#(self,nqp::unbox_#postfix#($pulled))
-                ),
+                $iterator.push-all(self),
                 self
               )
             )

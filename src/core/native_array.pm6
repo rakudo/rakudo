@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-04-09T19:28:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T21:06:48+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -103,10 +103,7 @@ my class array does Iterable {
                 :action<store>, :what(self.^name)
               )),
               nqp::stmts(
-                nqp::until(
-                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-                  nqp::push_s(self,nqp::unbox_s($pulled))
-                ),
+                $iterator.push-all(self),
                 self
               )
             )
@@ -549,7 +546,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-04-09T19:28:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T21:06:48+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -595,10 +592,7 @@ my class array does Iterable {
                 :action<store>, :what(self.^name)
               )),
               nqp::stmts(
-                nqp::until(
-                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-                  nqp::push_i(self,nqp::unbox_i($pulled))
-                ),
+                $iterator.push-all(self),
                 self
               )
             )
@@ -1066,7 +1060,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-04-09T19:28:28+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T21:06:48+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1112,10 +1106,7 @@ my class array does Iterable {
                 :action<store>, :what(self.^name)
               )),
               nqp::stmts(
-                nqp::until(
-                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-                  nqp::push_n(self,nqp::unbox_n($pulled))
-                ),
+                $iterator.push-all(self),
                 self
               )
             )

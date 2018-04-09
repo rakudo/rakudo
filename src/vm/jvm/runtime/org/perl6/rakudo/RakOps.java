@@ -507,18 +507,16 @@ public final class RakOps {
     }
 
     public static long p6stateinit(SixModelObject obj, ThreadContext tc) {
-        long doInit = tc.curFrame.stateInit ? 1 : 0;
-
         // Find num of lexical, so that we can mark it as HLL inited
         CodeRef cr = tc.curFrame.codeRef;
         for (int i = 0; i < cr.staticInfo.oLexicalNames.length; i++) {
             if (obj == tc.curFrame.oLex[i]) {
                 boolean doHllInit        = !cr.oLexStateIsHllInit[i];
                 cr.oLexStateIsHllInit[i] = true;
-                return doInit == 1 ? doInit : (long)(doHllInit ? 1 : 0);
+                return (long)(doHllInit ? 1 : 0);
             }
         }
-        return doInit;
+        return 0;
     }
 
     public static SixModelObject p6setfirstflag(SixModelObject codeObj, ThreadContext tc) {

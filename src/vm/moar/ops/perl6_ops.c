@@ -237,22 +237,26 @@ static MVMuint8 s_p6stateinit[] = {
     MVM_operand_obj   | MVM_operand_read_reg
 };
 static void p6stateinit(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMint64 do_init = tc->cur_frame->flags & MVM_FRAME_FLAG_STATE_INIT ? 1 : 0;
+    MVMObject          *var    = GET_REG(tc, 2).o;
+    MVMCodeBody        *crbody = &((MVMCode *)tc->cur_frame->code_ref)->body;
+    MVMStaticFrameBody *sfbody = &tc->cur_frame->static_info->body;
+    MVMuint32 i;
+
+    if ( !sfbody->has_state_vars ) {
+        GET_REG(tc, 0).i64 = 0;
+        return;
+    }
 
     /* Find num of lexical, so that we can mark it as HLL inited */
-    MVMObject   *var    = GET_REG(tc, 2).o;
-    MVMCodeBody *crbody = &((MVMCode *)tc->cur_frame->code_ref)->body;
-    MVMuint32 i;
-    for (i = 0; i < tc->cur_frame->static_info->body.num_lexicals; i++) {
+    for (i = 0; i < sfbody->num_lexicals; i++) {
         MVMRegister *env_val     = &tc->cur_frame->env[i];
         MVMuint8    *is_hll_init = &crbody->state_vars_is_hll_init[i];
         if (env_val && var == env_val->o) {
-            GET_REG(tc, 0).i64 = do_init || !*is_hll_init;
+            GET_REG(tc, 0).i64 = !*is_hll_init;
             *is_hll_init = 1;
             return;
         }
     }
-    GET_REG(tc, 0).i64 = do_init;
 }
 
 /* First FIRST, use a flag in the object header. */

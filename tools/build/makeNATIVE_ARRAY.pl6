@@ -83,6 +83,21 @@ for $*IN.lines -> $line {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
         }
+        multi method STORE(#type#array:D: Seq:D \seq) {
+            nqp::if(
+              (my $iterator := seq.iterator).is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<store>, :what(self.^name)
+              )),
+              nqp::stmts(
+                nqp::until(
+                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+                  nqp::push_#postfix#(self,nqp::unbox_#postfix#($pulled))
+                ),
+                self
+              )
+            )
+        }
         multi method STORE(#type#array:D: List:D \values) {
             my int $elems = values.elems;    # reifies
             my $reified := nqp::getattr(values,List,'$!reified');

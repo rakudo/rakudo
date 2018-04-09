@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-04-09T16:59:31+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T18:17:01+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -95,6 +95,21 @@ my class array does Iterable {
         multi method STORE(strarray:D: strarray:D \values) {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
+        }
+        multi method STORE(strarray:D: Seq:D \seq) {
+            nqp::if(
+              (my $iterator := seq.iterator).is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<store>, :what(self.^name)
+              )),
+              nqp::stmts(
+                nqp::until(
+                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+                  nqp::push_s(self,nqp::unbox_s($pulled))
+                ),
+                self
+              )
+            )
         }
         multi method STORE(strarray:D: List:D \values) {
             my int $elems = values.elems;    # reifies
@@ -504,7 +519,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-04-09T16:59:31+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T18:17:01+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -542,6 +557,21 @@ my class array does Iterable {
         multi method STORE(intarray:D: intarray:D \values) {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
+        }
+        multi method STORE(intarray:D: Seq:D \seq) {
+            nqp::if(
+              (my $iterator := seq.iterator).is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<store>, :what(self.^name)
+              )),
+              nqp::stmts(
+                nqp::until(
+                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+                  nqp::push_i(self,nqp::unbox_i($pulled))
+                ),
+                self
+              )
+            )
         }
         multi method STORE(intarray:D: List:D \values) {
             my int $elems = values.elems;    # reifies
@@ -976,7 +1006,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-04-09T16:59:31+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T18:17:01+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1014,6 +1044,21 @@ my class array does Iterable {
         multi method STORE(numarray:D: numarray:D \values) {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
+        }
+        multi method STORE(numarray:D: Seq:D \seq) {
+            nqp::if(
+              (my $iterator := seq.iterator).is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<store>, :what(self.^name)
+              )),
+              nqp::stmts(
+                nqp::until(
+                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+                  nqp::push_n(self,nqp::unbox_n($pulled))
+                ),
+                self
+              )
+            )
         }
         multi method STORE(numarray:D: List:D \values) {
             my int $elems = values.elems;    # reifies

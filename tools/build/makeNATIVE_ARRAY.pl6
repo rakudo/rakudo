@@ -97,7 +97,7 @@ for $*IN.lines -> $line {
             self
         }
         multi method STORE(#type#array:D: @values) {
-            my int $elems = @values.elems;
+            my int $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -143,13 +143,13 @@ for $*IN.lines -> $line {
         }
 
         method pop(#type#array:D: --> #type#) {
-            nqp::elems(self) > 0
+            nqp::elems(self)
               ?? nqp::pop_#postfix#(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
         method shift(#type#array:D: --> #type#) {
-            nqp::elems(self) > 0
+            nqp::elems(self)
               ?? nqp::shift_#postfix#(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }

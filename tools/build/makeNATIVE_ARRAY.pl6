@@ -256,7 +256,12 @@ for $*IN.lines -> $line {
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
                 Failure
               ),
-              nqp::splice(self,values,$offset,$size)
+              nqp::splice(
+                self,
+                nqp::if(nqp::eqaddr(self,values),nqp::clone(values),values),
+                $offset,
+                $size
+              )
             );
             $slice
         }

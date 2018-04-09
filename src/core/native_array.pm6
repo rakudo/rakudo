@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-04-09T15:44:53+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T16:59:31+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -269,7 +269,12 @@ my class array does Iterable {
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
                 Failure
               ),
-              nqp::splice(self,values,$offset,$size)
+              nqp::splice(
+                self,
+                nqp::if(nqp::eqaddr(self,values),nqp::clone(values),values),
+                $offset,
+                $size
+              )
             );
             $slice
         }
@@ -499,7 +504,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-04-09T15:44:53+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T16:59:31+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -711,7 +716,12 @@ my class array does Iterable {
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
                 Failure
               ),
-              nqp::splice(self,values,$offset,$size)
+              nqp::splice(
+                self,
+                nqp::if(nqp::eqaddr(self,values),nqp::clone(values),values),
+                $offset,
+                $size
+              )
             );
             $slice
         }
@@ -966,7 +976,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-04-09T15:44:53+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-04-09T16:59:31+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1178,7 +1188,12 @@ my class array does Iterable {
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
                 Failure
               ),
-              nqp::splice(self,values,$offset,$size)
+              nqp::splice(
+                self,
+                nqp::if(nqp::eqaddr(self,values),nqp::clone(values),values),
+                $offset,
+                $size
+              )
             );
             $slice
         }

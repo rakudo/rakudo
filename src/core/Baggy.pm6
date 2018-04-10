@@ -344,10 +344,10 @@ my role Baggy does QuantHash {
           ),
           nqp::if(
             nqp::istype(self,Bag),
-            'bag()',
+            'Bag()',
             nqp::if(
               nqp::istype(self,Mix),
-              'mix()',
+              'Mix()',
               nqp::concat('().',self.^name)
             )
           )

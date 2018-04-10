@@ -798,6 +798,7 @@ my class IO::Handle {
     }
 
     method native-descriptor(IO::Handle:D:) {
+        nqp::defined($!PIO) or die 'File handle not open, so cannot get native descriptor';
         nqp::filenofh($!PIO)
     }
 }

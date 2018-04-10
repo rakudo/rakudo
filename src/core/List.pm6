@@ -970,8 +970,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method pick(List:D:) {
         self.is-lazy
          ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
-         !! (my Int $elems = self.elems)
-           ?? nqp::atpos($!reified, $elems.rand.floor)
+         !! (my int $elems = self.elems)   # reifies
+           ?? nqp::atpos($!reified,nqp::floor_n(nqp::rand_n($elems)))
            !! Nil
     }
     multi method pick(List:D: Callable:D $calculate) {
@@ -989,7 +989,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! $number.UInt min $elems;
         Seq.new(class :: does Iterator {
             has $!list;
-            has Int $!elems;
+            has int $!elems;
             has int $!number;
 
             method SET-SELF(\list,$!elems,\number) {
@@ -1001,27 +1001,44 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::create(self).SET-SELF(list,elems,number)
             }
             method pull-one() {
-                if ($!number = nqp::sub_i($!number,1)) {
-                    my int $i;
-                    my \tmp = nqp::atpos($!list,$i = $!elems.rand.floor);
-                    nqp::bindpos($!list,$i,
-                      nqp::atpos($!list,nqp::unbox_i(--$!elems))
-                    );
+                nqp::if(
+                  ($!number = nqp::sub_i($!number,1)),
+                  nqp::stmts(
+                    (my \tmp = nqp::atpos(
+                      $!list,
+                      my int $i = nqp::floor_n(nqp::rand_n($!elems))
+                    )),
+                    nqp::bindpos(
+                      $!list,
+                      $i,
+                      nqp::atpos($!list,($!elems = nqp::sub_i($!elems,1)))
+                    ),
                     tmp
-                }
-                else {
-                    IterationEnd
-                }
+                  ),
+                  IterationEnd
+                )
             }
             method push-all($target --> IterationEnd) {
-                my int $i;
-                nqp::while(
-                  ($!number = nqp::sub_i($!number,1)),
-                  nqp::stmts(  # doesn't sink
-                    ($target.push(nqp::atpos($!list,$i = $!elems.rand.floor))),
-                    (nqp::bindpos($!list,$i,
-                      nqp::atpos($!list,nqp::unbox_i(--$!elems))))
-                  )
+                nqp::stmts(
+                  (my $list := $!list),
+                  (my int $number = $!number),
+                  (my int $elems  = $!elems),
+                  nqp::while(
+                    ($number = nqp::sub_i($number,1)),
+                    nqp::stmts(  # doesn't sink
+                      $target.push(nqp::atpos(
+                        $list,
+                        (my int $i = nqp::floor_n(nqp::rand_n($elems)))
+                      )),
+                      nqp::bindpos(
+                        $list,
+                        $i,
+                        nqp::atpos($list,($elems = nqp::sub_i($elems,1)))
+                      )
+                    )
+                  ),
+                  ($!number = $number),
+                  ($!elems  = $elems)
                 )
             }
         }.new(self,$elems,$number))
@@ -1031,8 +1048,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method roll(List:D:) {
         self.is-lazy
           ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
-          !! (my Int $elems = self.elems)
-            ?? nqp::atpos($!reified, $elems.rand.floor)
+          !! (my int $elems = self.elems)    # reify
+            ?? nqp::atpos($!reified,nqp::floor_n(nqp::rand_n($elems)))
             !! Nil
     }
     multi method roll(List:D: Whatever) {
@@ -1040,10 +1057,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.is-lazy,
           X::Cannot::Lazy.new(:action('.roll from')).throw,
           Seq.new(nqp::if(
-            (my $elems := self.elems),
-            Rakudo::Iterator.Callable( {
-                nqp::atpos($!reified, $elems.rand.floor)
-            }, True ),
+            (my int $elems = self.elems),
+            nqp::stmts(
+              (my $reified := $!reified),
+              Rakudo::Iterator.Callable( {
+                  nqp::atpos($reified,nqp::floor_n(nqp::rand_n($elems)))
+              }, True )
+            ),
             Rakudo::Iterator.Empty
           ))
         )
@@ -1056,33 +1076,39 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! self.elems   # this allocates/reifies
               ?? Seq.new(class :: does Iterator {
                      has $!list;
-                     has Int $!elems;
+                     has int $!elems;
                      has int $!todo;
                      method SET-SELF(\list,\todo) {
                          $!list := nqp::getattr(list,List,'$!reified');
                          $!elems = nqp::elems($!list);
-                         $!todo  = todo;
+                         $!todo  = todo + 1;
                          self
                      }
                      method new(\list,\todo) {
                          nqp::create(self).SET-SELF(list,todo)
                      }
                      method pull-one() is raw {
-                         if $!todo {
-                             $!todo = $!todo - 1;
-                             nqp::atpos($!list,$!elems.rand.floor)
-                         }
-                         else {
-                             IterationEnd
-                         }
+                         nqp::if(
+                           ($!todo = nqp::sub_i($!todo,1)),
+                           nqp::atpos(
+                             $!list,
+                             nqp::floor_n(nqp::rand_n($!elems))
+                           ),
+                           IterationEnd
+                         )
                      }
                      method push-all($target --> IterationEnd) {
-                         nqp::while(
-                             $!todo,
-                             nqp::stmts(
-                                 ($target.push(nqp::atpos($!list,$!elems.rand.floor))),
-                                 ($!todo = $!todo - 1)
-                             )
+                         nqp::stmts(
+                           (my int $todo  = $!todo),
+                           (my int $elems = $!elems),
+                           nqp::while(
+                             ($todo = nqp::sub_i($todo,1)),
+                             $target.push(nqp::atpos(
+                               $!list,
+                               nqp::floor_n(nqp::rand_n($elems))
+                             ))
+                           ),
+                           ($!todo = $todo)
                          )
                      }
                  }.new(self,number.Int))
@@ -1640,8 +1666,32 @@ multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 proto sub prefix:<|>(|) {*}
 multi sub prefix:<|>(\x) { x.Slip }
 
+sub CMP-SLOW(@a, @b) {
+    (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
+}
+
 multi sub infix:<cmp>(@a, @b) {
-    (@a Zcmp @b).first(&prefix:<?>) || @a <=> @b
+    nqp::if(
+        @a.is-lazy || @b.is-lazy,
+        CMP-SLOW(@a, @b),
+        nqp::stmts(
+            ( my $a_r := nqp::getattr(@a, List, '$!reified') ),
+            ( my $b_r := nqp::getattr(@b, List, '$!reified') ),
+            ( my int $ord = nqp::cmp_i(
+                ( my int $n_a = nqp::elems($a_r) ), ( my int $n_b = nqp::elems($b_r) )
+            )),
+            ( my int $res = ( my int $i = 0) ),
+            ( my int $total_iters = nqp::islt_i($ord, 0) ?? $n_a !! $n_b ),
+            nqp::while(
+                nqp::not_i($res) && nqp::islt_i($i, $total_iters),
+                nqp::stmts(
+                    $res = &infix:<cmp>(nqp::atpos($a_r, $i), nqp::atpos($b_r, $i)),
+                    $i   = nqp::add_i($i, 1)
+                )
+            ),
+            ORDER( $res ?? $res !! $ord )
+        )
+    )
 }
 
 proto sub infix:<X>(|) is pure {*}

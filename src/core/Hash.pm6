@@ -729,7 +729,8 @@ my class Hash { # declared in BOOTSTRAP
             nqp::if(
               (my $raw := nqp::getattr(self,Map,'$!storage')) && nqp::elems($raw),
               nqp::stmts(
-                (my int $i = nqp::add_i(nqp::elems($raw).rand.floor,1)),
+                (my int $i =
+                  nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems($raw))),1)),
                 (my $iter := nqp::iterator($raw)),
                 nqp::while(
                   nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
@@ -774,7 +775,10 @@ my class Hash { # declared in BOOTSTRAP
                           --$!count,  # must be HLL to handle Inf
                           nqp::atkey(
                             $!storage,
-                            nqp::atpos_s($!keys,nqp::elems($!keys).rand.floor)
+                            nqp::atpos_s(
+                              $!keys,
+                              nqp::floor_n(nqp::rand_n(nqp::elems($!keys)))
+                            )
                           )
                         ),
                         IterationEnd

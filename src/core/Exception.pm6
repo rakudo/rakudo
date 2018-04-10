@@ -282,7 +282,7 @@ my class CX::Done does X::Control {
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
-    if nqp::p6bool(nqp::istype($payload, Exception)) {
+    if nqp::istype($payload, Exception) {
         nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
         $payload;
     } else {
@@ -343,7 +343,7 @@ my class X::Comp::AdHoc { ... }
 sub COMP_EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
-    if nqp::p6bool(nqp::istype($payload, Exception)) {
+    if nqp::istype($payload, Exception) {
         nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
         $payload;
     } else {

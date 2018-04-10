@@ -76,7 +76,8 @@ my role IO::Socket {
                 $line = $!decoder.consume-line-chars(:chomp);
                 last if $line.DEFINITE;
                 if $read == 0 {
-                    $line = $!decoder.consume-line-chars(:chomp, :eof);
+                    $line = $!decoder.consume-line-chars(:chomp, :eof)
+                        unless $!decoder.is-empty;
                     last;
                 }
             }

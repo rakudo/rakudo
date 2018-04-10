@@ -125,10 +125,28 @@ sub wanted($ast,$by) {
             # we always have a body
             my $cond := WANTED($ast[0],$byby);
             my $body := WANTED($ast[1],$byby);
-            my $block := Perl6::Actions::make_thunk_ref($body, $body.node);
-            my $past := QAST::Op.new(:op<callmethod>, :name<from-loop>, :node($body.node),
-                QAST::WVal.new( :value($*W.find_symbol(['Seq']))),
-                block_closure($block) );
+            my $block;
+            my $block-closure;
+            if $body.ann('loop-already-block-first-phaser') -> $loop-goods {
+                $block := $loop-goods[0][1][0];
+                $block-closure := QAST::Op.new: :node($body.node),
+                    :op<p6setfirstflag>, block_closure($block);
+
+                # get rid of now-useless var and other bits of the QAST.
+                # If we .shift off all items, the QAST::Stmts gets a null
+                # in them that I can't figure out where it's coming from,
+                # so shove an empty QAST::Smts to replace last item.
+                $loop-goods.shift;
+                $loop-goods[0] := QAST::Stmts.new;
+            }
+            else {
+                $block := Perl6::Actions::make_thunk_ref($body, $body.node);
+                $block-closure := block_closure($block);
+            }
+            my $past := QAST::Op.new: :node($body.node),
+                :op<callmethod>, :name<from-loop>,
+                QAST::WVal.new(:value($*W.find_symbol(['Seq']))),
+                $block-closure;
 
             # Elevate statevars to enclosing thunk
             if $body.has_ann('has_statevar') && $block.has_ann('past_block') {
@@ -302,6 +320,7 @@ sub unwanted($ast, $by) {
         }
         elsif $ast.op eq 'callmethod' {
             if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
+                return $ast if $*ALREADY_ADDED_SINK_CALL;
                 $ast.sunk(1);
                 $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
                 $ast.sunk(1);
@@ -420,9 +439,11 @@ sub unwanted($ast, $by) {
             elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
-                    add-sink-to-final-call($node.ann('past_block'), 1)
-                        unless $*COMPILING_CORE_SETTING;
-                    $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+                    unless $*COMPILING_CORE_SETTING {
+                        add-sink-to-final-call($node.ann('past_block'), 1);
+                        my $*ALREADY_ADDED_SINK_CALL := 1;
+                        $node.annotate('past_block', UNWANTED($node.ann('past_block'), $byby));
+                    }
                 }
             }
             elsif $node.op eq 'while' || $node.op eq 'until' {
@@ -1941,34 +1962,32 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $loop[1] := pblock_immediate($loop[1]);
         }
         else {
+            my $node := $loop.node;
             if nqp::existskey($phasers, 'NEXT') {
                 my $phascode := $*W.run_phasers_code($code, $loop[1], $block_type, 'NEXT');
                 if +@($loop) == 2 {
                     $loop.push($phascode);
                 }
                 else {
-                    $loop[2] := QAST::Stmts.new($phascode, $loop[2]);
+                    $loop[2] := QAST::Stmts.new: :$node, $phascode, $loop[2];
                 }
             }
             if nqp::existskey($phasers, 'FIRST') {
-                my $tmp := QAST::Node.unique('LOOP_BLOCK');
-                $loop := QAST::Stmts.new(
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
-                        QAST::Op.new( :op('p6setfirstflag'), $loop[1] )
-                    ),
+                my $tmp  := QAST::Node.unique('LOOP_BLOCK');
+                my $var  := QAST::Var.new: :$node, :name($tmp), :scope<local>;
+                $loop := QAST::Stmts.new(:$node,
+                    QAST::Op.new(:$node, :op<bind>, $var.decl_as('var'),
+                      QAST::Op.new: :$node, :op<p6setfirstflag>, $loop[1]),
                     $loop);
-                $loop[1][1] := QAST::Op.new( :op('call'), QAST::Var.new( :name($tmp), :scope('local') ) );
+                $loop[1][1] := QAST::Op.new(:$node, :op<call>, $var
+                  ).annotate_self: 'loop-already-block-first-phaser', $loop;
             }
             else {
                 $loop[1] := pblock_immediate($loop[1]);
             }
             if nqp::existskey($phasers, 'LAST') {
-                $loop := QAST::Stmts.new(
-                    :resultchild(0),
-                    $loop,
-                    $*W.run_phasers_code($code, $loop[1], $block_type, 'LAST'));
+                $loop := QAST::Stmts.new(:$node, :resultchild(0), $loop,
+                  $*W.run_phasers_code: $code, $loop[1], $block_type, 'LAST');
             }
         }
         $loop
@@ -6801,15 +6820,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $return_map := 1
                 }
 
-                if $past.name eq 'dispatch:<var>' && ! (
-                       nqp::istype($past[0], QAST::WVal)
-                    && nqp::istype($past[0].value,
-                      $*W.find_symbol: ['Whatever'], :setting-only)
-                ) {
-                    # Unpack the method call into nameless-calling the argument.
-                    # Don't do it if invocant is a Whatever, as we'll curry it
+                if $past.name eq 'dispatch:<var>' {
+                    # Unpack the method call into nameless-calling the argument:
                     $past.op: 'call';
                     $past.name: '';
+                    $past.annotate: 'curriable-call-offset', 1;
                     my $invocant := $past[0];
                     $past[0] := $past[1];
                     $past[1] := $invocant;
@@ -7250,7 +7265,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif nqp::istype($ast, QAST::Op)
         || nqp::istype($ast, QAST::Stmt)
-        || nqp::istype($ast, QAST::Stmts) {
+        || nqp::istype($ast, QAST::Stmts)
+        || nqp::istype($ast, QAST::Want) {
             mark_blocks_as_andnotelse_first_arg($_) for @($ast)
         }
     }
@@ -9024,7 +9040,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     # we need not wrap it in a read-only scalar.
                     my $wrap := $flags +& $SIG_ELEM_IS_COPY;
                     unless $wrap {
-                        $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);
+                        $wrap := nqp::isnull($coerce_to)
+                            ?? nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype)
+                            !! nqp::istype($coerce_to, $Iterable) || nqp::istype($Iterable, $coerce_to);
                     }
                     if $wrap {
                         $var.push(QAST::Op.new(
@@ -9675,16 +9693,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 || ($qast.op ne 'call' && %curried{$qast.op} // 0)
 
             # or one of our new postcircumfix subs that used to be methods
-                || ($qast.op eq 'call' && nqp::eqat($qast.name, '&postcircumfix:', 0) &&
+                || ($qast.op eq 'call' &&
+                  (nqp::eqat($qast.name, '&postcircumfix:', 0) &&
                     %curried{$qast.name} // 0)
+                  # or it's one of the curriable things rewritten to `call`
+                  || $qast.has_ann('curriable-call-offset') && 3)
             );
 
         return $qast unless $curried;
 
         # Some constructs, like &METAOP things, have metaop construction as
         # first few kids of the QAST. We'll skip them while raking for Whatevers
-        my int $offset := $qast.op eq 'call'
-            && ! nqp::eqat($qast.name,'&postcircumfix:', 0)
+        my int $offset := $qast.has_ann('curriable-call-offset')
+          ?? $qast.ann('curriable-call-offset')
+          !! $qast.op eq 'call' && ! nqp::eqat($qast.name,'&postcircumfix:', 0)
             ?? nqp::elems($qast) - $upto_arity !! 0;
         my int $i := $offset;
         my int $e := $upto_arity + $offset;

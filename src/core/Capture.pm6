@@ -126,8 +126,12 @@ my class Capture { # declared in BOOTSTRAP
         self.Capture::elems
     }
 
-    method FLATTENABLE_LIST() { @!list ?? @!list !! nqp::list() }
-    method FLATTENABLE_HASH() { %!hash ?? %!hash !! nqp::hash() }
+    method FLATTENABLE_LIST() is raw {
+        nqp::if(nqp::isconcrete(@!list),@!list,nqp::list)
+    }
+    method FLATTENABLE_HASH() is raw {
+        nqp::if(nqp::isconcrete(%!hash),%!hash,nqp::hash)
+    }
 
     multi method keys(Capture:D:) {
         (self.Capture::list.keys, self.Capture::hash.keys).flat;

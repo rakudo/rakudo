@@ -206,7 +206,7 @@ multi sub infix:<+>($x = 0)      { $x.Numeric }
 multi sub infix:<+>(\a, \b)    { a.Numeric + b.Numeric }
 
 proto sub infix:<->(Mu $?, Mu $?) is pure   {*}
-multi sub infix:<->($x = 0)      { -$x.Numeric }
+multi sub infix:<->($x = 0)      { $x.Numeric }
 multi sub infix:<->(\a, \b)    { a.Numeric - b.Numeric }
 # U+2212 MINUS SIGN
 my constant &infix:<−> := &infix:<->;

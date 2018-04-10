@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 8;
+plan 11;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -64,5 +64,33 @@ throws-like ｢Lock.protect: %()｣, X::Multi::NoMatch,
     'Lock.protect with wrong args gives sane error';
 throws-like ｢Lock::Async.protect: %()｣, X::Multi::NoMatch,
     'Lock::Async.protect with wrong args gives sane error';
+
+# https://github.com/rakudo/rakudo/issues/1699
+throws-like {
+    with Proc::Async.new: :out, :!err, $*EXECUTABLE, '-e', '' {
+        .bind-stdout: IO::Handle.new;
+        .start;
+    }
+}, Exception, :message{.contains: 'handle not open'},
+  'trying to bind Proc::Async to unopened handle gives useful error';
+
+# RT #132238
+subtest 'unclosed hash quote index operator <> message' => {
+    plan 2;
+    throws-like "\n\nsay \$<\n\n", X::Comp::AdHoc,
+        'good error message for unclosed <> hash operator',
+        gist => all(
+            /:i:s<<unable to parse /, /<<find\h+\'\>\'/, /:s<<at line 3 /
+        );
+    todo 'RT #132238 - remove "expecting any of:"';
+    throws-like "say \$<", X::Comp::AdHoc,
+        'better and shorter error message for unclosed <> hash operator',
+        :gist{ not .match: /:i:s<<expecting any of: / };
+}
+
+# RT #122980
+throws-like 'Int:erator:$;', X::InvalidTypeSmiley,
+    ｢Don't report "missing semicolon" when semicolon present with complicated punctuation.｣,
+    :message{ not .match: /:i:s<<missing semicolon/ };
 
 # vim: ft=perl6 expandtab sw=4

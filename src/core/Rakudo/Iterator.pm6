@@ -3489,6 +3489,9 @@ class Rakudo::Iterator {
                 nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
             }
             method pull-one() is raw { $!value }
+            method sink-all(--> IterationEnd) { }
+            method count-only(--> Inf) { }
+            method bool-only(--> True) { }
             method is-lazy(--> True) { }
         }.new(value)
     }
@@ -3844,18 +3847,21 @@ class Rakudo::Iterator {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
+                      (my int $is_iterend = 0),
                       (my $buf :=
                         nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                      nqp::until(
-                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
-                         || nqp::eqaddr(
-                              (my $pulled := nqp::atpos($!iters,$i).pull-one),
-                              IterationEnd
-                            ),
-                        nqp::bindpos($buf,$i,$pulled)
+                      nqp::while(
+                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
+                          ),
+                          $is_iterend = 1,
+                          nqp::bindpos($buf,$i,$pulled)
+                        )
                       ),
                       nqp::if(
-                        nqp::islt_i($i,$elems),  # at least one exhausted
+                        $is_iterend,  # at least one exhausted
                         nqp::stmts(
 #?if jvm
                           ($!iters := Mu),
@@ -3930,18 +3936,21 @@ class Rakudo::Iterator {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
+                      (my int $is_iterend = 0),
                       (my $list :=
                         nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                      nqp::until(
-                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
-                         || nqp::eqaddr(
-                              (my $pulled := nqp::atpos($!iters,$i).pull-one),
-                              IterationEnd
-                            ),
-                        nqp::bindpos($list,$i,$pulled)
+                      nqp::while(
+                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
+                          ),
+                          $is_iterend = 1,
+                          nqp::bindpos($list,$i,$pulled)
+                        )
                       ),
                       nqp::if(
-                        nqp::islt_i($i,$elems),  # at least one exhausted
+                        $is_iterend,  # at least one exhausted
                         nqp::stmts(
 #?if jvm
                           ($!iters := Mu),

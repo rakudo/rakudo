@@ -2713,10 +2713,13 @@ class Perl6::World is HLL::World {
     # Adds a numeric constant value (int or num) to the constants table.
     # Returns PAST to do  the lookup of the constant.
     method add_numeric_constant($/, $type, $value) {
+        my $node := $/;
         if $type eq 'Int' && (try $value.HOW.name($value)) eq 'Int' {
             if nqp::isbig_I($value) {
                 # cannot unbox to int without loss of information
-                return self.add_constant('Int', 'bigint', $value);
+                my $const := self.add_constant('Int', 'bigint', $value);
+                $const.node: $node;
+                return $const;
             }
             # since Int doesn't have any vtables yet (at least while compiling
             # the setting), it is inconvenient to work with, so unbox
@@ -2725,19 +2728,14 @@ class Perl6::World is HLL::World {
         my $const := self.add_constant($type, nqp::lc($type), $value);
         my $past;
         if $type eq 'Int' {
-            $past := QAST::Want.new($const, 'Ii', QAST::IVal.new( :value($value) ) );
+            $past := QAST::Want.new: :$node, $const, 'Ii',
+              QAST::IVal.new: :$node, :$value;
         }
         else {
-            $past := QAST::Want.new($const, 'Nn',
-                $value eq 'Inf'  ?? QAST::Op.new(:node($/), :op<inf>) !!
-                $value eq '-Inf' ?? QAST::Op.new(:node($/), :op<neginf>) !!
-                $value eq 'NaN'  ?? QAST::Op.new(:node($/), :op<nan>) !!
-                                    QAST::NVal.new( :value($value) ) );
+            $past := QAST::Want.new: :$node, $const, 'Nn',
+                       QAST::NVal.new: :$node, :$value;
         }
         $past.returns($const.returns);
-        if $/ {
-            $past.node($/);
-        }
         $past;
     }
 

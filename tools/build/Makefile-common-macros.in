@@ -9,7 +9,7 @@ CP      = @cp@
 RM_F    = @rm_f@
 RM_RF   = @rm_rf@
 TEST_F  = @test_f@
-SHELL   = @shell@
+@shell@
 
 SYSROOT= @sysroot@
 SDKROOT= @sdkroot@

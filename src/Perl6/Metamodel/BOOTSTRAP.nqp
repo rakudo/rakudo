@@ -2679,10 +2679,10 @@ BEGIN {
                 $type_match_possible := 1;
                 $i := 0;
                 while $i < $type_check_count {
-                    my $type_obj     := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
-                    my $type_flags   := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
-                    my int $got_prim := nqp::atpos(@flags, $i) +& 0xF;
-                    my int $literal  := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
+                    my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+                    my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
+                    my int $got_prim   := nqp::atpos(@flags, $i) +& 0xF;
+                    my int $literal    := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {

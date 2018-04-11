@@ -3656,9 +3656,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
                 if $*SCOPE eq 'state' {
-                    $list := QAST::Op.new( :op('if'),
-                        QAST::Op.new( :op('p6stateinit'), $orig_list ),
-                        $list, $orig_list);
+                    my $i         := 0;
+                    my $condition := QAST::Op.new( :op('if') );
+                    my $node      := $condition;
+                    my $prev      := $condition;
+                    while $i < nqp::elems($orig_list) {
+                        $node.push( QAST::Op.new( :op('p6stateinit'), $orig_list[$i] ) );
+                        $node.push( QAST::Op.new( :op('if') ) );
+                        $prev := $node;
+                        $node := $node[1];
+                        $i++;
+                    }
+                    $prev.pop;
+                    $prev.push( QAST::IVal.new(:value(1)) );
+
+                    $list := QAST::Op.new( :op('if'), $condition, $list, $orig_list );
                 }
             }
             elsif @nosigil {

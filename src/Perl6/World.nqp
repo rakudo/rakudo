@@ -4223,17 +4223,45 @@ class Perl6::World is HLL::World {
         }
         elsif $<colonpairs> && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>) {
             my $val := $<longname><colonpair>[0].ast[2];
-            nqp::istype($val, QAST::Op)
-              # XXX TODO: the circumfix:<[ ]> path is a misparse of parameterization,
-              # e.g. List:D[Int]. When parse is fixed, the circumfix branch likely can be removed
-              ?? $val.op eq 'p6bool' || $val.op eq 'call' && $val.name eq '&circumfix:<[ ]>'
-                ?? nqp::null # not a coercer, but just got a regular DefiniteHOW
-                !! $val.name eq '&infix:<,>' && @($val) == 0
-                  ?? self.find_symbol: ['Any'], :setting-only # empty coercer source type
-                  !! self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
-              !! nqp::istype($val, QAST::WVal)
-                ?? $val.value
-                !! self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
+            nqp::atkey(nqp::getenvhash(),'ZZ') && nqp::say("ZZ1:\n" ~ $val.dump);
+            nqp::atkey(nqp::getenvhash(),'ZZ2') && nqp::say("ZZ2:\n" ~ $<longname><colonpair>[0].dump);
+            nqp::atkey(nqp::getenvhash(),'ZZ3') && nqp::say("ZZ3:\n" ~ $<longname><colonpair>[0].ast.dump);
+
+            if nqp::istype($val, QAST::Op) {
+              if $val.op eq 'call' {
+                if $val.name && $val.name eq '&circumfix:<[ ]>' {
+                  # XXX TODO: the circumfix:<[ ]> path is a misparse of
+                  # parameterization, e.g. List:D[Int]. When parse is fixed,
+                  # the circumfix branch likely can be removed
+                  nqp::null
+                }
+                elsif $val.name && $val.name eq '&infix:<,>' && @($val) == 0 {
+                  # empty coercer source type
+                  self.find_symbol: ['Any'], :setting-only
+                }
+                elsif (my $long := # possibly mistyped typename
+                    $<longname><colonpair>[0]<coloncircumfix><circumfix><semilist><statement><EXPR>[1]<longname>) {
+                  my $longname := $*W.dissect_longname: $long;
+                  try {$*W.find_symbol: $longname; 1}
+                  ?? self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
+                  !! self.throw: $/, ['X', 'Undeclared'],
+                      :what<Type>, :symbol($longname.name),
+                      :suggestions(self.suggest_typename: $longname.name)
+                }
+                else {
+                  self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
+                }
+              }
+              elsif $val.op eq 'p6bool' {
+                nqp::null # not a coercer, but just got a regular DefiniteHOW
+              }
+            }
+            elsif nqp::istype($val, QAST::WVal) {
+              $val.value
+            }
+            else {
+              self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']
+            }
         }
         else {
             nqp::null # we didn't find any coercers

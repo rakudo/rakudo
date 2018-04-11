@@ -3714,7 +3714,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.explain_mystery> <.cry_sorrows>
         ]?
         <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
-        <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
+        <.unsp>? [
+          <?[(]> '(' ~ ')' [
+          <.ws> [ <accept=.typename> || <typo_typename(1)> || $<accept_any>=<?> ]
+          <.ws> ]
+        ]?
         [<.ws> 'of' <.ws> <typename> ]?
         [
             <?{

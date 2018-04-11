@@ -138,17 +138,17 @@ my role Setty does QuantHash {
     multi method ACCEPTS(Setty:D: \other) { self.ACCEPTS(other.Set) }
 
     multi method Str(Setty:D $ : --> Str:D) {
-        nqp::join(" ",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.Str))
+        nqp::join(' ',Rakudo::QuantHash.RAW-VALUES-MAP(self, *.Str))
     }
     multi method gist(Setty:D $ : --> Str:D) {
         nqp::concat(
           nqp::concat(
             nqp::if(
               nqp::istype(self,Set),
-              'set(',
+              'Set(',
               nqp::concat(self.^name,'(')
             ),
-            nqp::join(" ",
+            nqp::join(', ',
               Rakudo::Sorting.MERGESORT-str(
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, *.gist)
               )
@@ -160,13 +160,13 @@ my role Setty does QuantHash {
     multi method perl(Setty:D $ : --> Str:D) {
         nqp::if(
           nqp::eqaddr(self,set()),
-          'set()',
+          'Set()',
           nqp::concat(
-            nqp::concat(self.^name,'.new('),
             nqp::concat(
-              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl)),
-              ')'
-            )
+              '(',
+              nqp::join(',',Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl))
+            ),
+            nqp::concat(').',self.^name)
           )
         )
     }

@@ -2291,7 +2291,7 @@ BEGIN {
                             my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                             my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                             my int $got_prim   := nqp::captureposprimspec($capture, $i);
-                            my $rwness         := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
+                            my int $rwness     := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
                             if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
                                 # If we need a container but don't have one it clearly can't work.
                                 $rwness_mismatch := 1;

@@ -712,7 +712,7 @@ role STDActions {
 
         my $docast := $doc.MATCH.ast;
         if $docast.has_compile_time_value {
-            my $dedented := nqp::unbox_s($docast.compile_time_value.indent($indent));
+            my str $dedented := nqp::unbox_s($docast.compile_time_value.indent($indent));
             $origast.push($*W.add_string_constant($dedented));
         }
         else {
@@ -7955,7 +7955,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method rad_number($/) {
-        my $radix    := nqp::radix(10, $<radix>, 0, 0)[0];
+        my int $radix := nqp::radix(10, $<radix>, 0, 0)[0];
 
         if $<bracket> { # the "list of place values" case
             make QAST::Op.new(:name('&UNBASE_BRACKET'), :op('call'),

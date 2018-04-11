@@ -1,25 +1,25 @@
 # Operand read/write/literal flags.
-my $MVM_operand_literal     := 0;
-my $MVM_operand_read_reg    := 1;
-my $MVM_operand_write_reg   := 2;
-my $MVM_operand_read_lex    := 3;
-my $MVM_operand_write_lex   := 4;
-my $MVM_operand_rw_mask     := 7;
+my int $MVM_operand_literal     := 0;
+my int $MVM_operand_read_reg    := 1;
+my int $MVM_operand_write_reg   := 2;
+my int $MVM_operand_read_lex    := 3;
+my int $MVM_operand_write_lex   := 4;
+my int $MVM_operand_rw_mask     := 7;
 
 # Register data types.
-my $MVM_reg_void            := 0;
-my $MVM_reg_int64           := 4;
-my $MVM_reg_num64           := 6;
-my $MVM_reg_str             := 7;
-my $MVM_reg_obj             := 8;
-my $MVM_reg_uint64          := 20;
+my int $MVM_reg_void            := 0;
+my int $MVM_reg_int64           := 4;
+my int $MVM_reg_num64           := 6;
+my int $MVM_reg_str             := 7;
+my int $MVM_reg_obj             := 8;
+my int $MVM_reg_uint64          := 20;
 
 # Operand data types.
-my $MVM_operand_int64       := nqp::bitshiftl_i($MVM_reg_int64, 3);
-my $MVM_operand_num64       := nqp::bitshiftl_i($MVM_reg_num64, 3);
-my $MVM_operand_str         := nqp::bitshiftl_i($MVM_reg_str, 3);
-my $MVM_operand_obj         := nqp::bitshiftl_i($MVM_reg_obj, 3);
-my $MVM_operand_uint64      := nqp::bitshiftl_i($MVM_reg_uint64, 3);
+my int $MVM_operand_int64       := nqp::bitshiftl_i($MVM_reg_int64, 3);
+my int $MVM_operand_num64       := nqp::bitshiftl_i($MVM_reg_num64, 3);
+my int $MVM_operand_str         := nqp::bitshiftl_i($MVM_reg_str, 3);
+my int $MVM_operand_obj         := nqp::bitshiftl_i($MVM_reg_obj, 3);
+my int $MVM_operand_uint64      := nqp::bitshiftl_i($MVM_reg_uint64, 3);
 
 # Register MoarVM extops.
 use MASTNodes;

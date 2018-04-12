@@ -4223,10 +4223,6 @@ class Perl6::World is HLL::World {
         }
         elsif $<colonpairs> && ($<colonpairs>.ast<D> || $<colonpairs>.ast<U>) {
             my $val := $<longname><colonpair>[0].ast[2];
-            nqp::atkey(nqp::getenvhash(),'ZZ') && nqp::say("ZZ1:\n" ~ $val.dump);
-            nqp::atkey(nqp::getenvhash(),'ZZ2') && nqp::say("ZZ2:\n" ~ $<longname><colonpair>[0].dump);
-            nqp::atkey(nqp::getenvhash(),'ZZ3') && nqp::say("ZZ3:\n" ~ $<longname><colonpair>[0].ast.dump);
-
             if nqp::istype($val, QAST::Op) {
               if $val.op eq 'call' {
                 if $val.name && $val.name eq '&circumfix:<[ ]>' {
@@ -4239,8 +4235,10 @@ class Perl6::World is HLL::World {
                   # empty coercer source type
                   self.find_symbol: ['Any'], :setting-only
                 }
-                elsif (my $long := # possibly mistyped typename
-                    $<longname><colonpair>[0]<coloncircumfix><circumfix><semilist><statement><EXPR>[1]<longname>) {
+                elsif (my $long := try {
+                    # possibly mistyped typename
+                    $<longname><colonpair>[0]<coloncircumfix><circumfix><semilist><statement>[0]<EXPR><longname>
+                  }) {
                   my $longname := $*W.dissect_longname: $long;
                   try {$*W.find_symbol: $longname; 1}
                   ?? self.throw: $/, ['X', 'Syntax', 'Coercer', 'TooComplex']

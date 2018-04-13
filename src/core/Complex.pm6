@@ -60,6 +60,7 @@ my class Complex is Cool does Numeric {
         nqp::concat(
           $!re,
           nqp::concat(
+            # we could have negative zero, so stringify to figure out the sign
             nqp::if(nqp::iseq_i(nqp::ord($!im),45),'','+'),
             nqp::concat(
               $!im,

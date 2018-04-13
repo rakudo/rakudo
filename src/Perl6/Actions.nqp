@@ -8044,19 +8044,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method bare_complex_number($/) {
-        my $re := $*W.add_constant('Num', 'num',
-            ($<re><sign> eq '-' || $<re><sign> eq '−'
-                ?? -$<re><number>.Str !! +$<re><number>.Str)
-        );
-        my $im := $*W.add_constant('Num', 'num',
-            ($<im><sign> eq '-' || $<im><sign> eq '−'
-                ?? -$<im><number>.Str !! +$<im><number>.Str)
-        );
-        my $ast := $*W.add_constant('Complex', 'type_new',
-            $re.compile_time_value,
-            $im.compile_time_value,
-            :nocache(1)
-        );
+        my $Num := $*W.find_symbol: ['Num'], :setting-only;
+        my $ast := $*W.add_constant: 'Complex', 'type_new', :nocache(1),
+            $*W.add_constant('Num', 'num',
+                $<re><sign> eq '-' || $<re><sign> eq '−'
+                  ?? -$<re><number>.ast.compile_time_value.Num
+                  !!  $<re><number>.ast.compile_time_value.Num
+            ).compile_time_value,
+            $*W.add_constant('Num', 'num',
+                $<im><sign> eq '-' || $<im><sign> eq '−'
+                  ?? -$<im><number>.ast.compile_time_value.Num
+                  !!  $<im><number>.ast.compile_time_value.Num
+            ).compile_time_value;
         $ast.node($/);
         make $ast;
     }

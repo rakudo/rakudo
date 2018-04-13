@@ -2964,13 +2964,15 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 
     my sub is-core($name) {
         my @parts = $name.split("::");
+        my $last := @parts.pop;
         my $ns := ::CORE.WHO;
         for @parts {
             return False unless $ns{$_}:exists;
             $ns := $ns{$_}.WHO;
         };
-        True
-    };
+        $ns{$last}:exists
+            and not nqp::istype(nqp::how($ns{$last}), Metamodel::PackageHOW)
+    }
 
     method message() {
         my $name = $.specification.short-name;

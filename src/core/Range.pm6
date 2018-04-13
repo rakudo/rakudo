@@ -439,22 +439,18 @@ my class Range is Cool does Iterable does Positional {
         nqp::istype($!min, Numeric)
             ?? # RHS is a numeric range, use numeric comparators
                 try {
-                    (topic.min > $!min
-                     || topic.min == $!min
-                        && !(!topic.excludes-min && $!excludes-min))
-                    &&
-                    (topic.max < $!max
-                     || topic.max == $!max
-                        && !(!topic.excludes-max && $!excludes-max))
+                  (topic.min+topic.excludes-min >= $!min+$!excludes-min)
+                  &&
+                  (topic.max-topic.excludes-max <= $!max-$!excludes-max)
                 } // False # don't explode on failures to coerce to numerics
             !! # RHS is a stringy range, use stringy comparators
-                (topic.min gt $!min
-                 || topic.min eq $!min
-                    && !(!topic.excludes-min && $!excludes-min))
+                (($!excludes-min && !topic.excludes-min)
+                  ?? topic.min after $!min
+                  !! not topic.min before $!min )
                 &&
-                (topic.max lt $!max
-                 || topic.max eq $!max
-                    && !(!topic.excludes-max && $!excludes-max))
+                (($!excludes-max && !topic.excludes-max)
+                  ?? topic.max before $!min
+                  !! not topic.min after $!min )
     }
 
     method ASSIGN-POS(Range:D: |) { X::Assignment::RO.new(value => self).throw }

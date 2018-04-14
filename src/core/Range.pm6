@@ -706,11 +706,9 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method minmax(Range:D:) {
-        $!is-int
-          ?? self.int-bounds
-          !! $!excludes-min || $!excludes-max
-            ?? Failure.new("Cannot return minmax on Range with excluded ends")
-            !! ($!min,$!max)
+        $!excludes-min || $!excludes-max
+          ?? Failure.new("Cannot return minmax on Range with excluded ends")
+          !! ($!min,$!max)
     }
 }
 

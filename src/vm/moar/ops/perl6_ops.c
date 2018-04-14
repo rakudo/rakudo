@@ -240,6 +240,7 @@ static void p6stateinit(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject          *var    = GET_REG(tc, 2).o;
     MVMCodeBody        *crbody = &((MVMCode *)tc->cur_frame->code_ref)->body;
     MVMStaticFrameBody *sfbody = &tc->cur_frame->static_info->body;
+    MVMuint8           *is_hll_init = crbody->state_vars_is_hll_init;
     MVMuint32 i;
 
     if ( !sfbody->has_state_vars ) {
@@ -250,13 +251,13 @@ static void p6stateinit(MVMThreadContext *tc, MVMuint8 *cur_op) {
     /* Find num of lexical, so that we can mark it as HLL inited */
     for (i = 0; i < sfbody->num_lexicals; i++) {
         MVMRegister *env_val     = &tc->cur_frame->env[i];
-        MVMuint8    *is_hll_init = &crbody->state_vars_is_hll_init[i];
         if (env_val && var == env_val->o) {
-            GET_REG(tc, 0).i64 = !*is_hll_init;
-            *is_hll_init = 1;
+            GET_REG(tc, 0).i64 = !MVM_BITARR8_CHECK(is_hll_init, i);
+            MVM_BITARR8_SET(is_hll_init, i);
             return;
         }
     }
+    GET_REG(tc, 0).i64 = 0;
 }
 
 /* First FIRST, use a flag in the object header. */

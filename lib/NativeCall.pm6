@@ -631,6 +631,9 @@ multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
 role CPPConst {
     method cpp-const() { 1 }
 }
+multi trait_mod:<is>(Routine $p, :$cpp-const!) is export(:DEFAULT, :traits) {
+    $p does CPPConst;
+}
 multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
     $p does CPPConst;
 }

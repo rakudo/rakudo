@@ -266,8 +266,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     has $!cpp-name-mangler;
     has Pointer $!entry-point;
     has int $!arity;
-    has int8 $!is-clone;
-    has int8 $!any-optionals;
+    has int $!is-clone;
+    has int $!any-optionals;
     has Mu $!optimized-body;
     has Mu $!jit-optimized-body;
 

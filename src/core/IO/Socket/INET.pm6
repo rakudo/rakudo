@@ -57,7 +57,7 @@ my class IO::Socket::INET does IO::Socket {
 
     # Create new socket that listens on $localhost:$localport
     multi method new(
-        Bool:D :$listen!,
+        Bool   :$listen! where .so,
         Str    :$localhost is copy,
         Int    :$localport is copy,
         Int    :$family where {

@@ -686,6 +686,17 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
+        multi method head(::?CLASS:D:) {
+            nqp::if(
+              nqp::isconcrete(nqp::getattr(self,Map,'$!storage'))
+                && nqp::elems(nqp::getattr(self,Map,'$!storage')),
+              nqp::iterval(
+                nqp::shift(nqp::iterator(nqp::getattr(self,Map,'$!storage')))
+              ),
+              Nil
+            )
+        }
+
         method keys() {
             Seq.new(class :: does Rakudo::Iterator::Mappy {
                 method pull-one() {

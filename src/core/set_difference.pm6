@@ -81,10 +81,10 @@ multi sub infix:<(-)>(QuantHash:D $a, Baggy:D $b) {
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)
 }
 multi sub infix:<(-)>(Baggy:D $a, Map:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Set)
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Bag)
 }
 multi sub infix:<(-)>(Baggy:D $a, Any:D $b) {    # also Iterable
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Set)
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Bag)
 }
 multi sub infix:<(-)>(Any $a, Baggy:D $b) {
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)

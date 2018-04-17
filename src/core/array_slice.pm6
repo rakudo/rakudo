@@ -442,9 +442,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, Bool() :$k!, *%other) is raw {
     SLICE_MORE_LIST( SELF, ^SELF.elems, 'k', $k, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, Bool() :$v!, *%other) is raw {
-    nqp::elems(nqp::getattr(%other,Map,'$!storage'))
-      ?? SLICE_MORE_LIST( SELF, ^SELF.elems, 'v', $v, %other )
-      !! SELF[^SELF.elems];
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'v', $v, %other )
 }
 
 # @a[**]
@@ -475,9 +473,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Bool() :$k!, *%other) is raw {
     SLICE_MORE_LIST( SELF, ^SELF.elems, 'k', $k, %other );
 }
 multi sub postcircumfix:<[ ]>(\SELF, Bool() :$v!, *%other) is raw {
-    nqp::elems(nqp::getattr(%other,Map,'$!storage'))
-      ?? SLICE_MORE_LIST( SELF, ^SELF.elems, 'v', $v, %other )
-      !! SELF[^SELF.elems];
+    SLICE_MORE_LIST( SELF, ^SELF.elems, 'v', $v, %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF, *%other) is raw {
     SELF.ZEN-POS(|%other);

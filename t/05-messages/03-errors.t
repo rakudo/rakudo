@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 11;
+plan 12;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -92,5 +92,11 @@ subtest 'unclosed hash quote index operator <> message' => {
 throws-like 'Int:erator:$;', X::InvalidTypeSmiley,
     ｢Don't report "missing semicolon" when semicolon present with complicated punctuation.｣,
     :message{ not .match: /:i:s<<missing semicolon/ };
+
+
+# RT #133107
+is-run ｢use IO::Socket::Async::BlahBlahBlah｣, :exitcode(*.so),
+    :err{.contains: 'Could not find' & none 'builtin type'},
+'non-found module in core namespace is not claimed to be built-in';
 
 # vim: ft=perl6 expandtab sw=4

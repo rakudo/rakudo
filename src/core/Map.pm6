@@ -76,6 +76,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::create(List),List,'$!reified',self.IterationBuffer)
     }
 
+    multi method head(Map:D:) {
+        nqp::if(
+          nqp::isconcrete($!storage) && nqp::elems($!storage),
+          Pair.new(
+            nqp::iterkey_s(
+              nqp::shift(my $iterator := nqp::iterator($!storage))
+            ),
+            nqp::iterval($iterator)
+          ),
+          Nil
+        )
+    }
+
     multi method sort(Map:D:) {
         Seq.new(
           Rakudo::Iterator.ReifiedList(

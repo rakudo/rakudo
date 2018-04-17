@@ -1729,7 +1729,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $p6cursor := $*W.find_symbol(['Match']);
             nqp::bindattr_i($new, NQPMatch, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
             nqp::bindattr_i($new, NQPMatch, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
-            my $p6c_name := nqp::getattr_s($ret, $p6cursor, '$!name');
+            my str $p6c_name := nqp::getattr_s($ret, $p6cursor, '$!name');
             if !nqp::isnull_s($p6c_name) {
                 nqp::bindattr($new,   NQPMatch, '$!name',  $p6c_name);
             }

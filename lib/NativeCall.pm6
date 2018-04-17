@@ -266,8 +266,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     has $!cpp-name-mangler;
     has Pointer $!entry-point;
     has int $!arity;
-    has int8 $!is-clone;
-    has int8 $!any-optionals;
+    has int $!is-clone;
+    has int $!any-optionals;
     has Mu $!optimized-body;
     has Mu $!jit-optimized-body;
 
@@ -630,6 +630,9 @@ multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
 
 role CPPConst {
     method cpp-const() { 1 }
+}
+multi trait_mod:<is>(Routine $p, :$cpp-const!) is export(:DEFAULT, :traits) {
+    $p does CPPConst;
 }
 multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
     $p does CPPConst;

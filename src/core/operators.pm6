@@ -210,7 +210,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
         ).throw unless $looped;
 
         if $stop {
-            take $_ for @tail;
+            my $ = take $_ for @tail; # don't sink return of take()
         }
         else {
             my $badseq;
@@ -218,7 +218,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
             my $b;
             my $c;
             unless $code.defined {
-                take @tail.shift while @tail.elems > 3;
+                my $ = take @tail.shift while @tail.elems > 3; # don't sink return of take()
                 $a = @tail[0];
                 $b = @tail[1];
                 $c = @tail[2];
@@ -243,7 +243,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                         for flat @a Z @e -> $from, $to {
                             @ranges.push: $($from ... $to);
                         }
-                        .take for flat [X~] @ranges;
+                        my $ = .take for flat [X~] @ranges; # don't sink return of take()
                         $stop = 1;
                     }
                     elsif $a lt $endpoint {
@@ -426,7 +426,7 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
 
             if $stop { }
             elsif $code.defined {
-                .take for @tail;
+                my $ = .take for @tail; # don't sink return of take()
                 my $count = $code.count;
 
                 until $stop {
@@ -442,20 +442,20 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                             ) unless $end_code_arity == -Inf;
 
                             if $endpoint(|@end_tail) {
-                                value.take unless $exclude_end;
+                                my $ = value.take unless $exclude_end; # don't sink return of take()
                                 $stop = 1;
                             }
                         }
                     }
                     elsif value ~~ $endpoint {
-                        value.take unless $exclude_end;
+                        my $ = value.take unless $exclude_end; # don't sink return of take()
                         $stop = 1;
                     }
 
                     if $stop { }
                     else {
                         @tail.push(value);
-                        value.take;
+                        my $ = value.take; # don't sink return of take()
                     }
                 }
             }

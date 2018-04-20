@@ -204,22 +204,24 @@ my role NativeCallSymbol[Str $name] {
 }
 
 multi guess_library_name(IO::Path $lib) is export(:TEST) {
-    samewith($lib.absolute.Str)
+    guess_library_name($lib.absolute)
 }
 multi guess_library_name(Distribution::Resource $lib) is export(:TEST) {
-    return $lib.platform-library-name.Str;
+    $lib.platform-library-name.Str;
 }
 multi guess_library_name(Callable $lib) is export(:TEST) {
-    return $lib();
+    $lib();
 }
 multi guess_library_name(List $lib) is export(:TEST) {
-    samewith($lib[0], $lib[1])
+    guess_library_name($lib[0], $lib[1])
 }
 multi guess_library_name(Str $libname, $apiversion='') is export(:TEST) {
-    return '' unless $libname.DEFINITE;
-    #Already a full name?
-    return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
-    return $*VM.platform-library-name($libname.IO, :version($apiversion || Version)).Str;
+    $libname.DEFINITE
+        ?? $libname ~~ /[\.<.alpha>+ | \.so [\.<.digit>+]+ ] $/
+            ?? $libname #Already a full name?
+            !! $*VM.platform-library-name(
+                $libname.IO, :version($apiversion || Version)).Str
+        !! ''
 }
 
 my %lib;

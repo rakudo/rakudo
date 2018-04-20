@@ -109,7 +109,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               ),
 
               nqp::if(
-                nqp::isconcrete($!future) 
+                nqp::isconcrete($!future)
                   && nqp::not_i(nqp::isconcrete($!current-iter)),
                 nqp::stmts(
                   nqp::while(

@@ -503,19 +503,19 @@ proto sub infix:<after>(Mu $?, Mu $?) is pure {*}
 multi sub infix:<after>($x?)       { Bool::True }
 multi sub infix:<after>(\a, \b)    { (a cmp b) > 0 }
 
-proto prefix:<++>(Mu)             {*}
-multi prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
-multi prefix:<++>(Mu:U $a is rw) { $a = 1 }
-proto prefix:<-->(Mu)             {*}
-multi prefix:<-->(Mu:D $a is rw) { $a = $a.pred }
-multi prefix:<-->(Mu:U $a is rw) { $a = -1 }
+proto sub prefix:<++>(Mu)             {*}
+multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
+multi sub prefix:<++>(Mu:U $a is rw) { $a = 1 }
+proto sub prefix:<-->(Mu)             {*}
+multi sub prefix:<-->(Mu:D $a is rw) { $a = $a.pred }
+multi sub prefix:<-->(Mu:U $a is rw) { $a = -1 }
 
-proto postfix:<++>(Mu)             {*}
-multi postfix:<++>(Mu:D $a is rw) { my $b = $a; $a = $a.succ; $b }
-multi postfix:<++>(Mu:U $a is rw) { $a = 1; 0 }
-proto postfix:<-->(Mu)             {*}
-multi postfix:<-->(Mu:D $a is rw) { my $b = $a; $a = $a.pred; $b }
-multi postfix:<-->(Mu:U $a is rw) { $a = -1; 0 }
+proto sub postfix:<++>(Mu)             {*}
+multi sub postfix:<++>(Mu:D $a is rw) { my $b = $a; $a = $a.succ; $b }
+multi sub postfix:<++>(Mu:U $a is rw) { $a = 1; 0 }
+proto sub postfix:<-->(Mu)             {*}
+multi sub postfix:<-->(Mu:D $a is rw) { my $b = $a; $a = $a.pred; $b }
+multi sub postfix:<-->(Mu:U $a is rw) { $a = -1; 0 }
 
 proto sub pick(|) {*}
 multi sub pick($n, +values) { values.pick($n) }

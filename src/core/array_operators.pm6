@@ -1,9 +1,9 @@
 # The [...] term creates an Array.
-proto circumfix:<[ ]>(|) {*}
-multi circumfix:<[ ]>() {
+proto sub circumfix:<[ ]>(|) {*}
+multi sub circumfix:<[ ]>() {
     nqp::create(Array)
 }
-multi circumfix:<[ ]>(Iterable:D \iterable) {
+multi sub circumfix:<[ ]>(Iterable:D \iterable) {
     my $reified;
     nqp::if(
       nqp::iscont(iterable),
@@ -40,7 +40,7 @@ multi circumfix:<[ ]>(Iterable:D \iterable) {
       )
     )
 }
-multi circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
+multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
     nqp::p6bindattrinvres(
       nqp::create(Array),List,'$!reified',
       nqp::stmts(

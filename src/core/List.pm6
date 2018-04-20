@@ -1605,7 +1605,7 @@ multi sub cache(+@l) { @l }
 # things we flatten, which would be different semantics to .flat which gives
 # back a Seq. We also add an Iterable candidate, to preserve .is-lazy
 # of an Iterable whenever we can.
-proto flat(|) {*}
+proto sub flat(|) {*}
 multi flat(**@list is raw) { @list.flat }
 multi flat(Iterable \a)    {     a.flat }
 

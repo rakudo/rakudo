@@ -203,28 +203,19 @@ my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
 
-sub guess_library_name($lib) is export(:TEST) {
-    my $libname;
-    my $apiversion = '';
-    my Str $ext = '';
-    given $lib {
-        when IO::Path {
-            $libname = $lib.absolute;
-        }
-        when Distribution::Resource {
-            return $lib.platform-library-name.Str;
-        }
-        when Callable {
-           return $lib();
-        }
-        when List {
-           $libname = $lib[0];
-           $apiversion = $lib[1];
-        }
-        when Str {
-           $libname = $lib;
-        }
-    }
+multi guess_library_name(IO::Path $lib) is export(:TEST) {
+    samewith($lib.absolute.Str)
+}
+multi guess_library_name(Distribution::Resource $lib) is export(:TEST) {
+    return $lib.platform-library-name.Str;
+}
+multi guess_library_name(Callable $lib) is export(:TEST) {
+    return $lib();
+}
+multi guess_library_name(List $lib) is export(:TEST) {
+    samewith($lib[0], $lib[1])
+}
+multi guess_library_name(Str $libname, $apiversion='') is export(:TEST) {
     return '' unless $libname.DEFINITE;
     #Already a full name?
     return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);

@@ -1,5 +1,5 @@
 # The [...] term creates an Array.
-proto sub circumfix:<[ ]>(|) {*}
+proto sub circumfix:<[ ]>(Mu $?, *%) {*}
 multi sub circumfix:<[ ]>() {
     nqp::create(Array)
 }
@@ -53,25 +53,25 @@ multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
     )
 }
 
-proto sub pop(@) {*}
+proto sub pop($, *%) {*}
 multi sub pop(@a) { @a.pop }
 
-proto sub shift(@) {*}
+proto sub shift($, *%) {*}
 multi sub shift(@a) { @a.shift }
 
-proto sub push(|) {*}
+proto sub push($, |) {*}
 multi sub push(\a, |elems) { a.push: |elems }
 
-proto sub append(|) {*}
+proto sub append($, |) {*}
 multi sub append(\a, |elems) { a.append: |elems }
 
-proto sub unshift(|) {*}
+proto sub unshift($, |) {*}
 multi sub unshift(\a, |elems) { a.unshift: |elems }
 
-proto sub prepend(|) {*}
+proto sub prepend($, |) {*}
 multi sub prepend(\a, |elems) { a.prepend: |elems }
 
-proto sub splice(|) {*}
+proto sub splice($, |) {*}
 multi sub splice(@arr, |c) { @arr.splice(|c) }
 
 # vim: ft=perl6 expandtab sw=4

@@ -485,7 +485,7 @@ my class Any { # declared in BOOTSTRAP
 Metamodel::ClassHOW.exclude_parent(Any);
 
 # builtin ops
-proto sub infix:<===>(Mu $?, Mu $?) is pure {*}
+proto sub infix:<===>($?, $?, *%) is pure {*}
 multi sub infix:<===>($?)    { Bool::True }
 multi sub infix:<===>(\a, \b) {
     nqp::p6bool(
@@ -495,50 +495,50 @@ multi sub infix:<===>(\a, \b) {
     )
 }
 
-proto sub infix:<before>(Mu $?, Mu $?)  is pure {*}
+proto sub infix:<before>($?, $?, *%)  is pure {*}
 multi sub infix:<before>($?)      { Bool::True }
 multi sub infix:<before>(\a, \b)   { (a cmp b) < 0 }
 
-proto sub infix:<after>(Mu $?, Mu $?) is pure {*}
+proto sub infix:<after>($?, $?, *%) is pure {*}
 multi sub infix:<after>($x?)       { Bool::True }
 multi sub infix:<after>(\a, \b)    { (a cmp b) > 0 }
 
-proto sub prefix:<++>(Mu)             {*}
+proto sub prefix:<++>(Mu, *%)        {*}
 multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
 multi sub prefix:<++>(Mu:U $a is rw) { $a = 1 }
-proto sub prefix:<-->(Mu)             {*}
+proto sub prefix:<-->(Mu, *%)        {*}
 multi sub prefix:<-->(Mu:D $a is rw) { $a = $a.pred }
 multi sub prefix:<-->(Mu:U $a is rw) { $a = -1 }
 
-proto sub postfix:<++>(Mu)             {*}
+proto sub postfix:<++>(Mu, *%)        {*}
 multi sub postfix:<++>(Mu:D $a is rw) { my $b = $a; $a = $a.succ; $b }
 multi sub postfix:<++>(Mu:U $a is rw) { $a = 1; 0 }
-proto sub postfix:<-->(Mu)             {*}
+proto sub postfix:<-->(Mu, *%)        {*}
 multi sub postfix:<-->(Mu:D $a is rw) { my $b = $a; $a = $a.pred; $b }
 multi sub postfix:<-->(Mu:U $a is rw) { $a = -1; 0 }
 
-proto sub pick(|) {*}
+proto sub pick($, |) {*}
 multi sub pick($n, +values) { values.pick($n) }
 
-proto sub roll(|) {*}
+proto sub roll($, |) {*}
 multi sub roll($n, +values) { values.roll($n) }
 
-proto sub keys(|) {*}
+proto sub keys($, *%) {*}
 multi sub keys($x) { $x.keys }
 
-proto sub values(|) {*}
+proto sub values($, *%) {*}
 multi sub values($x) { $x.values }
 
-proto sub pairs(|) {*}
+proto sub pairs($, *%) {*}
 multi sub pairs($x) { $x.pairs }
 
-proto sub kv(|) {*}
+proto sub kv($, *%) {*}
 multi sub kv($x) { $x.kv }
 
-proto sub elems(|) is nodal {*}
+proto sub elems($, *%) is nodal {*}
 multi sub elems($a) { $a.elems }
 
-proto sub end(|) {*}
+proto sub end($, *%) {*}
 multi sub end($a) { $a.end }
 
 proto sub sum(|) {*}
@@ -546,7 +546,7 @@ multi sub sum() { 0 }
 multi sub sum(\SELF) { SELF.sum }
 multi sub sum(+SELF) { SELF.sum }
 
-proto sub classify(|) {*}
+proto sub classify($, |) {*}
 multi sub classify($test, +items, :$into!, *%named ) {
     ( $into // $into.new).classify-list($test, items, |%named)
 }
@@ -554,7 +554,7 @@ multi sub classify($test, +items, *%named ) {
     Hash.^parameterize(Any,Any).new.classify-list($test, items, |%named);
 }
 
-proto sub categorize(|) {*}
+proto sub categorize($, |) {*}
 multi sub categorize($test, +items, :$into!, *%named ) {
     ( $into // $into.new).categorize-list($test, items, |%named)
 }

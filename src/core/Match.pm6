@@ -929,7 +929,7 @@ multi sub infix:<eqv>(Match:D \a, Match:D \b) {
 }
 
 
-proto sub make(|) { $/ := nqp::getlexcaller('$/'); {*} }
+proto sub make(Mu, *%) { $/ := nqp::getlexcaller('$/'); {*} }
 multi sub make(Mu \made) {
     nqp::bindattr(nqp::decont(nqp::getlexcaller('$/')),Match,'$!made',made)
 }

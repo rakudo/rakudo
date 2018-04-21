@@ -1639,7 +1639,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
     }
 }
 
-proto sub exit(|) {*}
+proto sub exit($?, *%) {*}
 multi sub exit() { &*EXIT(0) }
 multi sub exit(Int(Any) $status) { &*EXIT($status) }
 

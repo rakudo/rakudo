@@ -1,6 +1,6 @@
 # all sub postcircumfix {} candidates here please
 
-proto sub postcircumfix:<{ }>(|) is nodal {*}
+proto sub postcircumfix:<{ }>($, $?, Mu $?, *%) is nodal {*}
 
 # %h<key>
 multi sub postcircumfix:<{ }>( \SELF, \key ) is raw {
@@ -156,7 +156,7 @@ multi sub postcircumfix:<{ }>( \SELF, *%other ) is raw {
 }
 
 
-proto sub postcircumfix:<{; }>(|) is nodal {*}
+proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}
 
 sub MD-HASH-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
     my int $next-dim = $dim + 1;

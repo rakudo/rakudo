@@ -1009,8 +1009,10 @@ my class Binder {
             ++$i;
 
             # If the parameter is anything other than a boring old
-            # positional parameter, we won't analyze it. */
+            # positional parameter, we won't analyze it and will bail out,
+            # unless it's a slurpy named param, in which case just ignore it
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            if $flags +& $SIG_ELEM_SLURPY_NAMED { next }
             if $flags +& nqp::bitneg_i(
                     $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_RAW +|
                     $SIG_ELEM_IS_COPY +| $SIG_ELEM_ARRAY_SIGIL +|

@@ -69,18 +69,18 @@ multi sub take(|) {
     )
 }
 
-proto sub goto(|) {*}
+proto sub goto($, *%) {*}
 multi sub goto(Label:D \x --> Nil) { x.goto }
 
-proto sub last(|) {*}
+proto sub last($?, *%) {*}
 multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
 multi sub last(Label:D \x --> Nil) { x.last }
 
-proto sub next(|) {*}
+proto sub next($?, *%) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
 multi sub next(Label:D \x --> Nil) { x.next }
 
-proto sub redo(|) {*}
+proto sub redo($?, *%) {*}
 multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
 multi sub redo(Label:D \x --> Nil) { x.redo }
 
@@ -183,6 +183,7 @@ multi sub die(|cap ( *@msg ) --> Nil) {
     X::AdHoc.from-slurpy(|cap).throw
 }
 
+proto sub warn(|) {*}
 multi sub warn(*@msg) {
     my $msg = @msg.join || "Warning: something's wrong";
     my $ex := nqp::newexception();

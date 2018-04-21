@@ -293,58 +293,58 @@ my class Cool { # declared in BOOTSTRAP
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
-proto sub chop(|) {*}
+proto sub chop($, $?, *%) {*}
 multi sub chop(Cool:D $s --> Str:D) { $s.chop }
 multi sub chop(Cool:D $s, Int() $n --> Str:D) { $s.chop($n) }
 
-proto sub chomp(|) {*}
+proto sub chomp($, *%) {*}
 multi sub chomp(Cool $s --> Str:D) { $s.chomp }
 
-proto sub flip(|) {*}
+proto sub flip($, *%) {*}
 multi sub flip(Cool $s --> Str:D) { $s.flip }
 
-proto sub index(|) {*}
+proto sub index($, $, $?, *%) {*}
 multi sub index(Cool $s, Cool $needle)            { $s.index($needle)      }
 multi sub index(Cool $s, Cool $needle, Cool $pos) { $s.index($needle,$pos) }
 
-proto sub rindex(|) {*}
+proto sub rindex($, $, $?, *%) {*}
 multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) }
 multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) }
 
-proto sub lc(|) {*}
+proto sub lc($, *%) {*}
 multi sub lc(Cool $s) { $s.lc }
 
-proto sub ord(|) {*}
+proto sub ord($, *%) {*}
 multi sub ord(Cool $s) { $s.ord }
 
-proto sub uc(|) {*}
+proto sub uc($, *%) {*}
 multi sub uc(Cool $s) { $s.uc }
 
-proto sub tc(|) {*}
+proto sub tc($, *%) {*}
 multi sub tc(Cool $s) { $s.tc }
 
-proto sub fc(|) {*}
+proto sub fc($, *%) {*}
 multi sub fc(Cool $s) { $s.fc }
 
-proto sub tclc(|) {*}
+proto sub tclc($, *%) {*}
 multi sub tclc(Cool $s) { $s.tclc }
 
-proto sub indices(|) {*}
+proto sub indices($, |) {*}
 multi sub indices(Cool $s, |c) { $s.indices(|c) }
 
-proto sub ords($) {*}
+proto sub ords($, *%) {*}
 multi sub ords(Cool:D $s) { $s.ords }
 
-proto sub comb($, $, $?) {*}
+proto sub comb($, $, $?, *%) {*}
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Int:D $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 
-proto sub wordcase($) is pure {*}
+proto sub wordcase($, *%) is pure {*}
 multi sub wordcase(Str:D $x) {$x.wordcase }
 multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
-proto sub sprintf(|) {*}
+proto sub sprintf($, |) {*}
 multi sub sprintf(Cool:D $format, *@args) {
     CATCH {
         when X::Cannot::Lazy {
@@ -363,27 +363,27 @@ multi sub sprintf(Cool:D $format, *@args) {
     )
 }
 
-proto sub printf(|) {*}
+proto sub printf($, |) {*}
 multi sub printf(Cool:D $format, *@args) { print sprintf $format, @args }
 
-proto sub samecase(|) {*}
+proto sub samecase($, $, *%) {*}
 multi sub samecase(Cool:D $string, Cool:D $pattern) { $string.samecase($pattern) }
 
-proto sub split(|) {*}
+proto sub split($, $, |) {*}
 multi sub split($pat, Cool:D $target, |c) { $target.split($pat, |c) }
 
-proto sub chars($) is pure {*}
+proto sub chars($, *%) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
 multi sub chars(str $x --> int) { nqp::chars($x) }
 
 # These probably belong in a separate unicodey file
 
-proto sub uniname(|) {*}
+proto sub uniname($, *%) {*}
 multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
 multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
-proto sub uninames(|) {*}
+proto sub uninames($, *%) {*}
 multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
 
 #?if jvm
@@ -398,7 +398,7 @@ multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
 #?if moar
-proto sub uniprop(|) {*}
+proto sub uniprop($, |) {*}
 multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }
 multi sub uniprop(Int:D $code) {
     nqp::getuniprop_str($code,nqp::unipropcode('General_Category'));
@@ -539,14 +539,14 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
                             nqp::getuniprop_int($code,$prop)))))))))))))
 }
 # Unicode functions
-proto sub uniprop-int(|) {*}
+proto sub uniprop-int($, $, *%) {*}
 multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-int($str.ord, $propname) !! Nil }
 multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_int($code,nqp::unipropcode($propname));
 }
 
-proto sub uniprop-bool(|) {*}
+proto sub uniprop-bool($, $, *%) {*}
 multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-bool($str.ord, $propname) !! Nil
 }
@@ -554,19 +554,19 @@ multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
     nqp::p6bool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
 }
 
-proto sub uniprop-str(|) {*}
+proto sub uniprop-str($, $, *%) {*}
 multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-str($str.ord, $propname) !! Nil
 }
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,nqp::unipropcode($propname));
 }
-proto sub uniprops(|) {*}
+proto sub uniprops($, $?, *%) {*}
 multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
     $str.ords.map: { uniprop($_, $propname) }
 }
 
-proto sub unival(|) {*}
+proto sub unival($, *%) {*}
 multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
 multi sub unival(Int:D $code) {
     state $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
@@ -576,10 +576,10 @@ multi sub unival(Int:D $code) {
     !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
 }
 
-proto sub univals(|) {*}
+proto sub univals($, *%) {*}
 multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
 
-proto sub unimatch(|) {*}
+proto sub unimatch($, |) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
 # This multi below can be removed when MoarVM bug #448 is fixed
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname) {

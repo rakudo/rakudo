@@ -2042,27 +2042,27 @@ proto sub minmax(|) is pure {*}
 multi sub minmax(+args, :&by!) { args.minmax(&by) }
 multi sub minmax(+args)        { args.minmax      }
 
-proto sub map(|) {*}
+proto sub map($, |) {*}
 multi sub map(&code, +values) { my $laze = values.is-lazy; values.map(&code).lazy-if($laze) }
 
-proto sub grep(|) {*}
+proto sub grep(Mu, |) {*}
 multi sub grep(Mu $test, +values, *%a) {
     my $laze = values.is-lazy;
     values.grep($test,|%a).lazy-if($laze)
 }
 multi sub grep(Bool:D $t, |) { X::Match::Bool.new(:type<grep>).throw }
 
-proto sub first(|) {*}
+proto sub first(Mu, |) {*}
 multi sub first(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<first>)) }
 multi sub first(Mu $test, +values, *%a) { values.first($test,|%a) }
 
-proto sub join(|) {*}
+proto sub join($?, |) {*}
 multi sub join($sep = '', *@values) { @values.join($sep) }
 
-proto sub reduce (|) {*}
+proto sub reduce ($, |) {*}
 multi sub reduce (&with, +list)  { list.reduce(&with) }
 
-proto sub produce (|) {*}
+proto sub produce ($, |) {*}
 multi sub produce (&with, +list)  { list.produce(&with) }
 
 proto sub unique(|) {*}

@@ -91,7 +91,7 @@ multi sub POSITIONS(
     pos-list
 }
 
-proto sub postcircumfix:<[ ]>(|) is nodal {*}
+proto sub postcircumfix:<[ ]>($, |) is nodal {*}
 
 multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is raw {
     die "Unable to call postcircumfix {try SELF.VAR.name}[ $type.gist() ] with a type object\n"

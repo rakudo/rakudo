@@ -424,17 +424,17 @@ multi sub prefix:<+^>(int $a) {
    nqp::bitneg_i($a);
 }
 
-proto sub chr($) is pure  {*}
+proto sub chr($, *%) is pure  {*}
 multi sub chr(Int:D  \x --> Str:D) { x.chr     }
 multi sub chr(Cool \x --> Str:D) { x.Int.chr }
 multi sub chr(int $x --> str) {
     nqp::chr($x);
 }
 
-proto sub is-prime(|) is pure {*}
+proto sub is-prime($, *%) is pure {*}
 multi sub is-prime(\x) { x.is-prime }
 
-proto sub expmod($, $, $) is pure  {*}
+proto sub expmod($, $, $, *%) is pure  {*}
 multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {
     nqp::expmod_I(nqp::decont(base), nqp::decont(exp), nqp::decont(mod), Int);
 }
@@ -442,10 +442,10 @@ multi sub expmod(\base, \exp, \mod) {
     nqp::expmod_I(nqp::decont(base.Int), nqp::decont(exp.Int), nqp::decont(mod.Int), Int);
 }
 
-proto sub lsb($) {*}
+proto sub lsb($, *%) {*}
 multi sub lsb(Int:D \i) { i.lsb }
 
-proto sub msb($) {*}
+proto sub msb($, *%) {*}
 multi sub msb(Int:D \i) { i.msb }
 
 # vim: ft=perl6 expandtab sw=4

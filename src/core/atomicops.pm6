@@ -1,24 +1,24 @@
 #== Atomics available on all backends ============================================
 
 #-- fetching a value atomically
-proto sub atomic-fetch($) {*}
+proto sub atomic-fetch($, *%) {*}
 multi sub atomic-fetch($source is rw) {
     nqp::atomicload($source)
 }
 
-proto sub prefix:<⚛>($) {*}
+proto sub prefix:<⚛>($, *%) {*}
 multi sub prefix:<⚛>($source is rw) {
     nqp::atomicload($source)
 }
 
 #-- assigning a value atomically
-proto sub atomic-assign($, $) {*}
+proto sub atomic-assign($, $, *%) {*}
 multi sub atomic-assign($target is rw, \value) {
     nqp::atomicstore($target, value)
 }
 
 #-- atomic compare and swap
-proto sub cas(|) {*}
+proto sub cas($, $, $?, *%) {*}
 multi sub cas($target is rw, \expected, \value) {
     nqp::cas($target, expected, value)
 }
@@ -57,7 +57,7 @@ multi sub atomic-assign(atomicint $target is rw, $value) {
     nqp::atomicstore_i($target, $value.Int)
 }
 
-proto sub infix:<⚛=>($, $) {*}
+proto sub infix:<⚛=>($, $, *%) {*}
 multi sub infix:<⚛=>($target is rw, \value) {
     nqp::atomicstore($target, value)
 }
@@ -72,51 +72,51 @@ multi sub infix:<⚛=>(atomicint $target is rw, $value) {
 }
 
 #-- atomically fetch native integer value and increment it
-proto sub atomic-fetch-inc(|) {*}
+proto sub atomic-fetch-inc($, *%) {*}
 multi sub atomic-fetch-inc(atomicint $target is rw --> atomicint) {
     nqp::atomicinc_i($target)
 }
 
-proto sub postfix:<⚛++>(|) {*}
+proto sub postfix:<⚛++>($, *%) {*}
 multi sub postfix:<⚛++>(atomicint $target is rw --> atomicint) {
     nqp::atomicinc_i($target)
 }
 
 #-- atomically increment native integer value and fetch it
-proto sub atomic-inc-fetch(|) {*}
+proto sub atomic-inc-fetch($, *%) {*}
 multi sub atomic-inc-fetch(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicinc_i($target) + 1
 }
 
-proto sub prefix:<++⚛>(|) {*}
+proto sub prefix:<++⚛>($, *%) {*}
 multi sub prefix:<++⚛>(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicinc_i($target) + 1
 }
 
 #-- atomically fetch native integer value and decrement it
-proto sub atomic-fetch-dec(|) {*}
+proto sub atomic-fetch-dec($, *%) {*}
 multi sub atomic-fetch-dec(atomicint $target is rw --> atomicint) {
     nqp::atomicdec_i($target)
 }
 
-proto sub postfix:<⚛-->(|) {*}
+proto sub postfix:<⚛-->($, *%) {*}
 multi sub postfix:<⚛-->(atomicint $target is rw --> atomicint) {
     nqp::atomicdec_i($target)
 }
 
 #-- atomically decrement native integer value and fetch it
-proto sub atomic-dec-fetch(|) {*}
+proto sub atomic-dec-fetch($, *%) {*}
 multi sub atomic-dec-fetch(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicdec_i($target) - 1
 }
 
-proto sub prefix:<--⚛>(|) {*}
+proto sub prefix:<--⚛>($, *%) {*}
 multi sub prefix:<--⚛>(atomicint $target is rw --> atomicint) {
     my atomicint $ = nqp::atomicdec_i($target) - 1
 }
 
 #-- atomically fetch native integer value and then add given value to it
-proto sub atomic-fetch-add($, $) {*}
+proto sub atomic-fetch-add($, $, *%) {*}
 multi sub atomic-fetch-add(atomicint $target is rw, int $add --> atomicint) {
     nqp::atomicadd_i($target, $add)
 }
@@ -128,7 +128,7 @@ multi sub atomic-fetch-add(atomicint $target is rw, $add --> atomicint) {
 }
 
 #-- atomically add given native integer value to value and return that
-proto sub atomic-add-fetch($, $) {*}
+proto sub atomic-add-fetch($, $, *%) {*}
 multi sub atomic-add-fetch(atomicint $target is rw, int $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add) + $add
 }
@@ -140,7 +140,7 @@ multi sub atomic-add-fetch(atomicint $target is rw, $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
 }
 
-proto sub infix:<⚛+=>($, $) {*}
+proto sub infix:<⚛+=>($, $, *%) {*}
 multi sub infix:<⚛+=>(atomicint $target is rw, int $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add) + $add
 }
@@ -153,7 +153,7 @@ multi sub infix:<⚛+=>(atomicint $target is rw, $add --> atomicint) {
 }
 
 #-- atomically fetch native integer value and then subtract given value from it
-proto sub atomic-fetch-sub($, $) {*}
+proto sub atomic-fetch-sub($, $, *%) {*}
 multi sub atomic-fetch-sub(atomicint $target is rw, int $add --> atomicint) {
     nqp::atomicadd_i($target, nqp::neg_i($add))
 }
@@ -165,7 +165,7 @@ multi sub atomic-fetch-sub(atomicint $target is rw, $add --> atomicint) {
 }
 
 #-- atomically subtract given native integer value from value and return that
-proto sub atomic-sub-fetch($, $) {*}
+proto sub atomic-sub-fetch($, $, *%) {*}
 multi sub atomic-sub-fetch(atomicint $target is rw, int $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
 }
@@ -177,7 +177,7 @@ multi sub atomic-sub-fetch(atomicint $target is rw, $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
 }
 
-proto sub infix:<⚛-=>($, $) {*}
+proto sub infix:<⚛-=>($, $, *%) {*}
 multi sub infix:<⚛-=>(atomicint $target is rw, int $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, nqp::neg_i($add)) - $add
 }
@@ -191,7 +191,7 @@ multi sub infix:<⚛-=>(atomicint $target is rw, $add --> atomicint) {
 my constant &infix:<⚛−=> := &infix:<⚛-=>;
 
 #-- provide full barrier semantics
-proto sub full-barrier(|) {*}
+proto sub full-barrier(*%) {*}
 multi sub full-barrier(--> Nil) {
     nqp::barrierfull()
 }

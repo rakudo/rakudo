@@ -19,7 +19,7 @@ my class X::Does::TypeObject is Exception {
     }
 }
 
-proto sub infix:<does>(|) {*}
+proto sub infix:<does>(Mu, |) {*}
 multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is raw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
@@ -62,7 +62,7 @@ multi sub infix:<cmp>(Rational:D \a, Rational:D \b) is default {
     a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
 }
 
-proto sub infix:<but>(|) is pure {*}
+proto sub infix:<but>(Mu, |) is pure {*}
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
                 rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
@@ -517,7 +517,7 @@ multi sub infix:<...>(|lol) {
     }
 }
 
-proto sub infix:<...^>(|) {*}
+proto sub infix:<...^>($, Mu, *%) {*}
 multi sub infix:<...^>(\a, Mu \b) { Seq.new(SEQUENCE(a, b, :exclude_end(1)).iterator) }
 
 proto sub infix:<…>(|) {*}
@@ -526,6 +526,7 @@ multi sub infix:<…>(|c) { infix:<...>(|c) }
 proto sub infix:<…^>(|) {*}
 multi sub infix:<…^>(|c) { infix:<...^>(|c) }
 
+proto sub undefine(Mu, *%) is raw {*}
 multi sub undefine(Mu \x) is raw { x = Nil }
 multi sub undefine(Array \x) is raw { x = Empty }
 multi sub undefine(Hash \x) is raw { x = Empty }
@@ -777,7 +778,7 @@ multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
     die "Routine given to looser does not appear to be an operator";
 }
 
-proto sub infix:<o> (&?, &?) {*}
+proto sub infix:<o> (&?, &?, *%) {*}
 multi sub infix:<o> () { -> \v { v } }
 multi sub infix:<o> (&f) { &f }
 multi sub infix:<o> (&f, &g --> Block:D) {

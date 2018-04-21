@@ -1,7 +1,7 @@
 use Test;
-plan :skip-all<Fudged>;
 plan +my @protos := all-the-protos;
 
+# https://github.com/rakudo/rakudo/issues/1739
 for @protos -> \p {
     my $name := p.name // '<Unknown name>';
     without p.dispatchees {
@@ -9,21 +9,54 @@ for @protos -> \p {
         next;
     }
 
+    # ensure that proto has a Mu param if candidates have 'em, otherwise,
+    # they're not going to fit through
+    my @mu-pos-proto;
+    my $mu-proto-capture-at = Inf;
+    for p.signature.params.grep({.positional or .capture}).kv -> \idx, \param {
+        $mu-proto-capture-at = idx if param.capture;
+        next unless param.type =:= Mu;
+        @mu-pos-proto[idx] = "at pos {idx}";
+    }
+    my @mu-pos-cand;
+    for p.candidates -> \candidate {
+        for candidate.signature.params.grep({.positional}).kv -> \idx, \param {
+            next if param.type !=:= Mu or idx ≥ $mu-proto-capture-at;
+            @mu-pos-cand[idx] = "at pos {idx}";
+        }
+    }
+
     my $count := p.dispatchees.map(*.count).max;
     my $arity := p.dispatchees.map(*.arity).min;
-    is-deeply {arity => p.arity, count => p.count}, {:$arity, :$count},
-        "`\&$name`'s proto's .count and .arity are good"
+    my $named-slurpy-or-capture
+    := so p.signature.params.grep: {.named and .slurpy or .capture};
+    is-deeply {
+        arity => p.arity, count => p.count, :$named-slurpy-or-capture,
+        :mu-pos(@mu-pos-proto),
+    }, { :$arity, :$count, :named-slurpy-or-capture, :mu-pos(@mu-pos-cand) },
+      "`\&$name`'s proto's .count and .arity are good"
     or diag qq:to/END/
+        GOT      == stuff of the proto
+        EXPECTED == stuff of the candidates
         FAILED for `\&$name`!
-          .arity must match the minimum .arity of the candidates ($arity)
-          .count must match the maximum .count of the candidates ($count)
-          proto's location: {p.file}:{p.line}
+          proto's .arity ({p.arity}) must match the minimum .arity of the candidates ($arity)
+          proto's .count ({p.count}) must match the maximum .count of the candidates ($count)
+          proto's signature must have slurpy named param or capture (it {
+              $named-slurpy-or-capture and 'does' or 'does not'})
+          proto's Mu pos args must match the candidates (they {
+              @mu-pos-proto eqv @mu-pos-cand and 'do' or 'do not'})
+          proto's location: {p.file.subst: /'SETTING::'/, ''}:{p.line}
+
         CANDIDATES ARE:
-        {
-            join "\n", p.candidates.sort(*.signature.gist).map: {
-                "{.signature.gist}, arity = {.arity}, count = {.count}"
-            }
-        }
+          {
+              join "\n", p.candidates.sort(*.signature.gist).map: {
+                  "{.signature.gist}, arity = {.arity}, count = {.count}"
+              }
+          }
+        PROTO's SIGNATURE IS:
+          {p.signature.gist}
+
+        # END atom highlights workaround
         END
 }
 
@@ -290,6 +323,7 @@ sub all-the-protos {
     &print,
     &printf,
     &produce,
+    &prompt,
     &push,
     &put,
     &rand,
@@ -360,6 +394,7 @@ sub all-the-protos {
     &truncate,
     &uc,
     &UNBASE,
+    &undefine,
     &unimatch,
     &uniname,
     &uninames,
@@ -376,6 +411,7 @@ sub all-the-protos {
     &unpolar,
     &unshift,
     &values,
+    &warn,
     &wordcase,
     &words,
 }

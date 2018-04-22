@@ -947,26 +947,26 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 }
 
 
-proto sub defined(Mu) is pure {*}
+proto sub defined(Mu, *%) is pure {*}
 multi sub defined(Mu \x) { x.defined }
 
-proto sub infix:<~~>(Mu \topic, Mu \matcher) {*}
+proto sub infix:<~~>(Mu, Mu, *%) {*}
 multi sub infix:<~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).Bool;
 }
 
-proto sub infix:<!~~>(Mu \topic, Mu \matcher) {*}
+proto sub infix:<!~~>(Mu, Mu, *%) {*}
 multi sub infix:<!~~>(Mu \topic, Mu \matcher) {
     matcher.ACCEPTS(topic).not;
 }
 
-proto sub infix:<=:=>(Mu $?, Mu $?) is pure {*}
+proto sub infix:<=:=>(Mu $?, Mu $?, *%) is pure {*}
 multi sub infix:<=:=>($?)      { Bool::True }
 multi sub infix:<=:=>(Mu \a, Mu \b) {
     nqp::p6bool(nqp::eqaddr(a, b));
 }
 
-proto sub infix:<eqv>(Any $?, Any $?) is pure {*}
+proto sub infix:<eqv>(Any $?, Any $?, *%) is pure {*}
 multi sub infix:<eqv>($?)            { Bool::True }
 
 # Last ditch snapshot semantics.  We shouldn't come here too often, so
@@ -1079,9 +1079,9 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
 }
 
 # These must collapse Junctions
-proto sub so(Mu $) {*}
+proto sub so(Mu, *%) {*}
 multi sub so(Mu $x)  { ?$x }
-proto sub not(Mu $) {*}
+proto sub not(Mu, *%) {*}
 multi sub not(Mu $x) { !$x }
 
 Metamodel::ClassHOW.exclude_parent(Mu);

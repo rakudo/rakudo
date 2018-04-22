@@ -1,5 +1,5 @@
 # all sub postcircumfix [;] candidates here please
-proto sub postcircumfix:<[; ]>(|) is nodal {*}
+proto sub postcircumfix:<[; ]>($, $, Mu $?, *%) is nodal {*}
 
 sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw {
     my int $next-dim = $dim + 1;

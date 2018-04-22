@@ -109,7 +109,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               ),
 
               nqp::if(
-                nqp::isconcrete($!future) 
+                nqp::isconcrete($!future)
                   && nqp::not_i(nqp::isconcrete($!current-iter)),
                 nqp::stmts(
                   nqp::while(
@@ -1585,13 +1585,13 @@ multi sub infix:<,>(|) {
     )
 }
 
-proto sub combinations(|) {*}
+proto sub combinations($, $?, *%) {*}
 multi sub combinations(Int()    \n, Int()   \k) { Seq.new(Rakudo::Iterator.Combinations(n,k,0)) }
 multi sub combinations(Int()    \n, Range:D \k)            { ^n .combinations: k  }
 multi sub combinations(Iterable \n,         \k) is default {  n .combinations: k  }
 multi sub combinations(\n                     )            { combinations n, 0..* }
 
-proto sub permutations(|) {*}
+proto sub permutations($, *%) {*}
 multi sub permutations(Int()    \n) { Seq.new(Rakudo::Iterator.Permutations(n,0)) }
 multi sub permutations(Iterable \n) { n.permutations }
 
@@ -1605,11 +1605,11 @@ multi sub cache(+@l) { @l }
 # things we flatten, which would be different semantics to .flat which gives
 # back a Seq. We also add an Iterable candidate, to preserve .is-lazy
 # of an Iterable whenever we can.
-proto flat(|) {*}
+proto sub flat(|) {*}
 multi flat(**@list is raw) { @list.flat }
 multi flat(Iterable \a)    {     a.flat }
 
-proto sub infix:<xx>(|) {*}
+proto sub infix:<xx>(Mu $?, $?, *%) {*}
 multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
 multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(&x, Num:D() $n) {
@@ -1659,11 +1659,11 @@ proto sub reverse(|)   {*}
 multi sub reverse(@a)  { @a.reverse }
 multi sub reverse(+@a) { @a.reverse }
 
-proto sub rotate(|) {*}
+proto sub rotate($, $?, *%) {*}
 multi sub rotate(@a)           { @a.rotate     }
 multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 
-proto sub prefix:<|>(|) {*}
+proto sub prefix:<|>($, *%) {*}
 multi sub prefix:<|>(\x) { x.Slip }
 
 sub CMP-SLOW(@a, @b) {

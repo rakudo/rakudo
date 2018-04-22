@@ -995,7 +995,9 @@ my class Binder {
         # If there's a single capture parameter, then we're OK. (Worth
         # handling especially as it's the common case for protos).
         if $num_params == 1 {
-            if nqp::getattr_i(@params[0], Parameter, '$!flags') +& $SIG_ELEM_IS_CAPTURE {
+            if nqp::getattr_i(@params[0], Parameter, '$!flags') +& $SIG_ELEM_IS_CAPTURE
+            && nqp::isnull(
+              nqp::getattr(@params[0], Parameter, '@!post_constraints')) {
                 return $TRIAL_BIND_OK;
             }
         }
@@ -1009,8 +1011,14 @@ my class Binder {
             ++$i;
 
             # If the parameter is anything other than a boring old
-            # positional parameter, we won't analyze it. */
+            # positional parameter, we won't analyze it and will bail out,
+            # unless it's a slurpy named param, in which case just ignore it
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            if $flags +& $SIG_ELEM_SLURPY_NAMED
+              && nqp::isnull(
+                nqp::getattr($param, Parameter, '@!post_constraints')) {
+                  next
+            }
             if $flags +& nqp::bitneg_i(
                     $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_RAW +|
                     $SIG_ELEM_IS_COPY +| $SIG_ELEM_ARRAY_SIGIL +|

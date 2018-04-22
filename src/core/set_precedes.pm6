@@ -4,7 +4,7 @@
 #   (>+)    succeeds (ASCII)
 #   ≽       succeeds
 
-proto sub infix:<<(<+)>>($, $ --> Bool:D) is pure {
+proto sub infix:<<(<+)>>($, $, *% --> Bool:D) is pure {
     DEPRECATED(
       "set operator {$*INSTEAD // "(<=)"}",
       "",
@@ -107,7 +107,7 @@ multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool:D) {
 }
 
 # U+227C PRECEDES OR EQUAL TO
-proto sub infix:<≼>(|) is pure {*}
+proto sub infix:<≼>($, $, *%) is pure {*}
 multi sub infix:<≼>($a, $b --> Bool:D) {
     my $*WHAT    = "≼";
     my $*INSTEAD = "⊆";
@@ -115,7 +115,7 @@ multi sub infix:<≼>($a, $b --> Bool:D) {
 }
 
 # $a (>+) $b === $a R(<+) $b
-proto sub infix:<<(>+)>>(|) is pure {*}
+proto sub infix:<<(>+)>>($, $, *%) is pure {*}
 multi sub infix:<<(>+)>>($a, $b --> Bool:D) {
     my $*WHAT    = "(>+)";
     my $*INSTEAD = "(>=)";
@@ -123,7 +123,7 @@ multi sub infix:<<(>+)>>($a, $b --> Bool:D) {
 }
 
 # U+227D SUCCEEDS OR EQUAL TO
-proto sub infix:<≽>(|) is pure {*}
+proto sub infix:<≽>($, $, *%) is pure {*}
 multi sub infix:<≽>($a, $b --> Bool:D) {
     my $*WHAT    = "≽";
     my $*INSTEAD = "⊇";

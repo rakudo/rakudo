@@ -643,18 +643,16 @@ multi sub HYPER(\op, \obj) {
     )
 }
 
-proto sub deepmap(|) {*}
-
+proto sub deepmap($, $, *%) {*}
 multi sub deepmap(\op, \obj) {
     Rakudo::Internals.coremap(op, obj, :deep)
 }
-
 multi sub deepmap(\op, Associative \h) {
     my @keys = h.keys;
     hash @keys Z deepmap(op, h{@keys})
 }
 
-proto sub nodemap(|) {*}
+proto sub nodemap($, $, *%) {*}
 multi sub nodemap(\op, \obj) {
     my Mu $rpa := nqp::create(IterationBuffer);
     my \objs := obj.list;
@@ -689,7 +687,7 @@ multi sub nodemap(\op, Associative \h) {
     hash @keys Z nodemap(op, h{@keys})
 }
 
-proto sub duckmap(|) {*}
+proto sub duckmap($, $, *%) {*}
 multi sub duckmap(\op, \obj) {
     Rakudo::Internals.coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj);
 }

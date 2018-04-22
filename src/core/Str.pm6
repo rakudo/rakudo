@@ -3031,17 +3031,17 @@ multi sub infix:«~<»(str $a, int $b) {
     X::NYI.new(feature => "infix:«~<»").throw;
 }
 
-proto sub trim(|) {*}
+proto sub trim($, *%) {*}
 multi sub trim(Cool:D $s --> Str:D) { $s.trim }
 
-proto sub trim-leading(|) {*}
+proto sub trim-leading($, *%) {*}
 multi sub trim-leading (Cool:D $s --> Str:D) { $s.trim-leading }
 
-proto sub trim-trailing(|) {*}
+proto sub trim-trailing($, *%) {*}
 multi sub trim-trailing(Cool:D $s --> Str:D) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-proto sub UNBASE (|) {*}
+proto sub UNBASE ($, $, *%) {*}
 multi sub UNBASE(Int:D $base, Any:D $num) {
     X::Numeric::Confused.new(:$num, :$base).throw;
 }
@@ -3083,8 +3083,8 @@ sub UNBASE_BRACKET($base, @a) {
     }
     $v;
 }
-proto sub infix:<unicmp>(|) is pure {*}
-proto sub infix:<coll>(|) {*}
+proto sub infix:<unicmp>($, $, *%) is pure {*}
+proto sub infix:<coll>($, $, *%) {*}
 #?if moar
 multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
     ORDER(
@@ -3116,15 +3116,15 @@ multi sub infix:<coll>(Str:D \a, Str:D \b)   { die "coll NYI on JVM" }
 proto sub chrs(|) {*}
 multi sub chrs(*@c --> Str:D) { @c.chrs }
 
-proto sub parse-base(|) {*}
+proto sub parse-base($, $, *%) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 
-proto sub substr(|) {*}
+proto sub substr($, $?, $?, *%) {*}
 multi sub substr(\what)                { what.substr             }
 multi sub substr(\what, \from)         { what.substr(from)       }
 multi sub substr(\what, \from, \chars) { what.substr(from,chars) }
 
-proto sub substr-rw(|) {*}
+proto sub substr-rw($, $?, $?, *%) {*}
 multi sub substr-rw(\what)                { what.substr-rw             }
 multi sub substr-rw(\what, \from)         { what.substr-rw(from)       }
 multi sub substr-rw(\what, \from, \chars) { what.substr-rw(from,chars) }
@@ -3138,7 +3138,7 @@ multi sub infix:<eqv>(Str:D \a, Str:D \b) {
     )
 }
 
-proto sub samemark(|) {*}
+proto sub samemark($, $, *%) {*}
 multi sub samemark($s, $pat) { $s.samemark($pat) }
 
 sub parse-names(Str:D \names) {
@@ -3146,7 +3146,7 @@ sub parse-names(Str:D \names) {
     names.uniparse
 }
 
-proto sub uniparse(|) {*}
+proto sub uniparse($, *%) {*}
 multi sub uniparse(Str:D \names) { names.uniparse }
 
 # vim: ft=perl6 expandtab sw=4

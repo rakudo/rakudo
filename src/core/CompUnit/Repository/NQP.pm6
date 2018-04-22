@@ -31,6 +31,10 @@ class CompUnit::Repository::NQP does CompUnit::Repository {
     method path-spec() {
         'nqp#'
     }
+
+    multi method gist(CompUnit::Repository::NQP:D:) {
+        self.path-spec
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

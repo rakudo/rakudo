@@ -134,9 +134,7 @@ For questions about MoarVM, you can join #moarvm on freenode.
 
 ## Reporting bugs
 
-Please see https://github.com/rakudo/rakudo/wiki/rt-introduction
-for more information about how and where to report issues with
-Rakudo, its components, and the Perl 6 language specification.
+See https://rakudo.org/bugs
 
 ## Submitting patches
 

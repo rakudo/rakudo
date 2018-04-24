@@ -83,10 +83,12 @@ download, build, and install a fresh NQP, run:
 
     $ perl Configure.pl --gen-nqp --backends=jvm
 
-If you get an out of memory error building rakudo on the JVM, you may
-need to modify your NQP runner to limit memory use. e.g. edit the
-nqp-j / nqp-j.bat executable (found wherever you installed to, or in the
+If you get a `java.lang.OutOfMemoryError: Java heap space` error building
+rakudo on the JVM, you may need to modify your NQP runner to limit memory
+use. e.g. edit the nqp-j / nqp-j.bat executable (found wherever you installed to, or in the
 `install/bin` directory) to include `-Xms500m -Xmx2g` as options passed to java.
+Alternatively, you can set `JAVA_OPTS` env var; e.g. 
+`export JAVA_OPTS="-Xmx51200000000"`
 
 Please be aware, that this will install NQP into your given --prefix
 before Configure.pl exits.

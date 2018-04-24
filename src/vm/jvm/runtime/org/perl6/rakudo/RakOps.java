@@ -95,6 +95,12 @@ public final class RakOps {
         return type;
     }
 
+    public static SixModelObject p6setassociativetype(SixModelObject type, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        gcx.Associative = type;
+        return type;
+    }
+
     public static SixModelObject p6setiterbuftype(SixModelObject type, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         gcx.IterationBuffer = type;

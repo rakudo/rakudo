@@ -32,14 +32,8 @@ my class IO::Path is Cool does IO {
     }
 
     proto method new(|) {*}
-    multi method new(IO::Path: Str $path, :$SPEC = $*SPEC, Str:D :$CWD) {
+    multi method new(IO::Path: Str(Cool) $path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
         self.bless(:$path, :$SPEC, :$CWD);
-    }
-    multi method new(IO::Path: Str $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        self.bless(:$path, :$SPEC, :CWD($CWD.Str));
-    }
-    multi method new(IO::Path: Cool $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        self.bless(:path($path.Str), :$SPEC, :CWD($CWD.Str));
     }
     multi method new(IO::Path:
       :$basename!,

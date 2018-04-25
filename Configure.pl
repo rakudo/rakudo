@@ -150,7 +150,7 @@ MAIN: {
 
     my $make = 'make';
     if ($^O eq 'solaris') {
-        if (-z `which gmaker`) {
+        if (-z `which gmake`) {
             die "gmake is required to compile rakudo. Please install by 'pkg install gnu-make'";
         }
         $make = 'gmake';

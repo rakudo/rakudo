@@ -334,21 +334,20 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
         my @ops;
         push_ilist(@ops, $sinkee_res);
 
-        # Check it's concrete and can sink.
+        # Check it's concrete try to find the sink method.
         my $sinkee_reg := $sinkee_res.result_reg;
-        my $itmp       := $*REGALLOC.fresh_i();
-        my $done_lbl   := MAST::Label.new();
+        my $itmp := $*REGALLOC.fresh_i();
+        my $meth := $*REGALLOC.fresh_o();
+        my $done_lbl := MAST::Label.new();
         nqp::push(@ops, MAST::Op.new( :op('isconcrete'), $itmp, $sinkee_reg ));
         nqp::push(@ops, MAST::Op.new( :op('unless_i'), $itmp, $done_lbl ));
-        nqp::push(@ops, MAST::Op.new( :op('can'), $itmp, $sinkee_reg,
+        nqp::push(@ops, MAST::Op.new( :op('tryfindmeth'), $meth, $sinkee_reg,
             MAST::SVal.new( :value('sink') )));
-        nqp::push(@ops, MAST::Op.new( :op('unless_i'), $itmp, $done_lbl ));
+        nqp::push(@ops, MAST::Op.new( :op('isnull'), $itmp, $meth ));
+        nqp::push(@ops, MAST::Op.new( :op('if_i'), $itmp, $done_lbl ));
         $*REGALLOC.release_register($itmp, $MVM_reg_int64);
 
         # Emit sink method call.
-        my $meth := $*REGALLOC.fresh_o();
-        nqp::push(@ops, MAST::Op.new( :op('findmeth'), $meth, $sinkee_reg,
-            MAST::SVal.new( :value('sink') )));
         nqp::push(@ops, MAST::Call.new(
             :target($meth), :flags([$Arg::obj]), $sinkee_reg
         ));

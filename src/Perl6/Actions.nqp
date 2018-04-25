@@ -2151,10 +2151,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past.push($require_past);
+        my $unwanted := $past.shallow_clone();
         $past.push($<module_name>
                    ?? self.make_indirect_lookup($longname.components())
                    !! $<file>.ast);
-        make $past;
+        make QAST::Want.new(
+            $past,
+            'v',
+            $unwanted
+        );
     }
 
     method statement_control:sym<given>($/) {

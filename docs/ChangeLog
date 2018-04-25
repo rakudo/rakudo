@@ -17,7 +17,7 @@ New in 2018.04:
     + Fixed error for .native-descriptor on closed handle [5d554ba3][c6c25159]
     + Fixed QAST::Block migration in `with` + loop-comprehended `for` [fc192212]
     + Fixed `infix:<->($n)` to not negate [edbbc442]
-    + Fixed crash in double-sink `for for ... { Package::foo }` [4402839a]
+    + Fixed crash in double-sink `for ... { Package::foo }` [4402839a]
     + Fixed thinko in CURR conditional [9bcc8e52]
     + Fixed crash with unknown column in RAKUDO_REPORT_COLUMNS [c015f08d]
     + Fixed substr to handle non-int arguments properly  [f0c85125]

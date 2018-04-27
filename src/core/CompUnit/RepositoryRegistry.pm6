@@ -99,8 +99,13 @@ class CompUnit::RepositoryRegistry {
                 nqp::mkdir($home, 0o700) unless nqp::stat($home, nqp::const::STAT_EXISTS);
 
                 if !nqp::stat($home, nqp::const::STAT_ISDIR) {
-                    $home = "$*TMPDIR/.perl6_{+$*USER}";
-                    nqp::mkdir($home, 0o700) unless nqp::stat($home, nqp::const::STAT_EXISTS);
+                    my $tmp = "$*TMPDIR/.perl6_{+$*USER}";
+                    nqp::mkdir($tmp, 0o700) unless nqp::stat($tmp, nqp::const::STAT_EXISTS);
+                    # tamper check (what about Windows?)
+                    if ( +$*USER == nqp::stat($tmp, nqp::const::STAT_UID)
+                        && 0o700 == nqp::stat($tmp, nqp::const::STAT_PLATFORM_MODE) +& 0o777) {
+                        $home = $tmp;
+                    }
                 }
             }
         }

@@ -90,7 +90,7 @@ our class Pointer                               is repr('CPointer') {
 
 # CArray class, used to represent C arrays.
 our class CArray is repr('CArray') is array_type(Pointer) {
-    method AT-POS(CArray:D: $pos) { die "CArray cannot be used without a type" }
+    method AT-POS(::?CLASS:D: $pos) { die "CArray cannot be used without a type" }
 
     my role IntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
@@ -110,6 +110,17 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
+        }
+
+        multi method allocate(::?CLASS:U \type: int $elems) {
+            my $arr := nqp::create(type);
+            nqp::bindpos_i($arr, $_, nqp::create(Int)) for ^$elems;
+            $arr;
+        }
+        multi method allocate(::?CLASS:U \type: Int:D $elems) {
+            my $arr := nqp::create(type);
+            nqp::bindpos_i($arr, $_, nqp::create(Int)) for ^$elems;
+            $arr;
         }
     }
 
@@ -131,6 +142,17 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
+        }
+
+        multi method allocate(::?CLASS:U \type: int $elems) {
+            my $arr := nqp::create(type);
+            nqp::bindpos_n($arr, $_, nqp::create(Num)) for ^$elems;
+            $arr;
+        }
+        multi method allocate(::?CLASS:U \type: Int:D $elems) {
+            my $arr := nqp::create(type);
+            nqp::bindpos_n($arr, $_, nqp::create(Num)) for ^$elems;
+            $arr;
         }
     }
 
@@ -160,6 +182,19 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));
+        }
+
+        multi method allocate(::?CLASS:U: int $elems) {
+            my $arr  := nqp::create(self);
+            my $type := ::?CLASS.^array_type;
+            nqp::bindpos($arr, $_, nqp::create($type)) for ^$elems;
+            $arr;
+        }
+        multi method allocate(::?CLASS:U: Int:D $elems) {
+            my $arr  := nqp::create(self);
+            my $type := ::?CLASS.^array_type;
+            nqp::bindpos($arr, $_, nqp::create($type)) for ^$elems;
+            $arr;
         }
     }
     method ^parameterize(Mu:U \arr, Mu:U \t) {

@@ -238,7 +238,7 @@ public final class Binder {
     private static final CallSiteDescriptor paramReadWriteThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
     private static int bindOneParam(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf, SixModelObject param,
-            Object origArg, byte origFlag, boolean noNomTypeCheck, Object[] error) {
+            Object origArg, byte origFlag, boolean noNomTypeCheck, boolean isSlurpyNamed, Object[] error) {
         /* Get parameter flags and variable name. */
         param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
         int paramFlags = (int)tc.native_i;
@@ -423,8 +423,10 @@ public final class Binder {
                 }
 
                 /* If not, do the check. If the wanted nominal type is Mu, then
-                 * anything goes. */
-                if (nomType != gcx.Mu && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {
+                 * anything goes.
+                 * When binding a slurpy named hash while compiling the setting don't check for Associative.
+                 */
+                if (nomType != gcx.Mu && !(isSlurpyNamed && nomType == gcx.Associative) && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
 
@@ -874,7 +876,7 @@ public final class Binder {
                     capSnap.bind_attribute_boxed(tc, capType, "%!hash", HINT_CAPTURE_hash, namedArgs);
 
                     bindFail = bindOneParam(tc, gcx, cf, param, capSnap, CallSiteDescriptor.ARG_OBJ,
-                        noNomTypeCheck, error);
+                        noNomTypeCheck, false, error);
                 }
                 if (bindFail != 0) {
                     return bindFail;
@@ -900,7 +902,7 @@ public final class Binder {
                 bindee.bind_attribute_boxed(tc, gcx.Map, "$!storage",
                     HINT_ENUMMAP_storage, slurpy);
                 bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
-                    noNomTypeCheck, error);
+                    noNomTypeCheck, true, error);
                 if (bindFail != 0)
                     return bindFail;
 
@@ -943,7 +945,7 @@ public final class Binder {
                     SixModelObject bindee = Ops.result_o(tc.curFrame);
 
                     bindFail = bindOneParam(tc, gcx, cf, param, bindee, CallSiteDescriptor.ARG_OBJ,
-                        noNomTypeCheck, error);
+                        noNomTypeCheck, false, error);
                     if (bindFail != 0)
                         return bindFail;
                 }
@@ -954,7 +956,7 @@ public final class Binder {
                     if (curPosArg < numPosArgs) {
                         /* Easy - just bind that. */
                         bindFail = bindOneParam(tc, gcx, cf, param, args[curPosArg],
-                            csd.argFlags[curPosArg], noNomTypeCheck, error);
+                            csd.argFlags[curPosArg], noNomTypeCheck, false, error);
                         if (bindFail != 0)
                             return bindFail;
                         curPosArg++;
@@ -966,7 +968,7 @@ public final class Binder {
                         if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
                             bindFail = bindOneParam(tc, gcx, cf, param,
                                 handleOptional(tc, gcx, flags, param, cf),
-                                CallSiteDescriptor.ARG_OBJ, false, error);
+                                CallSiteDescriptor.ARG_OBJ, false, false, error);
                             if (bindFail != 0)
                                 return bindFail;
                         }
@@ -1000,7 +1002,7 @@ public final class Binder {
                     if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
                         bindFail = bindOneParam(tc, gcx, cf, param,
                             handleOptional(tc, gcx, flags, param, cf),
-                            CallSiteDescriptor.ARG_OBJ, false, error);
+                            CallSiteDescriptor.ARG_OBJ, false, false, error);
                     }
                     else if (!suppressArityFail) {
                         if (error != null) {
@@ -1014,7 +1016,7 @@ public final class Binder {
                 }
                 else {
                     bindFail = bindOneParam(tc, gcx, cf, param, args[lookup >> 3],
-                        (byte)(lookup & 7), noNomTypeCheck, error);
+                        (byte)(lookup & 7), noNomTypeCheck, false, error);
                 }
 
                 /* If we got a binding failure, return it. */

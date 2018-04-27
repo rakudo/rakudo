@@ -209,7 +209,7 @@ multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-proto sub sleep(|) {*}
+proto sub sleep($?, *%) {*}
 multi sub sleep(--> Nil) { sleep(*) }
 multi sub sleep($seconds --> Nil) {
     # 1e9 seconds is a large enough value that still makes VMs sleep
@@ -228,7 +228,7 @@ multi sub sleep($seconds --> Nil) {
     }
 }
 
-proto sub sleep-timer(|) {*}
+proto sub sleep-timer($?, *%) {*}
 multi sub sleep-timer(--> Duration:D) { sleep-timer(*) }
 multi sub sleep-timer($seconds --> Duration:D) {
     my $time1 = now;
@@ -236,7 +236,7 @@ multi sub sleep-timer($seconds --> Duration:D) {
     Duration.new( ( $seconds - (now - $time1) ) max 0 )
 }
 
-proto sub sleep-until(|) {*}
+proto sub sleep-until($, *%) {*}
 multi sub sleep-until(Instant() $until --> Bool:D) {
     my $seconds = $until - now;
     return False if $seconds < 0;

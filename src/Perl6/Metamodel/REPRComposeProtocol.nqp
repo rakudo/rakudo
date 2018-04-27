@@ -49,6 +49,9 @@ role Perl6::Metamodel::REPRComposeProtocol {
                         if nqp::can($attr, 'inlined') {
                             %attr_info<inlined> := $attr.inlined;
                         }
+                        if nqp::can($attr, 'dimensions') {
+                            %attr_info<dimensions> := $attr.dimensions;
+                        }
                         nqp::push(@attrs, %attr_info);
                     }
 

@@ -2151,10 +2151,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past.push($require_past);
+        my $unwanted := $past.shallow_clone();
         $past.push($<module_name>
                    ?? self.make_indirect_lookup($longname.components())
                    !! $<file>.ast);
-        make $past;
+        make QAST::Want.new(
+            $past,
+            'v',
+            $unwanted
+        );
     }
 
     method statement_control:sym<given>($/) {
@@ -3199,6 +3204,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::objprimspec($attr.type) != 0 {
             $/.worry('Useless use of HAS scope on ' ~ $attr.type.HOW.name($attr.type) ~ ' typed attribute.');
         }
+
+        if $attr.type.REPR eq 'CArray' {
+            if $<scoped><DECL><declarator><variable_declarator><semilist> -> $semilist {
+                my @dimensions := nqp::list_i();
+                for $semilist -> $dimension {
+                    my $elems := nqp::unbox_i($*W.compile_time_evaluate($/, $dimension.ast, :mark-wanted));
+                    nqp::push_i(@dimensions, $elems);
+                }
+                nqp::bindattr($attr, $attr.WHAT, '$!dimensions', @dimensions);
+            }
+        }
+
         # Mark $attr as inlined, that's why we do all this.
         nqp::bindattr_i($attr, $attr.WHAT, '$!inlined', 1);
         make $scoped;
@@ -9039,9 +9056,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     # we need not wrap it in a read-only scalar.
                     my $wrap := $flags +& $SIG_ELEM_IS_COPY;
                     unless $wrap {
-                        $wrap := nqp::isnull($coerce_to)
-                            ?? nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype)
-                            !! nqp::istype($coerce_to, $Iterable) || nqp::istype($Iterable, $coerce_to);
+                        if nqp::isnull($coerce_to) {
+                            $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);
+                        }
+                        else {
+                            my $coerce_nom := $coerce_to.HOW.archetypes.nominalizable
+                                ?? $coerce_to.HOW.nominalize($coerce_to)
+                                !! $coerce_to;
+                            $wrap := nqp::istype($coerce_nom, $Iterable) || nqp::istype($Iterable, $coerce_nom);
+                        }
                     }
                     if $wrap {
                         $var.push(QAST::Op.new(

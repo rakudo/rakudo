@@ -96,7 +96,7 @@ my class IO::Socket::Async {
                         $lock.protect: {
                             unless $finished {
                                 if err {
-                                    quit(err);
+                                    quit(X::AdHoc.new(payload => err));
                                     $finished = 1;
                                 }
                                 elsif nqp::isconcrete(data) {

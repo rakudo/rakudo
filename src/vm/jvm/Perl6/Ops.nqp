@@ -91,6 +91,7 @@ $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
 $ops.add_hll_op('perl6', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.add_hll_op('nqp', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.map_classlib_hll_op('perl6', 'p6setitertype', $TYPE_P6OPS, 'p6setitertype', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('perl6', 'p6setassociativetype', $TYPE_P6OPS, 'p6setassociativetype', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6setiterbuftype', $TYPE_P6OPS, 'p6setiterbuftype', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);

@@ -6,7 +6,7 @@
 #   ⊃     is a proper superset of
 #   ⊅     is NOT a proper superset of
 
-proto sub infix:<<(<)>>($, $ --> Bool:D) is pure {*}
+proto sub infix:<<(<)>>($, $, *% --> Bool:D) is pure {*}
 multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     nqp::if(
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
@@ -115,18 +115,18 @@ multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
 my constant &infix:<⊂> := &infix:<<(<)>>;
 
 # U+2284 NOT A SUBSET OF
-proto sub infix:<⊄>(|) is pure {*}
+proto sub infix:<⊄>($, $, *%) is pure {*}
 multi sub infix:<⊄>($a, $b --> Bool:D) { not $a (<) $b }
 
-proto sub infix:<<(>)>>(|) is pure {*}
-multi sub infix:<<(>)>>(Any $a, Any $b --> Bool:D) { $b (<) $a }
+proto sub infix:<<(>)>>($, $, *%) is pure {*}
+multi sub infix:<<(>)>>($a, $b --> Bool:D) { $b (<) $a }
 
 # U+2283 SUPERSET OF
-proto sub infix:<⊃>(|) is pure {*}
+proto sub infix:<⊃>($, $, *%) is pure {*}
 multi sub infix:<⊃>($a, $b --> Bool:D) { $b (<) $a }
 
 # U+2285 NOT A SUPERSET OF
-proto sub infix:<⊅>(|) is pure {*}
+proto sub infix:<⊅>($, $, *%) is pure {*}
 multi sub infix:<⊅>($a, $b --> Bool:D) { not $b (<) $a }
 
 # vim: ft=perl6 expandtab sw=4

@@ -46,6 +46,10 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
     method path-spec() {
         'ap#'
     }
+
+    multi method gist(CompUnit::Repository::AbsolutePath:D:) {
+        self.path-spec
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

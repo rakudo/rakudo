@@ -47,3 +47,7 @@ PROCESS::<%ENV> := Rakudo::Internals.createENV(0);
 PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
 
 # vim: ft=perl6 expandtab sw=4
+
+#?if jvm
+BEGIN {nqp::p6setassociativetype(Associative);}
+#?endif

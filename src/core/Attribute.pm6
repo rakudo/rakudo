@@ -9,6 +9,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has Mu $!build_closure;
     #     has Mu $!package;
     #     has int $!inlined;
+    #     has Mu $!dimensions;
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
     #     has Mu $!why;
@@ -145,6 +146,7 @@ my class Attribute { # declared in BOOTSTRAP
     method readonly() { !self.rw }
     method package() { $!package }
     method inlined() { $!inlined }
+    method dimensions() { $!dimensions } # turn list_i into List
     multi method Str(Attribute:D:) { self.name }
     multi method gist(Attribute:D:) { self.type.^name ~ " " ~ self.name }
 

@@ -112,17 +112,27 @@ sub check-name (Int:D $code, Str:D $name, Str:D $file-name) {
         }
         elsif ends-with($expected, ', First>') {
             $expected = nqp::substr($expected, 0, nqp::chars($expected) - nqp::chars(", First>")) ~ ">";
-             %firsts{$expected} = $code;
+            %firsts{$expected} = $code;
         }
         elsif ends-with($expected, ', Last>') {
             $expected = nqp::substr($expected, 0, nqp::chars($expected) - nqp::chars(", Last>")) ~ ">";
             die "\%firsts{$expected} does not exist" unless %firsts{$expected};
-            for %firsts{$expected}..$code -> $curr-code {
+            my $ex = $expected;
+            if nqp::eqat($expected, "<CJK Ideograph", 0) {
+                $expected = "CJK UNIFIED IDEOGRAPH";
+            }
+            elsif nqp::eqat($expected, "<Tangut", 0) {
+                $expected = "TANGUT IDEOGRAPH";
+            }
+            for %firsts{$ex}..$code -> $curr-code {
                 $uniname = nqp::getuniname($curr-code);
                 my str $this-expected = get-hex-name($expected, $curr-code);
+                #say "before $expected after $this-expected";
                 nqp::iseq_s($uniname, $this-expected)
                     ?? correct("", $curr-code, "NAME", $file-name)
-                    !! wrong("", $curr-code, "NAME", $file-name);
+                    !! do { wrong("", $curr-code, "NAME", $file-name); 
+                    say "before $expected after $this-expected";
+                }
             }
 
         }
@@ -141,7 +151,9 @@ sub check-name (Int:D $code, Str:D $name, Str:D $file-name) {
     }
 }
 sub get-hex-name ($name is copy, $code is raw) {
-    $name = nqp::substr($name, 0, nqp::chars($name) - 1) if nqp::eqat($name, '>', nqp::chars($name) - 1);
+    my $has-brack = nqp::eqat($name, '>', nqp::chars($name) - 1);
+    $name = nqp::substr($name, 0, nqp::chars($name) - 1)
+        if $has-brack;
     my str $base = nqp::base_I(nqp::decont($code), 16);
     my int $diff = nqp::sub_i(4, nqp::chars($base));
     if nqp::islt_i(0, $diff) {
@@ -151,7 +163,7 @@ sub get-hex-name ($name is copy, $code is raw) {
         nqp::concat(
             nqp::concat($name, '-'),
         $base),
-    '>');
+    $has-brack ?? '>' !! '');
 
 }
 sub correct ($value, $code, $uniprop, $file-name) {

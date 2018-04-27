@@ -37,9 +37,9 @@ my class Slip { # is List
 }
 
 # The slip(...) function creates a Slip.
-proto slip(|)     {*}
-multi slip()      { Empty }
-multi slip(@args) { @args.Slip }
-multi slip(+args) { args.Slip }
+proto sub slip(|)     {*}
+multi sub slip()      { Empty }
+multi sub slip(@args) { @args.Slip }
+multi sub slip(+args) { args.Slip }
 
 # vim: ft=perl6 expandtab sw=4

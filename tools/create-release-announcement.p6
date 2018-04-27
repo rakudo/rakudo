@@ -18,12 +18,12 @@ pragma. Our goal is to ensure that anything that is tested as part of the
 6.c specification will continue to work unchanged. There may be incremental
 spec releases this year as well.
 
-The tarball for this release is available from <http://rakudo.org/downloads/rakudo/>.
+The tarball for this release is available from <https://rakudo.org/files/rakudo>.
 
 Please note: This announcement is not for the Rakudo Star
 distribution[^2] — it’s announcing a new release of the compiler
 only. For the latest Rakudo Star release, see
-<http://rakudo.org/downloads/star/>.
+<https://rakudo.org/files/star>.
 
 The changes in this release are outlined below:
 
@@ -35,7 +35,7 @@ The following people contributed to this release:
 «contributors»
 
 If you would like to contribute or find out more information, visit
-<http://perl6.org>, <http://rakudo.org/how-to-help>, ask on the
+<https://perl6.org>, <https://rakudo.org/how-to-help>, ask on the
 <perl6-compiler@perl.org> mailing list, or ask on IRC #perl6 on freenode.
 
 Additionally, we invite you to make a donation to The Perl Foundation

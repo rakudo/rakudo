@@ -235,7 +235,7 @@ multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
     $proc
 }
 
-proto sub shell(|) {*}
+proto sub shell($, *%) {*}
 multi sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {

@@ -664,7 +664,7 @@ constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
 
-proto sub pack(|) {*}
+proto sub pack($, |) {*}
 multi sub pack(Str $template, *@items) {
     nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
         feature => "the 'pack' function",
@@ -879,7 +879,7 @@ multi sub infix:<ge> (Blob:D \a, Blob:D \b) {
     nqp::p6bool(nqp::isne_i(a.COMPARE(b),-1))
 }
 
-proto sub subbuf-rw(|) {*}
+proto sub subbuf-rw($, $?, $?, *%) {*}
 multi sub subbuf-rw(Buf:D \b) is rw {
     b.subbuf-rw(0, b.elems);
 }

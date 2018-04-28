@@ -570,7 +570,7 @@ multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right
     my @result;
     X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.is-lazy;
     my int $elems = left.elems;
-    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1), :recursing(callframe(3).code.name eq 'HYPER')).throw
+    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1), :recursing(callframe(2).code.name eq 'HYPER')).throw
         unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
     my \lefti := left.iterator;
     my int $i = 0;

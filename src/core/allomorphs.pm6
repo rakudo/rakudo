@@ -308,6 +308,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
         my int $p;
 
         my sub parse-int-frac-exp() {
+            my $start-pos = $pos - nqp::istrue($neg);
             # Integer part, if any
             my Int $int := 0;
             if nqp::isne_i($ch, 46) {  # '.'
@@ -367,21 +368,9 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                     if nqp::iseq_i($p, -1);
                 $pos    = $p;
 
-                my $power := nqp::pow_I(10,
-                  nqp::abs_I(nqp::atpos($parse, 0), Int), Num, Int);
-
-                if $frac {
-                    $int := nqp::add_I(
-                      nqp::mul_I($int, $base, Int), $frac, Int);
-                }
-                else {
-                    $base := 1;
-                }
-                return (nqp::islt_I(nqp::atpos($parse, 0), 0)
-                  ?? nqp::div_In($int, nqp::mul_I($base, $power, Int))
-                  !! nqp::div_In(nqp::mul_I($int, $power, Int), $base)
-                ) # if we have a zero, handle the sign correctly
-                || nqp::if(nqp::iseq_i($neg, 1), -0e0, 0e0);
+                # now that we're satisfied the number is in valid-ish format, use nqp's numifier
+                # to extract the actual num from the string.
+                return nqp::numify(nqp::unbox_s(nqp::substr($str, $start-pos, $pos - $start-pos)));
             }
 
             # Multiplier with exponent, if single '*' is present

@@ -35,7 +35,7 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
     my Str:D $call = %prop-data{$uniprop} orelse die "Property type is not set. Please set to 'str', 'int', or 'name'";
     my int $propcode = $call eq 'name' ?? 0 !! nqp::unipropcode($uniprop);
     for $file.lines.grep({ nqp::isne_s($_, '') && !nqp::eqat($_, '#', 0) }) -> $line {
-        my str @array = $line.split([';', "#"]);
+        my str @array = $uniprop eq 'NAME' ?? nqp::split(';', $line) !! $line.split([';', "#"]);
         my str $range = @array[0].trim;
         my str $value = @array[$answer-column].trim;
         my str @ranges = nqp::split("..", $range);
@@ -124,15 +124,19 @@ sub check-name (Int:D $code, Str:D $name, Str:D $file-name) {
             elsif nqp::eqat($expected, "<Tangut", 0) {
                 $expected = "TANGUT IDEOGRAPH";
             }
+            elsif $expected.ends-with('Private Use>') {
+                $expected = '<private-use>';
+            }
+            elsif $expected.ends-with('Surrogate>') {
+                $expected = '<surrogate>';
+            }
             for %firsts{$ex}..$code -> $curr-code {
                 $uniname = nqp::getuniname($curr-code);
                 my str $this-expected = get-hex-name($expected, $curr-code);
                 #say "before $expected after $this-expected";
                 nqp::iseq_s($uniname, $this-expected)
                     ?? correct("", $curr-code, "NAME", $file-name)
-                    !! do { wrong("", $curr-code, "NAME", $file-name); 
-                    say "before $expected after $this-expected";
-                }
+                    !! wrong("", $curr-code, "NAME", $file-name);
             }
 
         }

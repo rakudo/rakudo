@@ -2294,7 +2294,7 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     method message {
             my $multi = $!signature ~~ /\n/ // '';
             "Calling {$!objname}({ join(', ', @!arguments) }) will never work with " ~ (
-                $!protoguilt ?? 'proto signature ' !!
+                $!protoguilt ?? 'signature of the proto ' !!
                 $multi       ?? 'any of these multi signatures:' !!
                                 'declared signature '
             ) ~ $!signature;

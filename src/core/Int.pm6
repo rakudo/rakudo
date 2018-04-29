@@ -146,12 +146,23 @@ my class Int does Real { # declared in BOOTSTRAP
     multi method round(Int:D: Real(Cool) $scale) { (self / $scale + 1/2).floor * $scale }
 
     method lsb(Int:D:) {
-        return Nil if self == 0;
-        my $lsb = 0;
-        my $x = self.abs;
-        while $x +& 0xff == 0 { $lsb += 8; $x +>= 8; }
-        while $x +& 0x01 == 0 { ++$lsb; $x +>= 1; }
-        $lsb;
+        nqp::unless(
+          self, # short-circuit `0`, as it doesn't have any bits set…
+          Nil,  # … and the algo we'll use requires at least one that is.
+          nqp::stmts(
+            (my int $lsb),
+            (my $x := nqp::abs_I(self, Int)),
+            nqp::while( # "fast-forward": shift off by whole all-zero-bit bytes
+              nqp::isfalse(nqp::bitand_I($x, 0xFF, Int)),
+              nqp::stmts(
+                ($lsb += 8),
+                ($x := nqp::bitshiftr_I($x, 8, Int)))),
+            nqp::while( # our lsb is in the current byte; shift off zero bits
+              nqp::isfalse(nqp::bitand_I($x, 0x01, Int)),
+              nqp::stmts(
+                ++$lsb,
+                ($x := nqp::bitshiftr_I($x, 1, Int)))),
+            $lsb)) # we shifted enough to get to the first set bit
     }
 
     method msb(Int:D:) {

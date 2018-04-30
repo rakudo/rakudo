@@ -5,6 +5,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     has DeT $.denominator = 1;
 
     multi method WHICH(Rational:D:) {
+        self.REDUCE-ME;
         nqp::box_s(
           nqp::concat(
             nqp::if(

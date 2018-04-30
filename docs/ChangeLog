@@ -1,3 +1,8 @@
+New in 2018.04.1:
+  + Fixes:
+    + Fixed hang in parsing of nums with huge exponents [4e38bc1f]
+    + Fixed denormals and precision issues in num parser [cc93bc9a]
+
 New in 2018.04:
   + Fixes:
     + Fixed bug mapping windows1252/windows1251 without a dash [c9c5f341]

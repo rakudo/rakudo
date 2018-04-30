@@ -128,10 +128,14 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
         line       => $?LINE,
         type       => 'is',
         subtype    => $subtype,
-        declaring  => ' ' ~ lc( $r.^name ),
-        highexpect => ('rw raw hidden-from-backtrace hidden-from-USAGE',
-                       'pure default DEPRECATED inlinable nodal',
-                       'prec equiv tighter looser assoc leading_docs trailing_docs' ),
+        declaring  => ' ' ~ $r.^name.split('+').head.lc,
+        highexpect => (
+            'rw raw hidden-from-backtrace hidden-from-USAGE pure default',
+            'DEPRECATED inlinable nodal prec equiv tighter looser assoc',
+            'leading_docs trailing_docs',
+            ('',"or did you forget to 'use NativeCall'?"
+              if $subtype eq 'native').Slip
+          ),
         ).throw;
 }
 multi sub trait_mod:<is>(Routine:D $r, :$rw!) {

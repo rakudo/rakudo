@@ -171,7 +171,11 @@ my class X::Method::NotFound is Exception {
         }
 
         if nqp::can($!invocant.HOW, 'methods') {
-            for $!invocant.^methods(:all)>>.name -> $method_name {
+            my @invocant_methods = $!invocant.^methods(:local)>>.name;
+            for $!invocant.^methods(:all) -> $method_candidate {
+                my $method_name = $method_candidate.name;
+                # GH#1758 do not suggest a submethod from a parent
+                next if $method_candidate.^name eq 'Submethod' && !@invocant_methods.first($method_name, :k).defined;
                 my $dist = StrDistance.new(:before($.method), :after($method_name));
                 if $dist <= $max_length {
                     %suggestions{$method_name} = $dist;

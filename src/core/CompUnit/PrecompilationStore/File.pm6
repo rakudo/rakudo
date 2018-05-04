@@ -191,6 +191,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     {
         unless $!prefix.e {
             $!prefix.mkdir or return;
+            try $!prefix.child('CACHEDIR.TAG').spurt:
+                "Signature: 8a477f597d28d172789f06886806bc55\n" ~
+                "# This file is a cache directory tag created by rakudo.\n" ~
+                "# For information about cache directory tags, see:\n" ~
+                "#       http://www.brynosaurus.com/cachedir/\n";
         }
         return unless $!prefix.w;
         self!lock();

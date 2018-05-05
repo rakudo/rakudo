@@ -9100,7 +9100,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $var-qast := QAST::Var.new: :$name, :scope<local>;
                     my $wval     := QAST::WVal.new: :value($_);
                     my $what     := nqp::what($_);
-                    my $isCode   := nqp::istype($_,
+                    my $isCode   := nqp::defined($_) && nqp::istype($_,
                         $*W.find_symbol: ['Code'], :setting-only);
                     my $param    := QAST::ParamTypeCheck.new(
                         nqp::eqaddr($what, $wInt)

@@ -99,7 +99,7 @@ my class Signature { # declared in BOOTSTRAP
         if self.params.Array -> @params {
             if @params[0].invocant {
                 my $invocant = @params.shift.perl(:$elide-type);
-                $invocant .= substr(0,*-2) if $invocant.ends-with(' $');
+                $invocant .= chop(2) if $invocant.ends-with(' $');
                 $text ~= "$invocant: ";
             }
             $text ~= ';; '

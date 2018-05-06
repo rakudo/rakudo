@@ -114,7 +114,7 @@ role Perl6::Metamodel::BUILDPLAN {
 
         # Add vivify instructions.
         for @attrs { # iterate over the array to get a consistent order
-            if %attrs_untouched{$_.name} {
+            if nqp::existskey(%attrs_untouched, $_.name) {
                 nqp::push(@plan,[10, $obj, $_.name]);
             }
         }

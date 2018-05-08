@@ -103,17 +103,17 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
         if $fract {
             my $precision = $!denominator < 100_000
-                ?? 6 !! $!denominator.Str.chars + 1;
+                ?? 5 !! $!denominator.Str.chars;
 
             my $fract-result = '';
-            while $fract and $fract-result.chars < $precision - 1 {
+            while $fract and $fract-result.chars < $precision {
                 $fract *= 100;
                 my $f   = $fract.floor;
                 $fract -= $f;
                 $fract-result ~= $f < 10 ?? "0$f" !!
                                  (!$fract and $f %% 10) ?? ($f / 10).floor !! $f;
             }
-            if $fract and $fract-result.chars < $precision {
+            if $fract and $fract-result.chars < $precision + 1 {
                 $fract *= 10;
                 given $fract.floor {
                     $fract-result ~= $_;

@@ -3384,4 +3384,26 @@ my class array does Iterable {
     }
 }
 
+multi sub postcircumfix:<[ ]>(array \SELF, Range:D \range ) is raw {
+    nqp::if(
+      nqp::getattr_i((my $range := nqp::decont(range)),Range,'$!is-int')
+      && nqp::islt_i(
+           (my int $max = nqp::sub_i(
+             nqp::getattr($range,Range,'$!max'),
+             nqp::getattr_i($range,Range,'$!excludes-max')
+           )),
+           nqp::elems(SELF)
+         )
+      && nqp::isge_i(
+           (my int $min = nqp::add_i(
+             nqp::getattr($range,Range,'$!min'),
+             nqp::getattr_i($range,Range,'$!excludes-min')
+           )),
+           0
+         ),
+      nqp::slice(SELF,$min,$max),
+      POSITIONS(SELF, range).map({ SELF[$_] }).eager.list
+    ) 
+}   
+
 # vim: ft=perl6 expandtab sw=4

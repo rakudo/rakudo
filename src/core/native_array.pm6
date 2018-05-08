@@ -3384,7 +3384,7 @@ my class array does Iterable {
     }
 }
 
-multi sub postcircumfix:<[ ]>(array \SELF, Range:D \range ) is raw {
+multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
     nqp::if(
       nqp::getattr_i((my $range := nqp::decont(range)),Range,'$!is-int')
       && nqp::islt_i(

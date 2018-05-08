@@ -41,6 +41,9 @@ MAST::ExtOpRegistry.register_extop('p6capturelexwhere',
 MAST::ExtOpRegistry.register_extop('p6stateinit',
     $MVM_operand_int64 +| $MVM_operand_write_reg,
     $MVM_operand_str   +| $MVM_operand_read_reg);
+MAST::ExtOpRegistry.register_extop('p6stateinitbulk',
+    $MVM_operand_int64 +| $MVM_operand_write_reg,
+    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6setfirstflag',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -175,7 +178,8 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
 
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6stateinit', 'p6stateinit');
+$ops.add_hll_moarop_mapping('perl6', 'p6stateinit',     'p6stateinit');
+$ops.add_hll_moarop_mapping('perl6', 'p6stateinitbulk', 'p6stateinitbulk');
 $ops.add_hll_moarop_mapping('perl6', 'p6setpre', 'p6setpre');
 $ops.add_hll_moarop_mapping('perl6', 'p6clearpre', 'p6clearpre');
 $ops.add_hll_moarop_mapping('perl6', 'p6setfirstflag', 'p6setfirstflag');

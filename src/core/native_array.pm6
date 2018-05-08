@@ -3362,13 +3362,13 @@ my class array does Iterable {
     method sink(--> Nil) { }
 
     multi method gist(array:D:) {
-        self.map(-> $elem {
+        '[' ~ self.map(-> $elem {
             given ++$ {
                 when 101 { '...' }
                 when 102 { last }
                 default  { $elem.gist }
             }
-        } ).join: ' ';
+        } ).join(' ') ~ ']';
     }
 
     multi method perl(array:D:) {

@@ -3403,7 +3403,7 @@ multi sub postcircumfix:<[ ]>(array \SELF, Range:D \range ) is raw {
          ),
       nqp::slice(SELF,$min,$max),
       POSITIONS(SELF, range).map({ SELF[$_] }).eager.list
-    ) 
-}   
+    )
+}
 
 # vim: ft=perl6 expandtab sw=4

@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-04-09T21:06:48+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-05-09T13:59:54+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -248,22 +248,30 @@ my class array does Iterable {
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(strarray:D: Int:D $offset) {
-            nqp::unless(
-              nqp::istype(
-                (my $slice :=
-                  CLONE_SLICE(self,$offset,nqp::sub_i(nqp::elems(self),$offset))
-                ),
-                Failure
-              ),
-              nqp::splice(
-                self,
-                $empty_s,
-                $offset,
-                nqp::sub_i(nqp::elems(self),$offset)
+        multi method splice(strarray:D: Int:D \offset) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_s,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
               )
-            );
-            $slice
+            )
         }
         multi method splice(strarray:D: Int:D $offset, Int:D $size) {
             nqp::unless(
@@ -546,7 +554,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-04-09T21:06:48+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-05-09T13:59:54+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -737,22 +745,30 @@ my class array does Iterable {
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(intarray:D: Int:D $offset) {
-            nqp::unless(
-              nqp::istype(
-                (my $slice :=
-                  CLONE_SLICE(self,$offset,nqp::sub_i(nqp::elems(self),$offset))
-                ),
-                Failure
-              ),
-              nqp::splice(
-                self,
-                $empty_i,
-                $offset,
-                nqp::sub_i(nqp::elems(self),$offset)
+        multi method splice(intarray:D: Int:D \offset) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_i,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
               )
-            );
-            $slice
+            )
         }
         multi method splice(intarray:D: Int:D $offset, Int:D $size) {
             nqp::unless(
@@ -1060,7 +1076,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-04-09T21:06:48+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-05-09T13:59:54+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1251,22 +1267,30 @@ my class array does Iterable {
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(numarray:D: Int:D $offset) {
-            nqp::unless(
-              nqp::istype(
-                (my $slice :=
-                  CLONE_SLICE(self,$offset,nqp::sub_i(nqp::elems(self),$offset))
-                ),
-                Failure
-              ),
-              nqp::splice(
-                self,
-                $empty_n,
-                $offset,
-                nqp::sub_i(nqp::elems(self),$offset)
+        multi method splice(numarray:D: Int:D \offset) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_n,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
               )
-            );
-            $slice
+            )
         }
         multi method splice(numarray:D: Int:D $offset, Int:D $size) {
             nqp::unless(

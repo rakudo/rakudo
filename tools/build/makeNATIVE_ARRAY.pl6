@@ -235,22 +235,30 @@ for $*IN.lines -> $line {
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(#type#array:D: Int:D $offset) {
-            nqp::unless(
-              nqp::istype(
-                (my $slice :=
-                  CLONE_SLICE(self,$offset,nqp::sub_i(nqp::elems(self),$offset))
-                ),
-                Failure
-              ),
-              nqp::splice(
-                self,
-                $empty_#postfix#,
-                $offset,
-                nqp::sub_i(nqp::elems(self),$offset)
+        multi method splice(#type#array:D: Int:D \offset) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_#postfix#,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
               )
-            );
-            $slice
+            )
         }
         multi method splice(#type#array:D: Int:D $offset, Int:D $size) {
             nqp::unless(

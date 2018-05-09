@@ -189,37 +189,6 @@ for $*IN.lines -> $line {
         }
 
         my $empty_#postfix# := nqp::list_#postfix#;
-        sub CLONE_SLICE(\array, int $offset, int $size) {
-            nqp::if(
-              nqp::islt_i($offset,0)
-                || nqp::isgt_i($offset,(my int $elems = nqp::elems(array))),
-              Failure.new(X::OutOfRange.new(
-                :what('Offset argument to splice'),
-                :got($offset),
-                :range("0..{nqp::elems(array)}")
-              )),
-              nqp::if(
-                nqp::islt_i($size,0),
-                Failure.new(X::OutOfRange.new(
-                  :what('Size argument to splice'),
-                  :got($size),
-                  :range("0..^{$elems - $offset}")
-                )),
-                nqp::if(
-                  nqp::iseq_i($offset,$elems) || nqp::iseq_i($size,0),
-                  nqp::create(array),
-                  nqp::if(
-                    nqp::isge_i(
-                      (my int $end = nqp::sub_i(nqp::add_i($offset,$size),1)),
-                      $elems
-                    ),
-                    nqp::slice(array,$offset,-1),
-                    nqp::slice(array,$offset,$end)
-                  )
-                )
-              )
-            )
-        }
 
         multi method splice(#type#array:D:) {
             my $splice := nqp::clone(self);

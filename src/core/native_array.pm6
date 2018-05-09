@@ -57,7 +57,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-05-09T13:59:54+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-05-09T14:22:47+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -202,7 +202,7 @@ my class array does Iterable {
         }
 
         my $empty_s := nqp::list_s;
-        sub CLONE_SLICE(\array, int $offset, int $size --> strarray:D) {
+        sub CLONE_SLICE(\array, int $offset, int $size) {
             nqp::if(
               nqp::islt_i($offset,0)
                 || nqp::isgt_i($offset,(my int $elems = nqp::elems(array))),
@@ -219,25 +219,16 @@ my class array does Iterable {
                   :range("0..^{$elems - $offset}")
                 )),
                 nqp::if(
-                  $size,
-                  nqp::stmts(
-                    ($elems = nqp::sub_i($elems,$offset)),
-                    nqp::if(
-                      nqp::isgt_i($elems,$size),
-                      ($elems = $size)
+                  nqp::iseq_i($offset,$elems) || nqp::iseq_i($size,0),
+                  nqp::create(array),
+                  nqp::if(
+                    nqp::isge_i(
+                      (my int $end = nqp::sub_i(nqp::add_i($offset,$size),1)),
+                      $elems
                     ),
-                    (my $slice := nqp::setelems(nqp::create(array),$elems)),
-                    (my int $o = $offset - 1),
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::bindpos_s($slice,$i,
-                        nqp::atpos_s(array,($o = nqp::add_i($o,1)))
-                      )
-                    ),
-                    $slice
-                  ),
-                  nqp::create(array)
+                    nqp::slice(array,$offset,-1),
+                    nqp::slice(array,$offset,$end)
+                  )
                 )
               )
             )
@@ -554,7 +545,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-05-09T13:59:54+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-05-09T14:22:47+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -699,7 +690,7 @@ my class array does Iterable {
         }
 
         my $empty_i := nqp::list_i;
-        sub CLONE_SLICE(\array, int $offset, int $size --> intarray:D) {
+        sub CLONE_SLICE(\array, int $offset, int $size) {
             nqp::if(
               nqp::islt_i($offset,0)
                 || nqp::isgt_i($offset,(my int $elems = nqp::elems(array))),
@@ -716,25 +707,16 @@ my class array does Iterable {
                   :range("0..^{$elems - $offset}")
                 )),
                 nqp::if(
-                  $size,
-                  nqp::stmts(
-                    ($elems = nqp::sub_i($elems,$offset)),
-                    nqp::if(
-                      nqp::isgt_i($elems,$size),
-                      ($elems = $size)
+                  nqp::iseq_i($offset,$elems) || nqp::iseq_i($size,0),
+                  nqp::create(array),
+                  nqp::if(
+                    nqp::isge_i(
+                      (my int $end = nqp::sub_i(nqp::add_i($offset,$size),1)),
+                      $elems
                     ),
-                    (my $slice := nqp::setelems(nqp::create(array),$elems)),
-                    (my int $o = $offset - 1),
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::bindpos_i($slice,$i,
-                        nqp::atpos_i(array,($o = nqp::add_i($o,1)))
-                      )
-                    ),
-                    $slice
-                  ),
-                  nqp::create(array)
+                    nqp::slice(array,$offset,-1),
+                    nqp::slice(array,$offset,$end)
+                  )
                 )
               )
             )
@@ -1076,7 +1058,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-05-09T13:59:54+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-05-09T14:22:47+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1221,7 +1203,7 @@ my class array does Iterable {
         }
 
         my $empty_n := nqp::list_n;
-        sub CLONE_SLICE(\array, int $offset, int $size --> numarray:D) {
+        sub CLONE_SLICE(\array, int $offset, int $size) {
             nqp::if(
               nqp::islt_i($offset,0)
                 || nqp::isgt_i($offset,(my int $elems = nqp::elems(array))),
@@ -1238,25 +1220,16 @@ my class array does Iterable {
                   :range("0..^{$elems - $offset}")
                 )),
                 nqp::if(
-                  $size,
-                  nqp::stmts(
-                    ($elems = nqp::sub_i($elems,$offset)),
-                    nqp::if(
-                      nqp::isgt_i($elems,$size),
-                      ($elems = $size)
+                  nqp::iseq_i($offset,$elems) || nqp::iseq_i($size,0),
+                  nqp::create(array),
+                  nqp::if(
+                    nqp::isge_i(
+                      (my int $end = nqp::sub_i(nqp::add_i($offset,$size),1)),
+                      $elems
                     ),
-                    (my $slice := nqp::setelems(nqp::create(array),$elems)),
-                    (my int $o = $offset - 1),
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::bindpos_n($slice,$i,
-                        nqp::atpos_n(array,($o = nqp::add_i($o,1)))
-                      )
-                    ),
-                    $slice
-                  ),
-                  nqp::create(array)
+                    nqp::slice(array,$offset,-1),
+                    nqp::slice(array,$offset,$end)
+                  )
                 )
               )
             )

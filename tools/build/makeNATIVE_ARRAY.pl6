@@ -189,7 +189,7 @@ for $*IN.lines -> $line {
         }
 
         my $empty_#postfix# := nqp::list_#postfix#;
-        sub CLONE_SLICE(\array, int $offset, int $size --> #type#array:D) {
+        sub CLONE_SLICE(\array, int $offset, int $size) {
             nqp::if(
               nqp::islt_i($offset,0)
                 || nqp::isgt_i($offset,(my int $elems = nqp::elems(array))),
@@ -206,25 +206,16 @@ for $*IN.lines -> $line {
                   :range("0..^{$elems - $offset}")
                 )),
                 nqp::if(
-                  $size,
-                  nqp::stmts(
-                    ($elems = nqp::sub_i($elems,$offset)),
-                    nqp::if(
-                      nqp::isgt_i($elems,$size),
-                      ($elems = $size)
+                  nqp::iseq_i($offset,$elems) || nqp::iseq_i($size,0),
+                  nqp::create(array),
+                  nqp::if(
+                    nqp::isge_i(
+                      (my int $end = nqp::sub_i(nqp::add_i($offset,$size),1)),
+                      $elems
                     ),
-                    (my $slice := nqp::setelems(nqp::create(array),$elems)),
-                    (my int $o = $offset - 1),
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::bindpos_#postfix#($slice,$i,
-                        nqp::atpos_#postfix#(array,($o = nqp::add_i($o,1)))
-                      )
-                    ),
-                    $slice
-                  ),
-                  nqp::create(array)
+                    nqp::slice(array,$offset,-1),
+                    nqp::slice(array,$offset,$end)
+                  )
                 )
               )
             )

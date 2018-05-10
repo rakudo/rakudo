@@ -228,7 +228,8 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_STR }, null);
     private static final CallSiteDescriptor bindParamThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ,
-            CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ
+            CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ,
+            CallSiteDescriptor.ARG_INT
         }, null);
     private static final CallSiteDescriptor bindConcreteThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_STR,
@@ -431,13 +432,12 @@ public final class Binder {
                 if (nomType != gcx.Mu && !(isSlurpyNamed && nomType == gcx.Associative) && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
-
                         SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
                         if (thrower != null) {
                             error[0] = thrower;
                             error[1] = bindParamThrower;
                             error[2] = new Object[] { decontValue, nomType.st.WHAT,
-                                varName, param };
+                                varName, param, (long)0 };
                         }
                         else {
                             error[0] = String.format(
@@ -691,11 +691,22 @@ public final class Binder {
                             ACCEPTS_o, new Object[] { consType, arg_o });
                         break;
                 }
-                long result = Ops.istrue(
-                    Ops.result_o(tc.curFrame), tc);
-                if (result == 0) {
-                    if (error != null)
-                        error[0] = "Constraint type check failed for parameter '" + varName + "'";
+                if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 0) {
+                    /* Constraint type check failed; produce error if needed. */
+                    if (error != null) {
+                        SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
+                        if (thrower != null) {
+                            error[0] = thrower;
+                            error[1] = bindParamThrower;
+                            error[2] = new Object[] { (SixModelObject)origArg,
+                                consType.st.WHAT, varName, param, (long)1 };
+                        }
+                        else {
+                            error[0] = String.format(
+                                "Constraint type check failed for parameter '%s'",
+                                varName);
+                        }
+                    }
                     return BIND_RESULT_FAIL;
                 }
             }

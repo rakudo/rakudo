@@ -90,6 +90,28 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         nqp::if($!denominator == 1,$!numerator.is-prime)
     }
 
+    multi method Str(::?CLASS:D:) {
+        my $whole  = self.abs.floor;
+        my $fract  = self.abs - $whole;
+
+        # fight floating point noise issues RT#126016
+        if $fract.Num == 1e0 { ++$whole; $fract = 0 }
+
+        my $result = nqp::if(
+            nqp::islt_I($!numerator, 0), '-', ''
+        ) ~ $whole;
+
+        if $fract {
+            my $c   =  $!denominator < 10000 ?? 6 !! $!denominator.chars + 1;
+            $fract *= 10 ** $c;
+            my $f   = $fract.round(1);
+            my $fc  = $f.chars;
+            $f div= 10 while $f %% 10;
+            $result ~= '.' ~ '0' x ($c - $fc) ~ $f;
+        }
+        $result
+    }
+
     method base($base, Any $digits? is copy) {
         # XXX TODO: this $base check can be delegated to Int.base once Num/0 gives Inf/NaN,
         # instead of throwing (which happens in the .log() call before we reach Int.base

@@ -671,7 +671,7 @@ public final class Binder {
                 /* Check we meet the constraint. */
                 SixModelObject consType = postConstraints.at_pos_boxed(tc, i);
                 SixModelObject acceptsMeth = Ops.findmethod(consType, "ACCEPTS", tc);
-                if (Ops.istype(consType, gcx.Code, tc) != 0)
+                if (Ops.isconcrete(consType, tc) == 1 && Ops.istype(consType, gcx.Code, tc) != 0)
                     RakOps.p6capturelex(consType, tc);
                 switch (flag) {
                     case CallSiteDescriptor.ARG_INT:

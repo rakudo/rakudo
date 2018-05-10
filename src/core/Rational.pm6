@@ -94,35 +94,38 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         my $whole  = self.abs.floor;
         my $fract  = self.abs - $whole;
 
+        my $reduce = False;
         # fight floating point noise issues RT#126016
-        if $fract.Num == 1e0 { ++$whole; $fract = 0 }
+        if $fract.Num == 1e0 {
+            if nqp::unbox_s(self.^name) eq 'Rat' {
+                $whole += 1;
+                $fract = 0
+            }
+            $reduce = True
+        }
 
         my $result = nqp::if(
             nqp::islt_I($!numerator, 0), '-', ''
         ) ~ $whole;
 
         if $fract {
-            my $precision = $!denominator < 100_000
-                ?? 5 !! $!denominator.Str.chars;
-
-            my $fract-result = '';
-            while $fract and $fract-result.chars < $precision {
-                $fract *= 100;
-                my $f   = $fract.floor;
-                $fract -= $f;
-                $fract-result ~= $f < 10 ?? "0$f" !!
-                                 (!$fract and $f %% 10) ?? ($f / 10).floor !! $f;
+            my $c;
+            if $!denominator < 100000 {
+                $c = 6;
+                $fract *= 1000000;
+            } else {
+                $c = $!denominator.chars + 1;
+                $fract *= nqp::pow_I(10, nqp::decont($c), Num, Int);
             }
-            if $fract and $fract-result.chars < $precision + 1 {
-                $fract *= 10;
-                given $fract.floor {
-                    $fract-result ~= $_;
-                    $fract        -= $_;
-                }
+            my $f  = $fract.round;
+            my $fc = $f.chars;
+            # maintain precision (trailing zeros) of large denominator FatRats.
+            # There are situations where the extra zeros are significant, they
+            # can be easily removed in userspace but not easily restored
+            if ($c < 8) || (nqp::unbox_s(self.^name) eq 'Rat') || $reduce {
+                $f div= 10 while $f %% 10
             }
-            ++$fract-result if 2*$fract >= 1; # round off fractional result
-
-            $result ~= '.' ~ $fract-result;
+            $result ~= '.' ~ '0' x ($c - $fc) ~ $f;
         }
         $result
     }

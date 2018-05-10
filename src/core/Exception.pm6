@@ -914,8 +914,8 @@ my class X::OutOfRange is Exception {
     has $.comment;
     method message() {
         my $result = $.comment.defined
-           ?? "$.what out of range. Is: $.got, should be in $.range.gist(); $.comment"
-           !! "$.what out of range. Is: $.got, should be in $.range.gist()";
+           ?? "$.what out of range. Is: $.got.gist(), should be in $.range.gist(); $.comment"
+           !! "$.what out of range. Is: $.got.gist(), should be in $.range.gist()";
         $result;
     }
 }

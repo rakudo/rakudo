@@ -377,6 +377,8 @@ public final class Binder {
         SixModelObject decontValue = null;
         boolean didHLLTransform = false;
         SixModelObject nomType = null;
+        SixModelObject ContextRef = null;
+        SixModelObject HOW = null;
         if (flag == CallSiteDescriptor.ARG_OBJ && !(is_rw && desiredNative != 0)) {
             /* We need to work on the decontainerized value. */
             decontValue = Ops.decont(arg_o, tc);
@@ -395,10 +397,10 @@ public final class Binder {
                 nomType = param.get_attribute_boxed(tc, gcx.Parameter,
                     "$!nominal_type", HINT_nominal_type);
                 if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
-                    SixModelObject HOW = nomType.st.HOW;
+                    HOW = nomType.st.HOW;
                     SixModelObject ig = Ops.findmethod(HOW,
                         "instantiate_generic", tc);
-                    SixModelObject ContextRef = tc.gc.ContextRef;
+                    ContextRef = tc.gc.ContextRef;
                     SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
                     ((ContextRefInstance)cc).context = cf;
                     Ops.invokeDirect(tc, ig, genIns,
@@ -513,10 +515,29 @@ public final class Binder {
                 return BIND_RESULT_FAIL;
             }
 
+            /* Is the coercion target generic and in need of instantiation?
+             * (This can happen in (::T, T) where we didn't learn about the
+             * type until during the signature bind.) */
+            param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
+            String methName = tc.native_s;
+            HOW = coerceType.st.HOW;
+            SixModelObject archetypesMeth = Ops.findmethod(HOW, "archetypes", tc);
+            Ops.invokeDirect(tc, archetypesMeth, Ops.invocantCallSite, new Object[] { HOW });
+            SixModelObject Archetypes = Ops.result_o(tc.curFrame);
+            SixModelObject genericMeth = Ops.findmethod(Archetypes, "generic", tc);
+            Ops.invokeDirect(tc, genericMeth, Ops.invocantCallSite, new Object[] { Archetypes });
+            if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 1) {
+                ContextRef = tc.gc.ContextRef;
+                SixModelObject ctcc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
+                ((ContextRefInstance)ctcc).context = cf;
+                SixModelObject ctig = Ops.findmethod(HOW, "instantiate_generic", tc);
+                Ops.invokeDirect(tc, ctig, genIns, new Object[] { HOW, coerceType, ctcc });
+                coerceType = Ops.result_o(tc.curFrame);
+                methName = Ops.typeName(coerceType, tc);
+            }
+
             /* Only coerce if we don't already have the correct type. */
             if (Ops.istype(decontValue, coerceType, tc) == 0) {
-                param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
-                String methName = tc.native_s;
                 SixModelObject coerceMeth = Ops.findmethodNonFatal(decontValue, methName, tc);
                 if (coerceMeth != null) {
                     Ops.invokeDirect(tc, coerceMeth,

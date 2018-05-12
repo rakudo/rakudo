@@ -1,19 +1,10 @@
 # API to obtain the data of any addressable content
-role Distribution { ... }
-
 role Distribution {
     # `meta` provides an API to the meta data in META6 spec (s22)
     #   -   A Distribution may be represented internally by some other
     #       spec (such as using the file system itself for prereqs), as
     #       long as it can also be represented as the META6 hash format
-    method meta(--> Hash:D) {
-        # Cannot just use ... here as that would break legacy code
-        my $class-name = ::?CLASS.^name;
-
-        die $class-name eq 'Distribution'
-            ?? 'Legacy Distribution object used in code expecting an object consuming the Distribution role'
-            !! "Method 'meta' must be implemented by $class-name because it is required by role Distribution"
-    }
+    method meta(--> Hash) { ... }
 
     # `content($content-id)` provides an API to the data itself
     #   -   Use `.meta` to determine the $address of a specific $content-id
@@ -22,57 +13,8 @@ role Distribution {
     #       a socket wants to handle this role currently it would have to wrap `open` or `.slurp-rest`
     #       to handle any protocol negotiation as well as probably saving the data to a tmpfile and
     #       return an IO::Handle to that
-    method content($content-id --> IO::Handle:D) {
-        # Cannot just use ... here as that would break legacy code
-        my $class-name = ::?CLASS.^name;
 
-        die $class-name eq 'Distribution'
-            ?? 'Legacy Distribution object used in code expecting an object consuming the Distribution role'
-            !! "Method 'content' must be implemented by $class-name because it is required by role Distribution"
-    }
-
-    # Backwards compatibility shim
-    submethod new(*%_) {
-        ::?CLASS.^name eq 'Distribution'
-            ?? class :: {
-                has $.name;
-                has $.auth;
-                has $.author;
-                has $.authority;
-                has $.api;
-                has $.ver;
-                has $.version;
-                has $.description;
-                has @.depends;
-                has %.provides;
-                has %.files;
-                has $.source-url;
-                method auth { $!auth // $!author // $!authority }
-                method ver  { $!ver // $!version }
-                method meta(--> Hash:D) {
-                    {
-                        :$!name,
-                        :$.auth,
-                        :$.ver,
-                        :$.api,
-                        :$!description,
-                        :@!depends,
-                        :%!provides,
-                        :%!files,
-                        :$!source-url,
-                    }
-                }
-                method Str() {
-                    return "{$.meta<name>}"
-                    ~ ":ver<{$.meta<ver>   // ''}>"
-                    ~ ":auth<{$.meta<auth> // ''}>"
-                    ~ ":api<{$.meta<api>   // ''}>";
-
-                }
-                method content($content-id --> IO::Handle:D) { }
-            }.new(|%_)
-            !! self.bless(|%_)
-    }
+    method content($content-id --> IO::Handle) { ... }
 }
 
 role Distribution::Locally does Distribution {

@@ -274,6 +274,7 @@ my class Symbols {
         if +%sym {
             return %!SETTING_CACHE{$symbol} := self.force_value(%sym, $symbol, 1);
         }
+        nqp::die("Optimizer couldn't find $symbol in SETTING.");
     }
 }
 
@@ -1350,6 +1351,24 @@ class Perl6::Optimizer {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_takedispatcher($op);
         }
 
+        # Make array variable initialization cheaper
+        elsif
+            $!level > 0
+            && $optype eq 'callmethod'
+            && $op.name eq 'STORE'
+            && nqp::elems($op.list()) == 3
+            && nqp::istype($op[0], QAST::Var)
+            && nqp::substr($op[0].name, 0, 1) eq '@'
+            && nqp::istype($op[1], QAST::Op)
+            && ($op[1].op eq 'call' || $op[1].op eq 'callstatic')
+            && $op[1].name eq '&infix:<,>'
+            && $!symbols.is_from_core($op[1].name)
+            && nqp::istype($op[2], QAST::WVal)
+            && nqp::istype($op[2], QAST::SpecialArg)
+        {
+            self.optimize_array_variable_initialization($op);
+        }
+
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' {
@@ -1445,6 +1464,72 @@ class Perl6::Optimizer {
             elsif $rettype_ps && $rettype_ps == nqp::objprimspec($op[0].returns) {
                 return $op[0];
             }
+        }
+    }
+
+    method optimize_array_variable_initialization($op) {
+        my $Positional := $!symbols.find_in_setting('Positional');
+        if $op[0].returns =:= $Positional {
+            $op.op('bind');
+
+            my $comma_op := $op[1];
+            $comma_op.op('p6bindattrinvres');
+            $comma_op.name(NQPMu);
+
+            my $List            := $!symbols.find_in_setting('List');
+            my $Array           := $!symbols.find_in_setting('Array');
+            my $Reifier         := $!symbols.find_in_setting('List').WHO<Reifier>;
+            my $IterationBuffer := $!symbols.find_in_setting('IterationBuffer');
+
+            my $array := $Array.new;
+            $*W.add_object($array);
+            my $reifier := nqp::create($Reifier);
+            $*W.add_object($reifier);
+
+            my $list := QAST::Op.new(:op<list>);
+            $list.set_children(@($comma_op));
+            $comma_op.set_children([
+                QAST::Op.new(
+                    :op<p6bindattrinvres>,
+                    QAST::WVal.new(:value($array)),
+                    QAST::WVal.new(:value($List)),
+                    QAST::SVal.new(:value('$!reified')),
+                    QAST::Op.new(:op<create>, QAST::WVal.new(:value($IterationBuffer))),
+                ),
+                QAST::WVal.new(:value($List)),
+                QAST::SVal.new(:value('$!todo')),
+                QAST::Op.new(
+                    :op<p6bindattrinvres>,
+                    QAST::Op.new(
+                        :op<p6bindattrinvres>,
+                        QAST::Op.new(
+                            :op<p6bindattrinvres>,
+                            QAST::WVal.new(:value($reifier)),
+                            QAST::WVal.new(:value($Reifier)),
+                            QAST::SVal.new(:value('$!reified')),
+                            QAST::Op.new(
+                                :op<getattr>,
+                                QAST::WVal.new(:value($array)),
+                                QAST::WVal.new(:value($List)),
+                                QAST::SVal.new(:value('$!reified')),
+                            )
+                        ),
+                        QAST::WVal.new(:value($Reifier)),
+                        QAST::SVal.new(:value('$!reification-target')),
+                        QAST::Op.new(
+                            :op<callmethod>,
+                            :name('reification-target'),
+                            QAST::WVal.new(:value($array)),
+                        )
+                    ),
+                    QAST::WVal.new(:value($Reifier)),
+                    QAST::SVal.new(:value('$!future')),
+                    $list,
+                ),
+            ]);
+            $op.pop; # remove the :initialize argument of the STORE call
+
+            return $op;
         }
     }
 

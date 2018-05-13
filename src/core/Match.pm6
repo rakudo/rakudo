@@ -796,30 +796,28 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::getlexdyn('$?REGEX')(self)
     }
 
-    sub MAKE_REGEX($arg, int $i, int $m, int $monkey, $context) {
-        my role CachedCompiledRegex {
-            has $.regex;
-        }
-        if nqp::istype($arg,Regex) {
-            $arg
-        }
-        elsif nqp::istype($arg, CachedCompiledRegex) {
-            $arg.regex
-        }
-        else {
-            my $*RESTRICTED = "Prohibited regex interpolation"
-             unless $monkey;  # Comes from when regex was originally compiled.
+    my role CachedCompiledRegex {
+        has $.regex;
+    }
+    multi sub MAKE_REGEX(Regex \arg, $, $, int \monkey, $) {
+        arg
+    }
+    multi sub MAKE_REGEX(CachedCompiledRegex \arg, $, $, int \monkey, $) {
+        arg.regex
+    }
+    multi sub MAKE_REGEX(\arg, \i, \m, int \monkey, \context) {
+        my $*RESTRICTED = "Prohibited regex interpolation"
+         unless monkey;  # Comes from when regex was originally compiled.
 
-            my $rx := $i
-              ?? $m
-                ?? EVAL("anon regex \{ :i :m $arg\}", :$context)
-                !! EVAL("anon regex \{ :i $arg\}",    :$context)
-              !! $m
-                ?? EVAL("anon regex \{ :m $arg\}",    :$context)
-                !! EVAL("anon regex \{ $arg\}",       :$context);
-            $arg does CachedCompiledRegex($rx);
-            $rx
-        }
+        my \rx = EVAL('anon regex { ' ~ nqp::if(i,
+          nqp::if(m,
+            ':i :m ',
+            ':i '),
+          nqp::if(m,
+            ':m ',
+            ' ')) ~ arg ~ '}', :context(context));
+        arg does CachedCompiledRegex(rx);
+        rx
     }
 
     submethod BUILD(

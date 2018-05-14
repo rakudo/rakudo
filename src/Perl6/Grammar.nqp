@@ -2034,12 +2034,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('$@')>
     }
 
-    token special_variable:sym<$#> {
-        <sym> [<identifier>]?
-        {}
-        <.obsvar('$#', $<identifier> && ~$<identifier>)>
-    }
-
     token special_variable:sym<$$> {
         <sym> \W
         <.obsvar('$$')>
@@ -2048,11 +2042,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token special_variable:sym<$&> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('$&')>
-    }
-
-    token special_variable:sym<$*> {
-        <sym> <?before \h* '='>
-        <.obsvar('$*')>
     }
 
     token special_variable:sym<@+> {

@@ -1545,7 +1545,6 @@ my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
     my %m =
-      '$*'  => '^^ and $$',
       '$"'  => '.join() method',
       '$$'  => '$*PID',
       '$('  => '$*GID',
@@ -1563,7 +1562,6 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$|'  => ':autoflush on open',
       '$?'  => '$! for handling child errors also',
       '$@'  => '$!',
-      '$#'  => '.fmt',
       '$['  => 'user-defined array indices',
       '$]'  => '$*PERL.version or $*PERL.compiler.version',
 

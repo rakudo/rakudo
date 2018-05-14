@@ -1583,16 +1583,6 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^W' => '$*WARNING',
       '$^X' => '$*EXECUTABLE-NAME',
 
-      '$:'  => 'Form module',
-      '$-'  => 'Form module',
-      '$+'  => 'Form module',
-      '$='  => 'Form module',
-      '$%'  => 'Form module',
-      '$^'  => 'Form module',
-      '$~'  => 'Form module',
-      '$^A' => 'Form module',
-      '$^L' => 'Form module',
-
       '@-'  => '.from method',
       '@+'  => '.to method',
 

@@ -2024,11 +2024,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('%!')>
     }
 
-    token special_variable:sym<$~> {
-        <sym> <?before \h* '='>
-        <.obsvar('$~')>
-    }
-
     token special_variable:sym<$`> {
         <sym>  <?before \s | ',' | <.terminator> >
         <.obsvar('$`')>
@@ -2049,17 +2044,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym> \W
         <.obsvar('$$')>
     }
-    token special_variable:sym<$%> {
-        <sym> <?before \h* '='>
-        <.obsvar('$%')>
-    }
-
-    # TODO: $^X and other "caret" variables
-
-    token special_variable:sym<$^> {
-        <sym> <?before \h* '='>
-        <.obsvar('$^')>
-    }
 
     token special_variable:sym<$&> {
         <sym> <?before \s | ',' | <.terminator> >
@@ -2069,11 +2053,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token special_variable:sym<$*> {
         <sym> <?before \h* '='>
         <.obsvar('$*')>
-    }
-
-    token special_variable:sym<$=> {
-        <sym> <?before \h+ '='>
-        <.obsvar('$=')>
     }
 
     token special_variable:sym<@+> {
@@ -2139,11 +2118,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token special_variable:sym<$|> {
         <sym> <?before \h* '='>
         <.obsvar('$|')>
-    }
-
-    token special_variable:sym<$:> {
-        <sym> <?before \h* '='>
-        <.obsvar('$:')>
     }
 
     token special_variable:sym<$;> {

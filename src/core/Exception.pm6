@@ -1562,7 +1562,6 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$|'  => ':autoflush on open',
       '$?'  => '$! for handling child errors also',
       '$@'  => '$!',
-      '$['  => 'user-defined array indices',
       '$]'  => '$*PERL.version or $*PERL.compiler.version',
 
       '$^C' => 'COMPILING namespace',

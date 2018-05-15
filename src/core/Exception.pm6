@@ -1581,10 +1581,8 @@ my class X::Syntax::Perl5Var does X::Syntax {
         my $name = $!name;
         my $v    = $name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
         my $sugg = %m{~$v};
-        if $!identifier-name and $name eq '$#' {
-            # Currently only `$#` var has this identifier business handling as
-            # there are two versions of it: $# (number formatting) and $#var
-            # https://metacpan.org/pod/perlvar#Deprecated-and-removed-variables
+        if $name eq '$#' {
+            # Currently only `$#` var has this identifier business handling.
             # Should generalize the logic if we get more of stuff like this.
             $name ~= $!identifier-name;
             $sugg  = '@' ~ $!identifier-name ~ '.end';

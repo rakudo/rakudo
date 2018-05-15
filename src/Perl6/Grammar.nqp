@@ -2034,6 +2034,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('$@')>
     }
 
+    token special_variable:sym<$#> {
+        <sym> <identifier>
+        {}
+        <.obsvar('$#', ~$<identifier>)>
+    }
+
     token special_variable:sym<$$> {
         <sym> \W
         <.obsvar('$$')>

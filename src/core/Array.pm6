@@ -945,20 +945,22 @@ my class Array { # declared in BOOTSTRAP
     }
     method !splice-offset(int $offset) {
         nqp::stmts(
-          (my int $elems = nqp::elems(nqp::getattr(self,List,'$!reified'))),
-          (my int $size  = nqp::sub_i($elems,$offset)),
-          nqp::bindattr((my $result:= nqp::create(self)),List,'$!reified',
-            (my $buffer := nqp::setelems(nqp::create(IterationBuffer),$size))),
-          nqp::bindattr($result,Array,'$!descriptor',$!descriptor),
-          (my int $i = nqp::sub_i($offset,1)),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::bindpos($buffer,nqp::sub_i($i,$offset),
-              nqp::atpos(nqp::getattr(self,List,'$!reified'),$i))
+          (my $reified := nqp::getattr(self,List,'$!reified')),
+          (my int $elems = nqp::elems($reified)),
+          (my $result:= nqp::create(self)),
+          nqp::unless(
+            nqp::iseq_i($offset,$elems),
+            nqp::stmts(
+              nqp::bindattr($result,List,'$!reified',nqp::slice($reified,$offset,-1)),
+              nqp::splice(
+                $reified,
+                $empty,
+                $offset,
+                nqp::sub_i(nqp::elems($reified),$offset)
+              ),
+            )
           ),
-          nqp::splice(
-            nqp::getattr(self,List,'$!reified'),$empty,$offset,$size),
-          $result
+          nqp::p6bindattrinvres($result,Array,'$!descriptor',$!descriptor)
         )
     }
     method !splice-offset-fail($got) {

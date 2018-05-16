@@ -141,6 +141,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             )
         }
 
+        method reified-until-lazy() {
+            self.reify-until-lazy;
+            self
+        }
+
         method reify-all() {
             nqp::stmts(
               nqp::if(

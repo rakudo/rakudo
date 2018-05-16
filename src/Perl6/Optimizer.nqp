@@ -1499,32 +1499,36 @@ class Perl6::Optimizer {
                 QAST::WVal.new(:value($List)),
                 QAST::SVal.new(:value('$!todo')),
                 QAST::Op.new(
-                    :op<p6bindattrinvres>,
+                    :op<callmethod>,
+                    :name<reified-until-lazy>,
                     QAST::Op.new(
                         :op<p6bindattrinvres>,
                         QAST::Op.new(
                             :op<p6bindattrinvres>,
-                            QAST::WVal.new(:value($reifier)),
-                            QAST::WVal.new(:value($Reifier)),
-                            QAST::SVal.new(:value('$!reified')),
                             QAST::Op.new(
-                                :op<getattr>,
-                                QAST::WVal.new(:value($array)),
-                                QAST::WVal.new(:value($List)),
+                                :op<p6bindattrinvres>,
+                                QAST::WVal.new(:value($reifier)),
+                                QAST::WVal.new(:value($Reifier)),
                                 QAST::SVal.new(:value('$!reified')),
+                                QAST::Op.new(
+                                    :op<getattr>,
+                                    QAST::WVal.new(:value($array)),
+                                    QAST::WVal.new(:value($List)),
+                                    QAST::SVal.new(:value('$!reified')),
+                                )
+                            ),
+                            QAST::WVal.new(:value($Reifier)),
+                            QAST::SVal.new(:value('$!reification-target')),
+                            QAST::Op.new(
+                                :op<callmethod>,
+                                :name('reification-target'),
+                                QAST::WVal.new(:value($array)),
                             )
                         ),
                         QAST::WVal.new(:value($Reifier)),
-                        QAST::SVal.new(:value('$!reification-target')),
-                        QAST::Op.new(
-                            :op<callmethod>,
-                            :name('reification-target'),
-                            QAST::WVal.new(:value($array)),
-                        )
+                        QAST::SVal.new(:value('$!future')),
+                        $list,
                     ),
-                    QAST::WVal.new(:value($Reifier)),
-                    QAST::SVal.new(:value('$!future')),
-                    $list,
                 ),
             ]);
             $op.pop; # remove the :initialize argument of the STORE call

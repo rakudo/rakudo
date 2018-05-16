@@ -398,7 +398,7 @@ class Perl6::Pod {
 
     our sub normalize_text($a) {
         # given a string of text, possibly including newlines, reduces
-        # contiguous whitespace to a single space and trim leading and
+        # contiguous whitespace to a single space and trims leading and
         # trailing whitespace from all logical lines
         my $r := subst($a, /\s+/, ' ', :global);
         $r    := subst($r, /^^\s*/, '');
@@ -606,8 +606,8 @@ class Perl6::Pod {
         # row separator
         my $is_row_sep   := /^ <[-+_|=\h]>* $/;
         # legal row cell separators
-        my $col_sep_pipe := /\h '|' \h/; # visible
-        my $col_sep_plus := /\h '+' \h/; # visible
+        my $col_sep_pipe := /\h '|' \h | \h '|' $/; # visible
+        my $col_sep_plus := /\h '+' \h | \h '+' $/; # visible
         my $col_sep_ws   := /\h \h/;     # invisible: double-space
 
         my $has_vis_col_sep  := / $col_sep_pipe | $col_sep_plus /;
@@ -912,11 +912,13 @@ class Perl6::Pod {
                 nqp::say($_) for @rows; # the original table as input
                 nqp::say("===end WARNING table $t input rows");
             }
+            =begin comment
             elsif $warns && $show_warning {
                     nqp::say("===WARNING: One or more tables evidence bad practice.");
                     nqp::say("==          Set environment variable 'RAKUDO_POD_TABLE_DEBUG' for more details.");
                     $show_warning := 0;
             }
+            =end comment
         }
 
         sub normalize_vis_col_sep_rows(@Rows) {

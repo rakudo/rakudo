@@ -1,3 +1,10 @@
+New in 2018.05:
+  + Fixes:
+  + Additions:
+  + Efficiency:
+  + Other minor optimizations:
+  + Internal:
+
 New in 2018.04.1:
   + Fixes:
     + Fixed hang in parsing of nums with huge exponents [4e38bc1f]

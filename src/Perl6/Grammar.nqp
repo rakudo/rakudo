@@ -360,29 +360,37 @@ role STD {
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
     method obs($old, $new, $when = 'in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+        unless $*LANG.pragma('p5isms') {
+            $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
     method obsvar($name, $identifier-name?) {
-        $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
-          :$name, :$identifier-name);
+        unless $*LANG.pragma('p5isms') {
+            $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
+              :$name, :$identifier-name);
+        }
     }
     method sorryobs($old, $new, $when = 'in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+        unless $*LANG.pragma('p5isms') {
+            $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
     method worryobs($old, $new, $when = 'in Perl 6') {
-        self.typed_worry('X::Obsolete',
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+        unless $*LANG.pragma('p5isms') {
+            self.typed_worry('X::Obsolete',
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
 
     method dupprefix($prefixes) {

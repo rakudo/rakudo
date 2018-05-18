@@ -1,4 +1,4 @@
-my class Rakudo::Internals::JSONException is Exception {
+my class JSONException is Exception {
     has $.text;
 
     method message {
@@ -142,7 +142,7 @@ my class Rakudo::Internals::JSON {
     method from-json($text) {
         my $a = JSONPrettyActions.new();
         my $o = JSONPrettyGrammar.parse($text, :actions($a));
-        Rakudo::Internals::JSONException.new(:$text).throw unless $o;
+        JSONException.new(:$text).throw unless $o;
         $o.ast;
     }
     method to-json(|c) { to-json(|c) }

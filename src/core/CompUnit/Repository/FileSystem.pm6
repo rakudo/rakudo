@@ -27,7 +27,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 try {
                     %!meta = Rakudo::Internals::JSON.from-json: $meta.slurp;
                     CATCH {
-                        when Rakudo::Internals::JSONException {
+                        when JSONException {
                             fail "Invalid JSON found in META6.json";
                         }
                     }

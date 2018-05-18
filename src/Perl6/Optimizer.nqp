@@ -1366,7 +1366,7 @@ class Perl6::Optimizer {
             && nqp::istype($op[2], QAST::WVal)
             && nqp::istype($op[2], QAST::SpecialArg)
         {
-            self.optimize_array_variable_initialization($op);
+            return self.optimize_array_variable_initialization($op);
         }
 
         # Calls are especially interesting as we may wish to do some
@@ -1505,7 +1505,8 @@ class Perl6::Optimizer {
             $op.op('callmethod');
             $op.name('reify-until-lazy');
 
-            my $comma_op := $op[1];
+            my $array_var := $op[0];
+            my $comma_op  := $op[1];
             $comma_op.op('getattr');
             $comma_op.name(NQPMu);
 
@@ -1523,7 +1524,7 @@ class Perl6::Optimizer {
                     :op<p6bindattrinvres>,
                     QAST::Op.new(
                         :op<p6bindattrinvres>,
-                        $op[0],
+                        $array_var,
                         QAST::WVal.new(:value($List)),
                         QAST::SVal.new(:value('$!reified')),
                         QAST::Op.new(:op<create>, QAST::WVal.new(:value($IterationBuffer))),
@@ -1541,7 +1542,7 @@ class Perl6::Optimizer {
                                 QAST::SVal.new(:value('$!reified')),
                                 QAST::Op.new(
                                     :op<getattr>,
-                                    $op[0],
+                                    $array_var,
                                     QAST::WVal.new(:value($List)),
                                     QAST::SVal.new(:value('$!reified')),
                                 )
@@ -1551,7 +1552,7 @@ class Perl6::Optimizer {
                             QAST::Op.new(
                                 :op<callmethod>,
                                 :name('reification-target'),
-                                $op[0],
+                                $array_var,
                             )
                         ),
                         QAST::WVal.new(:value($Reifier)),
@@ -1564,8 +1565,9 @@ class Perl6::Optimizer {
             ]);
             $op.set_children([$comma_op]);
 
-            return $op;
+            return QAST::Stmts.new: $op, $array_var;
         }
+        $op
     }
 
     method optimize_call($op) {

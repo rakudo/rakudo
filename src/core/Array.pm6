@@ -1049,22 +1049,31 @@ my class Array { # declared in BOOTSTRAP
     }
     method !splice-save(int $offset,int $size, \removed) {
         nqp::stmts(
-          (my $reified := nqp::getattr(self,List,'$!reified')),
-          (my $result:= nqp::create(self)),
+          (removed = nqp::if(
+            nqp::isgt_i(
+              nqp::add_i($offset,$size),
+              nqp::elems(nqp::getattr(self,List,'$!reified'))
+            ),
+            nqp::sub_i(nqp::elems(nqp::getattr(self,List,'$!reified')),$offset),
+            $size
+          )),
           nqp::if(
-            (removed = nqp::if(
-              nqp::isgt_i(nqp::add_i($offset,$size),nqp::elems($reified)),
-              nqp::sub_i(nqp::elems($reified),$offset),
-              $size
-            )),
-            nqp::bindattr(
-              $result,
-              List,
-              '$!reified',
-              nqp::slice($reified,$offset,nqp::sub_i(nqp::add_i($offset,$size),1))
-            )
-          ),
-          nqp::p6bindattrinvres($result,Array,'$!descriptor',$!descriptor)
+            removed,
+            nqp::stmts(
+              nqp::bindattr((my $saved:= nqp::create(self)),List,'$!reified',
+                (my $buffer :=
+                  nqp::setelems(nqp::create(IterationBuffer),removed))),
+              (my int $i = -1),
+              (my $reified := nqp::getattr(self,List,'$!reified')),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),removed),
+                nqp::bindpos($buffer,$i,nqp::atpos($reified,nqp::add_i($offset,$i)))
+              ),
+              nqp::p6bindattrinvres($saved,Array,'$!descriptor',$!descriptor)
+            ),
+            nqp::p6bindattrinvres(     # effective size = 0, create new one
+              nqp::create(self),Array,'$!descriptor',$!descriptor)
+          )
         )
     }
     method !splice-size-fail($got,$offset) {

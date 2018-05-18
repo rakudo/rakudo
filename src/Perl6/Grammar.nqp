@@ -1943,6 +1943,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token term:sym<undef> {
+        <!{ $*LANG.pragma('p5isms') }>
         <sym> >> {}
         [ <?before \h*'$/' >
             <.obs('$/ variable as input record separator',

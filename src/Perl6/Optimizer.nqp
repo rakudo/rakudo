@@ -1470,19 +1470,49 @@ class Perl6::Optimizer {
     method optimize_array_variable_initialization($op) {
         my $Positional := $!symbols.find_in_setting('Positional');
         if $op[0].returns =:= $Positional {
-            $op.op('bind');
+            # Turns the @var.STORE(infix:<,>(...)) into:
+            # nqp::getattr(
+            #     nqp::p6bindattrinvres(
+            #         nqp::p6bindattrinvres(
+            #             @var,
+            #             List,
+            #             $!reified,
+            #             nqp::create(IterationBuffer),
+            #         ),
+            #         List,
+            #         $!todo,
+            #         nqp::p6bindattrinvres(
+            #             nqp::p6bindattrinvres(
+            #                 nqp::p6bindattrinvres(
+            #                     $reifier,
+            #                     List::Reifier,
+            #                     '$!reified',
+            #                     nqp::getattr(@var, List, $!reified),
+            #                 ),
+            #                 List::Reifier,
+            #                 '$!reification-target',
+            #                 @var.reification-target()
+            #             ),
+            #             List::Reifier,
+            #             '$!future',
+            #             nqp::list(...),
+            #         ),
+            #     ),
+            #     List,
+            #     '$!todo'
+            # ).reify-until-lazy();
+
+            $op.op('callmethod');
+            $op.name('reify-until-lazy');
 
             my $comma_op := $op[1];
-            $comma_op.op('p6bindattrinvres');
+            $comma_op.op('getattr');
             $comma_op.name(NQPMu);
 
             my $List            := $!symbols.find_in_setting('List');
-            my $Array           := $!symbols.find_in_setting('Array');
             my $Reifier         := $!symbols.find_in_setting('List').WHO<Reifier>;
             my $IterationBuffer := $!symbols.find_in_setting('IterationBuffer');
 
-            my $array := $Array.new;
-            $*W.add_object($array);
             my $reifier := nqp::create($Reifier);
             $*W.add_object($reifier);
 
@@ -1491,16 +1521,15 @@ class Perl6::Optimizer {
             $comma_op.set_children([
                 QAST::Op.new(
                     :op<p6bindattrinvres>,
-                    QAST::WVal.new(:value($array)),
+                    QAST::Op.new(
+                        :op<p6bindattrinvres>,
+                        $op[0],
+                        QAST::WVal.new(:value($List)),
+                        QAST::SVal.new(:value('$!reified')),
+                        QAST::Op.new(:op<create>, QAST::WVal.new(:value($IterationBuffer))),
+                    ),
                     QAST::WVal.new(:value($List)),
-                    QAST::SVal.new(:value('$!reified')),
-                    QAST::Op.new(:op<create>, QAST::WVal.new(:value($IterationBuffer))),
-                ),
-                QAST::WVal.new(:value($List)),
-                QAST::SVal.new(:value('$!todo')),
-                QAST::Op.new(
-                    :op<callmethod>,
-                    :name<reified-until-lazy>,
+                    QAST::SVal.new(:value('$!todo')),
                     QAST::Op.new(
                         :op<p6bindattrinvres>,
                         QAST::Op.new(
@@ -1512,7 +1541,7 @@ class Perl6::Optimizer {
                                 QAST::SVal.new(:value('$!reified')),
                                 QAST::Op.new(
                                     :op<getattr>,
-                                    QAST::WVal.new(:value($array)),
+                                    $op[0],
                                     QAST::WVal.new(:value($List)),
                                     QAST::SVal.new(:value('$!reified')),
                                 )
@@ -1522,7 +1551,7 @@ class Perl6::Optimizer {
                             QAST::Op.new(
                                 :op<callmethod>,
                                 :name('reification-target'),
-                                QAST::WVal.new(:value($array)),
+                                $op[0],
                             )
                         ),
                         QAST::WVal.new(:value($Reifier)),
@@ -1530,8 +1559,10 @@ class Perl6::Optimizer {
                         $list,
                     ),
                 ),
+                QAST::WVal.new(:value($List)),
+                QAST::SVal.new(:value('$!todo')),
             ]);
-            $op.pop; # remove the :initialize argument of the STORE call
+            $op.set_children([$comma_op]);
 
             return $op;
         }

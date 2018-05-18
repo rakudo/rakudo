@@ -106,17 +106,17 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
         if $fract {
             my $precision;
-            # Stringify to at least 6 significant digits.
+            # Stringify Rats to at least 6 significant digits.
             if $!denominator < 100000 {
                 $precision = 6;
                 $fract *= 1000000;
             }
             else {
-                $precision = nqp::chars($!denominator) + nqp::chars($whole) + 1;
+                $precision = nqp::chars(~$!denominator) + nqp::chars(~$whole) +< 1;
                 $fract *= nqp::pow_I(10, nqp::decont($precision), Num, Int);
             }
             my $f  = $fract.round;
-            my $fc = nqp::chars($f);
+            my $fc = nqp::chars(~$f);
             $f div= 10 while $f %% 10; # Remove trailing zeros
             $result ~= '.' ~ '0' x ($precision - $fc) ~ $f;
         }

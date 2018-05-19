@@ -116,8 +116,9 @@ multi sub plan($number_of_tests) is export {
 
 multi sub pass($desc = '') is export {
     $time_after = nqp::time_n;
-    proclaim(1, $desc);
+    my $ok = proclaim(1, $desc);
     $time_before = nqp::time_n;
+    $ok;
 }
 
 multi sub ok(Mu $cond, $desc = '') is export {
@@ -444,7 +445,7 @@ sub _diag(Mu $message, :$force-stderr) {
 }
 
 # In earlier Perls, this is spelled "sub fail"
-multi sub flunk($reason) is export {
+multi sub flunk($reason = '') is export {
     $time_after = nqp::time_n;
     my $ok = proclaim(0, $reason);
     $time_before = nqp::time_n;

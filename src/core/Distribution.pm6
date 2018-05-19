@@ -130,7 +130,7 @@ class Distribution::Path does Distribution::Locally {
             my $name-path = $real-path.is-relative
                 ?? $real-path
                 !! $real-path.relative($prefix);
-            $name-path => $real-path.absolute
+            $name-path.subst(:g, '\\', '/') => $name-path.subst(:g, '\\', '/')
         }
 
         my $resources-dir = $prefix.add('resources');
@@ -141,7 +141,7 @@ class Distribution::Path does Distribution::Locally {
             my $name-path = $path.is-relative
                 ?? "resources/{$path}"
                 !! "resources/{$path.relative($prefix)}";
-            $name-path => $real-path.absolute;
+            $name-path.subst(:g, '\\', '/') => $real-path.relative($prefix).subst(:g, '\\', '/')
         }
 
         $meta<files> = |%bins, |%resources;

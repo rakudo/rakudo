@@ -933,6 +933,7 @@ class Perl6::World is HLL::World {
       'strict',             1,
       'trace',              1,
       'worries',            1,
+      'p5isms',             1,
     );
 
     # pragmas without args that just set_pragma to true
@@ -950,6 +951,7 @@ class Perl6::World is HLL::World {
       'nqp',                1,
       'trace',              1,
       'worries',            1,
+      'p5isms',             1,
     );
 
     # not yet implemented pragmas

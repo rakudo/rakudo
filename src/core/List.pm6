@@ -676,15 +676,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    multi method ACCEPTS(List:D: $topic) {
+    multi method ACCEPTS(List:D: Iterable:U) { True }
+    multi method ACCEPTS(List:D: Iterable:D $topic) {
         CATCH { default { return False } } # .elems on lazies throws
         return True if nqp::eqaddr(self, nqp::decont($topic));
 
-        unless nqp::istype($topic, Iterable) {
-            return self unless self.elems;
-            return self if nqp::istype(self[0], Match);
-            return False;
-        }
         my $sseq = self;
         my $tseq = $topic;
 
@@ -719,7 +715,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             $tpos >= $tseq;
         }
 
-        tailmatch(0,0);
+        tailmatch(0,0)
+    }
+    multi method ACCEPTS(List:D: $topic) {
+        self.elems
+          ?? nqp::istype(self[0], Match)
+            ?? self
+            !! False
+          !! self
     }
 
     multi method list(List:D:) { self }

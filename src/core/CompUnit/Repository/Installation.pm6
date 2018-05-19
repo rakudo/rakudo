@@ -570,8 +570,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $handle      = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
                     :id(CompUnit::PrecompilationId.new-without-check($id)),
-                    :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.absolute),
-                    :checksum(.meta<checksum> // Str),
+                    :src($repo-prefix ?? $repo-prefix ~ 'sources'.IO.add($source-file-name) !! $loader.absolute),
+                    :checksum($meta<checksum> // Str),
                     :$spec,
                 ),
                 :source($loader),

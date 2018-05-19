@@ -411,7 +411,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         # Each item contains a subset of meta data - notably items needed `use "Foo:ver<*>"`
         # All items match the given module short name, but may differ in ver, auth, api, etc.
-        my @metas = (
+        my $metas := (
                 self!repository-version < 1
                 ?? $lookup.lines.unique.map({
                         $_ => self!read-dist($_)
@@ -436,8 +436,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             ?? $spec.api-matcher
             !! Version.new($spec.api-matcher);
 
-        # @metas has already been filtered by name via $lookup, so do remaining filtering on fast lookup fields
-        my $matching-metas := @metas.grep: {
+        # $metas has already been filtered by name via $lookup, so do remaining filtering on fast lookup fields
+        my $matching-metas := $metas.grep: {
             $_.value<auth> ~~ $spec.auth-matcher
             and $_.value<ver> ~~ $version-matcher
             and $_.value<api> ~~ $api-matcher

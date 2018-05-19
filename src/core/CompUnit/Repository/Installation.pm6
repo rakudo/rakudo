@@ -105,10 +105,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method !repository-version(--> Int:D) {
-        return $!version if defined $!version;
-        my $version-file = $.prefix.add('version');
-        return $!version = 0 unless $version-file ~~ :f;
-        $!version = $version-file.slurp.Int
+        $!version //= do {
+            my $version-file = $.prefix.add('version');
+            $version-file.f ?? $version-file.slurp.Int !! 0
+        }
     }
 
     method upgrade-repository() {

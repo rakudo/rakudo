@@ -1369,6 +1369,20 @@ class Perl6::Optimizer {
             return self.optimize_array_variable_initialization($op);
         }
 
+        # Turn `@a[$b, $c]` into `@a[$b], @a[$c]`
+        elsif
+            $!level > 0
+            && ($optype eq 'call' || $optype eq 'callstatic')
+            && $op.name eq '&postcircumfix:<[ ]>'
+            && +@($op) == 2
+            && nqp::istype($op[0], QAST::Var)
+            && nqp::substr($op[0].name, 0, 1) eq '@'
+            && nqp::istype($op[1], QAST::WVal)
+            && nqp::istype($op[1].value, $!symbols.find_in_setting("List"))
+        {
+            return self.optimize_array_slice($op);
+        }
+
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' {
@@ -1465,6 +1479,23 @@ class Perl6::Optimizer {
                 return $op[0];
             }
         }
+    }
+
+    method optimize_array_slice($op) {
+        my $new_op := QAST::Op.new(:op('callstatic'), :name('&infix:<,>'));
+
+        my $array_var := $op[0];
+        my $reified   := nqp::getattr($op[1].value, $!symbols.find_in_setting("List"), '$!reified');
+
+        if nqp::istype($reified, $!symbols.find_in_setting("Mu")) {
+            return $op
+        }
+
+        for $reified -> $var {
+            $new_op.push: QAST::Op.new(:op('callstatic'), :name('&postcircumfix:<[ ]>'), $array_var, QAST::WVal.new(:value($var)));
+        }
+
+        $new_op;
     }
 
     method optimize_array_variable_initialization($op) {

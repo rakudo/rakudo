@@ -1,21 +1,3 @@
-New in 2018.05:
-  + Fixes:
-    + Can now call .perl on uninitialized native strings [b12fba38]
-    + Make .gist on native / non-native arrays similar [4e88fa15]
-    + Remove warning when smartmatching an Iterable type object [385308d3]
-  + Additions:
-    + Mention 'NativeCall' when doing unsupported 'is native' [b4973115]
-    + Don't show unnamed invocants in Signature.gist/perl [71159bed][f14dc6bd]
-  + Efficiency:
-    + Range slices on native arrays about 23x faster
-      [67a31600][f038e12d][09cbe679][c69179cc]
-    + Make .splice on native arrays up to 2x faster
-      [ee1ba153][4ab2f2cd][da646aa2][e0ad668e]
-    + Make @a.splice(offset) about 20% faster [8d12d5b4][a5d46b42]
-  + Other minor optimizations:
-  + Internal:
-    [df4de34a 4264c9e5]
-
 New in 2018.04.1:
   + Fixes:
     + Fixed hang in parsing of nums with huge exponents [4e38bc1f]

@@ -529,13 +529,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         --> CompUnit:D)
     {
         with self!matching-dist($spec) {
+            my $meta = .meta;
             return CompUnit.new(
                 :handle(CompUnit::Handle),
                 :short-name($spec.short-name),
-                :version(.meta<ver>),
-                :auth(.meta<auth> // Str),
+                :version($meta<ver>),
+                :auth($meta<auth> // Str),
                 :repo(self),
-                :repo-id(.meta<source>),
+                :repo-id($meta<source>),
                 :distribution($_),
             );
         }
@@ -556,7 +557,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         --> CompUnit:D)
     {
         with self!matching-dist($spec) {
-            my $source-file-name = .meta<source>;
+            my $meta = .meta;
+            my $source-file-name = $meta<source>;
             X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw
                 unless $source-file-name;
             my $loader = $.prefix.add('sources').add($source-file-name);
@@ -581,9 +583,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
             my $compunit = CompUnit.new(
                 :$handle,
-                :short-name(.meta<name>),
-                :version(.meta<ver>),
-                :auth(.meta<auth> // Str),
+                :short-name($meta<name>),
+                :version($meta<ver>),
+                :auth($meta<auth> // Str),
                 :repo(self),
                 :repo-id($id),
                 :$precompiled,

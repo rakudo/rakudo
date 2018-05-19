@@ -214,17 +214,17 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                     api   => '*',
                     auth  => '',
                     files => %((
-                        (Rakudo::Internals.DIR-RECURSE(self!dist-prefix.child('bin').absolute).map({ .IO.relative(self!dist-prefix) }).map({
+                        (Rakudo::Internals.DIR-RECURSE(self!dist-prefix.child('bin').absolute).map({ .IO.relative(self!dist-prefix).subst(:g, '\\', '/') }).map({
                             $_ => $_
                         }).hash if self!dist-prefix.child('bin').d).Slip,
-                        (Rakudo::Internals.DIR-RECURSE(self!dist-prefix.child('resources').absolute).map({ .IO.relative(self!dist-prefix) }).map({
+                        (Rakudo::Internals.DIR-RECURSE(self!dist-prefix.child('resources').absolute).map({ .IO.relative(self!dist-prefix).subst(:g, '\\', '/') }).map({
                             $_ ~~ m/^resources\/libraries\/(.*)/
                                 ?? ('resources/libraries/' ~ ($0.IO.dirname eq '.'??''!!$0.IO.dirname~"/") ~ $0.IO.basename.subst(/^lib/, '').subst(/\..*/, '') => $_)
                                 !! ($_ => $_)
                         }).hash).Slip,
                     ).Slip),
                     provides => Rakudo::Internals.DIR-RECURSE($!prefix.absolute).map({ .IO.relative(self!dist-prefix) }).map({
-                        $_.subst(:g, /\/ | \\/, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_
+                        $_.subst(:g, /\/ | \\/, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_.subst(:g, '\\', '/')
                     }).hash,
                 }, :prefix(self!dist-prefix));
 

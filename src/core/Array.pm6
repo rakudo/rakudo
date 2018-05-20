@@ -1061,7 +1061,7 @@ my class Array { # declared in BOOTSTRAP
               $result,
               List,
               '$!reified',
-              nqp::slice($reified,$offset,nqp::sub_i(nqp::add_i($offset,$size),1))
+              nqp::slice($reified,$offset,nqp::sub_i(nqp::add_i($offset,removed),1))
             )
           ),
           nqp::p6bindattrinvres($result,Array,'$!descriptor',$!descriptor)

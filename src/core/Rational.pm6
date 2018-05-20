@@ -5,7 +5,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     has DeT $.denominator = 1;
 
     multi method WHICH(Rational:D:) {
-        self.REDUCE-ME;
         nqp::box_s(
           nqp::concat(
             nqp::if(
@@ -47,7 +46,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         $new
     }
 
-    method nude() { self.REDUCE-ME; $!numerator, $!denominator }
+    method nude() { $!numerator, $!denominator }
 
     method Num() {
         nqp::p6box_n(nqp::div_In(
@@ -62,7 +61,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method ceiling(Rational:D:) {
-        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)
@@ -86,7 +84,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method is-prime(--> Bool:D) {
-        self.REDUCE-ME;
         nqp::if($!denominator == 1,$!numerator.is-prime)
     }
 
@@ -239,23 +236,12 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         self.new($!numerator - $!denominator, $!denominator);
     }
 
-    method norm() { self.REDUCE-ME; self }
+    method norm() { self }
 
     method narrow(::?CLASS:D:) {
-        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! self;
-    }
-
-    method REDUCE-ME(--> Nil) {
-        if $!denominator > 1 {
-            my $gcd = $!denominator gcd $!numerator;
-            if $gcd > 1 {
-                nqp::bindattr(self,self.WHAT,'$!numerator',  $!numerator   div $gcd);
-                nqp::bindattr(self,self.WHAT,'$!denominator',$!denominator div $gcd);
-            }
-        }
     }
 }
 

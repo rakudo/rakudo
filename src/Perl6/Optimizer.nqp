@@ -1514,9 +1514,6 @@ class Perl6::Optimizer {
             my $Reifier         := $!symbols.find_in_setting('List').WHO<Reifier>;
             my $IterationBuffer := $!symbols.find_in_setting('IterationBuffer');
 
-            my $reifier := nqp::create($Reifier);
-            $*W.add_object($reifier);
-
             my $list := QAST::Op.new(:op<list>);
             $list.set_children(@($comma_op));
             $comma_op.set_children([
@@ -1537,7 +1534,7 @@ class Perl6::Optimizer {
                             :op<p6bindattrinvres>,
                             QAST::Op.new(
                                 :op<p6bindattrinvres>,
-                                QAST::WVal.new(:value($reifier)),
+                                QAST::Op.new(:op<create>, QAST::WVal.new(:value($Reifier))),
                                 QAST::WVal.new(:value($Reifier)),
                                 QAST::SVal.new(:value('$!reified')),
                                 QAST::Op.new(

@@ -1369,12 +1369,19 @@ class Perl6::Optimizer {
             return self.optimize_array_variable_initialization($op);
         }
 
-        # Turn `@a[$b, $c]` into `@a[$b], @a[$c]`
+        # Turn `@a[1, 3]` into `@a.AT-POS(1), @a.AT-POS(3)`
         elsif
             $!level > 0
             && ($optype eq 'call' || $optype eq 'callstatic')
-            && $op.name eq '&postcircumfix:<[ ]>'
+
+            # workaround because op_eq_core needs to be "primed"
+            && ((try $!symbols.find_lexical($op.name)) || 1)
+
+            && self.op_eq_core($op, '&postcircumfix:<[ ]>')
+
+            # if it's 3 that means the slice is on the LHS of an assignment
             && +@($op) == 2
+
             && nqp::istype($op[0], QAST::Var)
             && nqp::substr($op[0].name, 0, 1) eq '@'
             && nqp::istype($op[1], QAST::WVal)
@@ -1482,17 +1489,21 @@ class Perl6::Optimizer {
     }
 
     method optimize_array_slice($op) {
-        my $new_op := QAST::Op.new(:op('callstatic'), :name('&infix:<,>'));
-
-        my $array_var := $op[0];
-        my $reified   := nqp::getattr($op[1].value, $!symbols.find_in_setting("List"), '$!reified');
-
-        if nqp::istype($reified, $!symbols.find_in_setting("Mu")) {
+        unless nqp::isconcrete($op[1].value) {
             return $op
         }
 
+        my $reified := nqp::getattr($op[1].value, $!symbols.find_in_setting("List"), '$!reified');
+
+        unless $reified.HOW.name($reified) eq 'BOOTArray' {
+            return $op
+        }
+
+        my $new_op    := QAST::Op.new(:op('callstatic'), :name('&infix:<,>'));
+        my $array_var := $op[0];
+
         for $reified -> $var {
-            $new_op.push: QAST::Op.new(:op('callstatic'), :name('&postcircumfix:<[ ]>'), $array_var, QAST::WVal.new(:value($var)));
+            $new_op.push: QAST::Op.new(:op('callmethod'), :name('AT-POS'), $array_var, QAST::WVal.new(:value($var)));
         }
 
         $new_op;

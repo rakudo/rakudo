@@ -38,23 +38,25 @@ my class FatRat is Cool does Rational[Int, Int] {
 
 sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
     nqp::stmts(
-      (my Int $gcd         := de == 0 ?? 1 !! nu gcd de),
-      (my Int $numerator   := nu div $gcd),
-      (my Int $denominator := de div $gcd),
+      (my $gcd := de ?? nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int) !! 1),
+      (my $numerator   := nqp::div_I(nqp::decont(nu), $gcd, Int)),
+      (my $denominator := nqp::div_I(nqp::decont(de), $gcd, Int)),
       nqp::if(
-        $denominator < 0,
+        nqp::islt_I($denominator, 0),
         nqp::stmts(
-          ($numerator   := -$numerator),
-          ($denominator := -$denominator))),
+          ($numerator   := nqp::neg_I($numerator, Int)),
+          ($denominator := nqp::neg_I($denominator, Int)))),
       nqp::if(
         nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),
         nqp::p6bindattrinvres(
-          nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$numerator),
+          nqp::p6bindattrinvres(nqp::create(FatRat),
+            FatRat,'$!numerator',$numerator),
           FatRat,'$!denominator',$denominator),
         nqp::if(
-          $denominator < UINT64_UPPER,
+          nqp::islt_I($denominator, UINT64_UPPER),
           nqp::p6bindattrinvres(
-            nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$numerator),
+            nqp::p6bindattrinvres(nqp::create(Rat),
+              Rat,'$!numerator',$numerator),
             Rat,'$!denominator',$denominator),
           nqp::p6box_n(nqp::div_In($numerator, $denominator)))))
 }

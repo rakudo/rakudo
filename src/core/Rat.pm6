@@ -194,7 +194,7 @@ multi sub infix:<**>(Rational:D \a, Int:D \b) {
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {
     nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
-        ?? a.Num == b.Num
+        ?? a.numerator == b.numerator && nqp::p6bool(a.numerator) # NaN != NaN
         !! a.numerator * b.denominator == b.numerator * a.denominator
 }
 multi sub infix:<==>(Rational:D \a, Int:D \b) {

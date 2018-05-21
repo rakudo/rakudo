@@ -2182,7 +2182,9 @@ my class X::TypeCheck is Exception {
     has $.expected is default(Nil);
     method gotn() {
         my $perl = (try $!got.perl) // "?";
-        $perl = "$perl.substr(0,21)..." if $perl.chars > 24;
+        my $max-len = 24;
+        $max-len += chars $!got.^name if $perl.starts-with: $!got.^name;
+        $perl = "$perl.substr(0,$max-len-3)..." if $perl.chars > $max-len;
         (try $!got.^name eq $!expected.^name
           ?? $perl
           !! "$!got.^name() ($perl)"

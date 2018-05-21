@@ -397,12 +397,13 @@ class Perl6::Pod {
     }
 
     our sub normalize_text($a) {
-        # given a string of text, possibly including newlines, reduces
-        # contiguous whitespace to a single space and trims leading and
-        # trailing whitespace from all logical lines
-        my $r := subst($a, /\s+/, ' ', :global);
-        $r    := subst($r, /^^\s*/, '');
-        $r    := subst($r, /\s*$$/, '');
+        # Given a string of text, possibly including newlines, reduces
+        # contiguous whitespace (tabs and normal spaces) to a single space and trims leading and
+        # trailing whitespace from all logical lines.
+        # Note that embedded, non-breaking whitespace is not affected.
+        my $r := subst($a, /[ ' ' | \t ]+/, ' ', :global);
+        $r    := subst($r, /^^\s*/, ''); # trim all leading spaces
+        $r    := subst($r, /\s*$$/, ''); # trim all trailing spaces
         return $r;
     }
 
@@ -454,7 +455,7 @@ class Perl6::Pod {
     }
 
     # Takes an array of arrays of pod characters (normal character or
-    # formatting code) returns an array of strings and formatting codes
+    # formatting code) returns an array of strings and formatting codes.
     our sub build_pod_strings(@strings) {
         my $in_code := $*POD_IN_CODE_BLOCK;
 
@@ -462,7 +463,10 @@ class Perl6::Pod {
             if @chars {
                 my $s := nqp::join('', @chars);
                 if ! $in_code {
-                    $s := subst($s, /\s+/, ' ', :global);
+                    # Note that embedded, non-breaking whitespace is
+                    # not affected: we only collapse tabs and normal
+                    # spaces (' ') to a single space.
+                    $s := subst($s, /[ ' ' | \t ]+/, ' ', :global);
                 }
                 $s := $*W.add_constant('Str', 'str', $s).compile_time_value;
                 @where.push($s);

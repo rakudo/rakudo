@@ -22,28 +22,28 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method new(NuT \nu = 0, DeT \de = 1) {
-        my $new := nqp::create(self);
-
-        # 0 denominator take it verbatim to support Inf/-Inf/NaN
-        if de == 0 {
-            nqp::bindattr($new,::?CLASS,'$!numerator',  nqp::decont(nu));
-            nqp::bindattr($new,::?CLASS,'$!denominator',nqp::decont(de));
-        }
-
-        # normalize
-        else {
-            my $gcd        := nu gcd de;
-            my $numerator   = nu div $gcd;
-            my $denominator = de div $gcd;
-            if $denominator < 0 {
-                $numerator   = -$numerator;
-                $denominator = -$denominator;
-            }
-            nqp::bindattr($new,::?CLASS,'$!numerator',  nqp::decont($numerator));
-            nqp::bindattr($new,::?CLASS,'$!denominator',nqp::decont($denominator));
-        }
-
-        $new
+        nqp::unless(
+          de,
+          nqp::p6bindattrinvres( # zero-denominator-rational; normalize nu
+            nqp::p6bindattrinvres(
+              nqp::create(self),
+              ::?CLASS, '$!denominator',nqp::decont(de)),
+            ::?CLASS, '$!numerator',
+            nu.WHAT.new: nqp::islt_I(nu,0) ?? -1 !! nu ?? 1 !! 0),
+          nqp::stmts( # normal rational
+            (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
+            (my $nu  := nqp::div_I(nqp::decont(nu), $gcd, NuT)),
+            (my $de  := nqp::div_I(nqp::decont(de), $gcd, DeT)),
+            nqp::if(
+              nqp::islt_I($de, 0),
+              nqp::stmts(
+                ($nu := nqp::neg_I($nu, $nu.WHAT)),
+                ($de := nqp::neg_I($de, $de.WHAT)))),
+            nqp::p6bindattrinvres( # zero-denominator-rational
+              nqp::p6bindattrinvres(
+                nqp::create(self),
+                ::?CLASS, '$!denominator', $de),
+              ::?CLASS, '$!numerator', $nu)))
     }
 
     method nude() { $!numerator, $!denominator }

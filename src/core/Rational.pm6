@@ -243,6 +243,13 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             ?? $!numerator
             !! self;
     }
+
+    multi method round(::?CLASS:D:) {
+        nqp::div_I(
+          nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+          nqp::mul_I($!denominator, 2, Int),
+          Int)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

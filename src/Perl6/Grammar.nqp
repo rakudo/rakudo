@@ -3411,6 +3411,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* '=>'> }
 
     token term:sym<rand> {
+        <!{ $*LANG.pragma('p5isms') }>
         <sym> »
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?

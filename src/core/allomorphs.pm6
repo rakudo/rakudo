@@ -1,6 +1,9 @@
 # the uses of add_I in this class are a trick to make bigints work right
 my class IntStr is Int is Str {
-    method new(Int:D $i, Str:D $s) {
+    proto method new(|) { * }
+    multi method new(Int:D $i) { self.new: $i,     $i.Str }
+    multi method new(Str:D $i) { self.new: $i.Int, $i     }
+    multi method new(Int:D $i, Str:D $s) {
         my \SELF = nqp::add_I($i, 0, self);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF;

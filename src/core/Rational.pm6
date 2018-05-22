@@ -1,3 +1,14 @@
+
+role ZeroDenominator {
+    sub ex-when-coercing-to (\type) {
+        X::Numeric::DivideByZero.new:
+           details => 'when coercing Rational to ' ~ type
+    }
+    method Int  { fail ex-when-coercing-to 'Int' }
+    method Str  { die  ex-when-coercing-to 'Str' }
+    method gist { die  ex-when-coercing-to 'Str' }
+}
+
 # stub of this role is also present in Numeric.pm6; be sure to update
 # definition there as well, if changing this one
 my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
@@ -29,7 +40,8 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
               nqp::create(self),
               ::?CLASS, '$!denominator',nqp::decont(de)),
             ::?CLASS, '$!numerator',
-            nu.WHAT.new: nqp::islt_I(nu,0) ?? -1 !! nu ?? 1 !! 0),
+            nu.WHAT.new: nqp::islt_I(nqp::decont(nu), 0) ?? -1 !! nu ?? 1 !! 0
+          ).^mixin(ZeroDenominator),
           nqp::stmts( # normal rational
             (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
             (my $nu  := nqp::div_I(nqp::decont(nu), $gcd, NuT)),

@@ -36,29 +36,40 @@ my class FatRat is Cool does Rational[Int, Int] {
     }
 }
 
-sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
-    nqp::stmts(
-      (my $gcd := de ?? nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int) !! 1),
-      (my $numerator   := nqp::div_I(nqp::decont(nu), $gcd, Int)),
-      (my $denominator := nqp::div_I(nqp::decont(de), $gcd, Int)),
-      nqp::if(
-        nqp::islt_I($denominator, 0),
-        nqp::stmts(
-          ($numerator   := nqp::neg_I($numerator, Int)),
-          ($denominator := nqp::neg_I($denominator, Int)))),
-      nqp::if(
-        nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),
+sub Rakudo-Internals-DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
+    nqp::unless(
+      de,
+      nqp::p6bindattrinvres( # zero-denominator-rational; normalize nu
         nqp::p6bindattrinvres(
-          nqp::p6bindattrinvres(nqp::create(FatRat),
-            FatRat,'$!numerator',$numerator),
-          FatRat,'$!denominator',$denominator),
+          nqp::create(
+            my \type := nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat)
+              ?? FatRat !! Rat),
+          type, '$!denominator',nqp::decont(de)),
+        type, '$!numerator',
+        nu.WHAT.new: nqp::islt_I(nqp::decont(nu), 0) ?? -1 !! nu ?? 1 !! 0
+      ).^mixin(ZeroDenominator),
+      nqp::stmts(
+        (my $gcd         := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
+        (my $numerator   := nqp::div_I(nqp::decont(nu), $gcd, nu.WHAT)),
+        (my $denominator := nqp::div_I(nqp::decont(de), $gcd, de.WHAT)),
         nqp::if(
-          nqp::islt_I($denominator, UINT64_UPPER),
+          nqp::islt_I($denominator, 0),
+          nqp::stmts(
+            ($numerator   := nqp::neg_I($numerator, nu.WHAT)),
+            ($denominator := nqp::neg_I($denominator, de.WHAT)))),
+        nqp::if(
+          nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),
           nqp::p6bindattrinvres(
-            nqp::p6bindattrinvres(nqp::create(Rat),
-              Rat,'$!numerator',$numerator),
-            Rat,'$!denominator',$denominator),
-          nqp::p6box_n(nqp::div_In($numerator, $denominator)))))
+            nqp::p6bindattrinvres(nqp::create(FatRat),
+              FatRat,'$!numerator',$numerator),
+            FatRat,'$!denominator',$denominator),
+          nqp::if(
+            nqp::islt_I($denominator, UINT64_UPPER),
+            nqp::p6bindattrinvres(
+              nqp::p6bindattrinvres(nqp::create(Rat),
+                Rat,'$!numerator',$numerator),
+              Rat,'$!denominator',$denominator),
+            nqp::p6box_n(nqp::div_In($numerator, $denominator))))))
 }
 
 multi sub prefix:<->(Rat:D \a) {
@@ -69,21 +80,21 @@ multi sub prefix:<->(FatRat:D \a) {
 }
 
 multi sub infix:<+>(Rational:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a.numerator*b.denominator + b.numerator*a.denominator,
         a.denominator*b.denominator,
         a,
         b
 }
 multi sub infix:<+>(Rational:D \a, Int:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a.numerator + b*a.denominator,
         a.denominator,
         a,
         b
 }
 multi sub infix:<+>(Int:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a*b.denominator + b.numerator,
         b.denominator,
         a,
@@ -91,7 +102,7 @@ multi sub infix:<+>(Int:D \a, Rational:D \b) {
 }
 
 multi sub infix:<->(Rational:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a.numerator*b.denominator - b.numerator*a.denominator,
         a.denominator*b.denominator,
         a,
@@ -99,7 +110,7 @@ multi sub infix:<->(Rational:D \a, Rational:D \b) {
 }
 
 multi sub infix:<->(Rational:D \a, Int:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a.numerator - b * a.denominator,
         a.denominator,
         a,
@@ -107,7 +118,7 @@ multi sub infix:<->(Rational:D \a, Int:D \b) {
 }
 
 multi sub infix:<->(Int:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a * b.denominator - b.numerator,
         b.denominator,
         a,
@@ -115,7 +126,7 @@ multi sub infix:<->(Int:D \a, Rational:D \b) {
 }
 
 multi sub infix:<*>(Rational:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a.numerator * b.numerator,
         a.denominator * b.denominator,
         a,
@@ -123,7 +134,7 @@ multi sub infix:<*>(Rational:D \a, Rational:D \b) {
 }
 
 multi sub infix:<*>(Rational:D \a, Int:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a.numerator * b,
         a.denominator,
         a,
@@ -131,7 +142,7 @@ multi sub infix:<*>(Rational:D \a, Int:D \b) {
 }
 
 multi sub infix:<*>(Int:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a * b.numerator,
         b.denominator,
         a,
@@ -139,7 +150,7 @@ multi sub infix:<*>(Int:D \a, Rational:D \b) {
 }
 
 multi sub infix:</>(Rational:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a.numerator * b.denominator,
         a.denominator * b.numerator,
         a,
@@ -147,7 +158,7 @@ multi sub infix:</>(Rational:D \a, Rational:D \b) {
 }
 
 multi sub infix:</>(Rational:D \a, Int:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         a.numerator,
         a.denominator * b,
         a,
@@ -155,7 +166,7 @@ multi sub infix:</>(Rational:D \a, Int:D \b) {
 }
 
 multi sub infix:</>(Int:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
+    Rakudo-Internals-DIVIDE_NUMBERS
         b.denominator * a,
         b.numerator,
         a,
@@ -163,7 +174,7 @@ multi sub infix:</>(Int:D \a, Rational:D \b) {
 }
 
 multi sub infix:</>(Int:D \a, Int:D \b) {
-    DIVIDE_NUMBERS a, b, a, b
+    Rakudo-Internals-DIVIDE_NUMBERS a, b, a, b
 }
 
 multi sub infix:<%>(Rational:D \a, Int:D \b) {
@@ -180,12 +191,12 @@ multi sub infix:<%>(Rational:D \a, Rational:D \b) {
 
 multi sub infix:<**>(Rational:D \a, Int:D \b) {
     b >= 0
-        ?? DIVIDE_NUMBERS
+        ?? Rakudo-Internals-DIVIDE_NUMBERS
             (a.numerator ** b // fail (a.numerator.abs > a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),
             a.denominator ** b,  # we presume it likely already blew up on the numerator
             a,
             b
-        !! DIVIDE_NUMBERS
+        !! Rakudo-Internals-DIVIDE_NUMBERS
             (a.denominator ** -b // fail (a.numerator.abs < a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),
             a.numerator ** -b,
             a,

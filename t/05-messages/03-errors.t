@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 12;
+plan 13;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -98,5 +98,13 @@ throws-like 'Int:erator:$;', X::InvalidTypeSmiley,
 is-run ｢use IO::Socket::Async::BlahBlahBlah｣, :exitcode(*.so),
     :err{.contains: 'Could not find' & none 'builtin type'},
 'non-found module in core namespace is not claimed to be built-in';
+
+# https://github.com/rakudo/rakudo/issues/1848
+throws-like ｢
+    my class Supercalifragilisticexpialidocious {};
+    (my $x := my class {}.new).^set_name: <Supercalifragilisticexpialidocious>;
+    -> Supercalifragilisticexpialidocious {}($x)
+｣, X::TypeCheck, :message{2 == +.comb: 'Supercalifragilisticexpialidocious'},
+    'X::TypeCheck does not prematurely chop off the .perl';
 
 # vim: ft=perl6 expandtab sw=4

@@ -73,7 +73,7 @@ any occurrences, remove the code and make sure the spectest is still ok.
 
 =item *
 
-Review the RT queue for tickets that might need resolving
+Review the issue tracker for tickets that might need resolving
 prior to the release, addressing them as needed.  “Tickets
 that need resolving” is left to your discretion.  Any problem
 that has a large impact on users is worth addressing either
@@ -318,7 +318,7 @@ and L<https://rakudo.perl6.org/downloads/rakudo/>:
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
 masak, tadzik, moritz, PerlJam/perlpilot, [Coke], lizmat, timotimo, fsergot,
-hoelzro, Zoffix) on #perl6 or #perl6-dev to do it for you.
+hoelzro, Zoffix, AlexDaniel) on #perl6 or #perl6-dev to do it for you.
 
 =item 19.
 

@@ -466,7 +466,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             method Str()                               { self!dist.Str }
         }.new(
             :$dist-id,
-            :read-dist(-> { self!read-dist($dist-id) })
+            :read-dist(-> { self!read-dist($dist-id) }),
             :$.prefix,
         )
     }

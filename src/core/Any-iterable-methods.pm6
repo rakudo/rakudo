@@ -1032,7 +1032,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               Failure.new(X::Adverb.new(                # multiple adverbs ??
                 :$what,
                 :source(try { self.VAR.name } // self.WHAT.perl),
-                :nogo(%a.keys.grep: /k|v|p/)
+                :nogo(%a.keys.grep: /k|v|p/),
                 :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
             ),
             value                                       # no adverb
@@ -1107,7 +1107,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             X::Adverb.new(
               :what<grep>,
               :source(try { self.VAR.name } // self.WHAT.perl),
-              :nogo(%_.keys.grep: /k|v|kv|p/)
+              :nogo(%_.keys.grep: /k|v|kv|p/),
               :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } )
             ).throw
         }

@@ -573,7 +573,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         if nqp::elems($args) != $!arity {
             X::TypeCheck::Argument.new(
                 :objname($.name),
-                :arguments(args.list.map(*.^name))
+                :arguments(args.list.map(*.^name)),
                 :signature(try $r.signature.gist),
             ).throw
         }

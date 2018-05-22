@@ -15,6 +15,44 @@ class Perl6::Pod {
     my $show_warning :=  1; # flag used to track the first warning so no repeated warnings are given
     my $table_num    := -1; # for user debugging, incremented by one on each call to sub table
 
+    # unicode hex values and names for the 17 space characters (unicode property Zs)
+    # (from ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt):
+    #   U-0020 SPACE
+    #   U-00A0 NO-BREAK SPACE              <= to be excluded from breaking space set
+    #   U-1680 OGHAM SPACE MARK
+    #   U-2000 EN QUAD
+    #   U-2001 EM QUAD
+    #   U-2002 EN SPACE
+    #   U-2003 EM SPACE
+    #   U-2004 THREE-PER-EM SPACE
+    #   U-2005 FOUR-PER-EM SPACE
+    #   U-2006 SIX-PER-EM SPACE
+    #   U-2007 FIGURE SPACE
+    #   U-2008 PUNCTUATION SPACE
+    #   U-2009 THIN SPACE
+    #   U-200A HAIR SPACE
+    #   U-202F NARROW NO-BREAK SPACE       <= to be excluded from breaking space set
+    #   U-205F MEDIUM MATHEMATICAL SPACE
+    #   U-3000 IDEOGRAPHIC SPACE
+
+    # unicode hex values and names for other horizontal breaking space characters of interest
+    #   U-0009 CHARACTER TABULATION
+
+    # define a character class regex for space chars to be
+    # used for word breaks and collapsing multiple adjacent
+    # spaces to one (normalizing text)
+    my $breaking-spaces-regex := /<[
+                                     \x[0009]
+                                     \x[0020]
+                                     \x[1680]
+                                     \x[2000] .. \x[200A]
+                                     \x[202F]
+                                     \x[3000]
+                                   ]>+/;
+
+    # literal space (U+0020)
+    my $SPACE := ' ';
+
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
             nqp::die("You must provide one of leading or trailing to Perl6::Pod::document");
@@ -398,10 +436,10 @@ class Perl6::Pod {
 
     our sub normalize_text($a) {
         # Given a string of text, possibly including newlines, reduces
-        # contiguous whitespace (tabs and normal spaces) to a single space and trims leading and
-        # trailing whitespace from all logical lines.
-        # Note that embedded, non-breaking whitespace is not affected.
-        my $r := subst($a, /[ ' ' | \t ]+/, ' ', :global);
+        # contiguous breaking whitespace to a single space and trims
+        # leading and trailing whitespace from all logical lines.
+        # Note that non-breaking whitespace is not affected.
+        my $r := subst($a, $breaking-spaces-regex, $SPACE, :global);
         $r    := subst($r, /^^\s*/, ''); # trim all leading spaces
         $r    := subst($r, /\s*$$/, ''); # trim all trailing spaces
         return $r;
@@ -463,10 +501,10 @@ class Perl6::Pod {
             if @chars {
                 my $s := nqp::join('', @chars);
                 if ! $in_code {
-                    # Note that embedded, non-breaking whitespace is
-                    # not affected: we only collapse tabs and normal
-                    # spaces (' ') to a single space.
-                    $s := subst($s, /[ ' ' | \t ]+/, ' ', :global);
+                    # Collapse adjacent horizontal space characters to
+                    # a single space.  Note non-breaking whitespace is
+                    # not affected.
+                    $s := subst($s, $breaking-spaces-regex, $SPACE, :global);
                 }
                 $s := $*W.add_constant('Str', 'str', $s).compile_time_value;
                 @where.push($s);

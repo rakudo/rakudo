@@ -151,7 +151,9 @@ multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
-    $r.add_phaser( 'ENTER', -> { DEPRECATED($new) } );
+    # XXX just using DEPRECATED(...) calls a Nil, why?
+    my $dep = &DEPRECATED;
+    $r.add_phaser( 'ENTER', -> { $dep($new) } );
 }
 multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));

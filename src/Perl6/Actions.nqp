@@ -6396,6 +6396,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     else {
                         %named_counts{$name} := %named_counts{$name} - 1;
+			unless $_[2].has_compile_time_value {
+                            $past.push(QAST::Stmts.new(
+                                $_[2], QAST::Op.new(:op('list')), :flat(1)));
+                        }
                     }
                 }
                 elsif nqp::istype($_, QAST::Op) && $_.name eq '&prefix:<|>' {

@@ -1,3 +1,57 @@
+New in 2018.05:
+  + SPECIAL NOTES:
+    + Corresponding MoarVM release introduces hash randomization to
+      prevent DoS attacks. Among other things, this may affect user
+      tests that expect keys or values returned from a Hash object to
+      be in the same order every run.
+  + Fixes:
+    + Made .assuming available in WhateverCodes [6e8dc6f1]
+    + Fixed truncation of seconds in DateTime.later/.earlier [656ff77b]
+    + Fixed spurious unhandled Failures caused by require [666eb3ab]
+    + Made IO::Handle.seek to always return True [24a90774]
+    + Made CallFrame skip over thunk-like things [0d216bef]
+    + Fixed unwanted warnings in X::NYI when $.feature is omitted [a7c03101]
+    + Fixed WHICH of non-reduced Rats [8cd70d1e]
+    + Fixed smartmatch exception explosion [97d5d83e]
+    + Made code detection in subsets more robust [ede507b7][febcb917]
+    + Made build of BOOTSTRAP.moarvm reproducible [39227d54][56c03572][6ae0526f]
+    + Simplified Signature.perl/gist for unnamed invocants [71159bed][f14dc6bd]
+    + Made it possible to call .perl on uninitialized native strings [b12fba38]
+    + Made .gist on native / non-native arrays similar [4e88fa15]
+    + Fixed overzealous X::Syntax::NoSelf throwage [9b915f09]
+    + Fixed smartmatching an Iterable type object [385308d3]
+    + Fixed unexpected POD table failures [2cda7a19]
+    + Made pass() and flunk() more consistent [82b3a894]
+    + Fixed distribution path format on windows [4cacbf66]
+    + Various fixes for the JVM backend [7d2940ee][cc57d06a][be35160d]
+    + Various improvements to produced messages [7b336519][0de80523]
+        [b4973115][22d08069]
+  + Additions:
+    + Added shapes support for HAS scoped attributes [4c3807c5][7847768c]
+    + Added NativeCall CArray.allocate method [a02131d5]
+    + Added "use p5isms" pragma to stop complaints about Perl 5 traps [8ae82a55]
+        [8ccda189][7bde26fc]
+  + Removals:
+    + Removed some 5to6 error messages [3f350912][4ac9915e]
+        [5ce24929][cf35764d][44538f50]
+  + Build system:
+    + Fixed Configure script to not assume gmake location [abd88a94]
+  + Efficiency:
+    + Made Int.lsb 2x faster [9e2dacd4]
+    + Made Int.msb 2x faster [775a42ee]
+    + Made Range slices on native arrays about 23x faster [67a31600]
+        [f038e12d][09cbe679][c69179cc]
+    + Made .splice on native arrays up to 2x faster [ee1ba153]
+        [4ab2f2cd][da646aa2][e0ad668e]
+    + Made Rat / FatRat stringification up to 200x faster [e0dca0cc]
+    + Made creation of regexes up to 30% faster [32a78996]
+    + Made @a.splice(offset) about 20% faster [8d12d5b4][a5d46b42][8bde96d2]
+    + Made module loading 10ms faster by avoiding IO::relative [849ba56d]
+    + Other minor optimizations [d53fe90a][aa18140e][776ff354]
+        [ac6e26e8][073a7f50][54e390f5]
+  + Internal:
+    + Introduced nqp::slice op [090432bb]
+
 New in 2018.04.1:
   + Fixes:
     + Fixed hang in parsing of nums with huge exponents [4e38bc1f]

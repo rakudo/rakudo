@@ -15,11 +15,20 @@ class Perl6::Pod {
     my $show_warning :=  1; # flag used to track the first warning so no repeated warnings are given
     my $table_num    := -1; # for user debugging, incremented by one on each call to sub table
 
-    # unicode hex values and names for the 17 space characters (unicode property Zs)
+    # unicode hex values and names for space characters
     # (from ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt):
+    # (from https://en.wikipedia.org/wiki/Whitespace_character)
+    # (which is from https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt)
+    #   U-0009 CHARACTER TABULATION
+    #   U-000A LINE FEED (LF)
+    #   U-000B LINE TABULATION
+    #   U-000C FORM FEED (FF)
+    #   U-000D CARRIAGE RETURN (CR)
     #   U-0020 SPACE
-    #   U-00A0 NO-BREAK SPACE              <= to be excluded from breaking space set
+    #   U-0085 NEXT LINE (NEL)
+    #   U-00A0 NO-BREAK SPACE              <= TO BE EXCLUDED FROM BREAKING SPACE SET
     #   U-1680 OGHAM SPACE MARK
+    #   U-180E MONGOLIAN VOWEL SEPARATOR
     #   U-2000 EN QUAD
     #   U-2001 EM QUAD
     #   U-2002 EN SPACE
@@ -27,27 +36,37 @@ class Perl6::Pod {
     #   U-2004 THREE-PER-EM SPACE
     #   U-2005 FOUR-PER-EM SPACE
     #   U-2006 SIX-PER-EM SPACE
-    #   U-2007 FIGURE SPACE
+    #   U-2007 FIGURE SPACE                <= unicode considers this non-breaking, but we won't
     #   U-2008 PUNCTUATION SPACE
     #   U-2009 THIN SPACE
     #   U-200A HAIR SPACE
-    #   U-202F NARROW NO-BREAK SPACE       <= to be excluded from breaking space set
+    #   U-200B ZERO WIDTH SPACE
+    #   U-200C ZERO WIDTH NON-JOINER
+    #   U-200D ZERO WIDTH JOINER
+    #   U-2028 LINE SEPARATOR
+    #   U-2029 PARAGRAPH SEPARATOR
+    #   U-202F NARROW NO-BREAK SPACE       <= TO BE EXCLUDED FROM BREAKING SPACE SET
     #   U-205F MEDIUM MATHEMATICAL SPACE
+    #   U-2060 WORD JOINER                 <= TO BE EXCLUDED FROM BREAKING SPACE SET
     #   U-3000 IDEOGRAPHIC SPACE
-
-    # unicode hex values and names for other horizontal breaking space characters of interest
-    #   U-0009 CHARACTER TABULATION
+    #   U-FEFF ZERO WIDTH NO-BREAK SPACE   <= TO BE EXCLUDED FROM BREAKING SPACE SET
 
     # define a character class regex for space chars to be
     # used for word breaks and collapsing multiple adjacent
     # spaces to one (normalizing text)
     my $breaking-spaces-regex := /<[
-                                     \x[0009]
+
+                                     \x[0009] .. \x[000D]
                                      \x[0020]
+                                     \x[0085]
                                      \x[1680]
-                                     \x[2000] .. \x[200A]
+                                     \x[180E]
+                                     \x[2000] .. \x[200D]
+                                     \x[2028]
+                                     \x[2029]
                                      \x[205F]
                                      \x[3000]
+
                                    ]>+/;
 
     # literal space (U+0020)

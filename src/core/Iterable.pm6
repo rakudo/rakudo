@@ -13,10 +13,6 @@ my class Rakudo::Internals::HyperIteratorBatcher { ... }
 my role Iterable {
     method iterator() { ... }
 
-    method item() {
-        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
-    }
-
     method flat(Iterable:D:) {
         Seq.new(class :: does Iterator {
             has Iterator $!source;

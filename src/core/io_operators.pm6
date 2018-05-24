@@ -124,7 +124,7 @@ multi sub chdir(|c) {
 
 proto sub indir($, $, *%) {*}
 multi sub indir(IO() $path, &what, :$test!) {
-    DEPRECATED(
+    Rakudo::Deprecations.DEPRECATED(
         :what<:$test argument>,
         'individual named parameters (e.g. :r, :w, :x)',
         "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),

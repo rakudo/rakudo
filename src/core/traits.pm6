@@ -151,7 +151,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
-    $r.add_phaser( 'ENTER', -> { (CHECK &DEPRECATED)($new) } );
+    $r.add_phaser( 'ENTER', -> { Rakudo::Deprecations.DEPRECATED($new) } );
 }
 multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));

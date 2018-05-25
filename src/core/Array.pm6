@@ -324,7 +324,7 @@ my class Array { # declared in BOOTSTRAP
 
     multi method Slip(Array:D:) {
 
-       # A Slip-With-Default is a special kind of Slip that also has a
+       # A Slip-With-Descripto is a special kind of Slip that also has a
        # descriptor to be able to generate containers for null elements that
        # have type and default information.
         my class Slip-With-Descriptor is Slip {

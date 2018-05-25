@@ -2284,11 +2284,14 @@ class Perl6::Optimizer {
         %opts<protoguilt> := $protoguilt // nqp::p6bool(0);
         %opts<arguments> := @arg_names;
         %opts<objname> := $obj.name;
+        %opts<dispatcher> := $obj;
         %opts<signature> := nqp::can($obj, 'is_dispatcher') && $obj.is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
                 [try $obj.signature.gist];
-
-        $!problems.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
+        nqp::if( nqp::can($obj, 'is_dispatcher') && $obj.is_dispatcher && nqp::elems($obj.dispatchees) == 0,
+          $!problems.add_exception(['X', 'Multi', 'NoMatch'], $op, |%opts),
+          $!problems.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts)
+        );
     }
 
     # Signature list for multis.

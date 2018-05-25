@@ -34,19 +34,19 @@ my class Attribute { # declared in BOOTSTRAP
 
                 # No compiler services available, so do it as a closure.
                 elsif self.rw {
-                    $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
+                    $meth := nqp::iseq_i($attr_type, 0)
                         ??
                         method (Mu:D \fles:) is raw {
                             nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
-                        nqp::p6bool(nqp::iseq_i($attr_type, 1))
+                        nqp::iseq_i($attr_type, 1)
                         ??
                         method (Mu:D \fles:) is raw {
                             nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
-                        nqp::p6bool(nqp::iseq_i($attr_type, 2))
+                        nqp::iseq_i($attr_type, 2)
                         ??
                         method (Mu:D \fles:) is raw {
                             nqp::getattrref_n(nqp::decont(fles), $dcpkg, $name)
@@ -58,13 +58,13 @@ my class Attribute { # declared in BOOTSTRAP
                     $meth.set_name($meth_name);
                 } else {
                     # ro accessor
-                    $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
+                    $meth := nqp::iseq_i($attr_type, 0)
                         ??
                         method (Mu:D \fles:) {
                             nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
-                        nqp::p6bool(nqp::iseq_i($attr_type, 1))
+                        nqp::iseq_i($attr_type, 1)
                         ??
                         method (Mu:D \fles:) {
                             nqp::p6box_i(
@@ -72,7 +72,7 @@ my class Attribute { # declared in BOOTSTRAP
                             );
                         }
                         !!
-                        nqp::p6bool(nqp::iseq_i($attr_type, 2))
+                        nqp::iseq_i($attr_type, 2)
                         ??
                         method (Mu:D \fles:) {
                             nqp::p6box_n(

@@ -6,6 +6,7 @@ my class List { ... }
 my class Map { ... }
 my class Match { ... }
 my class Failure { ... }
+my class Rakudo::Deprecations { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
 my class Rakudo::Iterator { ... }

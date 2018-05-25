@@ -26,8 +26,73 @@ my class Attribute { # declared in BOOTSTRAP
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
 
+                if self.?DEPRECATED -> $alternative {
+                    my $what = "Method $meth_name (from $package.^name())";
+                    if self.rw {
+                        $meth := nqp::iseq_i($attr_type, 0)
+                            ??
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattr(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 1)
+                            ??
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 2)
+                            ??
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattrref_n(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
+                            }
+                        $meth.set_name($meth_name);
+                    }
+                    else { # DEPRECATED ro accessor
+                        $meth := nqp::iseq_i($attr_type, 0)
+                            ??
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattr(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 1)
+                            ??
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::p6box_i(
+                                    nqp::getattr_i(nqp::decont(fles), $dcpkg, $name)
+                                );
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 2)
+                            ??
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::p6box_n(
+                                    nqp::getattr_n(nqp::decont(fles), $dcpkg, $name)
+                                );
+                            }
+                            !!
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::p6box_s(
+                                    nqp::getattr_s(nqp::decont(fles), $dcpkg, $name)
+                                );
+                            }
+                        $meth.set_name($meth_name);
+                    }
+                }
                 # Get the compiler to generate us an accessor when possible.
-                if $compiler_services.DEFINITE {
+                elsif $compiler_services.DEFINITE {
                     $meth := $compiler_services.generate_accessor($meth_name,
                         $dcpkg, $name, $!type, self.rw ?? 1 !! 0);
                 }
@@ -56,8 +121,8 @@ my class Attribute { # declared in BOOTSTRAP
                             nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
                         }
                     $meth.set_name($meth_name);
-                } else {
-                    # ro accessor
+                }
+                else { # ro accessor
                     $meth := nqp::iseq_i($attr_type, 0)
                         ??
                         method (Mu:D \fles:) {

@@ -140,20 +140,26 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
-    # for some reason, this can't be turned into a multi without
-    # making setting compilation get very confused indeed
-    method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
+    proto method BIND-KEY(|) {*}
+    multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
         nqp::bindkey(
           nqp::if(
             nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
             nqp::getattr(self,Map,'$!storage'),
             nqp::bindattr(self,Map,'$!storage',nqp::hash)
           ),
+          key.Str,
+          bindval
+        )
+    }
+    multi method BIND-KEY(Hash:D: Str:D \key, Mu \bindval) is raw {
+        nqp::bindkey(
           nqp::if(
-            nqp::istype(key,Str),
-            key,
-            key.Str)
-          ,
+            nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
+            nqp::getattr(self,Map,'$!storage'),
+            nqp::bindattr(self,Map,'$!storage',nqp::hash)
+          ),
+          key,
           bindval
         )
     }

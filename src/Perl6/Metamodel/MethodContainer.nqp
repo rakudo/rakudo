@@ -55,9 +55,6 @@ role Perl6::Metamodel::MethodContainer {
                 for $_.HOW.method_table($_) {
                     @meths.push(nqp::hllizefor($_.value, 'perl6'));
                 }
-                for $_.HOW.submethod_table($_) {
-                    @meths.push(nqp::hllizefor($_.value, 'perl6'));
-                }
             }
         }
 

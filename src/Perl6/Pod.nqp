@@ -15,62 +15,80 @@ class Perl6::Pod {
     my $show_warning :=  1; # flag used to track the first warning so no repeated warnings are given
     my $table_num    := -1; # for user debugging, incremented by one on each call to sub table
 
-    # unicode hex values and names for space characters
+    # UNICODE HEX VALUES AND NAMES FOR SPACE CHARACTERS
     # (from ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt):
     # (from https://en.wikipedia.org/wiki/Whitespace_character)
     # (which is from https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt)
-    #   U-0009 CHARACTER TABULATION
-    #   U-000A LINE FEED (LF)
-    #   U-000B LINE TABULATION
-    #   U-000C FORM FEED (FF)
-    #   U-000D CARRIAGE RETURN (CR)
-    #   U-0020 SPACE
-    #   U-0085 NEXT LINE (NEL)
-    #   U-00A0 NO-BREAK SPACE              <= TO BE EXCLUDED FROM BREAKING SPACE SET
-    #   U-1680 OGHAM SPACE MARK
-    #   U-180E MONGOLIAN VOWEL SEPARATOR
-    #   U-2000 EN QUAD
-    #   U-2001 EM QUAD
-    #   U-2002 EN SPACE
-    #   U-2003 EM SPACE
-    #   U-2004 THREE-PER-EM SPACE
-    #   U-2005 FOUR-PER-EM SPACE
-    #   U-2006 SIX-PER-EM SPACE
-    #   U-2007 FIGURE SPACE                <= unicode considers this non-breaking, but we won't
-    #   U-2008 PUNCTUATION SPACE
-    #   U-2009 THIN SPACE
-    #   U-200A HAIR SPACE
-    #   U-200B ZERO WIDTH SPACE
-    #   U-200C ZERO WIDTH NON-JOINER
-    #   U-200D ZERO WIDTH JOINER
-    #   U-2028 LINE SEPARATOR
-    #   U-2029 PARAGRAPH SEPARATOR
-    #   U-202F NARROW NO-BREAK SPACE       <= TO BE EXCLUDED FROM BREAKING SPACE SET
-    #   U-205F MEDIUM MATHEMATICAL SPACE
-    #   U-2060 WORD JOINER                 <= TO BE EXCLUDED FROM BREAKING SPACE SET
-    #   U-3000 IDEOGRAPHIC SPACE
-    #   U-FEFF ZERO WIDTH NO-BREAK SPACE   <= TO BE EXCLUDED FROM BREAKING SPACE SET
+    #
+    # The hex codes for spaces are in the range 0x0009..0x3000.  Those
+    # were each inspected, the reserved names excluded, and the set
+    # matching unicode properties M, P, L, S, and N were
+    # eliminated. Then all chars not matching \h or \v characters were
+    # eliminated leaving the following:
+    #
+    #=== 26 total chars =========
+    #=== 2 total no-break chars:
+    # 0x00A0 NO-BREAK SPACE ; Zs ; \h space char
+    # 0x202F NARROW NO-BREAK SPACE ; Zs ; \h space char
+    #=== 7 total vertical chars:
+    # 0x000A <control-000A> ; alias: NEW LINE ; Cc ; \v space char
+    # 0x000B <control-000B> ; alias: VERTICAL TABULATION ; Cc ; \v space char
+    # 0x000C <control-000C> ; alias: FORM FEED ; Cc ; \v space char
+    # 0x000D <control-000D> ; alias: CARRIAGE RETURN ; Cc ; \v space char
+    # 0x0085 <control-0085> ; alias: NEXT LINE ; Cc ; \v space char
+    # 0x2028 LINE SEPARATOR ; Zl ; \v space char
+    # 0x2029 PARAGRAPH SEPARATOR ; Zp ; \v space char
+    #=== 17 total horizontal chars:
+    # 0x0009 <control-0009> ; alias: HORIZONTAL TABULATION; ; Cc ; \h space char
+    # 0x0020 SPACE ; Zs ; \h space char
+    # 0x1680 OGHAM SPACE MARK ; Zs ; \h space char
+    # 0x180E MONGOLIAN VOWEL SEPARATOR ; Cf ; \h space char
+    # 0x2000 EN SPACE ; Zs ; \h space char
+    # 0x2001 EM SPACE ; Zs ; \h space char
+    # 0x2002 EN SPACE ; Zs ; \h space char
+    # 0x2003 EM SPACE ; Zs ; \h space char
+    # 0x2004 THREE-PER-EM SPACE ; Zs ; \h space char
+    # 0x2005 FOUR-PER-EM SPACE ; Zs ; \h space char
+    # 0x2006 SIX-PER-EM SPACE ; Zs ; \h space char
+    # 0x2007 FIGURE SPACE ; Zs ; \h space char
+    # 0x2008 PUNCTUATION SPACE ; Zs ; \h space char
+    # 0x2009 THIN SPACE ; Zs ; \h space char
+    # 0x200A HAIR SPACE ; Zs ; \h space char
+    # 0x205F MEDIUM MATHEMATICAL SPACE ; Zs ; \h space char
+    # 0x3000 IDEOGRAPHIC SPACE ; Zs ; \h space char
 
-    # define a character class regex for space chars to be
-    # used for word breaks and collapsing multiple adjacent
-    # spaces to one (normalizing text)
+    # using info from above, define a character class regex for space
+    # chars to be used for word breaks and collapsing multiple
+    # adjacent breaking spaces to one (normalizing text)
     my $breaking-spaces-regex := /<[
-
-                                     \x[0009] .. \x[000D]
-                                     \x[0020]
+                                     \x[000A]
+                                     \x[000B]
+                                     \x[000C]
+                                     \x[000D]
                                      \x[0085]
-                                     \x[1680]
-                                     \x[180E]
-                                     \x[2000] .. \x[200D]
                                      \x[2028]
                                      \x[2029]
+
+                                     \x[0009]
+                                     \x[0020]
+                                     \x[1680]
+                                     \x[180E]
+                                     \x[2000]
+                                     \x[2001]
+                                     \x[2002]
+                                     \x[2003]
+                                     \x[2004]
+                                     \x[2005]
+                                     \x[2006]
+                                     \x[2007]
+                                     \x[2008]
+                                     \x[2009]
+                                     \x[200A]
                                      \x[205F]
                                      \x[3000]
-
                                    ]>+/;
-
     # literal space (U+0020)
-    my $SPACE := ' ';
+    my $SPACE := "\x[0020]";
 
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
@@ -456,12 +474,17 @@ class Perl6::Pod {
     our sub normalize_text($a) {
         # Given a string of text, possibly including newlines, reduces
         # contiguous breaking whitespace to a single space and trims
-        # leading and trailing whitespace from all logical lines.
+        # leading and trailing whitespace from all logical lines
+        # as well as the end of the string.
         # Note that non-breaking whitespace is not affected.
-        my $r := subst($a, $breaking-spaces-regex, $SPACE, :global);
-        $r    := subst($r, /^^\s*/, ''); # trim all leading spaces
-        $r    := subst($r, /\s*$$/, ''); # trim all trailing spaces
-        return $r;
+
+        # First we trim all ws from each logical line.
+        my $r := subst($a, /^^\s*/, ''); # trim all leading spaces
+        $r := subst($r, /\s*$$/, ''); # trim all trailing spaces
+        # Don't forget to trim the end of the string, too.
+        $r := trim_right($r);
+        # Finally, we normalize the remaining text.
+        $r := subst($r, $breaking-spaces-regex, $SPACE, :global);
     }
 
     our sub remove_inline_comments($S) {
@@ -497,7 +520,8 @@ class Perl6::Pod {
     }
 
     our sub trim_right($a) {
-        # given a string of text, removes all whitespace from the end
+        # given a string of text, removes all whitespace from the end,
+        # including any newline
         return subst($a, /\s*$/, '');
     }
 
@@ -521,15 +545,14 @@ class Perl6::Pod {
                 my $s := nqp::join('', @chars);
                 if ! $in_code {
                     # Collapse adjacent horizontal space characters to
-                    # a single space.  Note non-breaking whitespace is
-                    # not affected.
+                    # a single space character (unicode code point 0x0020).
+                    # Note non-breaking whitespace is # not affected.
                     $s := subst($s, $breaking-spaces-regex, $SPACE, :global);
                 }
                 $s := $*W.add_constant('Str', 'str', $s).compile_time_value;
                 @where.push($s);
             }
         }
-
 
         my @res  := [];
         my @chars := [];

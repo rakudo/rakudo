@@ -111,6 +111,21 @@ public class RakudoContainerSpec extends ContainerSpec {
         cont.bind_attribute_boxed(tc, Scalar, "$!value", HINT_value, obj);
     }
 
+    /* Not all containers are rw (ContainerSpec.canStore() defaults to true). */
+    public boolean canStore(ThreadContext tc, SixModelObject cont) {
+        if (!(cont instanceof TypeObject)) {
+            SixModelObject desc = cont.get_attribute_boxed(tc, cont.st.WHAT,
+                "$!descriptor", HINT_descriptor);
+            if (desc != null) {
+                RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
+                desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!rw",
+                    RakOps.HINT_CD_RW);
+                return tc.native_i != 0;
+            }
+        }
+        return false;
+    }
+
     /* Name of this container specification. */
     public String name() {
         return "rakudo_scalar";

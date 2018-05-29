@@ -25,6 +25,7 @@ role Perl6::Metamodel::AttributeContainer {
     method compose_attributes($obj, :$compiler_services) {
         my %seen_with_accessor;
         my %meths := self.method_table($obj);
+        %meths := %meths.FLATTENABLE_HASH() unless nqp::ishash(%meths);
         my %orig_meths;
         for %meths {
             %orig_meths{$_.key} := 1;

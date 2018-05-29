@@ -52,11 +52,13 @@ role Perl6::Metamodel::MethodContainer {
         # If local flag was not passed, include those from parents.
         unless $local {
             for self.parents($obj, :all($all), :excl($excl)) {
-                for $_.HOW.method_table($_) {
-                    @meths.push(nqp::hllizefor($_.value, 'perl6'));
+                my %method_table := $_.HOW.method_table($_);
+                for nqp::ishash(%method_table) ?? %method_table !! %method_table.FLATTENABLE_HASH {
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
                 }
-                for $_.HOW.submethod_table($_) {
-                    @meths.push(nqp::hllizefor($_.value, 'perl6'));
+                my %submethod_table := $_.HOW.submethod_table($_);
+                for nqp::ishash(%submethod_table) ?? %submethod_table !! %submethod_table.FLATTENABLE_HASH {
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
                 }
             }
         }
@@ -86,13 +88,15 @@ role Perl6::Metamodel::MethodContainer {
     method lookup($obj, $name) {
         for self.mro($obj) {
             my %meth := $_.HOW.method_table($obj);
+            %meth := %meth.FLATTENABLE_HASH unless nqp::ishash(%meth);
             if nqp::existskey(%meth, $name) {
-                return %meth{$name};
+                return nqp::decont(%meth{$name});
             }
             if nqp::can($_.HOW, 'submethod_table') {
                 my %submeth := $_.HOW.submethod_table($obj);
+                %submeth := %submeth.FLATTENABLE_HASH unless nqp::ishash(%submeth);
                 if nqp::existskey(%submeth, $name) {
-                    return %submeth{$name};
+                    return nqp::decont(%submeth{$name});
                 }
             }
         }

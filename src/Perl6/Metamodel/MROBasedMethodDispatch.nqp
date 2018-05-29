@@ -63,8 +63,9 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             @mro_reversed.unshift($_);
         }
         for @mro_reversed {
-            for $_.HOW.method_table($_) {
-                %cache{$_.key} := $_.value;
+            my $method_table := $_.HOW.method_table($_);
+            for nqp::ishash($method_table) ?? $method_table !! $method_table.FLATTENABLE_HASH() {
+                %cache{$_.key} := nqp::decont($_.value);
             }
             if nqp::can($_.HOW, 'is_composed') && !$_.HOW.is_composed($_) {
                 $authable := 0;
@@ -72,7 +73,8 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         }
 
         # Also add submethods.
-        for $obj.HOW.submethod_table($obj) {
+        my $submethod_table := $obj.HOW.submethod_table($obj);
+        for nqp::ishash($submethod_table) ?? $submethod_table !! $submethod_table.FLATTENABLE_HASH() {
             %cache{$_.key} := $_.value;
         }
 

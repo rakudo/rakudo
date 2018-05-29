@@ -9,6 +9,10 @@ role Perl6::Metamodel::AttributeContainer {
     # Adds an attribute.
     method add_attribute($obj, $meta_attr) {
         my $name := $meta_attr.name;
+        if nqp::isnull(%!attribute_lookup) {
+            @!attributes := nqp::list();
+            %!attribute_lookup := nqp::hash();
+        }
         if nqp::existskey(%!attribute_lookup, $name) {
             nqp::die("Package '" ~ self.name($obj) ~
                 "' already has an attribute named '$name'");

@@ -5392,9 +5392,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method named_param($/) {
         %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || nqp::list_s();
-        if $<name>               { nqp::push_s(%*PARAM_INFO<named_names>, ~$<name>); }
-        elsif $<param_var><name> { nqp::push_s(%*PARAM_INFO<named_names>, ~$<param_var><name>); }
-        else                     { nqp::push_s(%*PARAM_INFO<named_names>, ''); }
+        my $n := '';
+        if $<name> { $n := ~$<name> }
+        elsif $<param_var><name> -> $_ {
+            if $<param_var><name><subshortname><desigilname> -> $_ { $n := ~$_ }
+            else { $n := ~$_; }
+        }
+        nqp::push_s(%*PARAM_INFO<named_names>, $n);
     }
 
     method default_value($/) {

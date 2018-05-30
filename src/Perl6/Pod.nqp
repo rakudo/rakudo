@@ -21,9 +21,7 @@ class Perl6::Pod {
     # (which is from https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt)
     #
     # The hex codes for spaces are in the range 0x0009..0x3000.  Those
-    # were each inspected, the reserved names excluded, and the set
-    # matching unicode properties M, P, L, S, and N were
-    # eliminated. Then all chars not matching \h or \v characters were
+    # were each inspected, and all chars not matching \h or \v characters were
     # eliminated leaving the following:
     #
     #=== 26 total chars =========
@@ -60,34 +58,27 @@ class Perl6::Pod {
     # using info from above, define a character class regex for space
     # chars to be used for word breaks and collapsing multiple
     # adjacent breaking spaces to one (normalizing text)
-    my $breaking-spaces-regex := /<[
-                                     \x[000A]
-                                     \x[000B]
-                                     \x[000C]
-                                     \x[000D]
+    my $breaking-spaces-regex := /[
+                                  # vertical (\v) breaking space chars:
+                                  <[
+                                     \x[000A] .. \x[000D]
                                      \x[0085]
                                      \x[2028]
                                      \x[2029]
-
+                                  ]>
+                                  |
+                                  # horizontal (\h) breaking space chars:
+                                  <[
                                      \x[0009]
                                      \x[0020]
                                      \x[1680]
                                      \x[180E]
-                                     \x[2000]
-                                     \x[2001]
-                                     \x[2002]
-                                     \x[2003]
-                                     \x[2004]
-                                     \x[2005]
-                                     \x[2006]
-                                     \x[2007]
-                                     \x[2008]
-                                     \x[2009]
-                                     \x[200A]
+                                     \x[2000] .. \x[200A]
                                      \x[205F]
                                      \x[3000]
-                                   ]>+/;
-    # literal space (U+0020)
+                                   ]>
+                                 ]+/;
+    # literal normal space (U+0020)
     my $SPACE := "\x[0020]";
 
     our sub document($/, $what, $with, :$leading, :$trailing) {
@@ -473,18 +464,14 @@ class Perl6::Pod {
 
     our sub normalize_text($a) {
         # Given a string of text, possibly including newlines, reduces
-        # contiguous breaking whitespace to a single space and trims
-        # leading and trailing whitespace from all logical lines
-        # as well as the end of the string.
+        # contiguous breaking whitespace to a single space.
+        # Also trims leading and trailing whitespace from the string.
         # Note that non-breaking whitespace is not affected.
 
-        # First we trim all ws from each logical line.
-        my $r := subst($a, /^^\s*/, ''); # trim all leading spaces
-        $r := subst($r, /\s*$$/, ''); # trim all trailing spaces
-        # Don't forget to trim the end of the string, too.
-        $r := trim_right($r);
-        # Finally, we normalize the remaining text.
-        $r := subst($r, $breaking-spaces-regex, $SPACE, :global);
+        # First, we normalize all breaking spaces.
+        my $r := subst($a, $breaking-spaces-regex, $SPACE, :global);
+        # Finally, trim the ends of the string.
+        return $r := trim-string($r);
     }
 
     our sub remove_inline_comments($S) {
@@ -514,15 +501,11 @@ class Perl6::Pod {
         return $ret;
     }
 
-    our sub chomp($s) {
-        # remove ending newline from a string
-        return subst($s, /\n$/, '');
-    }
-
-    our sub trim_right($a) {
-        # given a string of text, removes all whitespace from the end,
-        # including any newline
-        return subst($a, /\s*$/, '');
+    our sub trim-string($a) {
+        # Given a string of text, removes all whitespace from the ends,
+        # including any newline.
+        my $r := subst($a, /^\s*/, '');
+        return subst($r, /\s*$/, '');
     }
 
     our sub pod_strings_from_matches(@string_matches) {
@@ -737,7 +720,8 @@ class Perl6::Pod {
         for $<table_row> {
             # stringify the row for analysis and further handling
             my $row := $_.ast;
-            $row := chomp($row);
+            # remove ending newline (AKA chomp)
+            $row := subst($row, /\n$/, '');
             @orig_rows.push($row);
             if $row ~~ $is_row_sep {
                 # leading row sep lines are deleted and warned about

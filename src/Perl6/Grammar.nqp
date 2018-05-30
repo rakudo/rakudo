@@ -4761,9 +4761,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
 
         if %post_types || %unk_types || %unk_routines {
-            self.typed_sorry('X::Undeclared::Symbols',
-                :%post_types, :%unk_types, :%unk_routines,
-                :%routine_suggestion, :%type_suggestion);
+            if nqp::elems(%unk_routines) == 1 && %unk_routines<pack>
+              && nqp::elems(%post_types) == 0 && nqp::elems(%unk_types) == 0 {
+                self.typed_sorry('X::Experimental', :feature<pack>)
+            }
+            else {
+                self.typed_sorry('X::Undeclared::Symbols',
+                    :%post_types, :%unk_types, :%unk_routines,
+                    :%routine_suggestion, :%type_suggestion);
+            }
         }
 
         self;

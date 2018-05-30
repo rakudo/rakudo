@@ -1,80 +1,53 @@
-my enum Signal ( :SIGHUP(1), :SIGINT(2), :SIGQUIT(3), :SIGILL(4), :SIGTRAP(5),
-    :SIGABRT(6), :SIGEMT(7), :SIGFPE(8), :SIGKILL(9), :SIGBUS(10), :SIGSEGV(11),
-    :SIGSYS(12), :SIGPIPE(13), :SIGALRM(14), :SIGTERM(15), :SIGURG(16),
-    :SIGSTOP(17), :SIGTSTP(18), :SIGCONT(19), :SIGCHLD(20), :SIGTTIN(21),
-    :SIGTTOU(22), :SIGIO(23), :SIGXCPU(24), :SIGXFSZ(25), :SIGVTALRM(26),
-    :SIGPROF(27), :SIGWINCH(28), :SIGINFO(29), :SIGUSR1(30), :SIGUSR2(31),
-    :SIGTHR(32), :SIGSTKFLT(116), :SIGPWR(130), :SIGBREAK(221) );
+my enum Signal (
+    |nqp::stmts(
+        ( my $res  := nqp::hash ),
+        ( my $iter := nqp::iterator(nqp::getsignals) ),
+        nqp::while(
+            $iter,
+            nqp::stmts(
+                ( my $p := nqp::shift($iter) ),
+                nqp::bindkey($res, nqp::iterkey_s($p), nqp::abs_i(nqp::iterval($p)) )
+            )
+        ),
+        $res
+    )
+);
 
 proto sub signal($, |) {*}
 multi sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
-
     if @signals.grep( { !nqp::istype($_,Signal) } ).list -> @invalid {
-        die "Found invalid signals: {@invalid}";
+        die "Found invalid signals: {@invalid.join(', ')}"
     }
     @signals.unshift: $signal;
-    @signals .= unique;
 
-    my constant %sigmap = (
-#?if moar
-        SIGHUP,   nqp::const::SIG_HUP,
-#?endif
-        SIGINT,   nqp::const::SIG_INT,
-#?if moar
-        SIGQUIT,  nqp::const::SIG_QUIT,
-        SIGILL,   nqp::const::SIG_ILL,
-        SIGTRAP,  nqp::const::SIG_TRAP,
-        SIGABRT,  nqp::const::SIG_ABRT,
-        SIGEMT,   nqp::const::SIG_EMT,
-        SIGFPE,   nqp::const::SIG_FPE,
-#?endif
-        SIGKILL,  nqp::const::SIG_KILL,
-#?if moar
-        SIGBUS,   nqp::const::SIG_BUS,
-        SIGSEGV,  nqp::const::SIG_SEGV,
-        SIGSYS,   nqp::const::SIG_SYS,
-        SIGPIPE,  nqp::const::SIG_PIPE,
-        SIGALRM,  nqp::const::SIG_ALRM,
-        SIGTERM,  nqp::const::SIG_TERM,
-        SIGURG,   nqp::const::SIG_URG,
-        SIGSTOP,  nqp::const::SIG_STOP, # hammer time
-        SIGTSTP,  nqp::const::SIG_TSTP,
-        SIGCONT,  nqp::const::SIG_CONT,
-        SIGCHLD,  nqp::const::SIG_CHLD,
-        SIGTTIN,  nqp::const::SIG_TTIN,
-        SIGTTOU,  nqp::const::SIG_TTOU,
-        SIGIO,    nqp::const::SIG_IO,
-        SIGXCPU,  nqp::const::SIG_XCPU,
-        SIGXFSZ,  nqp::const::SIG_XFSZ,
-        SIGVTALRM,nqp::const::SIG_VTALRM,
-        SIGPROF,  nqp::const::SIG_PROF,
-        SIGWINCH, nqp::const::SIG_WINCH,
-        SIGINFO,  nqp::const::SIG_INFO,
-        SIGUSR1,  nqp::const::SIG_USR1,
-        SIGUSR2,  nqp::const::SIG_USR2,
-        SIGTHR,   nqp::const::SIG_THR,
-        SIGSTKFLT,nqp::const::SIG_STKFLT,
-        SIGPWR,   nqp::const::SIG_PWR,
-        SIGBREAK, nqp::const::SIG_BREAK
-#?endif
-    ).hash;
-
-    my @known_signals := $*KERNEL.signals;
+    # 0: Signal not supported by host, Negative: Signal not supported by backend
+    my &do-warning = -> $desc, $name, @sigs {
+        warn "The following signals are not supported on this $desc ({$name}): "
+             ~ "{@sigs.join(', ')}"
+    };
+    my %vm-sigs = nqp::getsignals();
+    my ( @valid, @host-unsupported, @vm-unsupported );
+    for @signals.unique {
+        $_  ??  0 < %vm-sigs{$_}
+                ?? @valid.push($_)
+                !! @vm-unsupported.push($_)
+            !! @host-unsupported.push($_)
+    }
+    if @host-unsupported -> @s { do-warning 'system',  $*KERNEL.name, @s }
+    if @vm-unsupported   -> @s { do-warning 'backend', $*VM\   .name, @s }
 
     my class SignalCancellation is repr('AsyncTask') { }
-    Supply.merge( @signals.map(-> $signal {
+    Supply.merge( @valid.map(-> $signal {
         class SignalTappable does Tappable {
             has $!scheduler;
-            has @!known_signals;
-            has %!sigmap;
             has $!signal;
 
-            submethod BUILD(:$!scheduler, :@!known_signals, :%!sigmap, :$!signal) { }
+            submethod BUILD(:$!scheduler, :$!signal) { }
 
             method tap(&emit, &, &, &tap) {
                 my $cancellation := nqp::signal($!scheduler.queue(:hint-time-sensitive),
-                    -> $signum { emit(@!known_signals[$signum] // $signum) },
-                    nqp::unbox_i(%!sigmap{$!signal}),
+                    -> $signum { emit($signum) },
+                    nqp::unbox_i($!signal),
                     SignalCancellation);
                 my $t = Tap.new({ nqp::cancel($cancellation) });
                 tap($t);
@@ -85,7 +58,7 @@ multi sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
             method sane(--> True) { }
             method serial(--> False) { }
         }
-        Supply.new(SignalTappable.new(:$scheduler, :@known_signals, :%sigmap, :$signal));
+        Supply.new(SignalTappable.new(:$scheduler, :$signal));
     }) );
 }
 

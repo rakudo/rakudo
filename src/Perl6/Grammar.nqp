@@ -3533,7 +3533,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 elsif $trap == 2 {        # probably misused P6ism
                                     $<longname>."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)");
                                 }
-                                $<longname>.sorry("Argument to \"$name\" seems to be malformed") if $orry eq 'worry';
+                                $<longname>.sorry("Argument to \"$name\" seems to be malformed")
+                                  if $orry eq 'worry'
+                                  && !$*LANG.pragma('p5isms');
                             }
                         }
                     }

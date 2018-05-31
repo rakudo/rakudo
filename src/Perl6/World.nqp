@@ -933,7 +933,6 @@ class Perl6::World is HLL::World {
       'strict',             1,
       'trace',              1,
       'worries',            1,
-      'p5isms',             1,
     );
 
     # pragmas without args that just set_pragma to true
@@ -951,7 +950,6 @@ class Perl6::World is HLL::World {
       'nqp',                1,
       'trace',              1,
       'worries',            1,
-      'p5isms',             1,
     );
 
     # not yet implemented pragmas
@@ -1073,6 +1071,26 @@ class Perl6::World is HLL::World {
             }
             else {
                 self.throw($/, 'X::LibNone');
+            }
+        }
+        elsif $name eq 'isms' {
+            if nqp::islist($arglist) {
+                my @huh;
+                for $arglist -> $ism {
+                    if $ism eq 'perl5' {
+                        $*LANG.set_pragma('p5isms', $on);
+                    }
+                    else {
+                        nqp::push(@huh,$ism)
+                    }
+                }
+                if @huh {
+                    self.throw($/, 'X::AdHoc',
+                      payload => "Don't know how to handle: isms <"
+                        ~ nqp::join(" ",@huh)
+                        ~ ">"
+                    )
+                }
             }
         }
         else {

@@ -55,7 +55,7 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
             !! $obj.HOW.mro($obj);
         my @methods;
         for @mro {
-            my %mt := $_.HOW.method_table($_);
+            my %mt := nqp::hllize($_.HOW.method_table($_));
             if nqp::existskey(%mt, $name) {
                 @methods.push(%mt{$name});
             }

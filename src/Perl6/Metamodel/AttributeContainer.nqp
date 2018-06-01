@@ -24,7 +24,7 @@ role Perl6::Metamodel::AttributeContainer {
     # Composes all attributes.
     method compose_attributes($obj, :$compiler_services) {
         my %seen_with_accessor;
-        my %meths := self.method_table($obj);
+        my %meths := nqp::hllize(self.method_table($obj));
         my %orig_meths;
         for %meths {
             %orig_meths{$_.key} := 1;

@@ -52,11 +52,11 @@ role Perl6::Metamodel::MethodContainer {
         # If local flag was not passed, include those from parents.
         unless $local {
             for self.parents($obj, :all($all), :excl($excl)) {
-                for $_.HOW.method_table($_) {
-                    @meths.push(nqp::hllizefor($_.value, 'perl6'));
+                for nqp::hllize($_.HOW.method_table($_)) {
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
                 }
-                for $_.HOW.submethod_table($_) {
-                    @meths.push(nqp::hllizefor($_.value, 'perl6'));
+                for nqp::hllize($_.HOW.submethod_table($_)) {
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
                 }
             }
         }
@@ -85,14 +85,14 @@ role Perl6::Metamodel::MethodContainer {
     # Looks up a method with the provided name, for introspection purposes.
     method lookup($obj, $name) {
         for self.mro($obj) {
-            my %meth := $_.HOW.method_table($obj);
+            my %meth := nqp::hllize($_.HOW.method_table($obj));
             if nqp::existskey(%meth, $name) {
-                return %meth{$name};
+                return nqp::decont(%meth{$name});
             }
             if nqp::can($_.HOW, 'submethod_table') {
-                my %submeth := $_.HOW.submethod_table($obj);
+                my %submeth := nqp::hllize($_.HOW.submethod_table($obj));
                 if nqp::existskey(%submeth, $name) {
-                    return %submeth{$name};
+                    return nqp::decont(%submeth{$name});
                 }
             }
         }

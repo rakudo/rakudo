@@ -1356,7 +1356,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
                         my $s := $<statement_mod_loop><sym>;
-                        $/.obs("do..." ~ $s, "repeat...while or repeat...until");
+                        $/.obs("do..." ~ $s, "repeat...while or repeat...until")
+                          unless $*LANG.pragma('p5isms');
                     }
                 }
             ]?

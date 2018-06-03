@@ -1,13 +1,14 @@
 my enum Signal (
     |nqp::stmts(
-        ( my $res  := nqp::hash ),
+        ( my $res  := nqp::list ),
         ( my $iter := nqp::iterator(nqp::getsignals) ),
         nqp::while(
             $iter,
             nqp::stmts(
-                ( my $p := nqp::shift($iter) ),
-                nqp::bindkey($res, nqp::iterkey_s($p), nqp::abs_i(nqp::iterval($p)) )
-            )
+                ( my $p := nqp::p6bindattrinvres(nqp::create(Pair), Pair, '$!key', nqp::shift($iter)) ),
+                nqp::bindattr($p, Pair, '$!value', nqp::abs_i(nqp::shift($iter)) ),
+                nqp::push($res, $p),
+            ),
         ),
         $res
     )

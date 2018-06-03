@@ -170,7 +170,24 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $!version = 2;
     }
 
-    method install(Distribution $distribution, Bool :$force) {
+    proto method install(|) {*}
+    multi method install($dist, %sources, %scripts?, %resources?, Bool :$force) {
+        # XXX: Deprecation shim
+        my %files;
+        %files{"bin/$_.key()"} = $_.value for %scripts.pairs;
+        %files{"resources/$_.key()"} = $_.value for %resources.pairs;
+        my %meta6 = %(
+            name     => $dist.?name,
+            ver      => $dist.?ver // $dist.?version,
+            api      => $dist.?api,
+            auth     => $dist.?auth // $dist.?authority,
+            provides => %sources,
+            files    => %files,
+        );
+
+        return samewith(Distribution::Hash.new(%meta6, :prefix($*CWD)), :$force);
+    }
+    multi method install(Distribution $distribution, Bool :$force) {
         my $dist  = CompUnit::Repository::Distribution.new($distribution);
         my %files = $dist.meta<files>.grep(*.defined).map: -> $link {
             $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])

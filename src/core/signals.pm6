@@ -46,7 +46,7 @@ multi sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
 
             method tap(&emit, &, &, &tap) {
                 my $cancellation := nqp::signal($!scheduler.queue(:hint-time-sensitive),
-                    -> $signum { emit($signum) },
+                    -> $signum { emit(Signal($signum)) },
                     nqp::unbox_i($!signal),
                     SignalCancellation);
                 my $t = Tap.new({ nqp::cancel($cancellation) });

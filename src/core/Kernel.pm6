@@ -110,48 +110,30 @@ class Kernel does Systemic {
     }
 
     has @!signals;  # Signal
-#?if jvm
-    method signals (Kernel:D:) {
-        @!signals //= [2, 9]
-    }
-#?endif
-
     has $!signals-setup-lock = Lock.new;
-#?if !jvm
-    has $!signals-setup = False;
+    has $!signals-setup      = False;
+
     method signals (Kernel:D:) {
         unless $!signals-setup {
             $!signals-setup-lock.protect: {
                 unless $!signals-setup {
-                    my @names;
-                    if self.name eq 'win32' {
-                        # These are the ones libuv emulates on Windows.
-                        @names = flat "", <INT BREAK HUP WINCH>;
-                    } else {
-                        if self.name eq 'openbsd' {
-                            # otherwise it uses a shell buildin
-                            @names = flat "", qx!/bin/kill -l!.words;
-                        }
-                        else {
-                            @names = flat "", qx/kill -l/.words;
-                        }
-                        @names.splice(1,1) if @names[1] eq "0";  # Ubuntu fudge
-                        @names.=map({.uc}) if $*KERNEL.name eq 'dragonfly';
-                    }
-
-                    for Signal.^enum_value_list -> $signal {
-                        my $name = substr($signal.key,3);
-                        if @names.first( * eq $name, :k ) -> $index {
-                            @!signals[$index] = $signal;
-                        }
-                    }
-                    $!signals-setup = True;
+                    nqp::stmts(
+                      ( my \arr = nqp::list(Nil) ),
+                      ( my int $els = nqp::add_i(Signal.enums.values.max, 1) ),
+                      ( my int $i   = 1  ),
+                      nqp::while(
+                        nqp::islt_i($i, $els),
+                        nqp::bindpos(arr, $i, Signal($i) // Nil),
+                        $i = nqp::add_i($i, 1),
+                      ),
+                      @!signals       = |arr,
+                      $!signals-setup = True,
+                    )
                 }
             }
         }
         @!signals
     }
-#?endif
 
     has %!signals-by-Str;
     has $!signals-by-Str-setup = False;

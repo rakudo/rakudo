@@ -119,7 +119,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Map:D: Map:D \m --> Bool) {
-    	self eqv m;
+        try {self eqv m} // False;
     }
 
     multi method EXISTS-KEY(Map:D: Str:D \key) {

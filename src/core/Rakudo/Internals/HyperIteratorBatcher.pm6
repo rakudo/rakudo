@@ -4,12 +4,12 @@ my class Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBa
     has Iterator $!iterator;
     has $!lookahead;
     has int $!seq-num;
-   
+
     submethod BUILD(Iterator :$iterator!) {
         $!iterator := $iterator;
         $!lookahead := NO_LOOKAHEAD;
     }
-    
+
     method produce-batch(int $batch-size --> Rakudo::Internals::HyperWorkBatch) {
         nqp::stmts(
           (my $items := nqp::create(IterationBuffer)),

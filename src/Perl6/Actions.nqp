@@ -6396,6 +6396,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     else {
                         %named_counts{$name} := %named_counts{$name} - 1;
+			unless $_[2].has_compile_time_value {
+                            $past.push(QAST::Stmts.new(
+                                $_[2], QAST::Op.new(:op('list')), :flat(1)));
+                        }
                     }
                 }
                 elsif nqp::istype($_, QAST::Op) && $_.name eq '&prefix:<|>' {
@@ -7927,44 +7931,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method dec_number($/) {
-        my $Int := $*W.find_symbol(['Int']);
-        my $Num := $*W.find_symbol(['Num']);
-        my $parti;
-        my $partf;
-
-        # we build up the number in parts
-        if nqp::chars($<int>) {
-            $parti := $<int>.ast;
-        } else {
-            $parti := nqp::box_i(0, $Int);
-        }
-
-        if nqp::chars($<frac>) {
-            $partf := nqp::radix_I(10, $<frac>.Str, 0, 4, $Int);
-
-            $parti := nqp::mul_I($parti, $partf[1], $Int);
-            $parti := nqp::add_I($parti, $partf[0], $Int);
-
-            $partf := $partf[1];
-        } else {
-            $partf := nqp::box_i(1, $Int);
-        }
-
         if $<escale> { # wants a Num
-            my num $n;
+            make $*W.add_numeric_constant: $/, 'Num', ~$/;
+        } else { # wants a Rat
+            my $Int := $*W.find_symbol(['Int']);
+            my $parti;
+            my $partf;
 
-            if nqp::iseq_I($parti, nqp::box_i(0, $Int)) {
-                $n := 0;
+            # we build up the number in parts
+            if nqp::chars($<int>) {
+                $parti := $<int>.ast;
             } else {
-                my $power := nqp::pow_I(nqp::box_i(10, $Int), nqp::abs_I($<escale>.ast, $Int), $Num, $Int);
-                $n := nqp::islt_I($<escale>.ast, nqp::box_i(0, $Int))
-                    ?? nqp::div_In($parti, nqp::mul_I($partf, $power, $Int))
-                    !! nqp::div_In(nqp::mul_I($parti, $power, $Int), $partf);
+                $parti := nqp::box_i(0, $Int);
             }
 
-            make $*W.add_numeric_constant($/, 'Num', $n);
+            if nqp::chars($<frac>) {
+                $partf := nqp::radix_I(10, $<frac>.Str, 0, 4, $Int);
 
-        } else { # wants a Rat
+                $parti := nqp::mul_I($parti, $partf[1], $Int);
+                $parti := nqp::add_I($parti, $partf[0], $Int);
+
+                $partf := $partf[1];
+            } else {
+                $partf := nqp::box_i(1, $Int);
+            }
+
             my $ast := $*W.add_constant('Rat', 'type_new', $parti, $partf, :nocache(1));
             $ast.node($/);
             make $ast;
@@ -9113,7 +9104,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $var-qast := QAST::Var.new: :$name, :scope<local>;
                     my $wval     := QAST::WVal.new: :value($_);
                     my $what     := nqp::what($_);
-                    my $isCode   := nqp::istype($_,
+                    my $isCode   := nqp::defined($_) && nqp::istype($_,
                         $*W.find_symbol: ['Code'], :setting-only);
                     my $param    := QAST::ParamTypeCheck.new(
                         nqp::eqaddr($what, $wInt)

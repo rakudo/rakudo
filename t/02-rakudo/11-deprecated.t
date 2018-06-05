@@ -9,7 +9,7 @@ sub test-deprecation (Str:D $lang, Bool :$is-visible, |c) {
     is-run '
         use \qq[$lang];
         %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;
-        DEPRECATED "meow", |(\qq[$args]);
+        Rakudo::Deprecations.DEPRECATED: "meow", |(\qq[$args]);
     ', :err($is-visible ?? /meow/ !! ''),
         ($is-visible ?? 'shows' !! 'no') ~ " deprecation message with $args";
 }

@@ -5,7 +5,7 @@
 #   ≽       succeeds
 
 proto sub infix:<<(<+)>>($, $, *% --> Bool:D) is pure {
-    DEPRECATED(
+    Rakudo::Deprecations.DEPRECATED(
       "set operator {$*INSTEAD // "(<=)"}",
       "",
       "6.d",

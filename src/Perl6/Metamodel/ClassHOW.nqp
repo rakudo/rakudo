@@ -40,13 +40,14 @@ class Perl6::Metamodel::ClassHOW
     }
 
     my $anon_id := 1;
-    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth) {
+    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api) {
         my $metaclass := self.new();
         my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
+        $metaclass.set_api($obj, $api) if $api;
         $metaclass.setup_mixin_cache($obj);
         nqp::setboolspec($obj, 5, nqp::null());
         $obj

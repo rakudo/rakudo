@@ -359,30 +359,38 @@ role STD {
     }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
-    method obs($old, $new, $when = 'in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+    method obs($old, $new, $when = 'in Perl 6', :$always) {
+        unless $*LANG.pragma('p5isms') && !$always {
+            $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
     method obsvar($name, $identifier-name?) {
-        $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
-          :$name, :$identifier-name);
+        unless $*LANG.pragma('p5isms') {
+            $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
+              :$name, :$identifier-name);
+        }
     }
     method sorryobs($old, $new, $when = 'in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+        unless $*LANG.pragma('p5isms') {
+            $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
     method worryobs($old, $new, $when = 'in Perl 6') {
-        self.typed_worry('X::Obsolete',
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+        unless $*LANG.pragma('p5isms') {
+            self.typed_worry('X::Obsolete',
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
 
     method dupprefix($prefixes) {
@@ -1348,7 +1356,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
                         my $s := $<statement_mod_loop><sym>;
-                        $/.obs("do..." ~ $s, "repeat...while or repeat...until");
+                        $/.obs("do..." ~ $s, "repeat...while or repeat...until")
+                          unless $*LANG.pragma('p5isms');
                     }
                 }
             ]?
@@ -1935,6 +1944,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token term:sym<undef> {
+        <!{ $*LANG.pragma('p5isms') }>
         <sym> >> {}
         [ <?before \h*'$/' >
             <.obs('$/ variable as input record separator',
@@ -1947,7 +1957,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token term:sym<new> {
-        'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax")>
+        'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax", :always)>
     }
 
     token fatarrow {
@@ -2024,11 +2034,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('%!')>
     }
 
-    token special_variable:sym<$~> {
-        <sym> <?before \h* '='>
-        <.obsvar('$~')>
-    }
-
     token special_variable:sym<$`> {
         <sym>  <?before \s | ',' | <.terminator> >
         <.obsvar('$`')>
@@ -2040,40 +2045,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$#> {
-        <sym> [<identifier>]?
+        <sym> <identifier>
         {}
-        <.obsvar('$#', $<identifier> && ~$<identifier>)>
+        <.obsvar('$#', ~$<identifier>)>
     }
 
     token special_variable:sym<$$> {
         <sym> \W
         <.obsvar('$$')>
     }
-    token special_variable:sym<$%> {
-        <sym> <?before \h* '='>
-        <.obsvar('$%')>
-    }
-
-    # TODO: $^X and other "caret" variables
-
-    token special_variable:sym<$^> {
-        <sym> <?before \h* '='>
-        <.obsvar('$^')>
-    }
 
     token special_variable:sym<$&> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('$&')>
-    }
-
-    token special_variable:sym<$*> {
-        <sym> <?before \h* '='>
-        <.obsvar('$*')>
-    }
-
-    token special_variable:sym<$=> {
-        <sym> <?before \h+ '='>
-        <.obsvar('$=')>
     }
 
     token special_variable:sym<@+> {
@@ -2139,11 +2123,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token special_variable:sym<$|> {
         <sym> <?before \h* '='>
         <.obsvar('$|')>
-    }
-
-    token special_variable:sym<$:> {
-        <sym> <?before \h* '='>
-        <.obsvar('$:')>
     }
 
     token special_variable:sym<$;> {
@@ -2761,9 +2740,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]?
 
         [ <.ws> <trait>+ ]?
-        [ <.ws> :my $*HAS_SELF :=
-              $*SCOPE eq 'has' ?? nqp::null !! nqp::getlexdyn('$*HAS_SELF')
-          ; <post_constraint('var')>+ ]?
+        [ <.ws> <post_constraint('var')>+ ]?
     }
 
     proto token routine_declarator { <...> }
@@ -3185,6 +3162,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule post_constraint($*CONSTRAINT_USAGE) {
         :my $*IN_DECL := '';
+        :my $*HAS_SELF := $*CONSTRAINT_USAGE eq 'var' && $*SCOPE eq 'has'
+            ?? nqp::null !! nqp::getlexdyn('$*HAS_SELF');
         :dba('constraint')
         [
         | '[' ~ ']' <signature>
@@ -3433,6 +3412,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* '=>'> }
 
     token term:sym<rand> {
+        <!{ $*LANG.pragma('p5isms') }>
         <sym> »
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
@@ -3554,7 +3534,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 elsif $trap == 2 {        # probably misused P6ism
                                     $<longname>."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)");
                                 }
-                                $<longname>.sorry("Argument to \"$name\" seems to be malformed") if $orry eq 'worry';
+                                $<longname>.sorry("Argument to \"$name\" seems to be malformed")
+                                  if $orry eq 'worry'
+                                  && !$*LANG.pragma('p5isms');
                             }
                         }
                     }
@@ -4782,9 +4764,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
 
         if %post_types || %unk_types || %unk_routines {
-            self.typed_sorry('X::Undeclared::Symbols',
-                :%post_types, :%unk_types, :%unk_routines,
-                :%routine_suggestion, :%type_suggestion);
+            if nqp::elems(%unk_routines) == 1 && %unk_routines<pack>
+              && nqp::elems(%post_types) == 0 && nqp::elems(%unk_types) == 0 {
+                self.typed_sorry('X::Experimental', :feature<pack>)
+            }
+            else {
+                self.typed_sorry('X::Undeclared::Symbols',
+                    :%post_types, :%unk_types, :%unk_routines,
+                    :%routine_suggestion, :%type_suggestion);
+            }
         }
 
         self;

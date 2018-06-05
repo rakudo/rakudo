@@ -723,8 +723,9 @@ my class Rakudo::Internals {
         # under concatenation closure, which ruins round-tripping. Also handle
         # the \r\n grapheme correctly.
         my str $to-escape = nqp::unbox_s(string);
-        my str $escaped = '';
+        return '' if nqp::isnull_s($to-escape); # nothing to escape
 
+        my str $escaped = '';
         my int $chars = nqp::chars($to-escape);
         my int $i = -1;
         while ($i = $i + 1) < $chars {

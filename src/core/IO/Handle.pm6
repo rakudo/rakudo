@@ -538,7 +538,7 @@ my class IO::Handle {
     }
 
     proto method seek(|) {*}
-    multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence = SeekFromBeginning) {
+    multi method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence = SeekFromBeginning --> True) {
         my int $rewind = 0;
         if $!decoder {
             # consider bytes we pre-read, when seeking from current position:

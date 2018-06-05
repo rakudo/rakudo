@@ -1073,6 +1073,26 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::LibNone');
             }
         }
+        elsif $name eq 'isms' {
+            if nqp::islist($arglist) {
+                my @huh;
+                for $arglist -> $ism {
+                    if $ism eq 'Perl5' {
+                        $*LANG.set_pragma('p5isms', $on);
+                    }
+                    else {
+                        nqp::push(@huh,$ism)
+                    }
+                }
+                if @huh {
+                    self.throw($/, 'X::AdHoc',
+                      payload => "Don't know how to handle: isms <"
+                        ~ nqp::join(" ",@huh)
+                        ~ ">"
+                    )
+                }
+            }
+        }
         else {
             $RMD("  '$name' is not a valid pragma") if $RMD;
             return 0;                        # go try module

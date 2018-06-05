@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 41;
+plan 42;
 
 compile_test_lib('05-arrays');
 
@@ -167,4 +167,16 @@ lives-ok { CArray[Str].new[my int $ = 1] },
 is CArray[Pointer].^shortname, 'CArray[Pointer]',
     'CArray.^shortname shows sane value';
 
+subtest 'CArray allocation' => {
+    plan 3;
+
+    is-deeply CArray[int32].allocate(42).list, 0 xx 42,
+        'Allocation works with Int typed CArray';
+
+    is-deeply CArray[num32].allocate(42).list, 0e0 xx 42,
+        'Allocation works with Num typed CArray';
+
+    is-deeply CArray[Pointer].allocate(42).list, Pointer.new xx 42,
+        'Allocation works with miscellaneously typed CArray';
+}
 # vim:ft=perl6

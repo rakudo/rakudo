@@ -189,68 +189,36 @@ for $*IN.lines -> $line {
         }
 
         my $empty_#postfix# := nqp::list_#postfix#;
-        sub CLONE_SLICE(\array, int $offset, int $size --> #type#array:D) {
-            nqp::if(
-              nqp::islt_i($offset,0)
-                || nqp::isgt_i($offset,(my int $elems = nqp::elems(array))),
-              Failure.new(X::OutOfRange.new(
-                :what('Offset argument to splice'),
-                :got($offset),
-                :range("0..{nqp::elems(array)}")
-              )),
-              nqp::if(
-                nqp::islt_i($size,0),
-                Failure.new(X::OutOfRange.new(
-                  :what('Size argument to splice'),
-                  :got($size),
-                  :range("0..^{$elems - $offset}")
-                )),
-                nqp::if(
-                  $size,
-                  nqp::stmts(
-                    ($elems = nqp::sub_i($elems,$offset)),
-                    nqp::if(
-                      nqp::isgt_i($elems,$size),
-                      ($elems = $size)
-                    ),
-                    (my $slice := nqp::setelems(nqp::create(array),$elems)),
-                    (my int $o = $offset - 1),
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::bindpos_#postfix#($slice,$i,
-                        nqp::atpos_#postfix#(array,($o = nqp::add_i($o,1)))
-                      )
-                    ),
-                    $slice
-                  ),
-                  nqp::create(array)
-                )
-              )
-            )
-        }
 
         multi method splice(#type#array:D:) {
             my $splice := nqp::clone(self);
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(#type#array:D: Int:D $offset) {
-            nqp::unless(
-              nqp::istype(
-                (my $slice :=
-                  CLONE_SLICE(self,$offset,nqp::sub_i(nqp::elems(self),$offset))
-                ),
-                Failure
-              ),
-              nqp::splice(
-                self,
-                $empty_#postfix#,
-                $offset,
-                nqp::sub_i(nqp::elems(self),$offset)
+        multi method splice(#type#array:D: Int:D \offset) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_#postfix#,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
               )
-            );
-            $slice
+            )
         }
         multi method splice(#type#array:D: Int:D $offset, Int:D $size) {
             nqp::unless(

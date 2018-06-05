@@ -115,22 +115,26 @@ class Distribution::Hash does Distribution::Locally {
     submethod BUILD(:$!meta, :$!prefix --> Nil) { }
     method new($hash, :$prefix) { self.bless(:meta($hash), :$prefix) }
     method meta { $!meta }
+    method perl {
+        self.^name ~ ".new({$!meta.perl}, prefix => {$!prefix.perl})";
+    }
 }
 
 class Distribution::Path does Distribution::Locally {
     has $!meta;
-    submethod BUILD(:$!meta, :$!prefix --> Nil) { }
-    method new(IO::Path $prefix, IO::Path :$meta-file is copy) {
-        $meta-file //= $prefix.add('META6.json');
-        die "No meta file located at {$meta-file.path}" unless $meta-file.e;
-        my $meta = Rakudo::Internals::JSON.from-json($meta-file.slurp);
+    has $!meta-file;
+    submethod BUILD(:$!meta, :$!prefix, :$!meta-file --> Nil) { }
+    method new(IO::Path $prefix, IO::Path :$meta-file = IO::Path) {
+        my $meta-path = $meta-file // $prefix.add('META6.json');
+        die "No meta file located at {$meta-path.path}" unless $meta-path.e;
+        my $meta = Rakudo::Internals::JSON.from-json($meta-path.slurp);
 
         # generate `files` (special directories) directly from the file system
         my %bins = Rakudo::Internals.DIR-RECURSE($prefix.add('bin').absolute).map(*.IO).map: -> $real-path {
             my $name-path = $real-path.is-relative
                 ?? $real-path
                 !! $real-path.relative($prefix);
-            $name-path => $real-path.absolute
+            $name-path.subst(:g, '\\', '/') => $name-path.subst(:g, '\\', '/')
         }
 
         my $resources-dir = $prefix.add('resources');
@@ -141,14 +145,17 @@ class Distribution::Path does Distribution::Locally {
             my $name-path = $path.is-relative
                 ?? "resources/{$path}"
                 !! "resources/{$path.relative($prefix)}";
-            $name-path => $real-path.absolute;
+            $name-path.subst(:g, '\\', '/') => $real-path.relative($prefix).subst(:g, '\\', '/')
         }
 
         $meta<files> = |%bins, |%resources;
 
-        self.bless(:$meta, :$prefix);
+        self.bless(:$meta, :$prefix, :$meta-file);
     }
     method meta { $!meta }
+    method perl {
+       self.^name ~ ".new({$!prefix.perl}, meta-file => {$!meta-file.perl})";
+    }
 }
 
 role CompUnit::Repository { ... }

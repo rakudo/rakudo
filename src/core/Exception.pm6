@@ -782,7 +782,7 @@ my class X::NYI is Exception {
     has $.did-you-mean;
     has $.workaround;
     method message() {
-        my $msg = "$.feature not yet implemented. Sorry.";
+        my $msg = "{ $.feature andthen "$_ not" orelse "Not" } yet implemented. Sorry.";
         $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
         $msg ~= "\nWorkaround: $.workaround" if $.workaround;
         $msg
@@ -914,8 +914,8 @@ my class X::OutOfRange is Exception {
     has $.comment;
     method message() {
         my $result = $.comment.defined
-           ?? "$.what out of range. Is: $.got, should be in $.range.gist(); $.comment"
-           !! "$.what out of range. Is: $.got, should be in $.range.gist()";
+           ?? "$.what out of range. Is: $.got.gist(), should be in $.range.gist(); $.comment"
+           !! "$.what out of range. Is: $.got.gist(), should be in $.range.gist()";
         $result;
     }
 }
@@ -1545,53 +1545,30 @@ my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
     my %m =
-      '$*'  => '^^ and $$',
       '$"'  => '.join() method',
       '$$'  => '$*PID',
-      '$('  => '$*GID',
-      '$)'  => '$*EGID',
-      '$<'  => '$*UID',
-      '$>'  => '$*EUID',
       '$;'  => 'real multidimensional hashes',
       '$&'  => '$<>',
       '$`'  => '$/.prematch',
       '$\'' => '$/.postmatch',
-      '$,'  => '$*OUT.output_field_separator()',
+      '$,'  => '.join() method',
       '$.'  => "the .kv method on e.g. .lines",
       '$/'  => "the filehandle's .nl-in attribute",
       '$\\' => "the filehandle's .nl-out attribute",
-      '$|'  => ':autoflush on open',
+      '$|'  => "the filehandle's .out-buffer attribute",
       '$?'  => '$! for handling child errors also',
       '$@'  => '$!',
-      '$#'  => '.fmt',
-      '$['  => 'user-defined array indices',
       '$]'  => '$*PERL.version or $*PERL.compiler.version',
 
       '$^C' => 'COMPILING namespace',
-      '$^D' => '$*DEBUGGING',
-      '$^E' => '$!.extended_os_error',
-      '$^F' => '$*SYSTEM_FD_MAX',
       '$^H' => '$?FOO variables',
-      '$^I' => '$*INPLACE',
-      '$^M' => 'a global form such as $*M',
       '$^N' => '$/[*-1]',
       '$^O' => 'VM.osname',
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
       '$^T' => '$*INIT-INSTANT',
       '$^V' => '$*PERL.version or $*PERL.compiler.version',
-      '$^W' => '$*WARNING',
       '$^X' => '$*EXECUTABLE-NAME',
-
-      '$:'  => 'Form module',
-      '$-'  => 'Form module',
-      '$+'  => 'Form module',
-      '$='  => 'Form module',
-      '$%'  => 'Form module',
-      '$^'  => 'Form module',
-      '$~'  => 'Form module',
-      '$^A' => 'Form module',
-      '$^L' => 'Form module',
 
       '@-'  => '.from method',
       '@+'  => '.to method',
@@ -1604,10 +1581,8 @@ my class X::Syntax::Perl5Var does X::Syntax {
         my $name = $!name;
         my $v    = $name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
         my $sugg = %m{~$v};
-        if $!identifier-name and $name eq '$#' {
-            # Currently only `$#` var has this identifier business handling as
-            # there are two versions of it: $# (number formatting) and $#var
-            # https://metacpan.org/pod/perlvar#Deprecated-and-removed-variables
+        if $name eq '$#' {
+            # Currently only `$#` var has this identifier business handling.
             # Should generalize the logic if we get more of stuff like this.
             $name ~= $!identifier-name;
             $sugg  = '@' ~ $!identifier-name ~ '.end';
@@ -2207,7 +2182,9 @@ my class X::TypeCheck is Exception {
     has $.expected is default(Nil);
     method gotn() {
         my $perl = (try $!got.perl) // "?";
-        $perl = "$perl.substr(0,21)..." if $perl.chars > 24;
+        my $max-len = 24;
+        $max-len += chars $!got.^name if $perl.starts-with: $!got.^name;
+        $perl = "$perl.substr(0,$max-len-3)..." if $perl.chars > $max-len;
         (try $!got.^name eq $!expected.^name
           ?? $perl
           !! "$!got.^name() ($perl)"
@@ -2294,7 +2271,7 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     method message {
             my $multi = $!signature ~~ /\n/ // '';
             "Calling {$!objname}({ join(', ', @!arguments) }) will never work with " ~ (
-                $!protoguilt ?? 'proto signature ' !!
+                $!protoguilt ?? 'signature of the proto ' !!
                 $multi       ?? 'any of these multi signatures:' !!
                                 'declared signature '
             ) ~ $!signature;

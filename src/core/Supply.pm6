@@ -17,7 +17,6 @@ my class Tap {
           self.bless(:&on-close)                 # subclass, use slow path
         )
     }
-    
 
     method close(--> True) {
         nqp::if(

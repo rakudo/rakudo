@@ -42,12 +42,13 @@ class Perl6::Metamodel::ConcreteRoleHOW
         method multi() { $!multi }
     }
 
-    method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
+    method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr, :$api) {
         my $metarole := self.new(:roles(@roles));
         my $obj := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
         $metarole.set_name($obj, $name);
         $metarole.set_ver($obj, $ver) if $ver;
         $metarole.set_auth($obj, $auth) if $auth;
+        $metarole.set_api($obj, $api) if $api;
         $obj;
     }
 

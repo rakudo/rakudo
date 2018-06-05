@@ -324,7 +324,7 @@ my class Array { # declared in BOOTSTRAP
 
     multi method Slip(Array:D:) {
 
-       # A Slip-With-Default is a special kind of Slip that also has a
+       # A Slip-With-Descripto is a special kind of Slip that also has a
        # descriptor to be able to generate containers for null elements that
        # have type and default information.
         my class Slip-With-Descriptor is Slip {
@@ -945,20 +945,22 @@ my class Array { # declared in BOOTSTRAP
     }
     method !splice-offset(int $offset) {
         nqp::stmts(
-          (my int $elems = nqp::elems(nqp::getattr(self,List,'$!reified'))),
-          (my int $size  = nqp::sub_i($elems,$offset)),
-          nqp::bindattr((my $result:= nqp::create(self)),List,'$!reified',
-            (my $buffer := nqp::setelems(nqp::create(IterationBuffer),$size))),
-          nqp::bindattr($result,Array,'$!descriptor',$!descriptor),
-          (my int $i = nqp::sub_i($offset,1)),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::bindpos($buffer,nqp::sub_i($i,$offset),
-              nqp::atpos(nqp::getattr(self,List,'$!reified'),$i))
+          (my $reified := nqp::getattr(self,List,'$!reified')),
+          (my int $elems = nqp::elems($reified)),
+          (my $result:= nqp::create(self)),
+          nqp::unless(
+            nqp::iseq_i($offset,$elems),
+            nqp::stmts(
+              nqp::bindattr($result,List,'$!reified',nqp::slice($reified,$offset,-1)),
+              nqp::splice(
+                $reified,
+                $empty,
+                $offset,
+                nqp::sub_i(nqp::elems($reified),$offset)
+              ),
+            )
           ),
-          nqp::splice(
-            nqp::getattr(self,List,'$!reified'),$empty,$offset,$size),
-          $result
+          nqp::p6bindattrinvres($result,Array,'$!descriptor',$!descriptor)
         )
     }
     method !splice-offset-fail($got) {
@@ -1047,31 +1049,22 @@ my class Array { # declared in BOOTSTRAP
     }
     method !splice-save(int $offset,int $size, \removed) {
         nqp::stmts(
-          (removed = nqp::if(
-            nqp::isgt_i(
-              nqp::add_i($offset,$size),
-              nqp::elems(nqp::getattr(self,List,'$!reified'))
-            ),
-            nqp::sub_i(nqp::elems(nqp::getattr(self,List,'$!reified')),$offset),
-            $size
-          )),
+          (my $reified := nqp::getattr(self,List,'$!reified')),
+          (my $result:= nqp::create(self)),
           nqp::if(
-            removed,
-            nqp::stmts(
-              nqp::bindattr((my $saved:= nqp::create(self)),List,'$!reified',
-                (my $buffer :=
-                  nqp::setelems(nqp::create(IterationBuffer),removed))),
-              (my int $i = -1),
-              (my $reified := nqp::getattr(self,List,'$!reified')),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),removed),
-                nqp::bindpos($buffer,$i,nqp::atpos($reified,nqp::add_i($offset,$i)))
-              ),
-              nqp::p6bindattrinvres($saved,Array,'$!descriptor',$!descriptor)
-            ),
-            nqp::p6bindattrinvres(     # effective size = 0, create new one
-              nqp::create(self),Array,'$!descriptor',$!descriptor)
-          )
+            (removed = nqp::if(
+              nqp::isgt_i(nqp::add_i($offset,$size),nqp::elems($reified)),
+              nqp::sub_i(nqp::elems($reified),$offset),
+              $size
+            )),
+            nqp::bindattr(
+              $result,
+              List,
+              '$!reified',
+              nqp::slice($reified,$offset,nqp::sub_i(nqp::add_i($offset,removed),1))
+            )
+          ),
+          nqp::p6bindattrinvres($result,Array,'$!descriptor',$!descriptor)
         )
     }
     method !splice-size-fail($got,$offset) {

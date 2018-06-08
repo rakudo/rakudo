@@ -50,6 +50,8 @@ M_PERL6_LANG_OUTPUT = \
 
 M_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES)
 
+M_BOOTSTRAP_SOURCES = $(BOOTSTRAP_SOURCES) src/vm/moar/spesh-plugins.nqp
+
 # The ordering here is important for bootstrapping reasons. In general:
 # * traits almost certainly have to come first
 # * stubs have to come after traits since they use them
@@ -148,7 +150,7 @@ $(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_C_MOAR) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 
-$(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(BOOTSTRAP_SOURCES) $(M_CORE_SOURCES) $(M_CORE_D_SOURCES)
+$(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES) $(M_CORE_D_SOURCES)
 	$(PERL5) tools/build/gen-version.pl $(PREFIX) $(LIBDIR) > $(M_BUILD_DIR)/main-version.nqp
 	$(M_NQP) $(M_GEN_CAT) src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_MOAR) \
@@ -159,8 +161,8 @@ $(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_M_MOAR) --encoding=utf8 \
 	    $(M_BUILD_DIR)/Metamodel.nqp
 
-$(PERL6_B_MOAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
-	$(M_NQP) $(M_GEN_CAT) $(BOOTSTRAP_SOURCES) > $(M_BUILD_DIR)/BOOTSTRAP.nqp
+$(PERL6_B_MOAR): $(M_BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
+	$(M_NQP) $(M_GEN_CAT) $(M_BOOTSTRAP_SOURCES) > $(M_BUILD_DIR)/BOOTSTRAP.nqp
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_B_MOAR) --encoding=utf8 \
         --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init $(M_BUILD_DIR)/BOOTSTRAP.nqp
 

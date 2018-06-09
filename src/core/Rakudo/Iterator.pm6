@@ -1581,9 +1581,9 @@ class Rakudo::Iterator {
               method pull-one() is raw {
                   nqp::if(
                     nqp::islt_i($!n, ($!i = nqp::add_i($!i, 1)))
-                      && self.FINISH-UP(1)
+                      && self!FINISH-UP(1)
                     || nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
-                      && self.FINISH-UP(0),
+                      && self!FINISH-UP(0),
                     IterationEnd,
                     $got
                   )
@@ -1591,7 +1591,7 @@ class Rakudo::Iterator {
               method sink-all(--> IterationEnd) { self.FINISH-UP }
               method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }
               method !SET-SELF($!source,$!n,&!callable) { self }
-              method FINISH-UP(\do-sink) {
+              method !FINISH-UP(\do-sink) {
                   do-sink    && $!source.sink-all;
                   &!callable && &!callable();
                   1
@@ -2495,7 +2495,7 @@ class Rakudo::Iterator {
             }
             method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
 
-            method hole(int $i) is raw {
+            method !hole(int $i) is raw {
                 nqp::p6bindattrinvres(
                   (my \v := nqp::p6scalarfromdesc($!descriptor)),
                   Scalar,
@@ -2508,7 +2508,7 @@ class Rakudo::Iterator {
                   nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
                   nqp::if(
                     nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
-                    self.hole($!i),
+                    self!hole($!i),
                     IterationEnd
                   )
                 )
@@ -2523,7 +2523,7 @@ class Rakudo::Iterator {
                     ($todo = nqp::sub_i($todo,1))
                       && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                     $target.push(
-                      nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
+                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                     )
                   ),
                   ($!i = $i),                # make sure pull-one ends
@@ -2542,7 +2542,7 @@ class Rakudo::Iterator {
                   nqp::while(   # doesn't sink
                     nqp::islt_i($i = nqp::add_i($i,1),$elems),
                     $target.push(
-                      nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
+                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                     )
                   ),
                   ($!i = $i)

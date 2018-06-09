@@ -102,7 +102,7 @@ my class Array { # declared in BOOTSTRAP
                 has $!todo;
                 has $!descriptor;
 
-                method SET-SELF(\array) {
+                method !SET-SELF(\array) {
                     $!i           = -1;
                     $!array      := array;
                     $!reified    :=
@@ -115,7 +115,7 @@ my class Array { # declared in BOOTSTRAP
                     $!descriptor := nqp::getattr(array,Array,'$!descriptor');
                     self
                 }
-                method new(\array) { nqp::create(self).SET-SELF(array) }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
 
                 method pull-one() is raw {
                     nqp::ifnull(
@@ -1255,7 +1255,7 @@ my class Array { # declared in BOOTSTRAP
               has $!array;
               has int $!count;
 
-              method SET-SELF(\array,\count) {
+              method !SET-SELF(\array,\count) {
                   nqp::stmts(
                     (my int $elems =
                       nqp::elems(nqp::getattr(array,List,'$!reified'))),
@@ -1272,7 +1272,7 @@ my class Array { # declared in BOOTSTRAP
                   )
 
               }
-              method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+              method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
               method pull-one() {
                   nqp::if(
                     $!count && nqp::elems(nqp::getattr($!array,List,'$!reified')),

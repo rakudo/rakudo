@@ -13,14 +13,14 @@ my class Rakudo::Internals::HyperWorkBatch does Iterable {
     has Bool $.first;
     has Bool $.last;
 
-    method SET-SELF(\sequence-number, \items, \first, \last) {
+    method !SET-SELF(\sequence-number, \items, \first, \last) {
         $!sequence-number = sequence-number;
         $!items := items;
         $!first = first.Bool;
         $!last  = last.Bool;
         self
     }
-    method new(\sn,\it,\f,\l) { nqp::create(self).SET-SELF(sn,it,f,l) }
+    method new(\sn,\it,\f,\l) { nqp::create(self)!SET-SELF(sn,it,f,l) }
 
     # Iterator for a HyperWorkBatch;
     my class HyperWorkBatchIterator does Iterator {

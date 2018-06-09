@@ -470,7 +470,7 @@ my role Baggy does QuantHash {
                   )
               }
 
-              method SET-SELF(\raw, \todo, \total) {
+              method !SET-SELF(\raw, \todo, \total) {
                   nqp::stmts(
                     ($!weights := nqp::clone($!raw := raw)),
                     (my $iter := nqp::iterator($!weights)),
@@ -488,7 +488,7 @@ my role Baggy does QuantHash {
                   )
               }
               method new(\raw, \todo, \total) {
-                  nqp::create(self).SET-SELF(raw, todo, total)
+                  nqp::create(self)!SET-SELF(raw, todo, total)
               }
 
               method pull-one() is raw {

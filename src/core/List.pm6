@@ -595,7 +595,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 has $!reified;
                 has $!todo;
 
-                method SET-SELF(\list) {
+                method !SET-SELF(\list) {
                     nqp::stmts(
                       ($!i = -1),
                       ($!list := list),
@@ -611,7 +611,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                       self
                     )
                 }
-                method new(\list) { nqp::create(self).SET-SELF(list) }
+                method new(\list) { nqp::create(self)!SET-SELF(list) }
 
                 method pull-one() is raw {
                     nqp::ifnull(
@@ -995,13 +995,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             has int $!elems;
             has int $!number;
 
-            method SET-SELF(\list,$!elems,\number) {
+            method !SET-SELF(\list,$!elems,\number) {
                 $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
                 $!number = number + 1;
                 self
             }
             method new(\list,\elems,\number) {
-                nqp::create(self).SET-SELF(list,elems,number)
+                nqp::create(self)!SET-SELF(list,elems,number)
             }
             method pull-one() {
                 nqp::if(
@@ -1081,14 +1081,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                      has $!list;
                      has int $!elems;
                      has int $!todo;
-                     method SET-SELF(\list,\todo) {
+                     method !SET-SELF(\list,\todo) {
                          $!list := nqp::getattr(list,List,'$!reified');
                          $!elems = nqp::elems($!list);
                          $!todo  = todo + 1;
                          self
                      }
                      method new(\list,\todo) {
-                         nqp::create(self).SET-SELF(list,todo)
+                         nqp::create(self)!SET-SELF(list,todo)
                      }
                      method pull-one() is raw {
                          nqp::if(

@@ -231,7 +231,7 @@
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
                       ($!desc := nqp::getattr(from,Array,'$!descriptor')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
@@ -250,7 +250,7 @@
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
@@ -273,7 +273,7 @@
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
@@ -328,7 +328,7 @@
                 has $!desc;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!desc := nqp::getattr(to,Array,'$!descriptor')),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
@@ -399,7 +399,7 @@
                     nqp::stmts(
                       ($!iterator := iterator),
                       ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-                      self.SET-SELF(list)
+                      self!SET-SELF(list)
                     )
                 }
                 method new(\list,\iter) { nqp::create(self).INIT(list,iter) }
@@ -451,7 +451,7 @@
                 method !INIT(\list) {
                     nqp::stmts(
                       ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-                      self.SET-SELF(list)
+                      self!SET-SELF(list)
                     )
                 }
                 method new(Mu \list) { nqp::create(self)!INIT(list) }
@@ -500,7 +500,7 @@
                 method !INIT(\list) {
                     nqp::stmts(
                       ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-                      self.SET-SELF(list)
+                      self!SET-SELF(list)
                     )
                 }
                 method new(Mu \list) { nqp::create(self)!INIT(list) }

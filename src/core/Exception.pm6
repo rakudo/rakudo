@@ -2040,7 +2040,7 @@ my class X::Str::Trans::InvalidArg is Exception {
 
 my class X::Str::Sprintf::Directives::Count is Exception {
     has int $.args-used;
-    has num $.args-have;
+    has int $.args-have;
     method message() {
         "Your printf-style directives specify "
         ~ ($.args-used == 1 ?? "1 argument, but "

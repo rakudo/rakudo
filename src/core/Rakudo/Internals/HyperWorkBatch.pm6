@@ -28,11 +28,13 @@ my class Rakudo::Internals::HyperWorkBatch does Iterable {
         has int $!i;
         has int $!n;
 
-        submethod BUILD(:$items --> Nil) {
-            $!items := nqp::decont($items);
+        method !SET-SELF(\items) {
+            $!items := items;
             $!i = -1;
-            $!n = nqp::elems($!items);
+            $!n = nqp::elems(items);
+            self
         }
+        method new(\items) { nqp::create(self)!SET-SELF(items) }
 
         method pull-one() {
             ++$!i < $!n
@@ -42,7 +44,7 @@ my class Rakudo::Internals::HyperWorkBatch does Iterable {
     }
 
     method iterator(--> Iterator) {
-        HyperWorkBatchIterator.new(:$!items)
+        HyperWorkBatchIterator.new($!items)
     }
 
     method replace-with(IterationBuffer $ib --> Nil) {

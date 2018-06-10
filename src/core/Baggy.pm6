@@ -262,7 +262,7 @@ my role Baggy does QuantHash {
         nqp::p6bool($!elems && nqp::elems($!elems))
     }
 
-    method HASHIFY(\type) {
+    method !HASHIFY(\type) {
         nqp::stmts(
           (my $hash := Hash.^parameterize(type,Any).new),
           (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
@@ -291,8 +291,8 @@ my role Baggy does QuantHash {
           $hash
         )
     }
-    multi method hash(Baggy:D: --> Hash:D) { self.HASHIFY(Any) }
-    multi method Hash(Baggy:D: --> Hash:D) { self.HASHIFY(UInt) }
+    multi method hash(Baggy:D: --> Hash:D) { self!HASHIFY(Any) }
+    multi method Hash(Baggy:D: --> Hash:D) { self!HASHIFY(UInt) }
 
     method default(Baggy:D: --> 0) { }
 

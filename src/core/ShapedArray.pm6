@@ -227,14 +227,14 @@
             class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
                 has $!desc;
-                method INIT(Mu \to, Mu \from) {
+                method !INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
                       ($!desc := nqp::getattr(from,Array,'$!descriptor')),
                       self!SET-SELF(to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
                 method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
@@ -247,13 +247,13 @@
         sub INTCPY(Mu \to, Mu \from) {
             class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
-                method INIT(Mu \to, Mu \from) {
+                method !INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
                       self!SET-SELF(to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
                 method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
@@ -270,13 +270,13 @@
         sub NUMCPY(Mu \to, Mu \from) {
             class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
-                method INIT(Mu \to, Mu \from) {
+                method !INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
                       self!SET-SELF(to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
                 method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
@@ -326,7 +326,7 @@
             class :: does Rakudo::Iterator::ShapeBranch {
                 has $!iterators;
                 has $!desc;
-                method INIT(\to,\from) {
+                method !INIT(\to,\from) {
                     nqp::stmts(
                       self!SET-SELF(to),
                       ($!desc := nqp::getattr(to,Array,'$!descriptor')),
@@ -337,7 +337,7 @@
                       self
                     )
                 }
-                method new(\to,\from) { nqp::create(self).INIT(to,from) }
+                method new(\to,\from) { nqp::create(self)!INIT(to,from) }
                 method done(--> Nil) {
                     nqp::unless(                        # verify lowest
                       nqp::atpos($!iterators,0).is-lazy # finite iterator
@@ -395,14 +395,14 @@
             class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!iterator;
                 has Mu $!desc;
-                method INIT(\list,\iterator) {
+                method !INIT(\list,\iterator) {
                     nqp::stmts(
                       ($!iterator := iterator),
                       ($!desc := nqp::getattr(list,Array,'$!descriptor')),
                       self!SET-SELF(list)
                     )
                 }
-                method new(\list,\iter) { nqp::create(self).INIT(list,iter) }
+                method new(\list,\iter) { nqp::create(self)!INIT(list,iter) }
                 method result(--> Nil) {
                     nqp::unless(
                       nqp::eqaddr(

@@ -41,9 +41,6 @@ MAST::ExtOpRegistry.register_extop('p6box_u',
 MAST::ExtOpRegistry.register_extop('p6bool',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6var',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6reprname',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -138,7 +135,6 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
 
     MAST::InstructionList.new(@ops, $cont_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6var', 'p6var');
 $ops.add_hll_moarop_mapping('perl6', 'p6reprname', 'p6reprname', :decont(0));
 $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     my @ops;
@@ -360,7 +356,6 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
 $ops.add_hll_op('nqp', 'p6bool', $p6bool);
 $ops.add_hll_moarop_mapping('nqp', 'p6init', 'p6init');
 $ops.add_hll_moarop_mapping('nqp', 'p6settypes', 'p6settypes', 0);
-$ops.add_hll_moarop_mapping('nqp', 'p6var', 'p6var');
 $ops.add_hll_moarop_mapping('nqp', 'p6reprname', 'p6reprname');
 $ops.add_hll_moarop_mapping('nqp', 'p6inpre', 'p6inpre');
 $ops.add_hll_moarop_mapping('nqp', 'p6capturelexwhere', 'p6capturelexwhere');

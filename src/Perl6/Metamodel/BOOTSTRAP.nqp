@@ -1309,9 +1309,8 @@ BEGIN {
                     $type.HOW.instantiate_generic($type, $type_environment));
                 my $cd_ins := $cd.instantiate_generic($type_environment);
                 nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
-                my $avc_var  := nqp::p6var($avc);
-                my $avc_copy := nqp::clone($avc_var);
-                my @avc_mro  := $avc_var.HOW.mro($avc_var);
+                my $avc_copy := nqp::clone_nd($avc);
+                my @avc_mro  := nqp::how_nd($avc).mro($avc);
                 my int $i := 0;
                 $i := $i + 1 while @avc_mro[$i].HOW.is_mixin(@avc_mro[$i]);
                 nqp::bindattr($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins);
@@ -1395,11 +1394,14 @@ BEGIN {
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := nqp::getstaticcode(sub ($cont) {
-        nqp::decont(
-            nqp::getattr($cont, Proxy, '&!FETCH')(nqp::p6var($cont)))
+        my $var := nqp::create(Scalar);
+        nqp::bindattr($var, Scalar, '$!value', $cont);
+        nqp::decont(nqp::getattr($cont, Proxy, '&!FETCH')($var))
     })));
     Proxy.HOW.add_method(Proxy, 'STORE', ($PROXY_STORE := nqp::getstaticcode(sub ($cont, $val) {
-        nqp::getattr($cont, Proxy, '&!STORE')(nqp::p6var($cont), $val)
+        my $var := nqp::create(Scalar);
+        nqp::bindattr($var, Scalar, '$!value', $cont);
+        nqp::getattr($cont, Proxy, '&!STORE')($var, $val)
     })));
     Proxy.HOW.add_method(Proxy, 'new', nqp::getstaticcode(sub ($type, :$FETCH!, :$STORE!) {
         my $cont := nqp::create(Proxy);

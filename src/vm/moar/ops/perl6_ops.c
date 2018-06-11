@@ -217,26 +217,6 @@ static void p6bool_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
 #endif
 }
 
-/* The .VAR operation. Wraps in an outer Scalar container so we can actually
- * operate on the underlying Scalar, if we have a container. */
-static MVMuint8 s_p6var[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6var(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     MVMObject *wrappee = GET_REG(tc, 2).o;
-     if (STABLE(wrappee)->container_spec) {
-        MVMROOT(tc, wrappee, {
-            MVMObject *wrapper = MVM_repr_alloc_init(tc, Scalar);
-            MVM_ASSIGN_REF(tc, &(wrapper->header), ((Rakudo_Scalar *)wrapper)->value, wrappee);
-            GET_REG(tc, 0).o = wrapper;
-        });
-     }
-     else {
-        GET_REG(tc, 0).o = wrappee;
-     }
-}
-
 static MVMuint8 s_p6reprname[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -679,7 +659,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6box_u",  p6box_u, 2, s_p6box_u, NULL, p6box_u_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);

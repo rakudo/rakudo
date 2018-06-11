@@ -709,6 +709,42 @@ register_op_desugar('p6scalarfromdesc', -> $qast {
         )
     )
 });
+register_op_desugar('p6recont_ro', -> $qast {
+    my $result := QAST::Node.unique('result');
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
+    QAST::Stmt.new(
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
+            $qast[0]
+        ),
+        QAST::Op.new(
+            :op('if'),
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('isconcrete_nd'),
+                    QAST::Var.new( :name($result), :scope('local') )
+                ),
+                QAST::Op.new(
+                    :op('isrwcont'),
+                    QAST::Var.new( :name($result), :scope('local') )
+                )
+            ),
+            QAST::Op.new(
+                :op('p6bindattrinvres'),
+                QAST::Op.new( :op('create'), $Scalar ),
+                $Scalar,
+                QAST::SVal.new( :value('$!value') ),
+                QAST::Op.new(
+                    :op('decont'),
+                    QAST::Var.new( :name($result), :scope('local') )
+                )
+            ),
+            QAST::Var.new( :name($result), :scope('local') )
+        )
+    )
+});
 
 sub can-use-p6forstmt($block) {
     my $past_block := $block.ann('past_block');

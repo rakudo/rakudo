@@ -47,9 +47,6 @@ MAST::ExtOpRegistry.register_extop('p6var',
 MAST::ExtOpRegistry.register_extop('p6reprname',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6recont_ro',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6decontrv',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -108,7 +105,6 @@ $ops.add_hll_moarop_mapping('perl6', 'p6box_i', 'p6box_i');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_n', 'p6box_n');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_s', 'p6box_s');
 $ops.add_hll_moarop_mapping('perl6', 'p6box_u', 'p6box_u');
-$ops.add_hll_moarop_mapping('perl6', 'p6recont_ro', 'p6recont_ro');
 $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my @ops;
     my $cont_res  := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));

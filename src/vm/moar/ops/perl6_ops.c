@@ -217,28 +217,6 @@ static void p6bool_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
 #endif
 }
 
-static MVMuint8 s_p6recont_ro[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6recont_ro(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *check = GET_REG(tc, 2).o;
-    if (IS_CONCRETE(check) && STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
-        MVMObject *desc = ((Rakudo_Scalar *)check)->descriptor;
-        if (!MVM_is_null(tc, desc) && ((Rakudo_ContainerDescriptor *)desc)->rw) {
-            /* We have an rw container; re-containerize it. */
-            MVMROOT(tc, check, {
-                MVMObject *result = MVM_repr_alloc_init(tc, Scalar);
-                MVM_ASSIGN_REF(tc, &(result->header), ((Rakudo_Scalar *)result)->value,
-                    ((Rakudo_Scalar *)check)->value);
-                GET_REG(tc, 0).o = result;
-            });
-            return;
-        }
-    }
-    GET_REG(tc, 0).o = check;
-}
-
 /* The .VAR operation. Wraps in an outer Scalar container so we can actually
  * operate on the underlying Scalar, if we have a container. */
 static MVMuint8 s_p6var[] = {
@@ -701,7 +679,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6box_u",  p6box_u, 2, s_p6box_u, NULL, p6box_u_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro, NULL, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);

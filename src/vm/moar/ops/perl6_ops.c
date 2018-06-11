@@ -237,61 +237,6 @@ static void p6reprname_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpesh
     discover_create(tc, g, ins, tc->instance->boot_types.BOOTStr);
 }
 
-/* Decontainerizes the return value of a routine as needed. */
-static MVMuint8 s_p6decontrv[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static MVMObject *Iterable = NULL;
-static void p6decontrv(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *retval;
-    if (!Iterable)
-        Iterable = MVM_frame_find_lexical_by_name(tc,
-            MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "Iterable"),
-            MVM_reg_obj)->o;
-    retval = GET_REG(tc, 2).o;
-    if (MVM_is_null(tc, retval)) {
-       retval = Mu;
-    }
-    else if (IS_CONCRETE(retval)) {
-        const MVMContainerSpec *spec = STABLE(retval)->container_spec;
-        if (spec == Rakudo_containers_get_scalar()) {
-            Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
-                ((Rakudo_Scalar *)retval)->descriptor;
-            if (!MVM_is_null(tc, (MVMObject *)cd) && cd->rw) {
-                MVMObject *value = ((Rakudo_Scalar *)retval)->value;
-                if (MVM_6model_istype_cache_only(tc, value, Iterable)) {
-                    MVMROOT(tc, value, {
-                        MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
-                        MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
-                            value);
-                        retval = cont;
-                    });
-                }
-                else {
-                    retval = value;
-                }
-            }
-        }
-        else if (spec && spec->fetch_never_invokes) {
-            MVMRegister res;
-            spec->fetch(tc, retval, &res);
-            retval = res.o;
-        }
-    }
-    GET_REG(tc, 0).o = retval;
-}
-static void p6decontrv_spesh(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
-    /* If it's already deconted, can just become a set. */
-    MVMSpeshFacts *obj_facts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[1]);
-    if (obj_facts->flags & (MVM_SPESH_FACT_DECONTED | MVM_SPESH_FACT_TYPEOBJ)) {
-        MVMSpeshFacts *res_facts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
-        ins->info = MVM_op_get_op(MVM_OP_set);
-        res_facts->flags = obj_facts->flags;
-        res_facts->type = obj_facts->type;
-    }
-}
-
 static MVMuint8 s_p6capturelex[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -660,7 +605,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

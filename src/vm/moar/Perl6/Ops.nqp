@@ -44,9 +44,6 @@ MAST::ExtOpRegistry.register_extop('p6bool',
 MAST::ExtOpRegistry.register_extop('p6reprname',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6decontrv',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6capturelex',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -646,12 +643,7 @@ $ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
             else             { $qastcomp.as_mast($op[1], :want($MVM_reg_str)) }
         }
         else {
-            my @ops;
-            my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj), :want-decont);
-            push_ilist(@ops, $value_res);
-            nqp::push(@ops, MAST::ExtOp.new( :op('p6decontrv'), :cu($qastcomp.mast_compunit),
-                $value_res.result_reg, $value_res.result_reg ));
-            MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+            $qastcomp.as_mast(QAST::Op.new( :op('p6decontrv_internal'), $op[1] ));
         }
     }
 });

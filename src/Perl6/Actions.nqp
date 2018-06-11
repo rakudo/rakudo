@@ -778,6 +778,69 @@ register_op_desugar('p6var', -> $qast {
         )
     )
 });
+register_op_desugar('p6decontrv_internal', sub ($qast) {
+    my $result := QAST::Node.unique('result');
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
+    my $Iterable := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Iterable')) );
+    QAST::Stmt.new(
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
+            $qast[0]
+        ),
+        QAST::Op.new(
+            # If it's a container...
+            :op('if'),
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('isconcrete_nd'),
+                    QAST::Var.new( :name($result), :scope('local') )
+                ),
+                QAST::Op.new(
+                    :op('iscont'),
+                    QAST::Var.new( :name($result), :scope('local') )
+                )
+            ),
+            # It's a container; is it an rw one?
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('isrwcont'),
+                    QAST::Var.new( :name($result), :scope('local') )
+                ),
+                # Yes; does it contain an Iterable? If so, rewrap it. If
+                # not, strip it.
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        QAST::Var.new( :name($result), :scope('local') ),
+                        $Iterable
+                    ),
+                    QAST::Op.new(
+                        :op('p6bindattrinvres'),
+                        QAST::Op.new( :op('create'), $Scalar ),
+                        $Scalar,
+                        QAST::SVal.new( :value('$!value') ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :name($result), :scope('local') )
+                        )
+                    ),
+                    QAST::Op.new(
+                        :op('decont'),
+                        QAST::Var.new( :name($result), :scope('local') )
+                    )
+                ),
+                # Not rw, so leave container in place.
+                QAST::Var.new( :name($result), :scope('local') )
+            ),
+            # Not a container, so just hand back value
+            QAST::Var.new( :name($result), :scope('local') )
+        )
+    )
+});
 
 sub can-use-p6forstmt($block) {
     my $past_block := $block.ann('past_block');

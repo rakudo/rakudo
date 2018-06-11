@@ -53,9 +53,6 @@ static MVMObject *False               = NULL;
 static MVMObject *ContainerDescriptor = NULL;
 static MVMObject *Nil                 = NULL;
 
-/* Default container descriptor. */
-static MVMObject *default_cont_desc = NULL;
-
 /* Useful string constants. */
 static MVMString *str_return     = NULL;
 static MVMString *str_dispatcher = NULL;
@@ -125,21 +122,6 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
         get_type(tc, conf, "Nil", Nil);
     });
     
-    /* Set up default container descriptor. */
-    {
-        MVMString *element;
-        default_cont_desc = MVM_repr_alloc_init(tc, ContainerDescriptor);
-        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&default_cont_desc, "DefaultContainerDescriptor");
-        element = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "<element>");
-        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
-            ((Rakudo_ContainerDescriptor *)default_cont_desc)->of, Mu);
-        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
-            ((Rakudo_ContainerDescriptor *)default_cont_desc)->name, element);
-        ((Rakudo_ContainerDescriptor *)default_cont_desc)->rw = 1;
-        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
-            ((Rakudo_ContainerDescriptor *)default_cont_desc)->the_default, Any);
-    }
-
     /* Strings. */
     str_return = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "RETURN");
     MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_return, "RETURN");
@@ -233,28 +215,6 @@ static void p6bool_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
 #ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
     MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
 #endif
-}
-
-/* Creates a Scalar from the specified descriptor. */
-static MVMuint8 s_p6scalarfromdesc[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6scalarfromdesc(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *new_scalar = MVM_repr_alloc_init(tc, Scalar);
-    MVMObject *descriptor = GET_REG(tc, 2).o;
-    if (MVM_is_null(tc, descriptor) || !IS_CONCRETE(descriptor)) {
-        descriptor = default_cont_desc;
-    }
-    MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);
-    MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->value,
-        ((Rakudo_ContainerDescriptor *)descriptor)->the_default);
-    GET_REG(tc, 0).o = new_scalar;
-}
-static void p6scalarfromdesc_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    MVMSpeshFacts *tfacts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[0]);
-    tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE;
-    tfacts->type   = Scalar;
 }
 
 static MVMuint8 s_p6recont_ro[] = {
@@ -741,7 +701,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6box_u",  p6box_u, 2, s_p6box_u, NULL, p6box_u_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc, NULL, p6scalarfromdesc_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro, NULL, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

@@ -1357,6 +1357,12 @@ BEGIN {
     # Scalar needs to be registered as a container type.
     nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::null());
 
+    # Cache a single default Scalar container spec, to ensure we only get
+    # one of them.
+    Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
+        Perl6::Metamodel::ContainerDescriptor.new(
+            :of(Mu), :default(Any), :rw(1), :name('element')));
+
     # Set up various native reference types.
     sub setup_native_ref_type($type, $primitive, $ref_kind) {
         $type.HOW.add_parent($type, Any);
@@ -3231,6 +3237,11 @@ Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 nqp::neverrepossess(PROCESS.WHO);
 nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
 nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
+
+# Stash Scalar and a default container spec away in the HLL state.
+nqp::bindhllsym('perl6', 'Scalar', Scalar);
+nqp::bindhllsym('perl6', 'default_cont_spec',
+    Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
 
 # HLL configuration: interop, boxing and exit handling.
 nqp::sethllconfig('perl6', nqp::hash(

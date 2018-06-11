@@ -667,6 +667,48 @@ register_op_desugar('p6forstmt', -> $qast {
         QAST::WVal.new( :value($qast.ann('Nil')) )
     )
 });
+register_op_desugar('p6scalarfromdesc', -> $qast {
+    my $desc := QAST::Node.unique('descriptor');
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
+    my $default_cont_spec := nqp::gethllsym('perl6', 'default_cont_spec');
+    QAST::Stmt.new(
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($desc), :scope('local'), :decl('var') ),
+            $qast[0]
+        ),
+        QAST::Op.new(
+            :op('unless'),
+            QAST::Op.new(
+                :op('isconcrete'),
+                QAST::Var.new( :name($desc), :scope('local') ),
+            ),
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($desc), :scope('local') ),
+                QAST::WVal.new( :value($default_cont_spec) )
+            )
+        ),
+        QAST::Op.new(
+            :op('p6bindattrinvres'),
+            QAST::Op.new(
+                :op('p6bindattrinvres'),
+                QAST::Op.new( :op('create'), $Scalar ),
+                $Scalar,
+                QAST::SVal.new( :value('$!descriptor') ),
+                QAST::Var.new( :name($desc), :scope('local') )
+            ),
+            $Scalar,
+            QAST::SVal.new( :value('$!value') ),
+            QAST::Op.new(
+                :op('getattr'),
+                QAST::Var.new( :name($desc), :scope('local') ),
+                QAST::WVal.new( :value($default_cont_spec.WHAT) ),
+                QAST::SVal.new( :value('$!default') )
+            )
+        )
+    )
+});
 
 sub can-use-p6forstmt($block) {
     my $past_block := $block.ann('past_block');

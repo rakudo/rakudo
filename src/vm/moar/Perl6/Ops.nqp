@@ -41,9 +41,6 @@ MAST::ExtOpRegistry.register_extop('p6box_u',
 MAST::ExtOpRegistry.register_extop('p6bool',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6scalarfromdesc',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6var',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -318,7 +315,6 @@ my $p6bool := -> $qastcomp, $op {
     MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
 };
 $ops.add_hll_op('perl6', 'p6bool', $p6bool);
-$ops.add_hll_moarop_mapping('perl6', 'p6scalarfromdesc', 'p6scalarfromdesc');
 $ops.add_hll_op('perl6', 'p6invokehandler', -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new( :op('call'), $op[0], $op[1] ));
 });

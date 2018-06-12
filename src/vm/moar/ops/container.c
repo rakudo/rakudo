@@ -11,6 +11,15 @@ static MVMCallsiteEntry tc_flags[] = { MVM_CALLSITE_ARG_OBJ,
                                        MVM_CALLSITE_ARG_OBJ };
 static MVMCallsite     tc_callsite = { tc_flags, 3, 3, 3, 0 };
 
+/* Registered container operation callbacks. */
+typedef struct {
+    MVMObject *store;
+    MVMObject *store_unchecked;
+    MVMObject *cas;
+    MVMObject *atomic_load;
+    MVMObject *atomic_store;
+} RakudoContData;
+
 static void rakudo_scalar_fetch(MVMThreadContext *tc, MVMObject *cont, MVMRegister *res) {
     MVMObject *value = ((Rakudo_Scalar *)cont)->value;
     res->o = value ? value : tc->instance->VMNull;
@@ -177,16 +186,14 @@ static MVMint32 type_check_store(MVMThreadContext *tc, MVMObject *cont, MVMObjec
     return 0;
 }
 
-static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-    Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
-    ensure_assignable(tc, rcd);
-    if (!obj)
-        MVM_exception_throw_adhoc(tc, "Cannot assign a null value to a Perl 6 scalar");
-    if (STABLE(obj)->WHAT == get_nil())
-        obj = rcd->the_default;
-    if (!type_check_store(tc, cont, obj, rcd, type_check_ret))
-        finish_store(tc, cont, obj); /* Didn't invoke, so complete store. */
+static void rakudo_scalar_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *value) {
+    RakudoContData *data = (RakudoContData *)STABLE(cont)->container_data;
+    MVMObject *code = MVM_frame_find_invokee(tc, data->store, NULL);
+    MVMCallsite *cs = MVM_callsite_get_common(tc, MVM_CALLSITE_ID_TWO_OBJ);
+    MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, cs);
+    tc->cur_frame->args[0].o = cont;
+    tc->cur_frame->args[1].o = value;
+    STABLE(code)->invoke(tc, code, cs, tc->cur_frame->args);
 }
 
 static void rakudo_scalar_store_i(MVMThreadContext *tc, MVMObject *cont, MVMint64 value) {
@@ -217,12 +224,35 @@ static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont,
     finish_store(tc, cont, obj);
 }
 
+static void rakudo_scalar_gc_mark_data(MVMThreadContext *tc, MVMSTable *st, MVMGCWorklist *worklist) {
+    RakudoContData *data = (RakudoContData *)st->container_data;
+    MVM_gc_worklist_add(tc, worklist, &data->store);
+    MVM_gc_worklist_add(tc, worklist, &data->store_unchecked);
+    MVM_gc_worklist_add(tc, worklist, &data->cas);
+    MVM_gc_worklist_add(tc, worklist, &data->atomic_load);
+    MVM_gc_worklist_add(tc, worklist, &data->atomic_store);
+}
+
+static void rakudo_scalar_gc_free_data(MVMThreadContext *tc, MVMSTable *st) {
+    MVM_free_null(st->container_data);
+}
+
 static void rakudo_scalar_serialize(MVMThreadContext *tc, MVMSTable *st, MVMSerializationWriter *writer) {
-    /* Nothing to do. */
+    RakudoContData *data = (RakudoContData *)st->container_data;
+    MVM_serialization_write_ref(tc, writer, data->store);
+    MVM_serialization_write_ref(tc, writer, data->store_unchecked);
+    MVM_serialization_write_ref(tc, writer, data->cas);
+    MVM_serialization_write_ref(tc, writer, data->atomic_load);
+    MVM_serialization_write_ref(tc, writer, data->atomic_store);
 }
 
 static void rakudo_scalar_deserialize(MVMThreadContext *tc, MVMSTable *st, MVMSerializationReader *reader) {
-    /* Nothing to do. */
+    RakudoContData *data = (RakudoContData *)st->container_data;
+    MVM_ASSIGN_REF(tc, &(st->header), data->store, MVM_serialization_read_ref(tc, reader));
+    MVM_ASSIGN_REF(tc, &(st->header), data->store_unchecked, MVM_serialization_read_ref(tc, reader));
+    MVM_ASSIGN_REF(tc, &(st->header), data->cas, MVM_serialization_read_ref(tc, reader));
+    MVM_ASSIGN_REF(tc, &(st->header), data->atomic_load, MVM_serialization_read_ref(tc, reader));
+    MVM_ASSIGN_REF(tc, &(st->header), data->atomic_store, MVM_serialization_read_ref(tc, reader));
 }
 
 static void rakudo_scalar_spesh(MVMThreadContext *tc, MVMSTable *st, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
@@ -441,8 +471,8 @@ static const MVMContainerSpec rakudo_scalar_spec = {
     rakudo_scalar_store_s,
     rakudo_scalar_store_unchecked,
     rakudo_scalar_spesh,
-    NULL,
-    NULL,
+    rakudo_scalar_gc_mark_data,
+    rakudo_scalar_gc_free_data,
     rakudo_scalar_serialize,
     rakudo_scalar_deserialize,
     rakudo_scalar_can_store,
@@ -453,11 +483,27 @@ static const MVMContainerSpec rakudo_scalar_spec = {
 };
 
 static void rakudo_scalar_set_container_spec(MVMThreadContext *tc, MVMSTable *st) {
+    RakudoContData *data = MVM_calloc(1, sizeof(RakudoContData));
+    st->container_data = data;
     st->container_spec = &rakudo_scalar_spec;
 }
 
+static MVMObject * grab_one_value(MVMThreadContext *tc, MVMObject *config, const char *key) {
+    MVMString *key_str;
+    MVMROOT(tc, config, {
+        key_str = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, key);
+    });
+    if (!MVM_repr_exists_key(tc, config, key_str))
+        MVM_exception_throw_adhoc(tc, "Container spec must be configured with a '%s'", key);
+    return MVM_repr_at_key_o(tc, config, key_str);
+}
 static void rakudo_scalar_configure_container_spec(MVMThreadContext *tc, MVMSTable *st, MVMObject *config) {
-    /* Nothing to do. */
+    RakudoContData *data = (RakudoContData *)st->container_data;
+    MVMROOT2(tc, st, config, {
+        MVMObject *value;
+        value = grab_one_value(tc, config, "store");
+        MVM_ASSIGN_REF(tc, &(st->header), data->store, value);
+    });
 }
 
 static const MVMContainerConfigurer ContainerConfigurer = {

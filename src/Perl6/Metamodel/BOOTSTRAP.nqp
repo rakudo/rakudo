@@ -1353,8 +1353,43 @@ BEGIN {
     }));
     Scalar.HOW.compose_repr(Scalar);
 
-    # Scalar needs to be registered as a container type.
-    nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::null());
+    # Scalar needs to be registered as a container type. Also provide the
+    # slow-path implementation of various container operations.
+    nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::hash(
+        'store', nqp::getstaticcode(sub ($cont, $val) {
+            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+            if nqp::isconcrete($desc) {
+                if $desc.rw {
+                    $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                    my $type := $desc.of;
+                    if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                        nqp::bindattr($cont, Scalar, '$!value', $val);
+                        my $whence := nqp::getattr($cont, Scalar, '$!whence');
+                        if nqp::isconcrete($whence) {
+                            $whence();
+                            nqp::bindattr($cont, Scalar, '$!whence', nqp::null());
+                        }
+                    }
+                    else {
+                        my %x := nqp::gethllsym('perl6', 'P6EX');
+                        if nqp::ishash(%x) {
+                            %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
+                        }
+                        else {
+                            nqp::die("Type check failed in assignment");
+                        }
+                    }
+                }
+                else {
+                    nqp::die("Cannot assign to a readonly variable (" ~
+                        $desc.name ~ ") or a value");
+                }
+            }
+            else {
+                nqp::die("Cannot assign to a readonly variable or a value");
+            }
+        })
+    ));
 
     # Cache a single default Scalar container spec, to ensure we only get
     # one of them.

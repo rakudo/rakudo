@@ -39,40 +39,12 @@ static void rakudo_scalar_fetch_s(MVMThreadContext *tc, MVMObject *cont, MVMRegi
 MVMObject * get_nil();
 MVMObject * get_mu();
 
-static void finish_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-    MVMObject *whence;
-
-    /* Store the value. */
-    MVM_ASSIGN_REF(tc, &(cont->header), rs->value, obj);
-
-    /* Run any whence closure. */
-    whence = rs->whence;
-    if (whence && IS_CONCRETE(whence)) {
-        MVMObject *code = MVM_frame_find_invokee(tc, whence, NULL);
-        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &no_arg_callsite);
-        rs->whence = NULL;
-        STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
-    }
-}
-
 typedef struct {
     MVMObject   *cont;
     MVMObject   *obj;
     MVMRegister  res;
 } type_check_data;
 void Rakudo_assign_typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj);
-static void type_check_ret(MVMThreadContext *tc, void *sr_data) {
-    type_check_data *tcd = (type_check_data *)sr_data;
-    MVMObject *cont = tcd->cont;
-    MVMObject *obj  = tcd->obj;
-    MVMint64   res  = tcd->res.i64;
-    free(tcd);
-    if (res)
-        finish_store(tc, cont, obj);
-    else
-         Rakudo_assign_typecheck_failed(tc, cont, obj);
-}
 static void mark_type_check_ret_data(MVMThreadContext *tc, MVMFrame *frame,
         MVMGCWorklist *worklist) {
     type_check_data *tcd = (type_check_data *)frame->extra->special_return_data;

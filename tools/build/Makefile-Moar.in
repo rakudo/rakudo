@@ -134,12 +134,18 @@ $(PERL6_P_MOAR): src/Perl6/Pod.nqp gen/nqp-version
 
 $(PERL6_A_MOAR): src/Perl6/Actions.nqp $(PERL6_P_MOAR) $(PERL6_OPS_MOAR)
 	$(M_NQP) $(M_GEN_CAT) src/Perl6/Actions.nqp \
+                              src/Perl6/QActions.nqp \
+                              src/Perl6/RegexActions.nqp \
+                              src/Perl6/P5RegexActions.nqp \
                               src/Perl6/PodActions.nqp > $(M_BUILD_DIR)/Perl6-Actions.nqp
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_A_MOAR) --encoding=utf8 \
 	    $(M_BUILD_DIR)/Perl6-Actions.nqp
 
 $(PERL6_G_MOAR): src/Perl6/Grammar.nqp $(PERL6_W_MOAR) $(PERL6_A_MOAR) $(PERL6_P_MOAR)
 	$(M_NQP) $(M_GEN_CAT) src/Perl6/Grammar.nqp \
+                              src/Perl6/QGrammar.nqp \
+                              src/Perl6/RegexGrammar.nqp \
+                              src/Perl6/P5RegexGrammar.nqp \
                               src/Perl6/PodGrammar.nqp > $(M_BUILD_DIR)/Perl6-Grammar.nqp
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_G_MOAR) --encoding=utf8 \
 	    $(M_BUILD_DIR)/Perl6-Grammar.nqp

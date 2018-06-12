@@ -16,7 +16,6 @@ typedef struct {
     MVMObject *store;
     MVMObject *store_unchecked;
     MVMObject *cas;
-    MVMObject *atomic_load;
     MVMObject *atomic_store;
 } RakudoContData;
 
@@ -229,7 +228,6 @@ static void rakudo_scalar_gc_mark_data(MVMThreadContext *tc, MVMSTable *st, MVMG
     MVM_gc_worklist_add(tc, worklist, &data->store);
     MVM_gc_worklist_add(tc, worklist, &data->store_unchecked);
     MVM_gc_worklist_add(tc, worklist, &data->cas);
-    MVM_gc_worklist_add(tc, worklist, &data->atomic_load);
     MVM_gc_worklist_add(tc, worklist, &data->atomic_store);
 }
 
@@ -242,7 +240,6 @@ static void rakudo_scalar_serialize(MVMThreadContext *tc, MVMSTable *st, MVMSeri
     MVM_serialization_write_ref(tc, writer, data->store);
     MVM_serialization_write_ref(tc, writer, data->store_unchecked);
     MVM_serialization_write_ref(tc, writer, data->cas);
-    MVM_serialization_write_ref(tc, writer, data->atomic_load);
     MVM_serialization_write_ref(tc, writer, data->atomic_store);
 }
 
@@ -251,7 +248,6 @@ static void rakudo_scalar_deserialize(MVMThreadContext *tc, MVMSTable *st, MVMSe
     MVM_ASSIGN_REF(tc, &(st->header), data->store, MVM_serialization_read_ref(tc, reader));
     MVM_ASSIGN_REF(tc, &(st->header), data->store_unchecked, MVM_serialization_read_ref(tc, reader));
     MVM_ASSIGN_REF(tc, &(st->header), data->cas, MVM_serialization_read_ref(tc, reader));
-    MVM_ASSIGN_REF(tc, &(st->header), data->atomic_load, MVM_serialization_read_ref(tc, reader));
     MVM_ASSIGN_REF(tc, &(st->header), data->atomic_store, MVM_serialization_read_ref(tc, reader));
 }
 

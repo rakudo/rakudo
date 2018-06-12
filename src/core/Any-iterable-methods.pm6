@@ -1954,38 +1954,66 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
     proto method minpairs(|) {*}
     multi method minpairs(Any:D:) {
-        my @found;
-        for self.pairs {
-            my $value := .value;
-            state $min = $value;
-            nqp::if(
-                nqp::iseq_i( (my $cmp := $value cmp $min), -1 ),
-                nqp::stmts((@found = $_), ($min = $value)),
+        Seq.new(
+          nqp::if(
+            nqp::eqaddr(
+              (my $pulled := (my $iter := self.pairs.iterator).pull-one),
+              IterationEnd
+            ),
+            Rakudo::Iterator.Empty,
+            nqp::stmts(
+              nqp::push((my $result := nqp::create(IterationBuffer)),$pulled),
+              (my $min := $pulled.value),
+              nqp::until(
+                nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
                 nqp::if(
-                    nqp::iseq_i($cmp, 0),
-                    @found.push($_)
+                  nqp::iseq_i((my $cmp := $pulled.value cmp $min), -1),
+                  nqp::stmts(
+                    nqp::push(nqp::setelems($result,0),$pulled),
+                    ($min := $pulled.value)
+                  ),
+                  nqp::if(
+                    nqp::iseq_i($cmp,0),
+                    nqp::push($result,$pulled)
+                  )
                 )
+              ),
+              Rakudo::Iterator.ReifiedList($result)
             )
-        }
-        Seq.new(@found.iterator)
+          )
+        )
     }
 
     proto method maxpairs(|) {*}
     multi method maxpairs(Any:D:) {
-        my @found;
-        for self.pairs {
-            my $value := .value;
-            state $max = $value;
-            nqp::if(
-                nqp::iseq_i( (my $cmp := $value cmp $max), 1 ),
-                nqp::stmts((@found = $_), ($max = $value)),
+        Seq.new(
+          nqp::if(
+            nqp::eqaddr(
+              (my $pulled := (my $iter := self.pairs.iterator).pull-one),
+              IterationEnd
+            ),
+            Rakudo::Iterator.Empty,
+            nqp::stmts(
+              nqp::push((my $result := nqp::create(IterationBuffer)),$pulled),
+              (my $max := $pulled.value),
+              nqp::until(
+                nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
                 nqp::if(
-                    nqp::iseq_i($cmp, 0),
-                    @found.push($_)
+                  nqp::iseq_i((my $cmp := $pulled.value cmp $max), 1),
+                  nqp::stmts(
+                    nqp::push(nqp::setelems($result,0),$pulled),
+                    ($max := $pulled.value)
+                  ),
+                  nqp::if(
+                    nqp::iseq_i($cmp,0),
+                    nqp::push($result,$pulled)
+                  )
                 )
+              ),
+              Rakudo::Iterator.ReifiedList($result)
             )
-        }
-        Seq.new(@found.iterator)
+          )
+        )
     }
 
     proto method batch(|) is nodal {*}

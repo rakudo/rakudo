@@ -219,8 +219,14 @@ static void rakudo_scalar_store_s(MVMThreadContext *tc, MVMObject *cont, MVMStri
     rakudo_scalar_store(tc, cont, boxed);
 }
 
-static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    finish_store(tc, cont, obj);
+static void rakudo_scalar_store_unchecked(MVMThreadContext *tc, MVMObject *cont, MVMObject *value) {
+    RakudoContData *data = (RakudoContData *)STABLE(cont)->container_data;
+    MVMObject *code = MVM_frame_find_invokee(tc, data->store_unchecked, NULL);
+    MVMCallsite *cs = MVM_callsite_get_common(tc, MVM_CALLSITE_ID_TWO_OBJ);
+    MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, cs);
+    tc->cur_frame->args[0].o = cont;
+    tc->cur_frame->args[1].o = value;
+    STABLE(code)->invoke(tc, code, cs, tc->cur_frame->args);
 }
 
 static void rakudo_scalar_gc_mark_data(MVMThreadContext *tc, MVMSTable *st, MVMGCWorklist *worklist) {
@@ -499,6 +505,8 @@ static void rakudo_scalar_configure_container_spec(MVMThreadContext *tc, MVMSTab
         MVMObject *value;
         value = grab_one_value(tc, config, "store");
         MVM_ASSIGN_REF(tc, &(st->header), data->store, value);
+        value = grab_one_value(tc, config, "store_unchecked");
+        MVM_ASSIGN_REF(tc, &(st->header), data->store_unchecked, value);
     });
 }
 

@@ -1388,6 +1388,14 @@ BEGIN {
             else {
                 nqp::die("Cannot assign to a readonly variable or a value");
             }
+        }),
+        'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
+            nqp::bindattr($cont, Scalar, '$!value', $val);
+            my $whence := nqp::getattr($cont, Scalar, '$!whence');
+            if nqp::isconcrete($whence) {
+                $whence();
+                nqp::bindattr($cont, Scalar, '$!whence', nqp::null());
+            }
         })
     ));
 

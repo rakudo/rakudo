@@ -2138,7 +2138,10 @@ class Perl6::Optimizer {
             QAST::Op.new(
                 :op('speshresolve'),
                 QAST::SVal.new( :value('maybemeth') ),
-                QAST::Var.new( :name($temp), :scope('local') ),
+                QAST::Op.new(
+                    :op('decont'),
+                    QAST::Var.new( :name($temp), :scope('local') )
+                ),
                 $name,
             ),
             QAST::Var.new( :name($temp), :scope('local') ),

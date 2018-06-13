@@ -2539,7 +2539,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $pad := $*W.cur_lexpad();
         my $sym := $pad.unique('once_');
         my $mu := $*W.find_symbol(['Mu']);
-        my $descriptor := $*W.create_container_descriptor($mu, 1, $sym);
+        my $descriptor := $*W.create_container_descriptor($mu, $sym);
         my %info;
         %info<container_type> := %info<container_base> := $*W.find_symbol(['Scalar']);
         %info<scalar_value> := %info<default_value> := %info<bind_constraint> := %info<value_type> := $mu;
@@ -3502,7 +3502,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $list.push($*W.build_container_past(
                       %cont_info,
                       $*W.create_container_descriptor(
-                        %cont_info<value_type>, 1, 'anon', %cont_info<default_value>)));
+                        %cont_info<value_type>, 'anon', %cont_info<default_value>)));
                 }
             }
 
@@ -3724,7 +3724,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $have_is_type ?? [$is_type] !! [],
                 $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
-              %cont_info<value_type>, 1, $attrname, %cont_info<default_value>);
+              %cont_info<value_type>, $attrname, %cont_info<default_value>);
 
             # Create meta-attribute and add it.
             my $metaattr := $*W.resolve_mo($/, $*PKGDECL ~ '-attr');
@@ -3796,7 +3796,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $have_is_type ?? [$is_type] !! [],
                 $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
-              %cont_info<value_type>, 1, $varname || $name, %cont_info<default_value>);
+              %cont_info<value_type>, $varname || $name, %cont_info<default_value>);
 
             # Install the container.
             my $cont := $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
@@ -7578,7 +7578,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         %cont{'default_value'}   := $zero.compile_time_value;
         %cont{'scalar_value'}    := $zero.compile_time_value;
         $*W.install_lexical_container($*W.cur_lexpad(), $state, %cont,
-            $*W.create_container_descriptor(%cont{'bind_constraint'}, 1, $state),
+            $*W.create_container_descriptor(%cont{'bind_constraint'}, $state),
             :scope('state'));
 
         # Twiddle to make special-case RHS * work.
@@ -9563,7 +9563,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));
         if $copy {
             $param<container_descriptor> := $*W.create_container_descriptor(
-                $*W.find_symbol(['Mu']), 1, '$_');
+                $*W.find_symbol(['Mu']), '$_');
         }
         my $param_obj := $*W.create_parameter($/, $param);
         if $copy { $param_obj.set_copy() } else { $param_obj.set_raw() }

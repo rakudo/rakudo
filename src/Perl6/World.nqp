@@ -1568,9 +1568,9 @@ class Perl6::World is HLL::World {
     }
 
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
+    method create_container_descriptor($of, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
         my $cd_type := self.find_symbol(['ContainerDescriptor'], :setting-only);
-        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
+        my $cd := $cd_type.new( :$of, :$name, :$default, :$dynamic );
         self.add_object($cd);
         $cd
     }
@@ -1796,7 +1796,7 @@ class Perl6::World is HLL::World {
                 'scalar_value',    $WHAT,
             );
             my $desc :=
-              self.create_container_descriptor($Mu, 1, $name, $WHAT, 1);
+              self.create_container_descriptor($Mu, $name, $WHAT, 1);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);
 
@@ -1869,7 +1869,7 @@ class Perl6::World is HLL::World {
         my %cont_info  := self.container_type_info(NQPMu, $var<sigil>,
             $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
         %cont_info<value_type> := self.find_symbol(['Any'], :setting-only);
-        my $descriptor := self.create_container_descriptor(%cont_info<value_type>, 1, $name);
+        my $descriptor := self.create_container_descriptor(%cont_info<value_type>, $name);
 
         nqp::die("auto_declare_var") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LEAF.package);
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
@@ -2108,7 +2108,7 @@ class Perl6::World is HLL::World {
                 my %sym := $lexpad.symbol($varname);
                 if +%sym && !nqp::existskey(%sym, 'descriptor') {
                     $_<container_descriptor> := self.create_container_descriptor(
-                        $_<nominal_type>, 1, $varname);
+                        $_<nominal_type>, $varname);
                     $lexpad.symbol($varname, :descriptor($_<container_descriptor>));
                 }
             }
@@ -3911,7 +3911,7 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := self.find_symbol(['Associative'], :setting-only);
                 %info<value_type> := $mu;
                 self.install_lexical_container($*UNIT, '!INIT_VALUES', %info,
-                    self.create_container_descriptor($mu, 1, '!INIT_VALUES'));
+                    self.create_container_descriptor($mu, '!INIT_VALUES'));
             }
             $*UNIT[0].push(QAST::Op.new(
                 :op('callmethod'), :name('BIND-KEY'),

@@ -1190,8 +1190,7 @@ BEGIN {
                 }
             }
             else {
-                my $cd := Perl6::Metamodel::ContainerDescriptor.new(
-                    :of($type), :rw(1), :name($name));
+                my $cd := Perl6::Metamodel::ContainerDescriptor.new(:of($type), :$name);
                 my $scalar := nqp::create(Scalar);
                 nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
                 nqp::bindattr($scalar, Scalar, '$!value', $type);
@@ -1441,7 +1440,7 @@ BEGIN {
     # one of them.
     Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
         Perl6::Metamodel::ContainerDescriptor.new(
-            :of(Mu), :default(Any), :rw(1), :name('element')));
+            :of(Mu), :default(Any), :name('element')));
 
     # Set up various native reference types.
     sub setup_native_ref_type($type, $primitive, $ref_kind) {
@@ -1501,8 +1500,7 @@ BEGIN {
     # Attribute instance, complete with container descriptor and optional
     # auto-viv container.
     sub scalar_attr($name, $type, $package, :$associative_delegate, :$auto_viv_container = 1) {
-        my $cd := Perl6::Metamodel::ContainerDescriptor.new(
-            :of($type), :rw(1), :$name);
+        my $cd := Perl6::Metamodel::ContainerDescriptor.new(:of($type), :$name);
         if $auto_viv_container {
             my $scalar := nqp::create(Scalar);
             nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
@@ -1662,16 +1660,12 @@ BEGIN {
                     nqp::atkey(%ex, 'X::Trait::Invalid')('is', 'rw', 'optional parameter', $varname);
                 }
             }
-            my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
-            if nqp::defined($cd) { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', nqp::getstaticcode(sub ($self) {
             my $SIG_ELEM_IS_COPY := 512;
             my $dcself := nqp::decont($self);
-            my $cd     := nqp::getattr($dcself, Parameter, '$!container_descriptor');
-            if nqp::defined($cd) { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags',
                 nqp::getattr_i($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
             $dcself

@@ -1425,6 +1425,34 @@ BEGIN {
                 nqp::die("Cannot assign to a readonly variable or a value");
             }
         }),
+        'atomic_store', nqp::getstaticcode(sub ($cont, $val) {
+            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+            if nqp::isconcrete($desc) {
+                if $desc.rw {
+                    $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                    my $type := $desc.of;
+                    if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                        nqp::atomicbindattr($cont, Scalar, '$!value', $val);
+                    }
+                    else {
+                        my %x := nqp::gethllsym('perl6', 'P6EX');
+                        if nqp::ishash(%x) {
+                            %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
+                        }
+                        else {
+                            nqp::die("Type check failed in assignment");
+                        }
+                    }
+                }
+                else {
+                    nqp::die("Cannot assign to a readonly variable (" ~
+                        $desc.name ~ ") or a value");
+                }
+            }
+            else {
+                nqp::die("Cannot assign to a readonly variable or a value");
+            }
+        }),
     ));
 
     # Cache a single default Scalar container spec, to ensure we only get

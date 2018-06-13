@@ -268,34 +268,14 @@ static MVMObject * rakudo_scalar_atomic_load(MVMThreadContext *tc, MVMObject *co
     return value ? value : tc->instance->VMNull;
 }
 
-static void finish_atomic_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-    MVM_store(&(rs->value), obj);
-    MVM_gc_write_barrier(tc, (MVMCollectable *)cont, (MVMCollectable *)obj);
-}
-
-static void atomic_store_type_check_ret(MVMThreadContext *tc, void *sr_data) {
-    type_check_data *tcd = (type_check_data *)sr_data;
-    MVMObject *cont = tcd->cont;
-    MVMObject *obj  = tcd->obj;
-    MVMint64   res  = tcd->res.i64;
-    free(tcd);
-    if (res)
-        finish_atomic_store(tc, cont, obj);
-    else
-         Rakudo_assign_typecheck_failed(tc, cont, obj);
-}
-
 void rakudo_scalar_atomic_store(MVMThreadContext *tc, MVMObject *cont, MVMObject *value) {
-    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-    Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
-    ensure_assignable(tc, rcd);
-    if (!value)
-        MVM_exception_throw_adhoc(tc, "Cannot assign a null value to a Perl 6 scalar");
-    if (STABLE(value)->WHAT == get_nil())
-        value = rcd->the_default;
-    if (!type_check_store(tc, cont, value, rcd, atomic_store_type_check_ret))
-        finish_atomic_store(tc, cont, value); /* Type check didn't invoke. */
+    RakudoContData *data = (RakudoContData *)STABLE(cont)->container_data;
+    MVMObject *code = MVM_frame_find_invokee(tc, data->atomic_store, NULL);
+    MVMCallsite *cs = MVM_callsite_get_common(tc, MVM_CALLSITE_ID_TWO_OBJ);
+    MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, cs);
+    tc->cur_frame->args[0].o = cont;
+    tc->cur_frame->args[1].o = value;
+    STABLE(code)->invoke(tc, code, cs, tc->cur_frame->args);
 }
 
 static const MVMContainerSpec rakudo_scalar_spec = {
@@ -346,6 +326,8 @@ static void rakudo_scalar_configure_container_spec(MVMThreadContext *tc, MVMSTab
         MVM_ASSIGN_REF(tc, &(st->header), data->store_unchecked, value);
         value = grab_one_value(tc, config, "cas");
         MVM_ASSIGN_REF(tc, &(st->header), data->cas, value);
+        value = grab_one_value(tc, config, "atomic_store");
+        MVM_ASSIGN_REF(tc, &(st->header), data->atomic_store, value);
     });
 }
 

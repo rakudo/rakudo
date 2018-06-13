@@ -116,4 +116,8 @@ adapted, so that this message will disappear!';
     }
 }
 
+sub DEPRECATED(|c) is hidden-from-backtrace {
+    Rakudo::Deprecations.DEPRECATED(|c)
+}
+
 # vim: ft=perl6 expandtab sw=4

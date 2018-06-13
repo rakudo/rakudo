@@ -2059,6 +2059,7 @@ class Perl6::World is HLL::World {
 
         # Walk parameters, setting up parameter objects.
         my $default_type := self.find_symbol([$default_type_name]);
+        my $param_type := self.find_symbol(['Parameter'], :setting-only);
         my @param_objs;
         my %seen_names;
         for @params {
@@ -2096,26 +2097,25 @@ class Perl6::World is HLL::World {
                     $_<sub_signature_params>, $lexpad, $default_type_name);
             }
 
-            # Add variable as needed.
-            my $varname := $_<variable_name>;
-            if $varname {
-                my %sym := $lexpad.symbol($varname);
-                if +%sym && !nqp::existskey(%sym, 'descriptor') {
-                    $_<container_descriptor> := self.create_container_descriptor(
-                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $varname);
-                    $lexpad.symbol($varname, :descriptor($_<container_descriptor>));
-                }
-            }
-
             # Create parameter object and apply any traits.
             my $param_obj := self.create_parameter($/, $_);
             self.apply_traits($_<traits>, $param_obj) if $_<traits>;
 
+            # Add variable as needed.
+            my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
+            my $varname := $_<variable_name>;
+            if $varname && ($flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_COPY) {
+                my %sym := $lexpad.symbol($varname);
+                if +%sym && !nqp::existskey(%sym, 'descriptor') {
+                    $_<container_descriptor> := self.create_container_descriptor(
+                        $_<nominal_type>, 1, $varname);
+                    $lexpad.symbol($varname, :descriptor($_<container_descriptor>));
+                }
+            }
+
             # If it's natively typed and we got "is rw" set, need to mark the
             # container as being a lexical ref.
             if $varname && nqp::objprimspec($_<nominal_type>) {
-                my $param_type := self.find_symbol(['Parameter'], :setting-only);
-                my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
                 if $flags +& $SIG_ELEM_IS_RW {
                     for @($lexpad[0]) {
                         if nqp::istype($_, QAST::Var) && $_.name eq $varname {

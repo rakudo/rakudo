@@ -5574,10 +5574,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
             $cur_pad[0].push(QAST::Var.new( :$name, :scope('lexical'),
                 :decl('var'), :returns(%*PARAM_INFO<nominal_type>) ));
-            %*PARAM_INFO<container_descriptor> := $*W.create_container_descriptor(
-                %*PARAM_INFO<nominal_type>, 0, %*PARAM_INFO<variable_name>);
-            $cur_pad.symbol(%*PARAM_INFO<variable_name>, :descriptor(%*PARAM_INFO<container_descriptor>),
-                :type(%*PARAM_INFO<nominal_type>));
+            $cur_pad.symbol(%*PARAM_INFO<variable_name>, :type(%*PARAM_INFO<nominal_type>));
         } else {
             $cur_pad[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
         }
@@ -8875,6 +8872,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Sig      := $*W.find_symbol(['Signature'], :setting-only);
         my $Param    := $*W.find_symbol(['Parameter'], :setting-only);
         my $Iterable := $*W.find_symbol(['Iterable']);
+        my $Scalar := $*W.find_symbol(['Scalar']);
         my @p_objs := nqp::getattr($sig, $Sig, '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
@@ -9255,14 +9253,29 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $var.push(QAST::Op.new(
                             :op('bind'),
                             WANTED(QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),'lower_signature/wrap'),
-                            QAST::Op.new(
-                                :op('assignunchecked'),
-                                QAST::Op.new(
-                                    :op('p6scalarfromdesc'),
-                                    QAST::WVal.new( :value(%info<container_descriptor>) )
-                                ),
-                                QAST::Var.new( :name($name), :scope('local') )
-                            )));
+                            nqp::existskey(%info, 'container_descriptor')
+                                ?? QAST::Op.new(
+                                        :op('assignunchecked'),
+                                        QAST::Op.new(
+                                            :op('p6scalarfromdesc'),
+                                            QAST::WVal.new( :value(%info<container_descriptor>) )
+                                        ),
+                                        QAST::Var.new( :name($name), :scope('local') )
+                                   )
+                                !! QAST::Op.new(
+                                        :op('p6bindattrinvres'),
+                                        QAST::Op.new(
+                                            :op('create'),
+                                            QAST::WVal.new( :value($Scalar) )
+                                        ),
+                                        QAST::WVal.new( :value($Scalar) ),
+                                        QAST::SVal.new( :value('$!value') ),
+                                        QAST::Op.new(
+                                            :op('decont'),
+                                            QAST::Var.new( :name($name), :scope('local') )
+                                        )
+                                   )
+                            ));
                     }
                     else {
                         $var.push(QAST::Op.new(
@@ -9550,8 +9563,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));
         if $copy {
             $param<container_descriptor> := $*W.create_container_descriptor(
-                    $*W.find_symbol(['Mu']), 0, '$_'
-            );
+                $*W.find_symbol(['Mu']), 1, '$_');
         }
         my $param_obj := $*W.create_parameter($/, $param);
         if $copy { $param_obj.set_copy() } else { $param_obj.set_raw() }

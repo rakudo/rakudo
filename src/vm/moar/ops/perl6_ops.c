@@ -47,48 +47,20 @@ static MVMObject *Any                 = NULL;
 static MVMObject *Int                 = NULL;
 static MVMObject *Num                 = NULL;
 static MVMObject *Str                 = NULL;
-static MVMObject *Scalar              = NULL;
 static MVMObject *True                = NULL;
 static MVMObject *False               = NULL;
-static MVMObject *ContainerDescriptor = NULL;
-static MVMObject *Nil                 = NULL;
 
 /* Useful string constants. */
-static MVMString *str_return     = NULL;
 static MVMString *str_dispatcher = NULL;
 static MVMString *str_vivify_for = NULL;
 static MVMString *str_perl6      = NULL;
 static MVMString *str_p6ex       = NULL;
 static MVMString *str_xnodisp    = NULL;
-static MVMString *str_xatcf      = NULL;
-static MVMString *str_cfr        = NULL;
-
-/* Expose Nil and Mu for containers. */
-MVMObject * get_nil() { return Nil; }
-MVMObject * get_mu() { return Mu; }
 
 /* Looks up an exception thrower. */
 static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
     MVMObject *ex_hash = MVM_hll_sym_get(tc, str_perl6, str_p6ex);
     return MVM_is_null(tc, ex_hash) ? ex_hash : MVM_repr_at_key_o(tc, ex_hash, type);
-}
-
-/* Reports an assignment type check failure. */
-void Rakudo_assign_typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    MVMObject *thrower = get_thrower(tc, str_xatcf);
-    if (!MVM_is_null(tc, thrower)) {
-        Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-        Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
-        thrower = MVM_frame_find_invokee(tc, thrower, NULL);
-        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &atcf_callsite);
-        tc->cur_frame->args[0].s = rcd->name;
-        tc->cur_frame->args[1].o = obj;
-        tc->cur_frame->args[2].o = rcd->of;
-        STABLE(thrower)->invoke(tc, thrower, &atcf_callsite, tc->cur_frame->args);
-    }
-    else {
-        MVM_exception_throw_adhoc(tc, "Type check failed in assignment");
-    }
 }
 
 /* Initializes the Perl 6 extension ops. */
@@ -115,16 +87,11 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
         get_type(tc, conf, "Int", Int);
         get_type(tc, conf, "Num", Num);
         get_type(tc, conf, "Str", Str);
-        get_type(tc, conf, "Scalar", Scalar);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
-        get_type(tc, conf, "ContainerDescriptor", ContainerDescriptor);
-        get_type(tc, conf, "Nil", Nil);
     });
     
     /* Strings. */
-    str_return = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "RETURN");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_return, "RETURN");
     str_dispatcher = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "$*DISPATCHER");
     MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
     str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
@@ -135,10 +102,6 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
     str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
     MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xnodisp, "X::NoDispatcher");
-    str_xatcf = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::TypeCheck::Assignment");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xatcf, "X::TypeCheck::Assignment");
-    str_cfr = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::ControlFlow::Return");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_cfr, "X::ControlFlow::Return");
 }
 
 /* Boxing to Perl 6 types. */

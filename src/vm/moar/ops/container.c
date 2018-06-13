@@ -250,152 +250,17 @@ static MVMint32 rakudo_scalar_can_store(MVMThreadContext *tc, MVMObject *cont) {
     return rcd && IS_CONCRETE(rcd) && rcd->rw;
 }
 
-static void finish_cas(MVMThreadContext *tc, MVMObject *cont, MVMObject *expected,
-                       MVMObject *value, MVMRegister *result) {
-    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-    result->o = (MVMObject *)MVM_casptr(&(rs->value), expected, value);
-    MVM_gc_write_barrier(tc, (MVMCollectable *)cont, (MVMCollectable *)value);
-}
-
-typedef struct {
-    MVMObject   *cont;
-    MVMObject   *expected;
-    MVMObject   *value;
-    MVMRegister *cas_result;
-    MVMRegister  res;
-} cas_type_check_data;
-static void cas_type_check_ret(MVMThreadContext *tc, void *sr_data) {
-    cas_type_check_data *tcd = (cas_type_check_data *)sr_data;
-    MVMObject *cont = tcd->cont;
-    MVMObject *expected = tcd->expected;
-    MVMObject *value = tcd->value;
-    MVMRegister *cas_result = tcd->cas_result;
-    MVMint64 res = tcd->res.i64;
-    free(tcd);
-    if (res)
-        finish_cas(tc, cont, expected, value, cas_result);
-    else
-         Rakudo_assign_typecheck_failed(tc, cont, value);
-}
-static void mark_cas_type_check_ret_data(MVMThreadContext *tc, MVMFrame *frame,
-        MVMGCWorklist *worklist) {
-    cas_type_check_data *tcd = (cas_type_check_data *)frame->extra->special_return_data;
-    MVM_gc_worklist_add(tc, worklist, &tcd->cont);
-    MVM_gc_worklist_add(tc, worklist, &tcd->expected);
-    MVM_gc_worklist_add(tc, worklist, &tcd->value);
-}
-
 static void rakudo_scalar_cas(MVMThreadContext *tc, MVMObject *cont,
                               MVMObject *expected, MVMObject *value,
                               MVMRegister *result) {
-    Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-    Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
-    ensure_assignable(tc, rcd);
-
-    /* Handle Nil and type-checking. */
-    if (!value) {
-        MVM_exception_throw_adhoc(tc, "Cannot cas a null value into a Perl 6 scalar");
-    }
-    else {
-        MVMint64 mode;
-        if (STABLE(value)->WHAT == get_nil()) {
-            value = rcd->the_default;
-        }
-
-        /* Check against the type-check cache first (common, fast-path
-         * case). */
-        mode = STABLE(rcd->of)->mode_flags & MVM_TYPE_CHECK_CACHE_FLAG_MASK;
-        if (rcd->of != get_mu() && !MVM_6model_istype_cache_only(tc, value, rcd->of)) {
-            /* Failed. If the cache is definitive, we certainly have an error. */
-            if (STABLE(value)->type_check_cache &&
-                (mode & MVM_TYPE_CHECK_CACHE_THEN_METHOD) == 0 &&
-                (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) == 0) {
-                 Rakudo_assign_typecheck_failed(tc, cont, value);
-                 return;
-             }
-
-            /* If we get here, need to call .^type_check on the value we're
-             * checking, unless it's an accepts check. */
-            if (!STABLE(value)->type_check_cache || (mode & MVM_TYPE_CHECK_CACHE_THEN_METHOD)) {
-                MVMObject *HOW, *meth;
-                MVMROOT(tc, cont, {
-                MVMROOT(tc, expected, {
-                MVMROOT(tc, value, {
-                MVMROOT(tc, rcd, {
-                    HOW = MVM_6model_get_how_obj(tc, rcd->of);
-                    MVMROOT(tc, HOW, {
-                        meth = MVM_6model_find_method_cache_only(tc, HOW,
-                            tc->instance->str_consts.type_check);
-                    });
-                });
-                });
-                });
-                });
-                if (meth) {
-                    /* Set up the call, using a fake register in special return
-                     * data as the target. */
-                    MVMObject *code = MVM_frame_find_invokee(tc, meth, NULL);
-                    cas_type_check_data *tcd = malloc(sizeof(cas_type_check_data));
-                    tcd->cont = cont;
-                    tcd->expected = expected;
-                    tcd->value = value;
-                    tcd->cas_result = result;
-                    tcd->res.i64 = 0;
-                    MVM_args_setup_thunk(tc, &tcd->res, MVM_RETURN_INT, &tc_callsite);
-                    MVM_frame_special_return(tc, tc->cur_frame, cas_type_check_ret, NULL,
-                        tcd, mark_cas_type_check_ret_data);
-                    tc->cur_frame->args[0].o = HOW;
-                    tc->cur_frame->args[1].o = value;
-                    tc->cur_frame->args[2].o = rcd->of;
-                    STABLE(code)->invoke(tc, code, &tc_callsite, tc->cur_frame->args);
-                    return;
-                }
-            }
-
-            /* If the flag to call .accepts_type on the target value is set, do so. */
-            if (mode & MVM_TYPE_CHECK_NEEDS_ACCEPTS) {
-                MVMObject *HOW, *meth;
-                MVMROOT(tc, cont, {
-                MVMROOT(tc, expected, {
-                MVMROOT(tc, value, {
-                MVMROOT(tc, rcd, {
-                    HOW = MVM_6model_get_how_obj(tc, rcd->of);
-                    MVMROOT(tc, HOW, {
-                        meth = MVM_6model_find_method_cache_only(tc, HOW,
-                            tc->instance->str_consts.accepts_type);
-                    });
-                });
-                });
-                });
-                });
-                if (meth) {
-                    /* Set up the call, using the result register as the target. */
-                    MVMObject *code = MVM_frame_find_invokee(tc, meth, NULL);
-                    cas_type_check_data *tcd = malloc(sizeof(cas_type_check_data));
-                    tcd->cont = cont;
-                    tcd->expected = expected;
-                    tcd->value = value;
-                    tcd->cas_result = result;
-                    tcd->res.i64 = 0;
-                    MVM_args_setup_thunk(tc, &tcd->res, MVM_RETURN_INT, &tc_callsite);
-                    MVM_frame_special_return(tc, tc->cur_frame, cas_type_check_ret, NULL,
-                        tcd, mark_cas_type_check_ret_data);
-                    tc->cur_frame->args[0].o = HOW;
-                    tc->cur_frame->args[1].o = rcd->of;
-                    tc->cur_frame->args[2].o = value;
-                    STABLE(code)->invoke(tc, code, &tc_callsite, tc->cur_frame->args);
-                    return;
-                }
-                else {
-                    MVM_exception_throw_adhoc(tc,
-                        "Expected 'accepts_type' method, but none found in meta-object");
-                }
-            }
-        }
-    }
-
-    /* Type check passed without needing invocation; finish the CAS. */
-    finish_cas(tc, cont, expected, value, result);
+    RakudoContData *data = (RakudoContData *)STABLE(cont)->container_data;
+    MVMObject *code = MVM_frame_find_invokee(tc, data->cas, NULL);
+    MVMCallsite *cs = MVM_callsite_get_common(tc, MVM_CALLSITE_ID_TYPECHECK);
+    MVM_args_setup_thunk(tc, result, MVM_RETURN_OBJ, cs);
+    tc->cur_frame->args[0].o = cont;
+    tc->cur_frame->args[1].o = expected;
+    tc->cur_frame->args[2].o = value;
+    STABLE(code)->invoke(tc, code, cs, tc->cur_frame->args);
 }
 
 static MVMObject * rakudo_scalar_atomic_load(MVMThreadContext *tc, MVMObject *cont) {
@@ -479,6 +344,8 @@ static void rakudo_scalar_configure_container_spec(MVMThreadContext *tc, MVMSTab
         MVM_ASSIGN_REF(tc, &(st->header), data->store, value);
         value = grab_one_value(tc, config, "store_unchecked");
         MVM_ASSIGN_REF(tc, &(st->header), data->store_unchecked, value);
+        value = grab_one_value(tc, config, "cas");
+        MVM_ASSIGN_REF(tc, &(st->header), data->cas, value);
     });
 }
 

@@ -116,8 +116,7 @@ static void rakudo_scalar_spesh(MVMThreadContext *tc, MVMSTable *st, MVMSpeshGra
 
 static MVMint32 rakudo_scalar_can_store(MVMThreadContext *tc, MVMObject *cont) {
     Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-    Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
-    return rcd && IS_CONCRETE(rcd) && rcd->rw;
+    return !MVM_is_null(tc, rs->descriptor);
 }
 
 static void rakudo_scalar_cas(MVMThreadContext *tc, MVMObject *cont,

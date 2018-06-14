@@ -70,9 +70,8 @@ public final class RakOps {
     private static final int HINT_SIG_RETURNS = 1;
     private static final int HINT_SIG_CODE = 4;
     public static final int HINT_CD_OF = 0;
-    public static final int HINT_CD_RW = 1;
-    public static final int HINT_CD_NAME = 2;
-    public static final int HINT_CD_DEFAULT = 3;
+    public static final int HINT_CD_NAME = 1;
+    public static final int HINT_CD_DEFAULT = 2;
 
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);

@@ -36,23 +36,11 @@ public class RakudoContainerSpec extends ContainerSpec {
     private void checkStore(ThreadContext tc, SixModelObject cont, SixModelObject value) {
         RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
 
-        long rw = 0;
         SixModelObject desc = cont.get_attribute_boxed(tc, gcx.Scalar,
             "$!descriptor", HINT_descriptor);
-        if (desc != null) {
-            desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!rw", RakOps.HINT_CD_RW);
-            rw = tc.native_i;
-        }
-        if (rw == 0)
-            if (desc != null) {
-                desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
-                throw ExceptionHandling.dieInternal(tc,
-                    "Cannot assign to a readonly variable (" + tc.native_s  + ") or a value");
-            }
-            else {
-                throw ExceptionHandling.dieInternal(tc,
-                    "Cannot assign to a readonly variable or a value");
-            }
+        if (desc == null)
+            throw ExceptionHandling.dieInternal(tc,
+                "Cannot assign to a readonly variable or a value");
 
         if (value.st.WHAT == gcx.Nil) {
             value = desc.get_attribute_boxed(tc,
@@ -116,12 +104,7 @@ public class RakudoContainerSpec extends ContainerSpec {
         if (!(cont instanceof TypeObject)) {
             SixModelObject desc = cont.get_attribute_boxed(tc, cont.st.WHAT,
                 "$!descriptor", HINT_descriptor);
-            if (desc != null) {
-                RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
-                desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!rw",
-                    RakOps.HINT_CD_RW);
-                return tc.native_i != 0;
-            }
+            return desc != null;
         }
         return false;
     }

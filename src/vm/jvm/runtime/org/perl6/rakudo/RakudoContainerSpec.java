@@ -12,9 +12,17 @@ public class RakudoContainerSpec extends ContainerSpec {
     public static final int HINT_value = 1;
     public static final int HINT_whence = 2;
 
-    /* Callsite descriptor for WHENCEs. */
-    private static final CallSiteDescriptor WHENCE = new CallSiteDescriptor(
-        new byte[] { }, null);
+    /* Callsite descriptors. */
+    private static final CallSiteDescriptor STORE = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor CAS = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+
+    /* Callbacks. */
+    public SixModelObject store;
+    public SixModelObject storeUnchecked;
+    public SixModelObject cas;
+    public SixModelObject atomicStore;
 
     /* Fetches a value out of a container. Used for decontainerization. */
     public SixModelObject fetch(ThreadContext tc, SixModelObject cont) {
@@ -31,50 +39,8 @@ public class RakudoContainerSpec extends ContainerSpec {
     }
 
     /* Stores a value in a container. Used for assignment. */
-    private static final CallSiteDescriptor storeThrower = new CallSiteDescriptor(
-        new byte[] { CallSiteDescriptor.ARG_STR, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
-    private void checkStore(ThreadContext tc, SixModelObject cont, SixModelObject value) {
-        RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
-
-        SixModelObject desc = cont.get_attribute_boxed(tc, gcx.Scalar,
-            "$!descriptor", HINT_descriptor);
-        if (desc == null)
-            throw ExceptionHandling.dieInternal(tc,
-                "Cannot assign to a readonly variable or a value");
-
-        if (value.st.WHAT == gcx.Nil) {
-            value = desc.get_attribute_boxed(tc,
-                gcx.ContainerDescriptor, "$!default", RakOps.HINT_CD_DEFAULT);
-        }
-        SixModelObject of = desc.get_attribute_boxed(tc,
-            gcx.ContainerDescriptor, "$!of", RakOps.HINT_CD_OF);
-        long ok = of == gcx.Mu ? 1 : Ops.istype(value, of, tc);
-        if (ok == 0) {
-            desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!name", RakOps.HINT_CD_NAME);
-            String name = tc.native_s;
-            SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Assignment");
-            if (thrower == null)
-                throw ExceptionHandling.dieInternal(tc,
-                    "Type check failed in assignment to '" + name + "'");
-            else
-                Ops.invokeDirect(tc, thrower,
-                    storeThrower, new Object[] { name, value, of });
-        }
-    }
     public void store(ThreadContext tc, SixModelObject cont, SixModelObject value) {
-        checkStore(tc, cont, value);
-        RakOps.GlobalExt gcx = RakOps.key.getGC(tc);
-        SixModelObject whence = cont.get_attribute_boxed(tc, gcx.Scalar, "$!whence", HINT_whence);
-        if (whence != null)
-            Ops.invokeDirect(tc, whence,
-                WHENCE, new Object[] { });
-        if (value.st.WHAT == gcx.Nil) {
-            SixModelObject desc = cont.get_attribute_boxed(tc, gcx.Scalar,
-                "$!descriptor", HINT_descriptor);
-            value = desc.get_attribute_boxed(tc,
-                gcx.ContainerDescriptor, "$!default", RakOps.HINT_CD_DEFAULT);
-        }
-        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", HINT_value, value);
+        Ops.invokeDirect(tc, store, STORE, new Object[] { cont, value });
     }
     public void store_i(ThreadContext tc, SixModelObject cont, long value) {
         store(tc, cont, RakOps.p6box_i(value, tc));
@@ -89,14 +55,8 @@ public class RakudoContainerSpec extends ContainerSpec {
     /* Stores a value in a container, without any checking of it (this
      * assumes an optimizer or something else already did it). Used for
      * assignment. */
-    public void storeUnchecked(ThreadContext tc, SixModelObject cont, SixModelObject obj) {
-        SixModelObject Scalar = RakOps.key.getGC(tc).Scalar;
-        SixModelObject whence = cont.get_attribute_boxed(tc, Scalar, "$!whence", HINT_whence);
-        if (whence != null)
-            Ops.invokeDirect(tc, whence,
-                WHENCE, new Object[] { });
-
-        cont.bind_attribute_boxed(tc, Scalar, "$!value", HINT_value, obj);
+    public void storeUnchecked(ThreadContext tc, SixModelObject cont, SixModelObject value) {
+        Ops.invokeDirect(tc, storeUnchecked, STORE, new Object[] { cont, value });
     }
 
     /* Not all containers are rw (ContainerSpec.canStore() defaults to true). */
@@ -116,12 +76,18 @@ public class RakudoContainerSpec extends ContainerSpec {
 
     /* Serializes the container data, if any. */
     public void serialize(ThreadContext tc, STable st, SerializationWriter writer) {
-        /* No data to serialize. */
+        writer.writeRef(store);
+        writer.writeRef(storeUnchecked);
+        writer.writeRef(cas);
+        writer.writeRef(atomicStore);
     }
 
     /* Deserializes the container data, if any. */
     public void deserialize(ThreadContext tc, STable st, SerializationReader reader) {
-        /* No data to deserialize. */
+        store = reader.readRef();
+        storeUnchecked = reader.readRef();
+        cas = reader.readRef();
+        atomicStore = reader.readRef();
     }
 
     /* Atomic operations. */
@@ -147,11 +113,8 @@ public class RakudoContainerSpec extends ContainerSpec {
 
     public SixModelObject cas(ThreadContext tc, SixModelObject cont,
                               SixModelObject expected, SixModelObject value) {
-        ensureAtomicsReady(cont);
-        checkStore(tc, cont, value);
-        return unsafe.compareAndSwapObject(cont, scalarValueOffset, expected, value)
-            ? expected
-            : (SixModelObject)unsafe.getObjectVolatile(cont, scalarValueOffset);
+        Ops.invokeDirect(tc, cas, CAS, new Object[] { cont, expected, value });
+        return Ops.result_o(tc.curFrame);
     }
 
     public SixModelObject atomic_load(ThreadContext tc, SixModelObject cont) {
@@ -161,8 +124,6 @@ public class RakudoContainerSpec extends ContainerSpec {
 
     public void atomic_store(ThreadContext tc, SixModelObject cont,
                              SixModelObject value) {
-        ensureAtomicsReady(cont);
-        checkStore(tc, cont, value);
-        unsafe.putObjectVolatile(cont, scalarValueOffset, cont);
+        Ops.invokeDirect(tc, atomicStore, STORE, new Object[] { cont, value });
     }
 }

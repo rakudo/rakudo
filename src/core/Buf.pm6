@@ -282,26 +282,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     proto method unpack(|) {*}
     multi method unpack(Blob:D: Str:D $template) {
-        with nqp::getlexcaller('EXPERIMENTAL-PACK') -> &unpack {
-            unpack(self, $template.comb(/<[a..zA..Z]>[\d+|'*']?/))
-        }
-        else {
-            X::Experimental.new(
-              feature => "the 'unpack' method",
-              use     => "pack"
-            ).throw
-        }
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
+          ?? X::Experimental.new(
+               feature => "the 'unpack' method",
+               use     => "pack"
+             ).throw
+          !! self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
     }
     multi method unpack(Blob:D: @template) {
-        with nqp::getlexcaller('EXPERIMENTAL-PACK') -> &unpack {
-            unpack(self, @template)
-        }
-        else {
-            X::Experimental.new(
-              feature => "the 'unpack' method",
-              use     => "pack"
-            ).throw
-        }
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
+          ?? X::Experimental.new(
+               feature => "the 'unpack' method",
+               use     => "pack"
+             ).throw
+          !! nqp::getlexcaller('EXPERIMENTAL-PACK')(self, @template)
     }
 
     # XXX: the pack.t spectest file seems to require this method

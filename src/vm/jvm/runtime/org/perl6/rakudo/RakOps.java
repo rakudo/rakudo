@@ -55,7 +55,6 @@ public final class RakOps {
         public SixModelObject EMPTYHASH;
         public RakudoJavaInterop rakudoInterop;
         public SixModelObject JavaHOW;
-        public SixModelObject defaultContainerDescriptor;
         boolean initialized;
 
         public GlobalExt(ThreadContext tc) {}
@@ -133,21 +132,6 @@ public final class RakOps {
         gcx.True = conf.at_key_boxed(tc, "True");
         gcx.Associative = conf.at_key_boxed(tc, "Associative");
         gcx.JavaHOW = conf.at_key_boxed(tc, "Metamodel").st.WHO.at_key_boxed(tc, "JavaHOW");
-
-        SixModelObject defCD = gcx.ContainerDescriptor.st.REPR.allocate(tc,
-            gcx.ContainerDescriptor.st);
-        defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
-            "$!of", HINT_CD_OF, gcx.Mu);
-        tc.native_s = "<element>";
-        defCD.bind_attribute_native(tc, gcx.ContainerDescriptor,
-            "$!name", HINT_CD_NAME);
-        tc.native_i = 1;
-        defCD.bind_attribute_native(tc, gcx.ContainerDescriptor,
-            "$!rw", HINT_CD_RW);
-        defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
-            "$!default", HINT_CD_DEFAULT, gcx.Any);
-        gcx.defaultContainerDescriptor = defCD;
-
         return conf;
     }
 

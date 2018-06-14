@@ -13,8 +13,8 @@ J_LIBPATH = @nqp_libdir@
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
 
-J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx2000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@$(SYSROOT)@nqp_classpath@ nqp
-J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx2000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@$(SYSROOT)@nqp_classpath@ perl6
+J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@$(SYSROOT)@nqp_classpath@ nqp
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@$(SYSROOT)@nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 

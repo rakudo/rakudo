@@ -66,3 +66,29 @@ class Perl6::Metamodel::ContainerDescriptor::BindArrayPos
         nqp::bindpos($!target, $!pos, $scalar);
     }
 }
+
+class Perl6::Metamodel::ContainerDescriptor::VivifyArray
+        does Perl6::Metamodel::ContainerDescriptor::Whence {
+    has $!target;
+    has $!array;
+    has int $!pos;
+
+    method new($target, $array, int $pos) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, Perl6::Metamodel::ContainerDescriptor::VivifyArray,
+            '$!target', $target);
+        nqp::bindattr($self, Perl6::Metamodel::ContainerDescriptor::VivifyArray,
+            '$!array', $array);
+        nqp::bindattr_i($self, Perl6::Metamodel::ContainerDescriptor::VivifyArray,
+            '$!pos', $pos);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $target := $!target;
+        my $array := nqp::isconcrete($target)
+            ?? $target
+            !! nqp::assign($target, $!array.new);
+        $array.BIND-POS($!pos, $scalar);
+    }
+}

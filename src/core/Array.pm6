@@ -139,12 +139,8 @@ my class Array { # declared in BOOTSTRAP
                     )
                 }
                 method hole(int $i) {
-                   nqp::p6bindattrinvres(
-                     (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                     Scalar,
-                     '$!whence',
-                     -> { nqp::bindpos($!reified,$i,v) }
-                   )
+                     nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                         $!descriptor, $!reified, $i))
                 }
                 method done() is raw {
                     $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
@@ -337,13 +333,8 @@ my class Array { # declared in BOOTSTRAP
             multi method AT-POS(Int:D \pos) {
                 nqp::ifnull(
                   nqp::atpos(nqp::getattr(self,List,'$!reified'),pos),
-                  nqp::p6bindattrinvres(
-                    (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
-                    Scalar,
-                    '$!whence',
-                    -> { nqp::bindpos(
-                           nqp::getattr(self,List,'$!reified'),pos,$scalar) }
-                  )
+                  nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                    $!descriptor, nqp::getattr(self,List,'$!reified'), pos))
                 )
             }
             method default() { $!descriptor.default }
@@ -497,12 +488,8 @@ my class Array { # declared in BOOTSTRAP
         )
     }
     method !AT_POS_CONTAINER(int $pos) is raw {
-        nqp::p6bindattrinvres(
-          (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
-          Scalar,
-          '$!whence',
-          -> { nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,$scalar) }
-        )
+        nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+            $!descriptor, nqp::getattr(self,List,'$!reified'), $pos))
     }
 
     multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) {

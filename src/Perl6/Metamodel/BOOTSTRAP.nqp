@@ -1367,6 +1367,10 @@ BEGIN {
                         $whence();
                         nqp::bindattr($cont, Scalar, '$!whence', nqp::null());
                     }
+                    unless nqp::eqaddr($desc.WHAT, Perl6::Metamodel::ContainerDescriptor) {
+                        $desc.assigned($cont);
+                        nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+                    }
                 }
                 else {
                     my %x := nqp::gethllsym('perl6', 'P6EX');
@@ -1388,6 +1392,11 @@ BEGIN {
             if nqp::isconcrete($whence) {
                 $whence();
                 nqp::bindattr($cont, Scalar, '$!whence', nqp::null());
+            }
+            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+            unless nqp::eqaddr($desc.WHAT, Perl6::Metamodel::ContainerDescriptor) {
+                $desc.assigned($cont);
+                nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
             }
         }),
         'cas', nqp::getstaticcode(sub ($cont, $expected, $val) {

@@ -31,3 +31,36 @@ class Perl6::Metamodel::ContainerDescriptor {
         $ins
     }
 }
+
+role Perl6::Metamodel::ContainerDescriptor::Whence {
+    has $!next-descriptor;
+
+    method next() {
+        nqp::ifnull($!next-descriptor,
+            ($!next-descriptor := nqp::gethllsym('perl6', 'default_cont_spec')))
+    }
+    method of() { self.next.of }
+    method default() { self.next.default }
+    method dynamic() { self.next.dynamic }
+}
+
+class Perl6::Metamodel::ContainerDescriptor::BindArrayPos
+        does Perl6::Metamodel::ContainerDescriptor::Whence {
+    has $!target;
+    has int $!pos;
+
+    method new($desc, $target, int $pos) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, Perl6::Metamodel::ContainerDescriptor::BindArrayPos,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, Perl6::Metamodel::ContainerDescriptor::BindArrayPos,
+            '$!target', $target);
+        nqp::bindattr_i($self, Perl6::Metamodel::ContainerDescriptor::BindArrayPos,
+            '$!pos', $pos);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindpos($!target, $!pos, $scalar);
+    }
+}

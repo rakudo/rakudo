@@ -701,10 +701,8 @@ register_op_desugar('p6scalarfromdesc', -> $qast {
             $Scalar,
             QAST::SVal.new( :value('$!value') ),
             QAST::Op.new(
-                :op('getattr'),
-                QAST::Var.new( :name($desc), :scope('local') ),
-                QAST::WVal.new( :value($default_cont_spec.WHAT) ),
-                QAST::SVal.new( :value('$!default') )
+                :op('callmethod'), :name('default'),
+                QAST::Var.new( :name($desc), :scope('local') )
             )
         )
     )

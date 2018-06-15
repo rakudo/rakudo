@@ -47,18 +47,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method !AT_KEY_CONTAINER(Str:D \key) is raw {
-        nqp::p6bindattrinvres(
-          (my \v := nqp::p6scalarfromdesc($!descriptor)),
-          Scalar,
-          '$!whence',
-          -> { nqp::bindkey(
-                 nqp::if(
-                   nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-                   nqp::getattr(self,Map,'$!storage'),
-                   nqp::bindattr(self,Map,'$!storage',nqp::hash)
-                 ),key,v)
-             }
-        )
+        nqp::p6scalarfromdesc(ContainerDescriptor::BindHashPos.new($!descriptor, self, key))
     }
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {

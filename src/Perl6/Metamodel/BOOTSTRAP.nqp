@@ -1209,6 +1209,34 @@ class ContainerDescriptor::BindHashPos does ContainerDescriptor::Whence {
         nqp::bindkey($hash, $!key, $scalar);
     }
 }
+class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
+    has $!target;
+    has $!key;
+    has $!which;
+    has $!pair;
+
+    method new($desc, $target, $key, $which, $pair) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!target', $target);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!key', $key);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!which', $which);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!pair', $pair);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $hash := nqp::getattr($!target, Map, '$!storage');
+        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash())
+            unless nqp::isconcrete($hash);
+        nqp::bindkey($hash, $!which, $!pair.new($!key, $scalar));
+    }
+}
 class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
     has $!target;
     has int $!pos;

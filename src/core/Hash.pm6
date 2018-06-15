@@ -517,36 +517,13 @@ my class Hash { # declared in BOOTSTRAP
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         method keyof () { TKey }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
+            my str $which = nqp::unbox_s(key.WHICH);
+            my Mu \storage = nqp::getattr(self,Map,'$!storage');
             nqp::if(
-              nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-              nqp::if(
-                nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                  (my str $which = nqp::unbox_s(key.WHICH))),
-                nqp::getattr(
-                  nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
-                  Pair,'$!value'),
-                nqp::p6bindattrinvres(
-                  (my \v := nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Hash,'$!descriptor'))),
-                  Scalar,
-                  '$!whence',
-                  -> { nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
-                         $which,Pair.new(key,v)); v }
-                )
-              ),
-              nqp::p6bindattrinvres(
-                (my \vv := nqp::p6scalarfromdesc(
-                  nqp::getattr(self,Hash,'$!descriptor'))),
-                Scalar,
-                '$!whence',
-                -> { nqp::bindkey(
-                       nqp::if(
-                         nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-                         nqp::getattr(self,Map,'$!storage'),
-                         nqp::bindattr(self,Map,'$!storage',nqp::hash)
-                       ),
-                       nqp::unbox_s(key.WHICH), Pair.new(key,vv)); vv }
-              )
+              nqp::isconcrete(storage) && nqp::existskey(storage, $which),
+              nqp::getattr(nqp::atkey(storage, $which), Pair, '$!value'),
+              nqp::p6scalarfromdesc(ContainerDescriptor::BindObjHashKey.new(
+                  nqp::getattr(self, Hash, '$!descriptor'), self, key, $which, Pair))
             )
         }
 

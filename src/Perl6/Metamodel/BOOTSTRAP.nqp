@@ -1121,6 +1121,121 @@ my class Binder {
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
 
+# Container descriptors come here so that they can refer to Perl 6 types.
+class ContainerDescriptor {
+    has     $!of;
+    has str $!name;
+    has     $!default;
+    has int $!dynamic;
+
+    method BUILD(:$of, str :$name, :$default, int :$dynamic) {
+        $!of := $of;
+        $!name := $name;
+        $!default := $default;
+        $!dynamic := $dynamic;
+    }
+
+    method of() { $!of }
+    method name() { $!name }
+    method default() { $!default }
+    method dynamic() { $!dynamic }
+
+    method set_of($of) { $!of := $of; self }
+    method set_default($default) { $!default := $default; self }
+    method set_dynamic($dynamic) { $!dynamic := $dynamic; self }
+
+    method is_generic() {
+        $!of.HOW.archetypes.generic
+    }
+
+    method instantiate_generic($type_environment) {
+        my $ins_of := $!of.HOW.instantiate_generic($!of, $type_environment);
+        my $ins := nqp::clone(self);
+        nqp::bindattr($ins, $?CLASS, '$!of', $ins_of);
+        $ins
+    }
+}
+role ContainerDescriptor::Whence {
+    has $!next-descriptor;
+
+    method next() {
+        my $next := $!next-descriptor;
+        nqp::isconcrete($next)
+            ?? $next
+            !! ($!next-descriptor := nqp::gethllsym('perl6', 'default_cont_spec'))
+    }
+    method of() { self.next.of }
+    method default() { self.next.default }
+    method dynamic() { self.next.dynamic }
+}
+class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
+    has $!target;
+    has int $!pos;
+
+    method new($desc, $target, int $pos) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos,
+            '$!target', $target);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos,
+            '$!pos', $pos);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindpos($!target, $!pos, $scalar);
+    }
+}
+class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
+    has $!target;
+    has $!array;
+    has int $!pos;
+
+    method new($target, $array, int $pos) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::VivifyArray,
+            '$!target', $target);
+        nqp::bindattr($self, ContainerDescriptor::VivifyArray,
+            '$!array', $array);
+        nqp::bindattr_i($self, ContainerDescriptor::VivifyArray,
+            '$!pos', $pos);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $target := $!target;
+        my $array := nqp::isconcrete($target)
+            ?? $target
+            !! nqp::assign($target, $!array.new);
+        $array.BIND-POS($!pos, $scalar);
+    }
+}
+class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
+    has $!target;
+    has $!hash;
+    has $!key;
+
+    method new($target, $hash, $key) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::VivifyHash,
+            '$!target', $target);
+        nqp::bindattr($self, ContainerDescriptor::VivifyHash,
+            '$!hash', $hash);
+        nqp::bindattr($self, ContainerDescriptor::VivifyHash,
+            '$!key', $key);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $target := $!target;
+        my $array := nqp::isconcrete($target)
+            ?? $target
+            !! nqp::assign($target, $!hash.new);
+        $array.BIND-KEY($!key, $scalar);
+    }
+}
+
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {
@@ -1190,7 +1305,7 @@ BEGIN {
                 }
             }
             else {
-                my $cd := Perl6::Metamodel::ContainerDescriptor.new(:of($type), :$name);
+                my $cd := ContainerDescriptor.new(:of($type), :$name);
                 my $scalar := nqp::create(Scalar);
                 nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
                 nqp::bindattr($scalar, Scalar, '$!value', $type);
@@ -1367,7 +1482,7 @@ BEGIN {
                         $whence();
                         nqp::bindattr($cont, Scalar, '$!whence', nqp::null());
                     }
-                    unless nqp::eqaddr($desc.WHAT, Perl6::Metamodel::ContainerDescriptor) {
+                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
                         $desc.assigned($cont);
                         nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
                     }
@@ -1394,7 +1509,7 @@ BEGIN {
                 nqp::bindattr($cont, Scalar, '$!whence', nqp::null());
             }
             my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            unless nqp::eqaddr($desc.WHAT, Perl6::Metamodel::ContainerDescriptor) {
+            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
                 $desc.assigned($cont);
                 nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
             }
@@ -1448,7 +1563,7 @@ BEGIN {
     # Cache a single default Scalar container spec, to ensure we only get
     # one of them.
     Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
-        Perl6::Metamodel::ContainerDescriptor.new(
+        ContainerDescriptor.new(
             :of(Mu), :default(Any), :name('element')));
 
     # Set up various native reference types.
@@ -1509,7 +1624,7 @@ BEGIN {
     # Attribute instance, complete with container descriptor and optional
     # auto-viv container.
     sub scalar_attr($name, $type, $package, :$associative_delegate, :$auto_viv_container = 1) {
-        my $cd := Perl6::Metamodel::ContainerDescriptor.new(:of($type), :$name);
+        my $cd := ContainerDescriptor.new(:of($type), :$name);
         if $auto_viv_container {
             my $scalar := nqp::create(Scalar);
             nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
@@ -3251,7 +3366,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Bool>       := Bool;
     EXPORT::DEFAULT.WHO<False>      := $false;
     EXPORT::DEFAULT.WHO<True>       := $true;
-    EXPORT::DEFAULT.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
+    EXPORT::DEFAULT.WHO<ContainerDescriptor> := ContainerDescriptor;
     EXPORT::DEFAULT.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
     EXPORT::DEFAULT.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;

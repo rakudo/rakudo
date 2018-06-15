@@ -49,7 +49,7 @@
         sub set-descriptor(\list) is raw {
             nqp::stmts(
               nqp::bindattr(list,Array,'$!descriptor',
-                Perl6::Metamodel::ContainerDescriptor.new(:of(TValue), :default(TValue))
+                ContainerDescriptor.new(:of(TValue), :default(TValue))
               ),
               list
             )

@@ -18,15 +18,10 @@
             )
         }
         sub AT-POS-CONTAINER(\array, int \one) is raw {
-            nqp::p6bindattrinvres(
-              (my $scalar := nqp::p6scalarfromdesc(
-                nqp::getattr(array,Array,'$!descriptor'))),
-              Scalar,
-              '$!whence',
-              -> { nqp::bindpos(
-                     nqp::getattr(array,List,'$!reified'),
-                     one, $scalar) }
-            )
+            nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+               nqp::getattr(array, Array, '$!descriptor'),
+               nqp::getattr(array, List, '$!reified'),
+               one))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, \value) {
@@ -207,12 +202,8 @@
                       ),
                       nqp::ifnull(
                         nqp::atpos($!reified,$!pos),
-                        nqp::p6bindattrinvres(
-                          (my $scalar := nqp::p6scalarfromdesc($!desc)),
-                          Scalar,
-                          '$!whence',
-                          -> { nqp::bindpos($!reified,$!pos,$scalar) }
-                        )
+                        nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                          $!desc, $!reified, $!pos))
                       ),
                       IterationEnd
                     )
@@ -226,12 +217,8 @@
                         $target.push(
                           nqp::ifnull(
                             nqp::atpos($!reified,$i),
-                            nqp::p6bindattrinvres(
-                              (my $scalar := nqp::p6scalarfromdesc($!desc)),
-                              Scalar,
-                              '$!whence',
-                              -> { nqp::bindpos($!reified,$i,$scalar) }
-                            )
+                            nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                              $!desc, $!reified, $i))
                           )
                         )
                       ),

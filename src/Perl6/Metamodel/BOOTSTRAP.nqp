@@ -1187,6 +1187,72 @@ class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
         nqp::bindpos($!target, $!pos, $scalar);
     }
 }
+class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
+    has $!target;
+    has int $!one;
+    has int $!two;
+
+    method new($desc, $target, int $one, int $two) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos2D,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos2D,
+            '$!target', $target);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos2D,
+            '$!one', $one);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos2D,
+            '$!two', $two);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindpos2d($!target, $!one, $!two, $scalar);
+    }
+}
+class ContainerDescriptor::BindArrayPos3D does ContainerDescriptor::Whence {
+    has $!target;
+    has int $!one;
+    has int $!two;
+    has int $!three;
+
+    method new($desc, $target, int $one, int $two, int $three) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos3D,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos3D,
+            '$!target', $target);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos3D,
+            '$!one', $one);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos3D,
+            '$!two', $two);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos3D,
+            '$!three', $three);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindpos3d($!target, $!one, $!two, $!three, $scalar);
+    }
+}
+class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
+    has $!target;
+    has $!idxs;
+
+    method new($desc, $target, $idxs) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPosND,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPosND,
+            '$!target', $target);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPosND,
+            '$!idxs', $idxs);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindposnd($!target, $!idxs, $scalar);
+    }
+}
 class ContainerDescriptor::BindHashPos does ContainerDescriptor::Whence {
     has $!target;
     has $!key;

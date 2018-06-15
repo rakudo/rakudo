@@ -385,21 +385,7 @@ my class Any { # declared in BOOTSTRAP
         )
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
-        nqp::p6bindattrinvres(
-          my $scalar,
-          Scalar,
-          '$!whence',
-          # NOTE: even though the signature indicates a non-concrete SELF,
-          # by the time the below code is executed, it *may* have become
-          # concrete: and then we don't want the execution to reset it to
-          # an empty Hash.
-          -> { nqp::if(
-                 nqp::isconcrete(SELF),
-                 SELF,
-                 (SELF = nqp::create(Hash))
-               ).BIND-KEY(key, $scalar)
-             }
-        )
+        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyHash.new(SELF, Hash, key))
     }
 
     proto method BIND-KEY(|) is nodal {*}

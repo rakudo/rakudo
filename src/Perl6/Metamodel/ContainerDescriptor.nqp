@@ -92,3 +92,29 @@ class Perl6::Metamodel::ContainerDescriptor::VivifyArray
         $array.BIND-POS($!pos, $scalar);
     }
 }
+
+class Perl6::Metamodel::ContainerDescriptor::VivifyHash
+        does Perl6::Metamodel::ContainerDescriptor::Whence {
+    has $!target;
+    has $!hash;
+    has $!key;
+
+    method new($target, $hash, $key) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, Perl6::Metamodel::ContainerDescriptor::VivifyHash,
+            '$!target', $target);
+        nqp::bindattr($self, Perl6::Metamodel::ContainerDescriptor::VivifyHash,
+            '$!hash', $hash);
+        nqp::bindattr($self, Perl6::Metamodel::ContainerDescriptor::VivifyHash,
+            '$!key', $key);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $target := $!target;
+        my $array := nqp::isconcrete($target)
+            ?? $target
+            !! nqp::assign($target, $!hash.new);
+        $array.BIND-KEY($!key, $scalar);
+    }
+}

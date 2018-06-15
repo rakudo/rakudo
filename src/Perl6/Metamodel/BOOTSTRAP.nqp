@@ -1554,11 +1554,9 @@ BEGIN {
     # class Scalar is Any {
     #     has Mu $!descriptor;
     #     has Mu $!value;
-    #     has Mu $!whence;
     Scalar.HOW.add_parent(Scalar, Any);
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
-    Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_method(Scalar, 'is_generic', nqp::getstaticcode(sub ($self) {
         my $dcself := nqp::decont($self);
         nqp::getattr($dcself, Scalar, '$!descriptor').is_generic()

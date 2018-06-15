@@ -10,7 +10,6 @@ public class RakudoContainerSpec extends ContainerSpec {
     /* Container related hints. */
     public static final int HINT_descriptor = 0;
     public static final int HINT_value = 1;
-    public static final int HINT_whence = 2;
 
     /* Callsite descriptors. */
     private static final CallSiteDescriptor STORE = new CallSiteDescriptor(

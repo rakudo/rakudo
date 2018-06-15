@@ -1587,11 +1587,6 @@ BEGIN {
                 my $type := $desc.of;
                 if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
                     nqp::bindattr($cont, Scalar, '$!value', $val);
-                    my $whence := nqp::getattr($cont, Scalar, '$!whence');
-                    if nqp::isconcrete($whence) {
-                        $whence();
-                        nqp::bindattr($cont, Scalar, '$!whence', nqp::null());
-                    }
                     unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
                         $desc.assigned($cont);
                         nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
@@ -1613,11 +1608,6 @@ BEGIN {
         }),
         'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
             nqp::bindattr($cont, Scalar, '$!value', $val);
-            my $whence := nqp::getattr($cont, Scalar, '$!whence');
-            if nqp::isconcrete($whence) {
-                $whence();
-                nqp::bindattr($cont, Scalar, '$!whence', nqp::null());
-            }
             my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
             unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
                 $desc.assigned($cont);

@@ -36,8 +36,10 @@ role Perl6::Metamodel::ContainerDescriptor::Whence {
     has $!next-descriptor;
 
     method next() {
-        nqp::ifnull($!next-descriptor,
-            ($!next-descriptor := nqp::gethllsym('perl6', 'default_cont_spec')))
+        my $next := $!next-descriptor;
+        nqp::isconcrete($next)
+            ?? $next
+            !! ($!next-descriptor := nqp::gethllsym('perl6', 'default_cont_spec'))
     }
     method of() { self.next.of }
     method default() { self.next.default }

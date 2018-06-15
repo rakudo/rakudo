@@ -1189,15 +1189,12 @@ class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
 }
 class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
     has $!target;
-    has $!array;
     has int $!pos;
 
-    method new($target, $array, int $pos) {
+    method new($target, int $pos) {
         my $self := nqp::create(self);
         nqp::bindattr($self, ContainerDescriptor::VivifyArray,
             '$!target', $target);
-        nqp::bindattr($self, ContainerDescriptor::VivifyArray,
-            '$!array', $array);
         nqp::bindattr_i($self, ContainerDescriptor::VivifyArray,
             '$!pos', $pos);
         $self
@@ -1207,21 +1204,18 @@ class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
         my $target := $!target;
         my $array := nqp::isconcrete($target)
             ?? $target
-            !! nqp::assign($target, $!array.new);
+            !! nqp::assign($target, Array.new);
         $array.BIND-POS($!pos, $scalar);
     }
 }
 class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
     has $!target;
-    has $!hash;
     has $!key;
 
-    method new($target, $hash, $key) {
+    method new($target, $key) {
         my $self := nqp::create(self);
         nqp::bindattr($self, ContainerDescriptor::VivifyHash,
             '$!target', $target);
-        nqp::bindattr($self, ContainerDescriptor::VivifyHash,
-            '$!hash', $hash);
         nqp::bindattr($self, ContainerDescriptor::VivifyHash,
             '$!key', $key);
         $self
@@ -1231,7 +1225,7 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
         my $target := $!target;
         my $array := nqp::isconcrete($target)
             ?? $target
-            !! nqp::assign($target, $!hash.new);
+            !! nqp::assign($target, Hash.new);
         $array.BIND-KEY($!key, $scalar);
     }
 }

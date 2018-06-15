@@ -251,10 +251,10 @@ my class Any { # declared in BOOTSTRAP
 
     proto method AT-POS(|) is nodal {*}
     multi method AT-POS(Any:U \SELF: int \pos) is raw {
-        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyArray.new(SELF, Array, pos))
+        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
     }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
-        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyArray.new(SELF, Array, pos))
+        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
@@ -385,7 +385,7 @@ my class Any { # declared in BOOTSTRAP
         )
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
-        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyHash.new(SELF, Hash, key))
+        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyHash.new(SELF, key))
     }
 
     proto method BIND-KEY(|) is nodal {*}

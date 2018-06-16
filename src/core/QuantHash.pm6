@@ -1,6 +1,6 @@
 my role QuantHash does Associative {
 
-    method SET-SELF(QuantHash:D: \elems) {
+    method SET-SELF(QuantHash:D: \elems) {  # cannot be a private method
         nqp::stmts(
           nqp::if(
             nqp::elems(elems),

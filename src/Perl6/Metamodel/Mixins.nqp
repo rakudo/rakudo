@@ -90,9 +90,9 @@ role Perl6::Metamodel::Mixins {
         $new_type.HOW.compose($new_type);
         $new_type.HOW.set_shortname($new_type, $new_shortname);
         $new_type.HOW.set_boolification_mode($new_type,
-            nqp::existskey($new_type.HOW.method_table($new_type), 'Bool')
+            nqp::existskey(nqp::hllize($new_type.HOW.method_table($new_type)), 'Bool')
             || nqp::can($new_type.HOW, 'submethod_table')
-                && nqp::existskey($new_type.HOW.submethod_table($new_type), 'Bool')
+                && nqp::existskey(nqp::hllize($new_type.HOW.submethod_table($new_type)), 'Bool')
                 ?? 0
                 !! self.get_boolification_mode($obj));
         $new_type.HOW.publish_boolification_spec($new_type);

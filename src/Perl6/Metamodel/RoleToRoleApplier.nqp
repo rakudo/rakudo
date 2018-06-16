@@ -42,15 +42,15 @@ my class RoleToRoleApplier {
                     }
                 }
             }
-            build_meth_info($_.HOW.method_table($_), %meth_info, %meth_providers);
-            build_meth_info($_.HOW.submethod_table($_), %meth_info, %meth_providers)
+            build_meth_info(nqp::hllize($_.HOW.method_table($_)), %meth_info, %meth_providers);
+            build_meth_info(nqp::hllize($_.HOW.submethod_table($_)), %meth_info, %meth_providers)
                 if nqp::can($_.HOW, 'submethod_table');
-            build_meth_info($_.HOW.private_method_table($_), %priv_meth_info, %priv_meth_providers)
+            build_meth_info(nqp::hllize($_.HOW.private_method_table($_)), %priv_meth_info, %priv_meth_providers)
                 if nqp::can($_.HOW, 'private_method_table');
         }
 
         # Also need methods of target.
-        my %target_meth_info := $target.HOW.method_table($target);
+        my %target_meth_info := nqp::hllize($target.HOW.method_table($target));
 
         # Process method list.
         for %meth_info {
@@ -94,7 +94,7 @@ my class RoleToRoleApplier {
 
         # Process private method list.
         if nqp::can($target.HOW, 'private_method_table') {
-            my %target_priv_meth_info := $target.HOW.private_method_table($target);
+            my %target_priv_meth_info := nqp::hllize($target.HOW.private_method_table($target));
             for %priv_meth_info {
                 my $name := $_.key;
                 my @add_meths := %priv_meth_info{$name};

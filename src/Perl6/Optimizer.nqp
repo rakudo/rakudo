@@ -1394,6 +1394,9 @@ class Perl6::Optimizer {
                 # .= calls can be unpacked entirely
                 return self.optimize_dot_equals_method_call: $op;
             }
+            elsif $op.name eq 'dispatch:<::>' {
+                return self.optimize_qual_method_call: $op;
+            }
         }
 
         if $op.op eq 'chain' {
@@ -1998,12 +2001,20 @@ class Perl6::Optimizer {
     }
 
     method optimize_private_method_call($op) {
+        # We can only optimize if we have a compile-time-known name.
         my $name_node := $op[1];
         if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
             $name_node := $name_node[2];
         }
+        unless (nqp::istype($name_node, QAST::SVal)) {
+            return 0;
+        }
+
+        # For private method calls within a class, we can try to resolve them
+        # at this point. If they are missing, that's an error. In a role, this
+        # optimization won't help.
         my $pkg_node := $op[2];
-        if nqp::istype($name_node, QAST::SVal) && $pkg_node.has_compile_time_value {
+        if $pkg_node.has_compile_time_value {
             my str $name := $name_node.value; # get raw string name
             my $pkg := $pkg_node.returns;     # actions sets this unless in role
             if nqp::can($pkg.HOW, 'find_private_method') {
@@ -2020,15 +2031,77 @@ class Perl6::Optimizer {
                         $op.unshift($call);
                         $op.op('call');
                         $op.name(NQPMu);
+                        return 1;
                     }
                 }
                 else {
                     $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
                         :private(nqp::p6bool(1)), :method($name),
                         :typename($pkg.HOW.name($pkg)), :invocant($pkg));
+                    return 1;
                 }
             }
         }
+
+        # If resolution didn't work out this way, and we're on the MoarVM
+        # backend, use a spesh plugin to help speed it up.
+        if nqp::getcomp('perl6').backend.name eq 'moar' {
+            my $inv := $op.shift;
+            my $name := $op.shift;
+            my $pkg := $op.shift;
+            $op.unshift($inv);
+            $op.unshift(QAST::Op.new(
+                :op('speshresolve'),
+                QAST::SVal.new( :value('privmeth') ),
+                $pkg,
+                $name
+            ));
+            $op.op('call');
+            $op.name(NQPMu);
+            return 1;
+        }
+    }
+
+    method optimize_qual_method_call($op) {
+        # Spesh plugins only available on MoarVM.
+        return $op unless nqp::getcomp('perl6').backend.name eq 'moar';
+
+        # We can only optimize if we have a compile-time-known name.
+        my $name_node := $op[1];
+        if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
+            $name_node := $name_node[2];
+        }
+        return $op unless nqp::istype($name_node, QAST::SVal);
+
+        # We need to evaluate the invocant only once, so will bind it into
+        # a temporary.
+        my $inv := $op.shift;
+        my $name := $op.shift;
+        my $type := $op.shift;
+        my @args;
+        while $op.list {
+            nqp::push(@args, $op.shift);
+        }
+        my $temp := QAST::Node.unique('inv_once');
+        $op.op('stmts');
+        $op.push(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($temp), :scope('local'), :decl('var') ),
+            $inv
+        ));
+        $op.push(QAST::Op.new(
+            :op('call'),
+            QAST::Op.new(
+                :op('speshresolve'),
+                QAST::SVal.new( :value('qualmeth') ),
+                QAST::Var.new( :name($temp), :scope('local') ),
+                $name,
+                $type
+            ),
+            QAST::Var.new( :name($temp), :scope('local') ),
+            |@args
+        ));
+        return $op;
     }
 
     method optimize_for_range($op, $callee, $c2) {

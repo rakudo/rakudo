@@ -89,7 +89,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-05-09T14:49:37+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-06-09T09:10:42+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -400,12 +400,12 @@ my class array does Iterable {
                 has int $!i;
                 has $!array;    # Native array we're iterating
 
-                method SET-SELF(\array) {
+                method !SET-SELF(\array) {
                     $!array := nqp::decont(array);
                     $!i = -1;
                     self
                 }
-                method new(\array) { nqp::create(self).SET-SELF(array) }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
 
                 method pull-one() is raw {
                     ($!i = $!i + 1) < nqp::elems($!array)
@@ -486,7 +486,7 @@ my class array does Iterable {
                   has $!array;
                   has int $!count;
 
-                  method SET-SELF(\array,\count) {
+                  method !SET-SELF(\array,\count) {
                       nqp::stmts(
                         (my int $elems = nqp::elems(array)),
                         ($!array := array),
@@ -502,7 +502,7 @@ my class array does Iterable {
                       )
 
                   }
-                  method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
                   method pull-one() {
                       nqp::if(
                         $!count && nqp::elems($!array),
@@ -546,7 +546,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-05-09T14:49:37+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-06-09T09:10:42+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -857,12 +857,12 @@ my class array does Iterable {
                 has int $!i;
                 has $!array;    # Native array we're iterating
 
-                method SET-SELF(\array) {
+                method !SET-SELF(\array) {
                     $!array := nqp::decont(array);
                     $!i = -1;
                     self
                 }
-                method new(\array) { nqp::create(self).SET-SELF(array) }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
 
                 method pull-one() is raw {
                     ($!i = $!i + 1) < nqp::elems($!array)
@@ -943,7 +943,7 @@ my class array does Iterable {
                   has $!array;
                   has int $!count;
 
-                  method SET-SELF(\array,\count) {
+                  method !SET-SELF(\array,\count) {
                       nqp::stmts(
                         (my int $elems = nqp::elems(array)),
                         ($!array := array),
@@ -959,7 +959,7 @@ my class array does Iterable {
                       )
 
                   }
-                  method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
                   method pull-one() {
                       nqp::if(
                         $!count && nqp::elems($!array),
@@ -1028,7 +1028,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-05-09T14:49:37+02:00 by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-06-09T09:10:42+02:00 by tools/build/makeNATIVE_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1339,12 +1339,12 @@ my class array does Iterable {
                 has int $!i;
                 has $!array;    # Native array we're iterating
 
-                method SET-SELF(\array) {
+                method !SET-SELF(\array) {
                     $!array := nqp::decont(array);
                     $!i = -1;
                     self
                 }
-                method new(\array) { nqp::create(self).SET-SELF(array) }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
 
                 method pull-one() is raw {
                     ($!i = $!i + 1) < nqp::elems($!array)
@@ -1425,7 +1425,7 @@ my class array does Iterable {
                   has $!array;
                   has int $!count;
 
-                  method SET-SELF(\array,\count) {
+                  method !SET-SELF(\array,\count) {
                       nqp::stmts(
                         (my int $elems = nqp::elems(array)),
                         ($!array := array),
@@ -1441,7 +1441,7 @@ my class array does Iterable {
                       )
 
                   }
-                  method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
                   method pull-one() {
                       nqp::if(
                         $!count && nqp::elems($!array),
@@ -1553,7 +1553,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2018-06-09T09:16:36+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1627,7 +1627,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -1651,7 +1651,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -1669,7 +1669,7 @@ my class array does Iterable {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
                         nqp::add_i($!maxdim,1)
@@ -2104,7 +2104,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2018-06-09T09:16:36+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2178,7 +2178,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -2202,7 +2202,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -2220,7 +2220,7 @@ my class array does Iterable {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
                         nqp::add_i($!maxdim,1)
@@ -2655,7 +2655,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2018-06-09T09:16:36+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2729,7 +2729,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -2753,7 +2753,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -2771,7 +2771,7 @@ my class array does Iterable {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
                         nqp::add_i($!maxdim,1)

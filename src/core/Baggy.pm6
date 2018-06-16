@@ -262,7 +262,7 @@ my role Baggy does QuantHash {
         nqp::p6bool($!elems && nqp::elems($!elems))
     }
 
-    method HASHIFY(\type) {
+    method !HASHIFY(\type) {
         nqp::stmts(
           (my $hash := Hash.^parameterize(type,Any).new),
           (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
@@ -291,8 +291,8 @@ my role Baggy does QuantHash {
           $hash
         )
     }
-    multi method hash(Baggy:D: --> Hash:D) { self.HASHIFY(Any) }
-    multi method Hash(Baggy:D: --> Hash:D) { self.HASHIFY(UInt) }
+    multi method hash(Baggy:D: --> Hash:D) { self!HASHIFY(Any) }
+    multi method Hash(Baggy:D: --> Hash:D) { self!HASHIFY(UInt) }
 
     method default(Baggy:D: --> 0) { }
 
@@ -470,7 +470,7 @@ my role Baggy does QuantHash {
                   )
               }
 
-              method SET-SELF(\raw, \todo, \total) {
+              method !SET-SELF(\raw, \todo, \total) {
                   nqp::stmts(
                     ($!weights := nqp::clone($!raw := raw)),
                     (my $iter := nqp::iterator($!weights)),
@@ -488,7 +488,7 @@ my role Baggy does QuantHash {
                   )
               }
               method new(\raw, \todo, \total) {
-                  nqp::create(self).SET-SELF(raw, todo, total)
+                  nqp::create(self)!SET-SELF(raw, todo, total)
               }
 
               method pull-one() is raw {

@@ -70,11 +70,11 @@ my class DateTime does Dateish {
     ) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
           || X::OutOfRange.new(
                :what<Day>,
                :got($day),
-               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
         0 <= $hour <= 23
           || X::OutOfRange.new(:what<Hour>,:got($hour),:range<0..23>).throw;

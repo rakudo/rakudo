@@ -113,7 +113,7 @@ for $*IN.lines -> $line {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -137,7 +137,7 @@ for $*IN.lines -> $line {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -155,7 +155,7 @@ for $*IN.lines -> $line {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
                         nqp::add_i($!maxdim,1)

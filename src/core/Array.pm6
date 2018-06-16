@@ -102,7 +102,7 @@ my class Array { # declared in BOOTSTRAP
                 has $!todo;
                 has $!descriptor;
 
-                method SET-SELF(\array) {
+                method !SET-SELF(\array) {
                     $!i           = -1;
                     $!array      := array;
                     $!reified    :=
@@ -115,7 +115,7 @@ my class Array { # declared in BOOTSTRAP
                     $!descriptor := nqp::getattr(array,Array,'$!descriptor');
                     self
                 }
-                method new(\array) { nqp::create(self).SET-SELF(array) }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
 
                 method pull-one() is raw {
                     nqp::ifnull(
@@ -448,9 +448,9 @@ my class Array { # declared in BOOTSTRAP
             && nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
           nqp::ifnull(
             nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
-            self.AT_POS_SLOW($pos)
+            self!AT_POS_SLOW($pos)
           ),
-          self.AT_POS_SLOW($pos)
+          self!AT_POS_SLOW($pos)
         )
     }
     # because this is a very hot path, we copied the code from the int candidate
@@ -460,43 +460,43 @@ my class Array { # declared in BOOTSTRAP
             && nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
           nqp::ifnull(
             nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
-            self.AT_POS_SLOW($pos)
+            self!AT_POS_SLOW($pos)
           ),
-          self.AT_POS_SLOW($pos)
+          self!AT_POS_SLOW($pos)
         )
     }
 
     # handle any lookup that's not simple
-    method AT_POS_SLOW(\pos) is raw {
+    method !AT_POS_SLOW(\pos) is raw {
         nqp::if(
           nqp::islt_i(pos, 0),
-          self.INDEX_OOR(pos),
+          self!INDEX_OOR(pos),
           nqp::if(
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::if(
               nqp::islt_i(pos,nqp::elems($reified)),
-              self.AT_POS_CONTAINER(pos),        # it's a hole
+              self!AT_POS_CONTAINER(pos),        # it's a hole
               nqp::if(                           # too far out, try reifying
                 nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
                 nqp::stmts(
                   $todo.reify-at-least(nqp::add_i(pos,1)),
                   nqp::ifnull(
                     nqp::atpos($reified,pos),    # reified ok
-                    self.AT_POS_CONTAINER(pos)   # reifier didn't reach
+                    self!AT_POS_CONTAINER(pos)   # reifier didn't reach
                   )
                 ),
-                self.AT_POS_CONTAINER(pos)       # create an outlander
+                self!AT_POS_CONTAINER(pos)       # create an outlander
               )
             ),
             # no reified, implies no todo
             nqp::stmts(                          # create reified
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              self.AT_POS_CONTAINER(pos)         # create an outlander
+              self!AT_POS_CONTAINER(pos)         # create an outlander
             )
           )
         )
     }
-    method AT_POS_CONTAINER(int $pos) is raw {
+    method !AT_POS_CONTAINER(int $pos) is raw {
         nqp::p6bindattrinvres(
           (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
           Scalar,
@@ -517,7 +517,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::isnull(target),
               nqp::if(
                 nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
-                self.ASSIGN_POS_SLOW_PATH($pos, assignee),
+                self!ASSIGN_POS_SLOW_PATH($pos, assignee),
                 nqp::assign(
                   nqp::bindpos(reified, $pos, nqp::p6scalarfromdesc($!descriptor)),
                   assignee
@@ -526,7 +526,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::assign(target, assignee)
             )
           ),
-          self.ASSIGN_POS_SLOW_PATH($pos, assignee)
+          self!ASSIGN_POS_SLOW_PATH($pos, assignee)
         )
     }
 
@@ -544,7 +544,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::isnull(target),
               nqp::if(
                 nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
-                self.ASSIGN_POS_SLOW_PATH($pos, assignee),
+                self!ASSIGN_POS_SLOW_PATH($pos, assignee),
                 nqp::assign(
                   nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)),
                   assignee
@@ -553,14 +553,14 @@ my class Array { # declared in BOOTSTRAP
               nqp::assign(target, assignee)
             )
           ),
-          self.ASSIGN_POS_SLOW_PATH($pos, assignee)
+          self!ASSIGN_POS_SLOW_PATH($pos, assignee)
         )
     }
 
-    method ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) {
+    method !ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) {
         nqp::if(
           nqp::islt_i($pos,0),
-          self.INDEX_OOR($pos),
+          self!INDEX_OOR($pos),
           nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
             nqp::ifnull(
@@ -612,7 +612,7 @@ my class Array { # declared in BOOTSTRAP
     multi method BIND-POS(Array:D: int $pos, Mu \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          self.INDEX_OOR($pos),
+          self!INDEX_OOR($pos),
           nqp::stmts(
             nqp::if(
               nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
@@ -634,7 +634,7 @@ my class Array { # declared in BOOTSTRAP
     multi method BIND-POS(Array:D: Int:D $pos, Mu \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          self.INDEX_OOR($pos),
+          self!INDEX_OOR($pos),
           nqp::stmts(
             nqp::if(
               nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
@@ -656,7 +656,7 @@ my class Array { # declared in BOOTSTRAP
     multi method DELETE-POS(Array:D: int $pos) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          self.INDEX_OOR($pos),
+          self!INDEX_OOR($pos),
           nqp::if(
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::stmts(
@@ -698,7 +698,7 @@ my class Array { # declared in BOOTSTRAP
         self.DELETE-POS(nqp::unbox_i($pos))
     }
 
-    method INDEX_OOR($pos) {
+    method !INDEX_OOR($pos) {
       Failure.new(X::OutOfRange.new(
           :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>
       ))
@@ -1255,7 +1255,7 @@ my class Array { # declared in BOOTSTRAP
               has $!array;
               has int $!count;
 
-              method SET-SELF(\array,\count) {
+              method !SET-SELF(\array,\count) {
                   nqp::stmts(
                     (my int $elems =
                       nqp::elems(nqp::getattr(array,List,'$!reified'))),
@@ -1272,7 +1272,7 @@ my class Array { # declared in BOOTSTRAP
                   )
 
               }
-              method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+              method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
               method pull-one() {
                   nqp::if(
                     $!count && nqp::elems(nqp::getattr($!array,List,'$!reified')),

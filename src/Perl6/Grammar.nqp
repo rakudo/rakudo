@@ -481,6 +481,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         self.define_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
         self.define_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
         self.define_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
+        self.define_slang('Pod',     Perl6::PodGrammar,     Perl6::PodActions);
 
         # Old language braid, going away eventually
         # XXX TODO: if these are going out, be sure to make similar change

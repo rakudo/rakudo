@@ -12,7 +12,7 @@ my class Rakudo::QuantHash {
         has $!iter;
         has $!on;
 
-        method SET-SELF(\elems) {
+        method !SET-SELF(\elems) {
             nqp::stmts(
               ($!elems := elems),
               ($!iter  := nqp::iterator(elems)),
@@ -22,7 +22,7 @@ my class Rakudo::QuantHash {
         method new(\quanthash) {
             nqp::if(
               (my $elems := quanthash.RAW-HASH) && nqp::elems($elems),
-              nqp::create(self).SET-SELF($elems),
+              nqp::create(self)!SET-SELF($elems),
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }

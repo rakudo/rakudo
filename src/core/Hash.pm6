@@ -46,7 +46,7 @@ my class Hash { # declared in BOOTSTRAP
           Hash, '$!descriptor', nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor))
     }
 
-    method AT_KEY_CONTAINER(Str:D \key) is raw {
+    method !AT_KEY_CONTAINER(Str:D \key) is raw {
         nqp::p6bindattrinvres(
           (my \v := nqp::p6scalarfromdesc($!descriptor)),
           Scalar,
@@ -66,9 +66,9 @@ my class Hash { # declared in BOOTSTRAP
           nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
           nqp::ifnull(
             nqp::atkey(nqp::getattr(self,Map,'$!storage'),key),
-            self.AT_KEY_CONTAINER(key)
+            self!AT_KEY_CONTAINER(key)
           ),
-          self.AT_KEY_CONTAINER(key)
+          self!AT_KEY_CONTAINER(key)
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
@@ -76,9 +76,9 @@ my class Hash { # declared in BOOTSTRAP
           nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
           nqp::ifnull(
             nqp::atkey(nqp::getattr(self,Map,'$!storage'),key.Str),
-            self.AT_KEY_CONTAINER(key.Str)
+            self!AT_KEY_CONTAINER(key.Str)
           ),
-          self.AT_KEY_CONTAINER(key.Str)
+          self!AT_KEY_CONTAINER(key.Str)
         )
     }
 

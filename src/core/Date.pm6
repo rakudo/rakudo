@@ -24,11 +24,11 @@ my class Date does Dateish {
     multi method new(Date: Int:D() $year, Int:D() $month, Int:D() $day, :&formatter, *%_) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
           || X::OutOfRange.new(
                :what<Day>,
                :got($day),
-               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
@@ -37,11 +37,11 @@ my class Date does Dateish {
     multi method new(Date: Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter, *%_) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
           || X::OutOfRange.new(
                :what<Day>,
                :got($day),
-               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
@@ -124,13 +124,13 @@ my class Date does Dateish {
             # If we overflow on days in the month, rather than throw an
             # exception, we just clip to the last of the month
             self.new($year,$month,$!day > 28
-              ?? $!day min self.DAYS-IN-MONTH($year,$month)
+              ?? $!day min self!DAYS-IN-MONTH($year,$month)
               !! $!day);
         }
         else { # year
             my int $year = $!year + $amount;
             self.new($year,$!month,$!day > 28
-              ?? $!day min self.DAYS-IN-MONTH($year,$!month)
+              ?? $!day min self!DAYS-IN-MONTH($year,$!month)
               !! $!day);
         }
     }

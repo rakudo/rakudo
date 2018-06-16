@@ -123,9 +123,9 @@ class Perl6::Metamodel::ClassHOW
             my @mro := self.mro($obj);
             while $i < +@mro {
                 my $ptype := @mro[$i];
-                last if nqp::existskey($ptype.HOW.method_table($ptype), 'Bool');
+                last if nqp::existskey(nqp::hllize($ptype.HOW.method_table($ptype)), 'Bool');
                 last if nqp::can($ptype.HOW, 'submethod_table') &&
-                    nqp::existskey($ptype.HOW.submethod_table($ptype), 'Bool');
+                    nqp::existskey(nqp::hllize($ptype.HOW.submethod_table($ptype)), 'Bool');
                 $i := $i + 1;
             }
             if $i + 1 == +@mro {
@@ -160,8 +160,8 @@ class Perl6::Metamodel::ClassHOW
             if self.BUILDPLAN($obj) && nqp::isconcrete($compiler_services) {
 
                 # Class does not appear to have a BUILDALL yet
-                unless nqp::existskey($obj.HOW.submethod_table($obj),'BUILDALL')
-                  || nqp::existskey($obj.HOW.method_table($obj),'BUILDALL') {
+                unless nqp::existskey(nqp::hllize($obj.HOW.submethod_table($obj)),'BUILDALL')
+                  || nqp::existskey(nqp::hllize($obj.HOW.method_table($obj)),'BUILDALL') {
                     my $builder := nqp::findmethod(
                       $compiler_services,'generate_buildplan_executor');
                     my $method :=

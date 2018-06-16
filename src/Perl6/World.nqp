@@ -1077,7 +1077,7 @@ class Perl6::World is HLL::World {
             if nqp::islist($arglist) {
                 my @huh;
                 for $arglist -> $ism {
-                    if $ism eq 'perl5' {
+                    if $ism eq 'Perl5' {
                         $*LANG.set_pragma('p5isms', $on);
                     }
                     else {

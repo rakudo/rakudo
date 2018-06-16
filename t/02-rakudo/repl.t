@@ -3,7 +3,7 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-plan 43;
+plan 44;
 
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
@@ -303,3 +303,7 @@ is-run-repl 'say "b".subst(/(.)/,{$0~$0}); say "%20" ~~ /:i \%(<[0..9A..F]>**2)/
     :out{.contains('bb') and .contains('aa') and not .contains('2020')},
     :err(''),
     ｢no sticky $0 values across lines｣;
+
+# https://github.com/rakudo/rakudo/issues/1925
+is-run-repl '&say.package', :out{.contains: 'GLOBAL'}, :err(''),
+    ｢REPL can auto-print non-Mu things that lack .WHERE and .gist｣;

@@ -95,8 +95,7 @@ class CompUnit::RepositoryRegistry {
                    (nqp::existskey($ENV,'HOMEPATH')
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                  ) -> $home-path {
-                $home = "$home-path/.perl6";
-                my str $path = "inst#$home";
+                $home = "inst#$home-path/.perl6";
             }
         }
 
@@ -147,7 +146,7 @@ class CompUnit::RepositoryRegistry {
                 CompUnit::Repository::Installation.new(:prefix("$prefix/site"), :$next-repo)
             )) unless nqp::existskey($unique, $site);
             nqp::bindkey($custom-lib, 'home', $next-repo := self!register-repository(
-                "inst#$home/.perl6",
+                $home,
                 CompUnit::Repository::Installation.new(:prefix($home), :$next-repo)
             )) if $home and not nqp::existskey($unique, $home);
         }

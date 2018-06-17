@@ -482,6 +482,16 @@ class Perl6::World is HLL::World {
         Perl6::World.new(:handle(self.handle), :context(self.context()))
     }
 
+    method lang-ver-before(str $want) {
+        nqp::chars($want) == 1 || nqp::die(
+          'Version to $*W.lang_ver_before'
+            ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
+        nqp::cmp_s(
+          nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),
+          $want
+        ) == -1
+    }
+
     method RAKUDO_MODULE_DEBUG() {
         if nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
             $!RAKUDO_MODULE_DEBUG

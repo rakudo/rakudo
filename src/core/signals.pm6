@@ -1,4 +1,5 @@
 my role Signally {
+    multi method CALL-ME(Inf) { self }
     multi method CALL-ME(Int() $signum) {
         return self if $signum == 0;
         nextsame

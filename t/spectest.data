@@ -296,6 +296,7 @@ S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
 S04-blocks-and-statements/temp.t
 S04-declarations/constant.t
+S04-declarations/constant-6.d.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t

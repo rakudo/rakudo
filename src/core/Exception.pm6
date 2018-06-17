@@ -2176,6 +2176,10 @@ my class X::Composition::NotComposable does X::Comp {
     }
 }
 
+my class X::ParametricConstant is Exception {
+    method message { 'Parameterization of constants is forbidden' }
+}
+
 my class X::TypeCheck is Exception {
     has $.operation;
     has $.got is default(Nil);

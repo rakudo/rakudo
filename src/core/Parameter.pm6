@@ -36,6 +36,8 @@ my class Parameter { # declared in BOOTSTRAP
 
     my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
                                            +| $SIG_ELEM_SLURPY_NAMED
+                                           +| $SIG_ELEM_SLURPY_LOL
+                                           +| $SIG_ELEM_SLURPY_ONEARG
                                            +| $SIG_ELEM_IS_CAPTURE;
     my constant $SIG_ELEM_IS_SLURPY = $SIG_ELEM_SLURPY_POS
                                    +| $SIG_ELEM_SLURPY_NAMED

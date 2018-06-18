@@ -384,7 +384,7 @@ my class Parameter { # declared in BOOTSTRAP
         if $!flags +& $SIG_ELEM_IS_RAW {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
-            $rest ~= ' is raw' unless $name.starts-with('\\');
+            $rest ~= ' is raw' unless $name eq '|' or $name.starts-with('\\');
         }
         unless nqp::isnull($!sub_signature) {
             my $sig = $!sub_signature.perl();

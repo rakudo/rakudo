@@ -38,7 +38,7 @@ nqp::speshreg('perl6', 'qualmeth', -> $obj, str $name, $type {
 sub discard-and-nil(*@pos, *%named) { Nil }
 nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
     nqp::speshguardtype($obj, $obj.WHAT);
-    my $meth := $obj.HOW.find_method($obj, $name);
+    my $meth := nqp::tryfindmethod($obj, $name);
     nqp::isconcrete($meth)
         ?? $meth
         !! &discard-and-nil

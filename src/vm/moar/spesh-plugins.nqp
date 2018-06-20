@@ -44,16 +44,35 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
         !! &discard-and-nil
 });
 
-# We case-analyze assignments and provide optimized paths for a range of
+## Assignment plugin
+
+# We case-analyze assignments and provide these optimized paths for a range of
 # common situations.
+sub assign-type-error($desc, $value) {
+    my %x := nqp::gethllsym('perl6', 'P6EX');
+    if nqp::ishash(%x) {
+        %x<X::TypeCheck::Assignment>($desc.name, $value, $desc.of);
+    }
+    else {
+        nqp::die("Type check failed in assignment");
+    }
+}
 sub assign-fallback($cont, $value) {
     nqp::assign($cont, $value)
 }
 sub assign-scalar-no-whence-no-typecheck($cont, $value) {
     nqp::bindattr($cont, Scalar, '$!value', $value);
 }
-
-## Assignment plugin
+sub assign-scalar-no-whence($cont, $value) {
+    my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+    my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
+    if nqp::istype($value, $type) {
+        nqp::bindattr($cont, Scalar, '$!value', $value);
+    }
+    else {
+        assign-type-error($desc, $value);
+    }
+}
 
 # Assignment to a $ sigil variable, usually Scalar.
 nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
@@ -78,11 +97,17 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
                 # check it here. If we meet the type check, then we can guard
                 # on descriptor identity and the type of value being assigned,
                 # and just do a straight bind to $!value.
+                nqp::speshguardobj($desc);
+                nqp::speshguardtype($value, $value.WHAT);
                 my $of := $desc.of;
-                if $desc.of.HOW.archetypes.nominal && nqp::istype($value, $of) {
-                    nqp::speshguardobj($desc);
-                    nqp::speshguardtype($value, $value.WHAT);
+                if $desc.of.HOW.archetypes.nominal &&
+                        (nqp::eqaddr($of, Mu) || nqp::istype($value, $of)) {
                     return &assign-scalar-no-whence-no-typecheck;
+                }
+                else {
+                    # No whence, not a Nil, but still need to type check
+                    # (perhaps subset type, perhaps error).
+                    return &assign-scalar-no-whence;
                 }
             }
         }

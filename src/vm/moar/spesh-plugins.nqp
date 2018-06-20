@@ -73,6 +73,32 @@ sub assign-scalar-no-whence($cont, $value) {
         assign-type-error($desc, $value);
     }
 }
+sub assign-scalar-bindpos-no-typecheck($cont, $value) {
+    nqp::bindattr($cont, Scalar, '$!value', $value);
+    my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+    nqp::bindpos(
+        nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),
+        nqp::getattr_i($desc, ContainerDescriptor::BindArrayPos, '$!pos'),
+        $cont);
+    nqp::bindattr($cont, Scalar, '$!descriptor',
+        nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor'));
+}
+sub assign-scalar-bindpos($cont, $value) {
+    my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+    my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor');
+    my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
+    if nqp::istype($value, $type) {
+        nqp::bindattr($cont, Scalar, '$!value', $value);
+        nqp::bindpos(
+            nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),
+            nqp::getattr_i($desc, ContainerDescriptor::BindArrayPos, '$!pos'),
+            $cont);
+        nqp::bindattr($cont, Scalar, '$!descriptor', $next);
+    }
+    else {
+        assign-type-error($next, $value);
+    }
+}
 
 # Assignment to a $ sigil variable, usually Scalar.
 nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
@@ -100,7 +126,7 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
                 nqp::speshguardobj($desc);
                 nqp::speshguardtype($value, $value.WHAT);
                 my $of := $desc.of;
-                if $desc.of.HOW.archetypes.nominal &&
+                if $of.HOW.archetypes.nominal &&
                         (nqp::eqaddr($of, Mu) || nqp::istype($value, $of)) {
                     return &assign-scalar-no-whence-no-typecheck;
                 }
@@ -108,6 +134,34 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
                     # No whence, not a Nil, but still need to type check
                     # (perhaps subset type, perhaps error).
                     return &assign-scalar-no-whence;
+                }
+            }
+        }
+        elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::BindArrayPos) {
+            # Bind into an array. We can produce a fast path for this, though
+            # should check what the ultimate descriptor is. It really should
+            # be a normal, boring, container descriptor.
+            nqp::speshguardtype($desc, $desc.WHAT);
+            my $next := nqp::speshguardgetattr($desc, ContainerDescriptor::BindArrayPos,
+                '$!next-descriptor');
+            if nqp::eqaddr($next.WHAT, ContainerDescriptor) {
+                # Ensure we're not assigning Nil. (This would be very odd, as
+                # a Scalar starts off with its default value, and if we are
+                # vivifying we'll likely have a new container).
+                unless nqp::eqaddr($value.WHAT, Nil) {
+                    # Go by whether we can type check the target.
+                    nqp::speshguardobj($next);
+                    nqp::speshguardtype($value, $value.WHAT);
+                    my $of := $next.of;
+                    if $of.HOW.archetypes.nominal &&
+                            (nqp::eqaddr($of, Mu) || nqp::istype($value, $of)) {
+                        return &assign-scalar-bindpos-no-typecheck;
+                    }
+                    else {
+                        # No whence, not a Nil, but still need to type check
+                        # (perhaps subset type, perhaps error).
+                        return &assign-scalar-bindpos;
+                    }
                 }
             }
         }

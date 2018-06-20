@@ -43,3 +43,52 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
         ?? $meth
         !! &discard-and-nil
 });
+
+# We case-analyze assignments and provide optimized paths for a range of
+# common situations.
+sub assign-fallback($cont, $value) {
+    nqp::assign($cont, $value)
+}
+sub assign-scalar-no-whence-no-typecheck($cont, $value) {
+    nqp::bindattr($cont, Scalar, '$!value', $value);
+}
+
+## Assignment plugin
+
+# Assignment to a $ sigil variable, usually Scalar.
+nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
+    # Whatever we do, we'll guard on the type of the container and its
+    # concreteness.
+    nqp::speshguardtype($cont, nqp::what_nd($cont));
+    nqp::isconcrete_nd($cont)
+        ?? nqp::speshguardconcrete($cont)
+        !! nqp::speshguardtypeobj($cont);
+
+    # We have various fast paths for an assignment to a Scalar.
+    if nqp::eqaddr(nqp::what_nd($cont), Scalar) && nqp::isconcrete_nd($cont) {
+        # Now see what the Scalar descriptor type is.
+        my $desc := nqp::speshguardgetattr($cont, Scalar, '$!descriptor');
+        if nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+            # Simple assignment, no whence. But is Nil being assigned?
+            if nqp::eqaddr($value.WHAT, Nil) {
+                # Yes; NYI.
+            }
+            else {
+                # No whence, no Nil. Is it a nominal type? If yes, we can
+                # check it here. If we meet the type check, then we can guard
+                # on descriptor identity and the type of value being assigned,
+                # and just do a straight bind to $!value.
+                my $of := $desc.of;
+                if $desc.of.HOW.archetypes.nominal && nqp::istype($value, $of) {
+                    nqp::speshguardobj($desc);
+                    nqp::speshguardtype($value, $value.WHAT);
+                    return &assign-scalar-no-whence-no-typecheck;
+                }
+            }
+        }
+    }
+
+    # If we get here, then we didn't have a specialized case to put in
+    # place.
+    return &assign-fallback;
+});

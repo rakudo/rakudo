@@ -839,6 +839,45 @@ register_op_desugar('p6decontrv_internal', sub ($qast) {
         )
     )
 });
+{
+    my $is_moar;
+    register_op_desugar('p6assign', -> $qast {
+        unless nqp::isconcrete($is_moar) {
+            $is_moar := nqp::getcomp('perl6').backend.name eq 'moar';
+        }
+        if $is_moar {
+            my $cont := QAST::Node.unique('assign_cont');
+            my $value := QAST::Node.unique('assign_value');
+            QAST::Stmts.new(
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($cont), :scope('local'), :decl('var') ),
+                    $qast[0]
+                ),
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($value), :scope('local'), :decl('var') ),
+                    QAST::Op.new( :op('decont'), $qast[1] )
+                ),
+                QAST::Op.new(
+                    :op('call'),
+                    QAST::Op.new(
+                        :op('speshresolve'),
+                        QAST::SVal.new( :value('assign') ),
+                        QAST::Var.new( :name($cont), :scope('local') ),
+                        QAST::Var.new( :name($value), :scope('local') ),
+                    ),
+                    QAST::Var.new( :name($cont), :scope('local') ),
+                    QAST::Var.new( :name($value), :scope('local') ),
+                ),
+                QAST::Var.new( :name($cont), :scope('local') )
+            )
+        }
+        else {
+            QAST::Op.new( :op('assign'), $qast[0], $qast[1] )
+        }
+    });
+}
 
 sub can-use-p6forstmt($block) {
     my $past_block := $block.ann('past_block');
@@ -7402,9 +7441,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $var_sigil eq '$' {
             # If it's a $ scalar, we can assume it's some kind of scalar
-            # container with a container spec, so can go directly for the
-            # low level assign op.
-            $past := QAST::Op.new( :op('assign'), $lhs_ast, $rhs_ast );
+            # container with a container spec, so can go directly for a
+            # Scalar assign op (via. a level of indirection so that any
+            # platform that wants to optimize this somewhat can).
+            $past := QAST::Op.new( :op('p6assign'), $lhs_ast, $rhs_ast );
         }
         elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'call' &&
               ($lhs_ast.name eq '&postcircumfix:<[ ]>' ||
@@ -8583,7 +8623,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $right := $infixish.ast;
             $right.push(QAST::Op.new(
-                :op('assign'),
+                :op('p6assign'),
                 QAST::Op.new( :op('p6scalarfromdesc'), QAST::Op.new( :op('null') ) ),
                 QAST::Var.new( :name('$/'), :scope('lexical') )
             ));

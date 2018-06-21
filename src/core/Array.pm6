@@ -29,8 +29,7 @@ my class Array { # declared in BOOTSTRAP
         }
 
         method push(Mu \value --> Nil) {
-            nqp::push($!target,
-                nqp::assign(nqp::p6scalarfromdesc($!descriptor), value));
+            nqp::push($!target, nqp::p6scalarwithvalue($!descriptor, value));
         }
 
         method append(IterationBuffer:D $buffer --> Nil) {
@@ -40,10 +39,9 @@ my class Array { # declared in BOOTSTRAP
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::push($!target,nqp::assign(
-                    nqp::p6scalarfromdesc($!descriptor),
-                    nqp::atpos($buffer,$i)
-                  ))
+                  nqp::push($!target,
+                    nqp::p6scalarwithvalue($!descriptor,nqp::atpos($buffer,$i))
+                  )
                 )
               )
             )
@@ -275,7 +273,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::stmts(                          # only a single element
               nqp::push(
                 buffer,
-                nqp::assign(nqp::p6scalarfromdesc($!descriptor),iterable)
+                nqp::p6scalarwithvalue($!descriptor,iterable)
               ),
               nqp::bindattr(self,List,'$!todo',Mu)
             ),
@@ -305,7 +303,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::stmts(
           nqp::push(
             (my \buffer = nqp::create(IterationBuffer)),
-            nqp::assign(nqp::p6scalarfromdesc($!descriptor), item)
+            nqp::p6scalarwithvalue($!descriptor, item)
           ),
           nqp::bindattr(self,List,'$!todo',Mu),
           nqp::p6bindattrinvres(self,List,'$!reified',buffer)
@@ -703,7 +701,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::bindattr(self,List,'$!reified',
                   nqp::create(IterationBuffer))
               ),
-              nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+              nqp::p6scalarwithvalue($!descriptor,value)
             ),
             self
           )
@@ -729,7 +727,7 @@ my class Array { # declared in BOOTSTRAP
                   nqp::bindattr(self,List,'$!reified',
                     nqp::create(IterationBuffer))
                 ),
-                nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+                nqp::p6scalarwithvalue($!descriptor,value)
               ),
               self
             ),
@@ -775,7 +773,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::bindattr(self,List,'$!reified',
                 nqp::create(IterationBuffer))
             ),
-            nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+            nqp::p6scalarwithvalue($!descriptor,value)
           ),
           self
         )
@@ -794,7 +792,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::bindattr(self,List,'$!reified',
                   nqp::create(IterationBuffer))
               ),
-              nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+              nqp::p6scalarwithvalue($!descriptor,value)
             ),
             self
           ),

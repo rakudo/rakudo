@@ -740,7 +740,7 @@ register_op_desugar('p6scalarwithvalue', -> $qast {
             ),
             $Scalar,
             QAST::SVal.new( :value('$!value') ),
-            $qast[1]
+            QAST::Op.new( :op('decont'), $qast[1] )
         )
     )
 });

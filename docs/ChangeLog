@@ -1,3 +1,44 @@
+New in 2018.06:
+  + Fixes:
+    + Fixed numeric values in Signal enum [aa622a95][852c1bd3][f2b50378]
+        [774ec5a0][189c5a8a][b19cc4bd][c661c03c][5603771f][bfcfa5da]
+        [7e5a862e][cd8d0445]
+    + Fixed premature .perl chopping in X::TypeCheck [a79de429]
+    + Many improvements to POD parsing [75430ac9][cb66dfcc][6f1b1cb6]
+        [e1e7e4c6][cc28ce37][e776ded7][54aa17c6]
+    + Fixed code execution code in elided duplicate argument pair values
+        [fc57f9f0][73297600]
+    + Fixed `use isms <Perl5>` for `rand` [d1d31fd5]
+    + Fixed miscompilation of chain ops [c10b1eec]
+    + Fixed home path when setting up repositories [91b211ac][d06e70c3]
+    + [JVM] Implemented canStore in RakudoContainerSpec [704b893c]
+  + Additions:
+    + Made "is DEPRECATED" work on attributes with auto-generated
+        accessors [7e3aa2f2]
+    + Added :api<something> in preparation for full zef / ecosystem
+        support [affc218f]
+    + Added .perl method to Distributions [18f9de61]
+  + Removals:
+    + Removed backwards compatibility with installers using the
+        old Distribution class [2acbe7fc]
+    + Moved pack/unpack support to lib/experimental.pm6 [9472fdfd][edc6ac6b]
+    + Renamed `use p5isms` to more general `use isms <Perl5>` [4109ce36]
+        [c80ea2f2][56dbd735][148d7c56][95aa77c9]
+  + Efficiency:
+    + Streamlined creation of HyperWorkBatchIterator [20bf96f9]
+    + Made .minpairs/.maxpairs about 25% faster [788cda94]
+    + Privatized a lot of methods for (now) better performance
+        [c940a0ed][ec5e51c8][7284a30f][c49bbc93][0ac5c4ff][09a9bbc0]
+        [caafcb38][0c265d49][48864774][0e835805][5621b262]
+    + Added spesh plugin support [192083f6]
+    + Made private method calls 6.6x faster (spesh plugin) [51ff83c7]
+    + Made qualified method calls 12x faster (spesh plugin) [f6f43d58]
+  + Internal:
+    + Moved &DEPRECATED to Rakudo::Deprecations.DEPRECATED [472f6e48]
+        [89a4cf0d][afbbf8f8][2fa08d5e][874ead51]
+    + Turned Hash.BIND-KEY into multis [1c1acbc2]
+    + Various NQP ↔ Perl 6 fixes [e4ecf5e5][23af3491][7bc6e46f][cbb5ee5f]
+
 New in 2018.05:
   + SPECIAL NOTES:
     + Corresponding MoarVM release introduces hash randomization to

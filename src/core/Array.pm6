@@ -505,10 +505,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::if(
                 nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
                 self!ASSIGN_POS_SLOW_PATH($pos, assignee),
-                nqp::assign(
-                  nqp::bindpos(reified, $pos, nqp::p6scalarfromdesc($!descriptor)),
-                  assignee
-                )
+                nqp::bindpos(reified, $pos, nqp::p6scalarwithvalue($!descriptor, assignee))
               ),
               nqp::assign(target, assignee)
             )
@@ -532,10 +529,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::if(
                 nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
                 self!ASSIGN_POS_SLOW_PATH($pos, assignee),
-                nqp::assign(
-                  nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)),
-                  assignee
-                )
+                nqp::bindpos(reified, $pos, nqp::p6scalarwithvalue($!descriptor, assignee))
               ),
               nqp::assign(target, assignee)
             )

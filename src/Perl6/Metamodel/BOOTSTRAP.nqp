@@ -472,8 +472,8 @@ my class Binder {
                     }
 
                     # If it's a scalar, we always need to wrap it into a new
-                    # container and store it, for copy or ro case (the rw bit
-                    # in the container descriptor takes care of the rest).
+                    # container and store it; the container descriptor will be
+                    # provided and make it rw if it's an `is copy`.
                     else {
                         my $new_cont := nqp::create(Scalar);
                         nqp::bindattr($new_cont, Scalar, '$!descriptor',

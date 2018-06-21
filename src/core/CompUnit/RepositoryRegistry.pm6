@@ -86,6 +86,7 @@ class CompUnit::RepositoryRegistry {
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
         my str $home;
+        my str $home-spec;
         try {
             if nqp::existskey($ENV,'HOME')
               ?? nqp::atkey($ENV,'HOME')
@@ -95,7 +96,8 @@ class CompUnit::RepositoryRegistry {
                    (nqp::existskey($ENV,'HOMEPATH')
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                  ) -> $home-path {
-                $home = "inst#$home-path/.perl6";
+                $home = "$home-path/.perl6";
+                $home-spec = "inst#$home";
             }
         }
 
@@ -146,9 +148,9 @@ class CompUnit::RepositoryRegistry {
                 CompUnit::Repository::Installation.new(:prefix("$prefix/site"), :$next-repo)
             )) unless nqp::existskey($unique, $site);
             nqp::bindkey($custom-lib, 'home', $next-repo := self!register-repository(
-                $home,
+                $home-spec,
                 CompUnit::Repository::Installation.new(:prefix($home), :$next-repo)
-            )) if $home and not nqp::existskey($unique, $home);
+            )) if $home and not nqp::existskey($unique, $home-spec);
         }
 
         # convert repo-specs to repos
@@ -190,7 +192,7 @@ class CompUnit::RepositoryRegistry {
             }
         }
         unless nqp::existskey($custom-lib, 'home') {
-            my $repo := nqp::atkey($repos, $home);
+            my $repo := nqp::atkey($repos, $home-spec);
             if nqp::isnull($repo) {
                 nqp::deletekey($custom-lib, 'home');
             }

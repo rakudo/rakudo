@@ -18,8 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2018-06-16   Rakudo #124 (AlexDaniel + Releasable)
-  2018-07-21   Rakudo #125
+  2018-07-21   Rakudo #125 (AlexDaniel + Releasable)
   2018-08-18   Rakudo #126
   2018-09-15   Rakudo #127
   2018-10-20   Rakudo #128
@@ -469,6 +468,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2018-04-25   Rakudo #122 "2018.04"           (AlexDaniel + Releasable)
   2018-04-30   2018.04.1                       (AlexDaniel + Releasable)
   2018-05-24   Rakudo #123 "2018.05"           (AlexDaniel + Releasable)
+  2018-06-22   Rakudo #124 "2018.06"           (AlexDaniel + Releasable)
 
 =head1 COPYRIGHT
 

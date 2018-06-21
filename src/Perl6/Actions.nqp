@@ -784,7 +784,7 @@ register_op_desugar('p6decontrv_internal', sub ($qast) {
         QAST::Op.new(
             :op('bind'),
             QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
-            $qast[0]
+            QAST::Op.new( :op('wantdecont'), $qast[0] )
         ),
         QAST::Op.new(
             # If it's a container...

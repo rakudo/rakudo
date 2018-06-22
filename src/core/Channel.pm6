@@ -152,8 +152,12 @@ my class Channel does Awaitable {
         class :: does Iterator {
             has $!queue;
             has $!vow;
-            method new(\queue,\vow) { nqp::create(self).SET-SELF(queue,vow) }
-            method SET-SELF(\queue,\vow) { $!queue := queue; $!vow := vow; self }
+            method !SET-SELF(\queue,\vow) {
+                $!queue := queue;
+                $!vow := vow;
+                self
+            }
+            method new(\queue,\vow) { nqp::create(self)!SET-SELF(queue,vow) }
             method pull-one() {
                 nqp::if(
                   nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),

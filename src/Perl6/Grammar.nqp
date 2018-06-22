@@ -481,6 +481,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         self.define_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
         self.define_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
         self.define_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
+        self.define_slang('Pod',     Perl6::PodGrammar,     Perl6::PodActions);
 
         # Old language braid, going away eventually
         # XXX TODO: if these are going out, be sure to make similar change
@@ -1356,7 +1357,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
                         my $s := $<statement_mod_loop><sym>;
-                        $/.obs("do..." ~ $s, "repeat...while or repeat...until");
+                        $/.obs("do..." ~ $s, "repeat...while or repeat...until")
+                          unless $*LANG.pragma('p5isms');
                     }
                 }
             ]?
@@ -3411,6 +3413,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* '=>'> }
 
     token term:sym<rand> {
+        <!{ $*LANG.pragma('p5isms') }>
         <sym> »
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
@@ -3532,7 +3535,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 elsif $trap == 2 {        # probably misused P6ism
                                     $<longname>."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)");
                                 }
-                                $<longname>.sorry("Argument to \"$name\" seems to be malformed") if $orry eq 'worry';
+                                $<longname>.sorry("Argument to \"$name\" seems to be malformed")
+                                  if $orry eq 'worry'
+                                  && !$*LANG.pragma('p5isms');
                             }
                         }
                     }
@@ -4760,9 +4765,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
 
         if %post_types || %unk_types || %unk_routines {
-            self.typed_sorry('X::Undeclared::Symbols',
-                :%post_types, :%unk_types, :%unk_routines,
-                :%routine_suggestion, :%type_suggestion);
+            if nqp::elems(%unk_routines) == 1 && %unk_routines<pack>
+              && nqp::elems(%post_types) == 0 && nqp::elems(%unk_types) == 0 {
+                self.typed_sorry('X::Experimental', :feature<pack>)
+            }
+            else {
+                self.typed_sorry('X::Undeclared::Symbols',
+                    :%post_types, :%unk_types, :%unk_routines,
+                    :%routine_suggestion, :%type_suggestion);
+            }
         }
 
         self;

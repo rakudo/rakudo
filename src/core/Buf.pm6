@@ -282,81 +282,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     proto method unpack(|) {*}
     multi method unpack(Blob:D: Str:D $template) {
-        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-            feature => "the 'unpack' method",
-            use     => "pack"
-        ).throw;
-        self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
+          ?? X::Experimental.new(
+               feature => "the 'unpack' method",
+               use     => "pack"
+             ).throw
+          !! self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
     }
     multi method unpack(Blob:D: @template) {
-        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-            feature => "the 'unpack' method",
-            use     => "pack"
-        ).throw;
-        my @bytes = self.list;
-        my @fields;
-        for @template -> $unit {
-            my $directive = substr($unit,0,1);
-            my $amount    = substr($unit,1);
-            my $pa = $amount eq ''  ?? 1            !!
-                     $amount eq '*' ?? @bytes.elems !! +$amount;
-
-            given $directive {
-                when 'a' | 'A' | 'Z' {
-                    @fields.push: @bytes.splice(0, $pa).map(&chr).join;
-                }
-                when 'H' {
-                    my str $hexstring = '';
-                    for ^$pa {
-                        my $byte = shift @bytes;
-                        $hexstring ~= ($byte +> 4).fmt('%x')
-                                    ~ ($byte % 16).fmt('%x');
-                    }
-                    @fields.push($hexstring);
-                }
-                when 'x' {
-                    splice @bytes, 0, $pa;
-                }
-                when 'C' {
-                    @fields.append: @bytes.splice(0, $pa);
-                }
-                when 'S' | 'v' {
-                    for ^$pa {
-                        last if @bytes.elems < 2;
-                        @fields.append: shift(@bytes)
-                                    + (shift(@bytes) +< 0x08);
-                    }
-                }
-                when 'L' | 'V' {
-                    for ^$pa {
-                        last if @bytes.elems < 4;
-                        @fields.append: shift(@bytes)
-                                    + (shift(@bytes) +< 0x08)
-                                    + (shift(@bytes) +< 0x10)
-                                    + (shift(@bytes) +< 0x18);
-                    }
-                }
-                when 'n' {
-                    for ^$pa {
-                        last if @bytes.elems < 2;
-                        @fields.append: (shift(@bytes) +< 0x08)
-                                    + shift(@bytes);
-                    }
-                }
-                when 'N' {
-                    for ^$pa {
-                        last if @bytes.elems < 4;
-                        @fields.append: (shift(@bytes) +< 0x18)
-                                    + (shift(@bytes) +< 0x10)
-                                    + (shift(@bytes) +< 0x08)
-                                    + shift(@bytes);
-                    }
-                }
-                X::Buf::Pack.new(:$directive).throw;
-            }
-        }
-
-        return |@fields;
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
+          ?? X::Experimental.new(
+               feature => "the 'unpack' method",
+               use     => "pack"
+             ).throw
+          !! nqp::getlexcaller('EXPERIMENTAL-PACK')(self, @template)
     }
 
     # XXX: the pack.t spectest file seems to require this method
@@ -663,98 +602,6 @@ constant buf8  = Buf[uint8];
 constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
-
-proto sub pack($, |) {*}
-multi sub pack(Str $template, *@items) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-        feature => "the 'pack' function",
-        use     => "pack"
-    ).throw;
-    pack($template.comb(/<[a..zA..Z]>[\d+|'*']?/), @items)
-}
-
-multi sub pack(@template, *@items) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-        feature => "the 'pack' function",
-        use     => "pack"
-    ).throw;
-    my @bytes;
-    for @template -> $unit {
-        my $directive = substr($unit,0,1);
-        my $amount    = substr($unit,1);
-
-        given $directive {
-            when 'A' {
-                my $ascii = shift @items // '';
-                my $data = $ascii.ords.cache;
-                if $amount eq '*' {
-                    $amount = $data.elems;
-                }
-                if $amount eq '' {
-                    $amount = 1;
-                }
-                for (@$data, 0x20 xx *).flat[^$amount] -> $byte {
-                    X::Buf::Pack::NonASCII.new(:char($byte.chr)).throw if $byte > 0x7f;
-                    @bytes.push: $byte;
-                }
-            }
-            when 'a' {
-                my $data = shift @items // Buf.new;
-                $data.=encode if nqp::istype($data,Str);
-                if $amount eq '*' {
-                    $amount = $data.elems;
-                }
-                if $amount eq '' {
-                    $amount = 1;
-                }
-                for (@$data, 0 xx *).flat[^$amount] -> $byte {
-                    @bytes.push: $byte;
-                }
-            }
-            when 'H' {
-                my $hexstring = shift @items // '';
-                if $hexstring.chars % 2 {
-                    $hexstring ~= '0';
-                }
-                @bytes.append: map { :16($_) }, $hexstring.comb(/../);
-            }
-            when 'x' {
-                if $amount eq '*' {
-                    $amount = 0;
-                }
-                elsif $amount eq '' {
-                    $amount = 1;
-                }
-                @bytes.append: 0x00 xx $amount;
-            }
-            when 'C' {
-                my $number = shift(@items);
-                @bytes.push: $number % 0x100;
-            }
-            when 'S' | 'v' {
-                my $number = shift(@items);
-                @bytes.append: ($number, $number +> 0x08) >>%>> 0x100;
-            }
-            when 'L' | 'V' {
-                my $number = shift(@items);
-                @bytes.append: ($number, $number +> 0x08,
-                              $number +> 0x10, $number +> 0x18) >>%>> 0x100;
-            }
-            when 'n' {
-                my $number = shift(@items);
-                @bytes.append: ($number +> 0x08, $number) >>%>> 0x100;
-            }
-            when 'N' {
-                my $number = shift(@items);
-                @bytes.append: ($number +> 0x18, $number +> 0x10,
-                              $number +> 0x08, $number) >>%>> 0x100;
-            }
-            X::Buf::Pack.new(:$directive).throw;
-        }
-    }
-
-    return Buf.new(@bytes);
-}
 
 multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {

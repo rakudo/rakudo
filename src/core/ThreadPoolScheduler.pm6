@@ -851,7 +851,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     my class TimerCancellation is repr('AsyncTask') { }
 
-    method CUE_DELAY_TIMES(&code, int $delay, int $times, %args) {
+    method !CUE_DELAY_TIMES(&code, int $delay, int $times, %args) {
         nqp::stmts(
           (my &run := nqp::if(                   # set up what we need to run
             nqp::isnull(my $catch :=
@@ -947,7 +947,7 @@ my class ThreadPoolScheduler does Scheduler {
             nqp::isconcrete(my $at := nqp::atkey($args,"at"))
               && nqp::isconcrete(my $in := nqp::atkey($args,"in")),
             die("Cannot specify :at and :in at the same time"),
-            self.CUE_DELAY_TIMES(
+            self!CUE_DELAY_TIMES(
               &code,
               to-millis(nqp::ifnull(
                 $in,
@@ -965,11 +965,11 @@ my class ThreadPoolScheduler does Scheduler {
             && nqp::isconcrete(
                  nqp::atkey(nqp::getattr(%_,Map,'$!storage'),"in")),
           die("Cannot specify :at and :in at the same time"),
-          self.CUE_DELAY_TIMES(&code, to-millis-allow-zero($at - now), 0, %_)
+          self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($at - now), 0, %_)
         )
     }
     multi method cue(&code, :$in!, *%_) {
-        self.CUE_DELAY_TIMES(&code, to-millis-allow-zero($in), 0, %_)
+        self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($in), 0, %_)
     }
     multi method cue(&code, :&catch! --> Nil) {
         nqp::push(self!general-queue, wrap-catch(&code, &catch))

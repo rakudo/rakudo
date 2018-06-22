@@ -214,7 +214,7 @@ my class Rakudo::Internals {
     }
 
     # fast whitespace trim: str to trim, str to store trimmed str
-    method TRIM(\string, \trimmed --> Nil) {
+    method !TRIM(\string, \trimmed --> Nil) {
         my int $pos  = nqp::chars(string) - 1;
         my int $left =
           nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, string, 0, $pos + 1);
@@ -232,16 +232,16 @@ my class Rakudo::Internals {
         my str $str   = nqp::unbox_s($command);
         my int $index = nqp::index($str,':');
         if nqp::isgt_i($index,0) {
-            self.TRIM(nqp::substr($str,0,$index),key);
-            self.TRIM(nqp::substr($str,$index + 1,nqp::chars($str) - $index),value);
+            self!TRIM(nqp::substr($str,0,$index),key);
+            self!TRIM(nqp::substr($str,$index + 1,nqp::chars($str) - $index),value);
         }
         elsif nqp::islt_i($index,0) {
-            self.TRIM($str,key);
+            self!TRIM($str,key);
             value = '';
         }
         else {
             key = '';
-            self.TRIM(nqp::substr($str,1,nqp::chars($str) - 1),value);
+            self!TRIM(nqp::substr($str,1,nqp::chars($str) - 1),value);
         }
         Nil
     }

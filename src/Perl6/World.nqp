@@ -482,6 +482,16 @@ class Perl6::World is HLL::World {
         Perl6::World.new(:handle(self.handle), :context(self.context()))
     }
 
+    method lang-ver-before(str $want) {
+        nqp::chars($want) == 1 || nqp::die(
+          'Version to $*W.lang_ver_before'
+            ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
+        nqp::cmp_s(
+          nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),
+          $want
+        ) == -1
+    }
+
     method RAKUDO_MODULE_DEBUG() {
         if nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
             $!RAKUDO_MODULE_DEBUG
@@ -933,7 +943,6 @@ class Perl6::World is HLL::World {
       'strict',             1,
       'trace',              1,
       'worries',            1,
-      'p5isms',             1,
     );
 
     # pragmas without args that just set_pragma to true
@@ -951,7 +960,6 @@ class Perl6::World is HLL::World {
       'nqp',                1,
       'trace',              1,
       'worries',            1,
-      'p5isms',             1,
     );
 
     # not yet implemented pragmas
@@ -1073,6 +1081,26 @@ class Perl6::World is HLL::World {
             }
             else {
                 self.throw($/, 'X::LibNone');
+            }
+        }
+        elsif $name eq 'isms' {
+            if nqp::islist($arglist) {
+                my @huh;
+                for $arglist -> $ism {
+                    if $ism eq 'Perl5' {
+                        $*LANG.set_pragma('p5isms', $on);
+                    }
+                    else {
+                        nqp::push(@huh,$ism)
+                    }
+                }
+                if @huh {
+                    self.throw($/, 'X::AdHoc',
+                      payload => "Don't know how to handle: isms <"
+                        ~ nqp::join(" ",@huh)
+                        ~ ">"
+                    )
+                }
             }
         }
         else {
@@ -4951,17 +4979,21 @@ class Perl6::World is HLL::World {
 
         sub safely_stringify($target) {
             if $has_str && nqp::istype($target, $Str) {
-                return ~nqp::unbox_s($target);
+                return nqp::isconcrete($target)
+                  ?? ~nqp::unbox_s($target) !! '(Str)';
             } elsif $has_int && nqp::istype($target, $Int) {
-                return ~nqp::unbox_i($target);
+                return nqp::isconcrete($target)
+                  ?? ~nqp::unbox_i($target) !! '(Int)';
             } elsif $has_list && nqp::istype($target, $List) {
+                return '(List)' unless nqp::isconcrete($target);
                 my $storage := nqp::getattr($target, $List, '$!reified');
                 my @result;
                 for $storage {
                     nqp::push(@result, safely_stringify($_));
                 }
                 return "(" ~ join(", ", @result) ~ ")";
-            } elsif nqp::ishash($target) {
+            }
+            elsif nqp::ishash($target) {
                 my @result;
                 for $target -> $key {
                     @result.push("\n") if +@result != 0;

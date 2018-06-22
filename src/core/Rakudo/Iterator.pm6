@@ -22,7 +22,7 @@ class Rakudo::Iterator {
         has $!blob;
         has Int $!i;   # sadly, this can not be a native int yet  :-(
 
-        method SET-SELF(\blob) {
+        method !SET-SELF(\blob) {
             nqp::stmts(               # something to iterator over
               ($!blob := blob),
               ($!i     = -1),
@@ -32,7 +32,7 @@ class Rakudo::Iterator {
         method new(\blob) {
             nqp::if(
               nqp::isgt_i(nqp::elems(blob),0),
-              nqp::create(self).SET-SELF(blob),
+              nqp::create(self)!SET-SELF(blob),
               Rakudo::Iterator.Empty    # nothing to iterate
             )
         }
@@ -75,7 +75,7 @@ class Rakudo::Iterator {
         has $!hash;
         has $!iter;
 
-        method SET-SELF(\hash) {
+        method !SET-SELF(\hash) {
             nqp::if(
               ($!hash := nqp::if(
                 nqp::istype(hash,Rakudo::Internals::IterationSet),
@@ -86,7 +86,7 @@ class Rakudo::Iterator {
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
-        method new(\hash) { nqp::create(self).SET-SELF(hash) }
+        method new(\hash) { nqp::create(self)!SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
@@ -100,7 +100,7 @@ class Rakudo::Iterator {
         has $!iter;
         has $!on;
 
-        method SET-SELF(\hash) {
+        method !SET-SELF(\hash) {
             nqp::if(
               ($!hash := nqp::if(
                 nqp::istype(hash,Rakudo::Internals::IterationSet),
@@ -111,7 +111,7 @@ class Rakudo::Iterator {
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
-        method new(\hash) { nqp::create(self).SET-SELF(hash) }
+        method new(\hash) { nqp::create(self)!SET-SELF(hash) }
 
         method pull-one() is raw {
             nqp::if(
@@ -194,7 +194,7 @@ class Rakudo::Iterator {
             )
         }
 
-        method SET-SELF(Mu \list) {
+        method !SET-SELF(Mu \list) {
             nqp::stmts(
               nqp::if(
                 nqp::istype(list,List),
@@ -218,7 +218,7 @@ class Rakudo::Iterator {
               self
             )
         }
-        method new(Mu \list) { nqp::create(self).SET-SELF(list) }
+        method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
 
         method pull-one() is raw {
             nqp::if(
@@ -288,7 +288,7 @@ class Rakudo::Iterator {
               $result
             )
         }
-        method SET-SELF(Mu \list) {
+        method !SET-SELF(Mu \list) {
             nqp::stmts(
               nqp::if(
                 nqp::istype(list,List),
@@ -312,7 +312,7 @@ class Rakudo::Iterator {
               self
             )
         }
-        method new(Mu \list) { nqp::create(self).SET-SELF(list) }
+        method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
 
         method pull-one() is raw {
             nqp::if(
@@ -435,7 +435,7 @@ class Rakudo::Iterator {
             has int $!size;
             has int $!index;
 
-            method SET-SELF(\iterator, int $size) {
+            method !SET-SELF(\iterator, int $size) {
                 nqp::stmts(
                   (my int $i = -1),
                   (my $buffered := nqp::setelems(nqp::list,$size)),
@@ -463,7 +463,7 @@ class Rakudo::Iterator {
                 nqp::if(
                   nqp::isle_i(n,0),
                   iterator,                        # we wants it all
-                  nqp::create(self).SET-SELF(iterator,n)
+                  nqp::create(self)!SET-SELF(iterator,n)
                 )
             }
             method pull-one() is raw {
@@ -489,8 +489,8 @@ class Rakudo::Iterator {
             has Mu $!iter;
             has int $!key;
 
-            method SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
-            method new(\iter) { nqp::create(self).SET-SELF(iter) }
+            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
+            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -520,7 +520,7 @@ class Rakudo::Iterator {
             has int $!size;
             has int $!complete;
             has int $!is-exhausted;
-            method SET-SELF(\iterator,\size,\partial) {
+            method !SET-SELF(\iterator,\size,\partial) {
                 nqp::stmts(
                   ($!iterator := iterator),
                   nqp::if(
@@ -548,7 +548,7 @@ class Rakudo::Iterator {
                   self
                 )
             }
-            method new(\it,\si,\pa) { nqp::create(self).SET-SELF(it,si,pa) }
+            method new(\it,\si,\pa) { nqp::create(self)!SET-SELF(it,si,pa) }
             method pull-one() is raw {
               nqp::if(
                 $!is-exhausted,
@@ -617,7 +617,7 @@ class Rakudo::Iterator {
             has @!slipped;
             has $!code;
             has $!times;
-            method SET-SELF(\code,\times) {
+            method !SET-SELF(\code,\times) {
                 nqp::stmts(
                   ($!code := code),
                   ($!times = times),
@@ -627,7 +627,7 @@ class Rakudo::Iterator {
             method new(\code,\times) {
                 nqp::if(
                   times > 0,
-                  nqp::create(self).SET-SELF(code,times),
+                  nqp::create(self)!SET-SELF(code,times),
                   Rakudo::Iterator.Empty
                 )
             }
@@ -723,7 +723,7 @@ class Rakudo::Iterator {
                   has int $!b;
                   has Mu $!stack;
                   has Mu $!combination;
-                  method SET-SELF(\n,\k,\b) {
+                  method !SET-SELF(\n,\k,\b) {
                       nqp::stmts(
                         ($!n = n),
                         ($!k = k),
@@ -733,7 +733,7 @@ class Rakudo::Iterator {
                         self
                     )
                   }
-                  method new(\n,\k,\b) { nqp::create(self).SET-SELF(n,k,b) }
+                  method new(\n,\k,\b) { nqp::create(self)!SET-SELF(n,k,b) }
 
                   method pull-one() {
                       nqp::stmts(
@@ -803,7 +803,7 @@ class Rakudo::Iterator {
               has int $!lazy;   # whether the outer iterator is lazy
               has int $!top;    # index of top reified/iterator
 
-              method SET-SELF(\iterables) {
+              method !SET-SELF(\iterables) {
                   nqp::stmts(
                     (my $iterables := nqp::getattr(iterables,List,'$!reified')),
                     (my int $elems  = nqp::elems($iterables)),
@@ -883,7 +883,7 @@ class Rakudo::Iterator {
                     self
                   )
               }
-              method new(\iterables) { nqp::create(self).SET-SELF(iterables) }
+              method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
               method pull-one() {
                   nqp::if(
 #?if jvm
@@ -1076,7 +1076,7 @@ class Rakudo::Iterator {
               has int $!lazy;   # whether the outer iterator is lazy
               has int $!top;    # index of top reified/iterator
 
-              method SET-SELF(\iterables,\mapper) {
+              method !SET-SELF(\iterables,\mapper) {
                   nqp::stmts(
                     (my $iterables := nqp::getattr(iterables,List,'$!reified')),
                     (my int $elems  = nqp::elems($iterables)),
@@ -1157,7 +1157,7 @@ class Rakudo::Iterator {
                     self
                   )
               }
-              method new(\its,\map) { nqp::create(self).SET-SELF(its,map) }
+              method new(\its,\map) { nqp::create(self)!SET-SELF(its,map) }
               method pull-one() {
                   nqp::if(
 #?if jvm
@@ -1356,7 +1356,7 @@ class Rakudo::Iterator {
             has &!afterwards;
             has int $!seen-first;
 
-            method SET-SELF(\body,\cond,\afterwards) {
+            method !SET-SELF(\body,\cond,\afterwards) {
                 nqp::stmts(
                   (&!body := body),
                   (&!cond := cond),
@@ -1365,7 +1365,7 @@ class Rakudo::Iterator {
                 )
             }
             method new(\body,\cond,\afterwards) {
-                nqp::create(self).SET-SELF(body,cond,afterwards)
+                nqp::create(self)!SET-SELF(body,cond,afterwards)
             }
 
             method pull-one() {
@@ -1473,12 +1473,12 @@ class Rakudo::Iterator {
             has int $!ended;
             has int $!whatever;
             has int $!i;
-            method SET-SELF(\source) {
+            method !SET-SELF(\source) {
                 $!source := source;
                 $!buffer := IterationBuffer.new;
                 self
             }
-            method new(\source) { nqp::create(self).SET-SELF(source) }
+            method new(\source) { nqp::create(self)!SET-SELF(source) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -1581,17 +1581,17 @@ class Rakudo::Iterator {
               method pull-one() is raw {
                   nqp::if(
                     nqp::islt_i($!n, ($!i = nqp::add_i($!i, 1)))
-                      && self.FINISH-UP(1)
+                      && self!FINISH-UP(1)
                     || nqp::eqaddr((my $got := $!source.pull-one),IterationEnd)
-                      && self.FINISH-UP(0),
+                      && self!FINISH-UP(0),
                     IterationEnd,
                     $got
                   )
               }
               method sink-all(--> IterationEnd) { self.FINISH-UP }
-              method new(\s,\n,\c) { nqp::create(self).SET-SELF(s,n,c) }
-              method SET-SELF($!source,$!n,&!callable) { self }
-              method FINISH-UP(\do-sink) {
+              method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }
+              method !SET-SELF($!source,$!n,&!callable) { self }
+              method !FINISH-UP(\do-sink) {
                   do-sink    && $!source.sink-all;
                   &!callable && &!callable();
                   1
@@ -1614,8 +1614,8 @@ class Rakudo::Iterator {
                     $!source.sink-all;
                     &!callable();
                 }
-                method new(\s,\c) { nqp::create(self).SET-SELF(s,c) }
-                method SET-SELF($!source,&!callable) { self }
+                method new(\s,\c) { nqp::create(self)!SET-SELF(s,c) }
+                method !SET-SELF($!source,&!callable) { self }
             }.new(source,&callable),
             source                               # want it all without callable
           )
@@ -1636,11 +1636,11 @@ class Rakudo::Iterator {
             has int $!offset;
             has &!out;
             has $!cache;
-            method SET-SELF($!source,$!indexes,\offset,&!out) {
+            method !SET-SELF($!source,$!indexes,\offset,&!out) {
                 $!cache := nqp::setelems(nqp::list,$!offset = offset);
                 self
             }
-            method new(\s,\i,\o,\out) { nqp::create(self).SET-SELF(s,i,o,out) }
+            method new(\s,\i,\o,\out) { nqp::create(self)!SET-SELF(s,i,o,out) }
             method pull-one() is raw {
                 nqp::if(
                   nqp::eqaddr((my $got := $!indexes.pull-one),IterationEnd),
@@ -1705,7 +1705,7 @@ class Rakudo::Iterator {
             has int $!last;
             has $!is-lazy;
 
-            method SET-SELF(int $i, $last) {
+            method !SET-SELF(int $i, $last) {
                 nqp::stmts(
                   ($!i    = nqp::sub_i($i,1)),
                   ($!last = nqp::if(
@@ -1716,7 +1716,7 @@ class Rakudo::Iterator {
                   self
                 )
             }
-            method new(\f,\t) { nqp::create(self).SET-SELF(f,t) }
+            method new(\f,\t) { nqp::create(self)!SET-SELF(f,t) }
 
             method pull-one() {
                 nqp::if(
@@ -1848,8 +1848,8 @@ class Rakudo::Iterator {
             has int $!on-key;
             has int $!key;
 
-            method SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
-            method new(\iter) { nqp::create(self).SET-SELF(iter) }
+            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
+            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -1893,7 +1893,7 @@ class Rakudo::Iterator {
             has $!lastn;
             has int $!todo;
             has int $!index;
-            method SET-SELF(\iterator, \size, \full) {
+            method !SET-SELF(\iterator, \size, \full) {
                 nqp::stmts(
                   ($!iterator := iterator),
                   ($!full = full),
@@ -1917,7 +1917,7 @@ class Rakudo::Iterator {
                           && nqp::isbig_I(nqp::decont(n)))
                           || n == Inf,
                         iterator,               # big value = itself
-                        nqp::create(self).SET-SELF(iterator,n,f)
+                        nqp::create(self)!SET-SELF(iterator,n,f)
                       )
                     )
                   )
@@ -2002,14 +2002,14 @@ class Rakudo::Iterator {
           class :: does Iterator {          # actually need to do some mapping
               has $!list;
               has $!indexes;
-              method SET-SELF(\list,\indexes) {
+              method !SET-SELF(\list,\indexes) {
                   nqp::stmts(
                     ($!list := nqp::getattr(list,List,'$!reified')),
                     ($!indexes := indexes),
                     self
                   )
                 }
-              method new(\l,\i) { nqp::create(self).SET-SELF(l,i) }
+              method new(\l,\i) { nqp::create(self)!SET-SELF(l,i) }
               method pull-one() {
                   nqp::if(
                     nqp::eqaddr(
@@ -2143,11 +2143,11 @@ class Rakudo::Iterator {
             has $!indexes;    # iterator providing index values
             has int $!next;   # virtual index of next source value
             has &!out;        # callable for out of sequence values
-            method SET-SELF($!source,$!indexes,\offset,&!out) {
+            method !SET-SELF($!source,$!indexes,\offset,&!out) {
                 $!next = offset;
                 self
             }
-            method new(\s,\i,\o,\out) { nqp::create(self).SET-SELF(s,i,o,out) }
+            method new(\s,\i,\o,\out) { nqp::create(self)!SET-SELF(s,i,o,out) }
             method pull-one() is raw {
                 nqp::stmts(
                   nqp::until(
@@ -2189,7 +2189,7 @@ class Rakudo::Iterator {
         class :: does Iterator {
             has $!iterator;
             has int $!times;
-            method SET-SELF($!iterator,$!times) { self }
+            method !SET-SELF($!iterator,$!times) { self }
             method new(\iterator,\times) {
                 nqp::if(
                   nqp::istype(times,Whatever),
@@ -2202,7 +2202,7 @@ class Rakudo::Iterator {
                         && nqp::isbig_I(nqp::decont(times)))
                         || times == Inf,
                       iterator,               # big value = itself
-                      nqp::create(self).SET-SELF(iterator,times)
+                      nqp::create(self)!SET-SELF(iterator,times)
                     )
                   )
                 )
@@ -2302,7 +2302,7 @@ class Rakudo::Iterator {
             has Int $!times;
             has int $!is-lazy;
 
-            method SET-SELF(Mu \value,\times) {
+            method !SET-SELF(Mu \value,\times) {
                 nqp::stmts(
                   ($!value := value),
                   ($!times  = times),
@@ -2313,7 +2313,7 @@ class Rakudo::Iterator {
             method new(Mu \value,\times) {
                 nqp::if(
                   times > 0,
-                  nqp::create(self).SET-SELF(value,times),
+                  nqp::create(self)!SET-SELF(value,times),
                   Rakudo::Iterator.Empty
                 )
             }
@@ -2352,8 +2352,8 @@ class Rakudo::Iterator {
             has Mu $!iter;
             has int $!key;
 
-            method SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
-            method new(\iter) { nqp::create(self).SET-SELF(iter) }
+            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
+            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -2394,7 +2394,7 @@ class Rakudo::Iterator {
                 has int $!todo;
                 has int $!elems;
                 has $!next;
-                method SET-SELF(int $n, int $b) {
+                method !SET-SELF(int $n, int $b) {
                     nqp::stmts(
                       ($!n = $n),
                       ($!b = $b),
@@ -2415,7 +2415,7 @@ class Rakudo::Iterator {
                       self
                     )
                 }
-                method new(\n,\b) { nqp::create(self).SET-SELF(n,b) }
+                method new(\n,\b) { nqp::create(self)!SET-SELF(n,b) }
                 method pull-one {
                     nqp::if(
                       nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0),
@@ -2485,7 +2485,7 @@ class Rakudo::Iterator {
             has $!descriptor;
             has int $!i;
 
-            method SET-SELF(\array, Mu \des) {
+            method !SET-SELF(\array, Mu \des) {
                 nqp::stmts(
                   ($!reified    := nqp::getattr(array, List,  '$!reified')),
                   ($!descriptor := des),
@@ -2493,9 +2493,9 @@ class Rakudo::Iterator {
                   self
                 )
             }
-            method new(\arr, Mu \des) { nqp::create(self).SET-SELF(arr, des) }
+            method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
 
-            method hole(int $i) is raw {
+            method !hole(int $i) is raw {
                 nqp::p6bindattrinvres(
                   (my \v := nqp::p6scalarfromdesc($!descriptor)),
                   Scalar,
@@ -2508,7 +2508,7 @@ class Rakudo::Iterator {
                   nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
                   nqp::if(
                     nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
-                    self.hole($!i),
+                    self!hole($!i),
                     IterationEnd
                   )
                 )
@@ -2523,7 +2523,7 @@ class Rakudo::Iterator {
                     ($todo = nqp::sub_i($todo,1))
                       && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                     $target.push(
-                      nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
+                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                     )
                   ),
                   ($!i = $i),                # make sure pull-one ends
@@ -2542,7 +2542,7 @@ class Rakudo::Iterator {
                   nqp::while(   # doesn't sink
                     nqp::islt_i($i = nqp::add_i($i,1),$elems),
                     $target.push(
-                      nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
+                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                     )
                   ),
                   ($!i = $i)
@@ -2593,7 +2593,7 @@ class Rakudo::Iterator {
             has $!reified;
             has int $!i;
 
-            method SET-SELF(\list) {
+            method !SET-SELF(\list) {
                 nqp::stmts(
                   ($!reified := nqp::if(
                     nqp::istype(list,List),
@@ -2603,7 +2603,7 @@ class Rakudo::Iterator {
                   self
                 )
             }
-            method new(\list) { nqp::create(self).SET-SELF(list) }
+            method new(\list) { nqp::create(self)!SET-SELF(list) }
 
             method pull-one() is raw {
                 nqp::ifnull(
@@ -2689,7 +2689,7 @@ class Rakudo::Iterator {
             has $!reified;
             has int $!i;
 
-            method SET-SELF(\list) {
+            method !SET-SELF(\list) {
                 nqp::stmts(
                   ($!reified := nqp::if(
                     nqp::istype(list,List),
@@ -2699,7 +2699,7 @@ class Rakudo::Iterator {
                   self
                 )
             }
-            method new(\list) { nqp::create(self).SET-SELF(list) }
+            method new(\list) { nqp::create(self)!SET-SELF(list) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -2747,14 +2747,14 @@ class Rakudo::Iterator {
             has $!iterator;
             has $!reified;
             has int $!i;
-            method SET-SELF(\iterator) {
+            method !SET-SELF(\iterator) {
                 nqp::stmts(
                   ($!iterator := iterator),
                   ($!reified  := nqp::create(IterationBuffer)),
                   self
                 )
             }
-            method new(\iter) { nqp::create(self).SET-SELF(iter) }
+            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
             method pull-one() is raw {
                 nqp::if(
 #?if jvm
@@ -2808,7 +2808,7 @@ class Rakudo::Iterator {
             has $!cond;
             has int $!skip;
 
-            method SET-SELF(\body,\cond) {
+            method !SET-SELF(\body,\cond) {
                 nqp::stmts(
                   ($!body := body),
                   ($!cond := cond),
@@ -2817,7 +2817,7 @@ class Rakudo::Iterator {
                 )
             }
             method new(\body,\cond) {
-                nqp::create(self).SET-SELF(body,cond)
+                nqp::create(self)!SET-SELF(body,cond)
             }
 
             method pull-one() {
@@ -2873,7 +2873,7 @@ class Rakudo::Iterator {
             has $!buffer;
             has int $!complete;
             has int $!is-exhausted;
-            method SET-SELF(\iterator,\cycle,\partial) {
+            method !SET-SELF(\iterator,\cycle,\partial) {
                 nqp::stmts(
                   ($!iterator := iterator),
                   ($!cycle    := Rakudo::Iterator.Repeat(cycle.iterator)),
@@ -2885,7 +2885,7 @@ class Rakudo::Iterator {
             method new(\iterator,\cycle,\partial) {
                 nqp::if(
                   nqp::istype(cycle,Iterable),
-                  nqp::create(self).SET-SELF(iterator,cycle,partial),
+                  nqp::create(self)!SET-SELF(iterator,cycle,partial),
                   Rakudo::Iterator.Batch(iterator,cycle,partial)
                 )
             }
@@ -3047,7 +3047,7 @@ class Rakudo::Iterator {
           class :: does Iterator {
               has $!iters;
               has int $!lazy;
-              method SET-SELF(\iterables) {
+              method !SET-SELF(\iterables) {
                   nqp::stmts(
                     (my $iterables := nqp::getattr(iterables,List,'$!reified')),
                     (my int $elems = nqp::elems($iterables)),
@@ -3069,7 +3069,7 @@ class Rakudo::Iterator {
                     self
                   )
               }
-              method new(\iterables) { nqp::create(self).SET-SELF(iterables) }
+              method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
               method pull-one() {
                   nqp::if(
 #?if jvm
@@ -3132,13 +3132,13 @@ class Rakudo::Iterator {
         class :: does Iterator {
             has $!source;
             has $!current;
-            method SET-SELF(\source) {
+            method !SET-SELF(\source) {
                 nqp::stmts(
                   ($!current := ($!source := source).pull-one),
                   self
                 )
             }
-            method new(\source) { nqp::create(self).SET-SELF(source) }
+            method new(\source) { nqp::create(self)!SET-SELF(source) }
             method pull-one() {
                 nqp::if(
                   nqp::eqaddr($!current,IterationEnd),
@@ -3171,7 +3171,7 @@ class Rakudo::Iterator {
             has int $!maxdim;
             has int $!max;
 
-            method SET-SELF(\shape) {
+            method !SET-SELF(\shape) {
                 nqp::stmts(
                   ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
                   (my int $dims = nqp::elems($!dims)),
@@ -3187,7 +3187,7 @@ class Rakudo::Iterator {
                   self
                 )
             }
-            method new(\shape) { nqp::create(self).SET-SELF(shape) }
+            method new(\shape) { nqp::create(self)!SET-SELF(shape) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -3251,7 +3251,7 @@ class Rakudo::Iterator {
             has $!current; # null if passing on
             has $!done;    # IterationEnd if done
 
-            method SET-SELF(\iter, \conds, \on) {
+            method !SET-SELF(\iter, \conds, \on) {
                 nqp::stmts(
                   ($!iter  := iter),
                   ($!conds := conds),
@@ -3270,7 +3270,7 @@ class Rakudo::Iterator {
                 )
             }
             method new(\iter, \conds, \on) {
-                nqp::create(self).SET-SELF(iter, conds, on)
+                nqp::create(self)!SET-SELF(iter, conds, on)
             }
 
             method pull-one() is raw {
@@ -3506,7 +3506,7 @@ class Rakudo::Iterator {
             has &!with;
             has int $!unique;
             has $!seen;
-            method SET-SELF(\iterator, \as, \with, \unique) {
+            method !SET-SELF(\iterator, \as, \with, \unique) {
                 nqp::stmts(
                   ($!iter := iterator),
                   (&!as := as),
@@ -3517,7 +3517,7 @@ class Rakudo::Iterator {
                 )
             }
             method new( \iterator, \as, \with, \union) {
-                nqp::create(self).SET-SELF(iterator, as, with, union)
+                nqp::create(self)!SET-SELF(iterator, as, with, union)
             }
             method pull-one() is raw {
                 nqp::stmts(
@@ -3568,7 +3568,7 @@ class Rakudo::Iterator {
             has &!with;
             has int $!unique;
             has $!seen;
-            method SET-SELF(\iterator, \with, \unique) {
+            method !SET-SELF(\iterator, \with, \unique) {
                 nqp::stmts(
                   ($!iter := iterator),
                   (&!with := with),
@@ -3578,7 +3578,7 @@ class Rakudo::Iterator {
                 )
             }
             method new( \iterator, \with, \union) {
-                nqp::create(self).SET-SELF(iterator, with, union)
+                nqp::create(self)!SET-SELF(iterator, with, union)
             }
             method pull-one() is raw {
                 nqp::stmts(
@@ -3627,12 +3627,12 @@ class Rakudo::Iterator {
             has $!iter;
             has $!cond;
 
-            method SET-SELF(\iter, \cond) {
+            method !SET-SELF(\iter, \cond) {
                 $!iter := iter;
                 $!cond := cond;
                 self
             }
-            method new(\iter,\cond) { nqp::create(self).SET-SELF(iter,cond) }
+            method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -3720,13 +3720,13 @@ class Rakudo::Iterator {
             has &!cond;
             has $!done;
 
-            method SET-SELF(\iter, \cond) {
+            method !SET-SELF(\iter, \cond) {
                 $!iter := iter;
                 &!cond := cond;
                 $!done := nqp::null;
                 self
             }
-            method new(\iter,\cond) { nqp::create(self).SET-SELF(iter,cond) }
+            method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
 
             method pull-one() is raw {
                 nqp::ifnull(
@@ -3751,7 +3751,7 @@ class Rakudo::Iterator {
             has $!body;
             has $!cond;
 
-            method SET-SELF(\body,\cond) {
+            method !SET-SELF(\body,\cond) {
                 nqp::stmts(
                   ($!body := body),
                   ($!cond := cond),
@@ -3759,7 +3759,7 @@ class Rakudo::Iterator {
                 )
             }
             method new(\body,\cond) {
-                nqp::create(self).SET-SELF(body,cond)
+                nqp::create(self)!SET-SELF(body,cond)
             }
 
             method pull-one() {
@@ -3808,7 +3808,7 @@ class Rakudo::Iterator {
           class :: does Iterator {
               has $!iters;
               has int $!lazy;
-              method SET-SELF(\iterables) {
+              method !SET-SELF(\iterables) {
                   nqp::stmts(
                     (my $iterables := nqp::getattr(iterables,List,'$!reified')),
                     (my int $elems = nqp::elems($iterables)),
@@ -3834,7 +3834,7 @@ class Rakudo::Iterator {
                     self
                   )
               }
-              method new(\iterables) { nqp::create(self).SET-SELF(iterables) }
+              method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
               method pull-one() {
                   nqp::if(
 #?if jvm
@@ -3896,7 +3896,7 @@ class Rakudo::Iterator {
               has $!iters;
               has $!mapper;
               has int $!lazy;
-              method SET-SELF(\iterables,\mapper) {
+              method !SET-SELF(\iterables,\mapper) {
                   nqp::stmts(
                     (my $iterables := nqp::getattr(iterables,List,'$!reified')),
                     (my int $elems = nqp::elems($iterables)),
@@ -3923,7 +3923,7 @@ class Rakudo::Iterator {
                     self
                   )
               }
-              method new(\iters,\map) { nqp::create(self).SET-SELF(iters,map) }
+              method new(\iters,\map) { nqp::create(self)!SET-SELF(iters,map) }
               method pull-one() {
                   nqp::if(
 #?if jvm

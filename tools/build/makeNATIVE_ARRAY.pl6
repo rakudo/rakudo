@@ -355,12 +355,12 @@ for $*IN.lines -> $line {
                 has int $!i;
                 has $!array;    # Native array we're iterating
 
-                method SET-SELF(\array) {
+                method !SET-SELF(\array) {
                     $!array := nqp::decont(array);
                     $!i = -1;
                     self
                 }
-                method new(\array) { nqp::create(self).SET-SELF(array) }
+                method new(\array) { nqp::create(self)!SET-SELF(array) }
 
                 method pull-one() is raw {
                     ($!i = $!i + 1) < nqp::elems($!array)
@@ -441,7 +441,7 @@ for $*IN.lines -> $line {
                   has $!array;
                   has int $!count;
 
-                  method SET-SELF(\array,\count) {
+                  method !SET-SELF(\array,\count) {
                       nqp::stmts(
                         (my int $elems = nqp::elems(array)),
                         ($!array := array),
@@ -457,7 +457,7 @@ for $*IN.lines -> $line {
                       )
 
                   }
-                  method new(\a,\c) { nqp::create(self).SET-SELF(a,c) }
+                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
                   method pull-one() {
                       nqp::if(
                         $!count && nqp::elems($!array),

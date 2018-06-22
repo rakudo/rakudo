@@ -15,6 +15,72 @@ class Perl6::Pod {
     my $show_warning :=  1; # flag used to track the first warning so no repeated warnings are given
     my $table_num    := -1; # for user debugging, incremented by one on each call to sub table
 
+    # UNICODE HEX VALUES AND NAMES FOR SPACE CHARACTERS
+    # (from ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt):
+    # (from https://en.wikipedia.org/wiki/Whitespace_character)
+    # (which is from https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt)
+    #
+    # The hex codes for spaces are in the range 0x0009..0x3000.  Those
+    # were each inspected, and all chars not matching \h or \v characters were
+    # eliminated leaving the following:
+    #
+    #=== 26 total chars =========
+    #=== 2 total no-break chars:
+    # 0x00A0 NO-BREAK SPACE ; Zs ; \h space char
+    # 0x202F NARROW NO-BREAK SPACE ; Zs ; \h space char
+    #=== 7 total vertical chars:
+    # 0x000A <control-000A> ; alias: NEW LINE ; Cc ; \v space char
+    # 0x000B <control-000B> ; alias: VERTICAL TABULATION ; Cc ; \v space char
+    # 0x000C <control-000C> ; alias: FORM FEED ; Cc ; \v space char
+    # 0x000D <control-000D> ; alias: CARRIAGE RETURN ; Cc ; \v space char
+    # 0x0085 <control-0085> ; alias: NEXT LINE ; Cc ; \v space char
+    # 0x2028 LINE SEPARATOR ; Zl ; \v space char
+    # 0x2029 PARAGRAPH SEPARATOR ; Zp ; \v space char
+    #=== 17 total horizontal chars:
+    # 0x0009 <control-0009> ; alias: HORIZONTAL TABULATION; ; Cc ; \h space char
+    # 0x0020 SPACE ; Zs ; \h space char
+    # 0x1680 OGHAM SPACE MARK ; Zs ; \h space char
+    # 0x180E MONGOLIAN VOWEL SEPARATOR ; Cf ; \h space char
+    # 0x2000 EN SPACE ; Zs ; \h space char
+    # 0x2001 EM SPACE ; Zs ; \h space char
+    # 0x2002 EN SPACE ; Zs ; \h space char
+    # 0x2003 EM SPACE ; Zs ; \h space char
+    # 0x2004 THREE-PER-EM SPACE ; Zs ; \h space char
+    # 0x2005 FOUR-PER-EM SPACE ; Zs ; \h space char
+    # 0x2006 SIX-PER-EM SPACE ; Zs ; \h space char
+    # 0x2007 FIGURE SPACE ; Zs ; \h space char
+    # 0x2008 PUNCTUATION SPACE ; Zs ; \h space char
+    # 0x2009 THIN SPACE ; Zs ; \h space char
+    # 0x200A HAIR SPACE ; Zs ; \h space char
+    # 0x205F MEDIUM MATHEMATICAL SPACE ; Zs ; \h space char
+    # 0x3000 IDEOGRAPHIC SPACE ; Zs ; \h space char
+
+    # using info from above, define a character class regex for space
+    # chars to be used for word breaks and collapsing multiple
+    # adjacent breaking spaces to one (normalizing text)
+    my $breaking-spaces-regex := /[
+                                  # vertical (\v) breaking space chars:
+                                  <[
+                                     \x[000A] .. \x[000D]
+                                     \x[0085]
+                                     \x[2028]
+                                     \x[2029]
+                                  ]>
+                                  |
+                                  # horizontal (\h) breaking space chars:
+                                  <[
+                                     \x[0009]
+                                     \x[0020]
+                                     \x[1680]
+                                     \x[180E]
+                                     \x[2000] .. \x[200A]
+                                     \x[205F]
+                                     \x[3000]
+                                   ]>
+                                 ]+/;
+    # literal normal space (U+0020)
+    my $SPACE := "\x[0020]";
+
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
             nqp::die("You must provide one of leading or trailing to Perl6::Pod::document");
@@ -397,13 +463,15 @@ class Perl6::Pod {
     }
 
     our sub normalize_text($a) {
-        # given a string of text, possibly including newlines, reduces
-        # contiguous whitespace to a single space and trims leading and
-        # trailing whitespace from all logical lines
-        my $r := subst($a, /\s+/, ' ', :global);
-        $r    := subst($r, /^^\s*/, '');
-        $r    := subst($r, /\s*$$/, '');
-        return $r;
+        # Given a string of text, possibly including newlines, reduces
+        # contiguous breaking whitespace to a single space.
+        # Also trims leading and trailing whitespace from the string.
+        # Note that non-breaking whitespace is not affected.
+
+        # First, we normalize all breaking spaces.
+        my $r := subst($a, $breaking-spaces-regex, $SPACE, :global);
+        # Finally, trim the ends of the string.
+        return $r := trim-string($r);
     }
 
     our sub remove_inline_comments($S) {
@@ -433,14 +501,11 @@ class Perl6::Pod {
         return $ret;
     }
 
-    our sub chomp($s) {
-        # remove ending newline from a string
-        return subst($s, /\n$/, '');
-    }
-
-    our sub trim_right($a) {
-        # given a string of text, removes all whitespace from the end
-        return subst($a, /\s*$/, '');
+    our sub trim-string($a) {
+        # Given a string of text, removes all whitespace from the ends,
+        # including any newline.
+        my $r := subst($a, /^\s*/, '');
+        return subst($r, /\s*$/, '');
     }
 
     our sub pod_strings_from_matches(@string_matches) {
@@ -454,7 +519,7 @@ class Perl6::Pod {
     }
 
     # Takes an array of arrays of pod characters (normal character or
-    # formatting code) returns an array of strings and formatting codes
+    # formatting code) returns an array of strings and formatting codes.
     our sub build_pod_strings(@strings) {
         my $in_code := $*POD_IN_CODE_BLOCK;
 
@@ -462,13 +527,15 @@ class Perl6::Pod {
             if @chars {
                 my $s := nqp::join('', @chars);
                 if ! $in_code {
-                    $s := subst($s, /\s+/, ' ', :global);
+                    # Collapse adjacent horizontal space characters to
+                    # a single space character (unicode code point 0x0020).
+                    # Note non-breaking whitespace is # not affected.
+                    $s := subst($s, $breaking-spaces-regex, $SPACE, :global);
                 }
                 $s := $*W.add_constant('Str', 'str', $s).compile_time_value;
                 @where.push($s);
             }
         }
-
 
         my @res  := [];
         my @chars := [];
@@ -653,7 +720,8 @@ class Perl6::Pod {
         for $<table_row> {
             # stringify the row for analysis and further handling
             my $row := $_.ast;
-            $row := chomp($row);
+            # remove ending newline (AKA chomp)
+            $row := subst($row, /\n$/, '');
             @orig_rows.push($row);
             if $row ~~ $is_row_sep {
                 # leading row sep lines are deleted and warned about

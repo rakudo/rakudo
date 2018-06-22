@@ -105,8 +105,11 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
-# need to add a COMPOSE phaser to the class, that will add an ENTER phaser
-# to the (possibly auto-generated) accessor method.
+    my $new := nqp::istype($DEPRECATED,Bool)
+      ?? "something else"
+      !! $DEPRECATED;
+    role is-DEPRECATED { has $.DEPRECATED }
+    $attr does is-DEPRECATED($new);
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
     Rakudo::Internals.SET_LEADING_DOCS($attr, $leading_docs);
@@ -151,7 +154,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
-    $r.add_phaser( 'ENTER', -> { DEPRECATED($new) } );
+    $r.add_phaser( 'ENTER', -> { Rakudo::Deprecations.DEPRECATED($new) } );
 }
 multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));

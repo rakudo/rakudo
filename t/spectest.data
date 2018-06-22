@@ -296,6 +296,7 @@ S04-blocks-and-statements/pointy-rw.t
 S04-blocks-and-statements/pointy.t
 S04-blocks-and-statements/temp.t
 S04-declarations/constant.t
+S04-declarations/constant-6.d.t
 S04-declarations/implicit-parameter.t
 S04-declarations/multiple.t
 S04-declarations/my.t
@@ -548,7 +549,7 @@ S07-slip/slip.t
 S07-iterators/range-iterator.t
 S07-hyperrace/basics.t # moar
 S07-hyperrace/for.t
-S07-hyperrace/stress.t # moar stress
+S07-hyperrace/stress.t # stress
 S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
 S09-autovivification/autovivification.t
@@ -827,15 +828,15 @@ S17-lowlevel/lock.t      # slow
 S17-lowlevel/semaphore.t
 S17-lowlevel/thread.t
 S17-lowlevel/thread-start-join-stress.t # stress
-S17-procasync/basic.t    # moar
+S17-procasync/basic.t
 S17-procasync/bind-handles.t # moar
-S17-procasync/encoding.t # moar
-S17-procasync/nonexistent.t # moar
-S17-procasync/print.t    # moar
+S17-procasync/encoding.t
+S17-procasync/nonexistent.t
+S17-procasync/print.t
 S17-procasync/kill.t     # moar stress slow
-S17-procasync/no-runaway-file-limit.t # moar slow
-S17-procasync/many-processes-no-close-stdin.t # moar slow
-S17-procasync/stress.t   # moar stress slow
+S17-procasync/no-runaway-file-limit.t # slow
+S17-procasync/many-processes-no-close-stdin.t # slow
+S17-procasync/stress.t   # stress slow
 S17-promise/allof.t      # slow
 S17-promise/at.t
 S17-promise/anyof.t
@@ -983,7 +984,7 @@ S32-basics/pairup.t
 S32-basics/warn.t
 S32-basics/xxKEY.t
 S32-basics/xxPOS.t
-S32-basics/xxPOS-native.t    # moar
+S32-basics/xxPOS-native.t
 S32-container/buf.t
 S32-container/cat.t
 S32-container/roundrobin.t
@@ -1019,7 +1020,7 @@ S32-io/indir.t
 S32-io/io-cathandle.t
 S32-io/io-handle.t
 S32-io/lock.t                   # slow
-S32-io/socket-host-port-split.t      # moar
+S32-io/socket-host-port-split.t
 S32-io/socket-fail-invalid-values.t
 S32-io/io-special.t
 S32-io/io-spec-qnx.t
@@ -1044,8 +1045,8 @@ S32-io/out-buffering.t
 S32-io/pipe.t
 S32-io/rename.t
 S32-io/seek.t
-S32-io/socket-accept-and-working-threads.t      # moar
-S32-io/socket-recv-vs-read.t   # moar
+S32-io/socket-accept-and-working-threads.t
+S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-io/tell.t

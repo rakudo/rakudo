@@ -285,7 +285,6 @@ sub all-the-protos {
     &open,
     &ord,
     &ords,
-    &pack,
     &pair,
     &pairs,
     &parse-base,

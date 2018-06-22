@@ -2934,12 +2934,14 @@ BEGIN {
     Map.HOW.add_parent(Map, Cool);
     Map.HOW.add_attribute(Map, scalar_attr('$!storage', Mu, Map, :associative_delegate));
     Map.HOW.compose_repr(Map);
+    nqp::settypehllrole(Map, 5);
 
     # my class Hash is Map {
     #     has Mu $!descriptor;
     Hash.HOW.add_parent(Hash, Map);
     Hash.HOW.add_attribute(Hash, scalar_attr('$!descriptor', Mu, Hash, :!auto_viv_container));
     Hash.HOW.compose_repr(Hash);
+    nqp::settypehllrole(Hash, 5);
 
     # class Capture is Any {
     #     has @!list;

@@ -13,9 +13,9 @@ New in 2018.06:
     + Fixed home path when setting up repositories [91b211ac][d06e70c3]
     + [JVM] Implemented canStore in RakudoContainerSpec [704b893c]
   + Additions:
-    + Made "is DEPRECATED" work on attributes with auto-generated
+    + Made `is DEPRECATED` work on attributes with auto-generated
         accessors [7e3aa2f2]
-    + Added :api<something> in preparation for full zef / ecosystem
+    + Added `:api<something>` in preparation for full zef / ecosystem
         support [affc218f]
     + Added .perl method to Distributions [18f9de61]
   + Removals:

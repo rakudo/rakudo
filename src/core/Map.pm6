@@ -171,7 +171,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             }
         }.new(self)
     }
-    method list(Map:D:) { Seq.new(self.iterator) }
+    method list(Map:D:) {
+        nqp::p6bindattrinvres(
+          nqp::create(List),List,'$!reified',self.IterationBuffer)
+    }
     multi method pairs(Map:D:) { Seq.new(self.iterator) }
     multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
     multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }

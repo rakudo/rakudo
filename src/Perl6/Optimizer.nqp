@@ -1397,6 +1397,9 @@ class Perl6::Optimizer {
             elsif $op.name eq 'dispatch:<::>' {
                 return self.optimize_qual_method_call: $op;
             }
+            elsif $op.name eq 'dispatch:<.?>' {
+                return self.optimize_maybe_method_call: $op;
+            }
         }
 
         if $op.op eq 'chain' {
@@ -2097,6 +2100,49 @@ class Perl6::Optimizer {
                 QAST::Var.new( :name($temp), :scope('local') ),
                 $name,
                 $type
+            ),
+            QAST::Var.new( :name($temp), :scope('local') ),
+            |@args
+        ));
+        return $op;
+    }
+
+    method optimize_maybe_method_call($op) {
+        # Spesh plugins only available on MoarVM.
+        return $op unless nqp::getcomp('perl6').backend.name eq 'moar';
+
+        # We can only optimize if we have a compile-time-known name.
+        my $name_node := $op[1];
+        if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
+            $name_node := $name_node[2];
+        }
+        return $op unless nqp::istype($name_node, QAST::SVal);
+
+        # We need to evaluate the invocant only once, so will bind it into
+        # a temporary.
+        my $inv := $op.shift;
+        my $name := $op.shift;
+        my @args;
+        while $op.list {
+            nqp::push(@args, $op.shift);
+        }
+        my $temp := QAST::Node.unique('inv_once');
+        $op.op('stmts');
+        $op.push(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($temp), :scope('local'), :decl('var') ),
+            $inv
+        ));
+        $op.push(QAST::Op.new(
+            :op('call'),
+            QAST::Op.new(
+                :op('speshresolve'),
+                QAST::SVal.new( :value('maybemeth') ),
+                QAST::Op.new(
+                    :op('decont'),
+                    QAST::Var.new( :name($temp), :scope('local') )
+                ),
+                $name,
             ),
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args

@@ -482,6 +482,16 @@ class Perl6::World is HLL::World {
         Perl6::World.new(:handle(self.handle), :context(self.context()))
     }
 
+    method lang-ver-before(str $want) {
+        nqp::chars($want) == 1 || nqp::die(
+          'Version to $*W.lang_ver_before'
+            ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
+        nqp::cmp_s(
+          nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),
+          $want
+        ) == -1
+    }
+
     method RAKUDO_MODULE_DEBUG() {
         if nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
             $!RAKUDO_MODULE_DEBUG
@@ -4969,17 +4979,21 @@ class Perl6::World is HLL::World {
 
         sub safely_stringify($target) {
             if $has_str && nqp::istype($target, $Str) {
-                return ~nqp::unbox_s($target);
+                return nqp::isconcrete($target)
+                  ?? ~nqp::unbox_s($target) !! '(Str)';
             } elsif $has_int && nqp::istype($target, $Int) {
-                return ~nqp::unbox_i($target);
+                return nqp::isconcrete($target)
+                  ?? ~nqp::unbox_i($target) !! '(Int)';
             } elsif $has_list && nqp::istype($target, $List) {
+                return '(List)' unless nqp::isconcrete($target);
                 my $storage := nqp::getattr($target, $List, '$!reified');
                 my @result;
                 for $storage {
                     nqp::push(@result, safely_stringify($_));
                 }
                 return "(" ~ join(", ", @result) ~ ")";
-            } elsif nqp::ishash($target) {
+            }
+            elsif nqp::ishash($target) {
                 my @result;
                 for $target -> $key {
                     @result.push("\n") if +@result != 0;

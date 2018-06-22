@@ -4942,6 +4942,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method type_declarator:sym<constant>($/) {
+        my $W := $*W;
         my $value_ast := $<initializer>.ast;
         my $sigil := '';
 
@@ -4953,9 +4954,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $<variable> {
             if $<variable><sigil> {
                 $sigil := ~$<variable><sigil>;
-                if $sigil eq '@' {
-                    $value_ast := QAST::Op.new( :op<callmethod>, :name<cache>, $value_ast);
-                }
             }
             if $<variable><twigil> {
                 my $twigil := ~$<variable><twigil>;
@@ -4968,7 +4966,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
 
                 elsif $twigil eq '*' {
-                    $*W.throw($/, 'X::Syntax::Variable::Twigil',
+                    $W.throw($/, 'X::Syntax::Variable::Twigil',
                       what       => 'constant',
                       twigil     => $twigil,
                       scope      => $*SCOPE,
@@ -4978,7 +4976,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # Don't handle other twigil'd case yet.
                 else {
-                    $*W.throw($/, 'X::Comp::NYI',
+                    $W.throw($/, 'X::Comp::NYI',
                       feature => "Constants with a '$twigil' twigil");
                 }
             }
@@ -4986,40 +4984,62 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Get constant value.
-        my $type := nqp::defined($*OFTYPE)
-          ?? $*OFTYPE.ast !! $*W.find_symbol: ['Mu'];
+        my $Mu := $W.find_symbol: ['Mu'];
+        my $type := nqp::defined($*OFTYPE) ?? $*OFTYPE.ast !! $Mu;
         if $<initializer><sym> eq '.=' {
             $value_ast.unshift(QAST::WVal.new(:value($type)));
         }
         $value_ast.returns($type);
 
-        my $con_block := $*W.pop_lexpad();
+        my $con_block := $W.pop_lexpad();
         my $value;
         if $value_ast.has_compile_time_value {
             $value := $value_ast.compile_time_value;
         }
         else {
             $con_block.push($value_ast);
-            my $value_thunk := $*W.create_code_obj_and_add_child($con_block, 'Block');
-            $value := $*W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
+            my $value_thunk := $W.create_code_obj_and_add_child($con_block, 'Block');
+            $value := $W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
             $*W.add_constant_folded_result($value);
         }
-        if $sigil eq '%' {
-            my $Associative := $*W.find_symbol(['Associative']);
-            if !nqp::istype($value, $Associative) {
-                $*W.throw($/, 'X::TypeCheck',
-                    operation => "constant declaration of " ~ ~$<variable>,
-                    expected => $Associative, got => $*W.find_symbol([$value.HOW.name($value)]) );
+
+        sub check-type ($expected) {
+            nqp::istype($value, $expected)
+            || $W.throw: $/, 'X::TypeCheck', :operation(
+                "constant declaration of " ~ ($name || '<anon>')
+              ), :$expected, :got($W.find_symbol: [$value.HOW.name: $value]);
+        }
+        sub check-type-maybe-coerce($meth, $expected) {
+            unless nqp::istype($value, $expected) {
+                $value := $value."$meth"();
+                check-type($expected);
             }
+        }
+        if $sigil eq '%' {
+            nqp::defined($*OFTYPE) && $W.throw: $/, 'X::ParametricConstant';
+            $W.lang-ver-before('d')
+              ?? check-type($W.find_symbol: ['Associative'])
+              !! check-type-maybe-coerce('Map', $W.find_symbol: ['Associative'])
+        }
+        elsif $sigil eq '@' {
+            nqp::defined($*OFTYPE) && $W.throw: $/, 'X::ParametricConstant';
+            check-type-maybe-coerce('cache', $*W.find_symbol: ['Positional']);
+        }
+        elsif $sigil eq '&' {
+            nqp::defined($*OFTYPE) && $W.throw: $/, 'X::ParametricConstant';
+            check-type($W.find_symbol: ['Callable']);
+        }
+        elsif !($type =:= $Mu) && ! nqp::objprimspec($type) {
+            check-type($type);
         }
 
         if $name {
-            my $cur_pad := $*W.cur_lexpad();
+            my $cur_pad := $W.cur_lexpad();
             if $cur_pad.symbol($name) {
-                $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
+                $W.throw($/, ['X', 'Redeclaration'], symbol => $name);
             }
 
-            $*W.install_package($/, [$name], ($*SCOPE || 'our'),
+            $W.install_package($/, [$name], ($*SCOPE || 'our'),
                 'constant', $/.package, $cur_pad, $value);
         }
         for $<trait> {

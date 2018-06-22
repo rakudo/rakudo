@@ -3,10 +3,10 @@ New in 2018.06:
     + Fixed numeric values in Signal enum [aa622a95][852c1bd3][f2b50378]
         [774ec5a0][189c5a8a][b19cc4bd][c661c03c][5603771f][bfcfa5da]
         [7e5a862e][cd8d0445]
-    + Fixed premature .perl chopping in X::TypeCheck [a79de429]
+    + Fixed long class names being cut off in X::TypeCheck message [a79de429]
     + Many improvements to POD parsing [75430ac9][cb66dfcc][6f1b1cb6]
         [e1e7e4c6][cc28ce37][e776ded7][54aa17c6]
-    + Fixed code execution code in elided duplicate argument pair values
+    + Fixed code execution in elided duplicate argument pair values
         [fc57f9f0][73297600]
     + Fixed `use isms <Perl5>` for `rand` [d1d31fd5]
     + Fixed miscompilation of chain ops [c10b1eec]

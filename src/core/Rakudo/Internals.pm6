@@ -1176,15 +1176,25 @@ my class Rakudo::Internals {
 
             method !next() {
                 nqp::while(
-                  nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
+                  !$!handle
+                    || nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
                     || nqp::iseq_i(nqp::chars($elem),0),
                   nqp::stmts(
-                    nqp::closedir($!handle),
+                    nqp::if(
+                      nqp::defined($!handle),
+                      nqp::stmts(
+                        nqp::closedir($!handle),
+                        ($!handle := Any),
+                      )
+                    ),
                     nqp::if(
                       nqp::elems($!todo),
                       nqp::stmts(
                         ($!abspath = nqp::pop_s($!todo)),
-                        ($!handle := nqp::opendir($!abspath)),
+                        nqp::handle(
+                          ($!handle := nqp::opendir($!abspath)),
+                          'CATCH', 0
+                        ),
                         ($!abspath = nqp::concat($!abspath,$!dir-sep))
                       ),
                       return ''

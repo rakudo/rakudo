@@ -148,7 +148,7 @@ class Distribution::Path does Distribution::Locally {
             $name-path.subst(:g, '\\', '/') => $real-path.relative($prefix).subst(:g, '\\', '/')
         }
 
-        $meta<files> = |%bins, |%resources;
+        $meta<files> = Hash.new(%bins, %resources);
 
         self.bless(:$meta, :$prefix, :$meta-file);
     }

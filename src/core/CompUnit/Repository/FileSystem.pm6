@@ -36,13 +36,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method id() {
-        $!id //= do {
-            my @parts =
-                grep { .defined }, (.id with self.next-repo), slip   # slip next repo id into hash parts to be hashed together
-                map  { nqp::sha1(slurp($_, :enc<iso-8859-1>)) },     # D8FEDAD3A05A68501ED829E21E5C8C80850910AB, 0BDE185BBAE51CE25E18A90B551A60AF27A9239C
-                map  { self!dist-prefix.child($_) },                 # /home/lib/Foo/Bar.pm6, /home/lib/Foo/Baz.pm6
-                self!distribution.meta<provides>.values.unique.sort; # lib/Foo/Bar.pm6, lib/Foo/Baz.pm6
-            nqp::sha1(@parts.join(''));
+        $!id //= do with self!distribution -> $distribution {
+            my $parts :=
+                grep { .defined }, (.id with self.next-repo), slip # slip next repo id into hash parts to be hashed together
+                map  { nqp::sha1($_) },
+                map  { $distribution.content($_).open(:enc<iso-8859-1>).slurp(:close) },
+                $distribution.meta<provides>.values.unique.sort;
+            nqp::sha1($parts.join(''));
         }
     }
 
@@ -70,26 +70,24 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         with self!matching-dist($spec) {
             my $name = $spec.short-name;
-            my $file = self!dist-prefix.child($_.meta<provides>{$name});
             my $id   = self!comp-unit-id($name);
-            my $*RESOURCES = Distribution::Resources.new(:repo(self), :dist-id(''));
-            my $handle = $precomp.try-load(
+            my $*RESOURCES     = Distribution::Resources.new(:repo(self), :dist-id(''));
+            my $source-handle  = $_.content($_.meta<provides>{$name});
+            my $precomp-handle = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
                     :$id,
-                    :src($file.Str),
+                    :src($source-handle.path.absolute),
                     :$spec,
                 ),
                 :@precomp-stores,
             );
-            my $precompiled = defined $handle;
-            $handle //= CompUnit::Loader.load-source-file($file);
 
             return %!loaded{~$spec} = CompUnit.new(
                 :short-name($name),
-                :$handle,
+                :handle($precomp-handle // CompUnit::Loader.load-source($source-handle.open(:bin).slurp(:close))),
                 :repo(self),
                 :repo-id($id.Str),
-                :$precompiled,
+                :precompiled($precomp-handle.defined),
                 :distribution($_),
             );
         }
@@ -131,7 +129,13 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         return %!loaded.values;
     }
 
-    method !dist-prefix {
+    # This allows -Ilib to find resources/ ( and by extension bin/ ) for %?RESOURCES.
+    # Note this only works in the well formed case, i.e. given Foo::Bar and no META6.json --
+    # use lib 'packages'; use 'Foo::Bar'; # well formed -- %?RESOURCES uses packages/../resources
+    # use lib 'packages/Foo'; use 'Bar';  # not well formed --  %?RESOURCES is ambigious now...
+    #                                                           packages/../resources?
+    #                                                           packages/resources?
+    method !files-prefix {
         $!prefix.child('META6.json').e ?? $!prefix !! $!prefix.parent
     }
 
@@ -180,7 +184,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             my $absolutified-metas := $matches.map: {
                 my $meta      = $_.meta;
-                $meta<source> = self!dist-prefix.add($meta<files>{$file});
+                $meta<source> = $!prefix.add($meta<files>{$file});
                 $meta;
             }
 
@@ -198,7 +202,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         with self.candidates($spec) {
             my $absolutified-metas := $_.map: {
                 my $meta      = $_.meta;
-                $meta<source> = self!dist-prefix.add($meta<files>{$file});
+                $meta<source> = self!files-prefix.add($meta<files>{$file});
                 $meta;
             }
 
@@ -207,32 +211,28 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !distribution {
-        my $distribution := $!prefix.add('META6.json').f
-            ?? Distribution::Path.new($!prefix)
-            !! Distribution::Hash.new({
-                    ver   => '*',
-                    api   => '*',
-                    auth  => '',
-                    files => %((
-                        (Rakudo::Internals.DIR-RECURSE(self!dist-prefix.child('bin').absolute).map({ .IO.relative(self!dist-prefix).subst(:g, '\\', '/') }).map({
-                            $_ => $_
-                        }).hash if self!dist-prefix.child('bin').d).Slip,
-                        (Rakudo::Internals.DIR-RECURSE(self!dist-prefix.child('resources').absolute).map({ .IO.relative(self!dist-prefix).subst(:g, '\\', '/') }).map({
-                            $_ ~~ m/^resources\/libraries\/(.*)/
-                                ?? ('resources/libraries/' ~ ($0.IO.dirname eq '.'??''!!$0.IO.dirname~"/") ~ $0.IO.basename.subst(/^lib/, '').subst(/\..*/, '') => $_)
-                                !! ($_ => $_)
-                        }).hash).Slip,
-                    ).Slip),
-                    provides => Rakudo::Internals.DIR-RECURSE($!prefix.absolute).map({ .IO.relative(self!dist-prefix) }).map({
-                        $_.subst(:g, /\/ | \\/, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_.subst(:g, '\\', '/')
-                    }).hash,
-                }, :prefix(self!dist-prefix));
+        # Path contains a META6.json file, so only use paths/modules explicitly declared therein ( -I ./ )
+        return Distribution::Path.new($!prefix) if $!prefix.add('META6.json').f;
 
-        $distribution.meta<name> //= $distribution.meta<provides>.hash.keys.sort(*.chars).head // ~$!prefix; # must guess name when using -Ilib / use lib 'lib'
-        $distribution.meta<ver>  = Version.new($distribution.meta<ver version>.first(*.defined) // 0);
-        $distribution.meta<resources> //= $distribution.meta<files>.keys.grep(*.starts-with('resources/')).map(*.substr(10)).List;
-
-        return $distribution;
+        # Path does not contain a META6.json file so grep for files to be used to map to arbitrary module names later ( -I ./lib )
+        # This is considered a developmental mode of library inclusion -- technically a Distribution, but probably a poorly formed one.
+        my &ls := { Rakudo::Internals.DIR-RECURSE($_).map({ .IO.relative(self!files-prefix).subst(:g, '\\', '/') }) };
+        return Distribution::Hash.new(:prefix(self!files-prefix), %(
+            name      => ~$!prefix, # must make up a name when using -Ilib / use lib 'lib'
+            ver       => '*',
+            api       => '*',
+            auth      => '',
+            files     => (my %files = %( # files is a non-spec internal field used by CompUnit::Repository::Installation included to make cross CUR install easier
+                &ls(self!files-prefix.child('bin').absolute).map({ $_ => $_ }).Slip,
+                &ls(self!files-prefix.child('resources').absolute).map({
+                    $_ ~~ m/^resources\/libraries\/(.*)/
+                        ?? ('resources/libraries/' ~ ($0.IO.dirname eq '.'??''!!$0.IO.dirname~"/") ~ $0.IO.basename.subst(/^lib/, '').subst(/\..*/, '') => $_)
+                        !! ($_ => $_)
+                }).Slip,
+            )),
+            resources => %files.keys.grep(*.starts-with('resources/')).map(*.substr(10)).List, # already grepped resources/ for %files, so reuse that information
+            provides  => &ls($!prefix.absolute).grep(*.ends-with(any(@extensions))).map({ $_.subst(:g, /\//, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_ }).hash,
+        ));
     }
 
     method resource($dist-id, $key) {

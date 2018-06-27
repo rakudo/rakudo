@@ -9,6 +9,8 @@ my $r;
 my $rp;
 my $p = -1;
 
+# Provides tests for fixed issue GH #1968.
+
 # explicit code blocks
 {
 =begin code

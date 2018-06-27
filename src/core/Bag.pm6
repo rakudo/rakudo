@@ -71,13 +71,6 @@ my class Bag does Baggy {
           nqp::create(MixHash)
         )
     }
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::clone(self),
-          bag()
-        )
-    }
 
 #--- illegal methods
     proto method classify-list(|) {

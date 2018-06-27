@@ -67,13 +67,6 @@ my class Mix does Mixy {
           nqp::create(MixHash)
         )
     }
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::clone(self),
-          mix()
-        )
-    }
 
 #--- illegal methods
     proto method classify-list(|) {

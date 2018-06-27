@@ -79,13 +79,6 @@ my class Set does Setty {
           nqp::create(SetHash)
         )
     }
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::clone(self),
-          set()
-        )
-    }
 
 #--- interface methods
     method STORE(*@pairs, :$initialize --> Set:D) {

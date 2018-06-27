@@ -11,6 +11,10 @@ my $p = -1;
 
 # Provides tests for fixed issue GH #1968.
 
+#===- tests expected to fail: ===
+# TODO
+
+#===- tests expected to work: ===
 # explicit code blocks
 {
 =begin code

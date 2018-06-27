@@ -918,7 +918,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_string_character {
         <pod_balanced_braces> || <pod_formatting_code> || $<char>=[ \N || [
             <?{ $*POD_IN_FORMATTINGCODE }> \n [
-                <?{ $*POD_DELIMITED_CODE_BLOCK }> <!before \h* '=end' \h+ code> ||
+                <?{ $*POD_DELIMITED_CODE_BLOCK }> <!before \h* '=end' \h+ <pod-delim-code-typ> > ||
                 <!before \h* '=' \w>
                 ]
             ]
@@ -941,7 +941,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ $<spaces> '=end' \h+
          [
             'comment' [ <pod_newline> | $ ]
-            || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'comment', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+            || $<instead>=<identifier>? {
+                   $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                       type    => 'comment',
+                       spaces  => ~$<spaces>,
+                       instead => $<instead> ?? ~$<instead> !! ''
+               }
          ]
         ]
     }
@@ -969,7 +974,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ $<spaces> '=end' \h+
          [
              $<type> [ <pod_newline> | $ ]
-             || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => ~$<type>, spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+             || $<instead>=<identifier>? {
+                    $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                        type    => ~$<type>,
+                        spaces  => ~$<spaces>,
+                        instead => $<instead> ?? ~$<instead> !! ''
+                    }
          ]
         ]
     }
@@ -986,32 +996,53 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ \h* '=end' \h+
          [
             'table' [ <pod_newline> | $ ]
-             || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+             || $<instead>=<identifier>? {
+                    $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                        type    => 'table',
+                        spaces  => ~$<spaces>,
+                        instead => $<instead> ?? ~$<instead> !! ''
+                    }
          ]
         ]
     }
 
+    # There are several different identifiers for pod blocks
+    # that are treated essentially the same: 'code', 'input',
+    # and 'output'.
+    token pod-delim-code-typ { code | input | output }
     token pod_block:sym<delimited_code> {
         ^^
         $<spaces> = [ \h* ]
-        '=begin' \h+ 'code' {}
+        '=begin' \h+ $<typ>=<pod-delim-code-typ> {}
         :my $*POD_ALLOW_FCODES  := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
         :my $*POD_DELIMITED_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>+
         [
         || <delimited_code_content($<spaces>)> $<spaces> '=end' \h+
-            [ 'code' [ <pod_newline> | $ ]
-              || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'code', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+            [ $<end>=<pod-delim-code-typ> [ <pod_newline> | $ ]
+              { if ~$<end> ne ~$<typ> {
+                         $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                         type    => ~$<typ>,
+                         spaces  => ~$<spaces>,
+                         instead => $<end> ?? ~$<end> !! ''
+              }}
+              || $<instead>=<identifier>? {
+                     $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                     type    => $<typ>,
+                     spaces  => ~$<spaces>,
+                     instead => $<instead> ?? ~$<instead> !! ''
+                 }
             ]
         ]
+# TODO GH #1968: detect mismatched =begin/=end types
     }
 
     token delimited_code_content($spaces = '') {
         ^^
         (
         | $spaces
-            <!before '=end' \h+ 'code' [ <pod_newline> | $ ]>
+            <!before '=end' \h+ <pod-delim-code-typ> [ <pod_newline> | $ ]>
             <pod_string>**0..1 <pod_newline>
         | <pod_newline>
         )*
@@ -1076,7 +1107,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<paragraph_code> {
         ^^
         $<spaces> = [ \h* ]
-        '=for' \h+ 'code' {}
+        '=for' \h+ <pod-delim-code-typ> {}
         :my $*POD_ALLOW_FCODES := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>
@@ -1123,7 +1154,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<abbreviated_code> {
         ^^
         $<spaces> = [ \h* ]
-        '=code' {}
+        '=' <pod-delim-code-typ> {}
         :my $*POD_ALLOW_FCODES  := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
         [\h*\n|\h+]

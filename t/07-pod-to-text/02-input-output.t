@@ -20,7 +20,7 @@ isa-ok $r, Pod::Block::Code;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
-q:to/END/, "Empty lines don't get added spaces";
+q:to/END/;
     say 1;
     say 2;
 END
@@ -34,7 +34,7 @@ isa-ok $r, Pod::Block::Code;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
-q:to/END/, "Empty lines don't get added spaces";
+q:to/END/;
     say 1;
     say 2;
 END
@@ -51,7 +51,7 @@ isa-ok $r, Pod::Block::Code;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
-q:to/END/, "Empty lines don't get added spaces";
+q:to/END/;
     say 1;
     say 2;
 END
@@ -65,7 +65,7 @@ isa-ok $r, Pod::Block::Code;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
-q:to/END/, "Empty lines don't get added spaces";
+q:to/END/;
     say 1;
     say 2;
 END
@@ -82,7 +82,7 @@ isa-ok $r, Pod::Block::Code;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
-q:to/END/, "Empty lines don't get added spaces";
+q:to/END/;
     say 1;
     say 2;
 END
@@ -96,7 +96,7 @@ isa-ok $r, Pod::Block::Code;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
-q:to/END/, "Empty lines don't get added spaces";
+q:to/END/;
     say 1;
     say 2;
 END

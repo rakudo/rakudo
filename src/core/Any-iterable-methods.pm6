@@ -1162,10 +1162,19 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             )
         }
     }
-    multi method first(Mu $test = True, :$end, *%a) is raw {
+    multi method first(Mu $test, :$end, *%a) is raw {
         $end
           ?? self!first-accepts-end($test,%a)
           !! self!first-accepts($test,%a)
+    }
+    multi method first(:$end, *%a) is raw {
+        nqp::elems(nqp::getattr(%a,Map,'$!storage'))
+          ?? $end
+            ?? self!first-accepts-end(True,%a)
+            !! self!first-accepts(True,%a)
+          !! $end
+            ?? self.tail
+            !! self.head
     }
     method !first-accepts(Mu $test,%a) is raw {
         nqp::stmts(

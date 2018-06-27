@@ -1020,7 +1020,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <pod_configuration($<spaces>)> <pod_newline>+
         [
         || <delimited_code_content($<spaces>)> $<spaces> '=end' \h+
-            [ <pod-delim-code-typ> [ <pod_newline> | $ ]
+            [ $<end>=<pod-delim-code-typ> [ <pod_newline> | $ ]
+              { if ~$<end> ne ~$<typ> {
+                         $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                         type    => ~$<typ>,
+                         spaces  => ~$<spaces>,
+                         instead => $<end> ?? ~$<end> !! ''
+              }}
               || $<instead>=<identifier>? {
                      $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
                      type    => $<typ>,
@@ -1029,6 +1035,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                  }
             ]
         ]
+# TODO GH #1968: detect mismatched =begin/=end types
     }
 
     token delimited_code_content($spaces = '') {

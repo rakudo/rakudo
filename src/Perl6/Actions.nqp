@@ -6750,7 +6750,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Var.new( :name($sym), :scope('local') ),
                             WANTED($/[1].ast, 'EXPR/META')
                         )
-                    ));
+                    )).annotate_self: 'METAOP_opt_result', 1;
             }
             else {
                 $past.push(WANTED($/[0].ast, 'EXPR/META'));

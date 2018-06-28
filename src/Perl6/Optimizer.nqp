@@ -1892,6 +1892,7 @@ class Perl6::Optimizer {
           && (my $is-reverse := 1)) {
           if $is-reverse
           || (nqp::istype($op[1], QAST::Var) && (my int $is_var := 1))
+          || $op[1].has_ann('METAOP_opt_result') # previously-optimized nested METAOP
           # instead of $foo += 1 we may have $foo.bar += 1, which
           # we really want to unpack here as well. this second branch
           # of the if statement achieves this.
@@ -1923,7 +1924,7 @@ class Perl6::Optimizer {
               $assignee := $assignee_var := $op[1];
             }
             else {
-              $assignop := "assign";
+              $assignop := 'p6store';
               # We want to be careful to only call $foo.bar once, if that's what
               # we have, so we bind to a local var and assign to that. The
               # var is also needed when we're unpacking a REVERSE op, since
@@ -1975,6 +1976,7 @@ class Perl6::Optimizer {
                 $operand;
             }
 
+            $op.annotate_self: 'METAOP_opt_result', 1;
             $op.returns: $assignee.returns
                 if $assignop ne 'assign'
                 && nqp::objprimspec($assignee.returns);
@@ -1993,8 +1995,8 @@ class Perl6::Optimizer {
       elsif self.op_eq_core($metaop, '&METAOP_REVERSE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var)
           && nqp::elems($op) == 3;
-        return QAST::Op.new: :op<call>, :name($metaop[0].name),
-                $op[2], $op[1];
+        return QAST::Op.new(:op<call>, :name($metaop[0].name),
+                $op[2], $op[1]).annotate_self: 'METAOP_opt_result', 1;
       }
       NQPMu
     }

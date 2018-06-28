@@ -1,7 +1,7 @@
 use lib <t/packages>;
 use Test::Helpers::QAST;
 use Test;
-plan 5;
+plan 6;
 
 subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
     plan 8;
@@ -92,3 +92,11 @@ qast-is ｢for ^10 -> $, :$foo {}｣, :target<ast>, -> \v {
             qast-contains-op   v, 'p6forstmt'
     and not qast-contains-op   v, 'p6for'
 }, 'named arg does not accidentally get counted as a positional';
+
+# https://github.com/rakudo/rakudo/issues/1981
+subtest 'nested metaops get fully rewritten away from &METAOP sub calls' => {
+    plan 2;
+    qast-is ｢my $a; ($a //= 0) += 1｣, -> \v { not qast-contains-call v, /METAOP/ }, '(//=)+=';
+    qast-is ｢my $a; (((($a //= 0) += 1) //= 0) += 1)｣, -> \v { not qast-contains-call v, /METAOP/ },
+      '((((//=)+=) //=) +=)';
+}

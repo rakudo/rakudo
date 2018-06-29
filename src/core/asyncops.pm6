@@ -23,7 +23,7 @@ multi sub await(Any:U $x) {
 multi sub await(Any:D $x) {
     die "Must specify a Promise, Channel, or Supply to await on (got a $x.^name())";
 }
-multi sub await(Promise:D $p) {
+multi sub await(Awaitable:D $p) {
     CATCH {
         unless nqp::istype($_, X::Await::Died) {
             ($_ but X::Await::Died(Backtrace.new(5))).rethrow
@@ -31,24 +31,6 @@ multi sub await(Promise:D $p) {
     }
     my $*RAKUDO-AWAIT-BLOCKING := True;
     $*AWAITER.await($p)
-}
-multi sub await(Channel:D $c) {
-    CATCH {
-        unless nqp::istype($_, X::Await::Died) {
-            ($_ but X::Await::Died(Backtrace.new(5))).rethrow
-        }
-    }
-    my $*RAKUDO-AWAIT-BLOCKING := True;
-    $*AWAITER.await($c)
-}
-multi sub await(Supply:D $s) {
-    CATCH {
-        unless nqp::istype($_, X::Await::Died) {
-            ($_ but X::Await::Died(Backtrace.new(5))).rethrow
-        }
-    }
-    my $*RAKUDO-AWAIT-BLOCKING := True;
-    $*AWAITER.await($s)
 }
 multi sub await(Iterable:D $i) { eager $i.eager.map({ await $_ }) }
 multi sub await(*@awaitables)  { eager @awaitables.eager.map({await $_}) }

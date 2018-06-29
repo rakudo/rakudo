@@ -143,33 +143,32 @@ my role Setty does QuantHash {
     multi method gist(Setty:D $ : --> Str:D) {
         nqp::concat(
           nqp::concat(
-            nqp::if(
-              nqp::istype(self,Set),
-              'set(',
-              nqp::concat(self.^name,'(')
-            ),
-            nqp::join(" ",
+            nqp::concat(self.^name,'('),
+            nqp::join(', ',
               Rakudo::Sorting.MERGESORT-str(
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, *.gist)
               )
             )
           ),
-          ')'
+          ')',
         )
     }
     multi method perl(Setty:D $ : --> Str:D) {
         nqp::if(
-          nqp::eqaddr(self,set()),
-          'set()',
+          $!elems && nqp::elems($!elems),
           nqp::concat(
-            '(',
             nqp::concat(
-              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl)),
-              nqp::concat(
-                ').',
-                self.^name
+              '(',
+              nqp::join(',',
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl)
               )
-            )
+            ),
+            nqp::concat(').',self.^name)
+          ),
+          nqp::if(
+            nqp::istype(self,Set),
+            'set()',
+            nqp::concat('().',self.^name)
           )
         )
     }

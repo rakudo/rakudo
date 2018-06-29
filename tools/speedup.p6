@@ -33,5 +33,5 @@ sub MAIN(
     note  old ÷ new - 1,        ‘x faster (old ÷ new - 1)’;
     note (old ÷ new - 1) × 100, ‘% faster ( (old ÷ new - 1) × 100 )’;
     note ‘runs in ’,
-          new ÷ old × 100, ‘% of the time it used to (new ÷ old × 100)’;
+          (new ÷ old × 100).round(0.01), ‘% of the time it used to (new ÷ old × 100)’;
 }

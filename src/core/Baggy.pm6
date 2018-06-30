@@ -332,10 +332,12 @@ my role Baggy does QuantHash {
               '(',
               nqp::join(',',
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, {
-                    nqp::if(
-                      (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
-                      nqp::getattr($_,Pair,'$!key').perl,
-                      "{nqp::getattr($_,Pair,'$!key').perl}=>$value"
+                    nqp::concat(
+                      nqp::concat(
+                        nqp::getattr($_,Pair,'$!key').perl,
+                        '=>'
+                      ),
+                      nqp::getattr($_,Pair,'$!value').perl
                     )
                 })
               )

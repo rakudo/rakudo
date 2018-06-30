@@ -162,14 +162,11 @@ my role Setty does QuantHash {
           nqp::eqaddr(self,set()),
           'set()',
           nqp::concat(
-            '(',
             nqp::concat(
-              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl)),
-              nqp::concat(
-                ').',
-                self.^name
-              )
-            )
+              nqp::concat(self.^name,'.new('),
+              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl))
+            ),
+            ')'
           )
         )
     }

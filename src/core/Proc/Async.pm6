@@ -140,7 +140,19 @@ my class Proc::Async {
           if the-supplier and type != value;
 
         type           = value;
-        the-supplier //= Supplier::Preserving.new;
+        the-supplier //= class :: is Supplier::Preserving {
+            has $.vow is rw;
+
+            method done(::?CLASS:D: --> Nil) {
+                $!vow.keep(self) if $!vow;
+                self.Supplier::Preserving::done();
+            }
+
+            method quit(::?CLASS:D: $err) {
+                $!vow.keep( (self, $err) ) if $!vow;
+                self.Supplier::Preserving::quit($err);
+            }
+        }.new;
 
         if nqp::iscont(fd-vow) {
             my $native-descriptor = Promise.new;
@@ -260,11 +272,11 @@ my class Proc::Async {
 
     method !capture(\callbacks,\std,\the-supplier) {
         my $promise = Promise.new;
-        my $vow = $promise.vow;
+        the-supplier.vow = $promise.vow;
         my $ss = Rakudo::Internals::SupplySequencer.new(
             on-data-ready => -> \data { the-supplier.emit(data) },
-            on-completed  => -> { the-supplier.done(); $vow.keep(the-supplier) },
-            on-error      => -> \err { the-supplier.quit(err); $vow.keep((the-supplier,err)) });
+            on-completed  => -> { the-supplier.done() },
+            on-error      => -> \err { the-supplier.quit(err) });
         nqp::bindkey(callbacks,
             std ~ '_bytes' ,
             -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) });
@@ -412,15 +424,24 @@ my class Proc::Async {
     proto method kill(|) {*}
     multi method kill(Proc::Async:D: Signal:D \signal = SIGHUP) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
+        $!stdout_supplier.done() if $!stdout_supplier;
+        $!stderr_supplier.done() if $!stderr_supplier;
+        $!merge_supplier.done()  if $!merge_supplier;
         nqp::killprocasync($!process_handle, signal.value)
     }
     multi method kill(Proc::Async:D: Int:D \signal) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
+        $!stdout_supplier.done() if $!stdout_supplier;
+        $!stderr_supplier.done() if $!stderr_supplier;
+        $!merge_supplier.done()  if $!merge_supplier;
         nqp::killprocasync($!process_handle, signal)
     }
 
     multi method kill(Proc::Async:D: Str:D \signal) {
         X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
+        $!stdout_supplier.done() if $!stdout_supplier;
+        $!stderr_supplier.done() if $!stderr_supplier;
+        $!merge_supplier.done()  if $!merge_supplier;
         nqp::killprocasync($!process_handle, $*KERNEL.signal: signal)
     }
 }

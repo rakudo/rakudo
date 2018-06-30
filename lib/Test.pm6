@@ -716,7 +716,7 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
         # sub proclaim is not called directly, so 2 is minimum level
         my int $level = 2;
 
-        repeat until !$?FILE.ends-with($caller.file) {
+        repeat while $?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
 

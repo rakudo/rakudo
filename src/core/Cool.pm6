@@ -117,6 +117,7 @@ my class Cool { # declared in BOOTSTRAP
     method uniprop-str(|c)  { uniprop-str(self, |c) }
     method uniprops(|c)     { uniprops(self, |c) }
     method unimatch(|c)     { unimatch(self, |c) }
+    method uniscript(|c)    { uniscript(self) }
 
     method chomp(Cool:D:) { self.Str.chomp }
 
@@ -395,6 +396,7 @@ multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
 multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
 multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
+multi sub uniscript(|)    { die 'uniscript NYI on jvm backend' }
 #?endif
 
 #?if moar
@@ -588,6 +590,28 @@ multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname) {
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
     my $prop := nqp::unipropcode($propname);
     nqp::p6bool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));
+}
+
+proto sub uniscript($) {*}
+multi sub uniscript(Str:D $str) {
+    if $str {
+        my $seen;
+        for $str.comb -> $char {
+            if uniprop($char) -> $script {
+                unless $script eq 'Common' {
+                    return Nil if $seen && $script ne $seen;
+                    $seen = $script;
+                }
+            }
+            else {
+                die "Could not find script for '$char' ({$char.ord})";
+            }
+        }
+        $seen // 'Common'
+    }
+    else {
+        ''
+    }
 }
 #?endif
 

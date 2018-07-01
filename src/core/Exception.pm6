@@ -2161,7 +2161,7 @@ my class X::ControlFlow::Return is X::ControlFlow {
     method message()   {
         'Attempt to return outside of ' ~ (
             $!out-of-dynamic-scope
-              ?? 'immediatelly-enclosing Routine (i.e. `return` execution is'
+              ?? 'immediately-enclosing Routine (i.e. `return` execution is'
                ~ ' outside the dynamic scope of the Routine where `return` was used)'
               !! 'any Routine'
         )

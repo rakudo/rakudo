@@ -213,7 +213,7 @@ proto sub sleep($?, *%) {*}
 multi sub sleep(--> Nil) { sleep(*) }
 multi sub sleep($seconds --> Nil) {
     # 1e9 seconds is a large enough value that still makes VMs sleep
-    # larger values cause nqp::sleep() to exit immediatelly (esp. on 32-bit)
+    # larger values cause nqp::sleep() to exit immediately (esp. on 32-bit)
     if nqp::istype($seconds,Whatever) || $seconds == Inf {
         nqp::sleep(1e9) while True;
     }

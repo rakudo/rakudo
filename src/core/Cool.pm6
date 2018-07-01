@@ -597,7 +597,7 @@ multi sub uniscript(Str:D $str) {
     if $str {
         my $seen;
         for $str.comb -> $char {
-            if uniprop($char) -> $script {
+            if uniprop($char,"Script") -> $script {
                 unless $script eq 'Common' {
                     return Nil if $seen && $script ne $seen;
                     $seen = $script;

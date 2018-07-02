@@ -352,7 +352,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             method new(\string) {
                 nqp::if(
-                  string,
+                  string.chars,  # GH#1020
                   nqp::create(self)!SET-SELF(string),
                   Rakudo::Iterator.Empty
                 )

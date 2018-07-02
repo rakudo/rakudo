@@ -113,26 +113,39 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
     if nqp::eqaddr(nqp::what_nd($cont), Scalar) && nqp::isconcrete_nd($cont) {
         # Now see what the Scalar descriptor type is.
         my $desc := nqp::speshguardgetattr($cont, Scalar, '$!descriptor');
-        if nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+        if nqp::eqaddr($desc.WHAT, ContainerDescriptor) && nqp::isconcrete($desc) {
             # Simple assignment, no whence. But is Nil being assigned?
-            if nqp::eqaddr($value.WHAT, Nil) {
+            if nqp::eqaddr($value, Nil) {
                 # Yes; NYI.
             }
             else {
-                # No whence, no Nil. Is it a nominal type? If yes, we can
-                # check it here. If we meet the type check, then we can guard
-                # on descriptor identity and the type of value being assigned,
-                # and just do a straight bind to $!value.
-                nqp::speshguardobj($desc);
-                nqp::speshguardtype($value, $value.WHAT);
+                # No whence, no Nil. Is it a nominal type? If yes, we can check
+                # it here. There are two interesting cases. One is if the type
+                # constraint is Mu. To avoid a huge guard set at megamorphic
+                # assignment sites, for this case we just guard $!of being Mu
+                # and the value not being Nil. For other cases, where there is
+                # a type constraint, we guard on the descriptor and the value,
+                # provided it typechecks OK.
                 my $of := $desc.of;
-                if $of.HOW.archetypes.nominal &&
-                        (nqp::eqaddr($of, Mu) || nqp::istype($value, $of)) {
+                unless $of.HOW.archetypes.nominal {
+                    nqp::speshguardobj($desc);
+                    return &assign-scalar-no-whence;
+                }
+                if nqp::eqaddr($of, Mu) {
+                    nqp::speshguardtype($desc, $desc.WHAT);
+                    nqp::speshguardconcrete($desc);
+                    my $of := nqp::speshguardgetattr($desc, ContainerDescriptor, '$!of');
+                    nqp::speshguardobj($of);
+                    nqp::speshguardnotobj($value, Nil);
+                    return &assign-scalar-no-whence-no-typecheck;
+                }
+                elsif nqp::istype($value, $of) {
+                    nqp::speshguardobj($desc);
+                    nqp::speshguardtype($value, $value.WHAT);
                     return &assign-scalar-no-whence-no-typecheck;
                 }
                 else {
-                    # No whence, not a Nil, but still need to type check
-                    # (perhaps subset type, perhaps error).
+                    # Will fail the type check and error always.
                     return &assign-scalar-no-whence;
                 }
             }

@@ -350,13 +350,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   self
                 )
             }
-            method new(\string) {
-                nqp::if(
-                  string.chars,  # GH#1020
-                  nqp::create(self)!SET-SELF(string),
-                  Rakudo::Iterator.Empty
-                )
-            }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
                 nqp::if(
                   nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),

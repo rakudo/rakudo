@@ -10,9 +10,9 @@ use v6;
 use Test;
 # Below is the text taken from PropertyAliases-9.0.0.txt from the Unicode site's zip file
 my $property-aliases-string = Q:to/🐧/;
-# PropertyAliases-9.0.0.txt
-# Date: 2016-03-02, 18:55:05 GMT
-# © 2016 Unicode®, Inc.
+# PropertyAliases-10.0.0.txt
+# Date: 2017-02-14, 04:26:16 GMT
+# © 2017 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use, see http://www.unicode.org/terms_of_use.html
 #
@@ -135,6 +135,7 @@ NFKC_QC                  ; NFKC_Quick_Check
 NFKD_QC                  ; NFKD_Quick_Check
 nt                       ; Numeric_Type
 SB                       ; Sentence_Break
+vo                       ; Vertical_Orientation
 WB                       ; Word_Break
 
 # ================================================
@@ -187,6 +188,7 @@ Pat_WS                   ; Pattern_White_Space
 PCM                      ; Prepended_Concatenation_Mark
 QMark                    ; Quotation_Mark
 Radical                  ; Radical
+RI                       ; Regional_Indicator
 SD                       ; Soft_Dotted
 STerm                    ; Sentence_Terminal
 Term                     ; Terminal_Punctuation
@@ -202,7 +204,7 @@ XO_NFKC                  ; Expands_On_NFKC
 XO_NFKD                  ; Expands_On_NFKD
 
 # ================================================
-# Total:    118
+# Total:    120
 
 # EOF
 🐧

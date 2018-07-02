@@ -1916,6 +1916,9 @@ class Perl6::Optimizer {
               elsif $sigil eq '$' {
                 $assignop := 'assign';
               }
+              elsif $sigil eq '@' || $sigil eq '%' {
+                $assignop := 'p6store';
+              }
               else {
                 # TODO support @ and % sigils and check what else we need
                 # to "copy" from assign_op in Actions

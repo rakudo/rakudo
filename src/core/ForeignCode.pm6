@@ -68,7 +68,7 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
 
 multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ (state $no)++;
+    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     state $p5;
     unless $p5 {
         {

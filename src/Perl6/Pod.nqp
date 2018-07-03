@@ -377,6 +377,7 @@ class Perl6::Pod {
         # iterate over the "hash" and create key/value pairs to be serialized
         for @arr -> $k, $v {
             my str $key := $k;
+            # TODO check key for 'caption', warn of deprecation for version 6.d if found
             my $val     := $v;
             say("DEBUG hash: '$key' => '$val'") if $debugp;
             @pairs.push(

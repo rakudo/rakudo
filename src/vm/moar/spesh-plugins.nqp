@@ -80,7 +80,7 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
     }
 
     nqp::speshreg('perl6', 'decontrv', sub ($rv) {
-        $Iterable := nqp::gethllsym('perl6', 'Iterable');
+        $Iterable := nqp::gethllsym('perl6', 'Iterable') if nqp::eqaddr($Iterable, NQPMu);
         nqp::speshguardtype($rv, nqp::what_nd($rv));
         if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
             # Guard that it's concrete, so this only applies for container

@@ -473,14 +473,10 @@ role STD {
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
     my class SerializationContextId {
-        my class Lock is repr('ReentrantMutex') { };
         my $count := 0;
-        my $lock  := Lock.new;
+        my $lock  := NQPLock.new;
         method next-id() {
-            nqp::lock($lock);
-            my $sc_id := $count++;
-            nqp::unlock($lock);
-            return $sc_id;
+            $lock.protect({ $count++ })
         }
     }
 

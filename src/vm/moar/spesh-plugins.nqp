@@ -44,6 +44,83 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
         !! &discard-and-nil
 });
 
+## Return value decontainerization plugin
+
+# Often we have nothing at all to do, in which case we can make it a no-op.
+# Other times, we need a decont. In a few, we need to re-wrap it.
+
+{
+    # We look up Iterable when the plugin is used.
+    my $Iterable := NQPMu;
+
+    sub identity($obj) { $obj }
+    sub decont($obj) { nqp::decont($obj) }
+    sub recont($obj) {
+        my $rc := nqp::create(Scalar);
+        nqp::bindattr($rc, Scalar, '$!value', nqp::decont($obj));
+        $rc
+    }
+    sub decontrv($cont) {
+        if nqp::isrwcont($cont) {
+            # It's an RW container, so we really need to decont it.
+            my $rv := nqp::decont($cont);
+            if nqp::istype($rv, $Iterable) {
+                my $rc := nqp::create(Scalar);
+                nqp::bindattr($rc, Scalar, '$!value', $rv);
+                $rc
+            }
+            else {
+                $rv
+            }
+        }
+        else {
+            # A read-only container, so just return it.
+            $cont
+        }
+    }
+
+    nqp::speshreg('perl6', 'decontrv', sub ($rv) {
+        $Iterable := nqp::gethllsym('perl6', 'Iterable');
+        nqp::speshguardtype($rv, nqp::what_nd($rv));
+        if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
+            # Guard that it's concrete, so this only applies for container
+            # instances.
+            nqp::speshguardconcrete($rv);
+
+            # If it's a Scalar container then we can optimize further.
+            if nqp::eqaddr(nqp::what_nd($rv), Scalar) {
+                # Grab the descriptor.
+                my $desc := nqp::speshguardgetattr($rv, Scalar, '$!descriptor');
+                if nqp::isconcrete($desc) {
+                    # Descriptor, so `rw`. Guard on type of value. If it's
+                    # Iterable, re-containerize. If not, just decont.
+                    nqp::speshguardconcrete($desc);
+                    my $value := nqp::speshguardgetattr($rv, Scalar, '$!value');
+                    nqp::speshguardtype($value, nqp::what_nd($value));
+                    return nqp::istype($value, $Iterable) ?? &recont !! &decont;
+                }
+                else {
+                    # No descriptor, so it's already readonly. Identity.
+                    nqp::speshguardtypeobj($desc);
+                    return &identity;
+                }
+            }
+
+            # Otherwise, full decont.
+            return &decontrv;
+        }
+        else {
+            # No decontainerization to do, so just produce identity.
+            unless nqp::isconcrete($rv) {
+                # Needed as a container's type object is not a container, but a
+                # concrete instance would be.
+                nqp::speshguardtypeobj($rv);
+            }
+            return &identity;
+        }
+    });
+}
+
 ## Assignment plugin
 
 # We case-analyze assignments and provide these optimized paths for a range of

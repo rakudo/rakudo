@@ -472,7 +472,14 @@ role STD {
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
-    my $sc_id := 0;
+    my class SerializationContextId {
+        my $count := 0;
+        my $lock  := NQPLock.new;
+        method next-id() {
+            $lock.protect({ $count++ })
+        }
+    }
+
     method TOP() {
         # Language braid.
         my $*LANG := self;
@@ -520,7 +527,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         my $file := nqp::getlexdyn('$?FILES');
         my $source_id := nqp::sha1($file ~ (
             nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
-                ?? self.target() ~ $sc_id++
+                ?? self.target() ~ SerializationContextId.next-id()
                 !! self.target()));
         my $outer_world := nqp::getlexdyn('$*W');
         my $is_nested := (

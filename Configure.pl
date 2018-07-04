@@ -52,6 +52,33 @@ MAIN: {
         print_help();
         exit(0);
     }
+
+    my $VERSION = '0.0-0';
+    # get version
+    if (open(my $fh, '<', 'VERSION')) {
+        $VERSION = <$fh>;
+        close($fh);
+    }
+    # .git is a file and not a directory in submodule
+    if (-e '.git' && open(my $GIT, '-|', "git describe")) {
+        $VERSION = <$GIT>;
+        close($GIT);
+    }
+    chomp $VERSION;
+    $config{version} = $VERSION;
+    if ($VERSION =~ m{ ^      (?<major>\d+)
+                       (?: \. (?<minor>\d+))
+                       (?: \. (?<patch>\d+))?
+                       (?: \- (?<commitnum>\d+))?
+                       (?: \-g(?<commithash>\w+))? $ }x
+    ) {
+        $config{versionmajor}      = exists $+{major}      ? $+{major}      : 0;
+        $config{versionminor}      = exists $+{minor}      ? $+{minor}      : 0;
+        $config{versionpatch}      = exists $+{patch}      ? $+{patch}      : 0;
+        $config{versioncommitnum}  = exists $+{commitnum}  ? $+{commitnum}  : 0;
+        $config{versioncommithash} = exists $+{commithash} ? $+{commithash} : 0;
+    }
+
     if ($options{'ignore-errors'}) {
         print "===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";
     }

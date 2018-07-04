@@ -63,13 +63,13 @@ multi sub gist(|) {
 
 proto sub prompt($?, *%) {*}
 multi sub prompt() {
-    quietly val $*IN.get
+    nqp::defined(my \res := $*IN.get) ?? val(res) !! res;
 }
 multi sub prompt($msg) {
     my $out := $*OUT;
     $out.print($msg);
     $out.flush();
-    quietly val $*IN.get;
+    nqp::defined(my \res := $*IN.get) ?? val(res) !! res;
 }
 
 proto sub dir(|) {*}

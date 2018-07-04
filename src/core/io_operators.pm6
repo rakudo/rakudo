@@ -63,13 +63,13 @@ multi sub gist(|) {
 
 proto sub prompt($?, *%) {*}
 multi sub prompt() {
-    $*IN.get
+    val $*IN.get
 }
 multi sub prompt($msg) {
     my $out := $*OUT;
     $out.print($msg);
     $out.flush();
-    $*IN.get;
+    val $*IN.get;
 }
 
 proto sub dir(|) {*}

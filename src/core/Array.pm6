@@ -432,27 +432,19 @@ my class Array { # declared in BOOTSTRAP
     method shape() { (*,) }
 
     multi method AT-POS(Array:D: int $pos) is raw {
-        nqp::if(
-          nqp::isge_i($pos,0)
-            && nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-          nqp::ifnull(
-            nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
-            self!AT_POS_SLOW($pos)
-          ),
-          self!AT_POS_SLOW($pos)
-        )
+        my $reified := nqp::getattr(self, List, '$!reified');
+        my $result := nqp::bitand_i(nqp::isge_i($pos, 0), nqp::isconcrete($reified))
+            ?? nqp::atpos($reified, $pos)
+            !! nqp::null;
+        nqp::ifnull($result, self!AT_POS_SLOW($pos))
     }
     # because this is a very hot path, we copied the code from the int candidate
     multi method AT-POS(Array:D: Int:D $pos) is raw {
-        nqp::if(
-          nqp::isge_i($pos,0)
-            && nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-          nqp::ifnull(
-            nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
-            self!AT_POS_SLOW($pos)
-          ),
-          self!AT_POS_SLOW($pos)
-        )
+        my $reified := nqp::getattr(self, List, '$!reified');
+        my $result := nqp::bitand_i(nqp::isge_i($pos, 0), nqp::isconcrete($reified))
+            ?? nqp::atpos($reified, $pos)
+            !! nqp::null;
+        nqp::ifnull($result, self!AT_POS_SLOW($pos))
     }
 
     # handle any lookup that's not simple

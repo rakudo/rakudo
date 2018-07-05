@@ -448,38 +448,45 @@ my class Array { # declared in BOOTSTRAP
     }
 
     # handle any lookup that's not simple
-    method !AT_POS_SLOW(\pos) is raw {
+    method !AT_POS_SLOW(int $pos) is raw {
         nqp::if(
-          nqp::islt_i(pos, 0),
-          self!INDEX_OOR(pos),
+          nqp::islt_i($pos, 0),
+          self!INDEX_OOR($pos),
           nqp::if(
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::if(
-              nqp::islt_i(pos,nqp::elems($reified)),
-              self!AT_POS_CONTAINER(pos),        # it's a hole
+              nqp::islt_i($pos,nqp::elems($reified)),
+              self!AT_POS_CONTAINER($pos),        # it's a hole
               nqp::if(                           # too far out, try reifying
                 nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
                 nqp::stmts(
-                  $todo.reify-at-least(nqp::add_i(pos,1)),
+                  $todo.reify-at-least(nqp::add_i($pos,1)),
                   nqp::ifnull(
-                    nqp::atpos($reified,pos),    # reified ok
-                    self!AT_POS_CONTAINER(pos)   # reifier didn't reach
+                    nqp::atpos($reified,$pos),   # reified ok
+                    self!AT_POS_CONTAINER($pos)  # reifier didn't reach
                   )
                 ),
-                self!AT_POS_CONTAINER(pos)       # create an outlander
+                self!AT_POS_CONTAINER($pos)      # create an outlander
               )
             ),
             # no reified, implies no todo
             nqp::stmts(                          # create reified
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              self!AT_POS_CONTAINER(pos)         # create an outlander
+              self!AT_POS_CONTAINER($pos)        # create an outlander
             )
           )
         )
     }
     method !AT_POS_CONTAINER(int $pos) is raw {
-        nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
-            $!descriptor, nqp::getattr(self,List,'$!reified'), $pos))
+        my $desc := $!descriptor;
+        my $scalar := nqp::create(Scalar);
+        nqp::bindattr($scalar, Scalar, '$!value', nqp::isnull($desc)
+            ?? Any
+            !! nqp::getattr($desc, ContainerDescriptor, '$!default'));
+        nqp::bindattr($scalar, Scalar, '$!descriptor',
+            ContainerDescriptor::BindArrayPos.new(
+                $desc, nqp::getattr(self,List,'$!reified'), $pos));
+        $scalar
     }
 
     multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) {

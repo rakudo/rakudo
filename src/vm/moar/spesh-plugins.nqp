@@ -232,6 +232,7 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
             # should check what the ultimate descriptor is. It really should
             # be a normal, boring, container descriptor.
             nqp::speshguardtype($desc, $desc.WHAT);
+            nqp::speshguardconcrete($desc);
             my $next := nqp::speshguardgetattr($desc, ContainerDescriptor::BindArrayPos,
                 '$!next-descriptor');
             if nqp::eqaddr($next.WHAT, ContainerDescriptor) {

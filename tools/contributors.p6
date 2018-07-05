@@ -18,11 +18,11 @@ sub MAIN (
     # authors and put them in a Bag.  Sort the bag by frequency, highest first.
     # Then take the keys (aka the authors), and join them in a list.
 
-    my @repos = $rakudo, $doc, $nqp, $roast;
+    my @repos = $rakudo, $doc, $nqp, $moar, $roast;
     note qq:to/END/;
         ###############################################################
-        Extracting contributor information from these locations.
-        @repos[]
+        Extracting contributor information from these {+@repos} locations.
+        @repos.join("\n").indent(4)
         Ensure those repositories exist and have all changes pulled in.
         ###############################################################
         END
@@ -67,10 +67,22 @@ sub get-committers($repo, $since) {
     die "Expected a repo in `$repo` but did not find one"
          unless $repo.IO.d && "$repo/.git".IO.d;
 
-    gather for run(:out, :cwd($repo),
+    my @commits = run(:out, :cwd($repo),
       <git log --since>, $since, '--pretty=format:%an|%cn|%H|%s'
-    ).out.lines.grep(?*) -> $line {  # grep needed because of (Str) on empty pipe
+    ).out.lines.grep: ?*; # grep needed because of (Str) on empty pipe
 
+    @commits or warn qq:to/END/;
+
+    *********************** !! WARNING !! ********************
+
+    Did not find any commits in $repo since last release ($since).
+    Are you sure it's current and is on the right branch?
+
+    *********************** !! WARNING !! ********************
+
+    END
+
+    gather for @commits -> $line {
         my ($author,$committer,$id,$msg) = $line.split('|',4);
         take $id => nick-to-name($author);
         take $id => nick-to-name($committer);

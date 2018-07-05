@@ -113,9 +113,9 @@ sub committers (
     say "Contributors to Rakudo since $since"
       ~ (" until $until" with $until) ~ ":";
 
-    my @contributors = @repos.map({
-        my @comms = get-committers($_, $since, |($_ with $until));
-        $debug and @comms.map: { dd [.key, .value, $_] }
+    my @contributors = @repos.map(-> $repo {
+        my @comms = get-committers($repo, $since, |($_ with $until));
+        $debug and @comms.map: { dd [.key, .value, $repo] }
         |@comms
     }).unique(:as(*.key))».value.Bag.sort({-.value, .key});
 

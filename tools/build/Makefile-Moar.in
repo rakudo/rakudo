@@ -153,7 +153,7 @@ $(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_C_MOAR) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 
-$(PERL6_MOAR): .showversion src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES) $(M_CORE_D_SOURCES)
+$(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES) $(M_CORE_D_SOURCES)
 	$(PERL5) tools/build/gen-version.pl $(PREFIX) $(LIBDIR) > $(M_BUILD_DIR)/main-version.nqp
 	$(M_NQP) $(M_GEN_CAT) src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_MOAR) \

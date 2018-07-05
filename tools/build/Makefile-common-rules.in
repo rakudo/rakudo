@@ -1,8 +1,5 @@
 # Copyright (C) 2015 The Perl Foundation
 
-.showversion:
-	@echo Building Rakudo version $(VERSION_DISPLAY)...
-
 spectest_checkout : t/spec
 t/spec :
 	git clone git://github.com/perl6/roast.git t/spec

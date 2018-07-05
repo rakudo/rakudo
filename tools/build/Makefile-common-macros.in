@@ -25,5 +25,3 @@ COMMON_BOOTSTRAP_SOURCES = \
 	@common_bootstrap_sources@
 
 R_SETTING_SRC = src/RESTRICTED.setting
-
-VERSION_DISPLAY = @version@

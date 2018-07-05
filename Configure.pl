@@ -78,6 +78,7 @@ MAIN: {
         $config{versioncommitnum}  = exists $+{commitnum}  ? $+{commitnum}  : 0;
         $config{versioncommithash} = exists $+{commithash} ? $+{commithash} : 0;
     }
+    print "Configuring Rakudo version $VERSION\n\n";
 
     if ($options{'ignore-errors'}) {
         print "===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";

@@ -18,6 +18,7 @@ multi MAIN('for', 'release', $release,
     PathToRepo :$nqp    = NQP_REPO,
     PathToRepo :$moar   = MOAR_REPO,
     PathToRepo :$roast  = ROAST_REPO,
+    Bool       :$debug,
 ) {
     # fetch all available tags, creating a list of hashes, each of which got
     # a tag name and the date it was created on
@@ -41,7 +42,7 @@ multi MAIN('for', 'release', $release,
     # the tag that's previous to it, temporally, giving us the space of one rls
     say join ', ', committers :since(%prev-rel{$release}<date>),
         :until(@releases.first(*.<tag> eq $release)<date>),
-        :$rakudo, :$doc, :$nqp, :$moar, :$roast
+        :$rakudo, :$doc, :$nqp, :$moar, :$roast, :$debug,
 }
 
 #|(current release)
@@ -50,7 +51,8 @@ multi MAIN ($last_release? is copy,
     PathToRepo :$doc    = DOC_REPO,
     PathToRepo :$nqp    = NQP_REPO,
     PathToRepo :$moar   = MOAR_REPO,
-    PathToRepo :$roast  = ROAST_REPO
+    PathToRepo :$roast  = ROAST_REPO,
+    Bool       :$debug,
 ) {
     $last_release //= get-last-release-date-for $rakudo;
     say join ', ', committers since => $last_release,
@@ -87,6 +89,7 @@ sub committers (
     :$nqp    = NQP_REPO,
     :$moar   = MOAR_REPO,
     :$roast  = ROAST_REPO,
+    :$debug,
 ) {
     # Check all the places with repos that may be applicable.  Get all of the
     # committers in that repo since the given date as commit ID => author pairs.
@@ -109,9 +112,15 @@ sub committers (
 
     say "Contributors to Rakudo since $since"
       ~ (" until $until" with $until) ~ ":";
+
     my @contributors = @repos.map({
-      |get-committers($_, $since, |($_ with $until))
-    }).unique(:as(*.key))».value.Bag.sort({-.value, .key})».key;
+        my @comms = get-committers($_, $since, |($_ with $until));
+        $debug and @comms.map: { dd [.key, .value, $_] }
+        |@comms
+    }).unique(:as(*.key))».value.Bag.sort({-.value, .key});
+
+    $debug and dd @contributors;
+    @contributors = @contributors».key;
 
     for @contributors -> $name is rw {
         state $length = 0;

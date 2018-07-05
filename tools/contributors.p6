@@ -111,7 +111,7 @@ sub committers (
       ~ (" until $until" with $until) ~ ":";
     my @contributors = @repos.map({
       |get-committers($_, $since, |($_ with $until))
-    }).unique(:as(*.key))».value.Bag.sort(-*.value)».key;
+    }).unique(:as(*.key))».value.Bag.sort({-.value, .key})».key;
 
     for @contributors -> $name is rw {
         state $length = 0;

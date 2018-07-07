@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 13;
+plan 14;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -106,5 +106,21 @@ throws-like ｢
     -> Supercalifragilisticexpialidocious {}($x)
 ｣, X::TypeCheck, :message{2 == +.comb: 'Supercalifragilisticexpialidocious'},
     'X::TypeCheck does not prematurely chop off the .perl';
+
+#RT #128646
+subtest '.polymod with zero divisor does not reference guts in error' => {
+    plan 4;
+    throws-like { 1.polymod: 0           }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Int';
+
+    throws-like { 1.Rat.polymod: 0       }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Real';
+
+    throws-like { 1.polymod: lazy 0,     }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Int (lazy)';
+
+    throws-like { 1.Rat.polymod: lazy 0, }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Real (lazy)';
+}
 
 # vim: ft=perl6 expandtab sw=4

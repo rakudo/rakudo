@@ -10333,7 +10333,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method charname($/) {
         my $codepoint := $<integer>
                          ?? nqp::chr($<integer>.made)
-                         !! nqp::getstrfromname(~$/);
+                         !! nqp::strfromname(~$/);
         $codepoint := self.charname-notfound($/) if $codepoint eq '';
         make $codepoint;
     }
@@ -10346,19 +10346,19 @@ class Perl6::QActions is HLL::Actions does STDActions {
                     "Unicode 1 names are deprecated.\nPlease use %s";
         if ~$/ eq "LINE FEED (LF)" {
             $/.worry(nqp::sprintf($text, (~$/, @worry-text[0]) ) );
-            return nqp::getstrfromname("LINE FEED");
+            return nqp::strfromname("LINE FEED");
         }
         if ~$/ eq "FORM FEED (FF)" {
             $/.worry(nqp::sprintf($text, (~$/, @worry-text[1]) ) );
-            return nqp::getstrfromname("FORM FEED");
+            return nqp::strfromname("FORM FEED");
         }
         if ~$/ eq "CARRIAGE RETURN (CR)" {
             $/.worry(nqp::sprintf($text, (~$/, @worry-text[2]) ) );
-            return nqp::getstrfromname("CARRIAGE RETURN");
+            return nqp::strfromname("CARRIAGE RETURN");
         }
         if ~$/ eq "NEXT LINE (NEL)" {
             $/.worry(nqp::sprintf($text, (~$/, @worry-text[3]) ) );
-            return nqp::getstrfromname("NEXT LINE");
+            return nqp::strfromname("NEXT LINE");
         }
 
         self.charname-panic($/);

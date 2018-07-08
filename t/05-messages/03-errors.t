@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 14;
+plan 15;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -122,5 +122,9 @@ subtest '.polymod with zero divisor does not reference guts in error' => {
     throws-like { 1.Rat.polymod: lazy 0, }, X::Numeric::DivideByZero,
         gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Real (lazy)';
 }
+
+# RT 126220
+throws-like '++.++', X::Multi::NoMatch,
+    '++.++ construct does not throw LTA errors';
 
 # vim: ft=perl6 expandtab sw=4

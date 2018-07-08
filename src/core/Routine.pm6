@@ -50,11 +50,21 @@ my class Routine { # declared in BOOTSTRAP
 
     multi method perl(Routine:D:) {
         my $perl = ( self.^name ~~ m/^\w+/ ).lc;
+        if self.is_dispatcher {
+            $perl = "proto $perl";
+        }
+        elsif self.multi {
+            $perl = "multi $perl";
+        }
         if self.name() -> $n {
             $perl ~= " $n";
         }
         $perl ~= ' ' ~ substr(self.signature().perl,1); # lose colon prefix
-        $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
+        $perl ~= self.onlystar
+          ?? ' {*}'
+          !! self.yada
+            ?? ' { ... }'
+            !! ' { #`(' ~ self.WHICH ~ ') ... }';
         $perl
     }
 

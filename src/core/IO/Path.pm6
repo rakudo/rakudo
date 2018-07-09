@@ -448,7 +448,12 @@ my class IO::Path is Cool does IO {
         }}
     }
 
-    method copy(IO::Path:D: IO() $to, :$createonly --> True) {
+    method copy(IO::Path:D: IO() $to is copy, :$createonly --> True) {
+        nqp::if(
+            $to.d,
+            ($to.=add(self.basename))
+        );
+
         $createonly and $to.e and fail X::IO::Copy.new:
             :from($.absolute),
             :to($to.absolute),

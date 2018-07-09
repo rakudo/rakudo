@@ -230,15 +230,15 @@ my class IO::Handle {
 
     method eof(IO::Handle:D:) {
         nqp::p6bool($!decoder
-            ?? $!decoder.is-empty && self.eof-internal
-            !! self.eof-internal)
+            ?? $!decoder.is-empty && self.EOF
+            !! self.EOF)
     }
 
-    method eof-internal() {
+    method EOF() {
         nqp::eoffh($!PIO)
     }
 
-    method read-internal(Int:D $bytes) {
+    method READ(Int:D $bytes) {
         nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
     }
 
@@ -249,9 +249,9 @@ my class IO::Handle {
 
     method !get-line-slow-path() {
         my $line := Nil;
-        unless self.eof-internal && $!decoder.is-empty {
+        unless self.EOF && $!decoder.is-empty {
             loop {
-                my $buf := self.read-internal(0x100000);
+                my $buf := self.READ(0x100000);
                 if $buf.elems {
                     $!decoder.add-bytes($buf);
                     $line := $!decoder.consume-line-chars(:$!chomp);
@@ -259,7 +259,7 @@ my class IO::Handle {
                 }
                 else {
                     $line := $!decoder.consume-line-chars(:$!chomp, :eof)
-                        unless self.eof-internal && $!decoder.is-empty;
+                        unless self.EOF && $!decoder.is-empty;
                     last;
                 }
             }
@@ -468,15 +468,15 @@ my class IO::Handle {
         # If we have one, read bytes via. the decoder to support mixed-mode I/O.
         $!decoder
             ?? ($!decoder.consume-exactly-bytes($bytes) // self!read-slow-path($bytes))
-            !! self.read-internal($bytes)
+            !! self.READ($bytes)
     }
 
     method !read-slow-path($bytes) {
-        if self.eof-internal && $!decoder.is-empty {
+        if self.EOF && $!decoder.is-empty {
             buf8.new
         }
         else {
-            $!decoder.add-bytes(self.read-internal($bytes max 0x100000));
+            $!decoder.add-bytes(self.READ($bytes max 0x100000));
             $!decoder.consume-exactly-bytes($bytes)
                 // $!decoder.consume-exactly-bytes($!decoder.bytes-available)
                 // buf8.new
@@ -490,16 +490,17 @@ my class IO::Handle {
 
     method !readchars-slow-path($chars) {
         my $result := '';
-        unless self.eof-internal && $!decoder.is-empty {
+        unless self.EOF && $!decoder.is-empty {
             loop {
-                my $buf := self.read-internal(0x100000);
+                my $buf := self.READ(0x100000);
                 if $buf.elems {
                     $!decoder.add-bytes($buf);
                     $result := $!decoder.consume-exactly-chars($chars);
                     last if nqp::isconcrete($result);
                 }
                 else {
-                    $result := $!decoder.consume-exactly-chars($chars, :eof);
+                    $result := $!decoder.consume-exactly-chars($chars, :eof)
+                        unless self.EOF && $!decoder.is-empty;
                     last;
                 }
             }
@@ -558,10 +559,10 @@ my class IO::Handle {
     }
 
     method write(IO::Handle:D: Blob:D $buf --> True) {
-        self.write-internal($buf)
+        self.WRITE($buf)
     }
 
-    method write-internal(IO::Handle:D: Blob:D $buf --> True) {
+    method WRITE(IO::Handle:D: Blob:D $buf --> True) {
         nqp::writefh($!PIO, nqp::decont($buf));
     }
 
@@ -604,7 +605,7 @@ my class IO::Handle {
     proto method print(|) {*}
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print>);
-        self.write-internal($!encoder.encode-chars(x));
+        self.WRITE($!encoder.encode-chars(x));
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.print(@list.join);
@@ -614,7 +615,7 @@ my class IO::Handle {
     proto method put(|) {*}
     multi method put(IO::Handle:D: Str:D \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<put>);
-        self.write-internal($!encoder.encode-chars(
+        self.WRITE($!encoder.encode-chars(
             nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out))))
     }
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
@@ -624,12 +625,12 @@ my class IO::Handle {
 
     multi method say(IO::Handle:D: Str:D $x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
-        self.write-internal($!encoder.encode-chars(
+        self.WRITE($!encoder.encode-chars(
             nqp::concat(nqp::unbox_s($x), nqp::unbox_s($!nl-out))));
     }
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<say>);
-        self.write-internal($!encoder.encode-chars(
+        self.WRITE($!encoder.encode-chars(
             nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out))))
     }
     multi method say(IO::Handle:D: |) {
@@ -643,7 +644,7 @@ my class IO::Handle {
 
     method print-nl(IO::Handle:D: --> True) {
         $!decoder or die X::IO::BinaryMode.new(:trying<print-nl>);
-        self.write-internal($!encoder.encode-chars($!nl-out));
+        self.WRITE($!encoder.encode-chars($!nl-out));
     }
 
     proto method slurp-rest(|) {*}
@@ -688,7 +689,7 @@ my class IO::Handle {
           nqp::if(
             nqp::isfalse($!decoder) || $bin,
             nqp::while(
-              nqp::elems(my $buf := self.read-internal(0x100000)),
+              nqp::elems(my $buf := self.READ(0x100000)),
               $res.append($buf))),
           # don't sink result of .close; it might be a failed Proc
           nqp::if($close, my $ = self.close),
@@ -696,7 +697,7 @@ my class IO::Handle {
     }
 
     method !slurp-all-chars() {
-        while nqp::elems(my $buf := self.read-internal(0x100000)) {
+        while nqp::elems(my $buf := self.READ(0x100000)) {
             $!decoder.add-bytes($buf);
         }
         $!decoder.consume-all-chars()
@@ -705,7 +706,7 @@ my class IO::Handle {
     proto method spurt(|) {*}
     multi method spurt(IO::Handle:D: Blob $data, :$close) {
         LEAVE self.close if $close;
-        self.write-internal($data);
+        self.WRITE($data);
     }
     multi method spurt(IO::Handle:D: Cool $data, :$close) {
         LEAVE self.close if $close;

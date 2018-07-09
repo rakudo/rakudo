@@ -57,7 +57,7 @@ my class Failure is Nil {
         Bool::False;
     }
     multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
-    method handled() {
+    method handled() is rw {
         Proxy.new(
           FETCH => {
 #?if moar

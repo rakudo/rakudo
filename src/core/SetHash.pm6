@@ -148,7 +148,7 @@ my class SetHash does Setty {
     }
     multi method values(SetHash:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
+            method pull-one() is rw {
               nqp::if(
                 $!iter,
                 proxy(nqp::shift($!iter),$!hash),

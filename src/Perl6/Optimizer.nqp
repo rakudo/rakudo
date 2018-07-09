@@ -628,7 +628,7 @@ my class BlockVarOptimizer {
             next unless $scope eq 'lexical';
 
             # Also ensure not dynamic.
-            my $dynamic := try nqp::getattr($qast.value, nqp::p6var($qast.value).WHAT, '$!descriptor').dynamic;
+            my $dynamic := try nqp::getattr($qast.value, nqp::what_nd($qast.value), '$!descriptor').dynamic;
             next if $dynamic;
 
             # Consider name. Can't lower if it's used by any nested blocks.
@@ -1132,7 +1132,7 @@ class Perl6::Optimizer {
 
         # Let's see if we can catch a type mismatch in assignment at compile-time.
         # Especially with Num, Rat, and Int there's often surprises at run-time.
-        if ($optype eq 'assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
+        if ($optype eq 'p6assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
             && nqp::istype($op[0], QAST::Var)
             && ($op[0].scope eq 'lexical' || $op[0].scope eq 'lexicalref') {
             if nqp::istype($op[1], QAST::Want) {
@@ -1914,7 +1914,7 @@ class Perl6::Optimizer {
                 $is-always-definite := 1;
               }
               elsif $sigil eq '$' {
-                $assignop := 'assign';
+                $assignop := 'p6assign';
               }
               elsif $sigil eq '@' || $sigil eq '%' {
                 $assignop := 'p6store';
@@ -1979,7 +1979,7 @@ class Perl6::Optimizer {
 
             $op.annotate_self: 'METAOP_opt_result', 1;
             $op.returns: $assignee.returns
-                if $assignop ne 'assign'
+                if $assignop ne 'p6assign'
                 && nqp::objprimspec($assignee.returns);
 
             my $*NO-COMPILE-TIME-THROWAGE := 1;

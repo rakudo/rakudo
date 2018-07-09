@@ -2496,12 +2496,8 @@ class Rakudo::Iterator {
             method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
 
             method !hole(int $i) is raw {
-                nqp::p6bindattrinvres(
-                  (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                  Scalar,
-                  '$!whence',
-                  -> { nqp::bindpos($!reified,$i,v) }
-                )
+                nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                    $!descriptor, $!reified, $i))
             }
             method pull-one() is raw {
                 nqp::ifnull(

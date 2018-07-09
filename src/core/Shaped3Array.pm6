@@ -18,15 +18,10 @@
             )
         }
         sub AT-POS-CONTAINER(\array, int \one, int \two, int \three) is raw {
-            nqp::p6bindattrinvres(
-              (my $scalar := nqp::p6scalarfromdesc(
-                nqp::getattr(array,Array,'$!descriptor'))),
-              Scalar,
-              '$!whence',
-              -> { nqp::bindpos3d(
-                     nqp::getattr(array,List,'$!reified'),
-                     one, two, three, $scalar) }
-            )
+            nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos2D.new(
+               nqp::getattr(array, Array, '$!descriptor'),
+               nqp::getattr(array, List, '$!reified'),
+               one, two, three))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, \value) {

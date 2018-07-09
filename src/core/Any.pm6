@@ -251,30 +251,10 @@ my class Any { # declared in BOOTSTRAP
 
     proto method AT-POS(|) is nodal {*}
     multi method AT-POS(Any:U \SELF: int \pos) is raw {
-        nqp::p6bindattrinvres(
-          my $scalar,
-          Scalar,
-          '$!whence',
-          -> { nqp::if(
-                 nqp::isconcrete(SELF),
-                 SELF,
-                 (SELF = Array.new)
-               ).BIND-POS(pos, $scalar)
-             }
-        )
+        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
     }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
-        nqp::p6bindattrinvres(
-          my $scalar,
-          Scalar,
-          '$!whence',
-          -> { nqp::if(
-                 nqp::isconcrete(SELF),
-                 SELF,
-                 (SELF = Array.new)
-               ).BIND-POS(pos, $scalar)
-             }
-        )
+        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
@@ -405,21 +385,7 @@ my class Any { # declared in BOOTSTRAP
         )
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
-        nqp::p6bindattrinvres(
-          my $scalar,
-          Scalar,
-          '$!whence',
-          # NOTE: even though the signature indicates a non-concrete SELF,
-          # by the time the below code is executed, it *may* have become
-          # concrete: and then we don't want the execution to reset it to
-          # an empty Hash.
-          -> { nqp::if(
-                 nqp::isconcrete(SELF),
-                 SELF,
-                 (SELF = nqp::create(Hash))
-               ).BIND-KEY(key, $scalar)
-             }
-        )
+        nqp::p6scalarfromdesc(ContainerDescriptor::VivifyHash.new(SELF, key))
     }
 
     proto method BIND-KEY(|) is nodal {*}

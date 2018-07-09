@@ -736,7 +736,7 @@ my class IO::Handle {
                 $_ = Nil;
             }
             else {
-                return $!encoding if $!encoding && $!encoding eq $_;
+                return $!encoding if $!decoder and $!encoding and $!encoding eq $_;
             }
         }
         with $!decoder {

@@ -51,7 +51,7 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
 
 {
     # We look up Iterable when the plugin is used.
-    my $Iterable := NQPMu;
+    my $Iterable := nqp::null();
 
     sub identity($obj) { $obj }
     sub decont($obj) { nqp::decont($obj) }
@@ -80,7 +80,7 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
     }
 
     nqp::speshreg('perl6', 'decontrv', sub ($rv) {
-        $Iterable := nqp::gethllsym('perl6', 'Iterable') if nqp::eqaddr($Iterable, NQPMu);
+        $Iterable := nqp::gethllsym('perl6', 'Iterable') if nqp::isnull($Iterable);
         nqp::speshguardtype($rv, nqp::what_nd($rv));
         if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
             # Guard that it's concrete, so this only applies for container

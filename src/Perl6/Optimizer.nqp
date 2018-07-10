@@ -2235,7 +2235,8 @@ class Perl6::Optimizer {
         # (Check the following after we've checked children, since they may have useless bits too.)
 
         # Any literal in void context deserves a warning.
-        if $!void_context && +@($want) == 3 && $want.node {
+        if $!void_context && +@($want) == 3 && $want.node
+           && !$want.ann('sink-quietly') {
             my str $warning;
             my $no-sink;
 

@@ -40,9 +40,20 @@ my class Junction { # declared in BOOTSTRAP
             (nqp::iseq_s($btype,"all") || nqp::iseq_s($btype,"none"))
               && (nqp::iseq_s($atype,"any") || nqp::iseq_s($atype,"one")),
             nqp::stmts(                          # need to be swapped
-              (my $tmp := nqp::decont(a)),
-              (a = b),
-              (b = $tmp),
+              nqp::bindattr(
+                (my $a := nqp::clone(nqp::decont(b))),
+                Junction,
+                '$!storage',
+                nqp::getattr(nqp::decont(a),Junction,'$!storage')
+              ),
+              nqp::bindattr(
+                (my $b := nqp::clone(nqp::decont(a))),
+                Junction,
+                '$!storage',
+                nqp::getattr(nqp::decont(b),Junction,'$!storage')
+              ),
+              (a = $a),
+              (b = $b),
               0                                  # not same, now swapped
             )
           )

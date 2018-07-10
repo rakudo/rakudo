@@ -2235,24 +2235,46 @@ class Perl6::Optimizer {
         # (Check the following after we've checked children, since they may have useless bits too.)
 
         # Any literal in void context deserves a warning.
-        if $!void_context && +@($want) == 3 && $want.node
-        && ! $want.ann('sink-quietly') {
-
+        if $!void_context && +@($want) == 3 && $want.node {
             my str $warning;
+            my $no-sink;
+
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
-                $warning := qq[Useless use of constant string "]
-                         ~ nqp::escape($want[2].node // $want[2].value);
+                $warning := 'constant string "'
+                  ~ nqp::escape($want[2].node // $want[2].value)
+                  ~ '"'
             }
             elsif $want[1] eq 'Ii' && nqp::istype($want[2], QAST::IVal) {
-                $warning := qq[Useless use of constant integer ]
-                         ~ ($want[2].node // $want[2].value);
-            }
-            elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
-                $warning := qq[Useless use of constant floating-point number ]
+                $warning := 'constant integer '
                   ~ ($want[2].node // $want[2].value);
             }
+            elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
+                $warning := 'constant floating-point number '
+                  ~ ($want[2].node // $want[2].value);
+            }
+            elsif $want[1] eq 'v' && nqp::istype($want[2], QAST::Op) {
+# R#2040
+# - QAST::Op(p6capturelex)
+#   - QAST::Op(callmethod clone) 
+#     - QAST::WVal(Sub...)
+                if $want[0].op eq 'p6capturelex' {
+                    my $op := $want[0][0];
+                    if $op.op eq 'callmethod' && $op.name eq 'clone' {
+                        $op := $op[0];
+                        if nqp::istype($op, QAST::WVal) && nqp::istype(
+                          $op.value,
+                          $!symbols.find_in_setting("Sub")
+                        ) && !$op.value.name {
+                            $warning := qq[anonymous sub, did you forget to provide a name?];
+                            $no-sink := 1;
+                        }
+                    }
+                }
+            }
+
             if $warning {
-                $warning := $warning ~ qq[ in sink context];
+                $warning := "Useless use of " ~ $warning;
+                $warning := $warning ~ qq[ in sink context] unless $no-sink;
                 $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
                 note($warning) if $!debug;
                 $!problems.add_worry($want, $warning);

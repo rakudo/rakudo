@@ -86,6 +86,14 @@ multi sub POSITIONS(
         nqp::bindattr(pos-list, List, '$!todo', todo);
     }
     else {
+        if nqp::defined(SELF.shape) and !nqp::eqaddr(pos.WHAT,Range) {
+            if SELF.shape.elems > 1 {
+                X::NYI.new(
+                    feature => 'Slices of shaped arrays',
+                    did-you-mean => pos.join(';'),
+                ).throw;
+            }
+        }
         pos-iter.push-all: target;
     }
     pos-list

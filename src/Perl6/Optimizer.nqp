@@ -2241,19 +2241,18 @@ class Perl6::Optimizer {
             my str $warning;
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
                 $warning := qq[Useless use of constant string "]
-                         ~ nqp::escape($want[2].node // $want[2].value)
-                         ~ qq[" in sink context];
+                         ~ nqp::escape($want[2].node // $want[2].value);
             }
             elsif $want[1] eq 'Ii' && nqp::istype($want[2], QAST::IVal) {
                 $warning := qq[Useless use of constant integer ]
-                         ~ ($want[2].node // $want[2].value)
-                         ~ qq[ in sink context];
+                         ~ ($want[2].node // $want[2].value);
             }
             elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
                 $warning := qq[Useless use of constant floating-point number ]
-                  ~ ($want[2].node // $want[2].value) ~ qq[ in sink context];
+                  ~ ($want[2].node // $want[2].value);
             }
             if $warning {
+                $warning := $warning ~ qq[ in sink context];
                 $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
                 note($warning) if $!debug;
                 $!problems.add_worry($want, $warning);

@@ -501,6 +501,18 @@ sub UNWANTED($ast, $by) {
     $ast;
 }
 
+register_op_desugar('p6box_i', -> $qast {
+    QAST::Op.new( :op('box_i'), $qast[0], QAST::Op.new( :op('hllboxtype_i') ) )
+});
+register_op_desugar('p6box_n', -> $qast {
+    QAST::Op.new( :op('box_n'), $qast[0], QAST::Op.new( :op('hllboxtype_n') ) )
+});
+register_op_desugar('p6box_s', -> $qast {
+    QAST::Op.new( :op('box_s'), $qast[0], QAST::Op.new( :op('hllboxtype_s') ) )
+});
+register_op_desugar('p6box_u', -> $qast {
+    QAST::Op.new( :op('box_u'), $qast[0], QAST::Op.new( :op('hllboxtype_i') ) )
+});
 register_op_desugar('p6callmethodhow', -> $qast {
     $qast   := $qast.shallow_clone();
     my $inv := $qast.shift;

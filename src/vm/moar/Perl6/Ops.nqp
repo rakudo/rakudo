@@ -26,18 +26,6 @@ use MASTNodes;
 MAST::ExtOpRegistry.register_extop('p6init');
 MAST::ExtOpRegistry.register_extop('p6settypes',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6box_i',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_int64 +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6box_n',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_num64 +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6box_s',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_str   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6box_u',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_uint64 +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6bool',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_int64 +| $MVM_operand_read_reg);
@@ -95,10 +83,6 @@ sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
 
 # Perl 6 opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
-$ops.add_hll_moarop_mapping('perl6', 'p6box_i', 'p6box_i');
-$ops.add_hll_moarop_mapping('perl6', 'p6box_n', 'p6box_n');
-$ops.add_hll_moarop_mapping('perl6', 'p6box_s', 'p6box_s');
-$ops.add_hll_moarop_mapping('perl6', 'p6box_u', 'p6box_u');
 $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my @ops;
     my $cont_res  := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
@@ -382,20 +366,20 @@ $ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
 });
 
 # Boxing and unboxing configuration.
-sub boxer($kind, $op) {
+sub boxer($kind, $box_op, $type_op) {
     -> $qastcomp, $reg {
         my @ops;
         my $res_reg := $*REGALLOC.fresh_register($MVM_reg_obj);
-        nqp::push(@ops, MAST::ExtOp.new( :op($op), :cu($qastcomp.mast_compunit),
-            $res_reg, $reg ));
+        nqp::push(@ops, MAST::Op.new( :op($type_op), $res_reg ));
+        nqp::push(@ops, MAST::Op.new( :op($box_op), $res_reg, $reg, $res_reg ));
         $*REGALLOC.release_register($reg, $kind);
         MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
     }
 }
-$ops.add_hll_box('perl6', $MVM_reg_int64, boxer($MVM_reg_int64, 'p6box_i'));
-$ops.add_hll_box('perl6', $MVM_reg_num64, boxer($MVM_reg_num64, 'p6box_n'));
-$ops.add_hll_box('perl6', $MVM_reg_str, boxer($MVM_reg_str, 'p6box_s'));
-$ops.add_hll_box('perl6', $MVM_reg_uint64, boxer($MVM_reg_uint64, 'p6box_u'));
+$ops.add_hll_box('perl6', $MVM_reg_int64, boxer($MVM_reg_int64, 'box_i', 'hllboxtype_i'));
+$ops.add_hll_box('perl6', $MVM_reg_num64, boxer($MVM_reg_num64, 'box_n', 'hllboxtype_n'));
+$ops.add_hll_box('perl6', $MVM_reg_str, boxer($MVM_reg_str, 'box_s', 'hllboxtype_s'));
+$ops.add_hll_box('perl6', $MVM_reg_uint64, boxer($MVM_reg_uint64, 'box_u', 'hllboxtype_i'));
 QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_int64, -> $qastcomp, $reg {
     my $il := nqp::list();
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_int64);

@@ -437,7 +437,8 @@ my class Any { # declared in BOOTSTRAP
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
 
-    method sum() is nodal {
+    proto method sum(|) is nodal {*}
+    multi method sum() {
         my \iter = self.iterator;
         my $sum = 0;
         my Mu $value;

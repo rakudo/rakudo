@@ -1040,12 +1040,11 @@ my class array does Iterable {
                   nqp::getattr(range,Range,'$!max'),
                   nqp::getattr_i(range,Range,'$!excludes-max')
                 )),
-                nqp::setelems(self, nqp::add_i(nqp::sub_i($max,$val),1)),
-                (my int $i = -1),
+                nqp::setelems(self,0),  # make sure we start from scratch
                 ($val = nqp::sub_i($val,1)),
                 nqp::while(
                   nqp::isle_i(($val = nqp::add_i($val,1)),$max),
-                  nqp::bindpos_i(self,($i = nqp::add_i($i,1)),$val)
+                  nqp::push_i(self,$val)
                 ),
                 self
               ),

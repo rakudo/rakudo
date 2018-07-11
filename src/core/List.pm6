@@ -379,7 +379,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method to()      { self.elems ?? self[self.end].to !! Nil }
     method from()    { self.elems ?? self[0].from !! Nil }
 
-    multi method sum(List:D:) {
+    method sum() is nodal {
         nqp::if(
           self.is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action('.sum'))),

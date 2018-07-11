@@ -510,7 +510,7 @@
         # into the "todo".
         method eager() { self }
 
-        multi method sum(::?CLASS:D:) { self.Any::sum }
+        method sum() is nodal { self.Any::sum }
         multi method elems(::?CLASS:D:) {
             nqp::elems(nqp::getattr(self,List,'$!reified'))
         }

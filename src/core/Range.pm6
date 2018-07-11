@@ -652,7 +652,7 @@ my class Range is Cool does Iterable does Positional {
         X::Immutable.new(:typename<Range>, :method<pop>).throw
     }
 
-    multi method sum(Range:D:) {
+    method sum() is nodal {
         self.int-bounds(my $start, my $stop)
           ?? ($start + $stop) * (0 max $stop - $start + 1) div 2
           !! $!min == -Inf

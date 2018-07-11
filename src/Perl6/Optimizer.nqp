@@ -628,7 +628,7 @@ my class BlockVarOptimizer {
             next unless $scope eq 'lexical';
 
             # Also ensure not dynamic.
-            my $dynamic := try nqp::getattr($qast.value, nqp::p6var($qast.value).WHAT, '$!descriptor').dynamic;
+            my $dynamic := try nqp::getattr($qast.value, nqp::what_nd($qast.value), '$!descriptor').dynamic;
             next if $dynamic;
 
             # Consider name. Can't lower if it's used by any nested blocks.
@@ -1132,7 +1132,7 @@ class Perl6::Optimizer {
 
         # Let's see if we can catch a type mismatch in assignment at compile-time.
         # Especially with Num, Rat, and Int there's often surprises at run-time.
-        if ($optype eq 'assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
+        if ($optype eq 'p6assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
             && nqp::istype($op[0], QAST::Var)
             && ($op[0].scope eq 'lexical' || $op[0].scope eq 'lexicalref') {
             if nqp::istype($op[1], QAST::Want) {
@@ -1914,7 +1914,7 @@ class Perl6::Optimizer {
                 $is-always-definite := 1;
               }
               elsif $sigil eq '$' {
-                $assignop := 'assign';
+                $assignop := 'p6assign';
               }
               elsif $sigil eq '@' || $sigil eq '%' {
                 $assignop := 'p6store';
@@ -1979,7 +1979,7 @@ class Perl6::Optimizer {
 
             $op.annotate_self: 'METAOP_opt_result', 1;
             $op.returns: $assignee.returns
-                if $assignop ne 'assign'
+                if $assignop ne 'p6assign'
                 && nqp::objprimspec($assignee.returns);
 
             my $*NO-COMPILE-TIME-THROWAGE := 1;
@@ -2236,24 +2236,46 @@ class Perl6::Optimizer {
 
         # Any literal in void context deserves a warning.
         if $!void_context && +@($want) == 3 && $want.node
-        && ! $want.ann('sink-quietly') {
-
+           && !$want.ann('sink-quietly') {
             my str $warning;
+            my $no-sink;
+
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
-                $warning := qq[Useless use of constant string "]
-                         ~ nqp::escape($want[2].node // $want[2].value)
-                         ~ qq[" in sink context];
+                $warning := 'constant string "'
+                  ~ nqp::escape($want[2].node // $want[2].value)
+                  ~ '"'
             }
             elsif $want[1] eq 'Ii' && nqp::istype($want[2], QAST::IVal) {
-                $warning := qq[Useless use of constant integer ]
-                         ~ ($want[2].node // $want[2].value)
-                         ~ qq[ in sink context];
+                $warning := 'constant integer '
+                  ~ ($want[2].node // $want[2].value);
             }
             elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
-                $warning := qq[Useless use of constant floating-point number ]
-                  ~ ($want[2].node // $want[2].value) ~ qq[ in sink context];
+                $warning := 'constant floating-point number '
+                  ~ ($want[2].node // $want[2].value);
             }
+            elsif $want[1] eq 'v' && nqp::istype($want[2], QAST::Op) {
+# R#2040
+# - QAST::Op(p6capturelex)
+#   - QAST::Op(callmethod clone) 
+#     - QAST::WVal(Sub...)
+                if $want[0].op eq 'p6capturelex' {
+                    my $op := $want[0][0];
+                    if $op.op eq 'callmethod' && $op.name eq 'clone' {
+                        $op := $op[0];
+                        if nqp::istype($op, QAST::WVal) && nqp::istype(
+                          $op.value,
+                          $!symbols.find_in_setting("Sub")
+                        ) && !$op.value.name {
+                            $warning := qq[anonymous sub, did you forget to provide a name?];
+                            $no-sink := 1;
+                        }
+                    }
+                }
+            }
+
             if $warning {
+                $warning := "Useless use of " ~ $warning;
+                $warning := $warning ~ qq[ in sink context] unless $no-sink;
                 $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
                 note($warning) if $!debug;
                 $!problems.add_worry($want, $warning);

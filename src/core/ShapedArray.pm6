@@ -25,13 +25,8 @@
                   ),
                   (my $element := nqp::ifnull(
                     nqp::atposnd($reified,$idxs),    # found it
-                    nqp::p6bindattrinvres(           # create container
-                      (my $scalar := nqp::p6scalarfromdesc(
-                        nqp::getattr(self,Array,'$!descriptor'))),
-                      Scalar,
-                      '$!whence',
-                      -> { nqp::bindposnd($reified,$idxs,$scalar) }
-                    )
+                    nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPosND.new(
+                      nqp::getattr(array, Array, '$!descriptor'), $reified, $idxs))
                   )),
                   nqp::if(
                     nqp::elems($indices),
@@ -460,19 +455,12 @@
                       self.indices,
                       nqp::ifnull(
                         nqp::atposnd($!list,$!indices),
-                        nqp::stmts(
-                          # By the time the block gets executed, the $!indices
-                          # may be at the next iteration already or even reset
-                          # because we reached the end.  So we need to make
-                          # a copy of the indices now.
-                          (my $indices := nqp::clone($!indices)),
-                          nqp::p6bindattrinvres(
-                            (my $scalar := nqp::p6scalarfromdesc($!desc)),
-                            Scalar,
-                           '$!whence',
-                            -> { nqp::bindposnd($!list,$indices,$scalar) }
-                          )
-                        )
+                        # By the time the block gets executed, the $!indices
+                        # may be at the next iteration already or even reset
+                        # because we reached the end.  So we need to make
+                        # a copy of the indices now.
+                        nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPosND.new(
+                          $!desc, $!list, nqp::clone($!indices)))
                       )
                     )
                 }
@@ -507,19 +495,12 @@
                 method result() is raw {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
-                      nqp::stmts(
-                        # By the time the block gets executed, the $!indices
-                        # may be at the next iteration already or even reset
-                        # because we reached the end.  So we need to make
-                        # a copy of the indices now.
-                        (my $indices := nqp::clone($!indices)),
-                        nqp::p6bindattrinvres(
-                          (my $scalar := nqp::p6scalarfromdesc($!desc)),
-                          Scalar,
-                         '$!whence',
-                          -> { nqp::bindposnd($!list,$indices,$scalar) }
-                       )
-                     )
+                      # By the time the block gets executed, the $!indices
+                      # may be at the next iteration already or even reset
+                      # because we reached the end.  So we need to make
+                      # a copy of the indices now.
+                      nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPosND.new(
+                        $!desc, $!list, nqp::clone($!indices)))
                    )
                 }
             }.new(self)

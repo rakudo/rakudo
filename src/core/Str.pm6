@@ -3118,10 +3118,10 @@ multi sub substr(\what)                { what.substr             }
 multi sub substr(\what, \from)         { what.substr(from)       }
 multi sub substr(\what, \from, \chars) { what.substr(from,chars) }
 
-proto sub substr-rw($, $?, $?, *%) {*}
-multi sub substr-rw(\what)                { what.substr-rw             }
-multi sub substr-rw(\what, \from)         { what.substr-rw(from)       }
-multi sub substr-rw(\what, \from, \chars) { what.substr-rw(from,chars) }
+proto sub substr-rw($, $?, $?, *%) is rw {*}
+multi sub substr-rw(\what) is rw                { what.substr-rw             }
+multi sub substr-rw(\what, \from) is rw         { what.substr-rw(from)       }
+multi sub substr-rw(\what, \from, \chars) is rw { what.substr-rw(from,chars) }
 
 multi sub infix:<eqv>(Str:D \a, Str:D \b) {
     nqp::p6bool(

@@ -86,14 +86,6 @@ multi sub POSITIONS(
         nqp::bindattr(pos-list, List, '$!todo', todo);
     }
     else {
-        if nqp::defined(SELF.shape) and !nqp::eqaddr(pos.WHAT,Range) {
-            if SELF.shape.elems > 1 {
-                X::NYI.new(
-                    feature => 'Slices of shaped arrays',
-                    did-you-mean => pos.join(';'),
-                ).throw;
-            }
-        }
         pos-iter.push-all: target;
     }
     pos-list
@@ -240,6 +232,12 @@ multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is raw {
     nqp::iscont(pos)
       ?? SELF.AT-POS(pos.Int)
       !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
+}
+multi sub postcircumfix:<[ ]>( Array \SELF where SELF.shape.elems > 1, Iterable:D \pos ) is raw {
+   X::NYI.new(
+       feature => 'Slices of shaped arrays',
+       did-you-mean => (pos.join(';') unless nqp::eqaddr(pos.WHAT,Range)),
+   ).throw;
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
     # MMD is not behaving itself so we do this by hand.

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 15;
+plan 16;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -126,5 +126,10 @@ subtest '.polymod with zero divisor does not reference guts in error' => {
 # RT 126220
 throws-like '++.++', X::Multi::NoMatch,
     '++.++ construct does not throw LTA errors';
+
+# https://github.com/rakudo/rakudo/issues/1943
+throws-like 'my @x[2,2]; @x[0,1]', X::NYI,
+    message => /｢Did you mean: 0;1｣/,
+    'did you mean to slice that shaped array';
 
 # vim: ft=perl6 expandtab sw=4

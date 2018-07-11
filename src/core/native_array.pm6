@@ -988,6 +988,34 @@ my class array does Iterable {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
+        method sum(intarray:D: :$wrap) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my int $i),
+                nqp::if(
+                  $wrap,
+                  nqp::stmts(
+                    (my int $sum = nqp::atpos_i(self,0)),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $sum = nqp::add_i($sum,nqp::atpos_i(self,$i))
+                    ),
+                    $sum
+                  ),
+                  nqp::stmts(
+                    (my Int $Sum = nqp::atpos_i(self,0)),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $Sum = $Sum + nqp::atpos_i(self,$i)
+                    ),
+                    $Sum
+                  )
+                )
+              ),
+              0
+            )
+        }
         method join(intarray:D: $delim = '') {
             my int $elems = nqp::elems(self);
             my $list     := nqp::setelems(nqp::list_s,$elems);

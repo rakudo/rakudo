@@ -1,4 +1,5 @@
 # for errors
+my class X::Syntax::ParentAsHash { ... }
 my class X::Inheritance::Unsupported { ... }
 my class X::Inheritance::UnknownParent { ... }
 my class X::Export::NameClash        { ... }
@@ -58,6 +59,9 @@ multi sub trait_mod:<is>(Mu:U $type, :$hidden!) {
 }
 multi sub trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
     $type.^set_array_type($array_type);
+}
+multi sub trait_mod:<is>(Mu:U $type, Mu:U $parent, Hash) {
+    X::Syntax::ParentAsHash.new(:$parent).throw;
 }
 multi sub trait_mod:<is>(Mu:U $type, *%fail) {
     if %fail.keys[0] !eq $type.^name {

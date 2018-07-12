@@ -1389,6 +1389,14 @@ my class X::Syntax::KeywordAsFunction does X::Syntax {
     }
 }
 
+my class X::Syntax::ParentAsHash does X::Syntax {
+    has $.parent;
+    method message() {
+        "Syntax error while specifying a parent class:\n"
+        ~ "Must specify a space between {$.parent.^name} and \{";
+    }
+}  
+
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
     method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }

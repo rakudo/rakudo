@@ -10,7 +10,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     method new(*@args) {
         @args
-          ?? nqp::create(self).STORE(@args)
+          ?? nqp::create(self).STORE(@args, :initialize)
           !! nqp::create(self)
     }
 
@@ -284,7 +284,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    method STORE(\to_store) {
+    method STORE(\to_store, :$initialize) {
+        X::Assignment::RO.new(value => self).throw unless $initialize;
+
         my $temp := nqp::p6bindattrinvres(
           nqp::clone(self),   # make sure we get a possible descriptor as well
           Map,

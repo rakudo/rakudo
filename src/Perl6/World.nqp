@@ -1266,8 +1266,7 @@ class Perl6::World is HLL::World {
             :auth-matcher(%opts<auth> // $true),
             :api-matcher(%opts<api> // $true),
             :version-matcher(%opts<ver> // $true),
-            :source-line-number($line),
-            :source-file-name(self.current_file)
+            :source-line-number($line)
         );
         self.add_object($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);

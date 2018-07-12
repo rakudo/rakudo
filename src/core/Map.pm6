@@ -271,13 +271,15 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method !STORE_MAP(\map --> Nil) {
         nqp::if(
-          nqp::defined(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::isconcrete(my $other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
             (my $iter := nqp::iterator($other)),
             nqp::while(
               $iter,
-              self.STORE_AT_KEY(
-                nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
+              nqp::bindkey(
+                $!storage,
+                nqp::iterkey_s(nqp::shift($iter)),
+                nqp::decont(nqp::iterval($iter))
               )
             )
           )

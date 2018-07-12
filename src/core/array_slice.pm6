@@ -233,6 +233,12 @@ multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is raw {
       ?? SELF.AT-POS(pos.Int)
       !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
 }
+multi sub postcircumfix:<[ ]>( Array \SELF where SELF.shape.elems > 1, Iterable:D \pos ) is raw {
+   X::NYI.new(
+       feature => 'Slices of shaped arrays',
+       did-you-mean => (pos.join(';') unless nqp::eqaddr(pos.WHAT,Range)),
+   ).throw;
+}
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
     # MMD is not behaving itself so we do this by hand.
     if nqp::iscont(pos) {

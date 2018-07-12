@@ -226,6 +226,9 @@ my class PseudoStash is Map {
           )
         )
     }
+    multi method ASSIGN-KEY(PseudoStash:D: Str() $key, Mu \value) is raw {
+        self.AT-KEY($key) = value
+    }
 
     method BIND-KEY(Str() $key, \value) is raw {
         nqp::if(

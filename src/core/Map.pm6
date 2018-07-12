@@ -263,6 +263,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           !! Nil
     }
 
+    multi method ASSIGN-KEY(Map:D: \key, Mu \value) {
+        die nqp::defined($!storage) && nqp::existskey($!storage,key.Str)
+          ?? "Cannot change key '{key}' in an immutable {self.^name}"
+          !! "Cannot add key '{key}' to an immutable {self.^name}"
+    }
+
     method !STORE_MAP(\map --> Nil) {
         nqp::if(
           nqp::defined(my $other := nqp::getattr(map,Map,'$!storage')),

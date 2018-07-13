@@ -5,8 +5,42 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     #   has Mu $!storage;
 
     multi method WHICH(Map:D:) {
-        (nqp::eqaddr(self.WHAT,Map) ?? 'Map|' !! (self.^name ~ '|'))
-          ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } )
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Map),
+              'Map|',
+              nqp::concat(self.^name,'|')
+            ),
+            nqp::sha1(
+              nqp::join(
+                '|',
+                nqp::stmts(  # cannot use native str arrays early in setting
+                  (my $keys := nqp::list_s),
+                  (my $iter := nqp::iterator($!storage)),
+                  nqp::while(
+                    $iter,
+                    nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
+                  ),
+                  (my $sorted   := Rakudo::Sorting.MERGESORT-str($keys)),
+                  (my int $i     = -1),
+                  (my int $elems = nqp::elems($sorted)),
+                  (my $strings  := nqp::list_s),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::stmts(
+                      (my $key := nqp::atpos_s($sorted,$i)),
+                      nqp::push_s($strings,$key),
+                      nqp::push_s($strings,nqp::atkey($!storage,$key).perl)
+                    )
+                  ),
+                  $strings
+                )
+              )
+            )
+          ),
+          ValueObjAt
+        )
     }
     method new(*@args) {
         @args

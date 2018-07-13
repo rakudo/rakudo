@@ -181,7 +181,6 @@ src/core/Distro.pm6
 src/core/Kernel.pm6
 src/core/Compiler.pm6
 src/core/Perl.pm6
-src/core/OS.pm6
 src/core/Rakudo/Internals/JSON.pm6
 src/core/JSON/Pretty.pm6
 src/core/Distribution.pm6

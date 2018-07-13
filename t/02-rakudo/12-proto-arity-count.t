@@ -137,7 +137,6 @@ sub all-the-protos {
     &full-barrier,
     &get,
     &getc,
-    &gethostname,
     &gist,
     &goto,
     &grep,

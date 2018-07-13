@@ -20,6 +20,8 @@ my class PseudoStash is Map {
         $obj
     }
 
+    method WHICH() { self.Mu::WHICH }
+
     my %pseudoers =
         'MY' => sub ($cur) {
             my $stash := nqp::clone($cur);

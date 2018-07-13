@@ -291,8 +291,8 @@ my role Baggy does QuantHash {
           $hash
         )
     }
-    multi method hash(Baggy:D: --> Hash:D) { self!HASHIFY(Any) }
-    multi method Hash(Baggy:D: --> Hash:D) { self!HASHIFY(UInt) }
+    multi method hash(Baggy:D: --> Hash:D) { self!HASHIFY(UInt) }
+    multi method Hash(Baggy:D: --> Hash:D) { self!HASHIFY(Any) }
 
     method default(Baggy:D: --> 0) { }
 

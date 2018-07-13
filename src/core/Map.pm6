@@ -287,6 +287,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
+
     # Directly copy from the Object Hash's internals, but pay respect to the
     # fact that we're only interested in the values (which contain a Pair with
     # the object key and a value that we need to decontainerize.
@@ -309,14 +310,17 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
+
     # Copy the contents of a Mappy thing that's not in a container.
     method !STORE_MAP(\map --> Nil) {
         nqp::if(
-          nqp::eqaddr(map,Str(Any)),  # is it not an Object Hash?
+          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           self!STORE_MAP_FROM_MAP(map),
           self!STORE_MAP_FROM_OBJECT_HASH(map)
         )
     }
+
+    # Store the contents of an iterator into the Map
     method !STORE_MAP_FROM_ITERATOR(\iter) is raw {
         nqp::stmts(
           nqp::until(
@@ -349,7 +353,54 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    method STORE(\to_store, :$initialize) {
+    method !DECONTAINERIZE(--> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator($!storage)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::iscont(nqp::iterval(nqp::shift($iter))),
+              nqp::bindkey(
+                $!storage,
+                nqp::iterkey_s($iter),
+                nqp::decont(nqp::iterval($iter))  # get rid of any containers
+              )
+            )
+          )
+        )
+    }
+
+    proto method STORE(|) {*}
+    multi method STORE(Map:D: Map:D \map, :$initialize) {
+        nqp::if(
+          $initialize,
+          nqp::if(
+            nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
+            nqp::if(
+              nqp::isconcrete(my $other := nqp::getattr(map,Map,'$!storage')),
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Map),
+                nqp::p6bindattrinvres(
+                  self, Map, '$!storage', nqp::getattr(map,Map,'$!storage')
+                ),
+                nqp::p6bindattrinvres(
+                  self, Map, '$!storage',
+                  nqp::clone(nqp::getattr(map,Map,'$!storage'))
+                )!DECONTAINERIZE
+              ),
+              self                      # nothing to do
+            ),
+            nqp::p6bindattrinvres(
+              self, Map, '$!storage',
+              nqp::p6bindattrinvres(
+                nqp::create(self), Map, '$!storage', nqp::hash
+              )!STORE_MAP_FROM_OBJECT_HASH(map)
+            )
+          ),
+          X::Assignment::RO.new(value => self).throw
+        )
+    }
+    multi method STORE(Map:D: \to_store, :$initialize) {
         nqp::if(
           $initialize,
           nqp::p6bindattrinvres(

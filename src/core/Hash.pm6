@@ -71,6 +71,7 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
+    proto method STORE_AT_KEY(|) {*}
     multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),

@@ -327,9 +327,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
             nqp::if(
               nqp::istype($x,Pair),
-              self.STORE_AT_KEY(
-                nqp::getattr(nqp::decont($x),Pair,'$!key'),
-                nqp::getattr(nqp::decont($x),Pair,'$!value')
+              nqp::bindkey(
+                $!storage,
+                nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
+                nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
               ),
               nqp::if(
                 (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
@@ -344,7 +345,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                       last  => $x
                     ).throw
                   ),
-                  self.STORE_AT_KEY($x,$y)
+                  nqp::bindkey($!storage,$x.Str,nqp::decont($y))
                 )
               )
             )
@@ -414,14 +415,6 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           ),
           X::Assignment::RO.new(value => self).throw
         )
-    }
-
-    proto method STORE_AT_KEY(|) {*}
-    multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key), nqp::decont(value))
-    }
-    multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key.Str), nqp::decont(value))
     }
 
     method Capture(Map:D:) {

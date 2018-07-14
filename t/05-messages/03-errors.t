@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 15;
+plan 16;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -126,5 +126,10 @@ subtest '.polymod with zero divisor does not reference guts in error' => {
 # RT 126220
 throws-like '++.++', X::Multi::NoMatch,
     '++.++ construct does not throw LTA errors';
+
+# RT #128830
+throws-like 'while (0){}', X::Syntax::Missing,
+    message => /'whitespace' .* 'before curlies' .* 'hash subscript'/,
+'lack of whitespace in while (0){} suggests misparse as hash subscript';
 
 # vim: ft=perl6 expandtab sw=4

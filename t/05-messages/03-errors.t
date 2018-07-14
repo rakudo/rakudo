@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 16;
+plan 17;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -131,5 +131,9 @@ throws-like '++.++', X::Multi::NoMatch,
 throws-like 'while (0){}', X::Syntax::Missing,
     message => /'whitespace' .* 'before curlies' .* 'hash subscript'/,
 'lack of whitespace in while (0){} suggests misparse as hash subscript';
+
+# RT #128803
+is-run '*...‘WAT’', :err{not .contains: 'SORRY'}, :out(''), :exitcode{.so},
+    'runtime time errors do not contain ==SORRY==';
 
 # vim: ft=perl6 expandtab sw=4

@@ -553,6 +553,60 @@ my class Hash { # declared in BOOTSTRAP
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         method keyof () { TKey }
+        method !STORE_MAP(\map --> Nil) {
+            nqp::if(
+              nqp::defined(my $other := nqp::getattr(map,Map,'$!storage')),
+              nqp::stmts(
+                (my $iter := nqp::iterator($other)),
+                nqp::while(
+                  $iter,
+                  self.STORE_AT_KEY(
+                    nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
+                  )
+                )
+              )
+            )
+        }
+        method STORE(\to_store) {
+            my $temp := nqp::p6bindattrinvres(
+              nqp::clone(self),   # make sure we get a possible descriptor as well
+              Map,
+              '$!storage',
+              my $storage := nqp::hash
+            );
+            my $iter := to_store.iterator;
+            my Mu $x;
+            my Mu $y;
+
+            nqp::until(
+              nqp::eqaddr(($x := $iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype($x,Pair),
+                $temp.STORE_AT_KEY(
+                  nqp::getattr(nqp::decont($x),Pair,'$!key'),
+                  nqp::getattr(nqp::decont($x),Pair,'$!value')
+                ),
+                nqp::if(
+                  (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+                  $temp!STORE_MAP($x),
+                  nqp::if(
+                    nqp::eqaddr(($y := $iter.pull-one),IterationEnd),
+                    nqp::if(
+                      nqp::istype($x,Failure),
+                      $x.throw,
+                      X::Hash::Store::OddNumber.new(
+                        found => nqp::add_i(nqp::mul_i(nqp::elems($storage),2),1),
+                        last  => $x
+                      ).throw
+                    ),
+                    $temp.STORE_AT_KEY($x,$y)
+                  )
+                )
+              )
+            );
+
+            nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
+        }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
             my str $which = nqp::unbox_s(key.WHICH);
             my Mu \storage = nqp::getattr(self,Map,'$!storage');

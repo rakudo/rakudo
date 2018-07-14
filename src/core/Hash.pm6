@@ -10,33 +10,15 @@ my class Hash { # declared in BOOTSTRAP
     }
     multi method Map(Hash:U:) { Map }
     multi method Map(Hash:D: :$view) {
-        my $hash := nqp::getattr(self,Map,'$!storage');
-
-        # empty
-        if nqp::not_i(nqp::defined($hash)) {
-            nqp::create(Map)
-        }
-
-        # view, assuming no change in hash
-        elsif $view {
-            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$hash)
-        }
-
-        # make cow copy
-        else {
-            my $map  := nqp::hash;
-            my \iter := nqp::iterator($hash);
-            my str $key;
-            nqp::while(
-              iter,
-              nqp::bindkey(
-                $map,
-                ($key = nqp::iterkey_s(nqp::shift(iter))),
-                nqp::decont(nqp::atkey($hash,$key))
-              )
-            );
-            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$map)
-        }
+        nqp::if(
+          nqp::isconcrete(my $hash := nqp::getattr(self,Map,'$!storage')),
+          nqp::if(
+            $view,
+            # Agreeing that the Hash won't be changed after the .Map
+            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$hash),
+            nqp::create(Map).STORE(self, :initialize)
+          )
+        )
     }
     method clone(Hash:D:) is raw {
         nqp::p6bindattrinvres(

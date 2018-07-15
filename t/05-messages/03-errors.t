@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 18;
+plan 19;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -142,5 +142,10 @@ is-run ｢
     Bug.parse( 'a' );
 ｣, :err(/'token TOP { <term>'/), :exitcode{.so},
     '`quantifier with %` error includes the token it appears in';
+
+# RT #125181
+is-run 'sub rt125181 returns Str returns Int {}',
+    :err{ not $^o.contains: 'Unhandled exception' }, :exitcode{.so},
+'using two `returns` traits does not cry about unhandled CONTROl exceptions';
 
 # vim: ft=perl6 expandtab sw=4

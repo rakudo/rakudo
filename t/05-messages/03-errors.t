@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 17;
+plan 18;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -135,5 +135,12 @@ throws-like 'while (0){}', X::Syntax::Missing,
 # RT #128803
 is-run '*...‘WAT’', :err{not .contains: 'SORRY'}, :out(''), :exitcode{.so},
     'runtime time errors do not contain ==SORRY==';
+
+# RT #124219
+is-run ｢
+    grammar Bug { token term { a }; token TOP { <term> % \n } }
+    Bug.parse( 'a' );
+｣, :err(/'token TOP { <term>'/), :exitcode{.so},
+    '`quantifier with %` error includes the token it appears in';
 
 # vim: ft=perl6 expandtab sw=4

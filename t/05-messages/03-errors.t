@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 19;
+plan 23;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -147,5 +147,12 @@ is-run ｢
 is-run 'sub rt125181 returns Str returns Int {}',
     :err{ not $^o.contains: 'Unhandled exception' }, :exitcode{.so},
 'using two `returns` traits does not cry about unhandled CONTROl exceptions';
+
+{ # coverage; 2016-09-18
+    throws-like { 42.classify      }, Exception, '.classify()    on Any throws';
+    throws-like { 42.classify:   * }, Exception, '.classify(*)   on Any throws';
+    throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
+    throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
+}
 
 # vim: ft=perl6 expandtab sw=4

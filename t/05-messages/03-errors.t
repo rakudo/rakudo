@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 23;
+plan 24;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -154,5 +154,8 @@ is-run 'sub rt125181 returns Str returns Int {}',
     throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
     throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
 }
+
+throws-like { Proc::Async.new }, X::Multi::NoMatch,
+    'attempting to create Proc::Async with wrong arguments throws';
 
 # vim: ft=perl6 expandtab sw=4

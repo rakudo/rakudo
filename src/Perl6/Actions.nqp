@@ -2227,7 +2227,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $loop := QAST::Stmts.new( UNWANTED($<e1>.ast, 'statement_control/e1'), $loop, :node($/) );
         }
         my $sinkee := $loop[1];
-        $loop.annotate('statement_level', -> { UNWANTED($sinkee,'force loop') });
+        $loop.annotate('statement_level', -> {
+            UNWANTED($sinkee,'force loop');
+            if $<e1> {
+                $loop.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            }
+        });
         make $loop;
     }
 

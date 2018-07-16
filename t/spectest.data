@@ -21,6 +21,7 @@
 # build/Makefile.in for examples of use.
 
 APPENDICES/A01-limits/overflow.t
+APPENDICES/A02-some-day-maybe/io-cathandle.t
 MISC/bug-coverage.t
 MISC/bug-coverage-6.d.t
 MISC/bug-coverage-stress.t                  # stress

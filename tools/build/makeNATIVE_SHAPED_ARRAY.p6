@@ -1,3 +1,5 @@
+#!/usr/bin/env perl6
+
 # This script reads the native_array.pm file from STDIN, and generates the
 # shapedintarray, shapednumarray and shapedstrarray roles in it, and writes
 # it to STDOUT.

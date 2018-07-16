@@ -62,6 +62,7 @@ role STD {
     token stopper { <!> }
 
     my %quote_lang_cache := nqp::hash();
+    nqp::neverrepossess(%quote_lang_cache);
     method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
         sub lang_key() {
             my $stopstr := nqp::istype($stop,VMArray) ?? nqp::join(' ',$stop) !! $stop;

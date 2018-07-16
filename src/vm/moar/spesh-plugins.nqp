@@ -54,6 +54,7 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
     my $Iterable := nqp::null();
 
     sub identity($obj) { $obj }
+    sub mu($replaced) { Mu }
     sub decont($obj) { nqp::decont($obj) }
     sub recont($obj) {
         my $rc := nqp::create(Scalar);
@@ -110,13 +111,14 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
             return &decontrv;
         }
         else {
-            # No decontainerization to do, so just produce identity.
+            # No decontainerization to do, so just produce identity or, if
+            # it's null turn it into a Mu.
             unless nqp::isconcrete($rv) {
                 # Needed as a container's type object is not a container, but a
                 # concrete instance would be.
                 nqp::speshguardtypeobj($rv);
             }
-            return &identity;
+            return nqp::isnull($rv) ?? &mu !! &identity;
         }
     });
 }

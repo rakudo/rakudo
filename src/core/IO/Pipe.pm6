@@ -22,7 +22,7 @@ my class IO::Pipe is IO::Handle {
         }
     }
 
-    method read-internal($) {
+    method READ($) {
         if $!on-read {
             loop {
                 my \result = $!on-read();
@@ -40,11 +40,11 @@ my class IO::Pipe is IO::Handle {
         }
     }
 
-    method eof-internal() {
+    method EOF() {
         $!eof
     }
 
-    method write-internal($data) {
+    method WRITE($data) {
         $!on-write
             ?? $!on-write($data)
             !! die "This pipe was opened for reading, not writing"

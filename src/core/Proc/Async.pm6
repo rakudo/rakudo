@@ -293,7 +293,7 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'done', -> Mu \status {
            $!exit_promise.keep(Proc.new(
                :exitcode(status +> 8), :signal(status +& 0xFF),
-               :command[ $!path, |@!args ],
+               :command( $!path, |@!args ),
            ))
         });
 

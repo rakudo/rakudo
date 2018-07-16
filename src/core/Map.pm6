@@ -5,12 +5,46 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     #   has Mu $!storage;
 
     multi method WHICH(Map:D:) {
-        (nqp::istype(self.WHAT,Map) ?? 'Map|' !! (self.^name ~ '|'))
-          ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } )
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Map),
+              'Map|',
+              nqp::concat(self.^name,'|')
+            ),
+            nqp::sha1(
+              nqp::join(
+                '|',
+                nqp::stmts(  # cannot use native str arrays early in setting
+                  (my $keys := nqp::list_s),
+                  (my $iter := nqp::iterator($!storage)),
+                  nqp::while(
+                    $iter,
+                    nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
+                  ),
+                  (my $sorted   := Rakudo::Sorting.MERGESORT-str($keys)),
+                  (my int $i     = -1),
+                  (my int $elems = nqp::elems($sorted)),
+                  (my $strings  := nqp::list_s),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::stmts(
+                      (my $key := nqp::atpos_s($sorted,$i)),
+                      nqp::push_s($strings,$key),
+                      nqp::push_s($strings,nqp::atkey($!storage,$key).perl)
+                    )
+                  ),
+                  $strings
+                )
+              )
+            )
+          ),
+          ValueObjAt
+        )
     }
     method new(*@args) {
         @args
-          ?? nqp::create(self).STORE(@args)
+          ?? nqp::create(self).STORE(@args, :initialize)
           !! nqp::create(self)
     }
 
@@ -263,68 +297,158 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           !! Nil
     }
 
-    method !STORE_MAP(\map --> Nil) {
+    multi method ASSIGN-KEY(Map:D: \key, Mu \value) {
+        die nqp::defined($!storage) && nqp::existskey($!storage,key.Str)
+          ?? "Cannot change key '{key}' in an immutable {self.^name}"
+          !! "Cannot add key '{key}' to an immutable {self.^name}"
+    }
+
+    # Directly copy from the other Map's internals: the only thing we need
+    # to do, is to decontainerize the values.
+    method !STORE_MAP_FROM_MAP(\map --> Nil) {
         nqp::if(
-          nqp::defined(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::isconcrete(my $other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
             (my $iter := nqp::iterator($other)),
             nqp::while(
               $iter,
-              self.STORE_AT_KEY(
-                nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
+              nqp::bindkey(
+                $!storage,
+                nqp::iterkey_s(nqp::shift($iter)),
+                nqp::decont(nqp::iterval($iter))  # get rid of any containers
               )
             )
           )
         )
     }
 
-    method STORE(\to_store) {
-        my $temp := nqp::p6bindattrinvres(
-          nqp::clone(self),   # make sure we get a possible descriptor as well
-          Map,
-          '$!storage',
-          my $storage := nqp::hash
-        );
-        my $iter := to_store.iterator;
-        my Mu $x;
-        my Mu $y;
-
-        nqp::until(
-          nqp::eqaddr(($x := $iter.pull-one),IterationEnd),
-          nqp::if(
-            nqp::istype($x,Pair),
-            $temp.STORE_AT_KEY(
-              nqp::getattr(nqp::decont($x),Pair,'$!key'),
-              nqp::getattr(nqp::decont($x),Pair,'$!value')
-            ),
-            nqp::if(
-              (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
-              $temp!STORE_MAP($x),
-              nqp::if(
-                nqp::eqaddr(($y := $iter.pull-one),IterationEnd),
-                nqp::if(
-                  nqp::istype($x,Failure),
-                  $x.throw,
-                  X::Hash::Store::OddNumber.new(
-                    found => nqp::add_i(nqp::mul_i(nqp::elems($storage),2),1),
-                    last  => $x
-                  ).throw
-                ),
-                $temp.STORE_AT_KEY($x,$y)
+    # Directly copy from the Object Hash's internals, but pay respect to the
+    # fact that we're only interested in the values (which contain a Pair with
+    # the object key and a value that we need to decontainerize.
+    method !STORE_MAP_FROM_OBJECT_HASH(\map --> Nil) {
+        nqp::if(
+          nqp::isconcrete(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::stmts(
+            (my $iter := nqp::iterator($other)),
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                $!storage,
+                nqp::getattr(
+                  (my $pair := nqp::iterval(nqp::shift($iter))),
+                  Pair, '$!key'
+                ).Str,
+                nqp::decont(nqp::getattr($pair,Pair,'$!value'))
               )
             )
           )
-        );
-
-        nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
+        )
     }
 
-    proto method STORE_AT_KEY(|) {*}
-    multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key), nqp::decont(value))
+    # Copy the contents of a Mappy thing that's not in a container.
+    method !STORE_MAP(\map --> Nil) {
+        nqp::if(
+          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
+          self!STORE_MAP_FROM_MAP(map),
+          self!STORE_MAP_FROM_OBJECT_HASH(map)
+        )
     }
-    multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key.Str), nqp::decont(value))
+
+    # Store the contents of an iterator into the Map
+    method !STORE_MAP_FROM_ITERATOR(\iter) is raw {
+        nqp::stmts(
+          nqp::until(
+            nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
+            nqp::if(
+              nqp::istype($x,Pair),
+              nqp::bindkey(
+                $!storage,
+                nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
+                nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
+              ),
+              nqp::if(
+                (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+                self!STORE_MAP($x),
+                nqp::if(
+                  nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
+                  nqp::if(
+                    nqp::istype($x,Failure),
+                    $x.throw,
+                    X::Hash::Store::OddNumber.new(
+                      found => self.elems * 2 + 1,
+                      last  => $x
+                    ).throw
+                  ),
+                  nqp::bindkey($!storage,$x.Str,nqp::decont($y))
+                )
+              )
+            )
+          ),
+          self
+        )
+    }
+
+    method !DECONTAINERIZE(--> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator($!storage)),
+          nqp::while(
+            $iter,
+            nqp::if(
+              nqp::iscont(nqp::iterval(nqp::shift($iter))),
+              nqp::bindkey(
+                $!storage,
+                nqp::iterkey_s($iter),
+                nqp::decont(nqp::iterval($iter))  # get rid of any containers
+              )
+            )
+          )
+        )
+    }
+
+    proto method STORE(|) {*}
+    multi method STORE(Map:D: Map:D \map, :$initialize) {
+        nqp::if(
+          $initialize,
+          nqp::if(
+            nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
+            nqp::if(
+              nqp::isconcrete(my $other := nqp::getattr(map,Map,'$!storage')),
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Map),
+                nqp::p6bindattrinvres(
+                  self, Map, '$!storage', nqp::getattr(map,Map,'$!storage')
+                ),
+                nqp::p6bindattrinvres(
+                  self, Map, '$!storage',
+                  nqp::clone(nqp::getattr(map,Map,'$!storage'))
+                )!DECONTAINERIZE
+              ),
+              self                      # nothing to do
+            ),
+            nqp::p6bindattrinvres(
+              self, Map, '$!storage',
+              nqp::p6bindattrinvres(
+                nqp::create(self), Map, '$!storage', nqp::hash
+              )!STORE_MAP_FROM_OBJECT_HASH(map)
+            )
+          ),
+          X::Assignment::RO.new(value => self).throw
+        )
+    }
+    multi method STORE(Map:D: \to_store, :$initialize) {
+        nqp::if(
+          $initialize,
+          nqp::p6bindattrinvres(
+            self, Map, '$!storage',
+            nqp::getattr(
+              nqp::p6bindattrinvres(
+                nqp::create(self), Map, '$!storage', nqp::hash
+              )!STORE_MAP_FROM_ITERATOR(to_store.iterator),
+              Map, '$!storage'
+            )
+          ),
+          X::Assignment::RO.new(value => self).throw
+        )
     }
 
     method Capture(Map:D:) {

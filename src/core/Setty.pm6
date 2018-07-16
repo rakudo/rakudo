@@ -100,8 +100,8 @@ my role Setty does QuantHash {
           $hash
         )
     }
-    multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
-    multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
+    multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
+    multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
 
     multi method ACCEPTS(Setty:U: \other) { other.^does(self) }
     multi method ACCEPTS(Setty:D: Setty:D \other) {

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 15;
+plan 24;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -126,5 +126,36 @@ subtest '.polymod with zero divisor does not reference guts in error' => {
 # RT 126220
 throws-like '++.++', X::Multi::NoMatch,
     '++.++ construct does not throw LTA errors';
+
+# RT #128830
+throws-like 'while (0){}', X::Syntax::Missing,
+    message => /'whitespace' .* 'before curlies' .* 'hash subscript'/,
+'lack of whitespace in while (0){} suggests misparse as hash subscript';
+
+# RT #128803
+is-run '*...‘WAT’', :err{not .contains: 'SORRY'}, :out(''), :exitcode{.so},
+    'runtime time errors do not contain ==SORRY==';
+
+# RT #124219
+is-run ｢
+    grammar Bug { token term { a }; token TOP { <term> % \n } }
+    Bug.parse( 'a' );
+｣, :err(/'token TOP { <term>'/), :exitcode{.so},
+    '`quantifier with %` error includes the token it appears in';
+
+# RT #125181
+is-run 'sub rt125181 returns Str returns Int {}',
+    :err{ not $^o.contains: 'Unhandled exception' }, :exitcode{.so},
+'using two `returns` traits does not cry about unhandled CONTROl exceptions';
+
+{ # coverage; 2016-09-18
+    throws-like { 42.classify      }, Exception, '.classify()    on Any throws';
+    throws-like { 42.classify:   * }, Exception, '.classify(*)   on Any throws';
+    throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
+    throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
+}
+
+throws-like { Proc::Async.new }, X::Multi::NoMatch,
+    'attempting to create Proc::Async with wrong arguments throws';
 
 # vim: ft=perl6 expandtab sw=4

@@ -1,7 +1,6 @@
 class CompUnit::DependencySpecification {
     has str $.short-name is required;
     has int $.source-line-number = 0;
-    has str $.source-file-name = '';
     has str $.from = 'Perl6';
     has $.version-matcher = True;
     has $.auth-matcher = True;

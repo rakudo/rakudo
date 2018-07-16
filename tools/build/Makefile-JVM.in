@@ -216,7 +216,7 @@ j-localtest_loud: j-all spectest_checkout t/localtest.data
 sometests: j-all
 	@$(J_HARNESS5_WITH_FUDGE) $(TESTFILES)
 
-j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.pl
+j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.p6
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
 	$(MKPATH) $(DESTDIR)$(J_LIBPATH)/Perl6
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
@@ -230,7 +230,7 @@ j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.
 	.@slash@$(J_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/vendor
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site
 	.@slash@$(J_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/site
-	.@slash@$(J_RUNNER) tools/build/install-core-dist.pl $(DESTDIR)$(PERL6_LANG_DIR)
+	.@slash@$(J_RUNNER) tools/build/install-core-dist.p6 $(DESTDIR)$(PERL6_LANG_DIR)
 	$(PERL5) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) "" $(NQP_JARS)
 	$(PERL5) tools/build/create-jvm-runner.pl install-debug "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) "" $(NQP_JARS)
 

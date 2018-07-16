@@ -988,6 +988,34 @@ my class array does Iterable {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
+        method sum(intarray:D: :$wrap) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my int $i),
+                nqp::if(
+                  $wrap,
+                  nqp::stmts(
+                    (my int $sum = nqp::atpos_i(self,0)),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $sum = nqp::add_i($sum,nqp::atpos_i(self,$i))
+                    ),
+                    $sum
+                  ),
+                  nqp::stmts(
+                    (my Int $Sum = nqp::atpos_i(self,0)),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $Sum = $Sum + nqp::atpos_i(self,$i)
+                    ),
+                    $Sum
+                  )
+                )
+              ),
+              0
+            )
+        }
         method join(intarray:D: $delim = '') {
             my int $elems = nqp::elems(self);
             my $list     := nqp::setelems(nqp::list_s,$elems);
@@ -1012,12 +1040,11 @@ my class array does Iterable {
                   nqp::getattr(range,Range,'$!max'),
                   nqp::getattr_i(range,Range,'$!excludes-max')
                 )),
-                nqp::setelems(self, nqp::add_i(nqp::sub_i($max,$val),1)),
-                (my int $i = -1),
+                nqp::setelems(self,0),  # make sure we start from scratch
                 ($val = nqp::sub_i($val,1)),
                 nqp::while(
                   nqp::isle_i(($val = nqp::add_i($val,1)),$max),
-                  nqp::bindpos_i(self,($i = nqp::add_i($i,1)),$val)
+                  nqp::push_i(self,$val)
                 ),
                 self
               ),

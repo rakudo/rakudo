@@ -501,6 +501,18 @@ sub UNWANTED($ast, $by) {
     $ast;
 }
 
+register_op_desugar('p6box_i', -> $qast {
+    QAST::Op.new( :op('box_i'), $qast[0], QAST::Op.new( :op('hllboxtype_i') ) )
+});
+register_op_desugar('p6box_n', -> $qast {
+    QAST::Op.new( :op('box_n'), $qast[0], QAST::Op.new( :op('hllboxtype_n') ) )
+});
+register_op_desugar('p6box_s', -> $qast {
+    QAST::Op.new( :op('box_s'), $qast[0], QAST::Op.new( :op('hllboxtype_s') ) )
+});
+register_op_desugar('p6box_u', -> $qast {
+    QAST::Op.new( :op('box_u'), $qast[0], QAST::Op.new( :op('hllboxtype_i') ) )
+});
 register_op_desugar('p6callmethodhow', -> $qast {
     $qast   := $qast.shallow_clone();
     my $inv := $qast.shift;
@@ -2215,7 +2227,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $loop := QAST::Stmts.new( UNWANTED($<e1>.ast, 'statement_control/e1'), $loop, :node($/) );
         }
         my $sinkee := $loop[1];
-        $loop.annotate('statement_level', -> { UNWANTED($sinkee,'force loop') });
+        $loop.annotate('statement_level', -> {
+            UNWANTED($sinkee,'force loop');
+            if $<e1> {
+                $loop.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
+            }
+        });
         make $loop;
     }
 

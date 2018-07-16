@@ -1389,6 +1389,14 @@ my class X::Syntax::KeywordAsFunction does X::Syntax {
     }
 }
 
+my class X::Syntax::ParentAsHash does X::Syntax {
+    has $.parent;
+    method message() {
+        "Syntax error while specifying a parent class:\n"
+        ~ "Must specify a space between {$.parent.^name} and \{";
+    }
+}  
+
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
     method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }
@@ -2958,10 +2966,9 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
     method message() {
         my $name = $.specification.short-name;
         my $line = $.specification.source-line-number;
-        my $file = $.specification.source-file-name;
         is-core($name)
             ?? "{$name} is a builtin type, not an external module"
-            !! "Could not find $.specification at $file:$line in:\n"
+            !! "Could not find $.specification at line $line in:\n"
                 ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
                 ~ ($.specification ~~ / $<name>=.+ '::from' $ /
                     ?? "\n\nIf you meant to use the :from adverb, use"

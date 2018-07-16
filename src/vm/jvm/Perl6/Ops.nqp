@@ -34,9 +34,6 @@ sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
 
 # Perl 6 opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
-$ops.map_classlib_hll_op('perl6', 'p6box_i', $TYPE_P6OPS, 'p6box_i', [$RT_INT], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6box_n', $TYPE_P6OPS, 'p6box_n', [$RT_NUM], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6box_s', $TYPE_P6OPS, 'p6box_s', [$RT_STR], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6bigint', $TYPE_P6OPS, 'p6bigint', [$RT_NUM], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6configposbindfailover', $TYPE_P6OPS, 'p6configposbindfailover', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6store', $TYPE_P6OPS, 'p6store', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);

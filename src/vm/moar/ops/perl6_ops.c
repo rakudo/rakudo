@@ -44,9 +44,6 @@ static int initialized = 0;
 /* Types we need. */
 static MVMObject *Mu                  = NULL;
 static MVMObject *Any                 = NULL;
-static MVMObject *Int                 = NULL;
-static MVMObject *Num                 = NULL;
-static MVMObject *Str                 = NULL;
 static MVMObject *True                = NULL;
 static MVMObject *False               = NULL;
 
@@ -84,9 +81,6 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMROOT(tc, conf, {
         get_type(tc, conf, "Mu", Mu);
         get_type(tc, conf, "Any", Any);
-        get_type(tc, conf, "Int", Int);
-        get_type(tc, conf, "Num", Num);
-        get_type(tc, conf, "Str", Str);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
     });
@@ -109,60 +103,6 @@ static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
     MVMSpeshFacts *tfacts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
     tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE | MVM_SPESH_FACT_DECONTED;
     tfacts->type   = type;
-}
-
-static void p6box_i_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Int);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
-}
-static void p6box_n_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Num);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
-}
-static void p6box_s_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Str);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
-}
-static void p6box_u_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Int);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
-}
-
-static MVMuint8 s_p6box_i[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_int64 | MVM_operand_read_reg,
-};
-static void p6box_i(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = MVM_repr_box_int(tc, Int, GET_REG(tc, 2).i64);
-}
-static MVMuint8 s_p6box_n[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_num64 | MVM_operand_read_reg,
-};
-static void p6box_n(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = MVM_repr_box_num(tc, Num, GET_REG(tc, 2).n64);
-}
-static MVMuint8 s_p6box_s[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_str | MVM_operand_read_reg,
-};
-static void p6box_s(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = MVM_repr_box_str(tc, Str, GET_REG(tc, 2).s);
-}
-static MVMuint8 s_p6box_u[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_uint64 | MVM_operand_read_reg,
-};
-static void p6box_u(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = MVM_repr_box_uint(tc, Int, GET_REG(tc, 2).u64);
 }
 
 /* Turns zero to False and non-zero to True. */
@@ -561,10 +501,6 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i, NULL, p6box_i_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n, NULL, p6box_n_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s, NULL, p6box_s_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6box_u",  p6box_u, 2, s_p6box_u, NULL, p6box_u_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

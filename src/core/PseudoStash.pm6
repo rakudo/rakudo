@@ -20,6 +20,8 @@ my class PseudoStash is Map {
         $obj
     }
 
+    method WHICH() { self.Mu::WHICH }
+
     my %pseudoers =
         'MY' => sub ($cur) {
             my $stash := nqp::clone($cur);
@@ -225,6 +227,9 @@ my class PseudoStash is Map {
             )
           )
         )
+    }
+    multi method ASSIGN-KEY(PseudoStash:D: Str() $key, Mu \value) is raw {
+        self.AT-KEY($key) = value
     }
 
     method BIND-KEY(Str() $key, \value) is raw {

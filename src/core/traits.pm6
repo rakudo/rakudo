@@ -1,4 +1,5 @@
 # for errors
+my class X::Syntax::ParentAsHash { ... }
 my class X::Inheritance::Unsupported { ... }
 my class X::Inheritance::UnknownParent { ... }
 my class X::Export::NameClash        { ... }
@@ -59,6 +60,12 @@ multi sub trait_mod:<is>(Mu:U $type, :$hidden!) {
 multi sub trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
     $type.^set_array_type($array_type);
 }
+multi sub trait_mod:<is>(Mu:U $type, Mu:U $parent, Block) {
+    X::Syntax::ParentAsHash.new(:$parent).throw;
+}
+multi sub trait_mod:<is>(Mu:U $type, Mu:U $parent, Hash) {
+    X::Syntax::ParentAsHash.new(:$parent).throw;
+}
 multi sub trait_mod:<is>(Mu:U $type, *%fail) {
     if %fail.keys[0] !eq $type.^name {
         X::Inheritance::UnknownParent.new(
@@ -92,7 +99,13 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
 }
 multi sub trait_mod:<is>(Attribute $attr, :$required!) {
-    die "'is required' must be Cool" unless nqp::istype($required,Cool);
+    die "'is required' must be Cool, it was {$required.^name}"
+      unless nqp::istype($required,Cool);
+    unless $attr.has_accessor {
+        my $name = $attr.name;
+        $name = $name.substr(0,1) ~ '.' ~ $name.substr(2);
+        die "'is required' only works on a public attribute $name, not a private {$attr.name}";
+    }
     $attr.set_required(
       nqp::istype($required,Bool) ?? +$required !! $required
     );

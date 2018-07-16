@@ -422,6 +422,12 @@ my class IO::CatHandle is IO::Handle {
     multi method say        (|) { die X::NYI.new: :feature<say>        }
     proto method write      (|) {*}
     multi method write      (|) { die X::NYI.new: :feature<write>      }
+    proto method WRITE      (|) {*}
+    multi method WRITE      (|) { die X::NYI.new: :feature<WRITE>      }
+    proto method READ       (|) {*}
+    multi method READ       (|) { die X::NYI.new: :feature<READ>       }
+    proto method EOF        (|) {*}
+    multi method EOF        (|) { die X::NYI.new: :feature<EOF>        }
     #                       /|\
 
     # Don't die on this one, as doing so breaks .Capture

@@ -628,7 +628,9 @@ my class BlockVarOptimizer {
             next unless $scope eq 'lexical';
 
             # Also ensure not dynamic.
-            my $dynamic := try nqp::getattr($qast.value, nqp::what_nd($qast.value), '$!descriptor').dynamic;
+            my $qv := $qast.value;
+            my $dynamic := nqp::isconcrete_nd($qv) &&
+                try nqp::getattr($qv, nqp::what_nd($qv), '$!descriptor').dynamic;
             next if $dynamic;
 
             # Consider name. Can't lower if it's used by any nested blocks.

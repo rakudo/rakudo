@@ -60,7 +60,7 @@ A few days before the Rakudo release, it’s a good idea to...
 =item *
 
 Remind people of the upcoming release, invite people to
-update the ChangeLog file, update the ROADMAP, etc.
+update the ChangeLog file, etc.
 
 =item *
 

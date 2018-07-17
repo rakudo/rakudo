@@ -59,8 +59,11 @@ A few days before the Rakudo release, it’s a good idea to...
 
 =item *
 
-Remind people of the upcoming release, invite people to
-update the ChangeLog file, etc.
+Remind people of the upcoming release, invite people to update the
+L<ChangeLog|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft>,
+etc. Note that the ChangeLog is kept on the wiki so that people can
+easily do minor corrections, but for the release it has to be moved
+into C<docs/ChangeLog>.
 
 =item *
 

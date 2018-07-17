@@ -3585,8 +3585,11 @@ class Perl6::World is HLL::World {
                   NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
                 );
 
-                # Create the code object and return it
-                $!w.create_code_object($block, 'Submethod', $sig)
+                # Create the code object, hide it from backtraces and return it
+                my $code := $!w.create_code_object($block, 'Submethod', $sig);
+                my $trait_mod_is := $!w.find_symbol(['&trait_mod:<is>']);
+                $trait_mod_is($code,:hidden-from-backtrace);
+                $code
             }
 
             # Empty buildplan, and we already have an empty buildplan method

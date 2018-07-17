@@ -1468,6 +1468,7 @@ BEGIN {
             nqp::p6bool(1)
         }));
     Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {
+            $*W.add_object_if_no_sc($value);
             nqp::bindattr(nqp::decont($self),
                 Attribute, '$!required', $value);
             nqp::p6bool(1)

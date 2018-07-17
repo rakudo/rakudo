@@ -99,13 +99,7 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
 }
 multi sub trait_mod:<is>(Attribute $attr, :$required!) {
-    die "'is required' must be Cool, it was {$required.^name}"
-      unless nqp::istype($required,Cool);
-    unless $attr.has_accessor {
-        my $name = $attr.name;
-        $name = $name.substr(0,1) ~ '.' ~ $name.substr(2);
-        die "'is required' only works on a public attribute $name, not a private {$attr.name}";
-    }
+    die "'is required' must be Cool" unless nqp::istype($required,Cool);
     $attr.set_required(
       nqp::istype($required,Bool) ?? +$required !! $required
     );

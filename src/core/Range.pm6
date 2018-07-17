@@ -82,6 +82,10 @@ my class Range is Cool does Iterable does Positional {
     method infinite()     { nqp::p6bool($!infinite)     }
     method is-int()       { nqp::p6bool($!is-int)       }
 
+    method !IS-NATIVE-INT() {
+        $!is-int && nqp::not_i(nqp::isbig_I($!min) || nqp::isbig_I($!max))
+    }
+
     multi method WHICH (Range:D:) {
         (nqp::istype(self.WHAT,Range) ?? 'Range|' !! (self.^name ~ '|'))
           ~ $!min
@@ -231,9 +235,7 @@ my class Range is Cool does Iterable does Positional {
 
     method !reverse-iterator() {
         # can use native ints
-        if $!is-int
-          && !nqp::isbig_I($!min)
-          && !nqp::isbig_I($!max) {
+        if self!IS-NATIVE-INT() {
             class :: does Iterator {
                 has int $!i;
                 has int $!n;

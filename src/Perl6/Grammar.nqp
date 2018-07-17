@@ -1916,7 +1916,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<package_declarator> { <package_declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
-    token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
+    token term:sym<multi_declarator>   { <multi_declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
     token term:sym<circumfix>          { <circumfix> }
     token term:sym<statement_prefix>   { <statement_prefix> }

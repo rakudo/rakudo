@@ -9,7 +9,9 @@ my class Range is Cool does Iterable does Positional {
     has int $!infinite;
     has int $!is-int;
 
-    method !SET-SELF( $!min, $!max, \excludes-min, \excludes-max, \infinite) {
+    method !SET-SELF(\min, \max, \excludes-min, \excludes-max, \infinite) {
+        $!min := nqp::decont(min);
+        $!max := nqp::decont(max);
         $!excludes-min = excludes-min // 0;
         $!excludes-max = excludes-max // 0;
         $!infinite = infinite;
@@ -230,8 +232,8 @@ my class Range is Cool does Iterable does Positional {
     method !reverse-iterator() {
         # can use native ints
         if $!is-int
-          && !nqp::isbig_I(nqp::decont($!min))
-          && !nqp::isbig_I(nqp::decont($!max)) {
+          && !nqp::isbig_I($!min)
+          && !nqp::isbig_I($!max) {
             class :: does Iterator {
                 has int $!i;
                 has int $!n;
@@ -375,7 +377,7 @@ my class Range is Cool does Iterable does Positional {
         else { nextsame };
     }
 
-    method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
+    method bounds() { ($!min, $!max) }
     proto method int-bounds(|) {*}
     multi method int-bounds($from is rw, $to is rw) {
         nqp::if(

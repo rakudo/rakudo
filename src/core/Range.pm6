@@ -495,10 +495,10 @@ my class Range is Cool does Iterable does Positional {
         if self.elems -> $elems {
             $!is-int
               ?? Seq.new(class :: does Iterator {
-                    has int $!min;
-                    has Int $!elems;
+                    has $!min;
+                    has $!elems;
                     method !SET-SELF(\min,\elems) {
-                        $!min    = min;
+                        $!min   := nqp::decont(min);
                         $!elems := nqp::decont(elems);
                         self
                     }
@@ -531,11 +531,11 @@ my class Range is Cool does Iterable does Positional {
         if self.elems -> $elems {
             $!is-int
               ?? Seq.new(class :: does Iterator {
-                    has int $!min;
-                    has Int $!elems;
-                    has int $!todo;
+                    has $!min;
+                    has $!elems;
+                    has Int $!todo;
                     method !SET-SELF(\min,\elems,\todo) {
-                        $!min    = min;
+                        $!min   := nqp::decont(min);
                         $!elems := nqp::decont(elems);
                         $!todo   = todo;
                         self
@@ -569,12 +569,12 @@ my class Range is Cool does Iterable does Positional {
         if self.elems -> $elems {
             $!is-int && $elems > 3 * $todo # heuristic for sparse lookup
               ?? Seq.new(class :: does Iterator {
-                    has int $!min;
-                    has Int $!elems;
-                    has int $!todo;
+                    has $!min;
+                    has $!elems;
+                    has Int $!todo;
                     has $!seen;
                     method !SET-SELF(\min,\elems,\todo) {
-                        $!min    = min;
+                        $!min   := nqp::decont(min);
                         $!elems := nqp::decont(elems);
                         $!todo   = todo;
                         $!seen  := nqp::hash();
@@ -601,7 +601,7 @@ my class Range is Cool does Iterable does Positional {
                         my str $key;
                         while $!todo {
                             my Int $value = $!min + nqp::rand_I($!elems, Int);
-                            $key   = nqp::tostr_I(nqp::decont($value));
+                            $key = nqp::tostr_I(nqp::decont($value));
                             unless nqp::existskey($!seen,$key) {
                                 $target.push($value);
                                 $!todo = $!todo - 1;

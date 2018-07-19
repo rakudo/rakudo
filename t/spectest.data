@@ -26,6 +26,7 @@ APPENDICES/A02-some-day-maybe/multi-no-match.t
 MISC/bug-coverage.t
 MISC/bug-coverage-6.d.t
 MISC/bug-coverage-stress.t                  # stress
+MISC/misc-6.d.t
 S01-perl-5-integration/array.t              # perl5
 S01-perl-5-integration/basic.t              # perl5
 S01-perl-5-integration/class.t              # perl5

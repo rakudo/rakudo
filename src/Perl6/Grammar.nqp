@@ -4907,25 +4907,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # (see https://irclog.perlgeek.de/perl6/2017-01-25#i_13988093)
             # If it's neither of those cases, then it's just a sub with an
             # extended name like sub foo:bar<baz> {}; let the user use it.
-
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>");
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*W.lang-ver-before('d');
+
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')
             ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
-
-            # XXX TODO: the conditionals above should actually be like below
-            # However, there is a 6.c-errata test that expects a ::Category
-            # exception even for `:sym<>` tokens. So I'll leave this until 6.d
-            #--------------------------------------------------------------
-            # self.typed_panic(
-            #     'X::Syntax::Extension::Category', :$category
-            # ) if nqp::iseq_s($subname, "$category:<$opname>");
-            # self.typed_panic(
-            #     'X::Syntax::Reserved', :reserved(':sym<> colonpair')
-            # ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
             return 0;
         }
 

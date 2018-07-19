@@ -98,13 +98,13 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$readonly!) {
     $attr.set_readonly();
     warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
 }
-multi sub trait_mod:<is>(Attribute $attr, :$required!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :$required!) {
     die "'is required' must be Cool" unless nqp::istype($required,Cool);
     $attr.set_required(
       nqp::istype($required,Bool) ?? +$required !! $required
     );
 }
-multi sub trait_mod:<is>(Attribute $attr, Mu :$default!) {
+multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
     $attr.container_descriptor.set_default(nqp::decont($default));
     $attr.container = nqp::decont($default) if nqp::iscont($attr.container);
 }
@@ -193,13 +193,13 @@ multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     0;
 }
 # three other trait_mod sub for equiv/tighter/looser in operators.pm6
-multi sub trait_mod:<is>(Routine $r, :&equiv!) {
+multi sub trait_mod:<is>(Routine:D $r, :&equiv!) {
     nqp::can(&equiv, 'prec')
         ?? trait_mod:<is>($r, :prec(&equiv.prec))
         !! die "Routine given to equiv does not appear to be an operator";
     $r.prec<assoc>:delete;
 }
-multi sub trait_mod:<is>(Routine $r, :&tighter!) {
+multi sub trait_mod:<is>(Routine:D $r, :&tighter!) {
     die "Routine given to tighter does not appear to be an operator"
         unless nqp::can(&tighter, 'prec');
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
@@ -208,7 +208,7 @@ multi sub trait_mod:<is>(Routine $r, :&tighter!) {
     $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', '@=');
     $r.prec<assoc>:delete;
 }
-multi sub trait_mod:<is>(Routine $r, :&looser!) {
+multi sub trait_mod:<is>(Routine:D $r, :&looser!) {
     die "Routine given to looser does not appear to be an operator"
         unless nqp::can(&looser, 'prec');
     if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
@@ -217,7 +217,7 @@ multi sub trait_mod:<is>(Routine $r, :&looser!) {
     $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', ':=');
     $r.prec<assoc>:delete;
 }
-multi sub trait_mod:<is>(Routine $r, :$assoc!) {
+multi sub trait_mod:<is>(Routine:D $r, :$assoc!) {
     trait_mod:<is>($r, :prec({ :$assoc }))
 }
 

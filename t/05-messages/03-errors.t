@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 24;
+plan 21;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -58,12 +58,6 @@ subtest 'like/unlike failures give useful diagnostics' => {
         :1exitcode, :out(*), :err{.contains: 'expected no match with'},
     '`unlike` says it wanted no match, not just "expected"';
 }
-
-# https://github.com/rakudo/rakudo/issues/1644
-throws-like ｢Lock.protect: %()｣, X::Multi::NoMatch,
-    'Lock.protect with wrong args gives sane error';
-throws-like ｢Lock::Async.protect: %()｣, X::Multi::NoMatch,
-    'Lock::Async.protect with wrong args gives sane error';
 
 # https://github.com/rakudo/rakudo/issues/1699
 throws-like {
@@ -154,8 +148,5 @@ is-run 'sub rt125181 returns Str returns Int {}',
     throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
     throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
 }
-
-throws-like { Proc::Async.new }, X::Multi::NoMatch,
-    'attempting to create Proc::Async with wrong arguments throws';
 
 # vim: ft=perl6 expandtab sw=4

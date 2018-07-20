@@ -1,3 +1,5 @@
+#!/usr/bin/env perl6
+
 # This script reads the native_array.pm6 file from STDIN, and generates the
 # intarray, numarray and strarray roles in it, and writes it to STDOUT.
 

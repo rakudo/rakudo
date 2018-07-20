@@ -1349,7 +1349,7 @@ my class Rakudo::Internals {
     }
 
 #- start of generated part of succ/pred ---------------------------------------
-#- Generated on 2016-08-10T14:19:20+02:00 by tools/build/makeMAGIC_INC_DEC.pl6
+#- Generated on 2016-08-10T14:19:20+02:00 by tools/build/makeMAGIC_INC_DEC.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # normal increment magic chars & incremented char at same index

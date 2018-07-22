@@ -14,6 +14,8 @@ my class IO::Socket::Async {
     has Str $.socket-host;
     has Int $.socket-port;
 
+    has Int $.native-descriptor;
+
     method new() {
         die "Cannot create an asynchronous socket directly; please use\n" ~
             "IO::Socket::Async.connect, IO::Socket::Async.listen,\n" ~
@@ -172,7 +174,8 @@ my class IO::Socket::Async {
         my $encoding = Encoding::Registry.find($enc);
         nqp::asyncconnect(
             $scheduler.queue,
-            -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
+            -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port,
+               Mu \socket-host, Mu \socket-port, Mu \native-descriptor {
                 if err {
                     $v.break(err);
                 }
@@ -186,6 +189,7 @@ my class IO::Socket::Async {
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-port', peer-port);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-host', socket-host);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-port', socket-port);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!native-descriptor', native-descriptor);
 
                     setup-close($client_socket);
                     $v.keep($client_socket);
@@ -198,9 +202,10 @@ my class IO::Socket::Async {
     class ListenSocket is Tap {
         has Promise $.socket-host;
         has Promise $.socket-port;
+        has Promise $.native-descriptor;
 
-        method new(&on-close, Promise :$socket-host, Promise :$socket-port) {
-            self.bless(:&on-close, :$socket-host, :$socket-port);
+        method new(&on-close, Promise :$socket-host, Promise :$socket-port, Promise :$native-descriptor) {
+            self.bless(:&on-close, :$socket-host, :$socket-port, :$native-descriptor);
         }
     }
 
@@ -221,15 +226,17 @@ my class IO::Socket::Async {
             my $lock := Lock::Async.new;
             my $tap;
             my int $finished = 0;
-            my Promise $socket-host .= new;
-            my Promise $socket-port .= new;
-            my $host-vow = $socket-host.vow;
-            my $port-vow = $socket-port.vow;
+            my Promise $socket-host       .= new;
+            my Promise $socket-port       .= new;
+            my Promise $native-descriptor .= new;
+            my $host-vow                   = $socket-host.vow;
+            my $port-vow                   = $socket-port.vow;
+            my $descriptor-vow             = $native-descriptor.vow;
             $lock.protect: {
                 my $cancellation := nqp::asynclisten(
                     $!scheduler.queue(:hint-affinity),
-                    -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port,
-                       Mu \socket-host, Mu \socket-port {
+                    -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \peer-native-descriptor,
+                       Mu \socket-host, Mu \socket-port, Mu \socket-native-descriptor {
                         $lock.protect: {
                             if $finished {
                                 # do nothing
@@ -237,8 +244,9 @@ my class IO::Socket::Async {
                             elsif err {
                                 my $exc = X::AdHoc.new(payload => err);
                                 quit($exc);
-                                $host-vow.break($exc) unless $host-vow.promise;
-                                $port-vow.break($exc) unless $port-vow.promise;
+                                $host-vow.break($exc)       unless $host-vow.promise;
+                                $port-vow.break($exc)       unless $port-vow.promise;
+                                $descriptor-vow.break($exc) unless $descriptor-vow.promise;
                                 $finished = 1;
                             }
                             elsif socket {
@@ -257,12 +265,16 @@ my class IO::Socket::Async {
                                     '$!socket-host', socket-host);
                                 nqp::bindattr($client_socket, IO::Socket::Async,
                                     '$!socket-port', socket-port);
+                                nqp::bindattr($client_socket, IO::Socket::Async,
+                                    '$!native-descriptor', peer-native-descriptor);
                                 setup-close($client_socket);
                                 emit($client_socket);
                             }
-                            elsif socket-host {
+
+                            if socket-host {
                                 $host-vow.keep(~socket-host);
                                 $port-vow.keep(+socket-port);
+                                $descriptor-vow.keep(+socket-native-descriptor);
                             }
                         }
                     },
@@ -272,12 +284,12 @@ my class IO::Socket::Async {
                     my $v = $p.vow;
                     nqp::cancelnotify($cancellation, $!scheduler.queue, { $v.keep(True); });
                     $p
-                }, :$socket-host, :$socket-port;
+                }, :$socket-host, :$socket-port, :$native-descriptor;
                 tap($tap);
                 CATCH {
                     default {
                         tap($tap = ListenSocket.new({ Nil },
-                            :$socket-host, :$socket-port)) unless $tap;
+                            :$socket-host, :$socket-port, :$native-descriptor)) unless $tap;
                         quit($_);
                     }
                 }
@@ -309,7 +321,7 @@ my class IO::Socket::Async {
         my $encoding = Encoding::Registry.find($enc);
         nqp::asyncudp(
             $scheduler.queue,
-            -> Mu \socket, Mu \err {
+            -> Mu \socket, Mu \err, Mu \native-descriptor {
                 if err {
                     $p.break(err);
                 }
@@ -320,6 +332,8 @@ my class IO::Socket::Async {
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
                         $encoding.encoder());
+                    nqp::bindattr($client_socket, IO::Socket::Async,
+                        '$!native-descriptor', native-descriptor);
                     setup-close($client_socket);
                     $p.keep($client_socket);
                 }
@@ -335,7 +349,7 @@ my class IO::Socket::Async {
         my $encoding = Encoding::Registry.find($enc);
         nqp::asyncudp(
             $scheduler.queue(:hint-affinity),
-            -> Mu \socket, Mu \err {
+            -> Mu \socket, Mu \err, Mu \native-descriptor {
                 if err {
                     $p.break(err);
                 }
@@ -346,6 +360,8 @@ my class IO::Socket::Async {
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
                     nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
                         $encoding.encoder());
+                    nqp::bindattr($client_socket, IO::Socket::Async,
+                        '$!native-descriptor', native-descriptor);
                     setup-close($client_socket);
                     $p.keep($client_socket);
                 }

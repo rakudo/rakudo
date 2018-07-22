@@ -1395,7 +1395,7 @@ my class X::Syntax::ParentAsHash does X::Syntax {
         "Syntax error while specifying a parent class:\n"
         ~ "Must specify a space between {$.parent.^name} and \{";
     }
-}  
+}
 
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
@@ -2142,7 +2142,11 @@ my class X::Cannot::Capture is Exception {
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
     has $.sequence;
-    method message() { "Unrecognized backslash sequence: '\\$.sequence'" }
+    has $.suggestion;
+    method message() {
+        "Unrecognized backslash sequence: '\\$.sequence'"
+        ~ (nqp::defined($!suggestion) ?? ". Did you mean $!suggestion?" !! '')
+    }
 }
 
 my class X::Backslash::NonVariableDollar does X::Syntax {

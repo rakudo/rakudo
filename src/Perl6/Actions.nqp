@@ -10107,11 +10107,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $was_chain := $qast.op eq 'chain' ?? $qast.name !! NQPMu;
         my @params;
         my @old_args;
+        my $cur_lexpad := $*W.cur_lexpad;
         my $curry := QAST::Block.new(QAST::Stmts.new, $qast
             ).annotate_self('statement_id', $*STATEMENT_ID
             ).annotate_self( 'in_stmt_mod', $*IN_STMT_MOD,
-            ).annotate_self: 'outer',       $*W.cur_lexpad;
-        $*W.cur_lexpad[0].push: $curry;
+            ).annotate_self: 'outer',       $cur_lexpad;
+        $cur_lexpad[0].push: $curry;
 
         $i := 0;
         while $i < $e {
@@ -10154,7 +10155,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # simply replace this child with a variable that will be set
                 # from the param of the curry we're making
                 my $param := QAST::Var.new(:scope<lexical>,
-                    :name($*W.cur_lexpad[0].unique: '$whatevercode_arg')
+                    :name($cur_lexpad[0].unique: '$whatevercode_arg')
                   ).annotate_self: 'whatever-var', 1;
                 @params.push: hash(
                     :variable_name($param.name),
@@ -10163,12 +10164,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $curry[0].push: $param.decl_as: <var>;
                 $qast[$i] := $param;
                 nqp::push(@old_args, $param) if $was_chain;
-            } elsif (my $orig_ast := $orig.ann: 'past_block') {
+            } else {
                 # This child is not one of the Whatevers or we're in an op
                 # that's not allowed to curry some of them. Simply ignore it,
                 # but ensure we migrate any QAST::Blocks, for correct scoping
-                remove_block($*W.cur_lexpad, $orig_ast);
-                $curry[0].push: $orig_ast;
+                find_block_calls_and_migrate($cur_lexpad, $curry, $orig);
             }
             $i++;
         }
@@ -10176,15 +10176,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # go through any remaining children and just migrate QAST::Blocks
         my $qels := nqp::elems($qast);
         while $i < $qels {
-            my $node := $qast[$i];
-            $node := $node[0]
-                if (nqp::istype($node, QAST::Stmts)
-                ||  nqp::istype($node, QAST::Stmt))
-                && nqp::elems($node) == 1;
-            if (my $orig_ast := $node.ann: 'past_block') {
-                remove_block($*W.cur_lexpad, $orig_ast);
-                $curry[0].push: $orig_ast;
-            }
+            find_block_calls_and_migrate($cur_lexpad, $curry, $qast[$i]);
             $i++;
         }
 
@@ -10213,10 +10205,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $to[0].push: $block;
             remove_block($from, $block, :ignore-not-found);
         }
-        elsif nqp::istype($qast, QAST::Block)
-        || nqp::istype($qast, QAST::Stmts) || nqp::istype($qast, QAST::Stmt)
-        || nqp::istype($qast, QAST::Op)    || nqp::istype($qast, QAST::Regex)
-        || nqp::istype($qast, QAST::NodeList) {
+        elsif nqp::istype($qast, QAST::Node) {
             for @($qast) {
                 find_block_calls_and_migrate($from, $to, $_);
             }

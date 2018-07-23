@@ -88,6 +88,13 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
             # instances.
             nqp::speshguardconcrete($rv);
 
+            # This emulates a bug where Proxy was never decontainerized no
+            # matter what. The ecosystem came to depend on that, so we will
+            # accept it for now. We need to revisit this in the future.
+            if nqp::eqaddr(nqp::what_nd($rv), Proxy) {
+                return &identity;
+            }
+
             # If it's a Scalar container then we can optimize further.
             if nqp::eqaddr(nqp::what_nd($rv), Scalar) {
                 # Grab the descriptor.

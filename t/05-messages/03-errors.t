@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 21;
+plan 22;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -147,6 +147,15 @@ is-run 'sub rt125181 returns Str returns Int {}',
     throws-like { 42.classify:   * }, Exception, '.classify(*)   on Any throws';
     throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
     throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
+}
+
+# https://github.com/rakudo/rakudo/issues/2110
+subtest 'numeric backslash errors do not get accompanied by confusing others' => {
+    plan 3;
+    my &err = {.contains: 'backslash sequence' & none 'quantifies nothing' }
+    is-run ｢"a" ~~ /(a)\1+$/｣, :&err, :exitcode, 'regex';
+    is-run ｢"\1"｣,             :&err, :exitcode, 'qouble quotes';
+    is-run ｢Q:qq:cc/\1/｣,      :&err, :exitcode, ':qq:cc quoter';
 }
 
 # vim: ft=perl6 expandtab sw=4

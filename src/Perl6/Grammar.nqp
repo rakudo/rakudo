@@ -5322,7 +5322,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:misc { {}
             [
             | $<text>=(\W)
-            | $<x>=(\w) <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence($<x>)>
+            | $<x>=(\w) <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$<x>)>
             ]
         }
         multi method tweak_q($v) { self.panic("Too late for :q") }

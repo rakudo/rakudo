@@ -5075,11 +5075,6 @@ if $*COMPILING_CORE_SETTING {
 }
 
 grammar Perl6::QGrammar is HLL::Grammar does STD {
-
-    method throw_unrecog_backslash_seq ($sequence) {
-        self.typed_sorry('X::Backslash::UnrecognizedSequence', :$sequence);
-    }
-
     proto token escape {*}
     proto token backslash {*}
 
@@ -5101,8 +5096,18 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:sym<t> { <sym> }
         token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
-        token backslash:sym<1> { <[1..9]>\d* {} <.sorry("Unrecognized backslash sequence (did you mean \${$/ - 1}?)")> }
-        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
+        token backslash:sym<1> {
+            <[1..9]>\d* {
+              self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+                :sequence(~$/), :suggestion('$' ~ ($/ - 1))
+            }
+        }
+        token backslash:sym<unrec> {
+          {} (\w) {
+            self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+              :sequence($/[0].Str)
+          }
+        }
         token backslash:sym<misc> { \W }
     }
 
@@ -5317,7 +5322,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:misc { {}
             [
             | $<text>=(\W)
-            | $<x>=(\w) <.sorry("Unrecognized backslash sequence: '\\" ~ $<x> ~ "'")>
+            | $<x>=(\w) <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence($<x>)>
             ]
         }
         multi method tweak_q($v) { self.panic("Too late for :q") }
@@ -5484,7 +5489,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPacka
         <.[\d] - [0]>\d*
         {}
         :my int $br := nqp::radix(10, $/, 0, 0)[0];
-        <.sorry("Unrecognized backslash sequence (did you mean \${$br == 0 ?? $br !! $br - 1}?)")>
+        <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$/), :suggestion('$' ~ ($/ - 1))>
     }
 
     token assertion:sym<{ }> {

@@ -63,9 +63,6 @@ my class Pair does Associative {
     method antipair(Pair:D:) { self.new($!value,$!key) }
     method freeze(Pair:D:) { $!value := nqp::decont($!value) }
 
-    method item() {
-        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
-    }
     method iterator(Pair:D:) {
         Rakudo::Iterator.OneValue(self)
     }
@@ -98,8 +95,8 @@ my class Pair does Associative {
         })
     }
 
-    multi method perl(Pair:D \SELF: :$arglist) {
-        my $perl := self.perlseen('Pair', -> :$arglist {
+    multi method perl(Pair:D: :$arglist) {
+        self.perlseen('Pair', -> :$arglist {
             nqp::istype($!key, Str) && nqp::isconcrete($!key)
               ?? !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
                 ?? nqp::istype($!value,Bool) && nqp::isconcrete($!value)
@@ -111,8 +108,7 @@ my class Pair does Associative {
                    && !(nqp::istype($!key,Num) && nqp::isnanorinf($!key))
                 ?? $!key.perl ~ ' => ' ~ $!value.perl
                 !! '(' ~ $!key.perl ~ ') => ' ~ $!value.perl
-        }, :$arglist);
-        nqp::iscont(SELF) ?? "\$($perl)" !! $perl
+        }, :$arglist)
     }
 
     method fmt($format = "%s\t%s") {

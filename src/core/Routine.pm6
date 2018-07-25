@@ -110,6 +110,7 @@ my class Routine { # declared in BOOTSTRAP
         unless nqp::istype(self, Wrapped) {
             my $orig = self.clone();
             self does Wrapped;
+            $!onlystar = 0; # disable optimization if no body there
             self.UNSHIFT_WRAPPER($orig);
         }
 

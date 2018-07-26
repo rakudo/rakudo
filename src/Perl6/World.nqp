@@ -2830,7 +2830,13 @@ class Perl6::World is HLL::World {
 
         $ast.wanted(1);
         if $ast.has_compile_time_value {
-            return nqp::unbox_s($ast.compile_time_value);
+            my $value := $ast.compile_time_value;
+            if nqp::istype($value, self.find_symbol(['Str'], :setting-only)) {
+                return nqp::unbox_s($ast.compile_time_value);
+            }
+            else {
+                $/.panic("Did not get a string but a " ~ $value.HOW.name($value));
+            }
         } elsif nqp::istype($ast, QAST::Op) {
             if $ast.name eq '&infix:<,>' {
                 my @pieces;

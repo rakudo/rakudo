@@ -86,7 +86,7 @@ download, build, and install a fresh NQP, run:
 If you get a `java.lang.OutOfMemoryError: Java heap space` error building
 rakudo on the JVM, you may need to modify your NQP runner to limit memory
 use. e.g. edit the nqp-j / nqp-j.bat executable (found wherever you installed to, or in the
-`install/bin` directory) to include `-Xms500m -Xmx2g` as options passed to java.
+`install/bin` directory) to include `-Xms500m -Xmx3g` as options passed to java.
 Alternatively, you can set `JAVA_OPTS` env var; e.g. 
 `export JAVA_OPTS="-Xmx51200000000"`
 

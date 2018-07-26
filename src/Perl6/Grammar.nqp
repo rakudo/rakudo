@@ -4198,7 +4198,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method can_meta($op, $meta, $reason = "fiddly") {
         if $op<OPER> && $op<OPER><O>.made{$reason} == 1 {
-            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
+            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
         }
         self;
     }

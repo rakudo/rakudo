@@ -76,6 +76,9 @@ multi sub prefix:<so>(Mu \a) { a.Bool }
 proto sub prefix:<!>(Mu, *%) is pure {*}
 multi sub prefix:<!>(Bool \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
 multi sub prefix:<!>(Mu \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
+multi sub prefix:<!>(Mu \a, :$exists!) {
+    die "Precedence issue with ! and :exists, perhaps you meant :!exists?"
+}
 
 proto sub prefix:<not>(Mu, *%) is pure {*}
 multi sub prefix:<not>(Bool \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }

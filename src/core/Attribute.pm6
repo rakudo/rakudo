@@ -229,4 +229,22 @@ my class Attribute { # declared in BOOTSTRAP
     }
 }
 
+# does trait
+multi sub trait_mod:<does>(Attribute:D $a, Mu:U $role) {
+    if $role.HOW.archetypes.composable() {
+        nqp::getattr($a,Attribute,'$!auto_viv_container').VAR
+          does $role;
+    }
+    elsif $role.HOW.archetypes.composalizable() {
+        nqp::getattr($a,Attribute,'$!auto_viv_container').VAR
+          does $role.HOW.composalize($role);
+    }
+    else {
+        X::Composition::NotComposable.new(
+            target-name => 'an attribute',
+            composer    => $role,
+        ).throw;
+    }
+}
+
 # vim: ft=perl6 expandtab sw=4

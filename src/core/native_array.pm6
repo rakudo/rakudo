@@ -3232,7 +3232,10 @@ my class array does Iterable {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedstrarray role -------------------------------
 
-    method ^parameterize(Mu:U \arr, Mu:U \t) {
+    method ^parameterize(Mu:U \arr, Mu \t) {
+        if nqp::isconcrete(t) {
+            return "Can not parameterize {arr.^name} with {t.perl}";
+        }
         my $t := nqp::decont(t);
         my int $kind = nqp::objprimspec($t);
         my $what;
@@ -3247,11 +3250,11 @@ my class array does Iterable {
             $what := arr.^mixin(strarray[$t]);
         }
         else {
-            die "Can only parameterize array with a native type, not {t.^name}";
+            return "Can only parameterize array with a native type, not {t.^name}";
         }
 
         $what.^set_name("{arr.^name}[{t.^name}]");
-        $what;
+        $what
     }
 
     # poor man's 3x4 matrix

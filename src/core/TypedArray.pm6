@@ -109,15 +109,18 @@
             'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
         }
     }
-    method ^parameterize(Mu:U \arr, Mu:U \t, |c) {
-        if c.elems == 0 {
+    method ^parameterize(Mu:U \arr, Mu \t, |c) {
+        if nqp::isconcrete(t) {
+            "Can not parameterize {arr.^name} with {t.perl}"
+        }
+        elsif c.elems == 0 {
             my $what := arr.^mixin(TypedArray[t]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name("{arr.^name}[{t.^name}]");
-            $what;
+            $what
         }
         else {
-            die "Can only type-constrain Array with [ValueType]"
+            "Can only type-constrain Array with a single [ValueType]"
         }
     }
 }

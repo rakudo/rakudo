@@ -847,21 +847,24 @@ my class Hash { # declared in BOOTSTRAP
         method Map() { self.pairs.Map }
     }
 
-    method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
-        if c.elems == 0 {
+    method ^parameterize(Mu:U \hash, Mu \t, |c) {
+        if nqp::isconcrete(t) {
+            "Can not parameterize {hash.^name} with {t.perl}"
+        }
+        elsif c.elems == 0 {
             my $what := hash.^mixin(TypedHash[t]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name("{hash.^name}[{t.^name}]");
-            $what;
+            $what
         }
         elsif c.elems == 1 {
             my $what := hash.^mixin(TypedHash[t, c[0].WHAT]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name("{hash.^name}[{t.^name},{c[0].^name}]");
-            $what;
+            $what
         }
         else {
-            die "Can only type-constrain Hash with [ValueType] or [ValueType,KeyType]";
+            "Can only type-constrain Hash with [ValueType] or [ValueType,KeyType]"
         }
     }
 }

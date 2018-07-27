@@ -1025,12 +1025,26 @@ class Perl6::Optimizer {
 
     # Range operators we can optimize into loops, and how to do it.
     sub get_bound($node) {
+
+        # 0
         if nqp::istype($node, QAST::Want) && $node[1] eq 'Ii' {
             my int $value := $node[2].value;
             if $value > -2147483648 && $value < 2147483647 {
                 return [$value];
             }
         }
+
+        # my constant \foo = 0
+        elsif nqp::istype($node, QAST::WVal) {
+            try {  # don't know how to test for Ints here, so let coercing do it
+                my int $value := $node.value;
+                if $value > -2147483648 && $value < 2147483647 {
+                    return [$value];
+                }
+            }
+        }
+
+        # No way we can make this faster
         []
     }
     my %range_bounds := nqp::hash(

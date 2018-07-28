@@ -18,12 +18,11 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2018-07-21   Rakudo #125 (AlexDaniel + Releasable)
-  2018-08-18   Rakudo #126
-  2018-09-15   Rakudo #127
-  2018-10-20   Rakudo #128
-  2018-11-17   Rakudo #129
-  2018-12-15   Rakudo #130
+  2018-08-18   Rakudo #125 (AlexDaniel + Releasable)
+  2018-09-15   Rakudo #126
+  2018-10-20   Rakudo #127
+  2018-11-17   Rakudo #128
+  2018-12-15   Rakudo #129
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 

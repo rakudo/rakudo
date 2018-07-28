@@ -588,6 +588,12 @@ multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types)
 multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is export(:DEFAULT, :types) {
     @pos.map: { array.AT-POS($_) };
 }
+multi sub postcircumfix:<[ ]>(CArray:D \array, Callable:D $block) is export(:DEFAULT, :types) {
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      array[$block.pos(array)]
+    )
+}
 
 multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
     $r does NativeCallSymbol[$symbol];

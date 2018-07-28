@@ -111,6 +111,30 @@ the current year.  (It’s not necessary to update copyright dates
 in other files, unless you know that a given file has been modified
 in a year not reflected by the file’s copyright notice.)
 
+=item *
+
+To spot more regressions, it’s a good idea to test the ecosystem and see
+if there are any modules that were working correctly (e.g. passing their
+tests) on the previous release but no longer work on HEAD. One of the
+tools to do that is
+L<Toaster|https://github.com/zoffixznet/perl6-Toaster>.
+
+Generally, any kind of breakage in modules is unwanted, but there are
+exceptions. Submit Pull Requests to anything that is affected and file
+rakudo tickets for all unwanted changes in Rakudo behavior.
+
+=item *
+
+If the release is nearing and you see that the state of Rakudo on HEAD
+is inherently unstable (less stable than the previous release, or worse
+than the previous release for other reasons), assess your options.
+Even though rakudo releases are scheduled for every month, it doesn't
+necessarily mean that there I<must> be a release every month. Cancelling
+the release is an option. However, see if anything else can be done,
+like if offending commits can be reverted, or if you can make a release
+from an earlier state (e.g. previous release + some commits +
+cherry-picked important fixes).
+
 =back
 
 =item 2.

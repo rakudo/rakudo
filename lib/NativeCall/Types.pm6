@@ -218,6 +218,8 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         $what;
     }
 
+    method Str { self.join(' ') }
+
     method elems { nqp::elems(self) }
 
     method list {

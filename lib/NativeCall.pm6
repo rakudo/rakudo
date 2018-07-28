@@ -595,7 +595,7 @@ multi sub postcircumfix:<[ ]>(CArray:D \array, Callable:D $block) is export(:DEF
     )
 }
 multi sub postcircumfix:<[ ]>(CArray:D \array) is export(:DEFAULT, :types) {
-    array[^array.elems]
+    array.ZEN-POS
 }
 multi sub postcircumfix:<[ ]>(CArray:D \array, Whatever:D) is export(:DEFAULT, :types) {
     array[^array.elems]

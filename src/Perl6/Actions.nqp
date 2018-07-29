@@ -1314,6 +1314,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $mainline := QAST::Op.new(
                 :op('call'),
                 :name('&MAIN_HELPER'),
+                QAST::WVal.new( # $*IN as $*ARGSFILES
+                    value => $*W.find_symbol: [
+                        'Bool', $*W.lang-ver-before('d') ?? 'False' !! 'True'
+                    ]),
                 $mainline,
             );
         }

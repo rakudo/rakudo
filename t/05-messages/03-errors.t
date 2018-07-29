@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 22;
+plan 23;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -157,5 +157,9 @@ subtest 'numeric backslash errors do not get accompanied by confusing others' =>
     is-run ｢"\1"｣,             :&err, :exitcode, 'qouble quotes';
     is-run ｢Q:qq:cc/\1/｣,      :&err, :exitcode, ':qq:cc quoter';
 }
+
+# RT #129838
+is-run "my \$x = q:to/END/;\ny\n END", :err{ not .contains('Actions.nqp') },
+    'heredoc trimming warnings do not reference guts';
 
 # vim: ft=perl6 expandtab sw=4

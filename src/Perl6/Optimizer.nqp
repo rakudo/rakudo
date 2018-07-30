@@ -1024,22 +1024,22 @@ class Perl6::Optimizer {
     }
 
     # Range operators we can optimize into loops, and how to do it.
-    sub get_bound($node) {
+    sub get_bound($node,$extra) {
 
         # 0
         if nqp::istype($node, QAST::Want) && $node[1] eq 'Ii' {
-            my int $value := $node[2].value;
+            my int $value := $node[2].value + $extra;
             if $value > -2147483648 && $value < 2147483647 {
-                return [$value];
+                return [QAST::IVal.new( :value($value) )];
             }
         }
 
         # my constant \foo = 0
         elsif nqp::istype($node, QAST::WVal) {
             try {  # don't know how to test for Ints here, so let coercing do it
-                my int $value := $node.value;
+                my int $value := $node.value + $extra;
                 if $value > -2147483648 && $value < 2147483647 {
-                    return [$value];
+                    return [QAST::IVal.new( :value($value) )];
                 }
             }
         }
@@ -1049,28 +1049,28 @@ class Perl6::Optimizer {
     }
     my %range_bounds := nqp::hash(
         '&infix:<..>', -> $op {
-            my @lb := get_bound($op[0]);
-            my @ub := get_bound($op[1]);
+            my @lb := get_bound($op[0], 0);
+            my @ub := get_bound($op[1], 0);
             @lb && @ub ?? [@lb[0], @ub[0]] !! []
         },
         '&infix:<..^>', -> $op {
-            my @lb := get_bound($op[0]);
-            my @ub := get_bound($op[1]);
-            @lb && @ub ?? [@lb[0], @ub[0] - 1] !! []
+            my @lb := get_bound($op[0], 0);
+            my @ub := get_bound($op[1],-1);
+            @lb && @ub ?? [@lb[0], @ub[0]] !! []
         },
         '&infix:<^..>', -> $op {
-            my @lb := get_bound($op[0]);
-            my @ub := get_bound($op[1]);
-            @lb && @ub ?? [@lb[0] + 1, @ub[0]] !! []
+            my @lb := get_bound($op[0], 1);
+            my @ub := get_bound($op[1], 0);
+            @lb && @ub ?? [@lb[0], @ub[0]] !! []
         },
         '&infix:<^..^>', -> $op {
-            my @lb := get_bound($op[0]);
-            my @ub := get_bound($op[1]);
-            @lb && @ub ?? [@lb[0] + 1, @ub[0] - 1] !! []
+            my @lb := get_bound($op[0], 1);
+            my @ub := get_bound($op[1],-1);
+            @lb && @ub ?? [@lb[0], @ub[0]] !! []
         },
         '&prefix:<^>', -> $op {
-            my @ub := get_bound($op[0]);
-            @ub ?? [0, @ub[0] - 1] !! []
+            my @ub := get_bound($op[0],-1);
+            @ub ?? [QAST::IVal.new( :value(0) ), @ub[0]] !! []
         },
         );
 
@@ -2185,7 +2185,7 @@ class Perl6::Optimizer {
                 QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name($it_var), :scope('local'), :decl('var'), :returns(int) ),
-                    QAST::IVal.new( :value(@bounds[0]) )
+                    @bounds[0]
                 ),
                 QAST::Op.new(
                     :op('bind'),
@@ -2197,7 +2197,7 @@ class Perl6::Optimizer {
                     QAST::Op.new(
                         :op('isle_i'),
                         QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                        QAST::IVal.new( :value(@bounds[1]) )
+                        @bounds[1]
                     ),
                     QAST::Op.new(
                         :op('call'),

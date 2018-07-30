@@ -1044,6 +1044,18 @@ class Perl6::Optimizer {
             }
         }
 
+        # my int $foo
+        elsif nqp::istype($node, QAST::Var)
+          && nqp::objprimspec($node.returns) == 1 {
+            return [$extra
+              ?? QAST::Op.new( :op<add_i>, :returns($node.returns),
+                   $node,
+                   QAST::IVal.new( :value($extra) )
+                 )
+              !! $node
+            ]
+        }
+
         # No way we can make this faster
         []
     }
@@ -2178,6 +2190,7 @@ class Perl6::Optimizer {
           !! nqp::null();
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
             my $it_var     := QAST::Node.unique('range_it_');
+            my $max_var    := QAST::Node.unique('range_max_');
             my $callee_var := QAST::Node.unique('range_callee_');
             $op.shift while $op.list;
             $op.op('stmts');
@@ -2189,6 +2202,11 @@ class Perl6::Optimizer {
                 ),
                 QAST::Op.new(
                     :op('bind'),
+                    QAST::Var.new( :name($max_var), :scope('local'), :decl('var'), :returns(int) ),
+                    @bounds[1]
+                ),
+                QAST::Op.new(
+                    :op('bind'),
                     QAST::Var.new( :name($callee_var), :scope('local'), :decl('var') ),
                     $callee
                 ),
@@ -2197,7 +2215,7 @@ class Perl6::Optimizer {
                     QAST::Op.new(
                         :op('isle_i'),
                         QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                        @bounds[1]
+                        QAST::Var.new( :name($max_var), :scope('local'), :returns(int) )
                     ),
                     QAST::Op.new(
                         :op('call'),

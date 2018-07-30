@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 23;
+plan 24;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -166,5 +166,10 @@ else {
     is-run "my \$x = q:to/END/;\ny\n END", :err{ not .contains('Actions.nqp') },
         'heredoc trimming warnings do not reference guts';
 }
+
+# https://github.com/rakudo/rakudo/issues/1813
+cmp-ok X::OutOfRange.new(
+    :what<a range>, :got(0..3000), :range(1..3000)
+).message.chars, '<', 150, 'X::OutOfRange does not stringify given Ranges';
 
 # vim: ft=perl6 expandtab sw=4

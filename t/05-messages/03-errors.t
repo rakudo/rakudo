@@ -159,7 +159,12 @@ subtest 'numeric backslash errors do not get accompanied by confusing others' =>
 }
 
 # RT #129838
-is-run "my \$x = q:to/END/;\ny\n END", :err{ not .contains('Actions.nqp') },
-    'heredoc trimming warnings do not reference guts';
+if $*DISTRO.is-win {
+    skip ｢is-run() routine doesn't quite work right on Windows: RT#132258｣;
+}
+else {
+    is-run "my \$x = q:to/END/;\ny\n END", :err{ not .contains('Actions.nqp') },
+        'heredoc trimming warnings do not reference guts';
+}
 
 # vim: ft=perl6 expandtab sw=4

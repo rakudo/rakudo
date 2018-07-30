@@ -369,18 +369,20 @@ do {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
-                my $res := $class.process($e);
-                nqp::getcurhllsym('&THE_END')();
-                return unless $res;
+                unless $class.process($e) {
+                    nqp::getcurhllsym('&THE_END')();
+                    return
+                }
             }
         }
         if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping
-                my $res := $class.process($e);
-                nqp::getcurhllsym('&THE_END')();
-                return unless $res;
+                unless $class.process($e) {
+                    nqp::getcurhllsym('&THE_END')();
+                    return
+                }
             }
         }
 

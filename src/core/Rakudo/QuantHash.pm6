@@ -955,19 +955,19 @@ my class Rakudo::QuantHash {
           (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             (my $braw := b.RAW-HASH) && nqp::elems($braw),
-            nqp::create(Bag).SET-SELF(
+            nqp::create(a.WHAT).SET-SELF(
               nqp::if(
                 nqp::istype(b,Setty),
                 self.SUB-SETTY-FROM-BAG($araw, $braw),
                 self.SUB-BAGGY-FROM-BAG($araw, $braw)
               )
             ),
-            a.Bag
+            a
           ),
           nqp::if(
             nqp::istype(b,Failure),
             b.throw,
-            bag()
+            a
           )
         )
     }
@@ -1600,10 +1600,10 @@ my class Rakudo::QuantHash {
           (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             (my $braw := b.RAW-HASH) && nqp::elems($braw),
-            nqp::create(Mix).SET-SELF(
+            nqp::create(a.WHAT).SET-SELF(
               self.SUB-QUANTHASH-FROM-MIX($araw, $braw, nqp::istype(b,Setty)),
             ),
-            a.Mix
+            a
           ),
           nqp::if(
             nqp::istype(b,Failure),
@@ -1626,9 +1626,9 @@ my class Rakudo::QuantHash {
                     )
                   )
                 ),
-                nqp::create(Mix).SET-SELF($elems)
+                nqp::create(a.WHAT).SET-SELF($elems)
               ),
-              mix()
+              a
             )
           )
         )

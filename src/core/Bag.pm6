@@ -43,6 +43,9 @@ my class Bag does Baggy {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
+    method Setty(Bag:D:) { self.Set }
+    method Mixy(Bag:D:)  { self.Mix }
+
 #--- selection methods
     multi method grabpairs(Bag:D: $count?) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;

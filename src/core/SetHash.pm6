@@ -226,6 +226,9 @@ my class SetHash does Setty {
           )
         )
     }
+
+    method Baggy(SetHash:D:) { self.BagHash }
+    method Mixy(SetHash:D:)  { self.MixHash }
 }
 
 # vim: ft=perl6 expandtab sw=4

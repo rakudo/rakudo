@@ -65,6 +65,9 @@ my class MixHash does Mixy {
         )
     }
 
+    method Setty(MixHash:D:) { self.SetHash }
+    method Baggy(MixHash:D:) { self.BagHash }
+
 #--- object creation methods
     multi method new(MixHash:_:) { nqp::create(self) }
 

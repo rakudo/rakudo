@@ -66,6 +66,9 @@ my class BagHash does Baggy {
         )
     }
 
+    method Setty(BagHash:D:) { self.SetHash }
+    method Mixy(BagHash:D:)  { self.MixHash }
+
 #--- introspection methods
     method total() { Rakudo::QuantHash.BAG-TOTAL($!elems) }
 

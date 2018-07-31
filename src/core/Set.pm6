@@ -106,6 +106,9 @@ my class Set does Setty {
     multi method DELETE-KEY(Set:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
+
+    method Baggy(Set:D:) { self.Bag }
+    method Mixy(Set:D:)  { self.Mix }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -23,6 +23,9 @@ my class Mix does Mixy {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
+    method Setty(Mix:D:) { self.Set }
+    method Baggy(Mix:D:) { self.Bag }
+
 #--- introspection methods
     multi method WHICH(Mix:D:)    {
         nqp::if(

@@ -194,14 +194,13 @@ multi sub infix:<**>(Rational:D \a, Int:D \b) {
             nqp::istype(($de := nqp::pow_I(a.denominator, nqp::decont(b), Num, Int)), Num),
             Failure.new(X::Numeric::Overflow.new),
             RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $nu, $de, a, b)),
-        nqp::if( # if we got 0 as result, but shouldn't have
-          nqp::isfalse($nu := nqp::pow_I(a.numerator, nqp::neg_I(nqp::decont(b), Int), Num, Int))
-            && a.numerator,
+        nqp::if( # if we got Inf
+          nqp::istype(($nu := nqp::pow_I(a.numerator,
+            nqp::neg_I(nqp::decont(b), Int), Num, Int)), Num),
           Failure.new(X::Numeric::Underflow.new),
-          nqp::if( # if we got 0 as result, but shouldn't have
-            nqp::isfalse($de := nqp::pow_I(a.denominator,
-              nqp::neg_I(nqp::decont(b), Int), Num, Int))
-              && a.denominator,
+          nqp::if( # if we got Inf
+            nqp::istype(($de := nqp::pow_I(a.denominator,
+              nqp::neg_I(nqp::decont(b), Int), Num, Int)), Num),
             Failure.new(X::Numeric::Underflow.new),
             RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $de, $nu, a, b)))
 }

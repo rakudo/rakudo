@@ -2195,44 +2195,55 @@ class Perl6::Optimizer {
             $op.shift while $op.list;
             $op.op('stmts');
             $op.push(QAST::Stmts.new(
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($it_var), :scope('local'), :decl('var'), :returns(int) ),
-                    @bounds[0]
+
+# my int $it = @bounds[0]
+              QAST::Op.new( :op<bind>,
+                QAST::Var.new(
+                  :name($it_var), :scope<local>, :decl<var>, :returns(int)
                 ),
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($max_var), :scope('local'), :decl('var'), :returns(int) ),
-                    @bounds[1]
+                @bounds[0]
+              ),
+
+# my int $max = @bounds[1]
+              QAST::Op.new( :op<bind>,
+                QAST::Var.new(
+                  :name($max_var), :scope<local>, :decl<var>, :returns(int)
                 ),
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($callee_var), :scope('local'), :decl('var') ),
-                    $callee
+                @bounds[1]
+              ),
+
+# my $callee := { };
+              QAST::Op.new( :op<bind>,
+                QAST::Var.new(:name($callee_var), :scope<local>, :decl<var>),
+                $callee
+              ),
+
+# nqp::while(
+#   nqp::isle_i($it,$max),
+              QAST::Op.new( :op<while>,
+                QAST::Op.new( :op<isle_i>,
+                  QAST::Var.new(:name($it_var),  :scope<local>, :returns(int)),
+                  QAST::Var.new(:name($max_var), :scope<local>, :returns(int))
                 ),
-                QAST::Op.new(
-                    :op('while'),
-                    QAST::Op.new(
-                        :op('isle_i'),
-                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                        QAST::Var.new( :name($max_var), :scope('local'), :returns(int) )
-                    ),
-                    QAST::Op.new(
-                        :op('call'),
-                        QAST::Var.new( :name($callee_var), :scope('local') ),
-                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) )
-                    ),
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                        QAST::Op.new(
-                            :op('add_i'),
-                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                            QAST::IVal.new( :value(1) )
-                        )
-                    )
+
+#   nqp::call($callee, $it)
+                QAST::Op.new( :op<call>,
+                  QAST::Var.new(:name($callee_var), :scope<local> ),
+                  QAST::Var.new(:name($it_var), :scope<local>, :returns(int))
                 ),
-                QAST::WVal.new( :value($!symbols.Nil) )
+
+#   nqp::bind($it,nqp::add_i($it,1))
+                QAST::Op.new( :op<bind>,
+                  QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
+                  QAST::Op.new( :op<add_i>,
+                    QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
+                    QAST::IVal.new( :value(1) )
+                  )
+                )
+              ),
+
+# return Nil
+              QAST::WVal.new( :value($!symbols.Nil) )
             ));
         }
     }

@@ -80,6 +80,13 @@ my class Set does Setty {
         )
     }
 
+    multi method Setty(Set:U:) { Set      }
+    multi method Setty(Set:D:) { self     }
+    multi method Baggy(Set:U:) { Bag      }
+    multi method Baggy(Set:D:) { self.Bag }
+    multi method Mixy (Set:U:) { Mix      }
+    multi method Mixy (Set:D:) { self.Mix }
+
 #--- interface methods
     method STORE(*@pairs, :$initialize --> Set:D) {
         nqp::if(
@@ -106,9 +113,6 @@ my class Set does Setty {
     multi method DELETE-KEY(Set:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
-
-    method Baggy(Set:D:) { self.Bag }
-    method Mixy(Set:D:)  { self.Mix }
 }
 
 # vim: ft=perl6 expandtab sw=4

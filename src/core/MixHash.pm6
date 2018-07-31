@@ -65,9 +65,6 @@ my class MixHash does Mixy {
         )
     }
 
-    method Setty(MixHash:D:) { self.SetHash }
-    method Baggy(MixHash:D:) { self.BagHash }
-
 #--- object creation methods
     multi method new(MixHash:_:) { nqp::create(self) }
 
@@ -83,6 +80,14 @@ my class MixHash does Mixy {
         )
     }
     multi method MixHash(MixHash:D:) { self }
+
+    multi method Setty(MixHash:U:) { SetHash      }
+    multi method Setty(MixHash:D:) { self.SetHash }
+    multi method Baggy(MixHash:U:) { BagHash      }
+    multi method Baggy(MixHash:D:) { self.BagHash }
+    multi method Mixy (MixHash:U:) { MixHash      }
+    multi method Mixy (MixHash:D:) { self         }
+
     method clone() {
         nqp::if(
           $!elems && nqp::elems($!elems),

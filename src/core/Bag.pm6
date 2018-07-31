@@ -43,9 +43,6 @@ my class Bag does Baggy {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
-    method Setty(Bag:D:) { self.Set }
-    method Mixy(Bag:D:)  { self.Mix }
-
 #--- selection methods
     multi method grabpairs(Bag:D: $count?) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
@@ -74,6 +71,13 @@ my class Bag does Baggy {
           nqp::create(MixHash)
         )
     }
+
+    multi method Setty(Bag:U:) { Set      }
+    multi method Setty(Bag:D:) { self.Set }
+    multi method Baggy(Bag:U:) { Bag      }
+    multi method Baggy(Bag:D:) { self     }
+    multi method Mixy (Bag:U:) { Mix      }
+    multi method Mixy (Bag:D:) { self.Mix }
 
 #--- illegal methods
     proto method classify-list(|) {

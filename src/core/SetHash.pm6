@@ -175,6 +175,13 @@ my class SetHash does Setty {
         )
     }
 
+    multi method Setty(SetHash:U:) { SetHash }
+    multi method Setty(SetHash:D:) { self }
+    multi method Baggy(SetHash:U:) { BagHash }
+    multi method Baggy(SetHash:D:) { self.BagHash }
+    multi method Mixy (SetHash:U:) { MixHash }
+    multi method Mixy (SetHash:D:) { self.MixHash }
+
 #--- interface methods
     method STORE(*@pairs --> SetHash:D) {
         nqp::if(
@@ -226,9 +233,6 @@ my class SetHash does Setty {
           )
         )
     }
-
-    method Baggy(SetHash:D:) { self.BagHash }
-    method Mixy(SetHash:D:)  { self.MixHash }
 }
 
 # vim: ft=perl6 expandtab sw=4

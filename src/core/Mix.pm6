@@ -23,9 +23,6 @@ my class Mix does Mixy {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
-    method Setty(Mix:D:) { self.Set }
-    method Baggy(Mix:D:) { self.Bag }
-
 #--- introspection methods
     multi method WHICH(Mix:D:)    {
         nqp::if(
@@ -70,6 +67,13 @@ my class Mix does Mixy {
           nqp::create(MixHash)
         )
     }
+
+    multi method Setty(Mix:U:) { Set }
+    multi method Setty(Mix:D:) { self.Set }
+    multi method Baggy(Mix:U:) { Bag }
+    multi method Baggy(Mix:D:) { self.Bag }
+    multi method Mixy (Mix:U:) { Mix }
+    multi method Mixy (Mix:D:) { self }
 
 #--- illegal methods
     proto method classify-list(|) {

@@ -66,9 +66,6 @@ my class BagHash does Baggy {
         )
     }
 
-    method Setty(BagHash:D:) { self.SetHash }
-    method Mixy(BagHash:D:)  { self.MixHash }
-
 #--- introspection methods
     method total() { Rakudo::QuantHash.BAG-TOTAL($!elems) }
 
@@ -101,6 +98,14 @@ my class BagHash does Baggy {
           nqp::create(MixHash)
         )
     }
+
+    multi method Setty(BagHash:U:) { SetHash      }
+    multi method Setty(BagHash:D:) { self.SetHash }
+    multi method Baggy(BagHash:U:) { BagHash      }
+    multi method Baggy(BagHash:D:) { self         }
+    multi method Mixy (BagHash:U:) { MixHash      }
+    multi method Mixy (BagHash:D:) { self.MixHash }
+
     method clone() {
         nqp::if(
           $!elems && nqp::elems($!elems),

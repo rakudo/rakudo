@@ -571,7 +571,9 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
     multi method Stringy(Mu:D $:) { self.Str }
 
-    method item(Mu \item:) is raw { item }
+    method item() is raw {
+        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
+    }
 
     proto method say(|) {*}
     multi method say() { say(self) }

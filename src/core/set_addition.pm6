@@ -16,7 +16,9 @@ multi sub infix:<(+)>(Setty:D $a, QuantHash:D $b) {
         (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                                    # elems on both sides
           (my $elems := Rakudo::QuantHash.SET-BAGGIFY($araw)),
-          nqp::create(nqp::if(nqp::istype($b,Mixy),Mix,Bag)).SET-SELF(
+          nqp::create(
+            nqp::if( nqp::istype($b,Mixy), $a.WHAT.Mixy, $a.WHAT.Baggy )
+          ).SET-SELF(
             nqp::if(
               nqp::istype($b,Mixy),
               Rakudo::QuantHash.ADD-MIX-TO-MIX($elems, $braw),
@@ -28,9 +30,13 @@ multi sub infix:<(+)>(Setty:D $a, QuantHash:D $b) {
             )
           )
         ),
-        nqp::if(nqp::istype($b,Mixy),$a.Mix,$a.Bag)    # no elems on right
+        nqp::if(nqp::istype($b,Mixy),$a.Mixy,$a.Baggy) # no elems on right
       ),
-      nqp::if(nqp::istype($b,Mixy),$b.Mix,$b.Bag)      # no elems left/either
+      nqp::if(                                         # no elems left/either
+        nqp::istype($a,Set),
+        nqp::if( nqp::istype($b,Mixy), $b.Mix,     $b.Bag),
+        nqp::if( nqp::istype($b,Mixy), $b.MixHash, $b.BagHash)
+      )
     )
 }
 multi sub infix:<(+)>(Setty:D $a, Map:D $b) {
@@ -39,14 +45,16 @@ multi sub infix:<(+)>(Setty:D $a, Map:D $b) {
       nqp::if(                                         # elems on left
         (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
           && nqp::elems($braw),
-        nqp::create(Bag).SET-SELF(                     # elems on both sides
+        nqp::create(
+          nqp::if( nqp::istype($a,Set), Bag, BagHash )
+        ).SET-SELF(                     # elems on both sides
           Rakudo::QuantHash.ADD-MAP-TO-BAG(
             Rakudo::QuantHash.SET-BAGGIFY($araw), $b
           )
         ),
-        $a.Bag                                         # no elems on right
+        $a.Baggy                                       # no elems on right
       ),
-      $b.Bag                                           # no elems left/either
+      nqp::if( nqp::istype($a,Set),$b.Bag,$b.BagHash ) # no elems left/either
     )
 }
 multi sub infix:<(+)>(Mixy:D $a, QuantHash:D $b) {
@@ -56,7 +64,7 @@ multi sub infix:<(+)>(Mixy:D $a, QuantHash:D $b) {
         (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                                    # elems on both sides
           (my $elems := Rakudo::QuantHash.BAGGY-CLONE($araw)),
-          nqp::create(Mix).SET-SELF(
+          nqp::create($a.WHAT).SET-SELF(
             nqp::if(
               nqp::istype($b,Baggy),
               Rakudo::QuantHash.ADD-MIX-TO-MIX($elems, $braw),
@@ -64,9 +72,9 @@ multi sub infix:<(+)>(Mixy:D $a, QuantHash:D $b) {
             )
           )
         ),
-        $a.Mix                                         # no elems on right
+        $a                                             # no elems on right
       ),
-      $b.Mix                                           # no elems left/either
+      nqp::if( nqp::istype($a,Mix),$b.Mix,$b.MixHash ) # no elems left/either
     )
 }
 
@@ -77,7 +85,13 @@ multi sub infix:<(+)>(Baggy:D $a, QuantHash:D $b) {
         (my $braw := $b.RAW-HASH) && nqp::elems($braw),
         nqp::stmts(                                    # elems on both sides
           (my $elems := Rakudo::QuantHash.BAGGY-CLONE($araw)),
-          nqp::create(nqp::if(nqp::istype($b,Mixy),Mix,Bag)).SET-SELF(
+          nqp::create(
+            nqp::if(
+              nqp::istype($b,Mixy),
+              nqp::if( nqp::istype($a,Bag), Mix, MixHash ),
+              nqp::if( nqp::istype($a,Bag), Bag, BagHash )
+            )
+          ).SET-SELF(
             nqp::if(
               nqp::istype($b,Mixy),
               Rakudo::QuantHash.ADD-MIX-TO-MIX($elems, $braw),
@@ -89,9 +103,13 @@ multi sub infix:<(+)>(Baggy:D $a, QuantHash:D $b) {
             )
           )
         ),
-        nqp::if(nqp::istype($b,Mixy),$a.Mix,$a.Bag)    # no elems on right
+        nqp::if(nqp::istype($b,Mixy),$a.Mixy,$a)       # no elems on right
       ),
-      nqp::if(nqp::istype($b,Mixy),$b.Mix,$b.Bag)      # no elems left/either
+      nqp::if(                                         # no elems left/either
+        nqp::istype($a,Mix) || nqp::istype($a,Bag),
+        nqp::if( nqp::istype($b,Mixy), $b.Mix,     $b.Bag),
+        nqp::if( nqp::istype($b,Mixy), $b.MixHash, $b.BagHash)
+      )
     )
 }
 
@@ -129,9 +147,17 @@ multi sub infix:<(+)>(Any $, Failure:D $b) { $b.throw }
 multi sub infix:<(+)>(Failure:D $a, Any $) { $a.throw }
 multi sub infix:<(+)>(Any $a, Any $b) {
     nqp::if(
-      nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
-      infix:<(+)>($a.Mix, $b.Mix),
-      infix:<(+)>($a.Bag, $b.Bag)
+      nqp::istype($a,QuantHash),
+      nqp::if(
+        nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
+        infix:<(+)>($a.Mixy,  $b.Mix(:view)),
+        infix:<(+)>($a.Baggy, $b.Bag(:view))
+      ),
+      nqp::if(
+        nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
+        infix:<(+)>($a.Mix, $b.Mix(:view)),
+        infix:<(+)>($a.Bag, $b.Bag(:view))
+      )
     )
 }
 

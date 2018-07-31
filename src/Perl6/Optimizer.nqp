@@ -2196,15 +2196,18 @@ class Perl6::Optimizer {
             $op.op('stmts');
             $op.push(QAST::Stmts.new(
 
-# my int $it = @bounds[0]
+# my int $it := @bounds[0] - 1
               QAST::Op.new( :op<bind>,
                 QAST::Var.new(
                   :name($it_var), :scope<local>, :decl<var>, :returns(int)
                 ),
-                @bounds[0]
+                QAST::Op.new( :op<sub_i>,
+                  @bounds[0],
+                  QAST::IVal.new( :value(1))
+                )
               ),
 
-# my int $max = @bounds[1]
+# my int $max := @bounds[1]
               QAST::Op.new( :op<bind>,
                 QAST::Var.new(
                   :name($max_var), :scope<local>, :decl<var>, :returns(int)
@@ -2219,10 +2222,19 @@ class Perl6::Optimizer {
               ),
 
 # nqp::while(
-#   nqp::isle_i($it,$max),
+#   nqp::isle_i(
+#     nqp::bind($it,nqp::add_i($it,1)),
+#     $max
+#   )
               QAST::Op.new( :op<while>,
                 QAST::Op.new( :op<isle_i>,
-                  QAST::Var.new(:name($it_var),  :scope<local>, :returns(int)),
+                  QAST::Op.new( :op<bind>,
+                    QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
+                    QAST::Op.new( :op<add_i>,
+                      QAST::Var.new(:name($it_var),:scope<local>,:returns(int)),
+                      QAST::IVal.new( :value(1) )
+                    )
+                  ),
                   QAST::Var.new(:name($max_var), :scope<local>, :returns(int))
                 ),
 
@@ -2230,15 +2242,6 @@ class Perl6::Optimizer {
                 QAST::Op.new( :op<call>,
                   QAST::Var.new(:name($callee_var), :scope<local> ),
                   QAST::Var.new(:name($it_var), :scope<local>, :returns(int))
-                ),
-
-#   nqp::bind($it,nqp::add_i($it,1))
-                QAST::Op.new( :op<bind>,
-                  QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
-                  QAST::Op.new( :op<add_i>,
-                    QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
-                    QAST::IVal.new( :value(1) )
-                  )
                 )
               ),
 

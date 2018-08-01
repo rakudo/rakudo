@@ -7,6 +7,7 @@ use QAST;
 
 my $wantwant := Mu;
 
+# 2147483648 == 2**31. By adding 1 to it with add_i op, on 32-bit boxes it will overflow
 my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
 sub block_closure($code) {

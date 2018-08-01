@@ -358,6 +358,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   IterationEnd
                 )
             }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my str $str = $!str),      # locals are faster
+                  (my int $pos = $!pos),
+                  (my int $chars = $!chars),
+                  nqp::while(
+                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
+                    $target.push(nqp::substr($str,$pos,1))
+                  ),
+                  ($!pos = $pos)
+                )
+            }
             method count-only() { nqp::p6box_i($!chars) }
             method bool-only(--> True) { }
         }.new(self));

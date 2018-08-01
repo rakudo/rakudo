@@ -5,9 +5,6 @@
 proto sub infix:<(^)>(|) is pure {*}
 multi sub infix:<(^)>()               { set()  }
 multi sub infix:<(^)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
-multi sub infix:<(^)>(SetHash:D $a)   { $a.Set }
-multi sub infix:<(^)>(BagHash:D $a)   { $a.Bag }
-multi sub infix:<(^)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(^)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
@@ -35,15 +32,17 @@ multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::create(Set).SET-SELF($elems)
+          nqp::create($a.WHAT).SET-SELF($elems)
         ),
-        nqp::if(nqp::istype($a,Set),$a,$a.Set) # $b empty, so $a
+        $a                                     # $b empty, so $a
       ),
-      nqp::if(nqp::istype($b,Set),$b,$b.Set)   # $a empty, so $b
+      nqp::if(                                 # $a empty, so $b
+        nqp::istype($a,Set), $b.Set, $b.SetHash
+      )
     )
 }
-multi sub infix:<(^)>(Setty:D $a, Mixy:D  $b) { $a.Mix (^) $b }
-multi sub infix:<(^)>(Setty:D $a, Baggy:D $b) { $a.Bag (^) $b }
+multi sub infix:<(^)>(Setty:D $a, Mixy:D  $b) { $a.Mixy  (^) $b }
+multi sub infix:<(^)>(Setty:D $a, Baggy:D $b) { $a.Baggy (^) $b }
 
 multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
@@ -90,25 +89,25 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
               )
             )
           ),
-          nqp::create(Mix).SET-SELF($elems)
+          nqp::create($a.WHAT).SET-SELF($elems)
         ),
-        nqp::create(Mix).SET-SELF(             # $b empty, so $a
+        nqp::create($a.WHAT).SET-SELF(        # $b empty, so $a
           Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE($araw)
         )
       ),
       nqp::if(
         ($braw := $b.RAW-HASH) && nqp::elems($braw),
-        nqp::create(Mix).SET-SELF(             # $a empty, so $b
+        nqp::create($a.WHAT).SET-SELF(        # $a empty, so $b
           Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE($braw)
         ),
-        mix()
+        $a                                    # $a and $b empty
       )
     )
 }
 multi sub infix:<(^)>(Mixy:D $a, Baggy:D $b) { $a (^) $b.Mix }
 multi sub infix:<(^)>(Mixy:D $a, Setty:D $b) { $a (^) $b.Mix }
 
-multi sub infix:<(^)>(Baggy:D $a, Mixy:D $b) { $a.Mix (^) $b }
+multi sub infix:<(^)>(Baggy:D $a, Mixy:D $b) { $a.Mixy (^) $b }
 multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
       (my $araw := $a.RAW-HASH) && nqp::elems($araw),
@@ -154,11 +153,13 @@ multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::create(Bag).SET-SELF($elems)
+          nqp::create($a.WHAT).SET-SELF($elems)
         ),
-        nqp::if(nqp::istype($a,Bag),$a,$a.Bag) # $b empty, so $a
+        $a                                     # $b empty, so $a
       ),
-      nqp::if(nqp::istype($b,Bag),$b,$b.Bag)   # $a empty, so $b
+      nqp::if(                                 # $a empty, so $b
+        nqp::istype($a,Bag), $b.Bag, $b.BagHash
+      )
     )
 }
 multi sub infix:<(^)>(Baggy:D $a, Setty:D $b) { $a (^) $b.Bag }
@@ -214,12 +215,20 @@ multi sub infix:<(^)>(Failure:D $a, Any $b) { $a.throw }
 multi sub infix:<(^)>(Any $a, Failure:D $b) { $b.throw }
 multi sub infix:<(^)>(Any $a, Any $b) {
     nqp::if(
-      nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
-      infix:<(^)>($a.Mix, $b.Mix),
+      nqp::istype($a,Mixy),
+      infix:<(^)>($a, $b.Mix),
       nqp::if(
-        nqp::istype($a,Baggy) || nqp::istype($b,Baggy),
-        infix:<(^)>($a.Bag, $b.Bag),
-        infix:<(^)>($a.Set, $b.Set)
+        nqp::istype($b,Mixy),
+        infix:<(^)>($a.Mix, $b),
+        nqp::if(
+          nqp::istype($a,Baggy),
+          infix:<(^)>($a, $b.Bag),
+          nqp::if(
+            nqp::istype($b,Baggy),
+            infix:<(^)>($a.Bag, $b),
+            infix:<(^)>($a.Set, $b.Set)
+          )
+        )
       )
     )
 }
@@ -284,6 +293,14 @@ multi sub infix:<(^)>(**@p) {
           nqp::eqaddr((my $p := $params.pull-one),IterationEnd),
 
           nqp::stmts(                            # not done parsing
+            nqp::unless(
+              $pseen,
+              (my $mutable :=
+                   nqp::eqaddr($p.WHAT,MixHash)
+                || nqp::eqaddr($p.WHAT,BagHash)
+                || nqp::eqaddr($p.WHAT,SetHash)
+              )
+            ),
             ($pseen = nqp::add_i($pseen,1)),
             nqp::if(
               nqp::istype($p,Baggy),
@@ -413,6 +430,14 @@ multi sub infix:<(^)>(**@p) {
                 )
               )
             )
+          )
+        ),
+        nqp::if(                                 # set to mutable if so started
+          $mutable,
+          $type := nqp::if(
+            nqp::eqaddr($type,Mix),
+            MixHash,
+            nqp::if(nqp::eqaddr($type,Bag),BagHash,SetHash)
           )
         ),
         nqp::create($type).SET-SELF($elems)

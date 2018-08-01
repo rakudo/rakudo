@@ -8179,7 +8179,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
     method octint($/) {
         my int $chars := nqp::chars($/);
-        # 17 chars keeps us below 2**52 limit ((2**52).base(16).chars-1) which in double can be
+        # 17 chars keeps us below 2**52 limit ((2**52).base(8).chars-1) which in double can be
         # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
         make $chars > ($?BITS == 64 ?? 17 !! 10)
           ?? string_to_bigint($/, 8, $chars)

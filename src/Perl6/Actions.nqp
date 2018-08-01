@@ -8163,25 +8163,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method decint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > ($?BITS == 64 ?? 16 !! 9)
+        # 15 chars keeps us below 2**52 limit ((2**52).chars-1) which in double can be
+        # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
+        make $chars > ($?BITS == 64 ?? 15 !! 9)
           ?? string_to_bigint($/, 10, $chars)
           !! string_to_int($/, 10, $chars);
     }
     method hexint($/) {
         my int $chars := nqp::chars($/);
+        # 13 chars keeps us below 2**52 limit ((2**52).base(16).chars-1) which in double can be
+        # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
         make $chars > ($?BITS == 64 ?? 14 !! 7)
           ?? string_to_bigint($/, 16, $chars)
           !! string_to_int($/, 16, $chars);
     }
     method octint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > ($?BITS == 64 ?? 20 !! 10)
+        # 17 chars keeps us below 2**52 limit ((2**52).base(16).chars-1) which in double can be
+        # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
+        make $chars > ($?BITS == 64 ?? 17 !! 10)
           ?? string_to_bigint($/, 8, $chars)
           !! string_to_int($/, 8, $chars);
     }
     method binint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > ($?BITS == 64 ?? 62 !! 30)
+        # 52 chars keeps us below 2**52 limit ((2**52).base(2).chars-1) which in double can be
+        # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
+        make $chars > ($?BITS == 64 ?? 52 !! 30)
           ?? string_to_bigint($/, 2, $chars)
           !! string_to_int($/, 2, $chars);
     }

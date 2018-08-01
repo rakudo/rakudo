@@ -8173,7 +8173,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my int $chars := nqp::chars($/);
         # 13 chars keeps us below 2**52 limit ((2**52).base(16).chars-1) which in double can be
         # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
-        make $chars > ($?BITS == 64 ?? 14 !! 7)
+        make $chars > ($?BITS == 64 ?? 13 !! 7)
           ?? string_to_bigint($/, 16, $chars)
           !! string_to_int($/, 16, $chars);
     }

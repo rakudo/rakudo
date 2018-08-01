@@ -2,7 +2,7 @@
 my role Enumeration {
     has $.key;
     has $.value;
-    has Int $!index;
+    has int $!index;
 
     method enums() { self.^enum_values.Map }
 

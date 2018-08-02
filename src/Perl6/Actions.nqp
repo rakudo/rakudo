@@ -7,6 +7,7 @@ use QAST;
 
 my $wantwant := Mu;
 
+# 2147483648 == 2**31. By adding 1 to it with add_i op, on 32-bit boxes it will overflow
 my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
 sub block_closure($code) {
@@ -1314,6 +1315,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $mainline := QAST::Op.new(
                 :op('call'),
                 :name('&MAIN_HELPER'),
+                QAST::WVal.new( # $*IN as $*ARGSFILES
+                    value => $*W.find_symbol: [
+                        'Bool', $*W.lang-ver-before('d') ?? 'False' !! 'True'
+                    ]),
                 $mainline,
             );
         }
@@ -1432,6 +1437,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<delimited>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, 'delimited');
+            return;
+        }
         make Perl6::Pod::any_block($/);
     }
 
@@ -1461,7 +1470,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 nqp::push(@contents, $*W.add_constant(
                     'Str', 'str', ~$_<pod_newline>
                 ).compile_time_value);
-            } else {
+            }
+            else {
                 @contents.push($*W.add_constant('Str', 'str', "\n").compile_time_value);
             }
         }
@@ -1469,6 +1479,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<paragraph>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, 'paragraph');
+            return;
+        }
         make Perl6::Pod::any_block($/);
     }
 
@@ -1492,6 +1506,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<abbreviated>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, 'abbreviated');
+            return;
+        }
         make Perl6::Pod::any_block($/);
     }
 
@@ -8158,25 +8176,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method decint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > ($?BITS == 64 ?? 16 !! 9)
+        # 15 chars keeps us below 2**52 limit ((2**52).chars-1) which in double can be
+        # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
+        make $chars > ($?BITS == 64 ?? 15 !! 9)
           ?? string_to_bigint($/, 10, $chars)
           !! string_to_int($/, 10, $chars);
     }
     method hexint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > ($?BITS == 64 ?? 14 !! 7)
+        # 13 chars keeps us below 2**52 limit ((2**52).base(16).chars-1) which in double can be
+        # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
+        make $chars > ($?BITS == 64 ?? 13 !! 7)
           ?? string_to_bigint($/, 16, $chars)
           !! string_to_int($/, 16, $chars);
     }
     method octint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > ($?BITS == 64 ?? 20 !! 10)
+        # 17 chars keeps us below 2**52 limit ((2**52).base(8).chars-1) which in double can be
+        # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
+        make $chars > ($?BITS == 64 ?? 17 !! 10)
           ?? string_to_bigint($/, 8, $chars)
           !! string_to_int($/, 8, $chars);
     }
     method binint($/) {
         my int $chars := nqp::chars($/);
-        make $chars > ($?BITS == 64 ?? 62 !! 30)
+        # 52 chars keeps us below 2**52 limit ((2**52).base(2).chars-1) which in double can be
+        # represented exactly. See https://github.com/perl6/nqp/issues/363 for why this is desired
+        make $chars > ($?BITS == 64 ?? 52 !! 30)
           ?? string_to_bigint($/, 2, $chars)
           !! string_to_int($/, 2, $chars);
     }
@@ -10107,11 +10133,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $was_chain := $qast.op eq 'chain' ?? $qast.name !! NQPMu;
         my @params;
         my @old_args;
+        my $cur_lexpad := $*W.cur_lexpad;
         my $curry := QAST::Block.new(QAST::Stmts.new, $qast
             ).annotate_self('statement_id', $*STATEMENT_ID
             ).annotate_self( 'in_stmt_mod', $*IN_STMT_MOD,
-            ).annotate_self: 'outer',       $*W.cur_lexpad;
-        $*W.cur_lexpad[0].push: $curry;
+            ).annotate_self: 'outer',       $cur_lexpad;
+        $cur_lexpad[0].push: $curry;
 
         $i := 0;
         while $i < $e {
@@ -10154,7 +10181,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # simply replace this child with a variable that will be set
                 # from the param of the curry we're making
                 my $param := QAST::Var.new(:scope<lexical>,
-                    :name($*W.cur_lexpad[0].unique: '$whatevercode_arg')
+                    :name($cur_lexpad[0].unique: '$whatevercode_arg')
                   ).annotate_self: 'whatever-var', 1;
                 @params.push: hash(
                     :variable_name($param.name),
@@ -10163,12 +10190,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $curry[0].push: $param.decl_as: <var>;
                 $qast[$i] := $param;
                 nqp::push(@old_args, $param) if $was_chain;
-            } elsif (my $orig_ast := $orig.ann: 'past_block') {
+            } else {
                 # This child is not one of the Whatevers or we're in an op
                 # that's not allowed to curry some of them. Simply ignore it,
                 # but ensure we migrate any QAST::Blocks, for correct scoping
-                remove_block($*W.cur_lexpad, $orig_ast);
-                $curry[0].push: $orig_ast;
+                find_block_calls_and_migrate($cur_lexpad, $curry, $orig);
             }
             $i++;
         }
@@ -10176,15 +10202,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # go through any remaining children and just migrate QAST::Blocks
         my $qels := nqp::elems($qast);
         while $i < $qels {
-            my $node := $qast[$i];
-            $node := $node[0]
-                if (nqp::istype($node, QAST::Stmts)
-                ||  nqp::istype($node, QAST::Stmt))
-                && nqp::elems($node) == 1;
-            if (my $orig_ast := $node.ann: 'past_block') {
-                remove_block($*W.cur_lexpad, $orig_ast);
-                $curry[0].push: $orig_ast;
-            }
+            find_block_calls_and_migrate($cur_lexpad, $curry, $qast[$i]);
             $i++;
         }
 
@@ -10213,10 +10231,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $to[0].push: $block;
             remove_block($from, $block, :ignore-not-found);
         }
-        elsif nqp::istype($qast, QAST::Block)
-        || nqp::istype($qast, QAST::Stmts) || nqp::istype($qast, QAST::Stmt)
-        || nqp::istype($qast, QAST::Op)    || nqp::istype($qast, QAST::Regex)
-        || nqp::istype($qast, QAST::NodeList) {
+        elsif nqp::istype($qast, QAST::Node) {
             for @($qast) {
                 find_block_calls_and_migrate($from, $to, $_);
             }

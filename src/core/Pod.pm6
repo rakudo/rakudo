@@ -8,7 +8,7 @@ my class Pod::Block {
         my $leading = ' ' x $level;
         my %confs;
         my @chunks;
-        for <config name level caption type> {
+        for <config name level caption type term> {
             my $thing = $pod.?"$_"();
             if $thing {
                 %confs{$_} = nqp::istype($thing,Iterable)
@@ -41,10 +41,6 @@ my class Pod::Block::Para is Pod::Block {
 
 my class Pod::Block::Named is Pod::Block {
     has $.name;
-}
-
-my class Pod::Block::Defn is Pod::Block::Named {
-    has $.term;
 }
 
 my class Pod::Block::Comment is Pod::Block { }
@@ -110,6 +106,10 @@ my class Pod::Heading is Pod::Block {
 
 my class Pod::Item is Pod::Block {
     has $.level;
+}
+
+my class Pod::Defn is Pod::Block {
+    has $.term;
 }
 
 class Pod::Config {

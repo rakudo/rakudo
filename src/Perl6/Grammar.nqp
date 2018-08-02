@@ -972,7 +972,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         :my $*ALLOW_INLINE_CODE := 0;
         $<type> = [
-            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+            # allow 'defn' to have %config
+            <pod_code_parent> {
+                $*ALLOW_INLINE_CODE := 1;
+            }
             || <identifier>
         ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -1083,6 +1086,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_INLINE_CODE := 0;
         [ :!ratchet
             $<type> = [
+                # allow 'defn' to have %config
                 <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
                 || <identifier>
             ]
@@ -1131,7 +1135,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_INLINE_CODE := 0;
         [ :!ratchet
             $<type> = [
-                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+                # defn special now, can have data on same line
+                <pod_code_parent2> { $*ALLOW_INLINE_CODE := 1 }
                 || <identifier>
             ]
             :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -1174,9 +1179,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         \h* \n
     }
 
+    # these parents can have %config keys in their delimited form,
+    # but no other data on the same line execept for 'item'
     token pod_code_parent {
         [
         | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]
+        | <upper>+
+        ]
+        <![\w]>
+    }
+
+    # these parents can NOT have %config keys in their other forms,
+    # and no other data on the same line execept for 'item' and 'defn'
+    token pod_code_parent2 {
+        [
+        | [ 'pod' | 'item' \d* | 'nested' | 'defn' [\h+ \N*]? | 'finish' ]
         | <upper>+
         ]
         <![\w]>
@@ -4198,7 +4215,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method can_meta($op, $meta, $reason = "fiddly") {
         if $op<OPER> && $op<OPER><O>.made{$reason} == 1 {
-            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
+            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
         }
         self;
     }
@@ -4907,25 +4924,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # (see https://irclog.perlgeek.de/perl6/2017-01-25#i_13988093)
             # If it's neither of those cases, then it's just a sub with an
             # extended name like sub foo:bar<baz> {}; let the user use it.
-
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>");
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*W.lang-ver-before('d');
+
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')
             ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
-
-            # XXX TODO: the conditionals above should actually be like below
-            # However, there is a 6.c-errata test that expects a ::Category
-            # exception even for `:sym<>` tokens. So I'll leave this until 6.d
-            #--------------------------------------------------------------
-            # self.typed_panic(
-            #     'X::Syntax::Extension::Category', :$category
-            # ) if nqp::iseq_s($subname, "$category:<$opname>");
-            # self.typed_panic(
-            #     'X::Syntax::Reserved', :reserved(':sym<> colonpair')
-            # ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
             return 0;
         }
 
@@ -5086,11 +5092,6 @@ if $*COMPILING_CORE_SETTING {
 }
 
 grammar Perl6::QGrammar is HLL::Grammar does STD {
-
-    method throw_unrecog_backslash_seq ($sequence) {
-        self.typed_sorry('X::Backslash::UnrecognizedSequence', :$sequence);
-    }
-
     proto token escape {*}
     proto token backslash {*}
 
@@ -5112,8 +5113,18 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:sym<t> { <sym> }
         token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
-        token backslash:sym<1> { <[1..9]>\d* {} <.sorry("Unrecognized backslash sequence (did you mean \${$/ - 1}?)")> }
-        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
+        token backslash:sym<1> {
+            <[1..9]>\d* {
+              self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+                :sequence(~$/), :suggestion('$' ~ ($/ - 1))
+            }
+        }
+        token backslash:sym<unrec> {
+          {} (\w) {
+            self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+              :sequence($/[0].Str)
+          }
+        }
         token backslash:sym<misc> { \W }
     }
 
@@ -5328,7 +5339,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:misc { {}
             [
             | $<text>=(\W)
-            | $<x>=(\w) <.sorry("Unrecognized backslash sequence: '\\" ~ $<x> ~ "'")>
+            | $<x>=(\w) <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$<x>)>
             ]
         }
         multi method tweak_q($v) { self.panic("Too late for :q") }
@@ -5495,7 +5506,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPacka
         <.[\d] - [0]>\d*
         {}
         :my int $br := nqp::radix(10, $/, 0, 0)[0];
-        <.sorry("Unrecognized backslash sequence (did you mean \${$br == 0 ?? $br !! $br - 1}?)")>
+        <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$/), :suggestion('$' ~ ($/ - 1))>
     }
 
     token assertion:sym<{ }> {

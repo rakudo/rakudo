@@ -972,7 +972,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         :my $*ALLOW_INLINE_CODE := 0;
         $<type> = [
-            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+            # allow 'defn' to have %config
+            <pod_code_parent> {
+                $*ALLOW_INLINE_CODE := 1;
+            }
             || <identifier>
         ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -1083,6 +1086,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_INLINE_CODE := 0;
         [ :!ratchet
             $<type> = [
+                # allow 'defn' to have %config
                 <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
                 || <identifier>
             ]
@@ -1131,7 +1135,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_INLINE_CODE := 0;
         [ :!ratchet
             $<type> = [
-                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+                # defn special now, can have data on same line
+                <pod_code_parent2> { $*ALLOW_INLINE_CODE := 1 }
                 || <identifier>
             ]
             :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -1174,9 +1179,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         \h* \n
     }
 
+    # these parents can have %config keys in their delimited form,
+    # but no other data on the same line execept for 'item'
     token pod_code_parent {
         [
         | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]
+        | <upper>+
+        ]
+        <![\w]>
+    }
+
+    # these parents can NOT have %config keys in their other forms,
+    # and no other data on the same line execept for 'item' and 'defn'
+    token pod_code_parent2 {
+        [
+        | [ 'pod' | 'item' \d* | 'nested' | 'defn' [\h+ \N*]? | 'finish' ]
         | <upper>+
         ]
         <![\w]>

@@ -43,10 +43,6 @@ my class Pod::Block::Named is Pod::Block {
     has $.name;
 }
 
-my class Pod::Block::Defn is Pod::Block::Named {
-    has $.term;
-}
-
 my class Pod::Block::Comment is Pod::Block { }
 
 my class Pod::Block::Code is Pod::Block {
@@ -110,6 +106,10 @@ my class Pod::Heading is Pod::Block {
 
 my class Pod::Item is Pod::Block {
     has $.level;
+}
+
+my class Pod::Defn is Pod::Block {
+    has $.term;
 }
 
 class Pod::Config {

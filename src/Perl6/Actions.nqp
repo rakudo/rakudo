@@ -1437,6 +1437,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<delimited>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, 'delimited');
+            return;
+        }
         make Perl6::Pod::any_block($/);
     }
 
@@ -1474,6 +1478,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<paragraph>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, 'paragraph');
+            return;
+        }
         make Perl6::Pod::any_block($/);
     }
 
@@ -1497,6 +1505,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<abbreviated>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, 'abbreviated');
+            return;
+        }
         make Perl6::Pod::any_block($/);
     }
 

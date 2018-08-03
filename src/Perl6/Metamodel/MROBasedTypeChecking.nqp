@@ -1,5 +1,5 @@
 role Perl6::Metamodel::MROBasedTypeChecking {
-    method isa($obj, $type) {
+    multi method isa($obj, $type) {
         my $decont := nqp::decont($type);
         for self.mro($obj) {
             if nqp::decont($_) =:= $decont { return 1 }

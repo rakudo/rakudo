@@ -1180,7 +1180,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     # these parents can have %config keys in their delimited form,
-    # but no other data on the same line execept for 'item'
+    # but no other data on the same line except for 'item'
     token pod_code_parent {
         [
         | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]

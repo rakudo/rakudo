@@ -114,10 +114,7 @@ class Perl6::Pod {
         die("FATAL: the incoming object is NOT a =defn block, type: $type")
             if $type !~~ /^defn/;
 
-        # for debugging
-        my $msg := $has-config ?? " [config: {$<pod_configuration>.dump}]" !! '';
-
-        my $term := '';
+        my $term       := '';
         my $new-config := '';
         if $blocktype ~~ /abbrev/ {
             # there must NOT be any existing config

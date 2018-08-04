@@ -203,15 +203,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                   nqp::if(
                     nqp::isle_i($todo, 0),
                     nqp::create(self), # we want zero elements; return empty Blob
-                    nqp::stmts(
-                      (my $subbuf := nqp::create(self)),
-                      nqp::setelems($subbuf, $todo),
-                      (my int $i = -1),
-                      --$pos,
-                      nqp::while(
-                        nqp::islt_i(++$i,$todo),
-                        nqp::bindpos_i($subbuf, $i, nqp::atpos_i(self, ++$pos))),
-                      $subbuf)))))))
+                    nqp::slice(self, $pos, $pos + $todo - 1)))))))
     }
 
     method reverse(Blob:D:) {

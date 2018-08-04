@@ -59,7 +59,8 @@ my class Routine { # declared in BOOTSTRAP
         if self.name() -> $n {
             $perl ~= " $n";
         }
-        $perl ~= ' ' ~ substr(self.signature().perl,1); # lose colon prefix
+        my $sig := self.signature.perl;
+        $perl ~= " $sig.substr(1)" unless $sig eq ':()';
         $perl ~= self.onlystar
           ?? ' {*}'
           !! self.yada

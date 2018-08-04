@@ -485,12 +485,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                               ),
                               nqp::while(        # 10's flock together
                                 nqp::islt_i(($i = nqp::add_i($i,1)),$count)
-                                  && nqp::iseq_i(
-                                       nqp::atpos(
-                                         ($task := nqp::atpos($bp,$i)),
-                                         0
-                                       ),10
-                                     ),
+                                  && nqp::islist($task := nqp::atpos($bp,$i))
+                                  && nqp::iseq_i(nqp::atpos($task,0),10),
                                 nqp::getattr(self,
                                   nqp::atpos($task,1),
                                   nqp::atpos($task,2)

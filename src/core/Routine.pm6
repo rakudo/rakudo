@@ -48,6 +48,15 @@ my class Routine { # declared in BOOTSTRAP
         self.dispatcher.defined
     }
 
+    multi method gist(Routine:D:) {
+        if self.name -> $name {
+            "&$name"
+        }
+        else {
+            ( self.^name ~~ m/^\w+/ ).lc ~ ' { }'
+        }
+    }
+
     multi method perl(Routine:D:) {
         my $perl = ( self.^name ~~ m/^\w+/ ).lc;
         if self.is_dispatcher {

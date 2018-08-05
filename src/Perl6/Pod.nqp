@@ -81,6 +81,11 @@ class Perl6::Pod {
     # literal normal space (U+0020)
     my $SPACE := "\x[0020]";
 
+    # defn block types
+    my $defn-para   := 'paragraph';
+    my $defn-delim  := 'delimited';
+    my $defn-abbrev := 'abbreviated';
+
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
             nqp::die("You must provide one of leading or trailing to Perl6::Pod::document");
@@ -93,6 +98,125 @@ class Perl6::Pod {
                 $*W.apply_trait($/, '&trait_mod:<is>', $what, :trailing_docs($with));
             }
         }
+    }
+
+    our sub defn($/, $blocktype) {
+        # produces a Perl 6 instance of Pod::Defn
+
+        # save config final handling until we know whether
+        #   we need to add another key/value
+        my $has-config := $<pod_configuration> ?? 1 !! 0;
+        my $config := $<pod_configuration>
+            ?? $<pod_configuration>.ast
+            !! serialize_object('Hash').compile_time_value;
+
+        my $type := $<type>.Str;
+        die("FATAL: the incoming object is NOT a =defn block, type: $type")
+            if $type !~~ /^defn/;
+
+        my $term       := '';
+        my $new-config := '';
+        if $blocktype ~~ /abbrev/ {
+            # there must NOT be any existing config
+            die("FATAL: =defn abbreviated block type has unexpected \$<pod_configuration>")
+                if $<pod_configuration>;
+
+            # the term is on the =defn line
+            # two examples of $type line (=defn ...text...)
+            #   defn term 2
+            #   defn # my term 3
+            # extract needed data
+            my $s := nqp::substr($type, 4); # skip past 'defn'
+            # if there is a leading hash mark ('#') it is an alias for ':numbered'
+            my $rx := /^ \h* '#'/;
+            my $m := match($s, $rx);
+            if $m {
+                # remove the '#' and the term remains
+                $s := subst($s, $rx, '');
+                $term := normalize_text($s);
+                # we will need to create a new %config hash key:
+                $new-config := 'numbered';
+            }
+            else {
+                $term := normalize_text($s);
+            }
+        }
+
+        # the final Perl 6 type
+        my $p6type := 'Pod::Defn';
+
+        # get all content lines
+        # the first line is the term for all but the abbreviated form
+        my @children := [];
+        for $<pod_content> {
+            # split lines at newlines
+            my @lines := lines($_);
+            for @lines {
+                my $s := normalize_text($_);
+                @children.push($s);
+            }
+        }
+
+        $term := @children.shift if !$term;
+
+        # the remaining @children array should have lines of text with an empty line
+        # being a paragraph separator. combine consecutive paragraph lines into a single line.
+        my @paras := [];
+        my $para-line := '';
+        for @children -> $line {
+            if $line {
+                # concat to the current line
+                $para-line := nqp::concat($para-line, $SPACE) if $para-line;
+                $para-line := nqp::concat($para-line, $line);
+            }
+            else {
+                # put existing line in the para array and start a new line
+                @paras.push($para-line);
+                $para-line := '';
+            }
+        }
+        # don't forget the last line
+        @paras.push($para-line) if $para-line;
+
+        # now build the Pod::Defn class
+        my @pcontents := [];
+        for @paras -> $para {
+            # each para is a new pod para class
+            my @contents := nqp::list($para);
+            @contents    := serialize_array(@contents).compile_time_value;
+            my $obj := serialize_object('Pod::Block::Para', :@contents).compile_time_value;
+            @pcontents.push($obj);
+        }
+        my $contents := serialize_array(@pcontents).compile_time_value;
+
+        my $term-p6ast := $*W.add_constant(
+            'Str', 'str', $term,
+        ).compile_time_value;
+        my $name := $*W.add_constant('Str', 'str', 'defn');
+
+        # construct the new %config hash if need be
+        if $new-config {
+            # create key/value pairs to be serialized
+            my @pairs := nqp::list();
+            my $key := 'numbered';
+            my $val := '';
+            @pairs.push(
+                serialize_object(
+                    'Pair', :key($key), :value($val)
+                ).compile_time_value
+            );
+            $config := serialize_object('Hash', |@pairs).compile_time_value;
+        }
+
+        # build and return the complete object
+        my $p6ast := serialize_object(
+            $p6type,
+            :name($name.compile_time_value),
+            :config($config),
+            :contents($contents),
+            :term($term-p6ast),
+        );
+        return $p6ast.compile_time_value;
     }
 
     our sub any_block($/) {
@@ -110,6 +234,9 @@ class Perl6::Pod {
         elsif $<type>.Str ~~ /^head \d+$/ {
             $type    := 'Pod::Heading';
             $leveled := 1;
+        }
+        elsif $<type>.Str ~~ /^defn / {
+            die("FATAL: should not be able to get here with a =defn block");
         }
         else {
             $type := 'Pod::Block::Named';
@@ -390,7 +517,7 @@ class Perl6::Pod {
     }
 
     our sub make_config($/) {
-        my @pairs;
+        my @pairs := [];
         for $<colonpair> -> $colonpair {
             my $key := $colonpair<identifier>;
             say("==DEBUG config colonpair key: |$key|") if $debugp;
@@ -435,12 +562,14 @@ class Perl6::Pod {
                 $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
             }
 
-            if $key eq "allow" {
+            if $key eq 'allow' {
                 my $chars := nqp::chars($val);
                 my $pos := 0;
                 while $pos < $chars {
                     my $char := nqp::substr($val, $pos, 1);
-                    if $char eq " " {
+                    # space char
+                    #if $char eq " " {
+                    if $char eq $SPACE {
                         $pos := $pos + 1;
                     }
                     else {
@@ -516,7 +645,21 @@ class Perl6::Pod {
 
         }
         return build_pod_strings(@strings);
+    }
 
+    our sub lines($S, :$no-chomp) {
+        # Takes a string and separates it into an array of lines at
+        # each newline.
+        #
+        # uses nqp::split(str $delimiter, str $string --> Mu)
+
+        # not usual:
+        return nqp::split("\n", $S) if $no-chomp;
+
+        # default:
+        # remove leading and trailing newlines
+        my $s := trim-string($S);
+        return nqp::split("\n", $s) if !$no-chomp;
     }
 
     # Takes an array of arrays of pod characters (normal character or
@@ -622,7 +765,9 @@ class Perl6::Pod {
     }
 
     # TODO This sub is for future work on pod formatting issues.
+    # TODO this sub may be obsolete after the formatting codes merge CHECK!!
     #      It isn't currently used.
+    =begin comment
     sub string2twine($S) {
         # takes a simple string with unhandled formatting code
         # and converts it into a twine data structure. primarily
@@ -654,6 +799,7 @@ class Perl6::Pod {
 
         return $ret;
     }
+    =end comment
 
     our sub table($/) {
         # extract any caption from $config and serialize it

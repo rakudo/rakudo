@@ -623,7 +623,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         Proxy.new(
             FETCH   => sub ($) { $subbuf },
             STORE   => sub ($, Blob:D $new) {
-                nqp::splice(nqp::decont(self),nqp::decont($new),$from,$elems)
+                nqp::splice(self,nqp::decont($new),$from,$elems)
             }
         );
     }

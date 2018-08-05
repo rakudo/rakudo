@@ -170,40 +170,80 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self.^name ~ '.new(' ~ self.join(',') ~ ')';
     }
 
-    method subbuf(Blob:D: $from, $length?) {
-        nqp::stmts(
-          (my int $elems = nqp::elems(self)),
+    # Made this a sub instead of a private method so that the optimizer
+    # doesn't need to put in IntLexRef's for the native int parameters.
+    # Since we're not using any attributes, just self, that was an easy
+    # choice to make.
+    sub subbuf-end(\SELF, int $start, int $end, int $elems) {
+        nqp::if(
+          nqp::islt_i($start,0) || nqp::isgt_i($start,$elems),
+          Failure.new( X::OutOfRange.new(
+            what  => '"From argument to subbuf',
+            got   => $start,
+            range => "0.." ~ $elems
+          )),
           nqp::if(
-            $length.DEFINITE && $length < 0,
-            X::OutOfRange.new(
-              :what('Len element to subbuf'), :got($length), :range("0..$elems"),
-            ).fail,
-            nqp::stmts(
-              (my int $pos),
-              (my int $todo),
-              nqp::if(
-                nqp::istype($from,Range),
-                nqp::stmts(
-                  $from.int-bounds($pos, my int $max),
-                  ($todo = nqp::add_i(nqp::sub_i($max, $pos), 1))),
-                nqp::stmts(
-                  ($pos = nqp::istype($from, Callable) ?? $from($elems) !! $from.Int),
-                  ($todo = $length.DEFINITE ?? $length.Int min $elems - $pos !! $elems - $pos))),
-              nqp::if(
-                nqp::islt_i($pos, 0),
-                X::OutOfRange.new(
-                  :what('From argument to subbuf'), :got($from.gist), :range("0..$elems"),
-                  :comment("use *-{abs $pos} if you want to index relative to the end"),
-                ).fail,
-                nqp::if(
-                  nqp::isgt_i($pos, $elems),
-                  X::OutOfRange.new(
-                    :what('From argument to subbuf'), :got($from.gist), :range("0..$elems"),
-                  ).fail,
-                  nqp::if(
-                    nqp::isle_i($todo, 0),
-                    nqp::create(self), # we want zero elements; return empty Blob
-                    nqp::slice(self, $pos, $pos + $todo - 1)))))))
+            nqp::isle_i(
+              (my int $last = nqp::if(nqp::isge_i($end,$elems),$elems-1,$end)),
+              $start - 1
+            ),                                # 0 elements to return
+            nqp::create(SELF),                # just create a new one
+            nqp::slice(SELF,$start,$last)     # do the actual slice
+          )
+        )
+    }
+    sub subbuf-length(\SELF, int $from, int $length, int $elems) {
+        nqp::if(
+          nqp::islt_i($length,0),
+          Failure.new( X::OutOfRange.new(
+            what  => 'Len element to subbuf',
+            got   => $length,
+            range => "0.." ~ $elems
+          )),
+          subbuf-end(SELF, $from, $from + $length - 1, $elems)
+        )
+    }
+
+    proto method subbuf(|) {*}
+    multi method subbuf(Blob:D: Range:D $fromto) {
+        nqp::if(
+          nqp::getattr_i($fromto,Range,'$!is-int'),
+          nqp::stmts(
+            (my int $start = nqp::add_i(
+              nqp::unbox_i(nqp::getattr($fromto,Range,'$!min')),
+              nqp::getattr_i($fromto,Range,'$!excludes-min')
+            )),
+            (my int $end = nqp::sub_i(
+              nqp::unbox_i(nqp::getattr($fromto,Range,'$!max')),
+              nqp::getattr_i($fromto,Range,'$!excludes-max')
+            )),
+            subbuf-end(self, $start, $end, nqp::elems(self))
+          ),
+          Failure.new( X::AdHoc.new(
+            payload => "Must specify a Range with integer bounds to subbuf"
+          ))
+        )
+    }
+    multi method subbuf(Blob:D: Int:D $From) {
+        my int $elems = nqp::elems(self);
+        my int $from  = $From;
+        subbuf-end(self, $from, $elems, $elems)
+    }
+    multi method subbuf(Blob:D: &From) {
+        my int $elems = nqp::elems(self);
+        my int $from  = From(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $elems, $elems)
+    }
+    multi method subbuf(Blob:D: Int:D $From, Int:D $Length) {
+        my int $from   = $From;
+        my int $length = $Length;
+        subbuf-length(self, $from, $length, nqp::elems(self))
+    }
+    multi method subbuf(Blob:D: &From, Int:D $Length) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = From(nqp::box_i($elems,Int));
+        my int $length = $Length;
+        subbuf-length(self, $from, $length, $elems)
     }
 
     method reverse(Blob:D:) {

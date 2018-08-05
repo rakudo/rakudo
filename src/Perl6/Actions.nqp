@@ -3667,6 +3667,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif @nosigil {
                 $/.typed_panic('X::Syntax::Term::MissingInitializer');
             }
+            else {
+                $list := QAST::Want.new($list, 'v', QAST::Op.new( :op('null')));
+            }
 
             make $list;
         }

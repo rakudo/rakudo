@@ -1537,31 +1537,15 @@ class Perl6::Optimizer {
         my $array_var := $op[0];
 
         for $reified -> $var {
-            if nqp::istype($var,$!symbols.find_in_setting("Range")) {
-                if $var.is-int {
-                    my $first := $var.min + $var.excludes-min;
-                    my $last  := $var.max - $var.excludes-max;
-                    my int $i := $first - 1;
-                    until ++$i > $last {
-                        my $index := $i;
-                        $*W.add_object($index);
-                        $new_op.push: QAST::Op.new(:op('callmethod'),
-                          :name('AT-POS'),
-                          $array_var,
-                          QAST::WVal.new(:value($index))
-                        );
-                    }
-                }
-                else {
-                    nqp::die("Can only use Ranges with integer values as indexes");
-                }
-            }
-            else {
+            if nqp::istype($var,$!symbols.find_in_setting("Int")) {
                 $new_op.push: QAST::Op.new(:op('callmethod'),
                   :name('AT-POS'),
                   $array_var,
                   QAST::WVal.new(:value($var))
                 );
+            }
+            else {
+                return $op;  # alas, too complex for now
             }
         }
 

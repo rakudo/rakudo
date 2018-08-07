@@ -396,7 +396,7 @@ do {
 
         method repl-print(Mu $value --> Nil) {
             nqp::can($value, 'gist')
-              and $value.say
+              and say $value
               or say "(low-level object `$value.^name()`)";
 
             CATCH {

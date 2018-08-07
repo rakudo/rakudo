@@ -200,25 +200,21 @@ constant NaN = nqp::p6box_n(nqp::nan());
 # For some reason, we cannot move this to Rakudo::Internals as a class
 # method, because then the return value is always HLLized :-(
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
-    nqp::if(
-      nqp::isconcrete(nqp::getattr(hash,Map,'$!storage')),
-      nqp::stmts(
-        (my $clone := nqp::hash),
-        (my $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
-        nqp::while(
-          $iter,
-          nqp::bindkey($clone,
-            nqp::iterkey_s(nqp::shift($iter)),
-            nqp::if(
-              nqp::defined(nqp::iterval($iter)),
-              nqp::decont(nqp::iterval($iter)).Str,
-              ''
-            )
+    nqp::stmts(
+      (my $clone := nqp::hash),
+      (my $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
+      nqp::while(
+        $iter,
+        nqp::bindkey($clone,
+          nqp::iterkey_s(nqp::shift($iter)),
+          nqp::if(
+            nqp::defined(nqp::iterval($iter)),
+            nqp::decont(nqp::iterval($iter)).Str,
+            ''
           )
-        ),
-        $clone
+        )
       ),
-      nqp::hash
+      $clone
     )
 }
 

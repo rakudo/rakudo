@@ -1407,7 +1407,11 @@ BEGIN {
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
             nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
-            if nqp::existskey(%other, 'container_descriptor') {
+            if nqp::existskey(%other, 'auto_viv_primitive') {
+                nqp::bindattr($attr, Attribute, '$!auto_viv_container',
+                    %other<auto_viv_primitive>);
+            }
+            elsif nqp::existskey(%other, 'container_descriptor') {
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', %other<container_descriptor>);
                 if nqp::existskey(%other, 'auto_viv_container') {
                     nqp::bindattr($attr, Attribute, '$!auto_viv_container',
@@ -1736,6 +1740,13 @@ BEGIN {
             return Attribute.new( :$name, :$type, :$package,
                 :container_descriptor($cd), :$associative_delegate );
         }
+    }
+
+    # Helper for creating an attribute that vivifies to a clone of some VM
+    # storage type; used for the storage slots of arrays and hashes.
+    sub storage_attr($name, $type, $package, $clonee, :$associative_delegate) {
+        return Attribute.new( :$name, :$type, :$package, :auto_viv_primitive($clonee),
+            :$associative_delegate );
     }
 
     # class Signature is Any{

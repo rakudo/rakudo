@@ -3249,7 +3249,8 @@ BEGIN {
     # my class Map is Cool {
     #     has Mu $!storage;
     Map.HOW.add_parent(Map, Cool);
-    Map.HOW.add_attribute(Map, scalar_attr('$!storage', Mu, Map, :associative_delegate));
+    Map.HOW.add_attribute(Map, storage_attr('$!storage', Mu, Map, nqp::hash(),
+        :associative_delegate));
     Map.HOW.compose_repr(Map);
     nqp::settypehllrole(Map, 5);
 

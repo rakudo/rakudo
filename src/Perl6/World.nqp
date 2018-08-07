@@ -1604,9 +1604,6 @@ class Perl6::World is HLL::World {
         elsif nqp::istype($cont_type, self.find_symbol(['Hash'], :setting-only)) {
             $cont := nqp::create($cont_type);
             nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-            my $Map := self.find_symbol(['Map'], :setting-only);
-            my $Mu := self.find_symbol(['Mu'], :setting-only);
-            nqp::bindattr($cont, $Map, '$!storage', $Mu);
         }
         else {
             $cont := $cont_type.new;

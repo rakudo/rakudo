@@ -76,7 +76,7 @@ my class Array { # declared in BOOTSTRAP
               iter.push-until-lazy:
                 my \target := ArrayReificationTarget.new(
                   (my \buffer := nqp::create(IterationBuffer)),
-                  nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor))),
+                  nqp::clone($!descriptor))),
             nqp::p6bindattrinvres(result, List, '$!reified', buffer),
             nqp::stmts(
               nqp::bindattr(result, List, '$!reified', buffer),
@@ -200,7 +200,7 @@ my class Array { # declared in BOOTSTRAP
             $iter.push-until-lazy(
               my \target := ArrayReificationTarget.new(
                 (my \buffer := nqp::create(IterationBuffer)),
-                nqp::null
+                nqp::getcurhllsym('perl6', 'default_cont_spec')
               )
             ),
             IterationEnd

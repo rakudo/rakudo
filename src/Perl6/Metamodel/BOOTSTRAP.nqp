@@ -3243,7 +3243,8 @@ BEGIN {
     # class Array is List {
     #     has Mu $!descriptor;
     Array.HOW.add_parent(Array, List);
-    Array.HOW.add_attribute(Array, scalar_attr('$!descriptor', Mu, Array, :!auto_viv_container));
+    Array.HOW.add_attribute(Array, storage_attr('$!descriptor', Mu, Array,
+        Scalar.HOW.cache_get(Scalar, 'default_cont_spec')));
     Array.HOW.compose_repr(Array);
 
     # my class Map is Cool {
@@ -3257,7 +3258,8 @@ BEGIN {
     # my class Hash is Map {
     #     has Mu $!descriptor;
     Hash.HOW.add_parent(Hash, Map);
-    Hash.HOW.add_attribute(Hash, scalar_attr('$!descriptor', Mu, Hash, :!auto_viv_container));
+    Hash.HOW.add_attribute(Hash, storage_attr('$!descriptor', Mu, Hash,
+        Scalar.HOW.cache_get(Scalar, 'default_cont_spec')));
     Hash.HOW.compose_repr(Hash);
     nqp::settypehllrole(Hash, 5);
 

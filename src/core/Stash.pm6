@@ -28,17 +28,14 @@ my class Stash { # declared in BOOTSTRAP
     }
 
     method package_at_key(Stash:D: str $key) {
-        my Mu $storage := nqp::defined(nqp::getattr(self, Map, '$!storage')) ??
-            nqp::getattr(self, Map, '$!storage') !!
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
-        if nqp::existskey($storage, nqp::unbox_s($key)) {
-            nqp::atkey($storage, $key)
-        }
-        else {
-            my $pkg := Metamodel::PackageHOW.new_type(:name($key));
-            $pkg.^compose;
-            nqp::bindkey($storage, $key, $pkg)
-        }
+        nqp::ifnull(
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+          nqp::stmts(
+            (my $pkg := Metamodel::PackageHOW.new_type(:name($key))),
+            $pkg.^compose,
+            nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$key,$pkg)
+          )
+        )
     }
 
     multi method gist(Stash:D:) {

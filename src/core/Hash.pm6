@@ -443,25 +443,16 @@ my class Hash { # declared in BOOTSTRAP
         # eventuality, so to appease roast, we need these.
         multi method ASSIGN-KEY(::?CLASS:D: Str:D \key, Mu \assignval) is raw {
             nqp::if(
-              nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-              nqp::if(
-                nqp::existskey(
-                  nqp::getattr(self,Map,'$!storage'),
-                  nqp::unbox_s(key)
-                ),
-                (nqp::atkey(
-                  nqp::getattr(self,Map,'$!storage'),
-                  nqp::unbox_s(key)
-                ) = assignval),
-                nqp::bindkey(
-                  nqp::getattr(self,Map,'$!storage'),
-                  nqp::unbox_s(key),
-                  nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Hash,'$!descriptor')) = assignval
-                )
+              nqp::existskey(
+                nqp::getattr(self,Map,'$!storage'),
+                nqp::unbox_s(key)
               ),
+              (nqp::atkey(
+                nqp::getattr(self,Map,'$!storage'),
+                nqp::unbox_s(key)
+              ) = assignval),
               nqp::bindkey(
-                nqp::bindattr(self,Map,'$!storage',nqp::hash),
+                nqp::getattr(self,Map,'$!storage'),
                 nqp::unbox_s(key),
                 nqp::p6scalarfromdesc(
                   nqp::getattr(self,Hash,'$!descriptor')) = assignval
@@ -472,26 +463,12 @@ my class Hash { # declared in BOOTSTRAP
             nqp::stmts(
               (my str $key = nqp::unbox_s(key.Str)),
               nqp::if(
-                nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-                nqp::if(
-                  nqp::existskey(
-                    nqp::getattr(self,Map,'$!storage'),
-                    $key
-                  ),
-                  (nqp::atkey(
-                    nqp::getattr(self,Map,'$!storage'),
-                    $key
-                  ) = assignval),
-                  nqp::bindkey(
-                    nqp::getattr(self,Map,'$!storage'),
-                    nqp::unbox_s(key.Str),
-                    nqp::p6scalarfromdesc(
-                      nqp::getattr(self,Hash,'$!descriptor')) = assignval
-                  )
-                ),
+                nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
+                (nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key)
+                  = assignval),
                 nqp::bindkey(
-                  nqp::bindattr(self,Map,'$!storage',nqp::hash),
-                  $key,
+                  nqp::getattr(self,Map,'$!storage'),
+                  nqp::unbox_s(key.Str),
                   nqp::p6scalarfromdesc(
                     nqp::getattr(self,Hash,'$!descriptor')) = assignval
                 )

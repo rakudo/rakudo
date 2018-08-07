@@ -137,7 +137,7 @@ my class Array { # declared in BOOTSTRAP
                     )
                 }
                 method hole(int $i) {
-                     nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                     nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindArrayPos.new(
                          $!descriptor, $!reified, $i))
                 }
                 method done() is raw {
@@ -331,7 +331,7 @@ my class Array { # declared in BOOTSTRAP
             multi method AT-POS(Int:D \pos) {
                 nqp::ifnull(
                   nqp::atpos(nqp::getattr(self,List,'$!reified'),pos),
-                  nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                  nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindArrayPos.new(
                     $!descriptor, nqp::getattr(self,List,'$!reified'), pos))
                 )
             }
@@ -386,7 +386,7 @@ my class Array { # declared in BOOTSTRAP
                       nqp::bindpos(
                         $reified,
                         $i,
-                        nqp::p6scalarfromdesc($!descriptor)
+                        nqp::p6scalarfromcertaindesc($!descriptor)
                       )
                     )
                   )
@@ -551,7 +551,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::bindpos(
                   nqp::getattr(self,List,'$!reified'),
                   $pos,
-                  nqp::p6scalarfromdesc($!descriptor)
+                  nqp::p6scalarfromcertaindesc($!descriptor)
                 ),
                 nqp::if(
                   nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
@@ -566,14 +566,14 @@ my class Array { # declared in BOOTSTRAP
                       nqp::bindpos(              # outlander
                         nqp::getattr(self,List,'$!reified'),
                         $pos,
-                        nqp::p6scalarfromdesc($!descriptor)
+                        nqp::p6scalarfromcertaindesc($!descriptor)
                       )
                     )
                   ),
                   nqp::bindpos(                  # outlander without todo
                     nqp::getattr(self,List,'$!reified'),
                     $pos,
-                    nqp::p6scalarfromdesc($!descriptor)
+                    nqp::p6scalarfromcertaindesc($!descriptor)
                   )
                 )
               )
@@ -581,7 +581,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindpos(                        # new outlander
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
               $pos,
-              nqp::p6scalarfromdesc($!descriptor)
+              nqp::p6scalarfromcertaindesc($!descriptor)
             )
           ) = assignee
         )

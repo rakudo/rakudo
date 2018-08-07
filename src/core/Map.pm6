@@ -52,16 +52,15 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method Hash(Map:U:) { Hash }
     multi method Hash(Map:D:) {
-        if nqp::defined($!storage) && nqp::elems($!storage) {
+        if nqp::elems($!storage) {
             my $hash       := nqp::create(Hash);
             my $storage    := nqp::bindattr($hash,Map,'$!storage',nqp::hash);
-            my $descriptor := nqp::null;
+            my $descriptor := nqp::getcurhllsym('default_cont_spec');
             my $iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
             nqp::while(
               $iter,
               nqp::bindkey($storage,nqp::iterkey_s(nqp::shift($iter)),
-                nqp::p6scalarfromdesc($descriptor) =
-                  nqp::decont(nqp::iterval($iter))
+                nqp::p6scalarwithvalue($descriptor, nqp::decont(nqp::iterval($iter)))
               )
             );
             $hash
@@ -72,10 +71,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method Bool(Map:D:) {
-        nqp::p6bool(nqp::defined($!storage) && nqp::elems($!storage));
+        nqp::p6bool(nqp::elems($!storage));
     }
     method elems(Map:D:) {
-        nqp::p6box_i(nqp::defined($!storage) && nqp::elems($!storage));
+        nqp::p6box_i(nqp::elems($!storage));
     }
     multi method Int(Map:D:)     { self.elems }
     multi method Numeric(Map:D:) { self.elems }
@@ -85,7 +84,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::stmts(
           (my $buffer := nqp::create(IterationBuffer)),
           nqp::if(
-            nqp::defined($!storage) && nqp::elems($!storage),
+            nqp::elems($!storage),
             nqp::stmts(
               (my $iterator := nqp::iterator($!storage)),
               nqp::setelems($buffer,nqp::elems($!storage)),
@@ -157,14 +156,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-KEY(Map:D: Str:D \key) {
-        nqp::p6bool(
-          nqp::defined($!storage) && nqp::existskey($!storage,key)
-        )
+        nqp::p6bool(nqp::existskey($!storage,key))
     }
     multi method EXISTS-KEY(Map:D: \key) {
-        nqp::p6bool(
-          nqp::defined($!storage) && nqp::existskey($!storage,key.Str)
-        )
+        nqp::p6bool(nqp::existskey($!storage,key.Str))
     }
 
     multi method gist(Map:D:) {
@@ -287,18 +282,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method AT-KEY(Map:D: Str:D \key) is raw {
-        nqp::defined($!storage)
-          ?? nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
-          !! Nil
+        nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
     }
     multi method AT-KEY(Map:D: \key) is raw {
-        nqp::defined($!storage)
-          ?? nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
-          !! Nil
+        nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
     }
 
     multi method ASSIGN-KEY(Map:D: \key, Mu \value) {
-        die nqp::defined($!storage) && nqp::existskey($!storage,key.Str)
+        die nqp::existskey($!storage,key.Str)
           ?? "Cannot change key '{key}' in an immutable {self.^name}"
           !! "Cannot add key '{key}' to an immutable {self.^name}"
     }
@@ -452,17 +443,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method Capture(Map:D:) {
-        nqp::defined($!storage)
-          ?? nqp::p6bindattrinvres(
-               nqp::create(Capture),Capture,'%!hash',$!storage)
-          !! nqp::create(Capture)
+        nqp::p6bindattrinvres(nqp::create(Capture),Capture,'%!hash',$!storage)
     }
 
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() {
-        nqp::defined($!storage)
-          ?? $!storage
-          !! nqp::bindattr(self,Map,'$!storage',nqp::hash)
+        $!storage
     }
 
     method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n") {

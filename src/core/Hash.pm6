@@ -29,7 +29,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method !AT_KEY_CONTAINER(Str:D \key) is raw {
-        nqp::p6scalarfromdesc(ContainerDescriptor::BindHashPos.new($!descriptor, self, key))
+        nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindHashPos.new($!descriptor, self, key))
     }
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {
@@ -166,7 +166,7 @@ my class Hash { # declared in BOOTSTRAP
               nqp::unbox_s(key)),
             $value
           ),
-          nqp::p6scalarfromdesc($!descriptor)
+          nqp::p6scalarfromcertaindesc($!descriptor)
         )
     }
     multi method DELETE-KEY(Hash:D: \key) {
@@ -179,7 +179,7 @@ my class Hash { # declared in BOOTSTRAP
               nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$key),
               $value
             ),
-            nqp::p6scalarfromdesc($!descriptor)
+            nqp::p6scalarfromcertaindesc($!descriptor)
           )
         )
     }

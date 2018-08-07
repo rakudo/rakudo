@@ -112,7 +112,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method head(Map:D:) {
         nqp::if(
-          nqp::isconcrete($!storage) && nqp::elems($!storage),
+          nqp::elems($!storage),
           Pair.new(
             nqp::iterkey_s(
               nqp::shift(my $iterator := nqp::iterator($!storage))
@@ -307,7 +307,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # to do, is to decontainerize the values.
     method !STORE_MAP_FROM_MAP(\map --> Nil) {
         nqp::if(
-          nqp::isconcrete(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::elems(my $other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
             (my $iter := nqp::iterator($other)),
             nqp::while(
@@ -327,7 +327,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # the object key and a value that we need to decontainerize.
     method !STORE_MAP_FROM_OBJECT_HASH(\map --> Nil) {
         nqp::if(
-          nqp::isconcrete(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::elems(my $other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
             (my $iter := nqp::iterator($other)),
             nqp::while(
@@ -412,7 +412,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::if(
             nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
             nqp::if(
-              nqp::isconcrete(my $other := nqp::getattr(map,Map,'$!storage')),
+              nqp::elems(my $other := nqp::getattr(map,Map,'$!storage')),
               nqp::if(
                 nqp::eqaddr(self.WHAT,Map),
                 nqp::p6bindattrinvres(

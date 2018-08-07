@@ -1407,7 +1407,11 @@ BEGIN {
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
             nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
-            if nqp::existskey(%other, 'container_descriptor') {
+            if nqp::existskey(%other, 'auto_viv_primitive') {
+                nqp::bindattr($attr, Attribute, '$!auto_viv_container',
+                    %other<auto_viv_primitive>);
+            }
+            elsif nqp::existskey(%other, 'container_descriptor') {
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', %other<container_descriptor>);
                 if nqp::existskey(%other, 'auto_viv_container') {
                     nqp::bindattr($attr, Attribute, '$!auto_viv_container',
@@ -1736,6 +1740,13 @@ BEGIN {
             return Attribute.new( :$name, :$type, :$package,
                 :container_descriptor($cd), :$associative_delegate );
         }
+    }
+
+    # Helper for creating an attribute that vivifies to a clone of some VM
+    # storage type; used for the storage slots of arrays and hashes.
+    sub storage_attr($name, $type, $package, $clonee, :$associative_delegate) {
+        return Attribute.new( :$name, :$type, :$package, :auto_viv_primitive($clonee),
+            :$associative_delegate );
     }
 
     # class Signature is Any{
@@ -3232,20 +3243,23 @@ BEGIN {
     # class Array is List {
     #     has Mu $!descriptor;
     Array.HOW.add_parent(Array, List);
-    Array.HOW.add_attribute(Array, scalar_attr('$!descriptor', Mu, Array, :!auto_viv_container));
+    Array.HOW.add_attribute(Array, storage_attr('$!descriptor', Mu, Array,
+        Scalar.HOW.cache_get(Scalar, 'default_cont_spec')));
     Array.HOW.compose_repr(Array);
 
     # my class Map is Cool {
     #     has Mu $!storage;
     Map.HOW.add_parent(Map, Cool);
-    Map.HOW.add_attribute(Map, scalar_attr('$!storage', Mu, Map, :associative_delegate));
+    Map.HOW.add_attribute(Map, storage_attr('$!storage', Mu, Map, nqp::hash(),
+        :associative_delegate));
     Map.HOW.compose_repr(Map);
     nqp::settypehllrole(Map, 5);
 
     # my class Hash is Map {
     #     has Mu $!descriptor;
     Hash.HOW.add_parent(Hash, Map);
-    Hash.HOW.add_attribute(Hash, scalar_attr('$!descriptor', Mu, Hash, :!auto_viv_container));
+    Hash.HOW.add_attribute(Hash, storage_attr('$!descriptor', Mu, Hash,
+        Scalar.HOW.cache_get(Scalar, 'default_cont_spec')));
     Hash.HOW.compose_repr(Hash);
     nqp::settypehllrole(Hash, 5);
 

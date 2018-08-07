@@ -720,10 +720,12 @@ register_op_desugar('p6scalarfromdesc', -> $qast {
         )
     )
 });
-register_op_desugar('p6scalarwithvalue', -> $qast {
+# The "certain" variant is allowed to assume the container descriptor is
+# reliably provided, so need not map it to the default one. Ideally, we'll
+# eventually have everything using this version of the op.
+register_op_desugar('p6scalarfromcertaindesc', -> $qast {
     my $desc := QAST::Node.unique('descriptor');
     my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
-    my $default_cont_spec := nqp::gethllsym('perl6', 'default_cont_spec');
     QAST::Stmt.new(
         QAST::Op.new(
             :op('bind'),
@@ -731,24 +733,35 @@ register_op_desugar('p6scalarwithvalue', -> $qast {
             $qast[0]
         ),
         QAST::Op.new(
-            :op('p6assign'),
+            :op('p6bindattrinvres'),
             QAST::Op.new(
                 :op('p6bindattrinvres'),
                 QAST::Op.new( :op('create'), $Scalar ),
                 $Scalar,
                 QAST::SVal.new( :value('$!descriptor') ),
-                QAST::Op.new(
-                    :op('if'),
-                    QAST::Op.new(
-                        :op('isconcrete'),
-                        QAST::Var.new( :name($desc), :scope('local') ),
-                    ),
-                    QAST::Var.new( :name($desc), :scope('local') ),
-                    QAST::WVal.new( :value($default_cont_spec) )
-                )
+                QAST::Var.new( :name($desc), :scope('local') )
             ),
-            $qast[1]
+            $Scalar,
+            QAST::SVal.new( :value('$!value') ),
+            QAST::Op.new(
+                :op('callmethod'), :name('default'),
+                QAST::Var.new( :name($desc), :scope('local') )
+            )
         )
+    )
+});
+register_op_desugar('p6scalarwithvalue', -> $qast {
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
+    QAST::Op.new(
+        :op('p6assign'),
+        QAST::Op.new(
+            :op('p6bindattrinvres'),
+            QAST::Op.new( :op('create'), $Scalar ),
+            $Scalar,
+            QAST::SVal.new( :value('$!descriptor') ),
+            $qast[0]
+        ),
+        $qast[1]
     )
 });
 register_op_desugar('p6recont_ro', -> $qast {

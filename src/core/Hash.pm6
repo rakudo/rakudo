@@ -28,20 +28,20 @@ my class Hash { # declared in BOOTSTRAP
           Hash, '$!descriptor', nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor))
     }
 
-    method !AT_KEY_CONTAINER(Str:D \key) is raw {
-        nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindHashPos.new($!descriptor, self, key))
-    }
-
     multi method AT-KEY(Hash:D: Str:D \key) is raw {
         nqp::ifnull(
           nqp::atkey(nqp::getattr(self,Map,'$!storage'),key),
-          self!AT_KEY_CONTAINER(key)
+          nqp::p6scalarfromcertaindesc(
+            ContainerDescriptor::BindHashPos.new($!descriptor, self, key)
+          )
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
         nqp::ifnull(
           nqp::atkey(nqp::getattr(self,Map,'$!storage'),key.Str),
-          self!AT_KEY_CONTAINER(key.Str)
+          nqp::p6scalarfromcertaindesc(
+            ContainerDescriptor::BindHashPos.new($!descriptor, self, key.Str)
+          )
         )
     }
 

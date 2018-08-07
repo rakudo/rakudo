@@ -490,13 +490,19 @@ my class Hash { # declared in BOOTSTRAP
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         method keyof () { TKey }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
-            my str $which = nqp::unbox_s(key.WHICH);
-            my Mu \storage = nqp::getattr(self,Map,'$!storage');
-            nqp::if(
-              nqp::isconcrete(storage) && nqp::existskey(storage, $which),
-              nqp::getattr(nqp::atkey(storage, $which), Pair, '$!value'),
-              nqp::p6scalarfromdesc(ContainerDescriptor::BindObjHashKey.new(
-                  nqp::getattr(self, Hash, '$!descriptor'), self, key, $which, Pair))
+            nqp::stmts(
+              (my str $which = nqp::unbox_s(key.WHICH)),
+              nqp::if(
+                nqp::existskey(nqp::getattr(self,Map,'$!storage'),$which),
+                nqp::getattr(
+                  nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
+                  Pair,
+                  '$!value'
+                ),
+                nqp::p6scalarfromdesc(ContainerDescriptor::BindObjHashKey.new(
+                  nqp::getattr(self,Hash,'$!descriptor'),self,key,$which,Pair)
+                )
+              )
             )
         }
 
@@ -514,36 +520,26 @@ my class Hash { # declared in BOOTSTRAP
 
         method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) is raw {
             nqp::if(
-              nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-              nqp::if(
-                nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                  my str $which = nqp::unbox_s(key.WHICH)),
-                (nqp::getattr(
-                  nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
-                  Pair,'$!value') = assignval),
-                nqp::getattr(
-                  (nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
-                    Pair.new(key,nqp::p6scalarfromdesc(
-                      nqp::getattr(self,Hash,'$!descriptor')) = assignval))),
-                  Pair,'$!value')
-              ),
+              nqp::existskey(nqp::getattr(self,Map,'$!storage'),
+                my str $which = nqp::unbox_s(key.WHICH)),
+              (nqp::getattr(
+                nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
+                Pair,'$!value') = assignval),
               nqp::getattr(
-                (nqp::bindkey(nqp::bindattr(self,Map,'$!storage',nqp::hash),
-                  nqp::unbox_s(key.WHICH),
+                (nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
                   Pair.new(key,nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Hash,'$!descriptor')) = assignval))),
-                Pair,'$!value')
+                    nqp::getattr(self,Hash,'$!descriptor')) = assignval)
+                )),
+                Pair,
+                '$!value'
+              )
             )
         }
 
         method BIND-KEY(TKey \key, TValue \bindval) is raw {
             nqp::getattr(
               nqp::bindkey(
-                nqp::if(
-                  nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-                  nqp::getattr(self,Map,'$!storage'),
-                  nqp::bindattr(self,Map,'$!storage',nqp::hash)
-                ),
+                nqp::getattr(self,Map,'$!storage'),
                 key.WHICH,
                 Pair.new(key,bindval)
               ),

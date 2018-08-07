@@ -186,6 +186,14 @@ sub assign-scalar-bindpos($cont, $value) {
     }
 }
 
+sub make-proxy-assigner(&store-sub) {
+    sub proxy-assigner($cont, $val) {
+        my $var := nqp::create(Scalar);
+        nqp::bindattr($var, Scalar, '$!value', $cont);
+        store-sub($var, $val)
+    }
+}
+
 # Assignment to a $ sigil variable, usually Scalar.
 nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
     # Whatever we do, we'll guard on the type of the container and its
@@ -265,6 +273,13 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
                 }
             }
         }
+    }
+    elsif nqp::eqaddr(nqp::what_nd($cont), Proxy) && nqp::isconcrete_nd($cont) {
+        my $storesub := nqp::speshguardgetattr($cont, Proxy, '&!STORE');
+        my $coderef := nqp::speshguardgetattr($storesub, Code, '$!do');
+        my $staticcode := nqp::speshguardgetstaticcode($coderef);
+        nqp::speshguardobj($staticcode);
+        return make-proxy-assigner($storesub);
     }
 
     # If we get here, then we didn't have a specialized case to put in

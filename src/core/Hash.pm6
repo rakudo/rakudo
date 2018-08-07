@@ -61,15 +61,12 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
     method !STORE_MAP(\map --> Nil) {
-        nqp::if(
-          nqp::defined(my $other := nqp::getattr(map,Map,'$!storage')),
-          nqp::stmts(
-            (my $iter := nqp::iterator($other)),
-            nqp::while(
-              $iter,
-              self.STORE_AT_KEY(
-                nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
-              )
+        nqp::stmts(
+          (my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'))),
+          nqp::while(
+            $iter,
+            self.STORE_AT_KEY(
+              nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
             )
           )
         )
@@ -580,16 +577,16 @@ my class Hash { # declared in BOOTSTRAP
 
         method EXISTS-KEY(TKey \key) {
             nqp::p6bool(
-              nqp::defined(nqp::getattr(self,Map,'$!storage'))
-                && nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
+              nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
             )
         }
 
         method DELETE-KEY(TKey \key) {
             nqp::if(
-              nqp::isconcrete(nqp::getattr(self,Map,'$!storage'))
-                && nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                     (my str $which = key.WHICH)),
+              nqp::existskey(
+                nqp::getattr(self,Map,'$!storage'),
+                (my str $which = key.WHICH)
+              ),
               nqp::stmts(
                 (my TValue $value =
                   nqp::getattr(
@@ -606,8 +603,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::stmts(
               (my $flattened := nqp::hash),
               nqp::if(
-                nqp::isconcrete(my $raw := nqp::getattr(self,Map,'$!storage'))
-                 && (my $iter := nqp::iterator($raw)),
+                (my $iter := nqp::iterator(nqp::getattr(self,Map,'$!storage'))),
                 nqp::while(
                   $iter,
                   nqp::bindkey(
@@ -636,8 +632,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::stmts(
               (my $buffer := nqp::create(IterationBuffer)),
               nqp::if(
-                nqp::isconcrete(nqp::getattr(self,Map,'$!storage'))
-                  && nqp::elems(nqp::getattr(self,Map,'$!storage')),
+                nqp::elems(nqp::getattr(self,Map,'$!storage')),
                 nqp::stmts(
                   (my $iterator := nqp::iterator(
                     nqp::getattr(self,Map,'$!storage')
@@ -792,7 +787,7 @@ my class Hash { # declared in BOOTSTRAP
 
         # gotta force capture keys to strings or binder fails
         method Capture() {
-            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+            nqp::elems(nqp::getattr(self,Map,'$!storage'))
               ?? do {
                      my $cap := nqp::create(Capture);
                      my $h := nqp::hash();

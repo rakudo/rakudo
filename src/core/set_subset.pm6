@@ -91,14 +91,14 @@ multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       True,                       # B is alias of A
       nqp::if(                    # A and B are different
-        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-          && nqp::elems($araw),
+        nqp::elems(my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage')),
         nqp::if(                  # something in A
           nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
           nqp::if(                # both are normal Maps
             (my $iter := nqp::iterator($araw))
-              && (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-              && nqp::elems($braw),
+              && nqp::elems(
+                my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage')
+              ),
             nqp::stmts(           # something to check for in B
               nqp::while(
                 $iter,

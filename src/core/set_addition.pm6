@@ -43,8 +43,7 @@ multi sub infix:<(+)>(Setty:D $a, Map:D $b) {
     nqp::if(
       (my $araw := $a.RAW-HASH) && nqp::elems($araw),
       nqp::if(                                         # elems on left
-        (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-          && nqp::elems($braw),
+        nqp::elems(nqp::getattr(nqp::decont($b),Map,'$!storage')),
         nqp::create(
           nqp::if( nqp::istype($a,Set), Bag, BagHash )
         ).SET-SELF(                     # elems on both sides
@@ -115,11 +114,9 @@ multi sub infix:<(+)>(Baggy:D $a, QuantHash:D $b) {
 
 multi sub infix:<(+)>(Map:D $a, Map:D $b) {
     nqp::if(
-      (my $araw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-        && nqp::elems($araw),
+      nqp::elems(nqp::getattr(nqp::decont($b),Map,'$!storage')),
       nqp::if(                                         # elems on left
-        (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-          && nqp::elems($braw),
+        nqp::elems(nqp::getattr(nqp::decont($b),Map,'$!storage')),
         nqp::create(Bag).SET-SELF(                     # elems on both sides
           Rakudo::QuantHash.ADD-MAP-TO-BAG(
             Rakudo::QuantHash.COERCE-MAP-TO-BAG($a), $b

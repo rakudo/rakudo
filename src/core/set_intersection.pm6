@@ -87,10 +87,11 @@ multi sub infix:<(&)>(Map:D $a, Map:D $b) {
     nqp::if(
       nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
       nqp::if(                               # both ordinary Str hashes
-        (my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage'))
-          && nqp::elems($araw)
-          && (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-          && nqp::elems($braw),
+        nqp::elems(
+          my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage')
+        ) && nqp::elems(
+          my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage')
+        ),
         nqp::stmts(                          # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),

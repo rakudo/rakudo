@@ -11,13 +11,13 @@ my class Hash { # declared in BOOTSTRAP
     multi method Map(Hash:U:) { Map }
     multi method Map(Hash:D: :$view) {
         nqp::if(
-          nqp::isconcrete(my $hash := nqp::getattr(self,Map,'$!storage')),
-          nqp::if(
-            $view,
-            # Agreeing that the Hash won't be changed after the .Map
-            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$hash),
-            nqp::create(Map).STORE(self, :initialize)
-          )
+          $view,
+          # Agreeing that the Hash won't be changed after the .Map
+          nqp::p6bindattrinvres(
+            nqp::create(Map), Map, '$!storage',
+            nqp::getattr(self,Map,'$!storage')
+          ),
+          nqp::create(Map).STORE(self, :initialize)
         )
     }
     method clone(Hash:D:) is raw {

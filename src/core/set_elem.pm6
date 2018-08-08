@@ -9,8 +9,7 @@
 proto sub infix:<(elem)>($, $, *% --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
     nqp::p6bool(
-      (my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-        && nqp::elems($storage)
+      nqp::elems(my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
         && nqp::if(
              nqp::eqaddr($b.keyof,Str(Any)),
              nqp::atkey($storage,$a),                     # normal hash
@@ -28,9 +27,9 @@ multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
 }
 multi sub infix:<(elem)>(Any $a, Map:D $b --> Bool:D) {
     nqp::p6bool(
-      (my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-        && nqp::elems($storage)                         # haz a haystack
-        && nqp::not_i(nqp::eqaddr($b.keyof,Str(Any)))   # is object hash
+      nqp::elems(                                       # haz a haystack
+        my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage')
+      ) && nqp::not_i(nqp::eqaddr($b.keyof,Str(Any)))   # is object hash
         && nqp::getattr(
              nqp::ifnull(
                nqp::atkey($storage,$a.WHICH),           # exists

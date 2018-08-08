@@ -317,15 +317,18 @@ my class Rakudo::QuantHash {
     method ADD-PAIRS-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
-            nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+            nqp::eqaddr(
+              (my $pulled := nqp::decont(iterator.pull-one)),
+              IterationEnd
+            ),
             nqp::if(
               nqp::istype($pulled,Pair),
               nqp::if(
-                nqp::getattr(nqp::decont($pulled),Pair,'$!value'),
+                nqp::getattr($pulled,Pair,'$!value'),
                 nqp::bindkey(
                   elems,
-                  nqp::getattr(nqp::decont($pulled),Pair,'$!key').WHICH,
-                  nqp::getattr(nqp::decont($pulled),Pair,'$!key')
+                  nqp::getattr($pulled,Pair,'$!key').WHICH,
+                  nqp::getattr($pulled,Pair,'$!key')
                 )
               ),
               nqp::bindkey(elems,$pulled.WHICH,$pulled)
@@ -432,7 +435,7 @@ my class Rakudo::QuantHash {
           (my $elems := nqp::clone(elems)),
           nqp::until(
             nqp::eqaddr(                            # end of iterator?
-              (my $pulled := iterator.pull-one),
+              (my $pulled := nqp::decont(iterator.pull-one)),
               IterationEnd
             ) || nqp::not_i(nqp::elems($elems)),    # nothing left to remove?
             nqp::if(
@@ -579,7 +582,10 @@ my class Rakudo::QuantHash {
     method ADD-ITERATOR-TO-BAG(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
-            nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+            nqp::eqaddr(
+              (my $pulled := nqp::decont(iterator.pull-one)),
+              IterationEnd
+            ),
             nqp::if(
               nqp::existskey(elems,(my $WHICH := $pulled.WHICH)),
               nqp::stmts(

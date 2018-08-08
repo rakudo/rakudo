@@ -54,7 +54,10 @@ multi sub infix:<(elem)>(Any $a, Iterator:D $b --> Bool:D) {
       nqp::stmts(
         (my str $needle = $a.WHICH),
         nqp::until(
-          nqp::eqaddr((my $pulled := $b.pull-one),IterationEnd),
+          nqp::eqaddr(
+            (my $pulled := nqp::decont($b.pull-one)),
+            IterationEnd
+          ),
           nqp::if(
             nqp::iseq_s($needle,$pulled.WHICH),
             return True

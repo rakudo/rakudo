@@ -4,16 +4,16 @@ my class Stash { # declared in BOOTSTRAP
 
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
         nqp::if(
-          nqp::getattr(self,Map,'$!storage')
-            && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
+          nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
           nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
-          nqp::p6scalarfromdesc(ContainerDescriptor::BindHashPos.new(Mu, self, $key))
+          nqp::p6scalarfromdesc(
+            ContainerDescriptor::BindHashPos.new(Mu, self, $key)
+          )
         )
     }
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback!) is raw {
         nqp::if(
-          nqp::getattr(self,Map,'$!storage')
-            && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
+          nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
           nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
           nqp::if(
             $global_fallback,
@@ -22,7 +22,9 @@ my class Stash { # declared in BOOTSTRAP
               nqp::atkey(GLOBAL.WHO,$key),
               Failure.new("Could not find symbol '$key'")
             ),
-            nqp::p6scalarfromdesc(ContainerDescriptor::BindHashPos.new(Mu, self, $key))
+            nqp::p6scalarfromdesc(
+              ContainerDescriptor::BindHashPos.new(Mu, self, $key)
+            )
           )
         )
     }

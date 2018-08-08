@@ -702,8 +702,7 @@ my class Hash { # declared in BOOTSTRAP
         multi method roll(::?CLASS:D: Whatever $) { self.roll(Inf) }
         multi method roll(::?CLASS:D: $count) {
             Seq.new(nqp::if(
-              (my $raw := nqp::getattr(self,Map,'$!storage'))
-                && nqp::elems($raw) && $count > 0,
+              $count > 0 && nqp::elems(nqp::getattr(self,Map,'$!storage')),
               class :: does Iterator {
                   has $!storage;
                   has $!keys;

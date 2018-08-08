@@ -682,7 +682,7 @@ my class Hash { # declared in BOOTSTRAP
         }
         multi method roll(::?CLASS:D:) {
             nqp::if(
-              (my $raw := nqp::getattr(self,Map,'$!storage')) && nqp::elems($raw),
+              nqp::elems(my $raw := nqp::getattr(self,Map,'$!storage')),
               nqp::stmts(
                 (my int $i =
                   nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems($raw))),1)),

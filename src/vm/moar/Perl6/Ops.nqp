@@ -477,130 +477,25 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             $qastcomp.as_mast($op[0])
         }
         else {
-            my $target_type;
-
-            # emit a typecheck for the constraint type, the coercion will be
-            # performed later on
-            if $type.HOW.archetypes.coercive {
-                $target_type := $type.HOW.target_type($type);
-                $type := $type.HOW.constraint_type($type);
-            }
-
-            # if the type we want to check against is a definite type
-            # like Int:D, we can generate much more efficient code by
-            # splitting the check up into definedness check + type check
-            # against the base type. This saves us from a call into the
-            # metamodel for each check.
-            my int $emit_definite_check := -1;
-            if $type.HOW.archetypes.definite {
-                $emit_definite_check := $type.HOW.definite($type);
-                $type := $type.HOW.base_type($type);
-            }
-
+            # Use a spesh plugin to appropriately optimize return type checks.
             my @ops;
-            my $value_res   := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-            my $type_res    := $qastcomp.as_mast(QAST::WVal.new( :value($type) ), :want($MVM_reg_obj));
-            my $niltype_res := $qastcomp.as_mast($op[2]);
-
-            my $lbl_done    := MAST::Label.new();
+            my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
             push_ilist(@ops, $value_res);
-            push_ilist(@ops, $type_res);
-            my $decont := $*REGALLOC.fresh_o();
-            my $istype := $*REGALLOC.fresh_i();
-            my $isdefinite;
-            my $failure_o := $niltype_res.result_reg;
-
-            unless $emit_definite_check == -1 {
-                $isdefinite := $*REGALLOC.fresh_i();
-            }
-
-            nqp::push(@ops, MAST::Op.new( :op('decont'), $decont, $value_res.result_reg ));
-            nqp::push(@ops, MAST::Op.new( :op('istype'), $istype, $decont, $type_res.result_reg ));
-
-            if $emit_definite_check == -1 {
-                nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
-            } else {
-                my $lbl_failed_initial_typecheck    := MAST::Label.new();
-                nqp::push(@ops, MAST::Op.new( :op('unless_i'), $istype, $lbl_failed_initial_typecheck ));
-
-                nqp::push(@ops, MAST::Op.new( :op('isconcrete'), $isdefinite, $decont ));
-                if $emit_definite_check == 0 {
-                    nqp::push(@ops, MAST::Op.new( :op('unless_i'), $isdefinite, $lbl_done ));
-                } else {
-                    nqp::push(@ops, MAST::Op.new( :op('if_i'), $isdefinite, $lbl_done ));
-                }
-                nqp::push(@ops, $lbl_failed_initial_typecheck);
-            }
-
-            push_ilist(@ops, $niltype_res);
-            nqp::push(@ops, MAST::Op.new( :op('istype'), $istype, $decont, $failure_o) );
-            nqp::push(@ops, MAST::Op.new( :op('if_i'), $istype, $lbl_done ));
-            $*REGALLOC.release_register($decont, $MVM_reg_obj);
-            $*REGALLOC.release_register($istype, $MVM_reg_int64);
-            $*REGALLOC.release_register($failure_o, $MVM_reg_obj);
-
-            unless $emit_definite_check == -1 {
-                $*REGALLOC.release_register($isdefinite, $MVM_reg_int64);
-            }
-
-            # Error generation.
-            proto return_error($got, $wanted) {
-                my %ex := nqp::gethllsym('perl6', 'P6EX');
-                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Return') {
-                    nqp::die("Type check failed for return value; expected '" ~
-                        $wanted.HOW.name($wanted) ~ "' but got '" ~
-                        $got.HOW.name($got) ~ "'");
-                }
-                else {
-                    nqp::atkey(%ex, 'X::TypeCheck::Return')($got, $wanted)
-                }
-            }
-            my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&return_error)) ));
-            push_ilist(@ops, $err_rep);
+            my $plugin_reg := $*REGALLOC.fresh_o();
             nqp::push(@ops, MAST::Call.new(
-                :target($err_rep.result_reg),
-                :flags($Arg::obj, $Arg::obj),
-                $value_res.result_reg, $type_res.result_reg
+                :target(MAST::SVal.new( :value('typecheckrv') )),
+                :flags([$Arg::obj]),
+                $value_res.result_reg,
+                :result($plugin_reg),
+                :op(2)
             ));
-            nqp::push(@ops, $lbl_done);
-            $*REGALLOC.release_register($err_rep.result_reg, $MVM_reg_obj);
-
-            unless $target_type =:= NQPMu || $target_type =:= $type {
-                my $coerce_method := $target_type.HOW.name($target_type);
-                my $lbl_no_error := MAST::Label.new();
-
-                my $can := $*REGALLOC.fresh_i();
-                nqp::push(@ops,
-                    MAST::Op.new(:op('can'), $can, $value_res.result_reg, MAST::SVal.new(:value($coerce_method))));
-                nqp::push(@ops,
-                    MAST::Op.new(:op('if_i'), $can, $lbl_no_error));
-                $*REGALLOC.release_register($can, $MVM_reg_int64);
-
-                # inform the user that the coercion cannot be done
-                my $errstr_reg := $*REGALLOC.fresh_s();
-                my $dieret_reg := $*REGALLOC.fresh_o();
-                my $errstr := "Unable to coerce the return value from "
-                    ~ $type.HOW.name($type) ~ " to " ~ $target_type.HOW.name($type)
-                    ~ "; no coercion method defined";
-                nqp::push(@ops,
-                    MAST::Op.new(:op('const_s'), $errstr_reg, MAST::SVal.new(:value($errstr))));
-                nqp::push(@ops,
-                    MAST::Op.new(:op('die'), $dieret_reg, $errstr_reg));
-                $*REGALLOC.release_register($errstr_reg, $MVM_reg_str);
-                $*REGALLOC.release_register($dieret_reg, $MVM_reg_obj);
-
-                nqp::push(@ops,
-                    $lbl_no_error);
-
-                # perform the type conversion directly into the value_res register
-                my $meth := $*REGALLOC.fresh_o();
-                nqp::push(@ops,
-                    MAST::Op.new(:op('findmeth'), $meth, $value_res.result_reg, MAST::SVal.new(:value($coerce_method))));
-                nqp::push(@ops,
-                    MAST::Call.new(:target($meth), :result($value_res.result_reg), :flags([$Arg::obj]), $value_res.result_reg));
-                $*REGALLOC.release_register($meth, $MVM_reg_obj);
-            }
-
+            nqp::push(@ops, MAST::Call.new(
+                :target($plugin_reg),
+                :flags([$Arg::obj]),
+                $value_res.result_reg,
+                :result($value_res.result_reg),
+            ));
+            $*REGALLOC.release_register($plugin_reg, $MVM_reg_obj);
             MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
         }
     }

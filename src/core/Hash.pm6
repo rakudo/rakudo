@@ -113,27 +113,33 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method ASSIGN-KEY(Hash:D: Str:D \key, Mu \assignval) is raw {
-        my \storage := nqp::getattr(self,Map,'$!storage');
-        my \target := nqp::atkey(storage, nqp::unbox_s(key));
-        nqp::isnull(target)
-            ?? nqp::bindkey(
-                storage,
-                nqp::unbox_s(key),
-                nqp::p6scalarwithvalue($!descriptor, assignval)
-              )
-            !! nqp::p6assign(target, assignval)
+        nqp::if(
+          nqp::isnull(
+            (my $target := nqp::atkey(nqp::getattr(self,Map,'$!storage'),key))
+          ),
+          nqp::bindkey(
+            nqp::getattr(self,Map,'$!storage'),
+            key,
+            nqp::p6scalarwithvalue($!descriptor,assignval)
+          ),
+          nqp::p6assign($target,assignval)
+        )
     }
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
-        my \key_s = key.Str;
-        my \storage := nqp::getattr(self,Map,'$!storage');
-        my \target := nqp::atkey(storage, nqp::unbox_s(key_s));
-        nqp::isnull(target)
-            ?? nqp::bindkey(
-                storage,
-                nqp::unbox_s(key_s),
-                nqp::p6scalarwithvalue($!descriptor, assignval)
-              )
-            !! nqp::p6assign(target, assignval)
+        nqp::if(
+          nqp::isnull(
+            (my $target := nqp::atkey(
+              nqp::getattr(self,Map,'$!storage'),
+              (my $key := key.Str)
+            ))
+          ),
+          nqp::bindkey(
+            nqp::getattr(self,Map,'$!storage'),
+            $key,
+            nqp::p6scalarwithvalue($!descriptor,assignval)
+          ),
+          nqp::p6assign($target,assignval)
+        )
     }
 
     proto method BIND-KEY(|) {*}

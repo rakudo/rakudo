@@ -339,8 +339,8 @@ my class Rakudo::QuantHash {
     method ADD-MAP-TO-SET(\elems, \map) {
         nqp::stmts(
           nqp::if(
-            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-              && (my $iter := nqp::iterator($raw)),
+            (my $iter :=
+              nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
               nqp::eqaddr(map.keyof,Str(Any)),
               nqp::while(                        # normal Map
@@ -401,8 +401,8 @@ my class Rakudo::QuantHash {
         nqp::stmts(
           (my $elems := nqp::clone(aelems)),
           nqp::if(
-            (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-             && (my $iter  := nqp::iterator($storage)),
+            (my $iter :=
+              nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
               nqp::eqaddr(map.keyof,Str(Any)),
               nqp::while(                     # normal Map
@@ -599,8 +599,8 @@ my class Rakudo::QuantHash {
     method ADD-MAP-TO-BAG(\elems, \map) {
         nqp::stmts(
           nqp::if(
-            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-              && (my $iter := nqp::iterator($raw)),
+            (my $iter :=
+              nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
               nqp::eqaddr(map.keyof,Str(Any)),
               nqp::while(              # ordinary Map
@@ -682,8 +682,8 @@ my class Rakudo::QuantHash {
     # Coerce the given Map to an IterationSet with baggy semantics.
     method COERCE-MAP-TO-BAG(\map) {
         nqp::if(
-          (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-            && (my $iter := nqp::iterator($storage)),
+          (my $iter :=
+            nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
           nqp::if(                   # something to coerce
             nqp::eqaddr(map.keyof,Str(Any)),
             nqp::stmts(              # ordinary Map
@@ -1083,8 +1083,8 @@ my class Rakudo::QuantHash {
     method ADD-MAP-TO-MIX(\elems, \map) {
         nqp::stmts(
           nqp::if(
-            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-              && (my $iter := nqp::iterator($raw)),
+            (my $iter :=
+              nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
               nqp::eqaddr(map.keyof,Str(Any)),
               nqp::while(              # normal Map
@@ -1275,8 +1275,8 @@ my class Rakudo::QuantHash {
     # Coerce the given Map to an IterationSet with mixy semantics.
     method COERCE-MAP-TO-MIX(\map) {
         nqp::if(
-          (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-            && (my $iter := nqp::iterator($storage)),
+          (my $iter :=
+            nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
           nqp::if(                   # something to coerce
             nqp::eqaddr(map.keyof,Str(Any)),
             nqp::stmts(              # ordinary Map

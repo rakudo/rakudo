@@ -25,8 +25,7 @@ multi sub infix:<(-)>(Setty:D $a, Map:D $b) {
       (my $araw := $a.RAW-HASH) && nqp::elems($araw),
       nqp::create($a.Setty).SET-SELF(                     # elems in $a
         nqp::if(
-          (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-            && nqp::elems($braw),
+          nqp::elems(my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage')),
           Rakudo::QuantHash.SUB-MAP-FROM-SET($araw, $b),  # both have elems
           nqp::clone($araw)                               # no elems in $b
         )

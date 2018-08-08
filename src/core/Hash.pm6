@@ -215,7 +215,7 @@ my class Hash { # declared in BOOTSTRAP
               '$!descriptor',
               $!descriptor,
               '$!storage',
-              nqp::getattr(nqp::decont(self),Map,'$!storage')
+              nqp::getattr(self,Map,'$!storage')
             ),
             :$indent-step,
             :%ctx

@@ -489,50 +489,38 @@ my class Array { # declared in BOOTSTRAP
         $scalar
     }
 
-    multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) {
-        # Fast path: index > 0, $!reified is set up, either have a container
-        # or no $!todo so can just bind there
+    multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
-        nqp::if(
-          nqp::isge_i($pos, 0) && nqp::isconcrete(reified),
-          nqp::stmts(
-            (my \target := nqp::atpos(reified, $pos)),
-            nqp::if(
-              nqp::isnull(target),
-              nqp::if(
-                nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
-                self!ASSIGN_POS_SLOW_PATH($pos, assignee),
-                nqp::bindpos(reified, $pos, nqp::p6scalarwithvalue($!descriptor, assignee))
-              ),
-              nqp::assign(target, assignee)
-            )
-          ),
-          self!ASSIGN_POS_SLOW_PATH($pos, assignee)
-        )
+        my \assignee_decont := nqp::decont(assignee);
+        nqp::isge_i($pos, 0) && nqp::isconcrete(reified) &&
+                  nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
+            ?? nqp::stmts(
+                 (nqp::p6assign(
+                   nqp::ifnull(
+                     nqp::atpos(reified, $pos),
+                     nqp::bindpos(reified, $pos,
+                       nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+                   assignee_decont)),
+                 assignee_decont)
+            !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
     }
 
     # because this is a very hot path, we copied the code from the int candidate
-    multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) {
-        # Fast path: index > 0, $!reified is set up, either have a container
-        # or no $!todo so can just bind there
+    multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
+        my \assignee_decont := nqp::decont(assignee);
         my int $ipos = $pos;
-        nqp::if(
-          nqp::isge_i($ipos, 0) && nqp::isconcrete(reified),
-          nqp::stmts(
-            (my \target := nqp::atpos(reified, $ipos)),
-            nqp::if(
-              nqp::isnull(target),
-              nqp::if(
-                nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
-                self!ASSIGN_POS_SLOW_PATH($pos, assignee),
-                nqp::bindpos(reified, $pos, nqp::p6scalarwithvalue($!descriptor, assignee))
-              ),
-              nqp::assign(target, assignee)
-            )
-          ),
-          self!ASSIGN_POS_SLOW_PATH($pos, assignee)
-        )
+        nqp::isge_i($ipos, 0) && nqp::isconcrete(reified) &&
+                  nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
+            ?? nqp::stmts(
+                 (nqp::p6assign(
+                   nqp::ifnull(
+                     nqp::atpos(reified, $ipos),
+                     nqp::bindpos(reified, $ipos,
+                       nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+                   assignee_decont)),
+                 assignee_decont)
+            !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
     }
 
     method !ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) {

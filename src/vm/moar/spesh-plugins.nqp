@@ -133,10 +133,6 @@ sub identity($obj) { $obj }
 
 ## Return value type check plugin
 
-# Since spesh plugins are tied to a bytecode location, and called from there,
-# we can simply look at the plugin's callercode to find information about the
-# return type constraint.
-
 {
     sub coercion_error($from_name, $to_name) {
         nqp::die("Unable to coerce the return value from $from_name to $to_name; " ~
@@ -215,11 +211,7 @@ sub identity($obj) { $obj }
         }
     }
 
-    nqp::speshreg('perl6', 'typecheckrv', sub ($rv) {
-        # Obtain the return type.
-        my $code := nqp::getcodeobj(nqp::callercode());
-        my $sig := nqp::getattr($code, Code, '$!signature');
-        my $type := nqp::getattr($sig, Signature, '$!returns');
+    nqp::speshreg('perl6', 'typecheckrv', sub ($rv, $type) {
         my $orig_type := $type;
 
         # If the type is Mu or unset, then we can resolve to identity.

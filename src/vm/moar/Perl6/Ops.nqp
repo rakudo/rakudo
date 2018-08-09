@@ -480,12 +480,15 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             # Use a spesh plugin to appropriately optimize return type checks.
             my @ops;
             my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+            my $type_res := $qastcomp.as_mast(QAST::WVal.new( :value($type) ), :want($MVM_reg_obj));
             push_ilist(@ops, $value_res);
+            push_ilist(@ops, $type_res);
             my $plugin_reg := $*REGALLOC.fresh_o();
             nqp::push(@ops, MAST::Call.new(
                 :target(MAST::SVal.new( :value('typecheckrv') )),
-                :flags([$Arg::obj]),
+                :flags([$Arg::obj, $Arg::obj]),
                 $value_res.result_reg,
+                $type_res.result_reg,
                 :result($plugin_reg),
                 :op(2)
             ));
@@ -496,6 +499,7 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
                 :result($value_res.result_reg),
             ));
             $*REGALLOC.release_register($plugin_reg, $MVM_reg_obj);
+            $*REGALLOC.release_register($type_res.result_reg, $MVM_reg_obj);
             MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
         }
     }

@@ -243,7 +243,12 @@ sub identity($obj) { $obj }
         # See if the return value is containerized; if not, we can do some
         # guarding/checking and maybe toss the checks altogether.
         unless nqp::iscont($rv) {
-            if $type.HOW.archetypes.nominal && (nqp::istype($rv, $type) || nqp::istype($rv, Nil)) {
+            if $type.HOW.archetypes.nominal &&
+                    # Allow through Nil/Failure
+                    (nqp::istype($rv, Nil) || (nqp::istype($rv, $type) &&
+                    # Enforce definite checks.
+                    ($definite_check == 0 ?? !nqp::isconcrete($rv) !!
+                     $definite_check == 1 ?? nqp::isconcrete($rv) !! 1))) {
                 # Type matches; add a type guard and we can elide checking
                 # that.
                 nqp::speshguardtype($rv, $rv.WHAT);

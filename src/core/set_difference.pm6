@@ -22,12 +22,12 @@ multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
 }
 multi sub infix:<(-)>(Setty:D $a, Map:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::create($a.Setty).SET-SELF(                     # elems in $a
         nqp::if(
-          nqp::elems(my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage')),
-          Rakudo::QuantHash.SUB-MAP-FROM-SET($araw, $b),  # both have elems
-          nqp::clone($araw)                               # no elems in $b
+          nqp::elems(my \braw := nqp::getattr(nqp::decont($b),Map,'$!storage')),
+          Rakudo::QuantHash.SUB-MAP-FROM-SET(araw, $b),   # both have elems
+          nqp::clone(araw)                                # no elems in $b
         )
       ),
       $a                                                  # no elems in $a

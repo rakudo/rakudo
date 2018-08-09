@@ -12,16 +12,15 @@ multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
       nqp::unless(
         nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
         nqp::if(
-          (my $araw := $a.RAW-HASH)
-            && nqp::elems($araw),
+          (my \araw := $a.RAW-HASH) && nqp::elems(araw),
           nqp::if(                # number of elems in B *always* >= A
-            (my $braw := $b.RAW-HASH)
-              && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
-              && (my $iter := nqp::iterator($araw)),
+            (my \braw := $b.RAW-HASH)
+              && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
+              && (my \iter := nqp::iterator(araw)),
             nqp::while(           # number of elems in B >= A
-              $iter,
+              iter,
               nqp::unless(
-                nqp::existskey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                nqp::existskey(braw,nqp::iterkey_s(nqp::shift(iter))),
                 return False      # elem in A doesn't exist in B
               )
             ),
@@ -53,20 +52,19 @@ multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
       nqp::unless(
         nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
         nqp::if(
-          (my $araw := $a.RAW-HASH)
-            && nqp::elems($araw),
+          (my \araw := $a.RAW-HASH) && nqp::elems(araw),
           nqp::if(                # number of elems in B *always* >= A
-            (my $braw := $b.RAW-HASH)
-              && nqp::isle_i(nqp::elems($araw),nqp::elems($braw))
-              && (my $iter := nqp::iterator($araw)),
+            (my \braw := $b.RAW-HASH)
+              && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
+              && (my \iter := nqp::iterator(araw)),
             nqp::while(           # number of elems in B >= A
-              $iter,
+              iter,
               nqp::unless(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')
+                nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!value')
                   <=              # value in A should be less or equal than B
                 nqp::getattr(
                   nqp::ifnull(
-                    nqp::atkey($braw,nqp::iterkey_s($iter)),
+                    nqp::atkey(braw,nqp::iterkey_s(iter)),
                     BEGIN       # provide virtual value 0
                       nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
                   ),
@@ -91,21 +89,21 @@ multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
       nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
       True,                       # B is alias of A
       nqp::if(                    # A and B are different
-        nqp::elems(my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage')),
+        nqp::elems(my \araw := nqp::getattr(nqp::decont($a),Map,'$!storage')),
         nqp::if(                  # something in A
           nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
           nqp::if(                # both are normal Maps
-            (my $iter := nqp::iterator($araw))
+            (my \iter := nqp::iterator(araw))
               && nqp::elems(
-                my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage')
+                my \braw := nqp::getattr(nqp::decont($b),Map,'$!storage')
               ),
             nqp::stmts(           # something to check for in B
               nqp::while(
-                $iter,
+                iter,
                 nqp::if(
-                  nqp::iterval(nqp::shift($iter)),
+                  nqp::iterval(nqp::shift(iter)),
                   nqp::unless(    # valid in A
-                    nqp::atkey($braw,nqp::iterkey_s($iter)),
+                    nqp::atkey(braw,nqp::iterkey_s(iter)),
                     return False  # valid elem in A isn't valid elem in B
                   )
                 )
@@ -114,9 +112,9 @@ multi sub infix:<<(<=)>>(Map:D $a, Map:D $b --> Bool:D) {
             ),
             nqp::stmts(           # nothing to check for in B
               nqp::while(
-                $iter,
+                iter,
                 nqp::if(
-                  nqp::iterval(nqp::shift($iter)),
+                  nqp::iterval(nqp::shift(iter)),
                   return False    # valid in elem in A (and none in B)
                 )
               ),

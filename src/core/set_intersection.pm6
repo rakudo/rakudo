@@ -88,20 +88,20 @@ multi sub infix:<(&)>(Map:D $a, Map:D $b) {
       nqp::eqaddr($a.keyof,Str(Any)) && nqp::eqaddr($b.keyof,Str(Any)),
       nqp::if(                               # both ordinary Str hashes
         nqp::elems(
-          my $araw := nqp::getattr(nqp::decont($a),Map,'$!storage')
+          my \araw := nqp::getattr(nqp::decont($a),Map,'$!storage')
         ) && nqp::elems(
-          my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage')
+          my \braw := nqp::getattr(nqp::decont($b),Map,'$!storage')
         ),
         nqp::stmts(                          # both are initialized
           nqp::if(
-            nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
             nqp::stmts(                      # $a smallest, iterate over it
-              (my $iter := nqp::iterator($araw)),
-              (my $base := $braw)
+              (my $iter := nqp::iterator(araw)),
+              (my $base := braw)
             ),
             nqp::stmts(                      # $b smallest, iterate over that
-              ($iter := nqp::iterator($braw)),
-              ($base := $araw)
+              ($iter := nqp::iterator(braw)),
+              ($base := araw)
             )
           ),
           (my $elems := nqp::create(Rakudo::Internals::IterationSet)),

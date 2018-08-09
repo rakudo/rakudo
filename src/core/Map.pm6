@@ -17,10 +17,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 '|',
                 nqp::stmts(  # cannot use native str arrays early in setting
                   (my $keys := nqp::list_s),
-                  (my $iter := nqp::iterator($!storage)),
+                  (my \iter := nqp::iterator($!storage)),
                   nqp::while(
-                    $iter,
-                    nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
+                    iter,
+                    nqp::push_s($keys,nqp::iterkey_s(nqp::shift(iter)))
                   ),
                   (my $sorted   := Rakudo::Sorting.MERGESORT-str($keys)),
                   (my int $i     = -1),
@@ -53,17 +53,20 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method Hash(Map:U:) { Hash }
     multi method Hash(Map:D:) {
         if nqp::elems($!storage) {
-            my $hash       := nqp::create(Hash);
-            my $storage    := nqp::bindattr($hash,Map,'$!storage',nqp::hash);
-            my $descriptor := nqp::getcurhllsym('default_cont_spec');
-            my $iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
+            my \hash       := nqp::create(Hash);
+            my \storage    := nqp::bindattr(hash,Map,'$!storage',nqp::hash);
+            my \descriptor := nqp::getcurhllsym('default_cont_spec');
+            my \iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
             nqp::while(
-              $iter,
-              nqp::bindkey($storage,nqp::iterkey_s(nqp::shift($iter)),
-                nqp::p6scalarwithvalue($descriptor, nqp::decont(nqp::iterval($iter)))
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::iterkey_s(nqp::shift(iter)),
+                nqp::p6scalarwithvalue(
+                  descriptor, nqp::decont(nqp::iterval(iter)))
               )
             );
-            $hash
+            hash
         }
         else {
             nqp::create(Hash)
@@ -82,25 +85,25 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method IterationBuffer() {
         nqp::stmts(
-          (my $buffer := nqp::create(IterationBuffer)),
+          (my \buffer := nqp::create(IterationBuffer)),
           nqp::if(
             nqp::elems($!storage),
             nqp::stmts(
-              (my $iterator := nqp::iterator($!storage)),
-              nqp::setelems($buffer,nqp::elems($!storage)),
+              (my \iterator := nqp::iterator($!storage)),
+              nqp::setelems(buffer,nqp::elems($!storage)),
               (my int $i = -1),
               nqp::while(
-                $iterator,
-                nqp::bindpos($buffer,($i = nqp::add_i($i,1)),
+                iterator,
+                nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
                   Pair.new(
-                    nqp::iterkey_s(nqp::shift($iterator)),
-                    nqp::iterval($iterator)
+                    nqp::iterkey_s(nqp::shift(iterator)),
+                    nqp::iterval(iterator)
                   )
                 )
               )
             )
           ),
-          $buffer
+          buffer
         )
     }
 
@@ -114,9 +117,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::elems($!storage),
           Pair.new(
             nqp::iterkey_s(
-              nqp::shift(my $iterator := nqp::iterator($!storage))
+              nqp::shift(my \iterator := nqp::iterator($!storage))
             ),
-            nqp::iterval($iterator)
+            nqp::iterval(iterator)
           ),
           Nil
         )
@@ -298,15 +301,15 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # to do, is to decontainerize the values.
     method !STORE_MAP_FROM_MAP(\map --> Nil) {
         nqp::if(
-          nqp::elems(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
-            (my $iter := nqp::iterator($other)),
+            (my \iter := nqp::iterator(other)),
             nqp::while(
-              $iter,
+              iter,
               nqp::bindkey(
                 $!storage,
-                nqp::iterkey_s(nqp::shift($iter)),
-                nqp::decont(nqp::iterval($iter))  # get rid of any containers
+                nqp::iterkey_s(nqp::shift(iter)),
+                nqp::decont(nqp::iterval(iter))   # get rid of any containers
               )
             )
           )
@@ -318,18 +321,18 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # the object key and a value that we need to decontainerize.
     method !STORE_MAP_FROM_OBJECT_HASH(\map --> Nil) {
         nqp::if(
-          nqp::elems(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
-            (my $iter := nqp::iterator($other)),
+            (my \iter := nqp::iterator(other)),
             nqp::while(
-              $iter,
+              iter,
               nqp::bindkey(
                 $!storage,
                 nqp::getattr(
-                  (my $pair := nqp::iterval(nqp::shift($iter))),
+                  (my \pair := nqp::iterval(nqp::shift(iter))),
                   Pair, '$!key'
                 ).Str,
-                nqp::decont(nqp::getattr($pair,Pair,'$!value'))
+                nqp::decont(nqp::getattr(pair,Pair,'$!value'))
               )
             )
           )
@@ -381,15 +384,15 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method !DECONTAINERIZE(--> Nil) {
         nqp::stmts(
-          (my $iter := nqp::iterator($!storage)),
+          (my \iter := nqp::iterator($!storage)),
           nqp::while(
-            $iter,
+            iter,
             nqp::if(
-              nqp::iscont(nqp::iterval(nqp::shift($iter))),
+              nqp::iscont(nqp::iterval(nqp::shift(iter))),
               nqp::bindkey(
                 $!storage,
-                nqp::iterkey_s($iter),
-                nqp::decont(nqp::iterval($iter))  # get rid of any containers
+                nqp::iterkey_s(iter),
+                nqp::decont(nqp::iterval(iter))  # get rid of any containers
               )
             )
           )
@@ -403,15 +406,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::if(
             nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
             nqp::if(
-              nqp::elems(my $other := nqp::getattr(map,Map,'$!storage')),
+              nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
               nqp::if(
                 nqp::eqaddr(self.WHAT,Map),
+                nqp::p6bindattrinvres(self,Map,'$!storage',other),
                 nqp::p6bindattrinvres(
-                  self, Map, '$!storage', nqp::getattr(map,Map,'$!storage')
-                ),
-                nqp::p6bindattrinvres(
-                  self, Map, '$!storage',
-                  nqp::clone(nqp::getattr(map,Map,'$!storage'))
+                  self,Map,'$!storage',nqp::clone(other)
                 )!DECONTAINERIZE
               ),
               self                      # nothing to do
@@ -466,12 +466,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::stmts(
             (my int $i =
               nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems($!storage))),1)),
-            (my $iter := nqp::iterator($!storage)),
+            (my \iter := nqp::iterator($!storage)),
             nqp::while(
-              nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+              nqp::shift(iter) && ($i = nqp::sub_i($i,1)),
               nqp::null
             ),
-            Pair.new(nqp::iterkey_s($iter),nqp::iterval($iter))
+            Pair.new(nqp::iterkey_s(iter),nqp::iterval(iter))
           ),
           Nil
         )
@@ -494,13 +494,13 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     ($!storage := nqp::getattr(hash,Map,'$!storage')),
                     ($!count = $count),
                     (my int $i = nqp::elems($!storage)),
-                    (my $iter := nqp::iterator($!storage)),
+                    (my \iter := nqp::iterator($!storage)),
                     ($!keys := nqp::setelems(nqp::list_s,$i)),
                     ($!pairs := nqp::setelems(nqp::list,$i)),
                     nqp::while(
                       nqp::isge_i(($i = nqp::sub_i($i,1)),0),
                       nqp::bindpos_s($!keys,$i,
-                        nqp::iterkey_s(nqp::shift($iter)))
+                        nqp::iterkey_s(nqp::shift(iter)))
                     ),
                     self
                   )
@@ -566,17 +566,17 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b) {
         nqp::if(                                 # not comparing with self
           nqp::eqaddr(a.WHAT,b.WHAT),
           nqp::if(                               # same types
-            (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage'))
-              && (my int $elems = nqp::elems($amap)),
+            (my \amap := nqp::getattr(nqp::decont(a),Map,'$!storage'))
+              && (my int $elems = nqp::elems(amap)),
             nqp::if(                             # elems on left
-              (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
-                && nqp::iseq_i($elems,nqp::elems($bmap)),
+              (my \bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+                && nqp::iseq_i($elems,nqp::elems(bmap)),
               nqp::stmts(                        # same elems on right
-                (my $iter := nqp::iterator($amap)),
+                (my \iter := nqp::iterator(amap)),
                 nqp::while(
-                  $iter && infix:<eqv>(
-                    nqp::iterval(nqp::shift($iter)),
-                    nqp::ifnull(nqp::atkey($bmap,nqp::iterkey_s($iter)),NotEQV)
+                  iter && infix:<eqv>(
+                    nqp::iterval(nqp::shift(iter)),
+                    nqp::ifnull(nqp::atkey(bmap,nqp::iterkey_s(iter)),NotEQV)
                   ),
                   ($elems = nqp::sub_i($elems,1))
                 ),
@@ -584,8 +584,8 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b) {
               )
             ),
             nqp::isfalse(                        # nothing on left
-              ($bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
-                && nqp::elems($bmap)             # something on right: fail
+              (my \map := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+                && nqp::elems(map)               # something on right: fail
             )
           )
         )

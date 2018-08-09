@@ -201,20 +201,20 @@ constant NaN = nqp::p6box_n(nqp::nan());
 # method, because then the return value is always HLLized :-(
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
     nqp::stmts(
-      (my $clone := nqp::hash),
-      (my $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
+      (my \clone := nqp::hash),
+      (my \iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
       nqp::while(
-        $iter,
-        nqp::bindkey($clone,
-          nqp::iterkey_s(nqp::shift($iter)),
+        iter,
+        nqp::bindkey(clone,
+          nqp::iterkey_s(nqp::shift(iter)),
           nqp::if(
-            nqp::defined(nqp::iterval($iter)),
-            nqp::decont(nqp::iterval($iter)).Str,
+            nqp::defined(nqp::iterval(iter)),
+            nqp::decont(nqp::iterval(iter)).Str,
             ''
           )
         )
       ),
-      $clone
+      clone
     )
 }
 

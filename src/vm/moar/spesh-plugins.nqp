@@ -49,11 +49,12 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
 # Often we have nothing at all to do, in which case we can make it a no-op.
 # Other times, we need a decont. In a few, we need to re-wrap it.
 
+sub identity($obj) { $obj }
+
 {
     # We look up Iterable when the plugin is used.
     my $Iterable := nqp::null();
 
-    sub identity($obj) { $obj }
     sub mu($replaced) { Mu }
     sub decont($obj) { nqp::decont($obj) }
     sub recont($obj) {
@@ -153,8 +154,6 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
             nqp::atkey(%ex, 'X::TypeCheck::Return')($got, $wanted)
         }
     }
-
-    sub identity($obj) { $obj }
 
     sub make-unchecked-coercion($rv, $coerce_to) {
         # We already have the type fixed, so we can resolve to the coercion

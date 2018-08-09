@@ -4412,7 +4412,7 @@ class Perl6::World is HLL::World {
         my $has_ctv := 0;
         try {
             my $sym := self.find_symbol(@name);
-            $has_ctv := !nqp::iscont($sym);
+            $has_ctv := !(nqp::iscont($sym) && nqp::isconcrete_nd($sym));
         }
         $has_ctv;
     }

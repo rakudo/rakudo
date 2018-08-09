@@ -2946,9 +2946,7 @@ multi sub infix:<~>(Any:D \a, Str:D \b --> Str:D) {
 multi sub infix:<~>(Str:D \a, Any:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Stringy)))
 }
-multi sub infix:<~>(Any:D \a, Any:D \b --> Str:D) {
-    nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Stringy), nqp::unbox_s(b.Stringy)))
-}
+# Any/Any candidate in src/core/Stringy.pm6
 
 multi sub infix:<~>(str @args --> str) { nqp::join('',@args) }
 multi sub infix:<~>(@args --> Str:D)   { @args.join }

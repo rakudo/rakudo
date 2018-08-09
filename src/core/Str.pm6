@@ -2916,17 +2916,41 @@ my class Str does Stringy { # declared in BOOTSTRAP
 multi sub prefix:<~>(Str:D \a)         { a.Str }
 multi sub prefix:<~>(str   $a --> str) { $a    }
 
+multi sub infix:<~>(str $a, str $b   --> str) {
+    nqp::concat($a, $b)
+}
+multi sub infix:<~>(Str:D \a, str $b --> str) {
+    nqp::concat(nqp::unbox_s(a), $b)
+}
+multi sub infix:<~>(str $a, Str:D \b --> str) {
+    nqp::concat($a, nqp::unbox_s(b))
+}
+
 multi sub infix:<~>(Str:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<~>(str $a, str $b --> str) { nqp::concat($a, $b) }
-multi sub infix:<~>(Any:D \a, Str:D \b) {
+
+multi sub infix:<~>(Cool:D \a, Str:D \b --> Str:D) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Str), nqp::unbox_s(b)))
+}
+multi sub infix:<~>(Str:D \a, Cool:D \b --> Str:D) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Str)))
+}
+multi sub infix:<~>(Cool:D \a, Cool:D \b --> Str:D) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Str), nqp::unbox_s(b.Str)))
+}
+
+multi sub infix:<~>(Any:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Stringy), nqp::unbox_s(b)))
 }
-multi sub infix:<~>(Str:D \a, Any:D \b) {
+multi sub infix:<~>(Str:D \a, Any:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Stringy)))
 }
-multi sub infix:<~>(*@args) { @args.join }
+# Any/Any candidate in src/core/Stringy.pm6
+
+multi sub infix:<~>(str @args --> str) { nqp::join('',@args) }
+multi sub infix:<~>(@args --> Str:D)   { @args.join }
+multi sub infix:<~>(*@args --> Str:D)  { @args.join }
 
 multi sub infix:<x>(Str:D $s, Bool:D $repetition --> Str:D) {
     nqp::if($repetition, $s, '')

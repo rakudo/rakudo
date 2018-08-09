@@ -10379,6 +10379,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
     method nibbler($/) {
         my @asts;
         my $lastlit := '';
+        my $atom;
 
         for @*nibbles {
             if nqp::istype($_, NQPMatch) {
@@ -10387,9 +10388,8 @@ class Perl6::QActions is HLL::Actions does STDActions {
                         @asts.push($*W.add_string_constant($lastlit));
                         $lastlit := '';
                     }
-                    @asts.push($_.ast.ann('ww_atom')
-                        ?? WANTED($_.ast, 'nibbler1')
-                        !! QAST::Op.new( :op('callmethod'), :name('Stringy'),  WANTED($_.ast, 'nibbler2') ));
+                    $atom := $_.ast.ann('ww_atom');
+                    @asts.push(WANTED($_.ast, 'nibbler'));
                 }
                 else {
                     $lastlit := $lastlit ~ $_.ast;
@@ -10399,8 +10399,15 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 $lastlit := $lastlit ~ $_;
             }
         }
+
         if $lastlit ne '' || !@asts {
             @asts.push($*W.add_string_constant($lastlit));
+        }
+
+        # make sure single var interpolation actually stringifies
+        elsif +@asts == 1 && !$atom {
+             @asts[0] :=
+               QAST::Op.new( :op('callmethod'), :name('Stringy'), @asts[0] );
         }
 
         my $past := @asts.shift();

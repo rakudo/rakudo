@@ -224,18 +224,36 @@ $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
 });
 $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
     my @ops;
+
     my $inv_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-    my $ch_res  := $qastcomp.as_mast(QAST::Op.new( :op('decont'), $op[1] ), :want($MVM_reg_obj));
-    my $nam_res := $qastcomp.as_mast($op[2], :want($MVM_reg_str));
-    my $val_res := $qastcomp.as_mast($op[3], :want($MVM_reg_obj));
     push_ilist(@ops, $inv_res);
+
+    my $ch_res := $qastcomp.as_mast(
+        nqp::istype($op[1], QAST::WVal) && !nqp::isconcrete($op[1].value)
+            ?? $op[1]
+            !! QAST::Op.new( :op('decont'), $op[1] ),
+        :want($MVM_reg_obj));
     push_ilist(@ops, $ch_res);
-    push_ilist(@ops, $nam_res);
+
+    my $val_res := $qastcomp.as_mast($op[3], :want($MVM_reg_obj));
     push_ilist(@ops, $val_res);
-    nqp::push(@ops, MAST::Op.new( :op('bindattrs_o'), $inv_res.result_reg,
-        $ch_res.result_reg, $nam_res.result_reg, $val_res.result_reg));
+
+    my $name := $op[2];
+    $name := $name[2] if nqp::istype($name, QAST::Want) && $name[1] eq 'Ss';
+    if nqp::istype($name, QAST::SVal) {
+        nqp::push(@ops, MAST::Op.new( :op('bindattr_o'), $inv_res.result_reg,
+            $ch_res.result_reg, MAST::SVal.new( :value($name.value) ), $val_res.result_reg,
+            MAST::IVal.new( :value(-1) )));
+    }
+    else {
+        my $nam_res := $qastcomp.as_mast($name, :want($MVM_reg_str));
+        push_ilist(@ops, $nam_res);
+        nqp::push(@ops, MAST::Op.new( :op('bindattrs_o'), $inv_res.result_reg,
+            $ch_res.result_reg, $nam_res.result_reg, $val_res.result_reg));
+        $*REGALLOC.release_register($nam_res.result_reg, $MVM_reg_str);
+    }
+
     $*REGALLOC.release_register($ch_res.result_reg, $MVM_reg_obj);
-    $*REGALLOC.release_register($nam_res.result_reg, $MVM_reg_str);
     $*REGALLOC.release_register($val_res.result_reg, $MVM_reg_obj);
     MAST::InstructionList.new(@ops, $inv_res.result_reg, $MVM_reg_obj)
 });

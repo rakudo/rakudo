@@ -113,33 +113,23 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method ASSIGN-KEY(Hash:D: Str:D \key, Mu \assignval) is raw {
-        nqp::if(
-          nqp::isnull(
-            (my $target := nqp::atkey(nqp::getattr(self,Map,'$!storage'),key))
-          ),
-          nqp::bindkey(
-            nqp::getattr(self,Map,'$!storage'),
-            key,
-            nqp::p6scalarwithvalue($!descriptor,assignval)
-          ),
-          nqp::p6assign($target,assignval)
-        )
+        my \storage := nqp::getattr(self,Map,'$!storage');
+        nqp::p6assign(
+          nqp::ifnull(
+            nqp::atkey(storage, key),
+            nqp::bindkey(storage, key,
+              nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+          assignval)
     }
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
-        nqp::if(
-          nqp::isnull(
-            (my $target := nqp::atkey(
-              nqp::getattr(self,Map,'$!storage'),
-              (my $key := key.Str)
-            ))
-          ),
-          nqp::bindkey(
-            nqp::getattr(self,Map,'$!storage'),
-            $key,
-            nqp::p6scalarwithvalue($!descriptor,assignval)
-          ),
-          nqp::p6assign($target,assignval)
-        )
+        my str $key = key.Str;
+        my \storage := nqp::getattr(self, Map, '$!storage');
+        nqp::p6assign(
+          nqp::ifnull(
+            nqp::atkey(storage, $key),
+            nqp::bindkey(storage, $key,
+              nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+          assignval)
     }
 
     proto method BIND-KEY(|) {*}

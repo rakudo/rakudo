@@ -1312,7 +1312,8 @@ class Perl6::Optimizer {
 
             # Boolifications don't need it, nor do _I/_i/_n/_s ops, with
             # the exception of native assignment, which can decont_[ins]
-            # as appropriate, which may avoid a boxing.
+            # as appropriate, which may avoid a boxing. Same for QAST::WVal
+            # if we can see the value is not containerized.
             my $last_stmt := get_last_stmt($value);
             if nqp::istype($last_stmt, QAST::Op) {
                 my str $last_op := $last_stmt.op;
@@ -1342,6 +1343,9 @@ class Perl6::Optimizer {
                     $last_stmt.scope('attribute');
                     return $value;
                 }
+            }
+            elsif nqp::istype($last_stmt, QAST::WVal) {
+                return $value unless nqp::iscont($last_stmt.value);
             }
         }
 

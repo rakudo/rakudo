@@ -49,11 +49,12 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
 # Often we have nothing at all to do, in which case we can make it a no-op.
 # Other times, we need a decont. In a few, we need to re-wrap it.
 
+sub identity($obj) { $obj }
+
 {
     # We look up Iterable when the plugin is used.
     my $Iterable := nqp::null();
 
-    sub identity($obj) { $obj }
     sub mu($replaced) { Mu }
     sub decont($obj) { nqp::decont($obj) }
     sub recont($obj) {
@@ -129,6 +130,153 @@ nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
         }
     });
 }
+
+## Return value type check plugin
+
+{
+    sub coercion_error($from_name, $to_name) {
+        nqp::die("Unable to coerce the return value from $from_name to $to_name; " ~
+            "no coercion method defined");
+    }
+
+    sub return_error($got, $wanted) {
+        my %ex := nqp::gethllsym('perl6', 'P6EX');
+        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Return') {
+            nqp::die("Type check failed for return value; expected '" ~
+                $wanted.HOW.name($wanted) ~ "' but got '" ~
+                $got.HOW.name($got) ~ "'");
+        }
+        else {
+            nqp::atkey(%ex, 'X::TypeCheck::Return')($got, $wanted)
+        }
+    }
+
+    sub make-unchecked-coercion($rv, $coerce_to) {
+        # We already have the type fixed, so we can resolve to the coercion
+        # method if available.
+        my $name := $coerce_to.HOW.name($coerce_to);
+        my $meth := nqp::tryfindmethod($rv, $name);
+        return nqp::isnull($meth)
+            ?? -> $ret { coercion_error($ret.HOW.name($ret), $name) }
+            !! $meth;
+    }
+
+    sub check_type_typeobj($type, $orig_type) {
+        -> $ret {
+            nqp::istype($ret, $type) && !nqp::isconcrete($ret)
+                ?? $ret
+                !! return_error($ret, $orig_type)
+        }
+    }
+    sub check_type_concrete($type, $orig_type) {
+        -> $ret {
+            nqp::istype($ret, $type) && nqp::isconcrete($ret)
+                ?? $ret
+                !! return_error($ret, $orig_type)
+        }
+    }
+    sub check_type($type, $orig_type) {
+        -> $ret {
+            nqp::istype($ret, $type) || nqp::istype($ret, Nil)
+                ?? $ret
+                !! return_error($ret, $orig_type)
+        }
+    }
+
+    sub check_type_typeobj_coerce($type, $name, $orig_type) {
+        -> $ret {
+            nqp::istype($ret, $type) && !nqp::isconcrete($ret)
+                ?? (nqp::isnull(my $cmeth := nqp::tryfindmethod($ret, $name))
+                        ?? coercion_error($ret.HOW.name($ret), $name)
+                        !! $cmeth($ret))
+                !! return_error($ret, $orig_type)
+        }
+    }
+    sub check_type_concrete_coerce($type, $name, $orig_type) {
+        -> $ret {
+            nqp::istype($ret, $type) && nqp::isconcrete($ret)
+                ?? (nqp::isnull(my $cmeth := nqp::tryfindmethod($ret, $name))
+                        ?? coercion_error($ret.HOW.name($ret), $name)
+                        !! $cmeth($ret))
+                !! return_error($ret, $orig_type)
+        }
+    }
+    sub check_type_coerce($type, $name, $orig_type) {
+        -> $ret {
+            nqp::istype($ret, $type) || nqp::istype($ret, Nil)
+                ?? (nqp::isnull(my $cmeth := nqp::tryfindmethod($ret, $name))
+                        ?? coercion_error($ret.HOW.name($ret), $name)
+                        !! $cmeth($ret))
+                !! return_error($ret, $orig_type)
+        }
+    }
+
+    nqp::speshreg('perl6', 'typecheckrv', sub ($rv, $type) {
+        my $orig_type := $type;
+
+        # If the type is Mu or unset, then we can resolve to identity.
+        if nqp::isnull($type) || $type =:= Mu {
+            return &identity;
+        }
+
+        # Gather information about coercive and definite types, and resolve
+        # to the base type.
+        my $coerce_to := nqp::null();
+        my int $definite_check := -1;
+        if $type.HOW.archetypes.coercive {
+            $coerce_to := $type.HOW.target_type($type);
+            $type := $type.HOW.constraint_type($type);
+        }
+        if $type.HOW.archetypes.definite {
+            $definite_check := $type.HOW.definite($type);
+            $type := $type.HOW.base_type($type);
+        }
+
+        # See if the return value is containerized; if not, we can do some
+        # guarding/checking and maybe toss the checks altogether.
+        unless nqp::iscont($rv) {
+            if $type.HOW.archetypes.nominal &&
+                    # Allow through Nil/Failure
+                    (nqp::istype($rv, Nil) || (nqp::istype($rv, $type) &&
+                    # Enforce definite checks.
+                    ($definite_check == 0 ?? !nqp::isconcrete($rv) !!
+                     $definite_check == 1 ?? nqp::isconcrete($rv) !! 1))) {
+                # Type matches; add a type guard and we can elide checking
+                # that.
+                nqp::speshguardtype($rv, $rv.WHAT);
+
+                # If there's a definedness check, add guards for those too.
+                if $definite_check == 0 {
+                    nqp::speshguardtypeobj($rv);
+                }
+                elsif $definite_check == 1 {
+                    nqp::speshguardconcrete($rv);
+                }
+
+                # Now it's either an unchecked coercion or identity.
+                return nqp::isnull($coerce_to)
+                    ?? &identity
+                    !! make-unchecked-coercion($rv, $coerce_to);
+            }
+        }
+
+        # If we get here, we've got a case we can't simplify much. Pick an
+        # appropriate variant that will do the type checks and coercions as
+        # needed.
+        if nqp::isnull($coerce_to) {
+            return $definite_check == 0 ?? check_type_typeobj($type, $orig_type) !!
+                   $definite_check == 1 ?? check_type_concrete($type, $orig_type) !!
+                                           check_type($type, $orig_type);
+        }
+        else {
+            my $name := $coerce_to.HOW.name($coerce_to);
+            return $definite_check == 0 ?? check_type_typeobj_coerce($type, $name, $orig_type) !!
+                   $definite_check == 1 ?? check_type_concrete_coerce($type, $name, $orig_type) !!
+                                           check_type_coerce($type, $name, $orig_type);
+        }
+    });
+}
+
 
 ## Assignment plugin
 

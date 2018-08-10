@@ -10,6 +10,7 @@ class CompUnit::Repository::JavaRuntime { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
+    my $sep := $*SPEC.dir-sep;
     my $lock     = Lock.new;
     my %include-spec2cur;
 
@@ -81,7 +82,7 @@ class CompUnit::RepositoryRegistry {
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
           !! nqp::concat(
                nqp::atkey(nqp::getcomp('perl6').config,'libdir'),
-               '/perl6'
+               "{$sep}perl6"
              );
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
@@ -96,14 +97,14 @@ class CompUnit::RepositoryRegistry {
                    (nqp::existskey($ENV,'HOMEPATH')
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                  ) -> $home-path {
-                $home = "$home-path/.perl6";
+                $home = "{$home-path}{$sep}.perl6";
                 $home-spec = "inst#$home";
             }
         }
 
         # set up custom libs
-        my str $site = "inst#$prefix/site";
-        my str $vendor = "inst#$prefix/vendor";
+        my str $site = "inst#{$prefix}{$sep}site";
+        my str $vendor = "inst#{$prefix}{$sep}vendor";
         my str $perl = "inst#$prefix";
 
         # your basic repo chain
@@ -141,11 +142,11 @@ class CompUnit::RepositoryRegistry {
             )) unless nqp::existskey($unique, $perl);
             nqp::bindkey($custom-lib, 'vendor', $next-repo := self!register-repository(
                 $vendor,
-                CompUnit::Repository::Installation.new(:prefix("$prefix/vendor"), :$next-repo)
+                CompUnit::Repository::Installation.new(:prefix("{$prefix}{$sep}vendor"), :$next-repo)
             )) unless nqp::existskey($unique, $vendor);
             nqp::bindkey($custom-lib, 'site', $next-repo := self!register-repository(
                 $site,
-                CompUnit::Repository::Installation.new(:prefix("$prefix/site"), :$next-repo)
+                CompUnit::Repository::Installation.new(:prefix("{$prefix}{$sep}site"), :$next-repo)
             )) unless nqp::existskey($unique, $site);
             nqp::bindkey($custom-lib, 'home', $next-repo := self!register-repository(
                 $home-spec,
@@ -259,9 +260,9 @@ class CompUnit::RepositoryRegistry {
         shift @*ARGS if $ver;
         $name //= $dist-name;
         my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
-        my @binaries = @installations.map({ .script("bin/$script", :$name, :$auth, :$ver) }).grep(*.defined);
+        my @binaries = @installations.map({ .script("bin{$sep}$script", :$name, :$auth, :$ver) }).grep(*.defined);
         unless +@binaries {
-            @binaries = flat @installations.map: { .script("bin/$script", :$name) };
+            @binaries = flat @installations.map: { .script("bin{$sep}$script", :$name) };
             if +@binaries {
                 note "===SORRY!===\n"
                     ~ "No candidate found for '$script' that match your criteria.\n"

@@ -9,19 +9,19 @@ multi sub infix:<(^)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
-            nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
             nqp::stmts(                        # $a smallest, iterate over it
-              (my $iter  := nqp::iterator($araw)),
-              (my $elems := nqp::clone($braw))
+              (my $iter  := nqp::iterator(araw)),
+              (my $elems := nqp::clone(braw))
             ),
             nqp::stmts(                        # $b smallest, iterate over that
-              ($iter  := nqp::iterator($braw)),
-              ($elems := nqp::clone($araw))
+              ($iter  := nqp::iterator(braw)),
+              ($elems := nqp::clone(araw))
             )
           ),
           nqp::while(
@@ -46,19 +46,19 @@ multi sub infix:<(^)>(Setty:D $a, Baggy:D $b) { $a.Baggy (^) $b }
 
 multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
-            nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
             nqp::stmts(                        # $a smallest, iterate over it
-              (my $iter  := nqp::iterator(my $base := $araw)),
-              (my $elems := nqp::clone($braw))
+              (my $iter  := nqp::iterator(my $base := araw)),
+              (my $elems := nqp::clone(braw))
             ),
             nqp::stmts(                        # $b smallest, iterate over that
-              ($iter  := nqp::iterator($base := $braw)),
-              ($elems := nqp::clone($araw))
+              ($iter  := nqp::iterator($base := braw)),
+              ($elems := nqp::clone(araw))
             )
           ),
           nqp::while(
@@ -66,7 +66,7 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
             nqp::if(
               nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
               nqp::if(
-                (my $diff := nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                (my \diff := nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                   - nqp::getattr(
                       nqp::atkey($elems,nqp::iterkey_s($iter)),
                       Pair,
@@ -77,7 +77,7 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
                   $elems,
                   nqp::iterkey_s($iter),
                   nqp::p6bindattrinvres(
-                    nqp::clone(nqp::iterval($iter)),Pair,'$!value',abs($diff)
+                    nqp::clone(nqp::iterval($iter)),Pair,'$!value',abs(diff)
                   )
                 ),
                 nqp::deletekey($elems,nqp::iterkey_s($iter))
@@ -92,13 +92,13 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
           nqp::create($a.WHAT).SET-SELF($elems)
         ),
         nqp::create($a.WHAT).SET-SELF(        # $b empty, so $a
-          Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE($araw)
+          Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE(araw)
         )
       ),
       nqp::if(
-        ($braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
         nqp::create($a.WHAT).SET-SELF(        # $a empty, so $b
-          Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE($braw)
+          Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE(raw)
         ),
         $a                                    # $a and $b empty
       )
@@ -110,19 +110,19 @@ multi sub infix:<(^)>(Mixy:D $a, Setty:D $b) { $a (^) $b.Mix }
 multi sub infix:<(^)>(Baggy:D $a, Mixy:D $b) { $a.Mixy (^) $b }
 multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
-            nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
             nqp::stmts(                        # $a smallest, iterate over it
-              (my $iter  := nqp::iterator(my $base := $araw)),
-              (my $elems := nqp::clone($braw))
+              (my $iter  := nqp::iterator(my $base := araw)),
+              (my $elems := nqp::clone(braw))
             ),
             nqp::stmts(                        # $b smallest, iterate over that
-              ($iter  := nqp::iterator($base := $braw)),
-              ($elems := nqp::clone($araw))
+              ($iter  := nqp::iterator($base := braw)),
+              ($elems := nqp::clone(araw))
             )
           ),
           nqp::while(
@@ -166,46 +166,46 @@ multi sub infix:<(^)>(Baggy:D $a, Setty:D $b) { $a (^) $b.Bag }
 
 multi sub infix:<(^)>(Map:D $a, Map:D $b) {
     nqp::if(
-      nqp::elems((my $elems := Rakudo::QuantHash.COERCE-MAP-TO-SET($a))),
+      nqp::elems((my \elems := Rakudo::QuantHash.COERCE-MAP-TO-SET($a))),
       nqp::if(                                    # $a has elems
-        (my $iter :=
+        (my \iter :=
           nqp::iterator(nqp::getattr(nqp::decont($b),Map,'$!storage'))),
         nqp::stmts(
           nqp::if(                                # both have elems
             nqp::eqaddr($b.keyof,Str(Any)),
             nqp::while(                           # ordinary hash
-              $iter,
+              iter,
               nqp::if(
-                nqp::iterval(nqp::shift($iter)),
+                nqp::iterval(nqp::shift(iter)),
                 nqp::if(                          # should be checked
                   nqp::existskey(
-                    $elems,
-                    (my $which := nqp::iterkey_s($iter).WHICH)
+                    elems,
+                    (my \which := nqp::iterkey_s(iter).WHICH)
                   ),
-                  nqp::deletekey($elems,$which),  # remove existing
-                  nqp::bindkey($elems,$which,nqp::iterkey_s($iter)) # add new
+                  nqp::deletekey(elems,which),    # remove existing
+                  nqp::bindkey(elems,which,nqp::iterkey_s(iter)) # add new
                 )
               )
             ),
             nqp::while(                           # object hash
-              $iter,
+              iter,
               nqp::if(
-                nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
+                nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!value'),
                 nqp::if(                          # should be checked
-                  nqp::existskey($elems,nqp::iterkey_s($iter)),
-                  nqp::deletekey($elems,nqp::iterkey_s($iter)),# remove existing
+                  nqp::existskey(elems,nqp::iterkey_s(iter)),
+                  nqp::deletekey(elems,nqp::iterkey_s(iter)),# remove existing
                   nqp::bindkey(                   # add new
-                    $elems,
-                    nqp::iterkey_s($iter),
-                    nqp::getattr(nqp::iterval($iter),Pair,'$!key')
+                    elems,
+                    nqp::iterkey_s(iter),
+                    nqp::getattr(nqp::iterval(iter),Pair,'$!key')
                   )
                 )
               )
             )
           ),
-          nqp::create(Set).SET-SELF($elems)       # done
+          nqp::create(Set).SET-SELF(elems)        # done
         ),
-        nqp::create(Set).SET-SELF($elems)         # nothing right, so make left
+        nqp::create(Set).SET-SELF(elems)          # nothing right, so make left
       ),
       $b.Set                                      # nothing left, coerce right
     )
@@ -248,20 +248,20 @@ multi sub infix:<(^)>(**@p) {
     # handle key that has been seen before for given value
     sub handle-existing(Mu \elems, Mu \iter, \value --> Nil) {
         nqp::stmts(
-          (my $minmax := nqp::getattr(
+          (my \minmax := nqp::getattr(
             nqp::atkey(elems,nqp::iterkey_s(iter)),Pair,'$!value')
           ),
-          nqp::bindpos($minmax,COUNT,nqp::add_i(nqp::atpos($minmax,COUNT),1)),
+          nqp::bindpos(minmax,COUNT,nqp::add_i(nqp::atpos(minmax,COUNT),1)),
           nqp::if(
-            value > nqp::atpos($minmax,HIGHEST),
+            value > nqp::atpos(minmax,HIGHEST),
             nqp::stmts(
-              nqp::bindpos($minmax,LOWEST,nqp::atpos($minmax,HIGHEST)),
-              nqp::bindpos($minmax,HIGHEST,value)
+              nqp::bindpos(minmax,LOWEST,nqp::atpos(minmax,HIGHEST)),
+              nqp::bindpos(minmax,HIGHEST,value)
             ),
             nqp::if(
-              nqp::not_i(nqp::defined(nqp::atpos($minmax,LOWEST)))
-                || value > nqp::atpos($minmax,LOWEST),
-              nqp::bindpos($minmax,LOWEST,value)
+              nqp::not_i(nqp::defined(nqp::atpos(minmax,LOWEST)))
+                || value > nqp::atpos(minmax,LOWEST),
+              nqp::bindpos(minmax,LOWEST,value)
             )
           )
         )
@@ -270,12 +270,12 @@ multi sub infix:<(^)>(**@p) {
     # handle key that has not yet been seen
     sub handle-new(Mu \elems, Mu \iter, \pair, \value) {
         nqp::stmts(
-          (my $minmax := nqp::clone($init-minmax)),
-          nqp::bindpos($minmax,HIGHEST,value),
+          (my \minmax := nqp::clone($init-minmax)),
+          nqp::bindpos(minmax,HIGHEST,value),
           nqp::bindkey(
             elems,
             nqp::iterkey_s(iter),
-            nqp::p6bindattrinvres(pair,Pair,'$!value',$minmax)
+            nqp::p6bindattrinvres(pair,Pair,'$!value',minmax)
           )
         )
     }
@@ -285,48 +285,48 @@ multi sub infix:<(^)>(**@p) {
       Failure.new(X::Cannot::Lazy.new(:action('symmetric diff'))),  # bye bye
 
       nqp::stmts(                                # fixed list of things to diff
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+        (my \elems := nqp::create(Rakudo::Internals::IterationSet)),
         (my $type  := Set),
         (my int $pseen = 0),
 
         nqp::until(
-          nqp::eqaddr((my $p := $params.pull-one),IterationEnd),
+          nqp::eqaddr((my \p := $params.pull-one),IterationEnd),
 
           nqp::stmts(                            # not done parsing
             nqp::unless(
               $pseen,
               (my $mutable :=
-                   nqp::eqaddr($p.WHAT,MixHash)
-                || nqp::eqaddr($p.WHAT,BagHash)
-                || nqp::eqaddr($p.WHAT,SetHash)
+                   nqp::eqaddr(p.WHAT,MixHash)
+                || nqp::eqaddr(p.WHAT,BagHash)
+                || nqp::eqaddr(p.WHAT,SetHash)
               )
             ),
             ($pseen = nqp::add_i($pseen,1)),
             nqp::if(
-              nqp::istype($p,Baggy),
+              nqp::istype(p,Baggy),
 
               nqp::stmts(                        # Mixy/Baggy semantics apply
                 nqp::unless(
                   nqp::istype($type,Mix),
-                  ($type := nqp::if(nqp::istype($p,Mixy),Mix,Bag))
+                  ($type := nqp::if(nqp::istype(p,Mixy),Mix,Bag))
                 ),
                 nqp::if(
-                  (my $raw := $p.RAW-HASH) && (my $iter := nqp::iterator($raw)),
+                  (my $raw := p.RAW-HASH) && (my $iter := nqp::iterator($raw)),
                   nqp::stmts(                    # something to process
                     nqp::while(
                       $iter,
                       nqp::if(
                         nqp::existskey(
-                          $elems,
+                          elems,
                           nqp::iterkey_s(nqp::shift($iter))
                         ),
                         handle-existing(         # seen this element before
-                          $elems,
+                          elems,
                           $iter,
                           nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                         ),
                         handle-new(              # new element
-                          $elems,
+                          elems,
                           $iter,
                           nqp::clone(nqp::iterval($iter)),
                           nqp::getattr(nqp::iterval($iter),Pair,'$!value')
@@ -338,19 +338,19 @@ multi sub infix:<(^)>(**@p) {
               ),
 
               nqp::stmts(                        # not a Baggy/Mixy, assume Set
-                ($raw := nqp::if(nqp::istype($p,Setty),$p,$p.Set).RAW-HASH)
+                ($raw := nqp::if(nqp::istype(p,Setty),p,p.Set).RAW-HASH)
                   && ($iter := nqp::iterator($raw)),
                 nqp::while(                      # something to process
                   $iter,
                   nqp::if(
-                    nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
+                    nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
                     handle-existing(             # seen this element before
-                      $elems,
+                      elems,
                       $iter,
                       nqp::istrue(nqp::iterval($iter))
                     ),
                     handle-new(                  # new element
-                      $elems,
+                      elems,
                       $iter,
                       nqp::p6bindattrinvres(
                         nqp::create(Pair),Pair,'$!key',nqp::iterval($iter)),
@@ -363,7 +363,7 @@ multi sub infix:<(^)>(**@p) {
           )
         ),
 
-        ($iter := nqp::iterator($elems)),        # start post-processing
+        ($iter := nqp::iterator(elems)),         # start post-processing
         nqp::if(
           nqp::istype($type,Set),
           nqp::while(                            # need to create a Set
@@ -376,9 +376,9 @@ multi sub infix:<(^)>(**@p) {
                 ),
                 0
               ) == 1,
-              nqp::deletekey($elems,nqp::iterkey_s($iter)),    # seen > 1
+              nqp::deletekey(elems,nqp::iterkey_s($iter)),     # seen > 1
               nqp::bindkey(                                    # only once
-                $elems,                                        # convert to
+                elems,                                         # convert to
                 nqp::iterkey_s($iter),                         # Setty format
                 nqp::getattr(nqp::iterval($iter),Pair,'$!key')
               )
@@ -393,12 +393,12 @@ multi sub infix:<(^)>(**@p) {
                   nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value')),
                 nqp::if(
                   nqp::islt_i(nqp::atpos($minmax,COUNT),$pseen),
-                  handle-existing($elems,$iter,0)  # absentee == value 0 seen
+                  handle-existing(elems,$iter,0)  # absentee == value 0 seen
                 ),
                 nqp::if(
                   nqp::ifnull(nqp::atpos($minmax,LOWEST),0)
                    == nqp::atpos($minmax,HIGHEST),
-                  nqp::deletekey($elems,nqp::iterkey_s($iter)),  # top 2 same
+                  nqp::deletekey(elems,nqp::iterkey_s($iter)),   # top 2 same
                   nqp::bindattr(                                 # there's a
                     nqp::iterval($iter),                         # difference
                     Pair,                                        # so convert
@@ -420,7 +420,7 @@ multi sub infix:<(^)>(**@p) {
                   ),
                   0
                 ) == nqp::atpos($minmax,HIGHEST),
-                nqp::deletekey($elems,nqp::iterkey_s($iter)),    # top 2 same
+                nqp::deletekey(elems,nqp::iterkey_s($iter)),     # top 2 same
                 nqp::bindattr(                                   # there's a
                   nqp::iterval($iter),                           # difference
                   Pair,                                          # so convert
@@ -440,7 +440,7 @@ multi sub infix:<(^)>(**@p) {
             nqp::if(nqp::eqaddr($type,Bag),BagHash,SetHash)
           )
         ),
-        nqp::create($type).SET-SELF($elems)
+        nqp::create($type).SET-SELF(elems)
       )
     )
 }

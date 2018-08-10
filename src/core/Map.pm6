@@ -448,7 +448,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() {
-        $!storage
+        nqp::isconcrete($!storage)
+          ?? $!storage		
+          !! nqp::bindattr(self,Map,'$!storage',nqp::hash)
     }
 
     method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n") {

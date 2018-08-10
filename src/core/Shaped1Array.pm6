@@ -25,109 +25,95 @@
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, \value) {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::ifnull(
-              nqp::atpos(
-                nqp::getattr(self,List,'$!reified'),
-                one),
+              nqp::atpos(reified,one),
               nqp::bindpos(
-                nqp::getattr(self,List,'$!reified'),
+                reified,
                 one,
                 nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
             ) = value
         }
         multi method ASSIGN-POS(::?CLASS:D: Int:D \one, \value) {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::ifnull(
-              nqp::atpos(
-                nqp::getattr(self,List,'$!reified'),
-                one),
+              nqp::atpos(reified,one),
               nqp::bindpos(
-                nqp::getattr(self,List,'$!reified'),
+                reified,
                 one,
                 nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
             ) = value
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one) {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::p6bool(
-              nqp::islt_i(one,nqp::elems(nqp::getattr(self,List,'$!reified')))
-                && nqp::not_i(nqp::isnull(
-                     nqp::atpos(nqp::getattr(self,List,'$!reified'),one)
+              nqp::islt_i(one,nqp::elems(reified))
+                && nqp::not_i(nqp::isnull(nqp::atpos(reified,one)
               ))
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::p6bool(
-              nqp::islt_i(one,nqp::elems(nqp::getattr(self,List,'$!reified')))
-                && nqp::not_i(nqp::isnull(
-                     nqp::atpos(nqp::getattr(self,List,'$!reified'),one)
+              nqp::islt_i(one,nqp::elems(reified))
+                && nqp::not_i(nqp::isnull(nqp::atpos(reified,one)
               ))
             )
         }
 
         multi method DELETE-POS(::?CLASS:D: int \one) is raw {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::if(
-              nqp::isnull(my $value := nqp::atpos(
-                nqp::getattr(self,List,'$!reified'),
-                one)),
+              nqp::isnull(my \value := nqp::atpos(reified,one)),
               Nil,
               nqp::stmts(
-                nqp::bindpos(
-                  nqp::getattr(self,List,'$!reified'),
-                  one, nqp::null),
-                $value
+                nqp::bindpos(reified,one,nqp::null),
+                value
               )
             )
         }
         multi method DELETE-POS(::?CLASS:D: Int:D \one) is raw {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::if(
-              nqp::isnull(my $value := nqp::atpos(
-                nqp::getattr(self,List,'$!reified'),
-                one)),
+              nqp::isnull(my \value := nqp::atpos(reified,one)),
               Nil,
               nqp::stmts(
-                nqp::bindpos(
-                  nqp::getattr(self,List,'$!reified'),
-                  one, nqp::null),
-                $value
+                nqp::bindpos(reified,one,nqp::null),
+                value
               )
             )
         }
 
         multi method BIND-POS(::?CLASS:D: int \one, \value) {
-            nqp::bindpos(
-              nqp::getattr(self,List,'$!reified'),
-              one, value
-            )
+            nqp::bindpos(nqp::getattr(self,List,'$!reified'),one,value)
         }
         multi method BIND-POS(::?CLASS:D: Int:D \one, \value) {
-            nqp::bindpos(
-              nqp::getattr(self,List,'$!reified'),
-              one, value
-            )
+            nqp::bindpos(nqp::getattr(self,List,'$!reified'),one,value)
         }
 
-        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from-array) {
             nqp::stmts(
-              (my $to   := nqp::getattr(self,List,'$!reified')),
-              (my $from := nqp::getattr(from,List,'$!reified')),
+              (my \to   := nqp::getattr(self,List,'$!reified')),
+              (my \from := nqp::getattr(from-array,List,'$!reified')),
               nqp::if(
                 nqp::iseq_i(
-                  (my int $elems = nqp::elems($to)),nqp::elems($from)),
+                  (my int $elems = nqp::elems(to)),nqp::elems(from)),
                 nqp::stmts(
-                  (my $desc := nqp::getattr(self,Array,'$!descriptor')),
+                  (my \desc := nqp::getattr(self,Array,'$!descriptor')),
                   (my int $i = -1),
                   nqp::while(
                     nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                     # always create a new container in case the from list
                     # contains containers already existing in the to list
                     # e.g. after having done a .reverse or .rotate
-                    nqp::bindpos($to,$i,nqp::p6scalarfromdesc($desc)) =
-                      nqp::atpos($from,$i)
+                    nqp::bindpos(to,$i,nqp::p6scalarfromdesc(desc)) =
+                      nqp::atpos(from,$i)
                   ),
                   self
                 ),
                 X::Assignment::ArrayShapeMismatch.new(
-                  source-shape => from.shape,
+                  source-shape => from-array.shape,
                   target-shape => self.shape
                 ).throw
               )
@@ -156,15 +142,13 @@
             )
         }
         multi method STORE(::?CLASS:D: Mu \item) {
-            nqp::stmts(
-              (nqp::ifnull(
-                nqp::atpos(nqp::getattr(self,List,'$!reified'),0),
-                nqp::bindpos(nqp::getattr(self,List,'$!reified'),0,
-                  nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Array,'$!descriptor')))
-              ) = item),
-              self
-            )
+            my \reified := nqp::getattr(self,List,'$!reified');
+            nqp::ifnull(
+              nqp::atpos(reified,0),
+              nqp::bindpos(reified,0,
+                nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
+            ) = item;
+            self
         }
 
         multi method keys(::?CLASS:D:) {

@@ -741,8 +741,9 @@ my class Binder {
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
                 # We'll either take the current named arguments copy hash which
                 # will by definition contain all unbound named arguments and use
-                # that. Otherwise, putting Mu in there is fine; Hash is smart
-                # enough to know what to do.
+                # that. If there are none, just keep the storage uninitialized
+                # and rely on autovivification to build up an empty nqp::hash
+                # whenever needed.
                 my $hash := nqp::create(Hash);
                 nqp::bindattr($hash, Map, '$!storage', $named_args) if $named_args;
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,

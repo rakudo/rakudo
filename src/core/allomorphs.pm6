@@ -80,20 +80,22 @@ my class RatStr is Rat is Str {
             self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)))
     }
     method succ(RatStr:D: --> Rat:D) {
+        my \denominator := nqp::getattr(self,Rat,'$!denominator');
         nqp::p6bindattrinvres(
-          nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
-            nqp::add_I(
-              nqp::getattr(self, Rat, '$!numerator'),
-              nqp::getattr(self, Rat, '$!denominator'), Int)),
-          Rat, '$!denominator', nqp::getattr(self, Rat, '$!denominator'))
+          nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',
+            nqp::add_I(nqp::getattr(self,Rat,'$!numerator'),denominator,Int)
+          ),
+          Rat, '$!denominator', denominator
+        )
     }
     method pred(RatStr:D: --> Rat:D) {
+        my \denominator := nqp::getattr(self,Rat,'$!denominator');
         nqp::p6bindattrinvres(
           nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
-            nqp::sub_I(
-              nqp::getattr(self, Rat, '$!numerator'),
-              nqp::getattr(self, Rat, '$!denominator'), Int)),
-          Rat, '$!denominator', nqp::getattr(self, Rat, '$!denominator'))
+            nqp::sub_I(nqp::getattr(self,Rat,'$!numerator'),denominator,Int)
+          ),
+          Rat, '$!denominator', denominator
+        )
     }
     method Capture(RatStr:D:) { self.Mu::Capture }
     multi method Numeric(RatStr:D:) { self.Rat }
@@ -106,7 +108,12 @@ my class RatStr is Rat is Str {
         self.Mu::Real; # issue warning;
         0.0
     }
-    method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
+    method Rat(RatStr:D:) {
+        Rat.new(
+          nqp::getattr(self, Rat, '$!numerator'),
+          nqp::getattr(self, Rat, '$!denominator')
+        )
+    }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
     multi method perl(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }

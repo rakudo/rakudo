@@ -57,25 +57,25 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
       False,                    # never proper subset of self
 
       nqp::if(                  # different objects
-        (my $araw := $a.RAW-HASH) && (my $iter := nqp::iterator($araw)),
+        (my \araw := $a.RAW-HASH) && (my \iter := nqp::iterator(araw)),
         nqp::if(                # elements on left
-          (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+          (my \braw := $b.RAW-HASH) && nqp::elems(braw),
           nqp::if(              # elements on both sides
-            nqp::isle_i(nqp::elems($araw),nqp::elems($braw)),
+            nqp::isle_i(nqp::elems(araw),nqp::elems(braw)),
             nqp::stmts(         # equal number of elements on either side
               (my int $less = 0),
               nqp::while(
-                $iter,
+                iter,
                 nqp::if(
-                  (my $left := nqp::getattr(
-                    nqp::iterval(nqp::shift($iter)),
+                  (my \left := nqp::getattr(
+                    nqp::iterval(nqp::shift(iter)),
                     Pair,
                     '$!value'
                   ))
                    >
-                  (my $right := nqp::getattr(
+                  (my \right := nqp::getattr(
                     nqp::ifnull(
-                      nqp::atkey($braw,nqp::iterkey_s($iter)),
+                      nqp::atkey(braw,nqp::iterkey_s(iter)),
                       BEGIN nqp::p6bindattrinvres(     # virtual 0
                         nqp::create(Pair),Pair,'$!value',0)
                     ),
@@ -83,11 +83,11 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
                     '$!value'
                   )),
                   (return False), # too many on left, we're done
-                  nqp::unless($less,$less = $left < $right)
+                  nqp::unless($less,$less = left < right)
                 )
               ),
               nqp::p6bool(      # ok so far, must have lower total or fewer keys
-                $less || nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
+                $less || nqp::islt_i(nqp::elems(araw),nqp::elems(braw))
               )
             ),
             False               # more keys on left
@@ -95,7 +95,7 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
           False                 # keys on left, no keys on right
         ),
         nqp::p6bool(            # no keys on left
-          ($braw := $b.RAW-HASH) && nqp::elems($braw)
+          (my \raw := $b.RAW-HASH) && nqp::elems(raw)
         )
       )
     )

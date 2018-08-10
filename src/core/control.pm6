@@ -21,11 +21,11 @@ sub THROW-NIL(int $type --> Nil) {
 }
 
 sub RETURN-LIST(Mu \list) is raw {
-    my Mu $storage := nqp::getattr(list, List, '$!reified');
-    nqp::isgt_i(nqp::elems($storage),1)
+    my \reified := nqp::getattr(list, List, '$!reified');
+    nqp::isgt_i(nqp::elems(reified),1)
       ?? list
-      !! nqp::elems($storage)
-        ?? nqp::shift($storage)
+      !! nqp::elems(reified)
+        ?? nqp::shift(reified)
         !! Nil
 }
 
@@ -219,9 +219,9 @@ sub CLONE-HASH-DECONTAINERIZED(\hash) {
 }
 
 sub CLONE-LIST-DECONTAINERIZED(*@list) {
-    my Mu $list-without := nqp::list();
-    nqp::push($list-without, nqp::decont(~$_)) for @list.eager;
-    $list-without;
+    my Mu \list-without := nqp::list();
+    nqp::push(list-without, nqp::decont(~$_)) for @list.eager;
+    list-without;
 }
 
 # vim: ft=perl6 expandtab sw=4

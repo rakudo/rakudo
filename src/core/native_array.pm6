@@ -89,7 +89,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-06-09T09:10:42+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -142,14 +142,14 @@ my class array does Iterable {
         }
         multi method STORE(strarray:D: List:D \values) {
             my int $elems = values.elems;    # reifies
-            my $reified := nqp::getattr(values,List,'$!reified');
+            my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos_s(self, $i,
-                nqp::unbox_s(nqp::atpos($reified,$i)))
+                nqp::unbox_s(nqp::atpos(reified,$i)))
             );
             self
         }
@@ -546,7 +546,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-06-09T09:10:42+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -599,14 +599,14 @@ my class array does Iterable {
         }
         multi method STORE(intarray:D: List:D \values) {
             my int $elems = values.elems;    # reifies
-            my $reified := nqp::getattr(values,List,'$!reified');
+            my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos_i(self, $i,
-                nqp::unbox_i(nqp::atpos($reified,$i)))
+                nqp::unbox_i(nqp::atpos(reified,$i)))
             );
             self
         }
@@ -1055,7 +1055,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-06-09T09:10:42+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1108,14 +1108,14 @@ my class array does Iterable {
         }
         multi method STORE(numarray:D: List:D \values) {
             my int $elems = values.elems;    # reifies
-            my $reified := nqp::getattr(values,List,'$!reified');
+            my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos_n(self, $i,
-                nqp::unbox_n(nqp::atpos($reified,$i)))
+                nqp::unbox_n(nqp::atpos(reified,$i)))
             );
             self
         }

@@ -99,14 +99,14 @@ for $*IN.lines -> $line {
         }
         multi method STORE(#type#array:D: List:D \values) {
             my int $elems = values.elems;    # reifies
-            my $reified := nqp::getattr(values,List,'$!reified');
+            my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos_#postfix#(self, $i,
-                nqp::unbox_#postfix#(nqp::atpos($reified,$i)))
+                nqp::unbox_#postfix#(nqp::atpos(reified,$i)))
             );
             self
         }

@@ -145,11 +145,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     proto method ends-with(|) {*}
     multi method ends-with(Str:D: Cool:D $suffix) {self.ends-with: $suffix.Str}
     multi method ends-with(Str:D: Str:D $suffix) {
-        nqp::p6bool(nqp::eqat(
-          $!value,
-          nqp::getattr($suffix,Str,'$!value'),
-          nqp::chars($!value) - nqp::chars(nqp::getattr($suffix,Str,'$!value'))
-        ))
+        my \value := nqp::getattr($suffix,Str,'$!value');
+        nqp::p6bool(
+          nqp::eqat(
+            $!value,value,nqp::sub_i(nqp::chars($!value),nqp::chars(value))
+          )
+        )
     }
 
     # TODO Use coercer in 1 candidate when RT131014

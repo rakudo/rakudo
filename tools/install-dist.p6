@@ -74,7 +74,12 @@ sub build(IO::Path :$dist-prefix) {
     my $meta = Rakudo::Internals::JSON.from-json($meta-file.slurp);
 
     if ($meta<builder>) {
-        my $builder = (require ::("Distribution::Builder::$meta<builder>")).new(:$meta);
+        my $builder-class =  first { .so },
+            (try require ::("$meta<builder>")),
+            (try require ::("Distribution::Builder::$meta<builder>")); # get rid of this hard-coded prefix variation eventually
+
+        my $builder = $builder-class.new(:$meta);
+
         if $builder.can-build {
             $builder.build;
             exit;

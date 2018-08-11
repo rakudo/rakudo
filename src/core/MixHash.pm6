@@ -19,8 +19,8 @@ my class MixHash does Mixy {
         Proxy.new(
           FETCH => {
               nqp::if(
-                $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
-                nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value'),
+                $!elems && nqp::existskey($!elems,(my \which := k.WHICH)),
+                nqp::getattr(nqp::atkey($!elems,which),Pair,'$!value'),
                 0
               )
           },
@@ -107,43 +107,43 @@ my class MixHash does Mixy {
         # except for tests for allocated storage and .WHICH
         # processing.
         nqp::stmts(
-          (my $which := nqp::iterkey_s(iter)),
+          (my \which := nqp::iterkey_s(iter)),
           # save for possible object recreation
-          (my $object := nqp::getattr(nqp::iterval(iter),Pair,'$!key')),
+          (my \object := nqp::getattr(nqp::iterval(iter),Pair,'$!key')),
 
           Proxy.new(
             FETCH => {
                 nqp::if(
-                  nqp::existskey(storage,$which),
-                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value'),
+                  nqp::existskey(storage,which),
+                  nqp::getattr(nqp::atkey(storage,which),Pair,'$!value'),
                   0
                 )
             },
-            STORE => -> $, Real() $value {
+            STORE => -> $, Real() \value {
                 nqp::if(
-                  nqp::istype($value,Failure),  # RT 128927
-                  $value.throw,
+                  nqp::istype(value,Failure),  # RT 128927
+                  value.throw,
                   nqp::if(
-                    nqp::existskey(storage,$which),
+                    nqp::existskey(storage,which),
                     nqp::if(                    # existing element
-                      $value == 0,
+                      value == 0,
                       nqp::stmts(               # goodbye!
-                        nqp::deletekey(storage,$which),
+                        nqp::deletekey(storage,which),
                         0
                       ),
                       nqp::bindattr(            # value ok
-                        nqp::atkey(storage,$which),
+                        nqp::atkey(storage,which),
                         Pair,
                         '$!value',
-                        nqp::decont($value)
+                        nqp::decont(value)
                       )
                     ),
                     nqp::unless(                # where did it go?
-                      $value == 0,
+                      value == 0,
                       nqp::bindkey(
                         storage,
-                        $which,
-                        Pair.new($object,nqp::decont($value))
+                        which,
+                        Pair.new(object,nqp::decont(value))
                       )
                     )
                   )

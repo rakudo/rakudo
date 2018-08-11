@@ -16,16 +16,17 @@ proto sub infix:<<(<+)>>($, $, *% --> Bool:D) is pure {
 }
 multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
     nqp::if(
-      (my $a := a.RAW-HASH),
+      (my \araw := a.RAW-HASH),
       nqp::if(
-        (my $b := b.RAW-HASH) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my \braw := b.RAW-HASH)
+          && nqp::isge_i(nqp::elems(braw),nqp::elems(araw)),
         nqp::stmts(
-          (my $iter := nqp::iterator($a)),
+          (my \iter := nqp::iterator(araw)),
           nqp::while(
-            $iter && nqp::existskey($b,nqp::iterkey_s(nqp::shift($iter))),
+            iter && nqp::existskey(braw,nqp::iterkey_s(nqp::shift(iter))),
             nqp::null
           ),
-          nqp::p6bool(nqp::isfalse($iter))
+          nqp::p6bool(nqp::isfalse(iter))
         ),
         False
       ),
@@ -34,20 +35,21 @@ multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
 }
 multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
     nqp::if(
-      (my $a := a.RAW-HASH),
+      (my \araw := a.RAW-HASH),
       nqp::if(
-        (my $b := b.RAW-HASH) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my \braw:= b.RAW-HASH)
+          && nqp::isge_i(nqp::elems(braw),nqp::elems(araw)),
         nqp::stmts(
-          (my $iter := nqp::iterator($a)),
+          (my \iter := nqp::iterator(araw)),
           nqp::while(
-            $iter,
+            iter,
             nqp::if(
               nqp::not_i(nqp::existskey(
-                $b,
-                (my $key := nqp::iterkey_s(nqp::shift($iter)))
+                braw,
+                (my \key := nqp::iterkey_s(nqp::shift(iter)))
               )) ||
-              nqp::getattr(nqp::decont(nqp::atkey($a,$key)),Pair,'$!value')
-                > nqp::getattr(nqp::decont(nqp::atkey($b,$key)),Pair,'$!value'),
+              nqp::getattr(nqp::decont(nqp::atkey(araw,key)),Pair,'$!value')
+                > nqp::getattr(nqp::decont(nqp::atkey(braw,key)),Pair,'$!value'),
               (return False)
             )
           ),
@@ -60,21 +62,22 @@ multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
 }
 multi sub infix:<<(<+)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
     nqp::if(
-      (my $a := a.RAW-HASH),
+      (my \araw := a.RAW-HASH),
       nqp::if(
-        (my $b := b.RAW-HASH) && nqp::isge_i(nqp::elems($b),nqp::elems($a)),
+        (my \braw := b.RAW-HASH)
+          && nqp::isge_i(nqp::elems(braw),nqp::elems(araw)),
         nqp::stmts(
-          (my $iter := nqp::iterator($a)),
+          (my \iter := nqp::iterator(araw)),
           nqp::while(
-            $iter,
+            iter,
             nqp::if(
               nqp::not_i(nqp::existskey(
-                $b,
-                (my $key := nqp::iterkey_s(nqp::shift($iter)))
+                braw,
+                (my \key := nqp::iterkey_s(nqp::shift(iter)))
               )) ||
               nqp::isgt_i(
-                nqp::getattr(nqp::decont(nqp::atkey($a,$key)),Pair,'$!value'),
-                nqp::getattr(nqp::decont(nqp::atkey($b,$key)),Pair,'$!value')
+                nqp::getattr(nqp::decont(nqp::atkey(araw,key)),Pair,'$!value'),
+                nqp::getattr(nqp::decont(nqp::atkey(braw,key)),Pair,'$!value')
               ),
               (return False)
             )

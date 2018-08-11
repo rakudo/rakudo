@@ -25,84 +25,60 @@
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, \value) {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::ifnull(
-              nqp::atpos2d(
-                nqp::getattr(self,List,'$!reified'),
-                one, two),
-              nqp::bindpos2d(
-                nqp::getattr(self,List,'$!reified'),
-                one, two,
+              nqp::atpos2d(reified,one,two),
+              nqp::bindpos2d(reified,one,two,
                 nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
             ) = value
         }
         multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, \value) {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::ifnull(
-              nqp::atpos2d(
-                nqp::getattr(self,List,'$!reified'),
-                one, two),
-              nqp::bindpos2d(
-                nqp::getattr(self,List,'$!reified'),
-                one, two,
+              nqp::atpos2d(reified,one,two),
+              nqp::bindpos2d(reified,one,two,
                 nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
             ) = value
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
+            my \reified := nqp::getattr(self,List,'$!reified');
+            my \dims := nqp::dimensions(reified);
             nqp::p6bool(
-              nqp::stmts(
-                (my $dims :=
-                  nqp::dimensions(nqp::getattr(self,List,'$!reified'))),
-                nqp::islt_i(one,nqp::atpos_i($dims,0))
-                  && nqp::islt_i(two,nqp::atpos_i($dims,1))
-                    && nqp::not_i(nqp::isnull(
-                         nqp::atpos2d(
-                           nqp::getattr(self,List,'$!reified'),
-                           one, two)
-                       ))
-              )
+              nqp::islt_i(one,nqp::atpos_i(dims,0))
+                && nqp::islt_i(two,nqp::atpos_i(dims,1))
+                  && nqp::not_i(nqp::isnull(nqp::atpos2d(reified,one,two)))
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
+            my \reified := nqp::getattr(self,List,'$!reified');
+            my \dims := nqp::dimensions(reified);
             nqp::p6bool(
-              nqp::stmts(
-                (my $dims :=
-                  nqp::dimensions(nqp::getattr(self,List,'$!reified'))),
-                nqp::islt_i(one,nqp::atpos_i($dims,0))
-                  && nqp::islt_i(two,nqp::atpos_i($dims,1))
-                    && nqp::not_i(nqp::isnull(
-                         nqp::atpos2d(
-                           nqp::getattr(self,List,'$!reified'),
-                           one, two)
-                       ))
-              )
+              nqp::islt_i(one,nqp::atpos_i(dims,0))
+                && nqp::islt_i(two,nqp::atpos_i(dims,1))
+                  && nqp::not_i(nqp::isnull(nqp::atpos2d(reified,one,two)))
             )
         }
 
         multi method DELETE-POS(::?CLASS:D: int \one, int \two) is raw {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::if(
-              nqp::isnull(my $value := nqp::atpos2d(
-                nqp::getattr(self,List,'$!reified'),
-                one, two)),
+              nqp::isnull(my \value := nqp::atpos2d(reified,one,two)),
               Nil,
               nqp::stmts(
-                nqp::bindpos2d(
-                  nqp::getattr(self,List,'$!reified'),
-                  one, two, nqp::null),
-                $value
+                nqp::bindpos2d(reified,one,two,nqp::null),
+                value
               )
             )
         }
         multi method DELETE-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+            my \reified := nqp::getattr(self,List,'$!reified');
             nqp::if(
-              nqp::isnull(my $value := nqp::atpos2d(
-                nqp::getattr(self,List,'$!reified'),
-                one, two)),
+              nqp::isnull(my \value := nqp::atpos2d(reified,one,two)),
               Nil,
               nqp::stmts(
-                nqp::bindpos2d(
-                  nqp::getattr(self,List,'$!reified'),
-                  one, two, nqp::null),
-                $value
+                nqp::bindpos2d(reified,one,two,nqp::null),
+                value
               )
             )
         }

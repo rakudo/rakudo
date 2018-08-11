@@ -163,14 +163,14 @@ sub identity($obj) { $obj }
 
     sub check_type_typeobj($type, $orig_type) {
         -> $ret {
-            nqp::istype($ret, $type) && !nqp::isconcrete($ret)
+            nqp::istype($ret, $type) && !nqp::isconcrete($ret) || nqp::istype($ret, Nil)
                 ?? $ret
                 !! return_error($ret, $orig_type)
         }
     }
     sub check_type_concrete($type, $orig_type) {
         -> $ret {
-            nqp::istype($ret, $type) && nqp::isconcrete($ret)
+            nqp::istype($ret, $type) && nqp::isconcrete($ret) || nqp::istype($ret, Nil)
                 ?? $ret
                 !! return_error($ret, $orig_type)
         }

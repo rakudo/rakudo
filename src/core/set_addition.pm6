@@ -11,21 +11,21 @@ multi sub infix:<(+)>(Any $a)         { $a.Bag }
 
 multi sub infix:<(+)>(Setty:D $a, QuantHash:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                         # elems on left
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                                    # elems on both sides
-          (my $elems := Rakudo::QuantHash.SET-BAGGIFY($araw)),
+          (my \elems := Rakudo::QuantHash.SET-BAGGIFY(araw)),
           nqp::create(
             nqp::if( nqp::istype($b,Mixy), $a.WHAT.Mixy, $a.WHAT.Baggy )
           ).SET-SELF(
             nqp::if(
               nqp::istype($b,Mixy),
-              Rakudo::QuantHash.ADD-MIX-TO-MIX($elems, $braw),
+              Rakudo::QuantHash.ADD-MIX-TO-MIX(elems, braw),
               nqp::if(
                 nqp::istype($b,Baggy),
-                Rakudo::QuantHash.ADD-BAG-TO-BAG($elems, $braw),
-                Rakudo::QuantHash.ADD-SET-TO-BAG($elems, $braw)
+                Rakudo::QuantHash.ADD-BAG-TO-BAG(elems, braw),
+                Rakudo::QuantHash.ADD-SET-TO-BAG(elems, braw)
               )
             )
           )
@@ -41,14 +41,14 @@ multi sub infix:<(+)>(Setty:D $a, QuantHash:D $b) {
 }
 multi sub infix:<(+)>(Setty:D $a, Map:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                         # elems on left
         nqp::elems(nqp::getattr(nqp::decont($b),Map,'$!storage')),
         nqp::create(
           nqp::if( nqp::istype($a,Set), Bag, BagHash )
         ).SET-SELF(                     # elems on both sides
           Rakudo::QuantHash.ADD-MAP-TO-BAG(
-            Rakudo::QuantHash.SET-BAGGIFY($araw), $b
+            Rakudo::QuantHash.SET-BAGGIFY(araw), $b
           )
         ),
         $a.Baggy                                       # no elems on right
@@ -58,16 +58,16 @@ multi sub infix:<(+)>(Setty:D $a, Map:D $b) {
 }
 multi sub infix:<(+)>(Mixy:D $a, QuantHash:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                         # elems on left
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                                    # elems on both sides
-          (my $elems := Rakudo::QuantHash.BAGGY-CLONE($araw)),
+          (my \elems := Rakudo::QuantHash.BAGGY-CLONE(araw)),
           nqp::create($a.WHAT).SET-SELF(
             nqp::if(
               nqp::istype($b,Baggy),
-              Rakudo::QuantHash.ADD-MIX-TO-MIX($elems, $braw),
-              Rakudo::QuantHash.ADD-SET-TO-MIX($elems, $braw)
+              Rakudo::QuantHash.ADD-MIX-TO-MIX(elems, braw),
+              Rakudo::QuantHash.ADD-SET-TO-MIX(elems, braw)
             )
           )
         ),
@@ -79,11 +79,11 @@ multi sub infix:<(+)>(Mixy:D $a, QuantHash:D $b) {
 
 multi sub infix:<(+)>(Baggy:D $a, QuantHash:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                         # elems on left
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                                    # elems on both sides
-          (my $elems := Rakudo::QuantHash.BAGGY-CLONE($araw)),
+          (my \elems := Rakudo::QuantHash.BAGGY-CLONE(araw)),
           nqp::create(
             nqp::if(
               nqp::istype($b,Mixy),
@@ -93,11 +93,11 @@ multi sub infix:<(+)>(Baggy:D $a, QuantHash:D $b) {
           ).SET-SELF(
             nqp::if(
               nqp::istype($b,Mixy),
-              Rakudo::QuantHash.ADD-MIX-TO-MIX($elems, $braw),
+              Rakudo::QuantHash.ADD-MIX-TO-MIX(elems, braw),
               nqp::if(
                 nqp::istype($b,Baggy),
-                Rakudo::QuantHash.ADD-BAG-TO-BAG($elems, $braw),
-                Rakudo::QuantHash.ADD-SET-TO-BAG($elems, $braw)
+                Rakudo::QuantHash.ADD-BAG-TO-BAG(elems, braw),
+                Rakudo::QuantHash.ADD-SET-TO-BAG(elems, braw)
               )
             )
           )

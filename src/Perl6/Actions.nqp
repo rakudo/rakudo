@@ -10509,7 +10509,11 @@ class Perl6::QActions is HLL::Actions does STDActions {
                             :op('callmethod'),
                             :name('words'),
                             :node($/),
-                            $node,
+                            QAST::Op.new(
+                                :op('callmethod'),
+                                :name('Stringy'),
+                                $node
+                            ),
                             QAST::IVal.new( :value(1), :named('autoderef') )
                         )
                     )

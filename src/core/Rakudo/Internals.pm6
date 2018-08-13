@@ -214,7 +214,7 @@ my class Rakudo::Internals {
     }
 
     # fast whitespace trim: str to trim, str to store trimmed str
-    method TRIM(\string, \trimmed --> Nil) {
+    method !TRIM(\string, \trimmed --> Nil) {
         my int $pos  = nqp::chars(string) - 1;
         my int $left =
           nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, string, 0, $pos + 1);
@@ -232,16 +232,16 @@ my class Rakudo::Internals {
         my str $str   = nqp::unbox_s($command);
         my int $index = nqp::index($str,':');
         if nqp::isgt_i($index,0) {
-            self.TRIM(nqp::substr($str,0,$index),key);
-            self.TRIM(nqp::substr($str,$index + 1,nqp::chars($str) - $index),value);
+            self!TRIM(nqp::substr($str,0,$index),key);
+            self!TRIM(nqp::substr($str,$index + 1,nqp::chars($str) - $index),value);
         }
         elsif nqp::islt_i($index,0) {
-            self.TRIM($str,key);
+            self!TRIM($str,key);
             value = '';
         }
         else {
             key = '';
-            self.TRIM(nqp::substr($str,1,nqp::chars($str) - 1),value);
+            self!TRIM(nqp::substr($str,1,nqp::chars($str) - 1),value);
         }
         Nil
     }
@@ -264,24 +264,26 @@ my class Rakudo::Internals {
         }
         Nil
     }
-
+    # Fast mapping for identicals
+    ### If updating encodings here, also update src/core/Encoding/Registry.pm6
     my $encodings := nqp::hash(
-      # fast mapping for identicals
+      # utf8
       'utf8',            'utf8',
-      'utf16',           'utf16',
-      'utf32',           'utf32',
-      'ascii',           'ascii',
-      'iso-8859-1',      'iso-8859-1',
-      'windows-1252',    'windows-1252',
-      'windows-1251',    'windows-1251',
-      # windows without dash
-      'windows1251',    'windows-1251',
-      'windows1252',    'windows-1252',
-      # utf with dash
       'utf-8',           'utf8',
+      # utf8-c8
+      'utf8-c8',         'utf8-c8',
+      'utf8c8',          'utf8-c8',
+      'utf-8-c8',        'utf8-c8',
+      # utf16
+      'utf16',           'utf16',
       'utf-16',          'utf16',
+      # utf32
+      'utf32',           'utf32',
       'utf-32',          'utf32',
-      # according to http://de.wikipedia.org/wiki/ISO-8859-1
+      # ascii
+      'ascii',           'ascii',
+      # iso-8859-1 according to http://de.wikipedia.org/wiki/ISO-8859-1
+      'iso-8859-1',      'iso-8859-1',
       'iso_8859-1:1987', 'iso-8859-1',
       'iso_8859-1',      'iso-8859-1',
       'iso-ir-100',      'iso-8859-1',
@@ -291,6 +293,15 @@ my class Rakudo::Internals {
       'l1',              'iso-8859-1',
       'ibm819',          'iso-8859-1',
       'cp819',           'iso-8859-1',
+      # windows-1251
+      'windows-1251',    'windows-1251',
+      'windows1251',    'windows-1251',
+      # windows-1252
+      'windows-1252',    'windows-1252',
+      'windows1252',    'windows-1252',
+      # ShiftJIS
+      'windows-932',     'windows-932',
+      'windows932',      'windows-932',
     );
     method NORMALIZE_ENCODING(Str:D \encoding) {
         my str $key = nqp::unbox_s(encoding);
@@ -714,8 +725,9 @@ my class Rakudo::Internals {
         # under concatenation closure, which ruins round-tripping. Also handle
         # the \r\n grapheme correctly.
         my str $to-escape = nqp::unbox_s(string);
-        my str $escaped = '';
+        return '' if nqp::isnull_s($to-escape); # nothing to escape
 
+        my str $escaped = '';
         my int $chars = nqp::chars($to-escape);
         my int $i = -1;
         while ($i = $i + 1) < $chars {
@@ -1170,15 +1182,25 @@ my class Rakudo::Internals {
 
             method !next() {
                 nqp::while(
-                  nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
+                  !$!handle
+                    || nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
                     || nqp::iseq_i(nqp::chars($elem),0),
                   nqp::stmts(
-                    nqp::closedir($!handle),
+                    nqp::if(
+                      nqp::defined($!handle),
+                      nqp::stmts(
+                        nqp::closedir($!handle),
+                        ($!handle := Any),
+                      )
+                    ),
                     nqp::if(
                       nqp::elems($!todo),
                       nqp::stmts(
                         ($!abspath = nqp::pop_s($!todo)),
-                        ($!handle := nqp::opendir($!abspath)),
+                        nqp::handle(
+                          ($!handle := nqp::opendir($!abspath)),
+                          'CATCH', 0
+                        ),
                         ($!abspath = nqp::concat($!abspath,$!dir-sep))
                       ),
                       return ''
@@ -1333,7 +1355,7 @@ my class Rakudo::Internals {
     }
 
 #- start of generated part of succ/pred ---------------------------------------
-#- Generated on 2016-08-10T14:19:20+02:00 by tools/build/makeMAGIC_INC_DEC.pl6
+#- Generated on 2016-08-10T14:19:20+02:00 by tools/build/makeMAGIC_INC_DEC.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # normal increment magic chars & incremented char at same index
@@ -1613,7 +1635,8 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 #?endif
                     if @exceptions {
                         note "Some exceptions were thrown in END blocks:";
-                        note "  $_.^name(): $_.message()" for @exceptions;
+                        note "  $_.^name(): $_.message()\n$_.backtrace.Str.indent(4)"
+                          for @exceptions;
                     }
                     nqp::not_i(($the-end-is-done = 1)); # we're really done now
                 }
@@ -1633,7 +1656,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
     }
 }
 
-proto sub exit(|) {*}
+proto sub exit($?, *%) {*}
 multi sub exit() { &*EXIT(0) }
 multi sub exit(Int(Any) $status) { &*EXIT($status) }
 

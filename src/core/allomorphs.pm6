@@ -80,20 +80,22 @@ my class RatStr is Rat is Str {
             self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)))
     }
     method succ(RatStr:D: --> Rat:D) {
+        my \denominator := nqp::getattr(self,Rat,'$!denominator');
         nqp::p6bindattrinvres(
-          nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
-            nqp::add_I(
-              nqp::getattr(self, Rat, '$!numerator'),
-              nqp::getattr(self, Rat, '$!denominator'), Int)),
-          Rat, '$!denominator', nqp::getattr(self, Rat, '$!denominator'))
+          nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',
+            nqp::add_I(nqp::getattr(self,Rat,'$!numerator'),denominator,Int)
+          ),
+          Rat, '$!denominator', denominator
+        )
     }
     method pred(RatStr:D: --> Rat:D) {
+        my \denominator := nqp::getattr(self,Rat,'$!denominator');
         nqp::p6bindattrinvres(
           nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
-            nqp::sub_I(
-              nqp::getattr(self, Rat, '$!numerator'),
-              nqp::getattr(self, Rat, '$!denominator'), Int)),
-          Rat, '$!denominator', nqp::getattr(self, Rat, '$!denominator'))
+            nqp::sub_I(nqp::getattr(self,Rat,'$!numerator'),denominator,Int)
+          ),
+          Rat, '$!denominator', denominator
+        )
     }
     method Capture(RatStr:D:) { self.Mu::Capture }
     multi method Numeric(RatStr:D:) { self.Rat }
@@ -106,7 +108,12 @@ my class RatStr is Rat is Str {
         self.Mu::Real; # issue warning;
         0.0
     }
-    method Rat(RatStr:D:) { Rat.new(nqp::getattr(self, Rat, '$!numerator'), nqp::getattr(self, Rat, '$!denominator')) }
+    method Rat(RatStr:D:) {
+        Rat.new(
+          nqp::getattr(self, Rat, '$!numerator'),
+          nqp::getattr(self, Rat, '$!denominator')
+        )
+    }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
     multi method perl(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
@@ -308,6 +315,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
         my int $p;
 
         my sub parse-int-frac-exp() {
+            my $start-pos = $pos - nqp::istrue($neg);
             # Integer part, if any
             my Int $int := 0;
             if nqp::isne_i($ch, 46) {  # '.'
@@ -367,34 +375,9 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                     if nqp::iseq_i($p, -1);
                 $pos    = $p;
 
-#?if js
-                my $power := nqp::pow_I(nqp::box_i(10, Int), nqp::abs_I(nqp::atpos($parse, 0), Int), Num, Int);
-                my num $n;
-
-                if nqp::iseq_I($base, 0) {
-                    $n = nqp::islt_i(nqp::atpos($parse, 0), 0)
-                        ?? nqp::div_In($int, $power)
-                        !! nqp::tonum_I(nqp::mul_I($power, $int, Int));
-                }
-                else {
-                    my $meat := nqp::add_I(nqp::mul_I($int, $base, Int), $frac, Int);
-                    $n = nqp::islt_i(nqp::atpos($parse, 0), 0)
-                        ?? nqp::div_In($meat, nqp::mul_I($base, $power, Int))
-                        !! nqp::div_In(nqp::mul_I($power, $meat, Int), $base);
-                }
-
-                return nqp::p6box_n($n) # if we have a zero, handle the sign correctly
-                || nqp::if(nqp::iseq_i($neg, 1), -0e0, 0e0);
-#?endif
-#?if !js
-                # nqp::div_In is broken on moar
-                return nqp::p6box_n(nqp::mul_n(
-                    $frac ?? nqp::add_n( $int.Num, nqp::div_n($frac.Num, $base.Num) )
-                          !! $int.Num,
-                    nqp::pow_n(10e0, nqp::atpos($parse, 0).Num)
-                )) # if we have a zero, handle the sign correctly
-                || nqp::if(nqp::iseq_i($neg, 1), -0e0, 0e0);
-#?endif
+                # now that we're satisfied the number is in valid-ish format, use nqp's numifier
+                # to extract the actual num from the string.
+                return nqp::numify(nqp::unbox_s(nqp::substr($str, $start-pos, $pos - $start-pos)));
             }
 
             # Multiplier with exponent, if single '*' is present

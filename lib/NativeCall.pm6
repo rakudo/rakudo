@@ -203,32 +203,25 @@ my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
 
-sub guess_library_name($lib) is export(:TEST) {
-    my $libname;
-    my $apiversion = '';
-    my Str $ext = '';
-    given $lib {
-        when IO::Path {
-            $libname = $lib.absolute;
-        }
-        when Distribution::Resource {
-            return $lib.platform-library-name.Str;
-        }
-        when Callable {
-           return $lib();
-        }
-        when List {
-           $libname = $lib[0];
-           $apiversion = $lib[1];
-        }
-        when Str {
-           $libname = $lib;
-        }
-    }
-    return '' unless $libname.DEFINITE;
-    #Already a full name?
-    return $libname if ($libname ~~ /\.<.alpha>+$/ or $libname ~~ /\.so(\.<.digit>+)+$/);
-    return $*VM.platform-library-name($libname.IO, :version($apiversion || Version)).Str;
+multi guess_library_name(IO::Path $lib) is export(:TEST) {
+    guess_library_name($lib.absolute)
+}
+multi guess_library_name(Distribution::Resource $lib) is export(:TEST) {
+    $lib.platform-library-name.Str;
+}
+multi guess_library_name(Callable $lib) is export(:TEST) {
+    $lib();
+}
+multi guess_library_name(List $lib) is export(:TEST) {
+    guess_library_name($lib[0], $lib[1])
+}
+multi guess_library_name(Str $libname, $apiversion='') is export(:TEST) {
+    $libname.DEFINITE
+        ?? $libname ~~ /[\.<.alpha>+ | \.so [\.<.digit>+]+ ] $/
+            ?? $libname #Already a full name?
+            !! $*VM.platform-library-name(
+                $libname.IO, :version($apiversion || Version)).Str
+        !! ''
 }
 
 my %lib;
@@ -266,8 +259,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     has $!cpp-name-mangler;
     has Pointer $!entry-point;
     has int $!arity;
-    has int8 $!is-clone;
-    has int8 $!any-optionals;
+    has int $!is-clone;
+    has int $!any-optionals;
     has Mu $!optimized-body;
     has Mu $!jit-optimized-body;
 
@@ -589,11 +582,26 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     }
 }
 
-multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types) {
+multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is export(:DEFAULT, :types) is default {
     $pos ~~ Iterable ?? $pos.map: { array.AT-POS($_) } !! array.AT-POS($pos);
 }
 multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is export(:DEFAULT, :types) {
     @pos.map: { array.AT-POS($_) };
+}
+multi sub postcircumfix:<[ ]>(CArray:D \array, Callable:D $block) is export(:DEFAULT, :types) {
+    nqp::stmts(
+      (my $*INDEX = 'Effective index'),
+      array[$block.pos(array)]
+    )
+}
+multi sub postcircumfix:<[ ]>(CArray:D \array) is export(:DEFAULT, :types) {
+    array.ZEN-POS
+}
+multi sub postcircumfix:<[ ]>(CArray:D \array, Whatever:D) is export(:DEFAULT, :types) {
+    array[^array.elems]
+}
+multi sub postcircumfix:<[ ]>(CArray:D \array, HyperWhatever:D) is export(:DEFAULT, :types) {
+    X::NYI.new(feature => 'HyperWhatever in CArray index').throw;
 }
 
 multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
@@ -630,6 +638,9 @@ multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
 
 role CPPConst {
     method cpp-const() { 1 }
+}
+multi trait_mod:<is>(Routine $p, :$cpp-const!) is export(:DEFAULT, :traits) {
+    $p does CPPConst;
 }
 multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
     $p does CPPConst;

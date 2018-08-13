@@ -148,7 +148,7 @@ my class SetHash does Setty {
     }
     multi method values(SetHash:D:) {
         Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
+            method pull-one() is rw {
               nqp::if(
                 $!iter,
                 proxy(nqp::shift($!iter),$!hash),
@@ -174,6 +174,13 @@ my class SetHash does Setty {
           nqp::create(self)
         )
     }
+
+    multi method Setty(SetHash:U:) { SetHash }
+    multi method Setty(SetHash:D:) { self }
+    multi method Baggy(SetHash:U:) { BagHash }
+    multi method Baggy(SetHash:D:) { self.BagHash }
+    multi method Mixy (SetHash:U:) { MixHash }
+    multi method Mixy (SetHash:D:) { self.MixHash }
 
 #--- interface methods
     method STORE(*@pairs --> SetHash:D) {

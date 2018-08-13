@@ -274,6 +274,7 @@ my class Symbols {
         if +%sym {
             return %!SETTING_CACHE{$symbol} := self.force_value(%sym, $symbol, 1);
         }
+        nqp::die("Optimizer couldn't find $symbol in SETTING.");
     }
 }
 
@@ -627,7 +628,9 @@ my class BlockVarOptimizer {
             next unless $scope eq 'lexical';
 
             # Also ensure not dynamic.
-            my $dynamic := try nqp::getattr($qast.value, nqp::p6var($qast.value).WHAT, '$!descriptor').dynamic;
+            my $qv := $qast.value;
+            my $dynamic := nqp::isconcrete_nd($qv) &&
+                try nqp::getattr($qv, nqp::what_nd($qv), '$!descriptor').dynamic;
             next if $dynamic;
 
             # Consider name. Can't lower if it's used by any nested blocks.
@@ -1021,39 +1024,65 @@ class Perl6::Optimizer {
     }
 
     # Range operators we can optimize into loops, and how to do it.
-    sub get_bound($node) {
+    sub get_bound($node,$extra) {
+
+        # 0
         if nqp::istype($node, QAST::Want) && $node[1] eq 'Ii' {
-            my int $value := $node[2].value;
+            my int $value := $node[2].value + $extra;
             if $value > -2147483648 && $value < 2147483647 {
-                return [$value];
+                return [QAST::IVal.new( :value($value) )];
             }
         }
+
+        # my constant \foo = 0
+        elsif nqp::istype($node, QAST::WVal) {
+            try {  # don't know how to test for Ints here, so let coercing do it
+                my int $value := $node.value + $extra;
+                if $value > -2147483648 && $value < 2147483647 {
+                    return [QAST::IVal.new( :value($value) )];
+                }
+            }
+        }
+
+        # my int $foo
+        elsif nqp::istype($node, QAST::Var)
+          && nqp::objprimspec($node.returns) == 1 {
+            return [$extra
+              ?? QAST::Op.new( :op<add_i>, :returns($node.returns),
+                   $node,
+                   QAST::IVal.new( :value($extra) )
+                 )
+              !! $node
+            ]
+        }
+
+        # No way we can make this faster
         []
     }
     my %range_bounds := nqp::hash(
         '&infix:<..>', -> $op {
-            my @lb := get_bound($op[0]);
-            my @ub := get_bound($op[1]);
+            my @lb := get_bound($op[0], 0);
+            my @ub := get_bound($op[1], 0);
             @lb && @ub ?? [@lb[0], @ub[0]] !! []
         },
         '&infix:<..^>', -> $op {
-            my @lb := get_bound($op[0]);
-            my @ub := get_bound($op[1]);
-            @lb && @ub ?? [@lb[0], @ub[0] - 1] !! []
+            my @lb := get_bound($op[0], 0);
+            my @ub := get_bound($op[1],-1);
+            @lb && @ub ?? [@lb[0], @ub[0]] !! []
         },
         '&infix:<^..>', -> $op {
-            my @lb := get_bound($op[0]);
-            my @ub := get_bound($op[1]);
-            @lb && @ub ?? [@lb[0] + 1, @ub[0]] !! []
+            my @lb := get_bound($op[0], 1);
+            my @ub := get_bound($op[1], 0);
+            @lb && @ub ?? [@lb[0], @ub[0]] !! []
         },
         '&infix:<^..^>', -> $op {
-            my @lb := get_bound($op[0]);
-            my @ub := get_bound($op[1]);
-            @lb && @ub ?? [@lb[0] + 1, @ub[0] - 1] !! []
+            my @lb := get_bound($op[0], 1);
+            my @ub := get_bound($op[1],-1);
+            @lb && @ub ?? [@lb[0], @ub[0]] !! []
         },
         '&prefix:<^>', -> $op {
-            my @ub := get_bound($op[0]);
-            @ub ?? [0, @ub[0] - 1] !! []
+            my @ub := get_bound($op[0],-1);
+            @ub ?? [QAST::IVal.new( :value(0) ), @ub[0]] !! []
         },
         );
 
@@ -1131,7 +1160,7 @@ class Perl6::Optimizer {
 
         # Let's see if we can catch a type mismatch in assignment at compile-time.
         # Especially with Num, Rat, and Int there's often surprises at run-time.
-        if ($optype eq 'assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
+        if ($optype eq 'p6assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
             && nqp::istype($op[0], QAST::Var)
             && ($op[0].scope eq 'lexical' || $op[0].scope eq 'lexicalref') {
             if nqp::istype($op[1], QAST::Want) {
@@ -1283,7 +1312,8 @@ class Perl6::Optimizer {
 
             # Boolifications don't need it, nor do _I/_i/_n/_s ops, with
             # the exception of native assignment, which can decont_[ins]
-            # as appropriate, which may avoid a boxing.
+            # as appropriate, which may avoid a boxing. Same for QAST::WVal
+            # if we can see the value is not containerized.
             my $last_stmt := get_last_stmt($value);
             if nqp::istype($last_stmt, QAST::Op) {
                 my str $last_op := $last_stmt.op;
@@ -1313,6 +1343,9 @@ class Perl6::Optimizer {
                     $last_stmt.scope('attribute');
                     return $value;
                 }
+            }
+            elsif nqp::istype($last_stmt, QAST::WVal) {
+                return $value unless nqp::iscont($last_stmt.value);
             }
         }
 
@@ -1350,6 +1383,45 @@ class Perl6::Optimizer {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_takedispatcher($op);
         }
 
+        # Make array variable initialization cheaper
+        elsif
+            $!level > 0
+            && $optype eq 'callmethod'
+            && $op.name eq 'STORE'
+            && nqp::elems($op.list()) == 3
+            && nqp::istype($op[0], QAST::Var)
+            && nqp::substr($op[0].name, 0, 1) eq '@'
+            && nqp::istype($op[1], QAST::Op)
+            && ($op[1].op eq 'call' || $op[1].op eq 'callstatic')
+            && $op[1].name eq '&infix:<,>'
+            && $!symbols.is_from_core($op[1].name)
+            && nqp::istype($op[2], QAST::WVal)
+            && nqp::istype($op[2], QAST::SpecialArg)
+        {
+            return self.optimize_array_variable_initialization($op);
+        }
+
+        # Turn `@a[1, 3]` into `@a.AT-POS(1), @a.AT-POS(3)`
+        elsif
+            $!level > 0
+            && ($optype eq 'call' || $optype eq 'callstatic')
+
+            # workaround because op_eq_core needs to be "primed"
+            && ((try $!symbols.find_lexical($op.name)) || 1)
+
+            && self.op_eq_core($op, '&postcircumfix:<[ ]>')
+
+            # if it's 3 that means the slice is on the LHS of an assignment
+            && +@($op) == 2
+
+            && nqp::istype($op[0], QAST::Var)
+            && nqp::substr($op[0].name, 0, 1) eq '@'
+            && nqp::istype($op[1], QAST::WVal)
+            && nqp::istype($op[1].value, $!symbols.find_in_setting("List"))
+        {
+            return self.optimize_array_slice($op);
+        }
+
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' {
@@ -1374,6 +1446,12 @@ class Perl6::Optimizer {
             elsif $op.name eq 'dispatch:<.=>' {
                 # .= calls can be unpacked entirely
                 return self.optimize_dot_equals_method_call: $op;
+            }
+            elsif $op.name eq 'dispatch:<::>' {
+                return self.optimize_qual_method_call: $op;
+            }
+            elsif $op.name eq 'dispatch:<.?>' {
+                return self.optimize_maybe_method_call: $op;
             }
         }
 
@@ -1446,6 +1524,136 @@ class Perl6::Optimizer {
                 return $op[0];
             }
         }
+    }
+
+    method optimize_array_slice($op) {
+        unless nqp::isconcrete($op[1].value) {
+            return $op
+        }
+
+        my $reified := nqp::getattr($op[1].value, $!symbols.find_in_setting("List"), '$!reified');
+
+        unless $reified.HOW.name($reified) eq 'BOOTArray' {
+            return $op
+        }
+
+        my $new_op    := QAST::Op.new(:op('callstatic'), :name('&infix:<,>'));
+        my $array_var := $op[0];
+
+        for $reified -> $var {
+            if nqp::istype($var,$!symbols.find_in_setting("Int")) {
+                $new_op.push: QAST::Op.new(:op('callmethod'),
+                  :name('AT-POS'),
+                  $array_var,
+                  QAST::WVal.new(:value($var))
+                );
+            }
+            else {
+                return $op;  # alas, too complex for now
+            }
+        }
+
+        $new_op;
+    }
+
+    method optimize_array_variable_initialization($op) {
+        my $Positional := $!symbols.find_in_setting('Positional');
+        if $op[0].returns =:= $Positional {
+            # Turns the @var.STORE(infix:<,>(...)) into:
+            # nqp::getattr(
+            #     nqp::p6bindattrinvres(
+            #         nqp::p6bindattrinvres(
+            #             @var,
+            #             List,
+            #             $!reified,
+            #             nqp::create(IterationBuffer),
+            #         ),
+            #         List,
+            #         $!todo,
+            #         nqp::p6bindattrinvres(
+            #             nqp::p6bindattrinvres(
+            #                 nqp::p6bindattrinvres(
+            #                     $reifier,
+            #                     List::Reifier,
+            #                     '$!reified',
+            #                     nqp::getattr(@var, List, $!reified),
+            #                 ),
+            #                 List::Reifier,
+            #                 '$!reification-target',
+            #                 @var.reification-target()
+            #             ),
+            #             List::Reifier,
+            #             '$!future',
+            #             nqp::list(...),
+            #         ),
+            #     ),
+            #     List,
+            #     '$!todo'
+            # ).reify-until-lazy();
+
+            $op.op('callmethod');
+            $op.name('reify-until-lazy');
+
+            my $array_var := $op[0];
+            my $comma_op  := $op[1];
+            $comma_op.op('getattr');
+            $comma_op.name(NQPMu);
+
+            my $List            := $!symbols.find_in_setting('List');
+            my $Reifier         := $!symbols.find_in_setting('List').WHO<Reifier>;
+            my $IterationBuffer := $!symbols.find_in_setting('IterationBuffer');
+
+            my $list := QAST::Op.new(:op<list>);
+            $list.set_children(@($comma_op));
+            $comma_op.set_children([
+                QAST::Op.new(
+                    :op<p6bindattrinvres>,
+                    QAST::Op.new(
+                        :op<p6bindattrinvres>,
+                        $array_var,
+                        QAST::WVal.new(:value($List)),
+                        QAST::SVal.new(:value('$!reified')),
+                        QAST::Op.new(:op<create>, QAST::WVal.new(:value($IterationBuffer))),
+                    ),
+                    QAST::WVal.new(:value($List)),
+                    QAST::SVal.new(:value('$!todo')),
+                    QAST::Op.new(
+                        :op<p6bindattrinvres>,
+                        QAST::Op.new(
+                            :op<p6bindattrinvres>,
+                            QAST::Op.new(
+                                :op<p6bindattrinvres>,
+                                QAST::Op.new(:op<create>, QAST::WVal.new(:value($Reifier))),
+                                QAST::WVal.new(:value($Reifier)),
+                                QAST::SVal.new(:value('$!reified')),
+                                QAST::Op.new(
+                                    :op<getattr>,
+                                    $array_var,
+                                    QAST::WVal.new(:value($List)),
+                                    QAST::SVal.new(:value('$!reified')),
+                                )
+                            ),
+                            QAST::WVal.new(:value($Reifier)),
+                            QAST::SVal.new(:value('$!reification-target')),
+                            QAST::Op.new(
+                                :op<callmethod>,
+                                :name('reification-target'),
+                                $array_var,
+                            )
+                        ),
+                        QAST::WVal.new(:value($Reifier)),
+                        QAST::SVal.new(:value('$!future')),
+                        $list,
+                    ),
+                ),
+                QAST::WVal.new(:value($List)),
+                QAST::SVal.new(:value('$!todo')),
+            ]);
+            $op.set_children([$comma_op]);
+
+            return QAST::Stmts.new: $op, $array_var;
+        }
+        $op
     }
 
     method optimize_call($op) {
@@ -1768,6 +1976,7 @@ class Perl6::Optimizer {
           && (my $is-reverse := 1)) {
           if $is-reverse
           || (nqp::istype($op[1], QAST::Var) && (my int $is_var := 1))
+          || $op[1].has_ann('METAOP_opt_result') # previously-optimized nested METAOP
           # instead of $foo += 1 we may have $foo.bar += 1, which
           # we really want to unpack here as well. this second branch
           # of the if statement achieves this.
@@ -1789,17 +1998,18 @@ class Perl6::Optimizer {
                 $is-always-definite := 1;
               }
               elsif $sigil eq '$' {
-                $assignop := 'assign';
+                $assignop := 'p6assign';
+              }
+              elsif $sigil eq '@' || $sigil eq '%' {
+                $assignop := 'p6store';
               }
               else {
-                # TODO support @ and % sigils and check what else we need
-                # to "copy" from assign_op in Actions
                 return NQPMu;
               }
               $assignee := $assignee_var := $op[1];
             }
             else {
-              $assignop := "assign";
+              $assignop := 'p6store';
               # We want to be careful to only call $foo.bar once, if that's what
               # we have, so we bind to a local var and assign to that. The
               # var is also needed when we're unpacking a REVERSE op, since
@@ -1851,8 +2061,9 @@ class Perl6::Optimizer {
                 $operand;
             }
 
+            $op.annotate_self: 'METAOP_opt_result', 1;
             $op.returns: $assignee.returns
-                if $assignop ne 'assign'
+                if $assignop ne 'p6assign'
                 && nqp::objprimspec($assignee.returns);
 
             my $*NO-COMPILE-TIME-THROWAGE := 1;
@@ -1869,8 +2080,8 @@ class Perl6::Optimizer {
       elsif self.op_eq_core($metaop, '&METAOP_REVERSE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var)
           && nqp::elems($op) == 3;
-        return QAST::Op.new: :op<call>, :name($metaop[0].name),
-                $op[2], $op[1];
+        return QAST::Op.new(:op<call>, :name($metaop[0].name),
+                $op[2], $op[1]).annotate_self: 'METAOP_opt_result', 1;
       }
       NQPMu
     }
@@ -1880,12 +2091,20 @@ class Perl6::Optimizer {
     }
 
     method optimize_private_method_call($op) {
+        # We can only optimize if we have a compile-time-known name.
         my $name_node := $op[1];
         if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
             $name_node := $name_node[2];
         }
+        unless (nqp::istype($name_node, QAST::SVal)) {
+            return 0;
+        }
+
+        # For private method calls within a class, we can try to resolve them
+        # at this point. If they are missing, that's an error. In a role, this
+        # optimization won't help.
         my $pkg_node := $op[2];
-        if nqp::istype($name_node, QAST::SVal) && $pkg_node.has_compile_time_value {
+        if $pkg_node.has_compile_time_value {
             my str $name := $name_node.value; # get raw string name
             my $pkg := $pkg_node.returns;     # actions sets this unless in role
             if nqp::can($pkg.HOW, 'find_private_method') {
@@ -1902,15 +2121,120 @@ class Perl6::Optimizer {
                         $op.unshift($call);
                         $op.op('call');
                         $op.name(NQPMu);
+                        return 1;
                     }
                 }
                 else {
                     $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
                         :private(nqp::p6bool(1)), :method($name),
                         :typename($pkg.HOW.name($pkg)), :invocant($pkg));
+                    return 1;
                 }
             }
         }
+
+        # If resolution didn't work out this way, and we're on the MoarVM
+        # backend, use a spesh plugin to help speed it up.
+        if nqp::getcomp('perl6').backend.name eq 'moar' {
+            my $inv := $op.shift;
+            my $name := $op.shift;
+            my $pkg := $op.shift;
+            $op.unshift($inv);
+            $op.unshift(QAST::Op.new(
+                :op('speshresolve'),
+                QAST::SVal.new( :value('privmeth') ),
+                $pkg,
+                $name
+            ));
+            $op.op('call');
+            $op.name(NQPMu);
+            return 1;
+        }
+    }
+
+    method optimize_qual_method_call($op) {
+        # Spesh plugins only available on MoarVM.
+        return $op unless nqp::getcomp('perl6').backend.name eq 'moar';
+
+        # We can only optimize if we have a compile-time-known name.
+        my $name_node := $op[1];
+        if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
+            $name_node := $name_node[2];
+        }
+        return $op unless nqp::istype($name_node, QAST::SVal);
+
+        # We need to evaluate the invocant only once, so will bind it into
+        # a temporary.
+        my $inv := $op.shift;
+        my $name := $op.shift;
+        my $type := $op.shift;
+        my @args;
+        while $op.list {
+            nqp::push(@args, $op.shift);
+        }
+        my $temp := QAST::Node.unique('inv_once');
+        $op.op('stmts');
+        $op.push(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($temp), :scope('local'), :decl('var') ),
+            $inv
+        ));
+        $op.push(QAST::Op.new(
+            :op('call'),
+            QAST::Op.new(
+                :op('speshresolve'),
+                QAST::SVal.new( :value('qualmeth') ),
+                QAST::Var.new( :name($temp), :scope('local') ),
+                $name,
+                $type
+            ),
+            QAST::Var.new( :name($temp), :scope('local') ),
+            |@args
+        ));
+        return $op;
+    }
+
+    method optimize_maybe_method_call($op) {
+        # Spesh plugins only available on MoarVM.
+        return $op unless nqp::getcomp('perl6').backend.name eq 'moar';
+
+        # We can only optimize if we have a compile-time-known name.
+        my $name_node := $op[1];
+        if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
+            $name_node := $name_node[2];
+        }
+        return $op unless nqp::istype($name_node, QAST::SVal);
+
+        # We need to evaluate the invocant only once, so will bind it into
+        # a temporary.
+        my $inv := $op.shift;
+        my $name := $op.shift;
+        my @args;
+        while $op.list {
+            nqp::push(@args, $op.shift);
+        }
+        my $temp := QAST::Node.unique('inv_once');
+        $op.op('stmts');
+        $op.push(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($temp), :scope('local'), :decl('var') ),
+            $inv
+        ));
+        $op.push(QAST::Op.new(
+            :op('call'),
+            QAST::Op.new(
+                :op('speshresolve'),
+                QAST::SVal.new( :value('maybemeth') ),
+                QAST::Op.new(
+                    :op('decont'),
+                    QAST::Var.new( :name($temp), :scope('local') )
+                ),
+                $name,
+            ),
+            QAST::Var.new( :name($temp), :scope('local') ),
+            |@args
+        ));
+        return $op;
     }
 
     method optimize_for_range($op, $callee, $c2) {
@@ -1922,43 +2246,63 @@ class Perl6::Optimizer {
           !! nqp::null();
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
             my $it_var     := QAST::Node.unique('range_it_');
+            my $max_var    := QAST::Node.unique('range_max_');
             my $callee_var := QAST::Node.unique('range_callee_');
             $op.shift while $op.list;
             $op.op('stmts');
             $op.push(QAST::Stmts.new(
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($it_var), :scope('local'), :decl('var'), :returns(int) ),
-                    QAST::IVal.new( :value(@bounds[0]) )
+
+# my int $it := @bounds[0] - 1
+              QAST::Op.new( :op<bind>,
+                QAST::Var.new(
+                  :name($it_var), :scope<local>, :decl<var>, :returns(int)
                 ),
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($callee_var), :scope('local'), :decl('var') ),
-                    $callee
+                QAST::Op.new( :op<sub_i>,
+                  @bounds[0],
+                  QAST::IVal.new( :value(1))
+                )
+              ),
+
+# my int $max := @bounds[1]
+              QAST::Op.new( :op<bind>,
+                QAST::Var.new(
+                  :name($max_var), :scope<local>, :decl<var>, :returns(int)
                 ),
-                QAST::Op.new(
-                    :op('while'),
-                    QAST::Op.new(
-                        :op('isle_i'),
-                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                        QAST::IVal.new( :value(@bounds[1]) )
-                    ),
-                    QAST::Op.new(
-                        :op('call'),
-                        QAST::Var.new( :name($callee_var), :scope('local') ),
-                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) )
-                    ),
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                        QAST::Op.new(
-                            :op('add_i'),
-                            QAST::Var.new( :name($it_var), :scope('local'), :returns(int) ),
-                            QAST::IVal.new( :value(1) )
-                        )
+                @bounds[1]
+              ),
+
+# my $callee := { };
+              QAST::Op.new( :op<bind>,
+                QAST::Var.new(:name($callee_var), :scope<local>, :decl<var>),
+                $callee
+              ),
+
+# nqp::while(
+#   nqp::isle_i(
+#     nqp::bind($it,nqp::add_i($it,1)),
+#     $max
+#   )
+              QAST::Op.new( :op<while>,
+                QAST::Op.new( :op<isle_i>,
+                  QAST::Op.new( :op<bind>,
+                    QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
+                    QAST::Op.new( :op<add_i>,
+                      QAST::Var.new(:name($it_var),:scope<local>,:returns(int)),
+                      QAST::IVal.new( :value(1) )
                     )
+                  ),
+                  QAST::Var.new(:name($max_var), :scope<local>, :returns(int))
                 ),
-                QAST::WVal.new( :value($!symbols.Nil) )
+
+#   nqp::call($callee, $it)
+                QAST::Op.new( :op<call>,
+                  QAST::Var.new(:name($callee_var), :scope<local> ),
+                  QAST::Var.new(:name($it_var), :scope<local>, :returns(int))
+                )
+              ),
+
+# return Nil
+              QAST::WVal.new( :value($!symbols.Nil) )
             ));
         }
     }
@@ -1996,32 +2340,46 @@ class Perl6::Optimizer {
 
         # Any literal in void context deserves a warning.
         if $!void_context && +@($want) == 3 && $want.node
-        && ! $want.ann('sink-quietly') {
-
+           && !$want.ann('sink-quietly') {
             my str $warning;
+            my $no-sink;
+
             if $want[1] eq 'Ss' && nqp::istype($want[2], QAST::SVal) {
-                $warning := qq[Useless use of constant string "]
-                         ~ nqp::escape($want[2].value)
-                         ~ qq[" in sink context];
+                $warning := 'constant string "'
+                  ~ nqp::escape($want[2].node // $want[2].value)
+                  ~ '"'
             }
             elsif $want[1] eq 'Ii' && nqp::istype($want[2], QAST::IVal) {
-                $warning := qq[Useless use of constant integer ]
-                         ~ ~$want[2].value
-                         ~ qq[ in sink context];
+                $warning := 'constant integer '
+                  ~ ($want[2].node // $want[2].value);
             }
-            elsif $want[1] eq 'Nn' {
-                if nqp::istype($want[2], QAST::NVal) {
-                  $warning := qq[Useless use of constant floating-point number ]
-                    ~ $want[2].value ~ qq[ in sink context];
-                }
-                elsif nqp::istype($want[2], QAST::Op)
-                &&  ($want[2].op eq 'inf' || $want[2].op eq 'nan'
-                  || $want[2].op eq 'neginf') {
-                  $warning := qq[Useless use of constant floating-point number ]
-                    ~ $want[2].node ~ qq[ in sink context];
+            elsif $want[1] eq 'Nn' && nqp::istype($want[2], QAST::NVal) {
+                $warning := 'constant floating-point number '
+                  ~ ($want[2].node // $want[2].value);
+            }
+            elsif $want[1] eq 'v' && nqp::istype($want[2], QAST::Op) {
+# R#2040
+# - QAST::Op(p6capturelex)
+#   - QAST::Op(callmethod clone) 
+#     - QAST::WVal(Sub...)
+                if $want[0].op eq 'p6capturelex' {
+                    my $op := $want[0][0];
+                    if $op.op eq 'callmethod' && $op.name eq 'clone' {
+                        $op := $op[0];
+                        if nqp::istype($op, QAST::WVal) && nqp::istype(
+                          $op.value,
+                          $!symbols.find_in_setting("Sub")
+                        ) && !$op.value.name {
+                            $warning := qq[anonymous sub, did you forget to provide a name?];
+                            $no-sink := 1;
+                        }
+                    }
                 }
             }
+
             if $warning {
+                $warning := "Useless use of " ~ $warning;
+                $warning := $warning ~ qq[ in sink context] unless $no-sink;
                 $warning := $warning ~ ' (use Nil instead to suppress this warning)' if $want.okifnil;
                 note($warning) if $!debug;
                 $!problems.add_worry($want, $warning);
@@ -2263,7 +2621,12 @@ class Perl6::Optimizer {
                             my $suggest := ($visit.okifnil ?? ' (use Nil instead to suppress this warning)' !! '');
                             unless $value eq 'Nil'
                             || $visit.ann('sink-quietly') {
-                                my $warning := qq[Useless use of constant value $value in sink context$suggest];
+                                my $thing :=    nqp::istype($visit.value,
+                                  $!symbols.find_in_setting: 'Int')
+                                ?? 'integer' !! nqp::istype($visit.value,
+                                  $!symbols.find_in_setting: 'Rational')
+                                ?? 'rational' !! 'value';
+                                my $warning := qq[Useless use of constant $thing $value in sink context$suggest];
                                 note($warning) if $!debug;
                                 $!problems.add_worry($visit, $warning)
                             }

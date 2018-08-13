@@ -146,26 +146,49 @@ my class Int does Real { # declared in BOOTSTRAP
     multi method round(Int:D: Real(Cool) $scale) { (self / $scale + 1/2).floor * $scale }
 
     method lsb(Int:D:) {
-        return Nil if self == 0;
-        my $lsb = 0;
-        my $x = self.abs;
-        while $x +& 0xff == 0 { $lsb += 8; $x +>= 8; }
-        while $x +& 0x01 == 0 { ++$lsb; $x +>= 1; }
-        $lsb;
+        nqp::unless(
+          self, # short-circuit `0`, as it doesn't have any bits set…
+          Nil,  # … and the algo we'll use requires at least one that is.
+          nqp::stmts(
+            (my int $lsb),
+            (my $x := nqp::abs_I(self, Int)),
+            nqp::while( # "fast-forward": shift off by whole all-zero-bit bytes
+              nqp::isfalse(nqp::bitand_I($x, 0xFF, Int)),
+              nqp::stmts(
+                ($lsb += 8),
+                ($x := nqp::bitshiftr_I($x, 8, Int)))),
+            nqp::while( # our lsb is in the current byte; shift off zero bits
+              nqp::isfalse(nqp::bitand_I($x, 0x01, Int)),
+              nqp::stmts(
+                ++$lsb,
+                ($x := nqp::bitshiftr_I($x, 1, Int)))),
+            $lsb)) # we shifted enough to get to the first set bit
     }
 
     method msb(Int:D:) {
-        return Nil if self == 0;
-        return 0 if self == -1;
-        my $msb = 0;
-        my $x = self;
-        $x = ($x + 1) * -2 if $x < 0;   # handle negative conversions
-        while $x > 0xff   { $msb += 8; $x +>= 8; }
-        if    $x > 0x0f   { $msb += 4; $x +>= 4; }
-        if    $x +& 0x8   { $msb += 3; }
-        elsif $x +& 0x4   { $msb += 2; }
-        elsif $x +& 0x2   { $msb += 1; }
-        $msb;
+        nqp::unless(
+          self,
+          Nil,
+          nqp::if(
+            nqp::iseq_I(self, -1),
+            0,
+            nqp::stmts(
+              (my int $msb),
+              (my $x := self),
+              nqp::islt_I($x, 0) # handle conversion of negatives
+                && ($x := nqp::mul_I(-2,
+                  nqp::add_I($x, 1, Int), Int)),
+              nqp::while(
+                nqp::isgt_I($x, 0xFF),
+                nqp::stmts(
+                  ($msb += 8),
+                  ($x := nqp::bitshiftr_I($x, 8, Int)))),
+              nqp::isgt_I($x, 0x0F)
+                && ($msb += 4) && ($x := nqp::bitshiftr_I($x, 4, Int)),
+                 nqp::bitand_I($x, 0x8, Int) && ($msb += 3)
+              || nqp::bitand_I($x, 0x4, Int) && ($msb += 2)
+              || nqp::bitand_I($x, 0x2, Int) && ($msb += 1),
+              $msb)))
     }
 
     method narrow(Int:D:) { self }
@@ -353,6 +376,7 @@ multi sub infix:<==>(int $a, int $b) {
 }
 
 multi sub infix:<!=>(int $a, int $b) { nqp::p6bool(nqp::isne_i($a, $b)) }
+multi sub infix:<!=>(Int:D \a, Int:D \b) { nqp::p6bool(nqp::isne_I(nqp::decont(a), nqp::decont(b))) }
 
 multi sub infix:«<»(Int:D \a, Int:D \b) {
     nqp::p6bool(nqp::islt_I(nqp::decont(a), nqp::decont(b)))
@@ -424,17 +448,17 @@ multi sub prefix:<+^>(int $a) {
    nqp::bitneg_i($a);
 }
 
-proto sub chr($) is pure  {*}
+proto sub chr($, *%) is pure  {*}
 multi sub chr(Int:D  \x --> Str:D) { x.chr     }
 multi sub chr(Cool \x --> Str:D) { x.Int.chr }
 multi sub chr(int $x --> str) {
     nqp::chr($x);
 }
 
-proto sub is-prime(|) is pure {*}
+proto sub is-prime($, *%) is pure {*}
 multi sub is-prime(\x) { x.is-prime }
 
-proto sub expmod($, $, $) is pure  {*}
+proto sub expmod($, $, $, *%) is pure  {*}
 multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {
     nqp::expmod_I(nqp::decont(base), nqp::decont(exp), nqp::decont(mod), Int);
 }
@@ -442,10 +466,10 @@ multi sub expmod(\base, \exp, \mod) {
     nqp::expmod_I(nqp::decont(base.Int), nqp::decont(exp.Int), nqp::decont(mod.Int), Int);
 }
 
-proto sub lsb($) {*}
+proto sub lsb($, *%) {*}
 multi sub lsb(Int:D \i) { i.lsb }
 
-proto sub msb($) {*}
+proto sub msb($, *%) {*}
 multi sub msb(Int:D \i) { i.msb }
 
 # vim: ft=perl6 expandtab sw=4

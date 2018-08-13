@@ -15,6 +15,77 @@ class Perl6::Pod {
     my $show_warning :=  1; # flag used to track the first warning so no repeated warnings are given
     my $table_num    := -1; # for user debugging, incremented by one on each call to sub table
 
+    # UNICODE HEX VALUES AND NAMES FOR SPACE CHARACTERS
+    # (from ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt):
+    # (from https://en.wikipedia.org/wiki/Whitespace_character)
+    # (which is from https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt)
+    #
+    # The hex codes for spaces are in the range 0x0009..0x3000.  Those
+    # were each inspected, and all chars not matching \h or \v characters were
+    # eliminated leaving the following:
+    #
+    #=== 26 total chars =========
+    #=== 2 total no-break chars:
+    # 0x00A0 NO-BREAK SPACE ; Zs ; \h space char
+    # 0x202F NARROW NO-BREAK SPACE ; Zs ; \h space char
+    #=== 7 total vertical chars:
+    # 0x000A <control-000A> ; alias: NEW LINE ; Cc ; \v space char
+    # 0x000B <control-000B> ; alias: VERTICAL TABULATION ; Cc ; \v space char
+    # 0x000C <control-000C> ; alias: FORM FEED ; Cc ; \v space char
+    # 0x000D <control-000D> ; alias: CARRIAGE RETURN ; Cc ; \v space char
+    # 0x0085 <control-0085> ; alias: NEXT LINE ; Cc ; \v space char
+    # 0x2028 LINE SEPARATOR ; Zl ; \v space char
+    # 0x2029 PARAGRAPH SEPARATOR ; Zp ; \v space char
+    #=== 17 total horizontal chars:
+    # 0x0009 <control-0009> ; alias: HORIZONTAL TABULATION; ; Cc ; \h space char
+    # 0x0020 SPACE ; Zs ; \h space char
+    # 0x1680 OGHAM SPACE MARK ; Zs ; \h space char
+    # 0x180E MONGOLIAN VOWEL SEPARATOR ; Cf ; \h space char
+    # 0x2000 EN SPACE ; Zs ; \h space char
+    # 0x2001 EM SPACE ; Zs ; \h space char
+    # 0x2002 EN SPACE ; Zs ; \h space char
+    # 0x2003 EM SPACE ; Zs ; \h space char
+    # 0x2004 THREE-PER-EM SPACE ; Zs ; \h space char
+    # 0x2005 FOUR-PER-EM SPACE ; Zs ; \h space char
+    # 0x2006 SIX-PER-EM SPACE ; Zs ; \h space char
+    # 0x2007 FIGURE SPACE ; Zs ; \h space char
+    # 0x2008 PUNCTUATION SPACE ; Zs ; \h space char
+    # 0x2009 THIN SPACE ; Zs ; \h space char
+    # 0x200A HAIR SPACE ; Zs ; \h space char
+    # 0x205F MEDIUM MATHEMATICAL SPACE ; Zs ; \h space char
+    # 0x3000 IDEOGRAPHIC SPACE ; Zs ; \h space char
+
+    # using info from above, define a character class regex for space
+    # chars to be used for word breaks and collapsing multiple
+    # adjacent breaking spaces to one (normalizing text)
+    my $breaking-spaces-regex := /[
+                                  # vertical (\v) breaking space chars:
+                                  <[
+                                     \x[000A] .. \x[000D]
+                                     \x[0085]
+                                     \x[2028]
+                                     \x[2029]
+                                  ]>
+                                  |
+                                  # horizontal (\h) breaking space chars:
+                                  <[
+                                     \x[0009]
+                                     \x[0020]
+                                     \x[1680]
+                                     \x[180E]
+                                     \x[2000] .. \x[200A]
+                                     \x[205F]
+                                     \x[3000]
+                                   ]>
+                                 ]+/;
+    # literal normal space (U+0020)
+    my $SPACE := "\x[0020]";
+
+    # defn block types
+    my $defn-para   := 'paragraph';
+    my $defn-delim  := 'delimited';
+    my $defn-abbrev := 'abbreviated';
+
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
             nqp::die("You must provide one of leading or trailing to Perl6::Pod::document");
@@ -27,6 +98,125 @@ class Perl6::Pod {
                 $*W.apply_trait($/, '&trait_mod:<is>', $what, :trailing_docs($with));
             }
         }
+    }
+
+    our sub defn($/, $blocktype) {
+        # produces a Perl 6 instance of Pod::Defn
+
+        # save config final handling until we know whether
+        #   we need to add another key/value
+        my $has-config := $<pod_configuration> ?? 1 !! 0;
+        my $config := $<pod_configuration>
+            ?? $<pod_configuration>.ast
+            !! serialize_object('Hash').compile_time_value;
+
+        my $type := $<type>.Str;
+        die("FATAL: the incoming object is NOT a =defn block, type: $type")
+            if $type !~~ /^defn/;
+
+        my $term       := '';
+        my $new-config := '';
+        if $blocktype ~~ /abbrev/ {
+            # there must NOT be any existing config
+            die("FATAL: =defn abbreviated block type has unexpected \$<pod_configuration>")
+                if $<pod_configuration>;
+
+            # the term is on the =defn line
+            # two examples of $type line (=defn ...text...)
+            #   defn term 2
+            #   defn # my term 3
+            # extract needed data
+            my $s := nqp::substr($type, 4); # skip past 'defn'
+            # if there is a leading hash mark ('#') it is an alias for ':numbered'
+            my $rx := /^ \h* '#'/;
+            my $m := match($s, $rx);
+            if $m {
+                # remove the '#' and the term remains
+                $s := subst($s, $rx, '');
+                $term := normalize_text($s);
+                # we will need to create a new %config hash key:
+                $new-config := 'numbered';
+            }
+            else {
+                $term := normalize_text($s);
+            }
+        }
+
+        # the final Perl 6 type
+        my $p6type := 'Pod::Defn';
+
+        # get all content lines
+        # the first line is the term for all but the abbreviated form
+        my @children := [];
+        for $<pod_content> {
+            # split lines at newlines
+            my @lines := lines($_);
+            for @lines {
+                my $s := normalize_text($_);
+                @children.push($s);
+            }
+        }
+
+        $term := @children.shift if !$term;
+
+        # the remaining @children array should have lines of text with an empty line
+        # being a paragraph separator. combine consecutive paragraph lines into a single line.
+        my @paras := [];
+        my $para-line := '';
+        for @children -> $line {
+            if $line {
+                # concat to the current line
+                $para-line := nqp::concat($para-line, $SPACE) if $para-line;
+                $para-line := nqp::concat($para-line, $line);
+            }
+            else {
+                # put existing line in the para array and start a new line
+                @paras.push($para-line);
+                $para-line := '';
+            }
+        }
+        # don't forget the last line
+        @paras.push($para-line) if $para-line;
+
+        # now build the Pod::Defn class
+        my @pcontents := [];
+        for @paras -> $para {
+            # each para is a new pod para class
+            my @contents := nqp::list($para);
+            @contents    := serialize_array(@contents).compile_time_value;
+            my $obj := serialize_object('Pod::Block::Para', :@contents).compile_time_value;
+            @pcontents.push($obj);
+        }
+        my $contents := serialize_array(@pcontents).compile_time_value;
+
+        my $term-p6ast := $*W.add_constant(
+            'Str', 'str', $term,
+        ).compile_time_value;
+        my $name := $*W.add_constant('Str', 'str', 'defn');
+
+        # construct the new %config hash if need be
+        if $new-config {
+            # create key/value pairs to be serialized
+            my @pairs := nqp::list();
+            my $key := 'numbered';
+            my $val := '';
+            @pairs.push(
+                serialize_object(
+                    'Pair', :key($key), :value($val)
+                ).compile_time_value
+            );
+            $config := serialize_object('Hash', |@pairs).compile_time_value;
+        }
+
+        # build and return the complete object
+        my $p6ast := serialize_object(
+            $p6type,
+            :name($name.compile_time_value),
+            :config($config),
+            :contents($contents),
+            :term($term-p6ast),
+        );
+        return $p6ast.compile_time_value;
     }
 
     our sub any_block($/) {
@@ -44,6 +234,9 @@ class Perl6::Pod {
         elsif $<type>.Str ~~ /^head \d+$/ {
             $type    := 'Pod::Heading';
             $leveled := 1;
+        }
+        elsif $<type>.Str ~~ /^defn / {
+            die("FATAL: should not be able to get here with a =defn block");
         }
         else {
             $type := 'Pod::Block::Named';
@@ -311,6 +504,7 @@ class Perl6::Pod {
         # iterate over the "hash" and create key/value pairs to be serialized
         for @arr -> $k, $v {
             my str $key := $k;
+            # TODO check key for 'caption', warn of deprecation for version 6.d if found
             my $val     := $v;
             say("DEBUG hash: '$key' => '$val'") if $debugp;
             @pairs.push(
@@ -323,7 +517,7 @@ class Perl6::Pod {
     }
 
     our sub make_config($/) {
-        my @pairs;
+        my @pairs := [];
         for $<colonpair> -> $colonpair {
             my $key := $colonpair<identifier>;
             say("==DEBUG config colonpair key: |$key|") if $debugp;
@@ -368,12 +562,14 @@ class Perl6::Pod {
                 $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
             }
 
-            if $key eq "allow" {
+            if $key eq 'allow' {
                 my $chars := nqp::chars($val);
                 my $pos := 0;
                 while $pos < $chars {
                     my $char := nqp::substr($val, $pos, 1);
-                    if $char eq " " {
+                    # space char
+                    #if $char eq " " {
+                    if $char eq $SPACE {
                         $pos := $pos + 1;
                     }
                     else {
@@ -397,13 +593,15 @@ class Perl6::Pod {
     }
 
     our sub normalize_text($a) {
-        # given a string of text, possibly including newlines, reduces
-        # contiguous whitespace to a single space and trim leading and
-        # trailing whitespace from all logical lines
-        my $r := subst($a, /\s+/, ' ', :global);
-        $r    := subst($r, /^^\s*/, '');
-        $r    := subst($r, /\s*$$/, '');
-        return $r;
+        # Given a string of text, possibly including newlines, reduces
+        # contiguous breaking whitespace to a single space.
+        # Also trims leading and trailing whitespace from the string.
+        # Note that non-breaking whitespace is not affected.
+
+        # First, we normalize all breaking spaces.
+        my $r := subst($a, $breaking-spaces-regex, $SPACE, :global);
+        # Finally, trim the ends of the string.
+        return $r := trim-string($r);
     }
 
     our sub remove_inline_comments($S) {
@@ -433,14 +631,11 @@ class Perl6::Pod {
         return $ret;
     }
 
-    our sub chomp($s) {
-        # remove ending newline from a string
-        return subst($s, /\n$/, '');
-    }
-
-    our sub trim_right($a) {
-        # given a string of text, removes all whitespace from the end
-        return subst($a, /\s*$/, '');
+    our sub trim-string($a) {
+        # Given a string of text, removes all whitespace from the ends,
+        # including any newline.
+        my $r := subst($a, /^\s*/, '');
+        return subst($r, /\s*$/, '');
     }
 
     our sub pod_strings_from_matches(@string_matches) {
@@ -450,11 +645,25 @@ class Perl6::Pod {
 
         }
         return build_pod_strings(@strings);
+    }
 
+    our sub lines($S, :$no-chomp) {
+        # Takes a string and separates it into an array of lines at
+        # each newline.
+        #
+        # uses nqp::split(str $delimiter, str $string --> Mu)
+
+        # not usual:
+        return nqp::split("\n", $S) if $no-chomp;
+
+        # default:
+        # remove leading and trailing newlines
+        my $s := trim-string($S);
+        return nqp::split("\n", $s) if !$no-chomp;
     }
 
     # Takes an array of arrays of pod characters (normal character or
-    # formatting code) returns an array of strings and formatting codes
+    # formatting code) returns an array of strings and formatting codes.
     our sub build_pod_strings(@strings) {
         my $in_code := $*POD_IN_CODE_BLOCK;
 
@@ -462,13 +671,15 @@ class Perl6::Pod {
             if @chars {
                 my $s := nqp::join('', @chars);
                 if ! $in_code {
-                    $s := subst($s, /\s+/, ' ', :global);
+                    # Collapse adjacent horizontal space characters to
+                    # a single space character (unicode code point 0x0020).
+                    # Note non-breaking whitespace is # not affected.
+                    $s := subst($s, $breaking-spaces-regex, $SPACE, :global);
                 }
                 $s := $*W.add_constant('Str', 'str', $s).compile_time_value;
                 @where.push($s);
             }
         }
-
 
         my @res  := [];
         my @chars := [];
@@ -554,7 +765,9 @@ class Perl6::Pod {
     }
 
     # TODO This sub is for future work on pod formatting issues.
+    # TODO this sub may be obsolete after the formatting codes merge CHECK!!
     #      It isn't currently used.
+    =begin comment
     sub string2twine($S) {
         # takes a simple string with unhandled formatting code
         # and converts it into a twine data structure. primarily
@@ -586,6 +799,7 @@ class Perl6::Pod {
 
         return $ret;
     }
+    =end comment
 
     our sub table($/) {
         # extract any caption from $config and serialize it
@@ -606,8 +820,8 @@ class Perl6::Pod {
         # row separator
         my $is_row_sep   := /^ <[-+_|=\h]>* $/;
         # legal row cell separators
-        my $col_sep_pipe := /\h '|' \h/; # visible
-        my $col_sep_plus := /\h '+' \h/; # visible
+        my $col_sep_pipe := /\h '|' \h | \h '|' $/; # visible
+        my $col_sep_plus := /\h '+' \h | \h '+' $/; # visible
         my $col_sep_ws   := /\h \h/;     # invisible: double-space
 
         my $has_vis_col_sep  := / $col_sep_pipe | $col_sep_plus /;
@@ -653,7 +867,8 @@ class Perl6::Pod {
         for $<table_row> {
             # stringify the row for analysis and further handling
             my $row := $_.ast;
-            $row := chomp($row);
+            # remove ending newline (AKA chomp)
+            $row := subst($row, /\n$/, '');
             @orig_rows.push($row);
             if $row ~~ $is_row_sep {
                 # leading row sep lines are deleted and warned about
@@ -912,11 +1127,13 @@ class Perl6::Pod {
                 nqp::say($_) for @rows; # the original table as input
                 nqp::say("===end WARNING table $t input rows");
             }
+            =begin comment
             elsif $warns && $show_warning {
                     nqp::say("===WARNING: One or more tables evidence bad practice.");
                     nqp::say("==          Set environment variable 'RAKUDO_POD_TABLE_DEBUG' for more details.");
                     $show_warning := 0;
             }
+            =end comment
         }
 
         sub normalize_vis_col_sep_rows(@Rows) {

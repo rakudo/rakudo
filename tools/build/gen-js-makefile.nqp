@@ -124,7 +124,7 @@ rule($CORE, "$CORE-combined rakudo.js $Perl6-Bootstrap",
 );
 
 
-say("js-all: $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE \$(JS_RUNNER)\n");
+say("js-all: check_nqp_version $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE \$(JS_RUNNER)\n");
 
 say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp rakudo.js $CORE $CORE-combined {nqp::join(' ', @produced)}");
 
@@ -134,6 +134,11 @@ say("js-lint:
 
 rule('js-testable', 'js-all spectest_checkout spectest_update');
 rule('js-spectest', 'js-testable', '$(PERL5) t/harness5 --fudge --js --keep-exit-code --tests-from-file=t/spectest.js.data');
+
+
+rule('check_nqp_version',
+    'tools/build/check-nqp-version.pl',
+     '$(PERL5) tools/build/check-nqp-version.pl $(JS_NQP)');
 
 # Stub
 say("js-runner-default:")

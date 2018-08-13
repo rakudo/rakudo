@@ -51,57 +51,59 @@ class Deprecation {
     }
 }
 
-sub DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool :$lang-vers) {
-    state $ver  = $*PERL.compiler.version;
-    my $version = $lang-vers ?? nqp::getcomp('perl6').language_version !! $ver;
-    # if $lang-vers was given, treat the provided versions as language
-    # versions, rather than compiler versions. Note that we can't
-    # `state` the lang version (I think) because different CompUnits
-    # might be using different versions.
+class Rakudo::Deprecations {
+    method DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool :$lang-vers) {
+        state $ver  = $*PERL.compiler.version;
+        my $version = $lang-vers ?? nqp::getcomp('perl6').language_version !! $ver;
+        # if $lang-vers was given, treat the provided versions as language
+        # versions, rather than compiler versions. Note that we can't
+        # `state` the lang version (I think) because different CompUnits
+        # might be using different versions.
 
-    my Version $vfrom;
-    my Version $vremoved;
-    $from && nqp::iseq_i($version cmp ($vfrom = Version.new: $from), -1)
-          && return; # not deprecated yet;
-    $vremoved = Version.new($removed) if $removed;
+        my Version $vfrom;
+        my Version $vremoved;
+        $from && nqp::iseq_i($version cmp ($vfrom = Version.new: $from), -1)
+              && return; # not deprecated yet;
+        $vremoved = Version.new($removed) if $removed;
 
-    my $bt = Backtrace.new;
-    my $deprecated =
-      $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) ];
+        my $bt = Backtrace.new;
+        my $deprecated =
+          $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) ];
 
-    if $up ~~ Whatever {
-        $index = $_ with $bt.next-interesting-index($index, :noproto);
+        if $up ~~ Whatever {
+            $index = $_ with $bt.next-interesting-index($index, :noproto);
+        }
+        else {
+            $index = $_
+              with $bt.next-interesting-index($index, :noproto, :setting)
+              for ^$up;
+        }
+        my $callsite = $bt[$index];
+
+        # get object, existing or new
+        my $dep = $what
+          ?? Deprecation.new(
+            :name($what),
+            :$alternative,
+            :from($vfrom),
+            :removed($vremoved) )
+          !! Deprecation.new(
+            file    => $deprecated.file,
+            type    => $deprecated.subtype.tc,
+            package => try { $deprecated.package.^name } // 'unknown',
+            name    => $deprecated.subname,
+            :$alternative,
+            :from($vfrom),
+            :removed($vremoved),
+        );
+        $dep = %DEPRECATIONS{$dep.WHICH} //= $dep;
+
+        state $fatal = %*ENV<RAKUDO_DEPRECATIONS_FATAL>;
+        die $dep.report if $fatal;
+
+        # update callsite
+        ++$dep.callsites{$file // $callsite.file.IO}{$line // $callsite.line};
     }
-    else {
-        $index = $_
-          with $bt.next-interesting-index($index, :noproto, :setting)
-          for ^$up;
-    }
-    my $callsite = $bt[$index];
-
-    # get object, existing or new
-    my $dep = $what
-      ?? Deprecation.new(
-        :name($what),
-        :$alternative,
-        :from($vfrom),
-        :removed($vremoved) )
-      !! Deprecation.new(
-        file    => $deprecated.file,
-        type    => $deprecated.subtype.tc,
-        package => try { $deprecated.package.^name } // 'unknown',
-        name    => $deprecated.subname,
-        :$alternative,
-        :from($vfrom),
-        :removed($vremoved),
-    );
-    $dep = %DEPRECATIONS{$dep.WHICH} //= $dep;
-
-    state $fatal = %*ENV<RAKUDO_DEPRECATIONS_FATAL>;
-    die $dep.report if $fatal;
-
-    # update callsite
-    ++$dep.callsites{$file // $callsite.file.IO}{$line // $callsite.line};
 }
 
 END {
@@ -112,6 +114,10 @@ END {
 adapted, so that this message will disappear!';
         }
     }
+}
+
+sub DEPRECATED(|c) is hidden-from-backtrace {
+    Rakudo::Deprecations.DEPRECATED(|c)
 }
 
 # vim: ft=perl6 expandtab sw=4

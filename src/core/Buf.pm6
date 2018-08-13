@@ -170,48 +170,80 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         self.^name ~ '.new(' ~ self.join(',') ~ ')';
     }
 
-    method subbuf(Blob:D: $from, $length?) {
-        nqp::stmts(
-          (my int $elems = nqp::elems(self)),
+    # Made this a sub instead of a private method so that the optimizer
+    # doesn't need to put in IntLexRef's for the native int parameters.
+    # Since we're not using any attributes, just self, that was an easy
+    # choice to make.
+    sub subbuf-end(\SELF, int $start, int $end, int $elems) {
+        nqp::if(
+          nqp::islt_i($start,0) || nqp::isgt_i($start,$elems),
+          Failure.new( X::OutOfRange.new(
+            what  => '"From argument to subbuf',
+            got   => $start,
+            range => "0.." ~ $elems
+          )),
           nqp::if(
-            $length.DEFINITE && $length < 0,
-            X::OutOfRange.new(
-              :what('Len element to subbuf'), :got($length), :range("0..$elems"),
-            ).fail,
-            nqp::stmts(
-              (my int $pos),
-              (my int $todo),
-              nqp::if(
-                nqp::istype($from,Range),
-                nqp::stmts(
-                  $from.int-bounds($pos, my int $max),
-                  ($todo = nqp::add_i(nqp::sub_i($max, $pos), 1))),
-                nqp::stmts(
-                  ($pos = nqp::istype($from, Callable) ?? $from($elems) !! $from.Int),
-                  ($todo = $length.DEFINITE ?? $length.Int min $elems - $pos !! $elems - $pos))),
-              nqp::if(
-                nqp::islt_i($pos, 0),
-                X::OutOfRange.new(
-                  :what('From argument to subbuf'), :got($from.gist), :range("0..$elems"),
-                  :comment("use *-{abs $pos} if you want to index relative to the end"),
-                ).fail,
-                nqp::if(
-                  nqp::isgt_i($pos, $elems),
-                  X::OutOfRange.new(
-                    :what('From argument to subbuf'), :got($from.gist), :range("0..$elems"),
-                  ).fail,
-                  nqp::if(
-                    nqp::isle_i($todo, 0),
-                    nqp::create(self), # we want zero elements; return empty Blob
-                    nqp::stmts(
-                      (my $subbuf := nqp::create(self)),
-                      nqp::setelems($subbuf, $todo),
-                      (my int $i = -1),
-                      --$pos,
-                      nqp::while(
-                        nqp::islt_i(++$i,$todo),
-                        nqp::bindpos_i($subbuf, $i, nqp::atpos_i(self, ++$pos))),
-                      $subbuf)))))))
+            nqp::isle_i(
+              (my int $last = nqp::if(nqp::isge_i($end,$elems),$elems-1,$end)),
+              $start - 1
+            ),                                # 0 elements to return
+            nqp::create(SELF),                # just create a new one
+            nqp::slice(SELF,$start,$last)     # do the actual slice
+          )
+        )
+    }
+    sub subbuf-length(\SELF, int $from, int $length, int $elems) {
+        nqp::if(
+          nqp::islt_i($length,0),
+          Failure.new( X::OutOfRange.new(
+            what  => 'Len element to subbuf',
+            got   => $length,
+            range => "0.." ~ $elems
+          )),
+          subbuf-end(SELF, $from, $from + $length - 1, $elems)
+        )
+    }
+
+    proto method subbuf(|) {*}
+    multi method subbuf(Blob:D: Range:D $fromto) {
+        nqp::if(
+          nqp::getattr_i($fromto,Range,'$!is-int'),
+          nqp::stmts(
+            (my int $start = nqp::add_i(
+              nqp::unbox_i(nqp::getattr($fromto,Range,'$!min')),
+              nqp::getattr_i($fromto,Range,'$!excludes-min')
+            )),
+            (my int $end = nqp::sub_i(
+              nqp::unbox_i(nqp::getattr($fromto,Range,'$!max')),
+              nqp::getattr_i($fromto,Range,'$!excludes-max')
+            )),
+            subbuf-end(self, $start, $end, nqp::elems(self))
+          ),
+          Failure.new( X::AdHoc.new(
+            payload => "Must specify a Range with integer bounds to subbuf"
+          ))
+        )
+    }
+    multi method subbuf(Blob:D: Int:D $From) {
+        my int $elems = nqp::elems(self);
+        my int $from  = $From;
+        subbuf-end(self, $from, $elems, $elems)
+    }
+    multi method subbuf(Blob:D: &From) {
+        my int $elems = nqp::elems(self);
+        my int $from  = From(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $elems, $elems)
+    }
+    multi method subbuf(Blob:D: Int:D $From, Int:D $Length) {
+        my int $from   = $From;
+        my int $length = $Length;
+        subbuf-length(self, $from, $length, nqp::elems(self))
+    }
+    multi method subbuf(Blob:D: &From, Int:D $Length) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = From(nqp::box_i($elems,Int));
+        my int $length = $Length;
+        subbuf-length(self, $from, $length, $elems)
     }
 
     method reverse(Blob:D:) {
@@ -228,31 +260,44 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     method COMPARE(Blob:D: Blob:D \other) {
-        my $other := nqp::decont(other);
-        my int $elems = nqp::elems(self);
-        if nqp::cmp_i($elems,nqp::elems($other)) -> $diff {
-            $diff
-        }
-        else {
-            my int $i = -1;
-            return nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-              if nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-              while nqp::islt_i(++$i,$elems);
-            0
-        }
+        nqp::unless(
+          nqp::cmp_i(
+            (my int $elems = nqp::elems(self)),
+            nqp::elems(my $other := nqp::decont(other))
+          ),
+          nqp::stmts(                            # same number of elements
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::not_i(
+                     nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+                   ),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::isne_i($i,$elems),
+              nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+            )
+          )
+        )
     }
 
     method SAME(Blob:D: Blob:D \other) {
-        my $other := nqp::decont(other);
-        my int $elems = nqp::elems(self);
-        return False unless nqp::iseq_i($elems,nqp::elems($other));
-
-        my int $i = -1;
-        return False
-          unless nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-          while nqp::islt_i(++$i,$elems);
-
-        True
+        nqp::if(
+          nqp::iseq_i(
+            (my int $elems = nqp::elems(self)),
+            nqp::elems(my $other := nqp::decont(other))
+          ),
+          nqp::stmts(                            # same number of elements
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i)),
+              nqp::null
+            ),
+            nqp::iseq_i($i,$elems)
+          )
+        )
     }
 
     method join(Blob:D: $delim = '') {
@@ -269,81 +314,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     proto method unpack(|) {*}
     multi method unpack(Blob:D: Str:D $template) {
-        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-            feature => "the 'unpack' method",
-            use     => "pack"
-        ).throw;
-        self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
+          ?? X::Experimental.new(
+               feature => "the 'unpack' method",
+               use     => "pack"
+             ).throw
+          !! self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
     }
     multi method unpack(Blob:D: @template) {
-        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-            feature => "the 'unpack' method",
-            use     => "pack"
-        ).throw;
-        my @bytes = self.list;
-        my @fields;
-        for @template -> $unit {
-            my $directive = substr($unit,0,1);
-            my $amount    = substr($unit,1);
-            my $pa = $amount eq ''  ?? 1            !!
-                     $amount eq '*' ?? @bytes.elems !! +$amount;
-
-            given $directive {
-                when 'a' | 'A' | 'Z' {
-                    @fields.push: @bytes.splice(0, $pa).map(&chr).join;
-                }
-                when 'H' {
-                    my str $hexstring = '';
-                    for ^$pa {
-                        my $byte = shift @bytes;
-                        $hexstring ~= ($byte +> 4).fmt('%x')
-                                    ~ ($byte % 16).fmt('%x');
-                    }
-                    @fields.push($hexstring);
-                }
-                when 'x' {
-                    splice @bytes, 0, $pa;
-                }
-                when 'C' {
-                    @fields.append: @bytes.splice(0, $pa);
-                }
-                when 'S' | 'v' {
-                    for ^$pa {
-                        last if @bytes.elems < 2;
-                        @fields.append: shift(@bytes)
-                                    + (shift(@bytes) +< 0x08);
-                    }
-                }
-                when 'L' | 'V' {
-                    for ^$pa {
-                        last if @bytes.elems < 4;
-                        @fields.append: shift(@bytes)
-                                    + (shift(@bytes) +< 0x08)
-                                    + (shift(@bytes) +< 0x10)
-                                    + (shift(@bytes) +< 0x18);
-                    }
-                }
-                when 'n' {
-                    for ^$pa {
-                        last if @bytes.elems < 2;
-                        @fields.append: (shift(@bytes) +< 0x08)
-                                    + shift(@bytes);
-                    }
-                }
-                when 'N' {
-                    for ^$pa {
-                        last if @bytes.elems < 4;
-                        @fields.append: (shift(@bytes) +< 0x18)
-                                    + (shift(@bytes) +< 0x10)
-                                    + (shift(@bytes) +< 0x08)
-                                    + shift(@bytes);
-                    }
-                }
-                X::Buf::Pack.new(:$directive).throw;
-            }
-        }
-
-        return |@fields;
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
+          ?? X::Experimental.new(
+               feature => "the 'unpack' method",
+               use     => "pack"
+             ).throw
+          !! nqp::getlexcaller('EXPERIMENTAL-PACK')(self, @template)
     }
 
     # XXX: the pack.t spectest file seems to require this method
@@ -373,13 +357,17 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         else {
             my $iter := from.iterator;
             my int $i = 0;
-            my $got;
-            until ($got := $iter.pull-one) =:= IterationEnd {
-                nqp::istype($got,Int)
-                  ?? nqp::push_i(to,$got)
-                  !! self!fail-typecheck-element(action,$i,$got).throw;
-                ++$i;
-            }
+            nqp::until(
+              nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(nqp::hllize($got),Int),
+                nqp::stmts(
+                  nqp::push_i(to,$got),
+                  ($i = nqp::add_i($i,1))
+                ),
+                self!fail-typecheck-element(action,$i,$got).throw
+              )
+            )
         }
         to
     }
@@ -635,7 +623,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         Proxy.new(
             FETCH   => sub ($) { $subbuf },
             STORE   => sub ($, Blob:D $new) {
-                nqp::splice(nqp::decont(self),nqp::decont($new),$from,$elems)
+                nqp::splice(self,nqp::decont($new),$from,$elems)
             }
         );
     }
@@ -646,98 +634,6 @@ constant buf8  = Buf[uint8];
 constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
-
-proto sub pack(|) {*}
-multi sub pack(Str $template, *@items) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-        feature => "the 'pack' function",
-        use     => "pack"
-    ).throw;
-    pack($template.comb(/<[a..zA..Z]>[\d+|'*']?/), @items)
-}
-
-multi sub pack(@template, *@items) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-        feature => "the 'pack' function",
-        use     => "pack"
-    ).throw;
-    my @bytes;
-    for @template -> $unit {
-        my $directive = substr($unit,0,1);
-        my $amount    = substr($unit,1);
-
-        given $directive {
-            when 'A' {
-                my $ascii = shift @items // '';
-                my $data = $ascii.ords.cache;
-                if $amount eq '*' {
-                    $amount = $data.elems;
-                }
-                if $amount eq '' {
-                    $amount = 1;
-                }
-                for (@$data, 0x20 xx *).flat[^$amount] -> $byte {
-                    X::Buf::Pack::NonASCII.new(:char($byte.chr)).throw if $byte > 0x7f;
-                    @bytes.push: $byte;
-                }
-            }
-            when 'a' {
-                my $data = shift @items // Buf.new;
-                $data.=encode if nqp::istype($data,Str);
-                if $amount eq '*' {
-                    $amount = $data.elems;
-                }
-                if $amount eq '' {
-                    $amount = 1;
-                }
-                for (@$data, 0 xx *).flat[^$amount] -> $byte {
-                    @bytes.push: $byte;
-                }
-            }
-            when 'H' {
-                my $hexstring = shift @items // '';
-                if $hexstring.chars % 2 {
-                    $hexstring ~= '0';
-                }
-                @bytes.append: map { :16($_) }, $hexstring.comb(/../);
-            }
-            when 'x' {
-                if $amount eq '*' {
-                    $amount = 0;
-                }
-                elsif $amount eq '' {
-                    $amount = 1;
-                }
-                @bytes.append: 0x00 xx $amount;
-            }
-            when 'C' {
-                my $number = shift(@items);
-                @bytes.push: $number % 0x100;
-            }
-            when 'S' | 'v' {
-                my $number = shift(@items);
-                @bytes.append: ($number, $number +> 0x08) >>%>> 0x100;
-            }
-            when 'L' | 'V' {
-                my $number = shift(@items);
-                @bytes.append: ($number, $number +> 0x08,
-                              $number +> 0x10, $number +> 0x18) >>%>> 0x100;
-            }
-            when 'n' {
-                my $number = shift(@items);
-                @bytes.append: ($number +> 0x08, $number) >>%>> 0x100;
-            }
-            when 'N' {
-                my $number = shift(@items);
-                @bytes.append: ($number +> 0x18, $number +> 0x10,
-                              $number +> 0x08, $number) >>%>> 0x100;
-            }
-            X::Buf::Pack.new(:$directive).throw;
-        }
-    }
-
-    return Buf.new(@bytes);
-}
 
 multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
@@ -837,18 +733,32 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b)))
+    nqp::p6bool(
+      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
+    )
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
-multi sub infix:<eq> (Blob:D \a, Blob:D \b) {   a =:= b || a.SAME(b)  }
-multi sub infix:<ne> (Blob:D \a, Blob:D \b) { !(a =:= b || a.SAME(b)) }
-multi sub infix:<lt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) == -1      }
-multi sub infix:<gt> (Blob:D \a, Blob:D \b) { a.COMPARE(b) ==  1      }
-multi sub infix:<le> (Blob:D \a, Blob:D \b) { a.COMPARE(b) !=  1      }
-multi sub infix:<ge> (Blob:D \a, Blob:D \b) { a.COMPARE(b) != -1      }
+multi sub infix:<eq> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::eqaddr(a,b) || a.SAME(b))
+}
+multi sub infix:<ne> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
+}
+multi sub infix:<lt> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),-1))
+}
+multi sub infix:<gt> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),1))
+}
+multi sub infix:<le> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::isne_i(a.COMPARE(b),1))
+}
+multi sub infix:<ge> (Blob:D \a, Blob:D \b) {
+    nqp::p6bool(nqp::isne_i(a.COMPARE(b),-1))
+}
 
-proto sub subbuf-rw(|) {*}
+proto sub subbuf-rw($, $?, $?, *%) {*}
 multi sub subbuf-rw(Buf:D \b) is rw {
     b.subbuf-rw(0, b.elems);
 }

@@ -210,12 +210,14 @@ HEADER
 
         method !snap() is raw {
             nqp::stmts(
+              (my int @data),
+              (nqp::getrusage(@data)),
               nqp::bindpos_i(
-                (my $data := nqp::getrusage),
+                @data,
                 WALLCLOCK,
                 nqp::sub_i(nqp::fromnum_I(nqp::time_n() * 1000000,Int),$start)
               ),
-              $data
+              @data
             )
         }
     }
@@ -588,12 +590,13 @@ class Telemetry does Associative {
         my $self := nqp::create(self);
         nqp::bindattr($self,Telemetry,'$!sampler',
           my $sampler := nqp::decont($*SAMPLER));
-        nqp::bindattr($self,Telemetry,'$!samples',
-          my $samples := nqp::create(IterationBuffer));
 
-        $samples.push($_) for @samples;
+        my $samples  := nqp::create(IterationBuffer);
+        my int $elems = +@samples;  # reify
+        my $reified  := nqp::getattr(@samples,List,'$!reified');
+        nqp::if($reified,nqp::splice($samples,$reified,0,$elems));
 
-        $self
+        nqp::p6bindattrinvres($self,Telemetry,'$!samples',$samples);
     }
 
     multi method perl(Telemetry:D: --> Str:D) {
@@ -839,7 +842,12 @@ HEADER
 
         # remove the columns that don't have any values
         @columns = @columns.grep: -> $column {
-            @periods.first: { .{%format{$column}[NAME]} }
+            (%format{$column}[NAME]
+              or note "WARNING: Unknown Telemetry column `$column`."
+                ~ " Perhaps you need to adjust used instruments"
+                ~ " (see RAKUDO_TELEMETRY_INSTRUMENTS)\n"
+              and 0
+            ) and @periods.first: { .{%format{$column}[NAME]} }
         };
         my $header  = "\n%format{@columns}>>.[HEADER].join(' ')";
         my @formats = %format{@columns};

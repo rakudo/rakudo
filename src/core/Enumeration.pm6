@@ -34,7 +34,8 @@ my role Enumeration {
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:U $ --> True) { }
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }
 
-    method CALL-ME(|) {
+    proto method CALL-ME(|) {*}
+    multi method CALL-ME(|) {
         my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);
         nqp::istype($x, ::?CLASS)
             ?? $x

@@ -5,74 +5,75 @@
 proto sub infix:<(|)>(|) is pure {*}
 multi sub infix:<(|)>()               { set()  }
 multi sub infix:<(|)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
-multi sub infix:<(|)>(SetHash:D $a)   { $a.Set }
-multi sub infix:<(|)>(BagHash:D $a)   { $a.Bag }
-multi sub infix:<(|)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(|)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                    # first has elems
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                               # second has elems
-          (my $elems := nqp::clone($araw)),
-          (my $iter := nqp::iterator($braw)),
+          (my \elems := nqp::clone(araw)),
+          (my \iter := nqp::iterator(braw)),
           nqp::while(                             # loop over keys of second
-            $iter,
+            iter,
             nqp::bindkey(                         # bind into clone of first
-              $elems,
-              nqp::iterkey_s(nqp::shift($iter)),
-              nqp::iterval($iter)
+              elems,
+              nqp::iterkey_s(nqp::shift(iter)),
+              nqp::iterval(iter)
             )
           ),
-          nqp::create(Set).SET-SELF($elems)       # make it a Set
+          nqp::create($a.WHAT).SET-SELF(elems)    # make it a Set(Hash)
         ),
-        $a.Set                                    # no second, so first
+        $a                                        # no second, so first
       ),
       nqp::if(                                    # no first
-        ($braw := $b.RAW-HASH) && nqp::elems($braw),
-        $b.Set,                                   # but second
-        set()                                     # both empty
+        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        nqp::if(                                  # but second
+          nqp::istype($a,Set), $b.Set, $b.SetHash
+        ),
+        $a                                        # both empty
       )
     )
 }
-multi sub infix:<(|)>(Setty:D $a, Mixy:D  $b) { $a.Mix (|) $b }
-multi sub infix:<(|)>(Setty:D $a, Baggy:D $b) { $a.Bag (|) $b }
+multi sub infix:<(|)>(Setty:D $a, Mixy:D  $b) { $a.Mixy  (|) $b }
+multi sub infix:<(|)>(Setty:D $a, Baggy:D $b) { $a.Baggy (|) $b }
 
 multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                    # first has elems
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                               # second has elems
-          (my $elems := nqp::clone($araw)),
-          (my $iter := nqp::iterator($braw)),
+          (my \elems := nqp::clone(araw)),
+          (my \iter := nqp::iterator(braw)),
           nqp::while(                             # loop over keys of second
-            $iter,
+            iter,
             nqp::if(
               nqp::existskey(
-                $araw,
-                (my $key := nqp::iterkey_s(nqp::shift($iter)))
+                araw,
+                (my \key := nqp::iterkey_s(nqp::shift(iter)))
               ),
               nqp::if(   # must use HLL < because values can be bignums
                 nqp::getattr(
-                  nqp::decont(nqp::atkey($araw,$key)),Pair,'$!value')
-                < nqp::getattr(
-                    nqp::decont(nqp::atkey($braw,$key)),Pair,'$!value'),
-                nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+                  nqp::decont(nqp::atkey(araw,key)),Pair,'$!value')
+                < nqp::getattr(                   # > hl
+                    nqp::decont(nqp::atkey(braw,key)),Pair,'$!value'),
+                nqp::bindkey(elems,key,nqp::atkey(braw,key))
               ),
-              nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+              nqp::bindkey(elems,key,nqp::atkey(braw,key))
             )
           ),
-          nqp::create(Mix).SET-SELF($elems)       # make it a Mix
+          nqp::create($a.WHAT).SET-SELF(elems)   # make it a Mix(Hash)
         ),
-        $a.Mix                                    # no second, so first
+        $a                                        # no second, so first
       ),
       nqp::if(                                    # no first
-        ($braw := $b.RAW-HASH) && nqp::elems($braw),
-        $b.Mix,                                   # but second
-        mix()                                     # both empty
+        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        nqp::if(                                  # but second
+          nqp::istype($a,Mix), $b.Mix, $b.MixHash
+        ),
+        $a                                        # both empty
       )
     )
 }
@@ -80,42 +81,44 @@ multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
 multi sub infix:<(|)>(Mixy:D $a, Baggy:D $b) { $a (|) $b.Mix }
 multi sub infix:<(|)>(Mixy:D $a, Setty:D $b) { $a (|) $b.Mix }
 
-multi sub infix:<(|)>(Baggy:D $a, Mixy:D $b) { $a.Mix (|) $b }
+multi sub infix:<(|)>(Baggy:D $a, Mixy:D $b) { $a.Mixy (|) $b }
 multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                    # first has elems
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                               # second has elems
-          (my $elems := nqp::clone($araw)),
-          (my $iter := nqp::iterator($braw)),
+          (my \elems := nqp::clone(araw)),
+          (my \iter := nqp::iterator(braw)),
           nqp::while(                             # loop over keys of second
-            $iter,
+            iter,
             nqp::if(
               nqp::existskey(
-                $araw,
-                (my $key := nqp::iterkey_s(nqp::shift($iter)))
+                araw,
+                (my \key := nqp::iterkey_s(nqp::shift(iter)))
               ),
               nqp::if(
                 nqp::islt_i(
                   nqp::getattr(
-                    nqp::decont(nqp::atkey($araw,$key)),Pair,'$!value'),
+                    nqp::decont(nqp::atkey(araw,key)),Pair,'$!value'),
                   nqp::getattr(
-                    nqp::decont(nqp::atkey($braw,$key)),Pair,'$!value')
+                    nqp::decont(nqp::atkey(braw,key)),Pair,'$!value')
                 ),
-                nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+                nqp::bindkey(elems,key,nqp::atkey(braw,key))
               ),
-              nqp::bindkey($elems,$key,nqp::atkey($braw,$key))
+              nqp::bindkey(elems,key,nqp::atkey(braw,key))
             )
           ),
-          nqp::create(Bag).SET-SELF($elems)       # make it a Bag
+          nqp::create($a.WHAT).SET-SELF(elems)   # make it a Bag
         ),
-        $a.Bag                                    # no second, so first
+        $a                                        # no second, so first
       ),
       nqp::if(                                    # no first
-        ($braw := $b.RAW-HASH) && nqp::elems($braw),
-        $b.Bag,                                   # but second
-        bag()                                     # both empty
+        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        nqp::if(                                  # but second
+          nqp::istype($a,Bag), $b.Bag, $b.BagHash
+        ),
+        $a                                        # both empty
       )
     )
 }
@@ -151,12 +154,24 @@ multi sub infix:<(|)>(Failure:D $a, Any $b) { $a.throw }
 multi sub infix:<(|)>(Any $a, Failure:D $b) { $b.throw }
 multi sub infix:<(|)>(Any $a, Any $b) {
     nqp::if(
-      nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
-      infix:<(|)>($a.Mix, $b.Mix),
+      nqp::istype($a,Mixy),
+      infix:<(|)>($a, $b.Mix),
       nqp::if(
-        nqp::istype($a,Baggy) || nqp::istype($b,Baggy),
-        infix:<(|)>($a.Bag, $b.Bag),
-        infix:<(|)>($a.Set, $b.Set)
+        nqp::istype($a,Baggy),
+        infix:<(|)>($a, $b.Bag),
+        nqp::if(
+          nqp::istype($a,Setty),
+          infix:<(|)>($a, $b.Set),
+          nqp::if(
+            nqp::istype($b,Mixy),
+            infix:<(|)>($a.Mix, $b),
+            nqp::if(
+              nqp::istype($b,Baggy),
+              infix:<(|)>($a.Bag, $b),
+              infix:<(|)>($a.Set, $b.Set)
+            )
+          )
+        )
       )
     )
 }

@@ -24,11 +24,11 @@ my class Date does Dateish {
     multi method new(Date: Int:D() $year, Int:D() $month, Int:D() $day, :&formatter, *%_) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
           || X::OutOfRange.new(
                :what<Day>,
                :got($day),
-               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
@@ -37,11 +37,11 @@ my class Date does Dateish {
     multi method new(Date: Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter, *%_) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
           || X::OutOfRange.new(
                :what<Day>,
                :got($day),
-               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
         self === Date
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
@@ -124,13 +124,13 @@ my class Date does Dateish {
             # If we overflow on days in the month, rather than throw an
             # exception, we just clip to the last of the month
             self.new($year,$month,$!day > 28
-              ?? $!day min self.DAYS-IN-MONTH($year,$month)
+              ?? $!day min self!DAYS-IN-MONTH($year,$month)
               !! $!day);
         }
         else { # year
             my Int $year = $!year + $amount;
             self.new($year,$!month,$!day > 28
-              ?? $!day min self.DAYS-IN-MONTH($year,$!month)
+              ?? $!day min self!DAYS-IN-MONTH($year,$!month)
               !! $!day);
         }
     }
@@ -209,11 +209,11 @@ multi sub infix:«>»(Date:D $a, Date:D $b) {
     $a.daycount > $b.daycount
 }
 
-proto sub sleep(|) {*}
+proto sub sleep($?, *%) {*}
 multi sub sleep(--> Nil) { sleep(*) }
 multi sub sleep($seconds --> Nil) {
     # 1e9 seconds is a large enough value that still makes VMs sleep
-    # larger values cause nqp::sleep() to exit immediatelly (esp. on 32-bit)
+    # larger values cause nqp::sleep() to exit immediately (esp. on 32-bit)
     if nqp::istype($seconds,Whatever) || $seconds == Inf {
         nqp::sleep(1e9) while True;
     }
@@ -228,7 +228,7 @@ multi sub sleep($seconds --> Nil) {
     }
 }
 
-proto sub sleep-timer(|) {*}
+proto sub sleep-timer($?, *%) {*}
 multi sub sleep-timer(--> Duration:D) { sleep-timer(*) }
 multi sub sleep-timer($seconds --> Duration:D) {
     my $time1 = now;
@@ -236,7 +236,7 @@ multi sub sleep-timer($seconds --> Duration:D) {
     Duration.new( ( $seconds - (now - $time1) ) max 0 )
 }
 
-proto sub sleep-until(|) {*}
+proto sub sleep-until($, *%) {*}
 multi sub sleep-until(Instant() $until --> Bool:D) {
     my $seconds = $until - now;
     return False if $seconds < 0;

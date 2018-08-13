@@ -30,7 +30,7 @@ my class BagHash does Baggy {
                   nqp::if(                      # allocated hash
                     nqp::existskey($!elems,(my $which := k.WHICH)),
                     nqp::if(                    # existing element
-                      nqp::isgt_i($value,0),
+                      $value > 0,
                       nqp::bindattr(
                         nqp::atkey($!elems,$which),
                         Pair,
@@ -43,7 +43,7 @@ my class BagHash does Baggy {
                       )
                     ),
                     nqp::if(
-                      nqp::isgt_i($value,0),    # new
+                      $value > 0,               # new
                       nqp::bindkey(
                         $!elems,
                         $which,
@@ -52,7 +52,7 @@ my class BagHash does Baggy {
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
-                    nqp::isgt_i($value,0),
+                    $value > 0,
                     nqp::bindkey(
                       nqp::bindattr(self,::?CLASS,'$!elems',
                         nqp::create(Rakudo::Internals::IterationSet)),
@@ -98,6 +98,14 @@ my class BagHash does Baggy {
           nqp::create(MixHash)
         )
     }
+
+    multi method Setty(BagHash:U:) { SetHash      }
+    multi method Setty(BagHash:D:) { self.SetHash }
+    multi method Baggy(BagHash:U:) { BagHash      }
+    multi method Baggy(BagHash:D:) { self         }
+    multi method Mixy (BagHash:U:) { MixHash      }
+    multi method Mixy (BagHash:D:) { self.MixHash }
+
     method clone() {
         nqp::if(
           $!elems && nqp::elems($!elems),

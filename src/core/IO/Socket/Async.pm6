@@ -96,7 +96,7 @@ my class IO::Socket::Async {
                         $lock.protect: {
                             unless $finished {
                                 if err {
-                                    quit(err);
+                                    quit(X::AdHoc.new(payload => err));
                                     $finished = 1;
                                 }
                                 elsif nqp::isconcrete(data) {
@@ -195,6 +195,15 @@ my class IO::Socket::Async {
         $p
     }
 
+    class ListenSocket is Tap {
+        has Promise $.socket-host;
+        has Promise $.socket-port;
+
+        method new(&on-close, Promise :$socket-host, Promise :$socket-port) {
+            self.bless(:&on-close, :$socket-host, :$socket-port);
+        }
+    }
+
     my class SocketListenerTappable does Tappable {
         has $!host;
         has $!port;
@@ -212,6 +221,10 @@ my class IO::Socket::Async {
             my $lock := Lock::Async.new;
             my $tap;
             my int $finished = 0;
+            my Promise $socket-host .= new;
+            my Promise $socket-port .= new;
+            my $host-vow = $socket-host.vow;
+            my $port-vow = $socket-port.vow;
             $lock.protect: {
                 my $cancellation := nqp::asynclisten(
                     $!scheduler.queue(:hint-affinity),
@@ -222,10 +235,13 @@ my class IO::Socket::Async {
                                 # do nothing
                             }
                             elsif err {
-                                quit(X::AdHoc.new(payload => err));
+                                my $exc = X::AdHoc.new(payload => err);
+                                quit($exc);
+                                $host-vow.break($exc) unless $host-vow.promise;
+                                $port-vow.break($exc) unless $port-vow.promise;
                                 $finished = 1;
                             }
-                            else {
+                            elsif socket {
                                 my $client_socket := nqp::create(IO::Socket::Async);
                                 nqp::bindattr($client_socket, IO::Socket::Async,
                                     '$!VMIO', socket);
@@ -244,19 +260,24 @@ my class IO::Socket::Async {
                                 setup-close($client_socket);
                                 emit($client_socket);
                             }
+                            elsif socket-host {
+                                $host-vow.keep(~socket-host);
+                                $port-vow.keep(+socket-port);
+                            }
                         }
                     },
                     $!host, $!port, $!backlog, SocketCancellation);
-                $tap = Tap.new: {
+                $tap = ListenSocket.new: {
                     my $p = Promise.new;
                     my $v = $p.vow;
                     nqp::cancelnotify($cancellation, $!scheduler.queue, { $v.keep(True); });
                     $p
-                }
+                }, :$socket-host, :$socket-port;
                 tap($tap);
                 CATCH {
                     default {
-                        tap($tap = Tap.new({ Nil })) unless $tap;
+                        tap($tap = ListenSocket.new({ Nil },
+                            :$socket-host, :$socket-port)) unless $tap;
                         quit($_);
                     }
                 }

@@ -21,7 +21,7 @@ my class Channel does Awaitable {
     has $!closed_promise_vow;
 
     # Flag for if the channel is closed to senders.
-    has $!closed;
+    has int $!closed;
 
     # We use a Supplier to send async notifications that there may be a new
     # message to read from the channel (there may be many things competing
@@ -39,11 +39,15 @@ my class Channel does Awaitable {
         $!async-notify = Supplier.new;
     }
 
-    method send(Channel:D: \item) {
-        X::Channel::SendOnClosed.new(channel => self).throw if $!closed;
-        nqp::push($!queue, nqp::decont(item));
-        $!async-notify.emit(True);
-        Nil
+    method send(Channel:D: \item --> Nil) {
+        nqp::if(
+          $!closed,
+          X::Channel::SendOnClosed.new(channel => self).throw,
+          nqp::stmts(
+            nqp::push($!queue,nqp::decont(item)),
+            $!async-notify.emit(True)
+          )
+        )
     }
 
     method receive(Channel:D:) {
@@ -53,25 +57,6 @@ my class Channel does Awaitable {
             nqp::push($!queue, msg),    # make sure other readers see it
             $!closed_promise_vow.keep(Nil),
             X::Channel::ReceiveOnClosed.new(channel => self).throw
-          ),
-          nqp::if(
-            nqp::istype(msg,CHANNEL_FAIL),
-            nqp::stmts(
-              nqp::push($!queue,msg),   # make sure other readers see it
-              $!closed_promise_vow.break(my $error := msg.error),
-              $error.rethrow
-            ),
-            msg
-          )
-        )
-    }
-    method receive-nil-on-close(Channel:D:) {
-        nqp::if(
-          nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
-          nqp::stmts(
-            nqp::push($!queue, msg),    # make sure other readers see it
-            $!closed_promise_vow.keep(Nil),
-            Nil
           ),
           nqp::if(
             nqp::istype(msg,CHANNEL_FAIL),
@@ -165,14 +150,34 @@ my class Channel does Awaitable {
 
     method iterator(Channel:D:) {
         class :: does Iterator {
-            has $!channel;
-            method !SET-SELF($!channel) { self }
-            method new(\c) { nqp::create(self)!SET-SELF(c) }
-            method pull-one() {
-                my Mu \got = $!channel.receive-nil-on-close;
-                nqp::eqaddr(got, Nil) ?? IterationEnd !! got
+            has $!queue;
+            has $!vow;
+            method !SET-SELF(\queue,\vow) {
+                $!queue := queue;
+                $!vow := vow;
+                self
             }
-        }.new(self)
+            method new(\queue,\vow) { nqp::create(self)!SET-SELF(queue,vow) }
+            method pull-one() {
+                nqp::if(
+                  nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
+                  nqp::stmts(
+                    nqp::push($!queue,msg),     # make sure other readers see it
+                    $!vow.keep(Nil),
+                    IterationEnd
+                  ),
+                  nqp::if(
+                    nqp::istype(msg,CHANNEL_FAIL),
+                    nqp::stmts(
+                      nqp::push($!queue,msg),   # make sure other readers see it
+                      $!vow.break(my $error := msg.error),
+                      $error.rethrow
+                    ),
+                    msg
+                  )
+                )
+            }
+        }.new($!queue,$!closed_promise_vow)
     }
 
     method list(Channel:D:) { self.Seq.list }
@@ -253,14 +258,13 @@ my class Channel does Awaitable {
         }
     }
 
-    method close() {
+    method close(--> Nil) {
         $!closed = 1;
         nqp::push($!queue, CHANNEL_CLOSE);
         # if $!queue is otherwise empty, make sure that $!closed_promise
         # learns about the new value
         self!peek();
         $!async-notify.emit(True);
-        Nil
     }
 
     method elems() {

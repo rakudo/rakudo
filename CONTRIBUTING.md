@@ -79,7 +79,7 @@ How to write [a good **and** useful commit message](https://chris.beams.io/posts
 Commit messages are where you tell the what, why and how of your commit to others.
 
 The subject/title of a commit should 50 or less characters ideally. The absolute
-maximum is 72. Title's usually will tell what you did. You should almost always
+maximum is 72. Titles usually will tell what you did. You should almost always
 have a body except in the case of the most trivial changes. These style guidelines
 are best practices, but use your judgment. You may want to fit 100 characters
 into the commit title to get in all the details, but `git` will cut it off if

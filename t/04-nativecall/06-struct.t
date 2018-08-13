@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 28;
+plan 34;
 
 compile_test_lib('06-struct');
 
@@ -99,6 +99,12 @@ class StructIntStruct is repr('CStruct') {
     has int32 $.i;
 }
 
+class InlinedArrayInStruct is repr('CStruct') {
+    has int32 $.a is rw;
+    HAS int32 @.b[3] is CArray;
+    has int32 $.c is rw;
+}
+
 sub ReturnAStruct()            returns MyStruct2 is native('./06-struct') { * }
 sub TakeAStruct(MyStruct $arg) returns int32     is native('./06-struct') { * }
 sub TakeAStructWithNullCArray(MyStruct $arg) returns int32 is native('./06-struct') { * }
@@ -112,6 +118,9 @@ sub ReturnAStringStruct()                returns StringStruct is native('./06-st
 sub TakeAStringStruct(StringStruct $arg) returns int32        is native('./06-struct') { * }
 
 sub ReturnAStructIntStruct() returns StructIntStruct is native('./06-struct') { * }
+
+sub TakeAInlinedArrayInStruct(InlinedArrayInStruct $s) returns int32 is native('./06-struct') { * };
+sub ReturnAInlinedArrayInStruct() returns InlinedArrayInStruct is native('./06-struct') { * };
 
 # Perl-side tests:
 my MyStruct $obj .= new;
@@ -180,5 +189,20 @@ is $sis.a.second, 77, 'nested second is 77';
 {
     throws-like 'class EmptyCStructTest is repr<CStruct> { };', Exception, message => { m/'no attributes'/ };
 }
+
+my $iais = InlinedArrayInStruct.new();
+$iais.a    = 1;
+$iais.b[0] = 2;
+$iais.b[1] = 3;
+$iais.b[2] = 4;
+$iais.c    = 5;
+is TakeAInlinedArrayInStruct($iais), 42, 'Can inline fixed sizes array (1)';
+
+my InlinedArrayInStruct $iais2 = ReturnAInlinedArrayInStruct();
+is $iais2.a,    111, 'Can inline fixed sizes array (2)';
+is $iais2.b[0], 222, 'Can inline fixed sizes array (3)';
+is $iais2.b[1], 333, 'Can inline fixed sizes array (4)';
+is $iais2.b[2], 444, 'Can inline fixed sizes array (5)';
+is $iais2.c,    555, 'Can inline fixed sizes array (6)';
 
 # vim:ft=perl6

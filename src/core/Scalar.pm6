@@ -2,7 +2,6 @@ my class Scalar { # declared in BOOTSTRAP
     # class Scalar is Any
     #     has Mu $!descriptor;
     #     has Mu $!value;
-    #     has Mu $!whence;
 
     method new(|) { X::Cannot::New.new(class => self.WHAT).throw }
 

@@ -22,12 +22,12 @@ my class Slip { # is List
         nqp::stmts(
           (my $list := nqp::create(List)),
           nqp::if(
-            nqp::getattr(self,List,'$!todo').DEFINITE,
+            nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
             nqp::bindattr($list,List,'$!todo',
               nqp::getattr(self,List,'$!todo'))
           ),
           nqp::if(
-            nqp::getattr(self,List,'$!reified').DEFINITE,
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
             nqp::bindattr($list,List,'$!reified',
               nqp::getattr(self,List,'$!reified'))
           ),
@@ -37,9 +37,9 @@ my class Slip { # is List
 }
 
 # The slip(...) function creates a Slip.
-proto slip(|)     {*}
-multi slip()      { Empty }
-multi slip(@args) { @args.Slip }
-multi slip(+args) { args.Slip }
+proto sub slip(|)     {*}
+multi sub slip()      { Empty }
+multi sub slip(@args) { @args.Slip }
+multi sub slip(+args) { args.Slip }
 
 # vim: ft=perl6 expandtab sw=4

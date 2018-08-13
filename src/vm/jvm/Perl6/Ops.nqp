@@ -34,14 +34,9 @@ sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
 
 # Perl 6 opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
-$ops.map_classlib_hll_op('perl6', 'p6box_i', $TYPE_P6OPS, 'p6box_i', [$RT_INT], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6box_n', $TYPE_P6OPS, 'p6box_n', [$RT_NUM], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6box_s', $TYPE_P6OPS, 'p6box_s', [$RT_STR], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6bigint', $TYPE_P6OPS, 'p6bigint', [$RT_NUM], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6configposbindfailover', $TYPE_P6OPS, 'p6configposbindfailover', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6recont_ro', $TYPE_P6OPS, 'p6recont_ro', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6store', $TYPE_P6OPS, 'p6store', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6var', $TYPE_P6OPS, 'p6var', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6reprname', $TYPE_P6OPS, 'p6reprname', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6definite', $TYPE_P6OPS, 'p6definite', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
@@ -91,11 +86,26 @@ $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
 $ops.add_hll_op('perl6', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.add_hll_op('nqp', 'p6trialbind', :!inlinable, $trial_bind);
 $ops.map_classlib_hll_op('perl6', 'p6setitertype', $TYPE_P6OPS, 'p6setitertype', [$RT_OBJ], $RT_OBJ, :tc);
+$ops.map_classlib_hll_op('perl6', 'p6setassociativetype', $TYPE_P6OPS, 'p6setassociativetype', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6setiterbuftype', $TYPE_P6OPS, 'p6setiterbuftype', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6isbindable', $TYPE_P6OPS, 'p6isbindable', [$RT_OBJ, $RT_OBJ], $RT_INT, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6bindcaptosig', $TYPE_P6OPS, 'p6bindcaptosig', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6typecheckrv', $TYPE_P6OPS, 'p6typecheckrv', [$RT_OBJ, $RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6decontrv', $TYPE_P6OPS, 'p6decontrv', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
+$ops.add_hll_op('perl6', 'p6decontrv', :!inlinable, -> $qastcomp, $op {
+    my $is_rw;
+    if nqp::istype($op[0], QAST::WVal) {
+        $is_rw := nqp::istrue($op[0].value.rw);
+    }
+    else {
+        nqp::die('p6decontrv expects a QAST::WVal as its first child');
+    }
+    if $is_rw {
+        $qastcomp.as_jast($op[1])
+    }
+    else {
+        $qastcomp.as_jast(QAST::Op.new( :op('p6decontrv_internal'), $op[1] ));
+    }
+});
 $ops.map_classlib_hll_op('perl6', 'p6capturelex', $TYPE_P6OPS, 'p6capturelex', [$RT_OBJ], $RT_OBJ, :tc, :!inlinable);
 $ops.map_classlib_hll_op('perl6', 'p6bindassert', $TYPE_P6OPS, 'p6bindassert', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6stateinit', $TYPE_P6OPS, 'p6stateinit', [], $RT_INT, :tc, :!inlinable);
@@ -175,7 +185,6 @@ my $p6bool := -> $qastcomp, $op {
     $ops.result($il, $RT_OBJ);
 };
 $ops.add_hll_op('perl6', 'p6bool', $p6bool);
-$ops.map_classlib_hll_op('perl6', 'p6scalarfromdesc', $TYPE_P6OPS, 'p6scalarfromdesc', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_op('perl6', 'p6invokehandler', -> $qastcomp, $op {
     $qastcomp.as_jast(QAST::Op.new( :op('call'), $op[0], $op[1] ));
 });

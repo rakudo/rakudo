@@ -44,54 +44,20 @@ static int initialized = 0;
 /* Types we need. */
 static MVMObject *Mu                  = NULL;
 static MVMObject *Any                 = NULL;
-static MVMObject *Int                 = NULL;
-static MVMObject *Num                 = NULL;
-static MVMObject *Str                 = NULL;
-static MVMObject *Scalar              = NULL;
 static MVMObject *True                = NULL;
 static MVMObject *False               = NULL;
-static MVMObject *ContainerDescriptor = NULL;
-static MVMObject *Nil                 = NULL;
-
-/* Default container descriptor. */
-static MVMObject *default_cont_desc = NULL;
 
 /* Useful string constants. */
-static MVMString *str_return     = NULL;
 static MVMString *str_dispatcher = NULL;
 static MVMString *str_vivify_for = NULL;
 static MVMString *str_perl6      = NULL;
 static MVMString *str_p6ex       = NULL;
 static MVMString *str_xnodisp    = NULL;
-static MVMString *str_xatcf      = NULL;
-static MVMString *str_cfr        = NULL;
-
-/* Expose Nil and Mu for containers. */
-MVMObject * get_nil() { return Nil; }
-MVMObject * get_mu() { return Mu; }
 
 /* Looks up an exception thrower. */
 static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
     MVMObject *ex_hash = MVM_hll_sym_get(tc, str_perl6, str_p6ex);
     return MVM_is_null(tc, ex_hash) ? ex_hash : MVM_repr_at_key_o(tc, ex_hash, type);
-}
-
-/* Reports an assignment type check failure. */
-void Rakudo_assign_typecheck_failed(MVMThreadContext *tc, MVMObject *cont, MVMObject *obj) {
-    MVMObject *thrower = get_thrower(tc, str_xatcf);
-    if (!MVM_is_null(tc, thrower)) {
-        Rakudo_Scalar *rs = (Rakudo_Scalar *)cont;
-        Rakudo_ContainerDescriptor *rcd = (Rakudo_ContainerDescriptor *)rs->descriptor;
-        thrower = MVM_frame_find_invokee(tc, thrower, NULL);
-        MVM_args_setup_thunk(tc, NULL, MVM_RETURN_VOID, &atcf_callsite);
-        tc->cur_frame->args[0].s = rcd->name;
-        tc->cur_frame->args[1].o = obj;
-        tc->cur_frame->args[2].o = rcd->of;
-        STABLE(thrower)->invoke(tc, thrower, &atcf_callsite, tc->cur_frame->args);
-    }
-    else {
-        MVM_exception_throw_adhoc(tc, "Type check failed in assignment");
-    }
 }
 
 /* Initializes the Perl 6 extension ops. */
@@ -115,34 +81,11 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMROOT(tc, conf, {
         get_type(tc, conf, "Mu", Mu);
         get_type(tc, conf, "Any", Any);
-        get_type(tc, conf, "Int", Int);
-        get_type(tc, conf, "Num", Num);
-        get_type(tc, conf, "Str", Str);
-        get_type(tc, conf, "Scalar", Scalar);
         get_type(tc, conf, "True", True);
         get_type(tc, conf, "False", False);
-        get_type(tc, conf, "ContainerDescriptor", ContainerDescriptor);
-        get_type(tc, conf, "Nil", Nil);
     });
     
-    /* Set up default container descriptor. */
-    {
-        MVMString *element;
-        default_cont_desc = MVM_repr_alloc_init(tc, ContainerDescriptor);
-        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&default_cont_desc, "DefaultContainerDescriptor");
-        element = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "<element>");
-        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
-            ((Rakudo_ContainerDescriptor *)default_cont_desc)->of, Mu);
-        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
-            ((Rakudo_ContainerDescriptor *)default_cont_desc)->name, element);
-        ((Rakudo_ContainerDescriptor *)default_cont_desc)->rw = 1;
-        MVM_ASSIGN_REF(tc, &(default_cont_desc->header),
-            ((Rakudo_ContainerDescriptor *)default_cont_desc)->the_default, Any);
-    }
-
     /* Strings. */
-    str_return = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "RETURN");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_return, "RETURN");
     str_dispatcher = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "$*DISPATCHER");
     MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
     str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
@@ -153,10 +96,6 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
     str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
     MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xnodisp, "X::NoDispatcher");
-    str_xatcf = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::TypeCheck::Assignment");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xatcf, "X::TypeCheck::Assignment");
-    str_cfr = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::ControlFlow::Return");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_cfr, "X::ControlFlow::Return");
 }
 
 /* Boxing to Perl 6 types. */
@@ -164,60 +103,6 @@ static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
     MVMSpeshFacts *tfacts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
     tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE | MVM_SPESH_FACT_DECONTED;
     tfacts->type   = type;
-}
-
-static void p6box_i_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Int);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
-}
-static void p6box_n_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Num);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
-}
-static void p6box_s_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Str);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
-}
-static void p6box_u_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, Int);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
-}
-
-static MVMuint8 s_p6box_i[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_int64 | MVM_operand_read_reg,
-};
-static void p6box_i(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = MVM_repr_box_int(tc, Int, GET_REG(tc, 2).i64);
-}
-static MVMuint8 s_p6box_n[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_num64 | MVM_operand_read_reg,
-};
-static void p6box_n(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = MVM_repr_box_num(tc, Num, GET_REG(tc, 2).n64);
-}
-static MVMuint8 s_p6box_s[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_str | MVM_operand_read_reg,
-};
-static void p6box_s(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = MVM_repr_box_str(tc, Str, GET_REG(tc, 2).s);
-}
-static MVMuint8 s_p6box_u[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_uint64 | MVM_operand_read_reg,
-};
-static void p6box_u(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = MVM_repr_box_uint(tc, Int, GET_REG(tc, 2).u64);
 }
 
 /* Turns zero to False and non-zero to True. */
@@ -233,70 +118,6 @@ static void p6bool_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
 #ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
     MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
 #endif
-}
-
-/* Creates a Scalar from the specified descriptor. */
-static MVMuint8 s_p6scalarfromdesc[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6scalarfromdesc(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *new_scalar = MVM_repr_alloc_init(tc, Scalar);
-    MVMObject *descriptor = GET_REG(tc, 2).o;
-    if (MVM_is_null(tc, descriptor) || !IS_CONCRETE(descriptor)) {
-        descriptor = default_cont_desc;
-    }
-    MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->descriptor, descriptor);
-    MVM_ASSIGN_REF(tc, &(new_scalar->header), ((Rakudo_Scalar *)new_scalar)->value,
-        ((Rakudo_ContainerDescriptor *)descriptor)->the_default);
-    GET_REG(tc, 0).o = new_scalar;
-}
-static void p6scalarfromdesc_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    MVMSpeshFacts *tfacts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[0]);
-    tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE;
-    tfacts->type   = Scalar;
-}
-
-static MVMuint8 s_p6recont_ro[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6recont_ro(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *check = GET_REG(tc, 2).o;
-    if (IS_CONCRETE(check) && STABLE(check)->container_spec == Rakudo_containers_get_scalar()) {
-        MVMObject *desc = ((Rakudo_Scalar *)check)->descriptor;
-        if (!MVM_is_null(tc, desc) && ((Rakudo_ContainerDescriptor *)desc)->rw) {
-            /* We have an rw container; re-containerize it. */
-            MVMROOT(tc, check, {
-                MVMObject *result = MVM_repr_alloc_init(tc, Scalar);
-                MVM_ASSIGN_REF(tc, &(result->header), ((Rakudo_Scalar *)result)->value,
-                    ((Rakudo_Scalar *)check)->value);
-                GET_REG(tc, 0).o = result;
-            });
-            return;
-        }
-    }
-    GET_REG(tc, 0).o = check;
-}
-
-/* The .VAR operation. Wraps in an outer Scalar container so we can actually
- * operate on the underlying Scalar, if we have a container. */
-static MVMuint8 s_p6var[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6var(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     MVMObject *wrappee = GET_REG(tc, 2).o;
-     if (STABLE(wrappee)->container_spec) {
-        MVMROOT(tc, wrappee, {
-            MVMObject *wrapper = MVM_repr_alloc_init(tc, Scalar);
-            MVM_ASSIGN_REF(tc, &(wrapper->header), ((Rakudo_Scalar *)wrapper)->value, wrappee);
-            GET_REG(tc, 0).o = wrapper;
-        });
-     }
-     else {
-        GET_REG(tc, 0).o = wrappee;
-     }
 }
 
 static MVMuint8 s_p6reprname[] = {
@@ -317,61 +138,6 @@ static void p6reprname(MVMThreadContext *tc, MVMuint8 *cur_op) {
 }
 static void p6reprname_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
     discover_create(tc, g, ins, tc->instance->boot_types.BOOTStr);
-}
-
-/* Decontainerizes the return value of a routine as needed. */
-static MVMuint8 s_p6decontrv[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static MVMObject *Iterable = NULL;
-static void p6decontrv(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *retval;
-    if (!Iterable)
-        Iterable = MVM_frame_find_lexical_by_name(tc,
-            MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "Iterable"),
-            MVM_reg_obj)->o;
-    retval = GET_REG(tc, 2).o;
-    if (MVM_is_null(tc, retval)) {
-       retval = Mu;
-    }
-    else if (IS_CONCRETE(retval)) {
-        const MVMContainerSpec *spec = STABLE(retval)->container_spec;
-        if (spec == Rakudo_containers_get_scalar()) {
-            Rakudo_ContainerDescriptor *cd = (Rakudo_ContainerDescriptor *)
-                ((Rakudo_Scalar *)retval)->descriptor;
-            if (!MVM_is_null(tc, (MVMObject *)cd) && cd->rw) {
-                MVMObject *value = ((Rakudo_Scalar *)retval)->value;
-                if (MVM_6model_istype_cache_only(tc, value, Iterable)) {
-                    MVMROOT(tc, value, {
-                        MVMObject *cont = MVM_repr_alloc_init(tc, Scalar);
-                        MVM_ASSIGN_REF(tc, &(cont->header), ((Rakudo_Scalar *)cont)->value,
-                            value);
-                        retval = cont;
-                    });
-                }
-                else {
-                    retval = value;
-                }
-            }
-        }
-        else if (spec && spec->fetch_never_invokes) {
-            MVMRegister res;
-            spec->fetch(tc, retval, &res);
-            retval = res.o;
-        }
-    }
-    GET_REG(tc, 0).o = retval;
-}
-static void p6decontrv_spesh(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshBB *bb, MVMSpeshIns *ins) {
-    /* If it's already deconted, can just become a set. */
-    MVMSpeshFacts *obj_facts = MVM_spesh_get_and_use_facts(tc, g, ins->operands[1]);
-    if (obj_facts->flags & (MVM_SPESH_FACT_DECONTED | MVM_SPESH_FACT_TYPEOBJ)) {
-        MVMSpeshFacts *res_facts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
-        ins->info = MVM_op_get_op(MVM_OP_set);
-        res_facts->flags = obj_facts->flags;
-        res_facts->type = obj_facts->type;
-    }
 }
 
 static MVMuint8 s_p6capturelex[] = {
@@ -735,17 +501,9 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6box_i",  p6box_i, 2, s_p6box_i, NULL, p6box_i_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6box_n",  p6box_n, 2, s_p6box_n, NULL, p6box_n_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6box_s",  p6box_s, 2, s_p6box_s, NULL, p6box_s_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6box_u",  p6box_u, 2, s_p6box_u, NULL, p6box_u_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6scalarfromdesc",  p6scalarfromdesc, 2, s_p6scalarfromdesc, NULL, p6scalarfromdesc_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6recont_ro",  p6recont_ro, 2, s_p6recont_ro, NULL, NULL, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6var",  p6var, 2, s_p6var, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
-    MVM_ext_register_extop(tc, "p6decontrv",  p6decontrv, 2, s_p6decontrv, p6decontrv_spesh, NULL, MVM_EXTOP_PURE);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

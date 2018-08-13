@@ -27,16 +27,16 @@ my role Iterator {
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly($target, int $n) {
         nqp::stmts(
-          (my int $i = -1),
+          (my int $todo = nqp::add_i($n,1)),
           nqp::until(  # doesn't sink
-            nqp::isge_i($i = nqp::add_i($i,1),$n)
+            nqp::not_i($todo = nqp::sub_i($todo,1))
               || nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
             $target.push($pulled) # don't .sink $pulled here, it can be a Seq
           ),
           nqp::if(
             nqp::eqaddr($pulled,IterationEnd),
             IterationEnd,
-            $i
+            $n
           )
         )
     }

@@ -111,8 +111,8 @@ class Version {
         }
     }
     multi method ACCEPTS(Version:D: Version:D $other) {
-        my $oparts       := nqp::getattr(nqp::decont($other),Version,'$!parts');
-        my int $oelems    = nqp::isnull($oparts) ?? 0 !! nqp::elems($oparts);
+        my \oparts       := nqp::getattr(nqp::decont($other),Version,'$!parts');
+        my int $oelems    = nqp::isnull(oparts) ?? 0 !! nqp::elems(oparts);
         my int $elems     = nqp::elems($!parts);
         my int $max-elems = nqp::if(nqp::isge_i($oelems,$elems), $oelems, $elems);
 
@@ -122,7 +122,7 @@ class Version {
 
             # if whatever here, no more check this iteration
             unless nqp::istype($v,Whatever) {
-                my $o := nqp::if(nqp::isge_i($i,$oelems), 0, nqp::atpos($oparts,$i));
+                my $o := nqp::if(nqp::isge_i($i,$oelems), 0, nqp::atpos(oparts,$i));
 
                 # if whatever there, no more to check this iteration
                 unless nqp::istype($o,Whatever) {

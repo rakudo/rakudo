@@ -5,25 +5,37 @@ class Rakudo::Internals::HyperRaceSharedImpl {
 
         submethod TWEAK(:$!matcher) {}
 
-        method process-batch(Rakudo::Internals::HyperWorkBatch $batch) {
-            my $result := IterationBuffer.new;
-            my $items := $batch.items;
-            my int $n = $items.elems;
-            my \matcher := nqp::istype($!matcher, Callable)
-                ?? $!matcher.clone !! $!matcher;
-            if nqp::istype(matcher, Callable) && ! nqp::istype(matcher, Regex) {
-                loop (my int $i = 0; $i < $n; ++$i) {
-                    my \item := nqp::atpos($items, $i);
-                    $result.push(item) if matcher.(item);
-                }
-            }
-            else {
-                loop (my int $i = 0; $i < $n; ++$i) {
-                    my \item := nqp::atpos($items, $i);
-                    $result.push(item) if matcher.ACCEPTS(item);
-                }
-            }
-            $batch.replace-with($result);
+        method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
+            nqp::stmts(
+              (my $items := $batch.items),
+              (my $elems := nqp::elems($items)),
+              (my &matcher := nqp::if(
+                nqp::istype($!matcher, Callable),
+                $!matcher.clone,
+                $!matcher
+              )),
+              (my int $from = -1),
+              (my int $to   = -1),
+              nqp::if(
+                nqp::istype(&matcher,Callable)
+                  && nqp::not_i(nqp::istype(&matcher,Regex)),
+                nqp::while(
+                  nqp::islt_i(($from = nqp::add_i($from,1)),$elems),
+                  nqp::if(
+                    matcher(my $item := nqp::atpos($items,$from)),
+                    nqp::bindpos($items,($to = nqp::add_i($to,1)),$item)
+                  )
+                ),
+                nqp::while(
+                  nqp::islt_i(($from = nqp::add_i($from,1)),$elems),
+                  nqp::if(
+                    &matcher.ACCEPTS($item := nqp::atpos($items,$from)),
+                    nqp::bindpos($items,($to = nqp::add_i($to,1)),$item)
+                  )
+                )
+              ),
+              nqp::setelems($items,nqp::add_i($to,1))
+            )
         }
     }
     multi method grep(\hyper, $source, \matcher, %options) {
@@ -46,18 +58,24 @@ class Rakudo::Internals::HyperRaceSharedImpl {
 
         submethod TWEAK(:&!mapper) {}
 
-        method process-batch(Rakudo::Internals::HyperWorkBatch $batch) {
-            my $result := IterationBuffer.new;
-            my $items := $batch.items;
-            my int $n = $items.elems;
-            my &mapper := &!mapper.clone;
-            loop (my int $i = 0; $i < $n; ++$i) {
-                my \mapped = mapper(nqp::atpos($items, $i));
-                nqp::istype(mapped, Slip) && !nqp::iscont(mapped)
-                    ?? mapped.iterator.push-all($result)
-                    !! $result.push(mapped)
-            }
-            $batch.replace-with($result);
+        method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
+            nqp::stmts(
+              (my $result := nqp::create(IterationBuffer)),
+              (my $items := $batch.items),
+              (my int $n = $items.elems),
+              (my &mapper := &!mapper.clone),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$n),
+                nqp::if(
+                  nqp::istype((my \val = mapper(nqp::atpos($items, $i))),Slip)
+                    && nqp::not_i(nqp::iscont(val)),
+                  val.iterator.push-all($result),
+                  nqp::push($result,val)
+                )
+              ),
+              $batch.replace-with($result)
+            )
         }
     }
     multi method map(\hyper, $source, &mapper, %options) {
@@ -73,6 +91,11 @@ class Rakudo::Internals::HyperRaceSharedImpl {
                 configuration => hyper.configuration,
                 work-stage-head => Map.new(:$source, :&mapper)
         }
+    }
+    multi method invert(\hyper, $source) {
+        hyper.bless:
+          configuration => hyper.configuration,
+          work-stage-head => Map.new(:$source,:mapper(-> Pair:D $p {$p.antipair}))
     }
 
     my class Sink does Rakudo::Internals::HyperJoiner {

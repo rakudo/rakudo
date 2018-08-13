@@ -1,4 +1,7 @@
 use v6;
+use lib <t/packages/>;
+use Test;
+use Test::Helpers;
 
 # very basic Telemetry tests
 
@@ -16,7 +19,7 @@ BEGIN {
 use Test;
 use Telemetry;
 
-plan 41;
+plan 42;
 
 my $T = T;
 isa-ok $T, Telemetry, 'did we get a Telemetry object from T';
@@ -83,5 +86,17 @@ my @report = report.lines;
 is +@report, 2, 'did we only get the header of the report';
 ok @report[0].starts-with('Telemetry Report of Process'), 'line 1 of report';
 is @report[1], 'Number of Snapshots: 0', 'line 2 of report';
+
+{ # https://github.com/rakudo/rakudo/issues/1714
+    (temp %*ENV)<RAKUDO_REPORT_COLUMNS> = 'blahblah';
+    is-run ｢
+      use snapper;
+      for ^1_000 {
+          (^100).race(batch=>1).map({ $_ }).List
+      };
+      print 'pass'
+    ｣, :err{.contains: 'Unknown Telemetry column `blahblah`'}, :out<pass>,
+    'giving unknown column in RAKUDO_REPORT_COLUMNS warns instead of crashing'
+}
 
 # vim: ft=perl6 expandtab sw=4

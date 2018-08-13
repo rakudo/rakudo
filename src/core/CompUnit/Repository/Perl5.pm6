@@ -46,6 +46,10 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
     method path-spec() {
         'perl5#'
     }
+
+    multi method gist(CompUnit::Repository::Perl5:D:) {
+        self.path-spec
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -12,7 +12,7 @@ my class Rakudo::QuantHash {
         has $!iter;
         has $!on;
 
-        method SET-SELF(\elems) {
+        method !SET-SELF(\elems) {
             nqp::stmts(
               ($!elems := elems),
               ($!iter  := nqp::iterator(elems)),
@@ -22,7 +22,7 @@ my class Rakudo::QuantHash {
         method new(\quanthash) {
             nqp::if(
               (my $elems := quanthash.RAW-HASH) && nqp::elems($elems),
-              nqp::create(self).SET-SELF($elems),
+              nqp::create(self)!SET-SELF($elems),
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
@@ -204,50 +204,55 @@ my class Rakudo::QuantHash {
         )
     }
 
-    # Create intersection of 2 Baggies, default to given empty type
-    method INTERSECT-BAGGIES(\a,\b,\empty) {
-        nqp::if(
-          (my $araw := a.RAW-HASH) && nqp::elems($araw)
-            && (my $braw := b.RAW-HASH) && nqp::elems($braw),
-          nqp::stmts(                          # both have elems
-            nqp::if(
-              nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
-              nqp::stmts(                      # $a smallest, iterate over it
-                (my $iter := nqp::iterator($araw)),
-                (my $base := $braw)
+    # Create intersection of 2 Baggies, default to given type (Bag|Mix)
+    method INTERSECT-BAGGIES(\a,\b,\type) {
+        nqp::stmts(
+          (my $object := nqp::create(
+            nqp::if( nqp::istype(type,Mix), a.WHAT.Mixy, a.WHAT.Baggy )
+          )),
+          nqp::if(
+            (my $araw := a.RAW-HASH) && nqp::elems($araw)
+              && (my $braw := b.RAW-HASH) && nqp::elems($braw),
+            nqp::stmts(                        # both have elems
+              nqp::if(
+                nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
+                nqp::stmts(                    # $a smallest, iterate over it
+                  (my $iter := nqp::iterator($araw)),
+                  (my $base := $braw)
+                ),
+                nqp::stmts(                    # $b smallest, iterate over that
+                  ($iter := nqp::iterator($braw)),
+                  ($base := $araw)
+                )
               ),
-              nqp::stmts(                      # $b smallest, iterate over that
-                ($iter := nqp::iterator($braw)),
-                ($base := $araw)
-              )
-            ),
-            (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-            nqp::while(
-              $iter,
-              nqp::if(                         # bind if in both
-                nqp::existskey($base,nqp::iterkey_s(nqp::shift($iter))),
-                nqp::bindkey(
-                  $elems,
-                  nqp::iterkey_s($iter),
-                  nqp::if(
-                    nqp::getattr(
-                      nqp::decont(nqp::iterval($iter)),
-                      Pair,
-                      '$!value'
-                    ) < nqp::getattr(          # must be HLL comparison
-                          nqp::atkey($base,nqp::iterkey_s($iter)),
-                          Pair,
-                          '$!value'
-                        ),
-                    nqp::iterval($iter),
-                    nqp::atkey($base,nqp::iterkey_s($iter))
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(                       # bind if in both
+                  nqp::existskey($base,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::bindkey(
+                    $elems,
+                    nqp::iterkey_s($iter),
+                    nqp::if(
+                      nqp::getattr(
+                        nqp::decont(nqp::iterval($iter)),
+                        Pair,
+                        '$!value'
+                      ) < nqp::getattr(        # must be HLL comparison
+                            nqp::atkey($base,nqp::iterkey_s($iter)),
+                            Pair,
+                            '$!value'
+                          ),
+                      nqp::iterval($iter),
+                      nqp::atkey($base,nqp::iterkey_s($iter))
+                    )
                   )
                 )
-              )
+              ),
+              $object.SET-SELF($elems)
             ),
-            nqp::create(empty.WHAT).SET-SELF($elems),
-          ),
-          empty                                # one/neither has elems
+            $object                            # one/neither has elems
+          )
         )
     }
 
@@ -312,15 +317,18 @@ my class Rakudo::QuantHash {
     method ADD-PAIRS-TO-SET(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
-            nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+            nqp::eqaddr(
+              (my $pulled := nqp::decont(iterator.pull-one)),
+              IterationEnd
+            ),
             nqp::if(
               nqp::istype($pulled,Pair),
               nqp::if(
-                nqp::getattr(nqp::decont($pulled),Pair,'$!value'),
+                nqp::getattr($pulled,Pair,'$!value'),
                 nqp::bindkey(
                   elems,
-                  nqp::getattr(nqp::decont($pulled),Pair,'$!key').WHICH,
-                  nqp::getattr(nqp::decont($pulled),Pair,'$!key')
+                  nqp::getattr($pulled,Pair,'$!key').WHICH,
+                  nqp::getattr($pulled,Pair,'$!key')
                 )
               ),
               nqp::bindkey(elems,$pulled.WHICH,$pulled)
@@ -334,8 +342,8 @@ my class Rakudo::QuantHash {
     method ADD-MAP-TO-SET(\elems, \map) {
         nqp::stmts(
           nqp::if(
-            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-              && (my $iter := nqp::iterator($raw)),
+            (my $iter :=
+              nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
               nqp::eqaddr(map.keyof,Str(Any)),
               nqp::while(                        # normal Map
@@ -396,8 +404,8 @@ my class Rakudo::QuantHash {
         nqp::stmts(
           (my $elems := nqp::clone(aelems)),
           nqp::if(
-            (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-             && (my $iter  := nqp::iterator($storage)),
+            (my $iter :=
+              nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
               nqp::eqaddr(map.keyof,Str(Any)),
               nqp::while(                     # normal Map
@@ -427,7 +435,7 @@ my class Rakudo::QuantHash {
           (my $elems := nqp::clone(elems)),
           nqp::until(
             nqp::eqaddr(                            # end of iterator?
-              (my $pulled := iterator.pull-one),
+              (my $pulled := nqp::decont(iterator.pull-one)),
               IterationEnd
             ) || nqp::not_i(nqp::elems($elems)),    # nothing left to remove?
             nqp::if(
@@ -574,7 +582,10 @@ my class Rakudo::QuantHash {
     method ADD-ITERATOR-TO-BAG(\elems,Mu \iterator) {
         nqp::stmts(
           nqp::until(
-            nqp::eqaddr((my $pulled := iterator.pull-one),IterationEnd),
+            nqp::eqaddr(
+              (my $pulled := nqp::decont(iterator.pull-one)),
+              IterationEnd
+            ),
             nqp::if(
               nqp::existskey(elems,(my $WHICH := $pulled.WHICH)),
               nqp::stmts(
@@ -594,8 +605,8 @@ my class Rakudo::QuantHash {
     method ADD-MAP-TO-BAG(\elems, \map) {
         nqp::stmts(
           nqp::if(
-            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-              && (my $iter := nqp::iterator($raw)),
+            (my $iter :=
+              nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
               nqp::eqaddr(map.keyof,Str(Any)),
               nqp::while(              # ordinary Map
@@ -677,8 +688,8 @@ my class Rakudo::QuantHash {
     # Coerce the given Map to an IterationSet with baggy semantics.
     method COERCE-MAP-TO-BAG(\map) {
         nqp::if(
-          (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-            && (my $iter := nqp::iterator($storage)),
+          (my $iter :=
+            nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
           nqp::if(                   # something to coerce
             nqp::eqaddr(map.keyof,Str(Any)),
             nqp::stmts(              # ordinary Map
@@ -955,19 +966,19 @@ my class Rakudo::QuantHash {
           (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             (my $braw := b.RAW-HASH) && nqp::elems($braw),
-            nqp::create(Bag).SET-SELF(
+            nqp::create(a.WHAT).SET-SELF(
               nqp::if(
                 nqp::istype(b,Setty),
                 self.SUB-SETTY-FROM-BAG($araw, $braw),
                 self.SUB-BAGGY-FROM-BAG($araw, $braw)
               )
             ),
-            a.Bag
+            a
           ),
           nqp::if(
             nqp::istype(b,Failure),
             b.throw,
-            bag()
+            a
           )
         )
     }
@@ -1078,8 +1089,8 @@ my class Rakudo::QuantHash {
     method ADD-MAP-TO-MIX(\elems, \map) {
         nqp::stmts(
           nqp::if(
-            (my $raw := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-              && (my $iter := nqp::iterator($raw)),
+            (my $iter :=
+              nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
               nqp::eqaddr(map.keyof,Str(Any)),
               nqp::while(              # normal Map
@@ -1270,8 +1281,8 @@ my class Rakudo::QuantHash {
     # Coerce the given Map to an IterationSet with mixy semantics.
     method COERCE-MAP-TO-MIX(\map) {
         nqp::if(
-          (my $storage := nqp::getattr(nqp::decont(map),Map,'$!storage'))
-            && (my $iter := nqp::iterator($storage)),
+          (my $iter :=
+            nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
           nqp::if(                   # something to coerce
             nqp::eqaddr(map.keyof,Str(Any)),
             nqp::stmts(              # ordinary Map
@@ -1600,10 +1611,10 @@ my class Rakudo::QuantHash {
           (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             (my $braw := b.RAW-HASH) && nqp::elems($braw),
-            nqp::create(Mix).SET-SELF(
+            nqp::create(a.WHAT).SET-SELF(
               self.SUB-QUANTHASH-FROM-MIX($araw, $braw, nqp::istype(b,Setty)),
             ),
-            a.Mix
+            a
           ),
           nqp::if(
             nqp::istype(b,Failure),
@@ -1626,9 +1637,9 @@ my class Rakudo::QuantHash {
                     )
                   )
                 ),
-                nqp::create(Mix).SET-SELF($elems)
+                nqp::create(a.WHAT).SET-SELF($elems)
               ),
-              mix()
+              a
             )
           )
         )

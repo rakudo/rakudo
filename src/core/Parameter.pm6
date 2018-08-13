@@ -36,6 +36,8 @@ my class Parameter { # declared in BOOTSTRAP
 
     my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
                                            +| $SIG_ELEM_SLURPY_NAMED
+                                           +| $SIG_ELEM_SLURPY_LOL
+                                           +| $SIG_ELEM_SLURPY_ONEARG
                                            +| $SIG_ELEM_IS_CAPTURE;
     my constant $SIG_ELEM_IS_SLURPY = $SIG_ELEM_SLURPY_POS
                                    +| $SIG_ELEM_SLURPY_NAMED
@@ -191,55 +193,55 @@ my class Parameter { # declared in BOOTSTRAP
 
         # we're us
         my \o := nqp::decont(other);
-        return True if self =:= o;
+        return True if nqp::eqaddr(self,o);
 
         # nominal type is acceptable
         if $!nominal_type.ACCEPTS(nqp::getattr(o,Parameter,'$!nominal_type')) {
-            my $oflags := nqp::getattr(o,Parameter,'$!flags');
+            my \oflags := nqp::getattr(o,Parameter,'$!flags');
 
             # flags are not same, so we need to look more in depth
-            if nqp::isne_i($!flags,$oflags) {
+            if nqp::isne_i($!flags,oflags) {
 
                 # here not defined only, or both defined only
                 return False
                   unless nqp::isle_i(
                     nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY),
-                    nqp::bitand_i($oflags,$SIG_ELEM_DEFINED_ONLY))
+                    nqp::bitand_i( oflags,$SIG_ELEM_DEFINED_ONLY))
 
                 # here not undefined only, or both undefined only
                   && nqp::isle_i(
                     nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY),
-                    nqp::bitand_i($oflags,$SIG_ELEM_UNDEFINED_ONLY))
+                    nqp::bitand_i( oflags,$SIG_ELEM_UNDEFINED_ONLY))
 
                 # here is rw, or both is rw
                   && nqp::isle_i(
                     nqp::bitand_i($!flags,$SIG_ELEM_IS_RW),
-                    nqp::bitand_i($oflags,$SIG_ELEM_IS_RW))
+                    nqp::bitand_i( oflags,$SIG_ELEM_IS_RW))
 
                 # other is optional, or both are optional
                   && nqp::isle_i(
-                    nqp::bitand_i($oflags,$SIG_ELEM_IS_OPTIONAL),
+                    nqp::bitand_i( oflags,$SIG_ELEM_IS_OPTIONAL),
                     nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
 
                 # other is slurpy positional, or both are slurpy positional
                   && nqp::isle_i(
-                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_POS),
+                    nqp::bitand_i( oflags,$SIG_ELEM_SLURPY_POS),
                     nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_POS))
 
                 # other is slurpy named, or both are slurpy named
                   && nqp::isle_i(
-                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_NAMED),
+                    nqp::bitand_i( oflags,$SIG_ELEM_SLURPY_NAMED),
                     nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
 
                 # other is slurpy one arg, or both are slurpy one arg
                   && nqp::isle_i(
-                    nqp::bitand_i($oflags,$SIG_ELEM_SLURPY_ONEARG),
+                    nqp::bitand_i( oflags,$SIG_ELEM_SLURPY_ONEARG),
                     nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
 
                 # here is part of MMD, or both are part of MMD
                   && nqp::isle_i(
                     nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT),
-                    nqp::bitand_i($oflags,$SIG_ELEM_MULTI_INVOCANT));
+                    nqp::bitand_i( oflags,$SIG_ELEM_MULTI_INVOCANT));
             }
         }
 
@@ -249,47 +251,47 @@ my class Parameter { # declared in BOOTSTRAP
         }
 
         # have nameds here
-        my $onamed_names := nqp::getattr(o,Parameter,'@!named_names');
+        my \onamed_names := nqp::getattr(o,Parameter,'@!named_names');
         if @!named_names {
 
             # nameds there
-            if $onamed_names {
+            if onamed_names {
 
                 # too many nameds there, can never be subset
                 my int $elems = nqp::elems(@!named_names);
                 return False
-                  if nqp::isgt_i(nqp::elems($onamed_names),$elems);
+                  if nqp::isgt_i(nqp::elems(onamed_names),$elems);
 
                 # set up lookup hash
-                my $lookup := nqp::hash;
+                my \lookup := nqp::hash;
                 my int $i   = -1;
-                nqp::bindkey($lookup,nqp::atpos_s(@!named_names,$i),1)
+                nqp::bindkey(lookup,nqp::atpos_s(@!named_names,$i),1)
                   while nqp::islt_i(++$i,$elems);
 
                 # make sure the other nameds are all here
-                $elems = nqp::elems($onamed_names);
+                $elems = nqp::elems(onamed_names);
                 $i     = -1;
                 return False unless
-                  nqp::existskey($lookup,nqp::atpos_s($onamed_names,$i))
+                  nqp::existskey(lookup,nqp::atpos_s(onamed_names,$i))
                   while nqp::islt_i(++$i,$elems);
             }
         }
 
         # no nameds here, but we do there (implies not a subset)
-        elsif $onamed_names {
+        elsif onamed_names {
             return False;
         }
 
         # we have sub sig and not the same
-        my $osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
+        my \osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
         if $!sub_signature {
             return False
-              unless $osub_signature
-              && $!sub_signature.ACCEPTS($osub_signature);
+              unless osub_signature
+              && $!sub_signature.ACCEPTS(osub_signature);
         }
 
         # no sub sig, but other has one
-        elsif $osub_signature {
+        elsif osub_signature {
             return False;
         }
 
@@ -301,16 +303,16 @@ my class Parameter { # declared in BOOTSTRAP
               if nqp::istype(nqp::atpos(@!post_constraints,0),Callable);
 
             # other doesn't have a post constraint
-            my Mu $opc := nqp::getattr(o,Parameter,'@!post_constraints');
-            return False unless nqp::islist($opc);
+            my \opc := nqp::getattr(o,Parameter,'@!post_constraints');
+            return False unless nqp::islist(opc);
 
             # other post constraint is a Callable, so runtime check, so no match
-            return False if nqp::istype(nqp::atpos($opc,0),Callable);
+            return False if nqp::istype(nqp::atpos(opc,0),Callable);
 
             # not same literal value
             return False
               unless nqp::atpos(@!post_constraints,0).ACCEPTS(
-                nqp::atpos($opc,0));
+                nqp::atpos(opc,0));
         }
 
         # we don't, other *does* have a post constraint
@@ -382,7 +384,7 @@ my class Parameter { # declared in BOOTSTRAP
         if $!flags +& $SIG_ELEM_IS_RAW {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
-            $rest ~= ' is raw' unless $name.starts-with('\\');
+            $rest ~= ' is raw' unless $name eq '|' or $name.starts-with('\\');
         }
         unless nqp::isnull($!sub_signature) {
             my $sig = $!sub_signature.perl();

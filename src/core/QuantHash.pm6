@@ -1,6 +1,6 @@
 my role QuantHash does Associative {
 
-    method SET-SELF(QuantHash:D: \elems) {
+    method SET-SELF(QuantHash:D: \elems) {  # cannot be a private method
         nqp::stmts(
           nqp::if(
             nqp::elems(elems),
@@ -33,6 +33,10 @@ my role QuantHash does Associative {
     }
 
     multi method pairs(QuantHash:D:) { Seq.new(self.iterator) }
+
+    proto method Setty(|) {*}
+    proto method Baggy(|) {*}
+    proto method Mixy (|) {*}
 }
 
 # vim: ft=perl6 expandtab sw=4

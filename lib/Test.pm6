@@ -116,8 +116,9 @@ multi sub plan($number_of_tests) is export {
 
 multi sub pass($desc = '') is export {
     $time_after = nqp::time_n;
-    proclaim(1, $desc);
+    my $ok = proclaim(1, $desc);
     $time_before = nqp::time_n;
+    $ok;
 }
 
 multi sub ok(Mu $cond, $desc = '') is export {
@@ -275,7 +276,7 @@ sub bail-out ($desc?) is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    DEPRECATED('is-approx'); # Remove for 6.d release
+    Rakudo::Deprecations.DEPRECATED('is-approx'); # Remove for 6.d release
 
     $time_after = nqp::time_n;
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
@@ -422,14 +423,14 @@ multi sub subtest(&subtests, $desc = '') is export {
     proclaim($status,$desc) or ($die_on_fail and die-on-fail);
 }
 
-sub diag(Mu $message) is export {
+sub diag($message) is export {
     # Always send user-triggered diagnostics to STDERR. This prevents
     # cases of confusion of where diag() has to send its ouput when
     # we are in the middle of TODO tests
     _diag $message, :force-stderr;
 }
 
-sub _diag(Mu $message, :$force-stderr) {
+sub _diag($message, :$force-stderr) {
     _init_io() unless $output;
     my $is_todo = !$force-stderr
         && ($subtest_todo_reason || $num_of_tests_run <= $todo_upto_test_num);
@@ -444,7 +445,7 @@ sub _diag(Mu $message, :$force-stderr) {
 }
 
 # In earlier Perls, this is spelled "sub fail"
-multi sub flunk($reason) is export {
+multi sub flunk($reason = '') is export {
     $time_after = nqp::time_n;
     my $ok = proclaim(0, $reason);
     $time_before = nqp::time_n;
@@ -628,6 +629,25 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
     }, $reason // "did we throws-like $ex_type.^name()?";
 }
 
+sub fails-like (
+    \test where Callable:D|Str:D, $ex-type, $reason?, *%matcher
+) is export {
+    subtest sub {
+        plan 2;
+        CATCH { default {
+            with "expected code to fail but it threw {.^name} instead" {
+                .&flunk;
+                .&skip;
+                return False;
+            }
+        }}
+        my $res = test ~~ Callable ?? test.() !! test.EVAL;
+        isa-ok $res, Failure, 'code returned a Failure';
+        throws-like { $res.sink }, $ex-type,
+            'Failure threw when sunk', |%matcher,
+    }, $reason // "did we fails-like $ex-type.^name()?"
+}
+
 sub _is_deeply(Mu $got, Mu $expected) {
     $got eqv $expected;
 }
@@ -696,7 +716,7 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
         # sub proclaim is not called directly, so 2 is minimum level
         my int $level = 2;
 
-        repeat until !$?FILE.ends-with($caller.file) {
+        repeat while $?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
 

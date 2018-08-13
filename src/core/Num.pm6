@@ -502,10 +502,10 @@ multi sub infix:«>=»(num $a, num $b --> Bool:D) {
     nqp::p6bool(nqp::isge_n($a, $b))
 }
 
-proto sub rand(|) {*}
+proto sub rand(*%) {*}
 multi sub rand(--> Num:D) { nqp::p6box_n(nqp::rand_n(1e0)) }
 
-proto sub srand(|) {*}
+proto sub srand($, *%) {*}
 multi sub srand(Int:D $seed --> Int:D) { nqp::p6box_i(nqp::srand($seed)) }
 
 multi sub atan2(Num:D $a, Num:D $b = 1e0) {

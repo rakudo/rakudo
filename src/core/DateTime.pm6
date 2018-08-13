@@ -70,11 +70,11 @@ my class DateTime does Dateish {
     ) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
           || X::OutOfRange.new(
                :what<Day>,
                :got($day),
-               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
         0 <= $hour <= 23
           || X::OutOfRange.new(:what<Hour>,:got($hour),:range<0..23>).throw;
@@ -283,57 +283,59 @@ my class DateTime does Dateish {
         die "No time unit supplied"        unless @pairs;
 
         my $unit   = self!VALID-UNIT(@pairs.AT-POS(0).key);
-        my $amount = @pairs.AT-POS(0).value.Int;
+        my $amount = @pairs.AT-POS(0).value;
         $amount = -$amount if $earlier;
 
         # work on instant (tai)
         if $unit.starts-with('second') {
             self.new(self.Instant + $amount, :$!timezone, :&!formatter)
         }
-
-        # on a leap second and not moving by second
-        elsif $!second >= 60 {
-            my $dt := self!clone-without-validating(
-              :second($!second-1)).later(|($unit => $amount));
-            $dt.hour == 23 && $dt.minute == 59 && $dt.second >= 59
-              && Rakudo::Internals.is-leap-second-date($dt.yyyy-mm-dd)
-              ?? $dt!clone-without-validating(:$!second)
-              !! $dt
-        }
-
-        # month,year
-        elsif nqp::atkey($valid-units,$unit) {
-            my $date :=
-              Date.new($!year,$!month,$!day).later(|($unit => $amount));
-            nqp::create(self)!SET-SELF(
-              nqp::getattr($date,Date,'$!year'),
-              nqp::getattr($date,Date,'$!month'),
-              nqp::getattr($date,Date,'$!day'),
-              $!hour, $!minute, $!second, $!timezone, &!formatter
-            )
-        }
-        # minute,hour,day,week
         else {
-            my int $minute = $!minute;
-            my int $hour   = $!hour;
+            $amount .= Int;
+            # on a leap second and not moving by second
+            if $!second >= 60 {
+                my $dt := self!clone-without-validating(
+                  :second($!second-1)).later(|($unit => $amount));
+                $dt.hour == 23 && $dt.minute == 59 && $dt.second >= 59
+                  && Rakudo::Internals.is-leap-second-date($dt.yyyy-mm-dd)
+                  ?? $dt!clone-without-validating(:$!second)
+                  !! $dt
+            }
 
-            $minute += $amount if $unit.starts-with('minute');
-            $hour   += floor($minute / 60);
-            $minute %= 60;
-            $hour   += $amount if $unit.starts-with('hour');
+            # month,year
+            elsif nqp::atkey($valid-units,$unit) {
+                my $date :=
+                  Date.new($!year,$!month,$!day).later(|($unit => $amount));
+                nqp::create(self)!SET-SELF(
+                  nqp::getattr($date,Date,'$!year'),
+                  nqp::getattr($date,Date,'$!month'),
+                  nqp::getattr($date,Date,'$!day'),
+                  $!hour, $!minute, $!second, $!timezone, &!formatter
+                )
+            }
+            # minute,hour,day,week
+            else {
+                my int $minute = $!minute;
+                my int $hour   = $!hour;
 
-            my $day-delta = floor($hour / 24);
-            $hour %= 24;
+                $minute += $amount if $unit.starts-with('minute');
+                $hour   += floor($minute / 60);
+                $minute %= 60;
+                $hour   += $amount if $unit.starts-with('hour');
 
-            $day-delta = $amount     if $unit.starts-with('day');
-            $day-delta = 7 * $amount if $unit.starts-with('week');
+                my $day-delta = floor($hour / 24);
+                $hour %= 24;
 
-            my $date := Date.new-from-daycount(self.daycount + $day-delta);
-            nqp::create(self)!SET-SELF(
-              nqp::getattr($date,Date,'$!year'),
-              nqp::getattr($date,Date,'$!month'),
-              nqp::getattr($date,Date,'$!day'),
-              $hour, $minute, $!second, $!timezone, &!formatter)
+                $day-delta = $amount     if $unit.starts-with('day');
+                $day-delta = 7 * $amount if $unit.starts-with('week');
+
+                my $date := Date.new-from-daycount(self.daycount + $day-delta);
+                nqp::create(self)!SET-SELF(
+                  nqp::getattr($date,Date,'$!year'),
+                  nqp::getattr($date,Date,'$!month'),
+                  nqp::getattr($date,Date,'$!day'),
+                  $hour, $minute, $!second, $!timezone, &!formatter)
+            }
         }
     }
 

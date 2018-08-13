@@ -97,8 +97,11 @@ my class Signature { # declared in BOOTSTRAP
 
         # Parameters.
         if self.params.Array -> @params {
-            $text ~= @params.shift.perl(:$elide-type) ~ ': '
-                if @params[0].invocant;
+            if @params[0].invocant {
+                my $invocant = @params.shift.perl(:$elide-type);
+                $invocant .= chop(2) if $invocant.ends-with(' $');
+                $text ~= "$invocant: ";
+            }
             $text ~= ';; '
                 if !@params[0].multi-invocant;
 

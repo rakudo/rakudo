@@ -125,7 +125,8 @@ my class Lock::Async {
 #?endif
     }
 
-    method protect(Lock::Async:D: &code) {
+    proto method protect(|) {*}
+    multi method protect(Lock::Async:D: &code) {
 #?if !js
         my int $acquired = 0;
         $*AWAITER.await(self.lock());

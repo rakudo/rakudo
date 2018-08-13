@@ -55,9 +55,41 @@ my class array does Iterable {
         )
     }
 
+    sub CLONE_SLICE(\array, int $offset, int $size) {
+        nqp::if(
+          nqp::islt_i($offset,0)
+            || nqp::isgt_i($offset,(my int $elems = nqp::elems(array))),
+          Failure.new(X::OutOfRange.new(
+            :what('Offset argument to splice'),
+            :got($offset),
+            :range("0..{nqp::elems(array)}")
+          )),
+          nqp::if(
+            nqp::islt_i($size,0),
+            Failure.new(X::OutOfRange.new(
+              :what('Size argument to splice'),
+              :got($size),
+              :range("0..^{$elems - $offset}")
+            )),
+            nqp::if(
+              nqp::iseq_i($offset,$elems) || nqp::iseq_i($size,0),
+              nqp::create(array),
+              nqp::if(
+                nqp::isge_i(
+                  (my int $end = nqp::sub_i(nqp::add_i($offset,$size),1)),
+                  $elems
+                ),
+                nqp::slice(array,$offset,-1),
+                nqp::slice(array,$offset,$end)
+              )
+            )
+          )
+        )
+    }
+
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -92,18 +124,45 @@ my class array does Iterable {
             nqp::bindpos_s(self, 0, nqp::unbox_s($value));
             self
         }
-        multi method STORE(strarray:D: str @values) {
-            nqp::setelems(self,@values.elems);
-            nqp::splice(self,@values,0,@values.elems)
+        multi method STORE(strarray:D: strarray:D \values) {
+            nqp::setelems(self,nqp::elems(values));
+            nqp::splice(self,values,0,nqp::elems(values))
         }
-        multi method STORE(strarray:D: @values) {
-            my int $elems = @values.elems;
+        multi method STORE(strarray:D: Seq:D \seq) {
+            nqp::if(
+              (my $iterator := seq.iterator).is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<store>, :what(self.^name)
+              )),
+              nqp::stmts(
+                $iterator.push-all(self),
+                self
+              )
+            )
+        }
+        multi method STORE(strarray:D: List:D \values) {
+            my int $elems = values.elems;    # reifies
+            my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
-            nqp::bindpos_s(self, $i,
-              nqp::unbox_s(@values.AT-POS($i)))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_s(self, $i,
+                nqp::unbox_s(nqp::atpos(reified,$i)))
+            );
+            self
+        }
+        multi method STORE(strarray:D: @values) {
+            my int $elems = @values.elems;   # reifies
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_s(self, $i,
+                nqp::unbox_s(@values.AT-POS($i)))
+            );
             self
         }
 
@@ -141,13 +200,13 @@ my class array does Iterable {
         }
 
         method pop(strarray:D: --> str) {
-            nqp::elems(self) > 0
+            nqp::elems(self)
               ?? nqp::pop_s(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
         method shift(strarray:D: --> str) {
-            nqp::elems(self) > 0
+            nqp::elems(self)
               ?? nqp::shift_s(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
@@ -174,50 +233,111 @@ my class array does Iterable {
             ).throw;
         }
 
+        my $empty_s := nqp::list_s;
+
+        multi method splice(strarray:D:) {
+            my $splice := nqp::clone(self);
+            nqp::setelems(self,0);
+            $splice
+        }
+        multi method splice(strarray:D: Int:D \offset) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_s,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
+              )
+            )
+        }
+        multi method splice(strarray:D: Int:D $offset, Int:D $size) {
+            nqp::unless(
+              nqp::istype(
+                (my $slice := CLONE_SLICE(self,$offset,$size)),
+                Failure
+              ),
+              nqp::splice(self,$empty_s,$offset,$size)
+            );
+            $slice
+        }
+        multi method splice(strarray:D: Int:D $offset, Int:D $size, strarray:D \values) {
+            nqp::unless(
+              nqp::istype(
+                (my $slice := CLONE_SLICE(self,$offset,$size)),
+                Failure
+              ),
+              nqp::splice(
+                self,
+                nqp::if(nqp::eqaddr(self,values),nqp::clone(values),values),
+                $offset,
+                $size
+              )
+            );
+            $slice
+        }
+        multi method splice(strarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
+            nqp::if(
+              seq.is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<splice>, :what(self.^name)
+              )),
+              nqp::stmts(
+                nqp::unless(
+                  nqp::istype(
+                    (my $slice := CLONE_SLICE(self,$offset,$size)),
+                    Failure
+                  ),
+                  nqp::splice(self,nqp::create(self).STORE(seq),$offset,$size)
+                ),
+                $slice
+              )
+            )
+        }
         multi method splice(strarray:D: $offset=0, $size=Whatever, *@values) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
-            my $elems = self.elems;
+            my int $elems = nqp::elems(self);
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
                 ?? $elems
                 !! $offset.Int;
-            X::OutOfRange.new(
-              :what('Offset argument to splice'),
-              :got($o),
-              :range("0..$elems"),
-            ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
-
             my int $s = nqp::istype($size,Callable)
               ?? $size($elems - $o)
               !! !defined($size) || nqp::istype($size,Whatever)
                  ?? $elems - ($o min $elems)
                  !! $size.Int;
-            X::OutOfRange.new(
-              :what('Size argument to splice'),
-              :got($s),
-              :range("0..^{$elems - $o}"),
-            ).fail if $s < 0;
 
-            my @ret := nqp::create(self);
-            my int $i = $o;
-            my int $n = ($elems min $o + $s) - 1;
-            while $i <= $n {
-                nqp::push_s(@ret, nqp::atpos_s(self, $i));
-                $i = $i + 1;
+            unless nqp::istype(
+              (my $splice := CLONE_SLICE(self,$o,$s)),
+              Failure
+            ) {
+                my $splicees := nqp::create(self);
+                nqp::push_s($splicees, @values.shift) while @values;
+                nqp::splice(self,$splicees,$o,$s);
             }
-
-            my @splicees := nqp::create(self);
-            nqp::push_s(@splicees, @values.shift) while @values;
-            nqp::splice(self, @splicees, $o, $s);
-            @ret;
+            $splice
         }
 
         multi method min(strarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my str $min = nqp::atpos_s(self,0)),
@@ -235,7 +355,7 @@ my class array does Iterable {
         }
         multi method max(strarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my str $max = nqp::atpos_s(self,0)),
@@ -253,7 +373,7 @@ my class array does Iterable {
         }
         multi method minmax(strarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my str $min =
@@ -292,11 +412,25 @@ my class array does Iterable {
                       ?? nqp::atposref_s($!array,$!i)
                       !! IterationEnd
                 }
+                method skip-one() {
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                }
+                method skip-at-least(int $toskip) {
+                    nqp::unless(
+                      ($!i = $!i + $toskip) < nqp::elems($!array),
+                      nqp::stmts(
+                        ($!i = nqp::elems($!array)),
+                        0
+                      )
+                    )
+                }
                 method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
-                    $target.push(nqp::atposref_s($!array,$i))
-                      while ($i = $i + 1) < $elems;
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $target.push(nqp::atposref_s($!array,$i))
+                    );
                     $!i = $i;
                 }
             }.new(self)
@@ -337,6 +471,63 @@ my class array does Iterable {
         multi method sort(strarray:D:) {
             Rakudo::Sorting.MERGESORT-str(nqp::clone(self))
         }
+        proto method grab(|) {*}
+        multi method grab(strarray:D:) {
+            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+        }
+        multi method grab(strarray:D: Callable:D $calculate) {
+            self.grab($calculate(nqp::elems(self)))
+        }
+        multi method grab(strarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(strarray:D: $count) {
+            Seq.new(nqp::if(
+              nqp::elems(self),
+              class :: does Iterator {
+                  has $!array;
+                  has int $!count;
+
+                  method !SET-SELF(\array,\count) {
+                      nqp::stmts(
+                        (my int $elems = nqp::elems(array)),
+                        ($!array := array),
+                        nqp::if(
+                          count == Inf,
+                          ($!count = $elems),
+                          nqp::if(
+                            nqp::isgt_i(($!count = count.Int),$elems),
+                            ($!count = $elems)
+                          )
+                        ),
+                        self
+                      )
+
+                  }
+                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
+                  method pull-one() {
+                      nqp::if(
+                        $!count && nqp::elems($!array),
+                        nqp::stmts(
+                          ($!count = nqp::sub_i($!count,1)),
+                          $!array.GRAB_ONE
+                        ),
+                        IterationEnd
+                      )
+                  }
+              }.new(self,$count),
+              Rakudo::Iterator.Empty
+            ))
+        }
+
+        method GRAB_ONE(strarray:D:) {
+            nqp::stmts(
+              (my $value := nqp::atpos_s(
+                self,
+                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+              )),
+              nqp::splice(self,$empty_s,$pos,1),
+              $value
+            )
+        }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of strarray role -------------------------------------
 
@@ -355,7 +546,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -390,18 +581,45 @@ my class array does Iterable {
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
-        multi method STORE(intarray:D: int @values) {
-            nqp::setelems(self,@values.elems);
-            nqp::splice(self,@values,0,@values.elems)
+        multi method STORE(intarray:D: intarray:D \values) {
+            nqp::setelems(self,nqp::elems(values));
+            nqp::splice(self,values,0,nqp::elems(values))
         }
-        multi method STORE(intarray:D: @values) {
-            my int $elems = @values.elems;
+        multi method STORE(intarray:D: Seq:D \seq) {
+            nqp::if(
+              (my $iterator := seq.iterator).is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<store>, :what(self.^name)
+              )),
+              nqp::stmts(
+                $iterator.push-all(self),
+                self
+              )
+            )
+        }
+        multi method STORE(intarray:D: List:D \values) {
+            my int $elems = values.elems;    # reifies
+            my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
-            nqp::bindpos_i(self, $i,
-              nqp::unbox_i(@values.AT-POS($i)))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_i(self, $i,
+                nqp::unbox_i(nqp::atpos(reified,$i)))
+            );
+            self
+        }
+        multi method STORE(intarray:D: @values) {
+            my int $elems = @values.elems;   # reifies
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_i(self, $i,
+                nqp::unbox_i(@values.AT-POS($i)))
+            );
             self
         }
 
@@ -439,13 +657,13 @@ my class array does Iterable {
         }
 
         method pop(intarray:D: --> int) {
-            nqp::elems(self) > 0
+            nqp::elems(self)
               ?? nqp::pop_i(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
         method shift(intarray:D: --> int) {
-            nqp::elems(self) > 0
+            nqp::elems(self)
               ?? nqp::shift_i(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
@@ -472,50 +690,111 @@ my class array does Iterable {
             ).throw;
         }
 
+        my $empty_i := nqp::list_i;
+
+        multi method splice(intarray:D:) {
+            my $splice := nqp::clone(self);
+            nqp::setelems(self,0);
+            $splice
+        }
+        multi method splice(intarray:D: Int:D \offset) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_i,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
+              )
+            )
+        }
+        multi method splice(intarray:D: Int:D $offset, Int:D $size) {
+            nqp::unless(
+              nqp::istype(
+                (my $slice := CLONE_SLICE(self,$offset,$size)),
+                Failure
+              ),
+              nqp::splice(self,$empty_i,$offset,$size)
+            );
+            $slice
+        }
+        multi method splice(intarray:D: Int:D $offset, Int:D $size, intarray:D \values) {
+            nqp::unless(
+              nqp::istype(
+                (my $slice := CLONE_SLICE(self,$offset,$size)),
+                Failure
+              ),
+              nqp::splice(
+                self,
+                nqp::if(nqp::eqaddr(self,values),nqp::clone(values),values),
+                $offset,
+                $size
+              )
+            );
+            $slice
+        }
+        multi method splice(intarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
+            nqp::if(
+              seq.is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<splice>, :what(self.^name)
+              )),
+              nqp::stmts(
+                nqp::unless(
+                  nqp::istype(
+                    (my $slice := CLONE_SLICE(self,$offset,$size)),
+                    Failure
+                  ),
+                  nqp::splice(self,nqp::create(self).STORE(seq),$offset,$size)
+                ),
+                $slice
+              )
+            )
+        }
         multi method splice(intarray:D: $offset=0, $size=Whatever, *@values) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
-            my $elems = self.elems;
+            my int $elems = nqp::elems(self);
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
                 ?? $elems
                 !! $offset.Int;
-            X::OutOfRange.new(
-              :what('Offset argument to splice'),
-              :got($o),
-              :range("0..$elems"),
-            ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
-
             my int $s = nqp::istype($size,Callable)
               ?? $size($elems - $o)
               !! !defined($size) || nqp::istype($size,Whatever)
                  ?? $elems - ($o min $elems)
                  !! $size.Int;
-            X::OutOfRange.new(
-              :what('Size argument to splice'),
-              :got($s),
-              :range("0..^{$elems - $o}"),
-            ).fail if $s < 0;
 
-            my @ret := nqp::create(self);
-            my int $i = $o;
-            my int $n = ($elems min $o + $s) - 1;
-            while $i <= $n {
-                nqp::push_i(@ret, nqp::atpos_i(self, $i));
-                $i = $i + 1;
+            unless nqp::istype(
+              (my $splice := CLONE_SLICE(self,$o,$s)),
+              Failure
+            ) {
+                my $splicees := nqp::create(self);
+                nqp::push_i($splicees, @values.shift) while @values;
+                nqp::splice(self,$splicees,$o,$s);
             }
-
-            my @splicees := nqp::create(self);
-            nqp::push_i(@splicees, @values.shift) while @values;
-            nqp::splice(self, @splicees, $o, $s);
-            @ret;
+            $splice
         }
 
         multi method min(intarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my int $min = nqp::atpos_i(self,0)),
@@ -533,7 +812,7 @@ my class array does Iterable {
         }
         multi method max(intarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my int $max = nqp::atpos_i(self,0)),
@@ -551,7 +830,7 @@ my class array does Iterable {
         }
         multi method minmax(intarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my int $min =
@@ -590,11 +869,25 @@ my class array does Iterable {
                       ?? nqp::atposref_i($!array,$!i)
                       !! IterationEnd
                 }
+                method skip-one() {
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                }
+                method skip-at-least(int $toskip) {
+                    nqp::unless(
+                      ($!i = $!i + $toskip) < nqp::elems($!array),
+                      nqp::stmts(
+                        ($!i = nqp::elems($!array)),
+                        0
+                      )
+                    )
+                }
                 method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
-                    $target.push(nqp::atposref_i($!array,$i))
-                      while ($i = $i + 1) < $elems;
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $target.push(nqp::atposref_i($!array,$i))
+                    );
                     $!i = $i;
                 }
             }.new(self)
@@ -635,9 +928,94 @@ my class array does Iterable {
         multi method sort(intarray:D:) {
             Rakudo::Sorting.MERGESORT-int(nqp::clone(self))
         }
+        proto method grab(|) {*}
+        multi method grab(intarray:D:) {
+            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+        }
+        multi method grab(intarray:D: Callable:D $calculate) {
+            self.grab($calculate(nqp::elems(self)))
+        }
+        multi method grab(intarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(intarray:D: $count) {
+            Seq.new(nqp::if(
+              nqp::elems(self),
+              class :: does Iterator {
+                  has $!array;
+                  has int $!count;
+
+                  method !SET-SELF(\array,\count) {
+                      nqp::stmts(
+                        (my int $elems = nqp::elems(array)),
+                        ($!array := array),
+                        nqp::if(
+                          count == Inf,
+                          ($!count = $elems),
+                          nqp::if(
+                            nqp::isgt_i(($!count = count.Int),$elems),
+                            ($!count = $elems)
+                          )
+                        ),
+                        self
+                      )
+
+                  }
+                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
+                  method pull-one() {
+                      nqp::if(
+                        $!count && nqp::elems($!array),
+                        nqp::stmts(
+                          ($!count = nqp::sub_i($!count,1)),
+                          $!array.GRAB_ONE
+                        ),
+                        IterationEnd
+                      )
+                  }
+              }.new(self,$count),
+              Rakudo::Iterator.Empty
+            ))
+        }
+
+        method GRAB_ONE(intarray:D:) {
+            nqp::stmts(
+              (my $value := nqp::atpos_i(
+                self,
+                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+              )),
+              nqp::splice(self,$empty_i,$pos,1),
+              $value
+            )
+        }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
+        method sum(intarray:D: :$wrap) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my int $i),
+                nqp::if(
+                  $wrap,
+                  nqp::stmts(
+                    (my int $sum = nqp::atpos_i(self,0)),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $sum = nqp::add_i($sum,nqp::atpos_i(self,$i))
+                    ),
+                    $sum
+                  ),
+                  nqp::stmts(
+                    (my Int $Sum = nqp::atpos_i(self,0)),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $Sum = $Sum + nqp::atpos_i(self,$i)
+                    ),
+                    $Sum
+                  )
+                )
+              ),
+              0
+            )
+        }
         method join(intarray:D: $delim = '') {
             my int $elems = nqp::elems(self);
             my $list     := nqp::setelems(nqp::list_s,$elems);
@@ -650,18 +1028,23 @@ my class array does Iterable {
             nqp::join($delim.Str,$list)
         }
 
-        multi method STORE(intarray:D: Range:D $range) {
+        multi method STORE(intarray:D: Range:D \range) {
             nqp::if(
-              $range.is-int,
+              range.is-int,
               nqp::stmts(
-                (my int $val = $range.min + $range.excludes-min),
-                (my int $max = $range.max - $range.excludes-max),
-                nqp::setelems(self, nqp::add_i(nqp::sub_i($max,$val),1)),
-                (my int $i = -1),
+                (my int $val = nqp::add_i(
+                  nqp::getattr(range,Range,'$!min'),
+                  nqp::getattr_i(range,Range,'$!excludes-min')
+                )),
+                (my int $max = nqp::sub_i(
+                  nqp::getattr(range,Range,'$!max'),
+                  nqp::getattr_i(range,Range,'$!excludes-max')
+                )),
+                nqp::setelems(self,0),  # make sure we start from scratch
                 ($val = nqp::sub_i($val,1)),
                 nqp::while(
                   nqp::isle_i(($val = nqp::add_i($val,1)),$max),
-                  nqp::bindpos_i(self,($i = nqp::add_i($i,1)),$val)
+                  nqp::push_i(self,$val)
                 ),
                 self
               ),
@@ -672,7 +1055,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2017-10-26T01:53:35Z by tools/build/makeNATIVE_ARRAY.pl6
+#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -707,18 +1090,45 @@ my class array does Iterable {
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
-        multi method STORE(numarray:D: num @values) {
-            nqp::setelems(self,@values.elems);
-            nqp::splice(self,@values,0,@values.elems)
+        multi method STORE(numarray:D: numarray:D \values) {
+            nqp::setelems(self,nqp::elems(values));
+            nqp::splice(self,values,0,nqp::elems(values))
         }
-        multi method STORE(numarray:D: @values) {
-            my int $elems = @values.elems;
+        multi method STORE(numarray:D: Seq:D \seq) {
+            nqp::if(
+              (my $iterator := seq.iterator).is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<store>, :what(self.^name)
+              )),
+              nqp::stmts(
+                $iterator.push-all(self),
+                self
+              )
+            )
+        }
+        multi method STORE(numarray:D: List:D \values) {
+            my int $elems = values.elems;    # reifies
+            my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
-            nqp::bindpos_n(self, $i,
-              nqp::unbox_n(@values.AT-POS($i)))
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_n(self, $i,
+                nqp::unbox_n(nqp::atpos(reified,$i)))
+            );
+            self
+        }
+        multi method STORE(numarray:D: @values) {
+            my int $elems = @values.elems;   # reifies
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_n(self, $i,
+                nqp::unbox_n(@values.AT-POS($i)))
+            );
             self
         }
 
@@ -756,13 +1166,13 @@ my class array does Iterable {
         }
 
         method pop(numarray:D: --> num) {
-            nqp::elems(self) > 0
+            nqp::elems(self)
               ?? nqp::pop_n(self)
               !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
         }
 
         method shift(numarray:D: --> num) {
-            nqp::elems(self) > 0
+            nqp::elems(self)
               ?? nqp::shift_n(self)
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
@@ -789,50 +1199,111 @@ my class array does Iterable {
             ).throw;
         }
 
+        my $empty_n := nqp::list_n;
+
+        multi method splice(numarray:D:) {
+            my $splice := nqp::clone(self);
+            nqp::setelems(self,0);
+            $splice
+        }
+        multi method splice(numarray:D: Int:D \offset) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_n,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
+              )
+            )
+        }
+        multi method splice(numarray:D: Int:D $offset, Int:D $size) {
+            nqp::unless(
+              nqp::istype(
+                (my $slice := CLONE_SLICE(self,$offset,$size)),
+                Failure
+              ),
+              nqp::splice(self,$empty_n,$offset,$size)
+            );
+            $slice
+        }
+        multi method splice(numarray:D: Int:D $offset, Int:D $size, numarray:D \values) {
+            nqp::unless(
+              nqp::istype(
+                (my $slice := CLONE_SLICE(self,$offset,$size)),
+                Failure
+              ),
+              nqp::splice(
+                self,
+                nqp::if(nqp::eqaddr(self,values),nqp::clone(values),values),
+                $offset,
+                $size
+              )
+            );
+            $slice
+        }
+        multi method splice(numarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
+            nqp::if(
+              seq.is-lazy,
+              Failure.new(X::Cannot::Lazy.new(
+                :action<splice>, :what(self.^name)
+              )),
+              nqp::stmts(
+                nqp::unless(
+                  nqp::istype(
+                    (my $slice := CLONE_SLICE(self,$offset,$size)),
+                    Failure
+                  ),
+                  nqp::splice(self,nqp::create(self).STORE(seq),$offset,$size)
+                ),
+                $slice
+              )
+            )
+        }
         multi method splice(numarray:D: $offset=0, $size=Whatever, *@values) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
-            my $elems = self.elems;
+            my int $elems = nqp::elems(self);
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
                 ?? $elems
                 !! $offset.Int;
-            X::OutOfRange.new(
-              :what('Offset argument to splice'),
-              :got($o),
-              :range("0..$elems"),
-            ).fail if $o < 0 || $o > $elems; # one after list allowed for "push"
-
             my int $s = nqp::istype($size,Callable)
               ?? $size($elems - $o)
               !! !defined($size) || nqp::istype($size,Whatever)
                  ?? $elems - ($o min $elems)
                  !! $size.Int;
-            X::OutOfRange.new(
-              :what('Size argument to splice'),
-              :got($s),
-              :range("0..^{$elems - $o}"),
-            ).fail if $s < 0;
 
-            my @ret := nqp::create(self);
-            my int $i = $o;
-            my int $n = ($elems min $o + $s) - 1;
-            while $i <= $n {
-                nqp::push_n(@ret, nqp::atpos_n(self, $i));
-                $i = $i + 1;
+            unless nqp::istype(
+              (my $splice := CLONE_SLICE(self,$o,$s)),
+              Failure
+            ) {
+                my $splicees := nqp::create(self);
+                nqp::push_n($splicees, @values.shift) while @values;
+                nqp::splice(self,$splicees,$o,$s);
             }
-
-            my @splicees := nqp::create(self);
-            nqp::push_n(@splicees, @values.shift) while @values;
-            nqp::splice(self, @splicees, $o, $s);
-            @ret;
+            $splice
         }
 
         multi method min(numarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my num $min = nqp::atpos_n(self,0)),
@@ -850,7 +1321,7 @@ my class array does Iterable {
         }
         multi method max(numarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my num $max = nqp::atpos_n(self,0)),
@@ -868,7 +1339,7 @@ my class array does Iterable {
         }
         multi method minmax(numarray:D:) {
             nqp::if(
-              (my int $elems = self.elems),
+              (my int $elems = nqp::elems(self)),
               nqp::stmts(
                 (my int $i),
                 (my num $min =
@@ -907,11 +1378,25 @@ my class array does Iterable {
                       ?? nqp::atposref_n($!array,$!i)
                       !! IterationEnd
                 }
+                method skip-one() {
+                    ($!i = $!i + 1) < nqp::elems($!array)
+                }
+                method skip-at-least(int $toskip) {
+                    nqp::unless(
+                      ($!i = $!i + $toskip) < nqp::elems($!array),
+                      nqp::stmts(
+                        ($!i = nqp::elems($!array)),
+                        0
+                      )
+                    )
+                }
                 method push-all($target --> IterationEnd) {
                     my int $i     = $!i;
                     my int $elems = nqp::elems($!array);
-                    $target.push(nqp::atposref_n($!array,$i))
-                      while ($i = $i + 1) < $elems;
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $target.push(nqp::atposref_n($!array,$i))
+                    );
                     $!i = $i;
                 }
             }.new(self)
@@ -951,6 +1436,63 @@ my class array does Iterable {
         }
         multi method sort(numarray:D:) {
             Rakudo::Sorting.MERGESORT-num(nqp::clone(self))
+        }
+        proto method grab(|) {*}
+        multi method grab(numarray:D:) {
+            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+        }
+        multi method grab(numarray:D: Callable:D $calculate) {
+            self.grab($calculate(nqp::elems(self)))
+        }
+        multi method grab(numarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(numarray:D: $count) {
+            Seq.new(nqp::if(
+              nqp::elems(self),
+              class :: does Iterator {
+                  has $!array;
+                  has int $!count;
+
+                  method !SET-SELF(\array,\count) {
+                      nqp::stmts(
+                        (my int $elems = nqp::elems(array)),
+                        ($!array := array),
+                        nqp::if(
+                          count == Inf,
+                          ($!count = $elems),
+                          nqp::if(
+                            nqp::isgt_i(($!count = count.Int),$elems),
+                            ($!count = $elems)
+                          )
+                        ),
+                        self
+                      )
+
+                  }
+                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
+                  method pull-one() {
+                      nqp::if(
+                        $!count && nqp::elems($!array),
+                        nqp::stmts(
+                          ($!count = nqp::sub_i($!count,1)),
+                          $!array.GRAB_ONE
+                        ),
+                        IterationEnd
+                      )
+                  }
+              }.new(self,$count),
+              Rakudo::Iterator.Empty
+            ))
+        }
+
+        method GRAB_ONE(numarray:D:) {
+            nqp::stmts(
+              (my $value := nqp::atpos_n(
+                self,
+                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+              )),
+              nqp::splice(self,$empty_n,$pos,1),
+              $value
+            )
         }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------
@@ -1038,7 +1580,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2018-06-09T09:16:36+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1107,7 +1649,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -1126,7 +1668,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -1144,7 +1686,7 @@ my class array does Iterable {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
                         nqp::add_i($!maxdim,1)
@@ -1544,7 +2086,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2018-06-09T09:16:36+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -1613,7 +2155,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -1632,7 +2174,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -1650,7 +2192,7 @@ my class array does Iterable {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
                         nqp::add_i($!maxdim,1)
@@ -2050,7 +2592,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2017-10-16T15:04:46+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.pl6
+#- Generated on 2018-06-09T09:16:36+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2119,7 +2661,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -2138,7 +2680,7 @@ my class array does Iterable {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -2156,7 +2698,7 @@ my class array does Iterable {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
                         nqp::add_i($!maxdim,1)
@@ -2555,7 +3097,10 @@ my class array does Iterable {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedstrarray role -------------------------------
 
-    method ^parameterize(Mu:U \arr, Mu:U \t) {
+    method ^parameterize(Mu:U \arr, Mu \t) {
+        if nqp::isconcrete(t) {
+            return "Can not parameterize {arr.^name} with {t.perl}";
+        }
         my $t := nqp::decont(t);
         my int $kind = nqp::objprimspec($t);
         my $what;
@@ -2570,11 +3115,11 @@ my class array does Iterable {
             $what := arr.^mixin(strarray[$t]);
         }
         else {
-            die "Can only parameterize array with a native type, not {t.^name}";
+            return "Can only parameterize array with a native type, not {t.^name}";
         }
 
         $what.^set_name("{arr.^name}[{t.^name}]");
-        $what;
+        $what
     }
 
     # poor man's 3x4 matrix
@@ -2648,13 +3193,13 @@ my class array does Iterable {
     method sink(--> Nil) { }
 
     multi method gist(array:D:) {
-        self.map(-> $elem {
+        '[' ~ self.map(-> $elem {
             given ++$ {
                 when 101 { '...' }
                 when 102 { last }
                 default  { $elem.gist }
             }
-        } ).join: ' ';
+        } ).join(' ') ~ ']';
     }
 
     multi method perl(array:D:) {
@@ -2668,6 +3213,57 @@ my class array does Iterable {
     method iterator() {
         nqp::die('iterator must be provided by native array parameterization role')
     }
+
+    method out_of_range(array:D \SELF: int $index) {
+        Failure.new(X::OutOfRange.new(
+          :what('Index'),
+          :got($index),
+          :range("0..{nqp::elems(SELF)}")
+        ))
+    }
+}
+
+multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
+    nqp::if(
+      nqp::iscont(range),
+      SELF.AT-POS(range.Int),                    # range in a container
+      nqp::if(
+        nqp::getattr_i(range,Range,'$!is-int'),
+        nqp::if(                                 # we have an integer range
+          nqp::islt_i(
+            (my int $min = nqp::add_i(
+              nqp::getattr(range,Range,'$!min'),
+              nqp::getattr_i(range,Range,'$!excludes-min')
+            )),
+            0
+          ),
+          SELF.out_of_range($min),                 # starts too low
+          nqp::if(                                   # start in range
+            nqp::isgt_i(
+              $min,
+              (my int $max = nqp::sub_i(
+                nqp::getattr(range,Range,'$!max'),
+                nqp::getattr_i(range,Range,'$!excludes-max')
+              ))
+            ),
+            nqp::create(SELF),                         # wrong order, empty!
+            nqp::if(                                   # correct order
+              nqp::islt_i($max,nqp::elems(SELF)),
+              nqp::slice(SELF,$min,$max),              # end in range, slice!
+              nqp::setelems(                             # end not in range
+                nqp::if(
+                  nqp::islt_i($min,nqp::elems(SELF)),
+                  nqp::slice(SELF,$min,-1),              # start in range
+                  nqp::create(SELF)                      # start not in range
+                ),
+                nqp::add_i(nqp::sub_i($max,$min),1)
+              )
+            )
+          )
+        ),
+        POSITIONS(SELF, range).map({ SELF[$_] }).eager.list
+      )
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -62,6 +62,7 @@ role STD {
     token stopper { <!> }
 
     my %quote_lang_cache := nqp::hash();
+    nqp::neverrepossess(%quote_lang_cache);
     method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
         sub lang_key() {
             my $stopstr := nqp::istype($stop,VMArray) ?? nqp::join(' ',$stop) !! $stop;
@@ -359,30 +360,38 @@ role STD {
     }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
-    method obs($old, $new, $when = 'in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+    method obs($old, $new, $when = 'in Perl 6', :$always) {
+        unless $*LANG.pragma('p5isms') && !$always {
+            $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
     method obsvar($name, $identifier-name?) {
-        $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
-          :$name, :$identifier-name);
+        unless $*LANG.pragma('p5isms') {
+            $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
+              :$name, :$identifier-name);
+        }
     }
     method sorryobs($old, $new, $when = 'in Perl 6') {
-        $*W.throw(self.MATCH(), ['X', 'Obsolete'],
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+        unless $*LANG.pragma('p5isms') {
+            $*W.throw(self.MATCH(), ['X', 'Obsolete'],
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
     method worryobs($old, $new, $when = 'in Perl 6') {
-        self.typed_worry('X::Obsolete',
-            old         => $old,
-            replacement => $new,
-            when        => $when,
-        );
+        unless $*LANG.pragma('p5isms') {
+            self.typed_worry('X::Obsolete',
+                old         => $old,
+                replacement => $new,
+                when        => $when,
+            );
+        }
     }
 
     method dupprefix($prefixes) {
@@ -464,7 +473,14 @@ role STD {
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
-    my $sc_id := 0;
+    my class SerializationContextId {
+        my $count := 0;
+        my $lock  := NQPLock.new;
+        method next-id() {
+            $lock.protect({ $count++ })
+        }
+    }
+
     method TOP() {
         # Language braid.
         my $*LANG := self;
@@ -473,6 +489,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         self.define_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
         self.define_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
         self.define_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
+        self.define_slang('Pod',     Perl6::PodGrammar,     Perl6::PodActions);
 
         # Old language braid, going away eventually
         # XXX TODO: if these are going out, be sure to make similar change
@@ -511,7 +528,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         my $file := nqp::getlexdyn('$?FILES');
         my $source_id := nqp::sha1($file ~ (
             nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
-                ?? self.target() ~ $sc_id++
+                ?? self.target() ~ SerializationContextId.next-id()
                 !! self.target()));
         my $outer_world := nqp::getlexdyn('$*W');
         my $is_nested := (
@@ -909,7 +926,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_string_character {
         <pod_balanced_braces> || <pod_formatting_code> || $<char>=[ \N || [
             <?{ $*POD_IN_FORMATTINGCODE }> \n [
-                <?{ $*POD_DELIMITED_CODE_BLOCK }> <!before \h* '=end' \h+ code> ||
+                <?{ $*POD_DELIMITED_CODE_BLOCK }> <!before \h* '=end' \h+ <pod-delim-code-typ> > ||
                 <!before \h* '=' \w>
                 ]
             ]
@@ -932,7 +949,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ $<spaces> '=end' \h+
          [
             'comment' [ <pod_newline> | $ ]
-            || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'comment', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+            || $<instead>=<identifier>? {
+                   $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                       type    => 'comment',
+                       spaces  => ~$<spaces>,
+                       instead => $<instead> ?? ~$<instead> !! ''
+               }
          ]
         ]
     }
@@ -950,7 +972,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         :my $*ALLOW_INLINE_CODE := 0;
         $<type> = [
-            <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+            # allow 'defn' to have %config
+            <pod_code_parent> {
+                $*ALLOW_INLINE_CODE := 1;
+            }
             || <identifier>
         ]
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -960,7 +985,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ $<spaces> '=end' \h+
          [
              $<type> [ <pod_newline> | $ ]
-             || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => ~$<type>, spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+             || $<instead>=<identifier>? {
+                    $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                        type    => ~$<type>,
+                        spaces  => ~$<spaces>,
+                        instead => $<instead> ?? ~$<instead> !! ''
+                    }
          ]
         ]
     }
@@ -977,23 +1007,43 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
          ^^ \h* '=end' \h+
          [
             'table' [ <pod_newline> | $ ]
-             || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'table', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+             || $<instead>=<identifier>? {
+                    $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                        type    => 'table',
+                        spaces  => ~$<spaces>,
+                        instead => $<instead> ?? ~$<instead> !! ''
+                    }
          ]
         ]
     }
 
+    # There are several different identifiers for pod blocks
+    # that are treated essentially the same: 'code', 'input',
+    # and 'output'.
+    token pod-delim-code-typ { code | input | output }
     token pod_block:sym<delimited_code> {
         ^^
         $<spaces> = [ \h* ]
-        '=begin' \h+ 'code' {}
+        '=begin' \h+ $<typ>=<pod-delim-code-typ> {}
         :my $*POD_ALLOW_FCODES  := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
         :my $*POD_DELIMITED_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>+
         [
         || <delimited_code_content($<spaces>)> $<spaces> '=end' \h+
-            [ 'code' [ <pod_newline> | $ ]
-              || $<instead>=<identifier>? {$/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd', type => 'code', spaces => ~$<spaces>, instead => $<instead> ?? ~$<instead> !! ''}
+            [ $<end>=<pod-delim-code-typ> [ <pod_newline> | $ ]
+              { if ~$<end> ne ~$<typ> {
+                         $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                         type    => ~$<typ>,
+                         spaces  => ~$<spaces>,
+                         instead => $<end> ?? ~$<end> !! ''
+              }}
+              || $<instead>=<identifier>? {
+                     $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                     type    => $<typ>,
+                     spaces  => ~$<spaces>,
+                     instead => $<instead> ?? ~$<instead> !! ''
+                 }
             ]
         ]
     }
@@ -1002,7 +1052,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         (
         | $spaces
-            <!before '=end' \h+ 'code' [ <pod_newline> | $ ]>
+            <!before '=end' \h+ <pod-delim-code-typ> [ <pod_newline> | $ ]>
             <pod_string>**0..1 <pod_newline>
         | <pod_newline>
         )*
@@ -1036,6 +1086,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_INLINE_CODE := 0;
         [ :!ratchet
             $<type> = [
+                # allow 'defn' to have %config
                 <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
                 || <identifier>
             ]
@@ -1067,7 +1118,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<paragraph_code> {
         ^^
         $<spaces> = [ \h* ]
-        '=for' \h+ 'code' {}
+        '=for' \h+ <pod-delim-code-typ> {}
         :my $*POD_ALLOW_FCODES := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>
@@ -1084,7 +1135,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_INLINE_CODE := 0;
         [ :!ratchet
             $<type> = [
-                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+                # defn special now, can have data on same line
+                <pod_code_parent2> { $*ALLOW_INLINE_CODE := 1 }
                 || <identifier>
             ]
             :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
@@ -1114,7 +1166,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token pod_block:sym<abbreviated_code> {
         ^^
         $<spaces> = [ \h* ]
-        '=code' {}
+        '=' <pod-delim-code-typ> {}
         :my $*POD_ALLOW_FCODES  := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
         [\h*\n|\h+]
@@ -1127,9 +1179,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         \h* \n
     }
 
+    # these parents can have %config keys in their delimited form,
+    # but no other data on the same line except for 'item'
     token pod_code_parent {
         [
         | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]
+        | <upper>+
+        ]
+        <![\w]>
+    }
+
+    # these parents can NOT have %config keys in their other forms,
+    # and no other data on the same line execept for 'item' and 'defn'
+    token pod_code_parent2 {
+        [
+        | [ 'pod' | 'item' \d* | 'nested' | 'defn' [\h+ \N*]? | 'finish' ]
         | <upper>+
         ]
         <![\w]>
@@ -1199,6 +1263,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
         :my $*IN_STMT_MOD := 0;                    # are we inside a statement modifier?
         :my $*COMPILING_CORE_SETTING := 0;         # are we compiling CORE.setting?
+        :my %*SIG_INFO;                            # information about recent signature
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -1348,7 +1413,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
                         my $s := $<statement_mod_loop><sym>;
-                        $/.obs("do..." ~ $s, "repeat...while or repeat...until");
+                        $/.obs("do..." ~ $s, "repeat...while or repeat...until")
+                          unless $*LANG.pragma('p5isms');
                     }
                 }
             ]?
@@ -1730,7 +1796,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $p6cursor := $*W.find_symbol(['Match']);
             nqp::bindattr_i($new, NQPMatch, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
             nqp::bindattr_i($new, NQPMatch, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
-            my $p6c_name := nqp::getattr_s($ret, $p6cursor, '$!name');
+            my str $p6c_name := nqp::getattr_s($ret, $p6cursor, '$!name');
             if !nqp::isnull_s($p6c_name) {
                 nqp::bindattr($new,   NQPMatch, '$!name',  $p6c_name);
             }
@@ -1936,6 +2002,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token term:sym<undef> {
+        <!{ $*LANG.pragma('p5isms') }>
         <sym> >> {}
         [ <?before \h*'$/' >
             <.obs('$/ variable as input record separator',
@@ -1948,7 +2015,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token term:sym<new> {
-        'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax")>
+        'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax", :always)>
     }
 
     token fatarrow {
@@ -2025,11 +2092,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.obsvar('%!')>
     }
 
-    token special_variable:sym<$~> {
-        <sym> <?before \h* '='>
-        <.obsvar('$~')>
-    }
-
     token special_variable:sym<$`> {
         <sym>  <?before \s | ',' | <.terminator> >
         <.obsvar('$`')>
@@ -2041,40 +2103,19 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$#> {
-        <sym> [<identifier>]?
+        <sym> <identifier>
         {}
-        <.obsvar('$#', $<identifier> && ~$<identifier>)>
+        <.obsvar('$#', ~$<identifier>)>
     }
 
     token special_variable:sym<$$> {
         <sym> \W
         <.obsvar('$$')>
     }
-    token special_variable:sym<$%> {
-        <sym> <?before \h* '='>
-        <.obsvar('$%')>
-    }
-
-    # TODO: $^X and other "caret" variables
-
-    token special_variable:sym<$^> {
-        <sym> <?before \h* '='>
-        <.obsvar('$^')>
-    }
 
     token special_variable:sym<$&> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('$&')>
-    }
-
-    token special_variable:sym<$*> {
-        <sym> <?before \h* '='>
-        <.obsvar('$*')>
-    }
-
-    token special_variable:sym<$=> {
-        <sym> <?before \h+ '='>
-        <.obsvar('$=')>
     }
 
     token special_variable:sym<@+> {
@@ -2140,11 +2181,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token special_variable:sym<$|> {
         <sym> <?before \h* '='>
         <.obsvar('$|')>
-    }
-
-    token special_variable:sym<$:> {
-        <sym> <?before \h* '='>
-        <.obsvar('$:')>
     }
 
     token special_variable:sym<$;> {
@@ -2762,9 +2798,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]?
 
         [ <.ws> <trait>+ ]?
-        [ <.ws> :my $*HAS_SELF :=
-              $*SCOPE eq 'has' ?? nqp::null !! nqp::getlexdyn('$*HAS_SELF')
-          ; <post_constraint('var')>+ ]?
+        [ <.ws> <post_constraint('var')>+ ]?
     }
 
     proto token routine_declarator { <...> }
@@ -3189,6 +3223,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule post_constraint($*CONSTRAINT_USAGE) {
         :my $*IN_DECL := '';
+        :my $*HAS_SELF := $*CONSTRAINT_USAGE eq 'var' && $*SCOPE eq 'has'
+            ?? nqp::null !! nqp::getlexdyn('$*HAS_SELF');
         :dba('constraint')
         [
         | '[' ~ ']' <signature>
@@ -3437,6 +3473,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* '=>'> }
 
     token term:sym<rand> {
+        <!{ $*LANG.pragma('p5isms') }>
         <sym> »
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
@@ -3558,7 +3595,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 elsif $trap == 2 {        # probably misused P6ism
                                     $<longname>."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)");
                                 }
-                                $<longname>.sorry("Argument to \"$name\" seems to be malformed") if $orry eq 'worry';
+                                $<longname>.sorry("Argument to \"$name\" seems to be malformed")
+                                  if $orry eq 'worry'
+                                  && !$*LANG.pragma('p5isms');
                             }
                         }
                     }
@@ -4181,7 +4220,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     method can_meta($op, $meta, $reason = "fiddly") {
         if $op<OPER> && $op<OPER><O>.made{$reason} == 1 {
-            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
+            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
         }
         self;
     }
@@ -4787,9 +4826,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
 
         if %post_types || %unk_types || %unk_routines {
-            self.typed_sorry('X::Undeclared::Symbols',
-                :%post_types, :%unk_types, :%unk_routines,
-                :%routine_suggestion, :%type_suggestion);
+            if nqp::elems(%unk_routines) == 1 && %unk_routines<pack>
+              && nqp::elems(%post_types) == 0 && nqp::elems(%unk_types) == 0 {
+                self.typed_sorry('X::Experimental', :feature<pack>)
+            }
+            else {
+                self.typed_sorry('X::Undeclared::Symbols',
+                    :%post_types, :%unk_types, :%unk_routines,
+                    :%routine_suggestion, :%type_suggestion);
+            }
         }
 
         self;
@@ -4884,25 +4929,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # (see https://irclog.perlgeek.de/perl6/2017-01-25#i_13988093)
             # If it's neither of those cases, then it's just a sub with an
             # extended name like sub foo:bar<baz> {}; let the user use it.
-
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>");
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*W.lang-ver-before('d');
+
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')
             ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
-
-            # XXX TODO: the conditionals above should actually be like below
-            # However, there is a 6.c-errata test that expects a ::Category
-            # exception even for `:sym<>` tokens. So I'll leave this until 6.d
-            #--------------------------------------------------------------
-            # self.typed_panic(
-            #     'X::Syntax::Extension::Category', :$category
-            # ) if nqp::iseq_s($subname, "$category:<$opname>");
-            # self.typed_panic(
-            #     'X::Syntax::Reserved', :reserved(':sym<> colonpair')
-            # ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
             return 0;
         }
 
@@ -5063,11 +5097,6 @@ if $*COMPILING_CORE_SETTING {
 }
 
 grammar Perl6::QGrammar is HLL::Grammar does STD {
-
-    method throw_unrecog_backslash_seq ($sequence) {
-        self.typed_sorry('X::Backslash::UnrecognizedSequence', :$sequence);
-    }
-
     proto token escape {*}
     proto token backslash {*}
 
@@ -5089,8 +5118,18 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:sym<t> { <sym> }
         token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
-        token backslash:sym<1> { <[1..9]>\d* {} <.sorry("Unrecognized backslash sequence (did you mean \${$/ - 1}?)")> }
-        token backslash:sym<unrec> { {} (\w) { self.throw_unrecog_backslash_seq: $/[0].Str } }
+        token backslash:sym<1> {
+            <[1..9]>\d* {
+              self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+                :sequence(~$/), :suggestion('$' ~ ($/ - 1))
+            }
+        }
+        token backslash:sym<unrec> {
+          {} (\w) {
+            self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+              :sequence($/[0].Str)
+          }
+        }
         token backslash:sym<misc> { \W }
     }
 
@@ -5305,7 +5344,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token backslash:misc { {}
             [
             | $<text>=(\W)
-            | $<x>=(\w) <.sorry("Unrecognized backslash sequence: '\\" ~ $<x> ~ "'")>
+            | $<x>=(\w) <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$<x>)>
             ]
         }
         multi method tweak_q($v) { self.panic("Too late for :q") }
@@ -5472,7 +5511,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPacka
         <.[\d] - [0]>\d*
         {}
         :my int $br := nqp::radix(10, $/, 0, 0)[0];
-        <.sorry("Unrecognized backslash sequence (did you mean \${$br == 0 ?? $br !! $br - 1}?)")>
+        <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$/), :suggestion('$' ~ ($/ - 1))>
     }
 
     token assertion:sym<{ }> {

@@ -1,4 +1,4 @@
-src/gen/*
+/gen/*
 nqp/
 repo/
 install/

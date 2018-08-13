@@ -251,7 +251,11 @@ my class Proc::Async {
     }
 
     method ready(--> Promise) {
-        $!ready_promise;
+        $!ready_promise
+    }
+
+    method pid(--> Promise) {
+        $!ready_promise
     }
 
     method !capture(\callbacks,\std,\the-supply) {
@@ -289,11 +293,11 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'done', -> Mu \status {
            $!exit_promise.keep(Proc.new(
                :exitcode(status +> 8), :signal(status +& 0xFF),
-               :command[ $!path, |@!args ],
+               :command( $!path, |@!args ),
            ))
         });
 
-        nqp::bindkey($callbacks, 'ready', -> Mu \handles = Nil {
+        nqp::bindkey($callbacks, 'ready', -> Mu \handles = Nil, $pid = 0 {
             if nqp::isconcrete(handles) {
                 with $!stdout_descriptor_vow {
                     my $fd = nqp::atpos_i(handles, 0);
@@ -308,7 +312,7 @@ my class Proc::Async {
                         !! .keep($fd)
                 }
             }
-            $!ready_vow.keep(Nil);
+            $!ready_vow.keep($pid);
         });
 
         nqp::bindkey($callbacks, 'error', -> Mu \err {

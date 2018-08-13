@@ -512,6 +512,16 @@ class Perl6::World is HLL::World {
         Perl6::World.new(:handle(self.handle), :context(self.context()))
     }
 
+    method lang-ver-before(str $want) {
+        nqp::chars($want) == 1 || nqp::die(
+          'Version to $*W.lang_ver_before'
+            ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
+        nqp::cmp_s(
+          nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),
+          $want
+        ) == -1
+    }
+
     method RAKUDO_MODULE_DEBUG() {
         if nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {
             $!RAKUDO_MODULE_DEBUG
@@ -1119,6 +1129,26 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::LibNone');
             }
         }
+        elsif $name eq 'isms' {
+            if nqp::islist($arglist) {
+                my @huh;
+                for $arglist -> $ism {
+                    if $ism eq 'Perl5' {
+                        $*LANG.set_pragma('p5isms', $on);
+                    }
+                    else {
+                        nqp::push(@huh,$ism)
+                    }
+                }
+                if @huh {
+                    self.throw($/, 'X::AdHoc',
+                      payload => "Don't know how to handle: isms <"
+                        ~ nqp::join(" ",@huh)
+                        ~ ">"
+                    )
+                }
+            }
+        }
         else {
             $RMD("  '$name' is not a valid pragma") if $RMD;
             return 0;                        # go try module
@@ -1563,7 +1593,10 @@ class Perl6::World is HLL::World {
             elsif $prim == 2 {
                 $block[0].push(QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    QAST::Op.new( :op('nan') )));
+                    $*W.lang-ver-before('d')
+                      ?? QAST::Op.new(:op<nan>)
+                      !! QAST::NVal.new(:value(0e0))
+                ));
             }
             elsif $prim == 3 {
                 $block[0].push(QAST::Op.new( :op('bind'),
@@ -1585,9 +1618,9 @@ class Perl6::World is HLL::World {
     }
 
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $rw, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
+    method create_container_descriptor($of, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
         my $cd_type := self.find_symbol(['ContainerDescriptor'], :setting-only);
-        my $cd := $cd_type.new( :$of, :$rw, :$name, :$default, :$dynamic );
+        my $cd := $cd_type.new( :$of, :$name, :$default, :$dynamic );
         self.add_object($cd);
         $cd
     }
@@ -1618,9 +1651,6 @@ class Perl6::World is HLL::World {
         elsif nqp::istype($cont_type, self.find_symbol(['Hash'], :setting-only)) {
             $cont := nqp::create($cont_type);
             nqp::bindattr($cont, %cont_info<container_base>, '$!descriptor', $descriptor);
-            my $Map := self.find_symbol(['Map'], :setting-only);
-            my $Mu := self.find_symbol(['Mu'], :setting-only);
-            nqp::bindattr($cont, $Map, '$!storage', $Mu);
         }
         else {
             $cont := $cont_type.new;
@@ -1813,7 +1843,7 @@ class Perl6::World is HLL::World {
                 'scalar_value',    $WHAT,
             );
             my $desc :=
-              self.create_container_descriptor($Mu, 1, $name, $WHAT, 1);
+              self.create_container_descriptor($Mu, $name, $WHAT, 1);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);
 
@@ -1886,7 +1916,7 @@ class Perl6::World is HLL::World {
         my %cont_info  := self.container_type_info(NQPMu, $var<sigil>,
             $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
         %cont_info<value_type> := self.find_symbol(['Any'], :setting-only);
-        my $descriptor := self.create_container_descriptor(%cont_info<value_type>, 1, $name);
+        my $descriptor := self.create_container_descriptor(%cont_info<value_type>, $name);
 
         nqp::die("auto_declare_var") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LEAF.package);
         self.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
@@ -2076,6 +2106,7 @@ class Perl6::World is HLL::World {
 
         # Walk parameters, setting up parameter objects.
         my $default_type := self.find_symbol([$default_type_name]);
+        my $param_type := self.find_symbol(['Parameter'], :setting-only);
         my @param_objs;
         my %seen_names;
         for @params {
@@ -2113,26 +2144,26 @@ class Perl6::World is HLL::World {
                     $_<sub_signature_params>, $lexpad, $default_type_name);
             }
 
-            # Add variable as needed.
-            my $varname := $_<variable_name>;
-            if $varname {
-                my %sym := $lexpad.symbol($varname);
-                if +%sym && !nqp::existskey(%sym, 'descriptor') {
-                    $_<container_descriptor> := self.create_container_descriptor(
-                        $_<nominal_type>, $_<is_rw> ?? 1 !! 0, $varname);
-                    $lexpad.symbol($varname, :descriptor($_<container_descriptor>));
-                }
-            }
-
             # Create parameter object and apply any traits.
             my $param_obj := self.create_parameter($/, $_);
             self.apply_traits($_<traits>, $param_obj) if $_<traits>;
 
+            # Add variable as needed.
+            my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
+            my $varname := $_<variable_name>;
+            if $varname && ($flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_COPY) {
+                my %sym := $lexpad.symbol($varname);
+                if +%sym && !nqp::existskey(%sym, 'descriptor') {
+                    my $desc := self.create_container_descriptor($_<nominal_type>, $varname);
+                    $_<container_descriptor> := $desc;
+                    nqp::bindattr($param_obj, $param_type, '$!container_descriptor', $desc);
+                    $lexpad.symbol($varname, :descriptor($desc));
+                }
+            }
+
             # If it's natively typed and we got "is rw" set, need to mark the
             # container as being a lexical ref.
             if $varname && nqp::objprimspec($_<nominal_type>) {
-                my $param_type := self.find_symbol(['Parameter'], :setting-only);
-                my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
                 if $flags +& $SIG_ELEM_IS_RW {
                     for @($lexpad[0]) {
                         if nqp::istype($_, QAST::Var) && $_.name eq $varname {
@@ -2757,10 +2788,13 @@ class Perl6::World is HLL::World {
     # Adds a numeric constant value (int or num) to the constants table.
     # Returns PAST to do  the lookup of the constant.
     method add_numeric_constant($/, $type, $value) {
+        my $node := $/;
         if $type eq 'Int' && (try $value.HOW.name($value)) eq 'Int' {
             if nqp::isbig_I($value) {
                 # cannot unbox to int without loss of information
-                return self.add_constant('Int', 'bigint', $value);
+                my $const := self.add_constant('Int', 'bigint', $value);
+                $const.node: $node;
+                return $const;
             }
             # since Int doesn't have any vtables yet (at least while compiling
             # the setting), it is inconvenient to work with, so unbox
@@ -2769,19 +2803,14 @@ class Perl6::World is HLL::World {
         my $const := self.add_constant($type, nqp::lc($type), $value);
         my $past;
         if $type eq 'Int' {
-            $past := QAST::Want.new($const, 'Ii', QAST::IVal.new( :value($value) ) );
+            $past := QAST::Want.new: :$node, $const, 'Ii',
+              QAST::IVal.new: :$node, :$value;
         }
         else {
-            $past := QAST::Want.new($const, 'Nn',
-                $value eq 'Inf'  ?? QAST::Op.new(:node($/), :op<inf>) !!
-                $value eq '-Inf' ?? QAST::Op.new(:node($/), :op<neginf>) !!
-                $value eq 'NaN'  ?? QAST::Op.new(:node($/), :op<nan>) !!
-                                    QAST::NVal.new( :value($value) ) );
+            $past := QAST::Want.new: :$node, $const, 'Nn',
+                       QAST::NVal.new: :$node, :$value;
         }
         $past.returns($const.returns);
-        if $/ {
-            $past.node($/);
-        }
         $past;
     }
 
@@ -2856,7 +2885,13 @@ class Perl6::World is HLL::World {
 
         $ast.wanted(1);
         if $ast.has_compile_time_value {
-            return nqp::unbox_s($ast.compile_time_value);
+            my $value := $ast.compile_time_value;
+            if nqp::istype($value, self.find_symbol(['Str'], :setting-only)) {
+                return nqp::unbox_s($ast.compile_time_value);
+            }
+            else {
+                $/.panic("Did not get a string but a " ~ $value.HOW.name($value));
+            }
         } elsif nqp::istype($ast, QAST::Op) {
             if $ast.name eq '&infix:<,>' {
                 my @pieces;
@@ -3611,8 +3646,11 @@ class Perl6::World is HLL::World {
                   NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
                 );
 
-                # Create the code object and return it
-                $!w.create_code_object($block, 'Submethod', $sig)
+                # Create the code object, hide it from backtraces and return it
+                my $code := $!w.create_code_object($block, 'Submethod', $sig);
+                my $trait_mod_is := $!w.find_symbol(['&trait_mod:<is>']);
+                $trait_mod_is($code,:hidden-from-backtrace);
+                $code
             }
 
             # Empty buildplan, and we already have an empty buildplan method
@@ -3722,6 +3760,11 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::NotParametric', type => $role);
             }
             my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
+            if nqp::isconcrete($curried)
+              && nqp::istype($curried, self.find_symbol(["Str"], :setting-only)) {
+                self.throw($/, 'X::AdHoc', payload => $curried)
+            }
+
             self.add_object($curried);
             return $curried;
         }
@@ -3940,7 +3983,7 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := self.find_symbol(['Associative'], :setting-only);
                 %info<value_type> := $mu;
                 self.install_lexical_container($*UNIT, '!INIT_VALUES', %info,
-                    self.create_container_descriptor($mu, 1, '!INIT_VALUES'));
+                    self.create_container_descriptor($mu, '!INIT_VALUES'));
             }
             $*UNIT[0].push(QAST::Op.new(
                 :op('callmethod'), :name('BIND-KEY'),
@@ -4415,7 +4458,7 @@ class Perl6::World is HLL::World {
         my $has_ctv := 0;
         try {
             my $sym := self.find_symbol(@name);
-            $has_ctv := !nqp::iscont($sym);
+            $has_ctv := !(nqp::iscont($sym) && nqp::isconcrete_nd($sym));
         }
         $has_ctv;
     }
@@ -4997,17 +5040,21 @@ class Perl6::World is HLL::World {
 
         sub safely_stringify($target) {
             if $has_str && nqp::istype($target, $Str) {
-                return ~nqp::unbox_s($target);
+                return nqp::isconcrete($target)
+                  ?? ~nqp::unbox_s($target) !! '(Str)';
             } elsif $has_int && nqp::istype($target, $Int) {
-                return ~nqp::unbox_i($target);
+                return nqp::isconcrete($target)
+                  ?? ~nqp::unbox_i($target) !! '(Int)';
             } elsif $has_list && nqp::istype($target, $List) {
+                return '(List)' unless nqp::isconcrete($target);
                 my $storage := nqp::getattr($target, $List, '$!reified');
                 my @result;
                 for $storage {
                     nqp::push(@result, safely_stringify($_));
                 }
                 return "(" ~ join(", ", @result) ~ ")";
-            } elsif nqp::ishash($target) {
+            }
+            elsif nqp::ishash($target) {
                 my @result;
                 for $target -> $key {
                     @result.push("\n") if +@result != 0;

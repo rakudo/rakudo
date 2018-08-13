@@ -672,9 +672,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            $!value-buffer.DEFINITE
-                ?? nqp::setelems($!value-buffer, 0)
-                !! ($!value-buffer := IterationBuffer.new);
+            nqp::if(
+              nqp::isconcrete($!value-buffer),
+              nqp::setelems($!value-buffer,0),
+              ($!value-buffer := nqp::create(IterationBuffer))
+            );
             my int $redo = 1;
             my $result;
 
@@ -686,11 +688,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   if &!block.has-phaser('FIRST');
             }
 
-            if $!slipping && !(($result := self.slip-one()) =:= IterationEnd) {
+            if $!slipping && nqp::not_i(
+              nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
                 # $result will be returned at the end
             }
-            elsif $!source.push-exactly($!value-buffer, $!count) =:= IterationEnd
-                    && nqp::elems($!value-buffer) == 0 {
+            elsif nqp::eqaddr(
+              $!source.push-exactly($!value-buffer,$!count),IterationEnd)
+                && nqp::elems($!value-buffer) == 0 {
                 $result := IterationEnd
             }
             else {
@@ -785,17 +789,36 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
             method pull-one() is raw {
-                $!index = $!index + 1
-                  until ($_ := $!iter.pull-one) =:= IterationEnd || $!test($_);
-                $_ =:= IterationEnd
-                  ?? IterationEnd
-                  !! nqp::p6box_i($!index = $!index + 1)
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                      || $!test($_),
+                    ($!index = nqp::add_i($!index,1))
+                  ),
+                  nqp::if(
+                    nqp::eqaddr($_,IterationEnd),
+                    IterationEnd,
+                    nqp::p6box_i($!index = nqp::add_i($!index,1))
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
-                until ($_ := $!iter.pull-one) =:= IterationEnd {
-                    $!index = $!index + 1;
-                    $target.push(nqp::p6box_i($!index)) if $!test($_);
-                }
+                nqp::stmts(
+                  (my $iter := $!iter),  # lexicals faster than attrs
+                  (my $test := $!test),
+                  (my int $i = $!index),
+                  nqp::until(
+                    nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+                    nqp::stmts(
+                      ($i = nqp::add_i($i,1)),
+                      nqp::if(
+                        $!test($_),
+                        $target.push(nqp::p6box_i($i))
+                      )
+                    )
+                  ),
+                  ($!index = $i)
+                )
             }
         }.new(self, $test))
     }
@@ -804,7 +827,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has  Mu $!iter;
             has  Mu $!test;
             has int $!index;
-            has Mu $!value;
+            has  Mu $!value;
             method !SET-SELF(\list,Mu \test) {
                 $!iter  = list.iterator;
                 $!test := test;
@@ -813,23 +836,29 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
             method pull-one() is raw {
-                if $!value.DEFINITE {
-                    my \tmp  = $!value;
-                    $!value := nqp::null;
-                    tmp
-                }
-                else {
-                    $!index = $!index + 1
-                      until ($_ := $!iter.pull-one) =:= IterationEnd
-                        || $!test($_);
-                    if $_ =:= IterationEnd {
-                        IterationEnd;
-                    }
-                    else {
-                        $!value := $_;
-                        nqp::p6box_i($!index = $!index + 1)
-                    }
-                }
+                nqp::if(
+                  nqp::isconcrete($!value),
+                  nqp::stmts(
+                    ($_ := $!value),
+                    ($!value := nqp::null),
+                    $_
+                  ),
+                  nqp::stmts(
+                    nqp::until(
+                      nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                        || $!test($_),
+                      ($!index = nqp::add_i($!index,1))
+                    ),
+                    nqp::if(
+                      nqp::eqaddr($_,IterationEnd),
+                      IterationEnd,
+                      nqp::stmts(
+                        ($!value := $_),
+                        nqp::p6box_i($!index = nqp::add_i($!index,1))
+                      )
+                    )
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
                 nqp::until(
@@ -861,17 +890,36 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
             method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
             method pull-one() is raw {
-                $!index = $!index + 1
-                  until ($_ := $!iter.pull-one) =:= IterationEnd || $!test($_);
-                $_ =:= IterationEnd
-                  ?? IterationEnd
-                  !! Pair.new($!index = $!index + 1,$_)
+                nqp::stmts(
+                  nqp::until(
+                    nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                      || $!test($_),
+                    ($!index = nqp::add_i($!index,1))
+                  ),
+                  nqp::if(
+                    nqp::eqaddr($_,IterationEnd),
+                    IterationEnd,
+                    Pair.new(($!index = nqp::add_i($!index,1)),$_)
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
-                until ($_ := $!iter.pull-one) =:= IterationEnd {
-                    $!index = $!index + 1;
-                    $target.push(Pair.new($!index,$_)) if $!test($_);
-                }
+                nqp::stmts(
+                  (my $iter := $!iter),   # lexicals are faster than attrs
+                  (my $test := $!test),
+                  (my int $i = $!index),
+                  nqp::until(
+                    nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
+                    nqp::stmts(
+                      ($i = nqp::add_i($i,1)),
+                      nqp::if(
+                        $test($_),
+                        $target.push(Pair.new($i,$_))
+                      )
+                    )
+                  ),
+                  ($!index = $i)
+                )
             }
         }.new(self, $test))
     }
@@ -879,12 +927,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     role Grepper does Iterator {
         has Mu $!iter;
         has Mu $!test;
-        method SET-SELF(\list,Mu \test) {
+        method !SET-SELF(\list,Mu \test) {
             $!iter  = list.iterator;
             $!test := test;
             self
         }
-        method new(\list,Mu \test) { nqp::create(self).SET-SELF(list,test) }
+        method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
         method is-lazy() { $!iter.is-lazy }
     }
     method !grep-callable(Callable:D $test) {
@@ -1114,10 +1162,19 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             )
         }
     }
-    multi method first(Mu $test = True, :$end, *%a) is raw {
+    multi method first(Mu $test, :$end, *%a) is raw {
         $end
           ?? self!first-accepts-end($test,%a)
           !! self!first-accepts($test,%a)
+    }
+    multi method first(:$end, *%a) is raw {
+        nqp::elems(nqp::getattr(%a,Map,'$!storage'))
+          ?? $end
+            ?? self!first-accepts-end(True,%a)
+            !! self!first-accepts(True,%a)
+          !! $end
+            ?? self.tail
+            !! self.head
     }
     method !first-accepts(Mu $test,%a) is raw {
         nqp::stmts(
@@ -1459,18 +1516,16 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         )
     }
 
-    proto method reduce(|) {*}
-    multi method reduce(&with) is nodal {
-        return unless self.DEFINITE;
-        my $reducer := find-reducer-for-op(&with);
-        $reducer(&with)(self) if $reducer;
+    proto method reduce(|) is nodal {*}
+    multi method reduce(Any:U: & --> Nil) { }
+    multi method reduce(Any:D: &with) {
+        (find-reducer-for-op(&with))(&with)(self)
     }
 
-    proto method produce(|) {*}
-    multi method produce(&with) is nodal {
-        return unless self.DEFINITE;
-        my $reducer := find-reducer-for-op(&with);
-        $reducer(&with,1)(self) if $reducer;
+    proto method produce(|) is nodal {*}
+    multi method produce(Any:U: & --> Nil) { }
+    multi method produce(Any:D: &with) {
+        (find-reducer-for-op(&with))(&with,1)(self)
     }
 
     proto method unique(|) is nodal {*}
@@ -1667,30 +1722,38 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has &!with;
             has $!last_as;
             has int $!first;
-            method !SET-SELF(\list, &!as, &!with) {
-                $!iter  = list.iterator;
+            method !SET-SELF($!iter, &!as, &!with) {
                 $!first = 1;
                 self
             }
-            method new(\list, &as, &with) {
-                nqp::create(self)!SET-SELF(list, &as, &with)
+            method new(\iter, \as, \with) {
+                nqp::create(self)!SET-SELF(iter, as, with)
             }
             method pull-one() is raw {
-                my Mu $value := $!iter.pull-one;
-                unless nqp::eqaddr($value,IterationEnd) {
-                    my $which := &!as($value);
-                    if $!first {
-                        $!first = 0;
-                    }
-                    else {
-                        until !with($!last_as, $which) or ($value := $!iter.pull-one) =:= IterationEnd {
-                            $!last_as = $which;
-                            $which := &!as($value);
-                        }
-                    }
-                    $!last_as = $which;
-                }
-                $value;
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                  IterationEnd,
+                  nqp::stmts(
+                    (my $which := as($pulled)),
+                    nqp::if(
+                      $!first,
+                      ($!first = 0),
+                      nqp::until(
+                        nqp::isfalse(with($!last_as,$which))
+                          || nqp::eqaddr(
+                               ($pulled := $!iter.pull-one),
+                               IterationEnd
+                             ),
+                        nqp::stmts(
+                          ($!last_as := $which),
+                          ($which := as($pulled))
+                        )
+                      )
+                    ),
+                    ($!last_as := $which),
+                    $pulled
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
                 my Mu $value := $!iter.pull-one;
@@ -1720,7 +1783,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
             }
             method is-lazy() { $!iter.is-lazy }
-        }.new(self, &as, &with))
+        }.new(self.iterator, &as, &with))
     }
     multi method squish( :&with = &[===] ) {
         Seq.new(class :: does Iterator {
@@ -1728,29 +1791,37 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             has &!with;
             has Mu $!last;
             has int $!first;
-            method !SET-SELF(\list, &!with) {
-                $!iter  = list.iterator;
+            method !SET-SELF($!iter, &!with) {
                 $!first = 1;
                 self
             }
-            method new(\list, &with) { nqp::create(self)!SET-SELF(list, &with) }
+            method new(\iter, \with) { nqp::create(self)!SET-SELF(iter, with) }
             method pull-one() is raw {
-                my Mu $value := $!iter.pull-one;
-                unless nqp::eqaddr($value,IterationEnd) {
-                    if $!first {
-                        $!first = 0;
-                    }
-                    else {
-                        my $ov = $value;
-                        until !with($!last, $value)
-                           or ($value := $!iter.pull-one) =:= IterationEnd {
-                            $!last = $ov;
-                            $ov = $value;
-                        }
-                    }
-                    $!last = $value
-                }
-                $value;
+                nqp::if(
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                  IterationEnd,
+                  nqp::stmts(
+                    nqp::if(
+                      $!first,
+                      ($!first = 0),
+                      nqp::stmts(
+                        (my $old := $pulled),
+                        nqp::until(
+                          nqp::isfalse(with($!last,$pulled))
+                            || nqp::eqaddr(
+                                 ($pulled := $!iter.pull-one),
+                                 IterationEnd
+                               ),
+                          nqp::stmts(
+                            ($!last := $old),
+                            ($old := $pulled)
+                          )
+                        )
+                      )
+                    ),
+                    ($!last := $pulled)
+                  )
+                )
             }
             method push-all($target --> IterationEnd) {
                 my Mu $value := $!iter.pull-one;
@@ -1778,7 +1849,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 }
             }
             method is-lazy() { $!iter.is-lazy }
-        }.new(self, &with))
+        }.new(self.iterator, &with))
     }
 
     proto method pairup(|) is nodal {*}
@@ -1892,38 +1963,66 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
 
     proto method minpairs(|) {*}
     multi method minpairs(Any:D:) {
-        my @found;
-        for self.pairs {
-            my $value := .value;
-            state $min = $value;
-            nqp::if(
-                nqp::iseq_i( (my $cmp := $value cmp $min), -1 ),
-                nqp::stmts((@found = $_), ($min = $value)),
+        Seq.new(
+          nqp::if(
+            nqp::eqaddr(
+              (my $pulled := (my $iter := self.pairs.iterator).pull-one),
+              IterationEnd
+            ),
+            Rakudo::Iterator.Empty,
+            nqp::stmts(
+              nqp::push((my $result := nqp::create(IterationBuffer)),$pulled),
+              (my $min := $pulled.value),
+              nqp::until(
+                nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
                 nqp::if(
-                    nqp::iseq_i($cmp, 0),
-                    @found.push($_)
+                  nqp::iseq_i((my $cmp := $pulled.value cmp $min), -1),
+                  nqp::stmts(
+                    nqp::push(nqp::setelems($result,0),$pulled),
+                    ($min := $pulled.value)
+                  ),
+                  nqp::if(
+                    nqp::iseq_i($cmp,0),
+                    nqp::push($result,$pulled)
+                  )
                 )
+              ),
+              Rakudo::Iterator.ReifiedList($result)
             )
-        }
-        Seq.new(@found.iterator)
+          )
+        )
     }
 
     proto method maxpairs(|) {*}
     multi method maxpairs(Any:D:) {
-        my @found;
-        for self.pairs {
-            my $value := .value;
-            state $max = $value;
-            nqp::if(
-                nqp::iseq_i( (my $cmp := $value cmp $max), 1 ),
-                nqp::stmts((@found = $_), ($max = $value)),
+        Seq.new(
+          nqp::if(
+            nqp::eqaddr(
+              (my $pulled := (my $iter := self.pairs.iterator).pull-one),
+              IterationEnd
+            ),
+            Rakudo::Iterator.Empty,
+            nqp::stmts(
+              nqp::push((my $result := nqp::create(IterationBuffer)),$pulled),
+              (my $max := $pulled.value),
+              nqp::until(
+                nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
                 nqp::if(
-                    nqp::iseq_i($cmp, 0),
-                    @found.push($_)
+                  nqp::iseq_i((my $cmp := $pulled.value cmp $max), 1),
+                  nqp::stmts(
+                    nqp::push(nqp::setelems($result,0),$pulled),
+                    ($max := $pulled.value)
+                  ),
+                  nqp::if(
+                    nqp::iseq_i($cmp,0),
+                    nqp::push($result,$pulled)
+                  )
                 )
+              ),
+              Rakudo::Iterator.ReifiedList($result)
             )
-        }
-        Seq.new(@found.iterator)
+          )
+        )
     }
 
     proto method batch(|) is nodal {*}
@@ -1980,27 +2079,27 @@ proto sub minmax(|) is pure {*}
 multi sub minmax(+args, :&by!) { args.minmax(&by) }
 multi sub minmax(+args)        { args.minmax      }
 
-proto sub map(|) {*}
+proto sub map($, |) {*}
 multi sub map(&code, +values) { my $laze = values.is-lazy; values.map(&code).lazy-if($laze) }
 
-proto sub grep(|) {*}
+proto sub grep(Mu, |) {*}
 multi sub grep(Mu $test, +values, *%a) {
     my $laze = values.is-lazy;
     values.grep($test,|%a).lazy-if($laze)
 }
 multi sub grep(Bool:D $t, |) { X::Match::Bool.new(:type<grep>).throw }
 
-proto sub first(|) {*}
+proto sub first(Mu, |) {*}
 multi sub first(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<first>)) }
 multi sub first(Mu $test, +values, *%a) { values.first($test,|%a) }
 
-proto sub join(|) {*}
+proto sub join($?, |) {*}
 multi sub join($sep = '', *@values) { @values.join($sep) }
 
-proto sub reduce (|) {*}
+proto sub reduce ($, |) {*}
 multi sub reduce (&with, +list)  { list.reduce(&with) }
 
-proto sub produce (|) {*}
+proto sub produce ($, |) {*}
 multi sub produce (&with, +list)  { list.produce(&with) }
 
 proto sub unique(|) {*}

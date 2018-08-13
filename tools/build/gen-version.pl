@@ -31,6 +31,7 @@ my $builddate = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime);
 
 my $sha = Digest::SHA->new;
 find(sub { next unless /\.(nqp|pm6)\z/; $sha->addfile($_) }, "src");
+$sha->addfile('gen/nqp-version');
 my $source_digest = $sha->hexdigest;
 
 print <<"END_VERSION";

@@ -1,3 +1,5 @@
+#!/usr/bin/env perl6
+
 # This script reads the native_array.pm file from STDIN, and generates the
 # shapedintarray, shapednumarray and shapedstrarray roles in it, and writes
 # it to STDOUT.
@@ -108,7 +110,7 @@ for $*IN.lines -> $line {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -127,7 +129,7 @@ for $*IN.lines -> $line {
                 method INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
                 method new(Mu \to, Mu \from) {
@@ -145,7 +147,7 @@ for $*IN.lines -> $line {
                 has $!iterators;
                 method INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
                         nqp::add_i($!maxdim,1)

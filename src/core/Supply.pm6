@@ -3,23 +3,29 @@
 my class Tap {
     has &!on-close;
 
-    submethod BUILD(:&!on-close --> Nil) { }
+    submethod BUILD(:&!on-close --> Nil) { } # for subclasses of Tap
 
-    submethod new(&on-close = Callable) {
-        nqp::create(self)!SET-SELF(&on-close)
+    multi method new(Tap: --> Tap:D) {
+        nqp::create(self)
     }
-    method !SET-SELF(&on-close) {
-        &!on-close := &on-close;
-        self
+    multi method new(Tap: &on-close --> Tap:D) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Tap),
+          nqp::p6bindattrinvres(                 # we're a real Tap, fast path
+            nqp::create(self),Tap,'&!on-close',&on-close
+          ),
+          self.bless(:&on-close)                 # subclass, use slow path
+        )
     }
 
-    method close() {
-        my &closer := &!on-close;
-        my \close-result = &closer ?? closer() !! Nil;
-        if nqp::istype(close-result, Promise) {
-            await close-result;
-        }
-        True
+    method close(--> True) {
+        nqp::if(
+          nqp::isconcrete(&!on-close),
+          nqp::if(
+            nqp::istype((my \close-result := &!on-close()),Promise),
+            (await close-result)
+          )
+        )
     }
 }
 
@@ -65,19 +71,19 @@ my class Supply does Awaitable {
     has Tappable $!tappable;
 
     proto method new(|) {*}
-    multi method new() {
+    multi method new(Supply:) {
         X::Supply::New.new.throw
     }
-    multi method new(Tappable $tappable) {
-        self.WHAT =:= Supply
-            ?? nqp::create(self)!SET-SELF($tappable)
-            !! self.bless(:$tappable)
+    multi method new(Supply: Tappable $tappable) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,Supply),
+          nqp::p6bindattrinvres(                 # we're a real Supply, fast path
+            nqp::create(self),Supply,'$!tappable',$tappable
+          ),
+          self.bless(:$tappable)                 # subclass, use slow path
+        )
     }
-    submethod BUILD(Tappable :$!tappable! --> Nil) { }
-    method !SET-SELF(Tappable $tappable) {
-        $!tappable := $tappable;
-        self
-    }
+    submethod BUILD(Tappable :$!tappable! --> Nil) { }  # for subclasses
 
     method Capture(Supply:D:) { self.List.Capture }
 
@@ -158,7 +164,7 @@ my class Supply does Awaitable {
             $lock.protect: {
                 my $cancellation = $!scheduler.cue(
                     {
-                        emit($lock.protect: { $i++ });
+                        $lock.protect: { emit $i++ };
                         CATCH { $cancellation.cancel if $cancellation }
                     },
                     :every($!interval), :in($!delay)
@@ -171,7 +177,7 @@ my class Supply does Awaitable {
 
         method live(--> False) { }
         method sane(--> True) { }
-        method serial(--> False) { }
+        method serial(--> True) { }
     }
     method interval(Supply:U: $interval, $delay = 0, :$scheduler = $*SCHEDULER) {
         Supply.new(Interval.new(:$interval, :$delay, :$scheduler));
@@ -1552,13 +1558,21 @@ my class Supplier {
         }
 
         method emit(\value --> Nil) {
-            my $snapshot := $!tappers;
-            if nqp::isconcrete($snapshot) {
-                my int $n = nqp::elems($snapshot);
-                loop (my int $i = 0; $i < $n; $i = $i + 1) {
-                    nqp::atpos($snapshot, $i).emit()(value);
-                }
-            }
+            nqp::if(
+              nqp::isconcrete(my $snapshot := $!tappers)
+                && (my int $n = nqp::elems($snapshot)),
+              nqp::if(                                 # at least one tap
+                nqp::isgt_i($n,1),
+                nqp::stmts(                            # multiple taps
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$n),
+                    nqp::atpos($snapshot,$i).emit()(value)
+                  )
+                ),
+                nqp::atpos($snapshot,0).emit()(value)  # only one tap
+              )
+            )
         }
 
         method done(--> Nil) {
@@ -1593,11 +1607,11 @@ my class Supplier {
     }
     submethod BUILD(:$!taplist! --> Nil) { }
 
-    method emit(Supplier:D: Mu \value) {
+    method emit(Supplier:D: Mu \value --> Nil) {
         $!taplist.emit(value);
     }
 
-    method done(Supplier:D:) {
+    method done(Supplier:D: --> Nil) {
         $!taplist.done();
     }
 

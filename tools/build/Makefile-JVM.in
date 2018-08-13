@@ -13,8 +13,8 @@ J_LIBPATH = @nqp_libdir@
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
 
-J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx2000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@$(SYSROOT)@nqp_classpath@ nqp
-J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx2000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@$(SYSROOT)@nqp_classpath@ perl6
+J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@$(SYSROOT)@nqp_classpath@ nqp
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@$(SYSROOT)@nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
@@ -82,19 +82,22 @@ HARNESS_TYPE =
 J_HARNESS5 = $(PERL5) t/harness5 --jvm
 J_HARNESS5_WITH_FUDGE = $(J_HARNESS5) --fudge --keep-exit-code
 
-j-all: $(PERL6_JAR) $(SETTING_JAR) $(SETTING_D_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+j-all: check_nqp_version $(PERL6_JAR) $(SETTING_JAR) $(SETTING_D_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+
+check_nqp_version: tools/build/check-nqp-version.pl
+	$(PERL5) tools/build/check-nqp-version.pl $(J_NQP)
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(MKPATH) bin
 	$(JAVAC) -source 1.8 -cp $(BLD_NQP_JARS) -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin/ .
 
-$(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp
+$(PERL6_ML_JAR): src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp gen/nqp-version
 	$(J_NQP) $(J_GEN_CAT) src/vm/jvm/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp > $(J_BUILD_DIR)/ModuleLoader.nqp
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_ML_JAR) --encoding=utf8 \
 	    $(J_BUILD_DIR)/ModuleLoader.nqp
 
-$(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp
+$(PERL6_OPS_JAR): src/vm/jvm/Perl6/Ops.nqp gen/nqp-version
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_OPS_JAR) --encoding=utf8 \
 	    src/vm/jvm/Perl6/Ops.nqp
 
@@ -102,18 +105,21 @@ $(PERL6_W_JAR): $(PERL6_ML_JAR) $(PERL6_OPS_JAR) $(PERL6_P_JAR) src/Perl6/World.
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_W_JAR) --encoding=utf8 \
 	    src/Perl6/World.nqp
 
-$(PERL6_P_JAR): src/Perl6/Pod.nqp
+$(PERL6_P_JAR): src/Perl6/Pod.nqp gen/nqp-version
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_P_JAR) --encoding=utf8 \
 	    src/Perl6/Pod.nqp
 
 $(PERL6_A_JAR): src/Perl6/Actions.nqp $(PERL6_P_JAR) $(PERL6_OPS_JAR)
-	$(J_NQP) $(J_GEN_CAT) src/Perl6/Actions.nqp > $(J_BUILD_DIR)/Perl6-Actions.nqp
+	$(J_NQP) $(J_GEN_CAT) src/Perl6/Actions.nqp \
+                              src/Perl6/PodActions.nqp > $(J_BUILD_DIR)/Perl6-Actions.nqp
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_A_JAR) --encoding=utf8 \
 	    $(J_BUILD_DIR)/Perl6-Actions.nqp
 
 $(PERL6_G_JAR): src/Perl6/Grammar.nqp $(PERL6_W_JAR) $(PERL6_A_JAR) $(PERL6_P_JAR)
+	$(J_NQP) $(J_GEN_CAT) src/Perl6/Grammar.nqp \
+                              src/Perl6/PodGrammar.nqp > $(J_BUILD_DIR)/Perl6-Grammar.nqp
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_G_JAR) --encoding=utf8 \
-	    src/Perl6/Grammar.nqp
+	    $(J_BUILD_DIR)/Perl6-Grammar.nqp
 
 $(PERL6_O_JAR): src/Perl6/Optimizer.nqp $(PERL6_OPS_JAR)
 	$(J_NQP) $(J_GEN_CAT) src/Perl6/Optimizer.nqp > $(J_BUILD_DIR)/Perl6-Optimizer.nqp
@@ -124,7 +130,7 @@ $(PERL6_C_JAR): src/Perl6/Compiler.nqp $(PERL6_O_JAR)
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_C_JAR) --encoding=utf8 \
 	    src/Perl6/Compiler.nqp
 
-$(PERL6_JAR): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR) $(J_METAMODEL_SOURCES) $(J_CORE_SOURCES) $(J_CORE_D_SOURCES)
+$(PERL6_JAR): src/main.nqp $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR) $(J_METAMODEL_SOURCES) $(BOOTSTRAP_SOURCES) $(J_CORE_SOURCES) $(J_CORE_D_SOURCES)
 	$(PERL5) tools/build/gen-version.pl $(PREFIX) $(LIBDIR) > $(J_BUILD_DIR)/main-version.nqp
 	$(J_NQP) $(J_GEN_CAT) src/main.nqp $(J_BUILD_DIR)/main-version.nqp > $(J_BUILD_DIR)/main.nqp
 	$(J_NQP) --module-path=blib --target=jar --javaclass=perl6 --output=$(PERL6_JAR) \
@@ -210,7 +216,7 @@ j-localtest_loud: j-all spectest_checkout t/localtest.data
 sometests: j-all
 	@$(J_HARNESS5_WITH_FUDGE) $(TESTFILES)
 
-j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.pl
+j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.p6
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
 	$(MKPATH) $(DESTDIR)$(J_LIBPATH)/Perl6
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
@@ -219,12 +225,12 @@ j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.
 	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(PERL6_DEBUG_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
 	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	.@slash@$(J_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)
+	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_LANG_DIR)
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor
-	.@slash@$(J_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/vendor
+	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_LANG_DIR)/vendor
 	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site
-	.@slash@$(J_RUNNER) tools/build/upgrade-repository.pl $(DESTDIR)$(PERL6_LANG_DIR)/site
-	.@slash@$(J_RUNNER) tools/build/install-core-dist.pl $(DESTDIR)$(PERL6_LANG_DIR)
+	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_LANG_DIR)/site
+	.@slash@$(J_RUNNER) tools/build/install-core-dist.p6 $(DESTDIR)$(PERL6_LANG_DIR)
 	$(PERL5) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) "" $(NQP_JARS)
 	$(PERL5) tools/build/create-jvm-runner.pl install-debug "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) "" $(NQP_JARS)
 

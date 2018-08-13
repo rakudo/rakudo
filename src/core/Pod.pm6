@@ -108,6 +108,10 @@ my class Pod::Item is Pod::Block {
     has $.level;
 }
 
+my class Pod::Defn is Pod::Block {
+    has $.term;
+}
+
 class Pod::Config {
     has $.type;
     has %.config;

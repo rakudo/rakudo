@@ -23,13 +23,17 @@ my class HyperSeq does Iterable does Sequence {
             self, $!work-stage-head, $matcher, %options
     }
 
-    method hyper(HyperSeq:D:) { self }
+    method invert(HyperSeq:D:) {
+        Rakudo::Internals::HyperRaceSharedImpl.invert(self, $!work-stage-head)
+    }
 
-    method is-lazy() { False }
+    method hyper(HyperSeq:D:) { self }
 
     method race(HyperSeq:D:) {
         RaceSeq.new(:$!configuration, :$!work-stage-head)
     }
+
+    method is-lazy() { False }
 
     multi method serial(HyperSeq:D:) { self.Seq }
 

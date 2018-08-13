@@ -113,8 +113,10 @@ role Perl6::Metamodel::BUILDPLAN {
         }
 
         # Add vivify instructions.
-        for %attrs_untouched {
-            nqp::push(@plan,[10, $obj, $_.key]);
+        for @attrs { # iterate over the array to get a consistent order
+            if nqp::existskey(%attrs_untouched, $_.name) {
+                nqp::push(@plan,[10, $obj, $_.name]);
+            }
         }
 
         # Does it have a TWEAK?

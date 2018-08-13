@@ -33,12 +33,13 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     my $anon_id := 1;
-    method new_type(:$name, :$ver, :$auth, :$repr, :$signatured, *%extra) {
+    method new_type(:$name, :$ver, :$auth, :$api, :$repr, :$signatured, *%extra) {
         my $metarole := self.new(:signatured($signatured), :specialize_lock(NQPLock.new));
         my $type := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
         $metarole.set_name($type, $name // "<anon|{$anon_id++}>");
         $metarole.set_ver($type, $ver) if $ver;
         $metarole.set_auth($type, $auth) if $auth;
+        $metarole.set_api($type, $api) if $api;
         $metarole.set_pun_repr($type, $repr) if $repr;
         if nqp::existskey(%extra, 'group') {
             $metarole.set_group($type, %extra<group>);
@@ -173,13 +174,13 @@ class Perl6::Metamodel::ParametricRoleHOW
 
         # Go through methods and instantiate them; we always do this
         # unconditionally, since we need the clone anyway.
-        for self.method_table($obj) {
+        for nqp::hllize(self.method_table($obj)) {
             $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
         }
-        for self.submethod_table($obj) {
+        for nqp::hllize(self.submethod_table($obj)) {
             $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
         }
-        for self.private_method_table($obj) {
+        for nqp::hllize(self.private_method_table($obj)) {
             $conc.HOW.add_private_method($conc, $_.key, $_.value.instantiate_generic($type_env));
         }
         for self.multi_methods_to_incorporate($obj) {

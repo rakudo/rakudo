@@ -20,23 +20,23 @@ my role Baggy does QuantHash {
           nqp::unless(
             nqp::eqaddr(self,other),
             nqp::if(                         # not same object
-              (my $araw := $!elems),
+              (my \araw := $!elems) && nqp::elems(araw),
               nqp::if(                       # something on left
-                (my $braw := other.RAW-HASH),
+                (my \braw := other.RAW-HASH) && nqp::elems(braw),
                 nqp::if(                     # something on both sides
-                  nqp::iseq_i(nqp::elems($araw),nqp::elems($braw)),
+                  nqp::iseq_i(nqp::elems(araw),nqp::elems(braw)),
                   nqp::stmts(                # same size
-                    (my $iter := nqp::iterator($araw)),
+                    (my \iter := nqp::iterator(araw)),
                     nqp::while(
-                      $iter,
+                      iter,
                       nqp::unless(
                         nqp::getattr(
                           nqp::ifnull(
-                            nqp::atkey($braw,nqp::iterkey_s(nqp::shift($iter))),
+                            nqp::atkey(braw,nqp::iterkey_s(nqp::shift(iter))),
                             BEGIN nqp::p6bindattrinvres(  # virtual Pair with 0
                               nqp::create(Pair),Pair,'$!value',0)
                           ),Pair,'$!value')
-                          == nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
+                          == nqp::getattr(nqp::iterval(iter),Pair,'$!value'),
                         return False         # missing/different: we're done
                       )
                     ),
@@ -46,7 +46,7 @@ my role Baggy does QuantHash {
               ),
               # true -> both empty
               nqp::isfalse(
-                ($braw := other.RAW-HASH) && nqp::elems($braw)
+                (my \raw := other.RAW-HASH) && nqp::elems(raw)
               )
             )
           )
@@ -74,10 +74,10 @@ my role Baggy does QuantHash {
         nqp::if(
           $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
           nqp::stmts(
-            (my $value :=
+            (my \value :=
               nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value')),
             nqp::deletekey($!elems,$which),
-            $value
+            value
           ),
           0
         )
@@ -124,11 +124,11 @@ my role Baggy does QuantHash {
 
     method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {
         nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
+          (my \iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::create(self).SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet),$iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator
             )
           )
         )
@@ -262,46 +262,44 @@ my role Baggy does QuantHash {
         nqp::p6bool($!elems && nqp::elems($!elems))
     }
 
-    method HASHIFY(\type) {
+    method !HASHIFY(\type) {
         nqp::stmts(
-          (my $hash := Hash.^parameterize(type,Any).new),
-          (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
+          (my \hash := Hash.^parameterize(type,Any).new),
+          (my \descriptor := nqp::getattr(hash,Hash,'$!descriptor')),
           nqp::if(
             $!elems && nqp::elems($!elems),
             nqp::stmts(
-              (my $storage := nqp::clone($!elems)),
-              (my $iter := nqp::iterator($storage)),
+              (my \storage := nqp::clone($!elems)),
+              (my \iter := nqp::iterator(storage)),
               nqp::while(
-                $iter,
+                iter,
                 nqp::bindkey(
-                  $storage,
-                  nqp::iterkey_s(nqp::shift($iter)),
+                  storage,
+                  nqp::iterkey_s(nqp::shift(iter)),
                   nqp::p6bindattrinvres(
-                    nqp::clone(nqp::iterval($iter)),
-                    Pair,
-                    '$!value',
-                    (nqp::p6scalarfromdesc($descriptor) =
-                      nqp::getattr(nqp::iterval($iter),Pair,'$!value'))
+                    nqp::clone(nqp::iterval(iter)),Pair,'$!value',
+                    (nqp::p6scalarfromdesc(descriptor) =
+                      nqp::getattr(nqp::iterval(iter),Pair,'$!value'))
                   )
                 )
               ),
-              nqp::bindattr($hash,Map,'$!storage',$storage)
+              nqp::bindattr(hash,Map,'$!storage',storage)
             )
           ),
-          $hash
+          hash
         )
     }
-    multi method hash(Baggy:D: --> Hash:D) { self.HASHIFY(Any) }
-    multi method Hash(Baggy:D: --> Hash:D) { self.HASHIFY(UInt) }
+    multi method hash(Baggy:D: --> Hash:D) { self!HASHIFY(UInt) }
+    multi method Hash(Baggy:D: --> Hash:D) { self!HASHIFY(Any) }
 
     method default(Baggy:D: --> 0) { }
 
     multi method Str(Baggy:D: --> Str:D) {
         nqp::join(' ',Rakudo::QuantHash.RAW-VALUES-MAP(self, {
             nqp::if(
-              (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
+              (my \value := nqp::getattr($_,Pair,'$!value')) == 1,
               nqp::getattr($_,Pair,'$!key').gist,
-              "{nqp::getattr($_,Pair,'$!key').gist}($value)"
+              "{nqp::getattr($_,Pair,'$!key').gist}({value})"
             )
         }))
     }
@@ -313,9 +311,9 @@ my role Baggy does QuantHash {
               Rakudo::Sorting.MERGESORT-str(
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, {
                     nqp::if(
-                      (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
+                      (my \value := nqp::getattr($_,Pair,'$!value')) == 1,
                       nqp::getattr($_,Pair,'$!key').gist,
-                      "{nqp::getattr($_,Pair,'$!key').gist}($value)"
+                      "{nqp::getattr($_,Pair,'$!key').gist}({value})"
                     )
                 })
               )
@@ -332,10 +330,12 @@ my role Baggy does QuantHash {
               '(',
               nqp::join(',',
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, {
-                    nqp::if(
-                      (my $value := nqp::getattr($_,Pair,'$!value')) == 1,
-                      nqp::getattr($_,Pair,'$!key').perl,
-                      "{nqp::getattr($_,Pair,'$!key').perl}=>$value"
+                    nqp::concat(
+                      nqp::concat(
+                        nqp::getattr($_,Pair,'$!key').perl,
+                        '=>'
+                      ),
+                      nqp::getattr($_,Pair,'$!value').perl
                     )
                 })
               )
@@ -343,10 +343,10 @@ my role Baggy does QuantHash {
             nqp::concat(').',self.^name)
           ),
           nqp::if(
-            nqp::istype(self,Bag),
+            nqp::eqaddr(self,bag()),
             'bag()',
             nqp::if(
-              nqp::istype(self,Mix),
+              nqp::eqaddr(self,mix()),
               'mix()',
               nqp::concat('().',self.^name)
             )
@@ -360,10 +360,10 @@ my role Baggy does QuantHash {
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::stmts(
-            (my $iter := Rakudo::QuantHash.ROLL($!elems)),
-            (my $pair := nqp::iterval($iter)),
-            nqp::deletekey($!elems,nqp::iterkey_s($iter)),
-            $pair
+            (my \iter := Rakudo::QuantHash.ROLL($!elems)),
+            (my \pair := nqp::iterval(iter)),
+            nqp::deletekey($!elems,nqp::iterkey_s(iter)),
+            pair
           ),
           Nil
         )
@@ -380,12 +380,12 @@ my role Baggy does QuantHash {
                 nqp::if(
                   nqp::elems($!picked),
                   nqp::stmts(
-                    (my $pair := nqp::atkey(
+                    (my \pair := nqp::atkey(
                       $!elems,
-                      (my $key := nqp::pop_s($!picked))
+                      (my \key := nqp::pop_s($!picked))
                     )),
-                    nqp::deletekey($!elems,$key),
-                    $pair
+                    nqp::deletekey($!elems,key),
+                    pair
                   ),
                   IterationEnd
                 )
@@ -448,38 +448,38 @@ my role Baggy does QuantHash {
                   nqp::stmts(
                     (my Int $rand := $!total.rand.Int),
                     (my Int $seen := 0),
-                    (my $iter := nqp::iterator($!weights)),
+                    (my \iter := nqp::iterator($!weights)),
                     nqp::while(
-                      $iter && nqp::isle_I(
+                      iter && nqp::isle_I(
                         ($seen := nqp::add_I(
                           $seen,
-                          nqp::iterval(nqp::shift($iter)),
+                          nqp::iterval(nqp::shift(iter)),
                           Int
                         )),
                         $rand
                       ),
                       nqp::null
                     ),
-                    nqp::bindkey(                # $iter now contains picked one
+                    nqp::bindkey(                # iter now contains picked one
                       $!weights,
-                      nqp::iterkey_s($iter),
-                      nqp::sub_I(nqp::iterval($iter),1,Int)
+                      nqp::iterkey_s(iter),
+                      nqp::sub_I(nqp::iterval(iter),1,Int)
                     ),
                     ($!total := nqp::sub_I($!total,1,Int)),
-                    nqp::iterkey_s($iter)
+                    nqp::iterkey_s(iter)
                   )
               }
 
-              method SET-SELF(\raw, \todo, \total) {
+              method !SET-SELF(\raw, \todo, \total) {
                   nqp::stmts(
                     ($!weights := nqp::clone($!raw := raw)),
-                    (my $iter := nqp::iterator($!weights)),
+                    (my \iter := nqp::iterator($!weights)),
                     nqp::while(
-                      $iter,
+                      iter,
                       nqp::bindkey(
                         $!weights,
-                        nqp::iterkey_s(nqp::shift($iter)),
-                        nqp::getattr(nqp::iterval($iter),Pair,'$!value')
+                        nqp::iterkey_s(nqp::shift(iter)),
+                        nqp::getattr(nqp::iterval(iter),Pair,'$!value')
                       )
                     ),
                     ($!todo := nqp::if(todo > total,total,todo)),
@@ -488,7 +488,7 @@ my role Baggy does QuantHash {
                   )
               }
               method new(\raw, \todo, \total) {
-                  nqp::create(self).SET-SELF(raw, todo, total)
+                  nqp::create(self)!SET-SELF(raw, todo, total)
               }
 
               method pull-one() is raw {
@@ -599,7 +599,7 @@ my role Baggy does QuantHash {
         fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
 
-        while (my $value := iter.pull-one) !=:= IterationEnd {
+        until nqp::eqaddr((my $value := iter.pull-one),IterationEnd) {
             my $tested := test($value);
             if nqp::istype($tested, Iterable) { # multi-level classify
                 X::Invalid::ComputedValue.new(
@@ -631,7 +631,7 @@ my role Baggy does QuantHash {
         fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
-        unless $value =:= IterationEnd {
+        unless nqp::eqaddr($value,IterationEnd) {
             my $tested := test($value);
 
             # multi-level categorize
@@ -648,7 +648,7 @@ my role Baggy does QuantHash {
             else {
                 loop {
                     ++self{$_} for @$tested;
-                    last if ($value := iter.pull-one) =:= IterationEnd;
+                    last if nqp::eqaddr(($value := iter.pull-one),IterationEnd);
                     nqp::istype(($tested := test($value))[0], Iterable)
                         and X::Invalid::ComputedValue.new(
                             :name<mapper>,
@@ -679,17 +679,17 @@ my role Baggy does QuantHash {
         nqp::if(
           raw && nqp::elems(raw),
           nqp::stmts(
-            (my $elems := nqp::clone(raw)),
-            (my $iter := nqp::iterator($elems)),
+            (my \elems := nqp::clone(raw)),
+            (my \iter := nqp::iterator(elems)),
             nqp::while(
-              $iter,
+              iter,
               nqp::bindkey(
-                $elems,
-                nqp::iterkey_s(nqp::shift($iter)),
-                nqp::getattr(nqp::iterval($iter),Pair,'$!key'),
+                elems,
+                nqp::iterkey_s(nqp::shift(iter)),
+                nqp::getattr(nqp::iterval(iter),Pair,'$!key'),
               )
             ),
-            nqp::create(type).SET-SELF($elems)
+            nqp::create(type).SET-SELF(elems)
           ),
           nqp::if(
             nqp::eqaddr(type,Set),

@@ -26,6 +26,12 @@ my class ThreadPoolScheduler does Scheduler {
     # Infrastructure for non-blocking `await` for code running on the
     # scheduler.
     my constant THREAD_POOL_PROMPT = Mu.new;
+    my class ContinuationWrapper {
+        has $.cont;
+        method new(Mu \cont) {
+            nqp::p6bindattrinvres(nqp::create(self), ContinuationWrapper, '$!cont', cont)
+        }
+    }
     class ThreadPoolAwaiter does Awaiter {
         has $!queue;
 
@@ -57,7 +63,7 @@ my class ThreadPoolScheduler does Scheduler {
                     $handle.subscribe-awaiter(-> \success, \result {
                         $success := success;
                         $result := result;
-                        nqp::push($!queue, { nqp::continuationinvoke(c, nqp::null()) });
+                        nqp::push($!queue, ContinuationWrapper.new(c));
                         Nil
                     });
                 });
@@ -229,26 +235,31 @@ my class ThreadPoolScheduler does Scheduler {
 
         method !run-one(\task --> Nil) {
             $!working = 1;
-            nqp::continuationreset(THREAD_POOL_PROMPT, {
-                if nqp::istype(task, List) {
-                    my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
-                    $code(|task);
-                }
-                else {
-                    task.();
-                }
-                CONTROL {
-                    default {
-                        my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
-                        nqp::getcomp('perl6').handle-control($vm-ex);
+            if nqp::istype(task, ContinuationWrapper) {
+                nqp::continuationinvoke(task.cont, nqp::null());
+            }
+            else {
+                nqp::continuationreset(THREAD_POOL_PROMPT, {
+                    if nqp::istype(task, List) {
+                        my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
+                        $code(|task);
                     }
-                }
-                CATCH {
-                    default {
-                        $!scheduler.handle_uncaught($_)
+                    else {
+                        task.();
                     }
-                }
-            });
+                    CONTROL {
+                        default {
+                            my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                            nqp::getcomp('perl6').handle-control($vm-ex);
+                        }
+                    }
+                    CATCH {
+                        default {
+                            $!scheduler.handle_uncaught($_)
+                        }
+                    }
+                });
+            }
             $!working = 0;
 #?if moar
             ++⚛$!completed;
@@ -320,116 +331,177 @@ my class ThreadPoolScheduler does Scheduler {
     has Thread $!supervisor;
 
     method !general-queue() {
-        unless $!general-queue.DEFINITE {
-            $!state-lock.protect: {
-                unless $!general-queue.DEFINITE {
+        nqp::if(
+          nqp::isconcrete($!general-queue),
+          $!general-queue,
+          nqp::stmts(
+            $!state-lock.protect( {
+                nqp::unless(
+                  nqp::isconcrete($!general-queue),
+                  nqp::stmts(
                     # We don't have any workers yet, so start one.
-                    $!general-queue := nqp::create(Queue);
-                    $!general-workers := first-worker(
+                    ($!general-queue := nqp::create(Queue)),
+                    ($!general-workers := first-worker(
                       GeneralWorker.new(
                         queue => $!general-queue,
                         scheduler => self
                       )
-                    );
-                    scheduler-debug "Created initial general worker thread";
-                    self!maybe-start-supervisor();
-                }
-            }
-        }
-        $!general-queue
+                    )),
+                    scheduler-debug("Created initial general worker thread"),
+                    self!maybe-start-supervisor
+                  )
+                )
+            } ),
+            $!general-queue
+          )
+        )
     }
 
     method !timer-queue() {
-        unless $!timer-queue.DEFINITE {
-            $!state-lock.protect: {
-                unless $!timer-queue.DEFINITE {
+        nqp::if(
+          nqp::isconcrete($!timer-queue),
+          $!timer-queue,
+          nqp::stmts(
+            $!state-lock.protect( {
+                nqp::unless(
+                  nqp::isconcrete($!timer-queue),
+                  nqp::stmts(
                     # We don't have any workers yet, so start one.
-                    $!timer-queue := nqp::create(Queue);
-                    $!timer-workers := first-worker(
+                    ($!timer-queue := nqp::create(Queue)),
+                    ($!timer-workers := first-worker(
                       TimerWorker.new(
                         queue => $!timer-queue,
                         scheduler => self
                       )
-                    );
-                    scheduler-debug "Created initial timer worker thread";
-                    self!maybe-start-supervisor();
-                }
-            }
-        }
-        $!timer-queue
+                    )),
+                    scheduler-debug("Created initial general worker thread"),
+                    self!maybe-start-supervisor
+                  )
+                )
+            } ),
+            $!timer-queue
+          )
+        )
     }
 
-    constant @affinity-add-thresholds = 1, 5, 10, 20, 50, 100;
-    method !affinity-queue() {
-        # If there's no affinity workers, start one.
-        my $cur-affinity-workers := $!affinity-workers;
-        if $cur-affinity-workers.elems == 0 {
-            $!state-lock.protect: {
-                if $!affinity-workers.elems == 0 {
-                    # We don't have any affinity workers yet, so start one
-                    # and return its queue.
-                    $!affinity-workers := first-worker(
-                      AffinityWorker.new(
-                        scheduler => self
-                      )
-                    );
-                    scheduler-debug "Created initial affinity worker thread";
-                    self!maybe-start-supervisor();
-                    return $!affinity-workers[0].queue;
-                }
-            }
-            $cur-affinity-workers := $!affinity-workers; # lost race for first
-        }
+    # set up affinity threshold information
+    my $affinity-add-thresholds := nqp::list_i(0, 1, 5, 10, 20, 50, 100);
+    my int $affinity-max-index =
+      nqp::sub_i(nqp::elems($affinity-add-thresholds),1);
+    my $affinity-max-threshold =
+      nqp::atpos_i($affinity-add-thresholds,$affinity-max-index );
 
-        # Otherwise, see which has the least load (this is inherently racey
-        # and approximate, but enough to help us avoid a busy worker). If we
-        # find an empty queue, return it immediately.
-        my $most-free-worker;
-        my int $i = -1;
-        nqp::while(
-          ++$i < nqp::elems($cur-affinity-workers),
-          nqp::if(
-            $most-free-worker.DEFINITE,
+    method !affinity-queue() {
+        nqp::stmts(
+          # If there are no affinity workers, start one.
+          nqp::unless(
+            nqp::elems(my $cur-affinity-workers := $!affinity-workers),
             nqp::stmts(
-              (my $cand := nqp::atpos($cur-affinity-workers,$i)),
-              nqp::unless(
-                (my $queue := $cand.queue).elems,
-                (return $queue)
+              $!state-lock.protect( {
+                  nqp::unless(
+                    nqp::elems($!affinity-workers),
+                    nqp::stmts(
+                      # We don't have any affinity workers yet, so start one
+                      # and return its queue.
+                      ($!affinity-workers := first-worker(
+                        AffinityWorker.new(
+                          scheduler => self
+                        )
+                      )),
+                      scheduler-debug("Created initial affinity worker thread"),
+                      self!maybe-start-supervisor,
+                      (return nqp::atpos($!affinity-workers,0).queue)
+                    )
+                  )
+              } ),
+              ($cur-affinity-workers := $!affinity-workers) # lost race
+            )
+          ),
+
+          # Otherwise, see which has the least load (this is inherently racey
+          # and approximate, but enough to help us avoid a busy worker). If we
+          # find an empty queue, return it immediately.
+          (my int $i = -1),
+          nqp::while(
+            nqp::islt_i(
+              ($i = nqp::add_i($i,1)),
+              nqp::elems($cur-affinity-workers)
+            ),
+            nqp::if(
+              nqp::isconcrete(my $most-free-worker),
+              nqp::stmts(
+                (my $cand := nqp::atpos($cur-affinity-workers,$i)),
+                nqp::unless(
+                  nqp::elems(my $queue := $cand.queue),
+                  (return $queue)
+                ),
+                nqp::if(
+                  nqp::islt_i(
+                    nqp::elems($queue),
+                    nqp::elems($most-free-worker.queue)
+                  ),
+                  $most-free-worker := $cand
+                )
               ),
+              ($most-free-worker := nqp::atpos($cur-affinity-workers,$i))
+            )
+          ),
+
+          # Otherwise, check if the queue beats the threshold to add another
+          # worker thread.
+          nqp::if(
+            nqp::isle_i(
+              nqp::elems(my $chosen-queue := $most-free-worker.queue),
               nqp::if(
-                nqp::islt_i($queue.elems,$most-free-worker.queue.elems),
-                $most-free-worker := $cand
+                nqp::islt_i(
+                  nqp::elems($cur-affinity-workers),
+                  $affinity-max-index
+                ),
+                $affinity-max-threshold,
+                nqp::atpos_i(
+                  $affinity-add-thresholds,
+                  nqp::elems($cur-affinity-workers)
+                )
               )
             ),
-            ($most-free-worker := nqp::atpos($cur-affinity-workers,$i))
-          )
-        );
+            # found one that is empty enough
+            $chosen-queue,
+            # need to add another one, unless another thread did already
+            $!state-lock.protect( {
+                nqp::stmts(
+                  nqp::if(
+                    nqp::isgt_i(
+                      nqp::elems($!general-workers)
+                        + nqp::elems($!timer-workers)
+                        + nqp::elems($!affinity-workers),
+                      $!max_threads
+                    ),
+                    # alas, no way to add more threads
+                    nqp::stmts(
+                      scheduler-debug("Will not add extra affinity worker; hit $!max_threads thread limit"),
+                      (return $chosen-queue)
+                    )
+                  ),
+                  nqp::if(
+                    nqp::isne_i(
+                      nqp::elems($cur-affinity-workers),
+                      nqp::elems($!affinity-workers)
+                    ),
+                    # different load found, take this one
+                    (return $chosen-queue)
+                  ),
 
-        # Otherwise, check if the queue beats the threshold to add another
-        # worker thread.
-        my $chosen-queue := $most-free-worker.queue;
-        my $threshold = @affinity-add-thresholds[
-            ($cur-affinity-workers.elems min @affinity-add-thresholds) - 1
-        ];
-        if $chosen-queue.elems > $threshold {
-            # Add another one, unless another thread did too.
-            $!state-lock.protect: {
-                if self!total-workers() >= $!max_threads {
-                    scheduler-debug "Will not add extra affinity worker; hit $!max_threads thread limit";
-                    return $chosen-queue;
-                }
-                if $cur-affinity-workers.elems != $!affinity-workers.elems {
-                    return $chosen-queue;
-                }
-                my $new-worker := AffinityWorker.new(scheduler => self);
-                $!affinity-workers := push-worker($!affinity-workers,$new-worker);
-                scheduler-debug "Added an affinity worker thread";
-                $new-worker.queue
-            }
-        }
-        else {
-            $chosen-queue
-        }
+                  # ok ok, add new worker
+                  ($!affinity-workers := push-worker(
+                    $!affinity-workers,
+                    (my $new-worker := AffinityWorker.new(scheduler => self))
+                  )),
+                  scheduler-debug("Added an affinity worker thread"),
+                  $new-worker.queue
+                )
+            } )
+          )
+        )
     }
 
     # Initializing a worker list with a worker, is straightforward and devoid
@@ -454,6 +526,7 @@ my class ThreadPoolScheduler does Scheduler {
     # add threads.
     my constant SUPERVISION_INTERVAL  = 1e-2;
     my constant NUM_SAMPLES           = 5;
+    my constant NUM_SAMPLES_NUM       = 5e0;
     my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
@@ -484,21 +557,36 @@ my class ThreadPoolScheduler does Scheduler {
                     scheduler-debug "Added a timer worker thread";
                 }
 
-                sub getrusage-total() is raw {
-                    my \rusage = nqp::getrusage();
-                    nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
-                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_UTIME_MSEC)
-                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
-                      + nqp::atpos_i(rusage, nqp::const::RUSAGE_STIME_MSEC)
-                }
-
                 scheduler-debug "Supervisor started";
                 my num $last-rusage-time = nqp::time_n;
-                my int $last-usage = getrusage-total;
 #?if !jvm
+                my int @rusage;
+                nqp::getrusage(@rusage);
+                my int $last-usage =
+                  nqp::mul_i(
+                    nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_SEC),
+                    1000000
+                  ) + nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                    + nqp::mul_i(
+                        nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_SEC),
+                        1000000
+                      )
+                    + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
+
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
 #?if jvm
+                ## dirty hack, that relies on rusage being a VMArrayInstance
+                ## instead of VMArrayInstance_i
+                ## see https://github.com/rakudo/rakudo/issues/1666
+                my int @rusage;
+                nqp::getrusage(@rusage);
+                my int $last-usage =
+                  1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
+                    + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                    + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
+                    + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
+
                 my @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
                 my int $cpu-cores = nqp::cpucores();
@@ -518,7 +606,7 @@ my class ThreadPoolScheduler does Scheduler {
                 my num $normalized-delta;
                 my num $per-core;
                 my num $per-core-util;
-                my $smooth-per-core-util;
+                my num $smooth-per-core-util = 0e0;
 
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
@@ -531,27 +619,53 @@ my class ThreadPoolScheduler does Scheduler {
                     $now = nqp::time_n;
                     $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
-                    $current-usage = getrusage-total();
+                    nqp::getrusage(@rusage);
+#?if !jvm
+                    $current-usage =
+                      nqp::mul_i(
+                        nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_SEC),
+                        1000000
+                      ) + nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                        + nqp::mul_i(
+                            nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_SEC),
+                            1000000
+                          )
+                        + nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_MSEC);
+#?endif
+#?if jvm
+                    ## dirty hack, that relies on rusage being a VMArrayInstance
+                    ## instead of VMArrayInstance_i
+                    ## see https://github.com/rakudo/rakudo/issues/1666
+                    $current-usage =
+                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
+                        + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
+                        + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
+                        + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
+#?endif
                     $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 
                     # Scale this by the time between rusage calls and turn it
                     # into a per-core utilization percentage.
-                    $normalized-delta = $usage-delta / $rusage-period;
-                    $per-core = $normalized-delta / $cpu-cores;
-                    $per-core-util = 100 * ($per-core / (1000000 * NUM_SAMPLES));
+                    $normalized-delta = nqp::div_n($usage-delta, $rusage-period);
+                    $per-core = nqp::div_n($normalized-delta, $cpu-cores);
+                    # used to have a "100 *" in the front, but for speed
+                    # and mostly memory usage reasons it got constant-folded
+                    # into the 1000000 instead.
+                    $per-core-util = nqp::div_n($per-core, (10000e0 * NUM_SAMPLES_NUM));
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
 #?if !jvm
-                    nqp::shift_n(@last-utils);
+                    $smooth-per-core-util -= nqp::shift_n(@last-utils);
+                    $smooth-per-core-util += $per-core-util;
                     nqp::push_n(@last-utils,$per-core-util);
 #?endif
 #?if jvm
-                    @last-utils.shift;
+                    $smooth-per-core-util -= @last-utils.shift;
+                    $smooth-per-core-util += $per-core-util;
                     @last-utils.push($per-core-util);
 #?endif
-                    $smooth-per-core-util = @last-utils.sum;
                     scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 
@@ -565,17 +679,36 @@ my class ThreadPoolScheduler does Scheduler {
                     else {
                         self!tweak-workers($!general-queue, $!general-workers,
                           &add-general-worker, $cpu-cores, $smooth-per-core-util)
-                          if $!general-queue.DEFINITE && $!general-queue.elems;
+                          if $!general-queue.DEFINITE && nqp::elems($!general-queue);
 
                         self!tweak-workers($!timer-queue, $!timer-workers,
                           &add-timer-worker, $cpu-cores, $smooth-per-core-util)
-                          if $!timer-queue.DEFINITE && $!timer-queue.elems;
+                          if $!timer-queue.DEFINITE && nqp::elems($!timer-queue);
 
                     }
 
                     # always need to prod affinity workers
-                    self!prod-affinity-workers: $!affinity-workers
-                      if $!affinity-workers.DEFINITE;
+                    if nqp::isconcrete($!affinity-workers)
+                      && nqp::elems($!affinity-workers) -> int $count {
+                        my $worker;
+                        my $item;
+                        loop (my int $idx = 0; $idx < $count; $idx++) {
+                            $worker := nqp::atpos($!affinity-workers, $idx);
+                            if $worker.working {
+                                $worker.take-completed;
+
+                                # If an affinity worker completed nothing for some time,
+                                # steal an item from its queue, moving it to general queue.
+                                # This resolves deadlocks in certain cases.
+                                if $worker.times-nothing-completed > 10 {
+                                    scheduler-debug "Stealing queue from affinity worker";
+                                    $item := nqp::queuepoll($worker.queue);
+                                    nqp::push(self!general-queue, $item)
+                                      unless nqp::isnull($item);
+                                }
+                            }
+                        }
+                    }
 
                     CATCH {
                         when X::Exhausted {
@@ -589,25 +722,6 @@ my class ThreadPoolScheduler does Scheduler {
                     }
                 }
             });
-        }
-    }
-
-    method !prod-affinity-workers (\worker-list --> Nil) {
-        for ^worker-list.elems {
-            my $worker := worker-list[$_];
-            if $worker.working {
-                $worker.take-completed;
-
-                # If an affinity worker completed nothing for some time,
-                # steal an item from its queue, moving it to general queue.
-                # This resolves deadlocks in certain cases.
-                if $worker.times-nothing-completed > 10 {
-                    scheduler-debug "Stealing queue from affinity worker";
-                    my $item := nqp::queuepoll($worker.queue);
-                    nqp::push(self!general-queue, $item)
-                      unless nqp::isnull($item);
-                }
-            }
         }
     }
 
@@ -634,7 +748,7 @@ my class ThreadPoolScheduler does Scheduler {
 
         sub heuristic-check-for-deadlock(--> Nil) {
             my int $average-times-nothing-completed
-            = $total-times-nothing-completed div (worker-list.elems || 1);
+            = $total-times-nothing-completed div (nqp::elems(worker-list) || 1);
             if $average-times-nothing-completed > 20 {
                 scheduler-debug "Heuristic queue progress deadlock situation detected";
                 add-worker();
@@ -642,7 +756,9 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         # If we didn't complete anything, then consider adding more threads.
-        my int $total-workers = self!total-workers();
+        my int $total-workers = nqp::elems($!general-workers)
+          + nqp::elems($!timer-workers)
+          + nqp::elems($!affinity-workers);
         if $total-completed == 0 {
             if $total-workers < $!max_threads {
                 # There's something in the queue and we haven't completed it.
@@ -678,12 +794,6 @@ my class ThreadPoolScheduler does Scheduler {
                 scheduler-debug "Will not add extra worker; hit $!max_threads thread limit [branch with some total completed]";
             }
         }
-    }
-
-    method !total-workers() is raw {
-        nqp::elems($!general-workers)
-          + nqp::elems($!timer-workers)
-          + nqp::elems($!affinity-workers)
     }
 
     submethod BUILD(
@@ -729,90 +839,165 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
 
-    my class TimerCancellation is repr('AsyncTask') { }
-    method cue(&code, :$at, :$in, :$every, :$times = 1, :&stop is copy, :&catch ) {
-        die "Cannot specify :at and :in at the same time"
-          if $at.defined and $in.defined;
-        die "Cannot specify :every, :times and :stop at the same time"
-          if $every.defined and $times > 1 and &stop;
-
-        # For $in/$at times, if the resultant delay is less than 0.001 (including
-        # negatives) equate those to zero. For $every intervals, we convert
-        # such values to minimum resolution of 0.001 and warn about that
-        sub to-millis(Numeric() $value, $allow-zero = False) {
-            my $proposed := (1000 * $value).Int;
-            $proposed > 0 ?? $proposed
-                !! $allow-zero ?? 0
-                    !! do {warn "Minimum timer resolution is 1ms; using that "
-                            ~ "instead of {1000 * $value}ms";
-                        1}
-        }
-        my $delay = to-millis ($at ?? $at - now !! $in // 0), True;
-
-        # Wrap any catch handler around the code to run.
-        my &run := &catch ?? wrap-catch(&code, &catch) !! &code;
-
-        # need repeating
-        if $every {
-            # generate a stopper if needed
-            if $times > 1 {
-                my $todo = $times;
-                &stop = sub { $todo ?? !$todo-- !! True }
-            }
-
-            # we have a stopper
-            if &stop {
-                my $handle;
-                my $cancellation;
-                sub cancellation() {
-                    $cancellation //=
-                      Cancellation.new(async_handles => [$handle]);
-                }
-                $handle := nqp::timer(self!timer-queue(),
-                    { stop() ?? cancellation().cancel !! run() },
-                    $delay, to-millis($every),
-                    TimerCancellation);
-                cancellation()
-            }
-
-            # no stopper
-            else {
-                my $handle := nqp::timer(self!timer-queue(), &run,
-                    $delay, to-millis($every),
-                    TimerCancellation);
-                Cancellation.new(async_handles => [$handle])
-            }
-        }
-
-        # only after waiting a bit or more than once
-        elsif $delay or $times > 1 {
-            my @async_handles;
-            @async_handles.push(
-              nqp::timer(self!timer-queue(), &run, $delay, 0, TimerCancellation)
-            ) for 1 .. $times;
-            Cancellation.new(:@async_handles)
-        }
-
-        # just cue the code
-        else {
-            nqp::push(self!general-queue(), &run);
-            Nil
-        }
+    sub to-millis(Numeric() $value) {
+        nqp::if(
+          nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
+          $proposed,
+          nqp::stmts(
+            warn("Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms"),
+            1
+          )
+        )
     }
-
+    sub to-millis-allow-zero(Numeric() $value) {
+        nqp::if(
+          nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
+          $proposed
+          # not true == 0 == what we need
+        )
+    }
     sub wrap-catch(&code, &catch) {
         -> { code(); CATCH { default { catch($_) } } }
     }
 
+    my class TimerCancellation is repr('AsyncTask') { }
+
+    method !CUE_DELAY_TIMES(&code, int $delay, int $times, %args) {
+        nqp::stmts(
+          (my &run := nqp::if(                   # set up what we need to run
+            nqp::isnull(my $catch :=
+              nqp::atkey(nqp::getattr(%args,Map,'$!storage'),"catch")),
+            &code,
+            wrap-catch(&code, $catch) # wrap any catch handler around code
+          )),
+          Cancellation.new( async_handles => nqp::if(
+            $times,
+            nqp::stmts(                          # need to run more than once
+              (my @async_handles),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$times),
+                @async_handles.push(
+                  nqp::timer(self!timer-queue,&run,$delay,0,TimerCancellation)
+                )
+              ),
+              @async_handles
+            ),
+            [                                    # only needs to run once
+              nqp::timer(self!timer-queue,&run,$delay,0,TimerCancellation)
+            ]
+          ))
+        )
+    }
+
+    proto method cue(|) {*}
+    multi method cue(&code, :$every!, :$times = 1, *%_) {
+        # these need to exist in this scope
+        my $handle;
+        my $cancellation;
+        sub cancellation() {
+            $cancellation //= Cancellation.new(async_handles => [$handle])
+        }
+
+        nqp::if(
+          nqp::isconcrete(
+            nqp::atkey((my $args := nqp::getattr(%_,Map,'$!storage')),"stop")
+          ) && nqp::isconcrete($times) && $times > 1,
+          die("Cannot specify :every, :times and :stop at the same time"),
+          nqp::if(
+            nqp::isconcrete(nqp::atkey($args,"at"))
+              && nqp::isconcrete(nqp::atkey($args,"in")),
+            die("Cannot specify :at and :in at the same time"),
+            nqp::stmts(
+              (my int $delay = to-millis-allow-zero(  # set up any delay
+                nqp::if(
+                  nqp::isnull(my $at := nqp::atkey($args,"at")),
+                  nqp::ifnull(nqp::atkey($args,"in"),0),
+                  $at - now
+                )
+              )),
+              (my &run := nqp::if(                    # set up what should run
+                nqp::isnull(my $catch := nqp::atkey($args,"catch")),
+                &code,
+                wrap-catch(&code, $catch) # wrap any catch handler around code
+              )),
+              nqp::if(
+                nqp::isconcrete((my $stopper := nqp::if(
+                  nqp::isgt_i($times,1),
+                  nqp::stmts(                      # create our own stopper
+                    (my int $todo = nqp::add_i($times,1)),
+                    sub { nqp::not_i($todo = nqp::sub_i($todo,1)) }
+                  ),
+                  nqp::atkey($args,"stop")
+                ))),
+                nqp::stmts(                        # we have a stopper
+                  ($handle := nqp::timer(
+                    self!timer-queue,
+                    -> { nqp::if($stopper(),cancellation().cancel,run()) },
+                    $delay, to-millis($every), TimerCancellation
+                  )),
+                  cancellation()
+                ),
+                nqp::stmts(                        # no stopper
+                  ($handle := nqp::timer(
+                    self!timer-queue,
+                    &run,
+                    $delay, to-millis($every), TimerCancellation
+                  )),
+                  Cancellation.new(async_handles => [$handle])
+                )
+              )
+            )
+          )
+        )
+    }
+    multi method cue(&code, :$times!, *%_) {
+        nqp::stmts(
+          (my $args := nqp::getattr(%_,Map,'$!storage')),
+          nqp::if(
+            nqp::isconcrete(my $at := nqp::atkey($args,"at"))
+              && nqp::isconcrete(my $in := nqp::atkey($args,"in")),
+            die("Cannot specify :at and :in at the same time"),
+            self!CUE_DELAY_TIMES(
+              &code,
+              to-millis(nqp::ifnull(
+                $in,
+                nqp::if(nqp::isnull($at), .001, $at - now)
+              )),
+              $times // 1,
+              %_
+            )
+          )
+        )
+    }
+    multi method cue(&code, :$at!, *%_) {
+        nqp::if(
+          nqp::isconcrete($at)
+            && nqp::isconcrete(
+                 nqp::atkey(nqp::getattr(%_,Map,'$!storage'),"in")),
+          die("Cannot specify :at and :in at the same time"),
+          self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($at - now), 0, %_)
+        )
+    }
+    multi method cue(&code, :$in!, *%_) {
+        self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($in), 0, %_)
+    }
+    multi method cue(&code, :&catch! --> Nil) {
+        nqp::push(self!general-queue, wrap-catch(&code, &catch))
+    }
+    multi method cue(&code --> Nil) {
+        nqp::push(self!general-queue,&code)
+    }
+
     method loads() is raw {
         my int $loads = 0;
-        $loads = $loads + $!general-queue.elems if $!general-queue;
-        $loads = $loads + $!timer-queue.elems   if $!timer-queue;
+        $loads = $loads + nqp::elems($!general-queue) if $!general-queue;
+        $loads = $loads + nqp::elems($!timer-queue)   if $!timer-queue;
 
         my int $i = -1;
         nqp::while(
           ++$i < nqp::elems($!affinity-workers),
-          $loads = $loads + nqp::atpos($!affinity-workers,$i).queue.elems
+          $loads = $loads + nqp::elems(nqp::atpos($!affinity-workers,$i).queue)
         );
 
         $loads

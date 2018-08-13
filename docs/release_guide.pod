@@ -18,19 +18,35 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2018-04-21   Rakudo #122 (AlexDaniel + Releasable)
-  2018-05-19   Rakudo #123
-  2018-06-16   Rakudo #124
-  2018-07-21   Rakudo #125
-  2018-08-18   Rakudo #126
-  2018-09-15   Rakudo #127
-  2018-10-20   Rakudo #128
-  2018-11-17   Rakudo #129
-  2018-12-15   Rakudo #130
+  2018-08-18   Rakudo #125 (AlexDaniel + Releasable)
+  2018-09-15   Rakudo #126
+  2018-10-20   Rakudo #127
+  2018-11-17   Rakudo #128
+  2018-12-15   Rakudo #129
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
 =head2 Steps to create a release (for release managers)
+
+B<⚠ Please try to rely on automation instead of doing the release
+manually.> This document describes steps that should be performed
+by tools, and in a way serves as a documentation for them.
+
+Currently there are two tools:
+
+=over
+
+=item *
+Release Sakefile (not published yet) which is meant to be used together with
+L<Releasable|https://github.com/perl6/whateverable/wiki/Releasable> bot
+
+=item *
+L<NeuralAnomaly|https://github.com/zoffixznet/na> bot
+
+=back
+
+Some things are hard to automate, and you have to understand what is
+(and what is not) done by the tool you are using, so read on.
 
 =over 4
 
@@ -42,8 +58,11 @@ A few days before the Rakudo release, it’s a good idea to...
 
 =item *
 
-Remind people of the upcoming release, invite people to
-update the ChangeLog file, update the ROADMAP, etc.
+Remind people of the upcoming release, invite people to update the
+L<ChangeLog|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft>,
+etc. Note that the ChangeLog is kept on the wiki so that people can
+easily do minor corrections, but for the release it has to be moved
+into C<docs/ChangeLog>.
 
 =item *
 
@@ -54,7 +73,7 @@ any occurrences, remove the code and make sure the spectest is still ok.
 
 =item *
 
-Review the RT queue for tickets that might need resolving
+Review the issue tracker for tickets that might need resolving
 prior to the release, addressing them as needed.  “Tickets
 that need resolving” is left to your discretion.  Any problem
 that has a large impact on users is worth addressing either
@@ -91,6 +110,30 @@ double-check that the copyright date in the README file includes
 the current year.  (It’s not necessary to update copyright dates
 in other files, unless you know that a given file has been modified
 in a year not reflected by the file’s copyright notice.)
+
+=item *
+
+To spot more regressions, it’s a good idea to test the ecosystem and see
+if there are any modules that were working correctly (e.g. passing their
+tests) on the previous release but no longer work on HEAD. One of the
+tools to do that is
+L<Toaster|https://github.com/zoffixznet/perl6-Toaster>.
+
+Generally, any kind of breakage in modules is unwanted, but there are
+exceptions. Submit Pull Requests to anything that is affected and file
+rakudo tickets for all unwanted changes in Rakudo behavior.
+
+=item *
+
+If the release is nearing and you see that the state of Rakudo on HEAD
+is inherently unstable (less stable than the previous release, or worse
+than the previous release for other reasons), assess your options.
+Even though rakudo releases are scheduled for every month, it doesn't
+necessarily mean that there I<must> be a release every month. Cancelling
+the release is an option. However, see if anything else can be done,
+like if offending commits can be reverted, or if you can make a release
+from an earlier state (e.g. previous release + some commits +
+cherry-picked important fixes).
 
 =back
 
@@ -299,7 +342,7 @@ and L<https://rakudo.perl6.org/downloads/rakudo/>:
 
 If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
 masak, tadzik, moritz, PerlJam/perlpilot, [Coke], lizmat, timotimo, fsergot,
-hoelzro, Zoffix) on #perl6 or #perl6-dev to do it for you.
+hoelzro, Zoffix, AlexDaniel) on #perl6 or #perl6-dev to do it for you.
 
 =item 19.
 
@@ -448,6 +491,10 @@ Previous releases were bundled as part of monthly Parrot releases.
   2018-02-20   Rakudo #120 "2018.02"           (AlexDaniel + Releasable)
   2018-02-23   2018.02.1                       (AlexDaniel + Releasable)
   2018-03-19   Rakudo #121 "2018.03"           (AlexDaniel + Releasable)
+  2018-04-25   Rakudo #122 "2018.04"           (AlexDaniel + Releasable)
+  2018-04-30   2018.04.1                       (AlexDaniel + Releasable)
+  2018-05-24   Rakudo #123 "2018.05"           (AlexDaniel + Releasable)
+  2018-06-22   Rakudo #124 "2018.06"           (AlexDaniel + Releasable)
 
 =head1 COPYRIGHT
 

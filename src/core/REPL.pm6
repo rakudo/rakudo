@@ -384,16 +384,21 @@ do {
             $*CTXSAVE := 0;
         }
 
-        method input-incomplete(Mu $value) {
-            $value.WHERE == $!need-more-input.WHERE
+        method input-incomplete(Mu $value --> Bool:D) {
+            nqp::p6bool(nqp::can($value, 'WHERE'))
+              and $value.WHERE == $!need-more-input.WHERE
         }
 
-        method input-toplevel-control(Mu $value) {
-            $value.WHERE == $!control-not-allowed.WHERE
+        method input-toplevel-control(Mu $value --> Bool:D) {
+            nqp::p6bool(nqp::can($value, 'WHERE'))
+              and $value.WHERE == $!control-not-allowed.WHERE
         }
 
         method repl-print(Mu $value --> Nil) {
-            say $value;
+            nqp::can($value, 'gist')
+              and say $value
+              or say "(low-level object `$value.^name()`)";
+
             CATCH {
                 default { say $_ }
             }

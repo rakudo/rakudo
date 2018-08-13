@@ -10,33 +10,15 @@ my class Hash { # declared in BOOTSTRAP
     }
     multi method Map(Hash:U:) { Map }
     multi method Map(Hash:D: :$view) {
-        my $hash := nqp::getattr(self,Map,'$!storage');
-
-        # empty
-        if nqp::not_i(nqp::defined($hash)) {
-            nqp::create(Map)
-        }
-
-        # view, assuming no change in hash
-        elsif $view {
-            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$hash)
-        }
-
-        # make cow copy
-        else {
-            my $map  := nqp::hash;
-            my \iter := nqp::iterator($hash);
-            my str $key;
-            nqp::while(
-              iter,
-              nqp::bindkey(
-                $map,
-                ($key = nqp::iterkey_s(nqp::shift(iter))),
-                nqp::decont(nqp::atkey($hash,$key))
-              )
-            );
-            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$map)
-        }
+        nqp::if(
+          $view,
+          # Agreeing that the Hash won't be changed after the .Map
+          nqp::p6bindattrinvres(
+            nqp::create(Map), Map, '$!storage',
+            nqp::getattr(self,Map,'$!storage')
+          ),
+          nqp::create(Map).STORE(self, :initialize)
+        )
     }
     method clone(Hash:D:) is raw {
         nqp::p6bindattrinvres(
@@ -46,138 +28,150 @@ my class Hash { # declared in BOOTSTRAP
           Hash, '$!descriptor', nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor))
     }
 
-    method !AT-KEY-CONTAINER(Str:D \key) is raw {
-        nqp::p6bindattrinvres(
-          (my \v := nqp::p6scalarfromdesc($!descriptor)),
-          Scalar,
-          '$!whence',
-          -> { nqp::bindkey(
-                 nqp::if(
-                   nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-                   nqp::getattr(self,Map,'$!storage'),
-                   nqp::bindattr(self,Map,'$!storage',nqp::hash)
-                 ),key,v)
-             }
-        )
+    method !AT_KEY_CONTAINER(Str:D \key) is raw {
+        nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindHashPos.new($!descriptor, self, key))
     }
 
     multi method AT-KEY(Hash:D: Str:D \key) is raw {
-        nqp::if(
-          nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-          nqp::ifnull(
-            nqp::atkey(nqp::getattr(self,Map,'$!storage'),key),
-            self!AT-KEY-CONTAINER(key)
-          ),
-          self!AT-KEY-CONTAINER(key)
+        nqp::ifnull(
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),key),
+          self!AT_KEY_CONTAINER(key)
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
-        nqp::if(
-          nqp::isconcrete(nqp::getattr(self,Map,'$!storage')),
-          nqp::ifnull(
-            nqp::atkey(nqp::getattr(self,Map,'$!storage'),key.Str),
-            self!AT-KEY-CONTAINER(key.Str)
-          ),
-          self!AT-KEY-CONTAINER(key.Str)
+        nqp::ifnull(
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),key.Str),
+          self!AT_KEY_CONTAINER(key.Str)
         )
     }
 
+    proto method STORE_AT_KEY(|) {*}
     multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
           nqp::unbox_s(key),
-          (nqp::p6scalarfromdesc($!descriptor) = x),
+          nqp::p6scalarwithvalue($!descriptor, x),
         )
     }
     multi method STORE_AT_KEY(\key, Mu \x --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
           nqp::unbox_s(key.Str),
-          (nqp::p6scalarfromdesc($!descriptor) = x),
+          nqp::p6scalarwithvalue($!descriptor, x),
         )
+    }
+    method !STORE_MAP(\map --> Nil) {
+        nqp::stmts(
+          (my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'))),
+          nqp::while(
+            $iter,
+            self.STORE_AT_KEY(
+              nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
+            )
+          )
+        )
+    }
+    method STORE(\to_store) {
+        my $temp := nqp::p6bindattrinvres(
+          nqp::clone(self),   # make sure we get a possible descriptor as well
+          Map,
+          '$!storage',
+          my $storage := nqp::hash
+        );
+        my $iter := to_store.iterator;
+        my Mu $x;
+        my Mu $y;
+
+        nqp::until(
+          nqp::eqaddr(($x := $iter.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype($x,Pair),
+            $temp.STORE_AT_KEY(
+              nqp::getattr(nqp::decont($x),Pair,'$!key'),
+              nqp::getattr(nqp::decont($x),Pair,'$!value')
+            ),
+            nqp::if(
+              (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+              $temp!STORE_MAP($x),
+              nqp::if(
+                nqp::eqaddr(($y := $iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::istype($x,Failure),
+                  $x.throw,
+                  X::Hash::Store::OddNumber.new(
+                    found => nqp::add_i(nqp::mul_i(nqp::elems($storage),2),1),
+                    last  => $x
+                  ).throw
+                ),
+                $temp.STORE_AT_KEY($x,$y)
+              )
+            )
+          )
+        );
+
+        nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
 
     multi method ASSIGN-KEY(Hash:D: Str:D \key, Mu \assignval) is raw {
-        nqp::if(
-          nqp::getattr(self,Map,'$!storage').DEFINITE,
-          (nqp::ifnull(
-             nqp::atkey(
-               nqp::getattr(self,Map,'$!storage'),
-               nqp::unbox_s(key)
-             ),
-             nqp::bindkey(
-               nqp::getattr(self,Map,'$!storage'),
-               nqp::unbox_s(key),
-               nqp::p6scalarfromdesc($!descriptor)
-             )
-          ) = assignval),
-          nqp::bindkey(
-            nqp::bindattr(self,Map,'$!storage',nqp::hash),
-            nqp::unbox_s(key),
-            nqp::p6scalarfromdesc($!descriptor) = assignval
-          )
-        )
+        my \storage := nqp::getattr(self,Map,'$!storage');
+        nqp::p6assign(
+          nqp::ifnull(
+            nqp::atkey(storage, key),
+            nqp::bindkey(storage, key,
+              nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+          assignval)
     }
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
-        nqp::if(
-          nqp::getattr(self,Map,'$!storage').DEFINITE,
-          (nqp::ifnull(
-             nqp::atkey(
-               nqp::getattr(self,Map,'$!storage'),
-               nqp::unbox_s(key.Str)
-             ),
-             nqp::bindkey(
-               nqp::getattr(self,Map,'$!storage'),
-               nqp::unbox_s(key.Str),
-               nqp::p6scalarfromdesc($!descriptor)
-             )
-          ) = assignval),
-          nqp::bindkey(
-            nqp::bindattr(self,Map,'$!storage',nqp::hash),
-            nqp::unbox_s(key.Str),
-            nqp::p6scalarfromdesc($!descriptor) = assignval
-          )
-        )
+        my str $key = key.Str;
+        my \storage := nqp::getattr(self, Map, '$!storage');
+        nqp::p6assign(
+          nqp::ifnull(
+            nqp::atkey(storage, $key),
+            nqp::bindkey(storage, $key,
+              nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+          assignval)
     }
 
-    # for some reason, this can't be turned into a multi without
-    # making setting compilation get very confused indeed
-    method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
-        nqp::bindattr(self,Map,'$!storage',nqp::hash)
-          unless nqp::defined(nqp::getattr(self,Map,'$!storage'));
-        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
-          nqp::unbox_s(nqp::istype(key,Str) ?? key !! key.Str), bindval)
+    proto method BIND-KEY(|) {*}
+    multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
+        nqp::bindkey(
+          nqp::getattr(self,Map,'$!storage'),
+          key.Str,
+          bindval
+        )
+    }
+    multi method BIND-KEY(Hash:D: Str:D \key, Mu \bindval) is raw {
+        nqp::bindkey(
+          nqp::getattr(self,Map,'$!storage'),
+          key,
+          bindval
+        )
     }
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }
     multi method DELETE-KEY(Hash:D: Str:D \key) {
+        my \storage := nqp::getattr(self, Map, '$!storage');
         nqp::if(
-          (nqp::getattr(self,Map,'$!storage').DEFINITE
-            && nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                 nqp::unbox_s(key))),
+          nqp::existskey(storage, nqp::unbox_s(key)),
           nqp::stmts(
-            (my $value = nqp::atkey(nqp::getattr(self,Map,'$!storage'),
-               nqp::unbox_s(key))),
-            nqp::deletekey(nqp::getattr(self,Map,'$!storage'),
-              nqp::unbox_s(key)),
-            $value
+            (my \value := nqp::atkey(storage,nqp::unbox_s(key))),
+            nqp::deletekey(storage,nqp::unbox_s(key)),
+            value
           ),
-          nqp::p6scalarfromdesc($!descriptor)
+          nqp::p6scalarfromcertaindesc($!descriptor)
         )
     }
     multi method DELETE-KEY(Hash:D: \key) {
-        nqp::stmts(
-          (my str $key = nqp::unbox_s(key.Str)),
-          nqp::if(
-            (nqp::getattr(self,Map,'$!storage').DEFINITE
-              && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key)),
-            nqp::stmts(
-              (my $value = nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key)),
-              nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$key),
-              $value
-            ),
-            nqp::p6scalarfromdesc($!descriptor)
-          )
+        my \storage := nqp::getattr(self, Map, '$!storage');
+        my str $key = nqp::unbox_s(key.Str);
+        nqp::if(
+          nqp::existskey(storage,$key),
+          nqp::stmts(
+            (my \value = nqp::atkey(storage,$key)),
+            nqp::deletekey(storage,$key),
+            value
+          ),
+          nqp::p6scalarfromcertaindesc($!descriptor)
         )
     }
 
@@ -209,7 +203,7 @@ my class Hash { # declared in BOOTSTRAP
               '$!descriptor',
               $!descriptor,
               '$!storage',
-              nqp::getattr(nqp::decont(self),Map,'$!storage')
+              nqp::getattr(self,Map,'$!storage')
             ),
             :$indent-step,
             :%ctx
@@ -442,26 +436,12 @@ my class Hash { # declared in BOOTSTRAP
         # removed.  However, there are spectest covering this
         # eventuality, so to appease roast, we need these.
         multi method ASSIGN-KEY(::?CLASS:D: Str:D \key, Mu \assignval) is raw {
+            my \storage := nqp::getattr(self, Map, '$!storage');
             nqp::if(
-              nqp::getattr(self,Map,'$!storage').DEFINITE,
-              nqp::if(
-                nqp::existskey(
-                  nqp::getattr(self,Map,'$!storage'),
-                  nqp::unbox_s(key)
-                ),
-                (nqp::atkey(
-                  nqp::getattr(self,Map,'$!storage'),
-                  nqp::unbox_s(key)
-                ) = assignval),
-                nqp::bindkey(
-                  nqp::getattr(self,Map,'$!storage'),
-                  nqp::unbox_s(key),
-                  nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Hash,'$!descriptor')) = assignval
-                )
-              ),
+              nqp::existskey(storage, nqp::unbox_s(key)),
+              (nqp::atkey(storage, nqp::unbox_s(key)) = assignval),
               nqp::bindkey(
-                nqp::bindattr(self,Map,'$!storage',nqp::hash),
+                storage,
                 nqp::unbox_s(key),
                 nqp::p6scalarfromdesc(
                   nqp::getattr(self,Hash,'$!descriptor')) = assignval
@@ -469,32 +449,16 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
         multi method ASSIGN-KEY(::?CLASS:D: \key, Mu \assignval) is raw {
-            nqp::stmts(
-              (my str $key = nqp::unbox_s(key.Str)),
-              nqp::if(
-                nqp::getattr(self,Map,'$!storage').DEFINITE,
-                nqp::if(
-                  nqp::existskey(
-                    nqp::getattr(self,Map,'$!storage'),
-                    $key
-                  ),
-                  (nqp::atkey(
-                    nqp::getattr(self,Map,'$!storage'),
-                    $key
-                  ) = assignval),
-                  nqp::bindkey(
-                    nqp::getattr(self,Map,'$!storage'),
-                    nqp::unbox_s(key.Str),
-                    nqp::p6scalarfromdesc(
-                      nqp::getattr(self,Hash,'$!descriptor')) = assignval
-                  )
-                ),
-                nqp::bindkey(
-                  nqp::bindattr(self,Map,'$!storage',nqp::hash),
-                  $key,
-                  nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Hash,'$!descriptor')) = assignval
-                )
+            my \storage := nqp::getattr(self, Map, '$!storage');
+            my str $key = nqp::unbox_s(key.Str);
+            nqp::if(
+              nqp::existskey(storage,$key),
+              (nqp::atkey(storage,$key) = assignval),
+              nqp::bindkey(
+                storage,
+                nqp::unbox_s(key.Str),
+                nqp::p6scalarfromdesc(
+                  nqp::getattr(self,Hash,'$!descriptor')) = assignval
               )
             )
         }
@@ -513,35 +477,13 @@ my class Hash { # declared in BOOTSTRAP
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
         method keyof () { TKey }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
+            my \storage := nqp::getattr(self, Map, '$!storage');
+            my str $which = nqp::unbox_s(key.WHICH);
             nqp::if(
-              nqp::getattr(self,Map,'$!storage').DEFINITE,
-              nqp::if(
-                nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                  (my str $which = nqp::unbox_s(key.WHICH))),
-                nqp::getattr(
-                  nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
-                  Pair,'$!value'),
-                nqp::p6bindattrinvres(
-                  (my \v := nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Hash,'$!descriptor'))),
-                  Scalar,
-                  '$!whence',
-                  -> { nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
-                         $which,Pair.new(key,v)); v }
-                )
-              ),
-              nqp::p6bindattrinvres(
-                (my \vv := nqp::p6scalarfromdesc(
-                  nqp::getattr(self,Hash,'$!descriptor'))),
-                Scalar,
-                '$!whence',
-                -> { nqp::bindkey(
-                       nqp::if(
-                         nqp::getattr(self,Map,'$!storage').DEFINITE,
-                         nqp::getattr(self,Map,'$!storage'),
-                         nqp::bindattr(self,Map,'$!storage',nqp::hash)
-                       ),
-                       nqp::unbox_s(key.WHICH), Pair.new(key,vv)); vv }
+              nqp::existskey(storage,$which),
+              nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value'),
+              nqp::p6scalarfromdesc(ContainerDescriptor::BindObjHashKey.new(
+                nqp::getattr(self,Hash,'$!descriptor'),self,key,$which,Pair)
               )
             )
         }
@@ -559,63 +501,51 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) is raw {
+            my \storage := nqp::getattr(self, Map, '$!storage');
+            my str $which = nqp::unbox_s(key.WHICH);
             nqp::if(
-              nqp::getattr(self,Map,'$!storage').DEFINITE,
-              nqp::if(
-                nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                  my str $which = nqp::unbox_s(key.WHICH)),
-                (nqp::getattr(
-                  nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
-                  Pair,'$!value') = assignval),
-                nqp::getattr(
-                  (nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,
-                    Pair.new(key,nqp::p6scalarfromdesc(
-                      nqp::getattr(self,Hash,'$!descriptor')) = assignval))),
-                  Pair,'$!value')
-              ),
+              nqp::existskey(storage,$which),
+              (nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value')
+                = assignval),
               nqp::getattr(
-                (nqp::bindkey(nqp::bindattr(self,Map,'$!storage',nqp::hash),
-                  nqp::unbox_s(key.WHICH),
+                (nqp::bindkey(storage,$which,
                   Pair.new(key,nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Hash,'$!descriptor')) = assignval))),
-                Pair,'$!value')
+                    nqp::getattr(self,Hash,'$!descriptor')) = assignval)
+                )),
+                Pair,
+                '$!value'
+              )
             )
         }
 
         method BIND-KEY(TKey \key, TValue \bindval) is raw {
             nqp::getattr(
-              nqp::if(
-                nqp::getattr(self,Map,'$!storage').DEFINITE,
-                nqp::bindkey(nqp::getattr(self,Map,'$!storage'),
-                  nqp::unbox_s(key.WHICH),
-                  Pair.new(key,bindval)),
-                nqp::bindkey(nqp::bindattr(self,Map,'$!storage',nqp::hash),
-                  nqp::unbox_s(key.WHICH),
-                  Pair.new(key,bindval))
+              nqp::bindkey(
+                nqp::getattr(self,Map,'$!storage'),
+                key.WHICH,
+                Pair.new(key,bindval)
               ),
-              Pair,'$!value'
+              Pair,
+              '$!value'
             )
         }
 
         method EXISTS-KEY(TKey \key) {
             nqp::p6bool(
-              nqp::defined(nqp::getattr(self,Map,'$!storage'))
-                && nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
+              nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
             )
         }
 
         method DELETE-KEY(TKey \key) {
+            my \storage := nqp::getattr(self, Map, '$!storage');
+            my str $which = key.WHICH;
             nqp::if(
-              (nqp::getattr(self,Map,'$!storage').DEFINITE
-                && nqp::existskey(nqp::getattr(self,Map,'$!storage'),
-                     (my str $which = key.WHICH))),
+              nqp::existskey(storage,$which),
               nqp::stmts(
-                (my TValue $value =
-                  nqp::getattr(
-                    nqp::atkey(nqp::getattr(self,Map,'$!storage'),$which),
-                    Pair,'$!value')),
-                 nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$which),
-                 $value
+                (my \value =
+                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value')),
+                nqp::deletekey(storage,$which),
+                value
               ),
               TValue
             )
@@ -625,8 +555,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::stmts(
               (my $flattened := nqp::hash),
               nqp::if(
-                (my $raw := nqp::getattr(self,Map,'$!storage'))
-                 && (my $iter := nqp::iterator($raw)),
+                (my $iter := nqp::iterator(nqp::getattr(self,Map,'$!storage'))),
                 nqp::while(
                   $iter,
                   nqp::bindkey(
@@ -652,30 +581,32 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method IterationBuffer() {
-            nqp::stmts(
-              (my $buffer := nqp::create(IterationBuffer)),
-              nqp::if(
-                nqp::defined(
-                  nqp::getattr(self,Map,'$!storage')
-                ) && nqp::elems(
-                  nqp::getattr(self,Map,'$!storage')
-                ),
-                nqp::stmts(
-                  (my $iterator := nqp::iterator(
-                    nqp::getattr(self,Map,'$!storage')
-                  )),
-                  nqp::setelems($buffer,nqp::elems(
-                    nqp::getattr(self,Map,'$!storage')
-                  )),
-                  (my int $i = -1),
-                  nqp::while(
-                    $iterator,
-                    nqp::bindpos($buffer,($i = nqp::add_i($i,1)),
-                      nqp::iterval(nqp::shift($iterator)))
-                  )
+            my \storage := nqp::getattr(self, Map, '$!storage');
+            my \buffer  := nqp::create(IterationBuffer);
+            nqp::if(
+              nqp::elems(storage),
+              nqp::stmts(
+                (my \iterator := nqp::iterator(storage)),
+                nqp::setelems(buffer,nqp::elems(storage)),
+                (my int $i = -1),
+                nqp::while(
+                  iterator,
+                  nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
+                    nqp::iterval(nqp::shift(iterator)))
                 )
+              )
+            );
+            buffer
+        }
+
+        multi method head(::?CLASS:D:) {
+            my \storage := nqp::getattr(self, Map, '$!storage');
+            nqp::if(
+              nqp::elems(storage),
+              nqp::iterval(
+                nqp::shift(nqp::iterator(storage))
               ),
-              $buffer
+              Nil
             )
         }
 
@@ -719,16 +650,18 @@ my class Hash { # declared in BOOTSTRAP
             }.new(self))
         }
         multi method roll(::?CLASS:D:) {
+            my \storage := nqp::getattr(self, Map, '$!storage');
             nqp::if(
-              (my $raw := nqp::getattr(self,Map,'$!storage')) && nqp::elems($raw),
+              nqp::elems(storage),
               nqp::stmts(
-                (my int $i = nqp::add_i(nqp::elems($raw).rand.floor,1)),
-                (my $iter := nqp::iterator($raw)),
+                (my int $i =
+                  nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems(storage))),1)),
+                (my \iter := nqp::iterator(storage)),
                 nqp::while(
-                  nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+                  nqp::shift(iter) && ($i = nqp::sub_i($i,1)),
                   nqp::null
                 ),
-                nqp::iterval($iter)
+                nqp::iterval(iter)
               ),
               Nil
             )
@@ -739,8 +672,7 @@ my class Hash { # declared in BOOTSTRAP
         multi method roll(::?CLASS:D: Whatever $) { self.roll(Inf) }
         multi method roll(::?CLASS:D: $count) {
             Seq.new(nqp::if(
-              (my $raw := nqp::getattr(self,Map,'$!storage'))
-                && nqp::elems($raw) && $count > 0,
+              $count > 0 && nqp::elems(nqp::getattr(self,Map,'$!storage')),
               class :: does Iterator {
                   has $!storage;
                   has $!keys;
@@ -767,7 +699,10 @@ my class Hash { # declared in BOOTSTRAP
                           --$!count,  # must be HLL to handle Inf
                           nqp::atkey(
                             $!storage,
-                            nqp::atpos_s($!keys,nqp::elems($!keys).rand.floor)
+                            nqp::atpos_s(
+                              $!keys,
+                              nqp::floor_n(nqp::rand_n(nqp::elems($!keys)))
+                            )
                           )
                         ),
                         IterationEnd
@@ -799,7 +734,7 @@ my class Hash { # declared in BOOTSTRAP
 
         # gotta force capture keys to strings or binder fails
         method Capture() {
-            nqp::defined(nqp::getattr(self,Map,'$!storage'))
+            nqp::elems(nqp::getattr(self,Map,'$!storage'))
               ?? do {
                      my $cap := nqp::create(Capture);
                      my $h := nqp::hash();
@@ -816,21 +751,24 @@ my class Hash { # declared in BOOTSTRAP
         method Map() { self.pairs.Map }
     }
 
-    method ^parameterize(Mu:U \hash, Mu:U \t, |c) {
-        if c.elems == 0 {
+    method ^parameterize(Mu:U \hash, Mu \t, |c) {
+        if nqp::isconcrete(t) {
+            "Can not parameterize {hash.^name} with {t.perl}"
+        }
+        elsif c.elems == 0 {
             my $what := hash.^mixin(TypedHash[t]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name("{hash.^name}[{t.^name}]");
-            $what;
+            $what
         }
         elsif c.elems == 1 {
             my $what := hash.^mixin(TypedHash[t, c[0].WHAT]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name("{hash.^name}[{t.^name},{c[0].^name}]");
-            $what;
+            $what
         }
         else {
-            die "Can only type-constrain Hash with [ValueType] or [ValueType,KeyType]";
+            "Can only type-constrain Hash with [ValueType] or [ValueType,KeyType]"
         }
     }
 }

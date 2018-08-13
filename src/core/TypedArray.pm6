@@ -49,8 +49,7 @@
         sub set-descriptor(\list) is raw {
             nqp::stmts(
               nqp::bindattr(list,Array,'$!descriptor',
-                Perl6::Metamodel::ContainerDescriptor.new(
-                  :of(TValue), :rw(1), :default(TValue))
+                ContainerDescriptor.new(:of(TValue), :default(TValue))
               ),
               list
             )
@@ -68,11 +67,11 @@
                 :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
               nqp::stmts(
                 nqp::if(
-                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                   nqp::if(
-                    (nqp::isge_i(
-                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
-                        && nqp::getattr(self,List,'$!todo').DEFINITE),
+                    nqp::isge_i(
+                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))
+                    ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
                     nqp::getattr(self,List,'$!todo').reify-at-least(
                       nqp::add_i($pos,1)),
                   ),
@@ -90,11 +89,11 @@
                 :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
               nqp::stmts(
                 nqp::if(
-                  nqp::getattr(self,List,'$!reified').DEFINITE,
+                  nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
                   nqp::if(
-                    (nqp::isge_i(
-                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified')))
-                        && nqp::getattr(self,List,'$!todo').DEFINITE),
+                    nqp::isge_i(
+                      $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))
+                    ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
                     nqp::getattr(self,List,'$!todo').reify-at-least(
                       nqp::add_i($pos,1)),
                   ),
@@ -110,15 +109,18 @@
             'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
         }
     }
-    method ^parameterize(Mu:U \arr, Mu:U \t, |c) {
-        if c.elems == 0 {
+    method ^parameterize(Mu:U \arr, Mu \t, |c) {
+        if nqp::isconcrete(t) {
+            "Can not parameterize {arr.^name} with {t.perl}"
+        }
+        elsif c.elems == 0 {
             my $what := arr.^mixin(TypedArray[t]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name("{arr.^name}[{t.^name}]");
-            $what;
+            $what
         }
         else {
-            die "Can only type-constrain Array with [ValueType]"
+            "Can only type-constrain Array with a single [ValueType]"
         }
     }
 }

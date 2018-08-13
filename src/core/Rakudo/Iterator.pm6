@@ -22,7 +22,7 @@ class Rakudo::Iterator {
         has $!blob;
         has Int $!i;   # sadly, this can not be a native int yet  :-(
 
-        method SET-SELF(\blob) {
+        method !SET-SELF(\blob) {
             nqp::stmts(               # something to iterator over
               ($!blob := blob),
               ($!i     = -1),
@@ -32,7 +32,7 @@ class Rakudo::Iterator {
         method new(\blob) {
             nqp::if(
               nqp::isgt_i(nqp::elems(blob),0),
-              nqp::create(self).SET-SELF(blob),
+              nqp::create(self)!SET-SELF(blob),
               Rakudo::Iterator.Empty    # nothing to iterate
             )
         }
@@ -75,7 +75,7 @@ class Rakudo::Iterator {
         has $!hash;
         has $!iter;
 
-        method SET-SELF(\hash) {
+        method !SET-SELF(\hash) {
             nqp::if(
               ($!hash := nqp::if(
                 nqp::istype(hash,Rakudo::Internals::IterationSet),
@@ -86,7 +86,7 @@ class Rakudo::Iterator {
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
-        method new(\hash) { nqp::create(self).SET-SELF(hash) }
+        method new(\hash) { nqp::create(self)!SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
@@ -100,7 +100,7 @@ class Rakudo::Iterator {
         has $!iter;
         has $!on;
 
-        method SET-SELF(\hash) {
+        method !SET-SELF(\hash) {
             nqp::if(
               ($!hash := nqp::if(
                 nqp::istype(hash,Rakudo::Internals::IterationSet),
@@ -111,7 +111,7 @@ class Rakudo::Iterator {
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
-        method new(\hash) { nqp::create(self).SET-SELF(hash) }
+        method new(\hash) { nqp::create(self)!SET-SELF(hash) }
 
         method pull-one() is raw {
             nqp::if(
@@ -194,7 +194,7 @@ class Rakudo::Iterator {
             )
         }
 
-        method SET-SELF(Mu \list) {
+        method !SET-SELF(Mu \list) {
             nqp::stmts(
               nqp::if(
                 nqp::istype(list,List),
@@ -218,7 +218,7 @@ class Rakudo::Iterator {
               self
             )
         }
-        method new(Mu \list) { nqp::create(self).SET-SELF(list) }
+        method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
 
         method pull-one() is raw {
             nqp::if(
@@ -288,7 +288,7 @@ class Rakudo::Iterator {
               $result
             )
         }
-        method SET-SELF(Mu \list) {
+        method !SET-SELF(Mu \list) {
             nqp::stmts(
               nqp::if(
                 nqp::istype(list,List),
@@ -312,7 +312,7 @@ class Rakudo::Iterator {
               self
             )
         }
-        method new(Mu \list) { nqp::create(self).SET-SELF(list) }
+        method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
 
         method pull-one() is raw {
             nqp::if(
@@ -832,13 +832,15 @@ class Rakudo::Iterator {
                         # something more elaborate
                         nqp::if(
                           nqp::istype($elem,List)
-                            && nqp::not_i(
-                                 nqp::getattr($elem,List,'$!todo').DEFINITE),
+                            && nqp::not_i(nqp::isconcrete(
+                                 nqp::getattr($elem,List,'$!todo')
+                          )),
 
                           # it's a List, may have a reified we can use directly
                           nqp::if(
-                            ($elem := nqp::getattr($elem,List,'$!reified'))
-                              && nqp::isgt_i(nqp::elems($elem),0),
+                            nqp::isconcrete(
+                              $elem := nqp::getattr($elem,List,'$!reified')
+                            ) && nqp::isgt_i(nqp::elems($elem),0),
 
                             # use the available reified directly
                             nqp::stmts(
@@ -1103,14 +1105,15 @@ class Rakudo::Iterator {
                         # something more elaborate
                         nqp::if(
                           nqp::istype($elem,List)
-                            && nqp::not_i(
-                                 nqp::getattr($elem,List,'$!todo').DEFINITE),
+                            && nqp::not_i(nqp::isconcrete(
+                                 nqp::getattr($elem,List,'$!todo')
+                          )),
 
                           # it's a List, may have a reified we can use directly
                           nqp::if(
                             nqp::isnull(
-                              $elem := nqp::getattr($elem,List,'$!reified'))
-                              || nqp::iseq_i(nqp::elems($elem),0),
+                              $elem := nqp::getattr($elem,List,'$!reified')
+                            ) || nqp::iseq_i(nqp::elems($elem),0),
 
                             # cross with an empty list is always an empty list
                             (return Rakudo::Iterator.Empty),
@@ -1419,30 +1422,40 @@ class Rakudo::Iterator {
         }.new(&body,&cond,&afterwards)
     }
 
+    my role CountOnlyDelegate {
+        has Mu $!count-only-delegate-target;
+
+        method count-only { $!count-only-delegate-target.count-only }
+
+        method SET-DELEGATE-TARGET(Mu \target) { $!count-only-delegate-target = target unless $!count-only-delegate-target; self }
+    }
+    my role BoolOnlyDelegate {
+        has Mu $!bool-only-delegate-target;
+
+        method bool-only  { $!bool-only-delegate-target.bool-only }
+        method SET-DELEGATE-TARGET(Mu \target) { $!bool-only-delegate-target = target unless $!bool-only-delegate-target; self }
+    }
+    my role CountOnlyBoolOnlyDelegate {
+        has Mu $!bool-only-count-only-delegate-target;
+
+        method bool-only  { $!bool-only-count-only-delegate-target.bool-only  }
+        method count-only { $!bool-only-count-only-delegate-target.count-only }
+        method SET-DELEGATE-TARGET(Mu \target) { $!bool-only-count-only-delegate-target = target unless $!bool-only-count-only-delegate-target; self }
+    }
+
     # Takes two iterators and mixes in a role into the second iterator that
     # delegates .count-only and .bool-only methods to the first iterator
     # if either exist in it. Returns the second iterator.
     method delegate-iterator-opt-methods (Iterator:D \a, Iterator:D \b) {
-        my role CountOnlyDelegate[\iter] {
-            method count-only { iter.count-only }
-        }
-        my role BoolOnlyDelegate[\iter] {
-            method bool-only  { iter.bool-only }
-        }
-        my role CountOnlyBoolOnlyDelegate[\iter] {
-            method bool-only  { iter.bool-only  }
-            method count-only { iter.count-only }
-        }
-
         nqp::if(
           nqp::can(a, 'count-only') && nqp::can(a, 'bool-only'),
-          b.^mixin(CountOnlyBoolOnlyDelegate[a]),
+          b.^mixin(CountOnlyBoolOnlyDelegate).SET-DELEGATE-TARGET(a),
           nqp::if(
             nqp::can(a, 'count-only'),
-            b.^mixin(CountOnlyDelegate[a]),
+            b.^mixin(CountOnlyDelegate).SET-DELEGATE-TARGET(a),
             nqp::if(
               nqp::can(a, 'bool-only'),
-              b.^mixin(BoolOnlyDelegate[a]),
+              b.^mixin(BoolOnlyDelegate).SET-DELEGATE-TARGET(a),
               b)))
     }
 
@@ -1575,7 +1588,7 @@ class Rakudo::Iterator {
                     $got
                   )
               }
-              method sink-all(--> IterationEnd) { self!FINISH-UP }
+              method sink-all(--> IterationEnd) { self.FINISH-UP }
               method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }
               method !SET-SELF($!source,$!n,&!callable) { self }
               method !FINISH-UP(\do-sink) {
@@ -1690,11 +1703,16 @@ class Rakudo::Iterator {
         class :: does Iterator {
             has int $!i;
             has int $!last;
+            has $!is-lazy;
 
-            method !SET-SELF(int $i, int $last) {
+            method !SET-SELF(int $i, $last) {
                 nqp::stmts(
                   ($!i    = nqp::sub_i($i,1)),
-                  ($!last = $last),
+                  ($!last = nqp::if(
+                    ($!is-lazy := $last == Inf),
+                    int.Range.max,
+                    $last
+                  )),
                   self
                 )
             }
@@ -1705,6 +1723,24 @@ class Rakudo::Iterator {
                   nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last),
                   $!i,
                   IterationEnd
+                )
+            }
+            method push-exactly($target, int $batch-size) {
+                nqp::stmts(
+                  (my int $todo = nqp::add_i($batch-size,1)),
+                  (my int $i    = $!i),      # lexicals are faster than attrs
+                  (my int $last = $!last),
+                  nqp::while(
+                    ($todo = nqp::sub_i($todo,1))
+                      && nqp::isle_i(($i = nqp::add_i($i,1)),$last),
+                    $target.push(nqp::p6box_i($i))
+                  ),
+                  ($!i = $i),                # make sure pull-one ends
+                  nqp::if(
+                    nqp::isgt_i($i,$last),
+                    IterationEnd,
+                    $batch-size
+                  )
                 )
             }
             method push-all($target --> IterationEnd) {
@@ -1718,6 +1754,7 @@ class Rakudo::Iterator {
                   ($!i = $i),                # make sure pull-one ends
                 )
             }
+            method is-lazy(--> Bool:D) { $!is-lazy }
             method count-only() { nqp::p6box_i(nqp::sub_i($!last,$!i)) }
             method bool-only()  { nqp::p6bool(nqp::isgt_i($!last,$!i)) }
             method sink-all(--> IterationEnd) { $!i = $!last }
@@ -1886,7 +1923,7 @@ class Rakudo::Iterator {
                   )
                 )
             }
-            method !next() is raw {
+            method next() is raw {
                 nqp::stmts(
                   (my int $index = $!index),
                   ($!index = nqp::mod_i(nqp::add_i($!index,1),$!size)),
@@ -1897,7 +1934,7 @@ class Rakudo::Iterator {
             method pull-one() is raw {
                 nqp::if(
                   $!todo,
-                  self!next,
+                  self.next,
                   nqp::if(
                     nqp::defined($!iterator),
                     nqp::stmts(
@@ -1921,7 +1958,7 @@ class Rakudo::Iterator {
                           nqp::if($!full,0,nqp::elems($!lastn))),
                       ),
                       ($!iterator := Mu),                   # done iterating
-                      nqp::if($!todo, self!next, IterationEnd)
+                      nqp::if($!todo, self.next, IterationEnd)
                     ),
                     IterationEnd
                   )
@@ -2459,12 +2496,8 @@ class Rakudo::Iterator {
             method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
 
             method !hole(int $i) is raw {
-                nqp::p6bindattrinvres(
-                  (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                  Scalar,
-                  '$!whence',
-                  -> { nqp::bindpos($!reified,$i,v) }
-                )
+                nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                    $!descriptor, $!reified, $i))
             }
             method pull-one() is raw {
                 nqp::ifnull(
@@ -2473,6 +2506,27 @@ class Rakudo::Iterator {
                     nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
                     self!hole($!i),
                     IterationEnd
+                  )
+                )
+            }
+
+            method push-exactly($target, int $batch-size) {
+                nqp::stmts(
+                  (my int $todo = nqp::add_i($batch-size,1)),
+                  (my int $i    = $!i),      # lexicals are faster than attrs
+                  (my int $elems = nqp::elems($!reified)),
+                  nqp::while(
+                    ($todo = nqp::sub_i($todo,1))
+                      && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    $target.push(
+                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
+                    )
+                  ),
+                  ($!i = $i),                # make sure pull-one ends
+                  nqp::if(
+                    nqp::isge_i($i,$elems),
+                    IterationEnd,
+                    $batch-size
                   )
                 )
             }
@@ -2554,6 +2608,24 @@ class Rakudo::Iterator {
                     nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
                     nqp::null,                              # it's a hole
                     IterationEnd                            # it's the end
+                  )
+                )
+            }
+            method push-exactly($target, int $batch-size) {
+                nqp::stmts(
+                  (my int $todo = nqp::add_i($batch-size,1)),
+                  (my int $i    = $!i),      # lexicals are faster than attrs
+                  (my int $elems = nqp::elems($!reified)),
+                  nqp::while(
+                    ($todo = nqp::sub_i($todo,1))
+                      && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    $target.push(nqp::atpos($!reified,$i))
+                  ),
+                  ($!i = $i),                # make sure pull-one ends
+                  nqp::if(
+                    nqp::isge_i($i,$elems),
+                    IterationEnd,
+                    $batch-size
                   )
                 )
             }
@@ -3095,7 +3167,7 @@ class Rakudo::Iterator {
             has int $!maxdim;
             has int $!max;
 
-            method SET-SELF(\shape) {
+            method !SET-SELF(\shape) {
                 nqp::stmts(
                   ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
                   (my int $dims = nqp::elems($!dims)),
@@ -3111,7 +3183,7 @@ class Rakudo::Iterator {
                   self
                 )
             }
-            method new(\shape) { nqp::create(self).SET-SELF(shape) }
+            method new(\shape) { nqp::create(self)!SET-SELF(shape) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -3175,7 +3247,7 @@ class Rakudo::Iterator {
             has $!current; # null if passing on
             has $!done;    # IterationEnd if done
 
-            method SET-SELF(\iter, \conds, \on) {
+            method !SET-SELF(\iter, \conds, \on) {
                 nqp::stmts(
                   ($!iter  := iter),
                   ($!conds := conds),
@@ -3194,7 +3266,7 @@ class Rakudo::Iterator {
                 )
             }
             method new(\iter, \conds, \on) {
-                nqp::create(self).SET-SELF(iter, conds, on)
+                nqp::create(self)!SET-SELF(iter, conds, on)
             }
 
             method pull-one() is raw {
@@ -3413,6 +3485,9 @@ class Rakudo::Iterator {
                 nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
             }
             method pull-one() is raw { $!value }
+            method sink-all(--> IterationEnd) { }
+            method count-only(--> Inf) { }
+            method bool-only(--> True) { }
             method is-lazy(--> True) { }
         }.new(value)
     }
@@ -3548,12 +3623,12 @@ class Rakudo::Iterator {
             has $!iter;
             has $!cond;
 
-            method SET-SELF(\iter, \cond) {
+            method !SET-SELF(\iter, \cond) {
                 $!iter := iter;
                 $!cond := cond;
                 self
             }
-            method new(\iter,\cond) { nqp::create(self).SET-SELF(iter,cond) }
+            method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
 
             method pull-one() is raw {
                 nqp::if(
@@ -3641,13 +3716,13 @@ class Rakudo::Iterator {
             has &!cond;
             has $!done;
 
-            method SET-SELF(\iter, \cond) {
+            method !SET-SELF(\iter, \cond) {
                 $!iter := iter;
                 &!cond := cond;
                 $!done := nqp::null;
                 self
             }
-            method new(\iter,\cond) { nqp::create(self).SET-SELF(iter,cond) }
+            method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
 
             method pull-one() is raw {
                 nqp::ifnull(
@@ -3768,18 +3843,21 @@ class Rakudo::Iterator {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
+                      (my int $is_iterend = 0),
                       (my $buf :=
                         nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                      nqp::until(
-                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
-                         || nqp::eqaddr(
-                              (my $pulled := nqp::atpos($!iters,$i).pull-one),
-                              IterationEnd
-                            ),
-                        nqp::bindpos($buf,$i,$pulled)
+                      nqp::while(
+                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
+                          ),
+                          $is_iterend = 1,
+                          nqp::bindpos($buf,$i,$pulled)
+                        )
                       ),
                       nqp::if(
-                        nqp::islt_i($i,$elems),  # at least one exhausted
+                        $is_iterend,  # at least one exhausted
                         nqp::stmts(
 #?if jvm
                           ($!iters := Mu),
@@ -3854,18 +3932,21 @@ class Rakudo::Iterator {
                     nqp::stmts(
                       (my int $i = -1),
                       (my int $elems = nqp::elems($!iters)),
+                      (my int $is_iterend = 0),
                       (my $list :=
                         nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                      nqp::until(
-                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
-                         || nqp::eqaddr(
-                              (my $pulled := nqp::atpos($!iters,$i).pull-one),
-                              IterationEnd
-                            ),
-                        nqp::bindpos($list,$i,$pulled)
+                      nqp::while(
+                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                        nqp::if(
+                          nqp::eqaddr(
+                            (my $pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
+                          ),
+                          $is_iterend = 1,
+                          nqp::bindpos($list,$i,$pulled)
+                        )
                       ),
                       nqp::if(
-                        nqp::islt_i($i,$elems),  # at least one exhausted
+                        $is_iterend,  # at least one exhausted
                         nqp::stmts(
 #?if jvm
                           ($!iters := Mu),

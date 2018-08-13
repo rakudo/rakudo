@@ -2,6 +2,7 @@ my class CallFrame {
     has $.annotations;
     has $.my;
 
+    # cannot be a private method due to sub callframe
     method SET-SELF(\level, Mu \ctx is raw, Mu \bt is raw) {
         nqp::stmts(
           (my int $i = nqp::add_i(level,1)),
@@ -13,7 +14,7 @@ my class CallFrame {
           nqp::while(
             nqp::isgt_i(($i = nqp::sub_i($i,1)),0),
             nqp::ifnull(
-                ($ctx := nqp::ctxcaller($ctx)),
+                ($ctx := nqp::ctxcallerskipthunks($ctx)),
                 fail "No callframe at level {level}"
             )
           ),
@@ -26,7 +27,7 @@ my class CallFrame {
     only method new(CallFrame: Int:D $level = 0) {  # MUST BE AN only
         nqp::create(CallFrame).SET-SELF(            # wrt to backtrace levels
           $level,
-          nqp::ctxcaller(nqp::ctx),
+          nqp::ctxcallerskipthunks(nqp::ctx),
           nqp::backtrace(nqp::handle(nqp::die(''),'CATCH',nqp::exception))
         )
     }
@@ -55,7 +56,7 @@ my class CallFrame {
 only sub callframe(Int:D $level = 0) { # MUST BE an only wrt to backtrace levels
     nqp::create(CallFrame).SET-SELF(
       $level,
-      nqp::ctxcaller(nqp::ctx),
+      nqp::ctxcallerskipthunks(nqp::ctx),
       nqp::backtrace(nqp::handle(nqp::die(''),'CATCH',nqp::exception))
     )
 }

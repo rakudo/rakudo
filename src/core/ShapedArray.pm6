@@ -8,68 +8,67 @@
         # correct number of indices already.
         multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::stmts(
-              (my $reified := nqp::getattr(self,List,'$!reified')),
+              (my \reified := nqp::getattr(self,List,'$!reified')),
               nqp::if(
                 nqp::islt_i(
                   @indices.elems,                    # reifies
-                  (my int $numdims = nqp::numdimensions($reified))
+                  (my int $numdims = nqp::numdimensions(reified))
                 ),
                 X::NYI.new(
                   feature => "Partially dimensioned views of shaped arrays").throw,
                 nqp::stmts(
-                  (my $indices := nqp::getattr(@indices,List,'$!reified')),
-                  (my $idxs := nqp::list_i),
+                  (my \indices := nqp::getattr(@indices,List,'$!reified')),
+                  (my \idxs := nqp::list_i),
                   nqp::while(                        # native index list
                     nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
-                    nqp::push_i($idxs,nqp::shift($indices))
+                    nqp::push_i(idxs,nqp::shift(indices))
                   ),
-                  (my $element := nqp::ifnull(
-                    nqp::atposnd($reified,$idxs),    # found it
-                    nqp::p6bindattrinvres(           # create container
-                      (my $scalar := nqp::p6scalarfromdesc(
-                        nqp::getattr(self,Array,'$!descriptor'))),
-                      Scalar,
-                      '$!whence',
-                      -> { nqp::bindposnd($reified,$idxs,$scalar) }
+                  (my \element := nqp::ifnull(
+                    nqp::atposnd(reified,idxs),      # found it
+                    nqp::p6scalarfromdesc(
+                      ContainerDescriptor::BindArrayPosND.new(
+                        nqp::getattr(array, Array, '$!descriptor'),
+                        reified, idxs
+                      )
                     )
                   )),
                   nqp::if(
-                    nqp::elems($indices),
-                    $element.AT-POS(|@indices),      # index further
-                    $element                         # we're done!
+                    nqp::elems(indices),
+                    element.AT-POS(|@indices),       # index further
+                    element                          # we're done!
                   )
                 )
               )
             )
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices-value) {
             nqp::stmts(
-              (my $value   := @indices.pop),         # reifies
-              (my $indices := nqp::getattr(@indices,List,'$!reified')),
-              (my $reified := nqp::getattr(self,List,'$!reified')),
+              (my \value   := @indices-value.pop),   # reifies
+              (my \indices := nqp::getattr(@indices-value,List,'$!reified')),
+              (my \reified := nqp::getattr(self,List,'$!reified')),
               nqp::if(
                 nqp::isge_i(
-                  (my int $numind  = nqp::elems($indices)),
-                  (my int $numdims = nqp::numdimensions($reified))
+                  (my int $numind  = nqp::elems(indices)),
+                  (my int $numdims = nqp::numdimensions(reified))
                 ),
                 nqp::stmts(                          # more than enough indices
-                  (my $idxs := nqp::list_i),
+                  (my \idxs := nqp::list_i),
                   nqp::while(                        # native index list
                     nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
-                    nqp::push_i($idxs,nqp::shift($indices))
+                    nqp::push_i(idxs,nqp::shift(indices))
                   ),
-                  (my $element := nqp::ifnull(
-                    nqp::atposnd($reified,$idxs),    # found it!
-                    nqp::bindposnd($reified,$idxs,   # create new scalar
+                  (my \element := nqp::ifnull(
+                    nqp::atposnd(reified,idxs),      # found it!
+                    nqp::bindposnd(reified,idxs,     # create new scalar
                       nqp::p6scalarfromdesc(
                         nqp::getattr(self,Array,'$!descriptor')))
                   )),
                   nqp::if(
-                    nqp::elems($indices),
-                    $element.AT-POS(|@indices),      # go deeper
-                    $element                         # this is it
-                  ) = $value                         # and assign
+                    nqp::elems(indices),
+                    element.AT-POS(|@indices-value), # go deeper
+                    element                          # this is it
+                  ) = value                         # and assign
                 ),
                 X::NotEnoughDimensions.new(          # too few indices
                   operation         => 'assign to',
@@ -84,33 +83,33 @@
             nqp::p6bool(
               nqp::stmts(
                 (my int $numind = @indices.elems),     # reifies
-                (my $indices := nqp::getattr(@indices,List,'$!reified')),
-                (my $reified := nqp::getattr(self,List,'$!reified')),
-                (my $dims    := nqp::dimensions($reified)),
+                (my \indices := nqp::getattr(@indices,List,'$!reified')),
+                (my \reified := nqp::getattr(self,List,'$!reified')),
+                (my \dims    := nqp::dimensions(reified)),
                 (my int $i = -1),
                 nqp::if(
                   nqp::isge_i(
                     $numind,
-                    (my int $numdims = nqp::numdimensions($reified)),
+                    (my int $numdims = nqp::numdimensions(reified)),
                   ),
                   nqp::stmts(                          # same or more indices
-                    (my $idxs := nqp::list_i),
+                    (my \idxs := nqp::list_i),
                     nqp::while(
                       nqp::islt_i(                     # still indices left
                         ($i = nqp::add_i($i,1)),
                         $numind)
                         && nqp::islt_i(                # within range?
-                             (my $idx = nqp::shift($indices)),
-                             nqp::atpos_i($dims,$i)),
-                      nqp::push_i($idxs,$idx)
+                             (my $idx = nqp::shift(indices)),
+                             nqp::atpos_i(dims,$i)),
+                      nqp::push_i(idxs,$idx)
                     ),
                     nqp::if(
                       nqp::iseq_i($i,$numind)
                         && nqp::not_i(
-                             nqp::isnull(nqp::atposnd($reified,$idxs))),
+                             nqp::isnull(nqp::atposnd(reified,idxs))),
                       nqp::unless(                     # base pos exists
-                        nqp::not_i(nqp::elems($indices)),
-                        nqp::atposnd($reified,$idxs).EXISTS-POS(|@indices)
+                        nqp::not_i(nqp::elems(indices)),
+                        nqp::atposnd(reified,idxs).EXISTS-POS(|@indices)
                       )
                     )
                   ),
@@ -118,8 +117,8 @@
                     nqp::while(
                       nqp::islt_i(($i = nqp::add_i($i,1)),$numind)
                         && nqp::islt_i(
-                             nqp::atpos($indices,$i),
-                             nqp::atpos_i($dims,$i)),
+                             nqp::atpos(indices,$i),
+                             nqp::atpos_i(dims,$i)),
                       nqp::null
                     ),
                     nqp::iseq_i($i,$numind)            # all clear or oor
@@ -140,30 +139,30 @@
         multi method DELETE-POS(::?CLASS:D: **@indices) {
             nqp::stmts(
               (my int $numind = @indices.elems),     # reifies
-              (my $indices := nqp::getattr(@indices,List,'$!reified')),
-              (my $reified := nqp::getattr(self,List,'$!reified')),
+              (my \indices := nqp::getattr(@indices,List,'$!reified')),
+              (my \reified := nqp::getattr(self,List,'$!reified')),
               (my int $i = -1),
               nqp::if(
                 nqp::isge_i(
                   $numind,
-                  (my int $numdims = nqp::numdimensions($reified)),
+                  (my int $numdims = nqp::numdimensions(reified)),
                 ),
                 nqp::stmts(                          # same or more indices
-                  (my $idxs := nqp::list_i),
+                  (my \idxs := nqp::list_i),
                   nqp::while(
                     nqp::islt_i(                     # still indices left
                       ($i = nqp::add_i($i,1)),$numind),
-                    nqp::push_i($idxs,nqp::shift($indices)),
+                    nqp::push_i(idxs,nqp::shift(indices)),
                   ),
                   nqp::if(
-                    nqp::isnull(my $value := nqp::atposnd($reified,$idxs)),
+                    nqp::isnull(my \value := nqp::atposnd(reified,idxs)),
                     Nil,                             # nothing here
                     nqp::if(
-                      nqp::elems($indices),
-                      $value.DELETE-POS(|@indices),  # delete at deeper level
+                      nqp::elems(indices),
+                      value.DELETE-POS(|@indices),   # delete at deeper level
                       nqp::stmts(                    # found it, nullify here
-                        nqp::bindposnd($reified,$idxs,nqp::null),
-                        $value
+                        nqp::bindposnd(reified,idxs,nqp::null),
+                        value
                       )
                     )
                   )
@@ -190,28 +189,27 @@
 
         multi method BIND-POS(::?CLASS:D: **@indices) is raw {
             nqp::stmts(
-              (my $value   := nqp::decont(@indices.pop)), # reifies
-              (my $indices := nqp::getattr(@indices,List,'$!reified')),
-              (my $reified := nqp::getattr(self,List,'$!reified')),
+              (my \value   := nqp::decont(@indices.pop)), # reifies
+              (my \indices := nqp::getattr(@indices,List,'$!reified')),
+              (my \reified := nqp::getattr(self,List,'$!reified')),
               (my int $i = -1),
               nqp::if(
                 nqp::isge_i(
-                  (my int $numind  = nqp::elems($indices)),
-                  (my int $numdims = nqp::numdimensions($reified)),
+                  (my int $numind  = nqp::elems(indices)),
+                  (my int $numdims = nqp::numdimensions(reified)),
                 ),
                 nqp::stmts(                               # same or more indices
-                  (my $idxs := nqp::list_i),
+                  (my \idxs := nqp::list_i),
                   nqp::while(
                     nqp::islt_i(                          # still indices left
                       ($i = nqp::add_i($i,1)),$numind),
-                    nqp::push_i($idxs,nqp::shift($indices))
+                    nqp::push_i(idxs,nqp::shift(indices))
                   ),
                   nqp::if(
-                    nqp::elems($indices),
-                    nqp::atposnd($reified,$idxs)          # bind at deeper level
-                      .BIND-POS(|@indices,$value),
-                    nqp::bindposnd($reified,$idxs,        # found it, bind here
-                      $value)
+                    nqp::elems(indices),
+                    nqp::atposnd(reified,idxs)            # bind at deeper level
+                      .BIND-POS(|@indices,value),
+                    nqp::bindposnd(reified,idxs,value)    # found it, bind here
                   )
                 ),
                 X::NotEnoughDimensions.new(               # fewer inds than dims
@@ -227,14 +225,14 @@
             class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
                 has $!desc;
-                method INIT(Mu \to, Mu \from) {
+                method !INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := nqp::getattr(from,List,'$!reified')),
                       ($!desc := nqp::getattr(from,Array,'$!descriptor')),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
                 method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
@@ -247,13 +245,13 @@
         sub INTCPY(Mu \to, Mu \from) {
             class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
-                method INIT(Mu \to, Mu \from) {
+                method !INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
                 method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
@@ -265,13 +263,13 @@
         sub NUMCPY(Mu \to, Mu \from) {
             class :: does Rakudo::Iterator::ShapeLeaf {
                 has $!from;
-                method INIT(Mu \to, Mu \from) {
+                method !INIT(Mu \to, Mu \from) {
                     nqp::stmts(
                       ($!from := from),
-                      self.SET-SELF(to)
+                      self!SET-SELF(to)
                     )
                 }
-                method new(Mu \to, Mu \from) { nqp::create(self).INIT(to,from) }
+                method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
                 method result(--> Nil) {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
@@ -316,9 +314,9 @@
             class :: does Rakudo::Iterator::ShapeBranch {
                 has $!iterators;
                 has $!desc;
-                method INIT(\to,\from) {
+                method !INIT(\to,\from) {
                     nqp::stmts(
-                      self.SET-SELF(to),
+                      self!SET-SELF(to),
                       ($!desc := nqp::getattr(to,Array,'$!descriptor')),
                       ($!iterators := nqp::setelems(
                         nqp::list(from.iterator),
@@ -327,7 +325,7 @@
                       self
                     )
                 }
-                method new(\to,\from) { nqp::create(self).INIT(to,from) }
+                method new(\to,\from) { nqp::create(self)!INIT(to,from) }
                 method done(--> Nil) {
                     nqp::unless(                        # verify lowest
                       nqp::atpos($!iterators,0).is-lazy # finite iterator
@@ -385,14 +383,14 @@
             class :: does Rakudo::Iterator::ShapeLeaf {
                 has Mu $!iterator;
                 has Mu $!desc;
-                method INIT(\list,\iterator) {
+                method !INIT(\list,\iterator) {
                     nqp::stmts(
                       ($!iterator := iterator),
                       ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-                      self.SET-SELF(list)
+                      self!SET-SELF(list)
                     )
                 }
-                method new(\list,\iter) { nqp::create(self).INIT(list,iter) }
+                method new(\list,\iter) { nqp::create(self)!INIT(list,iter) }
                 method result(--> Nil) {
                     nqp::unless(
                       nqp::eqaddr(
@@ -441,7 +439,7 @@
                 method !INIT(\list) {
                     nqp::stmts(
                       ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-                      self.SET-SELF(list)
+                      self!SET-SELF(list)
                     )
                 }
                 method new(Mu \list) { nqp::create(self)!INIT(list) }
@@ -450,19 +448,12 @@
                       self.indices,
                       nqp::ifnull(
                         nqp::atposnd($!list,$!indices),
-                        nqp::stmts(
-                          # By the time the block gets executed, the $!indices
-                          # may be at the next iteration already or even reset
-                          # because we reached the end.  So we need to make
-                          # a copy of the indices now.
-                          (my $indices := nqp::clone($!indices)),
-                          nqp::p6bindattrinvres(
-                            (my $scalar := nqp::p6scalarfromdesc($!desc)),
-                            Scalar,
-                           '$!whence',
-                            -> { nqp::bindposnd($!list,$indices,$scalar) }
-                          )
-                        )
+                        # By the time the block gets executed, the $!indices
+                        # may be at the next iteration already or even reset
+                        # because we reached the end.  So we need to make
+                        # a copy of the indices now.
+                        nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPosND.new(
+                          $!desc, $!list, nqp::clone($!indices)))
                       )
                     )
                 }
@@ -477,11 +468,9 @@
         }
 
         multi method List(::?CLASS:D:) {
-            nqp::stmts(
-              self.iterator.push-all(
-                (my $list := nqp::create(IterationBuffer))),
-              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
-            )
+            my \buf := nqp::create(IterationBuffer);
+            self.iterator.push-all(buf);
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',buf)
         }
 
         method iterator(::?CLASS:D:) {
@@ -490,26 +479,19 @@
                 method !INIT(\list) {
                     nqp::stmts(
                       ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-                      self.SET-SELF(list)
+                      self!SET-SELF(list)
                     )
                 }
                 method new(Mu \list) { nqp::create(self)!INIT(list) }
                 method result() is raw {
                     nqp::ifnull(
                       nqp::atposnd($!list,$!indices),
-                      nqp::stmts(
-                        # By the time the block gets executed, the $!indices
-                        # may be at the next iteration already or even reset
-                        # because we reached the end.  So we need to make
-                        # a copy of the indices now.
-                        (my $indices := nqp::clone($!indices)),
-                        nqp::p6bindattrinvres(
-                          (my $scalar := nqp::p6scalarfromdesc($!desc)),
-                          Scalar,
-                         '$!whence',
-                          -> { nqp::bindposnd($!list,$indices,$scalar) }
-                       )
-                     )
+                      # By the time the block gets executed, the $!indices
+                      # may be at the next iteration already or even reset
+                      # because we reached the end.  So we need to make
+                      # a copy of the indices now.
+                      nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPosND.new(
+                        $!desc, $!list, nqp::clone($!indices)))
                    )
                 }
             }.new(self)

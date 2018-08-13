@@ -48,13 +48,33 @@ my class Routine { # declared in BOOTSTRAP
         self.dispatcher.defined
     }
 
+    multi method gist(Routine:D:) {
+        if self.name -> $name {
+            "&$name"
+        }
+        else {
+            ( self.^name ~~ m/^\w+/ ).lc ~ ' { }'
+        }
+    }
+
     multi method perl(Routine:D:) {
         my $perl = ( self.^name ~~ m/^\w+/ ).lc;
+        if self.is_dispatcher {
+            $perl = "proto $perl";
+        }
+        elsif self.multi {
+            $perl = "multi $perl";
+        }
         if self.name() -> $n {
             $perl ~= " $n";
         }
-        $perl ~= ' ' ~ substr(self.signature().perl,1); # lose colon prefix
-        $perl ~= ' { #`(' ~ self.WHICH ~ ') ... }';
+        my $sig := self.signature.perl;
+        $perl ~= " $sig.substr(1)" unless $sig eq ':()';
+        $perl ~= self.onlystar
+          ?? ' {*}'
+          !! self.yada
+            ?? ' { ... }'
+            !! ' { #`(' ~ self.WHICH ~ ') ... }';
         $perl
     }
 
@@ -100,6 +120,7 @@ my class Routine { # declared in BOOTSTRAP
         unless nqp::istype(self, Wrapped) {
             my $orig = self.clone();
             self does Wrapped;
+            $!onlystar = 0; # disable optimization if no body there
             self.UNSHIFT_WRAPPER($orig);
         }
 

@@ -3,27 +3,20 @@ my class Stash { # declared in BOOTSTRAP
     #     has str $!longname;
 
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
+        my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::if(
-          nqp::getattr(self,Map,'$!storage')
-            && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
-          nqp::p6bindattrinvres(
-            my $v,Scalar,'$!whence',
-            -> { nqp::bindkey(
-                   nqp::getattr(self,Map,'$!storage')
-                     || nqp::bindattr(self,Map,'$!storage',nqp::hash),
-                   $key,
-                   $v
-                 )
-               }
+          nqp::existskey(storage,$key),
+          nqp::atkey(storage,$key),
+          nqp::p6scalarfromdesc(
+            ContainerDescriptor::BindHashPos.new(Mu, self, $key)
           )
         )
     }
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback!) is raw {
+        my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::if(
-          nqp::getattr(self,Map,'$!storage')
-            && nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+          nqp::existskey(storage,$key),
+          nqp::atkey(storage,$key),
           nqp::if(
             $global_fallback,
             nqp::if(
@@ -31,32 +24,23 @@ my class Stash { # declared in BOOTSTRAP
               nqp::atkey(GLOBAL.WHO,$key),
               Failure.new("Could not find symbol '$key'")
             ),
-            nqp::p6bindattrinvres(
-              my $v,Scalar,'$!whence',
-              -> { nqp::bindkey(
-                     nqp::getattr(self,Map,'$!storage')
-                       || nqp::bindattr(self,Map,'$!storage',nqp::hash),
-                     $key,
-                     $v
-                 )
-                 }
+            nqp::p6scalarfromdesc(
+              ContainerDescriptor::BindHashPos.new(Mu, self, $key)
             )
           )
         )
     }
 
     method package_at_key(Stash:D: str $key) {
-        my Mu $storage := nqp::defined(nqp::getattr(self, Map, '$!storage')) ??
-            nqp::getattr(self, Map, '$!storage') !!
-            nqp::bindattr(self, Map, '$!storage', nqp::hash());
-        if nqp::existskey($storage, nqp::unbox_s($key)) {
-            nqp::atkey($storage, $key)
-        }
-        else {
-            my $pkg := Metamodel::PackageHOW.new_type(:name($key));
-            $pkg.^compose;
-            nqp::bindkey($storage, $key, $pkg)
-        }
+        my \storage := nqp::getattr(self,Map,'$!storage');
+        nqp::ifnull(
+          nqp::atkey(storage,$key),
+          nqp::stmts(
+            (my $pkg := Metamodel::PackageHOW.new_type(:name($key))),
+            $pkg.^compose,
+            nqp::bindkey(storage,$key,$pkg)
+          )
+        )
     }
 
     multi method gist(Stash:D:) {

@@ -3,7 +3,7 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-plan 42;
+plan 45;
 
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
@@ -296,3 +296,20 @@ is-run-repl '$_**2',
          and !.contains('No such method')},
     :err(''),
     'no complaints about .message';
+
+# RT #123380
+is-run-repl 'say "b".subst(/(.)/,{$0~$0}); say "%20" ~~ /:i \%(<[0..9A..F]>**2)/;'
+            ~ "\n" ~ 'say "a".subst(/(.)/,{$0~$0});',
+    :out{.contains('bb') and .contains('aa') and not .contains('2020')},
+    :err(''),
+    ｢no sticky $0 values across lines｣;
+
+# https://github.com/rakudo/rakudo/issues/1925
+is-run-repl '&say.package', :out{.contains: 'GLOBAL'}, :err(''),
+    ｢REPL can auto-print non-Mu things that lack .WHERE and .gist｣;
+
+#https://github.com/rakudo/rakudo/issues/2184
+is-run-repl 'my $fh = $*EXECUTABLE.open(:r)', 
+	:out{.contains: 'IO::Handle' and not .contains('Failed to write')}, 
+	:err(''),
+	｢no complaints about failed writing to filehandle when opening a file｣;

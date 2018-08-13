@@ -1,9 +1,9 @@
 my class Encoding::Decoder::Builtin is repr('Decoder') does Encoding::Decoder {
-    method new(str $encoding, :$translate-nl, Str :$replacement, Bool:D :$strict = False) {
+    method new(str $encoding, :$translate-nl, :$replacement, :$strict) {
         nqp::decoderconfigure(nqp::create(self), $encoding,
             nqp::hash(
                 'translate_newlines', $translate-nl ?? 1 !! 0,
-                'replacement', $replacement.defined ?? nqp::unbox_s($replacement) !! nqp::null(),
+                'replacement', $replacement.defined ?? nqp::unbox_s($replacement) !! nqp::null_s(),
                 'config', $strict ?? 0 !! 1
                 # Config set to 0 uses the decoder's new default, which is strict
                 # decoding. Setting to 1 uses the 6.c specced functionality where

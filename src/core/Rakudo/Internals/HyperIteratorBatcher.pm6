@@ -1,15 +1,15 @@
 # Batches values sourced from an iterator, producing a work batch from them.
-my role Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBatcher {
+my class Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBatcher {
     my constant NO_LOOKAHEAD = Mu.CREATE;
     has Iterator $!iterator;
     has $!lookahead;
     has int $!seq-num;
-   
+
     submethod BUILD(Iterator :$iterator!) {
         $!iterator := $iterator;
         $!lookahead := NO_LOOKAHEAD;
     }
-    
+
     method produce-batch(int $batch-size --> Rakudo::Internals::HyperWorkBatch) {
         nqp::stmts(
           (my $items := nqp::create(IterationBuffer)),

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 24;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -58,5 +58,118 @@ subtest 'like/unlike failures give useful diagnostics' => {
         :1exitcode, :out(*), :err{.contains: 'expected no match with'},
     '`unlike` says it wanted no match, not just "expected"';
 }
+
+# https://github.com/rakudo/rakudo/issues/1699
+throws-like {
+    with Proc::Async.new: :out, :!err, $*EXECUTABLE, '-e', '' {
+        .bind-stdout: IO::Handle.new;
+        .start;
+    }
+}, Exception, :message{.contains: 'handle not open'},
+  'trying to bind Proc::Async to unopened handle gives useful error';
+
+# RT #132238
+subtest 'unclosed hash quote index operator <> message' => {
+    plan 2;
+    throws-like "\n\nsay \$<\n\n", X::Comp::AdHoc,
+        'good error message for unclosed <> hash operator',
+        gist => all(
+            /:i:s<<unable to parse /, /<<find\h+\'\>\'/, /:s<<at line 3 /
+        );
+    todo 'RT #132238 - remove "expecting any of:"';
+    throws-like "say \$<", X::Comp::AdHoc,
+        'better and shorter error message for unclosed <> hash operator',
+        :gist{ not .match: /:i:s<<expecting any of: / };
+}
+
+# RT #122980
+throws-like 'Int:erator:$;', X::InvalidTypeSmiley,
+    ｢Don't report "missing semicolon" when semicolon present with complicated punctuation.｣,
+    :message{ not .match: /:i:s<<missing semicolon/ };
+
+
+# RT #133107
+is-run ｢use IO::Socket::Async::BlahBlahBlah｣, :exitcode(*.so),
+    :err{.contains: 'Could not find' & none 'builtin type'},
+'non-found module in core namespace is not claimed to be built-in';
+
+# https://github.com/rakudo/rakudo/issues/1848
+throws-like ｢
+    my class Supercalifragilisticexpialidocious {};
+    (my $x := my class {}.new).^set_name: <Supercalifragilisticexpialidocious>;
+    -> Supercalifragilisticexpialidocious {}($x)
+｣, X::TypeCheck, :message{2 == +.comb: 'Supercalifragilisticexpialidocious'},
+    'X::TypeCheck does not prematurely chop off the .perl';
+
+#RT #128646
+subtest '.polymod with zero divisor does not reference guts in error' => {
+    plan 4;
+    throws-like { 1.polymod: 0           }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Int';
+
+    throws-like { 1.Rat.polymod: 0       }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Real';
+
+    throws-like { 1.polymod: lazy 0,     }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Int (lazy)';
+
+    throws-like { 1.Rat.polymod: lazy 0, }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Real (lazy)';
+}
+
+# RT 126220
+throws-like '++.++', X::Multi::NoMatch,
+    '++.++ construct does not throw LTA errors';
+
+# RT #128830
+throws-like 'while (0){}', X::Syntax::Missing,
+    message => /'whitespace' .* 'before curlies' .* 'hash subscript'/,
+'lack of whitespace in while (0){} suggests misparse as hash subscript';
+
+# RT #128803
+is-run '*...‘WAT’', :err{not .contains: 'SORRY'}, :out(''), :exitcode{.so},
+    'runtime time errors do not contain ==SORRY==';
+
+# RT #124219
+is-run ｢
+    grammar Bug { token term { a }; token TOP { <term> % \n } }
+    Bug.parse( 'a' );
+｣, :err(/'token TOP { <term>'/), :exitcode{.so},
+    '`quantifier with %` error includes the token it appears in';
+
+# RT #125181
+is-run 'sub rt125181 returns Str returns Int {}',
+    :err{ not $^o.contains: 'Unhandled exception' }, :exitcode{.so},
+'using two `returns` traits does not cry about unhandled CONTROl exceptions';
+
+{ # coverage; 2016-09-18
+    throws-like { 42.classify      }, Exception, '.classify()    on Any throws';
+    throws-like { 42.classify:   * }, Exception, '.classify(*)   on Any throws';
+    throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
+    throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
+}
+
+# https://github.com/rakudo/rakudo/issues/2110
+subtest 'numeric backslash errors do not get accompanied by confusing others' => {
+    plan 3;
+    my &err = {.contains: 'backslash sequence' & none 'quantifies nothing' }
+    is-run ｢"a" ~~ /(a)\1+$/｣, :&err, :exitcode, 'regex';
+    is-run ｢"\1"｣,             :&err, :exitcode, 'qouble quotes';
+    is-run ｢Q:qq:cc/\1/｣,      :&err, :exitcode, ':qq:cc quoter';
+}
+
+# RT #129838
+if $*DISTRO.is-win {
+    skip ｢is-run() routine doesn't quite work right on Windows: RT#132258｣;
+}
+else {
+    is-run "my \$x = q:to/END/;\ny\n END", :err{ not .contains('Actions.nqp') },
+        'heredoc trimming warnings do not reference guts';
+}
+
+# https://github.com/rakudo/rakudo/issues/1813
+cmp-ok X::OutOfRange.new(
+    :what<a range>, :got(0..3000), :range(1..3000)
+).message.chars, '<', 150, 'X::OutOfRange does not stringify given Ranges';
 
 # vim: ft=perl6 expandtab sw=4

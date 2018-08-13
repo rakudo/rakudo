@@ -24,12 +24,12 @@ role Perl6::Metamodel::REPRComposeProtocol {
                     nqp::push(@repr_info, @type_info);
 
                     # ...which in turn contains the current type in the MRO...
-                    nqp::push(@type_info, $type_obj);
+                    nqp::push(@type_info, nqp::decont($type_obj));
 
                     # ...then an array of hashes per attribute...
                     my @attrs;
                     nqp::push(@type_info, @attrs);
-                    for $type_obj.HOW.attributes($type_obj, :local) -> $attr {
+                    for $type_obj.HOW.attributes(nqp::decont($type_obj), :local) -> $attr {
                         my %attr_info;
                         %attr_info<name> := $attr.name;
                         %attr_info<type> := $attr.type;
@@ -49,11 +49,14 @@ role Perl6::Metamodel::REPRComposeProtocol {
                         if nqp::can($attr, 'inlined') {
                             %attr_info<inlined> := $attr.inlined;
                         }
+                        if nqp::can($attr, 'dimensions') {
+                            %attr_info<dimensions> := $attr.dimensions;
+                        }
                         nqp::push(@attrs, %attr_info);
                     }
 
                     # ...followed by a list of immediate parents.
-                    nqp::push(@type_info, $type_obj.HOW.parents($type_obj, :local));
+                    nqp::push(@type_info, $type_obj.HOW.parents(nqp::decont($type_obj), :local));
                 }
 
                 # Compose the representation using it.

@@ -570,7 +570,7 @@ multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right
     my @result;
     X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.is-lazy;
     my int $elems = left.elems;
-    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1), :recursing(callframe(3).code.name eq 'HYPER')).throw
+    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1), :recursing(callframe(2).code.name eq 'HYPER')).throw
         unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
     my \lefti := left.iterator;
     my int $i = 0;
@@ -643,18 +643,16 @@ multi sub HYPER(\op, \obj) {
     )
 }
 
-proto sub deepmap(|) {*}
-
+proto sub deepmap($, $, *%) {*}
 multi sub deepmap(\op, \obj) {
     Rakudo::Internals.coremap(op, obj, :deep)
 }
-
 multi sub deepmap(\op, Associative \h) {
     my @keys = h.keys;
     hash @keys Z deepmap(op, h{@keys})
 }
 
-proto sub nodemap(|) {*}
+proto sub nodemap($, $, *%) {*}
 multi sub nodemap(\op, \obj) {
     my Mu $rpa := nqp::create(IterationBuffer);
     my \objs := obj.list;
@@ -689,7 +687,7 @@ multi sub nodemap(\op, Associative \h) {
     hash @keys Z nodemap(op, h{@keys})
 }
 
-proto sub duckmap(|) {*}
+proto sub duckmap($, $, *%) {*}
 multi sub duckmap(\op, \obj) {
     Rakudo::Internals.coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj);
 }

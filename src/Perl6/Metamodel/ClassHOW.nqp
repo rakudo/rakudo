@@ -40,13 +40,14 @@ class Perl6::Metamodel::ClassHOW
     }
 
     my $anon_id := 1;
-    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth) {
+    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api) {
         my $metaclass := self.new();
         my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
+        $metaclass.set_api($obj, $api) if $api;
         $metaclass.setup_mixin_cache($obj);
         nqp::setboolspec($obj, 5, nqp::null());
         $obj
@@ -122,9 +123,9 @@ class Perl6::Metamodel::ClassHOW
             my @mro := self.mro($obj);
             while $i < +@mro {
                 my $ptype := @mro[$i];
-                last if nqp::existskey($ptype.HOW.method_table($ptype), 'Bool');
+                last if nqp::existskey(nqp::hllize($ptype.HOW.method_table($ptype)), 'Bool');
                 last if nqp::can($ptype.HOW, 'submethod_table') &&
-                    nqp::existskey($ptype.HOW.submethod_table($ptype), 'Bool');
+                    nqp::existskey(nqp::hllize($ptype.HOW.submethod_table($ptype)), 'Bool');
                 $i := $i + 1;
             }
             if $i + 1 == +@mro {
@@ -159,8 +160,8 @@ class Perl6::Metamodel::ClassHOW
             if self.BUILDPLAN($obj) && nqp::isconcrete($compiler_services) {
 
                 # Class does not appear to have a BUILDALL yet
-                unless nqp::existskey($obj.HOW.submethod_table($obj),'BUILDALL')
-                  || nqp::existskey($obj.HOW.method_table($obj),'BUILDALL') {
+                unless nqp::existskey(nqp::hllize($obj.HOW.submethod_table($obj)),'BUILDALL')
+                  || nqp::existskey(nqp::hllize($obj.HOW.method_table($obj)),'BUILDALL') {
                     my $builder := nqp::findmethod(
                       $compiler_services,'generate_buildplan_executor');
                     my $method :=
@@ -218,7 +219,7 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method role_typecheck_list($obj) {
-        @!role_typecheck_list
+        $!composed ?? @!role_typecheck_list !! self.roles_to_compose($obj)
     }
 
     method concretization($obj, $ptype) {

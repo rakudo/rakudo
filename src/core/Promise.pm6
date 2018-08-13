@@ -68,11 +68,9 @@ my class Promise does Awaitable {
             nqp::unlock($!lock);
             X::Promise::Vowed.new(promise => self).throw
         }
-        my $vow := nqp::create(Vow);
-        nqp::bindattr($vow, Vow, '$!promise', self);
         $!vow_taken = 1;
         nqp::unlock($!lock);
-        $vow
+        nqp::p6bindattrinvres(nqp::create(Vow), Vow, '$!promise', self);
     }
 
     proto method kept(|) {*}

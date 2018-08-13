@@ -7,6 +7,7 @@ my class Proc {
     has IO::Pipe $.err;
     has $.exitcode = -1;  # distinguish uninitialized from 0 status
     has $.signal;
+    has $.pid is default(Nil);
     has @.command;
 
     has Proc::Async $!proc;
@@ -21,7 +22,7 @@ my class Proc {
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
                     Bool :$bin, Bool :$chomp = True, Bool :$merge, :$command,
                     Str :$enc, Str:D :$nl = "\n", :$signal --> Nil) {
-        @!command = |$command if $command;
+        @!command := $command.List if $command;
         if nqp::istype($in, IO::Handle) && $in.DEFINITE {
             @!pre-spawn.push({ $!proc.bind-stdin($in) });
         }
@@ -158,12 +159,12 @@ my class Proc {
     }
 
     method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {
-        @!command = @args;
+        @!command := @args.List;
         self!spawn-internal(@args, $cwd, $env)
     }
 
     method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D) {
-        @!command = $cmd;
+        @!command := $cmd.List;
         my @args := Rakudo::Internals.IS-WIN
             ?? (%*ENV<ComSpec>, '/c', $cmd)
             !! ('/bin/sh', '-c', $cmd);
@@ -177,7 +178,7 @@ my class Proc {
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         my $is-spawned := do {
             CATCH { default { self!set-status(0x100) } }
-            await $!proc.ready;
+            $!pid = await $!proc.ready;
             True
         } // False;
         .() for @!post-spawn;
@@ -234,7 +235,7 @@ multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
     $proc
 }
 
-proto sub shell(|) {*}
+proto sub shell($, *%) {*}
 multi sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {

@@ -19,18 +19,23 @@ my class RaceSeq does Iterable does Sequence {
             self, $!work-stage-head, $matcher, %options
     }
 
-    method hyper(RaceSeq:D:) {
-        HyperSeq.new(:$!configuration, :$!work-stage-head)
-    }
-
-    method is-lazy() { False }
-
     method map(RaceSeq:D: $matcher, *%options) {
         Rakudo::Internals::HyperRaceSharedImpl.map:
             self, $!work-stage-head, $matcher, %options
     }
 
+    method invert(RaceSeq:D:) {
+        Rakudo::Internals::HyperRaceSharedImpl.invert:
+            self, $!work-stage-head
+    }
+
+    method hyper(RaceSeq:D:) {
+        HyperSeq.new(:$!configuration, :$!work-stage-head)
+    }
+
     method race(RaceSeq:D:) { self }
+
+    method is-lazy() { False }
 
     multi method serial(RaceSeq:D:) { self.Seq }
 

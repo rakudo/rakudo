@@ -41,7 +41,7 @@ multi sub trait_mod:<is>(Variable:D $v, |c ) {
       type      => 'is',
       subtype   => c.hash.keys[0],
       declaring => ' variable',
-      expected  => <TypeObject default dynamic>,
+      expected  => <TypeObject default dynamic export>,
     );
 }
 multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {

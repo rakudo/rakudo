@@ -80,7 +80,9 @@ my class Regex { # declared in BOOTSTRAP
           (my $ctx := nqp::ctx),
           nqp::until(
             nqp::isnull($ctx := nqp::ctxcallerskipthunks($ctx))
-              || (my $underscore := nqp::getlexrelcaller($ctx,'$_')).DEFINITE,
+              || nqp::isconcrete(
+                   my $underscore := nqp::getlexrelcaller($ctx,'$_')
+            ),
             nqp::null
           ),
           nqp::if(

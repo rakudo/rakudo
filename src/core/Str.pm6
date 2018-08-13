@@ -155,11 +155,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     proto method ends-with(|) {*}
     multi method ends-with(Str:D: Cool:D $suffix) {self.ends-with: $suffix.Str}
     multi method ends-with(Str:D: Str:D $suffix) {
-        nqp::p6bool(nqp::eqat(
-          $!value,
-          nqp::getattr($suffix,Str,'$!value'),
-          nqp::chars($!value) - nqp::chars(nqp::getattr($suffix,Str,'$!value'))
-        ))
+        my \value := nqp::getattr($suffix,Str,'$!value');
+        nqp::p6bool(
+          nqp::eqat(
+            $!value,value,nqp::sub_i(nqp::chars($!value),nqp::chars(value))
+          )
+        )
     }
 
     # TODO Use coercer in 1 candidate when RT131014
@@ -365,13 +366,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   self
                 )
             }
-            method new(\string) {
-                nqp::if(
-                  string,
-                  nqp::create(self)!SET-SELF(string),
-                  Rakudo::Iterator.Empty
-                )
-            }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
                 nqp::if(
                   nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
@@ -382,6 +377,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   nqp::p6box_s(nqp::substrnfg($!str,$!pos,1)),
 #?endif
                   IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my str $str = $!str),      # locals are faster
+                  (my int $pos = $!pos),
+                  (my int $chars = $!chars),
+                  nqp::while(
+                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
+                    $target.push(nqp::substr($str,$pos,1))
+                  ),
+                  ($!pos = $pos)
                 )
             }
             method count-only() { nqp::p6box_i($!chars) }
@@ -2631,7 +2638,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::islt_i( ($i = nqp::add_i($i,1)), $elems ),
             ($res = nqp::concat($res,
                 nqp::unless(
-                    nqp::getstrfromname(nqp::atpos(names, $i).trim),
+                    nqp::strfromname(nqp::atpos(names, $i).trim),
                     X::Str::InvalidCharName.new(
                         :name(nqp::atpos(names, $i).trim)
                     ).fail
@@ -2795,7 +2802,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             || nqp::isgt_i($from,nqp::chars($!value)),
           Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
           nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from)),0),
+            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0),
             Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
             nqp::substr($!value,$from,$chars)
           )
@@ -2817,7 +2824,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method substr(Str:D: Callable:D \start) {
 #?if !js
         nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
           Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
           nqp::substr($!value,$from)
@@ -2835,7 +2842,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method substr(Str:D: Callable:D \start, Int:D \want) {
 #?if !js
         nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
           Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
           nqp::if(
@@ -2861,11 +2868,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method substr(Str:D: Callable:D \start, Callable:D \want) {
 #?if !js
         nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value))),0)
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
           Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
           nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from)),0),
+            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0),
             Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
             nqp::substr($!value,$from,$chars)
           )
@@ -2887,13 +2894,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method substr(Str:D: Range:D \start) {
 #?if !js
         nqp::if(
-          nqp::islt_i((my int $from = start.min + start.excludes-min),0)
+          nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
             || nqp::isgt_i($from,nqp::chars($!value)),
           Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
           nqp::if(
             start.max == Inf,
             nqp::substr($!value,$from),
-            nqp::substr($!value,$from,start.max - start.excludes-max - $from + 1)
+            nqp::substr($!value,$from,(start.max - start.excludes-max - $from + 1).Int)
           )
         )
 #?endif
@@ -2916,10 +2923,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method substr(Str:D: \start) {
         self.substr(start.Int)
     }
-    multi method substr(Str:D: \start, \want) {
-        nqp::istype(want,Whatever) || want == Inf
-          ?? self.substr(start)
-          !! self.substr(start.Int,want.Int)
+    multi method substr(Str:D: \from, \want) {
+        nqp::istype(want,Whatever)
+        || (! nqp::istype(want, Callable) && want == Inf)
+          ?? self.substr(from)
+          !! self.substr(nqp::istype(from, Callable) ?? from !! from.Int,
+                         nqp::istype(want, Callable) ?? want !! want.Int)
     }
 
     multi method substr-rw(Str:D \SELF: \start, $want = Inf) is rw {
@@ -3051,17 +3060,41 @@ my class Str does Stringy { # declared in BOOTSTRAP
 multi sub prefix:<~>(Str:D \a)         { a.Str }
 multi sub prefix:<~>(str   $a --> str) { $a    }
 
+multi sub infix:<~>(str $a, str $b   --> str) {
+    nqp::concat($a, $b)
+}
+multi sub infix:<~>(Str:D \a, str $b --> str) {
+    nqp::concat(nqp::unbox_s(a), $b)
+}
+multi sub infix:<~>(str $a, Str:D \b --> str) {
+    nqp::concat($a, nqp::unbox_s(b))
+}
+
 multi sub infix:<~>(Str:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<~>(str $a, str $b --> str) { nqp::concat($a, $b) }
-multi sub infix:<~>(Any:D \a, Str:D \b) {
+
+multi sub infix:<~>(Cool:D \a, Str:D \b --> Str:D) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Str), nqp::unbox_s(b)))
+}
+multi sub infix:<~>(Str:D \a, Cool:D \b --> Str:D) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Str)))
+}
+multi sub infix:<~>(Cool:D \a, Cool:D \b --> Str:D) {
+    nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Str), nqp::unbox_s(b.Str)))
+}
+
+multi sub infix:<~>(Any:D \a, Str:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a.Stringy), nqp::unbox_s(b)))
 }
-multi sub infix:<~>(Str:D \a, Any:D \b) {
+multi sub infix:<~>(Str:D \a, Any:D \b --> Str:D) {
     nqp::p6box_s(nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Stringy)))
 }
-multi sub infix:<~>(*@args) { @args.join }
+# Any/Any candidate in src/core/Stringy.pm6
+
+multi sub infix:<~>(str @args --> str) { nqp::join('',@args) }
+multi sub infix:<~>(@args --> Str:D)   { @args.join }
+multi sub infix:<~>(*@args --> Str:D)  { @args.join }
 
 multi sub infix:<x>(Str:D $s, Bool:D $repetition --> Str:D) {
     nqp::if($repetition, $s, '')
@@ -3192,17 +3225,17 @@ multi sub infix:«~<»(str $a, int $b) {
     X::NYI.new(feature => "infix:«~<»").throw;
 }
 
-proto sub trim(|) {*}
+proto sub trim($, *%) {*}
 multi sub trim(Cool:D $s --> Str:D) { $s.trim }
 
-proto sub trim-leading(|) {*}
+proto sub trim-leading($, *%) {*}
 multi sub trim-leading (Cool:D $s --> Str:D) { $s.trim-leading }
 
-proto sub trim-trailing(|) {*}
+proto sub trim-trailing($, *%) {*}
 multi sub trim-trailing(Cool:D $s --> Str:D) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-proto sub UNBASE (|) {*}
+proto sub UNBASE ($, $, *%) {*}
 multi sub UNBASE(Int:D $base, Any:D $num) {
     X::Numeric::Confused.new(:$num, :$base).throw;
 }
@@ -3244,8 +3277,8 @@ sub UNBASE_BRACKET($base, @a) {
     }
     $v;
 }
-proto sub infix:<unicmp>(|) is pure {*}
-proto sub infix:<coll>(|) {*}
+proto sub infix:<unicmp>($, $, *%) is pure {*}
+proto sub infix:<coll>($, $, *%) {*}
 #?if !jvm
 multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
     ORDER(
@@ -3277,18 +3310,18 @@ multi sub infix:<coll>(Str:D \a, Str:D \b)   { die "coll NYI on JVM" }
 proto sub chrs(|) {*}
 multi sub chrs(*@c --> Str:D) { @c.chrs }
 
-proto sub parse-base(|) {*}
+proto sub parse-base($, $, *%) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 
-proto sub substr(|) {*}
+proto sub substr($, $?, $?, *%) {*}
 multi sub substr(\what)                { what.substr             }
 multi sub substr(\what, \from)         { what.substr(from)       }
 multi sub substr(\what, \from, \chars) { what.substr(from,chars) }
 
-proto sub substr-rw(|) {*}
-multi sub substr-rw(\what)                { what.substr-rw             }
-multi sub substr-rw(\what, \from)         { what.substr-rw(from)       }
-multi sub substr-rw(\what, \from, \chars) { what.substr-rw(from,chars) }
+proto sub substr-rw($, $?, $?, *%) is rw {*}
+multi sub substr-rw(\what) is rw                { what.substr-rw             }
+multi sub substr-rw(\what, \from) is rw         { what.substr-rw(from)       }
+multi sub substr-rw(\what, \from, \chars) is rw { what.substr-rw(from,chars) }
 
 multi sub infix:<eqv>(Str:D \a, Str:D \b) {
     nqp::p6bool(
@@ -3299,7 +3332,7 @@ multi sub infix:<eqv>(Str:D \a, Str:D \b) {
     )
 }
 
-proto sub samemark(|) {*}
+proto sub samemark($, $, *%) {*}
 multi sub samemark($s, $pat) { $s.samemark($pat) }
 
 sub parse-names(Str:D \names) {
@@ -3307,7 +3340,7 @@ sub parse-names(Str:D \names) {
     names.uniparse
 }
 
-proto sub uniparse(|) {*}
+proto sub uniparse($, *%) {*}
 multi sub uniparse(Str:D \names) { names.uniparse }
 
 # vim: ft=perl6 expandtab sw=4

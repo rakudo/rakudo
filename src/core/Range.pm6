@@ -9,7 +9,9 @@ my class Range is Cool does Iterable does Positional {
     has int $!infinite;
     has int $!is-int;
 
-    method !SET-SELF( $!min, $!max, \excludes-min, \excludes-max, \infinite) {
+    method !SET-SELF(\min, \max, \excludes-min, \excludes-max, \infinite) {
+        $!min := nqp::decont(min);
+        $!max := nqp::decont(max);
         $!excludes-min = excludes-min // 0;
         $!excludes-max = excludes-max // 0;
         $!infinite = infinite;
@@ -80,6 +82,10 @@ my class Range is Cool does Iterable does Positional {
     method infinite()     { nqp::p6bool($!infinite)     }
     method is-int()       { nqp::p6bool($!is-int)       }
 
+    method !IS-NATIVE-INT() {
+        $!is-int && nqp::not_i(nqp::isbig_I($!min) || nqp::isbig_I($!max))
+    }
+
     multi method WHICH (Range:D:) {
         (nqp::istype(self.WHAT,Range) ?? 'Range|' !! (self.^name ~ '|'))
           ~ $!min
@@ -106,11 +112,12 @@ my class Range is Cool does Iterable does Positional {
 
     method iterator() {
         # can use native ints
-        if $!is-int
-          && !nqp::isbig_I(nqp::decont($!min))
-          && !nqp::isbig_I(nqp::decont($!max)) {
+        if nqp::istype($!min,Int) && nqp::not_i(nqp::isbig_I(nqp::decont($!min)))
+          && ((nqp::istype($!max,Int) && nqp::not_i(nqp::isbig_I(nqp::decont($!max)))) || $!max == Inf) {
             Rakudo::Iterator.IntRange(
-              $!min + $!excludes-min, $!max - $!excludes-max)
+              $!min + $!excludes-min,
+              $!max - $!excludes-max
+            )
         }
 
         # doesn't make much sense, but there you go
@@ -228,9 +235,7 @@ my class Range is Cool does Iterable does Positional {
 
     method !reverse-iterator() {
         # can use native ints
-        if $!is-int
-          && !nqp::isbig_I(nqp::decont($!min))
-          && !nqp::isbig_I(nqp::decont($!max)) {
+        if self!IS-NATIVE-INT() {
             class :: does Iterator {
                 has int $!i;
                 has int $!n;
@@ -374,7 +379,7 @@ my class Range is Cool does Iterable does Positional {
         else { nextsame };
     }
 
-    method bounds() { (nqp::decont($!min), nqp::decont($!max)) }
+    method bounds() { ($!min, $!max) }
     proto method int-bounds(|) {*}
     multi method int-bounds($from is rw, $to is rw) {
         nqp::if(
@@ -490,10 +495,10 @@ my class Range is Cool does Iterable does Positional {
         if self.elems -> $elems {
             $!is-int
               ?? Seq.new(class :: does Iterator {
-                    has int $!min;
-                    has Int $!elems;
+                    has $!min;
+                    has $!elems;
                     method !SET-SELF(\min,\elems) {
-                        $!min    = min;
+                        $!min   := nqp::decont(min);
                         $!elems := nqp::decont(elems);
                         self
                     }
@@ -526,11 +531,11 @@ my class Range is Cool does Iterable does Positional {
         if self.elems -> $elems {
             $!is-int
               ?? Seq.new(class :: does Iterator {
-                    has int $!min;
-                    has Int $!elems;
-                    has int $!todo;
+                    has $!min;
+                    has $!elems;
+                    has Int $!todo;
                     method !SET-SELF(\min,\elems,\todo) {
-                        $!min    = min;
+                        $!min   := nqp::decont(min);
                         $!elems := nqp::decont(elems);
                         $!todo   = todo;
                         self
@@ -564,12 +569,12 @@ my class Range is Cool does Iterable does Positional {
         if self.elems -> $elems {
             $!is-int && $elems > 3 * $todo # heuristic for sparse lookup
               ?? Seq.new(class :: does Iterator {
-                    has int $!min;
-                    has Int $!elems;
-                    has int $!todo;
+                    has $!min;
+                    has $!elems;
+                    has Int $!todo;
                     has $!seen;
                     method !SET-SELF(\min,\elems,\todo) {
-                        $!min    = min;
+                        $!min   := nqp::decont(min);
                         $!elems := nqp::decont(elems);
                         $!todo   = todo;
                         $!seen  := nqp::hash();
@@ -596,7 +601,7 @@ my class Range is Cool does Iterable does Positional {
                         my str $key;
                         while $!todo {
                             my Int $value = $!min + nqp::rand_I($!elems, Int);
-                            $key   = nqp::tostr_I(nqp::decont($value));
+                            $key = nqp::tostr_I(nqp::decont($value));
                             unless nqp::existskey($!seen,$key) {
                                 $target.push($value);
                                 $!todo = $!todo - 1;
@@ -713,21 +718,21 @@ my class Range is Cool does Iterable does Positional {
     }
 }
 
-proto sub infix:<..>(|) is pure {*}
+proto sub infix:<..>($, $, *%) is pure {*}
 multi sub infix:<..>($min, $max) { Range.new($min, $max) }
 
-proto sub infix:<^..>(|) is pure {*}
+proto sub infix:<^..>($, $, *%) is pure {*}
 multi sub infix:<^..>($min, $max) { Range.new($min, $max, :excludes-min) }
 
-proto sub infix:<..^>(|) is pure {*}
+proto sub infix:<..^>($, $, *%) is pure {*}
 multi sub infix:<..^>($min, $max) { Range.new($min, $max, :excludes-max) }
 
-proto sub infix:<^..^>(|) is pure {*}
+proto sub infix:<^..^>($, $, *%) is pure {*}
 multi sub infix:<^..^>($min, $max) {
     Range.new($min, $max, :excludes-min, :excludes-max)
 }
 
-proto sub prefix:<^>(|) is pure {*}
+proto sub prefix:<^>($, *%) is pure {*}
 multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b) {

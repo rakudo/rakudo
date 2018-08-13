@@ -21,11 +21,11 @@ sub THROW-NIL(int $type --> Nil) {
 }
 
 sub RETURN-LIST(Mu \list) is raw {
-    my Mu $storage := nqp::getattr(list, List, '$!reified');
-    nqp::isgt_i(nqp::elems($storage),1)
+    my \reified := nqp::getattr(list, List, '$!reified');
+    nqp::isgt_i(nqp::elems(reified),1)
       ?? list
-      !! nqp::elems($storage)
-        ?? nqp::shift($storage)
+      !! nqp::elems(reified)
+        ?? nqp::shift(reified)
         !! Nil
 }
 
@@ -69,18 +69,18 @@ multi sub take(|) {
     )
 }
 
-proto sub goto(|) {*}
+proto sub goto($, *%) {*}
 multi sub goto(Label:D \x --> Nil) { x.goto }
 
-proto sub last(|) {*}
+proto sub last($?, *%) {*}
 multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
 multi sub last(Label:D \x --> Nil) { x.last }
 
-proto sub next(|) {*}
+proto sub next($?, *%) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
 multi sub next(Label:D \x --> Nil) { x.next }
 
-proto sub redo(|) {*}
+proto sub redo($?, *%) {*}
 multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
 multi sub redo(Label:D \x --> Nil) { x.redo }
 
@@ -183,6 +183,7 @@ multi sub die(|cap ( *@msg ) --> Nil) {
     X::AdHoc.from-slurpy(|cap).throw
 }
 
+proto sub warn(|) {*}
 multi sub warn(*@msg) {
     my $msg = @msg.join || "Warning: something's wrong";
     my $ex := nqp::newexception();
@@ -199,32 +200,28 @@ constant NaN = nqp::p6box_n(nqp::nan());
 # For some reason, we cannot move this to Rakudo::Internals as a class
 # method, because then the return value is always HLLized :-(
 sub CLONE-HASH-DECONTAINERIZED(\hash) {
-    nqp::if(
-      nqp::getattr(hash,Map,'$!storage').DEFINITE,
-      nqp::stmts(
-        (my $clone := nqp::hash),
-        (my $iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
-        nqp::while(
-          $iter,
-          nqp::bindkey($clone,
-            nqp::iterkey_s(nqp::shift($iter)),
-            nqp::if(
-              nqp::defined(nqp::iterval($iter)),
-              nqp::decont(nqp::iterval($iter)).Str,
-              ''
-            )
+    nqp::stmts(
+      (my \clone := nqp::hash),
+      (my \iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
+      nqp::while(
+        iter,
+        nqp::bindkey(clone,
+          nqp::iterkey_s(nqp::shift(iter)),
+          nqp::if(
+            nqp::defined(nqp::iterval(iter)),
+            nqp::decont(nqp::iterval(iter)).Str,
+            ''
           )
-        ),
-        $clone
+        )
       ),
-      nqp::hash
+      clone
     )
 }
 
 sub CLONE-LIST-DECONTAINERIZED(*@list) {
-    my Mu $list-without := nqp::list();
-    nqp::push($list-without, nqp::decont(~$_)) for @list.eager;
-    $list-without;
+    my Mu \list-without := nqp::list();
+    nqp::push(list-without, nqp::decont(~$_)) for @list.eager;
+    list-without;
 }
 
 # vim: ft=perl6 expandtab sw=4

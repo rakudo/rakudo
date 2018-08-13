@@ -3,9 +3,9 @@
 
 =begin pod
 
-This script is for installing Perl6 modules. B<install-dist.pl> does the same module registration like the 'zef' tool.
+This script is for installing Perl6 modules. B<install-dist.p6> does the same module registration like the 'zef' tool.
 
-B<install-dist.pl> makes it easy to install a module system wide.
+B<install-dist.p6> makes it easy to install a module system wide.
 
 =head1 OPTIONS
 
@@ -23,11 +23,11 @@ If you specify a destination that does not exists then it will be created. The -
 
 The command in the install session for packaging a Perl 6 module could be done in the form:
 
-    install-dist.pl --to=<buildroot/...> --for=vendor
+    install-dist.p6 --to=<buildroot/...> --for=vendor
 
 It is recommended to set the environment variable 'RAKUDO_RERESOLVE_DEPENDENCIES' by using the script:
 
-    RAKUDO_RERESOLVE_DEPENDENCIES=0 install-dist.pl --to=<buildroot/...> --for=site
+    RAKUDO_RERESOLVE_DEPENDENCIES=0 install-dist.p6 --to=<buildroot/...> --for=site
 
 =end pod
 
@@ -74,7 +74,12 @@ sub build(IO::Path :$dist-prefix) {
     my $meta = Rakudo::Internals::JSON.from-json($meta-file.slurp);
 
     if ($meta<builder>) {
-        my $builder = (require ::("Distribution::Builder::$meta<builder>")).new(:$meta);
+        my $builder-class =  first { .so },
+            (try require ::("$meta<builder>")),
+            (try require ::("Distribution::Builder::$meta<builder>")); # get rid of this hard-coded prefix variation eventually
+
+        my $builder = $builder-class.new(:$meta);
+
         if $builder.can-build {
             $builder.build;
             exit;

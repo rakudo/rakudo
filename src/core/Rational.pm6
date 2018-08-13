@@ -22,31 +22,30 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method new(NuT \nu = 0, DeT \de = 1) {
-        my $new := nqp::create(self);
-
-        # 0 denominator take it verbatim to support Inf/-Inf/NaN
-        if de == 0 {
-            nqp::bindattr($new,::?CLASS,'$!numerator',  nqp::decont(nu));
-            nqp::bindattr($new,::?CLASS,'$!denominator',nqp::decont(de));
-        }
-
-        # normalize
-        else {
-            my $gcd        := nu gcd de;
-            my $numerator   = nu div $gcd;
-            my $denominator = de div $gcd;
-            if $denominator < 0 {
-                $numerator   = -$numerator;
-                $denominator = -$denominator;
-            }
-            nqp::bindattr($new,::?CLASS,'$!numerator',  nqp::decont($numerator));
-            nqp::bindattr($new,::?CLASS,'$!denominator',nqp::decont($denominator));
-        }
-
-        $new
+        nqp::unless(
+          de,
+          nqp::p6bindattrinvres( # zero-denominator-rational; bind-as-is
+            nqp::p6bindattrinvres(
+              nqp::create(self),
+              ::?CLASS, '$!denominator', nqp::decont(de)),
+            ::?CLASS, '$!numerator',  nqp::decont(nu)),
+          nqp::stmts( # normal rational
+            (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
+            (my $nu  := nqp::div_I(nqp::decont(nu), $gcd, NuT)),
+            (my $de  := nqp::div_I(nqp::decont(de), $gcd, DeT)),
+            nqp::if(
+              nqp::islt_I($de, 0),
+              nqp::stmts(
+                ($nu := nqp::neg_I($nu, $nu.WHAT)),
+                ($de := nqp::neg_I($de, $de.WHAT)))),
+            nqp::p6bindattrinvres( # zero-denominator-rational
+              nqp::p6bindattrinvres(
+                nqp::create(self),
+                ::?CLASS, '$!denominator', $de),
+              ::?CLASS, '$!numerator', $nu)))
     }
 
-    method nude() { self.REDUCE-ME; $!numerator, $!denominator }
+    method nude() { $!numerator, $!denominator }
 
     method Num() {
         nqp::p6box_n(nqp::div_In(
@@ -61,7 +60,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method ceiling(Rational:D:) {
-        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)
@@ -85,7 +83,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method is-prime(--> Bool:D) {
-        self.REDUCE-ME;
         nqp::if($!denominator == 1,$!numerator.is-prime)
     }
 
@@ -94,34 +91,52 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         my $fract  = self.abs - $whole;
 
         # fight floating point noise issues RT#126016
-        if $fract.Num == 1e0 { ++$whole; $fract = 0 }
+        if $fract.Num == 1e0 && nqp::eqaddr(self.WHAT,Rat) {
+            $whole += 1;
+            $fract = 0;
+        }
 
         my $result = nqp::if(
             nqp::islt_I($!numerator, 0), '-', ''
         ) ~ $whole;
 
         if $fract {
-            my $precision = $!denominator < 100_000
-                ?? 6 !! $!denominator.Str.chars + 1;
-
-            my $fract-result = '';
-            while $fract and $fract-result.chars < $precision - 1 {
-                $fract *= 100;
-                my $f   = $fract.floor;
-                $fract -= $f;
-                $fract-result ~= $f < 10 ?? "0$f" !!
-                                 (!$fract and $f %% 10) ?? ($f / 10).floor !! $f;
-            }
-            if $fract and $fract-result.chars < $precision {
-                $fract *= 10;
-                given $fract.floor {
-                    $fract-result ~= $_;
-                    $fract        -= $_;
+            my $precision;
+            # Stringify Rats to at least 6 significant digits. There does not
+            # appear to be any written spec for this but there are tests in
+            # roast that specifically test for 6 digits.
+            if nqp::eqaddr(self.WHAT,Rat) {
+                if $!denominator < 100000 {
+                    $precision = 6;
+                    $fract *= 1000000;
+                }
+                else {
+                    $precision = nqp::chars($!denominator.Str) + 1;
+                    $fract *= nqp::pow_I(10, nqp::decont($precision), Num, Int);
                 }
             }
-            ++$fract-result if 2*$fract >= 1; # round off fractional result
-
-            $result ~= '.' ~ $fract-result;
+            else {
+                # TODO v6.d FatRats are tested in roast to have a minimum
+                # precision pf 6 decimal places - mostly due to there being no
+                # formal spec and the desire to test SOMETHING. With this
+                # speed increase, 16 digits would work fine; but it isn't spec.  
+                #if $!denominator < 1000000000000000 {
+                #    $precision = 16;
+                #    $fract *= 10000000000000000;
+                #}
+                if $!denominator < 100000 {
+                    $precision = 6;
+                    $fract *= 1000000;
+                }
+                else {
+                    $precision = nqp::chars($!denominator.Str) + nqp::chars($whole.Str) + 1;
+                    $fract *= nqp::pow_I(10, nqp::decont($precision), Num, Int);
+                }
+            }
+            my $f  = $fract.round;
+            my $fc = nqp::chars($f.Str);
+            $f div= 10 while $f %% 10; # Remove trailing zeros
+            $result ~= '.' ~ '0' x ($precision - $fc) ~ $f;
         }
         $result
     }
@@ -220,23 +235,19 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         self.new($!numerator - $!denominator, $!denominator);
     }
 
-    method norm() { self.REDUCE-ME; self }
+    method norm() { self }
 
     method narrow(::?CLASS:D:) {
-        self.REDUCE-ME;
         $!denominator == 1
             ?? $!numerator
             !! self;
     }
 
-    method REDUCE-ME(--> Nil) {
-        if $!denominator > 1 {
-            my $gcd = $!denominator gcd $!numerator;
-            if $gcd > 1 {
-                nqp::bindattr(self,self.WHAT,'$!numerator',  $!numerator   div $gcd);
-                nqp::bindattr(self,self.WHAT,'$!denominator',$!denominator div $gcd);
-            }
-        }
+    multi method round(::?CLASS:D:) {
+        nqp::div_I(
+          nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+          nqp::mul_I($!denominator, 2, Int),
+          Int)
     }
 }
 

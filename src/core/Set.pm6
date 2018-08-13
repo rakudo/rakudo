@@ -79,13 +79,13 @@ my class Set does Setty {
           nqp::create(SetHash)
         )
     }
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::clone(self),
-          set()
-        )
-    }
+
+    multi method Setty(Set:U:) { Set      }
+    multi method Setty(Set:D:) { self     }
+    multi method Baggy(Set:U:) { Bag      }
+    multi method Baggy(Set:D:) { self.Bag }
+    multi method Mixy (Set:U:) { Mix      }
+    multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
     method STORE(*@pairs, :$initialize --> Set:D) {

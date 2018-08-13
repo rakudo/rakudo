@@ -74,34 +74,34 @@ my role Setty does QuantHash {
         nqp::p6bool($!elems && nqp::elems($!elems))
     }
 
-    method HASHIFY(\type) {
+    method !HASHIFY(\type) {
         nqp::stmts(
-          (my $hash := Hash.^parameterize(type,Any).new),
-          (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
+          (my \hash := Hash.^parameterize(type,Any).new),
+          (my \descriptor := nqp::getattr(hash,Hash,'$!descriptor')),
           nqp::if(
             $!elems && nqp::elems($!elems),
             nqp::stmts(
-              (my $storage := nqp::clone($!elems)),
-              (my $iter := nqp::iterator($storage)),
+              (my \storage := nqp::clone($!elems)),
+              (my \iter := nqp::iterator(storage)),
               nqp::while(
-                $iter,
+                iter,
                 nqp::bindkey(
-                  $storage,
-                  nqp::iterkey_s(nqp::shift($iter)),
+                  storage,
+                  nqp::iterkey_s(nqp::shift(iter)),
                   Pair.new(
-                    nqp::iterval($iter),
-                    (nqp::p6scalarfromdesc($descriptor) = True)
+                    nqp::iterval(iter),
+                    (nqp::p6scalarfromdesc(descriptor) = True)
                   )
                 )
               ),
-              nqp::bindattr($hash,Map,'$!storage',$storage)
+              nqp::bindattr(hash,Map,'$!storage',storage)
             )
           ),
-          $hash
+          hash
         )
     }
-    multi method hash(Setty:D: --> Hash:D) { self.HASHIFY(Any) }
-    multi method Hash(Setty:D: --> Hash:D) { self.HASHIFY(Bool) }
+    multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
+    multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
 
     multi method ACCEPTS(Setty:U: \other) { other.^does(self) }
     multi method ACCEPTS(Setty:D: Setty:D \other) {
@@ -109,9 +109,9 @@ my role Setty does QuantHash {
           nqp::unless(
             nqp::eqaddr(self,other),
             nqp::if(                                # not same object
-              $!elems,
+              $!elems && nqp::elems($!elems),
               nqp::if(                              # something on left
-                (my $oraw := other.RAW-HASH),
+                (my $oraw := other.RAW-HASH) && nqp::elems($oraw),
                 nqp::if(                            # something on both sides
                   nqp::iseq_i(nqp::elems($!elems),nqp::elems($oraw)),
                   nqp::stmts(                       # same size
@@ -162,11 +162,11 @@ my role Setty does QuantHash {
           nqp::eqaddr(self,set()),
           'set()',
           nqp::concat(
-            nqp::concat(self.^name,'.new('),
             nqp::concat(
-              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl)),
-              ')'
-            )
+              nqp::concat(self.^name,'.new('),
+              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl))
+            ),
+            ')'
           )
         )
     }

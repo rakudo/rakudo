@@ -282,7 +282,7 @@ my class CX::Done does X::Control {
 sub EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
-    if nqp::p6bool(nqp::istype($payload, Exception)) {
+    if nqp::istype($payload, Exception) {
         nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
         $payload;
     } else {
@@ -343,7 +343,7 @@ my class X::Comp::AdHoc { ... }
 sub COMP_EXCEPTION(|) {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
-    if nqp::p6bool(nqp::istype($payload, Exception)) {
+    if nqp::istype($payload, Exception) {
         nqp::bindattr($payload, Exception, '$!ex', $vm_ex);
         $payload;
     } else {
@@ -362,10 +362,27 @@ do {
         my $e := EXCEPTION($ex);
 
         if %*ENV<RAKUDO_EXCEPTIONS_HANDLER> -> $handler {
+            # REMOVE DEPRECATED CODE ON 201907
+            Rakudo::Deprecations.DEPRECATED: "PERL6_EXCEPTIONS_HANDLER", Nil,
+                '2019.07', :file("N/A"), :line("N/A"),
+                :what<RAKUDO_EXCEPTIONS_HANDLER env var>;
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
-                return unless $class.process($e)
+                unless $class.process($e) {
+                    nqp::getcurhllsym('&THE_END')();
+                    return
+                }
+            }
+        }
+        if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
+            my $class := ::("Exceptions::$handler");
+            unless nqp::istype($class,Failure) {
+                temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping
+                unless $class.process($e) {
+                    nqp::getcurhllsym('&THE_END')();
+                    return
+                }
             }
         }
 
@@ -782,7 +799,7 @@ my class X::NYI is Exception {
     has $.did-you-mean;
     has $.workaround;
     method message() {
-        my $msg = "$.feature not yet implemented. Sorry.";
+        my $msg = "{ $.feature andthen "$_ not" orelse "Not" } yet implemented. Sorry.";
         $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
         $msg ~= "\nWorkaround: $.workaround" if $.workaround;
         $msg
@@ -914,8 +931,8 @@ my class X::OutOfRange is Exception {
     has $.comment;
     method message() {
         my $result = $.comment.defined
-           ?? "$.what out of range. Is: $.got, should be in $.range.gist(); $.comment"
-           !! "$.what out of range. Is: $.got, should be in $.range.gist()";
+           ?? "$.what out of range. Is: $.got.gist(), should be in $.range.gist(); $.comment"
+           !! "$.what out of range. Is: $.got.gist(), should be in $.range.gist()";
         $result;
     }
 }
@@ -1389,6 +1406,14 @@ my class X::Syntax::KeywordAsFunction does X::Syntax {
     }
 }
 
+my class X::Syntax::ParentAsHash does X::Syntax {
+    has $.parent;
+    method message() {
+        "Syntax error while specifying a parent class:\n"
+        ~ "Must specify a space between {$.parent.^name} and \{";
+    }
+}
+
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
     method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }
@@ -1545,53 +1570,30 @@ my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
     my %m =
-      '$*'  => '^^ and $$',
       '$"'  => '.join() method',
       '$$'  => '$*PID',
-      '$('  => '$*GID',
-      '$)'  => '$*EGID',
-      '$<'  => '$*UID',
-      '$>'  => '$*EUID',
       '$;'  => 'real multidimensional hashes',
       '$&'  => '$<>',
       '$`'  => '$/.prematch',
       '$\'' => '$/.postmatch',
-      '$,'  => '$*OUT.output_field_separator()',
+      '$,'  => '.join() method',
       '$.'  => "the .kv method on e.g. .lines",
       '$/'  => "the filehandle's .nl-in attribute",
       '$\\' => "the filehandle's .nl-out attribute",
-      '$|'  => ':autoflush on open',
+      '$|'  => "the filehandle's .out-buffer attribute",
       '$?'  => '$! for handling child errors also',
       '$@'  => '$!',
-      '$#'  => '.fmt',
-      '$['  => 'user-defined array indices',
       '$]'  => '$*PERL.version or $*PERL.compiler.version',
 
       '$^C' => 'COMPILING namespace',
-      '$^D' => '$*DEBUGGING',
-      '$^E' => '$!.extended_os_error',
-      '$^F' => '$*SYSTEM_FD_MAX',
       '$^H' => '$?FOO variables',
-      '$^I' => '$*INPLACE',
-      '$^M' => 'a global form such as $*M',
       '$^N' => '$/[*-1]',
       '$^O' => 'VM.osname',
       '$^R' => 'an explicit result variable',
       '$^S' => 'context function',
       '$^T' => '$*INIT-INSTANT',
       '$^V' => '$*PERL.version or $*PERL.compiler.version',
-      '$^W' => '$*WARNING',
       '$^X' => '$*EXECUTABLE-NAME',
-
-      '$:'  => 'Form module',
-      '$-'  => 'Form module',
-      '$+'  => 'Form module',
-      '$='  => 'Form module',
-      '$%'  => 'Form module',
-      '$^'  => 'Form module',
-      '$~'  => 'Form module',
-      '$^A' => 'Form module',
-      '$^L' => 'Form module',
 
       '@-'  => '.from method',
       '@+'  => '.to method',
@@ -1604,10 +1606,8 @@ my class X::Syntax::Perl5Var does X::Syntax {
         my $name = $!name;
         my $v    = $name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
         my $sugg = %m{~$v};
-        if $!identifier-name and $name eq '$#' {
-            # Currently only `$#` var has this identifier business handling as
-            # there are two versions of it: $# (number formatting) and $#var
-            # https://metacpan.org/pod/perlvar#Deprecated-and-removed-variables
+        if $name eq '$#' {
+            # Currently only `$#` var has this identifier business handling.
             # Should generalize the logic if we get more of stuff like this.
             $name ~= $!identifier-name;
             $sugg  = '@' ~ $!identifier-name ~ '.end';
@@ -2159,7 +2159,11 @@ my class X::Cannot::Capture is Exception {
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
     has $.sequence;
-    method message() { "Unrecognized backslash sequence: '\\$.sequence'" }
+    has $.suggestion;
+    method message() {
+        "Unrecognized backslash sequence: '\\$.sequence'"
+        ~ (nqp::defined($!suggestion) ?? ". Did you mean $!suggestion?" !! '')
+    }
 }
 
 my class X::Backslash::NonVariableDollar does X::Syntax {
@@ -2186,7 +2190,7 @@ my class X::ControlFlow::Return is X::ControlFlow {
     method message()   {
         'Attempt to return outside of ' ~ (
             $!out-of-dynamic-scope
-              ?? 'immediatelly-enclosing Routine (i.e. `return` execution is'
+              ?? 'immediately-enclosing Routine (i.e. `return` execution is'
                ~ ' outside the dynamic scope of the Routine where `return` was used)'
               !! 'any Routine'
         )
@@ -2201,13 +2205,19 @@ my class X::Composition::NotComposable does X::Comp {
     }
 }
 
+my class X::ParametricConstant is Exception {
+    method message { 'Parameterization of constants is forbidden' }
+}
+
 my class X::TypeCheck is Exception {
     has $.operation;
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method gotn() {
         my $perl = (try $!got.perl) // "?";
-        $perl = "$perl.substr(0,21)..." if $perl.chars > 24;
+        my $max-len = 24;
+        $max-len += chars $!got.^name if $perl.starts-with: $!got.^name;
+        $perl = "$perl.substr(0,$max-len-3)..." if $perl.chars > $max-len;
         (try $!got.^name eq $!expected.^name
           ?? $perl
           !! "$!got.^name() ($perl)"
@@ -2294,7 +2304,7 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     method message {
             my $multi = $!signature ~~ /\n/ // '';
             "Calling {$!objname}({ join(', ', @!arguments) }) will never work with " ~ (
-                $!protoguilt ?? 'proto signature ' !!
+                $!protoguilt ?? 'signature of the proto ' !!
                 $multi       ?? 'any of these multi signatures:' !!
                                 'declared signature '
             ) ~ $!signature;
@@ -2964,13 +2974,15 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 
     my sub is-core($name) {
         my @parts = $name.split("::");
+        my $last := @parts.pop;
         my $ns := ::CORE.WHO;
         for @parts {
             return False unless $ns{$_}:exists;
             $ns := $ns{$_}.WHO;
         };
-        True
-    };
+        $ns{$last}:exists
+            and not nqp::istype(nqp::how($ns{$last}), Metamodel::PackageHOW)
+    }
 
     method message() {
         my $name = $.specification.short-name;

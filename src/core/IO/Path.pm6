@@ -70,7 +70,8 @@ my class IO::Path is Cool does IO {
     }
 
     method parts {
-        %!parts || (%!parts := nqp::create(Map).STORE: $!SPEC.split: $!path)
+        %!parts || (%!parts := nqp::create(Map).STORE:
+          $!SPEC.split($!path), :initialize)
     }
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
@@ -376,40 +377,13 @@ my class IO::Path is Cool does IO {
         self.bless: :path($!SPEC.join: '', $!path, child), :$!SPEC, :$!CWD
     }
 
-    # XXX TODO: swap .child to .child-secure sometime close to 6.d
-    # Discussion: https://irclog.perlgeek.de/perl6-dev/2017-04-17#i_14439386
-    #
-    # method child-secure (IO::Path:D: \child) {
-    #     # The goal of this method is to guarantee the resultant child path is
-    #     # inside the invocant. We resolve the path completely, so for that to
-    #     # happen, the kid cannot be inside some currently non-existent dirs, so
-    #     # this method will fail with X::IO::Resolve in those cases. To find out
-    #     # if the kid is in fact a kid, we fully-resolve the kid and the
-    #     # invocant. Then, we append a dir separator to invocant's .absolute and
-    #     # check if the kid's .absolute starts with that string.
-    #     nqp::if(
-    #       nqp::istype((my $kid := self.child(child).resolve: :completely),
-    #         Failure),
-    #       $kid, # we failed to resolve the kid, return the Failure
-    #       nqp::if(
-    #         nqp::istype((my $res-self := self.resolve: :completely), Failure),
-    #         $res-self, # failed to resolve invocant, return the Failure
-    #         nqp::if(
-    #           nqp::iseq_s(
-    #             ($_ := nqp::concat($res-self.absolute, $!SPEC.dir-sep)),
-    #             nqp::substr($kid.absolute, 0, nqp::chars($_))),
-    #           $kid, # kid appears to be kid-proper; return it. Otherwise fail
-    #           fail X::IO::NotAChild.new:
-    #             :path($res-self.absolute), :child($kid.absolute))))
-    # }
-
     method add (IO::Path:D: Str() \what) {
         self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
     }
 
     proto method chdir(|) {*}
     multi method chdir(IO::Path:D: Str() $path, :$test!) {
-        DEPRECATED(
+        Rakudo::Deprecations.DEPRECATED(
             :what<:$test argument>,
             'individual named parameters (e.g. :r, :w, :x)',
             "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),

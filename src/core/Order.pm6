@@ -2,11 +2,11 @@
 my enum Order (:Less(-1), :Same(0), :More(1));
 role Rational { ... }
 
-sub ORDER(int $i) {
-    nqp::iseq_i($i,0) ?? Same !! nqp::islt_i($i,0) ?? Less !! More
+sub ORDER(int $i --> Order) {
+    nqp::if($i,nqp::if(nqp::islt_i($i,0),Less,More),Same)
 }
 
-proto sub infix:<cmp>(Mu $, Mu $) is pure {*}
+proto sub infix:<cmp>($, $, *%) is pure {*}
 multi sub infix:<cmp>(\a, \b) {
     nqp::eqaddr(nqp::decont(a), nqp::decont(b))
       ?? Same

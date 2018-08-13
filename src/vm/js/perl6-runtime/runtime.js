@@ -277,15 +277,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return nqp.createArray(array);
   };
 
-  op.p6recont_ro = function(cont) {
-    if (isRWScalar(cont)) {
-      let roCont = Scalar._STable.REPR.allocate(Scalar._STable);
-      roCont.$$bindattr(Scalar, '$!value', cont.$$decont(null));
-      return roCont;
-    }
-    return cont;
-  };
-
   op.p6decodelocaltime = function(sinceEpoch) {
     let date = new Date(sinceEpoch * 1000);
 

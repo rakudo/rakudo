@@ -382,7 +382,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    method !DECONTAINERIZE(--> Nil) {
+    method !DECONTAINERIZE() {
         nqp::stmts(
           (my \iter := nqp::iterator($!storage)),
           nqp::while(
@@ -395,7 +395,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                 nqp::decont(nqp::iterval(iter))  # get rid of any containers
               )
             )
-          )
+          ),
+          self
         )
     }
 
@@ -408,7 +409,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             nqp::if(
               nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
               nqp::if(
-                nqp::eqaddr(self.WHAT,Map),
+                nqp::eqaddr(map.WHAT,Map),
                 nqp::p6bindattrinvres(self,Map,'$!storage',other),
                 nqp::p6bindattrinvres(
                   self,Map,'$!storage',nqp::clone(other)

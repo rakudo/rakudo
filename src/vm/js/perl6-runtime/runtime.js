@@ -6,8 +6,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
   let Iterable;
 
-  let defaultContainerDescriptor;
-
   op.p6settypes = function(types) {
     Scalar = types.content.get('Scalar');
     True = types.content.get('True');
@@ -22,14 +20,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     Routine = types.content.get('Routine');
     ContainerDescriptor = types.content.get('ContainerDescriptor');
     Signature = types.content.get('Signature');
-
-    defaultContainerDescriptor = ContainerDescriptor._STable.REPR.allocate(ContainerDescriptor._STable);
-
-    defaultContainerDescriptor.$$bindattr(ContainerDescriptor, '$!of', Mu);
-
-    defaultContainerDescriptor.$$bindattr_s(ContainerDescriptor, '$!name', "<element>");
-    defaultContainerDescriptor.$$bindattr_i(ContainerDescriptor, '$!rw', 1);
-    defaultContainerDescriptor.$$bindattr(ContainerDescriptor, '$!default', Any);
 
     return types;
   };
@@ -294,22 +284,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       return roCont;
     }
     return cont;
-  };
-
-  op.p6scalarfromdesc = function(desc) {
-    if (desc === Null || desc.typeObject_)
-        desc = defaultContainerDescriptor;
-
-    let defVal = desc.$$getattr(ContainerDescriptor, '$!default');
-
-    let cont = Scalar._STable.REPR.allocate(Scalar._STable);
-
-    cont.$$bindattr(Scalar, '$!descriptor', desc);
-
-    cont.$$bindattr(Scalar, '$!value', defVal);
-
-    return cont;
-
   };
 
   op.p6decodelocaltime = function(sinceEpoch) {

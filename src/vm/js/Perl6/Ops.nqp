@@ -132,8 +132,6 @@ $ops.add_simple_op('p6stateinit', $ops.INT, [], sub () {
     $block.first_time_marker ~ 'Init';
 });
 
-$ops.add_simple_op('p6scalarfromdesc', $ops.OBJ, [$ops.OBJ], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
-
 $ops.add_op('p6return', :!inlinable, sub ($comp, $node, :$want) {
     my $ops := nqp::getcomp('QAST').operations;
     unless $*RETURN_FROM_HANDLER {

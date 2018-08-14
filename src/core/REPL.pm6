@@ -297,6 +297,7 @@ do {
                 return $!control-not-allowed;
             }
 
+            exit if $code.chomp eq "quit";
             self.compiler.eval($code, |%adverbs);
         }
 

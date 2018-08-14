@@ -3567,6 +3567,8 @@ nqp::sethllconfig('perl6', nqp::hash(
     'num_box', Num,
     'str_box', Str,
     'null_value', Mu,
+    'true_value', (Bool.WHO)<True>,
+    'false_value', (Bool.WHO)<False>,
     'foreign_type_int', Int,
     'foreign_type_num', Num,
     'foreign_type_str', Str,

@@ -47,7 +47,7 @@
 
         multi method EXISTS-POS(::?CLASS:D: int \one) {
             my \reified := nqp::getattr(self,List,'$!reified');
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i(one,nqp::elems(reified))
                 && nqp::not_i(nqp::isnull(nqp::atpos(reified,one)
               ))
@@ -55,7 +55,7 @@
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
             my \reified := nqp::getattr(self,List,'$!reified');
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i(one,nqp::elems(reified))
                 && nqp::not_i(nqp::isnull(nqp::atpos(reified,one)
               ))
@@ -209,7 +209,7 @@
                 )
             }
             method count-only() { nqp::elems($!reified) - $!pos - 1 }
-            method bool-only()  { nqp::p6bool(self.count-only) }
+            method bool-only()  { nqp::hllbool(self.count-only) }
             method sink-all(--> IterationEnd) {
                 $!pos = nqp::elems($!reified)
             }

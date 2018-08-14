@@ -256,7 +256,7 @@ my class PseudoStash is Map {
     method EXISTS-KEY(PseudoStash:D: Str() $key) {
         nqp::unless(
           nqp::existskey($pseudoers,$key),
-          nqp::p6bool(
+          nqp::hllbool(
             nqp::if(
               nqp::bitand_i($!mode,PRECISE_SCOPE),
               nqp::existskey(

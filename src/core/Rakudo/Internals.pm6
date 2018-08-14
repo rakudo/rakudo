@@ -664,7 +664,7 @@ my class Rakudo::Internals {
           nqp::atkey(nqp::backendconfig,'osname')
 #?endif
         )," ","");
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::iseq_s($os,'mswin32')
             || nqp::iseq_s($os,'mingw')
             || nqp::iseq_s($os,'msys')
@@ -888,7 +888,7 @@ my class Rakudo::Internals {
     my int $elems = nqp::elems($dates);
 
     method is-leap-second-date(\date) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::stmts(
             (my str $date = date),
             (my int $i = -1),
@@ -930,7 +930,7 @@ my class Rakudo::Internals {
             nqp::null
           ),
           (tai - nqp::add_i($initial-offset,$i),
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i($i,$elems)
                 && nqp::iseq_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i))
             )

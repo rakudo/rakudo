@@ -74,7 +74,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method Bool(Map:D:) {
-        nqp::p6bool(nqp::elems($!storage));
+        nqp::hllbool(nqp::elems($!storage));
     }
     method elems(Map:D:) {
         nqp::p6box_i(nqp::elems($!storage));
@@ -159,10 +159,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-KEY(Map:D: Str:D \key) {
-        nqp::p6bool(nqp::existskey($!storage,key))
+        nqp::hllbool(nqp::existskey($!storage,key))
     }
     multi method EXISTS-KEY(Map:D: \key) {
-        nqp::p6bool(nqp::existskey($!storage,key.Str))
+        nqp::hllbool(nqp::existskey($!storage,key.Str))
     }
 
     multi method gist(Map:D:) {
@@ -547,7 +547,7 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b) {
 
     class NotEQV { }
 
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(a,b),
         nqp::if(                                 # not comparing with self
@@ -568,7 +568,8 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b) {
                   ($elems = nqp::sub_i($elems,1))
                 ),
                 nqp::not_i($elems)               # ok if none left
-              )
+              ),
+              0
             ),
             nqp::isfalse(                        # nothing on left
               (my \map := nqp::getattr(nqp::decont(b),Map,'$!storage'))

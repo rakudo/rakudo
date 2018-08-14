@@ -120,49 +120,49 @@ my class Parameter { # declared in BOOTSTRAP
         )
     }
     method named() {
-        nqp::p6bool(
-          @!named_names || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED)
+        nqp::hllbool(
+          nqp::not_i(nqp::isnull(@!named_names)) || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED)
         )
     }
 
     method positional() {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::isnull(@!named_names)
           && nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_POSITIONAL),0)
         )
     }
 
     method slurpy() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_SLURPY))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_SLURPY))
     }
     method optional() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
     }
     method raw() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW))
     }
     method capture() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE))
     }
     method rw() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RW))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RW))
     }
     method onearg() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
     }
     method copy() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COPY))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COPY))
     }
     method readonly() {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_READONLY),0)
         )
     }
     method invocant() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_INVOCANT))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_INVOCANT))
     }
     method multi-invocant() {
-        nqp::p6bool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
     }
     method default() {
         nqp::isnull($!default_value)

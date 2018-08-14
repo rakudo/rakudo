@@ -76,12 +76,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method EXISTS-POS(Blob:D: int \pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
     }
     multi method EXISTS-POS(Blob:D: Int:D \pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
     }
@@ -101,7 +101,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
 
-    multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }
+    multi method Bool(Blob:D:) { nqp::hllbool(nqp::elems(self)) }
     method Capture(Blob:D:) { self.List.Capture }
 
     multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
@@ -446,7 +446,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         ))
     }
     multi method ACCEPTS(Blob:D: Blob:D \Other) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::unless(
             nqp::eqaddr(self,my \other := nqp::decont(Other)),
             nqp::if(
@@ -780,29 +780,29 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
     )
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
 multi sub infix:<eq> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::eqaddr(a,b) || a.SAME(b))
+    nqp::hllbool(nqp::eqaddr(a,b) || a.SAME(b))
 }
 multi sub infix:<ne> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
+    nqp::hllbool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
 }
 multi sub infix:<lt> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),-1))
+    nqp::hllbool(nqp::iseq_i(a.COMPARE(b),-1))
 }
 multi sub infix:<gt> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),1))
+    nqp::hllbool(nqp::iseq_i(a.COMPARE(b),1))
 }
 multi sub infix:<le> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::isne_i(a.COMPARE(b),1))
+    nqp::hllbool(nqp::isne_i(a.COMPARE(b),1))
 }
 multi sub infix:<ge> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::isne_i(a.COMPARE(b),-1))
+    nqp::hllbool(nqp::isne_i(a.COMPARE(b),-1))
 }
 
 proto sub subbuf-rw($, $?, $?, *%) {*}

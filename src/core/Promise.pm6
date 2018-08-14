@@ -302,7 +302,7 @@ my class Promise does Awaitable {
 }
 
 multi sub infix:<eqv>(Promise:D \a, Promise:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b) || a.result eqv b.result
     )
 }

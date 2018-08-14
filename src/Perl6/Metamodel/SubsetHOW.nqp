@@ -59,7 +59,7 @@ class Perl6::Metamodel::SubsetHOW
 
     method isa($obj, $type) {
         $!refinee.isa($type)
-            || nqp::p6bool(nqp::istrue($type.HOW =:= self))
+            || nqp::hllboolfor(nqp::istrue($type.HOW =:= self), "perl6")
     }
 
     method nominalize($obj) {
@@ -77,14 +77,14 @@ class Perl6::Metamodel::SubsetHOW
 
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($obj, $checkee) {
-        nqp::p6bool(nqp::istrue($checkee.HOW =:= self) ||
-            nqp::istype($!refinee, $checkee))
+        nqp::hllboolfor(nqp::istrue($checkee.HOW =:= self) ||
+            nqp::istype($!refinee, $checkee), "perl6")
     }
 
     # Here we check the value itself (when on RHS on smartmatch).
     method accepts_type($obj, $checkee) {
-        nqp::p6bool(
+        nqp::hllboolfor(
             nqp::istype($checkee, $!refinee) &&
-            nqp::istrue($!refinement.ACCEPTS($checkee)))
+            nqp::istrue($!refinement.ACCEPTS($checkee)), "perl6")
     }
 }

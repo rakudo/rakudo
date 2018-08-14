@@ -229,7 +229,7 @@ my class IO::Handle {
     }
 
     method eof(IO::Handle:D:) {
-        nqp::p6bool($!decoder
+        nqp::hllbool($!decoder
             ?? $!decoder.is-empty && self.EOF
             !! self.EOF)
     }
@@ -604,11 +604,11 @@ my class IO::Handle {
     }
 
     method opened(IO::Handle:D:) {
-        nqp::p6bool(nqp::istrue($!PIO));
+        nqp::hllbool(nqp::istrue($!PIO));
     }
 
     method t(IO::Handle:D:) {
-        self.opened && nqp::p6bool(nqp::isttyfh($!PIO))
+        self.opened && nqp::hllbool(nqp::isttyfh($!PIO))
     }
 
     method lock(IO::Handle:D:

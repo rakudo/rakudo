@@ -62,7 +62,7 @@ class Rakudo::Iterator {
                 0))
         }
         method bool-only()  {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i($!i, nqp::sub_i(nqp::elems($!blob),1)))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!blob) }
@@ -718,7 +718,7 @@ class Rakudo::Iterator {
             $!i = $i;
         }
         method count-only() { nqp::p6box_i($!n - $!i) }
-        method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
+        method bool-only() { nqp::hllbool(nqp::isgt_i($!n,$!i)) }
         method sink-all(--> IterationEnd) { $!i = $!n }
     }
     method CharFromTo(\min,\max,\excludes-min,\excludes-max) {
@@ -796,7 +796,7 @@ class Rakudo::Iterator {
             (([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int)
             - $!pulled-count
         }
-        method bool-only(--> Bool) { nqp::p6bool(self.count-only) }
+        method bool-only(--> Bool) { nqp::hllbool(self.count-only != 0) }
     }
     method Combinations($n, $k, int $b) {
         nqp::if(
@@ -1074,7 +1074,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method is-lazy() { nqp::p6bool($!lazy) }
+        method is-lazy() { nqp::hllbool($!lazy) }
     }
     method CrossIterables(@iterables) {
         nqp::if(
@@ -1349,7 +1349,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method is-lazy() { nqp::p6bool($!lazy) }
+        method is-lazy() { nqp::hllbool($!lazy) }
     }
     method CrossIterablesMap(@iterables,&mapper) {
         nqp::if(
@@ -1560,7 +1560,7 @@ class Rakudo::Iterator {
         }
 
         # Is the source iterator considered exhausted?
-        method ended() { nqp::p6bool($!ended) }
+        method ended() { nqp::hllbool($!ended) }
 
         # Eat the iterator trying to find out the number of elements
         # produced by the iterator.  Intended to provide information
@@ -1940,7 +1940,7 @@ class Rakudo::Iterator {
         }
         method is-lazy(--> Bool:D) { $!is-lazy }
         method count-only() { nqp::p6box_i(nqp::sub_i($!last,$!i)) }
-        method bool-only()  { nqp::p6bool(nqp::isgt_i($!last,$!i)) }
+        method bool-only()  { nqp::hllbool(nqp::isgt_i($!last,$!i)) }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
     method IntRange(\from,\to) { IntRange.new(from,to) }
@@ -2513,10 +2513,10 @@ class Rakudo::Iterator {
             )
         }
         method skip-one() { nqp::if($!times,$!times--) }
-        method is-lazy() { nqp::p6bool($!is-lazy) }
+        method is-lazy() { nqp::hllbool($!is-lazy) }
         method sink-all(--> IterationEnd) { $!times = 0 }
         method count-only() { $!times }
-        method bool-only() { nqp::p6bool($!times) }
+        method bool-only() { nqp::hllbool(nqp::istrue($!times)) }
     }
     method OneValueTimes(Mu \value,\times) { OneValueTimes.new(value,times) }
 
@@ -2633,7 +2633,7 @@ class Rakudo::Iterator {
         method count-only {
             nqp::isge_i($!todo, 0) ?? nqp::p6box_i($!todo) !! 0
         }
-        method bool-only { nqp::p6bool(nqp::isgt_i($!todo, 0)) }
+        method bool-only { nqp::hllbool(nqp::isgt_i($!todo, 0)) }
     }
     method Permutations($n, int $b) {
         nqp::if(
@@ -2749,7 +2749,7 @@ class Rakudo::Iterator {
                 0))
         }
         method bool-only()  {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
@@ -2846,7 +2846,7 @@ class Rakudo::Iterator {
                 0))
         }
         method bool-only()  {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
@@ -2904,7 +2904,7 @@ class Rakudo::Iterator {
             )
         }
         method count-only() { nqp::p6box_i($!i) }
-        method bool-only()  { nqp::p6bool($!i) }
+        method bool-only()  { nqp::hllbool($!i) }
         method sink-all(--> IterationEnd) { $!i = 0 }
     }
     method ReifiedListReverse(\list) { ReifiedListReverse.new(list) }
@@ -3284,7 +3284,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method is-lazy() { nqp::p6bool($!lazy) }
+        method is-lazy() { nqp::hllbool($!lazy) }
     }
     method RoundrobinIterables(@iterables) {
         nqp::if(
@@ -4101,7 +4101,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method is-lazy() { nqp::p6bool($!lazy) }
+        method is-lazy() { nqp::hllbool($!lazy) }
     }
     method ZipIterables(@iterables) {
         nqp::if(
@@ -4190,7 +4190,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method is-lazy() { nqp::p6bool($!lazy) }
+        method is-lazy() { nqp::hllbool($!lazy) }
     }
     method ZipIterablesMap(@iterables,&mapper) {
         nqp::if(

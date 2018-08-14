@@ -39,7 +39,7 @@ my role Numeric {
 multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b --> Bool:D) {
     # Use === for Nums, to properly handle signed zeros and NaNs
     # For Rationals, properly handle NaN-y Rationals
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b)
         || nqp::eqaddr(a.WHAT,b.WHAT)
         && nqp::if(
@@ -246,7 +246,7 @@ multi sub infix:<%%>(Int:D \a, Int:D \b) {
       ),
       nqp::if(
         nqp::isne_i(b,0),
-        nqp::p6bool(nqp::not_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)))),
+        nqp::hllbool(nqp::not_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)))),
         Failure.new(
           X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
         )

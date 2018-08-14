@@ -2042,7 +2042,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Under "use fatal", re-write all calls to fatalize their return value
     # unless we can see they are in a boolean context.
     my %boolify_first_child_ops := nqp::hash(
-        'if', 1, 'unless', 1, 'defor', 1, 'p6bool', 1,
+        'if', 1, 'unless', 1, 'defor', 1, 'hllbool', 1,
         'while', 1, 'until', 1, 'repeat_while', 1, 'repeat_until', 1,
     );
     my %boolify_first_child_calls := nqp::hash(
@@ -2953,7 +2953,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 make make_pair($/,$*key, QAST::Op.new(
-                    :op('p6bool'),
+                    :op('hllbool'),
                     QAST::IVal.new( :value($*value) )
                 ));
             }
@@ -4344,7 +4344,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Cannot inline things with custom invocation handler or phasers.
         return 0 if nqp::can($code, 'CALL-ME');
         my $phasers := nqp::getattr($code,$*W.find_symbol(['Block'], :setting-only),'$!phasers');
-        return 0 unless nqp::isnull($phasers) || !nqp::p6bool($phasers);
+        return 0 unless nqp::isnull($phasers) || !nqp::hllbool($phasers);
 
         # Make sure the block has the common structure we expect
         # (decls then statements).
@@ -5228,7 +5228,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
         my $refinement := make_where_block($<EXPR>, $<EXPR> ?? $<EXPR>.ast !!
-            QAST::Op.new( :op('p6bool'), QAST::IVal.new( :value(1) ) ));
+            QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) ));
 
         # Create the meta-object.
         my $subset;

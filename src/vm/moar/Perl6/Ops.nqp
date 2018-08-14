@@ -121,8 +121,7 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     my $res_reg := $*REGALLOC.fresh_o();
     nqp::push(@ops, MAST::Op.new( :op('decont'), $res_reg, $value_res.result_reg ));
     nqp::push(@ops, MAST::Op.new( :op('isconcrete'), $tmp_reg, $res_reg ));
-    nqp::push(@ops, MAST::ExtOp.new( :op('p6bool'), :cu($qastcomp.mast_compunit),
-        $res_reg, $tmp_reg ));
+    nqp::push(@ops, MAST::Op.new( :op('hllbool'), $res_reg, $tmp_reg ));
     $*REGALLOC.release_register($value_res.result_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
     MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)

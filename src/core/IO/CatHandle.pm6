@@ -66,14 +66,14 @@ my class IO::CatHandle is IO::Handle {
               nqp::if(
                 nqp::istype(
                   ($_ = .open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                    :bin(nqp::p6bool(nqp::isfalse($!encoding)))),
+                    :bin(nqp::hllbool(nqp::isfalse($!encoding)))),
                   Failure),
                 .throw,
                 ($!active-handle = $_))),
             nqp::if(
               nqp::istype(
                 ($_ := .IO.open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                  :bin(nqp::p6bool(nqp::isfalse($!encoding)))),
+                  :bin(nqp::hllbool(nqp::isfalse($!encoding)))),
                 Failure),
               .throw,
               ($!active-handle = $_))),
@@ -337,7 +337,7 @@ my class IO::CatHandle is IO::Handle {
     }
 
     method eof (::?CLASS:D: --> Bool:D) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::stmts(
             nqp::while(
               $!active-handle
@@ -359,7 +359,7 @@ my class IO::CatHandle is IO::Handle {
     method path (::?CLASS:D:) {
         nqp::if($!active-handle, $!active-handle.path, Nil)
     }
-    method opened(::?CLASS:D: --> Bool:D) { nqp::p6bool($!active-handle) }
+    method opened(::?CLASS:D: --> Bool:D) { nqp::hllbool(nqp::istrue($!active-handle)) }
     method lock(::?CLASS:D: |c) {
         nqp::if($!active-handle, $!active-handle.lock(|c), Nil)
     }

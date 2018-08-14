@@ -126,7 +126,7 @@ class Version {
 
                 # if whatever there, no more to check this iteration
                 unless nqp::istype($o,Whatever) {
-                    return nqp::p6bool($!plus) if $o after  $v;
+                    return nqp::hllbool($!plus) if $o after  $v;
                     return False               if $o before $v;
                 }
             }
@@ -151,12 +151,12 @@ class Version {
     }
 
     method parts() { nqp::hllize($!parts) }
-    method plus()  { nqp::p6bool($!plus) }
+    method plus()  { nqp::hllbool($!plus) }
 }
 
 
 multi sub infix:<eqv>(Version:D \a, Version:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && nqp::iseq_s(

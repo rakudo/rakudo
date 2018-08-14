@@ -103,7 +103,7 @@ my class Set does Setty {
     }
 
     multi method AT-KEY(Set:D: \k --> Bool:D) {
-        nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
+        nqp::hllbool($!elems ?? nqp::existskey($!elems,k.WHICH) !! 0)
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
         X::Assignment::RO.new(value => self).throw;

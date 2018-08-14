@@ -179,7 +179,7 @@ my class Seq is Cool does Iterable does Sequence {
                   (return False)
                 )
               ),
-              nqp::p6bool(nqp::eqaddr(riter.pull-one,IterationEnd))
+              nqp::hllbool(nqp::eqaddr(riter.pull-one,IterationEnd))
             )
           )
         )
@@ -189,7 +189,7 @@ my class Seq is Cool does Iterable does Sequence {
 sub GATHER(&block) { Seq.new(Rakudo::Iterator.Gather(&block)) }
 
 multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(a,b),
         nqp::if(

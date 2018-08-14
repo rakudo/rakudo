@@ -61,7 +61,7 @@ my class Failure is Nil {
         Proxy.new(
           FETCH => {
 #?if moar
-              nqp::p6bool($!handled)
+              nqp::hllbool($!handled)
 #?endif
 #?if jvm
               $!handled.Bool

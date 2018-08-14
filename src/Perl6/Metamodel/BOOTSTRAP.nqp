@@ -3496,71 +3496,6 @@ EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);
 
-# Tell parametric role groups how to create a dispatcher.
-Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
-    my $sel := nqp::create(Sub);
-    my $onlystar := sub (*@pos, *%named) {
-        nqp::invokewithcapture(
-            nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
-            nqp::usecapture())
-    };
-    nqp::setcodeobj($onlystar, $sel);
-    nqp::bindattr($sel, Code, '$!do', $onlystar);
-    nqp::bindattr($sel, Routine, '@!dispatchees', []);
-    $sel
-});
-
-# Roles pretend to be narrower than certain types for the purpose
-# of type checking. Also, they pun to classes.
-my %excluded := nqp::hash(
-    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
-    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
-    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
-    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
-    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
-    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
-Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::ParametricRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::CurriedRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-
-# Similar for packages and modules, but just has methods from Any.
-Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
-Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
-Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
-
-# Let ClassHOW and EnumHOW know about the invocation handler.
-Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
-    Mu.HOW.invocation_handler(Mu));
-Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
-    Mu.HOW.invocation_handler(Mu));
-
-# Configure the MOP (not persisted as it ends up in a lexical...)
-Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
-Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
-
-# Register default parent types.
-Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
-Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
-
-# Put PROCESS in place, and ensure it's never repossessed.
-nqp::neverrepossess(PROCESS.WHO);
-nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
-nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
-
-# Stash Scalar and a default container spec away in the HLL state.
-nqp::bindhllsym('perl6', 'Scalar', Scalar);
-nqp::bindhllsym('perl6', 'default_cont_spec',
-    Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
-
 # HLL configuration: interop, boxing and exit handling.
 nqp::sethllconfig('perl6', nqp::hash(
     'int_box', Int,
@@ -3773,6 +3708,71 @@ nqp::sethllconfig('perl6', nqp::hash(
     'str_multidim_ref', StrMultidimRef,
 #?endif
 ));
+
+# Tell parametric role groups how to create a dispatcher.
+Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
+    my $sel := nqp::create(Sub);
+    my $onlystar := sub (*@pos, *%named) {
+        nqp::invokewithcapture(
+            nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
+            nqp::usecapture())
+    };
+    nqp::setcodeobj($onlystar, $sel);
+    nqp::bindattr($sel, Code, '$!do', $onlystar);
+    nqp::bindattr($sel, Routine, '@!dispatchees', []);
+    $sel
+});
+
+# Roles pretend to be narrower than certain types for the purpose
+# of type checking. Also, they pun to classes.
+my %excluded := nqp::hash(
+    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
+    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
+    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
+    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
+    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
+    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
+Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::CurriedRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+
+# Similar for packages and modules, but just has methods from Any.
+Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
+Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
+Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
+
+# Let ClassHOW and EnumHOW know about the invocation handler.
+Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
+    Mu.HOW.invocation_handler(Mu));
+Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
+    Mu.HOW.invocation_handler(Mu));
+
+# Configure the MOP (not persisted as it ends up in a lexical...)
+Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
+Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
+
+# Register default parent types.
+Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
+Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
+
+# Put PROCESS in place, and ensure it's never repossessed.
+nqp::neverrepossess(PROCESS.WHO);
+nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
+nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
+
+# Stash Scalar and a default container spec away in the HLL state.
+nqp::bindhllsym('perl6', 'Scalar', Scalar);
+nqp::bindhllsym('perl6', 'default_cont_spec',
+    Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
 
 #?if jvm
 # On JVM, set up JVM interop bits.

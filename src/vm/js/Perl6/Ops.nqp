@@ -97,8 +97,6 @@ $ops.add_simple_op('p6box_n', $ops.OBJ, [$ops.NUM], :side_effects);
 
 $ops.add_simple_op('p6typecheckrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ], :ctx);
 
-$ops.add_simple_op('p6decontrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx);
-
 $ops.add_simple_op('p6definite', $ops.OBJ, [$ops.OBJ], :decont(0));
 
 $ops.add_simple_op('p6captureouters2', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx);
@@ -141,6 +139,23 @@ $ops.add_op('p6return', :!inlinable, sub ($comp, $node, :$want) {
         "$*RETURN_FROM_HANDLER = {$value.expr};\n"
     ]);
 });
+
+$ops.add_op('p6decontrv', :!inlinable, sub ($comp, $node, :$want) {
+    my $is_rw;
+    if nqp::istype($node[0], QAST::WVal) {
+        $is_rw := nqp::istrue($node[0].value.rw);
+    }
+    else {
+        nqp::die('p6decontrv expects a QAST::WVal as its first child');
+    }
+    if $is_rw {
+        $comp.as_js($node[1], :$want)
+    }
+    else {
+        $comp.as_js(QAST::Op.new( :op('p6decontrv_internal'), $node[1]), :$want);
+    }
+});
+
 
 $ops.add_simple_op('p6decodelocaltime', $ops.OBJ, [$ops.INT], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
 

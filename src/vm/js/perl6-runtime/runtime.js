@@ -109,40 +109,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     }
   };
 
-  function isRWScalar(check) {
-    if (check._STable === Scalar._STable && !check.typeObject_) {
-      let desc = check.$$getattr(Scalar, '$!descriptor');
-      if (desc === Null) {
-        return false;
-      }
-      return desc.$$getattr_i(ContainerDescriptor, '$!rw') !== 0;
-    }
-    return false;
-  }
-
-  op.p6decontrv = function(ctx, routine, retval) {
-    if (isRWScalar(retval)) {
-      let isRW = routine.$$getattr_i(Routine, '$!rw');
-      if (isRW === 0) {
-        const deconted = retval.$$decont(ctx);
-
-        if (Iterable !== undefined && deconted.$$istype(ctx, Iterable) == 0) {
-          return deconted;
-        } else {
-          let roCont = Scalar._STable.REPR.allocate(Scalar._STable);
-          roCont.$$bindattr(Scalar, '$!value', deconted);
-          return roCont;
-        }
-      }
-    } else if (retval._STable && retval._STable.REPR instanceof nqp.NativeRef) {
-      let isRW = routine.$$getattr_i(Routine, '$!rw');
-      if (isRW === 0) {
-        return retval.$$decont(ctx);
-      }
-    }
-    return retval;
-  };
-
   op.p6box_i = function(int) {
     const repr = Int._STable.REPR;
     const boxed = repr.allocate(Int._STable);

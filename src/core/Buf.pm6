@@ -239,11 +239,29 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $length = $Length;
         subbuf-length(self, $from, $length, nqp::elems(self))
     }
+    multi method subbuf(Blob:D: Int:D $From, &End) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = $From;
+        my int $end    = End(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $end, $elems)
+    }
     multi method subbuf(Blob:D: &From, Int:D $Length) {
         my int $elems  = nqp::elems(self);
         my int $from   = From(nqp::box_i($elems,Int));
         my int $length = $Length;
         subbuf-length(self, $from, $length, $elems)
+    }
+    multi method subbuf(Blob:D: &From, &End) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = From(nqp::box_i($elems,Int));
+        my int $end    = End(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $end, $elems)
+    }
+    multi method subbuf(Blob:D: \from, Whatever) {
+        self.subbuf(from)
+    }
+    multi method subbuf(Blob:D: \from, Numeric \length) {
+        length == Inf ?? self.subbuf(from) !! self.subbuf(from,length.Int)
     }
 
     method reverse(Blob:D:) {

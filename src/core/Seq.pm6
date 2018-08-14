@@ -307,7 +307,7 @@ sub GATHER(&block) {
 }
 
 multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(a,b),
         nqp::if(

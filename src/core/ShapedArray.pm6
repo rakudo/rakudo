@@ -80,7 +80,7 @@
         }
 
         multi method EXISTS-POS(::?CLASS:D: **@indices) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::stmts(
                 (my int $numind = @indices.elems),     # reifies
                 (my \indices := nqp::getattr(@indices,List,'$!reified')),

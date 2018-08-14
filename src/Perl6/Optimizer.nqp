@@ -325,7 +325,7 @@ my class Problems {
 
         %opts<pre>             := nqp::box_s($pre, $!symbols.find_symbol(['Str']));
         %opts<post>            := nqp::box_s($post, $!symbols.find_symbol(['Str']));
-        %opts<is-compile-time> := nqp::p6bool(1);
+        %opts<is-compile-time> := nqp::hllboolfor(1, "perl6");
 
         for %opts -> $p {
             if nqp::islist($p.value) {
@@ -1317,7 +1317,7 @@ class Perl6::Optimizer {
             my $last_stmt := get_last_stmt($value);
             if nqp::istype($last_stmt, QAST::Op) {
                 my str $last_op := $last_stmt.op;
-                if $last_op eq 'p6bool' || nqp::eqat($last_op, 'I', -1) {
+                if $last_op eq 'hllbool' || nqp::eqat($last_op, 'I', -1) {
                     return $value;
                 }
                 if nqp::eqat($last_op, 'assign_', 0) {
@@ -1356,7 +1356,7 @@ class Perl6::Optimizer {
         }
 
         # Some ops have first boolean arg, and we may be able to get rid of
-        # a p6bool if there's already an integer result behind it. For if/unless,
+        # a hllbool if there's already an integer result behind it. For if/unless,
         # we can only do that when we have the `else` branch, since otherwise we
         # might return the no-longer-Bool value from the conditional.
         elsif (+@($op) == 3 && ($optype eq 'if' || $optype eq 'unless'))
@@ -1367,7 +1367,7 @@ class Perl6::Optimizer {
                 $update := $target;
                 $target := $target[0];
             }
-            if nqp::istype($target, QAST::Op) && $target.op eq 'p6bool' {
+            if nqp::istype($target, QAST::Op) && $target.op eq 'hllbool' {
                 if nqp::objprimspec($target[0].returns) == nqp::objprimspec(int) {
                     $update[0] := $target[0];
                 }
@@ -2125,7 +2125,7 @@ class Perl6::Optimizer {
                 }
                 else {
                     $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
-                        :private(nqp::p6bool(1)), :method($name),
+                        :private(nqp::hllboolfor(1, "perl6")), :method($name),
                         :typename($pkg.HOW.name($pkg)), :invocant($pkg));
                     return 1;
                 }
@@ -2528,7 +2528,7 @@ class Perl6::Optimizer {
         }
 
         my %opts := nqp::hash();
-        %opts<protoguilt> := $protoguilt // nqp::p6bool(0);
+        %opts<protoguilt> := $protoguilt // nqp::hllboolfor(0, "perl6");
         %opts<arguments> := @arg_names;
         %opts<objname> := $obj.name;
         %opts<dispatcher> := $obj;

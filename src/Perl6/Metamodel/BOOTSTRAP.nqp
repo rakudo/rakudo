@@ -1455,28 +1455,28 @@ BEGIN {
                 Attribute, '$!auto_viv_container');
         }));
     Attribute.HOW.add_method(Attribute, 'has_accessor', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!has_accessor'));
+            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!has_accessor'), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'rw', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!rw'));
+            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!rw'), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'set_rw', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!rw', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_readonly', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!ro', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {
             $*W.add_object_if_no_sc($value);
             nqp::bindattr(nqp::decont($self),
                 Attribute, '$!required', $value);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'required', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
@@ -1487,7 +1487,7 @@ BEGIN {
             unless nqp::getattr_i($dcself, Attribute, '$!ro') {
                 nqp::bindattr_i($dcself, Attribute, '$!rw', 1);
             }
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_build', nqp::getstaticcode(sub ($self, $closure) {
             nqp::bindattr(nqp::decont($self), Attribute, '$!build_closure', $closure);
@@ -1500,7 +1500,7 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'set_box_target', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!box_target', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'box_target', nqp::getstaticcode(sub ($self) {
             nqp::getattr_i(nqp::decont($self),
@@ -1524,7 +1524,7 @@ BEGIN {
                 Attribute, '$!package');
             my $build := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!build_closure');
-            nqp::p6bool($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build));
+            nqp::hllboolfor($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             my $dcself   := nqp::decont($self);
@@ -1772,7 +1772,7 @@ BEGIN {
                 my $is_generic := $_.is_generic();
                 if $is_generic { return $is_generic }
             }
-            return nqp::p6bool(0);
+            return nqp::hllboolfor(0, "perl6");
         }));
     Signature.HOW.add_method(Signature, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Go through parameters, builidng new list. If any
@@ -1800,13 +1800,14 @@ BEGIN {
                 Signature, '$!returns', nqp::decont($type));
         }));
     Signature.HOW.add_method(Signature, 'has_returns', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(
+            nqp::hllboolfor(
                 nqp::not_i(
                     nqp::isnull(
                         nqp::getattr(nqp::decont($self),
                             Signature, '$!returns')
                     )
-                )
+                ),
+                'perl6'
             );
         }));
     Signature.HOW.compose_repr(Signature);
@@ -1843,8 +1844,8 @@ BEGIN {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
-            nqp::p6bool($type.HOW.archetypes.generic ||
-                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic))
+            nqp::hllboolfor($type.HOW.archetypes.generic ||
+                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic), "perl6")
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -2182,7 +2183,7 @@ BEGIN {
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
-            nqp::p6bool(nqp::defined($disp_list));
+            nqp::hllboolfor(nqp::defined($disp_list), "perl6");
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
@@ -3124,7 +3125,7 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'rw', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
-            nqp::p6bool(nqp::getattr_i($dcself, Routine, '$!rw'));
+            nqp::hllboolfor(nqp::getattr_i($dcself, Routine, '$!rw'), "perl6");
         }));
     Routine.HOW.add_method(Routine, 'set_inline_info', nqp::getstaticcode(sub ($self, $info) {
             my $dcself := nqp::decont($self);

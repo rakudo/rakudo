@@ -85,7 +85,7 @@ my class SetHash does Setty {
 
           Proxy.new(
             FETCH => {
-                nqp::p6bool(nqp::existskey(elems,nqp::iterkey_s(iter)))
+                nqp::hllbool(nqp::existskey(elems,nqp::iterkey_s(iter)))
             },
             STORE => -> $, $value {
                 nqp::stmts(
@@ -198,7 +198,7 @@ my class SetHash does Setty {
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(
           FETCH => {
-              nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
+              nqp::hllbool($!elems ?? nqp::existskey($!elems,k.WHICH) !! 0)
           },
           STORE => -> $, $value {
               nqp::stmts(
@@ -223,13 +223,14 @@ my class SetHash does Setty {
     }
 
     multi method DELETE-KEY(SetHash:D: \k --> Bool:D) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
             nqp::stmts(
               nqp::deletekey($!elems,$which),
               1
-            )
+            ),
+            0
           )
         )
     }

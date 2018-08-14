@@ -345,12 +345,12 @@ for $*IN.lines -> $line {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
@@ -429,7 +429,7 @@ for $*IN.lines -> $line {
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!list)) }
-                method bool-only()  { nqp::p6bool(nqp::elems($!list)) }
+                method bool-only()  { nqp::hllbool(nqp::elems($!list)) }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)
                 }
@@ -525,7 +525,7 @@ for $*IN.lines -> $line {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
@@ -533,7 +533,7 @@ for $*IN.lines -> $line {
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
@@ -568,7 +568,7 @@ for $*IN.lines -> $line {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::isge_i(three,0)
@@ -578,7 +578,7 @@ for $*IN.lines -> $line {
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::isge_i(three,0)

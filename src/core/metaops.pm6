@@ -469,7 +469,7 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
                 && op.($current,$next),
               $current := $next
             ),
-            nqp::p6bool(nqp::eqaddr($next,IterationEnd))
+            nqp::hllbool(nqp::eqaddr($next,IterationEnd))
           )
         )
     }

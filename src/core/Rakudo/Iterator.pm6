@@ -62,7 +62,7 @@ class Rakudo::Iterator {
                 0))
         }
         method bool-only()  {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i($!i, nqp::sub_i(nqp::elems($!blob),1)))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!blob) }
@@ -781,7 +781,7 @@ class Rakudo::Iterator {
                       (([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int)
                       - $!pulled-count
                   }
-                  method bool-only(--> Bool) { nqp::p6bool(self.count-only) }
+                  method bool-only(--> Bool) { nqp::hllbool(self.count-only != 0) }
               }.new($n,$k,$b)
             )
           )
@@ -1044,7 +1044,7 @@ class Rakudo::Iterator {
                     )
                   )
               }
-              method is-lazy() { nqp::p6bool($!lazy) }
+              method is-lazy() { nqp::hllbool($!lazy) }
           }.new(@iterables),
 
           # simpler cases
@@ -1319,7 +1319,7 @@ class Rakudo::Iterator {
                     )
                   )
               }
-              method is-lazy() { nqp::p6bool($!lazy) }
+              method is-lazy() { nqp::hllbool($!lazy) }
           }.new(@iterables,&mapper),
 
           # simpler cases
@@ -1524,7 +1524,7 @@ class Rakudo::Iterator {
             }
 
             # Is the source iterator considered exhausted?
-            method ended() { nqp::p6bool($!ended) }
+            method ended() { nqp::hllbool($!ended) }
 
             # Eat the iterator trying to find out the number of elements
             # produced by the iterator.  Intended to provide information
@@ -1756,7 +1756,7 @@ class Rakudo::Iterator {
             }
             method is-lazy(--> Bool:D) { $!is-lazy }
             method count-only() { nqp::p6box_i(nqp::sub_i($!last,$!i)) }
-            method bool-only()  { nqp::p6bool(nqp::isgt_i($!last,$!i)) }
+            method bool-only()  { nqp::hllbool(nqp::isgt_i($!last,$!i)) }
             method sink-all(--> IterationEnd) { $!i = $!last }
         }.new(from,to)
     }
@@ -2337,10 +2337,10 @@ class Rakudo::Iterator {
                 )
             }
             method skip-one() { nqp::if($!times,$!times--) }
-            method is-lazy() { nqp::p6bool($!is-lazy) }
+            method is-lazy() { nqp::hllbool($!is-lazy) }
             method sink-all(--> IterationEnd) { $!times = 0 }
             method count-only() { $!times }
-            method bool-only() { nqp::p6bool($!times) }
+            method bool-only() { nqp::hllbool(nqp::istrue($!times)) }
         }.new(value,times)
     }
 
@@ -2470,7 +2470,7 @@ class Rakudo::Iterator {
                 method count-only {
                     nqp::isge_i($!todo, 0) ?? nqp::p6box_i($!todo) !! 0
                 }
-                method bool-only { nqp::p6bool(nqp::isgt_i($!todo, 0)) }
+                method bool-only { nqp::hllbool(nqp::isgt_i($!todo, 0)) }
             }.new($n,$b)
           )
         )
@@ -2574,7 +2574,7 @@ class Rakudo::Iterator {
                     0))
             }
             method bool-only()  {
-                nqp::p6bool(
+                nqp::hllbool(
                   nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
             }
             method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
@@ -2670,7 +2670,7 @@ class Rakudo::Iterator {
                     0))
             }
             method bool-only()  {
-                nqp::p6bool(
+                nqp::hllbool(
                   nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
             }
             method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
@@ -2727,7 +2727,7 @@ class Rakudo::Iterator {
                 )
             }
             method count-only() { nqp::p6box_i($!i) }
-            method bool-only()  { nqp::p6bool($!i) }
+            method bool-only()  { nqp::hllbool($!i) }
             method sink-all(--> IterationEnd) { $!i = 0 }
         }.new(list)
     }
@@ -3111,7 +3111,7 @@ class Rakudo::Iterator {
                     )
                   )
               }
-              method is-lazy() { nqp::p6bool($!lazy) }
+              method is-lazy() { nqp::hllbool($!lazy) }
           }.new(@iterables),
           nqp::if(
             nqp::iseq_i($n,0),
@@ -3873,7 +3873,7 @@ class Rakudo::Iterator {
                     )
                   )
               }
-              method is-lazy() { nqp::p6bool($!lazy) }
+              method is-lazy() { nqp::hllbool($!lazy) }
           }.new(@iterables),
           nqp::if(
             nqp::iseq_i($n,0),
@@ -3961,7 +3961,7 @@ class Rakudo::Iterator {
                     )
                   )
               }
-              method is-lazy() { nqp::p6bool($!lazy) }
+              method is-lazy() { nqp::hllbool($!lazy) }
           }.new(@iterables,&mapper),
           nqp::if(
             nqp::iseq_i($n,0),

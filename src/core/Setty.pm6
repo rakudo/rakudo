@@ -71,7 +71,7 @@ my role Setty does QuantHash {
     multi method minpairs(Setty:D:) { self.pairs }
     multi method maxpairs(Setty:D:) { self.pairs }
     multi method Bool(Setty:D: --> Bool:D) {
-        nqp::p6bool($!elems && nqp::elems($!elems))
+        nqp::hllbool($!elems ?? nqp::elems($!elems) !! 0)
     }
 
     method !HASHIFY(\type) {
@@ -105,7 +105,7 @@ my role Setty does QuantHash {
 
     multi method ACCEPTS(Setty:U: \other) { other.^does(self) }
     multi method ACCEPTS(Setty:D: Setty:D \other) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::unless(
             nqp::eqaddr(self,other),
             nqp::if(                                # not same object
@@ -261,7 +261,7 @@ my role Setty does QuantHash {
     }
 
     multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {
-        nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
+        nqp::hllbool($!elems ?? nqp::existskey($!elems,k.WHICH) !! 0)
     }
 
     multi method Bag(Setty:D:) {
@@ -299,7 +299,7 @@ my role Setty does QuantHash {
 }
 
 multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }

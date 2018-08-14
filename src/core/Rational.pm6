@@ -72,14 +72,14 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                    :details('when coercing Rational to Int')
     }
 
-    multi method Bool(::?CLASS:D:) { nqp::p6bool($!numerator) }
+    multi method Bool(::?CLASS:D:) { nqp::hllbool(nqp::istrue($!numerator)) }
 
     method Bridge() { self.Num }
 
     method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
 
     method isNaN (--> Bool:D) {
-        nqp::p6bool(nqp::isfalse($!denominator) && nqp::isfalse($!numerator))
+        nqp::hllbool(nqp::isfalse($!denominator) && nqp::isfalse($!numerator))
     }
 
     method is-prime(--> Bool:D) {

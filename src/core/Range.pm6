@@ -77,10 +77,10 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method new(\min, \max) { nqp::create(self)!SET-SELF(min,max,0,0,0) }
 
-    method excludes-min() { nqp::p6bool($!excludes-min) }
-    method excludes-max() { nqp::p6bool($!excludes-max) }
-    method infinite()     { nqp::p6bool($!infinite)     }
-    method is-int()       { nqp::p6bool($!is-int)       }
+    method excludes-min() { nqp::hllbool($!excludes-min) }
+    method excludes-max() { nqp::hllbool($!excludes-max) }
+    method infinite()     { nqp::hllbool($!infinite)     }
+    method is-int()       { nqp::hllbool($!is-int)       }
 
     method !IS-NATIVE-INT() {
         $!is-int && nqp::not_i(nqp::isbig_I($!min) || nqp::isbig_I($!max))
@@ -173,7 +173,7 @@ my class Range is Cool does Iterable does Positional {
                            $!i = $i;
                        }
                        method count-only() { nqp::p6box_i($!n - $!i) }
-                       method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
+                       method bool-only() { nqp::hllbool(nqp::isgt_i($!n,$!i)) }
                        method sink-all(--> IterationEnd) { $!i = $!n }
                    }.new($!min, $!max, $!excludes-min, $!excludes-max)
                 !! SEQUENCE(
@@ -253,7 +253,7 @@ my class Range is Cool does Iterable does Positional {
                     $!i = $i;
                 }
                 method count-only() { nqp::p6box_i($!i - $!n) }
-                method bool-only() { nqp::p6bool(nqp::isgt_i($!i,$!n)) }
+                method bool-only() { nqp::hllbool(nqp::isgt_i($!i,$!n)) }
                 method sink-all(--> IterationEnd)   { $!i = $!n }
             }.new($!max - $!excludes-max, $!min + $!excludes-min)
         }
@@ -309,7 +309,7 @@ my class Range is Cool does Iterable does Positional {
                            $!i = $i;
                        }
                        method count-only() { nqp::p6box_i($!i - $!n) }
-                       method bool-only() { nqp::p6bool(nqp::isgt_i($!i,$!n)) }
+                       method bool-only() { nqp::hllbool(nqp::isgt_i($!i,$!n)) }
                        method sink-all(--> IterationEnd) { $!i = $!n }
                    }.new($max, $!excludes-min ?? $!min.succ !! $!min)
                 !! SEQUENCE($max,$!min,:exclude_end($!excludes-min)).iterator
@@ -736,7 +736,7 @@ proto sub prefix:<^>($, *%) is pure {*}
 multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b)
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.min eqv b.min

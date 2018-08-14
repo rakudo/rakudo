@@ -385,12 +385,12 @@ do {
         }
 
         method input-incomplete(Mu $value --> Bool:D) {
-            nqp::p6bool(nqp::can($value, 'WHERE'))
+            nqp::hllbool(nqp::can($value, 'WHERE'))
               and $value.WHERE == $!need-more-input.WHERE
         }
 
         method input-toplevel-control(Mu $value --> Bool:D) {
-            nqp::p6bool(nqp::can($value, 'WHERE'))
+            nqp::hllbool(nqp::can($value, 'WHERE'))
               and $value.WHERE == $!control-not-allowed.WHERE
         }
 

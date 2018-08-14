@@ -69,7 +69,7 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     method defined(Junction:D:) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::stmts(
             (my int $elems = nqp::elems($!storage)),
             (my int $i),
@@ -124,7 +124,7 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method Bool(Junction:D:) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::stmts(
             (my int $elems = nqp::elems($!storage)),
             (my int $i),
@@ -179,13 +179,13 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Junction:U: Mu:D \topic) {
-        nqp::p6bool(nqp::istype(topic, Junction));
+        nqp::hllbool(nqp::istype(topic, Junction));
     }
     multi method ACCEPTS(Junction:U: Any \topic) {
-        nqp::p6bool(nqp::istype(topic, Junction));
+        nqp::hllbool(nqp::istype(topic, Junction));
     }
     multi method ACCEPTS(Junction:D: Mu \topic) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::stmts(
             (my int $elems = nqp::elems($!storage)),
             (my int $i),

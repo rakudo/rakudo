@@ -170,7 +170,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method fully-reified() {
-            nqp::p6bool(nqp::not_i(
+            nqp::hllbool(nqp::not_i(
               nqp::isconcrete($!current-iter) || nqp::isconcrete($!future)
             ))
         }
@@ -363,7 +363,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method Bool(List:D:) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::unless(
             nqp::isconcrete($!reified) && nqp::elems($!reified),
             nqp::isconcrete($!todo) && $!todo.reify-at-least(1)
@@ -539,7 +539,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-POS(List:D: int $pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             nqp::isge_i($pos,0),
             nqp::if(
@@ -558,7 +558,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
     multi method EXISTS-POS(List:D: Int:D $pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             nqp::isge_i($pos,0),
             nqp::if(
@@ -961,7 +961,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             $!todo.reify-until-lazy,
             nqp::if(
               $!todo.fully-reified,
-              nqp::p6bool($!todo := nqp::null),
+              nqp::hllbool(nqp::istrue($!todo := nqp::null)),
               True
             )
           ),

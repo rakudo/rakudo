@@ -472,7 +472,7 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
         nqp::getuniprop_int($code,$prop),
         nqp::if(
           nqp::iseq_s($pref, 'B'),
-          nqp::p6bool(nqp::getuniprop_bool($code,$prop)),
+          nqp::hllbool(nqp::getuniprop_bool($code,$prop)),
           nqp::if(
             nqp::iseq_s($pref, 'lc'),
             nqp::lc(nqp::chr(nqp::unbox_i($code))),
@@ -517,7 +517,7 @@ multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-bool($str.ord, $propname) !! Nil
 }
 multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
-    nqp::p6bool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
+    nqp::hllbool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
 }
 
 proto sub uniprop-str($, $, *%) {*}
@@ -553,7 +553,7 @@ multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname) {
 }
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
     my $prop := nqp::unipropcode($propname);
-    nqp::p6bool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));
+    nqp::hllbool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));
 }
 #?endif
 

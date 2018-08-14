@@ -473,7 +473,7 @@ my class array does Iterable {
         }
 
         multi method ACCEPTS(strarray:D: strarray:D \other) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::unless(
                 nqp::eqaddr(self,other),
                 nqp::if(
@@ -956,7 +956,7 @@ my class array does Iterable {
         }
 
         multi method ACCEPTS(intarray:D: intarray:D \other) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::unless(
                 nqp::eqaddr(self,other),
                 nqp::if(
@@ -1491,7 +1491,7 @@ my class array does Iterable {
         }
 
         multi method ACCEPTS(numarray:D: numarray:D \other) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::unless(
                 nqp::eqaddr(self,other),
                 nqp::if(
@@ -1625,7 +1625,7 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: **@indices) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::stmts(
                 (my int $numdims = nqp::numdimensions(self)),
                 (my int $numind  = @indices.elems),      # reifies
@@ -1962,12 +1962,12 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
@@ -2046,7 +2046,7 @@ my class array does Iterable {
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!list)) }
-                method bool-only()  { nqp::p6bool(nqp::elems($!list)) }
+                method bool-only()  { nqp::hllbool(nqp::elems($!list)) }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)
                 }
@@ -2142,7 +2142,7 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
@@ -2150,7 +2150,7 @@ my class array does Iterable {
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
@@ -2185,7 +2185,7 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::isge_i(three,0)
@@ -2195,7 +2195,7 @@ my class array does Iterable {
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::isge_i(three,0)
@@ -2513,12 +2513,12 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
@@ -2597,7 +2597,7 @@ my class array does Iterable {
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!list)) }
-                method bool-only()  { nqp::p6bool(nqp::elems($!list)) }
+                method bool-only()  { nqp::hllbool(nqp::elems($!list)) }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)
                 }
@@ -2693,7 +2693,7 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
@@ -2701,7 +2701,7 @@ my class array does Iterable {
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
@@ -2736,7 +2736,7 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::isge_i(three,0)
@@ -2746,7 +2746,7 @@ my class array does Iterable {
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::isge_i(three,0)
@@ -3064,12 +3064,12 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
@@ -3148,7 +3148,7 @@ my class array does Iterable {
                     )
                 }
                 method count-only() { nqp::p6box_i(nqp::elems($!list)) }
-                method bool-only()  { nqp::p6bool(nqp::elems($!list)) }
+                method bool-only()  { nqp::hllbool(nqp::elems($!list)) }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)
                 }
@@ -3244,7 +3244,7 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
@@ -3252,7 +3252,7 @@ my class array does Iterable {
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
@@ -3287,7 +3287,7 @@ my class array does Iterable {
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::isge_i(three,0)
@@ -3297,7 +3297,7 @@ my class array does Iterable {
             )
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
                 && nqp::isge_i(three,0)
@@ -3390,7 +3390,7 @@ my class array does Iterable {
         $idx >= 0 && $idx < nqp::elems(self)
     }
 
-    multi method Bool(array:D:)    { nqp::p6bool(nqp::elems(self)) }
+    multi method Bool(array:D:)    { nqp::hllbool(nqp::elems(self)) }
     multi method Numeric(array:D:) { nqp::elems(self) }
     multi method Str(array:D:)     { self.join(' ') }
 

@@ -9,10 +9,10 @@ my class Signature { # declared in BOOTSTRAP
     #   has Code $!code;
 
     multi method ACCEPTS(Signature:D: Mu \topic) {
-        nqp::p6bool(try self.ACCEPTS: topic.Capture)
+        nqp::hllbool(nqp::istrue(try self.ACCEPTS: topic.Capture))
     }
     multi method ACCEPTS(Signature:D: Capture $topic) {
-        nqp::p6bool(nqp::p6isbindable(self, nqp::decont($topic)));
+        nqp::hllbool(nqp::p6isbindable(self, nqp::decont($topic)));
     }
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
         my $sclass = self.params.classify({.named});

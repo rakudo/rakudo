@@ -38,7 +38,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Bool(Str:D:) {
-        nqp::p6bool(nqp::chars($!value));
+        nqp::hllbool(nqp::chars($!value));
     }
     method Capture() { die X::Cannot::Capture.new: :what(self) }
 
@@ -106,10 +106,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Str:D: Str:D \other) {
-        nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other),$!value));
+        nqp::hllbool(nqp::iseq_s(nqp::unbox_s(other),$!value));
     }
     multi method ACCEPTS(Str:D: Any:D \other) {
-        nqp::p6bool(nqp::iseq_s(nqp::unbox_s(other.Str),$!value));
+        nqp::hllbool(nqp::iseq_s(nqp::unbox_s(other.Str),$!value));
     }
 
     method chomp(Str:D:) {
@@ -138,7 +138,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     proto method starts-with(|) {*}
     multi method starts-with(Str:D: Cool:D $needle) {self.starts-with: $needle.Str}
     multi method starts-with(Str:D: Str:D $needle) {
-        nqp::p6bool(nqp::eqat(self, $needle, 0))
+        nqp::hllbool(nqp::eqat(self, $needle, 0))
     }
 
     # TODO Use coercer in 1 candidate when RT131014
@@ -146,7 +146,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method ends-with(Str:D: Cool:D $suffix) {self.ends-with: $suffix.Str}
     multi method ends-with(Str:D: Str:D $suffix) {
         my \value := nqp::getattr($suffix,Str,'$!value');
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::eqat(
             $!value,value,nqp::sub_i(nqp::chars($!value),nqp::chars(value))
           )
@@ -157,11 +157,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     proto method substr-eq(|) {*}
     multi method substr-eq(Str:D: Cool:D $needle) {self.substr-eq: $needle.Str}
     multi method substr-eq(Str:D: Str:D $needle) {
-        nqp::p6bool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
+        nqp::hllbool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
     }
     multi method substr-eq(Str:D: Cool:D $needle, Int:D $pos) {self.substr-eq: $needle.Str, $pos.Int}
     multi method substr-eq(Str:D: Str:D $needle, Int:D $pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
             nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),$pos)
@@ -173,13 +173,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
     proto method contains(|) {*}
     multi method contains(Str:D: Cool:D $needle) {self.contains: $needle.Str}
     multi method contains(Str:D: Str:D $needle) {
-        nqp::p6bool(nqp::isne_i(
+        nqp::hllbool(nqp::isne_i(
           nqp::index($!value,nqp::getattr($needle,Str,'$!value'),0),-1
         ))
     }
     multi method contains(Str:D: Cool:D $needle, Int(Cool:D) $pos) {self.contains: $needle.Str, $pos}
     multi method contains(Str:D: Str:D $needle, Int:D $pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
             nqp::isne_i(
@@ -1689,7 +1689,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $target.push("") if $!last;
                 }
                 method count-only() { nqp::p6box_i($!todo + $!first + $!last) }
-                method bool-only() { nqp::p6bool($!todo + $!first + $!last) }
+                method bool-only() { nqp::hllbool($!todo + $!first + $!last) }
                 method sink-all(--> IterationEnd) { }
             }.new(self,$limit,$skip-empty));
         }
@@ -2971,13 +2971,13 @@ multi sub infix:<cmp>(str $a, str $b --> Order:D) {
 }
 
 multi sub infix:<===>(Str:D \a, Str:D \b --> Bool:D) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a.WHAT,b.WHAT)
       && nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b))
     )
 }
 multi sub infix:<===>(str $a, str $b --> Bool:D) {
-    nqp::p6bool(nqp::iseq_s($a, $b))
+    nqp::hllbool(nqp::iseq_s($a, $b))
 }
 
 multi sub infix:<leg>(Str:D \a, Str:D \b --> Order:D) {
@@ -2988,45 +2988,45 @@ multi sub infix:<leg>(str $a, str $b --> Order:D) {
 }
 
 multi sub infix:<eq>(Str:D \a, Str:D \b --> Bool:D) {
-    nqp::p6bool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+    nqp::hllbool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<eq>(str $a, str $b --> Bool:D) {
-    nqp::p6bool(nqp::iseq_s($a, $b))
+    nqp::hllbool(nqp::iseq_s($a, $b))
 }
 
 multi sub infix:<ne>(Str:D \a, Str:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isne_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+    nqp::hllbool(nqp::isne_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<ne>(str $a, str $b --> Bool:D) {
-    nqp::p6bool(nqp::isne_s($a, $b))
+    nqp::hllbool(nqp::isne_s($a, $b))
 }
 
 multi sub infix:<lt>(Str:D \a, Str:D \b --> Bool:D) {
-    nqp::p6bool(nqp::islt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+    nqp::hllbool(nqp::islt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<lt>(str $a, str $b --> Bool:D) {
-    nqp::p6bool(nqp::islt_s($a, $b))
+    nqp::hllbool(nqp::islt_s($a, $b))
 }
 
 multi sub infix:<le>(Str:D \a, Str:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isle_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+    nqp::hllbool(nqp::isle_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<le>(str $a, str $b --> Bool:D) {
-    nqp::p6bool(nqp::isle_s($a, $b))
+    nqp::hllbool(nqp::isle_s($a, $b))
 }
 
 multi sub infix:<gt>(Str:D \a, Str:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isgt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+    nqp::hllbool(nqp::isgt_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<gt>(str $a, str $b --> Bool:D) {
-    nqp::p6bool(nqp::isgt_s($a, $b))
+    nqp::hllbool(nqp::isgt_s($a, $b))
 }
 
 multi sub infix:<ge>(Str:D \a, Str:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isge_s(nqp::unbox_s(a), nqp::unbox_s(b)))
+    nqp::hllbool(nqp::isge_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
 multi sub infix:<le>(str $a, str $b --> Bool:D) {
-    nqp::p6bool(nqp::isle_s($a, $b))
+    nqp::hllbool(nqp::isle_s($a, $b))
 }
 
 multi sub infix:<~|>(Str:D \a, Str:D \b --> Str:D) {
@@ -3161,7 +3161,7 @@ multi sub substr-rw(\what, \from) is rw         { what.substr-rw(from)       }
 multi sub substr-rw(\what, \from, \chars) is rw { what.substr-rw(from,chars) }
 
 multi sub infix:<eqv>(Str:D \a, Str:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a,b)

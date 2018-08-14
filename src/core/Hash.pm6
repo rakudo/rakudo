@@ -226,7 +226,7 @@ my class Hash { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }
     method dynamic() {
-        nqp::isnull($!descriptor) ?? False !! nqp::p6bool($!descriptor.dynamic)
+        nqp::isnull($!descriptor) ?? False !! nqp::hllbool($!descriptor.dynamic)
     }
 
     method push(+values) {
@@ -531,7 +531,7 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method EXISTS-KEY(TKey \key) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
             )
         }

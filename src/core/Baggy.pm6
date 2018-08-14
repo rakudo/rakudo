@@ -16,7 +16,7 @@ my role Baggy does QuantHash {
         other.^does(self)
     }
     multi method ACCEPTS(Baggy:D: Baggy:D \other --> Bool:D) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::unless(
             nqp::eqaddr(self,other),
             nqp::if(                         # not same object
@@ -83,8 +83,8 @@ my role Baggy does QuantHash {
         )
     }
     multi method EXISTS-KEY(Baggy:D: \k) {
-        nqp::p6bool(
-          $!elems && nqp::existskey($!elems,k.WHICH)
+        nqp::hllbool(
+          $!elems ?? nqp::existskey($!elems,k.WHICH) !! 0
         )
     }
 
@@ -259,7 +259,7 @@ my role Baggy does QuantHash {
         nqp::istrue($!elems) && nqp::elems($!elems)
     }
     multi method Bool(Baggy:D: --> Bool:D) {
-        nqp::p6bool($!elems && nqp::elems($!elems))
+        nqp::hllbool($!elems ?? nqp::elems($!elems) !! 0)
     }
 
     method !HASHIFY(\type) {
@@ -720,7 +720,7 @@ my role Baggy does QuantHash {
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }

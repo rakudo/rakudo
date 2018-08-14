@@ -48,7 +48,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
                     nqp::sub_i(nqp::elems($!uni), nqp::add_i($!i, 1)),
                     0))
             }
-            method bool-only { nqp::p6bool(self.count-only) }
+            method bool-only { nqp::hllbool(self.count-only) }
         }.new: self
     }
 
@@ -77,7 +77,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     }
 
     multi method Bool(Uni:D:) {
-        nqp::p6bool(nqp::elems(self));
+        nqp::hllbool(nqp::elems(self));
     }
 
     method codes(Uni:D:)   { nqp::elems(self) }
@@ -86,7 +86,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     method Int(Uni:D:)     { nqp::elems(self) }
 
     multi method EXISTS-POS(Uni:D: int \pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
     }

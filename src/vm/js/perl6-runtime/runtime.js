@@ -4,8 +4,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
   let Scalar, True, False, Int, Num, Str, Code, Mu, Any, ContainerDescriptor, Routine;
 
-  let Iterable;
-
   op.p6settypes = function(types) {
     Scalar = types.content.get('Scalar');
     True = types.content.get('True');
@@ -212,11 +210,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       }
     }
     return value;
-  };
-
-  op.p6setitertype = function(type) {
-    Iterable = type;
-    return type;
   };
 
   op.p6store = function(ctx, cont, value) {

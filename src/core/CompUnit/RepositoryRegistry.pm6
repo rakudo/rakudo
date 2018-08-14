@@ -49,6 +49,7 @@ class CompUnit::RepositoryRegistry {
         my $raw-specs;
         # only look up environment once
         my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
+        my $sep := $*SPEC.dir-sep;
 
         # starting up for creating precomp
         my $precomp-specs = nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH')
@@ -81,7 +82,7 @@ class CompUnit::RepositoryRegistry {
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
           !! nqp::concat(
                nqp::atkey(nqp::getcomp('perl6').config,'libdir'),
-               '/perl6'
+               "{$sep}perl6"
              );
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
@@ -96,15 +97,15 @@ class CompUnit::RepositoryRegistry {
                    (nqp::existskey($ENV,'HOMEPATH')
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                  ) -> $home-path {
-                $home = "$home-path/.perl6";
-                $home-spec = "inst#" ~ $home.IO.absolute;
+                $home = "{$home-path}{$sep}.perl6";
+                $home-spec = "inst#$home";
             }
         }
 
         # set up custom libs
-        my str $site   = "inst#" ~ "$prefix/site".IO.absolute;
-        my str $vendor = "inst#" ~ "$prefix/vendor".IO.absolute;
-        my str $perl   = "inst#" ~ "$prefix".IO.absolute;
+        my str $site   = "inst#{$prefix}{$sep}site";
+        my str $vendor = "inst#{$prefix}{$sep}vendor";
+        my str $perl   = "inst#$prefix";
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=

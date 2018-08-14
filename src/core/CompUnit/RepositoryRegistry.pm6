@@ -97,14 +97,14 @@ class CompUnit::RepositoryRegistry {
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                  ) -> $home-path {
                 $home = "$home-path/.perl6";
-                $home-spec = "inst#$home";
+                $home-spec = "inst#" ~ $home.IO.absolute;
             }
         }
 
         # set up custom libs
-        my str $site = "inst#$prefix/site";
-        my str $vendor = "inst#$prefix/vendor";
-        my str $perl = "inst#$prefix";
+        my str $site   = "inst#" ~ "$prefix/site".IO.absolute;
+        my str $vendor = "inst#" ~ "$prefix/vendor".IO.absolute;
+        my str $perl   = "inst#" ~ "$prefix".IO.absolute;
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=

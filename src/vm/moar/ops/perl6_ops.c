@@ -44,8 +44,6 @@ static int initialized = 0;
 /* Types we need. */
 static MVMObject *Mu                  = NULL;
 static MVMObject *Any                 = NULL;
-static MVMObject *True                = NULL;
-static MVMObject *False               = NULL;
 
 /* Useful string constants. */
 static MVMString *str_dispatcher = NULL;
@@ -81,8 +79,6 @@ static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMROOT(tc, conf, {
         get_type(tc, conf, "Mu", Mu);
         get_type(tc, conf, "Any", Any);
-        get_type(tc, conf, "True", True);
-        get_type(tc, conf, "False", False);
     });
     
     /* Strings. */
@@ -105,19 +101,24 @@ static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
     tfacts->type   = type;
 }
 
-/* Turns zero to False and non-zero to True. */
-static MVMuint8 s_p6bool[] = {
+static MVMuint8 s_p6reprname[] = {
     MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_int64 | MVM_operand_read_reg,
+    MVM_operand_obj | MVM_operand_read_reg,
 };
-static void p6bool(MVMThreadContext *tc, MVMuint8 *cur_op) {
-     GET_REG(tc, 0).o = GET_REG(tc, 2).i64 ? True : False;
+static void p6reprname(MVMThreadContext *tc, MVMuint8 *cur_op) {
+    MVMObject *obj = GET_REG(tc, 2).o;
+    MVMROOT(tc, obj, {
+        MVMObject *name = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTStr);
+        MVMROOT(tc, name, {
+            MVMString *str  = MVM_string_utf8_decode(tc, tc->instance->VMString,
+                obj->st->REPR->name, strlen(obj->st->REPR->name));
+            MVM_repr_set_str(tc, name, str);
+            GET_REG(tc, 0).o = name;
+        });
+    });
 }
-static void p6bool_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, STABLE(True)->WHAT);
-#ifdef MVM_SPESH_FACT_KNOWN_BOX_SRC
-    MVM_spesh_get_facts(tc, g, ins->operands[0])->flags |= MVM_SPESH_FACT_KNOWN_BOX_SRC;
-#endif
+static void p6reprname_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
+    discover_create(tc, g, ins, tc->instance->boot_types.BOOTStr);
 }
 
 static MVMuint8 s_p6capturelex[] = {
@@ -482,7 +483,7 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
+    MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

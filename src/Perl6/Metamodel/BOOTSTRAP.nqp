@@ -1581,6 +1581,9 @@ BEGIN {
     }));
     Scalar.HOW.compose_repr(Scalar);
 
+    # To preserve historical behavior, we never repossess a Scalar container.
+    nqp::neverrepossess(Scalar);
+
     # Scalar needs to be registered as a container type. Also provide the
     # slow-path implementation of various container operations.
     nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::hash(

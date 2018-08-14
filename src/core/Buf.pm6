@@ -263,6 +263,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method subbuf(Blob:D: \from, Numeric \length) {
         length == Inf ?? self.subbuf(from) !! self.subbuf(from,length.Int)
     }
+    multi method subbuf(Blob:D: \from, Any:U) {
+        Rakudo::Deprecations.DEPRECATED(
+          "{self.^name}.subbuf({from}) or {self.^name}.subbuf({from},*)",
+          :what("{self.^name}.subbuf({from},Any)")
+        );
+        self.subbuf(from)
+    }
 
     method reverse(Blob:D:) {
         my int $elems = nqp::elems(self);

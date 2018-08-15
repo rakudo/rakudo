@@ -2,14 +2,12 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   const Null = nqp.Null;
   let op = {};
 
-  let Scalar, True, False, Int, Num, Str, Code, Mu, Any, ContainerDescriptor, Routine;
+  let Scalar, True, False, Str, Code, Mu, Any, ContainerDescriptor, Routine;
 
   op.p6settypes = function(types) {
     Scalar = types.content.get('Scalar');
     True = types.content.get('True');
     False = types.content.get('False');
-    Int = types.content.get('Int');
-    Num = types.content.get('Num');
     Str = types.content.get('Str');
     Code = types.content.get('Code');
     Mu = types.content.get('Mu');
@@ -105,27 +103,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     } else {
       return 0;
     }
-  };
-
-  op.p6box_i = function(int) {
-    const repr = Int._STable.REPR;
-    const boxed = repr.allocate(Int._STable);
-    boxed.$$setInt(int);
-    return boxed;
-  };
-
-  op.p6box_n = function(num) {
-    const repr = Num._STable.REPR;
-    const boxed = repr.allocate(Num._STable);
-    boxed.$$setNum(num);
-    return boxed;
-  };
-
-  op.p6box_s = function(str) {
-    const repr = Str._STable.REPR;
-    const boxed = repr.allocate(Str._STable);
-    boxed.$$setStr(str);
-    return boxed;
   };
 
   op.p6captureouters2 = function(ctx, capList, target) {

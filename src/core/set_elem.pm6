@@ -41,8 +41,8 @@ multi sub infix:<(elem)>(Any $a, Map:D $b --> Bool:D) {
            )
     )
 }
-multi sub infix:<(elem)>(\a, Range:D \b --> Bool:D) {
-    b.ACCEPTS(a)
+multi sub infix:<(elem)>(Int:D $a, Range:D $b --> Bool:D) {
+    $b.is-int ?? $b.ACCEPTS($a) !! infix:<(elem)>($a,$b.iterator)
 }
 multi sub infix:<(elem)>(Any $a, Iterable:D $b --> Bool:D) {
     infix:<(elem)>($a,$b.iterator)

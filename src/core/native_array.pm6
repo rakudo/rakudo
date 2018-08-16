@@ -89,7 +89,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-16T15:26:24+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -471,6 +471,32 @@ my class array does Iterable {
         multi method sort(strarray:D:) {
             Rakudo::Sorting.MERGESORT-str(nqp::clone(self))
         }
+
+        multi method ACCEPTS(strarray:D: strarray:D \other) {
+            nqp::p6bool(
+              nqp::unless(
+                nqp::eqaddr(self,other),
+                nqp::if(
+                  nqp::iseq_i(
+                    (my int $elems = nqp::elems(self)),
+                    nqp::elems(other)
+                  ),
+                  nqp::stmts(
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::iseq_s(
+                             nqp::atpos_s(self,$i),
+                             nqp::atpos_s(self,$i)
+                           ),
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)
+                  )
+                )
+              )
+            )
+        }
         proto method grab(|) {*}
         multi method grab(strarray:D:) {
             nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
@@ -546,7 +572,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-16T15:26:24+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -928,6 +954,32 @@ my class array does Iterable {
         multi method sort(intarray:D:) {
             Rakudo::Sorting.MERGESORT-int(nqp::clone(self))
         }
+
+        multi method ACCEPTS(intarray:D: intarray:D \other) {
+            nqp::p6bool(
+              nqp::unless(
+                nqp::eqaddr(self,other),
+                nqp::if(
+                  nqp::iseq_i(
+                    (my int $elems = nqp::elems(self)),
+                    nqp::elems(other)
+                  ),
+                  nqp::stmts(
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::iseq_i(
+                             nqp::atpos_i(self,$i),
+                             nqp::atpos_i(self,$i)
+                           ),
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)
+                  )
+                )
+              )
+            )
+        }
         proto method grab(|) {*}
         multi method grab(intarray:D:) {
             nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
@@ -1055,7 +1107,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-08-10T22:40:12+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-16T15:26:24+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1436,6 +1488,32 @@ my class array does Iterable {
         }
         multi method sort(numarray:D:) {
             Rakudo::Sorting.MERGESORT-num(nqp::clone(self))
+        }
+
+        multi method ACCEPTS(numarray:D: numarray:D \other) {
+            nqp::p6bool(
+              nqp::unless(
+                nqp::eqaddr(self,other),
+                nqp::if(
+                  nqp::iseq_i(
+                    (my int $elems = nqp::elems(self)),
+                    nqp::elems(other)
+                  ),
+                  nqp::stmts(
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::iseq_n(
+                             nqp::atpos_n(self,$i),
+                             nqp::atpos_n(self,$i)
+                           ),
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)
+                  )
+                )
+              )
+            )
         }
         proto method grab(|) {*}
         multi method grab(numarray:D:) {

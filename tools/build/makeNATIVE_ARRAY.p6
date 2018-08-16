@@ -428,6 +428,32 @@ for $*IN.lines -> $line {
         multi method sort(#type#array:D:) {
             Rakudo::Sorting.MERGESORT-#type#(nqp::clone(self))
         }
+
+        multi method ACCEPTS(#type#array:D: #type#array:D \other) {
+            nqp::p6bool(
+              nqp::unless(
+                nqp::eqaddr(self,other),
+                nqp::if(
+                  nqp::iseq_i(
+                    (my int $elems = nqp::elems(self)),
+                    nqp::elems(other)
+                  ),
+                  nqp::stmts(
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::iseq_#postfix#(
+                             nqp::atpos_#postfix#(self,$i),
+                             nqp::atpos_#postfix#(self,$i)
+                           ),
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)
+                  )
+                )
+              )
+            )
+        }
         proto method grab(|) {*}
         multi method grab(#type#array:D:) {
             nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)

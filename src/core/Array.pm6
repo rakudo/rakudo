@@ -200,7 +200,7 @@ my class Array { # declared in BOOTSTRAP
             $iter.push-until-lazy(
               my \target := ArrayReificationTarget.new(
                 (my \buffer := nqp::create(IterationBuffer)),
-                nqp::getcurhllsym('perl6', 'default_cont_spec')
+                nqp::getcurhllsym('default_cont_spec')
               )
             ),
             IterationEnd

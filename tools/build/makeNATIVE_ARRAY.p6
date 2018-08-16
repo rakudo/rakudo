@@ -444,7 +444,7 @@ for $*IN.lines -> $line {
                       nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
                         && nqp::iseq_#postfix#(
                              nqp::atpos_#postfix#(self,$i),
-                             nqp::atpos_#postfix#(self,$i)
+                             nqp::atpos_#postfix#(other,$i)
                            ),
                       nqp::null
                     ),

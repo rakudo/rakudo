@@ -446,6 +446,29 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           expected  => T,
         ))
     }
+    multi method ACCEPTS(Blob:D: Blob:D \Other) {
+        nqp::p6bool(
+          nqp::unless(
+            nqp::eqaddr(self,my \other := nqp::decont(Other)),
+            nqp::if(
+              nqp::iseq_i(
+                (my int $elems = nqp::elems(self)),
+                nqp::elems(other)
+              ),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                    && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i(other,$i)
+                       ),
+                  nqp::null
+                ),
+                nqp::iseq_i($i,$elems)
+              )
+            )
+          )
+        )
+    }
 }
 
 constant blob8 = Blob[uint8];

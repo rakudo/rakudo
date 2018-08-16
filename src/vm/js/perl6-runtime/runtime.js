@@ -357,9 +357,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     });
   };
 
-
-
-
   RakudoScalar.prototype.serialize = function(cursor) {
     cursor.ref(this.store);
     cursor.ref(this.store_unchecked);

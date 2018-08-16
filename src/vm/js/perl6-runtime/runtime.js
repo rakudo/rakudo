@@ -308,6 +308,8 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   }
 
   RakudoScalar.prototype.configure = function(conf) {
+    this.store = conf.content.get('store');
+    this.store_unchecked = conf.content.get('store_unchecked');
     this.setupSTable();
   };
 
@@ -317,49 +319,15 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   }
 
   RakudoScalar.prototype.setupSTable = function() {
+    const store = this.store;
+    const store_unchecked = this.store_unchecked;
+
     this.STable.addInternalMethod('$$assignunchecked', function(ctx, value) {
-      let whence = this.$$getattr(Scalar, '$!whence');
-      if (whence !== Null) whence.$$call(ctx, null);
-      this.$$bindattr(Scalar, '$!value', value);
+      store_unchecked.$$call(ctx, null, this, value);
     });
 
-    this.STable.addInternalMethod('$$assign', function(ctx, maybeValue) {
-      /* TODO - checking */
-      let desc = this.$$getattr(Scalar, '$!descriptor');
-      let rw = desc === Null ? 0 : desc.$$getattr_i(ContainerDescriptor, '$!rw');
-
-      if (!rw) {
-        if (desc !== Null) {
-          let name = desc.$$getattr_s(ContainerDescriptor, '$!name');
-          ctx.die("Cannot assign to a readonly variable (" + name + ") or a value");
-        } else {
-          ctx.die("Cannot assign to a readonly variable or a value");
-        }
-      }
-
-      let value;
-      if (maybeValue._STable && maybeValue._STable.WHAT === Nil) {
-        value = desc.$$getattr(ContainerDescriptor, '$!default');
-      } else {
-        value = maybeValue;
-      }
-
-      let of = desc.$$getattr(ContainerDescriptor, '$!of');
-      if (of !== Mu && value.$$istype(ctx, of)=== 0) {
-        let name = desc.$$getattr_s(ContainerDescriptor, '$!name');
-        let thrower = getThrower("X::TypeCheck::Assignment");
-
-        if (thrower === null) {
-            ctx.die("Type check failed in assignment to '" + name + "'");
-        } else {
-            thrower.$$call(ctx, null, new nqp.NativeStrArg(name), value, of);
-        }
-      }
-
-      let whence = this.$$getattr(Scalar, '$!whence');
-      if (whence !== Null) whence.$$call(ctx, null);
-
-      this.$$bindattr(Scalar, '$!value', value);
+    this.STable.addInternalMethod('$$assign', function(ctx, value) {
+      store.$$call(ctx, null, this, value);
     });
 
     this.STable.addInternalMethod('$$decont', function(ctx) {
@@ -385,7 +353,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     this.STable.addInternalMethod('$$isrwcont', function() {
       if (this.typeObject_) return 0;
       let desc = this.$$getattr(Scalar, '$!descriptor');
-      return desc === Null ? 0 : desc.$$getattr_i(ContainerDescriptor, '$!rw');
+      return desc === Null ? 0 : 1;
     });
   };
 
@@ -393,11 +361,13 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
 
   RakudoScalar.prototype.serialize = function(cursor) {
-    /* No data to serialize. */
+    cursor.ref(this.store);
+    cursor.ref(this.store_unchecked);
   };
 
   RakudoScalar.prototype.deserialize = function(cursor) {
-    /* No data to deserialize. */
+    this.store = cursor.variant();
+    this.store_unchecked = cursor.variant();
   };
 
   RakudoScalar.prototype.name = 'rakudo_scalar';

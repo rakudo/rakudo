@@ -112,12 +112,12 @@ my class Hash { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
 
-    multi method ASSIGN-KEY(Hash:D: Str:D \key, Mu \assignval) is raw {
+    multi method ASSIGN-KEY(Hash:D: Str:D $key, Mu \assignval) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::p6assign(
           nqp::ifnull(
-            nqp::atkey(storage, key),
-            nqp::bindkey(storage, key,
+            nqp::atkey(storage, $key),
+            nqp::bindkey(storage, $key,
               nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
           assignval)
     }

@@ -2479,202 +2479,204 @@ class Rakudo::Iterator {
     # Return an iterator for an Array that has been completely reified
     # already.  Returns a assignable container for elements don't exist
     # before the end of the reified array.
-    method ReifiedArray(\array, Mu \descriptor) {
-        class :: does Iterator {
-            has $!reified;
-            has $!descriptor;
-            has int $!i;
+    my class ReifiedArrayIterator does Iterator {
+        has $!reified;
+        has $!descriptor;
+        has int $!i;
 
-            method !SET-SELF(\array, Mu \des) {
-                nqp::stmts(
-                  ($!reified    := nqp::getattr(array, List,  '$!reified')),
-                  ($!descriptor := des),
-                  ($!i = -1),
-                  self
-                )
-            }
-            method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
+        method !SET-SELF(\array, Mu \des) {
+            nqp::stmts(
+              ($!reified    := nqp::getattr(array, List,  '$!reified')),
+              ($!descriptor := des),
+              ($!i = -1),
+              self
+            )
+        }
+        method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
 
-            method !hole(int $i) is raw {
-                nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
-                    $!descriptor, $!reified, $i))
-            }
-            method pull-one() is raw {
-                nqp::ifnull(
-                  nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                  nqp::if(
-                    nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
-                    self!hole($!i),
-                    IterationEnd
-                  )
-                )
-            }
+        method !hole(int $i) is raw {
+            nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                $!descriptor, $!reified, $i))
+        }
+        method pull-one() is raw {
+            nqp::ifnull(
+              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::if(
+                nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
+                self!hole($!i),
+                IterationEnd
+              )
+            )
+        }
 
-            method push-exactly($target, int $batch-size) {
-                nqp::stmts(
-                  (my int $todo = nqp::add_i($batch-size,1)),
-                  (my int $i    = $!i),      # lexicals are faster than attrs
-                  (my int $elems = nqp::elems($!reified)),
-                  nqp::while(
-                    ($todo = nqp::sub_i($todo,1))
-                      && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                    $target.push(
-                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
-                    )
-                  ),
-                  ($!i = $i),                # make sure pull-one ends
-                  nqp::if(
-                    nqp::isge_i($i,$elems),
-                    IterationEnd,
-                    $batch-size
-                  )
+        method push-exactly($target, int $batch-size) {
+            nqp::stmts(
+              (my int $todo = nqp::add_i($batch-size,1)),
+              (my int $i    = $!i),      # lexicals are faster than attrs
+              (my int $elems = nqp::elems($!reified)),
+              nqp::while(
+                ($todo = nqp::sub_i($todo,1))
+                  && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                $target.push(
+                  nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                 )
-            }
+              ),
+              ($!i = $i),                # make sure pull-one ends
+              nqp::if(
+                nqp::isge_i($i,$elems),
+                IterationEnd,
+                $batch-size
+              )
+            )
+        }
 
-            method push-all($target --> IterationEnd) {
-                nqp::stmts(
-                  (my int $elems = nqp::elems($!reified)),
-                  (my int $i = $!i),
-                  nqp::while(   # doesn't sink
-                    nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                    $target.push(
-                      nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
-                    )
-                  ),
-                  ($!i = $i)
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my int $elems = nqp::elems($!reified)),
+              (my int $i = $!i),
+              nqp::while(   # doesn't sink
+                nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                $target.push(
+                  nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                 )
-            }
-            method skip-one() {
-                nqp::islt_i(
-                  ($!i = nqp::add_i($!i,1)),
+              ),
+              ($!i = $i)
+            )
+        }
+        method skip-one() {
+            nqp::islt_i(
+              ($!i = nqp::add_i($!i,1)),
+              nqp::elems($!reified)
+            )
+        }
+        method skip-at-least(Int:D $toskip) {
+            nqp::unless(
+              $toskip <= 0,  # must be HLL
+              nqp::stmts(
+                ($!i = nqp::if(
+                  $!i + $toskip < nqp::elems($!reified),  # must be HLL
+                  nqp::add_i($!i,$toskip),
                   nqp::elems($!reified)
-                )
-            }
-            method skip-at-least(Int:D $toskip) {
-                nqp::unless(
-                  $toskip <= 0,  # must be HLL
-                  nqp::stmts(
-                    ($!i = nqp::if(
-                      $!i + $toskip < nqp::elems($!reified),  # must be HLL
-                      nqp::add_i($!i,$toskip),
-                      nqp::elems($!reified)
-                    )),
-                    nqp::islt_i($!i,nqp::elems($!reified))
-                  )
-                )
-            }
-            method count-only() {
-                # we start off $!i at -1, so add back 1 to it to get right count
-                # if $i is >= elems, that means we're done iterating. We can't
-                # *just* substract in that case, as we'd get `-1`
-                nqp::p6box_i(
-                  nqp::if(
-                    nqp::islt_i($!i, nqp::elems($!reified)),
-                    nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
-                    0))
-            }
-            method bool-only()  {
-                nqp::p6bool(
-                  nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
-            }
-            method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
-        }.new(array, descriptor)
+                )),
+                nqp::islt_i($!i,nqp::elems($!reified))
+              )
+            )
+        }
+        method count-only() {
+            # we start off $!i at -1, so add back 1 to it to get right count
+            # if $i is >= elems, that means we're done iterating. We can't
+            # *just* substract in that case, as we'd get `-1`
+            nqp::p6box_i(
+              nqp::if(
+                nqp::islt_i($!i, nqp::elems($!reified)),
+                nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
+                0))
+        }
+        method bool-only()  {
+            nqp::p6bool(
+              nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
+        }
+        method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
+    }
+    method ReifiedArray(\array, Mu \descriptor) {
+        ReifiedArrayIterator.new(array, descriptor)
     }
 
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements that don't exist
     # before the end of the reified list.
-    method ReifiedList(\list) {
-        class :: does Iterator {
-            has $!reified;
-            has int $!i;
+    my class ReifiedListIterator does Iterator {
+        has $!reified;
+        has int $!i;
 
-            method !SET-SELF(\list) {
-                nqp::stmts(
-                  ($!reified := nqp::if(
-                    nqp::istype(list,List),
-                    nqp::getattr(list,List,'$!reified'),
-                    list)),
-                  ($!i = -1),
-                  self
-                )
-            }
-            method new(\list) { nqp::create(self)!SET-SELF(list) }
+        method !SET-SELF(\list) {
+            nqp::stmts(
+              ($!reified := nqp::if(
+                nqp::istype(list,List),
+                nqp::getattr(list,List,'$!reified'),
+                list)),
+              ($!i = -1),
+              self
+            )
+        }
+        method new(\list) { nqp::create(self)!SET-SELF(list) }
 
-            method pull-one() is raw {
-                nqp::ifnull(
-                  nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                  nqp::if(
-                    nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
-                    nqp::null,                              # it's a hole
-                    IterationEnd                            # it's the end
-                  )
-                )
-            }
-            method push-exactly($target, int $batch-size) {
-                nqp::stmts(
-                  (my int $todo = nqp::add_i($batch-size,1)),
-                  (my int $i    = $!i),      # lexicals are faster than attrs
-                  (my int $elems = nqp::elems($!reified)),
-                  nqp::while(
-                    ($todo = nqp::sub_i($todo,1))
-                      && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                    $target.push(nqp::atpos($!reified,$i))
-                  ),
-                  ($!i = $i),                # make sure pull-one ends
-                  nqp::if(
-                    nqp::isge_i($i,$elems),
-                    IterationEnd,
-                    $batch-size
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::stmts(
-                  (my int $elems = nqp::elems($!reified)),
-                  (my int $i = $!i), # lexicals are faster than attributes
-                  nqp::while(  # doesn't sink
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                    $target.push(nqp::atpos($!reified,$i))
-                  ),
-                  ($!i = $i)
-                )
-            }
-            method skip-one() {
-                nqp::islt_i(
-                  ($!i = nqp::add_i($!i,1)),
+        method pull-one() is raw {
+            nqp::ifnull(
+              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::if(
+                nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
+                nqp::null,                              # it's a hole
+                IterationEnd                            # it's the end
+              )
+            )
+        }
+        method push-exactly($target, int $batch-size) {
+            nqp::stmts(
+              (my int $todo = nqp::add_i($batch-size,1)),
+              (my int $i    = $!i),      # lexicals are faster than attrs
+              (my int $elems = nqp::elems($!reified)),
+              nqp::while(
+                ($todo = nqp::sub_i($todo,1))
+                  && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                $target.push(nqp::atpos($!reified,$i))
+              ),
+              ($!i = $i),                # make sure pull-one ends
+              nqp::if(
+                nqp::isge_i($i,$elems),
+                IterationEnd,
+                $batch-size
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my int $elems = nqp::elems($!reified)),
+              (my int $i = $!i), # lexicals are faster than attributes
+              nqp::while(  # doesn't sink
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                $target.push(nqp::atpos($!reified,$i))
+              ),
+              ($!i = $i)
+            )
+        }
+        method skip-one() {
+            nqp::islt_i(
+              ($!i = nqp::add_i($!i,1)),
+              nqp::elems($!reified)
+            )
+        }
+        method skip-at-least(Int:D $toskip) {
+            nqp::unless(
+              $toskip <= 0,  # must be HLL
+              nqp::stmts(
+                ($!i = nqp::if(
+                  $!i + $toskip < nqp::elems($!reified),  # must be HLL
+                  nqp::add_i($!i,$toskip),
                   nqp::elems($!reified)
-                )
-            }
-            method skip-at-least(Int:D $toskip) {
-                nqp::unless(
-                  $toskip <= 0,  # must be HLL
-                  nqp::stmts(
-                    ($!i = nqp::if(
-                      $!i + $toskip < nqp::elems($!reified),  # must be HLL
-                      nqp::add_i($!i,$toskip),
-                      nqp::elems($!reified)
-                    )),
-                    nqp::islt_i($!i,nqp::elems($!reified))
-                  )
-                )
-            }
-            method count-only() {
-                # we start off $!i at -1, so add back 1 to it to get right count
-                # if $i is >= elems, that means we're done iterating. We can't
-                # *just* substract in that case, as we'd get `-1`
-                nqp::p6box_i(
-                  nqp::if(
-                    nqp::islt_i($!i, nqp::elems($!reified)),
-                    nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
-                    0))
-            }
-            method bool-only()  {
-                nqp::p6bool(
-                  nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
-            }
-            method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
-        }.new(list)
+                )),
+                nqp::islt_i($!i,nqp::elems($!reified))
+              )
+            )
+        }
+        method count-only() {
+            # we start off $!i at -1, so add back 1 to it to get right count
+            # if $i is >= elems, that means we're done iterating. We can't
+            # *just* substract in that case, as we'd get `-1`
+            nqp::p6box_i(
+              nqp::if(
+                nqp::islt_i($!i, nqp::elems($!reified)),
+                nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
+                0))
+        }
+        method bool-only()  {
+            nqp::p6bool(
+              nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
+        }
+        method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
+    }
+    method ReifiedList(\list) {
+        ReifiedListIterator.new(list)
     }
 
     # Return an iterator that produces values in reverse order for a

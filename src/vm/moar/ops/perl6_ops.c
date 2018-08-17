@@ -120,26 +120,6 @@ static void p6bool_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns 
 #endif
 }
 
-static MVMuint8 s_p6reprname[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg,
-};
-static void p6reprname(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *obj = GET_REG(tc, 2).o;
-    MVMROOT(tc, obj, {
-        MVMObject *name = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTStr);
-        MVMROOT(tc, name, {
-            MVMString *str  = MVM_string_utf8_decode(tc, tc->instance->VMString,
-                obj->st->REPR->name, strlen(obj->st->REPR->name));
-            MVM_repr_set_str(tc, name, str);
-            GET_REG(tc, 0).o = name;
-        });
-    });
-}
-static void p6reprname_discover(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins) {
-    discover_create(tc, g, ins, tc->instance->boot_types.BOOTStr);
-}
-
 static MVMuint8 s_p6capturelex[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg,
@@ -503,7 +483,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6bool",  p6bool, 2, s_p6bool, NULL, p6bool_discover, MVM_EXTOP_PURE);
-    MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);

@@ -790,17 +790,109 @@ my class Rakudo::Internals {
     method PRECOMP-TARGET() { "jar" }
 #?endif
 
+    my class tm is repr("CStruct") {
+        has int32 $.tm_sec;
+        has int32 $.tm_min;
+        has int32 $.tm_hour;
+        has int32 $.tm_mday;
+        has int32 $.tm_mon;
+        has int32 $.tm_year;
+        has int32 $.tm_wday;
+        has int32 $.tm_yday;
+        has int32 $.tm_isdst;
+    }
+    my class time_t is repr("CStruct") {
+        has int64 $.time;
+    }
+    my class Pointer is repr("CPointer") {};
+
+    my class native_callsite is repr('NativeCall') { }
+
+    my role Native {
+        has native_callsite $!call is box_target;
+    }
+
+    method localtime($utc) {
+        my sub localtime(int64 $time is rw) { }
+        &localtime does Native;
+
+        my $param_list := nqp::setelems(nqp::list, 1);
+
+        my Mu $time_param := nqp::hash();
+        nqp::bindkey($time_param, 'typeobj', time_t);
+        nqp::bindkey($time_param, 'type', nqp::unbox_s('cstruct'));
+        nqp::bindpos($param_list, 0, $time_param);
+
+        my Mu $return_spec := nqp::hash();
+        nqp::bindkey($return_spec, 'typeobj', tm);
+        nqp::bindkey($return_spec, 'type', nqp::unbox_s('cstruct'));
+
+        nqp::buildnativecall(
+            &localtime,
+            nqp::unbox_s(''),            # stdlib
+            nqp::unbox_s('localtime'), # symbol to call
+            nqp::unbox_s(''),            # calling convention
+            $param_list,
+            $return_spec
+        );
+
+        my $time = time_t.new(:time($utc));
+        my Mu $args := nqp::setelems(nqp::list, 1);
+        nqp::bindpos($args, 0, $time);
+        my $tm = nqp::nativecall(tm, &localtime, $args);
+
+        $tm
+    }
+    method localtime_r($utc) {
+        my sub localtime_r(int64 $time is rw, tm $tm) { }
+        &localtime_r does Native;
+
+        my $param_list := nqp::setelems(nqp::list, 2);
+
+        my Mu $time_param := nqp::hash();
+        nqp::bindkey($time_param, 'typeobj', time_t);
+        nqp::bindkey($time_param, 'type', nqp::unbox_s('cstruct'));
+        nqp::bindpos($param_list, 0, $time_param);
+
+        my Mu $tm_param := nqp::hash();
+        nqp::bindkey($tm_param, 'typeobj', tm);
+        nqp::bindkey($tm_param, 'type', nqp::unbox_s('cstruct'));
+        nqp::bindpos($param_list, 1, $tm_param);
+
+        my Mu $return_spec := nqp::hash();
+        nqp::bindkey($return_spec, 'type', nqp::unbox_s('void'));
+
+        nqp::buildnativecall(
+            &localtime_r,
+            nqp::unbox_s(''),            # stdlib
+            nqp::unbox_s('localtime_r'), # symbol to call
+            nqp::unbox_s(''),            # calling convention
+            $param_list,
+            $return_spec
+        );
+
+        my $tm = tm.new;
+        my $time = time_t.new(:time($utc));
+        my Mu $args := nqp::setelems(nqp::list, 2);
+        nqp::bindpos($args, 0, $time);
+        nqp::bindpos($args, 1, $tm);
+        nqp::nativecall(Any, &localtime_r, $args);
+
+        $tm
+    }
     method get-local-timezone-offset() {
         my $utc     = time;
-        my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
+        my $fia := Rakudo::Internals.IS-WIN
+            ?? Rakudo::Internals.localtime($utc)
+            !! Rakudo::Internals.localtime_r($utc);
 
         DateTime.new(
-          :year(nqp::atpos_i($fia,5)),
-          :month(nqp::atpos_i($fia,4)),
-          :day(nqp::atpos_i($fia,3)),
-          :hour(nqp::atpos_i($fia,2)),
-          :minute(nqp::atpos_i($fia,1)),
-          :second(nqp::atpos_i($fia,0)),
+          :year($fia.tm_year + 1900),
+          :month($fia.tm_mon + 1),
+          :day($fia.tm_mday),
+          :hour($fia.tm_hour),
+          :minute($fia.tm_min),
+          :second($fia.tm_sec),
         ).posix(True) - $utc;
     }
 

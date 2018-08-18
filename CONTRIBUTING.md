@@ -90,11 +90,11 @@ the subject should be easy to read at a glance what you did.
 A good commit is one where months from now you be able to read
 this commit and understand what you did and why you did it.
 
-Don't make a commit that only says `Fix RT #130979` because when the time to do
+Don't make a commit that only says `Fix #130979` because when the time to do
 the monthly changelog comes, someone will need to look up the ticket.
 And then usually wade through several replies on that ticket to figure out what
 the problem was and at the end I'm often unsure what the ACTUAL problem was
-that got fixed in the commit, not just the RT number.
+that got fixed in the commit, not just the issue number.
 
 If somebody is trying to find a recent commit that affected, say, `infix:<xx>`,
 would they be able to find it by searching through the subject and body for
@@ -106,14 +106,19 @@ The body should tell the reader:
 * Background info
 
 Don't end commit subjects with periods for ease of viewing a commit log by
-title. If there are multiple
-sentences in the subject, you can have a period, but do not have one at the end
-of the commit. Example: `Fix foo and bar. This is good because reasons`
+title. If there are multiple sentences in the subject, you can have a period,
+but do not have one at the end of the commit. Example: `Fix foo and bar. This
+is good because reasons`
 
 This makes them look better and easier to read in shortlog/oneline form.
 
 If you fixed a ticket, or the commit relates to a specific ticket, please
-mention the ticket in the title or the body as `RT #12345`.
+mention the ticket in the title or the body as `#12345`. Note that `RT #12345` 
+refers to the old tracker on [https://rt.perl.org/](https://rt.perl.org/) and
+not the GitHub tracker. For GitHub issues, refer to the issue as `#12345` and
+GitHub will automatically link to the corresponding issue. For extra clarity,
+you can refer to it as `GitHub #12345` to be extra clear that you are referring
+to the GitHub issue. 
 
 If there was an IRC conversation that can give some background or useful information,
 you can link to it by visiting [irclog.perlgeek.de](https://irclog.perlgeek.de/perl6/) and
@@ -127,7 +132,7 @@ for the body text.
 Capitalized, short (50 chars or less) summary
 
 More detailed explanatory text.  The commit relates to a ticket,
-please write it as RT #12345. Wrap at about 72 characters, but never above
+please write it as #12345. Wrap at about 72 characters, but never above
 76, unless it is a URL or code that cannot be separated.
 
 The blank line separating the summary from the body is critical;

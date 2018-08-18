@@ -41,10 +41,6 @@ static MVMCallsite     disp_callsite = { disp_flags, 4, 4, 4, 0 };
 /* Are we initialized yet? */
 static int initialized = 0;
 
-/* Types we need. */
-static MVMObject *Mu                  = NULL;
-static MVMObject *Any                 = NULL;
-
 /* Useful string constants. */
 static MVMString *str_dispatcher = NULL;
 static MVMString *str_vivify_for = NULL;
@@ -63,36 +59,19 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
     if (!initialized) {
         Rakudo_containers_setup(tc);
         initialized = 1;
-    }
-}
 
-/* Stashes away various type references. */
-#define get_type(tc, hash, name, varname) do { \
-    MVMString *key = MVM_string_utf8_decode((tc), (tc)->instance->VMString, (name), strlen((name))); \
-    (varname) = MVM_repr_at_key_o((tc), (hash), key); \
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&varname, name); \
-} while (0)
-static MVMuint8 s_p6settypes[] = {
-    MVM_operand_obj | MVM_operand_read_reg
-};
-static void p6settypes(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *conf = GET_REG(tc, 0).o;
-    MVMROOT(tc, conf, {
-        get_type(tc, conf, "Mu", Mu);
-        get_type(tc, conf, "Any", Any);
-    });
-    
-    /* Strings. */
-    str_dispatcher = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "$*DISPATCHER");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
-    str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_vivify_for, "vivify_for");
-    str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "perl6");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_perl6, "perl6");
-    str_p6ex = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "P6EX");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
-    str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
-    MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xnodisp, "X::NoDispatcher");
+        /* Strings. */
+        str_dispatcher = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "$*DISPATCHER");
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
+        str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_vivify_for, "vivify_for");
+        str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "perl6");
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_perl6, "perl6");
+        str_p6ex = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "P6EX");
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
+        str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xnodisp, "X::NoDispatcher");
+    }
 }
 
 /* Boxing to Perl 6 types. */
@@ -483,7 +462,6 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6settypes",  p6settypes, 1, s_p6settypes, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6reprname",  p6reprname, 2, s_p6reprname, NULL, p6reprname_discover, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6capturelex",  p6capturelex, 2, s_p6capturelex, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6capturelexwhere",  p6capturelexwhere, 2, s_p6capturelexwhere, NULL, NULL, 0);

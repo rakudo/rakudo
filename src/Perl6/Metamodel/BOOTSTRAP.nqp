@@ -3494,9 +3494,6 @@ BEGIN {
 EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
 EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
 
-# Set up various type mappings.
-nqp::p6settypes(EXPORT::DEFAULT.WHO);
-
 # HLL configuration: interop, boxing and exit handling.
 nqp::sethllconfig('perl6', nqp::hash(
     'int_box', Int,

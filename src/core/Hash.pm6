@@ -610,45 +610,46 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
-        method keys() {
-            Seq.new(class :: does Rakudo::Iterator::Mappy {
-                method pull-one() {
-                    nqp::if(
-                      $!iter,
-                      nqp::getattr(nqp::iterval(nqp::shift($!iter)),
-                        Pair,'$!key'),
-                      IterationEnd
-                    )
-                 }
-            }.new(self))
+        my class Keys does Rakudo::Iterator::Mappy {
+            method pull-one() {
+                nqp::if(
+                  $!iter,
+                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),
+                    Pair,'$!key'),
+                  IterationEnd
+                )
+             }
         }
-        method values() {
-            Seq.new(class :: does Rakudo::Iterator::Mappy {
-                method pull-one() {
-                    nqp::if(
-                      $!iter,
-                      nqp::getattr(nqp::iterval(nqp::shift($!iter)),
-                        Pair,'$!value'),
-                      IterationEnd
-                    )
-                 }
-            }.new(self))
+        method keys() { Seq.new(Keys.new(self)) }
+
+        my class Values does Rakudo::Iterator::Mappy {
+            method pull-one() {
+                nqp::if(
+                  $!iter,
+                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),
+                    Pair,'$!value'),
+                  IterationEnd
+                )
+             }
         }
+        method values() { Seq.new(Values.new(self)) }
+
         method kv() {
             Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs(self))
         }
         method iterator() { Rakudo::Iterator.Mappy-values(self) }
-        method antipairs() {
-            Seq.new(class :: does Rakudo::Iterator::Mappy {
-                method pull-one() {
-                    nqp::if(
-                      $!iter,
-                      nqp::iterval(nqp::shift($!iter)).antipair,
-                      IterationEnd
-                    )
-                 }
-            }.new(self))
+
+        my class AntiPairs does Rakudo::Iterator::Mappy {
+            method pull-one() {
+                nqp::if(
+                  $!iter,
+                  nqp::iterval(nqp::shift($!iter)).antipair,
+                  IterationEnd
+                )
+             }
         }
+        method antipairs() { Seq.new(AntiPairs.new(self)) }
+
         multi method roll(::?CLASS:D:) {
             my \storage := nqp::getattr(self, Map, '$!storage');
             nqp::if(
@@ -670,49 +671,52 @@ my class Hash { # declared in BOOTSTRAP
             self.roll( $calculate(self.elems) )
         }
         multi method roll(::?CLASS:D: Whatever $) { self.roll(Inf) }
+
+        my class RollN does Iterator {
+            has $!storage;
+            has $!keys;
+            has $!count;
+
+            method !SET-SELF(\hash,\count) {
+                nqp::stmts(
+                  ($!storage := nqp::getattr(hash,Map,'$!storage')),
+                  ($!count = count),
+                  (my $iter := nqp::iterator($!storage)),
+                  ($!keys := nqp::list_s),
+                  nqp::while(
+                    $iter,
+                    nqp::push_s($!keys,nqp::iterkey_s(nqp::shift($iter)))
+                  ),
+                  self
+                )
+            }
+            method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+            method pull-one() {
+                nqp::if(
+                  $!count,
+                  nqp::stmts(
+                    --$!count,  # must be HLL to handle Inf
+                    nqp::atkey(
+                      $!storage,
+                      nqp::atpos_s(
+                        $!keys,
+                        nqp::floor_n(nqp::rand_n(nqp::elems($!keys)))
+                      )
+                    )
+                  ),
+                  IterationEnd
+                )
+            }
+            method is-lazy() { $!count == Inf }
+        }
         multi method roll(::?CLASS:D: $count) {
             Seq.new(nqp::if(
               $count > 0 && nqp::elems(nqp::getattr(self,Map,'$!storage')),
-              class :: does Iterator {
-                  has $!storage;
-                  has $!keys;
-                  has $!count;
-
-                  method !SET-SELF(\hash,\count) {
-                      nqp::stmts(
-                        ($!storage := nqp::getattr(hash,Map,'$!storage')),
-                        ($!count = $count),
-                        (my $iter := nqp::iterator($!storage)),
-                        ($!keys := nqp::list_s),
-                        nqp::while(
-                          $iter,
-                          nqp::push_s($!keys,nqp::iterkey_s(nqp::shift($iter)))
-                        ),
-                        self
-                      )
-                  }
-                  method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
-                  method pull-one() {
-                      nqp::if(
-                        $!count,
-                        nqp::stmts(
-                          --$!count,  # must be HLL to handle Inf
-                          nqp::atkey(
-                            $!storage,
-                            nqp::atpos_s(
-                              $!keys,
-                              nqp::floor_n(nqp::rand_n(nqp::elems($!keys)))
-                            )
-                          )
-                        ),
-                        IterationEnd
-                      )
-                  }
-                  method is-lazy() { $!count == Inf }
-              }.new(self,$count),
+              RollN.new(self,$count),
               Rakudo::Iterator.Empty
             ))
         }
+
         multi method perl(::?CLASS:D \SELF:) {
             SELF.perlseen('Hash', {
                 my $TKey-perl   := TKey.perl;

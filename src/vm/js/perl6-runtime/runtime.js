@@ -160,16 +160,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return codeObj;
   };
 
-  op.p6var = function(cont) {
-    if (cont.$$iscont && cont.$$iscont()) {
-      const wrapper = Scalar._STable.REPR.allocate(Scalar._STable);
-      wrapper.$$bindattr(Scalar, '$!value', cont);
-      return wrapper;
-    } else {
-      return cont;
-    }
-  }
-
   op.p6bindassert = function(ctx, value, type) {
     if (type !== Mu) {
       if (value.$$decont(ctx).$$istype(ctx, type) == 0) {

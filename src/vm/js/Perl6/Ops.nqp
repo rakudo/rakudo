@@ -107,8 +107,6 @@ $ops.add_simple_op('p6capturelexwhere', $ops.OBJ, [$ops.OBJ], :side_effects, sub
 $ops.add_simple_op('p6bindassert', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx, :side_effects);
 $ops.add_simple_op('p6store', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :ctx, :side_effects);
 
-$ops.add_simple_op('p6var', $ops.OBJ, [$ops.OBJ], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
-
 $ops.add_simple_op('p6argvmarray', $ops.OBJ, [], :side_effects, sub () {
     "nqp.op.p6argvmarray($*CTX, Array.prototype.slice.call(arguments))"
 });

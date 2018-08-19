@@ -13,44 +13,43 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         $uni
     }
 
-    method list(Uni:D:) {
-        Seq.new: class :: does Iterator {
-            has $!uni;
-            has int $!els;
-            has int $!i;
-            method !SET-SELF(\uni) {
-                $!uni := uni;
-                $!i    = -1;
-                $!els  = nqp::elems(uni);
-                self
-            }
-            method new (\uni) { nqp::create(self)!SET-SELF: uni }
-            method pull-one {
-                nqp::if(
-                  nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els),
-                  nqp::atpos_i($!uni, $!i),
-                  IterationEnd)
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::stmts(
-                  (my     $uni := $!uni), # lexicals faster than attrs
-                  (my int $els  = $!els),
-                  (my int $i    = $!i),
-                  nqp::while(
-                    nqp::islt_i(($i = nqp::add_i($i, 1)), $els),
-                    $target.push: nqp::atpos_i($uni, $i)),
-                  ($!i = $i))
-            }
-            method count-only {
-                nqp::p6box_i(
-                  nqp::if(
-                    nqp::islt_i($!i, nqp::elems($!uni)),
-                    nqp::sub_i(nqp::elems($!uni), nqp::add_i($!i, 1)),
-                    0))
-            }
-            method bool-only { nqp::p6bool(self.count-only) }
-        }.new: self
+    my class UniList does Iterator {
+        has $!uni;
+        has int $!els;
+        has int $!i;
+        method !SET-SELF(\uni) {
+            $!uni := uni;
+            $!i    = -1;
+            $!els  = nqp::elems(uni);
+            self
+        }
+        method new (\uni) { nqp::create(self)!SET-SELF: uni }
+        method pull-one {
+            nqp::if(
+              nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els),
+              nqp::atpos_i($!uni, $!i),
+              IterationEnd)
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my     $uni := $!uni), # lexicals faster than attrs
+              (my int $els  = $!els),
+              (my int $i    = $!i),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i, 1)), $els),
+                $target.push: nqp::atpos_i($uni, $i)),
+              ($!i = $i))
+        }
+        method count-only {
+            nqp::p6box_i(
+              nqp::if(
+                nqp::islt_i($!i, nqp::elems($!uni)),
+                nqp::sub_i(nqp::elems($!uni), nqp::add_i($!i, 1)),
+                0))
+        }
+        method bool-only { nqp::p6bool(self.count-only) }
     }
+    method list(Uni:D:) { Seq.new(UniList.new(self)) }
 
     method Uni(Uni:D:) {
         self

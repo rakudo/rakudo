@@ -1116,12 +1116,28 @@ class Perl6::Optimizer {
             if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
 
             if nqp::istype($theop, QAST::Op)
-            && nqp::existskey(%range_bounds, $theop.name)
-            && $!symbols.is_from_core($theop.name)
-            && $op[1].has_ann('code_object') {
+              && nqp::existskey(%range_bounds, $theop.name)
+              && $!symbols.is_from_core($theop.name)
+              && $op[1].has_ann('code_object') {
                 self.optimize_for_range($op, $op[1], $theop);
                 self.visit_op_children($op);
                 return $op;
+            }
+            elsif nqp::istype($theop, QAST::Op)
+              && $theop.op eq 'call'
+              && $theop.name eq '&infix:<+>'
+              && $!symbols.is_from_core($theop.name)
+              && $op[1].has_ann('code_object') {
+                my $forop := $theop[0];
+                if nqp::istype($forop, QAST::Stmts) { $forop := $forop[0] }
+                if nqp::istype($forop, QAST::Op)
+                  && !nqp::istype($theop[1], QAST::Op)
+                  && nqp::existskey(%range_bounds, $forop.name)
+                  && $!symbols.is_from_core($forop.name) {
+                    self.optimize_for_range($op, $op[1], $forop, $theop[1]);
+                    self.visit_op_children($op);
+                    return $op;
+                }
             }
         }
 
@@ -2236,7 +2252,7 @@ class Perl6::Optimizer {
         return $op;
     }
 
-    method optimize_for_range($op, $callee, $c2) {
+    method optimize_for_range($op, $callee, $c2, $offsetop?) {
         my $code    := $callee.ann('code_object');
         my $count   := $code.count;
         my $block   := $!symbols.Block;
@@ -2244,6 +2260,11 @@ class Perl6::Optimizer {
           ?? nqp::getattr($code, $block, '$!phasers')
           !! nqp::null();
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
+            if $offsetop && @bounds {
+                my @olb := get_bound($offsetop, @bounds[0].value);
+                my @oub := get_bound($offsetop, @bounds[1].value);
+                @bounds := [@olb[0], @oub[0]] if @olb && @oub;
+            }
             my $it_var     := QAST::Node.unique('range_it_');
             my $max_var    := QAST::Node.unique('range_max_');
             my $callee_var := QAST::Node.unique('range_callee_');

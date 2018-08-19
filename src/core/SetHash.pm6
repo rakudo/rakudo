@@ -21,24 +21,24 @@ my class SetHash does Setty {
     multi method grab(SetHash:D: Whatever) {
         self.grab(Inf)
     }
-    multi method grab(SetHash:D: $count) {
-        Seq.new(class :: does Rakudo::QuantHash::Pairs {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::elems($!picked),
-                  nqp::stmts(
-                    (my $object := nqp::atkey(
-                      $!elems,
-                      (my $key := nqp::pop_s($!picked))
-                    )),
-                    nqp::deletekey($!elems,$key),
-                    $object
-                  ),
-                  IterationEnd
-                )
-            }
-        }.new($!elems, $count))
+
+    my class Grab does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!picked),
+              nqp::stmts(
+                (my \object := nqp::atkey(
+                  $!elems,
+                  (my \key := nqp::pop_s($!picked))
+                )),
+                nqp::deletekey($!elems,key),
+                object
+              ),
+              IterationEnd
+            )
+        }
     }
+    multi method grab(SetHash:D: $count) { Seq.new(Grab.new($!elems,$count)) }
 
     multi method grabpairs(SetHash:D:) {
         Pair.new(self.grab,True)
@@ -49,23 +49,25 @@ my class SetHash does Setty {
     multi method grabpairs(SetHash:D: Whatever) {
         self.grabpairs(Inf)
     }
+
+    my class GrabPairs does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!picked),
+              nqp::stmts(
+                (my \object := nqp::atkey(
+                  $!elems,
+                  (my \key := nqp::pop_s($!picked))
+                )),
+                nqp::deletekey($!elems,key),
+                Pair.new(object,True)
+              ),
+              IterationEnd
+            )
+        }
+    }
     multi method grabpairs(SetHash:D: $count) {
-        Seq.new(class :: does Rakudo::QuantHash::Pairs {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::elems($!picked),
-                  nqp::stmts(
-                    (my $object := nqp::atkey(
-                      $!elems,
-                      (my $key := nqp::pop_s($!picked))
-                    )),
-                    nqp::deletekey($!elems,$key),
-                    Pair.new($object,True)
-                  ),
-                  IterationEnd
-                )
-            }
-        }.new($!elems, $count))
+        Seq.new(GrabPairs.new($!elems,$count))
     }
 
 #--- iterator methods
@@ -101,62 +103,60 @@ my class SetHash does Setty {
         )
     }
 
-    method iterator(SetHash:D:) {
-        class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
+    my class Iterate does Rakudo::Iterator::Mappy {
+        method pull-one() {
+          nqp::if(
+            $!iter,
+            Pair.new(
+              nqp::iterval(nqp::shift($!iter)),
+              proxy($!iter,$!hash)
+            ),
+            IterationEnd
+          )
+        }
+    }
+    method iterator(SetHash:D:) { Iterate.new($!elems) }
+
+    my class KV does Rakudo::QuantHash::Quanty-kv {
+        method pull-one() is raw {
+            nqp::if(
+              $!on,
+              nqp::stmts(
+                ($!on = 0),
+                proxy($!iter,$!elems)
+              ),
               nqp::if(
                 $!iter,
-                Pair.new(
-                  nqp::iterval(nqp::shift($!iter)),
-                  proxy($!iter,$!hash)
+                nqp::stmts(
+                  ($!on = 1),
+                  nqp::iterval(nqp::shift($!iter))
                 ),
                 IterationEnd
               )
-            }
-        }.new($!elems)
-    }
-
-    multi method kv(SetHash:D:) {
-        Seq.new(class :: does Rakudo::QuantHash::Quanty-kv {
-            method pull-one() is raw {
-                nqp::if(
-                  $!on,
-                  nqp::stmts(
-                    ($!on = 0),
-                    proxy($!iter,$!elems)
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($!on = 1),
-                      nqp::iterval(nqp::shift($!iter))
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    $target.push(nqp::iterval(nqp::shift($!iter))),
-                    $target.push(True)
-                  )
-                )
-            }
-        }.new(self))
-    }
-    multi method values(SetHash:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() is rw {
-              nqp::if(
-                $!iter,
-                proxy(nqp::shift($!iter),$!hash),
-                IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                $target.push(nqp::iterval(nqp::shift($!iter))),
+                $target.push(True)
               )
-            }
-        }.new($!elems))
+            )
+        }
     }
+    multi method kv(SetHash:D:) { Seq.new(KV.new(self)) }
+
+    my class Values does Rakudo::Iterator::Mappy {
+        method pull-one() is rw {
+          nqp::if(
+            $!iter,
+            proxy(nqp::shift($!iter),$!hash),
+            IterationEnd
+          )
+        }
+    }
+    multi method values(SetHash:D:) { Seq.new(Values.new($!elems)) }
 
 #--- coercion methods
     multi method Set(SetHash:D: :$view) {
@@ -185,11 +185,11 @@ my class SetHash does Setty {
 #--- interface methods
     method STORE(*@pairs --> SetHash:D) {
         nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
+          (my \iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
           self.SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet), $iterator
+              nqp::create(Rakudo::Internals::IterationSet), iterator
             )
           )
         )

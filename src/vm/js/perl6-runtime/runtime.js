@@ -2,7 +2,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   const Null = nqp.Null;
   let op = {};
 
-  let Scalar, True, False, Str, Code, Mu, Any, ContainerDescriptor, Routine;
+  let Scalar, True, False, Str, Code, Mu, Signature;
 
   op.p6settypes = function(types) {
     Scalar = types.content.get('Scalar');
@@ -11,10 +11,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     Str = types.content.get('Str');
     Code = types.content.get('Code');
     Mu = types.content.get('Mu');
-    Any = types.content.get('Any');
-    Nil = types.content.get('Nil');
-    Routine = types.content.get('Routine');
-    ContainerDescriptor = types.content.get('ContainerDescriptor');
     Signature = types.content.get('Signature');
 
     return types;

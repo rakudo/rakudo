@@ -338,147 +338,154 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method comb(|) {*}
-    multi method comb(Str:D:) {
-        Seq.new(class :: does Iterator {
-            has str $!str;
-            has int $!chars;
-            has int $!pos;
-            method !SET-SELF(\string) {
-                nqp::stmts(
-                  ($!str   = nqp::unbox_s(string)),
-                  ($!chars = nqp::chars($!str)),
-                  ($!pos = -1),
-                  self
-                )
-            }
-            method new(\string) { nqp::create(self)!SET-SELF(string) }
-            method pull-one() {
-                nqp::if(
-                  nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
-                  nqp::p6box_s(nqp::substr($!str,$!pos,1)),
-                  IterationEnd
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::stmts(
-                  (my str $str = $!str),      # locals are faster
-                  (my int $pos = $!pos),
-                  (my int $chars = $!chars),
-                  nqp::while(
-                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
-                    $target.push(nqp::substr($str,$pos,1))
-                  ),
-                  ($!pos = $pos)
-                )
-            }
-            method count-only() { nqp::p6box_i($!chars) }
-            method bool-only(--> True) { }
-        }.new(self));
+
+    my class CombAll does Iterator {
+        has str $!str;
+        has int $!chars;
+        has int $!pos;
+        method !SET-SELF(\string) {
+            nqp::stmts(
+              ($!str   = nqp::unbox_s(string)),
+              ($!chars = nqp::chars($!str)),
+              ($!pos = -1),
+              self
+            )
+        }
+        method new(\string) { nqp::create(self)!SET-SELF(string) }
+        method pull-one() {
+            nqp::if(
+              nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
+              nqp::p6box_s(nqp::substr($!str,$!pos,1)),
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my str $str = $!str),      # locals are faster
+              (my int $pos = $!pos),
+              (my int $chars = $!chars),
+              nqp::while(
+                nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
+                $target.push(nqp::substr($str,$pos,1))
+              ),
+              ($!pos = $pos)
+            )
+        }
+        method count-only() { nqp::p6box_i($!chars) }
+        method bool-only(--> True) { }
+    }
+    multi method comb(Str:D:) { Seq.new(CombAll.new(self)) }
+
+    my class CombN does Iterator {
+        has str $!str;
+        has int $!chars;
+        has int $!size;
+        has int $!pos;
+        has int $!max;
+        has int $!todo;
+        method !SET-SELF(\string,\size,\limit,\inf) {
+            nqp::stmts(
+              ($!str   = nqp::unbox_s(string)),
+              ($!chars = nqp::chars($!str)),
+              ($!size  = 1 max size),
+              ($!pos   = -size),
+              ($!max   = 1 + floor( ( $!chars - 1 ) / $!size )),
+              ($!todo  = (inf ?? $!max !! (0 max limit)) + 1),
+              self
+            )
+        }
+        method new(\string,\size,\limit,\inf) {
+            nqp::if(
+              string,
+              nqp::create(self)!SET-SELF(string,size,limit,inf),
+              Rakudo::Iterator.Empty
+            )
+        }
+        method pull-one() {
+            ($!todo = $!todo - 1) && ($!pos = $!pos + $!size) < $!chars
+              ?? nqp::p6box_s(nqp::substr($!str, $!pos, $!size))
+              !! IterationEnd
+        }
+        method push-all($target --> IterationEnd) {
+            my int $todo  = $!todo;
+            my int $pos   = $!pos;
+            my int $size  = $!size;
+            my int $chars = $!chars;
+            $target.push(nqp::p6box_s(nqp::substr($!str, $pos, $size)))
+              while ($todo = $todo - 1 ) && ($pos = $pos + $size) < $chars;
+            $!pos = $!chars;
+        }
+        method count-only() { $!max }
+        method bool-only(--> True) { }
     }
     multi method comb(Str:D: Int:D $size is copy, $limit = *) {
         my int $inf = nqp::istype($limit,Whatever) || $limit == Inf;
-        return self.comb if $size <= 1 && $inf;
-        $size = 1 if $size < 1;
+        $size <= 1 && $inf
+          ?? self.comb
+          !! Seq.new(CombN.new(self,$size < 1 ?? 1 !! $size,$limit,$inf))
+    }
 
-        Seq.new(class :: does Iterator {
-            has str $!str;
-            has int $!chars;
-            has int $!size;
-            has int $!pos;
-            has int $!max;
-            has int $!todo;
-            method !SET-SELF(\string,\size,\limit,\inf) {
-                nqp::stmts(
-                  ($!str   = nqp::unbox_s(string)),
-                  ($!chars = nqp::chars($!str)),
-                  ($!size  = 1 max size),
-                  ($!pos   = -size),
-                  ($!max   = 1 + floor( ( $!chars - 1 ) / $!size )),
-                  ($!todo  = (inf ?? $!max !! (0 max limit)) + 1),
-                  self
-                )
+    my class CombPat does Iterator {
+        has str $!str;
+        has str $!pat;
+        has int $!pos;
+        method !SET-SELF(\string, \pat) {
+            $!str = nqp::unbox_s(string);
+            $!pat = nqp::unbox_s(pat);
+            self
+        }
+        method new(\string, \pat) { nqp::create(self)!SET-SELF(string,pat) }
+        method pull-one() {
+            my int $found = nqp::index($!str, $!pat, $!pos);
+            if $found < 0 {
+                IterationEnd
             }
-            method new(\string,\size,\limit,\inf) {
-                nqp::if(
-                  string,
-                  nqp::create(self)!SET-SELF(string,size,limit,inf),
-                  Rakudo::Iterator.Empty
-                )
+            else {
+                $!pos = $found + 1;
+                nqp::p6box_s($!pat)
             }
-            method pull-one() {
-                ($!todo = $!todo - 1) && ($!pos = $!pos + $!size) < $!chars
-                  ?? nqp::p6box_s(nqp::substr($!str, $!pos, $!size))
-                  !! IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                my int $todo  = $!todo;
-                my int $pos   = $!pos;
-                my int $size  = $!size;
-                my int $chars = $!chars;
-                $target.push(nqp::p6box_s(nqp::substr($!str, $pos, $size)))
-                  while ($todo = $todo - 1 ) && ($pos = $pos + $size) < $chars;
-                $!pos = $!chars;
-            }
-            method count-only() { $!max }
-            method bool-only(--> True) { }
-        }.new(self,$size,$limit,$inf))
+        }
     }
     multi method comb(Str:D: Str $pat) {
-        return self.comb(1) unless $pat;
-        Seq.new(class :: does Iterator {
-            has str $!str;
-            has str $!pat;
-            has int $!pos;
-            method !SET-SELF(\string, \pat) {
-                $!str = nqp::unbox_s(string);
-                $!pat = nqp::unbox_s(pat);
-                self
+        $pat
+          ?? Seq.new(CombPat.new(self,$pat))
+          !! self.comb
+    }
+
+    my class CombPatLimit does Iterator {
+        has str $!str;
+        has str $!pat;
+        has int $!pos;
+        has int $!todo;
+        method !SET-SELF(\string, \pat, \limit) {
+            $!str  = nqp::unbox_s(string);
+            $!pat  = nqp::unbox_s(pat);
+            $!todo = nqp::unbox_i(limit.Int);
+            self
+        }
+        method new(\string, \pat, \limit) {
+            nqp::create(self)!SET-SELF(string, pat, limit)
+        }
+        method pull-one() {
+            my int $found = nqp::index($!str, $!pat, $!pos);
+            if $found < 0 || $!todo == 0 {
+                IterationEnd
             }
-            method new(\string, \pat) { nqp::create(self)!SET-SELF(string,pat) }
-            method pull-one() {
-                my int $found = nqp::index($!str, $!pat, $!pos);
-                if $found < 0 {
-                    IterationEnd
-                }
-                else {
-                    $!pos = $found + 1;
-                    nqp::p6box_s($!pat)
-                }
+            else {
+                $!pos  = $found + 1;
+                $!todo = $!todo - 1;
+                nqp::p6box_s($!pat)
             }
-        }.new(self, $pat));
+        }
     }
     multi method comb(Str:D: Str $pat, $limit) {
-        return self.comb($pat)
-          if nqp::istype($limit,Whatever) || $limit == Inf;
-        return self.comb(1, $limit) unless $pat;
-
-        Seq.new(class :: does Iterator {
-            has str $!str;
-            has str $!pat;
-            has int $!pos;
-            has int $!todo;
-            method !SET-SELF(\string, \pat, \limit) {
-                $!str  = nqp::unbox_s(string);
-                $!pat  = nqp::unbox_s(pat);
-                $!todo = nqp::unbox_i(limit.Int);
-                self
-            }
-            method new(\string, \pat, \limit) {
-                nqp::create(self)!SET-SELF(string, pat, limit)
-            }
-            method pull-one() {
-                my int $found = nqp::index($!str, $!pat, $!pos);
-                if $found < 0 || $!todo == 0 {
-                    IterationEnd
-                }
-                else {
-                    $!pos  = $found + 1;
-                    $!todo = $!todo - 1;
-                    nqp::p6box_s($!pat)
-                }
-            }
-        }.new(self, $pat, $limit));
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? self.comb($pat)
+          !! $pat
+            ?? Seq.new(CombPatLimit.new(self,$pat,$limit))
+            !! self.comb(1,$limit)
     }
+
     multi method comb(Str:D: Regex:D $pattern, :$match) {
         Seq.new(nqp::if(
           $match,
@@ -1288,42 +1295,42 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? self.lines
           !! self.lines.head($limit)
     }
-    multi method lines(Str:D:) {
-        Seq.new(class :: does Iterator {
-            has str $!str;
-            has int $!chars;
-            has int $!pos;
-            method !SET-SELF(\string) {
-                $!str   = nqp::unbox_s(string);
-                $!chars = nqp::chars($!str);
-                $!pos   = 0;
-                self
-            }
-            method new(\string) { nqp::create(self)!SET-SELF(string) }
-            method pull-one() {
-                my int $left;
-                return IterationEnd if ($left = $!chars - $!pos) <= 0;
 
-                my int $nextpos = nqp::findcclass(
+    my class Lines does Iterator {
+        has str $!str;
+        has int $!chars;
+        has int $!pos;
+        method !SET-SELF(\string) {
+            $!str   = nqp::unbox_s(string);
+            $!chars = nqp::chars($!str);
+            $!pos   = 0;
+            self
+        }
+        method new(\string) { nqp::create(self)!SET-SELF(string) }
+        method pull-one() {
+            my int $left;
+            return IterationEnd if ($left = $!chars - $!pos) <= 0;
+
+            my int $nextpos = nqp::findcclass(
+              nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
+            my str $found = nqp::substr($!str, $!pos, $nextpos - $!pos);
+            $!pos = $nextpos + 1;
+            $found;
+        }
+        method push-all($target --> IterationEnd) {
+            my int $left;
+            my int $nextpos;
+
+            while ($left = $!chars - $!pos) > 0 {
+                $nextpos = nqp::findcclass(
                   nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-                my str $found = nqp::substr($!str, $!pos, $nextpos - $!pos);
+
+                $target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
                 $!pos = $nextpos + 1;
-                $found;
             }
-            method push-all($target --> IterationEnd) {
-                my int $left;
-                my int $nextpos;
-
-                while ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-
-                    $target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
-                    $!pos = $nextpos + 1;
-                }
-            }
-        }.new(self));
+        }
     }
+    multi method lines(Str:D:) { Seq.new(Lines.new(self)) }
 
     method !ensure-split-sanity(\v,\k,\kv,\p) {
         # cannot combine these
@@ -1534,6 +1541,129 @@ my class Str does Stringy { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.ReifiedList($matches))
     }
 
+    my class SplitStrLimit does Iterator {
+        has str $!string;
+        has int $!chars;
+        has str $!match;
+        has int $!match-chars;
+        has int $!todo;
+        has int $!pos;
+        method !SET-SELF(\string, \match, \todo) {
+            $!string      = nqp::unbox_s(string);
+            $!chars       = nqp::chars($!string);
+            $!match       = nqp::unbox_s(match);
+            $!match-chars = nqp::chars($!match);
+            $!todo        = todo - 1;
+            self
+        }
+        method new(\string,\match,\todo) {
+            nqp::create(self)!SET-SELF(string,match,todo)
+        }
+        method !last-part() is raw {
+            my str $string = nqp::substr($!string,$!pos);
+            $!pos  = $!chars + 1;
+            $!todo = 0;
+            nqp::p6box_s($string)
+        }
+        method !next-part(int $found) is raw {
+            my str $string =
+              nqp::substr($!string,$!pos, $found - $!pos);
+            $!pos = $found + $!match-chars;
+            nqp::p6box_s($string);
+        }
+        method pull-one() is raw {
+            if $!todo {
+                $!todo = $!todo - 1;
+                my int $found = nqp::index($!string,$!match,$!pos);
+                nqp::islt_i($found,0)
+                  ?? nqp::isle_i($!pos,$!chars)
+                    ?? self!last-part
+                    !! IterationEnd
+                  !! self!next-part($found);
+            }
+            else {
+                nqp::isle_i($!pos,$!chars)
+                  ?? self!last-part
+                  !! IterationEnd
+            }
+        }
+        method push-all($target --> IterationEnd) {
+            while $!todo {
+                $!todo = $!todo - 1;
+                my int $found = nqp::index($!string,$!match,$!pos);
+                nqp::islt_i($found,0)
+                  ?? ($!todo = 0)
+                  !! $target.push(self!next-part($found));
+            }
+            $target.push(self!last-part) if nqp::isle_i($!pos,$!chars);
+        }
+        method sink-all(--> IterationEnd) { }
+    }
+    my class SplitEmptyLimit does Iterator {
+        has str $!string;
+        has int $!todo;
+        has int $!chars;
+        has int $!pos;
+        has int $!first;
+        has int $!last;
+        method !SET-SELF(\string, \todo, \skip-empty) {
+            $!string = nqp::unbox_s(string);
+            $!chars  = nqp::chars($!string);
+            $!todo   = todo;
+            $!first  = !skip-empty;
+
+            if $!todo > $!chars + 2 {  # will return all chars
+                $!todo = $!chars + 1;
+                $!last = !skip-empty;
+            }
+            else {
+                $!todo = $!todo - 1;
+                $!last = !skip-empty && ($!todo == $!chars + 1);
+            }
+            self
+        }
+        method new(\string,\todo,\skip-empty) {
+            nqp::create(self)!SET-SELF(string,todo,skip-empty)
+        }
+        method pull-one() is raw {
+            if $!first {             # do empty string first
+                $!first = 0;
+                $!todo  = $!todo - 1;
+                ""
+            }
+            elsif $!todo {           # next char
+                $!todo = $!todo - 1;
+                nqp::p6box_s(nqp::substr($!string,$!pos++,1))
+            }
+            elsif $!last {           # do final empty string
+                $!last = 0;
+                ""
+            }
+            elsif nqp::islt_i($!pos,$!chars) {  # do rest of string
+                my str $rest = nqp::substr($!string,$!pos);
+                $!pos = $!chars;
+                nqp::p6box_s($rest)
+            }
+            else {
+                IterationEnd
+            }
+        }
+        method push-all($target --> IterationEnd) {
+            $target.push("") if $!first;
+            $!todo = $!todo - 1;
+            while $!todo {
+                $target.push(
+                  nqp::p6box_s(nqp::substr($!string,$!pos++,1)));
+                $!todo = $!todo - 1;
+            }
+            $target.push( nqp::p6box_s(nqp::substr($!string,$!pos)))
+              if nqp::islt_i($!pos,$!chars);
+            $target.push("") if $!last;
+        }
+        method count-only() { nqp::p6box_i($!todo + $!first + $!last) }
+        method bool-only() { nqp::p6bool($!todo + $!first + $!last) }
+        method sink-all(--> IterationEnd) { }
+    }
     multi method split(Str:D: Str(Cool) $match, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
@@ -1544,154 +1674,31 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # nothing to work with
         my int $chars = $match.chars;
         if !self.chars {
-            return $chars ?? self.list !! ();
+            $chars ?? self.list !! ();
         }
 
         # nothing to do
         elsif $limit == 1 {
-            return self.list;
+            self.list;
         }
 
         # want them all
         elsif $limit == Inf {
-            return self.split($match,:$v,:$k,:$kv,:$p,:$skip-empty);
+            self.split($match,:$v,:$k,:$kv,:$p,:$skip-empty);
         }
 
         # we have something to split on
         elsif $chars {
-
-            # let the multi-needle handler handle all nameds
-            return self.split(($match,),$limit,:$v,:$k,:$kv,:$p,:$skip-empty)
-              if $any || $skip-empty;
-
-            # make the sequence
-            Seq.new(class :: does Iterator {
-                has str $!string;
-                has int $!chars;
-                has str $!match;
-                has int $!match-chars;
-                has int $!todo;
-                has int $!pos;
-                method !SET-SELF(\string, \match, \todo) {
-                    $!string      = nqp::unbox_s(string);
-                    $!chars       = nqp::chars($!string);
-                    $!match       = nqp::unbox_s(match);
-                    $!match-chars = nqp::chars($!match);
-                    $!todo        = todo - 1;
-                    self
-                }
-                method new(\string,\match,\todo) {
-                    nqp::create(self)!SET-SELF(string,match,todo)
-                }
-                method !last-part() is raw {
-                    my str $string = nqp::substr($!string,$!pos);
-                    $!pos  = $!chars + 1;
-                    $!todo = 0;
-                    nqp::p6box_s($string)
-                }
-                method !next-part(int $found) is raw {
-                    my str $string =
-                      nqp::substr($!string,$!pos, $found - $!pos);
-                    $!pos = $found + $!match-chars;
-                    nqp::p6box_s($string);
-                }
-                method pull-one() is raw {
-                    if $!todo {
-                        $!todo = $!todo - 1;
-                        my int $found = nqp::index($!string,$!match,$!pos);
-                        nqp::islt_i($found,0)
-                          ?? nqp::isle_i($!pos,$!chars)
-                            ?? self!last-part
-                            !! IterationEnd
-                          !! self!next-part($found);
-                    }
-                    else {
-                        nqp::isle_i($!pos,$!chars)
-                          ?? self!last-part
-                          !! IterationEnd
-                    }
-                }
-                method push-all($target --> IterationEnd) {
-                    while $!todo {
-                        $!todo = $!todo - 1;
-                        my int $found = nqp::index($!string,$!match,$!pos);
-                        nqp::islt_i($found,0)
-                          ?? ($!todo = 0)
-                          !! $target.push(self!next-part($found));
-                    }
-                    $target.push(self!last-part) if nqp::isle_i($!pos,$!chars);
-                }
-                method sink-all(--> IterationEnd) { }
-            }.new(self,$match,$limit));
+            $any || $skip-empty
+              # let the multi-needle handler handle all nameds
+              ?? self.split(($match,),$limit,:$v,:$k,:$kv,:$p,:$skip-empty)
+              # make the sequence
+              !! Seq.new(SplitStrLimit.new(self,$match,$limit))
         }
 
         # just separate chars
         else {
-            Seq.new(class :: does Iterator {
-                has str $!string;
-                has int $!todo;
-                has int $!chars;
-                has int $!pos;
-                has int $!first;
-                has int $!last;
-                method !SET-SELF(\string, \todo, \skip-empty) {
-                    $!string = nqp::unbox_s(string);
-                    $!chars  = nqp::chars($!string);
-                    $!todo   = todo;
-                    $!first  = !skip-empty;
-
-                    if $!todo > $!chars + 2 {  # will return all chars
-                        $!todo = $!chars + 1;
-                        $!last = !skip-empty;
-                    }
-                    else {
-                        $!todo = $!todo - 1;
-                        $!last = !skip-empty && ($!todo == $!chars + 1);
-                    }
-                    self
-                }
-                method new(\string,\todo,\skip-empty) {
-                    nqp::create(self)!SET-SELF(string,todo,skip-empty)
-                }
-                method pull-one() is raw {
-                    if $!first {             # do empty string first
-                        $!first = 0;
-                        $!todo  = $!todo - 1;
-                        ""
-                    }
-                    elsif $!todo {           # next char
-                        $!todo = $!todo - 1;
-                        nqp::p6box_s(nqp::substr($!string,$!pos++,1))
-                    }
-                    elsif $!last {           # do final empty string
-                        $!last = 0;
-                        ""
-                    }
-                    elsif nqp::islt_i($!pos,$!chars) {  # do rest of string
-                        my str $rest = nqp::substr($!string,$!pos);
-                        $!pos = $!chars;
-                        nqp::p6box_s($rest)
-                    }
-                    else {
-                        IterationEnd
-                    }
-                }
-                method push-all($target --> IterationEnd) {
-                    $target.push("") if $!first;
-                    $!todo = $!todo - 1;
-                    while $!todo {
-                        $target.push(
-                          nqp::p6box_s(nqp::substr($!string,$!pos++,1)));
-                        $!todo = $!todo - 1;
-                    }
-                    $target.push( nqp::p6box_s(nqp::substr($!string,$!pos)))
-                      if nqp::islt_i($!pos,$!chars);
-                    $target.push("") if $!last;
-                }
-                method count-only() { nqp::p6box_i($!todo + $!first + $!last) }
-                method bool-only() { nqp::p6bool($!todo + $!first + $!last) }
-                method sink-all(--> IterationEnd) { }
-            }.new(self,$limit,$skip-empty));
+            Seq.new(SplitEmptyLimit.new(self,$limit,$skip-empty))
         }
     }
 
@@ -2136,54 +2143,53 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? self.words
           !! self.words.head($limit)
     }
-    multi method words(Str:D:) {
-        Seq.new(class :: does Iterator {
-            has str $!str;
-            has int $!chars;
-            has int $!pos;
+    my class Words does Iterator {
+        has str $!str;
+        has int $!chars;
+        has int $!pos;
 
-            method !SET-SELF(\string) {
-                $!str   = nqp::unbox_s(string);
-                $!chars = nqp::chars($!str);
-                $!pos   = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $!str, 0, $!chars);
-                self
+        method !SET-SELF(\string) {
+            $!str   = nqp::unbox_s(string);
+            $!chars = nqp::chars($!str);
+            $!pos   = nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $!str, 0, $!chars);
+            self
+        }
+        method new(\string) { nqp::create(self)!SET-SELF(string) }
+        method pull-one() {
+            my int $left;
+            my int $nextpos;
+
+            if ($left = $!chars - $!pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
+
+                my str $found =
+                  nqp::substr($!str, $!pos, $nextpos - $!pos);
+                $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
+                  $!str, $nextpos, $!chars - $nextpos);
+
+                return nqp::p6box_s($found);
             }
-            method new(\string) { nqp::create(self)!SET-SELF(string) }
-            method pull-one() {
-                my int $left;
-                my int $nextpos;
+            IterationEnd
+        }
+        method push-all($target --> IterationEnd) {
+            my int $left;
+            my int $nextpos;
 
-                if ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
+            while ($left = $!chars - $!pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
 
-                    my str $found =
-                      nqp::substr($!str, $!pos, $nextpos - $!pos);
-                    $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                      $!str, $nextpos, $!chars - $nextpos);
-
-                    return nqp::p6box_s($found);
-                }
-                IterationEnd
+                $target.push(nqp::p6box_s(
+                  nqp::substr($!str, $!pos, $nextpos - $!pos)
+                ));
+                $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
+                  $!str, $nextpos, $!chars - $nextpos);
             }
-            method push-all($target --> IterationEnd) {
-                my int $left;
-                my int $nextpos;
-
-                while ($left = $!chars - $!pos) > 0 {
-                    $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
-
-                    $target.push(nqp::p6box_s(
-                      nqp::substr($!str, $!pos, $nextpos - $!pos)
-                    ));
-                    $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                      $!str, $nextpos, $!chars - $nextpos);
-                }
-            }
-        }.new(self));
+        }
     }
+    multi method words(Str:D:) { Seq.new(Words.new(self)) }
 
     proto method encode(|) {*}
     multi method encode(Str:D $encoding = 'utf8', :$replacement, Bool() :$translate-nl = False, :$strict) {

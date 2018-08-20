@@ -34,7 +34,8 @@ my class Regex { # declared in BOOTSTRAP
     }
 
 #?if !jvm
-    multi method ACCEPTS(Regex:D \SELF: Uni:D \uni) {  # RT #130458
+    multi method ACCEPTS(Regex:D \SELF: Uni:D \uni) {
+        $/ := nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/');
         self.ACCEPTS(uni.Str)
     }
 #?endif

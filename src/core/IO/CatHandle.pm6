@@ -95,29 +95,28 @@ my class IO::CatHandle is IO::Handle {
         $!active-handle)
     }
 
-    method handles(IO::Handle:D: --> Seq:D) {
-        Seq.new: class :: does Iterator {
-            has $!cat;
-            has $!gave-active;
+    my class Handles does Iterator {
+        has $!cat;
+        has $!gave-active;
 
-            method !SET-SELF(\cat) { $!cat := cat; self }
-            method new(\cat) { nqp::create(self)!SET-SELF: cat }
+        method !SET-SELF(\cat) { $!cat := cat; self }
+        method new(\cat) { nqp::create(self)!SET-SELF: cat }
 
-            method pull-one {
-                nqp::if(
-                  $!gave-active,
-                  nqp::if(
-                    nqp::defined(my $h := $!cat.next-handle),
-                    $h,
-                    IterationEnd),
-                  nqp::stmts(
-                    ($!gave-active := True),
-                    nqp::defined(my $ah := nqp::decont(
-                      nqp::getattr($!cat, IO::CatHandle, '$!active-handle')))
-                    ?? $ah !! IterationEnd))
-            }
-        }.new: self
+        method pull-one {
+            nqp::if(
+              $!gave-active,
+              nqp::if(
+                nqp::defined(my $h := $!cat.next-handle),
+                $h,
+                IterationEnd),
+              nqp::stmts(
+                ($!gave-active := True),
+                nqp::defined(my $ah := nqp::decont(
+                  nqp::getattr($!cat, IO::CatHandle, '$!active-handle')))
+                ?? $ah !! IterationEnd))
+        }
     }
+    method handles(IO::Handle:D: --> Seq:D) { Seq.new(Handles.new(self)) }
 
     method chomp (::?CLASS:D:) is rw {
         Proxy.new:

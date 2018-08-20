@@ -138,118 +138,120 @@ my role Baggy does QuantHash {
     multi method iterator(Baggy:D:) {
         Rakudo::Iterator.Mappy-values($!elems)
     }
-    multi method keys(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                $!iter
-                  ?? nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
-                  !! IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(  # doesn't sink
-                  $!iter,
-                  $target.push(
-                    nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
-                  )
-                )
-            }
-        }.new($!elems))
+
+    my class Keys does Rakudo::Iterator::Mappy {
+        method pull-one() {
+            $!iter
+              ?? nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
+              !! IterationEnd
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(  # doesn't sink
+              $!iter,
+              $target.push(
+                nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
+              )
+            )
+        }
     }
+    multi method keys(Baggy:D:) { Seq.new(Keys.new($!elems)) }
+
     multi method kv(Baggy:D:) {
         Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs($!elems))
     }
-    multi method values(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() is raw {
-                nqp::if(
-                  $!iter,
-                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!value'),
-                  IterationEnd
+
+    my class Values does Rakudo::Iterator::Mappy {
+        method pull-one() is raw {
+            nqp::if(
+              $!iter,
+              nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!value'),
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(  # doesn't sink
+              $!iter,
+              $target.push(
+                nqp::getattr(
+                  nqp::iterval(nqp::shift($!iter)),
+                  Pair,
+                  '$!value'
                 )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(  # doesn't sink
-                  $!iter,
-                  $target.push(
-                    nqp::getattr(
-                      nqp::iterval(nqp::shift($!iter)),
-                      Pair,
-                      '$!value'
-                    )
-                  )
-                )
-            }
-        }.new($!elems))
+              )
+            )
+        }
     }
-    multi method antipairs(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                nqp::if(
-                  $!iter,
-                  nqp::iterval(nqp::shift($!iter)).antipair,
-                  IterationEnd
+    multi method values(Baggy:D:) { Seq.new(Values.new($!elems)) }
+
+    my class AntiPairs does Rakudo::Iterator::Mappy {
+        method pull-one() {
+            nqp::if(
+              $!iter,
+              nqp::iterval(nqp::shift($!iter)).antipair,
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              $target.push(nqp::iterval(nqp::shift($!iter)).antipair),
+            )
+        }
+    }
+    multi method antipairs(Baggy:D:) { Seq.new(AntiPairs.new($!elems)) }
+
+    my class KxxV does Rakudo::Iterator::Mappy {
+        has Mu $!key;
+        has int $!times;
+
+        method pull-one() is raw {
+            nqp::if(
+              $!times,
+              nqp::stmts(
+                ($!times = nqp::sub_i($!times,1)),
+                $!key
+              ),
+              nqp::if(
+                $!iter,
+                nqp::stmts(
+                  ($!key := nqp::getattr(
+                    (my \pair := nqp::iterval(nqp::shift($!iter))),
+                    Pair,
+                    '$!key'
+                  )),
+                  ($!times =
+                    nqp::sub_i(nqp::getattr(pair,Pair,'$!value'),1)),
+                  $!key
+                ),
+                IterationEnd
+              )
+            )
+        }
+        method skip-one() { # the default skip-one, too difficult to handle
+            nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(
+                ($!key := nqp::getattr(
+                  (my \pair := nqp::iterval(nqp::shift($!iter))),
+                  Pair,
+                  '$!key'
+                )),
+                ($!times =
+                  nqp::add_i(nqp::getattr(pair,Pair,'$!value'),1)),
+                nqp::while(  # doesn't sink
+                  ($!times = nqp::sub_i($!times,1)),
+                  $target.push($!key)
                 )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  $target.push(nqp::iterval(nqp::shift($!iter)).antipair),
-                )
-            }
-        }.new($!elems))
+              )
+            )
+        }
     }
     proto method kxxv(|) {*}
-    multi method kxxv(Baggy:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            has Mu $!key;
-            has int $!times;
+    multi method kxxv(Baggy:D:) { Seq.new(KxxV.new($!elems)) }
 
-            method pull-one() is raw {
-                nqp::if(
-                  $!times,
-                  nqp::stmts(
-                    ($!times = nqp::sub_i($!times,1)),
-                    $!key
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($!key := nqp::getattr(
-                        (my $pair := nqp::iterval(nqp::shift($!iter))),
-                        Pair,
-                        '$!key'
-                      )),
-                      ($!times =
-                        nqp::sub_i(nqp::getattr($pair,Pair,'$!value'),1)),
-                      $!key
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-            method skip-one() { # the default skip-one, too difficult to handle
-                nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(
-                    ($!key := nqp::getattr(
-                      (my $pair := nqp::iterval(nqp::shift($!iter))),
-                      Pair,
-                      '$!key'
-                    )),
-                    ($!times =
-                      nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)),
-                    nqp::while(  # doesn't sink
-                      ($!times = nqp::sub_i($!times,1)),
-                      $target.push($!key)
-                    )
-                  )
-                )
-            }
-        }.new($!elems))
-    }
     multi method invert(Baggy:D:) {
         Seq.new(Rakudo::Iterator.Invert(Rakudo::Iterator.Mappy-values($!elems)))
     }
@@ -374,23 +376,25 @@ my role Baggy does QuantHash {
     multi method grabpairs(Baggy:D: Whatever $) {
         self.grabpairs(Inf)
     }
-    multi method grabpairs(Baggy:D: $count) {
-        Seq.new(class :: does Rakudo::QuantHash::Pairs {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::elems($!picked),
-                  nqp::stmts(
-                    (my \pair := nqp::atkey(
-                      $!elems,
-                      (my \key := nqp::pop_s($!picked))
-                    )),
-                    nqp::deletekey($!elems,key),
-                    pair
-                  ),
-                  IterationEnd
-                )
-            }
-        }.new($!elems, $count))
+
+    my class GrabPairsN does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!picked),
+              nqp::stmts(
+                (my \pair := nqp::atkey(
+                  $!elems,
+                  (my \key := nqp::pop_s($!picked))
+                )),
+                nqp::deletekey($!elems,key),
+                pair
+              ),
+              IterationEnd
+            )
+        }
+    }
+    multi method grabpairs(Baggy:D: \count) {
+        Seq.new(GrabPairsN.new($!elems,count))
     }
 
     proto method pickpairs(|) {*}
@@ -407,16 +411,18 @@ my role Baggy does QuantHash {
     multi method pickpairs(Baggy:D: Whatever $) {
         self.pickpairs(Inf)
     }
-    multi method pickpairs(Baggy:D: $count) {
-        Seq.new(class :: does Rakudo::QuantHash::Pairs {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::elems($!picked),
-                  nqp::atkey($!elems,nqp::pop_s($!picked)),
-                  IterationEnd
-                )
-            }
-        }.new($!elems, $count))
+
+    my class PickPairsN does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!picked),
+              nqp::atkey($!elems,nqp::pop_s($!picked)),
+              IterationEnd
+            )
+        }
+    }
+    multi method pickpairs(Baggy:D: \count) {
+        Seq.new(PickPairsN.new($!elems,count))
     }
 
     proto method grab(|) {*}
@@ -430,117 +436,119 @@ my role Baggy does QuantHash {
         self.pick( $calculate(self.total) )
     }
     multi method pick(Baggy:D: Whatever) { self.pick(Inf) }
-    multi method pick(Baggy:D: $count) {
+
+    my class PickN does Iterator {
+        has $!raw;      # the IterationSet of the Baggy
+        has $!weights;  # clone of raw, but with just the weights
+        has $!todo;     # number of draws to do
+        has $!total;    # total number of draws possible
+
+        # Return the .WHICH key of a randomly picked object.  Updates
+        # the weight of the picked object and the total number of draws
+        # still possible.
+        method BAG-PICK() {
+            nqp::stmts(
+              (my Int $rand := $!total.rand.Int),
+              (my Int $seen := 0),
+              (my \iter := nqp::iterator($!weights)),
+              nqp::while(
+                iter && nqp::isle_I(
+                  ($seen := nqp::add_I(
+                    $seen,
+                    nqp::iterval(nqp::shift(iter)),
+                    Int
+                  )),
+                  $rand
+                ),
+                nqp::null
+              ),
+              nqp::bindkey(                # iter now contains picked one
+                $!weights,
+                nqp::iterkey_s(iter),
+                nqp::sub_I(nqp::iterval(iter),1,Int)
+              ),
+              ($!total := nqp::sub_I($!total,1,Int)),
+              nqp::iterkey_s(iter)
+            )
+        }
+
+        method !SET-SELF(\raw, \todo, \total) {
+            nqp::stmts(
+              ($!weights := nqp::clone($!raw := raw)),
+              (my \iter := nqp::iterator($!weights)),
+              nqp::while(
+                iter,
+                nqp::bindkey(
+                  $!weights,
+                  nqp::iterkey_s(nqp::shift(iter)),
+                  nqp::getattr(nqp::iterval(iter),Pair,'$!value')
+                )
+              ),
+              ($!todo := nqp::if(todo > total,total,todo)),
+              ($!total := total),
+              self
+            )
+        }
+        method new(\raw, \todo, \total) {
+            nqp::create(self)!SET-SELF(raw, todo, total)
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              $!todo,
+              nqp::stmts(
+                ($!todo := nqp::sub_I($!todo,1,Int)),
+                nqp::getattr(nqp::atkey($!raw,self.BAG-PICK),Pair,'$!key')
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() {
+            nqp::if(
+              $!todo,
+              nqp::stmts(
+                ($!todo := nqp::sub_I($!todo,1,Int)),
+                self.BAG-PICK
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my $todo = $!todo),
+              nqp::while(
+                $todo,
+                nqp::stmts(
+                  --$todo,
+                  $target.push(nqp::getattr(
+                    nqp::atkey($!raw,self.BAG-PICK),
+                    Pair,
+                    '$!key'
+                  ))
+                )
+              ),
+              ($!todo := nqp::decont($todo))
+            )
+        }
+        method count-only() { $!todo - 1 }
+        method bool-only(--> True) { }
+        method sink-all() { $!todo := 0 }
+
+    }
+    multi method pick(Baggy:D: \count) {
         Seq.new(
-          (my $total := self.total) < 1
-            || (my $todo := $count == Inf ?? $total !! $count.Int) < 1
+          (my \total := self.total) < 1
+            || (my \todo := count == Inf ?? total !! count.Int) < 1
             ?? Rakudo::Iterator.Empty            # nothing to do
-            !! class :: does Iterator {
-              has $!raw;      # the IterationSet of the Baggy
-              has $!weights;  # clone of raw, but with just the weights
-              has $!todo;     # number of draws to do
-              has $!total;    # total number of draws possible
-
-              # Return the .WHICH key of a randomly picked object.  Updates
-              # the weight of the picked object and the total number of draws
-              # still possible.
-              method BAG-PICK() {
-                  nqp::stmts(
-                    (my Int $rand := $!total.rand.Int),
-                    (my Int $seen := 0),
-                    (my \iter := nqp::iterator($!weights)),
-                    nqp::while(
-                      iter && nqp::isle_I(
-                        ($seen := nqp::add_I(
-                          $seen,
-                          nqp::iterval(nqp::shift(iter)),
-                          Int
-                        )),
-                        $rand
-                      ),
-                      nqp::null
-                    ),
-                    nqp::bindkey(                # iter now contains picked one
-                      $!weights,
-                      nqp::iterkey_s(iter),
-                      nqp::sub_I(nqp::iterval(iter),1,Int)
-                    ),
-                    ($!total := nqp::sub_I($!total,1,Int)),
-                    nqp::iterkey_s(iter)
-                  )
-              }
-
-              method !SET-SELF(\raw, \todo, \total) {
-                  nqp::stmts(
-                    ($!weights := nqp::clone($!raw := raw)),
-                    (my \iter := nqp::iterator($!weights)),
-                    nqp::while(
-                      iter,
-                      nqp::bindkey(
-                        $!weights,
-                        nqp::iterkey_s(nqp::shift(iter)),
-                        nqp::getattr(nqp::iterval(iter),Pair,'$!value')
-                      )
-                    ),
-                    ($!todo := nqp::if(todo > total,total,todo)),
-                    ($!total := total),
-                    self
-                  )
-              }
-              method new(\raw, \todo, \total) {
-                  nqp::create(self)!SET-SELF(raw, todo, total)
-              }
-
-              method pull-one() is raw {
-                  nqp::if(
-                    $!todo,
-                    nqp::stmts(
-                      ($!todo := nqp::sub_I($!todo,1,Int)),
-                      nqp::getattr(nqp::atkey($!raw,self.BAG-PICK),Pair,'$!key')
-                    ),
-                    IterationEnd
-                  )
-              }
-              method skip-one() {
-                  nqp::if(
-                    $!todo,
-                    nqp::stmts(
-                      ($!todo := nqp::sub_I($!todo,1,Int)),
-                      self.BAG-PICK
-                    )
-                  )
-              }
-              method push-all($target --> IterationEnd) {
-                  nqp::stmts(
-                    (my $todo = $!todo),
-                    nqp::while(
-                      $todo,
-                      nqp::stmts(
-                        --$todo,
-                        $target.push(nqp::getattr(
-                          nqp::atkey($!raw,self.BAG-PICK),
-                          Pair,
-                          '$!key'
-                        ))
-                      )
-                    ),
-                    ($!todo := nqp::decont($todo))
-                  )
-              }
-              method count-only() { $!todo - 1 }
-              method bool-only(--> True) { }
-              method sink-all() { $!todo := 0 }
-
-          }.new($!elems, $todo, nqp::ifnull($total,self.total))
+            !! PickN.new($!elems,todo,total)
         )
     }
 
     proto method roll(|) {*}
     multi method roll(Baggy:D:) {
         nqp::if(
-          $!elems && (my $total := self.total),
+          $!elems && (my \total := self.total),
           nqp::getattr(
-            nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,$total)),
+            nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)),
             Pair,
             '$!key'
           ),
@@ -549,10 +557,10 @@ my role Baggy does QuantHash {
     }
     multi method roll(Baggy:D: Whatever) {
         Seq.new(nqp::if(
-          $!elems && (my $total := self.total),
+          $!elems && (my \total := self.total),
           Rakudo::Iterator.Callable( {
               nqp::getattr(
-                nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems, $total)),
+                nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)),
                 Pair,
                 '$!key'
               )
@@ -562,25 +570,25 @@ my role Baggy does QuantHash {
     }
     multi method roll(Baggy:D: Callable:D $calculate) {
       nqp::if(
-        (my $total := self.total),
-        self.roll($calculate($total)),
+        (my \total := self.total),
+        self.roll($calculate(total)),
         Seq.new(Rakudo::Iterator.Empty)
       )
     }
-    multi method roll(Baggy:D: $count) {
+    multi method roll(Baggy:D: \count) {
         nqp::if(
-          $count == Inf,
+          count == Inf,
           self.roll(*),                         # let Whatever handle it
           Seq.new(nqp::if(                      # something else as count
-            (my $todo = $count.Int) < 1, # also handles NaN
+            (my $todo = count.Int) < 1,         # also handles NaN
             Rakudo::Iterator.Empty,             # nothing to do
             nqp::if(
-              $!elems && (my $total := self.total) && ++$todo,
+              $!elems && (my \total := self.total) && ++$todo,
               Rakudo::Iterator.Callable( {      # need to do a number of times
                   nqp::if(
                     --$todo,
                     nqp::getattr(
-                      nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems, $total)),
+                      nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)),
                       Pair,
                       '$!key'
                     ),

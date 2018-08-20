@@ -57,17 +57,17 @@ my role Setty does QuantHash {
     method total(Setty:D: --> Int:D) {
         nqp::istrue($!elems) && nqp::elems($!elems)
     }
-    multi method antipairs(Setty:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-              nqp::if(
-                $!iter,
-                Pair.new(True,nqp::iterval(nqp::shift($!iter))),
-                IterationEnd
-              )
-            }
-        }.new($!elems))
+
+    my class AntiPairs does Rakudo::Iterator::Mappy {
+        method pull-one() {
+          nqp::if(
+            $!iter,
+            Pair.new(True,nqp::iterval(nqp::shift($!iter))),
+            IterationEnd
+          )
+        }
     }
+    multi method antipairs(Setty:D:) { Seq.new(AntiPairs.new($!elems)) }
     multi method minpairs(Setty:D:) { self.pairs }
     multi method maxpairs(Setty:D:) { self.pairs }
     multi method Bool(Setty:D: --> Bool:D) {
@@ -182,17 +182,17 @@ my role Setty does QuantHash {
     multi method pick(Setty:D: Whatever $) {
         self.pick(Inf)
     }
-    multi method pick(Setty:D: $count) {
-        Seq.new(class :: does Rakudo::QuantHash::Pairs {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::elems($!picked),
-                  nqp::atkey($!elems,nqp::pop_s($!picked)),
-                  IterationEnd
-                )
-            }
-        }.new($!elems, $count))
+    
+    my class PickN does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!picked),
+              nqp::atkey($!elems,nqp::pop_s($!picked)),
+              IterationEnd
+            )
+        }
     }
+    multi method pick(Setty:D: $count) { Seq.new(PickN.new($!elems,$count)) }
 
     proto method pickpairs(|) {*}
     multi method pickpairs(Setty:D:) { Pair.new(self.roll,True) }
@@ -202,16 +202,18 @@ my role Setty does QuantHash {
     multi method pickpairs(Setty:D: Whatever $) {
         self.pickpairs(Inf)
     }
-    multi method pickpairs(Setty:D: $count) {
-        Seq.new(class :: does Rakudo::QuantHash::Pairs {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::elems($!picked),
-                  Pair.new(nqp::atkey($!elems,nqp::pop_s($!picked)),True),
-                  IterationEnd
-                )
-            }
-        }.new($!elems, $count))
+
+    my class PickPairsN does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!picked),
+              Pair.new(nqp::atkey($!elems,nqp::pop_s($!picked)),True),
+              IterationEnd
+            )
+        }
+    }
+    multi method pickpairs(Setty:D: \count) {
+        Seq.new(PickPairsN.new($!elems,count))
     }
 
     proto method roll(|) {*}

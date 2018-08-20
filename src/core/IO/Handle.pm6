@@ -292,96 +292,99 @@ my class IO::Handle {
                 self.words.iterator, $limit.Int, {SELF.close}))
             !! self.words.head($limit.Int)
     }
-    multi method words(IO::Handle:D: :$close) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<words>);
-        Seq.new(class :: does Iterator {
-            has $!handle;
-            has $!close;
-            has str $!str;
-            has int $!pos;
-            has int $!searching;
 
-            method !SET-SELF(\handle, $!close) {
-                $!handle   := handle;
-                $!searching = 1;
-                $!str       = ""; # RT #126492
+    my class Words does Iterator {
+        has $!handle;
+        has $!close;
+        has str $!str;
+        has int $!pos;
+        has int $!searching;
+
+        method !SET-SELF(\handle, $!close) {
+            $!handle   := handle;
+            $!searching = 1;
+            $!str       = ""; # RT #126492
+            self!next-chunk;
+            self
+        }
+        method new(\handle, \close) {
+            nqp::create(self)!SET-SELF(handle, close);
+        }
+        method !next-chunk() {
+            my int $chars = nqp::chars($!str);
+            $!str = $!pos < $chars ?? nqp::substr($!str,$!pos) !! "";
+            $chars = nqp::chars($!str);
+
+            while $!searching {
+                $!str = nqp::concat($!str,$!handle.readchars);
+                my int $new = nqp::chars($!str);
+                $!searching = 0 if $new == $chars; # end
+                $!pos = ($chars = $new)
+                  ?? nqp::findnotcclass(
+                       nqp::const::CCLASS_WHITESPACE, $!str, 0, $chars)
+                  !! 0;
+                last if $!pos < $chars;
+            }
+        }
+        method pull-one() {
+            my int $chars;
+            my int $left;
+            my int $nextpos;
+
+            while ($chars = nqp::chars($!str)) && $!searching {
+                while ($left = $chars - $!pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
+                    last unless $left = $chars - $nextpos; # broken word
+
+                    my str $found =
+                      nqp::substr($!str, $!pos, $nextpos - $!pos);
+                    $!pos = nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
+
+                    return nqp::p6box_s($found);
+                }
                 self!next-chunk;
-                self
             }
-            method new(\handle, \close) {
-                nqp::create(self)!SET-SELF(handle, close);
+            if $!pos < $chars {
+                my str $found = nqp::substr($!str,$!pos);
+                $!pos = $chars;
+                nqp::p6box_s($found)
             }
-            method !next-chunk() {
-                my int $chars = nqp::chars($!str);
-                $!str = $!pos < $chars ?? nqp::substr($!str,$!pos) !! "";
-                $chars = nqp::chars($!str);
-
-                while $!searching {
-                    $!str = nqp::concat($!str,$!handle.readchars);
-                    my int $new = nqp::chars($!str);
-                    $!searching = 0 if $new == $chars; # end
-                    $!pos = ($chars = $new)
-                      ?? nqp::findnotcclass(
-                           nqp::const::CCLASS_WHITESPACE, $!str, 0, $chars)
-                      !! 0;
-                    last if $!pos < $chars;
-                }
+            else {
+                $!handle.close if $!close;
+                IterationEnd
             }
-            method pull-one() {
-                my int $chars;
-                my int $left;
-                my int $nextpos;
+        }
+        method push-all($target --> IterationEnd) {
+            my int $chars;
+            my int $left;
+            my int $nextpos;
 
-                while ($chars = nqp::chars($!str)) && $!searching {
-                    while ($left = $chars - $!pos) > 0 {
-                        $nextpos = nqp::findcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
-                        last unless $left = $chars - $nextpos; # broken word
+            while ($chars = nqp::chars($!str)) && $!searching {
+                while ($left = $chars - $!pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
+                    last unless $left = $chars - $nextpos; # broken word
 
-                        my str $found =
-                          nqp::substr($!str, $!pos, $nextpos - $!pos);
-                        $!pos = nqp::findnotcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
+                    $target.push(nqp::p6box_s(
+                      nqp::substr($!str, $!pos, $nextpos - $!pos)
+                    ));
 
-                        return nqp::p6box_s($found);
-                    }
-                    self!next-chunk;
+                    $!pos = nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
                 }
-                if $!pos < $chars {
-                    my str $found = nqp::substr($!str,$!pos);
-                    $!pos = $chars;
-                    nqp::p6box_s($found)
-                }
-                else {
-                    $!handle.close if $!close;
-                    IterationEnd
-                }
+                self!next-chunk;
             }
-            method push-all($target --> IterationEnd) {
-                my int $chars;
-                my int $left;
-                my int $nextpos;
-
-                while ($chars = nqp::chars($!str)) && $!searching {
-                    while ($left = $chars - $!pos) > 0 {
-                        $nextpos = nqp::findcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
-                        last unless $left = $chars - $nextpos; # broken word
-
-                        $target.push(nqp::p6box_s(
-                          nqp::substr($!str, $!pos, $nextpos - $!pos)
-                        ));
-
-                        $!pos = nqp::findnotcclass(
-                          nqp::const::CCLASS_WHITESPACE,$!str,$nextpos,$left);
-                    }
-                    self!next-chunk;
-                }
-                $target.push(nqp::p6box_s(nqp::substr($!str,$!pos)))
-                  if $!pos < $chars;
-                $!handle.close if $close;
-            }
-        }.new(self, $close));
+            $target.push(nqp::p6box_s(nqp::substr($!str,$!pos)))
+              if $!pos < $chars;
+            $!handle.close if $!close;
+        }
+    }
+    multi method words(IO::Handle:D: :$close) {
+        $!decoder
+          ?? Seq.new(Words.new(self,$close))
+          !! X::IO::BinaryMode.new(:trying<words>).throw
     }
 
     my role PIOIterator does Iterator {
@@ -400,49 +403,51 @@ my class IO::Handle {
             nqp::seekfh(nqp::getattr($!handle, IO::Handle, '$!PIO'), 0, 2)  # seek to end
         }
     }
-
+    my class GetLineFast does PIOIterator {
+        method pull-one() {
+            # Slow path falls back to .get on the handle, which will
+            # replenish the buffer once we exhaust it.
+            $!decoder.consume-line-chars(:$!chomp)
+              // ($!handle.get // IterationEnd)
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+                nqp::isconcrete(my \line :=
+                    $!decoder.consume-line-chars(:$!chomp) // $!handle.get),
+                $target.push(line)
+            )
+        }
+    }
+    my class GetLineSlow does Iterator {
+        has $!handle;
+        method new(\handle) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),self.WHAT,'$!handle',handle)
+        }
+        method pull-one() {
+            nqp::if(
+              nqp::isconcrete(my \line := $!handle.get),
+              line,
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              nqp::isconcrete(my \line := $!handle.get),
+              $target.push(line)
+            )
+        }
+        method sink-all(--> IterationEnd) {
+            # can't seek pipes, so need the `try`
+            try $!handle.seek(0,SeekFromEnd)  # seek to end
+        }
+    }
     method !LINES-ITERATOR (IO::Handle:D:) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<lines>);
-        (nqp::eqaddr(self.WHAT,IO::Handle)
-            ?? (class :: does PIOIterator { # exact type, can shortcircuit get
-                method pull-one() {
-                    # Slow path falls back to .get on the handle, which will
-                    # replenish the buffer once we exhaust it.
-                    $!decoder.consume-line-chars(:$!chomp) // ($!handle.get // IterationEnd)
-                }
-                method push-all($target --> IterationEnd) {
-                    nqp::while(
-                        nqp::isconcrete(my $line :=
-                            $!decoder.consume-line-chars(:$!chomp) // $!handle.get),
-                        $target.push($line)
-                    )
-                }
-            })
-            !! (class :: does Iterator {    # can *NOT* shortcircuit .get
-                has $!handle;
-                method new(\handle) {
-                    nqp::p6bindattrinvres(
-                      nqp::create(self),self.WHAT,'$!handle',handle)
-                }
-                method pull-one() {
-                    nqp::if(
-                      nqp::isconcrete(my $line := $!handle.get),
-                      $line,
-                      IterationEnd
-                    )
-                }
-                method push-all($target --> IterationEnd) {
-                    nqp::while(
-                      nqp::isconcrete(my $line := $!handle.get),
-                      $target.push($line)
-                    )
-                }
-                method sink-all(--> IterationEnd) {
-                    # can't seek pipes, so need the `try`
-                    try $!handle.seek(0,SeekFromEnd)  # seek to end
-                }
-            })
-        ).new(self)
+        $!decoder
+          ?? nqp::eqaddr(self.WHAT,IO::Handle)
+            ?? GetLineFast.new(self)    # exact type, can shortcircuit get
+            !! GetLineSlow.new(self)    # can *NOT* shortcircuit .get
+          !! X::IO::BinaryMode.new(:trying<lines>).throw
     }
 
     proto method lines (|) {*}

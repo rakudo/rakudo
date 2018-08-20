@@ -179,30 +179,30 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::iscont(SELF) ?? '$(' ~ $p ~ ')' !! $p
     }
 
-    method iterator(Map:D:) {
-        class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                nqp::if(
-                  $!iter,
-                  nqp::stmts(
-                    nqp::shift($!iter),
-                    Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter))
-                  ),
-                  IterationEnd
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                     nqp::shift($!iter),
-                     $target.push(
-                       Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter)))
-                  )
-                )
-            }
-        }.new(self)
+    my class Iterate does Rakudo::Iterator::Mappy {
+        method pull-one() {
+            nqp::if(
+              $!iter,
+              nqp::stmts(
+                nqp::shift($!iter),
+                Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter))
+              ),
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                 nqp::shift($!iter),
+                 $target.push(
+                   Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter)))
+              )
+            )
+        }
     }
+    method iterator(Map:D:) { Iterate.new(self) }
+
     method list(Map:D:) {
         nqp::p6bindattrinvres(
           nqp::create(List),List,'$!reified',self.IterationBuffer)
@@ -211,75 +211,75 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
     multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }
 
-    multi method kv(Map:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            has int $!on-value;
+    my class KV does Rakudo::Iterator::Mappy {
+        has int $!on-value;
 
-            method pull-one() is raw {
-                nqp::if(
-                  $!on-value,
-                  nqp::stmts(
-                    ($!on-value = 0),
-                    nqp::iterval($!iter)
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($!on-value = 1),
-                      nqp::iterkey_s(nqp::shift($!iter))
-                    ),
-                    IterationEnd
-                  )
+        method pull-one() is raw {
+            nqp::if(
+              $!on-value,
+              nqp::stmts(
+                ($!on-value = 0),
+                nqp::iterval($!iter)
+              ),
+              nqp::if(
+                $!iter,
+                nqp::stmts(
+                  ($!on-value = 1),
+                  nqp::iterkey_s(nqp::shift($!iter))
+                ),
+                IterationEnd
+              )
+            )
+        }
+        method skip-one() {
+            nqp::if(
+              $!on-value,
+              nqp::not_i($!on-value = 0), # skipped a value
+              nqp::if(
+                $!iter,                   # if false, we didn't skip
+                nqp::stmts(               # skipped a key
+                  nqp::shift($!iter),
+                  ($!on-value = 1)
                 )
-            }
-            method skip-one() {
-                nqp::if(
-                  $!on-value,
-                  nqp::not_i($!on-value = 0), # skipped a value
-                  nqp::if(
-                    $!iter,                   # if false, we didn't skip
-                    nqp::stmts(               # skipped a key
-                      nqp::shift($!iter),
-                      ($!on-value = 1)
-                    )
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(  # doesn't sink
-                  $!iter,
-                  nqp::stmts(
-                    $target.push(nqp::iterkey_s(nqp::shift($!iter))),
-                    $target.push(nqp::iterval($!iter))
-                  )
-                )
-            }
-        }.new(self))
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(  # doesn't sink
+              $!iter,
+              nqp::stmts(
+                $target.push(nqp::iterkey_s(nqp::shift($!iter))),
+                $target.push(nqp::iterval($!iter))
+              )
+            )
+        }
     }
-    multi method antipairs(Map:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                nqp::if(
-                  $!iter,
-                  nqp::stmts(
-                    nqp::shift($!iter),
-                    Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) )
-                  ),
-                  IterationEnd
-                );
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    nqp::shift($!iter),
-                    $target.push(
-                      Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) ))
-                  )
-                )
-            }
-        }.new(self))
+    multi method kv(Map:D:) { Seq.new(KV.new(self)) }
+
+    my class AntiPairs does Rakudo::Iterator::Mappy {
+        method pull-one() {
+            nqp::if(
+              $!iter,
+              nqp::stmts(
+                nqp::shift($!iter),
+                Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) )
+              ),
+              IterationEnd
+            );
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                nqp::shift($!iter),
+                $target.push(
+                  Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) ))
+              )
+            )
+        }
     }
+    multi method antipairs(Map:D:) { Seq.new(AntiPairs.new(self)) }
+
     multi method invert(Map:D:) {
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
@@ -481,58 +481,59 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self.roll( $calculate(self.elems) )
     }
     multi method roll(Map:D: Whatever $) { self.roll(Inf) }
-    multi method roll(Map:D: $count) {
-        Seq.new(nqp::if(
-          $!storage && nqp::elems($!storage) && $count > 0,
-          class :: does Iterator {
-              has $!storage;
-              has $!keys;
-              has $!pairs;
-              has $!count;
+    my class RollN does Iterator {
+        has $!storage;
+        has $!keys;
+        has $!pairs;
+        has $!count;
 
-              method !SET-SELF(\hash,\count) {
-                  nqp::stmts(
-                    ($!storage := nqp::getattr(hash,Map,'$!storage')),
-                    ($!count = $count),
-                    (my int $i = nqp::elems($!storage)),
-                    (my \iter := nqp::iterator($!storage)),
-                    ($!keys := nqp::setelems(nqp::list_s,$i)),
-                    ($!pairs := nqp::setelems(nqp::list,$i)),
-                    nqp::while(
-                      nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-                      nqp::bindpos_s($!keys,$i,
-                        nqp::iterkey_s(nqp::shift(iter)))
-                    ),
-                    self
+        method !SET-SELF(\hash,\count) {
+            nqp::stmts(
+              ($!storage := nqp::getattr(hash,Map,'$!storage')),
+              ($!count = count),
+              (my int $i = nqp::elems($!storage)),
+              (my \iter := nqp::iterator($!storage)),
+              ($!keys := nqp::setelems(nqp::list_s,$i)),
+              ($!pairs := nqp::setelems(nqp::list,$i)),
+              nqp::while(
+                nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+                nqp::bindpos_s($!keys,$i,
+                  nqp::iterkey_s(nqp::shift(iter)))
+              ),
+              self
+            )
+        }
+        method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+        method pull-one() {
+            nqp::if(
+              $!count,
+              nqp::stmts(
+                --$!count,  # must be HLL to handle Inf
+                nqp::ifnull(
+                  nqp::atpos(
+                    $!pairs,
+                    (my int $i =
+                      nqp::floor_n(nqp::rand_n(nqp::elems($!keys))))
+                  ),
+                  nqp::bindpos($!pairs,$i,
+                    Pair.new(
+                      nqp::atpos_s($!keys,$i),
+                      nqp::atkey($!storage,nqp::atpos_s($!keys,$i))
+                    )
                   )
-              }
-              method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
-              method pull-one() {
-                  nqp::if(
-                    $!count,
-                    nqp::stmts(
-                      --$!count,  # must be HLL to handle Inf
-                      nqp::ifnull(
-                        nqp::atpos(
-                          $!pairs,
-                          (my int $i =
-                            nqp::floor_n(nqp::rand_n(nqp::elems($!keys))))
-                        ),
-                        nqp::bindpos($!pairs,$i,
-                          Pair.new(
-                            nqp::atpos_s($!keys,$i),
-                            nqp::atkey($!storage,nqp::atpos_s($!keys,$i))
-                          )
-                        )
-                      )
-                    ),
-                    IterationEnd
-                  )
-              }
-              method is-lazy() { $!count == Inf }
-          }.new(self,$count),
-          Rakudo::Iterator.Empty
-        ))
+                )
+              ),
+              IterationEnd
+            )
+        }
+        method is-lazy() { $!count == Inf }
+    }
+    multi method roll(Map:D: $count) {
+        Seq.new(
+          $!storage && nqp::elems($!storage) && $count > 0
+            ?? RollN.new(self,$count)
+            !! Rakudo::Iterator.Empty
+        )
     }
 
     multi method pick(Map:D:) { self.roll }

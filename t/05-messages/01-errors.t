@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 49;
+plan 48;
 
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
@@ -197,11 +197,6 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
 throws-like { class { proto method x(|) {*} }.new.x }, X::Multi::NoMatch,
     :message{ .contains: 'only the proto' & none 'none of these signatures' },
     'error points out only only proto is defined';
-
-# GH #1746
-throws-like { EVAL 'proto x(|) {*}; x' }, X::Multi::NoMatch,
-    :message{ .contains: 'only the proto' & none 'none of these signatures' },
-    'error points out only only proto routine is defined';
 
 # RT #131367
 throws-like { Blob.split }, X::Multi::NoMatch,

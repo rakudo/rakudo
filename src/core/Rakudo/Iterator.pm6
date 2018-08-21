@@ -428,156 +428,154 @@ class Rakudo::Iterator {
     # Create iterator that produces all values *except* the last N values
     # of a given iterator.  Returns an empty iterator if the given iterator
     # produced fewer than N values.
-    method AllButLastNValues(\iterator, \n) {
-        class :: does Iterator {
-            has $!iterator;
-            has $!buffered;
-            has int $!size;
-            has int $!index;
+    my class AllButLastNValues does Iterator {
+        has $!iterator;
+        has $!buffered;
+        has int $!size;
+        has int $!index;
 
-            method !SET-SELF(\iterator, int $size) {
-                nqp::stmts(
-                  (my int $i = -1),
-                  (my $buffered := nqp::setelems(nqp::list,$size)),
-                  nqp::while(                      # fill buffer to produce from
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$size)
-                      && nqp::not_i(nqp::eqaddr(
-                           (my $pulled := iterator.pull-one),
-                           IterationEnd
-                         )),
-                    nqp::bindpos($buffered,$i,$pulled)
-                  ),
-                  nqp::if(
-                    nqp::islt_i($i,$size),
-                    Rakudo::Iterator.Empty,        # didn't produce enough
-                    nqp::stmts(                    # we're in business
-                      ($!iterator := iterator),
-                      ($!buffered := $buffered),
-                      ($!size = $size),
-                      self
-                    )
-                  )
+        method !SET-SELF(\iterator, int $size) {
+            nqp::stmts(
+              (my int $i = -1),
+              (my \buffered := nqp::setelems(nqp::list,$size)),
+              nqp::while(                      # fill buffer to produce from
+                nqp::islt_i(($i = nqp::add_i($i,1)),$size)
+                  && nqp::not_i(nqp::eqaddr(
+                       (my \pulled := iterator.pull-one),
+                       IterationEnd
+                     )),
+                nqp::bindpos(buffered,$i,pulled)
+              ),
+              nqp::if(
+                nqp::islt_i($i,$size),
+                Rakudo::Iterator.Empty,        # didn't produce enough
+                nqp::stmts(                    # we're in business
+                  ($!iterator := iterator),
+                  ($!buffered := buffered),
+                  ($!size = $size),
+                  self
                 )
-            }
-            method new(\iterator,\n) {
-                nqp::if(
-                  nqp::isle_i(n,0),
-                  iterator,                        # we wants it all
-                  nqp::create(self)!SET-SELF(iterator,n)
-                )
-            }
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
-                  $pulled,                         # we're done
-                  nqp::stmts(                      # produce/update buffer
-                    (my $value := nqp::atpos($!buffered,$!index)),
-                    nqp::bindpos($!buffered,$!index,$pulled),
-                    ($!index = nqp::mod_i(nqp::add_i($!index,1),$!size)),
-                    $value
-                  )
-                )
-            }
-        }.new(iterator, n)
+              )
+            )
+        }
+        method new(\iterator,\n) {
+            nqp::if(
+              nqp::isle_i(n,0),
+              iterator,                        # we wants it all
+              nqp::create(self)!SET-SELF(iterator,n)
+            )
+        }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd),
+              pulled,                          # we're done
+              nqp::stmts(                      # produce/update buffer
+                (my \value := nqp::atpos($!buffered,$!index)),
+                nqp::bindpos($!buffered,$!index,pulled),
+                ($!index = nqp::mod_i(nqp::add_i($!index,1),$!size)),
+                value
+              )
+            )
+        }
+    }
+    method AllButLastNValues(\iterator, \n) {
+        AllButLastNValues.new(iterator,n)
     }
 
     # Return an iterator that will generate a pair with the value as the
     # key and as value the key of the given iterator, basically the
     # .antipairs functionality on 1 dimensional lists.
-    method AntiPair(\iterator) {
-        class :: does Iterator {
-            has Mu $!iter;
-            has int $!key;
+    my class AntiPair does Iterator {
+        has Mu $!iter;
+        has int $!key;
 
-            method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
-            method new(\iter) { nqp::create(self)!SET-SELF(iter) }
+        method !SET-SELF(\iter) { $!iter := iter; $!key = -1; self }
+        method new(\iter) { nqp::create(self)!SET-SELF(iter) }
 
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
-                  IterationEnd,
-                  Pair.new($pulled,+($!key = nqp::add_i($!key,1)))
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                my $pulled;
-                my int $key = -1;
-                nqp::until(
-                  nqp::eqaddr(($pulled := $!iter.pull-one),IterationEnd),
-                  $target.push(Pair.new($pulled,+($key = nqp::add_i($key,1))))
-                )
-            }
-        }.new(iterator)
+        method pull-one() is raw {
+            nqp::if(
+              nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd),
+              IterationEnd,
+              Pair.new(pulled,+($!key = nqp::add_i($!key,1)))
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            my int $key = -1;
+            nqp::until(
+              nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd),
+              $target.push(Pair.new(pulled,+($key = nqp::add_i($key,1))))
+            )
+        }
     }
+    method AntiPair(\iterator) { AntiPair.new(iterator) }
 
     # Return an iterator that batches the given source iterator in
     # batches of the given size.  The third parameter indicates whether
     # a partial batch should be returned when the source iterator has
     # exhausted.  The returned iterator is as lazy as the source iterator.
-    method Batch(\iterator,\size,\partial) {
-        class :: does Iterator {
-            has $!iterator;
-            has int $!size;
-            has int $!complete;
-            has int $!is-exhausted;
-            method !SET-SELF(\iterator,\size,\partial) {
-                nqp::stmts(
-                  ($!iterator := iterator),
-                  nqp::if(
-                    nqp::istype(size,Whatever),
-                    ($!size = -1),        # set to never stop and ok partial
-                    nqp::if(
-                      size < 1,
-                      X::OutOfRange.new(
-                        what    => "Batching sublist length is",
-                        got     => size,
-                        range   => "1..^Inf",
-                      ).throw,
-                      nqp::if(
-                        (nqp::istype(size,Int)
-                          && nqp::isbig_I(nqp::decont(size)))
-                          || size == Inf,
-                        ($!size = -1),    # set to never stop and ok partial
-                        nqp::stmts(
-                          ($!size     = size),
-                          ($!complete = !partial),
-                        )
-                      )
-                    )
-                  ),
-                  self
-                )
-            }
-            method new(\it,\si,\pa) { nqp::create(self)!SET-SELF(it,si,pa) }
-            method pull-one() is raw {
+    my class Batch does Iterator {
+        has $!iterator;
+        has int $!size;
+        has int $!complete;
+        has int $!is-exhausted;
+        method !SET-SELF(\iterator,\size,\partial) {
+            nqp::stmts(
+              ($!iterator := iterator),
               nqp::if(
-                $!is-exhausted,
-                IterationEnd,
-                nqp::stmts(
-                  (my $reified := nqp::create(IterationBuffer)),
-                  nqp::until(
-                    nqp::iseq_i(nqp::elems($reified),$!size)
-                      || nqp::eqaddr(
-                           (my $pulled := $!iterator.pull-one),
-                           IterationEnd
-                         ),
-                    nqp::push($reified,$pulled)
-                  ),
+                nqp::istype(size,Whatever),
+                ($!size = -1),        # set to never stop and ok partial
+                nqp::if(
+                  size < 1,
+                  X::OutOfRange.new(
+                    what    => "Batching sublist length is",
+                    got     => size,
+                    range   => "1..^Inf",
+                  ).throw,
                   nqp::if(
-                    nqp::eqaddr($pulled,IterationEnd)
-                      && ($!is-exhausted = 1) # set the flag
-                      && ($!complete || nqp::not_i(nqp::elems($reified))),
-                    IterationEnd,
-                    nqp::p6bindattrinvres(
-                      nqp::create(List),List,'$!reified',$reified
+                    (nqp::istype(size,Int)
+                      && nqp::isbig_I(nqp::decont(size)))
+                      || size == Inf,
+                    ($!size = -1),    # set to never stop and ok partial
+                    nqp::stmts(
+                      ($!size     = size),
+                      ($!complete = !partial),
                     )
                   )
                 )
+              ),
+              self
+            )
+        }
+        method new(\it,\si,\pa) { nqp::create(self)!SET-SELF(it,si,pa) }
+        method pull-one() is raw {
+          nqp::if(
+            $!is-exhausted,
+            IterationEnd,
+            nqp::stmts(
+              (my \reified := nqp::create(IterationBuffer)),
+              nqp::until(
+                nqp::iseq_i(nqp::elems(reified),$!size)
+                  || nqp::eqaddr(
+                       (my \pulled := $!iterator.pull-one),
+                       IterationEnd
+                     ),
+                nqp::push(reified,pulled)
+              ),
+              nqp::if(
+                nqp::eqaddr(pulled,IterationEnd)
+                  && ($!is-exhausted = 1) # set the flag
+                  && ($!complete || nqp::not_i(nqp::elems(reified))),
+                IterationEnd,
+                nqp::p6bindattrinvres(
+                  nqp::create(List),List,'$!reified',reified
+                )
               )
-            }
-            method is-lazy() { $!iterator.is-lazy }
-        }.new(iterator,size,partial)
+            )
+          )
+        }
+        method is-lazy() { $!iterator.is-lazy }
     }
+    method Batch(\iterator,\size,\partial) { Batch.new(iterator,size,partial) }
 
     # Return an iterator for a given Callable.  The Callable is supposed
     # to return a value for the iterator, or IterationEnd to indicate the
@@ -585,111 +583,110 @@ class Rakudo::Iterator {
     # so they will be passed on as is.  Also optionally takes a flag to
     # mark the iterator as lazy or not: default is False (not lazy)
     proto method Callable(|) {*}
-    multi method Callable(&callable) {
-        class :: does Iterator {
-            has &!callable;
-            method new(&callable) {
-                nqp::p6bindattrinvres(
-                  nqp::create(self),self,'&!callable',&callable)
-            }
-            method pull-one() is raw { &!callable() }
-        }.new(&callable)
+    my class CallableEager does Iterator {
+        has &!callable;
+        method new(&callable) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),self,'&!callable',&callable)
+        }
+        method pull-one() is raw { &!callable() }
+    }
+    multi method Callable(&callable) { CallableEager.new(&callable) }
+
+    my class CallableLazy does Iterator {
+        has &!callable;
+        method new(&callable) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),self,'&!callable',&callable)
+        }
+        method pull-one() is raw { &!callable() }
+        method is-lazy(--> True) { }
     }
     multi method Callable(&callable, Bool() $lazy) {
-        nqp::if(
-          $lazy,
-          class :: does Iterator {
-              has &!callable;
-              method new(&callable) {
-                  nqp::p6bindattrinvres(
-                    nqp::create(self),self,'&!callable',&callable)
-              }
-              method pull-one() is raw { &!callable() }
-              method is-lazy(--> True) { }
-          }.new(&callable),
-          Rakudo::Iterator.Callable(&callable)
-        )
+        $lazy
+          ?? CallableLazy.new(&callable)
+          !! CallableEager.new(&callable)
     }
 
     # Return an iterator for the "thunk xx 42" functionality.
-    method Callable-xx-Times(&code, Int:D \times) {
-        class :: does Iterator {
-            has @!slipped;
-            has $!code;
-            has $!times;
-            method !SET-SELF(\code,\times) {
+    my class Callable-xx-Times does Iterator {
+        has @!slipped;
+        has $!code;
+        has $!times;
+        method !SET-SELF(\code,\times) {
+            nqp::stmts(
+              ($!code := code),
+              ($!times = times),
+              self
+            )
+        }
+        method new(\code,\times) {
+            nqp::if(
+              times > 0,
+              nqp::create(self)!SET-SELF(code,times),
+              Rakudo::Iterator.Empty
+            )
+        }
+        method pull-one() {
+            nqp::if(
+              @!slipped,
+              @!slipped.shift,
+              nqp::if(
+                $!times > 0,
                 nqp::stmts(
-                  ($!code := code),
-                  ($!times = times),
-                  self
-                )
-            }
-            method new(\code,\times) {
-                nqp::if(
-                  times > 0,
-                  nqp::create(self)!SET-SELF(code,times),
-                  Rakudo::Iterator.Empty
-                )
-            }
-            method pull-one() {
-                nqp::if(
-                  @!slipped,
-                  @!slipped.shift,
+                  --$!times,             # consumed a value
                   nqp::if(
-                    $!times > 0,
-                    nqp::stmts(
-                      --$!times,             # consumed a value
-                      nqp::if(
-                        nqp::istype((my $pulled := $!code()),Slip),
-                        nqp::if(
-                          (@!slipped = $pulled),
-                          @!slipped.shift,
-                          IterationEnd
-                        ),
-                        nqp::if(
-                          nqp::istype($pulled,Seq),
-                          $pulled.cache,
-                          $pulled
-                        )
-                      )
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-        }.new(&code,times)
-    }
-
-    # Return an iterator for the "thunk xx *" functionality.
-    method Callable-xx-Whatever(&code) {
-        class :: does Iterator {
-            has @!slipped;
-            has $!code;
-            method new(\code) {
-                nqp::p6bindattrinvres(nqp::create(self),self,'$!code',code)
-            }
-            method pull-one() {
-                nqp::if(
-                  @!slipped,
-                  @!slipped.shift,
-                  nqp::if(
-                    nqp::istype((my $pulled := $!code()),Slip),
+                    nqp::istype((my \pulled := $!code()),Slip),
                     nqp::if(
-                      (@!slipped = $pulled),
+                      (@!slipped = pulled),
                       @!slipped.shift,
                       IterationEnd
                     ),
                     nqp::if(
-                      nqp::istype($pulled,Seq),
-                      $pulled.cache,
-                      $pulled
+                      nqp::istype(pulled,Seq),
+                      pulled.cache,
+                      pulled
                     )
                   )
-                )
-            }
-            method is-lazy(--> True) { }
-        }.new(&code)
+                ),
+                IterationEnd
+              )
+            )
+        }
     }
+    method Callable-xx-Times(&code, Int:D \times) {
+        Callable-xx-Times.new(&code,times)
+    }
+
+    # Return an iterator for the "thunk xx *" functionality.
+    my class Callable-xx-Whatever does Iterator {
+        has @!slipped;
+        has $!code;
+        method new(\code) {
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!code',code)
+        }
+        method pull-one() {
+            nqp::if(
+              @!slipped,
+              @!slipped.shift,
+              nqp::if(
+                nqp::istype((my \pulled := $!code()),Slip),
+                nqp::if(
+                  (@!slipped = pulled),
+                  @!slipped.shift,
+                  IterationEnd
+                ),
+                nqp::if(
+                  nqp::istype(pulled,Seq),
+                  pulled.cache,
+                  pulled
+                )
+              )
+            )
+        }
+        method is-lazy(--> True) { }
+    }
+    method Callable-xx-Whatever(&code) { Callable-xx-Whatever.new(&code) }
 
     # Return an iterator for a range of 0..^N with a number of elements.
     # The third parameter indicates whether an IterationBuffer should be
@@ -697,6 +694,73 @@ class Rakudo::Iterator {
     # Has a highly optimized count-only, for those cases when one is only
     # interested in the number of combinations, rather than the actual
     # combinations.  The workhorse of combinations().
+    my class Combinations does Iterator {
+        has int $!pulled-count = 0;
+        has int $!n;
+        has int $!k;
+        has int $!b;
+        has Mu $!stack;
+        has Mu $!combination;
+        method !SET-SELF(\n,\k,\b) {
+            nqp::stmts(
+              ($!n = n),
+              ($!k = k),
+              ($!b = b),
+              ($!stack := nqp::list_i(0)),
+              ($!combination := nqp::create(IterationBuffer)),
+              self
+          )
+        }
+        method new(\n,\k,\b) { nqp::create(self)!SET-SELF(n,k,b) }
+
+        method pull-one() {
+            nqp::stmts(
+              (my int $n = $!n),          # lexicals faster
+              (my int $k = $!k),
+              (my int $running = 1),
+              nqp::while(
+                ($running && (my int $elems = nqp::elems($!stack))),
+                nqp::stmts(
+                  (my int $index = nqp::sub_i($elems,1)),
+                  (my int $value = nqp::pop_i($!stack)),
+                  nqp::while(
+                    (nqp::islt_i($value,$n)
+                      && nqp::islt_i($index,$k)),
+                    nqp::stmts(
+                      nqp::bindpos($!combination,
+                        $index,nqp::clone($value)),
+                      ($index = nqp::add_i($index,1)),
+                      ($value = nqp::add_i($value,1)),
+                      nqp::push_i($!stack,$value)
+                    )
+                  ),
+                  ($running = nqp::isne_i($index,$k)),
+                )
+              ),
+              nqp::if(
+                nqp::iseq_i($index,$k),
+                nqp::stmts(
+                  ($!pulled-count = nqp::add_i($!pulled-count,1)),
+                  nqp::if(
+                    $!b,
+                    nqp::clone($!combination),
+                    nqp::p6bindattrinvres(
+                      nqp::create(List),List,'$!reified',
+                      nqp::clone($!combination)
+                    )
+                  )
+                ),
+                IterationEnd
+              )
+            )
+        }
+
+        method count-only(--> Int) {
+            (([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int)
+            - $!pulled-count
+        }
+        method bool-only(--> Bool) { nqp::p6bool(self.count-only) }
+    }
     method Combinations($n, $k, int $b) {
         nqp::if(
           $n > 0 && nqp::isbig_I(nqp::decont($n)),    # must be HLL comparison
@@ -716,73 +780,7 @@ class Rakudo::Iterator {
               # n < k → not enough items to pick combination of k items
               $n < 1 || $n < $k || $k < 0,            # must be HLL comparisons
               Rakudo::Iterator.Empty,                 # nothing to return
-              class :: does Iterator {
-                  has int $!pulled-count = 0;
-                  has int $!n;
-                  has int $!k;
-                  has int $!b;
-                  has Mu $!stack;
-                  has Mu $!combination;
-                  method !SET-SELF(\n,\k,\b) {
-                      nqp::stmts(
-                        ($!n = n),
-                        ($!k = k),
-                        ($!b = b),
-                        ($!stack := nqp::list_i(0)),
-                        ($!combination := nqp::create(IterationBuffer)),
-                        self
-                    )
-                  }
-                  method new(\n,\k,\b) { nqp::create(self)!SET-SELF(n,k,b) }
-
-                  method pull-one() {
-                      nqp::stmts(
-                        (my int $n = $!n),          # lexicals faster
-                        (my int $k = $!k),
-                        (my int $running = 1),
-                        nqp::while(
-                          ($running && (my int $elems = nqp::elems($!stack))),
-                          nqp::stmts(
-                            (my int $index = nqp::sub_i($elems,1)),
-                            (my int $value = nqp::pop_i($!stack)),
-                            nqp::while(
-                              (nqp::islt_i($value,$n)
-                                && nqp::islt_i($index,$k)),
-                              nqp::stmts(
-                                nqp::bindpos($!combination,
-                                  $index,nqp::clone($value)),
-                                ($index = nqp::add_i($index,1)),
-                                ($value = nqp::add_i($value,1)),
-                                nqp::push_i($!stack,$value)
-                              )
-                            ),
-                            ($running = nqp::isne_i($index,$k)),
-                          )
-                        ),
-                        nqp::if(
-                          nqp::iseq_i($index,$k),
-                          nqp::stmts(
-                            ($!pulled-count = nqp::add_i($!pulled-count,1)),
-                            nqp::if(
-                              $!b,
-                              nqp::clone($!combination),
-                              nqp::p6bindattrinvres(
-                                nqp::create(List),List,'$!reified',
-                                nqp::clone($!combination)
-                              )
-                            )
-                          ),
-                          IterationEnd
-                        )
-                      )
-                  }
-
-                  method count-only(--> Int) {
-                      (([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int)
-                      - $!pulled-count
-                  }
-                  method bool-only(--> Bool) { nqp::p6bool(self.count-only) }
-              }.new($n,$k,$b)
+              Combinations.new($n,$k,$b)
             )
           )
         )
@@ -790,262 +788,263 @@ class Rakudo::Iterator {
 
     # Return an iterator that will cross the given iterables (with &[,])
     # Basically the functionality of @a X @b
+    my class CrossIterables does Iterator {
+        has $!iterators;  # iterator per iterable, if any
+        has $!reifieds;   # cached values (either complete, or so far)
+        has $!indices;    # indices of virtual matrix of crossed values
+        has $!next;       # IterationBuffer with next values to return
+        has int $!lazy;   # whether the outer iterator is lazy
+        has int $!top;    # index of top reified/iterator
+
+        method !SET-SELF(\iterables) {
+            nqp::stmts(
+              (my $iterables := nqp::getattr(iterables,List,'$!reified')),
+              (my int $elems  = nqp::elems($iterables)),
+              ($!iterators   := nqp::setelems(nqp::list,$elems)),
+              ($!reifieds    := nqp::setelems(nqp::list,$elems)),
+              ($!next :=
+                nqp::setelems(nqp::create(IterationBuffer),$elems)),
+
+              # loop over all iterables
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+
+                # set up initial value of index $i with...
+                nqp::bindpos($!next,$i,nqp::if(
+                  nqp::iscont(my $elem := nqp::atpos($iterables,$i))
+                    || nqp::not_i(nqp::istype($elem,Iterable)),
+
+                  # single value same as reified list of 1
+                  nqp::bindpos(
+                    nqp::bindpos($!reifieds,$i,nqp::list),
+                    0,
+                    $elem
+                  ),
+
+                  # something more elaborate
+                  nqp::if(
+                    nqp::istype($elem,List)
+                      && nqp::not_i(nqp::isconcrete(
+                           nqp::getattr($elem,List,'$!todo')
+                    )),
+
+                    # it's a List, may have a reified we can use directly
+                    nqp::if(
+                      nqp::isconcrete(
+                        $elem := nqp::getattr($elem,List,'$!reified')
+                      ) && nqp::isgt_i(nqp::elems($elem),0),
+
+                      # use the available reified directly
+                      nqp::stmts(
+                        nqp::bindpos($!reifieds,$i,$elem),
+                        nqp::atpos($elem,0)
+                      ),
+
+                      # cross with an empty list is always an empty list
+                      return Rakudo::Iterator.Empty
+                    ),
+
+                    # need to set up an iterator
+                    nqp::stmts(
+                      nqp::if($elem.is-lazy,($!lazy = 1)),
+                      nqp::if(
+                        nqp::eqaddr(
+                          (my $pulled :=
+                            ($elem := $elem.iterator).pull-one),
+                          IterationEnd
+                        ),
+
+                        # cross with an empty list is an empty list
+                        (return Rakudo::Iterator.Empty),
+
+                        # set up the iterator stuff
+                        nqp::stmts(
+                          nqp::bindpos($!iterators,$i,$elem),
+                          nqp::bindpos($!reifieds,$i,nqp::list($pulled)),
+                          $pulled
+                        )
+                      )
+                    )
+                  )
+                ))
+              ),
+
+              # indices start with 0 xx $elems
+              ($!indices := nqp::setelems(nqp::list_i,$elems)),
+              ($!top = nqp::sub_i($elems,1)),
+              self
+            )
+        }
+        method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
+        method pull-one() {
+            nqp::if(
+#?if jvm
+              nqp::eqaddr($!next,Mu),
+#?endif
+#?if !jvm
+              nqp::isnull($!next),
+#?endif
+              IterationEnd,
+              nqp::stmts(
+
+                # set up result of this pull
+                (my $result := nqp::p6bindattrinvres(
+                  nqp::create(List),List,'$!reified',nqp::clone($!next))),
+
+                # start working on next result
+                nqp::unless(
+                  nqp::isnull(nqp::atpos($!iterators,$!top)),
+
+                  # top level is still iterator, fetch
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my $pulled :=
+                        nqp::atpos($!iterators,$!top).pull-one),
+                      IterationEnd
+                    ),
+                    # iterator no more
+                    nqp::bindpos($!iterators,$!top,nqp::null),
+
+                    # push value, let normal reifier handler handle
+                    nqp::push(
+                      nqp::atpos($!reifieds,$!top),
+                      $pulled
+                    )
+                  )
+                ),
+
+                # no iterator, must use reified list
+                nqp::if(
+                  nqp::islt_i(
+                    (my int $index =
+                      nqp::add_i(nqp::atpos_i($!indices,$!top),1)),
+                    nqp::elems(nqp::atpos($!reifieds,$!top))
+                  ),
+
+                  # within range, update next result and index
+                  nqp::bindpos($!next,$!top,
+                    nqp::atpos(
+                      nqp::atpos($!reifieds,$!top),
+                      nqp::bindpos_i($!indices,$!top,$index)
+                    )
+                  ),
+
+                  # need to update lower levels
+                  nqp::stmts(
+
+                    # update topmost value (go back to first)
+                    nqp::bindpos($!next,$!top,
+                      nqp::atpos(
+                        nqp::atpos($!reifieds,$!top),
+                        nqp::bindpos_i($!indices,$!top,0)
+                      )
+                    ),
+
+                    # until we're at the bottom
+                    (my int $level = $!top),
+                    nqp::while(
+                      nqp::isge_i(($level = nqp::sub_i($level,1)),0),
+                      nqp::if(
+                        nqp::isnull(nqp::atpos($!iterators,$level)),
+
+                        # can use reified list at this level
+                        nqp::if(
+                          nqp::islt_i(
+                            ($index = nqp::add_i(
+                              nqp::atpos_i($!indices,$level),1)),
+                            nqp::elems(nqp::atpos($!reifieds,$level))
+                          ),
+
+                          # within range, update next result and index
+                          nqp::stmts(
+                            nqp::bindpos($!next,$level,
+                              nqp::atpos(
+                                nqp::atpos($!reifieds,$level),
+                                nqp::bindpos_i($!indices,$level,$index)
+                              )
+                            ),
+                            ($level = -1)  # done searching
+                          ),
+
+                          # reset this level
+                          nqp::bindpos($!next,$level,
+                            nqp::atpos(
+                              nqp::atpos($!reifieds,$level),
+                              nqp::bindpos_i($!indices,$level,0)
+                            )
+                          )
+                        ),
+
+                        # still an iterator at this level
+                        nqp::if(
+                          nqp::eqaddr(
+                            ($pulled :=
+                              nqp::atpos($!iterators,$level).pull-one),
+                            IterationEnd
+                          ),
+
+                          # exhausted iterator, reset to reified
+                          nqp::stmts(
+                            nqp::bindpos($!iterators,$level,nqp::null),
+                            nqp::bindpos($!next,$level,
+                              nqp::atpos(
+                                nqp::atpos($!reifieds,$level),
+                                nqp::bindpos_i($!indices,$level,0)
+                              )
+                            )
+                          ),
+
+                          # new value, add to reified, update indices
+                          nqp::stmts(
+                            nqp::bindpos(
+                              $!next,
+                              $level,
+                              nqp::bindpos(
+                                nqp::atpos($!reifieds,$level),
+                                nqp::bindpos_i(
+                                  $!indices,
+                                  $level,
+                                  nqp::add_i(
+                                    nqp::atpos_i($!indices,$level),
+                                    1
+                                  )
+                                ),
+                                $pulled
+                              )
+                            ),
+                            ($level = -1)  # done searching
+                          )
+                        )
+                      )
+                    ),
+                    nqp::if(
+                      nqp::iseq_i($level,-1),
+
+                      # was last iteration, free up everything now
+                      ($!next :=
+                        $!iterators := $!reifieds := $!indices :=
+#?if jvm
+                        Mu)
+#?endif
+#?if !jvm
+                        nqp::null)
+#?endif
+                    )
+                  )
+                ),
+                $result
+              )
+            )
+        }
+        method is-lazy() { nqp::p6bool($!lazy) }
+    }
     method CrossIterables(@iterables) {
         nqp::if(
           nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
 
           # actually need to do some crossing (probably)
-          class :: does Iterator {
-              has $!iterators;  # iterator per iterable, if any
-              has $!reifieds;   # cached values (either complete, or so far)
-              has $!indices;    # indices of virtual matrix of crossed values
-              has $!next;       # IterationBuffer with next values to return
-              has int $!lazy;   # whether the outer iterator is lazy
-              has int $!top;    # index of top reified/iterator
-
-              method !SET-SELF(\iterables) {
-                  nqp::stmts(
-                    (my $iterables := nqp::getattr(iterables,List,'$!reified')),
-                    (my int $elems  = nqp::elems($iterables)),
-                    ($!iterators   := nqp::setelems(nqp::list,$elems)),
-                    ($!reifieds    := nqp::setelems(nqp::list,$elems)),
-                    ($!next :=
-                      nqp::setelems(nqp::create(IterationBuffer),$elems)),
-
-                    # loop over all iterables
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-
-                      # set up initial value of index $i with...
-                      nqp::bindpos($!next,$i,nqp::if(
-                        nqp::iscont(my $elem := nqp::atpos($iterables,$i))
-                          || nqp::not_i(nqp::istype($elem,Iterable)),
-
-                        # single value same as reified list of 1
-                        nqp::bindpos(
-                          nqp::bindpos($!reifieds,$i,nqp::list),
-                          0,
-                          $elem
-                        ),
-
-                        # something more elaborate
-                        nqp::if(
-                          nqp::istype($elem,List)
-                            && nqp::not_i(nqp::isconcrete(
-                                 nqp::getattr($elem,List,'$!todo')
-                          )),
-
-                          # it's a List, may have a reified we can use directly
-                          nqp::if(
-                            nqp::isconcrete(
-                              $elem := nqp::getattr($elem,List,'$!reified')
-                            ) && nqp::isgt_i(nqp::elems($elem),0),
-
-                            # use the available reified directly
-                            nqp::stmts(
-                              nqp::bindpos($!reifieds,$i,$elem),
-                              nqp::atpos($elem,0)
-                            ),
-
-                            # cross with an empty list is always an empty list
-                            return Rakudo::Iterator.Empty
-                          ),
-
-                          # need to set up an iterator
-                          nqp::stmts(
-                            nqp::if($elem.is-lazy,($!lazy = 1)),
-                            nqp::if(
-                              nqp::eqaddr(
-                                (my $pulled :=
-                                  ($elem := $elem.iterator).pull-one),
-                                IterationEnd
-                              ),
-
-                              # cross with an empty list is an empty list
-                              (return Rakudo::Iterator.Empty),
-
-                              # set up the iterator stuff
-                              nqp::stmts(
-                                nqp::bindpos($!iterators,$i,$elem),
-                                nqp::bindpos($!reifieds,$i,nqp::list($pulled)),
-                                $pulled
-                              )
-                            )
-                          )
-                        )
-                      ))
-                    ),
-
-                    # indices start with 0 xx $elems
-                    ($!indices := nqp::setelems(nqp::list_i,$elems)),
-                    ($!top = nqp::sub_i($elems,1)),
-                    self
-                  )
-              }
-              method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
-              method pull-one() {
-                  nqp::if(
-#?if jvm
-                    nqp::eqaddr($!next,Mu),
-#?endif
-#?if !jvm
-                    nqp::isnull($!next),
-#?endif
-                    IterationEnd,
-                    nqp::stmts(
-
-                      # set up result of this pull
-                      (my $result := nqp::p6bindattrinvres(
-                        nqp::create(List),List,'$!reified',nqp::clone($!next))),
-
-                      # start working on next result
-                      nqp::unless(
-                        nqp::isnull(nqp::atpos($!iterators,$!top)),
-
-                        # top level is still iterator, fetch
-                        nqp::if(
-                          nqp::eqaddr(
-                            (my $pulled :=
-                              nqp::atpos($!iterators,$!top).pull-one),
-                            IterationEnd
-                          ),
-                          # iterator no more
-                          nqp::bindpos($!iterators,$!top,nqp::null),
-
-                          # push value, let normal reifier handler handle
-                          nqp::push(
-                            nqp::atpos($!reifieds,$!top),
-                            $pulled
-                          )
-                        )
-                      ),
-
-                      # no iterator, must use reified list
-                      nqp::if(
-                        nqp::islt_i(
-                          (my int $index =
-                            nqp::add_i(nqp::atpos_i($!indices,$!top),1)),
-                          nqp::elems(nqp::atpos($!reifieds,$!top))
-                        ),
-
-                        # within range, update next result and index
-                        nqp::bindpos($!next,$!top,
-                          nqp::atpos(
-                            nqp::atpos($!reifieds,$!top),
-                            nqp::bindpos_i($!indices,$!top,$index)
-                          )
-                        ),
-
-                        # need to update lower levels
-                        nqp::stmts(
-
-                          # update topmost value (go back to first)
-                          nqp::bindpos($!next,$!top,
-                            nqp::atpos(
-                              nqp::atpos($!reifieds,$!top),
-                              nqp::bindpos_i($!indices,$!top,0)
-                            )
-                          ),
-
-                          # until we're at the bottom
-                          (my int $level = $!top),
-                          nqp::while(
-                            nqp::isge_i(($level = nqp::sub_i($level,1)),0),
-                            nqp::if(
-                              nqp::isnull(nqp::atpos($!iterators,$level)),
-
-                              # can use reified list at this level
-                              nqp::if(
-                                nqp::islt_i(
-                                  ($index = nqp::add_i(
-                                    nqp::atpos_i($!indices,$level),1)),
-                                  nqp::elems(nqp::atpos($!reifieds,$level))
-                                ),
-
-                                # within range, update next result and index
-                                nqp::stmts(
-                                  nqp::bindpos($!next,$level,
-                                    nqp::atpos(
-                                      nqp::atpos($!reifieds,$level),
-                                      nqp::bindpos_i($!indices,$level,$index)
-                                    )
-                                  ),
-                                  ($level = -1)  # done searching
-                                ),
-
-                                # reset this level
-                                nqp::bindpos($!next,$level,
-                                  nqp::atpos(
-                                    nqp::atpos($!reifieds,$level),
-                                    nqp::bindpos_i($!indices,$level,0)
-                                  )
-                                )
-                              ),
-
-                              # still an iterator at this level
-                              nqp::if(
-                                nqp::eqaddr(
-                                  ($pulled :=
-                                    nqp::atpos($!iterators,$level).pull-one),
-                                  IterationEnd
-                                ),
-
-                                # exhausted iterator, reset to reified
-                                nqp::stmts(
-                                  nqp::bindpos($!iterators,$level,nqp::null),
-                                  nqp::bindpos($!next,$level,
-                                    nqp::atpos(
-                                      nqp::atpos($!reifieds,$level),
-                                      nqp::bindpos_i($!indices,$level,0)
-                                    )
-                                  )
-                                ),
-
-                                # new value, add to reified, update indices
-                                nqp::stmts(
-                                  nqp::bindpos(
-                                    $!next,
-                                    $level,
-                                  nqp::bindpos(
-                                      nqp::atpos($!reifieds,$level),
-                                      nqp::bindpos_i(
-                                        $!indices,
-                                        $level,
-                                        nqp::add_i(
-                                          nqp::atpos_i($!indices,$level),
-                                          1
-                                        )
-                                      ),
-                                      $pulled
-                                    )
-                                  ),
-                                  ($level = -1)  # done searching
-                                )
-                            )
-                            )
-                          ),
-                          nqp::if(
-                            nqp::iseq_i($level,-1),
-
-                            # was last iteration, free up everything now
-                            ($!next :=
-                              $!iterators := $!reifieds := $!indices :=
-#?if jvm
-                              Mu)
-#?endif
-#?if !jvm
-                              nqp::null)
-#?endif
-                          )
-                        )
-                      ),
-                      $result
-                    )
-                  )
-              }
-              method is-lazy() { nqp::p6bool($!lazy) }
-          }.new(@iterables),
+          CrossIterables.new(@iterables),
 
           # simpler cases
           nqp::if(
@@ -1062,265 +1061,265 @@ class Rakudo::Iterator {
     # the result with the given mapper Callable.  Basically the
     # functionality of @a Xop @b (with the op  -> mapper functionality
     # to be supplied externally).
+    my class CrossIterablesMap does Iterator {
+        has $!iterators;  # iterator per iterable, if any
+        has $!reifieds;   # cached values (either complete, or so far)
+        has $!indices;    # indices of virtual matrix of crossed values
+        has $!next;       # IterationBuffer with next values to return
+        has $!mapper;     # Callable to do final result mapping
+        has int $!lazy;   # whether the outer iterator is lazy
+        has int $!top;    # index of top reified/iterator
+
+        method !SET-SELF(\iterables,\mapper) {
+            nqp::stmts(
+              (my $iterables := nqp::getattr(iterables,List,'$!reified')),
+              (my int $elems  = nqp::elems($iterables)),
+              ($!iterators   := nqp::setelems(nqp::list,$elems)),
+              ($!reifieds    := nqp::setelems(nqp::list,$elems)),
+              ($!next := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+
+              # loop over all iterables
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+
+                # set up initial value of index $i with...
+                nqp::bindpos($!next,$i,nqp::if(
+                  nqp::iscont(my $elem := nqp::atpos($iterables,$i))
+                    || nqp::not_i(nqp::istype($elem,Iterable)),
+
+                  # single value same as reified list of 1
+                  nqp::bindpos(
+                    nqp::bindpos($!reifieds,$i,nqp::list),
+                    0,
+                    $elem
+                  ),
+
+                  # something more elaborate
+                  nqp::if(
+                    nqp::istype($elem,List)
+                      && nqp::not_i(nqp::isconcrete(
+                           nqp::getattr($elem,List,'$!todo')
+                    )),
+
+                    # it's a List, may have a reified we can use directly
+                    nqp::if(
+                      nqp::isnull(
+                        $elem := nqp::getattr($elem,List,'$!reified')
+                      ) || nqp::iseq_i(nqp::elems($elem),0),
+
+                      # cross with an empty list is always an empty list
+                      (return Rakudo::Iterator.Empty),
+
+                      # use the available reified directly
+                      nqp::stmts(
+                        nqp::bindpos($!reifieds,$i,$elem),
+                        nqp::atpos($elem,0)
+                      )
+                    ),
+
+                    # need to set up an iterator
+                    nqp::stmts(
+                      nqp::if($elem.is-lazy,($!lazy = 1)),
+                      nqp::if(
+                        nqp::eqaddr(
+                          (my $pulled :=
+                            ($elem := $elem.iterator).pull-one),
+                          IterationEnd
+                        ),
+
+                        # cross with an empty list is an empty list
+                        (return Rakudo::Iterator.Empty),
+
+                        # set up the iterator stuff
+                        nqp::stmts(
+                          nqp::bindpos($!iterators,$i,$elem),
+                          nqp::bindpos($!reifieds,$i,nqp::list($pulled)),
+                          $pulled
+                        )
+                      )
+                    )
+                  )
+                ))
+              ),
+
+              # indices start with 0 xx $elems
+              ($!indices := nqp::setelems(nqp::list_i,$elems)),
+              ($!top = nqp::sub_i($elems,1)),
+              ($!mapper := mapper),
+              self
+            )
+        }
+        method new(\its,\map) { nqp::create(self)!SET-SELF(its,map) }
+        method pull-one() {
+            nqp::if(
+#?if jvm
+              nqp::eqaddr($!next,Mu),
+#?endif
+#?if !jvm
+              nqp::isnull($!next),
+#?endif
+              IterationEnd,
+              nqp::stmts(
+
+                # set up result of this pull
+                # we *MUST* clone here, because we cannot be sure
+                # the mapper isn't going to throw the buffer away.
+                (my $result := $!mapper(nqp::clone($!next))),
+
+                # start working on next result
+                nqp::unless(
+                  nqp::isnull(nqp::atpos($!iterators,$!top)),
+
+                  # top level is still iterator, fetch
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my $pulled :=
+                        nqp::atpos($!iterators,$!top).pull-one),
+                      IterationEnd
+                    ),
+                    # iterator no more
+                    nqp::bindpos($!iterators,$!top,nqp::null),
+
+                    # push value, let normal reifier handler handle
+                    nqp::push(
+                      nqp::atpos($!reifieds,$!top),
+                      $pulled
+                    )
+                  )
+                ),
+
+                # no iterator, must use reified list
+                nqp::if(
+                  nqp::islt_i(
+                    (my int $index =
+                      nqp::add_i(nqp::atpos_i($!indices,$!top),1)),
+                    nqp::elems(nqp::atpos($!reifieds,$!top))
+                  ),
+
+                  # within range, update next result and index
+                  nqp::bindpos($!next,$!top,
+                    nqp::atpos(
+                      nqp::atpos($!reifieds,$!top),
+                      nqp::bindpos_i($!indices,$!top,$index)
+                    )
+                  ),
+
+                  # need to update lower levels
+                  nqp::stmts(
+
+                    # update topmost value (go back to first)
+                    nqp::bindpos($!next,$!top,
+                      nqp::atpos(
+                        nqp::atpos($!reifieds,$!top),
+                        nqp::bindpos_i($!indices,$!top,0)
+                      )
+                    ),
+
+                    # until we're at the bottom
+                    (my int $level = $!top),
+                    nqp::while(
+                      nqp::isge_i(($level = nqp::sub_i($level,1)),0),
+                      nqp::if(
+                        nqp::isnull(nqp::atpos($!iterators,$level)),
+
+                        # can use reified list at this level
+                        nqp::if(
+                          nqp::islt_i(
+                            ($index = nqp::add_i(
+                              nqp::atpos_i($!indices,$level),1)),
+                            nqp::elems(nqp::atpos($!reifieds,$level))
+                          ),
+
+                          # within range, update next result and index
+                          nqp::stmts(
+                            nqp::bindpos($!next,$level,
+                              nqp::atpos(
+                                nqp::atpos($!reifieds,$level),
+                                nqp::bindpos_i($!indices,$level,$index)
+                              )
+                            ),
+                            ($level = -1)  # done searching
+                          ),
+
+                          # reset this level
+                          nqp::bindpos($!next,$level,
+                            nqp::atpos(
+                              nqp::atpos($!reifieds,$level),
+                              nqp::bindpos_i($!indices,$level,0)
+                            )
+                          )
+                        ),
+
+                        # still an iterator at this level
+                        nqp::if(
+                          nqp::eqaddr(
+                            ($pulled :=
+                              nqp::atpos($!iterators,$level).pull-one),
+                            IterationEnd
+                          ),
+
+                          # exhausted iterator, reset to reified
+                          nqp::stmts(
+                            nqp::bindpos($!iterators,$level,nqp::null),
+                            nqp::bindpos($!next,$level,
+                              nqp::atpos(
+                                nqp::atpos($!reifieds,$level),
+                                nqp::bindpos_i($!indices,$level,0)
+                              )
+                            )
+                          ),
+
+                          # new value, add to reified, update indices
+                          nqp::stmts(
+                            nqp::bindpos(
+                              $!next,
+                              $level,
+                              nqp::bindpos(
+                                nqp::atpos($!reifieds,$level),
+                                nqp::bindpos_i(
+                                  $!indices,
+                                  $level,
+                                  nqp::add_i(
+                                    nqp::atpos_i($!indices,$level),
+                                    1
+                                  )
+                                ),
+                                $pulled
+                              )
+                            ),
+                            ($level = -1)  # done searching
+                          )
+                        )
+                      )
+                    ),
+                    nqp::if(
+                      nqp::iseq_i($level,-1),
+
+                      # was last iteration, free up everything now
+                      ($!next :=
+                        $!iterators := $!reifieds := $!indices :=
+#?if jvm
+                        Mu)
+#?endif
+#?if !jvm
+                        nqp::null)
+#?endif
+                    )
+                  )
+                ),
+                $result
+              )
+            )
+        }
+        method is-lazy() { nqp::p6bool($!lazy) }
+    }
     method CrossIterablesMap(@iterables,&mapper) {
         nqp::if(
           nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
 
           # actually need to do some crossing (probably)
-          class :: does Iterator {
-              has $!iterators;  # iterator per iterable, if any
-              has $!reifieds;   # cached values (either complete, or so far)
-              has $!indices;    # indices of virtual matrix of crossed values
-              has $!next;       # IterationBuffer with next values to return
-              has $!mapper;     # Callable to do final result mapping
-              has int $!lazy;   # whether the outer iterator is lazy
-              has int $!top;    # index of top reified/iterator
-
-              method !SET-SELF(\iterables,\mapper) {
-                  nqp::stmts(
-                    (my $iterables := nqp::getattr(iterables,List,'$!reified')),
-                    (my int $elems  = nqp::elems($iterables)),
-                    ($!iterators   := nqp::setelems(nqp::list,$elems)),
-                    ($!reifieds    := nqp::setelems(nqp::list,$elems)),
-                    ($!next :=
-                      nqp::setelems(nqp::create(IterationBuffer),$elems)),
-
-                    # loop over all iterables
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-
-                      # set up initial value of index $i with...
-                      nqp::bindpos($!next,$i,nqp::if(
-                        nqp::iscont(my $elem := nqp::atpos($iterables,$i))
-                          || nqp::not_i(nqp::istype($elem,Iterable)),
-
-                        # single value same as reified list of 1
-                        nqp::bindpos(
-                          nqp::bindpos($!reifieds,$i,nqp::list),
-                          0,
-                          $elem
-                        ),
-
-                        # something more elaborate
-                        nqp::if(
-                          nqp::istype($elem,List)
-                            && nqp::not_i(nqp::isconcrete(
-                                 nqp::getattr($elem,List,'$!todo')
-                          )),
-
-                          # it's a List, may have a reified we can use directly
-                          nqp::if(
-                            nqp::isnull(
-                              $elem := nqp::getattr($elem,List,'$!reified')
-                            ) || nqp::iseq_i(nqp::elems($elem),0),
-
-                            # cross with an empty list is always an empty list
-                            (return Rakudo::Iterator.Empty),
-
-                            # use the available reified directly
-                            nqp::stmts(
-                              nqp::bindpos($!reifieds,$i,$elem),
-                              nqp::atpos($elem,0)
-                            )
-                          ),
-
-                          # need to set up an iterator
-                          nqp::stmts(
-                            nqp::if($elem.is-lazy,($!lazy = 1)),
-                            nqp::if(
-                              nqp::eqaddr(
-                                (my $pulled :=
-                                  ($elem := $elem.iterator).pull-one),
-                                IterationEnd
-                              ),
-
-                              # cross with an empty list is an empty list
-                              (return Rakudo::Iterator.Empty),
-
-                              # set up the iterator stuff
-                              nqp::stmts(
-                                nqp::bindpos($!iterators,$i,$elem),
-                                nqp::bindpos($!reifieds,$i,nqp::list($pulled)),
-                                $pulled
-                              )
-                            )
-                          )
-                        )
-                      ))
-                    ),
-
-                    # indices start with 0 xx $elems
-                    ($!indices := nqp::setelems(nqp::list_i,$elems)),
-                    ($!top = nqp::sub_i($elems,1)),
-                    ($!mapper := mapper),
-                    self
-                  )
-              }
-              method new(\its,\map) { nqp::create(self)!SET-SELF(its,map) }
-              method pull-one() {
-                  nqp::if(
-#?if jvm
-                    nqp::eqaddr($!next,Mu),
-#?endif
-#?if !jvm
-                    nqp::isnull($!next),
-#?endif
-                    IterationEnd,
-                    nqp::stmts(
-
-                      # set up result of this pull
-                      # we *MUST* clone here, because we cannot be sure
-                      # the mapper isn't going to throw the buffer away.
-                      (my $result := $!mapper(nqp::clone($!next))),
-
-                      # start working on next result
-                      nqp::unless(
-                        nqp::isnull(nqp::atpos($!iterators,$!top)),
-
-                        # top level is still iterator, fetch
-                        nqp::if(
-                          nqp::eqaddr(
-                            (my $pulled :=
-                              nqp::atpos($!iterators,$!top).pull-one),
-                            IterationEnd
-                          ),
-                          # iterator no more
-                          nqp::bindpos($!iterators,$!top,nqp::null),
-
-                          # push value, let normal reifier handler handle
-                          nqp::push(
-                            nqp::atpos($!reifieds,$!top),
-                            $pulled
-                          )
-                        )
-                      ),
-
-                      # no iterator, must use reified list
-                      nqp::if(
-                        nqp::islt_i(
-                          (my int $index =
-                            nqp::add_i(nqp::atpos_i($!indices,$!top),1)),
-                          nqp::elems(nqp::atpos($!reifieds,$!top))
-                        ),
-
-                        # within range, update next result and index
-                        nqp::bindpos($!next,$!top,
-                          nqp::atpos(
-                            nqp::atpos($!reifieds,$!top),
-                            nqp::bindpos_i($!indices,$!top,$index)
-                          )
-                        ),
-
-                        # need to update lower levels
-                        nqp::stmts(
-
-                          # update topmost value (go back to first)
-                          nqp::bindpos($!next,$!top,
-                            nqp::atpos(
-                              nqp::atpos($!reifieds,$!top),
-                              nqp::bindpos_i($!indices,$!top,0)
-                            )
-                          ),
-
-                          # until we're at the bottom
-                          (my int $level = $!top),
-                          nqp::while(
-                            nqp::isge_i(($level = nqp::sub_i($level,1)),0),
-                            nqp::if(
-                              nqp::isnull(nqp::atpos($!iterators,$level)),
-
-                              # can use reified list at this level
-                              nqp::if(
-                                nqp::islt_i(
-                                  ($index = nqp::add_i(
-                                    nqp::atpos_i($!indices,$level),1)),
-                                  nqp::elems(nqp::atpos($!reifieds,$level))
-                                ),
-
-                                # within range, update next result and index
-                                nqp::stmts(
-                                  nqp::bindpos($!next,$level,
-                                    nqp::atpos(
-                                      nqp::atpos($!reifieds,$level),
-                                      nqp::bindpos_i($!indices,$level,$index)
-                                    )
-                                  ),
-                                  ($level = -1)  # done searching
-                                ),
-
-                                # reset this level
-                                nqp::bindpos($!next,$level,
-                                  nqp::atpos(
-                                    nqp::atpos($!reifieds,$level),
-                                    nqp::bindpos_i($!indices,$level,0)
-                                  )
-                                )
-                              ),
-
-                              # still an iterator at this level
-                              nqp::if(
-                                nqp::eqaddr(
-                                  ($pulled :=
-                                    nqp::atpos($!iterators,$level).pull-one),
-                                  IterationEnd
-                                ),
-
-                                # exhausted iterator, reset to reified
-                                nqp::stmts(
-                                  nqp::bindpos($!iterators,$level,nqp::null),
-                                  nqp::bindpos($!next,$level,
-                                    nqp::atpos(
-                                      nqp::atpos($!reifieds,$level),
-                                      nqp::bindpos_i($!indices,$level,0)
-                                    )
-                                  )
-                                ),
-
-                                # new value, add to reified, update indices
-                                nqp::stmts(
-                                  nqp::bindpos(
-                                    $!next,
-                                    $level,
-                                  nqp::bindpos(
-                                      nqp::atpos($!reifieds,$level),
-                                      nqp::bindpos_i(
-                                        $!indices,
-                                        $level,
-                                        nqp::add_i(
-                                          nqp::atpos_i($!indices,$level),
-                                          1
-                                        )
-                                      ),
-                                      $pulled
-                                    )
-                                  ),
-                                  ($level = -1)  # done searching
-                                )
-                            )
-                            )
-                          ),
-                          nqp::if(
-                            nqp::iseq_i($level,-1),
-
-                            # was last iteration, free up everything now
-                            ($!next :=
-                              $!iterators := $!reifieds := $!indices :=
-#?if jvm
-                              Mu)
-#?endif
-#?if !jvm
-                              nqp::null)
-#?endif
-                          )
-                        )
-                      ),
-                      $result
-                    )
-                  )
-              }
-              method is-lazy() { nqp::p6bool($!lazy) }
-          }.new(@iterables,&mapper),
+          CrossIterablesMap.new(@iterables,&mapper),
 
           # simpler cases
           nqp::if(
@@ -1349,77 +1348,78 @@ class Rakudo::Iterator {
     # Returns an iterator that handles all properties of a -while- with
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition..
-    method CStyleLoop(&body,&cond,&afterwards) {
-        class :: does SlippyIterator {
-            has &!body;
-            has &!cond;
-            has &!afterwards;
-            has int $!seen-first;
+    my class CStyleLoop does SlippyIterator {
+        has &!body;
+        has &!cond;
+        has &!afterwards;
+        has int $!seen-first;
 
-            method !SET-SELF(\body,\cond,\afterwards) {
+        method !SET-SELF(\body,\cond,\afterwards) {
+            nqp::stmts(
+              (&!body := body),
+              (&!cond := cond),
+              (&!afterwards := afterwards),
+              self
+            )
+        }
+        method new(\body,\cond,\afterwards) {
+            nqp::create(self)!SET-SELF(body,cond,afterwards)
+        }
+
+        method pull-one() {
+            if $!slipping && nqp::not_i(
+                nqp::eqaddr((my $result := self.slip-one),IterationEnd)
+            ) {
+                $result
+            }
+            else {
                 nqp::stmts(
-                  (&!body := body),
-                  (&!cond := cond),
-                  (&!afterwards := afterwards),
-                  self
-                )
-            }
-            method new(\body,\cond,\afterwards) {
-                nqp::create(self)!SET-SELF(body,cond,afterwards)
-            }
-
-            method pull-one() {
-                if $!slipping && nqp::not_i(
-                    nqp::eqaddr((my $result := self.slip-one),IterationEnd)
-                ) {
-                    $result
-                }
-                else {
+                  nqp::if(
+                    $!seen-first,
+                    &!afterwards(),
+                    ($!seen-first = 1)
+                  ),
+                  nqp::if(
+                    &!cond(),
                     nqp::stmts(
-                      nqp::if(
-                        $!seen-first,
-                        &!afterwards(),
-                        ($!seen-first = 1)
-                      ),
-                      nqp::if(
-                        &!cond(),
+                      nqp::until(
+                        (my int $stopped),
                         nqp::stmts(
-                          nqp::until(
-                            (my int $stopped),
-                            nqp::stmts(
-                              ($stopped = 1),
-                              nqp::handle(
-                                nqp::if(
-                                  nqp::istype(($result := &!body()),Slip),
-                                  nqp::if(
-                                    nqp::eqaddr(
-                                      ($result := self.start-slip($result)),
-                                      IterationEnd
-                                    ),
-                                    nqp::stmts(
-                                      &!afterwards(),
-                                      ($stopped = nqp::if(&!cond(),0,1))
-                                    )
-                                  )
+                          ($stopped = 1),
+                          nqp::handle(
+                            nqp::if(
+                              nqp::istype(($result := &!body()),Slip),
+                              nqp::if(
+                                nqp::eqaddr(
+                                  ($result := self.start-slip($result)),
+                                  IterationEnd
                                 ),
-                                'NEXT', nqp::stmts(
+                                nqp::stmts(
                                   &!afterwards(),
                                   ($stopped = nqp::if(&!cond(),0,1))
-                                ),
-                                'REDO', ($stopped = 0),
-                                'LAST', ($result := IterationEnd)
+                                )
                               )
                             ),
-                            :nohandler
-                          ),
-                          $result
+                            'NEXT', nqp::stmts(
+                              &!afterwards(),
+                              ($stopped = nqp::if(&!cond(),0,1))
+                            ),
+                            'REDO', ($stopped = 0),
+                            'LAST', ($result := IterationEnd)
+                          )
                         ),
-                        IterationEnd
-                      )
-                    )
-                }
+                        :nohandler
+                      ),
+                      $result
+                    ),
+                    IterationEnd
+                  )
+                )
             }
-        }.new(&body,&cond,&afterwards)
+        }
+    }
+    method CStyleLoop(&body,&cond,&afterwards) {
+        CStyleLoop.new(&body,&cond,&afterwards)
     }
 
     my role CountOnlyDelegate {
@@ -1466,100 +1466,98 @@ class Rakudo::Iterator {
     # indefinitely (even if the source iterator wasn't actually exhausted).
     # Only if the source iterator did not produce any values at all, then
     # the resulting iterator will not produce any either.
-    method DWIM(\source) {
-        class :: does Iterator {
-            has $!source;
-            has $!buffer;
-            has int $!ended;
-            has int $!whatever;
-            has int $!i;
-            method !SET-SELF(\source) {
-                $!source := source;
-                $!buffer := IterationBuffer.new;
-                self
-            }
-            method new(\source) { nqp::create(self)!SET-SELF(source) }
+    my class DWIM does Iterator {
+        has $!source;
+        has $!buffer;
+        has int $!ended;
+        has int $!whatever;
+        has int $!i;
+        method !SET-SELF(\source) {
+            $!source := source;
+            $!buffer := IterationBuffer.new;
+            self
+        }
+        method new(\source) { nqp::create(self)!SET-SELF(source) }
 
-            method pull-one() is raw {
-                nqp::if(
-                  $!ended,
-                  nqp::if(                          # source exhausted
-                    $!whatever,
-                    nqp::if(                        # seen a Whatever
-                      nqp::elems($!buffer),
-                      nqp::atpos($!buffer,          # last value seen
-                        nqp::sub_i(nqp::elems($!buffer),1)),
-                      Nil                           # no last value seen
-                    ),
-                    nqp::atpos($!buffer,            # not seen, so modulo repeat
-                      nqp::mod_i(
-                        nqp::sub_i(($!i = nqp::add_i($!i,1)),1),
-                        nqp::elems($!buffer)
-                      )
-                    )
-                  ),
-                  nqp::if(                          # source not exhausted
-                    nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
-                    nqp::stmts(                     # exhausted now
-                      ($!ended = 1),
-                      nqp::if(
-                        nqp::iseq_i(nqp::elems($!buffer),0),
-                        IterationEnd,               # nothing to repeat, done
-                        self.pull-one               # last or repeat
-                      )
-                    ),
-                    nqp::if(                        # got a value
-                      nqp::istype($value,Whatever),
-                      nqp::stmts(                   # done, repeat last value
-                        ($!whatever = $!ended = 1),
-                        self.pull-one,
-                      ),
-                      nqp::stmts(                   # save / return value
-                        $!buffer.push($value),
-                        $value
-                      )
-                    )
-                  )
-                )
-            }
-
-            # Is the source iterator considered exhausted?
-            method ended() { nqp::p6bool($!ended) }
-
-            # Eat the iterator trying to find out the number of elements
-            # produced by the iterator.  Intended to provide information
-            # for error messages.
-            method count-elems() {
-                nqp::if(
-                  $!ended,
+        method pull-one() is raw {
+            nqp::if(
+              $!ended,
+              nqp::if(                          # source exhausted
+                $!whatever,
+                nqp::if(                        # seen a Whatever
                   nqp::elems($!buffer),
-                  nqp::stmts(
-                    (my int $elems = nqp::elems($!buffer)),
-                    nqp::until(
-                      nqp::eqaddr($!source.pull-one,IterationEnd),
-                      $elems = nqp::add_i($elems,1)
-                    ),
-                    $elems
+                  nqp::atpos($!buffer,          # last value seen
+                    nqp::sub_i(nqp::elems($!buffer),1)),
+                  Nil                           # no last value seen
+                ),
+                nqp::atpos($!buffer,            # not seen, so modulo repeat
+                  nqp::mod_i(
+                    nqp::sub_i(($!i = nqp::add_i($!i,1)),1),
+                    nqp::elems($!buffer)
                   )
                 )
-            }
-        }.new(source)
+              ),
+              nqp::if(                          # source not exhausted
+                nqp::eqaddr((my \value := $!source.pull-one),IterationEnd),
+                nqp::stmts(                     # exhausted now
+                  ($!ended = 1),
+                  nqp::if(
+                    nqp::iseq_i(nqp::elems($!buffer),0),
+                    IterationEnd,               # nothing to repeat, done
+                    self.pull-one               # last or repeat
+                  )
+                ),
+                nqp::if(                        # got a value
+                  nqp::istype(value,Whatever),
+                  nqp::stmts(                   # done, repeat last value
+                    ($!whatever = $!ended = 1),
+                    self.pull-one,
+                  ),
+                  nqp::stmts(                   # save / return value
+                    $!buffer.push(value),
+                    value
+                  )
+                )
+              )
+            )
+        }
+
+        # Is the source iterator considered exhausted?
+        method ended() { nqp::p6bool($!ended) }
+
+        # Eat the iterator trying to find out the number of elements
+        # produced by the iterator.  Intended to provide information
+        # for error messages.
+        method count-elems() {
+            nqp::if(
+              $!ended,
+              nqp::elems($!buffer),
+              nqp::stmts(
+                (my int $elems = nqp::elems($!buffer)),
+                nqp::until(
+                  nqp::eqaddr($!source.pull-one,IterationEnd),
+                  $elems = nqp::add_i($elems,1)
+                ),
+                $elems
+              )
+            )
+        }
     }
+    method DWIM(\source) { DWIM.new(source) }
 
     # Returns a sentinel Iterator object that will never generate any value.
     # Does not take a parameter.
-    method Empty() {
-        BEGIN class :: does Iterator {
-            method new() { nqp::create(self) }
-            method pull-one(--> IterationEnd)  { }
-            method push-all($ --> IterationEnd) { }
-            method sink-all(--> IterationEnd)  { }
-            method skip-one(--> 0) { }
-            method skip-at-least($ --> 0) { }
-            method count-only(--> 0) { }
-            method bool-only(--> False) { }
-        }.new
+    my class Empty does Iterator {
+        method new() { nqp::create(self) }
+        method pull-one(--> IterationEnd)  { }
+        method push-all($ --> IterationEnd) { }
+        method sink-all(--> IterationEnd)  { }
+        method skip-one(--> 0) { }
+        method skip-at-least($ --> 0) { }
+        method count-only(--> 0) { }
+        method bool-only(--> False) { }
     }
+    method Empty() { BEGIN Empty.new }
 
     # Returns at most N items, then calls .sink-all on source. Optionally,
     # executes a Callable when either N items were returned or original iterator

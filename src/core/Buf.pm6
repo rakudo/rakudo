@@ -144,17 +144,16 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?endif
 
-    multi method list(Blob:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Blobby {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-                  nqp::atpos_i($!blob,$!i),
-                  IterationEnd
-                )
-            }
-        }.new(self)).cache
+    my class BlobAsList does Rakudo::Iterator::Blobby {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+              nqp::atpos_i($!blob,$!i),
+              IterationEnd
+            )
+        }
     }
+    multi method list(Blob:D:) { Seq.new(BlobAsList.new(self)).cache }
 
     multi method gist(Blob:D:) {
         self.^name ~ ':0x<' ~ self.map( -> \el {

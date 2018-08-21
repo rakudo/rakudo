@@ -1141,104 +1141,105 @@ my class Rakudo::Internals {
           !! path;
     }
 
+    my class DirRecurse does Iterator {
+        has str $!abspath;
+        has $!handle;
+        has $!dir;
+        has $!file,
+        has str $!dir-sep;
+        has $!todo;
+        has $!seen;
+        method !SET-SELF(\abspath,$!dir,$!file) {
+            nqp::stmts(
+              ($!abspath = abspath),
+              ($!handle := nqp::opendir($!abspath)),
+              ($!dir-sep = $*SPEC.dir-sep),
+              ($!todo   := nqp::list_s),
+              ($!seen   := nqp::hash($!abspath,1)),
+              ($!abspath = nqp::concat($!abspath,$!dir-sep)),
+              self
+            )
+        }
+        method new(\abspath,\dir,\file) {
+            nqp::if(
+              nqp::stat(abspath,nqp::const::STAT_EXISTS)
+                && nqp::stat(abspath,nqp::const::STAT_ISDIR),
+              nqp::create(self)!SET-SELF(abspath,dir,file),
+              Rakudo::Iterator.Empty
+            )
+        }
+
+        method !next() {
+            nqp::while(
+              !$!handle
+                || nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
+                || nqp::iseq_i(nqp::chars($elem),0),
+              nqp::stmts(
+                nqp::if(
+                  nqp::defined($!handle),
+                  nqp::stmts(
+                    nqp::closedir($!handle),
+                    ($!handle := Any),
+                  )
+                ),
+                nqp::if(
+                  nqp::elems($!todo),
+                  nqp::stmts(
+                    ($!abspath = nqp::pop_s($!todo)),
+                    nqp::handle(
+                      ($!handle := nqp::opendir($!abspath)),
+                      'CATCH', 0
+                    ),
+                    ($!abspath = nqp::concat($!abspath,$!dir-sep))
+                  ),
+                  return ''
+                )
+              )
+            );
+            $elem
+        }
+        method pull-one() {
+            nqp::while(
+              nqp::chars(my str $entry = self!next),
+              nqp::if(
+                nqp::stat(
+                  (my str $path = nqp::concat($!abspath,$entry)),
+                  nqp::const::STAT_EXISTS
+                ),
+                nqp::if(
+                  nqp::stat($path,nqp::const::STAT_ISREG)
+                    && $!file.ACCEPTS($entry),
+                  (return $path),
+                  nqp::if(
+                    nqp::stat($path,nqp::const::STAT_ISDIR)
+                      && $!dir.ACCEPTS($entry),
+                    nqp::stmts(
+                      nqp::if(
+                        nqp::fileislink($path),
+                        $path = IO::Path.new(
+                          $path,:CWD($!abspath)).resolve.absolute
+                      ),
+                      nqp::unless(
+                        nqp::existskey($!seen,$path),
+                        nqp::stmts(
+                          nqp::bindkey($!seen,$path,1),
+                          nqp::push_s($!todo,$path)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            );
+            IterationEnd
+        }
+    }
     method DIR-RECURSE(
       \abspath,
       Mu :$dir  = -> str $elem { nqp::not_i(nqp::eqat($elem,'.',0)) },
       Mu :$file = True
     ) {
-        Seq.new(class :: does Iterator {
-            has str $!abspath;
-            has $!handle;
-            has $!dir;
-            has $!file,
-            has str $!dir-sep;
-            has $!todo;
-            has $!seen;
-            method !SET-SELF(\abspath,$!dir,$!file) {
-                nqp::stmts(
-                  ($!abspath = abspath),
-                  ($!handle := nqp::opendir($!abspath)),
-                  ($!dir-sep = $*SPEC.dir-sep),
-                  ($!todo   := nqp::list_s),
-                  ($!seen   := nqp::hash($!abspath,1)),
-                  ($!abspath = nqp::concat($!abspath,$!dir-sep)),
-                  self
-                )
-            }
-            method new(\abspath,\dir,\file) {
-                nqp::if(
-                  nqp::stat(abspath,nqp::const::STAT_EXISTS)
-                    && nqp::stat(abspath,nqp::const::STAT_ISDIR),
-                  nqp::create(self)!SET-SELF(abspath,dir,file),
-                  Rakudo::Iterator.Empty
-                )
-            }
-
-            method !next() {
-                nqp::while(
-                  !$!handle
-                    || nqp::isnull_s(my str $elem = nqp::nextfiledir($!handle))
-                    || nqp::iseq_i(nqp::chars($elem),0),
-                  nqp::stmts(
-                    nqp::if(
-                      nqp::defined($!handle),
-                      nqp::stmts(
-                        nqp::closedir($!handle),
-                        ($!handle := Any),
-                      )
-                    ),
-                    nqp::if(
-                      nqp::elems($!todo),
-                      nqp::stmts(
-                        ($!abspath = nqp::pop_s($!todo)),
-                        nqp::handle(
-                          ($!handle := nqp::opendir($!abspath)),
-                          'CATCH', 0
-                        ),
-                        ($!abspath = nqp::concat($!abspath,$!dir-sep))
-                      ),
-                      return ''
-                    )
-                  )
-                );
-                $elem
-            }
-            method pull-one() {
-                nqp::while(
-                  nqp::chars(my str $entry = self!next),
-                  nqp::if(
-                    nqp::stat(
-                      (my str $path = nqp::concat($!abspath,$entry)),
-                      nqp::const::STAT_EXISTS
-                    ),
-                    nqp::if(
-                      nqp::stat($path,nqp::const::STAT_ISREG)
-                        && $!file.ACCEPTS($entry),
-                      (return $path),
-                      nqp::if(
-                        nqp::stat($path,nqp::const::STAT_ISDIR)
-                          && $!dir.ACCEPTS($entry),
-                        nqp::stmts(
-                          nqp::if(
-                            nqp::fileislink($path),
-                            $path = IO::Path.new(
-                              $path,:CWD($!abspath)).resolve.absolute
-                          ),
-                          nqp::unless(
-                            nqp::existskey($!seen,$path),
-                            nqp::stmts(
-                              nqp::bindkey($!seen,$path,1),
-                              nqp::push_s($!todo,$path)
-                            )
-                          )
-                        )
-                      )
-                    )
-                  )
-                );
-                IterationEnd
-            }
-        }.new(abspath,$dir,$file))
+        Seq.new(DirRecurse.new(abspath,$dir,$file))
     }
 
     method FILETEST-E(Str:D \abspath) {
@@ -1506,81 +1507,83 @@ my class Rakudo::Internals {
         hash @keys Z self.coremap(op, h{@keys}, :$deep)
     }
 
-    multi method coremap(\op, \obj, Bool :$deep) {
-        my \iterable = obj.DEFINITE && nqp::istype(obj, Iterable)
-                ?? obj
-                !! obj.list;
+    my class CoreMap does SlippyIterator {
+        has &!block;
+        has $!source;
+        has $!deep;
 
-        my \result := class :: does SlippyIterator {
-            has &!block;
-            has $!source;
+        method new(&block, $source, $deep) {
+            my \iter := nqp::create(self);
+            nqp::bindattr(iter, self, '&!block', &block);
+            nqp::bindattr(iter, self, '$!source', $source);
+            nqp::bindattr(iter, self, '$!deep', $deep);
+            iter
+        }
 
-            method new(&block, $source) {
-                my $iter := nqp::create(self);
-                nqp::bindattr($iter, self, '&!block', &block);
-                nqp::bindattr($iter, self, '$!source', $source);
-                $iter
+        method is-lazy() {
+            $!source.is-lazy
+        }
+
+        method pull-one() is raw {
+            my int $redo = 1;
+            my $value;
+            my $result;
+            if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
+                $result
             }
-
-            method is-lazy() {
-                $!source.is-lazy
+            elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
+                $value
             }
-
-            method pull-one() is raw {
-                my int $redo = 1;
-                my $value;
-                my $result;
-                if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
-                    $result
-                }
-                elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
-                    $value
-                }
-                else {
-                    nqp::while(
-                        $redo,
-                        nqp::stmts(
-                            $redo = 0,
-                            nqp::handle(
-                                nqp::stmts(
+            else {
+                nqp::while(
+                    $redo,
+                    nqp::stmts(
+                        $redo = 0,
+                        nqp::handle(
+                            nqp::stmts(
+                                nqp::if(
+                                    $!deep,
                                     nqp::if(
-                                        $deep,
-                                        nqp::if(
-                                            nqp::istype($value, Iterable) && $value.DEFINITE,
-                                            ($result := Rakudo::Internals.coremap(&!block, $value, :$deep).item),
-                                            ($result := &!block($value))
-                                        ),
+                                        nqp::istype($value, Iterable) && $value.DEFINITE,
+                                        ($result := Rakudo::Internals.coremap(&!block, $value, :$!deep).item),
                                         ($result := &!block($value))
                                     ),
-                                    nqp::if(
-                                        nqp::istype($result, Slip),
-                                        nqp::stmts(
-                                            ($result := self.start-slip($result)),
-                                            nqp::if(
-                                                nqp::eqaddr($result, IterationEnd),
-                                                nqp::stmts(
-                                                    ($value := $!source.pull-one()),
-                                                    ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
-                                            ))
-                                        ))
+                                    ($result := &!block($value))
                                 ),
-                                'NEXT', nqp::stmts(
-                                    ($value := $!source.pull-one()),
-                                    nqp::eqaddr($value, IterationEnd)
-                                        ?? ($result := IterationEnd)
-                                        !! ($redo = 1)),
-                                'REDO', $redo = 1,
-                                'LAST', ($result := IterationEnd))),
-                        :nohandler);
-                    $result
-                }
+                                nqp::if(
+                                    nqp::istype($result, Slip),
+                                    nqp::stmts(
+                                        ($result := self.start-slip($result)),
+                                        nqp::if(
+                                            nqp::eqaddr($result, IterationEnd),
+                                            nqp::stmts(
+                                                ($value := $!source.pull-one()),
+                                                ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
+                                        ))
+                                    ))
+                            ),
+                            'NEXT', nqp::stmts(
+                                ($value := $!source.pull-one()),
+                                nqp::eqaddr($value, IterationEnd)
+                                    ?? ($result := IterationEnd)
+                                    !! ($redo = 1)),
+                            'REDO', $redo = 1,
+                            'LAST', ($result := IterationEnd))),
+                    :nohandler);
+                $result
             }
-        }.new(op, iterable.iterator);
+        }
+    }
+    multi method coremap(\op, \obj, Bool :$deep) {
+        my \iterable := obj.DEFINITE && nqp::istype(obj, Iterable)
+          ?? obj
+          !! obj.list;
 
-        my $type = nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
+        my \result := CoreMap.new(op, iterable.iterator, $deep);
+        my \type := nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
         my \buffer := IterationBuffer.new;
         result.push-all(buffer);
-        my \retval = $type.new;
+        my \retval := type.new;
         nqp::bindattr(retval, List, '$!reified', buffer);
         nqp::iscont(obj) ?? retval.item !! retval;
     }

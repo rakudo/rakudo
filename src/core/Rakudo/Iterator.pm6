@@ -1696,6 +1696,149 @@ class Rakudo::Iterator {
         }.new(source,indexes,offset,&out)
     }
 
+    # Return an iterator for the basic "gather" functionality on the
+    # given block.
+    my class Gather does SlippyIterator {
+        has &!resumption;
+        has $!push-target;
+        has int $!wanted;
+
+        my constant PROMPT = nqp::create(Mu);
+
+        method new(&block) {
+            my \iter = nqp::create(self);
+            my int $wanted;
+            my $taken;
+            my $taker := {
+                nqp::stmts(
+                  ($taken := nqp::getpayload(nqp::exception())),
+                  nqp::if(
+                    nqp::istype($taken, Slip),
+                    nqp::stmts(
+                      iter!start-slip-wanted($taken),
+                      ($wanted = nqp::getattr_i(iter, self, '$!wanted'))
+                    ),
+                    nqp::stmts(  # doesn't sink
+                      nqp::getattr(iter, self, '$!push-target').push($taken),
+                      ($wanted = nqp::bindattr_i(iter,self,'$!wanted',
+                        nqp::sub_i(nqp::getattr_i(iter,self,'$!wanted'),1)))
+                    )
+                  ),
+                  nqp::if(
+                    nqp::iseq_i($wanted,0),
+                    nqp::continuationcontrol(0, PROMPT, -> Mu \c {
+                        nqp::bindattr(iter, self, '&!resumption', c);
+                    })
+                  ),
+                  nqp::resume(nqp::exception())
+                )
+            }
+            nqp::bindattr(iter, self, '&!resumption', {
+                nqp::stmts(  # doesn't sink
+                  nqp::handle(&block(), 'TAKE', $taker()),
+                  nqp::continuationcontrol(0, PROMPT, -> | {
+                      nqp::bindattr(iter, self, '&!resumption', Callable)
+                  })
+                )
+            });
+            iter
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              $!slipping && nqp::not_i(
+                nqp::eqaddr((my \result = self.slip-one),IterationEnd)
+              ),
+              result,
+              nqp::stmts(
+                nqp::unless(
+                  nqp::isconcrete($!push-target),
+                  ($!push-target := nqp::create(IterationBuffer))
+                ),
+                ($!wanted = 1),
+                nqp::continuationreset(PROMPT, &!resumption),
+                nqp::if(
+                  nqp::isconcrete(&!resumption),
+                  nqp::shift($!push-target),
+                  IterationEnd
+                )
+              )
+            )
+        }
+
+        method push-exactly($target, int $n) {
+            nqp::if(
+              nqp::isgt_i($n,0),
+              nqp::stmts(
+                ($!wanted = $n),
+                ($!push-target := $target),
+                nqp::if(
+                  $!slipping && nqp::not_i(
+                    nqp::eqaddr(self!slip-wanted,IterationEnd)
+                  ),
+                  nqp::stmts(
+                    ($!push-target := nqp::null),
+                    $n
+                  ),
+                  nqp::stmts(
+                    nqp::continuationreset(PROMPT, &!resumption),
+                    ($!push-target := nqp::null),
+                    nqp::if(
+                      nqp::isconcrete(&!resumption),
+                      ($n - $!wanted),
+                      IterationEnd
+                    )
+                  )
+                )
+              )
+            )
+        }
+
+        method !start-slip-wanted(\slip --> Nil) {
+            my $value := self.start-slip(slip);
+            nqp::unless(
+              nqp::eqaddr($value,IterationEnd),
+              nqp::stmts(  # doesn't sink
+                $!push-target.push($value),
+                (my int $i = 0),
+                (my int $n = $!wanted),
+                nqp::while(  # doesn't sink
+                  nqp::islt_i($i = nqp::add_i($i,1),$n),
+                  nqp::if(
+                    nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                    last
+                  ),
+                  $!push-target.push($value)
+                ),
+                ($!wanted = $!wanted - $i)
+              )
+            )
+        }
+
+        method !slip-wanted() {
+            my int $i = -1;
+            my int $n = $!wanted;
+            my $value;
+            nqp::while(
+              nqp::islt_i($i = nqp::add_i($i,1),$n),
+              nqp::stmts(  # doesn't sink
+                nqp::if(
+                  nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                  last
+                ),
+                $!push-target.push($value)
+              )
+            );
+            $!wanted = nqp::sub_i($!wanted,$i);
+            nqp::if(
+              nqp::eqaddr($value,IterationEnd),
+              IterationEnd,
+              $n
+            )
+        }
+    }
+    method Gather(&block) { Gather.new(&block) }
+
     # Return an iterator for the given low/high integer value (inclusive).
     # Has dedicated .push-all for those cases one needs to fill a list
     # with consecutive numbers quickly.

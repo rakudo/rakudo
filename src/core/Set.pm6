@@ -17,48 +17,46 @@ my class Set does Setty {
         )
     }
 
-    method iterator(Set:D:) {
-        class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
+    my class Iterate does Rakudo::Iterator::Mappy {
+        method pull-one() {
+          nqp::if(
+            $!iter,
+            Pair.new(nqp::iterval(nqp::shift($!iter)),True),
+            IterationEnd
+          )
+        }
+    }
+    method iterator(Set:D:) { Iterate.new($!elems) }
+
+    my class KV does Rakudo::QuantHash::Quanty-kv {
+        method pull-one() is raw {
+            nqp::if(
+              $!on,
+              nqp::stmts(
+                ($!on = 0),
+                True,
+              ),
               nqp::if(
                 $!iter,
-                Pair.new(nqp::iterval(nqp::shift($!iter)),True),
+                nqp::stmts(
+                  ($!on = 1),
+                  nqp::iterval(nqp::shift($!iter))
+                ),
                 IterationEnd
               )
-            }
-        }.new($!elems)
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                $target.push(nqp::iterval(nqp::shift($!iter))),
+                $target.push(True)
+              )
+            )
+        }
     }
-
-    multi method kv(Set:D:) {
-        Seq.new(class :: does Rakudo::QuantHash::Quanty-kv {
-            method pull-one() is raw {
-                nqp::if(
-                  $!on,
-                  nqp::stmts(
-                    ($!on = 0),
-                    True,
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($!on = 1),
-                      nqp::iterval(nqp::shift($!iter))
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    $target.push(nqp::iterval(nqp::shift($!iter))),
-                    $target.push(True)
-                  )
-                )
-            }
-        }.new(self))
-    }
+    multi method kv(Set:D:) { Seq.new(KV.new(self)) }
     multi method values(Set:D:) { True xx self.total }
 
     multi method grab(Set:D: $count?) {

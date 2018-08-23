@@ -6178,6 +6178,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 $past.name( $name );
+                $*W.cur_lexpad().no_inline(1) if $name eq 'EVAL';
             }
         }
         elsif $<quote> {
@@ -10029,6 +10030,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     nqp::istype($_,QAST::Want) && nqp::istype($_[0],QAST::WVal) && $_[1] eq 'Ss' && nqp::istype($_[2],QAST::SVal);
             }
             $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval($/);
+            $*W.cur_lexpad().no_inline(1);
         }
         elsif nqp::existskey(%dispatchered, $name) {
             $*W.mark_no_inline_upto_dispatcher();

@@ -4624,6 +4624,7 @@ class Perl6::World is HLL::World {
         # Handle things starting with pseudo-package.
         if self.is_pseudo_package(@name[0]) && @name[0] ne 'GLOBAL' && @name[0] ne 'PROCESS' {
             my $lookup;
+            $*W.cur_lexpad().no_inline(1);
             for @name {
                 if $lookup {
                     $lookup := QAST::Op.new( :op('who'), $lookup );

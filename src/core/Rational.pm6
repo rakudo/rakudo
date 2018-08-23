@@ -129,7 +129,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                     $fract *= 1000000;
                 }
                 else {
-                    $precision = nqp::chars($!denominator.Str) + nqp::chars($whole.Str) + 1;
+                    $precision = nqp::chars($!denominator.Str) + 1;
                     $fract *= nqp::pow_I(10, nqp::decont($precision), Num, Int);
                 }
             }

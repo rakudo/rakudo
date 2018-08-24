@@ -123,120 +123,46 @@ my class Range is Cool does Iterable does Positional {
         method pull-one() { ++$!i }
         method is-lazy()  { True  }
     }
-    my class CharFromTo does Iterator {
-        has int $!i;
-        has int $!n;
-
-        method !SET-SELF(\from,\end,\excludes-min,\excludes-max) {
-            $!i = nqp::ord(nqp::unbox_s(from))
-                - (excludes-min ?? 0 !! 1);
-            $!n = nqp::ord(nqp::unbox_s(end))
-                - (excludes-max ?? 1 !! 0);
-            self
-        }
-        method new(\from,\end,\excludes-min,\excludes-max) {
-            nqp::create(self)!SET-SELF(
-               from,end,excludes-min,excludes-max)
-        }
-        method pull-one() {
-            ( $!i = $!i + 1 ) <= $!n
-              ?? nqp::chr($!i)
-              !! IterationEnd
-        }
-        method push-all($target --> IterationEnd) {
-            my int $i = $!i;
-            my int $n = $!n;
-            $target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
-            $!i = $i;
-        }
-        method count-only() { nqp::p6box_i($!n - $!i) }
-        method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
-        method sink-all(--> IterationEnd) { $!i = $!n }
-    }
-    my class Succ does Iterator {
-        has $!i;
-        has $!e;
-        has int $!exclude;
-
-        method !SET-SELF(\i,\exclude,\e) {
-            $!i       = i;
-            $!exclude = exclude.Int;
-            $!e       = e;
-            self
-        }
-        method new(\i,\exclude,\e) {
-            nqp::create(self)!SET-SELF(i,exclude,e)
-        }
-
-        method pull-one() {
-            if $!exclude ?? $!i before $!e !! not $!i after $!e {
-                my Mu $i = $!i;
-                $!i = $i.succ;
-                $i
-            }
-            else {
-                IterationEnd
-            }
-        }
-        method push-all($target --> IterationEnd) {
-            my Mu $i = $!i;
-            my Mu $e = $!e;
-            if $!exclude {
-                while $i before $e {
-                    $target.push(nqp::clone($i));
-                    $i = $i.succ;
-                }
-            }
-            else {
-                while not $i after $e {
-                    $target.push(nqp::clone($i));
-                    $i = $i.succ;
-                }
-            }
-            $!i = $e.succ;
-        }
-        method sink-all(--> IterationEnd) { $!i = $!e.succ }
-    }
 
     method iterator() {
-        # can use native ints
-        if nqp::istype($!min,Int) && nqp::not_i(nqp::isbig_I(nqp::decont($!min)))
-          && ((nqp::istype($!max,Int) && nqp::not_i(nqp::isbig_I(nqp::decont($!max)))) || $!max == Inf) {
-            Rakudo::Iterator.IntRange(
-              $!min + $!excludes-min,
-              $!max - $!excludes-max
-            )
-        }
-
-        # doesn't make much sense, but there you go
-        elsif $!min === -Inf {
-            NegativeInf.new
-        }
-
-        # Also something quick and easy for 1..* style things
-        elsif nqp::istype($!min, Numeric) && $!max === Inf {
-            NumFromInf.new($!min + $!excludes-min)
-        }
-
-        # if we have (simple) char range
-        elsif nqp::istype($!min,Str) {
-            $!min after $!max
-              ?? ().iterator
-              !! $!min.chars == 1 && nqp::istype($!max,Str) && $!max.chars == 1
-                ?? CharFromTo.new($!min,$!max,$!excludes-min,$!excludes-max)
-                !! SEQUENCE(
-                       ($!excludes-min ?? $!min.succ !! $!min),
-                       $!max, :exclude_end($!excludes-max)
-                   ).iterator
-        }
-
-        # General case according to spec
-        else {
-            Succ.new(
-              $!excludes-min ?? $!min.succ !! $!min,$!excludes-max,$!max
-            )
-        }
+        $!min after $!max
+          # nothing to iterate over
+          ?? Rakudo::Iterator.Empty()
+          !! nqp::istype($!min,Int)
+            && nqp::not_i(nqp::isbig_I(nqp::decont($!min)))
+            && ((nqp::istype($!max,Int)
+                 && nqp::not_i(nqp::isbig_I(nqp::decont($!max))))
+                 || $!max == Inf)
+            # can use native ints
+            ?? Rakudo::Iterator.IntRange(
+                 $!min + $!excludes-min,
+                 $!max - $!excludes-max
+               )
+            !! $!min === Inf
+              # doesn't make much sense, but there you go
+              ?? NegativeInf.new
+              !! nqp::istype($!min, Numeric) && $!max === Inf
+                # something quick and easy for 1..* style things
+                ?? NumFromInf.new($!min + $!excludes-min)
+                !! nqp::istype($!min,Str) && $!min.chars == 1
+                  && nqp::istype($!max,Str) && $!max.chars == 1
+                  # we have (simple) char range
+                  ?? Rakudo::Iterator.CharFromTo(
+                       $!min,$!max,$!excludes-min,$!excludes-max
+                     )
+                  !! $!max === Inf
+                    # open-ended general case
+                    ?? Rakudo::Iterator.SuccFromInf(
+                         $!excludes-min ?? $!min.succ !! $!min
+                       )
+                    # general case
+                    !! Rakudo::Iterator.SuccFromTo(
+                         $!excludes-min ?? $!min.succ !! $!min,
+                         $!excludes-max,
+                         $!max
+                       )
     }
+
     multi method list(Range:D:) { List.from-iterator(self.iterator) }
     method flat(Range:D:) { Seq.new(self.iterator) }
 

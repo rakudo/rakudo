@@ -688,6 +688,43 @@ class Rakudo::Iterator {
     }
     method Callable-xx-Whatever(&code) { Callable-xx-Whatever.new(&code) }
 
+    # Returns an iterator for a one character range of values.  Takes the
+    # first, last character, and whether the first / last should be
+    # excluded.
+    my class CharFromTo does Iterator {
+        has int $!i;
+        has int $!n;
+
+        method !SET-SELF(\min,\max,\excludes-min,\excludes-max) {
+            $!i = nqp::ord(nqp::unbox_s(min))
+                - (excludes-min ?? 0 !! 1);
+            $!n = nqp::ord(nqp::unbox_s(max))
+                - (excludes-max ?? 1 !! 0);
+            self
+        }
+        method new(\min,\max,\excludes-min,\excludes-max) {
+            nqp::create(self)!SET-SELF(
+               min,max,excludes-min,excludes-max)
+        }
+        method pull-one() {
+            ( $!i = $!i + 1 ) <= $!n
+              ?? nqp::chr($!i)
+              !! IterationEnd
+        }
+        method push-all($target --> IterationEnd) {
+            my int $i = $!i;
+            my int $n = $!n;
+            $target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
+            $!i = $i;
+        }
+        method count-only() { nqp::p6box_i($!n - $!i) }
+        method bool-only() { nqp::p6bool(nqp::isgt_i($!n,$!i)) }
+        method sink-all(--> IterationEnd) { $!i = $!n }
+    }
+    method CharFromTo(\min,\max,\excludes-min,\excludes-max) {
+        CharFromTo.new(min,max,excludes-min,excludes-max)
+    }
+
     # Return an iterator for a range of 0..^N with a number of elements.
     # The third parameter indicates whether an IterationBuffer should be
     # returned (1) for each combinatin, or a fully reified List (0).
@@ -3368,6 +3405,68 @@ class Rakudo::Iterator {
             }
         }.new(shape)
     }
+
+    # Returns an iterator for an unbounded sequence of generic values that
+    # have a .succ method to indicate the next logical value.  Takes the
+    # initial.
+    my class SuccFromInf does Iterator {
+        has Mu $!i;
+        
+        method !SET-SELF(Mu $!i) { self }
+        method new(\i) { nqp::create(self)!SET-SELF(i) }
+        
+        method pull-one() {
+            my Mu $i = $!i;
+            $!i = $i.succ;
+            $i
+        }   
+        method is-lazy(--> True) { }
+    }   
+    method SuccFromInf(\i) { SuccFromInf.new(i) }
+
+    # Returns an iterator for a range of generic values that have a
+    # .succ method to indicate the next logical value.  Takes the initial
+    # value, whether the final value should be excluded and the final value.
+    my class SuccFromTo does Iterator {
+        has Mu $!i;
+        has Mu $!e;
+        has int $!exclude;
+
+        method !SET-SELF(Mu $!i, Int() $!exclude, Mu $!e) { self }
+        method new(\i,\exclude,\e) {
+            nqp::create(self)!SET-SELF(i,exclude,e)
+        }
+
+        method pull-one() {
+            if $!exclude ?? $!i before $!e !! not $!i after $!e {
+                my Mu $i = $!i;
+                $!i = $i.succ;
+                $i
+            }
+            else {
+                IterationEnd
+            }
+        }
+        method push-all($target --> IterationEnd) {
+            my Mu $i = $!i;
+            my Mu $e = $!e;
+            if $!exclude {
+                while $i before $e {
+                    $target.push(nqp::clone($i));
+                    $i = $i.succ;
+                }
+            }
+            else {
+                while not $i after $e {
+                    $target.push(nqp::clone($i));
+                    $i = $i.succ;
+                }
+            }
+            $!i = $e.succ;
+        }
+        method sink-all(--> IterationEnd) { $!i = $!e.succ }
+    }
+    method SuccFromTo(\i,\exclude,\e) { SuccFromTo.new(i,exclude,e) }
 
     # Returns an iterator that takes a source iterator, an iterator producing
     # Callable blocks producing trueish/falsish values, and a flag indicating

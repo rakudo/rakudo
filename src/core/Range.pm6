@@ -141,26 +141,33 @@ my class Range is Cool does Iterable does Positional {
             !! $!min === Inf
               # doesn't make much sense, but there you go
               ?? NegativeInf.new
-              !! nqp::istype($!min, Numeric) && $!max === Inf
-                # something quick and easy for 1..* style things
-                ?? NumFromInf.new($!min + $!excludes-min)
-                !! nqp::istype($!min,Str) && $!min.chars == 1
-                  && nqp::istype($!max,Str) && $!max.chars == 1
-                  # we have (simple) char range
-                  ?? Rakudo::Iterator.CharFromTo(
-                       $!min,$!max,$!excludes-min,$!excludes-max
+              !! $!max === Inf
+                ?? nqp::istype($!min, Numeric)
+                  # something quick and easy for 1..* style things
+                  ?? NumFromInf.new($!min + $!excludes-min)
+                  # open-ended general case
+                  !! Rakudo::Iterator.SuccFromInf(
+                       $!excludes-min ?? $!min.succ !! $!min
                      )
-                  !! $!max === Inf
-                    # open-ended general case
-                    ?? Rakudo::Iterator.SuccFromInf(
-                         $!excludes-min ?? $!min.succ !! $!min
+                !! nqp::istype($!min,Str) && nqp::istype($!max,Str)
+                  # we have a string range
+                  ?? $!min.chars == 1 && $!max.chars == 1
+                    # we have (simple) char range
+                    ?? Rakudo::Iterator.CharFromTo(
+                         $!min,$!max,$!excludes-min,$!excludes-max
                        )
-                    # general case
-                    !! Rakudo::Iterator.SuccFromTo(
-                         $!excludes-min ?? $!min.succ !! $!min,
-                         $!excludes-max,
-                         $!max
-                       )
+                    # generic string sequence
+                    !! SEQUENCE(
+                         ($!excludes-min ?? $!min.succ !! $!min),
+                         $!max,
+                         :exclude_end($!excludes-max)
+                       ).iterator
+                  # general case
+                  !! Rakudo::Iterator.SuccFromTo(
+                       $!excludes-min ?? $!min.succ !! $!min,
+                       $!excludes-max,
+                       $!max
+                     )
     }
 
     multi method list(Range:D:) { List.from-iterator(self.iterator) }

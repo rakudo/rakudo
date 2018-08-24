@@ -324,7 +324,7 @@ release: manifest
 	bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'
 	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
 	$(M_RUN_PERL6) -ne 'say "rakudo-$(VERSION)/$$_"' MANIFEST | \
-	    tar -zcv -T - -f rakudo-$(VERSION).tar.gz
+	    tar -zcv --owner=0 --group=0 --numeric-owner -T - -f rakudo-$(VERSION).tar.gz
 	rm rakudo-$(VERSION)
 
 

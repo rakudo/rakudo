@@ -8284,12 +8284,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $ast := $*W.add_constant: 'Complex', 'type_new', :nocache(1),
             $*W.add_constant('Num', 'num',
                 $<re><sign> eq '-' || $<re><sign> eq '−'
-                  ?? -$<re><number>.ast.compile_time_value.Num
+                  ??  nqp::neg_n($<re><number>.ast.compile_time_value).Num
                   !!  $<re><number>.ast.compile_time_value.Num
             ).compile_time_value,
             $*W.add_constant('Num', 'num',
                 $<im><sign> eq '-' || $<im><sign> eq '−'
-                  ?? -$<im><number>.ast.compile_time_value.Num
+                  ??  nqp::neg_n($<im><number>.ast.compile_time_value).Num
                   !!  $<im><number>.ast.compile_time_value.Num
             ).compile_time_value;
         $ast.node($/);

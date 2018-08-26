@@ -3336,71 +3336,70 @@ class Rakudo::Iterator {
     # basically a copy of the internal engine of ShapeLeaf and
     # ShapeBranchi roles, but without any additional processing.
     # Intended for ad-hoc iterators that feed .AT-POS on shaped lists.
-    method ShapeIndex(\shape) {
-        class :: does Iterator {
-            has $!dims;
-            has $!indices;
-            has int $!maxdim;
-            has int $!max;
+    my class ShapeIndex does Iterator {
+        has $!dims;
+        has $!indices;
+        has int $!maxdim;
+        has int $!max;
 
-            method !SET-SELF(\shape) {
-                nqp::stmts(
-                  ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
-                  (my int $dims = nqp::elems($!dims)),
-                  ($!indices :=
-                    nqp::setelems(nqp::create(IterationBuffer),$dims)),
-                  (my int $i = -1),
-                  nqp::while(
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
-                    nqp::bindpos($!indices,$i,0)
-                  ),
-                  ($!maxdim = nqp::sub_i($dims,1)),
-                  ($!max    = nqp::atpos($!dims,$!maxdim)),
-                  self
-                )
-            }
-            method new(\shape) { nqp::create(self)!SET-SELF(shape) }
+        method !SET-SELF(\shape) {
+            nqp::stmts(
+              ($!dims := nqp::getattr(nqp::decont(shape),List,'$!reified')),
+              (my int $dims = nqp::elems($!dims)),
+              ($!indices :=
+                nqp::setelems(nqp::create(IterationBuffer),$dims)),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                nqp::bindpos($!indices,$i,0)
+              ),
+              ($!maxdim = nqp::sub_i($dims,1)),
+              ($!max    = nqp::atpos($!dims,$!maxdim)),
+              self
+            )
+        }
+        method new(\shape) { nqp::create(self)!SET-SELF(shape) }
 
-            method pull-one() is raw {
+        method pull-one() is raw {
+            nqp::if(
+              $!indices,
+              nqp::stmts(                      # still iterating
+                (my $buf := nqp::clone($!indices)),
                 nqp::if(
-                  $!indices,
-                  nqp::stmts(                      # still iterating
-                    (my $buf := nqp::clone($!indices)),
-                    nqp::if(
-                      nqp::islt_i(                        (my int $i =
-                          nqp::add_i(nqp::atpos($!indices,$!maxdim),1)),
-                        $!max
-                      ),
-                      nqp::bindpos($!indices,$!maxdim,$i),    # ready for next
-                      nqp::stmts(                             # done for now
-                        (my int $level = $!maxdim),
-                        nqp::until(                           # update indices
-                          nqp::islt_i(                        # exhausted ??
-                            ($level = nqp::sub_i($level,1)),0)
-                            || nqp::stmts(
-                            nqp::bindpos($!indices,nqp::add_i($level,1),0),
-                            nqp::islt_i(
-                              nqp::bindpos($!indices,$level,
-                                nqp::add_i(nqp::atpos($!indices,$level),1)),
-                              nqp::atpos($!dims,$level)
-                            ),
-                          ),
-                          nqp::null
-                        ),
-                        nqp::if(                   # this was the last value
-                          nqp::islt_i($level,0),
-                          $!indices := nqp::null
-                        )
-                      )
-                    ),
-                    nqp::p6bindattrinvres(         # what we found
-                      nqp::create(List),List,'$!reified',$buf)
+                  nqp::islt_i(                        (my int $i =
+                      nqp::add_i(nqp::atpos($!indices,$!maxdim),1)),
+                    $!max
                   ),
-                  IterationEnd                     # done iterating
-                )
-            }
-        }.new(shape)
+                  nqp::bindpos($!indices,$!maxdim,$i),    # ready for next
+                  nqp::stmts(                             # done for now
+                    (my int $level = $!maxdim),
+                    nqp::until(                           # update indices
+                      nqp::islt_i(                        # exhausted ??
+                        ($level = nqp::sub_i($level,1)),0)
+                        || nqp::stmts(
+                        nqp::bindpos($!indices,nqp::add_i($level,1),0),
+                        nqp::islt_i(
+                          nqp::bindpos($!indices,$level,
+                            nqp::add_i(nqp::atpos($!indices,$level),1)),
+                          nqp::atpos($!dims,$level)
+                        ),
+                      ),
+                      nqp::null
+                    ),
+                    nqp::if(                   # this was the last value
+                      nqp::islt_i($level,0),
+                      $!indices := nqp::null
+                    )
+                  )
+                ),
+                nqp::p6bindattrinvres(         # what we found
+                  nqp::create(List),List,'$!reified',$buf)
+              ),
+              IterationEnd                     # done iterating
+            )
+        }
     }
+    method ShapeIndex(\shape) { ShapeIndex.new(shape) }
 
     # Returns an iterator for an unbounded sequence of generic values that
     # have a .succ method to indicate the next logical value.  Takes the
@@ -3477,642 +3476,637 @@ class Rakudo::Iterator {
     # by the Callable does not match the state, the next Callable will be
     # taken (if any) and the process will be repeated until either the source
     # iterator is exhausted, or the Callable block iterator is.
-    method Toggle(\iter, \conds, $on) {
-        class :: does Iterator {
-            has $!iter;
-            has $!conds;
-            has int $!on;
-            has $!current; # null if passing on
-            has $!done;    # IterationEnd if done
+    my class Toggle does Iterator {
+        has $!iter;
+        has $!conds;
+        has int $!on;
+        has $!current; # null if passing on
+        has $!done;    # IterationEnd if done
 
-            method !SET-SELF(\iter, \conds, \on) {
-                nqp::stmts(
-                  ($!iter  := iter),
-                  ($!conds := conds),
-                  ($!on = nqp::istrue(on)),
-                  ($!done := nqp::null),
-                  nqp::if(
-                    nqp::eqaddr((my $next := conds.pull-one),IterationEnd),
-                    nqp::if(
-                      $!on,
-                      ($!current := nqp::null),
-                      ($!done := IterationEnd)
-                    ),
-                    ($!current := $next)
-                  ),
-                  self
-                )
-            }
-            method new(\iter, \conds, \on) {
-                nqp::create(self)!SET-SELF(iter, conds, on)
-            }
+        method !SET-SELF(\iter, \conds, \on) {
+            nqp::stmts(
+              ($!iter  := iter),
+              ($!conds := conds),
+              ($!on = nqp::istrue(on)),
+              ($!done := nqp::null),
+              nqp::if(
+                nqp::eqaddr((my $next := conds.pull-one),IterationEnd),
+                nqp::if(
+                  $!on,
+                  ($!current := nqp::null),
+                  ($!done := IterationEnd)
+                ),
+                ($!current := $next)
+              ),
+              self
+            )
+        }
+        method new(\iter, \conds, \on) {
+            nqp::create(self)!SET-SELF(iter, conds, on)
+        }
 
-            method pull-one() is raw {
-                nqp::ifnull(
-                  $!done,                        # done if not null
+        method pull-one() is raw {
+            nqp::ifnull(
+              $!done,                        # done if not null
 
-                  nqp::if(                       # source not exhausted yet
-                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
-                    ($!done := IterationEnd),    # source exhausted now
+              nqp::if(                       # source not exhausted yet
+                nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+                ($!done := IterationEnd),    # source exhausted now
 
-                    nqp::if(
-                      nqp::isnull($!current),
-                      $pulled,                   # passing through rest
+                nqp::if(
+                  nqp::isnull($!current),
+                  $pulled,                   # passing through rest
 
-                      nqp::if(                   # need to check if ok
-                        $!on,
-                        nqp::if(                 # passing on until off
-                          $!current($pulled),
-                          $pulled,               # still on
+                  nqp::if(                   # need to check if ok
+                    $!on,
+                    nqp::if(                 # passing on until off
+                      $!current($pulled),
+                      $pulled,               # still on
 
-                          nqp::if(               # was on, off now
-                            nqp::eqaddr(
-                              (my $next := $!conds.pull-one),
+                      nqp::if(               # was on, off now
+                        nqp::eqaddr(
+                          (my $next := $!conds.pull-one),
+                          IterationEnd
+                        ),
+                        ($!done := IterationEnd), # no next checker, done
+
+                        nqp::stmts(          # use next checker
+                          nqp::until(
+                           nqp::eqaddr(
+                              ($pulled := $!iter.pull-one),
                               IterationEnd
-                            ),
-                            ($!done := IterationEnd), # no next checker, done
+                            ) || $next($pulled),
+                            nqp::null
+                          ),
+                          nqp::if(           # ended looping, why?
+                            nqp::eqaddr($pulled,IterationEnd),
+                            ($!done := IterationEnd), # exhausted now
 
-                            nqp::stmts(          # use next checker
-                              nqp::until(
-                               nqp::eqaddr(
-                                  ($pulled := $!iter.pull-one),
+                            nqp::stmts(      # on, passed off, on again
+                              ($!current := nqp::if(
+                                nqp::eqaddr(
+                                  ($next := $!conds.pull-one),
                                   IterationEnd
-                                ) || $next($pulled),
-                                nqp::null
-                              ),
-                              nqp::if(           # ended looping, why?
-                                nqp::eqaddr($pulled,IterationEnd),
-                                ($!done := IterationEnd), # exhausted now
+                                ),
+                                nqp::null,   # pass rest on
+                                $next        # set next checker
+                              )),
+                              $pulled
 
-                                nqp::stmts(      # on, passed off, on again
-                                  ($!current := nqp::if(
-                                    nqp::eqaddr(
-                                      ($next := $!conds.pull-one),
-                                      IterationEnd
-                                    ),
-                                    nqp::null,   # pass rest on
-                                    $next        # set next checker
-                                  )),
-                                  $pulled
-
-                                )
-                              )
                             )
                           )
+                        )
+                      )
+                    ),
+                    nqp::if(                 # off now (first time)
+                      $!current($pulled),
+                      nqp::stmts(
+                        nqp::if(             # on for first elem
+                          nqp::eqaddr(
+                            ($!current := $!conds.pull-one),
+                            IterationEnd
+                          ),
+                          ($!current := nqp::null), # no next, passing on
+                          ($!on = 1)         # there's next, keep going
                         ),
-                        nqp::if(                 # off now (first time)
-                          $!current($pulled),
-                          nqp::stmts(
-                            nqp::if(             # on for first elem
+                        $pulled              # first hit is ok
+
+                      ),
+                      nqp::stmts(            # still off for first
+                        nqp::until(
+                         nqp::eqaddr(
+                            ($pulled := $!iter.pull-one),
+                            IterationEnd
+                          ) || $!current($pulled),
+                          nqp::null
+                        ),
+                        nqp::if(             # ended looping, why?
+                          nqp::eqaddr($pulled,IterationEnd),
+                          ($!done := IterationEnd), # exhausted now
+
+                          nqp::stmts(        # found ok
+                            nqp::if(
                               nqp::eqaddr(
                                 ($!current := $!conds.pull-one),
                                 IterationEnd
                               ),
-                              ($!current := nqp::null), # no next, passing on
-                              ($!on = 1)         # there's next, keep going
+                              ($!current := nqp::null), # no next, pass on
+                              ($!on = 1)     # there's next, keep going
                             ),
-                            $pulled              # first hit is ok
+                            $pulled
 
-                          ),
-                          nqp::stmts(            # still off for first
-                            nqp::until(
-                             nqp::eqaddr(
-                                ($pulled := $!iter.pull-one),
-                                IterationEnd
-                              ) || $!current($pulled),
-                              nqp::null
-                            ),
-                            nqp::if(             # ended looping, why?
-                              nqp::eqaddr($pulled,IterationEnd),
-                              ($!done := IterationEnd), # exhausted now
-
-                              nqp::stmts(        # found ok
-                                nqp::if(
-                                  nqp::eqaddr(
-                                    ($!current := $!conds.pull-one),
-                                    IterationEnd
-                                  ),
-                                  ($!current := nqp::null), # no next, pass on
-                                  ($!on = 1)     # there's next, keep going
-                                ),
-                                $pulled
-
-                              )
-                            )
                           )
                         )
                       )
                     )
                   )
                 )
-            }
-            method sink-all(--> IterationEnd) { $!iter.sink-all }
-        }.new(iter, conds, $on)
+              )
+            )
+        }
+        method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
+    method Toggle(\iter, \conds, $on) { Toggle.new(iter, conds, $on) }
 
     # Return an iterator that only will return the two given values.
-    method TwoValues(Mu \val1, Mu \val2) {
-        class :: does Iterator {
-            has Mu $!val1;
-            has Mu $!val2;
-            method new(Mu \val1, Mu \val2) {
-                nqp::p6bindattrinvres(
-                  nqp::p6bindattrinvres(
-                    nqp::create(self),self,'$!val1',val1),
-                  self,'$!val2',val2
-                )
-            }
-            method pull-one() is raw {
-                nqp::if(
+    my class TwoValues does Iterator {
+        has Mu $!val1;
+        has Mu $!val2;
+        method new(Mu \val1, Mu \val2) {
+            nqp::p6bindattrinvres(
+              nqp::p6bindattrinvres(
+                nqp::create(self),self,'$!val1',val1),
+              self,'$!val2',val2
+            )
+        }
+        method pull-one() is raw {
+            nqp::if(
 #?if jvm
-                  nqp::eqaddr($!val1,IterationEnd),
-                  nqp::if(
-                    nqp::eqaddr($!val2,IterationEnd),
-                    IterationEnd,
-                    nqp::stmts(
-                      (my Mu $val2 := $!val2),
-                      ($!val2 := IterationEnd),
-                      $val2
-                    )
-                  ),
-                  nqp::stmts(
-                    (my $val1 := $!val1),
-                    ($!val1 := IterationEnd),
-#?endif
-#?if !jvm
-                  nqp::isnull($!val1),
-                  nqp::if(
-                    nqp::isnull($!val2),
-                    IterationEnd,
-                    nqp::stmts(
-                      (my Mu $val2 := $!val2),
-                      ($!val2 := nqp::null),
-                      $val2
-                    )
-                  ),
-                  nqp::stmts(
-                    (my $val1 := $!val1),
-                    ($!val1 := nqp::null),
-#?endif
-                    $val1
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
+              nqp::eqaddr($!val1,IterationEnd),
+              nqp::if(
+                nqp::eqaddr($!val2,IterationEnd),
+                IterationEnd,
                 nqp::stmts(
-#?if jvm
-                  nqp::if(
-                    nqp::eqaddr($!val1,IterationEnd),
-                    nqp::unless(nqp::eqaddr($!val2,Mu),$target.push($!val2)),
-                    nqp::stmts(
-                      $target.push($!val1),
-                      $target.push($!val2)
-                    )
-                  ),
-                  ($!val1 := $!val2 := IterationEnd)
-#?endif
-#?if !jvm
-                  nqp::if(
-                    nqp::isnull($!val1),
-                    nqp::unless(nqp::isnull($!val2),$target.push($!val2)),
-                    nqp::stmts(
-                      $target.push($!val1),
-                      $target.push($!val2)
-                    )
-                  ),
-                  ($!val1 := $!val2 := nqp::null)
-#?endif
+                  (my Mu $val2 := $!val2),
+                  ($!val2 := IterationEnd),
+                  $val2
                 )
-            }
-            method skip-one() {
-                nqp::if(
-#?if jvm
-                  nqp::not_i(nqp::eqaddr($!val1,IterationEnd)),
-                  nqp::isfalse($!val1 := IterationEnd),
-                  nqp::if(
-                    nqp::not_i(nqp::eqaddr($!val2,IterationEnd)),
-                    nqp::isfalse($!val2 := IterationEnd)
+              ),
+              nqp::stmts(
+                (my $val1 := $!val1),
+                ($!val1 := IterationEnd),
 #?endif
 #?if !jvm
-                  nqp::not_i(nqp::isnull($!val1)),
-                  nqp::isfalse($!val1 := nqp::null),
-                  nqp::if(
-                    nqp::not_i(nqp::isnull($!val2)),
-                    nqp::isfalse($!val2 := nqp::null)
-#?endif
-                  )
+              nqp::isnull($!val1),
+              nqp::if(
+                nqp::isnull($!val2),
+                IterationEnd,
+                nqp::stmts(
+                  (my Mu $val2 := $!val2),
+                  ($!val2 := nqp::null),
+                  $val2
                 )
-            }
-            method sink-all(--> IterationEnd) {
+              ),
+              nqp::stmts(
+                (my $val1 := $!val1),
+                ($!val1 := nqp::null),
+#?endif
+                $val1
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
 #?if jvm
-                $!val1 := $!val2 := IterationEnd
+              nqp::if(
+                nqp::eqaddr($!val1,IterationEnd),
+                nqp::unless(nqp::eqaddr($!val2,Mu),$target.push($!val2)),
+                nqp::stmts(
+                  $target.push($!val1),
+                  $target.push($!val2)
+                )
+              ),
+              ($!val1 := $!val2 := IterationEnd)
 #?endif
 #?if !jvm
-                $!val1 := $!val2 := nqp::null
+              nqp::if(
+                nqp::isnull($!val1),
+                nqp::unless(nqp::isnull($!val2),$target.push($!val2)),
+                nqp::stmts(
+                  $target.push($!val1),
+                  $target.push($!val2)
+                )
+              ),
+              ($!val1 := $!val2 := nqp::null)
 #?endif
-            }
-        }.new(val1, val2)
+            )
+        }
+        method skip-one() {
+            nqp::if(
+#?if jvm
+              nqp::not_i(nqp::eqaddr($!val1,IterationEnd)),
+              nqp::isfalse($!val1 := IterationEnd),
+              nqp::if(
+                nqp::not_i(nqp::eqaddr($!val2,IterationEnd)),
+                nqp::isfalse($!val2 := IterationEnd)
+#?endif
+#?if !jvm
+              nqp::not_i(nqp::isnull($!val1)),
+              nqp::isfalse($!val1 := nqp::null),
+              nqp::if(
+                nqp::not_i(nqp::isnull($!val2)),
+                nqp::isfalse($!val2 := nqp::null)
+#?endif
+              )
+            )
+        }
+        method sink-all(--> IterationEnd) {
+#?if jvm
+            $!val1 := $!val2 := IterationEnd
+#?endif
+#?if !jvm
+            $!val1 := $!val2 := nqp::null
+#?endif
+        }
     }
+    method TwoValues(Mu \val1, Mu \val2) { TwoValues.new(val1, val2) }
 
     # Return a lazy iterator that will keep producing the given value.
     # Basically the functionality of 42 xx *
-    method UnendingValue(Mu \value) {
-        class :: does Iterator {
-            has Mu $!value;
-            method new(Mu \value) {
-                nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
-            }
-            method pull-one() is raw { $!value }
-            method sink-all(--> IterationEnd) { }
-            method count-only(--> Inf) { }
-            method bool-only(--> True) { }
-            method is-lazy(--> True) { }
-        }.new(value)
+    my class UnendingValue does Iterator {
+        has Mu $!value;
+        method new(Mu \value) {
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
+        }
+        method pull-one() is raw { $!value }
+        method sink-all(--> IterationEnd) { }
+        method count-only(--> Inf) { }
+        method bool-only(--> True) { }
+        method is-lazy(--> True) { }
     }
+    method UnendingValue(Mu \value) { UnendingValue.new(value) }
 
     # Return an iterator from a given iterator with a given mapper callable
     # and a compare callable, producing values either with unique or repeated
     # semantics.
-    method UniqueRepeatedAsWith(\iterator, \as, \with, \unique) {
-        class :: does Iterator {
-            has Mu $!iter;
-            has &!as;
-            has &!with;
-            has int $!unique;
-            has $!seen;
-            method !SET-SELF(\iterator, \as, \with, \unique) {
+    my class UniqueRepeatedAsWith does Iterator {
+        has Mu $!iter;
+        has &!as;
+        has &!with;
+        has int $!unique;
+        has $!seen;
+        method !SET-SELF(\iterator, \as, \with, \unique) {
+            nqp::stmts(
+              ($!iter := iterator),
+              (&!as := as),
+              (&!with := with),
+              ($!unique = nqp::istrue(unique)),
+              ($!seen := nqp::list),
+              self
+            )
+        }
+        method new( \iterator, \as, \with, \union) {
+            nqp::create(self)!SET-SELF(iterator, as, with, union)
+        }
+        method pull-one() is raw {
+            nqp::stmts(
+              (my &as := &!as),      # lexicals are faster than attributes
+              (my &with := &!with),
+              (my $seen := $!seen),
+              nqp::until(
+                nqp::eqaddr((my $needle := $!iter.pull-one),IterationEnd),
                 nqp::stmts(
-                  ($!iter := iterator),
-                  (&!as := as),
-                  (&!with := with),
-                  ($!unique = nqp::istrue(unique)),
-                  ($!seen := nqp::list),
-                  self
-                )
-            }
-            method new( \iterator, \as, \with, \union) {
-                nqp::create(self)!SET-SELF(iterator, as, with, union)
-            }
-            method pull-one() is raw {
-                nqp::stmts(
-                  (my &as := &!as),      # lexicals are faster than attributes
-                  (my &with := &!with),
-                  (my $seen := $!seen),
+                  (my int $i = -1),
+                  (my int $elems = nqp::elems($!seen)),
+                  (my $target := as($needle)),
                   nqp::until(
-                    nqp::eqaddr((my $needle := $!iter.pull-one),IterationEnd),
-                    nqp::stmts(
-                      (my int $i = -1),
-                      (my int $elems = nqp::elems($!seen)),
-                      (my $target := as($needle)),
-                      nqp::until(
-                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
-                          || with($target,nqp::atpos($seen,$i)),
-                        nqp::null
-                      ),
-                      nqp::if(                         # done searching
-                        $!unique,
-                        nqp::if(                       # need unique semantics
-                          nqp::iseq_i($i,$elems),
-                          nqp::stmts(                  # new, so add and produce
-                            nqp::push($!seen,$target),
-                            (return-rw $needle)
-                          )
-                        ),
-                        nqp::if(                       # need repeated semantics
-                          nqp::iseq_i($i,$elems),
-                          nqp::push($!seen,$target),   # new, just add
-                          (return-rw $needle)          # not new, produce
-                        )
-                      )
-                    )
+                    nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                      || with($target,nqp::atpos($seen,$i)),
+                    nqp::null
                   ),
-                  IterationEnd
+                  nqp::if(                         # done searching
+                    $!unique,
+                    nqp::if(                       # need unique semantics
+                      nqp::iseq_i($i,$elems),
+                      nqp::stmts(                  # new, so add and produce
+                        nqp::push($!seen,$target),
+                        (return-rw $needle)
+                      )
+                    ),
+                    nqp::if(                       # need repeated semantics
+                      nqp::iseq_i($i,$elems),
+                      nqp::push($!seen,$target),   # new, just add
+                      (return-rw $needle)          # not new, produce
+                    )
+                  )
                 )
-            }
-            method is-lazy() { $!iter.is-lazy }
-            method sink-all(--> IterationEnd) { $!iter.sink-all }
-        }.new(iterator, as, with, unique)
+              ),
+              IterationEnd
+            )
+        }
+        method is-lazy() { $!iter.is-lazy }
+        method sink-all(--> IterationEnd) { $!iter.sink-all }
+    }
+    method UniqueRepeatedAsWith(\iterator, \as, \with, \unique) {
+        UniqueRepeatedAsWith.new(iterator, as, with, unique)
     }
 
     # Return an iterator from a given iterator with a given compare
     # callable, producing values either with unique or repeated semantics.
-    method UniqueRepeatedWith(\iterator, \with, \unique) {
-        class :: does Iterator {
-            has Mu $!iter;
-            has &!with;
-            has int $!unique;
-            has $!seen;
-            method !SET-SELF(\iterator, \with, \unique) {
+    my class UniqueRepeatedWith does Iterator {
+        has Mu $!iter;
+        has &!with;
+        has int $!unique;
+        has $!seen;
+        method !SET-SELF(\iterator, \with, \unique) {
+            nqp::stmts(
+              ($!iter := iterator),
+              (&!with := with),
+              ($!unique = nqp::istrue(unique)),
+              ($!seen := nqp::list),
+              self
+            )
+        }
+        method new( \iterator, \with, \union) {
+            nqp::create(self)!SET-SELF(iterator, with, union)
+        }
+        method pull-one() is raw {
+            nqp::stmts(
+              (my &with := &!with),  # lexicals are faster than attributes
+              (my $seen := $!seen),
+              nqp::until(
+                nqp::eqaddr((my $needle := $!iter.pull-one),IterationEnd),
                 nqp::stmts(
-                  ($!iter := iterator),
-                  (&!with := with),
-                  ($!unique = nqp::istrue(unique)),
-                  ($!seen := nqp::list),
-                  self
-                )
-            }
-            method new( \iterator, \with, \union) {
-                nqp::create(self)!SET-SELF(iterator, with, union)
-            }
-            method pull-one() is raw {
-                nqp::stmts(
-                  (my &with := &!with),  # lexicals are faster than attributes
-                  (my $seen := $!seen),
+                  (my int $i = -1),
+                  (my int $elems = nqp::elems($!seen)),
                   nqp::until(
-                    nqp::eqaddr((my $needle := $!iter.pull-one),IterationEnd),
-                    nqp::stmts(
-                      (my int $i = -1),
-                      (my int $elems = nqp::elems($!seen)),
-                      nqp::until(
-                        nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
-                          || with($needle,nqp::atpos($seen,$i)),
-                        nqp::null
-                      ),
-                      nqp::if(                         # done searching
-                        $!unique,
-                        nqp::if(                       # need unique semantics
-                          nqp::iseq_i($i,$elems),
-                          nqp::stmts(                  # new, so add and produce
-                            nqp::push($!seen,$needle),
-                            (return-rw $needle)
-                          )
-                        ),
-                        nqp::if(                       # need repeated semantics
-                          nqp::iseq_i($i,$elems),
-                          nqp::push($!seen,$needle),   # new, just add
-                          (return-rw $needle)          # not new, produce
-                        )
-                      )
-                    )
+                    nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                      || with($needle,nqp::atpos($seen,$i)),
+                    nqp::null
                   ),
-                  IterationEnd
+                  nqp::if(                         # done searching
+                    $!unique,
+                    nqp::if(                       # need unique semantics
+                      nqp::iseq_i($i,$elems),
+                      nqp::stmts(                  # new, so add and produce
+                        nqp::push($!seen,$needle),
+                        (return-rw $needle)
+                      )
+                    ),
+                    nqp::if(                       # need repeated semantics
+                      nqp::iseq_i($i,$elems),
+                      nqp::push($!seen,$needle),   # new, just add
+                      (return-rw $needle)          # not new, produce
+                    )
+                  )
                 )
-            }
-            method is-lazy() { $!iter.is-lazy }
-            method sink-all(--> IterationEnd) { $!iter.sink-all }
-        }.new(iterator, with, unique)
+              ),
+              IterationEnd
+            )
+        }
+        method is-lazy() { $!iter.is-lazy }
+        method sink-all(--> IterationEnd) { $!iter.sink-all }
+    }
+    method UniqueRepeatedWith(\iterator, \with, \unique) {
+        UniqueRepeatedWith.new(iterator, with, unique)
     }
 
     # Returns an iterator that takes a source iterator and a Callable.  It
     # passes on all values from the source iterator from the moment the
     # Callable returns a trueish value.
-    method Until(\iter, &cond) {
-        class :: does Iterator {
-            has $!iter;
-            has $!cond;
+    my class Until does Iterator {
+        has $!iter;
+        has $!cond;
 
-            method !SET-SELF(\iter, \cond) {
-                $!iter := iter;
-                $!cond := cond;
-                self
-            }
-            method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
+        method !SET-SELF(\iter, \cond) {
+            $!iter := iter;
+            $!cond := cond;
+            self
+        }
+        method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
 
-            method pull-one() is raw {
-                nqp::if(
-                  $!cond,
-                  nqp::stmts(
-                    nqp::until(
-                      nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
-                        || $!cond($pulled),
-                      nqp::null
-                    ),
-                    ($!cond := nqp::null),
-                    $pulled
-                  ),
-                  $!iter.pull-one
-                )
-            }
-            method sink-all(--> IterationEnd) { $!iter.sink-all }
-        }.new(iter, &cond)
+        method pull-one() is raw {
+            nqp::if(
+              $!cond,
+              nqp::stmts(
+                nqp::until(
+                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
+                    || $!cond($pulled),
+                  nqp::null
+                ),
+                ($!cond := nqp::null),
+                $pulled
+              ),
+              $!iter.pull-one
+            )
+        }
+        method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
+    method Until(\iter, &cond) { Until.new(iter, &cond) }
 
     # Returns an iterator from a given iterator where the occurrence of
     # a Whatever value indicates that last value seen from the source
     # iterator should be repeated indefinitely until either another
     # non-Whatever value is seen from the source iterator, or the source
     # iterator is exhausted.
-    method Whatever(\source) {
-        class :: does Iterator {
-            has $!source;
-            has $!last;
-            has int $!whatever;
-            method new(\source) {
-                nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
-            }
-            method pull-one() is raw {
+    my class WhateverIterator does Iterator {
+        has $!source;
+        has $!last;
+        has int $!whatever;
+        method new(\source) {
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              $!whatever,
+              nqp::if(                          # we're repeating
+                nqp::iseq_i($!whatever,2),      # source exhausted, repeat
+                $!last,
                 nqp::if(
-                  $!whatever,
-                  nqp::if(                          # we're repeating
-                    nqp::iseq_i($!whatever,2),      # source exhausted, repeat
-                    $!last,
-                    nqp::if(
-                      nqp::eqaddr(
-                        (my $value := $!source.pull-one),
-                        IterationEnd
-                      ),
-                      nqp::stmts(                   # exhausted now, repeat
-                        ($!whatever = 2),
-                        $!last
-                      ),
-                      nqp::if(
-                        nqp::istype($value,Whatever),
-                        $!last,                     # another Whatever, repeat
-                        nqp::stmts(                 # something else, no repeat
-                          ($!whatever = 0),
-                          ($!last := $value)
-                        )
-                      )
-                    )
+                  nqp::eqaddr(
+                    (my $value := $!source.pull-one),
+                    IterationEnd
                   ),
-                  nqp::if(                          # not repeating
-                    nqp::eqaddr(
-                      ($value := $!source.pull-one),
-                      IterationEnd
-                    ),
-                    IterationEnd,                   # exhausted, stop
-                    nqp::if(
-                      nqp::istype($value,Whatever), # start repeating
-                      nqp::stmts(
-                        ($!whatever = 1),
-                        $!last
-                      ),
-                      ($!last := $value)            # keep value for repeat
+                  nqp::stmts(                   # exhausted now, repeat
+                    ($!whatever = 2),
+                    $!last
+                  ),
+                  nqp::if(
+                    nqp::istype($value,Whatever),
+                    $!last,                     # another Whatever, repeat
+                    nqp::stmts(                 # something else, no repeat
+                      ($!whatever = 0),
+                      ($!last := $value)
                     )
                   )
                 )
-            }
-        }.new(source)
+              ),
+              nqp::if(                          # not repeating
+                nqp::eqaddr(
+                  ($value := $!source.pull-one),
+                  IterationEnd
+                ),
+                IterationEnd,                   # exhausted, stop
+                nqp::if(
+                  nqp::istype($value,Whatever), # start repeating
+                  nqp::stmts(
+                    ($!whatever = 1),
+                    $!last
+                  ),
+                  ($!last := $value)            # keep value for repeat
+                )
+              )
+            )
+        }
     }
+    method Whatever(\source) { WhateverIterator.new(source) }
 
     # Returns an iterator that takes a source iterator and a Callable.  It
     # passes on values from the source iterator while the Callable returns
     # a trueish value.  Once a falsish value is returned, the iterator ends.
-    method While(\iter, &cond) {
-        class :: does Iterator {
-            has $!iter;
-            has &!cond;
-            has $!done;
+    my class While does Iterator {
+        has $!iter;
+        has &!cond;
+        has $!done;
 
-            method !SET-SELF(\iter, \cond) {
-                $!iter := iter;
-                &!cond := cond;
-                $!done := nqp::null;
-                self
-            }
-            method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
+        method !SET-SELF(\iter, \cond) {
+            $!iter := iter;
+            &!cond := cond;
+            $!done := nqp::null;
+            self
+        }
+        method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
 
-            method pull-one() is raw {
-                nqp::ifnull(
-                  $!done,
-                  nqp::if(
-                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
-                      || nqp::isfalse(&!cond($pulled)),
-                    ($!done := IterationEnd),
-                    $pulled
-                  )
-                )
-            }
-            method sink-all(--> IterationEnd) { $!iter.sink-all }
-        }.new(iter, &cond)
+        method pull-one() is raw {
+            nqp::ifnull(
+              $!done,
+              nqp::if(
+                nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd)
+                  || nqp::isfalse(&!cond(pulled)),
+                ($!done := IterationEnd),
+                pulled
+              )
+            )
+        }
+        method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
+    method While(\iter, &cond) { While.new(iter, &cond) }
 
     # Returns an iterator that handles all properties of a -while- with
     # a condition.  Takes a Callable to be considered the body of the loop,
-    # and a Callable for the condition..
-    method WhileLoop(&body, &cond) {
-        class :: does SlippyIterator {
-            has $!body;
-            has $!cond;
+    # and a Callable for the condition.
+    my class WhileLoop does SlippyIterator {
+        has $!body;
+        has $!cond;
 
-            method !SET-SELF(\body,\cond) {
-                nqp::stmts(
-                  ($!body := body),
-                  ($!cond := cond),
-                  self
+        method !SET-SELF(\body,\cond) {
+            nqp::stmts(
+              ($!body := body),
+              ($!cond := cond),
+              self
+            )
+        }
+        method new(\body,\cond) {
+            nqp::create(self)!SET-SELF(body,cond)
+        }
+
+        method pull-one() {
+            if $!slipping && nqp::not_i(
+                nqp::eqaddr((my $result := self.slip-one),IterationEnd)
+            ) {
+                $result
+            }
+            else {
+                nqp::if(
+                  $!cond(),
+                  nqp::stmts(
+                    nqp::until(
+                      (my int $stopped),
+                      nqp::stmts(
+                        ($stopped = 1),
+                        nqp::handle(
+                          nqp::if(
+                            nqp::istype(($result := $!body()),Slip),
+                            ($stopped = nqp::eqaddr(
+                              ($result := self.start-slip($result)),
+                              IterationEnd
+                            ) && nqp::if($!cond(),0,1))
+                          ),
+                          'NEXT', ($stopped = nqp::if($!cond(),0,1)),
+                          'REDO', ($stopped = 0),
+                          'LAST', ($result := IterationEnd)
+                        )
+                      ),
+                      :nohandler
+                    ),
+                    $result
+                  ),
+                  IterationEnd
                 )
             }
-            method new(\body,\cond) {
-                nqp::create(self)!SET-SELF(body,cond)
-            }
-
-            method pull-one() {
-                if $!slipping && nqp::not_i(
-                    nqp::eqaddr((my $result := self.slip-one),IterationEnd)
-                ) {
-                    $result
-                }
-                else {
-                    nqp::if(
-                      $!cond(),
-                      nqp::stmts(
-                        nqp::until(
-                          (my int $stopped),
-                          nqp::stmts(
-                            ($stopped = 1),
-                            nqp::handle(
-                              nqp::if(
-                                nqp::istype(($result := $!body()),Slip),
-                                ($stopped = nqp::eqaddr(
-                                  ($result := self.start-slip($result)),
-                                  IterationEnd
-                                ) && nqp::if($!cond(),0,1))
-                              ),
-                              'NEXT', ($stopped = nqp::if($!cond(),0,1)),
-                              'REDO', ($stopped = 0),
-                              'LAST', ($result := IterationEnd)
-                            )
-                          ),
-                          :nohandler
-                        ),
-                        $result
-                      ),
-                      IterationEnd
-                    )
-                }
-            }
-        }.new(&body,&cond)
+        }
     }
+    method WhileLoop(&body, &cond) { WhileLoop.new(&body,&cond) }
 
     # Return an iterator that will zip the given iterables (with &[,])
     # Basically the functionality of @a Z @b
+    my class ZipIterables does Iterator {
+        has $!iters;
+        has int $!lazy;
+        method !SET-SELF(\iters) {
+            nqp::stmts(
+              (my \iterables := nqp::getattr(iters,List,'$!reified')),
+              (my int $elems = nqp::elems(iterables)),
+              ($!iters := nqp::setelems(nqp::list,$elems)),
+              ($!lazy = 1),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos($!iters,$i,
+                  nqp::if(
+                    nqp::iscont(my \elem := nqp::atpos(iterables,$i)),
+                    nqp::stmts(
+                      ($!lazy = 0),
+                      Rakudo::Iterator.OneValue(elem)
+                    ),
+                    nqp::stmts(
+                      nqp::unless(elem.is-lazy,($!lazy = 0)),
+                      Rakudo::Iterator.Whatever(elem.iterator)
+                    )
+                  )
+                )
+              ),
+              self
+            )
+        }
+        method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
+        method pull-one() {
+            nqp::if(
+#?if jvm
+              nqp::eqaddr($!iters,Mu),
+#?endif
+#?if !jvm
+              nqp::isnull($!iters),
+#?endif
+              IterationEnd,
+              nqp::stmts(
+                (my int $i = -1),
+                (my int $elems = nqp::elems($!iters)),
+                (my int $is_iterend = 0),
+                (my \buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my \pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
+                    ),
+                    $is_iterend = 1,
+                    nqp::bindpos(buf,$i,pulled)
+                  )
+                ),
+                nqp::if(
+                  $is_iterend,  # at least one exhausted
+                  nqp::stmts(
+#?if jvm
+                    ($!iters := Mu),
+#?endif
+#?if !jvm
+                    ($!iters := nqp::null),
+#?endif
+                    IterationEnd
+                  ),
+                  nqp::p6bindattrinvres(
+                    nqp::create(List),List,'$!reified',buf)
+                )
+              )
+            )
+        }
+        method is-lazy() { nqp::p6bool($!lazy) }
+    }
     method ZipIterables(@iterables) {
         nqp::if(
           nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
-          class :: does Iterator {
-              has $!iters;
-              has int $!lazy;
-              method !SET-SELF(\iterables) {
-                  nqp::stmts(
-                    (my $iterables := nqp::getattr(iterables,List,'$!reified')),
-                    (my int $elems = nqp::elems($iterables)),
-                    ($!iters := nqp::setelems(nqp::list,$elems)),
-                    ($!lazy = 1),
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::bindpos($!iters,$i,
-                        nqp::if(
-                          nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
-                          nqp::stmts(
-                            ($!lazy = 0),
-                            Rakudo::Iterator.OneValue($elem)
-                          ),
-                          nqp::stmts(
-                            nqp::unless($elem.is-lazy,($!lazy = 0)),
-                            Rakudo::Iterator.Whatever($elem.iterator)
-                          )
-                        )
-                      )
-                    ),
-                    self
-                  )
-              }
-              method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
-              method pull-one() {
-                  nqp::if(
-#?if jvm
-                    nqp::eqaddr($!iters,Mu),
-#?endif
-#?if !jvm
-                    nqp::isnull($!iters),
-#?endif
-                    IterationEnd,
-                    nqp::stmts(
-                      (my int $i = -1),
-                      (my int $elems = nqp::elems($!iters)),
-                      (my int $is_iterend = 0),
-                      (my $buf :=
-                        nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                      nqp::while(
-                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                        nqp::if(
-                          nqp::eqaddr(
-                            (my $pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
-                          ),
-                          $is_iterend = 1,
-                          nqp::bindpos($buf,$i,$pulled)
-                        )
-                      ),
-                      nqp::if(
-                        $is_iterend,  # at least one exhausted
-                        nqp::stmts(
-#?if jvm
-                          ($!iters := Mu),
-#?endif
-#?if !jvm
-                          ($!iters := nqp::null),
-#?endif
-                          IterationEnd
-                        ),
-                        nqp::p6bindattrinvres(
-                          nqp::create(List),List,'$!reified',$buf)
-                      )
-                    )
-                  )
-              }
-              method is-lazy() { nqp::p6bool($!lazy) }
-          }.new(@iterables),
+          ZipIterables.new(@iterables),
           nqp::if(
             nqp::iseq_i($n,0),
             Rakudo::Iterator.Empty,
@@ -4123,84 +4117,85 @@ class Rakudo::Iterator {
 
     # Same as ZipIterablesOp, but takes a mapper Callable instead of
     # an op.  This is the underlying workhorse of ZipIterablesOp.
+    my class ZipIterablesMap does Iterator {
+        has $!iters;
+        has $!mapper;
+        has int $!lazy;
+        method !SET-SELF(\iters,\mapper) {
+            nqp::stmts(
+              (my \iterables := nqp::getattr(iters,List,'$!reified')),
+              (my int $elems = nqp::elems(iterables)),
+              ($!iters  := nqp::setelems(nqp::list,$elems)),
+              ($!mapper := mapper),
+              ($!lazy = 1),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos($!iters,$i,
+                  nqp::if(
+                    nqp::iscont(my \elem := nqp::atpos(iterables,$i)),
+                    nqp::stmts(
+                      ($!lazy = 0),
+                      Rakudo::Iterator.OneValue(elem)
+                    ),
+                    nqp::stmts(
+                      nqp::unless(elem.is-lazy,($!lazy = 0)),
+                      Rakudo::Iterator.Whatever(elem.iterator)
+                    )
+                  )
+                )
+              ),
+              self
+            )
+        }
+        method new(\iters,\map) { nqp::create(self)!SET-SELF(iters,map) }
+        method pull-one() {
+            nqp::if(
+#?if jvm
+              nqp::eqaddr($!iters,Mu),
+#?endif
+#?if !jvm
+              nqp::isnull($!iters),
+#?endif
+              IterationEnd,
+              nqp::stmts(
+                (my int $i = -1),
+                (my int $elems = nqp::elems($!iters)),
+                (my int $is_iterend = 0),
+                (my $list :=
+                  nqp::setelems(nqp::create(IterationBuffer),$elems)),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::eqaddr(
+                      (my \pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
+                    ),
+                    $is_iterend = 1,
+                    nqp::bindpos($list,$i,pulled)
+                  )
+                ),
+                nqp::if(
+                  $is_iterend,  # at least one exhausted
+                  nqp::stmts(
+#?if jvm
+                    ($!iters := Mu),
+#?endif
+#?if !jvm
+                    ($!iters := nqp::null),
+#?endif
+                    IterationEnd
+                  ),
+                  $!mapper($list)
+                )
+              )
+            )
+        }
+        method is-lazy() { nqp::p6bool($!lazy) }
+    }
     method ZipIterablesMap(@iterables,&mapper) {
         nqp::if(
           nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
-          class :: does Iterator {
-              has $!iters;
-              has $!mapper;
-              has int $!lazy;
-              method !SET-SELF(\iterables,\mapper) {
-                  nqp::stmts(
-                    (my $iterables := nqp::getattr(iterables,List,'$!reified')),
-                    (my int $elems = nqp::elems($iterables)),
-                    ($!iters  := nqp::setelems(nqp::list,$elems)),
-                    ($!mapper := mapper),
-                    ($!lazy = 1),
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::bindpos($!iters,$i,
-                        nqp::if(
-                          nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
-                          nqp::stmts(
-                            ($!lazy = 0),
-                            Rakudo::Iterator.OneValue($elem)
-                          ),
-                          nqp::stmts(
-                            nqp::unless($elem.is-lazy,($!lazy = 0)),
-                            Rakudo::Iterator.Whatever($elem.iterator)
-                          )
-                        )
-                      )
-                    ),
-                    self
-                  )
-              }
-              method new(\iters,\map) { nqp::create(self)!SET-SELF(iters,map) }
-              method pull-one() {
-                  nqp::if(
-#?if jvm
-                    nqp::eqaddr($!iters,Mu),
-#?endif
-#?if !jvm
-                    nqp::isnull($!iters),
-#?endif
-                    IterationEnd,
-                    nqp::stmts(
-                      (my int $i = -1),
-                      (my int $elems = nqp::elems($!iters)),
-                      (my int $is_iterend = 0),
-                      (my $list :=
-                        nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                      nqp::while(
-                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                        nqp::if(
-                          nqp::eqaddr(
-                            (my $pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
-                          ),
-                          $is_iterend = 1,
-                          nqp::bindpos($list,$i,$pulled)
-                        )
-                      ),
-                      nqp::if(
-                        $is_iterend,  # at least one exhausted
-                        nqp::stmts(
-#?if jvm
-                          ($!iters := Mu),
-#?endif
-#?if !jvm
-                          ($!iters := nqp::null),
-#?endif
-                          IterationEnd
-                        ),
-                        $!mapper($list)
-                      )
-                    )
-                  )
-              }
-              method is-lazy() { nqp::p6bool($!lazy) }
-          }.new(@iterables,&mapper),
+          ZipIterablesMap.new(@iterables,&mapper),
           nqp::if(
             nqp::iseq_i($n,0),
             Rakudo::Iterator.Empty,

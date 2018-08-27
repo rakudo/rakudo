@@ -412,13 +412,13 @@ public final class Binder {
                 /* If the expected type is Positional, see if we need to do the
                  * positional bind failover. */
                 if (nomType == gcx.Positional) {
-                    if (Ops.istype_nodecont(arg_o, gcx.PositionalBindFailover, tc) != 0) {
+                    if (Ops.istype_nd(arg_o, gcx.PositionalBindFailover, tc) != 0) {
                         SixModelObject ig = Ops.findmethod(arg_o, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
                         arg_o = Ops.result_o(tc.curFrame);
                         decontValue = Ops.decont(arg_o, tc);
                     }
-                    else if (Ops.istype_nodecont(decontValue, gcx.PositionalBindFailover, tc) != 0) {
+                    else if (Ops.istype_nd(decontValue, gcx.PositionalBindFailover, tc) != 0) {
                         SixModelObject ig = Ops.findmethod(decontValue, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { decontValue });
                         decontValue = Ops.result_o(tc.curFrame);
@@ -429,7 +429,7 @@ public final class Binder {
                  * anything goes.
                  * When binding a slurpy named hash while compiling the setting don't check for Associative.
                  */
-                if (nomType != gcx.Mu && !(isSlurpyNamed && nomType == gcx.Associative) && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {
+                if (nomType != gcx.Mu && !(isSlurpyNamed && nomType == gcx.Associative) && Ops.istype_nd(decontValue, nomType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
                         SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");

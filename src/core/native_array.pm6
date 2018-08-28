@@ -89,7 +89,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-08-21T10:43:21+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-28T17:41:48-04:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -131,9 +131,9 @@ my class array does Iterable {
         multi method STORE(strarray:D: Seq:D \seq) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
+              X::Cannot::Lazy.new(
                 :action<store>, :what(self.^name)
-              )),
+              ).throw,
               nqp::stmts(
                 $iterator.push-all(self),
                 self
@@ -574,7 +574,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-08-21T10:43:21+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-28T17:41:48-04:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -616,9 +616,9 @@ my class array does Iterable {
         multi method STORE(intarray:D: Seq:D \seq) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
+              X::Cannot::Lazy.new(
                 :action<store>, :what(self.^name)
-              )),
+              ).throw,
               nqp::stmts(
                 $iterator.push-all(self),
                 self
@@ -1111,7 +1111,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-08-21T10:43:21+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-08-28T17:41:48-04:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1153,9 +1153,9 @@ my class array does Iterable {
         multi method STORE(numarray:D: Seq:D \seq) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
+              X::Cannot::Lazy.new(
                 :action<store>, :what(self.^name)
-              )),
+              ).throw,
               nqp::stmts(
                 $iterator.push-all(self),
                 self

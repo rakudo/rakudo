@@ -293,9 +293,7 @@ my class array does Iterable {
         multi method splice(strarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
             nqp::if(
               seq.is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
-                :action<splice>, :what(self.^name)
-              )),
+              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -778,9 +776,7 @@ my class array does Iterable {
         multi method splice(intarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
             nqp::if(
               seq.is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
-                :action<splice>, :what(self.^name)
-              )),
+              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -1315,9 +1311,7 @@ my class array does Iterable {
         multi method splice(numarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
             nqp::if(
               seq.is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
-                :action<splice>, :what(self.^name)
-              )),
+              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(

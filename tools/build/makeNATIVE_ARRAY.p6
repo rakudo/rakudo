@@ -250,9 +250,7 @@ for $*IN.lines -> $line {
         multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq) {
             nqp::if(
               seq.is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
-                :action<splice>, :what(self.^name)
-              )),
+              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(

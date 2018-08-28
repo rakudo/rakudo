@@ -172,7 +172,7 @@ my class BagHash does Baggy {
         )
     }
 
-    my class Iterator does Rakudo::Iterator::Mappy {
+    my class Iterate does Rakudo::Iterator::Mappy {
         method pull-one() is raw {
             nqp::if(
               $!iter,
@@ -192,7 +192,7 @@ my class BagHash does Baggy {
             )
         }
     }
-    multi method iterator(BagHash:D:) { Iterator.new($!elems) }  # also .pairs
+    multi method iterator(BagHash:D:) { Iterate.new($!elems) }  # also .pairs
 
     my class Values does Rakudo::Iterator::Mappy {
         method pull-one() is raw {

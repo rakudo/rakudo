@@ -156,7 +156,7 @@ sub samewith(|c) {
 
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
-sub emit(\value --> Nil) {
+sub emit(Mu \value --> Nil) {
     THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
 }
 sub done(--> Nil) {

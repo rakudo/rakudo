@@ -1557,7 +1557,7 @@ my class Supplier {
             $t
         }
 
-        method emit(\value --> Nil) {
+        method emit(Mu \value --> Nil) {
             nqp::if(
               nqp::isconcrete(my $snapshot := $!tappers)
                 && (my int $n = nqp::elems($snapshot)),

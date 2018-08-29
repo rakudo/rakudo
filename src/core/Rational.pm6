@@ -102,37 +102,21 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
         if $fract {
             my $precision;
-            # Stringify Rats to at least 6 significant digits. There does not
-            # appear to be any written spec for this but there are tests in
+            # Stringify Rats to at least 6 significant digits. There are tests in
             # roast that specifically test for 6 digits.
-            if nqp::eqaddr(self.WHAT,Rat) {
-                if $!denominator < 100000 {
-                    $precision = 6;
-                    $fract *= 1000000;
-                }
-                else {
-                    $precision = nqp::chars($!denominator.Str) + 1;
-                    $fract *= nqp::pow_I(10, nqp::decont($precision), Num, Int);
-                }
+            if $!denominator < 100000 {
+                $precision = 6;
+                $fract *= 1000000;
             }
             else {
-                # TODO v6.d FatRats are tested in roast to have a minimum
-                # precision pf 6 decimal places - mostly due to there being no
-                # formal spec and the desire to test SOMETHING. With this
-                # speed increase, 16 digits would work fine; but it isn't spec.  
-                #if $!denominator < 1000000000000000 {
-                #    $precision = 16;
-                #    $fract *= 10000000000000000;
-                #}
-                if $!denominator < 100000 {
-                    $precision = 6;
-                    $fract *= 1000000;
-                }
-                else {
-                    $precision = nqp::chars($!denominator.Str) + 1;
-                    $fract *= nqp::pow_I(10, nqp::decont($precision), Num, Int);
-                }
+                $precision = nqp::chars($!denominator.Str) + 1;
+                $fract *= nqp::pow_I(10, nqp::decont($precision), Num, Int);
             }
+            # TODO v6.d (speculative) Increase minimum digits for non-terminating FatRats
+            # to 16. FatRats are tested in roast to have a minimum precision of 6 decimal
+            # places - mostly due to there being no formal spec and the desire to test
+            # SOMETHING. 16 digits would work fine; but it isn't spec.
+
             my $f  = $fract.round;
             my $fc = nqp::chars($f.Str);
             $f div= 10 while $f %% 10; # Remove trailing zeros

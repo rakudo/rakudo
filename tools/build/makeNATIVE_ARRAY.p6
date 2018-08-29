@@ -88,9 +88,9 @@ for $*IN.lines -> $line {
         multi method STORE(#type#array:D: Seq:D \seq) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
+              X::Cannot::Lazy.new(
                 :action<store>, :what(self.^name)
-              )),
+              ).throw,
               nqp::stmts(
                 $iterator.push-all(self),
                 self
@@ -250,9 +250,7 @@ for $*IN.lines -> $line {
         multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq) {
             nqp::if(
               seq.is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
-                :action<splice>, :what(self.^name)
-              )),
+              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(

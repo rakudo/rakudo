@@ -162,6 +162,28 @@ my class Seq is Cool does Iterable does Sequence {
     multi method from-loop(&body, &cond, &afterwards) {
         Seq.new(Rakudo::Iterator.CStyleLoop(&body, &cond, &afterwards))
     }
+
+    multi method ACCEPTS(Seq:D: Iterable:D \iterable --> Bool:D) {
+        nqp::if(
+          (my \liter := self.iterator).is-lazy,
+          False,
+          nqp::if(
+            (my \riter := iterable.iterator).is-lazy,
+            False,
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr((my \left := liter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::eqaddr((my \right := riter.pull-one),IterationEnd)
+                    || nqp::not_i(right.ACCEPTS(left)),
+                  (return False)
+                )
+              ),
+              nqp::p6bool(nqp::eqaddr(riter.pull-one,IterationEnd))
+            )
+          )
+        )
+    }
 }
 
 sub GATHER(&block) { Seq.new(Rakudo::Iterator.Gather(&block)) }

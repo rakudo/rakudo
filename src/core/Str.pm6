@@ -2706,9 +2706,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    multi method substr(Str:D:) {
-        die "Must at least specify a 'from' value with 'substr'"
-    }
     multi method substr(Str:D: Int:D \start) {
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)

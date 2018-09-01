@@ -379,7 +379,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2009-09-17   Rakudo #21 "Seattle"            (particle)
   2009-10-22   Rakudo #22 "Thousand Oaks"      (duff)
   2009-11-19   Rakudo #23 "Lisbon"             (masak)
-  2009-12-17   Rakudo #24 "Seoul"
+  2009-12-17   Rakudo #24 "Seoul"              (chromatic)
   2010-01-22   Rakudo #25 "Minneapolis"        (pmichaud)
   2010-02-18   Rakudo #26 "Amsterdam"          (mberends)
   2010-03-18   Rakudo #27 "Copenhagen"         (smash)

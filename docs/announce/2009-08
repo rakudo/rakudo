@@ -15,7 +15,7 @@ More details are available at http://rakudo.org/how-to-get-rakudo .
 Rakudo Perl follows a monthly release cycle, with each release code named
 after a Perl Mongers group.  August 2009 is code named "PDX" for the
 Portland Perl Mongers.  PDX.pm has been home to several Rakudo
-contributors (Allison Randal, and more) and PDX.pm has
+contributors (chromatic, Allison Randal, and more) and PDX.pm has
 held meetings that have produced feature and bugfix patches for Rakudo.
 
 Beginning with this release, Rakudo Perl builds from an "installed

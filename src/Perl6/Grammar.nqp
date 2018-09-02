@@ -3688,7 +3688,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             ]
         | <VALUE=decint>
         ]
-        <!!before ['.' <?before \s | ',' | '=' | ':' | <.terminator> | $ > <.typed_sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
+        <!!before ['.' <?before \s | ',' | '=' | ':' <!before  <coloncircumfix <OPER=prefix> > > | <.terminator> | $ > <.typed_sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
         [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
 

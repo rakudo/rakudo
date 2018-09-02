@@ -54,7 +54,8 @@ New in 2018.08:
     + Made it possible to use `Array::` as a top level namespace
         in modules [a71e370b]
     + Fixed Distribution::Resource.^mro to not error [bb46381a]
-    + [6.d] Changed $*ARGFILES to be based on $*IN inside sub MAIN [84d45f07]
+    + [6.d] Changed `$*ARGFILES` to be based on `$*IN` inside sub MAIN
+        [84d45f07]
     + [6.d] Made `num` variables default to 0e0 [f045042d]
     + Made Rationals fully-immutable [5c429e4e]
     + Fixed problem in QuantHash.ACCEPTS [712d0f0f]
@@ -96,7 +97,7 @@ New in 2018.08:
         constrains were never enforced) [1dea3034]
     + Removed unspecced/used pre-6.c jvm modules [e6c5e859]
     + Removed unused Universal role [2670236f]
-    + Renamed IO::Handle.*-internal methods to their final names [03d79975]
+    + Renamed `IO::Handle.*-internal` methods to their final names [03d79975]
     + Removed previously deprecated `$*INITTIME` dynamic variable [a37c6aa4]
   + Build system:
     + Bumped JVM memory limit to survive setting build [80dca6b7][8feb13cd]

@@ -1,3 +1,198 @@
+New in 2018.08:
+  + SPECIAL NOTES:
+    + Changed filenames and permissions of many scripts in the repo
+      (e.g. install-dist.pl is now install-dist.p6) [07b4100c][9d8b6600]
+      [c5c4ea38][59a6f7d2][248ee79c][906bec8c][683ae67b]
+  + Deprecations:
+    + Deprecated RAKUDO_EXCEPTIONS_HANDLER [5e1df41b][d2116efd]
+    + [6.d] Deprecated `undefine` [72bac670]
+  + Fixes:
+    + Fixed .assuming on subs with slurpies [93a8ec66]
+    + Fixed auto-printing of low-level (non-`Mu`) objects in REPL [9ea427a3]
+    + Made `Map.list` return a List instead of a Seq [60447c62]
+    + Made internal safely_stringify routine safer [0e2a7d93]
+    + Made .perl of `(|)` signature a bit more idiomatic [24467ed6]
+    + Fixed coping with failures to open a directory in internal
+        `DIR-RECURSE` sub [e9351cba]
+    + Fixed preservation of newlines in pod blocks [c6433838]
+    + Fixed big int values in `BagHash` [fd779109]
+    + Fixed several crashes and bugs involving meta assign operator [b9b0838d]
+    + Fixed roundtripability of `QuantHash`es [84f60ada][ddf496c7]
+    + Fixed `.comb` on allomorphs with leading 0's [f8d6a3f4][72ccd432]
+    + Fixed crash when doing EVAL :lang<Perl5> from multiple threads [66683080]
+    + Fixed potential race condition in EVAL [80bbfbb3]
+    + Fixed `Test`'s `diag` to no longer die on `Junction`s [5ec2c96e]
+    + Fixed Cool consistency in arguments of &round [e547811a]
+    + Fixed &prompt to convert numeric data to allomorphs [38d7f2a0]
+        [0275ea29][07b032d0]
+    + Many fixes and improvements to the contributors.p6 script
+        [7a87b7f5][8fee8d48][c5cfbc64][f6c8159d][1197c3f6][ade83c86]
+    + Made `Routine.perl` more verbose / precise [d6c161ba]
+    + Added some missing `is rw` [6caf86be][832ccd81]
+    + Fixed problem in concatenation of 2 `Junction`s [4ef8433a]
+    + Fixed failure to set up encoder/decoder in IO::Handle via
+        `.encoding` call in certain cases/encodings [86846ac5]
+    + Made it impossible to assign to a Map [fffe89c5]
+    + Fixed `Map.WHICH` to reflect subclasses correctly [199d276b]
+    + Gave PseudoStash its own non-value based .WHICH [bb5db6a8]
+    + Fixed `QuantHash`.hash/Hash return values [76298204]
+    + Made `Proc.command` return an immutable List instead of Array [925c1134]
+    + Fixed `loop` to always return Nil [aff96bae]
+    + Made an uncomposed class type-check against roles that have been added
+        [38d046fa]
+    + Fixed IO::Handle.encoding to check if$!decoder was set up [edf81bfe]
+    + Fixed `is required($reason)` [7c349b7e]
+    + Fixed `Range.roll(*)`/`roll(N)`/`pick(N)` with big ints [b30800c8]
+    + Removed `<?before>` token in `term:sym<multi_declarator>` [51e41da8]
+    + [6.d] Reserved `:sym` colonpair on names of routines [a68784a6]
+    + Fixed a ThreadPoolScheduler memory leak whereby certain usage
+        patterns caused it to build up an ever-deeper call stack, due
+        to continuation mis-use [bf514c15]
+    + Fixed misscoping of blocks in whatever curries [85495890]
+    + Made sure that onlystar Routines cannot be optimized away when
+        wrapped [434ede49][1188f801]
+    + Made it possible to use `Array::` as a top level namespace
+        in modules [a71e370b]
+    + Fixed Distribution::Resource.^mro to not error [bb46381a]
+    + [6.d] Changed $*ARGFILES to be based on $*IN inside sub MAIN [84d45f07]
+    + [6.d] Made `num` variables default to 0e0 [f045042d]
+    + Made Rationals fully-immutable [5c429e4e]
+    + Fixed problem in QuantHash.ACCEPTS [712d0f0f]
+    + Slightly changed semantics of (+), (-), (&), (.), (^), (|) on QuantHashes
+        [3a6c1197][b826a07a][42595c27][f1693f26][64ab7179][8cedbbd1]
+    + Fixed wrong math with largish Ints [fec1bd74][8e2c70fa][342c5a9c]
+    + Fixed crash with attr + submethod TWEAK [d09756ae]
+    + Removed sig from Routine.perl if it is empty [546d08c1]
+    + Gave Routine its own .gist [6ad50d79]
+    + Made sure "my ($a,$b)" does not have any runtime effect [90ef3061]
+    + Prevented REPL from writing to filehandle when opening a file [07d00db1]
+    + Fixed a couple of thinkos in Map.STORE [6587bf75]
+    + Fixed Unicode Regional Indicators [80a7cff6]
+    + Normalized the path portion of repo specs [aae0827f]
+    + Gave Blob.subbuf the same feature set as Str.substr [26b49169]
+    + Added support for Buf.subbuf(x,Any) [22f779a8]
+    + Gave native arrays their own ACCEPTS [9726e644][6a481323]
+    + Gave Buf/Blob their own ACCEPTS [9531455d]
+    + Fixed occasional crashes in deprecation location handling code [0979b775]
+    + Various improvements to produced messages [e2e42181][e2bbe3f0]
+        [35fec8e0][1956df25][21eb168c][7a7e5e96][e9e8cd55][2e90c660][03574546]
+        [4494a249][d60be5e4][9a45b2b8][2c7692fc][08b449e1][b5e92a55][ef61ce32]
+  + Additions:
+    + Added `X::ParametricConstant` exception [b6cd6122]
+    + Added enforcement of type constraints on constants [1dea3034]
+    + Improved auto-coercion of values to `@`- and `%`-sigilled constants
+      (the `%`- one requires use of `v6.d.PREVIEW` pragma) [1dea3034]
+    + Added a warning on definition of anon sub in `sink` context
+        [d6c05395][08a54212]
+    + Exposed host and port of IO::Async::Socket.listen via the Tap
+        [cb2ea932][2d16e12c]
+    + Added ability to mixin roles on attrs, aka `has %.a does Foo` [3158ae7e]
+    + Added Callable indexing candidate for CArray [541922a0]
+        [68ebe71e][2a803a39]
+    + Added QuantHash.Setty|Baggy|Mixy coercer methods [3d9ea6eb][76e5f9c8]
+    + Added proper handling of pod =defn block [6e8ca327]
+  + Removals:
+    + Use of syntax for parameterized constants now throws (such
+        constrains were never enforced) [1dea3034]
+    + Removed unspecced/used pre-6.c jvm modules [e6c5e859]
+    + Removed unused Universal role [2670236f]
+    + Renamed IO::Handle.*-internal methods to their final names [03d79975]
+    + Removed previously deprecated `$*INITTIME` dynamic variable [a37c6aa4]
+  + Build system:
+    + Bumped JVM memory limit to survive setting build [80dca6b7][8feb13cd]
+    + Added passing of --execname to nqp so that nqp::execname() works
+        [359ac12d]
+  + Efficiency:
+    + Made `.first()` and `:first(:end)` without other parameters
+        about 2x as fast [e6e9daf1]
+    + Made nested meta assign operators 3.9x as fast [b9b0838d]
+    + Made `.?` 1.5x as fast by using a spesh plugin [708c1326][a167e6cc]
+    + Marked `set()`, `bag()` and `mix()` as `is pure` [c37c3b59]
+    + Made `Int != Int` about 4x as fast [b236faec]
+    + Made native `int` array `.sum` between 2.2x and 36x as fast [88e913b6]
+    + Made initialization of native `int` array from a `Range`
+        about 1.7x as fast [5682ee1f]
+    + Made `Map` initialization logic 1.5x-4x as fast [ee800ada]
+        [8f090821][6850a64f][ae6058ce][9f524d0a]
+    + Made `Map.WHICH` about 8x as fast [ac2fa03b]
+    + Made the `for ^100` loop optimization about 1.02x as fast [f43f118a]
+        [7043559b][d69fd2f3][9b07e7bf]
+    + Made Rational reduction 1.43x as fast [3d10a7f1]
+    + Made argless Rational.round 5.7x as fast [097826ef]
+    + Made creation of Rationals 1.19x as fast [db66a138]
+    + Made infix:<**>(Rational, Int) more than 10x as fast [d1729da2][f9963bbf]
+    + Made my @a = $string.comb about 1.25x as fast [df5d82e8]
+    + Made subbuf up to 8.5x as fast [4e56ce95]
+    + Made Buf.subbuf up to 2.5x as fast [cd43c4f1][a50c0492]
+    + Made @a[1,3] with literal indices 5.6x as fast [67a528f0]
+        [c1044bce][1978a2fc][a3a87125]
+    + Made method LANG about 3.2x as fast [a6edf511]
+    + Made string interpolation up to 2x as fast [3ae97e5f]
+    + Simplified a lot of internal code [6e661e9e][0f1b36a7][bc2ca535]
+        [36d37cbc][81a5e4ba][9e71c22d][4da2f607][0601c43c][4eaff452]
+        [12bd328b][f0b705cd][9327f95b][934c3f9d][eee77141][1070fa0c]
+        [36841543][81bcc540][fc865a9a][7f1e41dd]
+    + Other minor perf improvements [8f807fc4][ecd899c9][c6033401]
+        [45df171a][327cae7c]
+    + Many low level and other improvements [bd0a1f8b][aedf41ae]
+        [4f0b585c][6d271667][d3c5381b][8c0d9de8][3f832108][5e5c7870]
+        [c4076b70][bfe69474][397263e3][a7e3dce3][ea9cf08f][bdb9193a]
+        [593611ec][9ab3ad27][04b86ae0][1e825793][bfd9ee4e][3b40b1c7]
+        [40d19c75][a3c12486][a2208b0d][92026f54][35528c6c][52f1b89d]
+        [e9e89f88][ca2360a4][ebc6b124][27a7e9bb][4f4fb613][5b985f93]
+        [a30ae153][163e7759][beae9686][d1c755af][bff1bb83][7885f357]
+        [523ffae8][8d652761][59faed1d][5a6af277][0baeec02][d0aab741]
+        [05d7c39b][1b3dd35e][fa073679][ae25c4b0][8a76c00c][abfa1b15]
+        [980f692c][4766536b][8607f682][656b763d][0b1e6d54][99f7f4cc]
+        [1f65bf24][37c7e6e5][90f678f3][fa73bb48][fe5c8d49][db96cab3]
+        [f8be2a2d][bf9ab42e][a41c37c8][fd6164a1][9a5c538f][c60a347f]
+        [5559f4c9][ec7de841][8d8c755b][0b3fc077][574212ab][2b2f568a]
+        [66aa6892][06073c5b][34468f11]
+      More specifically:
+      + Refactored Scalar and numerous container operations, resulting
+          in Scalar being one attribute smaller and paving the way for
+          a range of new optimizations
+      + As part of the Scalar changes, also extensively refactored
+          auto-vivification to be cheaper and more optimizable
+      + Implemented specializer plugin for type-check elimination for
+          assignments
+      + Refactored the way return value handling is done, to generate a
+          shorter code sequence
+      + Improved the code generated for signature binding so as not to
+          repeatedly decontainerize passed values, but rather to only do
+          this once
+      + Avoided a number of exceptions that could be thrown and caught in
+          the optimizer, for a small performance win
+      + Avoided a number of situations where parts of the compiler were
+          repossessed for serialization purposes, resulting in smaller
+          precompilation output
+      + Tuned Map and Hash for better lookup and assignment
+          performance, as well as more compact code in numerous other
+          operations; this made it possible for single-element hash
+          access to be fully inlined
+      + Tuned Array.AT-POS to enable it to be fully inlined
+      + Tuned Array.ASSIGN-POS to do less work
+      + Improved `p6bindattrinvres` code-gen quality, which is a slight
+          improvement for the many places in CORE.setting that use it
+      + Made sure references to the Scalar type-objects compile into a
+          constant, not a lexical lookup
+  + Internal:
+    + Implemented `Perl6::World.lang-ver-before` for easier language
+        version check [4dcf5929]
+    + Removed `Set`, `Bag`, `Mix` `.clone` special casing [7865bfa6]
+    + Updated makeUNIPROP.pl6 with Unicode 10 property names [2ff46764]
+    + Removed propname->propname mapping from Cool.pm6 [a9e844a8]
+    + Made `infix:<!=>` for `Ints` consistent with other infix
+        operators [46e7640f]
+    + Simplified `Hash` → `Map` coercion [c567af73]
+    + `PseudoStash` "pseudoers" hash is now a native hash [8a8ce95e]
+    + Various `Range` internal changes [6ad096c8][806752fb]
+    + Tightened up some `trait_mod:<is>` signatures [f6209d73]
+    + Renamed nqp::getstrfromname to nqp::strfromname [4522132d]
+    + Changed install-dist.p6 to use and prefer full namespace for
+        builder identifier [0249afc2]
+    + Turned p6reprname into a desugar [07cfbeb2]
+
 New in 2018.06:
   + Fixes:
     + Fixed numeric values in Signal enum [aa622a95][852c1bd3][f2b50378]

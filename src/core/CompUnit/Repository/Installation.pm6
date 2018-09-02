@@ -453,21 +453,22 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         Nil
     }
 
+    my class Lazy does Distribution::Locally {
+        has $.dist-id;
+        has $.read-dist;
+        has $!installed-dist;
+        method !dist {
+            $!installed-dist //= InstalledDistribution.new($.read-dist()(), :$.prefix)
+        }
+        method meta(--> Hash:D)                      { self!dist.meta }
+        method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
+        method Str()                               { self!dist.Str }
+    }
     method !lazy-distribution($dist-id) {
-        class :: does Distribution::Locally {
-            has $.dist-id;
-            has $.read-dist;
-            has $!installed-dist;
-            method !dist {
-                $!installed-dist //= InstalledDistribution.new($.read-dist()(), :$.prefix)
-            }
-            method meta(--> Hash:D)                      { self!dist.meta }
-            method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
-            method Str()                               { self!dist.Str }
-        }.new(
-            :$dist-id,
-            :read-dist(-> { self!read-dist($dist-id) })
-            :$.prefix,
+        Lazy.new(
+          :$dist-id,
+          :read-dist(-> { self!read-dist($dist-id) })
+          :$.prefix,
         )
     }
 

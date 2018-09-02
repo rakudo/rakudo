@@ -151,7 +151,6 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr(|) {*}
-    multi method substr()              { self.Str.substr             }
     multi method substr(\from)         { self.Str.substr(from)       }
     multi method substr(\from, \chars) { self.Str.substr(from,chars) }
 

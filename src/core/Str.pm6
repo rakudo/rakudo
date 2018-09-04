@@ -2157,21 +2157,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         method new(\string) { nqp::create(self)!SET-SELF(string) }
         method pull-one() {
-            my int $left;
-            my int $nextpos;
-
-            if ($left = $!chars - $!pos) > 0 {
-                $nextpos = nqp::findcclass(
-                  nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
-
-                my str $found =
-                  nqp::substr($!str, $!pos, $nextpos - $!pos);
-                $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                  $!str, $nextpos, $!chars - $nextpos);
-
-                return nqp::p6box_s($found);
-            }
-            IterationEnd
+            nqp::if(
+              (my int $left = $!chars - $!pos) > 0,
+              nqp::stmts(
+                (my int $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left)),
+                (my $found := nqp::p6box_s(
+                  nqp::substr($!str, $!pos, $nextpos - $!pos)
+                )),
+                ($!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
+                  $!str, $nextpos, $!chars - $nextpos)),
+                $found
+              ),
+              IterationEnd
+            )
         }
         method push-all($target --> IterationEnd) {
             my int $left;

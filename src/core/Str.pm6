@@ -2139,10 +2139,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method words(|) {*}
-    multi method words(Str:D: :$autoderef!) { # in Actions.postprocess_words
-        my @list := self.words.List;
-        return @list == 1 ?? @list[0] !! @list;
-    }
     multi method words(Str:D: $limit) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.words
@@ -2194,6 +2190,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
     multi method words(Str:D:) { Seq.new(Words.new(self)) }
+
+    # Internal method, used in Actions.postprocess_words/postprocess_quotewords
+    method words-autoderef(Str:D:) {
+        Words.new(self).push-all(my $words := nqp::create(IterationBuffer));
+        nqp::elems($words) == 1
+          ?? nqp::shift($words)
+          !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$words)
+    }
 
     proto method encode(|) {*}
     multi method encode(Str:D $encoding = 'utf8', :$replacement, Bool() :$translate-nl = False, :$strict) {

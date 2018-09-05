@@ -10482,7 +10482,12 @@ class Perl6::QActions is HLL::Actions does STDActions {
             }
         }
         else {
-            $past := QAST::Op.new( :op('callmethod'), :name('words'), :node($/), $past, QAST::IVal.new( :value(1), :named('autoderef') ) );
+            $past := QAST::Op.new(
+                :op('callmethod'),
+                :name('words-autoderef'),
+                :node($/),
+                $past
+            );
         }
         $past
     }
@@ -10510,14 +10515,13 @@ class Perl6::QActions is HLL::Actions does STDActions {
                         :name('Slip'),
                         QAST::Op.new(
                             :op('callmethod'),
-                            :name('words'),
+                            :name('words-autoderef'),
                             :node($/),
                             QAST::Op.new(
                                 :op('callmethod'),
                                 :name('Stringy'),
                                 $node
-                            ),
-                            QAST::IVal.new( :value(1), :named('autoderef') )
+                            )
                         )
                     )
                 );

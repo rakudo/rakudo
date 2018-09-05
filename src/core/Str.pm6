@@ -130,8 +130,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
     multi method chop(Str:D: Int() $chopping) {
-        my Int $chars = nqp::chars($!value) - $chopping;
-        $chars > 0 ?? nqp::p6box_s(nqp::substr($!value,0,$chars)) !! '';
+        nqp::isbig_I(nqp::decont($chopping))
+          || (my int $chars = nqp::sub_i(nqp::chars($!value),$chopping)) <= 0
+          ?? ''
+          !! nqp::p6box_s(nqp::substr($!value,0,$chars))
     }
 
     # TODO Use coercer in 1 candidate when RT131014

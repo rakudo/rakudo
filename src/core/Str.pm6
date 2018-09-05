@@ -2192,7 +2192,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method words(Str:D:) { Seq.new(Words.new(self)) }
 
     # Internal method, used in Actions.postprocess_words/postprocess_quotewords
-    method words-autoderef(Str:D:) {
+    method WORDS_AUTODEREF(Str:D:) {
         Words.new(self).push-all(my $words := nqp::create(IterationBuffer));
         nqp::elems($words) == 1
           ?? nqp::shift($words)

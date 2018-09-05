@@ -10484,7 +10484,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
         else {
             $past := QAST::Op.new(
                 :op('callmethod'),
-                :name('words-autoderef'),
+                :name('WORDS_AUTODEREF'),
                 :node($/),
                 $past
             );
@@ -10515,7 +10515,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
                         :name('Slip'),
                         QAST::Op.new(
                             :op('callmethod'),
-                            :name('words-autoderef'),
+                            :name('WORDS_AUTODEREF'),
                             :node($/),
                             QAST::Op.new(
                                 :op('callmethod'),

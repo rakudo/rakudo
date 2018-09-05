@@ -387,23 +387,20 @@ my class IO::Handle {
           !! X::IO::BinaryMode.new(:trying<words>).throw
     }
 
-    my role PIOIterator does Iterator {
+    my class GetLineFast does Iterator {
         has $!handle;
         has $!chomp;
         has $!decoder;
-        method new(\handle) {
+        has $!close;
+        method new(\handle,\close) {
             my \res = nqp::create(self);
             nqp::bindattr(res, self.WHAT, '$!handle', handle);
+            nqp::bindattr(res, self.WHAT, '$!close', close);
             nqp::bindattr(res, self.WHAT, '$!chomp',
                 nqp::getattr(handle, IO::Handle, '$!chomp'));
             nqp::p6bindattrinvres(res, self.WHAT, '$!decoder',
                 nqp::getattr(handle, IO::Handle, '$!decoder'))
         }
-        method sink-all(--> IterationEnd) {
-            nqp::seekfh(nqp::getattr($!handle, IO::Handle, '$!PIO'), 0, 2)  # seek to end
-        }
-    }
-    my class GetLineFast does PIOIterator {
         method pull-one() {
             # Slow path falls back to .get on the handle, which will
             # replenish the buffer once we exhaust it.
@@ -415,7 +412,10 @@ my class IO::Handle {
               nqp::if(
                 nqp::isconcrete(my \got := $!handle.get),
                 got,
-                IterationEnd
+                nqp::stmts(
+                  nqp::if($!close,$!handle.close),
+                  IterationEnd
+                )
               )
             )
         }
@@ -438,59 +438,68 @@ my class IO::Handle {
                 )
               ),
               nqp::null
-            )
+            );
+            $!handle.close if $!close;
+        }
+        method sink-all(--> IterationEnd) {
+            $!close
+              ?? $!handle.close
+              # can't seek pipes, so need the `try`
+              !! try $!handle.seek(0,SeekFromEnd)  # seek to end
         }
     }
     my class GetLineSlow does Iterator {
         has $!handle;
-        method new(\handle) {
-            nqp::p6bindattrinvres(
-              nqp::create(self),self.WHAT,'$!handle',handle)
+        has $!close;
+        method new(\handle,\close) {
+            my \res = nqp::create(self);
+            nqp::bindattr(res, self.WHAT, '$!close', close);
+            nqp::p6bindattrinvres(res,self.WHAT,'$!handle',handle)
         }
         method pull-one() {
             nqp::if(
               nqp::isconcrete(my \line := $!handle.get),
               line,
-              IterationEnd
+              nqp::stmts(
+                nqp::if($!close,$!handle.close),
+                IterationEnd
+              )
             )
         }
         method push-all($target --> IterationEnd) {
             nqp::while(
               nqp::isconcrete(my \line := $!handle.get),
               $target.push(line)
-            )
+            );
+            $!handle.close if $!close;
         }
         method sink-all(--> IterationEnd) {
-            # can't seek pipes, so need the `try`
-            try $!handle.seek(0,SeekFromEnd)  # seek to end
+            $!close
+              ?? $!handle.close
+              # can't seek pipes, so need the `try`
+              !! try $!handle.seek(0,SeekFromEnd)  # seek to end
         }
     }
-    method !LINES-ITERATOR (IO::Handle:D:) {
+    method !LINES-ITERATOR(IO::Handle:D: $close) {
         $!decoder
           ?? nqp::eqaddr(self.WHAT,IO::Handle)
-            ?? GetLineFast.new(self)    # exact type, can shortcircuit get
-            !! GetLineSlow.new(self)    # can *NOT* shortcircuit .get
+            ?? GetLineFast.new(self,$close)   # exact type, can shortcircuit
+            !! GetLineSlow.new(self,$close)   # can *NOT* shortcircuit .get
           !! X::IO::BinaryMode.new(:trying<lines>).throw
     }
 
     proto method lines (|) {*}
     multi method lines(IO::Handle:D \SELF: $limit, :$close) {
         nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.lines(:$close)
+          ?? Seq.new(self!LINES-ITERATOR($close))
           !! $close
             ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
-                self!LINES-ITERATOR, $limit.Int, {SELF.close}))
+                self!LINES-ITERATOR($close), $limit.Int, {SELF.close}))
             !! self.lines.head($limit.Int)
     }
-    multi method lines(IO::Handle:D \SELF: :$close!) {
-      Seq.new(
-        $close # use -1 as N in FirstNThenSinkAllSeq to get all items
-          ?? Rakudo::Iterator.FirstNThenSinkAll(
-              self!LINES-ITERATOR, -1, {SELF.close})
-          !! self!LINES-ITERATOR
-      )
+    multi method lines(IO::Handle:D \SELF: :$close) {
+        Seq.new(self!LINES-ITERATOR($close))
     }
-    multi method lines(IO::Handle:D:) { Seq.new(self!LINES-ITERATOR) }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes = $*DEFAULT-READ-ELEMS) {
         # If we have one, read bytes via. the decoder to support mixed-mode I/O.

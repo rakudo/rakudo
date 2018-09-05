@@ -421,9 +421,23 @@ my class IO::Handle {
         }
         method push-all($target --> IterationEnd) {
             nqp::while(
-                nqp::isconcrete(my \line :=
-                    $!decoder.consume-line-chars(:$!chomp) // $!handle.get),
-                $target.push(line)
+              nqp::if(
+                nqp::isconcrete(
+                  my \consumed := $!decoder.consume-line-chars(:$!chomp)
+                ),
+                nqp::stmts(
+                  $target.push(consumed),
+                  1
+                ),
+                nqp::if(
+                  nqp::isconcrete(my \got := $!handle.get),
+                  nqp::stmts(
+                    $target.push(got),
+                    1
+                  )
+                )
+              ),
+              nqp::null
             )
         }
     }

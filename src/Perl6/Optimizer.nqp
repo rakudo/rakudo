@@ -2006,7 +2006,9 @@ class Perl6::Optimizer {
               else {
                 return NQPMu;
               }
-              $assignee := $assignee_var := $op[1];
+              $assignee := $op[1];
+              # other optimizations might want to change this independently
+              $assignee_var := nqp::clone($op[1]);
             }
             else {
               $assignop := 'p6store';

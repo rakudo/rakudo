@@ -2716,6 +2716,10 @@ class Perl6::World is HLL::World {
         $result
     }
     method try_add_to_sc($value, $fallback) {
+        if nqp::isnull($value) {
+            return $fallback;
+        }
+
         self.add_object($value);
         CATCH { $value := $fallback; }
         $value

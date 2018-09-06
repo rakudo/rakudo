@@ -64,6 +64,7 @@ static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
 static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
     if (!initialized) {
         Rakudo_containers_setup(tc);
+        initialized = 1;
     }
 }
 

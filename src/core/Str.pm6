@@ -237,7 +237,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method index(|) {*}
-    multi method index(Str:D: Cool:D $needle) {self.index: $needle.Str}
+    multi method index(Str:D: Cool:D $needle) {
+        self.index: $needle.Str
+    }
     multi method index(Str:D: Str:D $needle) {
         nqp::if(
           nqp::islt_i((my int $i =
@@ -248,36 +250,35 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::p6box_i($i)
         )
     }
-    multi method index(Str:D: Cool:D $needle, Cool:D $pos) {self.index: $needle.Str, $pos.Int}
+    multi method index(Str:D: Cool:D $needle, Cool:D $pos) {
+        self.index: $needle.Str, $pos.Int
+    }
     multi method index(Str:D: Str:D $needle, Int:D $pos) {
         nqp::if(
-          nqp::isbig_I(nqp::decont($pos)),
-          Failure.new(X::OutOfRange.new(
-            :what("Position in index"),
-            :got($pos),
-            :range("0..{self.chars}")
-          )),
+          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
+          self!INDEX-OOR($pos),
           nqp::if(
-            nqp::islt_i($pos,0),
-            Failure.new(X::OutOfRange.new(
-              :what("Position in index"),
-              :got($pos),
-              :range("0..{self.chars}")
-            )),
-            nqp::if(
-              nqp::islt_i((my int $i = nqp::index(
-                $!value,nqp::getattr($needle,Str,'$!value'),$pos
-              )),0),
-              Nil,
-              nqp::p6box_i($i)
-            )
+            nqp::islt_i((my int $i = nqp::index(
+              $!value,nqp::getattr($needle,Str,'$!value'),$pos
+            )),0),
+            Nil,
+            nqp::p6box_i($i)
           )
         )
+    }
+    method !INDEX-OOR($pos) {
+        Failure.new(X::OutOfRange.new(
+          :what("Position in index"),
+          :got($pos),
+          :range("0..{self.chars}")
+        ))
     }
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method rindex(|) {*}
-    multi method rindex(Str:D: Cool:D $needle) {self.rindex: $needle.Str}
+    multi method rindex(Str:D: Cool:D $needle) {
+        self.rindex: $needle.Str
+    }
     multi method rindex(Str:D: Str:D $needle) {
         nqp::if(
           nqp::islt_i((my int $i =
@@ -288,31 +289,28 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::p6box_i($i)
         )
     }
-    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos) {self.rindex: $needle.Str, $pos.Int}
+    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos) {
+        self.rindex: $needle.Str, $pos.Int
+    }
     multi method rindex(Str:D: Str:D $needle, Int:D $pos) {
         nqp::if(
-          nqp::isbig_I(nqp::decont($pos)),
-          Failure.new(X::OutOfRange.new(
-            :what("Position in rindex"),
-            :got($pos),
-            :range("0..{self.chars}")
-          )),
+          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
+          self!RINDEX-OOR($pos),
           nqp::if(
-            nqp::islt_i($pos,0),
-            Failure.new(X::OutOfRange.new(
-              :what("Position in rindex"),
-              :got($pos),
-              :range("0..{self.chars}")
-            )),
-            nqp::if(
-              nqp::islt_i((my int $i = nqp::rindex(
-                $!value,nqp::getattr($needle,Str,'$!value'),$pos
-              )),0),
-              Nil,
-              nqp::p6box_i($i)
-            )
+            nqp::islt_i((my int $i = nqp::rindex(
+              $!value,nqp::getattr($needle,Str,'$!value'),$pos
+            )),0),
+            Nil,
+            nqp::p6box_i($i)
           )
         )
+    }
+    method !RINDEX-OOR($pos) {
+        Failure.new(X::OutOfRange.new(
+          :what("Position in rindex"),
+          :got($pos),
+          :range("0..{self.chars}")
+        ))
     }
 
     method pred(Str:D:) {

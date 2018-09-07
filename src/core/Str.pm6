@@ -1334,6 +1334,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $!pos = $nextpos + 1;
             }
         }
+        method count-only(--> Int:D) {
+            my int $left;
+            my int $seen;
+
+            while ($left = $!chars - $!pos) > 0 {
+                ($!pos = nqp::findcclass(
+                  nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left) + 1),
+                ($seen = $seen + 1)
+            }
+            $seen
+        }
     }
     multi method lines(Str:D:) { Seq.new(Lines.new(self)) }
 
@@ -2187,6 +2198,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
                   $!str, $nextpos, $!chars - $nextpos);
             }
+        }
+        method count-only(--> Int:D) {
+            my int $left;
+            my int $nextpos;
+            my int $seen;
+
+            while ($left = $!chars - $!pos) > 0 {
+                $nextpos = nqp::findcclass(
+                  nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
+                $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
+                  $!str, $nextpos, $!chars - $nextpos);
+                $seen = $seen + 1;
+            }
+            $seen
         }
     }
     multi method words(Str:D:) { Seq.new(Words.new(self)) }

@@ -1337,11 +1337,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method count-only(--> Int:D) {
             my int $left;
             my int $seen;
+            my int $pos   = $!pos;
+            my int $chars = $!chars;
 
-            while ($left = $!chars - $!pos) > 0 {
-                ($!pos = nqp::findcclass(
-                  nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left) + 1),
-                ($seen = $seen + 1)
+            while ($left = $chars - $pos) > 0 {
+                $pos = nqp::findcclass(
+                  nqp::const::CCLASS_NEWLINE, $!str, $pos, $left) + 1;
+                $seen = $seen + 1;
             }
             $seen
         }
@@ -2203,12 +2205,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $left;
             my int $nextpos;
             my int $seen;
+            my int $pos   = $!pos;
+            my int $chars = $!chars;
 
-            while ($left = $!chars - $!pos) > 0 {
+            while ($left = $chars - $pos) > 0 {
                 $nextpos = nqp::findcclass(
-                  nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
-                $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                  $!str, $nextpos, $!chars - $nextpos);
+                  nqp::const::CCLASS_WHITESPACE, $!str, $pos, $left);
+                $pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
+                  $!str, $nextpos, $chars - $nextpos);
                 $seen = $seen + 1;
             }
             $seen

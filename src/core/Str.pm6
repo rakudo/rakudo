@@ -1347,6 +1347,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             $seen
         }
+        method bool-only(--> Bool:D) {
+            nqp::p6bool($!chars)
+        }
     }
     multi method lines(Str:D:) { Seq.new(Lines.new(self)) }
 
@@ -2216,6 +2219,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $seen = $seen + 1;
             }
             $seen
+        }
+        method bool-only(--> Bool:D) {
+            nqp::p6bool(nqp::islt_i($!pos,$!chars))
         }
     }
     multi method words(Str:D:) { Seq.new(Words.new(self)) }

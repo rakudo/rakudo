@@ -371,8 +371,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ($!pos = $pos)
             )
         }
-        method count-only() { nqp::p6box_i($!chars) }
-        method bool-only(--> True) { }
+        method count-only(--> Int:D) { $!chars - $!pos - 1 }
+        method bool-only(--> Bool:D) { nqp::p6bool(self.count-only) }
     }
     multi method comb(Str:D:) { Seq.new(CombAll.new(self)) }
 

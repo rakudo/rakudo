@@ -97,16 +97,15 @@ my role Iterator {
     }
 
     # The optional "count-only" method in an Iterator class returns the number
-    # of elements that the iterator would be return when generating values,
-    # but *without* actually generating any values.  This can e.g. be the case
-    # when an iterator is created for a hash, or for all the characters in a
-    # string, of which the number elements is already known.
+    # of elements that the iterator would be able to still generate but
+    # *without* actually generating any values.  This can e.g. be the case
+    # when an iterator for all the characters in a string, of which the number
+    # elements is already known and the number of values generated as well.
     # method count-only(--> Int:D) { ... }
 
     # The optional "bool-only" method in an Iterator class returns a Bool
-    # to indicate whether the generator is able to generate *any* value,
-    # *without* actually generating any value.  This can e.g. be the case
-    # when an iterator is created for a hash.
+    # to indicate whether the generator is (still) able to generate *any*
+    # value, *without* actually generating any value.
     # method bool-only(--> Bool:D) { ... }
 
     # Consumes all of the values in the iterator for their side-effects only.

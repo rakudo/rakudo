@@ -208,8 +208,8 @@
                   ($!pos = $i)  # mark as done
                 )
             }
-            method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
-            method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
+            method count-only() { nqp::elems($!reified) - $!pos - 1 }
+            method bool-only()  { nqp::p6bool(self.count-only) }
             method sink-all(--> IterationEnd) {
                 $!pos = nqp::elems($!reified)
             }

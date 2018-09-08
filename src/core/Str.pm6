@@ -1348,7 +1348,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $seen
         }
         method bool-only(--> Bool:D) {
-            nqp::p6bool($!chars)
+            nqp::p6bool(nqp::islt_i($!pos,$!chars))
         }
     }
     multi method lines(Str:D:) { Seq.new(Lines.new(self)) }

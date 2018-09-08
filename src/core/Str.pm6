@@ -415,8 +415,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
               while ($todo = $todo - 1 ) && ($pos = $pos + $size) < $chars;
             $!pos = $!chars;
         }
-        method count-only() { $!max }
-        method bool-only(--> True) { }
+#        method count-only() { $!max }
+#        method bool-only(--> True) { }
     }
     multi method comb(Str:D: Int:D $size is copy, $limit = *) {
         my int $inf = nqp::istype($limit,Whatever) || $limit == Inf;

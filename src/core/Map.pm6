@@ -211,36 +211,21 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
     multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }
 
-    my class KV does Rakudo::Iterator::Mappy {
-        has int $!on-value;
-
+    my class KV does Rakudo::Iterator::Mappy-kv-from-pairs {
         method pull-one() is raw {
             nqp::if(
-              $!on-value,
+              $!on,
               nqp::stmts(
-                ($!on-value = 0),
+                ($!on= 0),
                 nqp::iterval($!iter)
               ),
               nqp::if(
                 $!iter,
                 nqp::stmts(
-                  ($!on-value = 1),
+                  ($!on= 1),
                   nqp::iterkey_s(nqp::shift($!iter))
                 ),
                 IterationEnd
-              )
-            )
-        }
-        method skip-one() {
-            nqp::if(
-              $!on-value,
-              nqp::not_i($!on-value = 0), # skipped a value
-              nqp::if(
-                $!iter,                   # if false, we didn't skip
-                nqp::stmts(               # skipped a key
-                  nqp::shift($!iter),
-                  ($!on-value = 1)
-                )
               )
             )
         }

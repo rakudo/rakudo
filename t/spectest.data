@@ -23,6 +23,7 @@
 APPENDICES/A01-limits/overflow.t
 APPENDICES/A02-some-day-maybe/io-cathandle.t
 APPENDICES/A02-some-day-maybe/multi-no-match.t
+APPENDICES/A02-some-day-maybe/concreteness.t
 MISC/bug-coverage.t
 MISC/bug-coverage-6.d.t
 MISC/bug-coverage-stress.t                  # stress

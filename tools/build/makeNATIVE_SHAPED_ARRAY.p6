@@ -396,7 +396,7 @@ for $*IN.lines -> $line {
             )
         }
         method iterator(::?CLASS:D:) {
-            class :: does Iterator {
+            class :: does PredictiveIterator {
                 has Mu $!list;
                 has int $!pos;
                 method !SET-SELF(Mu \list) {
@@ -428,8 +428,9 @@ for $*IN.lines -> $line {
                       ($!pos = $pos)
                     )
                 }
-                method count-only() { nqp::p6box_i(nqp::elems($!list)) }
-                method bool-only()  { nqp::hllbool(nqp::elems($!list)) }
+                method count-only() {
+                    nqp::p6box_i(nqp::elems($!list) - $!pos - 1)
+                }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)
                 }

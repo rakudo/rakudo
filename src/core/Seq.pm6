@@ -53,7 +53,7 @@ my class Seq is Cool does Iterable does Sequence {
           self.is-lazy,
           Failure.new(X::Cannot::Lazy.new(action => '.elems')),
           nqp::if(
-            nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
+            nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
             $!iter.count-only,
             self.cache.elems
           )
@@ -62,7 +62,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Numeric() {
         nqp::if(
-          nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
+          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
           $!iter.count-only,
           self.cache.Numeric
         )
@@ -70,7 +70,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Int() {
         nqp::if(
-          nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
+          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
           $!iter.count-only,
           self.cache.Int
         )
@@ -78,16 +78,8 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Bool(Seq:D:) {
         nqp::if(
-          nqp::isconcrete($!iter),
-          nqp::if(
-            nqp::can($!iter,'bool-only'),
-            $!iter.bool-only,
-            nqp::if(
-              nqp::can($!iter,'count-only'),
-              ?$!iter.count-only,
-              self.cache.Bool
-            )
-          ),
+          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
+          $!iter.bool-only,
           self.cache.Bool
         )
     }

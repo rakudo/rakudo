@@ -164,7 +164,7 @@
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
         }
 
-        my class Iterate does Iterator {
+        my class Iterate does PredictiveIterator {
             has Mu $!reified;
             has Mu $!desc;
             has int $!pos;
@@ -209,7 +209,6 @@
                 )
             }
             method count-only() { nqp::elems($!reified) - $!pos - 1 }
-            method bool-only()  { nqp::hllbool(self.count-only) }
             method sink-all(--> IterationEnd) {
                 $!pos = nqp::elems($!reified)
             }

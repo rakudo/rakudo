@@ -2510,7 +2510,6 @@ class Rakudo::Iterator {
         method is-lazy() { nqp::hllbool($!is-lazy) }
         method sink-all(--> IterationEnd) { $!times = 0 }
         method count-only() { $!times }
-        method bool-only() { $!times.Bool }
     }
     method OneValueTimes(Mu \value,\times) { OneValueTimes.new(value,times) }
 

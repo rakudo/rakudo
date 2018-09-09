@@ -128,7 +128,7 @@ my role PredictiveIterator does Iterator {
     # The "bool-only" method in a PredictiveIterator class returns a Bool
     # to indicate whether the generator is (still) able to generate at least
     # one value, *without* actually generating that value.
-    method bool-only(--> Bool:D) { nqp::hllbool(self.count-only) }
+    method bool-only(--> Bool:D) { self.count-only.Bool }
 }
 
 # vim: ft=perl6 expandtab sw=4

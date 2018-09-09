@@ -13,7 +13,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         $uni
     }
 
-    my class UniList does Iterator {
+    my class UniList does PredictiveIterator {
         has $!uni;
         has int $!els;
         has int $!i;
@@ -47,7 +47,6 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
                 nqp::sub_i(nqp::elems($!uni), nqp::add_i($!i, 1)),
                 0))
         }
-        method bool-only { nqp::hllbool(self.count-only) }
     }
     method list(Uni:D:) { Seq.new(UniList.new(self)) }
 

@@ -96,18 +96,6 @@ my role Iterator {
         )
     }
 
-    # The optional "count-only" method in an Iterator class returns the number
-    # of elements that the iterator would be able to still generate but
-    # *without* actually generating any values.  This can e.g. be the case
-    # when an iterator for all the characters in a string, of which the number
-    # elements is already known and the number of values generated as well.
-    # method count-only(--> Int:D) { ... }
-
-    # The optional "bool-only" method in an Iterator class returns a Bool
-    # to indicate whether the generator is (still) able to generate *any*
-    # value, *without* actually generating any value.
-    # method bool-only(--> Bool:D) { ... }
-
     # Consumes all of the values in the iterator for their side-effects only.
     # May be overridden by iterators to either warn about use of things in
     # sink context that should not be used that way, or to process things in
@@ -124,6 +112,23 @@ my role Iterator {
     # user absolutely asks for.  This has e.g. effect on the behaviour
     # on .STORE: a lazy iterator would not reify, a non-lazy would.
     method is-lazy(--> False) { }
+}
+
+# The PredictiveIterator role is a refinement of the Iterator role for those
+# cases when the number of values to be generated (still) can be determined
+# *without* actually generating those values.
+my role PredictiveIterator does Iterator {
+    # The "count-only" method in a PredictiveIterator class returns the number
+    # of elements that the iterator would still be able to generate but
+    # *without* actually generating any values.  This can e.g. be the case
+    # when an iterator for all the characters in a string, of which the number
+    # elements is already known and the number of values generated as well.
+    method count-only(--> Int:D) { ... }
+
+    # The "bool-only" method in a PredictiveIterator class returns a Bool
+    # to indicate whether the generator is (still) able to generate at least
+    # one value, *without* actually generating that value.
+    method bool-only(--> Bool:D) { nqp::hllbool(self.count-only) }
 }
 
 # vim: ft=perl6 expandtab sw=4

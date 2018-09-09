@@ -529,7 +529,7 @@ my role Baggy does QuantHash {
               ($!todo := nqp::decont($todo))
             )
         }
-        method count-only() { $!todo - 1 }
+        method count-only(--> Int:D) { $!todo }
         method sink-all() { $!todo := 0 }
 
     }

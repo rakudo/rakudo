@@ -39,10 +39,6 @@ my class Rakudo::QuantHash {
               )
             )
         }
-        method count-only() {
-            nqp::add_i(nqp::elems($!elems),nqp::elems($!elems))
-        }
-        method bool-only(--> True) { }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
 

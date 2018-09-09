@@ -437,7 +437,7 @@ my role Baggy does QuantHash {
     }
     multi method pick(Baggy:D: Whatever) { self.pick(Inf) }
 
-    my class PickN does Iterator {
+    my class PickN does PredictiveIterator {
         has $!raw;      # the IterationSet of the Baggy
         has $!weights;  # clone of raw, but with just the weights
         has $!todo;     # number of draws to do
@@ -530,7 +530,6 @@ my role Baggy does QuantHash {
             )
         }
         method count-only() { $!todo - 1 }
-        method bool-only(--> True) { }
         method sink-all() { $!todo := 0 }
 
     }

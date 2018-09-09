@@ -18,7 +18,7 @@ class Rakudo::Iterator {
     # Generic role for iterating over a Blob / Buf.  You need to
     # supply at least a .pull-one.  Takes a Blob / Buf as the only
     # parameter to .new.
-    our role Blobby does Iterator {
+    our role Blobby does PredictiveIterator {
         has $!blob;
         has Int $!i;   # sadly, this can not be a native int yet  :-(
 
@@ -48,7 +48,8 @@ class Rakudo::Iterator {
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                 $target.push(nqp::atpos_i($blob,$i))
-              )
+              ),
+              ($!i = $i)
             )
         }
         method count-only() {
@@ -60,10 +61,6 @@ class Rakudo::Iterator {
                 nqp::islt_i($!i, nqp::elems($!blob)),
                 nqp::sub_i(nqp::elems($!blob),nqp::add_i($!i,1)),
                 0))
-        }
-        method bool-only()  {
-            nqp::hllbool(
-              nqp::islt_i($!i, nqp::sub_i(nqp::elems($!blob),1)))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!blob) }
     }
@@ -691,7 +688,7 @@ class Rakudo::Iterator {
     # Returns an iterator for a one character range of values.  Takes the
     # first, last character, and whether the first / last should be
     # excluded.
-    my class CharFromTo does Iterator {
+    my class CharFromTo does PredictiveIterator {
         has int $!i;
         has int $!n;
 
@@ -718,7 +715,6 @@ class Rakudo::Iterator {
             $!i = $i;
         }
         method count-only() { nqp::p6box_i($!n - $!i) }
-        method bool-only() { nqp::hllbool(nqp::isgt_i($!n,$!i)) }
         method sink-all(--> IterationEnd) { $!i = $!n }
     }
     method CharFromTo(\min,\max,\excludes-min,\excludes-max) {
@@ -731,7 +727,7 @@ class Rakudo::Iterator {
     # Has a highly optimized count-only, for those cases when one is only
     # interested in the number of combinations, rather than the actual
     # combinations.  The workhorse of combinations().
-    my class Combinations does Iterator {
+    my class Combinations does PredictiveIterator {
         has int $!pulled-count = 0;
         has int $!n;
         has int $!k;
@@ -796,7 +792,6 @@ class Rakudo::Iterator {
             (([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int)
             - $!pulled-count
         }
-        method bool-only(--> Bool) { nqp::hllbool(self.count-only != 0) }
     }
     method Combinations($n, $k, int $b) {
         nqp::if(
@@ -1584,7 +1579,7 @@ class Rakudo::Iterator {
 
     # Returns a sentinel Iterator object that will never generate any value.
     # Does not take a parameter.
-    my class Empty does Iterator {
+    my class Empty does PredictiveIterator {
         method new() { nqp::create(self) }
         method pull-one(--> IterationEnd)  { }
         method push-all($ --> IterationEnd) { }
@@ -1884,7 +1879,7 @@ class Rakudo::Iterator {
     # Return an iterator for the given low/high integer value (inclusive).
     # Has dedicated .push-all for those cases one needs to fill a list
     # with consecutive numbers quickly.
-    my class IntRange does Iterator {
+    my class IntRange does PredictiveIterator {
         has int $!i;
         has int $!last;
         has $!is-lazy;
@@ -1940,7 +1935,6 @@ class Rakudo::Iterator {
         }
         method is-lazy(--> Bool:D) { $!is-lazy }
         method count-only() { nqp::p6box_i(nqp::sub_i($!last,$!i)) }
-        method bool-only()  { nqp::hllbool(nqp::isgt_i($!last,$!i)) }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
     method IntRange(\from,\to) { IntRange.new(from,to) }
@@ -2473,7 +2467,7 @@ class Rakudo::Iterator {
 
     # Return an iterator that only will return the given value for the
     # given number of times.  Basically the same as 42 xx N.
-    my class OneValueTimes does Iterator {
+    my class OneValueTimes does PredictiveIterator {
         has Mu $!value;
         has Int $!times;
         has int $!is-lazy;
@@ -2516,7 +2510,7 @@ class Rakudo::Iterator {
         method is-lazy() { nqp::hllbool($!is-lazy) }
         method sink-all(--> IterationEnd) { $!times = 0 }
         method count-only() { $!times }
-        method bool-only() { nqp::hllbool(nqp::istrue($!times)) }
+        method bool-only() { $!times.Bool }
     }
     method OneValueTimes(Mu \value,\times) { OneValueTimes.new(value,times) }
 
@@ -2551,7 +2545,7 @@ class Rakudo::Iterator {
     # Return an iterator for a given number of permutations.  Also specify
     # whether an IterationBuffer should be returned for each iteration (1),
     # or a List (0).  Basically the workhorse of permutations.
-    my class Permutations does Iterator {
+    my class Permutations does PredictiveIterator {
         has int $!n;
         has int $!b;
         has int $!todo;
@@ -2633,7 +2627,6 @@ class Rakudo::Iterator {
         method count-only {
             nqp::isge_i($!todo, 0) ?? nqp::p6box_i($!todo) !! 0
         }
-        method bool-only { nqp::hllbool(nqp::isgt_i($!todo, 0)) }
     }
     method Permutations($n, int $b) {
         nqp::if(
@@ -2655,7 +2648,7 @@ class Rakudo::Iterator {
     # Return an iterator for an Array that has been completely reified
     # already.  Returns a assignable container for elements don't exist
     # before the end of the reified array.
-    my class ReifiedArrayIterator does Iterator {
+    my class ReifiedArrayIterator does PredictiveIterator {
         has $!reified;
         has $!descriptor;
         has int $!i;
@@ -2747,10 +2740,6 @@ class Rakudo::Iterator {
                 nqp::islt_i($!i, nqp::elems($!reified)),
                 nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
                 0))
-        }
-        method bool-only()  {
-            nqp::hllbool(
-              nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
@@ -2858,7 +2847,7 @@ class Rakudo::Iterator {
     # Return an iterator that produces values in reverse order for a
     # List that has been completely reified already.  Returns an nqp::null
     # for elements don't exist before the end of the reified list.
-    my class ReifiedListReverse does Iterator {
+    my class ReifiedListReverse does PredictiveIterator {
         has $!reified;
         has int $!i;
 
@@ -2904,7 +2893,6 @@ class Rakudo::Iterator {
             )
         }
         method count-only() { nqp::p6box_i($!i) }
-        method bool-only()  { nqp::hllbool($!i) }
         method sink-all(--> IterationEnd) { $!i = 0 }
     }
     method ReifiedListReverse(\list) { ReifiedListReverse.new(list) }
@@ -3713,7 +3701,7 @@ class Rakudo::Iterator {
 
     # Return a lazy iterator that will keep producing the given value.
     # Basically the functionality of 42 xx *
-    my class UnendingValue does Iterator {
+    my class UnendingValue does PredictiveIterator {
         has Mu $!value;
         method new(Mu \value) {
             nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)

@@ -371,7 +371,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ($!pos = $pos)
             )
         }
-        method count-only(--> Int:D) { $!chars - $!pos - 1 }
+        method count-only(--> Int:D) {
+            nqp::p6box_i($!chars - $!pos - nqp::islt_i($!pos,$!chars))
+        }
     }
     multi method comb(Str:D:) { Seq.new(CombAll.new(self)) }
 
@@ -414,7 +416,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               while ($todo = $todo - 1 ) && ($pos = $pos + $size) < $chars;
             $!pos = $!chars;
         }
-        method count-only() { $!max }
+        method count-only(--> Int:D) { nqp::p6box_i($!max) }
     }
     multi method comb(Str:D: Int:D $size is copy, $limit = *) {
         my int $inf = nqp::istype($limit,Whatever) || $limit == Inf;
@@ -1343,7 +1345,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   nqp::const::CCLASS_NEWLINE, $!str, $pos, $left) + 1;
                 $seen = $seen + 1;
             }
-            $seen
+            nqp::p6box_i($seen)
         }
         method bool-only(--> Bool:D) {
             nqp::hllbool(nqp::islt_i($!pos,$!chars))
@@ -1680,7 +1682,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $target.push("") if $!last;
         }
         method count-only() { nqp::p6box_i($!todo + $!first + $!last) }
-        method bool-only() { nqp::hllbool($!todo + $!first + $!last) }
         method sink-all(--> IterationEnd) { }
     }
     multi method split(Str:D: Str(Cool) $match, $limit is copy = Inf;;

@@ -223,7 +223,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
               ).elems),                                       # reifies
               $count
             ),   # reifies
-            class :: does Iterator {
+            class :: does PredictiveIterator {
                 has $!op;
                 has $!reified;
                 has $!result;
@@ -282,7 +282,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
               ).elems),                                       # reifies
               1
             ),
-            class :: does Iterator {
+            class :: does PredictiveIterator {
                 has $!op;
                 has $!reified;
                 has $!result;

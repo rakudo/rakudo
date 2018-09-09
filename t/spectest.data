@@ -1051,6 +1051,7 @@ S32-io/note.t
 S32-io/null-char.t
 S32-io/open.t
 S32-io/other.t
+S32-io/other-stress.t
 S32-io/out-buffering.t
 S32-io/pipe.t
 S32-io/rename.t

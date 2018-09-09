@@ -208,7 +208,14 @@
                   ($!pos = $i)  # mark as done
                 )
             }
-            method count-only() { nqp::elems($!reified) - $!pos - 1 }
+            method count-only(--> Int:D) { 
+                nqp::p6box_i(
+                  nqp::elems($!reified)
+                    - $!pos
+                    - nqp::islt_i($!pos,nqp::elems($!reified)
+                  )
+                )
+            }
             method sink-all(--> IterationEnd) {
                 $!pos = nqp::elems($!reified)
             }

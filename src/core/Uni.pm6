@@ -28,7 +28,8 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
             nqp::if(
               nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els),
               nqp::atpos_i($!uni, $!i),
-              IterationEnd)
+              IterationEnd
+            )
         }
         method push-all($target --> IterationEnd) {
             nqp::stmts(
@@ -37,15 +38,13 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
               (my int $i    = $!i),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i, 1)), $els),
-                $target.push: nqp::atpos_i($uni, $i)),
-              ($!i = $i))
+                $target.push: nqp::atpos_i($uni, $i)
+              ),
+              ($!i = $i)
+            )
         }
-        method count-only {
-            nqp::p6box_i(
-              nqp::if(
-                nqp::islt_i($!i, nqp::elems($!uni)),
-                nqp::sub_i(nqp::elems($!uni), nqp::add_i($!i, 1)),
-                0))
+        method count-only(--> Int:D) {
+            nqp::p6box_i($!els - $!i - nqp::islt_i($!i,$!els))
         }
     }
     method list(Uni:D:) { Seq.new(UniList.new(self)) }

@@ -339,7 +339,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method comb(|) {*}
 
-    my class CombAll does Iterator {
+    my class CombAll does PredictiveIterator {
         has str $!str;
         has int $!chars;
         has int $!pos;
@@ -372,11 +372,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
             )
         }
         method count-only(--> Int:D) { $!chars - $!pos - 1 }
-        method bool-only(--> Bool:D) { nqp::hllbool(self.count-only) }
     }
     multi method comb(Str:D:) { Seq.new(CombAll.new(self)) }
 
-    my class CombN does Iterator {
+    my class CombN does PredictiveIterator {
         has str $!str;
         has int $!chars;
         has int $!size;
@@ -415,8 +414,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               while ($todo = $todo - 1 ) && ($pos = $pos + $size) < $chars;
             $!pos = $!chars;
         }
-#        method count-only() { $!max }
-#        method bool-only(--> True) { }
+        method count-only() { $!max }
     }
     multi method comb(Str:D: Int:D $size is copy, $limit = *) {
         my int $inf = nqp::istype($limit,Whatever) || $limit == Inf;
@@ -1296,7 +1294,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self.lines.head($limit)
     }
 
-    my class Lines does Iterator {
+    my class Lines does PredictiveIterator {
         has str $!str;
         has int $!chars;
         has int $!pos;
@@ -1620,7 +1618,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         method sink-all(--> IterationEnd) { }
     }
-    my class SplitEmptyLimit does Iterator {
+    my class SplitEmptyLimit does PredictiveIterator {
         has str $!string;
         has int $!todo;
         has int $!chars;
@@ -2160,7 +2158,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? self.words
           !! self.words.head($limit)
     }
-    my class Words does Iterator {
+    my class Words does PredictiveIterator {
         has str $!str;
         has int $!chars;
         has int $!pos;

@@ -52,15 +52,12 @@ class Rakudo::Iterator {
               ($!i = $i)
             )
         }
-        method count-only() {
-            # we start off $!i at -1, so add back 1 to it to get right count
-            # if $i is >= elems, that means we're done iterating. We can't
-            # *just* substract in that case, as we'd get `-1`
+        method count-only(--> Int:D) {
             nqp::p6box_i(
-              nqp::if(
-                nqp::islt_i($!i, nqp::elems($!blob)),
-                nqp::sub_i(nqp::elems($!blob),nqp::add_i($!i,1)),
-                0))
+              nqp::elems($!blob)
+                - $!i
+                - nqp::islt_i($!i,nqp::elems($!blob))
+            )
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!blob) }
     }
@@ -714,7 +711,7 @@ class Rakudo::Iterator {
             $target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
             $!i = $i;
         }
-        method count-only() { nqp::p6box_i($!n - $!i) }
+        method count-only(--> Int:D) { nqp::p6box_i($!n - $!i) }
         method sink-all(--> IterationEnd) { $!i = $!n }
     }
     method CharFromTo(\min,\max,\excludes-min,\excludes-max) {
@@ -788,7 +785,7 @@ class Rakudo::Iterator {
             )
         }
 
-        method count-only(--> Int) {
+        method count-only(--> Int:D) {
             (([*] ($!n ... 0) Z/ 1 .. min($!n - $!k, $!k)).Int)
             - $!pulled-count
         }
@@ -1454,43 +1451,18 @@ class Rakudo::Iterator {
         CStyleLoop.new(&body,&cond,&afterwards)
     }
 
-    my role CountOnlyDelegate {
-        has Mu $!count-only-delegate-target;
-
-        method count-only { $!count-only-delegate-target.count-only }
-
-        method SET-DELEGATE-TARGET(Mu \target) { $!count-only-delegate-target = target unless $!count-only-delegate-target; self }
-    }
-    my role BoolOnlyDelegate {
-        has Mu $!bool-only-delegate-target;
-
-        method bool-only  { $!bool-only-delegate-target.bool-only }
-        method SET-DELEGATE-TARGET(Mu \target) { $!bool-only-delegate-target = target unless $!bool-only-delegate-target; self }
-    }
-    my role CountOnlyBoolOnlyDelegate {
-        has Mu $!bool-only-count-only-delegate-target;
-
-        method bool-only  { $!bool-only-count-only-delegate-target.bool-only  }
-        method count-only { $!bool-only-count-only-delegate-target.count-only }
-        method SET-DELEGATE-TARGET(Mu \target) { $!bool-only-count-only-delegate-target = target unless $!bool-only-count-only-delegate-target; self }
+    my role DelegateCountOnly[\iter] does PredictiveIterator {
+        method count-only(--> Int:D) { iter.count-only }
     }
 
     # Takes two iterators and mixes in a role into the second iterator that
-    # delegates .count-only and .bool-only methods to the first iterator
-    # if either exist in it. Returns the second iterator.
+    # delegates .count-only method to the first iterator if the first is a
+    # PredictiveIterator
     method delegate-iterator-opt-methods (Iterator:D \a, Iterator:D \b) {
-        nqp::if(
-          nqp::can(a, 'count-only') && nqp::can(a, 'bool-only'),
-          b.^mixin(CountOnlyBoolOnlyDelegate).SET-DELEGATE-TARGET(a),
-          nqp::if(
-            nqp::can(a, 'count-only'),
-            b.^mixin(CountOnlyDelegate).SET-DELEGATE-TARGET(a),
-            nqp::if(
-              nqp::can(a, 'bool-only'),
-              b.^mixin(BoolOnlyDelegate).SET-DELEGATE-TARGET(a),
-              b)))
+        nqp::istype(a,PredictiveIterator)
+          ?? b.^mixin(DelegateCountOnly[a])
+          !! b
     }
-
 
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
@@ -1934,7 +1906,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy(--> Bool:D) { $!is-lazy }
-        method count-only() { nqp::p6box_i(nqp::sub_i($!last,$!i)) }
+        method count-only(--> Int:D) { nqp::p6box_i($!last - $!i) }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
     method IntRange(\from,\to) { IntRange.new(from,to) }
@@ -2153,10 +2125,10 @@ class Rakudo::Iterator {
           nqp::stmts(
             (my $result := IterationEnd),
             nqp::if(
-              nqp::can(iterator, 'count-only'),
+              nqp::istype(iterator,PredictiveIterator),
               nqp::if(
                 (my \count := iterator.count-only)
-                && iterator.skip-at-least(count - 1),
+                  && iterator.skip-at-least(count - 1),
                 $result := iterator.pull-one
               ),
               nqp::until(
@@ -2508,8 +2480,8 @@ class Rakudo::Iterator {
         }
         method skip-one() { nqp::if($!times,$!times--) }
         method is-lazy() { nqp::hllbool($!is-lazy) }
+        method count-only(--> Int:D) { $!times }
         method sink-all(--> IterationEnd) { $!times = 0 }
-        method count-only() { $!times }
     }
     method OneValueTimes(Mu \value,\times) { OneValueTimes.new(value,times) }
 
@@ -2623,8 +2595,8 @@ class Rakudo::Iterator {
               IterationEnd
             )
         }
-        method count-only {
-            nqp::isge_i($!todo, 0) ?? nqp::p6box_i($!todo) !! 0
+        method count-only(--> Int:D) {
+            nqp::p6box_i(nqp::isgt_i($!todo,0) && $!todo)
         }
     }
     method Permutations($n, int $b) {
@@ -2730,15 +2702,12 @@ class Rakudo::Iterator {
               )
             )
         }
-        method count-only() {
-            # we start off $!i at -1, so add back 1 to it to get right count
-            # if $i is >= elems, that means we're done iterating. We can't
-            # *just* substract in that case, as we'd get `-1`
+        method count-only(--> Int:D) {
             nqp::p6box_i(
-              nqp::if(
-                nqp::islt_i($!i, nqp::elems($!reified)),
-                nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
-                0))
+              nqp::elems($!reified)
+                - $!i
+                - nqp::islt_i($!i,nqp::elems($!reified))
+            )
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
@@ -2823,19 +2792,12 @@ class Rakudo::Iterator {
               )
             )
         }
-        method count-only() {
-            # we start off $!i at -1, so add back 1 to it to get right count
-            # if $i is >= elems, that means we're done iterating. We can't
-            # *just* substract in that case, as we'd get `-1`
+        method count-only(--> Int:D) {
             nqp::p6box_i(
-              nqp::if(
-                nqp::islt_i($!i, nqp::elems($!reified)),
-                nqp::sub_i(nqp::elems($!reified),nqp::add_i($!i,1)),
-                0))
-        }
-        method bool-only()  {
-            nqp::hllbool(
-              nqp::islt_i($!i, nqp::sub_i(nqp::elems($!reified),1)))
+              nqp::elems($!reified)
+                - $!i
+                - nqp::islt_i($!i,nqp::elems($!reified))
+            )
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
@@ -2891,7 +2853,7 @@ class Rakudo::Iterator {
               ($!i = 0)
             )
         }
-        method count-only() { nqp::p6box_i($!i) }
+        method count-only(--> Int:D) { nqp::p6box_i($!i) }
         method sink-all(--> IterationEnd) { $!i = 0 }
     }
     method ReifiedListReverse(\list) { ReifiedListReverse.new(list) }

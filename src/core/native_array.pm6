@@ -1658,7 +1658,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2018-09-09T16:19:43+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-09T21:55:50+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2045,8 +2045,12 @@ my class array does Iterable {
                       ($!pos = $pos)
                     )
                 }
-                method count-only() {
-                    nqp::p6box_i(nqp::elems($!list) - $!pos - 1)
+                method count-only(--> Int:D) {
+                    nqp::p6box_i(
+                      nqp::elems($!list)
+                        - $!pos
+                        - nqp::islt_i($!pos,nqp::elems($!list))
+                    )
                 }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)
@@ -2210,7 +2214,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2018-09-09T16:19:43+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-09T21:55:50+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2597,8 +2601,12 @@ my class array does Iterable {
                       ($!pos = $pos)
                     )
                 }
-                method count-only() {
-                    nqp::p6box_i(nqp::elems($!list) - $!pos - 1)
+                method count-only(--> Int:D) {
+                    nqp::p6box_i(
+                      nqp::elems($!list)
+                        - $!pos
+                        - nqp::islt_i($!pos,nqp::elems($!list))
+                    )
                 }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)
@@ -2762,7 +2770,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2018-09-09T16:19:43+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-09T21:55:50+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -3149,8 +3157,12 @@ my class array does Iterable {
                       ($!pos = $pos)
                     )
                 }
-                method count-only() {
-                    nqp::p6box_i(nqp::elems($!list) - $!pos - 1)
+                method count-only(--> Int:D) {
+                    nqp::p6box_i(
+                      nqp::elems($!list)
+                        - $!pos
+                        - nqp::islt_i($!pos,nqp::elems($!list))
+                    )
                 }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)

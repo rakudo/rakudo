@@ -428,8 +428,12 @@ for $*IN.lines -> $line {
                       ($!pos = $pos)
                     )
                 }
-                method count-only() {
-                    nqp::p6box_i(nqp::elems($!list) - $!pos - 1)
+                method count-only(--> Int:D) {
+                    nqp::p6box_i(
+                      nqp::elems($!list)
+                        - $!pos
+                        - nqp::islt_i($!pos,nqp::elems($!list))
+                    )
                 }
                 method sink-all(--> IterationEnd) {
                     $!pos = nqp::elems($!list)

@@ -382,47 +382,57 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has int $!chars;
         has int $!size;
         has int $!pos;
-        has int $!max;
         has int $!todo;
-        method !SET-SELF(\string,\size,\limit,\inf) {
-            nqp::stmts(
-              ($!str   = nqp::unbox_s(string)),
-              ($!chars = nqp::chars($!str)),
-              ($!size  = 1 max size),
-              ($!pos   = -size),
-              ($!max   = 1 + floor( ( $!chars - 1 ) / $!size )),
-              ($!todo  = (inf ?? $!max !! (0 max limit)) + 1),
-              self
-            )
+        method !SET-SELF(\string,\size,\limit) {
+            $!str   = nqp::unbox_s(string);
+            $!chars = nqp::chars($!str);
+            $!size  = size < 1 ?? 1 !! size;
+            $!pos   = -$!size;
+            $!todo  = 1 + (($!chars - 1) div $!size);
+            $!todo  = limit
+              unless nqp::istype(limit,Whatever) || limit > $!todo;
+            $!todo  = $!todo + 1;
+            self
         }
-        method new(\string,\size,\limit,\inf) {
+        method new(\string,\size,\limit) {
             nqp::if(
               string,
-              nqp::create(self)!SET-SELF(string,size,limit,inf),
+              nqp::create(self)!SET-SELF(string,size,limit),
               Rakudo::Iterator.Empty
             )
         }
         method pull-one() {
-            ($!todo = $!todo - 1) && ($!pos = $!pos + $!size) < $!chars
-              ?? nqp::p6box_s(nqp::substr($!str, $!pos, $!size))
-              !! IterationEnd
+            nqp::if(
+              ($!todo = $!todo - 1),
+              nqp::p6box_s(
+                 nqp::substr($!str,($!pos = $!pos + $!size), $!size)
+              ),
+              IterationEnd
+            )
         }
         method push-all($target --> IterationEnd) {
             my int $todo  = $!todo;
             my int $pos   = $!pos;
             my int $size  = $!size;
             my int $chars = $!chars;
-            $target.push(nqp::p6box_s(nqp::substr($!str, $pos, $size)))
-              while ($todo = $todo - 1 ) && ($pos = $pos + $size) < $chars;
-            $!pos = $!chars;
+            nqp::while(
+              ($todo = $todo - 1),
+              $target.push(
+                nqp::p6box_s(
+                  nqp::substr($!str,($pos = $pos + $size), $size)
+                )
+              )
+            );
+            $!todo = 0;
         }
-        method count-only(--> Int:D) { nqp::p6box_i($!max) }
+        method count-only(--> Int:D) {
+            nqp::p6box_i($!todo - nqp::isgt_i($!todo,0))
+        }
     }
     multi method comb(Str:D: Int:D $size is copy, $limit = *) {
-        my int $inf = nqp::istype($limit,Whatever) || $limit == Inf;
-        $size <= 1 && $inf
+        $size <= 1 && (nqp::istype($limit,Whatever) || $limit == Inf)
           ?? self.comb
-          !! Seq.new(CombN.new(self,$size < 1 ?? 1 !! $size,$limit,$inf))
+          !! Seq.new(CombN.new(self,$size,$limit))
     }
 
     my class CombPat does Iterator {

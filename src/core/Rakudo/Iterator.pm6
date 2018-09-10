@@ -1906,7 +1906,9 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy(--> Bool:D) { $!is-lazy }
-        method count-only(--> Int:D) { nqp::p6box_i($!last - $!i) }
+        method count-only(--> Int:D) {
+            nqp::p6box_i($!last - $!i + nqp::isgt_i($!i,$!last))
+        }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
     method IntRange(\from,\to) { IntRange.new(from,to) }

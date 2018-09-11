@@ -969,6 +969,11 @@ class Perl6::World is HLL::World {
       'parameters', 1,
     );
 
+    my %isms := nqp::hash(
+      'Perl5',   'p5isms',
+      'C++',     'c++isms',
+    );
+
     method do_pragma($/,$name,$on,$arglist) {
 
         my $RMD := self.RAKUDO_MODULE_DEBUG;
@@ -1087,8 +1092,8 @@ class Perl6::World is HLL::World {
             if nqp::islist($arglist) {
                 my @huh;
                 for $arglist -> $ism {
-                    if $ism eq 'Perl5' {
-                        $*LANG.set_pragma('p5isms', $on);
+                    if nqp::atkey(%isms,$ism) -> $value {
+                        $*LANG.set_pragma($value, $on);
                     }
                     else {
                         nqp::push(@huh,$ism)
@@ -1101,6 +1106,9 @@ class Perl6::World is HLL::World {
                         ~ ">"
                     )
                 }
+            }
+            else {
+                $*LANG.set_pragma($_.value, $on) for %isms;
             }
         }
         else {

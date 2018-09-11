@@ -223,7 +223,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
               ).elems),                                       # reifies
               $count
             ),   # reifies
-            class :: does PredictiveIterator {
+            class :: does Iterator {
                 has $!op;
                 has $!reified;
                 has $!result;
@@ -263,8 +263,6 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                       ))
                     )
                 }
-                method bool-only(--> True) { };
-                method count-only() { nqp::p6box_i($!i) }
             }.new(op,$v,$count,$i),
             Rakudo::Iterator.OneValue(
               nqp::if(
@@ -282,7 +280,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
               ).elems),                                       # reifies
               1
             ),
-            class :: does PredictiveIterator {
+            class :: does Iterator {
                 has $!op;
                 has $!reified;
                 has $!result;
@@ -310,8 +308,6 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                       ))
                     )
                 }
-                method bool-only(--> True) { };
-                method count-only() { nqp::p6box_i($!i) }
             }.new(op,$v,$i),
             Rakudo::Iterator.OneValue(
               nqp::if(

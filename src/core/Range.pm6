@@ -189,7 +189,9 @@ my class Range is Cool does Iterable does Positional {
             $target.push(nqp::p6box_i($i)) while ($i = $i - 1) >= $n;
             $!i = $i;
         }
-        method count-only() { nqp::p6box_i($!i - $!n) }
+        method count-only(--> Int:D) {
+            nqp::p6box_i($!i - $!n + nqp::isgt_i($!n,$!i))
+        }
         method sink-all(--> IterationEnd)   { $!i = $!n }
     }
     my class InfReverse does Iterator {
@@ -228,7 +230,9 @@ my class Range is Cool does Iterable does Positional {
             $target.push(nqp::chr($i)) while ($i = $i - 1) >= $n;
             $!i = $i;
         }
-        method count-only() { nqp::p6box_i($!i - $!n) }
+        method count-only(--> Int:D) {
+            nqp::p6box_i($!i - $!n + nqp::isgt_i($!n,$!i))
+        }
         method sink-all(--> IterationEnd) { $!i = $!n }
     }
     my class Pred does Iterator {

@@ -72,7 +72,7 @@ my class Int does Real { # declared in BOOTSTRAP
     method chr(Int:D:) {
         nqp::if(
           nqp::isbig_I(self),
-            die("chr codepoint %i (0x%X) is too large".sprintf(self, self)),
+            die("Error encoding UTF-8 string: could not encode codepoint %i (0x%X), codepoint out of bounds.".sprintf(self, self)),
           nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
         )
     }

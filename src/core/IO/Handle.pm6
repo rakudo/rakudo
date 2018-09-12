@@ -235,7 +235,7 @@ my class IO::Handle {
     }
 
     method EOF() {
-        nqp::eoffh($!PIO)
+        nqp::isnull($!PIO) || nqp::eoffh($!PIO)
     }
 
     method READ(Int:D $bytes) {

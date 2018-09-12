@@ -486,6 +486,14 @@
             nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',buf)
         }
 
+        multi method Array(::?CLASS:D:) {
+            my @Array := nqp::eqaddr(self.of,Mu)
+              ?? Array.new
+              !! Array[self.of].new;
+            self.iterator.push-all(@Array);
+            @Array
+        }
+
         my class Iterate does Rakudo::Iterator::ShapeLeaf {
             has Mu $!desc;
             method !INIT(\list) {

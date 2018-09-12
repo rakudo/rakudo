@@ -1658,7 +1658,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2018-09-09T21:55:50+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-12T22:57:23+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1726,110 +1726,111 @@ my class array does Iterable {
             )
         }
 
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                has Mu $!from;
-                method INIT(Mu \to, Mu \from) {
-                    nqp::stmts(
-                      ($!from := from),
-                      self!SET-SELF(to)
-                    )
-                }
-                method new(Mu \to, Mu \from) {
-                    nqp::create(self).INIT(to,from)
-                }
-                method result(--> Nil) {
-                    nqp::bindposnd_i($!list,$!indices,
+        my class NATCPY-int does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_i($!list,$!indices,
 #?if moar
-                      nqp::multidimref_i($!from,$!indices))
+                  nqp::multidimref_i($!from,$!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_i($!from,$!indices))
+                  nqp::atposnd_i($!from,$!indices))
 #?endif
-                }
-            }.new(to,from).sink-all;
+            }
+        }
+        sub NATCPY(Mu \to, Mu \from) is raw {
+            NATCPY-int.new(to,from).sink-all;
             to
+        }
+
+        my class OBJCPY-int does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := nqp::getattr(from,List,'$!reified')),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_i($!list,$!indices,
+                  nqp::atposnd($!from,$!indices))
+            }
         }
         sub OBJCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                has Mu $!from;
-                method INIT(Mu \to, Mu \from) {
-                    nqp::stmts(
-                      ($!from := nqp::getattr(from,List,'$!reified')),
-                      self!SET-SELF(to)
-                    )
-                }
-                method new(Mu \to, Mu \from) {
-                    nqp::create(self).INIT(to,from)
-                }
-                method result(--> Nil) {
-                    nqp::bindposnd_i($!list,$!indices,
-                      nqp::atposnd($!from,$!indices))
-                }
-            }.new(to,from).sink-all;
+            OBJCPY-int.new(to,from).sink-all;
             to
         }
-        sub ITERCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeBranch {
-                has $!iterators;
-                method INIT(\to,\from) {
-                    nqp::stmts(
-                      self!SET-SELF(to),
-                      ($!iterators := nqp::setelems(
-                        nqp::list(from.iterator),
-                        nqp::add_i($!maxdim,1)
-                      )),
-                      self
-                    )
-                }
-                method new(\to,\from) { nqp::create(self).INIT(to,from) }
-                method done(--> Nil) {
-                    nqp::unless(                        # verify lowest
-                      nqp::atpos($!iterators,0).is-lazy # finite iterator
-                        || nqp::eqaddr(                 # and something there
-                             nqp::atpos($!iterators,0).pull-one,IterationEnd),
-                      nqp::atposnd_i($!list,$!indices)    # boom!
-                    )
-                }
-                method process(--> Nil) {
-                    nqp::stmts(
-                      (my int $i = $!level),
-                      nqp::while(
-                        nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
-                        nqp::if(
-                          nqp::eqaddr((my $item :=      # exhausted ?
-                            nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
-                            IterationEnd
-                          ),
-                          nqp::bindpos($!iterators,$i,  # add an empty one
-                            Rakudo::Iterator.Empty),
-                          nqp::if(                      # is it an iterator?
-                            nqp::istype($item,Iterable) && nqp::isconcrete($item),
-                            nqp::bindpos($!iterators,$i,$item.iterator),
-                            X::Assignment::ToShaped.new(shape => $!dims).throw
-                          )
-                        )
+
+        my class ITERCPY-int does Rakudo::Iterator::ShapeBranch {
+            has $!iterators;
+            method !INIT(\to,\from) {
+                nqp::stmts(
+                  self!SET-SELF(to),
+                  ($!iterators := nqp::setelems(
+                    nqp::list(from.iterator),
+                    nqp::add_i($!maxdim,1)
+                  )),
+                  self
+                )
+            }
+            method new(\to,\from) { nqp::create(self)!INIT(to,from) }
+            method done(--> Nil) {
+                nqp::unless(                        # verify lowest
+                  nqp::atpos($!iterators,0).is-lazy # finite iterator
+                    || nqp::eqaddr(                 # and something there
+                         nqp::atpos($!iterators,0).pull-one,IterationEnd),
+                  nqp::atposnd_i($!list,$!indices)    # boom!
+                )
+            }
+            method process(--> Nil) {
+                nqp::stmts(
+                  (my int $i = $!level),
+                  nqp::while(
+                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::if(
+                      nqp::eqaddr((my \item :=      # exhausted ?
+                        nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
+                        IterationEnd
                       ),
-                      (my $iter := nqp::atpos($!iterators,$!maxdim)),
-                      nqp::until(                       # loop over highest dim
-                        nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd)
-                          || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
-                        nqp::stmts(
-                          nqp::bindposnd_i($!list,$!indices,$pulled),
-                          nqp::bindpos_i($!indices,$!maxdim,  # increment index
-                            nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
-                        )
-                      ),
-                      nqp::unless(
-                        nqp::eqaddr($pulled,IterationEnd) # if not exhausted
-                          || nqp::isle_i(                 # and index too high
-                               nqp::atpos_i($!indices,$!maxdim),$!maxind)
-                          || $iter.is-lazy,               # and not lazy
-                        nqp::atposnd_i($!list,$!indices)  # boom!
+                      nqp::bindpos($!iterators,$i,  # add an empty one
+                        Rakudo::Iterator.Empty),
+                      nqp::if(                      # is it an iterator?
+                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::bindpos($!iterators,$i,item.iterator),
+                        X::Assignment::ToShaped.new(shape => $!dims).throw
                       )
                     )
-                }
-            }.new(to,from).sink-all;
+                  ),
+                  (my \iter := nqp::atpos($!iterators,$!maxdim)),
+                  nqp::until(                       # loop over highest dim
+                    nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
+                      || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
+                    nqp::stmts(
+                      nqp::bindposnd_i($!list,$!indices,pulled),
+                      nqp::bindpos_i($!indices,$!maxdim,  # increment index
+                        nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
+                    )
+                  ),
+                  nqp::unless(
+                    nqp::eqaddr(pulled,IterationEnd) # if not exhausted
+                      || nqp::isle_i(                 # and index too high
+                           nqp::atpos_i($!indices,$!maxdim),$!maxind)
+                      || iter.is-lazy,                # and not lazy
+                    nqp::atposnd_i($!list,$!indices)  # boom!
+                  )
+                )
+            }
+        }
+        sub ITERCPY(Mu \to, Mu \from) is raw {
+            ITERCPY-int.new(to,from).sink-all;
             to
         }
 
@@ -1875,68 +1876,70 @@ my class array does Iterable {
               ITERCPY(self,from)
             )
         }
-        method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() is raw {
+
+        my class Iterate-int does Rakudo::Iterator::ShapeLeaf {
+            method result() is raw {
 #?if moar
-                    nqp::multidimref_i($!list,nqp::clone($!indices))
+                nqp::multidimref_i($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                    nqp::atposnd_i($!list,nqp::clone($!indices))
+                nqp::atposnd_i($!list,nqp::clone($!indices))
 #?endif
-                }
-            }.new(self)
+            }
         }
-        multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                has int $!on-key;
-                method result() is raw {
-                    nqp::if(
-                      ($!on-key = nqp::not_i($!on-key)),
-                      nqp::stmts(
-                        (my $result := self.indices),
-                        (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
-                          nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
-                        $result
-                      ),
+        method iterator(::?CLASS:D:) { Iterate-int.new(self) }
+
+        my class KV-int does Rakudo::Iterator::ShapeLeaf {
+            has int $!on-key;
+            method result() is raw {
+                nqp::if(
+                  ($!on-key = nqp::not_i($!on-key)),
+                  nqp::stmts(
+                    (my \result := self.indices),
+                    (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                      nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                    result
+                  ),
 #?if moar
-                      nqp::multidimref_i($!list,nqp::clone($!indices))
+                  nqp::multidimref_i($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_i($!list,nqp::clone($!indices))
+                  nqp::atposnd_i($!list,nqp::clone($!indices))
 #?endif
-                    )
-                }
-                # needs its own push-all since it fiddles with $!indices
-                method push-all($target --> IterationEnd) {
-                    nqp::until(
-                      nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-                      $target.push($pulled)
-                    )
-                }
-            }.new(self))
+                )
+            }
+            # needs its own push-all since it fiddles with $!indices
+            method push-all($target --> IterationEnd) {
+                nqp::until(
+                  nqp::eqaddr((my \pulled := self.pull-one),IterationEnd),
+                  $target.push(pulled)
+                )
+            }
         }
-        multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() {
-                    Pair.new(
-                      self.indices,
+        multi method kv(::?CLASS:D:) { Seq.new(KV-int.new(self)) }
+
+        my class Pairs-int does Rakudo::Iterator::ShapeLeaf {
+            method result() {
+                Pair.new(
+                  self.indices,
 #?if moar
-                      nqp::multidimref_i($!list,nqp::clone($!indices))
+                  nqp::multidimref_i($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_i($!list,nqp::clone($!indices))
+                  nqp::atposnd_i($!list,nqp::clone($!indices))
 #?endif
-                    )
-                }
-            }.new(self))
+                )
+            }
+        }
+        multi method pairs(::?CLASS:D:) { Seq.new(Pairs-int.new(self)) }
+
+        my class Antipairs-int does Rakudo::Iterator::ShapeLeaf {
+            method result() {
+                Pair.new(nqp::atposnd_i($!list,$!indices),self.indices)
+            }
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() {
-                    Pair.new(nqp::atposnd_i($!list,$!indices),self.indices)
-                }
-            }.new(self))
+            Seq.new(Antipairs-int.new(self))
         }
     }  # end of shapedintarray role
 
@@ -1995,9 +1998,9 @@ my class array does Iterable {
               (my int $elems = nqp::elems(self)),
               (my int $i = -1),
               nqp::until(
-                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
+                nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
                   || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_i(self,$i,$pulled)
+                nqp::bindpos_i(self,$i,pulled)
               ),
               nqp::unless(
                 nqp::islt_i($i,$elems) || iter.is-lazy,
@@ -2012,6 +2015,8 @@ my class array does Iterable {
               self
             )
         }
+
+
         method iterator(::?CLASS:D:) {
             class :: does PredictiveIterator {
                 has Mu $!list;
@@ -2214,7 +2219,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2018-09-09T21:55:50+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-12T22:57:23+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2282,110 +2287,111 @@ my class array does Iterable {
             )
         }
 
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                has Mu $!from;
-                method INIT(Mu \to, Mu \from) {
-                    nqp::stmts(
-                      ($!from := from),
-                      self!SET-SELF(to)
-                    )
-                }
-                method new(Mu \to, Mu \from) {
-                    nqp::create(self).INIT(to,from)
-                }
-                method result(--> Nil) {
-                    nqp::bindposnd_n($!list,$!indices,
+        my class NATCPY-num does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_n($!list,$!indices,
 #?if moar
-                      nqp::multidimref_n($!from,$!indices))
+                  nqp::multidimref_n($!from,$!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_n($!from,$!indices))
+                  nqp::atposnd_n($!from,$!indices))
 #?endif
-                }
-            }.new(to,from).sink-all;
+            }
+        }
+        sub NATCPY(Mu \to, Mu \from) is raw {
+            NATCPY-num.new(to,from).sink-all;
             to
+        }
+
+        my class OBJCPY-num does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := nqp::getattr(from,List,'$!reified')),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_n($!list,$!indices,
+                  nqp::atposnd($!from,$!indices))
+            }
         }
         sub OBJCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                has Mu $!from;
-                method INIT(Mu \to, Mu \from) {
-                    nqp::stmts(
-                      ($!from := nqp::getattr(from,List,'$!reified')),
-                      self!SET-SELF(to)
-                    )
-                }
-                method new(Mu \to, Mu \from) {
-                    nqp::create(self).INIT(to,from)
-                }
-                method result(--> Nil) {
-                    nqp::bindposnd_n($!list,$!indices,
-                      nqp::atposnd($!from,$!indices))
-                }
-            }.new(to,from).sink-all;
+            OBJCPY-num.new(to,from).sink-all;
             to
         }
-        sub ITERCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeBranch {
-                has $!iterators;
-                method INIT(\to,\from) {
-                    nqp::stmts(
-                      self!SET-SELF(to),
-                      ($!iterators := nqp::setelems(
-                        nqp::list(from.iterator),
-                        nqp::add_i($!maxdim,1)
-                      )),
-                      self
-                    )
-                }
-                method new(\to,\from) { nqp::create(self).INIT(to,from) }
-                method done(--> Nil) {
-                    nqp::unless(                        # verify lowest
-                      nqp::atpos($!iterators,0).is-lazy # finite iterator
-                        || nqp::eqaddr(                 # and something there
-                             nqp::atpos($!iterators,0).pull-one,IterationEnd),
-                      nqp::atposnd_n($!list,$!indices)    # boom!
-                    )
-                }
-                method process(--> Nil) {
-                    nqp::stmts(
-                      (my int $i = $!level),
-                      nqp::while(
-                        nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
-                        nqp::if(
-                          nqp::eqaddr((my $item :=      # exhausted ?
-                            nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
-                            IterationEnd
-                          ),
-                          nqp::bindpos($!iterators,$i,  # add an empty one
-                            Rakudo::Iterator.Empty),
-                          nqp::if(                      # is it an iterator?
-                            nqp::istype($item,Iterable) && nqp::isconcrete($item),
-                            nqp::bindpos($!iterators,$i,$item.iterator),
-                            X::Assignment::ToShaped.new(shape => $!dims).throw
-                          )
-                        )
+
+        my class ITERCPY-num does Rakudo::Iterator::ShapeBranch {
+            has $!iterators;
+            method !INIT(\to,\from) {
+                nqp::stmts(
+                  self!SET-SELF(to),
+                  ($!iterators := nqp::setelems(
+                    nqp::list(from.iterator),
+                    nqp::add_i($!maxdim,1)
+                  )),
+                  self
+                )
+            }
+            method new(\to,\from) { nqp::create(self)!INIT(to,from) }
+            method done(--> Nil) {
+                nqp::unless(                        # verify lowest
+                  nqp::atpos($!iterators,0).is-lazy # finite iterator
+                    || nqp::eqaddr(                 # and something there
+                         nqp::atpos($!iterators,0).pull-one,IterationEnd),
+                  nqp::atposnd_n($!list,$!indices)    # boom!
+                )
+            }
+            method process(--> Nil) {
+                nqp::stmts(
+                  (my int $i = $!level),
+                  nqp::while(
+                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::if(
+                      nqp::eqaddr((my \item :=      # exhausted ?
+                        nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
+                        IterationEnd
                       ),
-                      (my $iter := nqp::atpos($!iterators,$!maxdim)),
-                      nqp::until(                       # loop over highest dim
-                        nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd)
-                          || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
-                        nqp::stmts(
-                          nqp::bindposnd_n($!list,$!indices,$pulled),
-                          nqp::bindpos_i($!indices,$!maxdim,  # increment index
-                            nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
-                        )
-                      ),
-                      nqp::unless(
-                        nqp::eqaddr($pulled,IterationEnd) # if not exhausted
-                          || nqp::isle_i(                 # and index too high
-                               nqp::atpos_i($!indices,$!maxdim),$!maxind)
-                          || $iter.is-lazy,               # and not lazy
-                        nqp::atposnd_n($!list,$!indices)  # boom!
+                      nqp::bindpos($!iterators,$i,  # add an empty one
+                        Rakudo::Iterator.Empty),
+                      nqp::if(                      # is it an iterator?
+                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::bindpos($!iterators,$i,item.iterator),
+                        X::Assignment::ToShaped.new(shape => $!dims).throw
                       )
                     )
-                }
-            }.new(to,from).sink-all;
+                  ),
+                  (my \iter := nqp::atpos($!iterators,$!maxdim)),
+                  nqp::until(                       # loop over highest dim
+                    nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
+                      || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
+                    nqp::stmts(
+                      nqp::bindposnd_n($!list,$!indices,pulled),
+                      nqp::bindpos_i($!indices,$!maxdim,  # increment index
+                        nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
+                    )
+                  ),
+                  nqp::unless(
+                    nqp::eqaddr(pulled,IterationEnd) # if not exhausted
+                      || nqp::isle_i(                 # and index too high
+                           nqp::atpos_i($!indices,$!maxdim),$!maxind)
+                      || iter.is-lazy,                # and not lazy
+                    nqp::atposnd_n($!list,$!indices)  # boom!
+                  )
+                )
+            }
+        }
+        sub ITERCPY(Mu \to, Mu \from) is raw {
+            ITERCPY-num.new(to,from).sink-all;
             to
         }
 
@@ -2431,68 +2437,70 @@ my class array does Iterable {
               ITERCPY(self,from)
             )
         }
-        method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() is raw {
+
+        my class Iterate-num does Rakudo::Iterator::ShapeLeaf {
+            method result() is raw {
 #?if moar
-                    nqp::multidimref_n($!list,nqp::clone($!indices))
+                nqp::multidimref_n($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                    nqp::atposnd_n($!list,nqp::clone($!indices))
+                nqp::atposnd_n($!list,nqp::clone($!indices))
 #?endif
-                }
-            }.new(self)
+            }
         }
-        multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                has int $!on-key;
-                method result() is raw {
-                    nqp::if(
-                      ($!on-key = nqp::not_i($!on-key)),
-                      nqp::stmts(
-                        (my $result := self.indices),
-                        (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
-                          nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
-                        $result
-                      ),
+        method iterator(::?CLASS:D:) { Iterate-num.new(self) }
+
+        my class KV-num does Rakudo::Iterator::ShapeLeaf {
+            has int $!on-key;
+            method result() is raw {
+                nqp::if(
+                  ($!on-key = nqp::not_i($!on-key)),
+                  nqp::stmts(
+                    (my \result := self.indices),
+                    (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                      nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                    result
+                  ),
 #?if moar
-                      nqp::multidimref_n($!list,nqp::clone($!indices))
+                  nqp::multidimref_n($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_n($!list,nqp::clone($!indices))
+                  nqp::atposnd_n($!list,nqp::clone($!indices))
 #?endif
-                    )
-                }
-                # needs its own push-all since it fiddles with $!indices
-                method push-all($target --> IterationEnd) {
-                    nqp::until(
-                      nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-                      $target.push($pulled)
-                    )
-                }
-            }.new(self))
+                )
+            }
+            # needs its own push-all since it fiddles with $!indices
+            method push-all($target --> IterationEnd) {
+                nqp::until(
+                  nqp::eqaddr((my \pulled := self.pull-one),IterationEnd),
+                  $target.push(pulled)
+                )
+            }
         }
-        multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() {
-                    Pair.new(
-                      self.indices,
+        multi method kv(::?CLASS:D:) { Seq.new(KV-num.new(self)) }
+
+        my class Pairs-num does Rakudo::Iterator::ShapeLeaf {
+            method result() {
+                Pair.new(
+                  self.indices,
 #?if moar
-                      nqp::multidimref_n($!list,nqp::clone($!indices))
+                  nqp::multidimref_n($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_n($!list,nqp::clone($!indices))
+                  nqp::atposnd_n($!list,nqp::clone($!indices))
 #?endif
-                    )
-                }
-            }.new(self))
+                )
+            }
+        }
+        multi method pairs(::?CLASS:D:) { Seq.new(Pairs-num.new(self)) }
+
+        my class Antipairs-num does Rakudo::Iterator::ShapeLeaf {
+            method result() {
+                Pair.new(nqp::atposnd_n($!list,$!indices),self.indices)
+            }
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() {
-                    Pair.new(nqp::atposnd_n($!list,$!indices),self.indices)
-                }
-            }.new(self))
+            Seq.new(Antipairs-num.new(self))
         }
     }  # end of shapednumarray role
 
@@ -2551,9 +2559,9 @@ my class array does Iterable {
               (my int $elems = nqp::elems(self)),
               (my int $i = -1),
               nqp::until(
-                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
+                nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
                   || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_n(self,$i,$pulled)
+                nqp::bindpos_n(self,$i,pulled)
               ),
               nqp::unless(
                 nqp::islt_i($i,$elems) || iter.is-lazy,
@@ -2568,6 +2576,8 @@ my class array does Iterable {
               self
             )
         }
+
+
         method iterator(::?CLASS:D:) {
             class :: does PredictiveIterator {
                 has Mu $!list;
@@ -2770,7 +2780,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2018-09-09T21:55:50+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-12T22:57:23+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2838,110 +2848,111 @@ my class array does Iterable {
             )
         }
 
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                has Mu $!from;
-                method INIT(Mu \to, Mu \from) {
-                    nqp::stmts(
-                      ($!from := from),
-                      self!SET-SELF(to)
-                    )
-                }
-                method new(Mu \to, Mu \from) {
-                    nqp::create(self).INIT(to,from)
-                }
-                method result(--> Nil) {
-                    nqp::bindposnd_s($!list,$!indices,
+        my class NATCPY-str does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_s($!list,$!indices,
 #?if moar
-                      nqp::multidimref_s($!from,$!indices))
+                  nqp::multidimref_s($!from,$!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_s($!from,$!indices))
+                  nqp::atposnd_s($!from,$!indices))
 #?endif
-                }
-            }.new(to,from).sink-all;
+            }
+        }
+        sub NATCPY(Mu \to, Mu \from) is raw {
+            NATCPY-str.new(to,from).sink-all;
             to
+        }
+
+        my class OBJCPY-str does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := nqp::getattr(from,List,'$!reified')),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_s($!list,$!indices,
+                  nqp::atposnd($!from,$!indices))
+            }
         }
         sub OBJCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                has Mu $!from;
-                method INIT(Mu \to, Mu \from) {
-                    nqp::stmts(
-                      ($!from := nqp::getattr(from,List,'$!reified')),
-                      self!SET-SELF(to)
-                    )
-                }
-                method new(Mu \to, Mu \from) {
-                    nqp::create(self).INIT(to,from)
-                }
-                method result(--> Nil) {
-                    nqp::bindposnd_s($!list,$!indices,
-                      nqp::atposnd($!from,$!indices))
-                }
-            }.new(to,from).sink-all;
+            OBJCPY-str.new(to,from).sink-all;
             to
         }
-        sub ITERCPY(Mu \to, Mu \from) is raw {
-            class :: does Rakudo::Iterator::ShapeBranch {
-                has $!iterators;
-                method INIT(\to,\from) {
-                    nqp::stmts(
-                      self!SET-SELF(to),
-                      ($!iterators := nqp::setelems(
-                        nqp::list(from.iterator),
-                        nqp::add_i($!maxdim,1)
-                      )),
-                      self
-                    )
-                }
-                method new(\to,\from) { nqp::create(self).INIT(to,from) }
-                method done(--> Nil) {
-                    nqp::unless(                        # verify lowest
-                      nqp::atpos($!iterators,0).is-lazy # finite iterator
-                        || nqp::eqaddr(                 # and something there
-                             nqp::atpos($!iterators,0).pull-one,IterationEnd),
-                      nqp::atposnd_s($!list,$!indices)    # boom!
-                    )
-                }
-                method process(--> Nil) {
-                    nqp::stmts(
-                      (my int $i = $!level),
-                      nqp::while(
-                        nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
-                        nqp::if(
-                          nqp::eqaddr((my $item :=      # exhausted ?
-                            nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
-                            IterationEnd
-                          ),
-                          nqp::bindpos($!iterators,$i,  # add an empty one
-                            Rakudo::Iterator.Empty),
-                          nqp::if(                      # is it an iterator?
-                            nqp::istype($item,Iterable) && nqp::isconcrete($item),
-                            nqp::bindpos($!iterators,$i,$item.iterator),
-                            X::Assignment::ToShaped.new(shape => $!dims).throw
-                          )
-                        )
+
+        my class ITERCPY-str does Rakudo::Iterator::ShapeBranch {
+            has $!iterators;
+            method !INIT(\to,\from) {
+                nqp::stmts(
+                  self!SET-SELF(to),
+                  ($!iterators := nqp::setelems(
+                    nqp::list(from.iterator),
+                    nqp::add_i($!maxdim,1)
+                  )),
+                  self
+                )
+            }
+            method new(\to,\from) { nqp::create(self)!INIT(to,from) }
+            method done(--> Nil) {
+                nqp::unless(                        # verify lowest
+                  nqp::atpos($!iterators,0).is-lazy # finite iterator
+                    || nqp::eqaddr(                 # and something there
+                         nqp::atpos($!iterators,0).pull-one,IterationEnd),
+                  nqp::atposnd_s($!list,$!indices)    # boom!
+                )
+            }
+            method process(--> Nil) {
+                nqp::stmts(
+                  (my int $i = $!level),
+                  nqp::while(
+                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::if(
+                      nqp::eqaddr((my \item :=      # exhausted ?
+                        nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
+                        IterationEnd
                       ),
-                      (my $iter := nqp::atpos($!iterators,$!maxdim)),
-                      nqp::until(                       # loop over highest dim
-                        nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd)
-                          || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
-                        nqp::stmts(
-                          nqp::bindposnd_s($!list,$!indices,$pulled),
-                          nqp::bindpos_i($!indices,$!maxdim,  # increment index
-                            nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
-                        )
-                      ),
-                      nqp::unless(
-                        nqp::eqaddr($pulled,IterationEnd) # if not exhausted
-                          || nqp::isle_i(                 # and index too high
-                               nqp::atpos_i($!indices,$!maxdim),$!maxind)
-                          || $iter.is-lazy,               # and not lazy
-                        nqp::atposnd_s($!list,$!indices)  # boom!
+                      nqp::bindpos($!iterators,$i,  # add an empty one
+                        Rakudo::Iterator.Empty),
+                      nqp::if(                      # is it an iterator?
+                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::bindpos($!iterators,$i,item.iterator),
+                        X::Assignment::ToShaped.new(shape => $!dims).throw
                       )
                     )
-                }
-            }.new(to,from).sink-all;
+                  ),
+                  (my \iter := nqp::atpos($!iterators,$!maxdim)),
+                  nqp::until(                       # loop over highest dim
+                    nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
+                      || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
+                    nqp::stmts(
+                      nqp::bindposnd_s($!list,$!indices,pulled),
+                      nqp::bindpos_i($!indices,$!maxdim,  # increment index
+                        nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
+                    )
+                  ),
+                  nqp::unless(
+                    nqp::eqaddr(pulled,IterationEnd) # if not exhausted
+                      || nqp::isle_i(                 # and index too high
+                           nqp::atpos_i($!indices,$!maxdim),$!maxind)
+                      || iter.is-lazy,                # and not lazy
+                    nqp::atposnd_s($!list,$!indices)  # boom!
+                  )
+                )
+            }
+        }
+        sub ITERCPY(Mu \to, Mu \from) is raw {
+            ITERCPY-str.new(to,from).sink-all;
             to
         }
 
@@ -2987,68 +2998,70 @@ my class array does Iterable {
               ITERCPY(self,from)
             )
         }
-        method iterator(::?CLASS:D:) {
-            class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() is raw {
+
+        my class Iterate-str does Rakudo::Iterator::ShapeLeaf {
+            method result() is raw {
 #?if moar
-                    nqp::multidimref_s($!list,nqp::clone($!indices))
+                nqp::multidimref_s($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                    nqp::atposnd_s($!list,nqp::clone($!indices))
+                nqp::atposnd_s($!list,nqp::clone($!indices))
 #?endif
-                }
-            }.new(self)
+            }
         }
-        multi method kv(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                has int $!on-key;
-                method result() is raw {
-                    nqp::if(
-                      ($!on-key = nqp::not_i($!on-key)),
-                      nqp::stmts(
-                        (my $result := self.indices),
-                        (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
-                          nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
-                        $result
-                      ),
+        method iterator(::?CLASS:D:) { Iterate-str.new(self) }
+
+        my class KV-str does Rakudo::Iterator::ShapeLeaf {
+            has int $!on-key;
+            method result() is raw {
+                nqp::if(
+                  ($!on-key = nqp::not_i($!on-key)),
+                  nqp::stmts(
+                    (my \result := self.indices),
+                    (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                      nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                    result
+                  ),
 #?if moar
-                      nqp::multidimref_s($!list,nqp::clone($!indices))
+                  nqp::multidimref_s($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_s($!list,nqp::clone($!indices))
+                  nqp::atposnd_s($!list,nqp::clone($!indices))
 #?endif
-                    )
-                }
-                # needs its own push-all since it fiddles with $!indices
-                method push-all($target --> IterationEnd) {
-                    nqp::until(
-                      nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-                      $target.push($pulled)
-                    )
-                }
-            }.new(self))
+                )
+            }
+            # needs its own push-all since it fiddles with $!indices
+            method push-all($target --> IterationEnd) {
+                nqp::until(
+                  nqp::eqaddr((my \pulled := self.pull-one),IterationEnd),
+                  $target.push(pulled)
+                )
+            }
         }
-        multi method pairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() {
-                    Pair.new(
-                      self.indices,
+        multi method kv(::?CLASS:D:) { Seq.new(KV-str.new(self)) }
+
+        my class Pairs-str does Rakudo::Iterator::ShapeLeaf {
+            method result() {
+                Pair.new(
+                  self.indices,
 #?if moar
-                      nqp::multidimref_s($!list,nqp::clone($!indices))
+                  nqp::multidimref_s($!list,nqp::clone($!indices))
 #?endif
 #?if !moar
-                      nqp::atposnd_s($!list,nqp::clone($!indices))
+                  nqp::atposnd_s($!list,nqp::clone($!indices))
 #?endif
-                    )
-                }
-            }.new(self))
+                )
+            }
+        }
+        multi method pairs(::?CLASS:D:) { Seq.new(Pairs-str.new(self)) }
+
+        my class Antipairs-str does Rakudo::Iterator::ShapeLeaf {
+            method result() {
+                Pair.new(nqp::atposnd_s($!list,$!indices),self.indices)
+            }
         }
         multi method antipairs(::?CLASS:D:) {
-            Seq.new(class :: does Rakudo::Iterator::ShapeLeaf {
-                method result() {
-                    Pair.new(nqp::atposnd_s($!list,$!indices),self.indices)
-                }
-            }.new(self))
+            Seq.new(Antipairs-str.new(self))
         }
     }  # end of shapedstrarray role
 
@@ -3107,9 +3120,9 @@ my class array does Iterable {
               (my int $elems = nqp::elems(self)),
               (my int $i = -1),
               nqp::until(
-                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
+                nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
                   || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_s(self,$i,$pulled)
+                nqp::bindpos_s(self,$i,pulled)
               ),
               nqp::unless(
                 nqp::islt_i($i,$elems) || iter.is-lazy,
@@ -3124,6 +3137,8 @@ my class array does Iterable {
               self
             )
         }
+
+
         method iterator(::?CLASS:D:) {
             class :: does PredictiveIterator {
                 has Mu $!list;

@@ -360,8 +360,8 @@ role STD {
     }
 
     # "when" arg assumes more things will become obsolete after Perl 6 comes out...
-    method obs($old, $new, $when = 'in Perl 6', :$always) {
-        unless $*LANG.pragma('p5isms') && !$always {
+    method obs($old, $new, $when = 'in Perl 6', :$ism = 'p5isms') {
+        unless $*LANG.pragma($ism) {
             $*W.throw(self.MATCH(), ['X', 'Obsolete'],
                 old         => $old,
                 replacement => $new,
@@ -2014,7 +2014,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token term:sym<new> {
-        'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax", :always)>
+        <!{ $*LANG.pragma('c++isms') }>
+        'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax", :ism<c++isms>)>
     }
 
     token fatarrow {

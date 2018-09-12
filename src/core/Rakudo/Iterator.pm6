@@ -3350,7 +3350,11 @@ class Rakudo::Iterator {
             )
         }
     }
-    method ShapeIndex(\shape) { ShapeIndex.new(shape) }
+    method ShapeIndex(\shape) {
+        shape.elems == 1
+          ?? IntRange.new(0,shape.AT-POS(0) - 1)
+          !! ShapeIndex.new(shape)
+    }
 
     # Returns an iterator for an unbounded sequence of generic values that
     # have a .succ method to indicate the next logical value.  Takes the

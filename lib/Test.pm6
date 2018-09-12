@@ -1,4 +1,5 @@
 use MONKEY-GUTS;          # Allow NQP ops.
+use MONKEY-SEE-NO-EVAL;
 
 unit module Test;
 # Copyright (C) 2007 - 2018 The Perl Foundation.

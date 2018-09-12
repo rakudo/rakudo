@@ -1658,7 +1658,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2018-09-12T22:57:23+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-12T23:22:29+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2016,52 +2016,51 @@ my class array does Iterable {
             )
         }
 
-
-        method iterator(::?CLASS:D:) {
-            class :: does PredictiveIterator {
-                has Mu $!list;
-                has int $!pos;
-                method !SET-SELF(Mu \list) {
-                    nqp::stmts(
-                      ($!list := list),
-                      ($!pos = -1),
-                      self
-                    )
-                }
-                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
-                method pull-one() is raw {
-                    nqp::if(
-                      nqp::islt_i(
-                        ($!pos = nqp::add_i($!pos,1)),
-                        nqp::elems($!list)
-                      ),
-                      nqp::atposref_i($!list,$!pos),
-                      IterationEnd
-                    )
-                }
-                method push-all($target --> IterationEnd) {
-                    nqp::stmts(
-                      (my int $elems = nqp::elems($!list)),
-                      (my int $pos = $!pos),
-                      nqp::while(
-                        nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
-                        $target.push(nqp::atpos_i($!list,$pos))
-                      ),
-                      ($!pos = $pos)
-                    )
-                }
-                method count-only(--> Int:D) {
-                    nqp::p6box_i(
-                      nqp::elems($!list)
-                        - $!pos
-                        - nqp::islt_i($!pos,nqp::elems($!list))
-                    )
-                }
-                method sink-all(--> IterationEnd) {
-                    $!pos = nqp::elems($!list)
-                }
-            }.new(self)
+        my class Iterate-int does PredictiveIterator {
+            has Mu $!list;
+            has int $!pos;
+            method !SET-SELF(Mu \list) {
+                nqp::stmts(
+                  ($!list := list),
+                  ($!pos = -1),
+                  self
+                )
+            }
+            method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::islt_i(
+                    ($!pos = nqp::add_i($!pos,1)),
+                    nqp::elems($!list)
+                  ),
+                  nqp::atposref_i($!list,$!pos),
+                  IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!list)),
+                  (my int $pos = $!pos),
+                  nqp::while(
+                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    $target.push(nqp::atpos_i($!list,$pos))
+                  ),
+                  ($!pos = $pos)
+                )
+            }
+            method count-only(--> Int:D) {
+                nqp::p6box_i(
+                  nqp::elems($!list)
+                    - $!pos
+                    - nqp::islt_i($!pos,nqp::elems($!list))
+                )
+            }
+            method sink-all(--> IterationEnd) {
+                $!pos = nqp::elems($!list)
+            }
         }
+        method iterator(::?CLASS:D:) { Iterate-int.new(self) }
+
         multi method kv(::?CLASS:D:) {
             my int $i = -1;
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
@@ -2219,7 +2218,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2018-09-12T22:57:23+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-12T23:22:29+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2543,7 +2542,7 @@ my class array does Iterable {
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos_n(self,$i,nqp::atpos_n(from,$i))
+                  nqp::bindpos_n(self,$i,nqp::atpos_i(from,$i))
                 ),
                 self
               ),
@@ -2577,52 +2576,51 @@ my class array does Iterable {
             )
         }
 
-
-        method iterator(::?CLASS:D:) {
-            class :: does PredictiveIterator {
-                has Mu $!list;
-                has int $!pos;
-                method !SET-SELF(Mu \list) {
-                    nqp::stmts(
-                      ($!list := list),
-                      ($!pos = -1),
-                      self
-                    )
-                }
-                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
-                method pull-one() is raw {
-                    nqp::if(
-                      nqp::islt_i(
-                        ($!pos = nqp::add_i($!pos,1)),
-                        nqp::elems($!list)
-                      ),
-                      nqp::atposref_n($!list,$!pos),
-                      IterationEnd
-                    )
-                }
-                method push-all($target --> IterationEnd) {
-                    nqp::stmts(
-                      (my int $elems = nqp::elems($!list)),
-                      (my int $pos = $!pos),
-                      nqp::while(
-                        nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
-                        $target.push(nqp::atpos_n($!list,$pos))
-                      ),
-                      ($!pos = $pos)
-                    )
-                }
-                method count-only(--> Int:D) {
-                    nqp::p6box_i(
-                      nqp::elems($!list)
-                        - $!pos
-                        - nqp::islt_i($!pos,nqp::elems($!list))
-                    )
-                }
-                method sink-all(--> IterationEnd) {
-                    $!pos = nqp::elems($!list)
-                }
-            }.new(self)
+        my class Iterate-num does PredictiveIterator {
+            has Mu $!list;
+            has int $!pos;
+            method !SET-SELF(Mu \list) {
+                nqp::stmts(
+                  ($!list := list),
+                  ($!pos = -1),
+                  self
+                )
+            }
+            method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::islt_i(
+                    ($!pos = nqp::add_i($!pos,1)),
+                    nqp::elems($!list)
+                  ),
+                  nqp::atposref_n($!list,$!pos),
+                  IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!list)),
+                  (my int $pos = $!pos),
+                  nqp::while(
+                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    $target.push(nqp::atpos_n($!list,$pos))
+                  ),
+                  ($!pos = $pos)
+                )
+            }
+            method count-only(--> Int:D) {
+                nqp::p6box_i(
+                  nqp::elems($!list)
+                    - $!pos
+                    - nqp::islt_i($!pos,nqp::elems($!list))
+                )
+            }
+            method sink-all(--> IterationEnd) {
+                $!pos = nqp::elems($!list)
+            }
         }
+        method iterator(::?CLASS:D:) { Iterate-num.new(self) }
+
         multi method kv(::?CLASS:D:) {
             my int $i = -1;
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
@@ -2780,7 +2778,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2018-09-12T22:57:23+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-12T23:22:29+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -3104,7 +3102,7 @@ my class array does Iterable {
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos_s(self,$i,nqp::atpos_s(from,$i))
+                  nqp::bindpos_s(self,$i,nqp::atpos_i(from,$i))
                 ),
                 self
               ),
@@ -3138,52 +3136,51 @@ my class array does Iterable {
             )
         }
 
-
-        method iterator(::?CLASS:D:) {
-            class :: does PredictiveIterator {
-                has Mu $!list;
-                has int $!pos;
-                method !SET-SELF(Mu \list) {
-                    nqp::stmts(
-                      ($!list := list),
-                      ($!pos = -1),
-                      self
-                    )
-                }
-                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
-                method pull-one() is raw {
-                    nqp::if(
-                      nqp::islt_i(
-                        ($!pos = nqp::add_i($!pos,1)),
-                        nqp::elems($!list)
-                      ),
-                      nqp::atposref_s($!list,$!pos),
-                      IterationEnd
-                    )
-                }
-                method push-all($target --> IterationEnd) {
-                    nqp::stmts(
-                      (my int $elems = nqp::elems($!list)),
-                      (my int $pos = $!pos),
-                      nqp::while(
-                        nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
-                        $target.push(nqp::atpos_s($!list,$pos))
-                      ),
-                      ($!pos = $pos)
-                    )
-                }
-                method count-only(--> Int:D) {
-                    nqp::p6box_i(
-                      nqp::elems($!list)
-                        - $!pos
-                        - nqp::islt_i($!pos,nqp::elems($!list))
-                    )
-                }
-                method sink-all(--> IterationEnd) {
-                    $!pos = nqp::elems($!list)
-                }
-            }.new(self)
+        my class Iterate-str does PredictiveIterator {
+            has Mu $!list;
+            has int $!pos;
+            method !SET-SELF(Mu \list) {
+                nqp::stmts(
+                  ($!list := list),
+                  ($!pos = -1),
+                  self
+                )
+            }
+            method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::islt_i(
+                    ($!pos = nqp::add_i($!pos,1)),
+                    nqp::elems($!list)
+                  ),
+                  nqp::atposref_s($!list,$!pos),
+                  IterationEnd
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!list)),
+                  (my int $pos = $!pos),
+                  nqp::while(
+                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    $target.push(nqp::atpos_s($!list,$pos))
+                  ),
+                  ($!pos = $pos)
+                )
+            }
+            method count-only(--> Int:D) {
+                nqp::p6box_i(
+                  nqp::elems($!list)
+                    - $!pos
+                    - nqp::islt_i($!pos,nqp::elems($!list))
+                )
+            }
+            method sink-all(--> IterationEnd) {
+                $!pos = nqp::elems($!list)
+            }
         }
+        method iterator(::?CLASS:D:) { Iterate-str.new(self) }
+
         multi method kv(::?CLASS:D:) {
             my int $i = -1;
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));

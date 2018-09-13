@@ -214,6 +214,7 @@ my class IO::Handle {
         nqp::if(
           nqp::defined($!PIO),
           nqp::stmts(
+            $!decoder && ($!decoder := Encoding::Decoder),
 #?if !moar
             nqp::closefh($!PIO), # TODO: catch errors
             $!PIO := nqp::null

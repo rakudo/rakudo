@@ -83,7 +83,11 @@ my class Parameter { # declared in BOOTSTRAP
           ?? '.'
           !! nqp::bitand_i($!flags,$SIG_ELEM_BIND_PRIVATE_ATTR)
             ?? '!'
-            !! ''
+            !! nqp::isnull_s($!variable_name)
+              ?? ''
+              !! nqp::iseq_s(nqp::substr($!variable_name,1,1),"*")
+                ?? '*'
+                !! ''
     }
     method modifier() {
         nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY)

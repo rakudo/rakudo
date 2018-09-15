@@ -768,6 +768,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     method attach_leading_docs() {
+        # TODO allow some limited text layout here
         if ~$*DOC ne '' {
             my $cont  := Perl6::Pod::serialize_aos(
                 [Perl6::Pod::normalize_text(~$*DOC)]
@@ -783,6 +784,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     method attach_trailing_docs($doc) {
+        # TODO allow some limited text layout here
         unless $*POD_BLOCKS_SEEN{ self.from() } {
             $*POD_BLOCKS_SEEN{ self.from() } := 1;
             my $pod_block;
@@ -815,9 +817,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     # any number of paragraphs of text
+    # the paragraphs are separated by one
+    #   or more pod_newlines
+    # each paragraph originally could have
+    #   consisted of more than one line of
+    #   text that were subsequently squeezed
+    #   into one line
     token pod_content:sym<text> {
         <pod_newline>*
+
+        # TODO get first line if IN-DEFN-BLOCK
         <pod_textcontent>+ % <pod_newline>+
+
         <pod_newline>*
     }
 
@@ -830,7 +841,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token pod_textcontent { <...> }
 
-    # text not being code
+    # for non-code (i.e., regular) text
     token pod_textcontent:sym<regular> {
         $<spaces>=[ \h* ]
          <?{ $*POD_IN_CODE_BLOCK
@@ -847,6 +858,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?{ !$*POD_IN_CODE_BLOCK
             && $*ALLOW_INLINE_CODE
             && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
+
+        # TODO get first line if IN-DEFN-BLOCK
         $<text> = [
             [<!before '=' \w> \N+]+ % [<pod_newline>+ $<spaces>]
         ]
@@ -972,7 +985,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         :my $*ALLOW_INLINE_CODE := 0;
         $<type> = [
-            # allow 'defn' to have %config
             <pod_code_parent> {
                 $*ALLOW_INLINE_CODE := 1;
             }
@@ -981,6 +993,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>+
         [
+         # TODO need first line to check for ws-separated '#'
          <pod_content> *
          ^^ $<spaces> '=end' \h+
          [
@@ -1086,7 +1099,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_INLINE_CODE := 0;
         [ :!ratchet
             $<type> = [
-                # allow 'defn' to have %config
                 <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
                 || <identifier>
             ]
@@ -1094,6 +1106,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <pod_configuration($<spaces>)>
             <pod_newline>
         ]
+        # TODO [defn, term], [first text, line numbered-alias]
+        #   if this is a defn block
+        #     the first line of the first pod_textcontent
+        #     becomes the term
+        #     then combine the rest of the text
+        # TODO exchange **0..1 for modern syntax
         <pod_content=.pod_textcontent>**0..1
     }
 
@@ -1112,6 +1130,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=for' \h+ 'table' {}
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_configuration($<spaces>)> <pod_newline>
+
+        # TODO add numbered-alias token here
         [ <!before \h* \n> <table_row>]*
     }
 
@@ -1122,10 +1142,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*POD_ALLOW_FCODES := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
         <pod_configuration($<spaces>)> <pod_newline>
+
+        # TODO get first line if IN-DEFN-BLOCK
         [ <!before \h* '=' \w> <pod_line> ]*
     }
 
+    # TODO make sure this token works in all desired
+    #      places: may have to remove the before/afters
+    #      when using with non-abbreviated blocks
+    #      (particulary code blocks)
+    token numbered-alias { <after [^|\s]> '#' <before \s> }
     token pod_block:sym<abbreviated> {
+        # Note an abbreviated block does not have
+        # %config data, but see the hash mark
+        # handling below.
         ^^
         $<spaces> = [ \h* ]
         '=' <!before begin || end || for || finish || config>
@@ -1135,13 +1165,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*ALLOW_INLINE_CODE := 0;
         [ :!ratchet
             $<type> = [
-                # defn special now, can have data on same line
-                <pod_code_parent2> { $*ALLOW_INLINE_CODE := 1 }
+                <pod_code_parent> {
+                    $*ALLOW_INLINE_CODE := 1;
+                }
                 || <identifier>
             ]
             :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+
+            # An optional hash char here is special.
+            [\h+ <numbered-alias>]?
+
             [\h*\n|\h+]
         ]
+        # TODO [defn, term], [first text, line numbered-alias]
+        # TODO exchange **0..1 for modern syntax
         <pod_content=.pod_textcontent>**0..1
     }
 
@@ -1158,6 +1195,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ^^
         $<spaces> = [ \h* ]
         '=table' {}
+
+        # An optional hash char here is special.
+        [\h+ <numbered-alias>]?
+
         :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
         <pod_newline>
         [ <!before \h* \n> <table_row>]*
@@ -1169,31 +1210,31 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '=' <pod-delim-code-typ> {}
         :my $*POD_ALLOW_FCODES  := 0;
         :my $*POD_IN_CODE_BLOCK := 1;
+
+        # An optional hash char here is special.
+        # For the code block, we want to eat any ws
+        # between the '#' and the next char
+        #$<numbered-alias>=[\h+ '#' \s]?
+        $<numbered-alias>=[\h+ '#' \s]?
+
         [\h*\n|\h+]
+
         [ <!before \h* '=' \w> <pod_line> ]*
     }
 
+    # TODO exchange **1 for modern syntax
     token pod_line { <pod_string>**1 [ <pod_newline> | $ ] }
 
     token pod_newline {
         \h* \n
     }
 
-    # these parents can have %config keys in their delimited form,
-    # but no other data on the same line except for 'item'
+    # These parents can contain implicit code blocks when data
+    # lines begin with whitespace indention from the virtual
+    # margin.
     token pod_code_parent {
         [
         | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]
-        | <upper>+
-        ]
-        <![\w]>
-    }
-
-    # these parents can NOT have %config keys in their other forms,
-    # and no other data on the same line execept for 'item' and 'defn'
-    token pod_code_parent2 {
-        [
-        | [ 'pod' | 'item' \d* | 'nested' | 'defn' [\h+ \N*]? | 'finish' ]
         | <upper>+
         ]
         <![\w]>
@@ -1281,6 +1322,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARATOR_DOCS;
         :my $*PRECEDING_DECL; # for #= comments
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
+        # TODO use these vars to implement S26 pod data block handling
+        :my $*DATA-BLOCKS := [];
+        :my %*DATA-BLOCKS := {};
 
         # Quasis and unquotes
         :my $*IN_QUASI := 0;                       # whether we're currently in a quasi block

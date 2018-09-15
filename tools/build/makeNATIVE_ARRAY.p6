@@ -428,7 +428,7 @@ for $*IN.lines -> $line {
         }
 
         multi method ACCEPTS(#type#array:D: #type#array:D \other) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::unless(
                 nqp::eqaddr(self,other),
                 nqp::if(

@@ -264,7 +264,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::create(self).STORE(@values)
     }
 
-    proto method STORE(|) {*}
+    proto method STORE(Array:D: |) {*}
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::stmts(
           (my \buffer = nqp::create(IterationBuffer)),

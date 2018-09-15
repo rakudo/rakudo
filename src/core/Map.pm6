@@ -385,7 +385,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    proto method STORE(|) {*}
+    proto method STORE(Map:D: |) {*}
     multi method STORE(Map:D: Map:D \map, :$initialize) {
         nqp::if(
           $initialize,

@@ -27,7 +27,7 @@ my class array does Iterable {
               !! nqp::create(self)
     }
 
-    proto method STORE(|) {*}
+    proto method STORE(array:D: |) {*}
     multi method STORE(array:D: *@values) { self.STORE(@values) }
 
     multi method push(array:D:    **@values) { self.append(@values) }

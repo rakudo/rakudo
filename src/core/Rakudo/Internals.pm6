@@ -461,6 +461,7 @@ my class Rakudo::Internals {
             self.DEFINITE ?? self!illegal("prepend") !! self.Any::prepend(|c)
         }
 
+        proto method STORE(::?CLASS:D: |) {*}
         multi method STORE(::?CLASS:D: Slip:D \slip) {
             nqp::if(
               nqp::eqaddr(slip,Empty),

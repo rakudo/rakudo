@@ -92,6 +92,7 @@
             nqp::bindpos(nqp::getattr(self,List,'$!reified'),one,value)
         }
 
+        proto method STORE(::?CLASS:D: |) {*}
         multi method STORE(::?CLASS:D: ::?CLASS:D \from-array) {
             nqp::stmts(
               (my \to   := nqp::getattr(self,List,'$!reified')),

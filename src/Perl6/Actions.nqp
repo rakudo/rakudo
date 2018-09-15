@@ -7,6 +7,11 @@ use QAST;
 
 my $wantwant := Mu;
 
+# block types
+my $para-block   := 'paragraph';
+my $delim-block  := 'delimited';
+my $abbrev-block := 'abbreviated';
+
 # 2147483648 == 2**31. By adding 1 to it with add_i op, on 32-bit boxes it will overflow
 my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
@@ -1448,16 +1453,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $<pod_block>.ast;
     }
 
+    # TODO The spaces arg from Grammar.nqp seems
+    #      NOT to be handled. That shows up
+    #      in testing for config continuation lines.
     method pod_configuration($/) {
         make Perl6::Pod::make_config($/);
     }
 
     method pod_block:sym<delimited>($/) {
         if $<type>.Str ~~ /^defn/ {
-            make Perl6::Pod::defn($/, 'delimited');
-            return;
+            make Perl6::Pod::defn($/, $delim-block);
         }
-        make Perl6::Pod::any_block($/);
+        else {
+            make Perl6::Pod::any_block($/, $delim-block);
+        }
     }
 
     method pod_block:sym<delimited_comment>($/) {
@@ -1465,13 +1474,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<delimited_table>($/) {
-        make Perl6::Pod::table($/);
+        make Perl6::Pod::table($/, $delim-block);
     }
 
     method pod_block:sym<delimited_code>($/) {
-        my $config  := $<pod_configuration>.ast;
+        # TODO add numbered-alias handling
+        my $config   := $<pod_configuration>.ast;
         my @contents := $<delimited_code_content>.ast;
-        @contents  := Perl6::Pod::serialize_array(@contents).compile_time_value;
+        @contents    := Perl6::Pod::serialize_array(@contents).compile_time_value;
         make Perl6::Pod::serialize_object('Pod::Block::Code',
                                           :@contents,:$config).compile_time_value
     }
@@ -1495,10 +1505,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method pod_block:sym<paragraph>($/) {
         if $<type>.Str ~~ /^defn/ {
-            make Perl6::Pod::defn($/, 'paragraph');
-            return;
+            make Perl6::Pod::defn($/, $para-block);
         }
-        make Perl6::Pod::any_block($/);
+        else {
+            make Perl6::Pod::any_block($/, $para-block);
+        }
     }
 
     method pod_block:sym<paragraph_comment>($/) {
@@ -1506,10 +1517,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<paragraph_table>($/) {
-        make Perl6::Pod::table($/);
+        make Perl6::Pod::table($/, $para-block);
     }
 
     method pod_block:sym<paragraph_code>($/) {
+        # TODO make config via call to make_config in Pod.nqp
         my $config := $<pod_configuration>.ast;
         my @contents := [];
         for $<pod_line> {
@@ -1522,10 +1534,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method pod_block:sym<abbreviated>($/) {
         if $<type>.Str ~~ /^defn/ {
-            make Perl6::Pod::defn($/, 'abbreviated');
-            return;
+            make Perl6::Pod::defn($/, $abbrev-block);
         }
-        make Perl6::Pod::any_block($/);
+        else {
+            make Perl6::Pod::any_block($/, $abbrev-block);
+        }
     }
 
     method pod_block:sym<abbreviated_comment>($/) {
@@ -1533,7 +1546,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method pod_block:sym<abbreviated_table>($/) {
-        make Perl6::Pod::table($/);
+        make Perl6::Pod::table($/, $abbrev-block);
     }
 
     method pod_block:sym<abbreviated_code>($/) {

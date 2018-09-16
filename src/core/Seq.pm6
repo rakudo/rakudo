@@ -214,10 +214,4 @@ multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
     )
 }
 
-# The Empty Sequence
-my constant EmptySeq = nqp::p6bindattrinvres(
-  nqp::create( class EmptySeq is Seq {
-      method iterator() { nqp::getattr(self,Seq,'$!iter') }
-  }),Seq,'$!iter',Rakudo::Iterator.Empty);
-
 # vim: ft=perl6 expandtab sw=4

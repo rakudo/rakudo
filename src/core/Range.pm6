@@ -481,7 +481,7 @@ my class Range is Cool does Iterable does Positional {
           ?? $!is-int
             ?? Seq.new(RollWhatever.new($!min + $!excludes-min,elems))
             !! self.list.roll(*)
-          !! EmptySeq
+          !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method roll(Range:D:) {
         nqp::if(
@@ -504,7 +504,7 @@ my class Range is Cool does Iterable does Positional {
           ?? $!is-int
             ?? Seq.new(RollN.new($!min + $!excludes-min,elems,0 max $todo))
             !! self.list.roll($todo)
-          !! EmptySeq
+          !! Seq.new(Rakudo::Iterator.Empty)
     }
 
     proto method pick(|)        {*}
@@ -555,14 +555,14 @@ my class Range is Cool does Iterable does Positional {
     multi method pick(Whatever)  {
         self.elems
           ?? self.list.pick(*)
-          !! EmptySeq
+          !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method pick(Int(Cool) $todo) {
         (my \elems := self.elems)
           ?? $!is-int && elems > 3 * $todo # heuristic for sparse lookup
             ?? Seq.new(PickN.new($!min + $!excludes-min,elems,0 max $todo))
             !! self.list.pick($todo)
-          !! EmptySeq
+          !! Seq.new(Rakudo::Iterator.Empty)
     }
 
     method Capture(Range:D:) {

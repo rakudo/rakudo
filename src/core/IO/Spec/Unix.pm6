@@ -104,7 +104,7 @@ my class IO::Spec::Unix is IO::Spec {
             nqp::until(
               nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
               take nqp::atpos($parts, $i) || '.')
-        } !! EmptySeq
+        } !! Seq.new(Rakudo::Iterator.Empty)
     }
 
     method splitpath( $path, :$nofile = False ) {

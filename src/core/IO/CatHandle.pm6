@@ -138,7 +138,7 @@ my class IO::CatHandle is IO::Handle {
           nqp::while(
             nqp::defined(self.next-handle),
             take $!active-handle.words)}),
-        EmptySeq
+        Seq.new(Rakudo::Iterator.Empty)
       )
     }
     multi method words(::?CLASS:D \SELF: $limit, :$close) {
@@ -164,7 +164,7 @@ my class IO::CatHandle is IO::Handle {
           nqp::while(
             nqp::defined(self.next-handle),
             take $!active-handle.lines)}),
-        EmptySeq
+        Seq.new(Rakudo::Iterator.Empty)
       )
     }
     multi method lines(::?CLASS:D \SELF: $limit, :$close) {

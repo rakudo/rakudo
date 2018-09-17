@@ -277,6 +277,10 @@ my class Rakudo::Internals {
       # utf16
       'utf16',           'utf16',
       'utf-16',          'utf16',
+      'utf16le',         'utf16le',
+      'utf-16le',        'utf16le',
+      'utf16be',         'utf16be',
+      'utf-16be',        'utf16be',
       # utf32
       'utf32',           'utf32',
       'utf-32',          'utf32',

@@ -491,8 +491,8 @@ my class utf16 does Blob[uint16] is repr('VMArray') {
     multi method decode(utf16:D: $encoding = 'utf-16') {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-16 buffer as if it were $encoding"
-            unless $enc eq 'utf16';
-        nqp::p6box_s(nqp::decode(self, 'utf16'))
+            unless $enc eq 'utf16' || $enc eq 'utf16le' || $enc eq 'utf16be';
+        nqp::p6box_s(nqp::decode(self, $enc))
     }
     method encoding() { 'utf-16' }
     multi method Str(utf16:D:) { self.decode }

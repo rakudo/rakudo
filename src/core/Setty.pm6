@@ -111,7 +111,8 @@ my role Setty does QuantHash {
             nqp::if(                                # not same object
               $!elems && nqp::elems($!elems),
               nqp::if(                              # something on left
-                (my $oraw := other.RAW-HASH) && nqp::elems($oraw),
+                nqp::isconcrete(my $oraw := other.RAW-HASH)
+                  && nqp::elems($oraw),
                 nqp::if(                            # something on both sides
                   nqp::iseq_i(nqp::elems($!elems),nqp::elems($oraw)),
                   nqp::stmts(                       # same size

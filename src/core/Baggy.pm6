@@ -22,7 +22,8 @@ my role Baggy does QuantHash {
             nqp::if(                         # not same object
               (my \araw := $!elems) && nqp::elems(araw),
               nqp::if(                       # something on left
-                (my \braw := other.RAW-HASH) && nqp::elems(braw),
+                nqp::isconcrete(my \braw := other.RAW-HASH)
+                  && nqp::elems(braw),
                 nqp::if(                     # something on both sides
                   nqp::iseq_i(nqp::elems(araw),nqp::elems(braw)),
                   nqp::stmts(                # same size

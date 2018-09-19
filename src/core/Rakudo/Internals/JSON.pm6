@@ -140,12 +140,107 @@ my class Rakudo::Internals::JSON {
     }
 
     method from-json($text) {
+        # attempt to use the brain-dead quick parser
+        .return with self.quick-from-json($text);
+
+        # alas, we need to fallback
         my $a = JSONPrettyActions.new();
         my $o = JSONPrettyGrammar.parse($text, :actions($a));
         JSONException.new(:$text).throw unless $o;
         $o.ast;
     }
     method to-json(|c) { to-json(|c) }
+
+#--- Ultra-fast braindead JSON parser good for most META6.json files -----------
+    sub parse(\item,\iterator) {
+        item.starts-with('{')
+          ?? parse-hash(iterator)
+          !! item.starts-with('[')
+            ?? parse-array(iterator)
+            !! item.starts-with('"')
+              ?? parse-string(item,iterator)
+              !! die
+    }
+
+    sub parse-hash(\iterator) {
+        my %hash;
+        nqp::until(
+          nqp::eqaddr((my \item := iterator.pull-one),IterationEnd),
+          nqp::if(
+            item eq '}' || item eq '},',
+            (return %hash), # done
+            nqp::stmts(
+              nqp::if(
+                item.starts-with('"'),
+                (my $key = parse-string(item,iterator)),
+                die
+              ),
+              nqp::if(
+                iterator.pull-one ne ':',
+                die,
+                %hash.BIND-KEY($key, parse(iterator.pull-one,iterator))
+              )
+            )
+          )
+        );
+        die  # should return with valid otherwise
+    }
+
+    sub parse-array(\iterator) {
+        my @array;
+        nqp::until(
+          nqp::eqaddr((my \item = iterator.pull-one),IterationEnd),
+          nqp::if(
+            item eq ']' || item eq '],',
+            (return @array),
+            @array.push: parse(item,iterator)
+          )
+        );
+        die  # should return with valid otherwise
+    }
+
+    sub parse-string(\item, \iterator) {
+        nqp::if(
+          item.ends-with('"'),
+          item.substr(1,*-1),
+          nqp::if(
+            item.ends-with('",'),
+            item.substr(1,*-2),
+            nqp::stmts(
+              (my str @parts = item.substr(1)),
+              nqp::until(
+                nqp::eqaddr((my \part = iterator.pull-one),IterationEnd),
+                nqp::if(
+                  part.ends-with('"'),
+                  nqp::stmts(
+                    @parts.push(part.substr(0,*-1)),
+                    return @parts.join(" ")
+                  ),
+                  nqp::if(
+                    part.ends-with('",'),
+                    nqp::stmts(
+                      @parts.push(part.substr(0,*-2)),
+                      nqp::if(
+                        (my \string = @parts.join(" ")).contains('\\'),
+                        die,
+                        (return string)
+                      )
+                    ),
+                    @parts.push(part)
+                  )
+                )
+              ),
+              die  # should return with valid otherwise
+            )
+          )
+        )
+    }
+
+    method quick-from-json($text) {
+        CATCH { return Nil }
+        my \iterator = $text.words.iterator;
+        parse(iterator.pull-one, iterator)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

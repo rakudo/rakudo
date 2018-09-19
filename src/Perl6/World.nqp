@@ -3269,14 +3269,12 @@ class Perl6::World is HLL::World {
                               QAST::Op.new( :op<existskey>, $init, $key)
                             );
 
-# %init.AT-KEY('a')
-                            my $value := QAST::Op.new( :op<callmethod>,
-                              :name<AT-KEY>, $hllinit, $key
-                            );
+# nqp::atkey($init,'a')
+                            my $value := QAST::Op.new( :op<atkey>, $init, $key );
 
                             my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
 
-# nqp::getattr(self,Foo,'$!a').STORE(%init.AT-KEY('a'))
+# nqp::getattr(self,Foo,'$!a').STORE(nqp::atkey($init, 'a'))
                             if $sigil eq '@' || $sigil eq '%' {
                                 $if.push(
                                   QAST::Op.new( :op<callmethod>, :name<STORE>,
@@ -3285,7 +3283,7 @@ class Perl6::World is HLL::World {
                                 );
                             }
 
-# nqp::getattr(self,Foo,'$!a') = %init.AT-KEY('a')
+# nqp::getattr(self,Foo,'$!a') = nqp::atkey($init, 'a')
                             else {
                                 $if.push(
                                   QAST::Op.new(
@@ -3319,7 +3317,7 @@ class Perl6::World is HLL::World {
 
 # nqp::if(
 #   nqp::existskey($init,'a'),
-#   nqp::bindattr_x(self,Foo,'$!a',nqp::decont(%init.AT-KEY('a')))
+#   nqp::bindattr_x(self,Foo,'$!a',nqp::decont(nqp::atkey($init, 'a')))
 # ),
                             my $key :=
                               QAST::SVal.new(:value(nqp::atpos($task,3)));
@@ -3329,9 +3327,7 @@ class Perl6::World is HLL::World {
                                 QAST::Op.new(:op('bindattr' ~ @psp[$code]),
                                   $self, $class, $attr,
                                   QAST::Op.new( :op<decont>,
-                                    QAST::Op.new(:op<callmethod>, :name<AT-KEY>,
-                                      $hllinit, $key
-                                    )
+                                    QAST::Op.new(:op<atkey>, $init, $key)
                                   )
                                 )
                               )

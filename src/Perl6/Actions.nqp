@@ -5344,7 +5344,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             nqp::istype($value, $expected)
             || $W.throw: $/, 'X::TypeCheck', :operation(
                 "constant declaration of " ~ ($name || '<anon>')
-              ), :$expected, :got($W.find_symbol: [$value.HOW.name: $value]);
+              ), :$expected, :got($value);
         }
         sub check-type-maybe-coerce($meth, $expected) {
             unless nqp::istype($value, $expected) {

@@ -140,11 +140,65 @@ my class Rakudo::Internals::JSON {
     }
 
     method from-json($text) {
-        my $o = JSONPrettyGrammar.parse($text, :actions(JSONPrettyActions));
+        # attempt to parse in parallel
+        if $text.trim -> $json {
+            .Array.return with try quick-from-json($json);
+        }
+
+        # could not parallelize, do it the regular way
+        my $o
+          = JSONPrettyGrammar.parse($text, :actions(JSONPrettyActions));
         JSONException.new(:$text).throw unless $o;
-        $o.ast;
+        $o.made
     }
     method to-json(|c) { to-json(|c) }
+
+    my class Chunkify does Iterator {
+        has str $.json;
+        has int $!pos;
+
+        my int $backslash   = nqp::ord('\\');
+        my int $open-array  = nqp::ord('[');
+        my int $close-array = nqp::ord(']');
+        my int $open-hash   = nqp::ord('{');
+        my int $close-hash  = nqp::ord('}');
+
+        method TWEAK() {
+            die "did beginning found"
+              unless nqp::ordat($!json,$!pos) == $open-array;
+        }
+
+        method pull-one() {
+            my int $ord;
+            my int $start;
+            my int $open-hashes;
+            my int $pos   = $!pos;
+            my int $chars = $!json.chars;
+
+            while ++$pos < $chars {
+                $ord = nqp::ordat($!json,$pos);
+                if $ord == $open-hash
+                  && nqp::ordat($!json,$pos - 1) != $backslash {
+                    $start = $pos unless $open-hashes++;
+                }
+                elsif $ord == $close-hash
+                  && nqp::ordat($!json,$pos - 1) != $backslash
+                  && nqp::not_i(--$open-hashes) {
+                    die "no start found" unless $start;
+                    $!pos = $pos;
+                    return $!json.substr($start,$pos - $start + 1);
+                }
+            }
+            nqp::ordat($!json,$pos - 1) == $close-array
+              ?? IterationEnd
+              !! die 'no end found';
+        }
+    }
+
+    sub quick-from-json($json) {
+        Seq.new(Chunkify.new( :$json ))
+          .hyper(:32batch).map: { Rakudo::Internals::JSON.from-json($_) }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

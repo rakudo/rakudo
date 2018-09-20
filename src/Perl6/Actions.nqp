@@ -3572,7 +3572,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     elsif $<initializer><sym> eq '.=' {
                         my $type := nqp::defined($*OFTYPE)
-                          ?? $*OFTYPE.ast !! $*W.find_symbol: ['Any'];
+                          ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Any'];
                         my $dot_equals := $initast;
                         $dot_equals.unshift(QAST::WVal.new(:value($type)));
                         $dot_equals.returns($type);
@@ -3723,7 +3723,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             $init-qast.unshift:
               QAST::WVal.new: value => nqp::defined($*OFTYPE)
-                ?? $*OFTYPE.ast !! $*W.find_symbol: ['Mu']
+                ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Mu']
             if $<term_init><sym> eq '.=';
 
             my $qast;
@@ -5324,9 +5324,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Mu := $W.find_symbol: ['Mu'];
         my $type := nqp::defined($*OFTYPE) ?? $*OFTYPE.ast !! $Mu;
         if $<initializer><sym> eq '.=' {
-            $value_ast.unshift(QAST::WVal.new(:value($type)));
+            my $init-type := $*W.maybe-definite-how-base: $type;
+            $value_ast.unshift: QAST::WVal.new: :value($init-type);
+            $value_ast.returns: $init-type;
         }
-        $value_ast.returns($type);
+        else {
+            $value_ast.returns($type);
+        }
 
         my $con_block := $W.pop_lexpad();
         my $value;

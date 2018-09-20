@@ -3091,7 +3091,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method contextualizer($/) {
         my $past := $<coercee>.ast;
-        if $<sigil> eq '$' && ~$<coercee> eq '' { # for '$()'
+        my $has_magic := $*W.lang-ver-before('d') && $<coercee> eq '';
+
+        if $has_magic && $<sigil> eq '$' { # for '$()'
             my $result_var := $past.unique('sm_result');
             $past := QAST::Stmt.new(
                 # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
@@ -3127,7 +3129,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         ~$<sigil> eq '%' ?? 'hash' !!
                                             'item';
             # @() and %()
-            $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if ~$<coercee> eq '';
+            $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if $has_magic;
 
             $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
         }

@@ -2960,7 +2960,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method ord(|) {*}
-    multi method ord(Str:D: --> Int:D) {
+    multi method ord(Str:D:) {
         nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
           !! Nil;

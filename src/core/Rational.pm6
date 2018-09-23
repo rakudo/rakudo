@@ -88,6 +88,9 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     multi method Str(::?CLASS:D:) {
+        $!denominator || die X::Numeric::DivideByZero.new:
+            :details('when coercing Rational to Str');
+
         my $whole  = self.abs.floor;
         my $fract  = self.abs - $whole;
 

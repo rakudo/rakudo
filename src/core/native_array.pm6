@@ -1658,7 +1658,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2018-09-12T23:22:29+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-23T11:51:05+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2037,6 +2037,9 @@ my class array does Iterable {
                   IterationEnd
                 )
             }
+            method skip-one() {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+            }
             method push-all($target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),
@@ -2218,7 +2221,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2018-09-12T23:22:29+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-23T11:51:05+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2597,6 +2600,9 @@ my class array does Iterable {
                   IterationEnd
                 )
             }
+            method skip-one() {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+            }
             method push-all($target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),
@@ -2778,7 +2784,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2018-09-12T23:22:29+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-09-23T11:51:05+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -3156,6 +3162,9 @@ my class array does Iterable {
                   nqp::atposref_s($!list,$!pos),
                   IterationEnd
                 )
+            }
+            method skip-one() {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
             }
             method push-all($target --> IterationEnd) {
                 nqp::stmts(

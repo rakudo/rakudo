@@ -705,6 +705,7 @@ class Rakudo::Iterator {
               ?? nqp::chr($!i)
               !! IterationEnd
         }
+        method skip-one() { ( $!i = $!i + 1 ) <= $!n }
         method push-all($target --> IterationEnd) {
             my int $i = $!i;
             my int $n = $!n;
@@ -1876,6 +1877,7 @@ class Rakudo::Iterator {
               IterationEnd
             )
         }
+        method skip-one() { nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last) }
         method push-exactly($target, int $batch-size) {
             nqp::stmts(
               (my int $todo = nqp::add_i($batch-size,1)),
@@ -2650,7 +2652,6 @@ class Rakudo::Iterator {
               )
             )
         }
-
         method push-exactly($target, int $batch-size) {
             nqp::stmts(
               (my int $todo = nqp::add_i($batch-size,1)),
@@ -3674,6 +3675,7 @@ class Rakudo::Iterator {
             nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
         }
         method pull-one() is raw { $!value }
+        method skip-one(--> True) { }
         method sink-all(--> IterationEnd) { }
         method count-only(--> Inf) { }
         method bool-only(--> True) { }

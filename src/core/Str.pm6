@@ -359,6 +359,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               IterationEnd
             )
         }
+        method skip-one() {
+            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
+        }
         method push-all($target --> IterationEnd) {
             nqp::stmts(
               (my str $str = $!str),      # locals are faster

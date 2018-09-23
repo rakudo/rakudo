@@ -192,6 +192,9 @@
                   IterationEnd
                 )
             }
+            method skip-one() {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!reified))
+            }
             method push-all($target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!reified)),

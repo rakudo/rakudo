@@ -420,6 +420,9 @@ for $*IN.lines -> $line {
                   IterationEnd
                 )
             }
+            method skip-one() {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+            }
             method push-all($target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),

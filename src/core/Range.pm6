@@ -180,9 +180,8 @@ my class Range is Cool does Iterable does Positional {
         method !SET-SELF(\i,\n) { $!i = i + 1; $!n = n; self }
         method new(\i,\n)   { nqp::create(self)!SET-SELF(i,n) }
 
-        method pull-one() {
-            ( $!i = $!i - 1 ) >= $!n ?? $!i !! IterationEnd
-        }
+        method pull-one() { ( $!i = $!i - 1 ) >= $!n ?? $!i !! IterationEnd }
+        method skip-one() { ( $!i = $!i - 1 ) >= $!n }
         method push-all($target --> IterationEnd) {
             my int $i = $!i;
             my int $n = $!n;
@@ -224,6 +223,7 @@ my class Range is Cool does Iterable does Positional {
               ?? nqp::chr($!i)
               !! IterationEnd
         }
+        method skip-one() { ( $!i = $!i - 1 ) >= $!n }
         method push-all($target --> IterationEnd) {
             my int $i = $!i;
             my int $n = $!n;

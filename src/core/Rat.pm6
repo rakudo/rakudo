@@ -38,15 +38,25 @@ my class FatRat is Cool does Rational[Int, Int] {
 
 sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
     nqp::stmts(
-      (my $gcd := de ?? nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int) !! 1),
-      (my $numerator   := nqp::div_I(nqp::decont(nu), $gcd, Int)),
-      (my $denominator := nqp::div_I(nqp::decont(de), $gcd, Int)),
+      (my $numerator),
+      (my $denominator),
       nqp::if(
-        nqp::islt_I($denominator, 0),
+        de,
         nqp::stmts(
-          ($numerator   := nqp::neg_I($numerator, Int)),
-          ($denominator := nqp::neg_I($denominator, Int)))),
-      RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $numerator, $denominator, t1, t2)
+          (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
+          ($numerator   := nqp::div_I(nqp::decont(nu), $gcd, Int)),
+          ($denominator := nqp::div_I(nqp::decont(de), $gcd, Int)),
+          nqp::if(
+            nqp::islt_I($denominator, 0),
+            nqp::stmts(
+              ($numerator   := nqp::neg_I($numerator, Int)),
+              ($denominator := nqp::neg_I($denominator, Int))))),
+        nqp::stmts(
+          ($numerator   := nqp::box_i(
+            nqp::isgt_I(nqp::decont(nu), 0) ?? 1 !! nu ?? -1 !! 0, Int)),
+          ($denominator := nqp::decont(de)))),
+      RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE
+        $numerator, $denominator, t1, t2)
 }
 
 sub RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(\nu, \de, \t1, \t2) {

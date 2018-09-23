@@ -24,11 +24,12 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     method new(NuT \nu = 0, DeT \de = 1) {
         nqp::unless(
           de,
-          nqp::p6bindattrinvres( # zero-denominator-rational; bind-as-is
+          nqp::p6bindattrinvres( # zero-denominator-rational; normalize
             nqp::p6bindattrinvres(
               nqp::create(self),
               ::?CLASS, '$!denominator', nqp::decont(de)),
-            ::?CLASS, '$!numerator',  nqp::decont(nu)),
+            ::?CLASS, '$!numerator',  nqp::box_i(
+              nqp::isgt_I(nu, 0) ?? 1 !! nu ?? -1 !! 0, nu.WHAT)),
           nqp::stmts( # normal rational
             (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
             (my $nu  := nqp::div_I(nqp::decont(nu), $gcd, NuT)),

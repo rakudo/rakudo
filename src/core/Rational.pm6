@@ -55,12 +55,16 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method floor(Rational:D:) {
+      $!denominator || fail X::Numeric::DivideByZero.new:
+          :details('when calling .floor on Rational');
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
     }
 
     method ceiling(Rational:D:) {
+      $!denominator || fail X::Numeric::DivideByZero.new:
+          :details('when calling .ceiling on Rational');
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)

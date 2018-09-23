@@ -2289,11 +2289,16 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method message {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to $.symbol" !! "";
-        my $expected = $.expected =:= $.got
-            ?? "expected type $.expectedn cannot be itself " ~
-               "(perhaps Nil was assigned to a :D which had no default?)"
+        my $is-itself := $.expected =:= $.got;
+        my $expected = $is-itself
+            ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
-        self.priors() ~ "Type check failed in assignment$to; $expected";
+        my $maybe-Nil := $is-itself
+          || nqp::istype($.expected.HOW, Metamodel::DefiniteHOW)
+          && $.expected.^base_type =:= $.got
+          ?? ' (perhaps Nil was assigned to a :D which had no default?)' !! '';
+
+        self.priors() ~ "Type check failed in assignment$to; $expected$maybe-Nil"
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {

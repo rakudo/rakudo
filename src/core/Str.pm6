@@ -359,6 +359,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               IterationEnd
             )
         }
+        method skip-one() {
+            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
+        }
         method push-all($target --> IterationEnd) {
             nqp::stmts(
               (my str $str = $!str),      # locals are faster
@@ -2960,7 +2963,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method ord(|) {*}
-    multi method ord(Str:D: --> Int:D) {
+    multi method ord(Str:D:) {
         nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
           !! Nil;

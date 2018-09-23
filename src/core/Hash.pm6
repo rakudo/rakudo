@@ -412,20 +412,20 @@ my class Hash { # declared in BOOTSTRAP
 
     # push a value onto a hash slot, constructing an array if necessary
     method !_push_construct(Mu $key, Mu \value --> Nil) {
-        self.EXISTS-KEY($key)
-          ?? self.AT-KEY($key).^isa(Array)
-            ?? self.AT-KEY($key).push(value)
-            !! self.ASSIGN-KEY($key,[self.AT-KEY($key),value])
-          !! self.ASSIGN-KEY($key,value)
+        nqp::if(
+          nqp::istype((my \current := self.AT-KEY($key)),Array),
+          current.push(value),
+          current = nqp::if(self.EXISTS-KEY($key),[current,value],value)
+        )
     }
 
     # append values into a hash slot, constructing an array if necessary
     method !_append_construct(Mu $key, Mu \value --> Nil) {
-        self.EXISTS-KEY($key)
-          ?? self.AT-KEY($key).^isa(Array)
-            ?? self.AT-KEY($key).append(|value)
-            !! self.ASSIGN-KEY($key,[|self.AT-KEY($key),|value])
-          !! self.ASSIGN-KEY($key,value)
+        nqp::if(
+          nqp::istype((my \current := self.AT-KEY($key)),Array),
+          current.append(|value),
+          current = nqp::if(self.EXISTS-KEY($key),[|current,|value],value)
+        )
     }
 
     my role TypedHash[::TValue] does Associative[TValue] {

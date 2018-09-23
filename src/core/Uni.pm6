@@ -31,6 +31,9 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
               IterationEnd
             )
         }
+        method skip-one {
+            nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els)
+        }
         method push-all($target --> IterationEnd) {
             nqp::stmts(
               (my     $uni := $!uni), # lexicals faster than attrs

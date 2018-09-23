@@ -325,6 +325,21 @@ sub unwanted($ast, $by) {
             $ast.sunk(1);
         }
         elsif $ast.op eq 'callmethod' {
+            if $ast.has_ann('promise_starter') && ! $*W.lang-ver-before('d') {
+                $ast[1] := QAST::WVal.new: value =>
+                  $*W.find_symbol(['&trait_mod:<is>'])(:hidden-from-backtrace,
+                    $*W.create_thunk: $ast.node,
+                    QAST::Op.new: :op<handle>,
+                      QAST::Op.new(:op<call>, $ast[1]), # Promised code block
+                      'CATCH',
+                        QAST::Op.new: :op<callmethod>,
+                          :name<handle-exception>,
+                          QAST::Op.new(:op<getcomp>,
+                            QAST::SVal.new: :value<perl6>),
+                          QAST::Op.new: :op<exception>
+                  );
+                return $ast;
+            }
             if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
                 return $ast if $*ALREADY_ADDED_SINK_CALL;
                 $ast.sunk(1);
@@ -2736,12 +2751,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.install_lexical_magical($block, '$!');
         }
         make QAST::Op.new(
+            :node($/),
             :op('callmethod'),
             :name('start'),
             :returns($*W.find_symbol(['Promise'])),
             QAST::WVal.new( :value($*W.find_symbol(['Promise'])) ),
             $<blorst>.ast
-        );
+        ).annotate_self: 'promise_starter', 1;
     }
 
     method statement_prefix:sym<lazy>($/) {
@@ -3091,7 +3107,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method contextualizer($/) {
         my $past := $<coercee>.ast;
-        if $<sigil> eq '$' && ~$<coercee> eq '' { # for '$()'
+        my $has_magic := $*W.lang-ver-before('d') && $<coercee> eq '';
+
+        if $has_magic && $<sigil> eq '$' { # for '$()'
             my $result_var := $past.unique('sm_result');
             $past := QAST::Stmt.new(
                 # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
@@ -3127,7 +3145,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         ~$<sigil> eq '%' ?? 'hash' !!
                                             'item';
             # @() and %()
-            $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if ~$<coercee> eq '';
+            $past := QAST::Var.new( :name('$/'), :scope('lexical') ) if $has_magic;
 
             $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
         }
@@ -3570,7 +3588,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     elsif $<initializer><sym> eq '.=' {
                         my $type := nqp::defined($*OFTYPE)
-                          ?? $*OFTYPE.ast !! $*W.find_symbol: ['Any'];
+                          ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Any'];
                         my $dot_equals := $initast;
                         $dot_equals.unshift(QAST::WVal.new(:value($type)));
                         $dot_equals.returns($type);
@@ -3721,7 +3739,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             $init-qast.unshift:
               QAST::WVal.new: value => nqp::defined($*OFTYPE)
-                ?? $*OFTYPE.ast !! $*W.find_symbol: ['Mu']
+                ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Mu']
             if $<term_init><sym> eq '.=';
 
             my $qast;
@@ -5322,9 +5340,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Mu := $W.find_symbol: ['Mu'];
         my $type := nqp::defined($*OFTYPE) ?? $*OFTYPE.ast !! $Mu;
         if $<initializer><sym> eq '.=' {
-            $value_ast.unshift(QAST::WVal.new(:value($type)));
+            my $init-type := $*W.maybe-definite-how-base: $type;
+            $value_ast.unshift: QAST::WVal.new: :value($init-type);
+            $value_ast.returns: $init-type;
         }
-        $value_ast.returns($type);
+        else {
+            $value_ast.returns($type);
+        }
 
         my $con_block := $W.pop_lexpad();
         my $value;
@@ -5342,7 +5364,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             nqp::istype($value, $expected)
             || $W.throw: $/, 'X::TypeCheck', :operation(
                 "constant declaration of " ~ ($name || '<anon>')
-              ), :$expected, :got($W.find_symbol: [$value.HOW.name: $value]);
+              ), :$expected, :got($value);
         }
         sub check-type-maybe-coerce($meth, $expected) {
             unless nqp::istype($value, $expected) {

@@ -140,8 +140,7 @@ my class Rakudo::Internals::JSON {
     }
 
     method from-json($text) {
-        my $a = JSONPrettyActions.new();
-        my $o = JSONPrettyGrammar.parse($text, :actions($a));
+        my $o = JSONPrettyGrammar.parse($text, :actions(JSONPrettyActions));
         JSONException.new(:$text).throw unless $o;
         $o.ast;
     }

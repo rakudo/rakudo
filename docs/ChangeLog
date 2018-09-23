@@ -1,3 +1,53 @@
+New in 2018.09:
+  + Fixes:
+    + Made native arrays throw when storing lazy Seq [fc8c7f84][bb963a25]
+    + Fixed smartmatching of Seqs against Iterables [d3cac14e]
+    + Made it possible to emit Mu [3f10e2d1][db3768e3]
+    + Fixed setting of `$/` when matching NDF [cf1df1d7]
+    + Fixed prefix calls with `.:< ... >` on integer literals [ec366c30]
+        [1835f280]
+    + `.Array` on shaped arrays now returns a proper `Array` instead of
+        dying [efbd58c8]
+    + Fixed `.keys` on one-dimensional native shaped arrays [5a9105ae]
+    + Made `Parameter.twigil` also work on dynamic Parameters [39f2d68a]
+    + Made sure the decoder is detached when closing handles [b07874e0]
+    + Made sure `X` handles empty lists on RHS [6c93fde8]
+    + Various improvements to produced messages [d419a313][c8db35e3]
+  + Additions:
+    + Added a `PredictiveIterator` role for `Iterator`s that can
+        determine how many values can still be generated, without
+        actually generating them [3ffacb9f][5cbbcc6e][842d4b32]
+        [78ae9028][000ac81e][c2c9df1c][cdf65305][ad64c757][eefbe6e1]
+        [da663afd][e717e21b][ca5825b4]
+    + Added `use isms <C++>` and make `use isms` assume all available
+        "isms" (now 'Perl5' and 'C++') [57f89278][c6c2b6c4][528def48]
+    + Partially implemented Pod '#' alias for %config :numbered [b4bf1660]
+    + Added utf16 decodestream and file handle write support [8fcebb86]
+        [e8a7564d][0bf909bb][d275ea09]
+  + Efficiency:
+    + Made `Str.words` about 3x as fast [b8f37bfc]
+    + Made `Str.lines` about 2x as fast [3dd09be3]
+    + Made `IO::Handle.lines` about 1.2x as fast [874ec002][d198c1b7]
+    + Made `IO::Path.lines` about 1.1x as fast [1905838c]
+    + Made `Str.chop(N)` about 5x as fast [07089e89]
+    + Made `Str.(r)index(needle,pos)` about 1.2x as fast [5d1d792a]
+    + Improved `.elems` and `.Bool` on `Seq` by adding
+        `count-only`/`bool-only` methods [89055755][86468e1e][070780e0]
+        [64ddacab][9738dfbf][d1e80dfe][9ff17367][b1c645ed][bd832061]
+        [708ff624][5f3c2bfc][2a011a0e][faed3a9c][e73e3ecc][78bebc7a]
+        [d970c2b3][f5ebad98]
+  + Internal:
+    + Moved some iterators from Range to `R::Iterator` [fcd45ff8]
+    + Streamlined quoted words handling [92951168][ae739adf]
+    + Fixed a bug in the optimizer where optimizations were
+        improperly combining [e436f4e5]
+    + Simplified `Map.kv` iterator [6977973d]
+    + Replaced use of `p6bool` by `hllbool` and `hllboolfor` [672196cd]
+        [20feda70][170ffd40][7e69c640][3272207a][f1f6825b]
+    + Removed obsolete p6settypes extop [de4e8225]
+    + Standardized use of proto's on `.STORE` methods [ed9b48de]
+    + Removed EmptySeq [a4db33e7]
+
 New in 2018.08:
   + SPECIAL NOTES:
     + Changed filenames and permissions of many scripts in the repo

@@ -119,7 +119,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                 # TODO v6.d FatRats are tested in roast to have a minimum
                 # precision pf 6 decimal places - mostly due to there being no
                 # formal spec and the desire to test SOMETHING. With this
-                # speed increase, 16 digits would work fine; but it isn't spec.  
+                # speed increase, 16 digits would work fine; but it isn't spec.
                 #if $!denominator < 1000000000000000 {
                 #    $precision = 16;
                 #    $fract *= 10000000000000000;

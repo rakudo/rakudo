@@ -1112,14 +1112,23 @@ class Perl6::Optimizer {
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
         if ($optype eq 'p6for' || $optype eq 'p6forstmt') && $op.sunk && @($op) == 2 {
+            my $reverse := 0;
             my $theop := $op[0];
-            if nqp::istype($theop, QAST::Stmts) { $theop := $theop[0] }
+            if nqp::istype($theop, QAST::Stmts) {
+                $theop := $theop[0]
+            }
+            elsif nqp::istype($theop, QAST::Op)
+              && $theop.op   eq 'callmethod'
+              && $theop.name eq 'reverse' {
+                $reverse := 1;
+                $theop := $theop[0];
+            }
 
             if nqp::istype($theop, QAST::Op)
             && nqp::existskey(%range_bounds, $theop.name)
             && $!symbols.is_from_core($theop.name)
             && $op[1].has_ann('code_object') {
-                self.optimize_for_range($op, $op[1], $theop);
+                self.optimize_for_range($op, $op[1], $theop, :$reverse);
                 self.visit_op_children($op);
                 return $op;
             }
@@ -2238,7 +2247,7 @@ class Perl6::Optimizer {
         return $op;
     }
 
-    method optimize_for_range($op, $callee, $c2) {
+    method optimize_for_range($op, $callee, $c2, :$reverse) {
         my $code    := $callee.ann('code_object');
         my $count   := $code.count;
         my $block   := $!symbols.Block;
@@ -2247,29 +2256,29 @@ class Perl6::Optimizer {
           !! nqp::null();
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
             my $it_var     := QAST::Node.unique('range_it_');
-            my $max_var    := QAST::Node.unique('range_max_');
+            my $last_var   := QAST::Node.unique('range_last_');
             my $callee_var := QAST::Node.unique('range_callee_');
             $op.shift while $op.list;
             $op.op('stmts');
             $op.push(QAST::Stmts.new(
 
-# my int $it := @bounds[0] - 1
+# my int $it := $reverse ?? @bounds[1] + 1 !! @bounds[0] - 1
               QAST::Op.new( :op<bind>,
                 QAST::Var.new(
                   :name($it_var), :scope<local>, :decl<var>, :returns(int)
                 ),
-                QAST::Op.new( :op<sub_i>,
-                  @bounds[0],
+                QAST::Op.new( (op => $reverse ?? "add_i" !! "sub_i"),
+                  @bounds[0 + $reverse],
                   QAST::IVal.new( :value(1))
                 )
               ),
 
-# my int $max := @bounds[1]
+# my int $last := @bounds[$reverse ?? 0 !! 1]
               QAST::Op.new( :op<bind>,
                 QAST::Var.new(
-                  :name($max_var), :scope<local>, :decl<var>, :returns(int)
+                  :name($last_var), :scope<local>, :decl<var>, :returns(int)
                 ),
-                @bounds[1]
+                @bounds[1 - $reverse]
               ),
 
 # my $callee := { };
@@ -2279,20 +2288,20 @@ class Perl6::Optimizer {
               ),
 
 # nqp::while(
-#   nqp::isle_i(
-#     nqp::bind($it,nqp::add_i($it,1)),
+#   $reverse ?? nqp::isge_i !! nqp::isle_i(
+#     nqp::bind($it, ($reverse ?? nqp::sub_i !! nqp::add_i)($it,1)),
 #     $max
 #   )
               QAST::Op.new( :op<while>,
-                QAST::Op.new( :op<isle_i>,
+                QAST::Op.new( (op => $reverse ?? "isge_i" !! "isle_i"),
                   QAST::Op.new( :op<bind>,
                     QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
-                    QAST::Op.new( :op<add_i>,
+                    QAST::Op.new( (op => $reverse ?? "sub_i" !! "add_i"),
                       QAST::Var.new(:name($it_var),:scope<local>,:returns(int)),
                       QAST::IVal.new( :value(1) )
                     )
                   ),
-                  QAST::Var.new(:name($max_var), :scope<local>, :returns(int))
+                  QAST::Var.new(:name($last_var), :scope<local>, :returns(int))
                 ),
 
 #   nqp::call($callee, $it)

@@ -24,11 +24,12 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     method new(NuT \nu = 0, DeT \de = 1) {
         nqp::unless(
           de,
-          nqp::p6bindattrinvres( # zero-denominator-rational; bind-as-is
+          nqp::p6bindattrinvres( # zero-denominator-rational; normalize
             nqp::p6bindattrinvres(
               nqp::create(self),
               ::?CLASS, '$!denominator', nqp::decont(de)),
-            ::?CLASS, '$!numerator',  nqp::decont(nu)),
+            ::?CLASS, '$!numerator',  nqp::box_i(
+              nqp::isgt_I(nqp::decont(nu), 0) ?? 1 !! nu ?? -1 !! 0, nu.WHAT)),
           nqp::stmts( # normal rational
             (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
             (my $nu  := nqp::div_I(nqp::decont(nu), $gcd, NuT)),
@@ -54,12 +55,16 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method floor(Rational:D:) {
+      $!denominator || fail X::Numeric::DivideByZero.new:
+          :details('when calling .floor on Rational');
         $!denominator == 1
             ?? $!numerator
             !! $!numerator div $!denominator
     }
 
     method ceiling(Rational:D:) {
+      $!denominator || fail X::Numeric::DivideByZero.new:
+          :details('when calling .ceiling on Rational');
         $!denominator == 1
             ?? $!numerator
             !! ($!numerator div $!denominator + 1)
@@ -87,6 +92,9 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     multi method Str(::?CLASS:D:) {
+        $!denominator || die X::Numeric::DivideByZero.new:
+            :details('when coercing Rational to Str');
+
         my $whole  = self.abs.floor;
         my $fract  = self.abs - $whole;
 
@@ -119,7 +127,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                 # TODO v6.d FatRats are tested in roast to have a minimum
                 # precision pf 6 decimal places - mostly due to there being no
                 # formal spec and the desire to test SOMETHING. With this
-                # speed increase, 16 digits would work fine; but it isn't spec.  
+                # speed increase, 16 digits would work fine; but it isn't spec.
                 #if $!denominator < 1000000000000000 {
                 #    $precision = 16;
                 #    $fract *= 10000000000000000;

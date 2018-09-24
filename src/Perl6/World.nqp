@@ -3285,11 +3285,16 @@ class Perl6::World is HLL::World {
 
                             my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
 
-# nqp::getattr(self,Foo,'$!a').STORE(%init.AT-KEY('a'))
+# nqp::getattr(self,Foo,'$!a').STORE(%init.AT-KEY('a'), :initialize)
                             if $sigil eq '@' || $sigil eq '%' {
                                 $if.push(
                                   QAST::Op.new( :op<callmethod>, :name<STORE>,
-                                    $getattr, $value
+                                    $getattr, $value, QAST::WVal.new(
+                                      :value($!w.find_symbol(
+                                        ['Bool','True'], :setting-only
+                                      )),
+                                      :named('initialize')
+                                    )
                                   )
                                 );
                             }
@@ -3374,11 +3379,16 @@ class Perl6::World is HLL::World {
                               !! QAST::WVal.new(:value(nqp::atpos($task,3)));
 
                             my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
-# nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')))
+# nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')), :initialize)
                             if $sigil eq '@' || $sigil eq '%' {
                                 $unless.push(
                                   QAST::Op.new( :op<callmethod>, :name<STORE>,
-                                    $getattr, $initializer
+                                    $getattr, $initializer, QAST::WVal.new(
+                                      :value($!w.find_symbol(
+                                        ['Bool','True'], :setting-only
+                                      )),
+                                      :named('initialize')
+                                    )
                                   )
                                 );
                             }

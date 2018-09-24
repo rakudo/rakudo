@@ -756,6 +756,17 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
+    multi method STORE(List:D: Iterable:D \iterable, :$initialize!) {
+        if $initialize {
+            my \buffer := nqp::create(IterationBuffer);
+            iterable.iterator.push-all(buffer);
+            nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+        }
+        else {
+            self.STORE(iterable);
+        }
+    }
+
     multi method STORE(List:D: Iterable:D \iterable) {
         # First pass -- scan lhs containers and pick out scalar versus list
         # assignment. This also reifies the RHS values we need, and deconts

@@ -216,15 +216,21 @@ multi sub infix:<**>(Rational:D \a, Int:D \b) {
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {
-    nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
-        ?? a.Num == b.Num
-        !! a.numerator * b.denominator == b.numerator * a.denominator
+    nqp::hllbool(
+      nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
+        ?? nqp::iseq_I(a.numerator, b.numerator)
+          && nqp::istrue(a.numerator) # NaN != NaN
+        !! nqp::iseq_I(
+            nqp::mul_I(a.numerator, b.denominator, Int),
+            nqp::mul_I(b.numerator, a.denominator, Int)))
 }
 multi sub infix:<==>(Rational:D \a, Int:D \b) {
-    a.numerator == b && a.denominator == 1
+    nqp::hllbool(
+      nqp::iseq_I(a.numerator, nqp::decont(b)) && nqp::iseq_I(a.denominator, 1))
 }
 multi sub infix:<==>(Int:D \a, Rational:D \b) {
-    a == b.numerator && b.denominator == 1;
+    nqp::hllbool(
+      nqp::iseq_I(nqp::decont(a), b.numerator) && nqp::iseq_I(b.denominator, 1))
 }
 multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
     # Check whether we have 0-denominator rationals as well. Those can

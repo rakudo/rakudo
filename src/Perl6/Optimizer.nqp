@@ -1114,14 +1114,14 @@ class Perl6::Optimizer {
         if ($optype eq 'p6for' || $optype eq 'p6forstmt') && $op.sunk && @($op) == 2 {
             my $reverse := 0;
             my $theop := $op[0];
-            if nqp::istype($theop, QAST::Stmts) {
-                $theop := $theop[0]
-            }
-            elsif nqp::istype($theop, QAST::Op)
+            if nqp::istype($theop, QAST::Op)
               && $theop.op   eq 'callmethod'
               && $theop.name eq 'reverse' {
                 $reverse := 1;
                 $theop := $theop[0];
+            }
+            if nqp::istype($theop, QAST::Stmts) {
+                $theop := $theop[0]
             }
 
             if nqp::istype($theop, QAST::Op)

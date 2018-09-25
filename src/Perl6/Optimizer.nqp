@@ -1084,7 +1084,18 @@ class Perl6::Optimizer {
             my @ub := get_bound($op[0],-1);
             @ub ?? [QAST::IVal.new( :value(0) ), @ub[0]] !! []
         },
-        );
+        '&infix:<...>', -> $op {
+            my @lb := get_bound($op[0], 0);
+            my @ub := get_bound($op[1], 0);
+            @lb && @ub
+              ?? nqp::istype(@lb[0],QAST::IVal)
+                && nqp::istype(@ub[0],QAST::IVal)
+                && @lb[0].value > @ub[0].value
+                ?? [@ub[0],@lb[0],1]  # 10...1 -> (1..10).reverse
+                !! [@lb[0],@ub[0]]    # 1...10 ->  1..10
+              !! []
+        }
+    );
 
     # Poisonous calls.
     my %poison_calls := nqp::hash(
@@ -2255,6 +2266,8 @@ class Perl6::Optimizer {
           ?? nqp::getattr($code, $block, '$!phasers')
           !! nqp::null();
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
+            $reverse := @bounds[2] if $c2.name eq '&infix:<...>';
+            
             my $it_var     := QAST::Node.unique('range_it_');
             my $last_var   := QAST::Node.unique('range_last_');
             my $callee_var := QAST::Node.unique('range_callee_');

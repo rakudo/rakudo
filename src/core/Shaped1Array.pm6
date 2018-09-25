@@ -212,7 +212,7 @@
                   ($!pos = $i)  # mark as done
                 )
             }
-            method count-only(--> Int:D) { 
+            method count-only(--> Int:D) {
                 nqp::p6box_i(
                   nqp::elems($!reified)
                     - $!pos

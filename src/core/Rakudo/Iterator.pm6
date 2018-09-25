@@ -3362,17 +3362,17 @@ class Rakudo::Iterator {
     # initial.
     my class SuccFromInf does Iterator {
         has Mu $!i;
-        
+
         method !SET-SELF(Mu $!i) { self }
         method new(\i) { nqp::create(self)!SET-SELF(i) }
-        
+
         method pull-one() {
             my Mu $i = $!i;
             $!i = $i.succ;
             $i
-        }   
+        }
         method is-lazy(--> True) { }
-    }   
+    }
     method SuccFromInf(\i) { SuccFromInf.new(i) }
 
     # Returns an iterator for a range of generic values that have a

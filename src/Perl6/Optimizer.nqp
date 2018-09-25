@@ -2267,7 +2267,7 @@ class Perl6::Optimizer {
           !! nqp::null();
         if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
             $reverse := @bounds[2] if $c2.name eq '&infix:<...>';
-            
+
             my $it_var     := QAST::Node.unique('range_it_');
             my $last_var   := QAST::Node.unique('range_last_');
             my $callee_var := QAST::Node.unique('range_callee_');
@@ -2383,7 +2383,7 @@ class Perl6::Optimizer {
             elsif $want[1] eq 'v' && nqp::istype($want[2], QAST::Op) {
 # R#2040
 # - QAST::Op(p6capturelex)
-#   - QAST::Op(callmethod clone) 
+#   - QAST::Op(callmethod clone)
 #     - QAST::WVal(Sub...)
                 if $want[0].op eq 'p6capturelex' {
                     my $op := $want[0][0];

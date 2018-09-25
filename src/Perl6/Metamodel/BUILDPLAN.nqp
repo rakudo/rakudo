@@ -168,7 +168,7 @@ role Perl6::Metamodel::BUILDPLAN {
             my @mro := self.mro($obj);
             @!BUILDALLPLAN := +@mro > 1
               ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
-              !! @EMPTY    
+              !! @EMPTY
         }
     }
 

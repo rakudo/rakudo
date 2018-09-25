@@ -183,7 +183,7 @@ my role Setty does QuantHash {
     multi method pick(Setty:D: Whatever $) {
         self.pick(Inf)
     }
-    
+
     my class PickN does Rakudo::QuantHash::Pairs {
         method pull-one() is raw {
             nqp::if(

@@ -117,7 +117,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             nqp::findmethod(Mu,'bless')
           ),
           nqp::create(self).BUILDALL(Empty, %attrinit),
-          nqp::invokewithcapture($bless,nqp::usecapture)
+          $bless(|%attrinit)
         )
     }
     multi method new($, *@) {

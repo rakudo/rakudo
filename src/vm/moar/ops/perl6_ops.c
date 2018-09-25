@@ -77,7 +77,7 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
 /* Boxing to Perl 6 types. */
 static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins, MVMObject *type) {
     MVMSpeshFacts *tfacts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
-    tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE | MVM_SPESH_FACT_DECONTED;
+    tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE;
     tfacts->type   = type;
 }
 

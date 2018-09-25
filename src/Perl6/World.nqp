@@ -3273,21 +3273,26 @@ class Perl6::World is HLL::World {
                             );
 
 # nqp::if(
-#   nqp::existskey($init,'a'),
-                            my $if := QAST::Op.new( :op<if>,
-                              QAST::Op.new( :op<existskey>, $init, $key)
+#   my \tmp = nqp::atkey($init,'a'),
+                            my $tmp := QAST::Node.unique('buildall_tmp_');
+                            my $if := QAST::Op.new( :op<unless>,
+                              QAST::Op.new( :op<isnull>,
+                                QAST::Op.new( :op<bind>,
+                                  QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
+                                  QAST::Op.new( :op<atkey>, $init, $key )
+                                )
+                              )
                             );
-
-# nqp::atkey($init,'a')
-                            my $value := QAST::Op.new( :op<atkey>, $init, $key );
 
                             my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
 
-# nqp::getattr(self,Foo,'$!a').STORE(nqp::atkey($init, 'a'), :initialize)
+# nqp::getattr(self,Foo,'$!a').STORE(tmp, :initialize)
                             if $sigil eq '@' || $sigil eq '%' {
                                 $if.push(
                                   QAST::Op.new( :op<callmethod>, :name<STORE>,
-                                    $getattr, $value, QAST::WVal.new(
+                                    $getattr,
+                                    QAST::Var.new( :name($tmp), :scope<local> ),
+                                    QAST::WVal.new(
                                       :value($!w.find_symbol(
                                         ['Bool','True'], :setting-only
                                       )),
@@ -3297,14 +3302,15 @@ class Perl6::World is HLL::World {
                                 );
                             }
 
-# nqp::getattr(self,Foo,'$!a') = nqp::atkey($init, 'a')
+# nqp::getattr(self,Foo,'$!a') = tmp
                             else {
                                 $if.push(
                                   QAST::Op.new(
                                     :op( $sigil eq '$' || $sigil eq '&'
                                            ?? 'assign' !! 'p6store'
                                     ),
-                                    $getattr, $value
+                                    $getattr,
+                                    QAST::Var.new( :name($tmp), :scope<local> )
                                   )
                                 );
                             }

@@ -7,7 +7,7 @@ my class IO::Path is Cool does IO {
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
-        nqp::p6bool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
+        nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
@@ -58,15 +58,15 @@ my class IO::Path is Cool does IO {
         nqp::if(
           nqp::isconcrete($!is-absolute),
           $!is-absolute,
-          $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))
+          $!is-absolute = nqp::hllbool($!SPEC.is-absolute: $!path))
     }
     method is-relative() {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::not_i(
             nqp::if(
               nqp::isconcrete($!is-absolute),
               $!is-absolute,
-              $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))))
+              $!is-absolute = nqp::hllbool($!SPEC.is-absolute: $!path))))
     }
 
     method parts {

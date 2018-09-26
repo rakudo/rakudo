@@ -858,7 +858,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     proto method Bool(|) {*}
     multi method Bool(Match:U:) { False }
-    multi method Bool(Match:D:) { nqp::p6bool($!pos >= $!from) }
+    multi method Bool(Match:D:) { nqp::hllbool($!pos >= $!from) }
 
     multi method Numeric(Match:D:) {
         self.Str.Numeric
@@ -938,8 +938,7 @@ multi sub infix:<eqv>(Match:D \a, Match:D \b) {
 }
 
 
-proto sub make(Mu, *%) { $/ := nqp::getlexcaller('$/'); {*} }
-multi sub make(Mu \made) {
+sub make(Mu \made) {
     nqp::bindattr(nqp::decont(nqp::getlexcaller('$/')),Match,'$!made',made)
 }
 

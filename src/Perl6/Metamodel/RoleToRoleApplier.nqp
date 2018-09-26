@@ -228,7 +228,7 @@ my class RoleToRoleApplier {
                     $target.HOW.add_attribute($target, $add_attr);
                 }
             }
- 
+
             # Any parents can also just be copied over.
             if nqp::can($how, 'parents') {
                 my @parents := $how.parents($_, :local(1));

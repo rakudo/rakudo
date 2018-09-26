@@ -228,7 +228,7 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
         if $IN-as-ARGSFILES {
             my $*ARGFILES := IO::ArgFiles.new: (my $in := $*IN),
                 :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),
-                :bin(nqp::p6bool(nqp::isfalse($in.encoding)));
+                :bin(nqp::hllbool(nqp::isfalse($in.encoding)));
             $m(|@($p), |%($n));
         }
         else {

@@ -21,8 +21,11 @@
 # build/Makefile.in for examples of use.
 
 APPENDICES/A01-limits/overflow.t
+APPENDICES/A01-limits/misc.t
 APPENDICES/A02-some-day-maybe/io-cathandle.t
 APPENDICES/A02-some-day-maybe/multi-no-match.t
+APPENDICES/A02-some-day-maybe/concreteness.t
+APPENDICES/A03-older-specs/01-misc.t
 MISC/bug-coverage.t
 MISC/bug-coverage-6.d.t
 MISC/bug-coverage-stress.t                  # stress
@@ -943,6 +946,7 @@ S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t
 S26-documentation/14-defn.t
+S26-documentation/15-numbered-alias.t
 S26-documentation/block-leading.t
 S26-documentation/block-trailing.t
 S26-documentation/module-comment.t
@@ -1044,11 +1048,13 @@ S32-io/io-path.t
 S32-io/io-path-extension.t
 S32-io/IO-Socket-INET.t
 S32-io/move.t
+S32-io/mkdir_rmdir.t
 S32-io/native-descriptor.t  # moar
 S32-io/note.t
 S32-io/null-char.t
 S32-io/open.t
 S32-io/other.t
+S32-io/other-stress.t
 S32-io/out-buffering.t
 S32-io/pipe.t
 S32-io/rename.t

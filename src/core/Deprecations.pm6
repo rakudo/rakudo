@@ -68,7 +68,7 @@ class Rakudo::Deprecations {
 
         my $bt = Backtrace.new;
         my $deprecated =
-          $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) ];
+          $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) // 0 ];
 
         if $up ~~ Whatever {
             $index = $_ with $bt.next-interesting-index($index, :noproto);

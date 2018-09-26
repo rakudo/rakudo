@@ -47,7 +47,7 @@
 
         multi method EXISTS-POS(::?CLASS:D: int \one) {
             my \reified := nqp::getattr(self,List,'$!reified');
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i(one,nqp::elems(reified))
                 && nqp::not_i(nqp::isnull(nqp::atpos(reified,one)
               ))
@@ -55,7 +55,7 @@
         }
         multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
             my \reified := nqp::getattr(self,List,'$!reified');
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i(one,nqp::elems(reified))
                 && nqp::not_i(nqp::isnull(nqp::atpos(reified,one)
               ))
@@ -92,6 +92,7 @@
             nqp::bindpos(nqp::getattr(self,List,'$!reified'),one,value)
         }
 
+        proto method STORE(::?CLASS:D: |) {*}
         multi method STORE(::?CLASS:D: ::?CLASS:D \from-array) {
             nqp::stmts(
               (my \to   := nqp::getattr(self,List,'$!reified')),
@@ -164,58 +165,66 @@
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
         }
 
-        method iterator(::?CLASS:D:) {
-            class :: does Iterator {
-                has Mu $!reified;
-                has Mu $!desc;
-                has int $!pos;
-                method !SET-SELF(Mu \list) {
-                    nqp::stmts(
-                      ($!reified := nqp::getattr(list,List,'$!reified')),
-                      ($!desc    := nqp::getattr(list,Array,'$!descriptor')),
-                      ($!pos = -1),
-                      self
-                    )
-                }
-                method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
-                method pull-one() is raw {
-                    nqp::if(
-                      nqp::islt_i(
-                        ($!pos = nqp::add_i($!pos,1)),
-                        nqp::elems($!reified)
-                      ),
+        my class Iterate does PredictiveIterator {
+            has Mu $!reified;
+            has Mu $!desc;
+            has int $!pos;
+            method !SET-SELF(Mu \list) {
+                nqp::stmts(
+                  ($!reified := nqp::getattr(list,List,'$!reified')),
+                  ($!desc    := nqp::getattr(list,Array,'$!descriptor')),
+                  ($!pos = -1),
+                  self
+                )
+            }
+            method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+            method pull-one() is raw {
+                nqp::if(
+                  nqp::islt_i(
+                    ($!pos = nqp::add_i($!pos,1)),
+                    nqp::elems($!reified)
+                  ),
+                  nqp::ifnull(
+                    nqp::atpos($!reified,$!pos),
+                    nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                      $!desc, $!reified, $!pos))
+                  ),
+                  IterationEnd
+                )
+            }
+            method skip-one() {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!reified))
+            }
+            method push-all($target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!reified)),
+                  (my int $i = $!pos),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    $target.push(
                       nqp::ifnull(
-                        nqp::atpos($!reified,$!pos),
+                        nqp::atpos($!reified,$i),
                         nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
-                          $!desc, $!reified, $!pos))
-                      ),
-                      IterationEnd
+                          $!desc, $!reified, $i))
+                      )
                     )
-                }
-                method push-all($target --> IterationEnd) {
-                    nqp::stmts(
-                      (my int $elems = nqp::elems($!reified)),
-                      (my int $i = $!pos),
-                      nqp::while(
-                        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                        $target.push(
-                          nqp::ifnull(
-                            nqp::atpos($!reified,$i),
-                            nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
-                              $!desc, $!reified, $i))
-                          )
-                        )
-                      ),
-                      ($!pos = $i)  # mark as done
-                    )
-                }
-                method count-only() { nqp::p6box_i(nqp::elems($!reified)) }
-                method bool-only()  { nqp::p6bool(nqp::elems($!reified)) }
-                method sink-all(--> IterationEnd) {
-                    $!pos = nqp::elems($!reified)
-                }
-            }.new(self)
+                  ),
+                  ($!pos = $i)  # mark as done
+                )
+            }
+            method count-only(--> Int:D) {
+                nqp::p6box_i(
+                  nqp::elems($!reified)
+                    - $!pos
+                    - nqp::islt_i($!pos,nqp::elems($!reified)
+                  )
+                )
+            }
+            method sink-all(--> IterationEnd) {
+                $!pos = nqp::elems($!reified)
+            }
         }
+        method iterator(::?CLASS:D:) { Iterate.new(self) }
 
         method reverse(::?CLASS:D:) is nodal {
             Seq.new(nqp::if(

@@ -89,108 +89,108 @@ my class Array { # declared in BOOTSTRAP
               nqp::p6bindattrinvres(result, List, '$!todo', todo))))
     }
 
-    method iterator(Array:D:) {
+    my class Todo does Iterator {
+        has int $!i;
+        has $!array;
+        has $!reified;
+        has $!todo;
+        has $!descriptor;
 
+        method !SET-SELF(\array) {
+            $!i           = -1;
+            $!array      := array;
+            $!reified    :=
+              nqp::ifnull(
+                nqp::getattr( array,List,'$!reified'),
+                nqp::bindattr(array,List,'$!reified',
+                  nqp::create(IterationBuffer))
+              );
+            $!todo       := nqp::getattr(array,List, '$!todo');
+            $!descriptor := nqp::getattr(array,Array,'$!descriptor');
+            self
+        }
+        method new(\array) { nqp::create(self)!SET-SELF(array) }
+
+        method pull-one() is raw {
+            nqp::ifnull(
+              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::if(
+                nqp::islt_i($!i,nqp::elems($!reified)),
+                self.hole($!i),
+                nqp::if(
+                  nqp::isconcrete($!todo),
+                  nqp::if(
+                    nqp::islt_i(
+                      $!i,
+                      $!todo.reify-at-least(nqp::add_i($!i,1))
+                    ),
+                    nqp::atpos($!reified,$!i), # cannot be nqp::null
+                    self.done
+                  ),
+                  IterationEnd
+                )
+              )
+            )
+        }
+        method hole(int $i) {
+             nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindArrayPos.new(
+                 $!descriptor, $!reified, $i))
+        }
+        method done() is raw {
+            $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
+            IterationEnd
+        }
+
+        method push-until-lazy($target) {
+            nqp::if(
+              nqp::isconcrete($!todo),
+              nqp::stmts(
+                (my int $elems = $!todo.reify-until-lazy),
+                (my int $i = $!i),   # lexicals faster than attributes
+                nqp::while(   # doesn't sink
+                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                  $target.push(nqp::atpos($!reified,$i))
+                ),
+                nqp::if(
+                  $!todo.fully-reified,
+                  nqp::stmts(
+                    ($!i = $i),
+                    self.done
+                  ),
+                  nqp::stmts(
+                    ($!i = nqp::sub_i($elems,1)),
+                    Mu
+                  )
+                )
+              ),
+              nqp::stmts(
+                ($elems = nqp::elems($!reified)),
+                ($i = $!i),
+                nqp::while(   # doesn't sink
+                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                  $target.push(
+                    nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
+                  )
+                ),
+                ($!i = $i),
+                IterationEnd
+              )
+            )
+        }
+
+        method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
+    }
+    method iterator(Array:D:) {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-            class :: does Iterator {             # something to iterate over
-                has int $!i;
-                has $!array;
-                has $!reified;
-                has $!todo;
-                has $!descriptor;
-
-                method !SET-SELF(\array) {
-                    $!i           = -1;
-                    $!array      := array;
-                    $!reified    :=
-                      nqp::ifnull(
-                        nqp::getattr( array,List,'$!reified'),
-                        nqp::bindattr(array,List,'$!reified',
-                          nqp::create(IterationBuffer))
-                      );
-                    $!todo       := nqp::getattr(array,List, '$!todo');
-                    $!descriptor := nqp::getattr(array,Array,'$!descriptor');
-                    self
-                }
-                method new(\array) { nqp::create(self)!SET-SELF(array) }
-
-                method pull-one() is raw {
-                    nqp::ifnull(
-                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      nqp::if(
-                        nqp::islt_i($!i,nqp::elems($!reified)),
-                        self.hole($!i),
-                        nqp::if(
-                          nqp::isconcrete($!todo),
-                          nqp::if(
-                            nqp::islt_i(
-                              $!i,
-                              $!todo.reify-at-least(nqp::add_i($!i,1))
-                            ),
-                            nqp::atpos($!reified,$!i), # cannot be nqp::null
-                            self.done
-                          ),
-                          IterationEnd
-                        )
-                      )
-                    )
-                }
-                method hole(int $i) {
-                     nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindArrayPos.new(
-                         $!descriptor, $!reified, $i))
-                }
-                method done() is raw {
-                    $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
-                    IterationEnd
-                }
-
-                method push-until-lazy($target) {
-                    nqp::if(
-                      nqp::isconcrete($!todo),
-                      nqp::stmts(
-                        (my int $elems = $!todo.reify-until-lazy),
-                        (my int $i = $!i),   # lexicals faster than attributes
-                        nqp::while(   # doesn't sink
-                          nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                          $target.push(nqp::atpos($!reified,$i))
-                        ),
-                        nqp::if(
-                          $!todo.fully-reified,
-                          nqp::stmts(
-                            ($!i = $i),
-                            self.done
-                          ),
-                          nqp::stmts(
-                            ($!i = nqp::sub_i($elems,1)),
-                            Mu
-                          )
-                        )
-                      ),
-                      nqp::stmts(
-                        ($elems = nqp::elems($!reified)),
-                        ($i = $!i),
-                        nqp::while(   # doesn't sink
-                          nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                          $target.push(
-                            nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
-                          )
-                        ),
-                        ($!i = $i),
-                        IterationEnd
-                      )
-                    )
-                }
-
-                method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
-            }.new(self),
+          Todo.new(self),                      # something to iterate over
           nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-            Rakudo::Iterator.ReifiedArray(       # everything is already there
+            Rakudo::Iterator.ReifiedArray(     # everything is already there
               self,
               nqp::getattr(self,Array,'$!descriptor')
             ),
-            Rakudo::Iterator.Empty               # nothing now or in the future
+            Rakudo::Iterator.Empty             # nothing now or in the future
           )
         )
     }
@@ -264,7 +264,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::create(self).STORE(@values)
     }
 
-    proto method STORE(|) {*}
+    proto method STORE(Array:D: |) {*}
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::stmts(
           (my \buffer = nqp::create(IterationBuffer)),
@@ -1214,44 +1214,46 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method grab(Callable:D $calculate) { self.grab($calculate(self.elems)) }
     multi method grab(Whatever) { self.grab(Inf) }
-    multi method grab($count) {
-        Seq.new(nqp::if(
-          self.elems,                        # reifies
-          class :: does Iterator {
-              has $!array;
-              has int $!count;
 
-              method !SET-SELF(\array,\count) {
-                  nqp::stmts(
-                    (my int $elems =
-                      nqp::elems(nqp::getattr(array,List,'$!reified'))),
-                    ($!array := array),
-                    nqp::if(
-                      count == Inf,
-                      ($!count = $elems),
-                      nqp::if(
-                        nqp::isgt_i(($!count = count.Int),$elems),
-                        ($!count = $elems)
-                      )
-                    ),
-                    self
-                  )
+    my class GrabN does Iterator {
+        has $!array;
+        has int $!count;
 
-              }
-              method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
-              method pull-one() {
-                  nqp::if(
-                    $!count && nqp::elems(nqp::getattr($!array,List,'$!reified')),
-                    nqp::stmts(
-                      ($!count = nqp::sub_i($!count,1)),
-                      $!array.GRAB_ONE
-                    ),
-                    IterationEnd
-                  )
-              }
-          }.new(self,$count),
-          Rakudo::Iterator.Empty
-        ))
+        method !SET-SELF(\array,\count) {
+            nqp::stmts(
+              (my int $elems =
+                nqp::elems(nqp::getattr(array,List,'$!reified'))),
+              ($!array := array),
+              nqp::if(
+                count == Inf,
+                ($!count = $elems),
+                nqp::if(
+                  nqp::isgt_i(($!count = count.Int),$elems),
+                  ($!count = $elems)
+                )
+              ),
+              self
+            )
+
+        }
+        method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
+        method pull-one() {
+            nqp::if(
+              $!count && nqp::elems(nqp::getattr($!array,List,'$!reified')),
+              nqp::stmts(
+                ($!count = nqp::sub_i($!count,1)),
+                $!array.GRAB_ONE
+              ),
+              IterationEnd
+            )
+        }
+    }
+    multi method grab(\count) {
+        Seq.new(
+          self.elems                         # reifies
+          ?? GrabN.new(self,count)
+          !! Rakudo::Iterator.Empty
+        )
     }
 
     method GRAB_ONE() {

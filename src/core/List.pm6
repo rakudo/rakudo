@@ -170,7 +170,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method fully-reified() {
-            nqp::p6bool(nqp::not_i(
+            nqp::hllbool(nqp::not_i(
               nqp::isconcrete($!current-iter) || nqp::isconcrete($!future)
             ))
         }
@@ -363,7 +363,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method Bool(List:D:) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::unless(
             nqp::isconcrete($!reified) && nqp::elems($!reified),
             nqp::isconcrete($!todo) && $!todo.reify-at-least(1)
@@ -539,7 +539,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-POS(List:D: int $pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             nqp::isge_i($pos,0),
             nqp::if(
@@ -558,7 +558,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
     multi method EXISTS-POS(List:D: Int:D $pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             nqp::isge_i($pos,0),
             nqp::if(
@@ -584,91 +584,88 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method iterator(List:D:) {
+    my class Todo does Iterator {
+        has int $!i;
+        has $!list;
+        has $!reified;
+        has $!todo;
 
-        # something to iterate over in the future
+        method !SET-SELF(\list) {
+            nqp::stmts(
+              ($!i = -1),
+              ($!list := list),
+              ($!reified := nqp::if(
+                nqp::isconcrete(nqp::getattr(list,List,'$!reified')),
+                # we already have a place to put values in
+                nqp::getattr(list,List,'$!reified'),
+                # create a place here and there to put values in
+                nqp::bindattr(list,List,'$!reified',
+                   nqp::create(IterationBuffer))
+              )),
+              ($!todo := nqp::getattr(list,List,'$!todo')),
+              self
+            )
+        }
+        method new(\list) { nqp::create(self)!SET-SELF(list) }
+
+        method pull-one() is raw {
+            nqp::ifnull(
+              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::if(
+                nqp::isconcrete($!todo),
+                nqp::if(
+                  nqp::islt_i(
+                    $!i,
+                    $!todo.reify-at-least(nqp::add_i($!i,1))
+                  ),
+                  nqp::atpos($!reified,$!i),
+                  self!done
+                ),
+                IterationEnd
+              )
+            )
+        }
+        method !done() is raw {
+            $!todo := nqp::bindattr($!list,List,'$!todo',nqp::null);
+            IterationEnd
+        }
+
+        method push-until-lazy($target) {
+            nqp::if(
+              nqp::isconcrete($!todo),
+              nqp::stmts(                # something to reify still
+                (my int $elems = $!todo.reify-until-lazy),
+                nqp::while(  # doesn't sink
+                  nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                  $target.push(nqp::atpos($!reified,$!i))
+                ),
+                nqp::if(
+                  $!todo.fully-reified,
+                  self!done,
+                  nqp::stmts(
+                    ($!i = nqp::sub_i($elems,1)),
+                    Mu
+                  )
+                )
+              ),
+              nqp::stmts(                # already fully reified
+                ($elems = nqp::elems($!reified)),
+                nqp::while(  # doesn't sink
+                  nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                  $target.push(nqp::atpos($!reified,$!i))
+                ),
+                IterationEnd
+              )
+            )
+        }
+
+        method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
+    }
+    method iterator(List:D:) {
         nqp::if(
           nqp::isconcrete($!todo),
-            class :: does Iterator {
-                has int $!i;
-                has $!list;
-                has $!reified;
-                has $!todo;
-
-                method !SET-SELF(\list) {
-                    nqp::stmts(
-                      ($!i = -1),
-                      ($!list := list),
-                      ($!reified := nqp::if(
-                        nqp::isconcrete(nqp::getattr(list,List,'$!reified')),
-                        # we already have a place to put values in
-                        nqp::getattr(list,List,'$!reified'),
-                        # create a place here and there to put values in
-                        nqp::bindattr(list,List,'$!reified',
-                           nqp::create(IterationBuffer))
-                      )),
-                      ($!todo := nqp::getattr(list,List,'$!todo')),
-                      self
-                    )
-                }
-                method new(\list) { nqp::create(self)!SET-SELF(list) }
-
-                method pull-one() is raw {
-                    nqp::ifnull(
-                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      nqp::if(
-                        nqp::isconcrete($!todo),
-                        nqp::if(
-                          nqp::islt_i(
-                            $!i,
-                            $!todo.reify-at-least(nqp::add_i($!i,1))
-                          ),
-                          nqp::atpos($!reified,$!i),
-                          self!done
-                        ),
-                        IterationEnd
-                      )
-                    )
-                }
-                method !done() is raw {
-                    $!todo := nqp::bindattr($!list,List,'$!todo',nqp::null);
-                    IterationEnd
-                }
-
-                method push-until-lazy($target) {
-                    nqp::if(
-                      nqp::isconcrete($!todo),
-                      nqp::stmts(                # something to reify still
-                        (my int $elems = $!todo.reify-until-lazy),
-                        nqp::while(  # doesn't sink
-                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
-                          $target.push(nqp::atpos($!reified,$!i))
-                        ),
-                        nqp::if(
-                          $!todo.fully-reified,
-                          self!done,
-                          nqp::stmts(
-                            ($!i = nqp::sub_i($elems,1)),
-                            Mu
-                          )
-                        )
-                      ),
-                      nqp::stmts(                # already fully reified
-                        ($elems = nqp::elems($!reified)),
-                        nqp::while(  # doesn't sink
-                          nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
-                          $target.push(nqp::atpos($!reified,$!i))
-                        ),
-                        IterationEnd
-                      )
-                    )
-                }
-
-                method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
-            }.new(self),
-
-          # everything we need is already there
-          nqp::if(
+          Todo.new(self),    # something to iterate over in the future
+          nqp::if(           # everything we need is already there
             nqp::isconcrete($!reified),
             Rakudo::Iterator.ReifiedList(self),
             Rakudo::Iterator.Empty
@@ -758,7 +755,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
-    proto method STORE(|) {*}
+    proto method STORE(List:D: |) {*}
+    multi method STORE(List:D: Iterable:D \iterable, :$initialize!) {
+        if $initialize {
+            my \buffer := nqp::create(IterationBuffer);
+            iterable.iterator.push-all(buffer);
+            nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+        }
+        else {
+            self.STORE(iterable);
+        }
+    }
+
     multi method STORE(List:D: Iterable:D \iterable) {
         # First pass -- scan lhs containers and pick out scalar versus list
         # assignment. This also reifies the RHS values we need, and deconts
@@ -961,7 +969,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             $!todo.reify-until-lazy,
             nqp::if(
               $!todo.fully-reified,
-              nqp::p6bool($!todo := nqp::null),
+              nqp::hllbool(nqp::istrue($!todo := nqp::null)),
               True
             )
           ),
@@ -982,6 +990,62 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
          ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
          !! self.pick( $calculate(self.elems) )
     }
+
+    my class PickN does Iterator {
+        has $!list;
+        has int $!elems;
+        has int $!number;
+
+        method !SET-SELF(\list,$!elems,\number) {
+            $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
+            $!number = number + 1;
+            self
+        }
+        method new(\list,\elems,\number) {
+            nqp::create(self)!SET-SELF(list,elems,number)
+        }
+        method pull-one() {
+            nqp::if(
+              ($!number = nqp::sub_i($!number,1)),
+              nqp::stmts(
+                (my \tmp = nqp::atpos(
+                  $!list,
+                  my int $i = nqp::floor_n(nqp::rand_n($!elems))
+                )),
+                nqp::bindpos(
+                  $!list,
+                  $i,
+                  nqp::atpos($!list,($!elems = nqp::sub_i($!elems,1)))
+                ),
+                tmp
+              ),
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my $list := $!list),
+              (my int $number = $!number),
+              (my int $elems  = $!elems),
+              nqp::while(
+                ($number = nqp::sub_i($number,1)),
+                nqp::stmts(  # doesn't sink
+                  $target.push(nqp::atpos(
+                    $list,
+                    (my int $i = nqp::floor_n(nqp::rand_n($elems)))
+                  )),
+                  nqp::bindpos(
+                    $list,
+                    $i,
+                    nqp::atpos($list,($elems = nqp::sub_i($elems,1)))
+                  )
+                )
+              ),
+              ($!number = $number),
+              ($!elems  = $elems)
+            )
+        }
+    }
     multi method pick(List:D: $number is copy) {
         fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
         my Int $elems = self.elems;
@@ -990,61 +1054,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $number = nqp::istype($number,Whatever) || $number == Inf
           ?? $elems
           !! $number.UInt min $elems;
-        Seq.new(class :: does Iterator {
-            has $!list;
-            has int $!elems;
-            has int $!number;
-
-            method !SET-SELF(\list,$!elems,\number) {
-                $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
-                $!number = number + 1;
-                self
-            }
-            method new(\list,\elems,\number) {
-                nqp::create(self)!SET-SELF(list,elems,number)
-            }
-            method pull-one() {
-                nqp::if(
-                  ($!number = nqp::sub_i($!number,1)),
-                  nqp::stmts(
-                    (my \tmp = nqp::atpos(
-                      $!list,
-                      my int $i = nqp::floor_n(nqp::rand_n($!elems))
-                    )),
-                    nqp::bindpos(
-                      $!list,
-                      $i,
-                      nqp::atpos($!list,($!elems = nqp::sub_i($!elems,1)))
-                    ),
-                    tmp
-                  ),
-                  IterationEnd
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::stmts(
-                  (my $list := $!list),
-                  (my int $number = $!number),
-                  (my int $elems  = $!elems),
-                  nqp::while(
-                    ($number = nqp::sub_i($number,1)),
-                    nqp::stmts(  # doesn't sink
-                      $target.push(nqp::atpos(
-                        $list,
-                        (my int $i = nqp::floor_n(nqp::rand_n($elems)))
-                      )),
-                      nqp::bindpos(
-                        $list,
-                        $i,
-                        nqp::atpos($list,($elems = nqp::sub_i($elems,1)))
-                      )
-                    )
-                  ),
-                  ($!number = $number),
-                  ($!elems  = $elems)
-                )
-            }
-        }.new(self,$elems,$number))
+        Seq.new(PickN.new(self,$elems,$number))
     }
 
     proto method roll(|) is nodal {*}
@@ -1071,51 +1081,54 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           ))
         )
     }
+
+    my class RollN does Iterator {
+        has $!list;
+        has int $!elems;
+        has int $!todo;
+        method !SET-SELF(\list,\todo) {
+            $!list := nqp::getattr(list,List,'$!reified');
+            $!elems = nqp::elems($!list);
+            $!todo  = todo + 1;
+            self
+        }
+        method new(\list,\todo) {
+            nqp::create(self)!SET-SELF(list,todo)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              ($!todo = nqp::sub_i($!todo,1)),
+              nqp::atpos(
+                $!list,
+                nqp::floor_n(nqp::rand_n($!elems))
+              ),
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my int $todo  = $!todo),
+              (my int $elems = $!elems),
+              nqp::while(
+                ($todo = nqp::sub_i($todo,1)),
+                $target.push(nqp::atpos(
+                  $!list,
+                 nqp::floor_n(nqp::rand_n($elems))
+                ))
+              ),
+              ($!todo = $todo)
+            )
+        }
+    }
     multi method roll(List:D: \number) {
         number == Inf
           ?? self.roll(*)
           !! self.is-lazy
             ?? X::Cannot::Lazy.new(:action('.roll from')).throw
-            !! self.elems   # this allocates/reifies
-              ?? Seq.new(class :: does Iterator {
-                     has $!list;
-                     has int $!elems;
-                     has int $!todo;
-                     method !SET-SELF(\list,\todo) {
-                         $!list := nqp::getattr(list,List,'$!reified');
-                         $!elems = nqp::elems($!list);
-                         $!todo  = todo + 1;
-                         self
-                     }
-                     method new(\list,\todo) {
-                         nqp::create(self)!SET-SELF(list,todo)
-                     }
-                     method pull-one() is raw {
-                         nqp::if(
-                           ($!todo = nqp::sub_i($!todo,1)),
-                           nqp::atpos(
-                             $!list,
-                             nqp::floor_n(nqp::rand_n($!elems))
-                           ),
-                           IterationEnd
-                         )
-                     }
-                     method push-all($target --> IterationEnd) {
-                         nqp::stmts(
-                           (my int $todo  = $!todo),
-                           (my int $elems = $!elems),
-                           nqp::while(
-                             ($todo = nqp::sub_i($todo,1)),
-                             $target.push(nqp::atpos(
-                               $!list,
-                               nqp::floor_n(nqp::rand_n($elems))
-                             ))
-                           ),
-                           ($!todo = $todo)
-                         )
-                     }
-                 }.new(self,number.Int))
-              !! Seq.new(Rakudo::Iterator.Empty)
+            !! Seq.new(self.elems   # this allocates/reifies
+                 ?? RollN.new(self,number.Int)
+                 !! Rakudo::Iterator.Empty
+               )
     }
 
     method reverse() is nodal {
@@ -1622,7 +1635,7 @@ multi sub infix:<xx>(&x, Whatever) {
     Seq.new(Rakudo::Iterator.Callable-xx-Whatever(&x))
 }
 multi sub infix:<xx>(&x, Bool:D $b) {
-    $b ?? infix:<xx>(&x, 1) !! EmptySeq
+    $b ?? infix:<xx>(&x, 1) !! Seq.new(Rakudo::Iterator.Empty)
 }
 multi sub infix:<xx>(&x, Int:D $n) {
     my int $todo = $n;
@@ -1652,7 +1665,7 @@ multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))
 }
 multi sub infix:<xx>(Mu \x, Bool:D $b) {
-    $b ?? Seq.new(Rakudo::Iterator.OneValue(x)) !! EmptySeq
+    Seq.new( $b ?? Rakudo::Iterator.OneValue(x) !! Rakudo::Iterator.Empty )
 }
 multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
     Seq.new(Rakudo::Iterator.OneValueTimes(x,$n))

@@ -53,7 +53,7 @@ my class Seq is Cool does Iterable does Sequence {
           self.is-lazy,
           Failure.new(X::Cannot::Lazy.new(action => '.elems')),
           nqp::if(
-            nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
+            nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
             $!iter.count-only,
             self.cache.elems
           )
@@ -62,7 +62,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Numeric() {
         nqp::if(
-          nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
+          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
           $!iter.count-only,
           self.cache.Numeric
         )
@@ -70,7 +70,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Int() {
         nqp::if(
-          nqp::isconcrete($!iter) && nqp::can($!iter,'count-only'),
+          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
           $!iter.count-only,
           self.cache.Int
         )
@@ -78,16 +78,8 @@ my class Seq is Cool does Iterable does Sequence {
 
     method Bool(Seq:D:) {
         nqp::if(
-          nqp::isconcrete($!iter),
-          nqp::if(
-            nqp::can($!iter,'bool-only'),
-            $!iter.bool-only,
-            nqp::if(
-              nqp::can($!iter,'count-only'),
-              ?$!iter.count-only,
-              self.cache.Bool
-            )
-          ),
+          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
+          $!iter.bool-only,
           self.cache.Bool
         )
     }
@@ -162,152 +154,34 @@ my class Seq is Cool does Iterable does Sequence {
     multi method from-loop(&body, &cond, &afterwards) {
         Seq.new(Rakudo::Iterator.CStyleLoop(&body, &cond, &afterwards))
     }
-}
 
-sub GATHER(&block) {
-    Seq.new(class :: does SlippyIterator {
-        has &!resumption;
-        has $!push-target;
-        has int $!wanted;
-
-        my constant PROMPT = nqp::create(Mu);
-
-        method new(&block) {
-            my \iter = nqp::create(self);
-            my int $wanted;
-            my $taken;
-            my $taker := {
-                nqp::stmts(
-                  ($taken := nqp::getpayload(nqp::exception())),
-                  nqp::if(
-                    nqp::istype($taken, Slip),
-                    nqp::stmts(
-                      iter!start-slip-wanted($taken),
-                      ($wanted = nqp::getattr_i(iter, self, '$!wanted'))
-                    ),
-                    nqp::stmts(  # doesn't sink
-                      nqp::getattr(iter, self, '$!push-target').push($taken),
-                      ($wanted = nqp::bindattr_i(iter,self,'$!wanted',
-                        nqp::sub_i(nqp::getattr_i(iter,self,'$!wanted'),1)))
-                    )
-                  ),
-                  nqp::if(
-                    nqp::iseq_i($wanted,0),
-                    nqp::continuationcontrol(0, PROMPT, -> Mu \c {
-                        nqp::bindattr(iter, self, '&!resumption', c);
-                    })
-                  ),
-                  nqp::resume(nqp::exception())
+    multi method ACCEPTS(Seq:D: Iterable:D \iterable --> Bool:D) {
+        nqp::if(
+          (my \liter := self.iterator).is-lazy,
+          False,
+          nqp::if(
+            (my \riter := iterable.iterator).is-lazy,
+            False,
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr((my \left := liter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::eqaddr((my \right := riter.pull-one),IterationEnd)
+                    || nqp::not_i(right.ACCEPTS(left)),
+                  (return False)
                 )
-            }
-            nqp::bindattr(iter, self, '&!resumption', {
-                nqp::stmts(  # doesn't sink
-                  nqp::handle(&block(), 'TAKE', $taker()),
-                  nqp::continuationcontrol(0, PROMPT, -> | {
-                      nqp::bindattr(iter, self, '&!resumption', Callable)
-                  })
-                )
-            });
-            iter
-        }
-
-        method pull-one() is raw {
-            nqp::if(
-              $!slipping && nqp::not_i(
-                nqp::eqaddr((my \result = self.slip-one),IterationEnd)
               ),
-              result,
-              nqp::stmts(
-                nqp::unless(
-                  nqp::isconcrete($!push-target),
-                  ($!push-target := nqp::create(IterationBuffer))
-                ),
-                ($!wanted = 1),
-                nqp::continuationreset(PROMPT, &!resumption),
-                nqp::if(
-                  nqp::isconcrete(&!resumption),
-                  nqp::shift($!push-target),
-                  IterationEnd
-                )
-              )
+              nqp::hllbool(nqp::eqaddr(riter.pull-one,IterationEnd))
             )
-        }
-
-        method push-exactly($target, int $n) {
-            nqp::if(
-              nqp::isgt_i($n,0),
-              nqp::stmts(
-                ($!wanted = $n),
-                ($!push-target := $target),
-                nqp::if(
-                  $!slipping && nqp::not_i(
-                    nqp::eqaddr(self!slip-wanted,IterationEnd)
-                  ),
-                  nqp::stmts(
-                    ($!push-target := nqp::null),
-                    $n
-                  ),
-                  nqp::stmts(
-                    nqp::continuationreset(PROMPT, &!resumption),
-                    ($!push-target := nqp::null),
-                    nqp::if(
-                      nqp::isconcrete(&!resumption),
-                      ($n - $!wanted),
-                      IterationEnd
-                    )
-                  )
-                )
-              )
-            )
-        }
-
-        method !start-slip-wanted(\slip --> Nil) {
-            my $value := self.start-slip(slip);
-            nqp::unless(
-              nqp::eqaddr($value,IterationEnd),
-              nqp::stmts(  # doesn't sink
-                $!push-target.push($value),
-                (my int $i = 0),
-                (my int $n = $!wanted),
-                nqp::while(  # doesn't sink
-                  nqp::islt_i($i = nqp::add_i($i,1),$n),
-                  nqp::if(
-                    nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                    last
-                  ),
-                  $!push-target.push($value)
-                ),
-                ($!wanted = $!wanted - $i)
-              )
-            )
-        }
-
-        method !slip-wanted() {
-            my int $i = -1;
-            my int $n = $!wanted;
-            my $value;
-            nqp::while(
-              nqp::islt_i($i = nqp::add_i($i,1),$n),
-              nqp::stmts(  # doesn't sink
-                nqp::if(
-                  nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                  last
-                ),
-                $!push-target.push($value)
-              )
-            );
-            $!wanted = nqp::sub_i($!wanted,$i);
-            nqp::if(
-              nqp::eqaddr($value,IterationEnd),
-              IterationEnd,
-              $n
-            )
-        }
-    }.new(&block))
+          )
+        )
+    }
 }
+
+sub GATHER(&block) { Seq.new(Rakudo::Iterator.Gather(&block)) }
 
 multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(a,b),
         nqp::if(
@@ -339,11 +213,5 @@ multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
       )
     )
 }
-
-# The Empty Sequence
-my constant EmptySeq = nqp::p6bindattrinvres(
-  nqp::create( class EmptySeq is Seq {
-      method iterator() { nqp::getattr(self,Seq,'$!iter') }
-  }),Seq,'$!iter',Rakudo::Iterator.Empty);
 
 # vim: ft=perl6 expandtab sw=4

@@ -20,7 +20,7 @@ my class Routine { # declared in BOOTSTRAP
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
 
-    method onlystar() { nqp::p6bool($!onlystar) }
+    method onlystar() { nqp::hllbool($!onlystar) }
 
     method candidates() {
         self.is_dispatcher ??
@@ -85,7 +85,7 @@ my class Routine { # declared in BOOTSTRAP
             has $!dispatcher;
             has $!wrapper;
             method restore() {
-                nqp::p6bool($!dispatcher.remove($!wrapper));
+                nqp::hllbool($!dispatcher.remove($!wrapper));
             }
         }
         my role Wrapped {
@@ -134,7 +134,7 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     method yada() {
-        nqp::p6bool(nqp::getattr_i(self, Routine, '$!yada'))
+        nqp::hllbool(nqp::getattr_i(self, Routine, '$!yada'))
     }
 
     method package() { $!package }

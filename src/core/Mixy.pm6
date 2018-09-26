@@ -39,7 +39,7 @@ my role Mixy does Baggy  {
       nqp::if(
         (my $total := self!total-positive),
         self.roll($calculate($total)),
-        EmptySeq
+        Seq.new(Rakudo::Iterator.Empty)
       )
     }
     multi method roll(Mixy:D: $count) {

@@ -61,10 +61,10 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-KEY(Capture:D: Str:D \key ) {
-        nqp::p6bool(nqp::existskey(%!hash, nqp::unbox_s(key)));
+        nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key)));
     }
     multi method EXISTS-KEY(Capture:D: \key ) {
-        nqp::p6bool(nqp::existskey(%!hash, nqp::unbox_s(key.Str)));
+        nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str)));
     }
 
     method list(Capture:D:) {
@@ -113,7 +113,7 @@ my class Capture { # declared in BOOTSTRAP
         }
     }
     multi method Bool(Capture:D:) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::elems(@!list) || nqp::elems(%!hash)
         )
     }
@@ -151,7 +151,7 @@ my class Capture { # declared in BOOTSTRAP
 }
 
 multi sub infix:<eqv>(Capture:D \a, Capture:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b)
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.Capture::list eqv b.Capture::list && a.Capture::hash eqv b.Capture::hash)

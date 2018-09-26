@@ -37,7 +37,6 @@ my $ops := nqp::getcomp('QAST').operations;
 $ops.map_classlib_hll_op('perl6', 'p6bigint', $TYPE_P6OPS, 'p6bigint', [$RT_NUM], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6configposbindfailover', $TYPE_P6OPS, 'p6configposbindfailover', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6store', $TYPE_P6OPS, 'p6store', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('perl6', 'p6reprname', $TYPE_P6OPS, 'p6reprname', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('perl6', 'p6definite', $TYPE_P6OPS, 'p6definite', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     my $il := JAST::InstructionList.new();

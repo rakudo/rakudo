@@ -109,16 +109,17 @@ class Perl6::Metamodel::DefiniteHOW
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($definite_type, $checkee) {
         my $base_type := self.base_type($definite_type);
-        nqp::p6bool(nqp::istype($base_type, $checkee))
+        nqp::hllboolfor(nqp::istype($base_type, $checkee), "perl6")
     }
 
     # Here we check the value itself (when on RHS on smartmatch).
     method accepts_type($definite_type, $checkee) {
         my $base_type := self.base_type($definite_type);
         my $definite  := self.definite($definite_type);
-        nqp::p6bool(
+        nqp::hllboolfor(
             nqp::istype($checkee, $base_type) &&
-            nqp::isconcrete($checkee) == $definite
+            nqp::isconcrete($checkee) == $definite,
+            "perl6"
         )
     }
 }

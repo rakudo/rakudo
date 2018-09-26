@@ -66,14 +66,14 @@ my class IO::CatHandle is IO::Handle {
               nqp::if(
                 nqp::istype(
                   ($_ = .open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                    :bin(nqp::p6bool(nqp::isfalse($!encoding)))),
+                    :bin(nqp::hllbool(nqp::isfalse($!encoding)))),
                   Failure),
                 .throw,
                 ($!active-handle = $_))),
             nqp::if(
               nqp::istype(
                 ($_ := .IO.open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                  :bin(nqp::p6bool(nqp::isfalse($!encoding)))),
+                  :bin(nqp::hllbool(nqp::isfalse($!encoding)))),
                 Failure),
               .throw,
               ($!active-handle = $_))),
@@ -95,29 +95,28 @@ my class IO::CatHandle is IO::Handle {
         $!active-handle)
     }
 
-    method handles(IO::Handle:D: --> Seq:D) {
-        Seq.new: class :: does Iterator {
-            has $!cat;
-            has $!gave-active;
+    my class Handles does Iterator {
+        has $!cat;
+        has $!gave-active;
 
-            method !SET-SELF(\cat) { $!cat := cat; self }
-            method new(\cat) { nqp::create(self)!SET-SELF: cat }
+        method !SET-SELF(\cat) { $!cat := cat; self }
+        method new(\cat) { nqp::create(self)!SET-SELF: cat }
 
-            method pull-one {
-                nqp::if(
-                  $!gave-active,
-                  nqp::if(
-                    nqp::defined(my $h := $!cat.next-handle),
-                    $h,
-                    IterationEnd),
-                  nqp::stmts(
-                    ($!gave-active := True),
-                    nqp::defined(my $ah := nqp::decont(
-                      nqp::getattr($!cat, IO::CatHandle, '$!active-handle')))
-                    ?? $ah !! IterationEnd))
-            }
-        }.new: self
+        method pull-one {
+            nqp::if(
+              $!gave-active,
+              nqp::if(
+                nqp::defined(my $h := $!cat.next-handle),
+                $h,
+                IterationEnd),
+              nqp::stmts(
+                ($!gave-active := True),
+                nqp::defined(my $ah := nqp::decont(
+                  nqp::getattr($!cat, IO::CatHandle, '$!active-handle')))
+                ?? $ah !! IterationEnd))
+        }
     }
+    method handles(IO::Handle:D: --> Seq:D) { Seq.new(Handles.new(self)) }
 
     method chomp (::?CLASS:D:) is rw {
         Proxy.new:
@@ -139,7 +138,7 @@ my class IO::CatHandle is IO::Handle {
           nqp::while(
             nqp::defined(self.next-handle),
             take $!active-handle.words)}),
-        EmptySeq
+        Seq.new(Rakudo::Iterator.Empty)
       )
     }
     multi method words(::?CLASS:D \SELF: $limit, :$close) {
@@ -165,7 +164,7 @@ my class IO::CatHandle is IO::Handle {
           nqp::while(
             nqp::defined(self.next-handle),
             take $!active-handle.lines)}),
-        EmptySeq
+        Seq.new(Rakudo::Iterator.Empty)
       )
     }
     multi method lines(::?CLASS:D \SELF: $limit, :$close) {
@@ -338,7 +337,7 @@ my class IO::CatHandle is IO::Handle {
     }
 
     method eof (::?CLASS:D: --> Bool:D) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::stmts(
             nqp::while(
               $!active-handle
@@ -360,7 +359,7 @@ my class IO::CatHandle is IO::Handle {
     method path (::?CLASS:D:) {
         nqp::if($!active-handle, $!active-handle.path, Nil)
     }
-    method opened(::?CLASS:D: --> Bool:D) { nqp::p6bool($!active-handle) }
+    method opened(::?CLASS:D: --> Bool:D) { nqp::hllbool(nqp::istrue($!active-handle)) }
     method lock(::?CLASS:D: |c) {
         nqp::if($!active-handle, $!active-handle.lock(|c), Nil)
     }

@@ -44,7 +44,7 @@
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
             my \reified := nqp::getattr(self,List,'$!reified');
             my \dims := nqp::dimensions(reified);
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i(one,nqp::atpos_i(dims,0))
                 && nqp::islt_i(two,nqp::atpos_i(dims,1))
                   && nqp::not_i(nqp::isnull(nqp::atpos2d(reified,one,two)))
@@ -53,7 +53,7 @@
         multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
             my \reified := nqp::getattr(self,List,'$!reified');
             my \dims := nqp::dimensions(reified);
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::islt_i(one,nqp::atpos_i(dims,0))
                 && nqp::islt_i(two,nqp::atpos_i(dims,1))
                   && nqp::not_i(nqp::isnull(nqp::atpos2d(reified,one,two)))

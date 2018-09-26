@@ -39,10 +39,6 @@ my class Rakudo::QuantHash {
               )
             )
         }
-        method count-only() {
-            nqp::add_i(nqp::elems($!elems),nqp::elems($!elems))
-        }
-        method bool-only(--> True) { }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
 
@@ -1527,7 +1523,7 @@ my class Rakudo::QuantHash {
                     nqp::unless($less,$less = $left < $right)
                   )
                 ),
-                nqp::p6bool($less)  # all checks worked out so far
+                nqp::hllbool($less)  # all checks worked out so far
               ),
               # nothing in B, all elems in A should be < 0
               Rakudo::QuantHash.MIX-ALL-NEGATIVE($araw)

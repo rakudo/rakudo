@@ -88,9 +88,9 @@ for $*IN.lines -> $line {
         multi method STORE(#type#array:D: Seq:D \seq) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
+              X::Cannot::Lazy.new(
                 :action<store>, :what(self.^name)
-              )),
+              ).throw,
               nqp::stmts(
                 $iterator.push-all(self),
                 self
@@ -250,9 +250,7 @@ for $*IN.lines -> $line {
         multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq) {
             nqp::if(
               seq.is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
-                :action<splice>, :what(self.^name)
-              )),
+              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -352,46 +350,46 @@ for $*IN.lines -> $line {
             )
         }
 
-        method iterator(#type#array:D:) {
-            class :: does Iterator {
-                has int $!i;
-                has $!array;    # Native array we're iterating
+        my class Iterate does Iterator {
+            has int $!i;
+            has $!array;    # Native array we're iterating
 
-                method !SET-SELF(\array) {
-                    $!array := nqp::decont(array);
-                    $!i = -1;
-                    self
-                }
-                method new(\array) { nqp::create(self)!SET-SELF(array) }
+            method !SET-SELF(\array) {
+                $!array := nqp::decont(array);
+                $!i = -1;
+                self
+            }
+            method new(\array) { nqp::create(self)!SET-SELF(array) }
 
-                method pull-one() is raw {
-                    ($!i = $!i + 1) < nqp::elems($!array)
-                      ?? nqp::atposref_#postfix#($!array,$!i)
-                      !! IterationEnd
-                }
-                method skip-one() {
-                    ($!i = $!i + 1) < nqp::elems($!array)
-                }
-                method skip-at-least(int $toskip) {
-                    nqp::unless(
-                      ($!i = $!i + $toskip) < nqp::elems($!array),
-                      nqp::stmts(
-                        ($!i = nqp::elems($!array)),
-                        0
-                      )
-                    )
-                }
-                method push-all($target --> IterationEnd) {
-                    my int $i     = $!i;
-                    my int $elems = nqp::elems($!array);
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      $target.push(nqp::atposref_#postfix#($!array,$i))
-                    );
-                    $!i = $i;
-                }
-            }.new(self)
+            method pull-one() is raw {
+                ($!i = $!i + 1) < nqp::elems($!array)
+                  ?? nqp::atposref_#postfix#($!array,$!i)
+                  !! IterationEnd
+            }
+            method skip-one() {
+                ($!i = $!i + 1) < nqp::elems($!array)
+            }
+            method skip-at-least(int $toskip) {
+                nqp::unless(
+                  ($!i = $!i + $toskip) < nqp::elems($!array),
+                  nqp::stmts(
+                    ($!i = nqp::elems($!array)),
+                    0
+                  )
+                )
+            }
+            method push-all($target --> IterationEnd) {
+                my int $i     = $!i;
+                my int $elems = nqp::elems($!array);
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  $target.push(nqp::atposref_#postfix#($!array,$i))
+                );
+                $!i = $i;
+            }
         }
+        method iterator(#type#array:D:) { Iterate.new(self) }
+
         method reverse(#type#array:D:) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
@@ -428,6 +426,32 @@ for $*IN.lines -> $line {
         multi method sort(#type#array:D:) {
             Rakudo::Sorting.MERGESORT-#type#(nqp::clone(self))
         }
+
+        multi method ACCEPTS(#type#array:D: #type#array:D \other) {
+            nqp::hllbool(
+              nqp::unless(
+                nqp::eqaddr(self,other),
+                nqp::if(
+                  nqp::iseq_i(
+                    (my int $elems = nqp::elems(self)),
+                    nqp::elems(other)
+                  ),
+                  nqp::stmts(
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::iseq_#postfix#(
+                             nqp::atpos_#postfix#(self,$i),
+                             nqp::atpos_#postfix#(other,$i)
+                           ),
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)
+                  )
+                )
+              )
+            )
+        }
         proto method grab(|) {*}
         multi method grab(#type#array:D:) {
             nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
@@ -436,41 +460,43 @@ for $*IN.lines -> $line {
             self.grab($calculate(nqp::elems(self)))
         }
         multi method grab(#type#array:D: Whatever) { self.grab(Inf) }
-        multi method grab(#type#array:D: $count) {
+
+        my class GrabN does Iterator {
+            has $!array;
+            has int $!count;
+
+            method !SET-SELF(\array,\count) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems(array)),
+                  ($!array := array),
+                  nqp::if(
+                    count == Inf,
+                    ($!count = $elems),
+                    nqp::if(
+                      nqp::isgt_i(($!count = count.Int),$elems),
+                      ($!count = $elems)
+                    )
+                  ),
+                  self
+                )
+
+            }
+            method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
+            method pull-one() {
+                nqp::if(
+                  $!count && nqp::elems($!array),
+                  nqp::stmts(
+                    ($!count = nqp::sub_i($!count,1)),
+                    $!array.GRAB_ONE
+                  ),
+                  IterationEnd
+                )
+            }
+        }
+        multi method grab(#type#array:D: \count) {
             Seq.new(nqp::if(
               nqp::elems(self),
-              class :: does Iterator {
-                  has $!array;
-                  has int $!count;
-
-                  method !SET-SELF(\array,\count) {
-                      nqp::stmts(
-                        (my int $elems = nqp::elems(array)),
-                        ($!array := array),
-                        nqp::if(
-                          count == Inf,
-                          ($!count = $elems),
-                          nqp::if(
-                            nqp::isgt_i(($!count = count.Int),$elems),
-                            ($!count = $elems)
-                          )
-                        ),
-                        self
-                      )
-
-                  }
-                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
-                  method pull-one() {
-                      nqp::if(
-                        $!count && nqp::elems($!array),
-                        nqp::stmts(
-                          ($!count = nqp::sub_i($!count,1)),
-                          $!array.GRAB_ONE
-                        ),
-                        IterationEnd
-                      )
-                  }
-              }.new(self,$count),
+              GrabN.new(self,count),
               Rakudo::Iterator.Empty
             ))
         }

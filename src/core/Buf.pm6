@@ -76,12 +76,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method EXISTS-POS(Blob:D: int \pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
     }
     multi method EXISTS-POS(Blob:D: Int:D \pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
     }
@@ -101,7 +101,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
 
-    multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }
+    multi method Bool(Blob:D:) { nqp::hllbool(nqp::elems(self)) }
     method Capture(Blob:D:) { self.List.Capture }
 
     multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
@@ -144,17 +144,16 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?endif
 
-    multi method list(Blob:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Blobby {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-                  nqp::atpos_i($!blob,$!i),
-                  IterationEnd
-                )
-            }
-        }.new(self)).cache
+    my class BlobAsList does Rakudo::Iterator::Blobby {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+              nqp::atpos_i($!blob,$!i),
+              IterationEnd
+            )
+        }
     }
+    multi method list(Blob:D:) { Seq.new(BlobAsList.new(self)).cache }
 
     multi method gist(Blob:D:) {
         self.^name ~ ':0x<' ~ self.map( -> \el {
@@ -239,11 +238,36 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $length = $Length;
         subbuf-length(self, $from, $length, nqp::elems(self))
     }
+    multi method subbuf(Blob:D: Int:D $From, &End) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = $From;
+        my int $end    = End(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $end, $elems)
+    }
     multi method subbuf(Blob:D: &From, Int:D $Length) {
         my int $elems  = nqp::elems(self);
         my int $from   = From(nqp::box_i($elems,Int));
         my int $length = $Length;
         subbuf-length(self, $from, $length, $elems)
+    }
+    multi method subbuf(Blob:D: &From, &End) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = From(nqp::box_i($elems,Int));
+        my int $end    = End(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $end, $elems)
+    }
+    multi method subbuf(Blob:D: \from, Whatever) {
+        self.subbuf(from)
+    }
+    multi method subbuf(Blob:D: \from, Numeric \length) {
+        length == Inf ?? self.subbuf(from) !! self.subbuf(from,length.Int)
+    }
+    multi method subbuf(Blob:D: \from, Any:U) {
+        Rakudo::Deprecations.DEPRECATED(
+          "{self.^name}.subbuf({from}) or {self.^name}.subbuf({from},*)",
+          :what("{self.^name}.subbuf({from},Any)")
+        );
+        self.subbuf(from)
     }
 
     method reverse(Blob:D:) {
@@ -421,6 +445,29 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           expected  => T,
         ))
     }
+    multi method ACCEPTS(Blob:D: Blob:D \Other) {
+        nqp::hllbool(
+          nqp::unless(
+            nqp::eqaddr(self,my \other := nqp::decont(Other)),
+            nqp::if(
+              nqp::iseq_i(
+                (my int $elems = nqp::elems(self)),
+                nqp::elems(other)
+              ),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                    && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i(other,$i)
+                       ),
+                  nqp::null
+                ),
+                nqp::iseq_i($i,$elems)
+              )
+            )
+          )
+        )
+    }
 }
 
 constant blob8 = Blob[uint8];
@@ -444,8 +491,8 @@ my class utf16 does Blob[uint16] is repr('VMArray') {
     multi method decode(utf16:D: $encoding = 'utf-16') {
         my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
         die "Can not decode a utf-16 buffer as if it were $encoding"
-            unless $enc eq 'utf16';
-        nqp::p6box_s(nqp::decode(self, 'utf16'))
+            unless $enc eq 'utf16' || $enc eq 'utf16le' || $enc eq 'utf16be';
+        nqp::p6box_s(nqp::decode(self, $enc))
     }
     method encoding() { 'utf-16' }
     multi method Str(utf16:D:) { self.decode }
@@ -733,29 +780,29 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
     )
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
 multi sub infix:<eq> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::eqaddr(a,b) || a.SAME(b))
+    nqp::hllbool(nqp::eqaddr(a,b) || a.SAME(b))
 }
 multi sub infix:<ne> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
+    nqp::hllbool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
 }
 multi sub infix:<lt> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),-1))
+    nqp::hllbool(nqp::iseq_i(a.COMPARE(b),-1))
 }
 multi sub infix:<gt> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),1))
+    nqp::hllbool(nqp::iseq_i(a.COMPARE(b),1))
 }
 multi sub infix:<le> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::isne_i(a.COMPARE(b),1))
+    nqp::hllbool(nqp::isne_i(a.COMPARE(b),1))
 }
 multi sub infix:<ge> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::isne_i(a.COMPARE(b),-1))
+    nqp::hllbool(nqp::isne_i(a.COMPARE(b),-1))
 }
 
 proto sub subbuf-rw($, $?, $?, *%) {*}

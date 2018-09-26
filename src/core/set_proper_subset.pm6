@@ -86,7 +86,7 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
                   nqp::unless($less,$less = left < right)
                 )
               ),
-              nqp::p6bool(      # ok so far, must have lower total or fewer keys
+              nqp::hllbool(      # ok so far, must have lower total or fewer keys
                 $less || nqp::islt_i(nqp::elems(araw),nqp::elems(braw))
               )
             ),
@@ -94,8 +94,8 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
           ),
           False                 # keys on left, no keys on right
         ),
-        nqp::p6bool(            # no keys on left
-          (my \raw := $b.RAW-HASH) && nqp::elems(raw)
+        nqp::hllbool(            # no keys on left
+          (my \raw := $b.RAW-HASH) ?? nqp::elems(raw) !! 0
         )
       )
     )

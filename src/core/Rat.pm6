@@ -38,15 +38,25 @@ my class FatRat is Cool does Rational[Int, Int] {
 
 sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
     nqp::stmts(
-      (my $gcd := de ?? nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int) !! 1),
-      (my $numerator   := nqp::div_I(nqp::decont(nu), $gcd, Int)),
-      (my $denominator := nqp::div_I(nqp::decont(de), $gcd, Int)),
+      (my $numerator),
+      (my $denominator),
       nqp::if(
-        nqp::islt_I($denominator, 0),
+        de,
         nqp::stmts(
-          ($numerator   := nqp::neg_I($numerator, Int)),
-          ($denominator := nqp::neg_I($denominator, Int)))),
-      RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $numerator, $denominator, t1, t2)
+          (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
+          ($numerator   := nqp::div_I(nqp::decont(nu), $gcd, Int)),
+          ($denominator := nqp::div_I(nqp::decont(de), $gcd, Int)),
+          nqp::if(
+            nqp::islt_I($denominator, 0),
+            nqp::stmts(
+              ($numerator   := nqp::neg_I($numerator, Int)),
+              ($denominator := nqp::neg_I($denominator, Int))))),
+        nqp::stmts(
+          ($numerator   := nqp::box_i(
+            nqp::isgt_I(nqp::decont(nu), 0) ?? 1 !! nu ?? -1 !! 0, Int)),
+          ($denominator := nqp::decont(de)))),
+      RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE
+        $numerator, $denominator, t1, t2)
 }
 
 sub RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(\nu, \de, \t1, \t2) {
@@ -206,24 +216,27 @@ multi sub infix:<**>(Rational:D \a, Int:D \b) {
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {
-    nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
-        ?? a.Num == b.Num
-        !! a.numerator * b.denominator == b.numerator * a.denominator
+    nqp::hllbool(
+      nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
+        ?? nqp::iseq_I(a.numerator, b.numerator)
+          && nqp::istrue(a.numerator) # NaN != NaN
+        !! nqp::iseq_I(
+            nqp::mul_I(a.numerator, b.denominator, Int),
+            nqp::mul_I(b.numerator, a.denominator, Int)))
 }
 multi sub infix:<==>(Rational:D \a, Int:D \b) {
-    a.numerator == b && a.denominator == 1
+    nqp::hllbool(
+      nqp::iseq_I(a.numerator, nqp::decont(b)) && nqp::iseq_I(a.denominator, 1))
 }
 multi sub infix:<==>(Int:D \a, Rational:D \b) {
-    a == b.numerator && b.denominator == 1;
+    nqp::hllbool(
+      nqp::iseq_I(nqp::decont(a), b.numerator) && nqp::iseq_I(b.denominator, 1))
 }
 multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
-    # Check whether we have 0-denominator rationals as well. Those can
-    # be `==` but have different numerator values and so should not `===` True.
-    # Since we're already checking equality first, we only need to check the
-    # zeroeness of the denominator of just one parameter
-    a.WHAT =:= b.WHAT
-        && (a == b || (a.isNaN && b.isNaN))
-        && (a.denominator.Bool || a.numerator == b.numerator)
+    nqp::hllbool(
+      nqp::eqaddr(a.WHAT, b.WHAT)
+        && nqp::iseq_I(a.numerator,   b.numerator)
+        && nqp::iseq_I(a.denominator, b.denominator))
 }
 
 multi sub infix:«<»(Rational:D \a, Rational:D \b) {

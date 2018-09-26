@@ -26,7 +26,7 @@ multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
             iter && nqp::existskey(braw,nqp::iterkey_s(nqp::shift(iter))),
             nqp::null
           ),
-          nqp::p6bool(nqp::isfalse(iter))
+          nqp::hllbool(nqp::isfalse(iter))
         ),
         False
       ),

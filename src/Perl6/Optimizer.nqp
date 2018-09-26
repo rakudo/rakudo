@@ -1059,41 +1059,52 @@ class Perl6::Optimizer {
         # No way we can make this faster
         []
     }
+
+    # A hash for range operators mapping to a block that returns an array
+    # with [first, last, step] if it is possible to optimize, or [] if not.
     my %range_bounds := nqp::hash(
         '&infix:<..>', -> $op {
-            my @lb := get_bound($op[0], 0);
-            my @ub := get_bound($op[1], 0);
-            @lb && @ub ?? [@lb[0], @ub[0]] !! []
+            my @lt := get_bound($op[0],  0);
+            my @rt := get_bound($op[1],  0);
+            @lt && @rt ?? [@lt[0], @rt[0], 1] !! []
         },
         '&infix:<..^>', -> $op {
-            my @lb := get_bound($op[0], 0);
-            my @ub := get_bound($op[1],-1);
-            @lb && @ub ?? [@lb[0], @ub[0]] !! []
+            my @lt  := get_bound($op[0],  0);
+            my @rt := get_bound($op[1], -1);
+            @lt && @rt ?? [@lt[0], @rt[0], 1] !! []
         },
         '&infix:<^..>', -> $op {
-            my @lb := get_bound($op[0], 1);
-            my @ub := get_bound($op[1], 0);
-            @lb && @ub ?? [@lb[0], @ub[0]] !! []
+            my @lt  := get_bound($op[0],  1);
+            my @rt := get_bound($op[1],  0);
+            @lt && @rt ?? [@lt[0], @rt[0], 1] !! []
         },
         '&infix:<^..^>', -> $op {
-            my @lb := get_bound($op[0], 1);
-            my @ub := get_bound($op[1],-1);
-            @lb && @ub ?? [@lb[0], @ub[0]] !! []
+            my @lt  := get_bound($op[0],  1);
+            my @rt := get_bound($op[1], -1);
+            @lt && @rt ?? [@lt[0], @rt[0], 1] !! []
         },
         '&prefix:<^>', -> $op {
-            my @ub := get_bound($op[0],-1);
-            @ub ?? [QAST::IVal.new( :value(0) ), @ub[0]] !! []
+            (my @rt := get_bound($op[0], -1))
+              ?? [QAST::IVal.new( :value(0) ), @rt[0], 1]
+              !! []
         },
         '&infix:<...>', -> $op {
-            my @lb := get_bound($op[0], 0);
-            my @ub := get_bound($op[1], 0);
-            @lb && @ub
-              ?? nqp::istype(@lb[0],QAST::IVal)
-                && nqp::istype(@ub[0],QAST::IVal)
-                && @lb[0].value > @ub[0].value
-                ?? [@ub[0],@lb[0],1]  # 10...1 -> (1..10).reverse
-                !! [@lb[0],@ub[0]]    # 1...10 ->  1..10
-              !! []
+            my @result;
+            if get_bound($op[0], 0) -> @lt {
+                if nqp::istype(@lt[0],QAST::IVal) {
+                    if get_bound($op[1], 0) -> @rt {
+                        if nqp::istype(@rt[0],QAST::IVal) {
+                            @result.push(@lt[0]);
+                            @result.push(@rt[0]);
+                            @result.push(@lt[0].value > @rt[0].value ?? -1 !! 1)
+                        }
+                    }
+                }
+            }
+            else {
+                # attempt to handle 1,3...11 soon
+            }
+            @result
         }
     );
 
@@ -2258,6 +2269,66 @@ class Perl6::Optimizer {
         return $op;
     }
 
+    method generate_optimized_for($op,$callee,$start,$end,$step) {
+        my $it_var     := QAST::Node.unique('range_it_');
+        my $last_var   := QAST::Node.unique('range_last_');
+        my $callee_var := QAST::Node.unique('range_callee_');
+
+        $op.op('stmts');
+        $op.push(QAST::Stmts.new(
+
+# my int $it := $start - $step
+          QAST::Op.new( :op<bind>,
+            QAST::Var.new(
+              :name($it_var), :scope<local>, :decl<var>, :returns(int)
+            ),
+            QAST::Op.new( :op<sub_i>, $start, QAST::IVal.new( :value($step)))
+          ),
+
+# my int $last := $end
+          QAST::Op.new( :op<bind>,
+            QAST::Var.new(
+              :name($last_var), :scope<local>, :decl<var>, :returns(int)
+            ),
+            $end
+          ),
+
+# my $callee := { };
+          QAST::Op.new( :op<bind>,
+            QAST::Var.new(:name($callee_var), :scope<local>, :decl<var>),
+            $callee
+          ),
+
+# nqp::while(
+#   $step < 0 ?? nqp::isge_i !! nqp::isle_i(
+#     nqp::bind($it, nqp::add_i($it,$step)),
+#     $last_var
+#   )
+          QAST::Op.new( :op<while>,
+            QAST::Op.new(
+              op => $step < 0 ?? "isge_i" !! "isle_i",
+              QAST::Op.new( :op<bind>,
+                QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
+                QAST::Op.new( :op<add_i>,
+                  QAST::Var.new(:name($it_var),:scope<local>,:returns(int)),
+                  QAST::IVal.new( :value($step) )
+                )
+              ),
+              QAST::Var.new(:name($last_var), :scope<local>, :returns(int))
+            ),
+
+#   nqp::call($callee, $it)
+            QAST::Op.new( :op<call>,
+              QAST::Var.new(:name($callee_var), :scope<local> ),
+              QAST::Var.new(:name($it_var), :scope<local>, :returns(int))
+            )
+          ),
+
+# return Nil
+          QAST::WVal.new( :value($!symbols.Nil) )
+        ));
+    }
+
     method optimize_for_range($op, $callee, $c2, :$reverse) {
         my $code    := $callee.ann('code_object');
         my $count   := $code.count;
@@ -2265,68 +2336,17 @@ class Perl6::Optimizer {
         my $phasers := nqp::istype($code, $block)
           ?? nqp::getattr($code, $block, '$!phasers')
           !! nqp::null();
-        if $count == 1 && nqp::isnull($phasers) && %range_bounds{$c2.name}($c2) -> @bounds {
-            $reverse := @bounds[2] if $c2.name eq '&infix:<...>';
-
-            my $it_var     := QAST::Node.unique('range_it_');
-            my $last_var   := QAST::Node.unique('range_last_');
-            my $callee_var := QAST::Node.unique('range_callee_');
+        if $count == 1
+          && nqp::isnull($phasers)
+          && %range_bounds{$c2.name}($c2) -> @fls {
+            if $reverse {
+                my $tmp := @fls[0];
+                @fls[0] := @fls[1];
+                @fls[1] := $tmp;
+                @fls[2] := -@fls[2];
+            }
             $op.shift while $op.list;
-            $op.op('stmts');
-            $op.push(QAST::Stmts.new(
-
-# my int $it := $reverse ?? @bounds[1] + 1 !! @bounds[0] - 1
-              QAST::Op.new( :op<bind>,
-                QAST::Var.new(
-                  :name($it_var), :scope<local>, :decl<var>, :returns(int)
-                ),
-                QAST::Op.new( (op => $reverse ?? "add_i" !! "sub_i"),
-                  @bounds[0 + $reverse],
-                  QAST::IVal.new( :value(1))
-                )
-              ),
-
-# my int $last := @bounds[$reverse ?? 0 !! 1]
-              QAST::Op.new( :op<bind>,
-                QAST::Var.new(
-                  :name($last_var), :scope<local>, :decl<var>, :returns(int)
-                ),
-                @bounds[1 - $reverse]
-              ),
-
-# my $callee := { };
-              QAST::Op.new( :op<bind>,
-                QAST::Var.new(:name($callee_var), :scope<local>, :decl<var>),
-                $callee
-              ),
-
-# nqp::while(
-#   $reverse ?? nqp::isge_i !! nqp::isle_i(
-#     nqp::bind($it, ($reverse ?? nqp::sub_i !! nqp::add_i)($it,1)),
-#     $max
-#   )
-              QAST::Op.new( :op<while>,
-                QAST::Op.new( (op => $reverse ?? "isge_i" !! "isle_i"),
-                  QAST::Op.new( :op<bind>,
-                    QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
-                    QAST::Op.new( (op => $reverse ?? "sub_i" !! "add_i"),
-                      QAST::Var.new(:name($it_var),:scope<local>,:returns(int)),
-                      QAST::IVal.new( :value(1) )
-                    )
-                  ),
-                  QAST::Var.new(:name($last_var), :scope<local>, :returns(int))
-                ),
-
-#   nqp::call($callee, $it)
-                QAST::Op.new( :op<call>,
-                  QAST::Var.new(:name($callee_var), :scope<local> ),
-                  QAST::Var.new(:name($it_var), :scope<local>, :returns(int))
-                )
-              ),
-
-# return Nil
-              QAST::WVal.new( :value($!symbols.Nil) )
-            ));
+            self.generate_optimized_for($op,$callee,@fls[0],@fls[1],@fls[2])
         }
     }
 

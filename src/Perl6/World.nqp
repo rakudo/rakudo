@@ -3307,7 +3307,7 @@ class Perl6::World is HLL::World {
                                 $if.push(
                                   QAST::Op.new(
                                     :op( $sigil eq '$' || $sigil eq '&'
-                                           ?? 'assign' !! 'p6store'
+                                           ?? 'p6assign' !! 'p6store'
                                     ),
                                     $getattr,
                                     QAST::Var.new( :name($tmp), :scope<local> )

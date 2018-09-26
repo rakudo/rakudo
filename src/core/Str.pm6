@@ -386,7 +386,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   (my int $chars = $!chars),
                   nqp::while(
                     nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
+#?if !js
                     $target.push(nqp::substr($str,$pos,1))
+#?endif
+#?if js
+                    $target.push(nqp::substrnfg($str,$pos,1))
+#?endif
                   ),
                   ($!pos = $pos)
                 )

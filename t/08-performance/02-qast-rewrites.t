@@ -81,7 +81,7 @@ subtest '.dispatch:<.=> gets rewritten to simple ops' => {
 
 subtest 'for {}' => {
     my @fors = ｢for ^10 {}｣, ｢for 1..10 {}｣, ｢for 1..^10 {}｣, ｢for 1^..10 {}｣, ｢for 1^..^10 {}｣,
-        ｢for 1...10 {}｣, ｢for 1, 2...10 {}｣,;
+        ｢for 1...10 {}｣, ｢for 1, 2...10 {}｣, ｢for ^10 .reverse {}｣,;
     plan @fors + 2;
 
     for @fors {

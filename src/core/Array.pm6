@@ -507,23 +507,27 @@ my class Array { # declared in BOOTSTRAP
 
     # because this is a very hot path, we copied the code from the int candidate
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
-        my \reified := nqp::getattr(self,List,'$!reified');
         my \assignee_decont := nqp::decont(assignee);
-        my int $ipos = $pos;
-        nqp::isge_i($ipos, 0) && nqp::isconcrete(reified) &&
+        nqp::isge_i($pos, 0) && nqp::isconcrete(nqp::getattr(self,List,'$!reified')) &&
                   nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
-            ?? nqp::stmts(
-                 (nqp::p6assign(
-                   nqp::ifnull(
-                     nqp::atpos(reified, $ipos),
-                     nqp::bindpos(reified, $ipos,
-                       nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
-                   assignee_decont)),
-                 assignee_decont)
+            ?? self!ASSIGN_POS_FAST_PATH($pos, assignee_decont)
             !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
     }
 
-    method !ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) {
+    method !ASSIGN_POS_FAST_PATH(Array:D: Int:D $pos, Mu \assignee_decont) is raw {
+        my \reified := nqp::getattr(self,List,'$!reified');
+        my int $ipos = $pos;
+        nqp::stmts(
+          nqp::p6assign(
+            nqp::ifnull(
+              nqp::atpos(reified, $ipos),
+              nqp::bindpos(reified, $ipos,
+                nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+            assignee_decont),
+          assignee_decont)
+    }
+
+    method !ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
           self!INDEX_OOR($pos),

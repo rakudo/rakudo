@@ -1036,10 +1036,12 @@ class Perl6::Optimizer {
 
         # my constant \foo = 0
         elsif nqp::istype($node, QAST::WVal) {
-            try {  # don't know how to test for Ints here, so let coercing do it
-                my int $value := $node.value + $extra;
-                if $value > -2147483648 && $value < 2147483647 {
-                    return [QAST::IVal.new( :value($value) )];
+            try {
+                if nqp::istype($node.value, $!symbols.find_in_setting("Int")) {
+                    my int $value := $node.value + $extra;
+                    if $value > -2147483648 && $value < 2147483647 {
+                        return [QAST::IVal.new( :value($value) )];
+                    }
                 }
             }
         }

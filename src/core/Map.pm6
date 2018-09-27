@@ -55,7 +55,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         if nqp::elems($!storage) {
             my \hash       := nqp::create(Hash);
             my \storage    := nqp::bindattr(hash,Map,'$!storage',nqp::hash);
-            my \descriptor := nqp::getcurhllsym('default_cont_spec');
+            my \descriptor := BEGIN nqp::getcurhllsym('default_cont_spec');
             my \iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
             nqp::while(
               iter,

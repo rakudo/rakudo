@@ -1104,8 +1104,8 @@ class Perl6::Optimizer {
             elsif nqp::istype($op[0],QAST::Op)
               && $op[0].name eq '&infix:<,>'          # left side is a list
               && nqp::elems(my $list := $op[0]) == 2  # with 2 elements
-              && nqp::istype($list[0][2],QAST::IVal)  # first one is an int
-              && nqp::istype($list[1][2],QAST::IVal)  # second one is an int
+              && nqp::istype($list[0],QAST::Want) && nqp::istype($list[0][2],QAST::IVal) # 1st = Int
+              && nqp::istype($list[1],QAST::Want) && nqp::istype($list[1][2],QAST::IVal) # 2nd = int
               && get_bound($op[1], 0) -> @rt {        # right side is ok
                 if nqp::istype(@rt[0],QAST::IVal) {   # and it is an Int
                     @result.push($list[0][2]);

@@ -4,38 +4,24 @@ multi sub circumfix:<[ ]>() {
     nqp::create(Array)
 }
 multi sub circumfix:<[ ]>(Iterable:D \iterable) {
-    my $reified;
     nqp::if(
       nqp::iscont(iterable),
       nqp::p6bindattrinvres(
         nqp::create(Array),List,'$!reified',
         nqp::stmts(
-          nqp::push(
-            ($reified := nqp::create(IterationBuffer)),
-            nqp::assign(nqp::p6scalarfromdesc(nqp::null),iterable)
+          (my \scalar := nqp::create(Scalar)),
+          nqp::bindattr(
+            scalar, Scalar, '$!descriptor',
+            BEGIN nqp::getcurhllsym('default_cont_spec')
           ),
-          $reified
+          nqp::bindattr(scalar,Scalar,'$!value',nqp::decont(iterable)),
+          nqp::bindpos((my \reified := nqp::create(IterationBuffer)),0,scalar),
+          reified
         )
       ),
       nqp::if(
-        nqp::eqaddr(iterable.WHAT,List),
-        nqp::if(
-          iterable.is-lazy,
-          Array.from-iterator(iterable.iterator),
-          nqp::stmts(     # immutable List
-            (my int $elems = iterable.elems),  # reifies
-            (my $params  := nqp::getattr(iterable,List,'$!reified')),
-            (my int $i    = -1),
-            ($reified := nqp::setelems(nqp::create(IterationBuffer),$elems)),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos($reified,$i,nqp::assign(
-                nqp::p6scalarfromdesc(nqp::null),nqp::atpos($params,$i))
-              )
-            ),
-            nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',$reified)
-          ),
-        ),
+        nqp::istype(iterable,List) && nqp::isfalse(iterable.is-lazy),
+        Array.from-list(iterable),
         Array.from-iterator(iterable.iterator)
       )
     )

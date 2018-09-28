@@ -30,13 +30,14 @@ multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
     nqp::p6bindattrinvres(
       nqp::create(Array),List,'$!reified',
       nqp::stmts(
-        (my \scalar := nqp::create(Scalar)),
-        nqp::bindattr(
-          scalar, Scalar, '$!descriptor',
-          BEGIN nqp::getcurhllsym('default_cont_spec')
+        nqp::bindpos(
+          (my \reified := nqp::create(IterationBuffer)),
+          0,
+          nqp::p6scalarwithvalue(
+            (BEGIN nqp::getcurhllsym('default_cont_spec')),
+            nqp::decont(x)
+          )
         ),
-        nqp::bindattr(scalar,Scalar,'$!value',nqp::decont(x)),
-        nqp::bindpos((my \reified := nqp::create(IterationBuffer)),0,scalar),
         reified
       )
     )

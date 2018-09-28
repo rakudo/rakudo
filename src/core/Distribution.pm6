@@ -78,7 +78,7 @@ role Distribution {
 role Distribution::Locally does Distribution {
     has IO::Path $.prefix;
     method content($address) {
-        my $handle = IO::Handle.new: path => IO::Path.new($address, :CWD($!prefix // $*CWD));
+        my $handle = IO::Handle.new: path => IO::Path.new($address, :CWD($!prefix.absolute // $*CWD.absolute));
         $handle // $handle.throw;
     }
 }

@@ -458,7 +458,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     # An equivalent of self.candidates($spec).head that caches the best match
     method !matching-dist(CompUnit::DependencySpecification $spec) {
-        return %!seen{~$spec} if %!seen{~$spec}:exists;
+        return $_ with %!seen{~$spec};
 
         with self.candidates($spec).head {
             $!lock.protect: { return %!seen{~$spec} //= $_ }
@@ -563,7 +563,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 unless $source-file-name;
             my $loader = $.prefix.add('sources').add($source-file-name);
             my $id     = $loader.basename;
-            return %!loaded{$id} if %!loaded{$id}:exists;
+            return $_ with %!loaded{$id};
 
             my $*RESOURCES  = Distribution::Resources.new(:repo(self), :dist-id(.dist-id));
             my $repo-prefix = self!repo-prefix;

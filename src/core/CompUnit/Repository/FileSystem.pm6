@@ -9,7 +9,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     my @extensions = <pm6 pm>;
 
     method !matching-dist(CompUnit::DependencySpecification $spec) {
-        return %!seen{~$spec} if %!seen{~$spec}:exists;
+        return $_ with %!seen{~$spec};
 
         with self.candidates($spec).head {
             return %!seen{~$spec} //= $_;
@@ -66,7 +66,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         --> CompUnit:D)
     {
-        return %!loaded{~$spec} if %!loaded{~$spec}:exists;
+        return $_ with %!loaded{~$spec};
 
         with self!matching-dist($spec) {
             my $name = $spec.short-name;
@@ -152,7 +152,6 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         return Empty unless $spec.from eq 'Perl6';
 
         my $distribution := self!distribution;
-
         return Empty unless ($distribution.meta<provides> && $distribution.meta<provides>{$spec.short-name})
                         or  ($distribution.meta<files>    && $distribution.meta<files>{$spec.short-name});
 

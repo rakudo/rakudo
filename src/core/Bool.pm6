@@ -19,8 +19,8 @@ BEGIN {
     Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:D: Mu \topic ) { self });
     Bool.^add_multi_method('perl', my multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' });
 
-    Bool.^add_multi_method('pick', my multi method pick(Bool:U:)    { nqp::p6bool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
-    Bool.^add_multi_method('roll', my multi method roll(Bool:U:)    { nqp::p6bool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
+    Bool.^add_multi_method('pick', my multi method pick(Bool:U:)    { nqp::hllbool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
+    Bool.^add_multi_method('roll', my multi method roll(Bool:U:)    { nqp::hllbool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
 }
 BEGIN {
     Bool.^add_multi_method('Bool',    my multi method Bool(Bool:U:)    { Bool::False });
@@ -74,12 +74,15 @@ multi sub prefix:<so>(Bool:U \a) { Bool::False }
 multi sub prefix:<so>(Mu \a) { a.Bool }
 
 proto sub prefix:<!>(Mu, *%) is pure {*}
-multi sub prefix:<!>(Bool \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
-multi sub prefix:<!>(Mu \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
+multi sub prefix:<!>(Bool \a) { nqp::hllbool(nqp::not_i(nqp::istrue(a))) }
+multi sub prefix:<!>(Mu \a) { nqp::hllbool(nqp::not_i(nqp::istrue(a))) }
+multi sub prefix:<!>(Mu \a, :$exists!) {
+    die "Precedence issue with ! and :exists, perhaps you meant :!exists?"
+}
 
 proto sub prefix:<not>(Mu, *%) is pure {*}
-multi sub prefix:<not>(Bool \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
-multi sub prefix:<not>(Mu \a) { nqp::p6bool(nqp::not_i(nqp::istrue(a))) }
+multi sub prefix:<not>(Bool \a) { nqp::hllbool(nqp::not_i(nqp::istrue(a))) }
+multi sub prefix:<not>(Mu \a) { nqp::hllbool(nqp::not_i(nqp::istrue(a))) }
 
 proto sub prefix:<?^>(Mu, *%) is pure {*}
 multi sub prefix:<?^>(Mu \a) { not a }
@@ -94,7 +97,7 @@ multi sub infix:<?|>(Mu \a, Mu \b)        { a.Bool || b.Bool }
 
 proto sub infix:<?^>(Mu $?, Mu $?, *%) is pure {*}
 multi sub infix:<?^>(Mu $x = Bool::False) { $x.Bool }
-multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::p6bool(nqp::ifnull(nqp::xor(a.Bool,b.Bool), 0)) }
+multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::hllbool(nqp::ifnull(nqp::xor(a.Bool,b.Bool), 0)) }
 
 # These operators are normally handled as macros in the compiler;
 # we define them here for use as arguments to functions.

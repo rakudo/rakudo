@@ -67,7 +67,7 @@ my class IO::Spec::Unix is IO::Spec {
     method basename(\path) {
         my str $str = nqp::unbox_s(path);
         my int $index = nqp::rindex($str,'/');
-        nqp::p6bool($index == -1)
+        nqp::hllbool($index == -1)
           ?? path
           !! substr(path,nqp::box_i($index + 1,Int) );
     }
@@ -75,7 +75,7 @@ my class IO::Spec::Unix is IO::Spec {
     method extension(\path) {
         my str $str = nqp::unbox_s(path);
         my int $index = nqp::rindex($str,'.');
-        nqp::p6bool($index == -1)
+        nqp::hllbool($index == -1)
           ?? ''
           !! substr(path,nqp::box_i($index + 1,Int) );
     }
@@ -94,7 +94,7 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method is-absolute( Str() \path ) {
-        nqp::p6bool(nqp::iseq_i(nqp::ord(path), 47)) # '/'
+        nqp::hllbool(nqp::iseq_i(nqp::ord(path), 47)) # '/'
     }
 
     method path {
@@ -104,7 +104,7 @@ my class IO::Spec::Unix is IO::Spec {
             nqp::until(
               nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
               take nqp::atpos($parts, $i) || '.')
-        } !! EmptySeq
+        } !! Seq.new(Rakudo::Iterator.Empty)
     }
 
     method splitpath( $path, :$nofile = False ) {

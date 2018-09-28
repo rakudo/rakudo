@@ -33,6 +33,10 @@ my role QuantHash does Associative {
     }
 
     multi method pairs(QuantHash:D:) { Seq.new(self.iterator) }
+
+    proto method Setty(|) {*}
+    proto method Baggy(|) {*}
+    proto method Mixy (|) {*}
 }
 
 # vim: ft=perl6 expandtab sw=4

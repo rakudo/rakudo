@@ -5,7 +5,7 @@
 #   * Allow exact Perl 6 forms, quoted away from shell
 # * Fix remaining XXXX
 
-my sub MAIN_HELPER($retval = 0) {
+my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
     # Do we have a MAIN at all?
     my $m = callframe(1).my<&MAIN>;
     return $retval unless $m;
@@ -225,7 +225,15 @@ my sub MAIN_HELPER($retval = 0) {
     @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
     # If there are still some candidates left, try to dispatch to MAIN
     if +@matching_candidates {
-        $m(|@($p), |%($n));
+        if $IN-as-ARGSFILES {
+            my $*ARGFILES := IO::ArgFiles.new: (my $in := $*IN),
+                :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),
+                :bin(nqp::hllbool(nqp::isfalse($in.encoding)));
+            $m(|@($p), |%($n));
+        }
+        else {
+            $m(|@($p), |%($n));
+        }
         return;
     }
 

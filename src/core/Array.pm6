@@ -29,8 +29,7 @@ my class Array { # declared in BOOTSTRAP
         }
 
         method push(Mu \value --> Nil) {
-            nqp::push($!target,
-                nqp::assign(nqp::p6scalarfromdesc($!descriptor), value));
+            nqp::push($!target, nqp::p6scalarwithvalue($!descriptor, value));
         }
 
         method append(IterationBuffer:D $buffer --> Nil) {
@@ -40,10 +39,9 @@ my class Array { # declared in BOOTSTRAP
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::push($!target,nqp::assign(
-                    nqp::p6scalarfromdesc($!descriptor),
-                    nqp::atpos($buffer,$i)
-                  ))
+                  nqp::push($!target,
+                    nqp::p6scalarwithvalue($!descriptor,nqp::atpos($buffer,$i))
+                  )
                 )
               )
             )
@@ -78,7 +76,7 @@ my class Array { # declared in BOOTSTRAP
               iter.push-until-lazy:
                 my \target := ArrayReificationTarget.new(
                   (my \buffer := nqp::create(IterationBuffer)),
-                  nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor))),
+                  nqp::clone($!descriptor))),
             nqp::p6bindattrinvres(result, List, '$!reified', buffer),
             nqp::stmts(
               nqp::bindattr(result, List, '$!reified', buffer),
@@ -91,112 +89,108 @@ my class Array { # declared in BOOTSTRAP
               nqp::p6bindattrinvres(result, List, '$!todo', todo))))
     }
 
-    method iterator(Array:D:) {
+    my class Todo does Iterator {
+        has int $!i;
+        has $!array;
+        has $!reified;
+        has $!todo;
+        has $!descriptor;
 
+        method !SET-SELF(\array) {
+            $!i           = -1;
+            $!array      := array;
+            $!reified    :=
+              nqp::ifnull(
+                nqp::getattr( array,List,'$!reified'),
+                nqp::bindattr(array,List,'$!reified',
+                  nqp::create(IterationBuffer))
+              );
+            $!todo       := nqp::getattr(array,List, '$!todo');
+            $!descriptor := nqp::getattr(array,Array,'$!descriptor');
+            self
+        }
+        method new(\array) { nqp::create(self)!SET-SELF(array) }
+
+        method pull-one() is raw {
+            nqp::ifnull(
+              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::if(
+                nqp::islt_i($!i,nqp::elems($!reified)),
+                self.hole($!i),
+                nqp::if(
+                  nqp::isconcrete($!todo),
+                  nqp::if(
+                    nqp::islt_i(
+                      $!i,
+                      $!todo.reify-at-least(nqp::add_i($!i,1))
+                    ),
+                    nqp::atpos($!reified,$!i), # cannot be nqp::null
+                    self.done
+                  ),
+                  IterationEnd
+                )
+              )
+            )
+        }
+        method hole(int $i) {
+             nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindArrayPos.new(
+                 $!descriptor, $!reified, $i))
+        }
+        method done() is raw {
+            $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
+            IterationEnd
+        }
+
+        method push-until-lazy($target) {
+            nqp::if(
+              nqp::isconcrete($!todo),
+              nqp::stmts(
+                (my int $elems = $!todo.reify-until-lazy),
+                (my int $i = $!i),   # lexicals faster than attributes
+                nqp::while(   # doesn't sink
+                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                  $target.push(nqp::atpos($!reified,$i))
+                ),
+                nqp::if(
+                  $!todo.fully-reified,
+                  nqp::stmts(
+                    ($!i = $i),
+                    self.done
+                  ),
+                  nqp::stmts(
+                    ($!i = nqp::sub_i($elems,1)),
+                    Mu
+                  )
+                )
+              ),
+              nqp::stmts(
+                ($elems = nqp::elems($!reified)),
+                ($i = $!i),
+                nqp::while(   # doesn't sink
+                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                  $target.push(
+                    nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
+                  )
+                ),
+                ($!i = $i),
+                IterationEnd
+              )
+            )
+        }
+
+        method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
+    }
+    method iterator(Array:D:) {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-            class :: does Iterator {             # something to iterate over
-                has int $!i;
-                has $!array;
-                has $!reified;
-                has $!todo;
-                has $!descriptor;
-
-                method !SET-SELF(\array) {
-                    $!i           = -1;
-                    $!array      := array;
-                    $!reified    :=
-                      nqp::ifnull(
-                        nqp::getattr( array,List,'$!reified'),
-                        nqp::bindattr(array,List,'$!reified',
-                          nqp::create(IterationBuffer))
-                      );
-                    $!todo       := nqp::getattr(array,List, '$!todo');
-                    $!descriptor := nqp::getattr(array,Array,'$!descriptor');
-                    self
-                }
-                method new(\array) { nqp::create(self)!SET-SELF(array) }
-
-                method pull-one() is raw {
-                    nqp::ifnull(
-                      nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
-                      nqp::if(
-                        nqp::islt_i($!i,nqp::elems($!reified)),
-                        self.hole($!i),
-                        nqp::if(
-                          nqp::isconcrete($!todo),
-                          nqp::if(
-                            nqp::islt_i(
-                              $!i,
-                              $!todo.reify-at-least(nqp::add_i($!i,1))
-                            ),
-                            nqp::atpos($!reified,$!i), # cannot be nqp::null
-                            self.done
-                          ),
-                          IterationEnd
-                        )
-                      )
-                    )
-                }
-                method hole(int $i) {
-                   nqp::p6bindattrinvres(
-                     (my \v := nqp::p6scalarfromdesc($!descriptor)),
-                     Scalar,
-                     '$!whence',
-                     -> { nqp::bindpos($!reified,$i,v) }
-                   )
-                }
-                method done() is raw {
-                    $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
-                    IterationEnd
-                }
-
-                method push-until-lazy($target) {
-                    nqp::if(
-                      nqp::isconcrete($!todo),
-                      nqp::stmts(
-                        (my int $elems = $!todo.reify-until-lazy),
-                        (my int $i = $!i),   # lexicals faster than attributes
-                        nqp::while(   # doesn't sink
-                          nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                          $target.push(nqp::atpos($!reified,$i))
-                        ),
-                        nqp::if(
-                          $!todo.fully-reified,
-                          nqp::stmts(
-                            ($!i = $i),
-                            self.done
-                          ),
-                          nqp::stmts(
-                            ($!i = nqp::sub_i($elems,1)),
-                            Mu
-                          )
-                        )
-                      ),
-                      nqp::stmts(
-                        ($elems = nqp::elems($!reified)),
-                        ($i = $!i),
-                        nqp::while(   # doesn't sink
-                          nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                          $target.push(
-                            nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
-                          )
-                        ),
-                        ($!i = $i),
-                        IterationEnd
-                      )
-                    )
-                }
-
-                method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
-            }.new(self),
+          Todo.new(self),                      # something to iterate over
           nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-            Rakudo::Iterator.ReifiedArray(       # everything is already there
+            Rakudo::Iterator.ReifiedArray(     # everything is already there
               self,
               nqp::getattr(self,Array,'$!descriptor')
             ),
-            Rakudo::Iterator.Empty               # nothing now or in the future
+            Rakudo::Iterator.Empty             # nothing now or in the future
           )
         )
     }
@@ -206,7 +200,7 @@ my class Array { # declared in BOOTSTRAP
             $iter.push-until-lazy(
               my \target := ArrayReificationTarget.new(
                 (my \buffer := nqp::create(IterationBuffer)),
-                nqp::null
+                BEGIN nqp::getcurhllsym('default_cont_spec')
               )
             ),
             IterationEnd
@@ -270,7 +264,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::create(self).STORE(@values)
     }
 
-    proto method STORE(|) {*}
+    proto method STORE(Array:D: |) {*}
     multi method STORE(Array:D: Iterable:D \iterable) {
         nqp::stmts(
           (my \buffer = nqp::create(IterationBuffer)),
@@ -279,7 +273,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::stmts(                          # only a single element
               nqp::push(
                 buffer,
-                nqp::assign(nqp::p6scalarfromdesc($!descriptor),iterable)
+                nqp::p6scalarwithvalue($!descriptor,iterable)
               ),
               nqp::bindattr(self,List,'$!todo',Mu)
             ),
@@ -309,7 +303,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::stmts(
           nqp::push(
             (my \buffer = nqp::create(IterationBuffer)),
-            nqp::assign(nqp::p6scalarfromdesc($!descriptor), item)
+            nqp::p6scalarwithvalue($!descriptor, item)
           ),
           nqp::bindattr(self,List,'$!todo',Mu),
           nqp::p6bindattrinvres(self,List,'$!reified',buffer)
@@ -337,13 +331,8 @@ my class Array { # declared in BOOTSTRAP
             multi method AT-POS(Int:D \pos) {
                 nqp::ifnull(
                   nqp::atpos(nqp::getattr(self,List,'$!reified'),pos),
-                  nqp::p6bindattrinvres(
-                    (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
-                    Scalar,
-                    '$!whence',
-                    -> { nqp::bindpos(
-                           nqp::getattr(self,List,'$!reified'),pos,$scalar) }
-                  )
+                  nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindArrayPos.new(
+                    $!descriptor, nqp::getattr(self,List,'$!reified'), pos))
                 )
             }
             method default() { $!descriptor.default }
@@ -397,7 +386,7 @@ my class Array { # declared in BOOTSTRAP
                       nqp::bindpos(
                         $reified,
                         $i,
-                        nqp::p6scalarfromdesc($!descriptor)
+                        nqp::p6scalarfromcertaindesc($!descriptor)
                       )
                     )
                   )
@@ -443,121 +432,102 @@ my class Array { # declared in BOOTSTRAP
     method shape() { (*,) }
 
     multi method AT-POS(Array:D: int $pos) is raw {
-        nqp::if(
-          nqp::isge_i($pos,0)
-            && nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-          nqp::ifnull(
-            nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
-            self!AT_POS_SLOW($pos)
-          ),
-          self!AT_POS_SLOW($pos)
-        )
+        my $reified := nqp::getattr(self, List, '$!reified');
+        my $result := nqp::bitand_i(nqp::isge_i($pos, 0), nqp::isconcrete($reified))
+            ?? nqp::atpos($reified, $pos)
+            !! nqp::null;
+        nqp::ifnull($result, self!AT_POS_SLOW($pos))
     }
     # because this is a very hot path, we copied the code from the int candidate
     multi method AT-POS(Array:D: Int:D $pos) is raw {
-        nqp::if(
-          nqp::isge_i($pos,0)
-            && nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-          nqp::ifnull(
-            nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
-            self!AT_POS_SLOW($pos)
-          ),
-          self!AT_POS_SLOW($pos)
-        )
+        my $reified := nqp::getattr(self, List, '$!reified');
+        my $result := nqp::bitand_i(nqp::isge_i($pos, 0), nqp::isconcrete($reified))
+            ?? nqp::atpos($reified, $pos)
+            !! nqp::null;
+        nqp::ifnull($result, self!AT_POS_SLOW($pos))
     }
 
     # handle any lookup that's not simple
-    method !AT_POS_SLOW(\pos) is raw {
+    method !AT_POS_SLOW(int $pos) is raw {
         nqp::if(
-          nqp::islt_i(pos, 0),
-          self!INDEX_OOR(pos),
+          nqp::islt_i($pos, 0),
+          self!INDEX_OOR($pos),
           nqp::if(
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::if(
-              nqp::islt_i(pos,nqp::elems($reified)),
-              self!AT_POS_CONTAINER(pos),        # it's a hole
+              nqp::islt_i($pos,nqp::elems($reified)),
+              self!AT_POS_CONTAINER($pos),        # it's a hole
               nqp::if(                           # too far out, try reifying
                 nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
                 nqp::stmts(
-                  $todo.reify-at-least(nqp::add_i(pos,1)),
+                  $todo.reify-at-least(nqp::add_i($pos,1)),
                   nqp::ifnull(
-                    nqp::atpos($reified,pos),    # reified ok
-                    self!AT_POS_CONTAINER(pos)   # reifier didn't reach
+                    nqp::atpos($reified,$pos),   # reified ok
+                    self!AT_POS_CONTAINER($pos)  # reifier didn't reach
                   )
                 ),
-                self!AT_POS_CONTAINER(pos)       # create an outlander
+                self!AT_POS_CONTAINER($pos)      # create an outlander
               )
             ),
             # no reified, implies no todo
             nqp::stmts(                          # create reified
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              self!AT_POS_CONTAINER(pos)         # create an outlander
+              self!AT_POS_CONTAINER($pos)        # create an outlander
             )
           )
         )
     }
     method !AT_POS_CONTAINER(int $pos) is raw {
-        nqp::p6bindattrinvres(
-          (my $scalar := nqp::p6scalarfromdesc($!descriptor)),
-          Scalar,
-          '$!whence',
-          -> { nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,$scalar) }
-        )
+        my $desc := $!descriptor;
+        my $scalar := nqp::create(Scalar);
+        nqp::bindattr($scalar, Scalar, '$!value', nqp::isnull($desc)
+            ?? Any
+            !! nqp::getattr($desc, ContainerDescriptor, '$!default'));
+        nqp::bindattr($scalar, Scalar, '$!descriptor',
+            ContainerDescriptor::BindArrayPos.new(
+                $desc, nqp::getattr(self,List,'$!reified'), $pos));
+        $scalar
     }
 
-    multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) {
-        # Fast path: index > 0, $!reified is set up, either have a container
-        # or no $!todo so can just bind there
+    multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
-        nqp::if(
-          nqp::isge_i($pos, 0) && nqp::isconcrete(reified),
-          nqp::stmts(
-            (my \target := nqp::atpos(reified, $pos)),
-            nqp::if(
-              nqp::isnull(target),
-              nqp::if(
-                nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
-                self!ASSIGN_POS_SLOW_PATH($pos, assignee),
-                nqp::assign(
-                  nqp::bindpos(reified, $pos, nqp::p6scalarfromdesc($!descriptor)),
-                  assignee
-                )
-              ),
-              nqp::assign(target, assignee)
-            )
-          ),
-          self!ASSIGN_POS_SLOW_PATH($pos, assignee)
-        )
+        my \assignee_decont := nqp::decont(assignee);
+        nqp::isge_i($pos, 0) && nqp::isconcrete(reified) &&
+                  nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
+            ?? nqp::stmts(
+                 (nqp::p6assign(
+                   nqp::ifnull(
+                     nqp::atpos(reified, $pos),
+                     nqp::bindpos(reified, $pos,
+                       nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+                   assignee_decont)),
+                 assignee_decont)
+            !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
     }
 
     # because this is a very hot path, we copied the code from the int candidate
-    multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) {
-        # Fast path: index > 0, $!reified is set up, either have a container
-        # or no $!todo so can just bind there
-        my \reified := nqp::getattr(self,List,'$!reified');
-        my int $ipos = $pos;
-        nqp::if(
-          nqp::isge_i($ipos, 0) && nqp::isconcrete(reified),
-          nqp::stmts(
-            (my \target := nqp::atpos(reified, $ipos)),
-            nqp::if(
-              nqp::isnull(target),
-              nqp::if(
-                nqp::isconcrete(nqp::getattr(self, List, '$!todo')),
-                self!ASSIGN_POS_SLOW_PATH($pos, assignee),
-                nqp::assign(
-                  nqp::bindpos(reified, $ipos, nqp::p6scalarfromdesc($!descriptor)),
-                  assignee
-                )
-              ),
-              nqp::assign(target, assignee)
-            )
-          ),
-          self!ASSIGN_POS_SLOW_PATH($pos, assignee)
-        )
+    multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
+        my \assignee_decont := nqp::decont(assignee);
+        nqp::isge_i($pos, 0) && nqp::isconcrete(nqp::getattr(self,List,'$!reified')) &&
+                  nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
+            ?? self!ASSIGN_POS_FAST_PATH($pos, assignee_decont)
+            !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
     }
 
-    method !ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) {
+    method !ASSIGN_POS_FAST_PATH(Array:D: Int:D $pos, Mu \assignee_decont) is raw {
+        my \reified := nqp::getattr(self,List,'$!reified');
+        my int $ipos = $pos;
+        nqp::stmts(
+          nqp::p6assign(
+            nqp::ifnull(
+              nqp::atpos(reified, $ipos),
+              nqp::bindpos(reified, $ipos,
+                nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+            assignee_decont),
+          assignee_decont)
+    }
+
+    method !ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
           self!INDEX_OOR($pos),
@@ -573,7 +543,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::bindpos(
                   nqp::getattr(self,List,'$!reified'),
                   $pos,
-                  nqp::p6scalarfromdesc($!descriptor)
+                  nqp::p6scalarfromcertaindesc($!descriptor)
                 ),
                 nqp::if(
                   nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
@@ -588,14 +558,14 @@ my class Array { # declared in BOOTSTRAP
                       nqp::bindpos(              # outlander
                         nqp::getattr(self,List,'$!reified'),
                         $pos,
-                        nqp::p6scalarfromdesc($!descriptor)
+                        nqp::p6scalarfromcertaindesc($!descriptor)
                       )
                     )
                   ),
                   nqp::bindpos(                  # outlander without todo
                     nqp::getattr(self,List,'$!reified'),
                     $pos,
-                    nqp::p6scalarfromdesc($!descriptor)
+                    nqp::p6scalarfromcertaindesc($!descriptor)
                   )
                 )
               )
@@ -603,7 +573,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindpos(                        # new outlander
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
               $pos,
-              nqp::p6scalarfromdesc($!descriptor)
+              nqp::p6scalarfromcertaindesc($!descriptor)
             )
           ) = assignee
         )
@@ -722,7 +692,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::bindattr(self,List,'$!reified',
                   nqp::create(IterationBuffer))
               ),
-              nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+              nqp::p6scalarwithvalue($!descriptor,value)
             ),
             self
           )
@@ -748,7 +718,7 @@ my class Array { # declared in BOOTSTRAP
                   nqp::bindattr(self,List,'$!reified',
                     nqp::create(IterationBuffer))
                 ),
-                nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+                nqp::p6scalarwithvalue($!descriptor,value)
               ),
               self
             ),
@@ -794,7 +764,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::bindattr(self,List,'$!reified',
                 nqp::create(IterationBuffer))
             ),
-            nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+            nqp::p6scalarwithvalue($!descriptor,value)
           ),
           self
         )
@@ -813,7 +783,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::bindattr(self,List,'$!reified',
                   nqp::create(IterationBuffer))
               ),
-              nqp::assign(nqp::p6scalarfromdesc($!descriptor),value)
+              nqp::p6scalarwithvalue($!descriptor,value)
             ),
             self
           ),
@@ -1248,44 +1218,46 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method grab(Callable:D $calculate) { self.grab($calculate(self.elems)) }
     multi method grab(Whatever) { self.grab(Inf) }
-    multi method grab($count) {
-        Seq.new(nqp::if(
-          self.elems,                        # reifies
-          class :: does Iterator {
-              has $!array;
-              has int $!count;
 
-              method !SET-SELF(\array,\count) {
-                  nqp::stmts(
-                    (my int $elems =
-                      nqp::elems(nqp::getattr(array,List,'$!reified'))),
-                    ($!array := array),
-                    nqp::if(
-                      count == Inf,
-                      ($!count = $elems),
-                      nqp::if(
-                        nqp::isgt_i(($!count = count.Int),$elems),
-                        ($!count = $elems)
-                      )
-                    ),
-                    self
-                  )
+    my class GrabN does Iterator {
+        has $!array;
+        has int $!count;
 
-              }
-              method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
-              method pull-one() {
-                  nqp::if(
-                    $!count && nqp::elems(nqp::getattr($!array,List,'$!reified')),
-                    nqp::stmts(
-                      ($!count = nqp::sub_i($!count,1)),
-                      $!array.GRAB_ONE
-                    ),
-                    IterationEnd
-                  )
-              }
-          }.new(self,$count),
-          Rakudo::Iterator.Empty
-        ))
+        method !SET-SELF(\array,\count) {
+            nqp::stmts(
+              (my int $elems =
+                nqp::elems(nqp::getattr(array,List,'$!reified'))),
+              ($!array := array),
+              nqp::if(
+                count == Inf,
+                ($!count = $elems),
+                nqp::if(
+                  nqp::isgt_i(($!count = count.Int),$elems),
+                  ($!count = $elems)
+                )
+              ),
+              self
+            )
+
+        }
+        method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
+        method pull-one() {
+            nqp::if(
+              $!count && nqp::elems(nqp::getattr($!array,List,'$!reified')),
+              nqp::stmts(
+                ($!count = nqp::sub_i($!count,1)),
+                $!array.GRAB_ONE
+              ),
+              IterationEnd
+            )
+        }
+    }
+    multi method grab(\count) {
+        Seq.new(
+          self.elems                         # reifies
+          ?? GrabN.new(self,count)
+          !! Rakudo::Iterator.Empty
+        )
     }
 
     method GRAB_ONE() {

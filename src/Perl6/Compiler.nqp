@@ -103,6 +103,7 @@ and, by default, also executes the compiled code.
   --encoding=mode      specify string encoding mode
   -o, --output=name    specify name of output file
   -v, --version        display version information
+  -V                   print configuration summary
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
   --profile[=kind]     write profile information to an HTML file (MoarVM)

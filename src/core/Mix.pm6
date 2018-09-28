@@ -67,13 +67,13 @@ my class Mix does Mixy {
           nqp::create(MixHash)
         )
     }
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::clone(self),
-          mix()
-        )
-    }
+
+    multi method Setty(Mix:U:) { Set }
+    multi method Setty(Mix:D:) { self.Set }
+    multi method Baggy(Mix:U:) { Bag }
+    multi method Baggy(Mix:D:) { self.Bag }
+    multi method Mixy (Mix:U:) { Mix }
+    multi method Mixy (Mix:D:) { self }
 
 #--- illegal methods
     proto method classify-list(|) {

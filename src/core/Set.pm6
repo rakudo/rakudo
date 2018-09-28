@@ -17,48 +17,46 @@ my class Set does Setty {
         )
     }
 
-    method iterator(Set:D:) {
-        class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
+    my class Iterate does Rakudo::Iterator::Mappy {
+        method pull-one() {
+          nqp::if(
+            $!iter,
+            Pair.new(nqp::iterval(nqp::shift($!iter)),True),
+            IterationEnd
+          )
+        }
+    }
+    method iterator(Set:D:) { Iterate.new($!elems) }
+
+    my class KV does Rakudo::QuantHash::Quanty-kv {
+        method pull-one() is raw {
+            nqp::if(
+              $!on,
+              nqp::stmts(
+                ($!on = 0),
+                True,
+              ),
               nqp::if(
                 $!iter,
-                Pair.new(nqp::iterval(nqp::shift($!iter)),True),
+                nqp::stmts(
+                  ($!on = 1),
+                  nqp::iterval(nqp::shift($!iter))
+                ),
                 IterationEnd
               )
-            }
-        }.new($!elems)
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                $target.push(nqp::iterval(nqp::shift($!iter))),
+                $target.push(True)
+              )
+            )
+        }
     }
-
-    multi method kv(Set:D:) {
-        Seq.new(class :: does Rakudo::QuantHash::Quanty-kv {
-            method pull-one() is raw {
-                nqp::if(
-                  $!on,
-                  nqp::stmts(
-                    ($!on = 0),
-                    True,
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($!on = 1),
-                      nqp::iterval(nqp::shift($!iter))
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    $target.push(nqp::iterval(nqp::shift($!iter))),
-                    $target.push(True)
-                  )
-                )
-            }
-        }.new(self))
-    }
+    multi method kv(Set:D:) { Seq.new(KV.new(self)) }
     multi method values(Set:D:) { True xx self.total }
 
     multi method grab(Set:D: $count?) {
@@ -79,13 +77,13 @@ my class Set does Setty {
           nqp::create(SetHash)
         )
     }
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::clone(self),
-          set()
-        )
-    }
+
+    multi method Setty(Set:U:) { Set      }
+    multi method Setty(Set:D:) { self     }
+    multi method Baggy(Set:U:) { Bag      }
+    multi method Baggy(Set:D:) { self.Bag }
+    multi method Mixy (Set:U:) { Mix      }
+    multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
     method STORE(*@pairs, :$initialize --> Set:D) {
@@ -105,7 +103,7 @@ my class Set does Setty {
     }
 
     multi method AT-KEY(Set:D: \k --> Bool:D) {
-        nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
+        nqp::hllbool($!elems ?? nqp::existskey($!elems,k.WHICH) !! 0)
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
         X::Assignment::RO.new(value => self).throw;

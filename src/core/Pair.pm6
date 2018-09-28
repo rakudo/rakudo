@@ -123,7 +123,7 @@ my class Pair does Associative {
 }
 
 multi sub infix:<eqv>(Pair:D \a, Pair:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b)
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.key   eqv b.key

@@ -3,8 +3,8 @@ use Test;
 use QAST:from<NQP>;
 use nqp;
 
-sub qast-contains-op (Mu $qast, Str:D $name --> Bool:D) is export {
-    if nqp::istype($qast, QAST::Op) && $qast.op eq $name {
+sub qast-contains-op (Mu $qast, $name --> Bool:D) is export {
+    if nqp::istype($qast, QAST::Op) && $qast.op ~~ $name {
         return True;
     }
     elsif qast-descendable $qast {
@@ -15,9 +15,9 @@ sub qast-contains-op (Mu $qast, Str:D $name --> Bool:D) is export {
     False
 }
 
-sub qast-contains-callmethod (Mu $qast, Str:D $name --> Bool:D) is export {
+sub qast-contains-callmethod (Mu $qast, $name --> Bool:D) is export {
     if nqp::istype($qast, QAST::Op)
-    && $qast.op eq 'callmethod' && $qast.name eq $name {
+    && $qast.op eq 'callmethod' && $qast.name ~~ $name {
         return True;
     }
     elsif qast-descendable $qast {
@@ -28,11 +28,11 @@ sub qast-contains-callmethod (Mu $qast, Str:D $name --> Bool:D) is export {
     False
 }
 
-sub qast-contains-call (Mu $qast, Str:D $name --> Bool:D) is export {
+sub qast-contains-call (Mu $qast, $name --> Bool:D) is export {
     if nqp::istype($qast, QAST::Op)
     && ( $qast.op eq 'call'  || $qast.op eq 'callstatic'
       || $qast.op eq 'chain' || $qast.op eq 'chainstatic')
-    && $qast.name eq $name {
+    && $qast.name ~~ $name {
         return True;
     }
     elsif qast-descendable $qast {
@@ -167,29 +167,30 @@ False otherwise.
 
 Defined as:
 
-    sub qast-contains-op (Mu $qast, Str:D $op --> Bool:D);
+    sub qast-contains-op (Mu $qast, $op --> Bool:D);
 
-Takes a QAST tree and tests whether it has QAST::Op with C<.op> set to
-string C<$op>. Recurses into descendable ops.
+Takes a QAST tree and tests whether it has QAST::Op with C<.op> smartmatching
+C<True> with C<$op>. Recurses into descendable ops.
 
 =head2 C<qast-contains-call>
 
 Defined as:
 
-    sub qast-contains-call (Mu $qast, Str:D $name --> Bool:D);
+    sub qast-contains-call (Mu $qast, $name --> Bool:D);
 
 Takes a QAST tree and tests whether it has QAST::Op with C<.op> set to
-C<call>, C<callstatic>, C<chain>, or C<chainstatic>, and with C<.name> set
-to C<$name>. Recurses into descendable ops.
+C<call>, C<callstatic>, C<chain>, or C<chainstatic>, and with C<.name> smartmatching
+C<True> with C<$name>. Recurses into descendable ops.
 
 =head2 C<qast-contains-callmethod>
 
 Defined as:
 
-    sub qast-contains-callmethod (Mu $qast, Str:D $name --> Bool:D);
+    sub qast-contains-callmethod (Mu $qast, $name --> Bool:D);
 
 Takes a QAST tree and tests whether it has QAST::Op with C<.op> set to
-C<callmethod> and with C<.name> set to C<$name>. Recurses into descendable ops.
+C<callmethod> and with C<.name> smartmatching C<True> with C<$name>.
+Recurses into descendable ops.
 
 B<NOTE:> C<callmethod> op can also take the name as second positional arg.
 This routine does B<NOT> inspect such nodes.

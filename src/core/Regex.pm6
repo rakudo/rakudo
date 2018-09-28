@@ -16,7 +16,7 @@ my class Regex { # declared in BOOTSTRAP
     # use of Any on topic to force autothreading
     # so that all(@foo) ~~ Type works as expected
     multi method ACCEPTS(Regex:U: Any \topic) {
-        nqp::p6bool(nqp::istype(topic, self))
+        nqp::hllbool(nqp::istype(topic, self))
     }
 
     multi method ACCEPTS(Regex:D \SELF: Any \topic) {
@@ -34,7 +34,8 @@ my class Regex { # declared in BOOTSTRAP
     }
 
 #?if !jvm
-    multi method ACCEPTS(Regex:D \SELF: Uni:D \uni) {  # RT #130458
+    multi method ACCEPTS(Regex:D \SELF: Uni:D \uni) {
+        $/ := nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/');
         self.ACCEPTS(uni.Str)
     }
 #?endif

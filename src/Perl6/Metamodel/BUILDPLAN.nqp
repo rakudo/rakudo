@@ -50,9 +50,11 @@ role Perl6::Metamodel::BUILDPLAN {
                               workaround =>
                                 "Create/Adapt TWEAK method in class "
                                   ~ $obj.HOW.name($obj)
-                                  ~ ", e.g:\n    method TWEAK(:"
+                                  ~ ", e.g:\n\n    method TWEAK() \{\n        "
                                   ~ $_.name
-                                  ~ ' = (initial values)) { }'
+                                  ~ " := (initial values) unless "
+                                  ~ $_.name
+                                  ~ ";\n    }"
                             ).throw;
                         }
                     }
@@ -166,7 +168,7 @@ role Perl6::Metamodel::BUILDPLAN {
             my @mro := self.mro($obj);
             @!BUILDALLPLAN := +@mro > 1
               ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
-              !! @EMPTY    
+              !! @EMPTY
         }
     }
 

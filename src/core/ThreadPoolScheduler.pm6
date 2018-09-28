@@ -26,6 +26,12 @@ my class ThreadPoolScheduler does Scheduler {
     # Infrastructure for non-blocking `await` for code running on the
     # scheduler.
     my constant THREAD_POOL_PROMPT = Mu.new;
+    my class ContinuationWrapper {
+        has $.cont;
+        method new(Mu \cont) {
+            nqp::p6bindattrinvres(nqp::create(self), ContinuationWrapper, '$!cont', cont)
+        }
+    }
     class ThreadPoolAwaiter does Awaiter {
         has $!queue;
 
@@ -34,7 +40,7 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         sub holding-locks() {
-            nqp::p6bool(nqp::threadlockcount(nqp::currentthread()))
+            nqp::hllbool(nqp::threadlockcount(nqp::currentthread()))
         }
 
         method await(Awaitable:D $a) {
@@ -57,7 +63,7 @@ my class ThreadPoolScheduler does Scheduler {
                     $handle.subscribe-awaiter(-> \success, \result {
                         $success := success;
                         $result := result;
-                        nqp::push($!queue, { nqp::continuationinvoke(c, nqp::null()) });
+                        nqp::push($!queue, ContinuationWrapper.new(c));
                         Nil
                     });
                 });
@@ -229,26 +235,31 @@ my class ThreadPoolScheduler does Scheduler {
 
         method !run-one(\task --> Nil) {
             $!working = 1;
-            nqp::continuationreset(THREAD_POOL_PROMPT, {
-                if nqp::istype(task, List) {
-                    my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
-                    $code(|task);
-                }
-                else {
-                    task.();
-                }
-                CONTROL {
-                    default {
-                        my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
-                        nqp::getcomp('perl6').handle-control($vm-ex);
+            if nqp::istype(task, ContinuationWrapper) {
+                nqp::continuationinvoke(task.cont, nqp::null());
+            }
+            else {
+                nqp::continuationreset(THREAD_POOL_PROMPT, {
+                    if nqp::istype(task, List) {
+                        my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
+                        $code(|task);
                     }
-                }
-                CATCH {
-                    default {
-                        $!scheduler.handle_uncaught($_)
+                    else {
+                        task.();
                     }
-                }
-            });
+                    CONTROL {
+                        default {
+                            my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                            nqp::getcomp('perl6').handle-control($vm-ex);
+                        }
+                    }
+                    CATCH {
+                        default {
+                            $!scheduler.handle_uncaught($_)
+                        }
+                    }
+                });
+            }
             $!working = 0;
 #?if moar
             ++⚛$!completed;

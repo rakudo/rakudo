@@ -1,3 +1,5 @@
+#!/usr/bin/env perl6
+
 # This script generates the logic for doing adverbed slices, usually part of
 # the core settings as "src/core/SLICE.pm6".  When run, it will generate the
 # source code on STDOUT.

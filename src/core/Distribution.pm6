@@ -181,13 +181,13 @@ class Distribution::Resource {
     }
 
     # delegate appropriate IO::Path methods to the resource IO::Path object
-    method Str(|c) {
+    multi method Str(::?CLASS:D: |c) {
         self.IO.Str(|c)
     }
-    method gist(|c) {
+    multi method gist(::?CLASS:D: |c) {
         self.IO.gist(|c)
     }
-    method perl(|c) {
+    multi method perl(::?CLASS:D: |c) {
         self.IO.perl(|c)
     }
     method absolute(|c) {

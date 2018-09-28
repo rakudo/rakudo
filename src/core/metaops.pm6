@@ -263,8 +263,6 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                       ))
                     )
                 }
-                method bool-only(--> True) { };
-                method count-only() { nqp::p6box_i($!i) }
             }.new(op,$v,$count,$i),
             Rakudo::Iterator.OneValue(
               nqp::if(
@@ -310,8 +308,6 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                       ))
                     )
                 }
-                method bool-only(--> True) { };
-                method count-only() { nqp::p6box_i($!i) }
             }.new(op,$v,$i),
             Rakudo::Iterator.OneValue(
               nqp::if(
@@ -469,7 +465,7 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
                 && op.($current,$next),
               $current := $next
             ),
-            nqp::p6bool(nqp::eqaddr($next,IterationEnd))
+            nqp::hllbool(nqp::eqaddr($next,IterationEnd))
           )
         )
     }
@@ -570,7 +566,7 @@ multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right
     my @result;
     X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.is-lazy;
     my int $elems = left.elems;
-    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1), :recursing(callframe(2).code.name eq 'HYPER')).throw
+    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1), :recursing(?(callframe(2).code andthen .name eq 'HYPER'))).throw
         unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
     my \lefti := left.iterator;
     my int $i = 0;
@@ -586,7 +582,7 @@ multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right
     my @result;
     X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right.is-lazy;
     my int $elems = right.elems;
-    X::HyperOp::NonDWIM.new(:&operator, :left-elems(1), :right-elems($elems), :recursing(callframe(3).code.name eq 'HYPER')).throw
+    X::HyperOp::NonDWIM.new(:&operator, :left-elems(1), :right-elems($elems), :recursing(?(callframe(3).code andthen .name eq 'HYPER'))).throw
         unless $elems == 1 or $elems > 1 and $dwim-left or $elems == 0 and $dwim-left || $dwim-right;
     my \righti := right.iterator;
     my int $i = 0;
@@ -618,7 +614,7 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
         my \leftv := lefti.pull-one;
         my \rightv := righti.pull-one;
 
-        X::HyperOp::NonDWIM.new(:&operator, :left-elems(lefti.count-elems), :right-elems(righti.count-elems), :recursing(callframe(3).code.name eq 'HYPER')).throw
+        X::HyperOp::NonDWIM.new(:&operator, :left-elems(lefti.count-elems), :right-elems(righti.count-elems), :recursing(?(callframe(3).code andthen .name eq 'HYPER'))).throw
             if !$dwim-left and !$dwim-right and (lefti.ended != righti.ended);
 
         last if ($dwim-left and $dwim-right) ?? (lefti.ended and righti.ended) !!

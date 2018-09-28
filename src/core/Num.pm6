@@ -19,7 +19,7 @@ my class Num does Real { # declared in BOOTSTRAP
           ValueObjAt
         )
     }
-    multi method Bool(Num:D:) { nqp::p6bool(nqp::isne_n(self,0e0)) }
+    multi method Bool(Num:D:) { nqp::hllbool(nqp::isne_n(self,0e0)) }
     method Capture() { die X::Cannot::Capture.new: :what(self) }
     method Num() { self }
     method Bridge(Num:D:) { self }
@@ -243,7 +243,7 @@ my class Num does Real { # declared in BOOTSTRAP
         (1e0 / self).atanh;
     }
     method is-prime(--> Bool:D) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             nqp::isnanorinf(self),
             False,
@@ -416,7 +416,7 @@ multi sub infix:«<=>»(num $a, num $b) {
 }
 
 multi sub infix:<===>(Num:D \a, Num:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
         nqp::eqaddr(a.WHAT,b.WHAT)
         && (
             ( # Both are NaNs
@@ -438,7 +438,7 @@ multi sub infix:<===>(Num:D \a, Num:D \b) {
     )
 }
 multi sub infix:<===>(num \a, num \b --> Bool:D) {
-    nqp::p6bool(
+    nqp::hllbool(
         nqp::eqaddr(a.WHAT,b.WHAT)
         && (
             ( # Both are NaNs
@@ -464,42 +464,42 @@ multi sub infix:<≅>( Inf,  Inf) { Bool::True }
 multi sub infix:<≅>(-Inf, -Inf) { Bool::True }
 
 multi sub infix:<==>(Num:D \a, Num:D \b --> Bool:D)  {
-    nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:<==>(num $a, num $b --> Bool:D)  {
-    nqp::p6bool(nqp::iseq_n($a, $b))
+    nqp::hllbool(nqp::iseq_n($a, $b))
 }
 
 multi sub infix:<!=>(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isne_n($a, $b))
+    nqp::hllbool(nqp::isne_n($a, $b))
 }
 
 multi sub infix:«<»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::islt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::islt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«<»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::islt_n($a, $b))
+    nqp::hllbool(nqp::islt_n($a, $b))
 }
 
 multi sub infix:«<=»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«<=»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isle_n($a, $b))
+    nqp::hllbool(nqp::isle_n($a, $b))
 }
 
 multi sub infix:«>»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isgt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::isgt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«>»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isgt_n($a, $b))
+    nqp::hllbool(nqp::isgt_n($a, $b))
 }
 
 multi sub infix:«>=»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isge_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::isge_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«>=»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isge_n($a, $b))
+    nqp::hllbool(nqp::isge_n($a, $b))
 }
 
 proto sub rand(*%) {*}

@@ -423,14 +423,14 @@ multi sub subtest(&subtests, $desc = '') is export {
     proclaim($status,$desc) or ($die_on_fail and die-on-fail);
 }
 
-sub diag(Mu $message) is export {
+sub diag($message) is export {
     # Always send user-triggered diagnostics to STDERR. This prevents
     # cases of confusion of where diag() has to send its ouput when
     # we are in the middle of TODO tests
     _diag $message, :force-stderr;
 }
 
-sub _diag(Mu $message, :$force-stderr) {
+sub _diag($message, :$force-stderr) {
     _init_io() unless $output;
     my $is_todo = !$force-stderr
         && ($subtest_todo_reason || $num_of_tests_run <= $todo_upto_test_num);
@@ -716,7 +716,7 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
         # sub proclaim is not called directly, so 2 is minimum level
         my int $level = 2;
 
-        repeat until !$?FILE.ends-with($caller.file) {
+        repeat while $?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
 

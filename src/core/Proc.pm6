@@ -22,7 +22,7 @@ my class Proc {
     submethod BUILD(:$in = '-', :$out = '-', :$err = '-', :$exitcode,
                     Bool :$bin, Bool :$chomp = True, Bool :$merge, :$command,
                     Str :$enc, Str:D :$nl = "\n", :$signal --> Nil) {
-        @!command = |$command if $command;
+        @!command := $command.List if $command;
         if nqp::istype($in, IO::Handle) && $in.DEFINITE {
             @!pre-spawn.push({ $!proc.bind-stdin($in) });
         }
@@ -159,12 +159,12 @@ my class Proc {
     }
 
     method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {
-        @!command = @args;
+        @!command := @args.List;
         self!spawn-internal(@args, $cwd, $env)
     }
 
     method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D) {
-        @!command = $cmd;
+        @!command := $cmd.List;
         my @args := Rakudo::Internals.IS-WIN
             ?? (%*ENV<ComSpec>, '/c', $cmd)
             !! ('/bin/sh', '-c', $cmd);

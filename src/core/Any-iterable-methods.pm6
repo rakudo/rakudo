@@ -776,153 +776,152 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         self.map(&block, :$label).flat
     }
 
-    method !grep-k(Callable:D $test) {
-        Seq.new(class :: does Iterator {
-            has  Mu $!iter;
-            has  Mu $!test;
-            has int $!index;
-            method !SET-SELF(\list,Mu \test) {
-                $!iter  = list.iterator;
-                $!test := test;
-                $!index = -1;
-                self
-            }
-            method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
-            method pull-one() is raw {
+    my class Grep-K does Iterator {
+        has  Mu $!iter;
+        has  Mu $!test;
+        has int $!index;
+        method !SET-SELF(\list,Mu \test) {
+            $!iter  = list.iterator;
+            $!test := test;
+            $!index = -1;
+            self
+        }
+        method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
+        method pull-one() is raw {
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                  || $!test($_),
+                ($!index = nqp::add_i($!index,1))
+              ),
+              nqp::if(
+                nqp::eqaddr($_,IterationEnd),
+                IterationEnd,
+                nqp::p6box_i($!index = nqp::add_i($!index,1))
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my $iter := $!iter),  # lexicals faster than attrs
+              (my $test := $!test),
+              (my int $i = $!index),
+              nqp::until(
+                nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
                 nqp::stmts(
-                  nqp::until(
-                    nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
-                      || $!test($_),
-                    ($!index = nqp::add_i($!index,1))
-                  ),
+                  ($i = nqp::add_i($i,1)),
                   nqp::if(
-                    nqp::eqaddr($_,IterationEnd),
-                    IterationEnd,
+                    $!test($_),
+                    $target.push(nqp::p6box_i($i))
+                  )
+                )
+              ),
+              ($!index = $i)
+            )
+        }
+    }
+    method !grep-k(Callable:D $test) { Seq.new(Grep-K.new(self,$test)) }
+
+    my class Grep-KV does Iterator {
+        has  Mu $!iter;
+        has  Mu $!test;
+        has int $!index;
+        has  Mu $!value;
+        method !SET-SELF(\list,Mu \test) {
+            $!iter  = list.iterator;
+            $!test := test;
+            $!index = -1;
+            self
+        }
+        method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isconcrete($!value),
+              nqp::stmts(
+                ($_ := $!value),
+                ($!value := nqp::null),
+                $_
+              ),
+              nqp::stmts(
+                nqp::until(
+                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                    || $!test($_),
+                  ($!index = nqp::add_i($!index,1))
+                ),
+                nqp::if(
+                  nqp::eqaddr($_,IterationEnd),
+                  IterationEnd,
+                  nqp::stmts(
+                    ($!value := $_),
                     nqp::p6box_i($!index = nqp::add_i($!index,1))
                   )
                 )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::stmts(
-                  (my $iter := $!iter),  # lexicals faster than attrs
-                  (my $test := $!test),
-                  (my int $i = $!index),
-                  nqp::until(
-                    nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
-                    nqp::stmts(
-                      ($i = nqp::add_i($i,1)),
-                      nqp::if(
-                        $!test($_),
-                        $target.push(nqp::p6box_i($i))
-                      )
-                    )
-                  ),
-                  ($!index = $i)
-                )
-            }
-        }.new(self, $test))
-    }
-    method !grep-kv(Callable:D $test) {
-        Seq.new(class :: does Iterator {
-            has  Mu $!iter;
-            has  Mu $!test;
-            has int $!index;
-            has  Mu $!value;
-            method !SET-SELF(\list,Mu \test) {
-                $!iter  = list.iterator;
-                $!test := test;
-                $!index = -1;
-                self
-            }
-            method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
-            method pull-one() is raw {
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::until(
+              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+              nqp::stmts(
+                $!index = nqp::add_i($!index,1);
                 nqp::if(
-                  nqp::isconcrete($!value),
-                  nqp::stmts(
-                    ($_ := $!value),
-                    ($!value := nqp::null),
-                    $_
-                  ),
-                  nqp::stmts(
-                    nqp::until(
-                      nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
-                        || $!test($_),
-                      ($!index = nqp::add_i($!index,1))
-                    ),
-                    nqp::if(
-                      nqp::eqaddr($_,IterationEnd),
-                      IterationEnd,
-                      nqp::stmts(
-                        ($!value := $_),
-                        nqp::p6box_i($!index = nqp::add_i($!index,1))
-                      )
-                    )
+                  $!test($_),
+                  nqp::stmts(  # doesn't sink
+                    $target.push(nqp::p6box_i($!index));
+                    $target.push($_);
                   )
                 )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::until(
-                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
-                  nqp::stmts(
-                    $!index = nqp::add_i($!index,1);
-                    nqp::if(
-                      $!test($_),
-                      nqp::stmts(  # doesn't sink
-                        $target.push(nqp::p6box_i($!index));
-                        $target.push($_);
-                      )
-                    )
-                  )
-                );
-            }
-        }.new(self, $test))
+              )
+            );
+        }
     }
-    method !grep-p(Callable:D $test) {
-        Seq.new(class :: does Iterator {
-            has  Mu $!iter;
-            has  Mu $!test;
-            has int $!index;
-            method !SET-SELF(\list,Mu \test) {
-                $!iter  = list.iterator;
-                $!test := test;
-                $!index = -1;
-                self
-            }
-            method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
-            method pull-one() is raw {
+    method !grep-kv(Callable:D $test) { Seq.new(Grep-KV.new(self,$test)) }
+
+    my class Grep-P does Iterator {
+        has  Mu $!iter;
+        has  Mu $!test;
+        has int $!index;
+        method !SET-SELF(\list,Mu \test) {
+            $!iter  = list.iterator;
+            $!test := test;
+            $!index = -1;
+            self
+        }
+        method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
+        method pull-one() is raw {
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                  || $!test($_),
+                ($!index = nqp::add_i($!index,1))
+              ),
+              nqp::if(
+                nqp::eqaddr($_,IterationEnd),
+                IterationEnd,
+                Pair.new(($!index = nqp::add_i($!index,1)),$_)
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::stmts(
+              (my $iter := $!iter),   # lexicals are faster than attrs
+              (my $test := $!test),
+              (my int $i = $!index),
+              nqp::until(
+                nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
                 nqp::stmts(
-                  nqp::until(
-                    nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
-                      || $!test($_),
-                    ($!index = nqp::add_i($!index,1))
-                  ),
+                  ($i = nqp::add_i($i,1)),
                   nqp::if(
-                    nqp::eqaddr($_,IterationEnd),
-                    IterationEnd,
-                    Pair.new(($!index = nqp::add_i($!index,1)),$_)
+                    $test($_),
+                    $target.push(Pair.new($i,$_))
                   )
                 )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::stmts(
-                  (my $iter := $!iter),   # lexicals are faster than attrs
-                  (my $test := $!test),
-                  (my int $i = $!index),
-                  nqp::until(
-                    nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
-                    nqp::stmts(
-                      ($i = nqp::add_i($i,1)),
-                      nqp::if(
-                        $test($_),
-                        $target.push(Pair.new($i,$_))
-                      )
-                    )
-                  ),
-                  ($!index = $i)
-                )
-            }
-        }.new(self, $test))
+              ),
+              ($!index = $i)
+            )
+        }
     }
+    method !grep-p(Callable:D $test) { Seq.new(Grep-P.new(self,$test)) }
 
     role Grepper does Iterator {
         has Mu $!iter;
@@ -966,27 +965,27 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           )
         )
     }
-    method !grep-accepts(Mu $test) {
-        Seq.new(class :: does Grepper {
-            method pull-one() is raw {
-                nqp::until(
-                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
-                    || $!test.ACCEPTS($_),
-                  nqp::null
-                );
-                $_
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::until(
-                  nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
-                  nqp::if(  # doesn't sink
-                    $!test.ACCEPTS($_),
-                    $target.push($_)
-                  )
-                );
-            }
-        }.new(self, $test))
+
+    my class Grep-Accepts does Grepper {
+        method pull-one() is raw {
+            nqp::until(
+              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                || $!test.ACCEPTS($_),
+              nqp::null
+            );
+            $_
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::until(
+              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+              nqp::if(  # doesn't sink
+                $!test.ACCEPTS($_),
+                $target.push($_)
+              )
+            );
+        }
     }
+    method !grep-accepts(Mu $test) { Seq.new(Grep-Accepts.new(self,$test)) }
 
     method !first-result(\index,\value,$what,%a) is raw {
         nqp::stmts(
@@ -1162,10 +1161,19 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             )
         }
     }
-    multi method first(Mu $test = True, :$end, *%a) is raw {
+    multi method first(Mu $test, :$end, *%a) is raw {
         $end
           ?? self!first-accepts-end($test,%a)
           !! self!first-accepts($test,%a)
+    }
+    multi method first(:$end, *%a) is raw {
+        nqp::elems(nqp::getattr(%a,Map,'$!storage'))
+          ?? $end
+            ?? self!first-accepts-end(True,%a)
+            !! self!first-accepts(True,%a)
+          !! $end
+            ?? self.tail
+            !! self.head
     }
     method !first-accepts(Mu $test,%a) is raw {
         nqp::stmts(
@@ -1520,47 +1528,48 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method unique(|) is nodal {*}
-    multi method unique() {
-        Seq.new(class :: does Iterator {
-            has $!iter;
-            has $!seen;
-            method !SET-SELF(\list) {
+
+    my class Unique does Iterator {
+        has $!iter;
+        has $!seen;
+        method !SET-SELF(\list) {
+            nqp::stmts(
+              ($!iter := list.iterator),
+              ($!seen := nqp::hash),
+              self
+            )
+        }
+        method new(\list) { nqp::create(self)!SET-SELF(list) }
+        method pull-one() is raw {
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd)
+                  || (nqp::not_i(nqp::existskey(
+                    $!seen,
+                    (my \needle := pulled.WHICH)
+                  )) && nqp::bindkey($!seen,needle,1)),
+                nqp::null
+              ),
+              pulled
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::until(
+              nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd),
+              nqp::unless(
+                nqp::existskey($!seen,(my \needle := pulled.WHICH)),
                 nqp::stmts(
-                  ($!iter := list.iterator),
-                  ($!seen := nqp::hash),
-                  self
+                  nqp::bindkey($!seen,needle,1),
+                  $target.push(pulled)
                 )
-            }
-            method new(\list) { nqp::create(self)!SET-SELF(list) }
-            method pull-one() is raw {
-                nqp::stmts(
-                  nqp::until(
-                    nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
-                      || (nqp::not_i(nqp::existskey(
-                        $!seen,
-                        (my $needle := $pulled.WHICH)
-                      )) && nqp::bindkey($!seen,$needle,1)),
-                    nqp::null
-                  ),
-                  $pulled
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::until(
-                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
-                  nqp::unless(
-                    nqp::existskey($!seen,(my $needle := $pulled.WHICH)),
-                    nqp::stmts(
-                      nqp::bindkey($!seen,$needle,1),
-                      $target.push($pulled)
-                    )
-                  )
-                )
-            }
-            method is-lazy() { $!iter.is-lazy }
-            method sink-all(--> IterationEnd) { $!iter.sink-all }
-        }.new(self))
+              )
+            )
+        }
+        method is-lazy() { $!iter.is-lazy }
+        method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
+    multi method unique() { Seq.new(Unique.new(self)) }
+
     multi method unique( :&as!, :&with! ) {
         nqp::if(
           nqp::eqaddr(&with,&[===]), # use optimized version
@@ -1570,46 +1579,47 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           )
         )
     }
-    multi method unique( :&as! ) {
-        Seq.new(class :: does Iterator {
-            has Mu $!iter;
-            has &!as;
-            has $!seen;
-            method !SET-SELF(\list, &!as) {
-                $!iter  = list.iterator;
-                $!seen := nqp::hash();
-                self
-            }
-            method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
-            method pull-one() is raw {
-                nqp::stmts(
-                  nqp::until(
-                    nqp::eqaddr((my $value := $!iter.pull-one),IterationEnd),
-                    nqp::unless(
-                      nqp::existskey($!seen,my $needle := &!as($value).WHICH),
-                      nqp::stmts(
-                        nqp::bindkey($!seen,$needle,1),
-                        return-rw $value
-                      )
-                    )
-                  ),
-                  IterationEnd
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::until(
-                  nqp::eqaddr((my $value := $!iter.pull-one),IterationEnd),
-                  nqp::unless(
-                    nqp::existskey($!seen,my $needle := &!as($value).WHICH),
-                    nqp::stmts(  # doesn't sink
-                      nqp::bindkey($!seen,$needle,1),
-                      $target.push($value)
-                    )
+
+    my class Unique-As does Iterator {
+        has Mu $!iter;
+        has &!as;
+        has $!seen;
+        method !SET-SELF(\list, &!as) {
+            $!iter  = list.iterator;
+            $!seen := nqp::hash();
+            self
+        }
+        method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
+        method pull-one() is raw {
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr((my \value := $!iter.pull-one),IterationEnd),
+                nqp::unless(
+                  nqp::existskey($!seen,my \needle := &!as(value).WHICH),
+                  nqp::stmts(
+                    nqp::bindkey($!seen,needle,1),
+                    return-rw value
                   )
                 )
-            }
-        }.new(self, &as))
+              ),
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            nqp::until(
+              nqp::eqaddr((my \value := $!iter.pull-one),IterationEnd),
+              nqp::unless(
+                nqp::existskey($!seen,my \needle := &!as(value).WHICH),
+                nqp::stmts(  # doesn't sink
+                  nqp::bindkey($!seen,needle,1),
+                  $target.push(value)
+                )
+              )
+            )
+        }
     }
+    multi method unique( :&as! ) { Seq.new(Unique-As.new(self,&as)) }
+
     multi method unique( :&with! ) {
         nqp::if(
           nqp::eqaddr(&with,&[===]), # use optimized version
@@ -1619,40 +1629,41 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method repeated(|) is nodal {*}
-    multi method repeated() {
-        Seq.new(class :: does Iterator {
-            has Mu $!iter;
-            has $!seen;
-            method !SET-SELF(\list) {
-                $!iter = list.iterator;
-                $!seen := nqp::hash();
-                self
-            }
-            method new(\list) { nqp::create(self)!SET-SELF(list) }
-            method pull-one() is raw {
-                my Mu $value;
-                my str $needle;
-                nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
-                  nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
-                    ?? return-rw $value
-                    !! nqp::bindkey($!seen, $needle, 1)
-                );
-                IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                my Mu $value;
-                my str $needle;
-                nqp::until( # doesn't sink
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
-                  nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
-                    ?? $target.push($value)
-                    !! nqp::bindkey($!seen, $needle, 1)
-                );
-            }
-            method is-lazy() { $!iter.is-lazy }
-        }.new(self))
+
+    my class Repeated does Iterator {
+        has Mu $!iter;
+        has $!seen;
+        method !SET-SELF(\list) {
+            $!iter = list.iterator;
+            $!seen := nqp::hash();
+            self
+        }
+        method new(\list) { nqp::create(self)!SET-SELF(list) }
+        method pull-one() is raw {
+            my Mu $value;
+            my str $needle;
+            nqp::until(
+              nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+              nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
+                ?? return-rw $value
+                !! nqp::bindkey($!seen, $needle, 1)
+            );
+            IterationEnd
+        }
+        method push-all($target --> IterationEnd) {
+            my Mu $value;
+            my str $needle;
+            nqp::until( # doesn't sink
+              nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+              nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
+                ?? $target.push($value)
+                !! nqp::bindkey($!seen, $needle, 1)
+            );
+        }
+        method is-lazy() { $!iter.is-lazy }
     }
+    multi method repeated() { Seq.new(Repeated.new(self)) }
+
     multi method repeated( :&as!, :&with! ) {
         nqp::if(
           nqp::eqaddr(&with,&[===]), # use optimized version
@@ -1662,41 +1673,42 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           )
         )
     }
-    multi method repeated( :&as! ) {
-        Seq.new(class :: does Iterator {
-            has Mu $!iter;
-            has &!as;
-            has $!seen;
-            method !SET-SELF(\list, &!as) {
-                $!iter  = list.iterator;
-                $!seen := nqp::hash();
-                self
-            }
-            method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
-            method pull-one() is raw {
-                my Mu $value;
-                my str $needle;
-                nqp::until(
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
-                  nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
-                    ?? return-rw $value
-                    !! nqp::bindkey($!seen, $needle, 1)
-                );
-                IterationEnd
-            }
-            method push-all($target --> IterationEnd) {
-                my Mu $value;
-                my str $needle;
-                nqp::until(  # doesn't sink
-                  nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
-                  nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
-                    ?? $target.push($value)
-                    !! nqp::bindkey($!seen, $needle, 1)
-                );
-            }
-            method is-lazy() { $!iter.is-lazy }
-        }.new(self, &as))
+
+    class Repeated-As does Iterator {
+        has Mu $!iter;
+        has &!as;
+        has $!seen;
+        method !SET-SELF(\list, &!as) {
+            $!iter  = list.iterator;
+            $!seen := nqp::hash();
+            self
+        }
+        method new(\list, &as) { nqp::create(self)!SET-SELF(list, &as) }
+        method pull-one() is raw {
+            my Mu $value;
+            my str $needle;
+            nqp::until(
+              nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+              nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
+                ?? return-rw $value
+                !! nqp::bindkey($!seen, $needle, 1)
+            );
+            IterationEnd
+        }
+        method push-all($target --> IterationEnd) {
+            my Mu $value;
+            my str $needle;
+            nqp::until(  # doesn't sink
+              nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
+              nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
+                ?? $target.push($value)
+                !! nqp::bindkey($!seen, $needle, 1)
+            );
+        }
+        method is-lazy() { $!iter.is-lazy }
     }
+    multi method repeated( :&as! ) { Seq.new(Repeated-As.new(self,&as)) }
+
     multi method repeated( :&with! ) {
         nqp::if(
           nqp::eqaddr(&with,&[===]), # use optimized version
@@ -1706,141 +1718,145 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method squish(|) is nodal {*}
-    multi method squish( :&as!, :&with = &[===] ) {
-        Seq.new(class :: does Iterator {
-            has Mu $!iter;
-            has &!as;
-            has &!with;
-            has $!last_as;
-            has int $!first;
-            method !SET-SELF($!iter, &!as, &!with) {
-                $!first = 1;
-                self
-            }
-            method new(\iter, \as, \with) {
-                nqp::create(self)!SET-SELF(iter, as, with)
-            }
-            method pull-one() is raw {
+
+    my class Squish-As does Iterator {
+        has Mu $!iter;
+        has &!as;
+        has &!with;
+        has $!last_as;
+        has int $!first;
+        method !SET-SELF($!iter, &!as, &!with) {
+            $!first = 1;
+            self
+        }
+        method new(\iter, \as, \with) {
+            nqp::create(self)!SET-SELF(iter, as, with)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+              IterationEnd,
+              nqp::stmts(
+                (my $which := &!as($pulled)),
                 nqp::if(
-                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
-                  IterationEnd,
-                  nqp::stmts(
-                    (my $which := as($pulled)),
-                    nqp::if(
-                      $!first,
-                      ($!first = 0),
-                      nqp::until(
-                        nqp::isfalse(with($!last_as,$which))
-                          || nqp::eqaddr(
-                               ($pulled := $!iter.pull-one),
-                               IterationEnd
-                             ),
-                        nqp::stmts(
-                          ($!last_as := $which),
-                          ($which := as($pulled))
-                        )
-                      )
-                    ),
-                    ($!last_as := $which),
-                    $pulled
+                  $!first,
+                  ($!first = 0),
+                  nqp::until(
+                    nqp::isfalse(&!with($!last_as,$which))
+                      || nqp::eqaddr(
+                           ($pulled := $!iter.pull-one),
+                           IterationEnd
+                         ),
+                    nqp::stmts(
+                      ($!last_as := $which),
+                      ($which := &!as($pulled))
+                    )
                   )
-                )
+                ),
+                ($!last_as := $which),
+                $pulled
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            my Mu $value := $!iter.pull-one;
+            unless nqp::eqaddr($value,IterationEnd) {
+                my $which;
+                my $last_as := $!last_as;
+                nqp::if(
+                  $!first,
+                  nqp::stmts(  # doesn't sink
+                    ($target.push($value)),
+                    ($which := &!as($value)),
+                    ($last_as := $which),
+                    ($value := $!iter.pull-one)
+                  )
+                );
+                nqp::until(
+                  nqp::eqaddr($value,IterationEnd),
+                  nqp::stmts(
+                    nqp::unless(  # doesn't sink
+                      &!with($last_as,$which := &!as($value)),
+                      $target.push($value)
+                    ),
+                    ($last_as := $which),
+                    ($value := $!iter.pull-one)
+                  )
+                );
             }
-            method push-all($target --> IterationEnd) {
-                my Mu $value := $!iter.pull-one;
-                unless nqp::eqaddr($value,IterationEnd) {
-                    my $which;
-                    my $last_as := $!last_as;
-                    nqp::if(
-                      $!first,
-                      nqp::stmts(  # doesn't sink
-                        ($target.push($value)),
-                        ($which := &!as($value)),
-                        ($last_as := $which),
-                        ($value := $!iter.pull-one)
-                      )
-                    );
+        }
+        method is-lazy() { $!iter.is-lazy }
+    }
+    multi method squish( :&as!, :&with = &[===] ) {
+        Seq.new(Squish-As.new(self.iterator, &as, &with))
+    }
+
+    my class Squish-With does Iterator {
+        has Mu $!iter;
+        has &!with;
+        has Mu $!last;
+        has int $!first;
+        method !SET-SELF($!iter, &!with) {
+            $!first = 1;
+            self
+        }
+        method new(\iter, \with) { nqp::create(self)!SET-SELF(iter, with) }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
+              IterationEnd,
+              nqp::stmts(
+                nqp::if(
+                  $!first,
+                  ($!first = 0),
+                  nqp::stmts(
+                    (my $old := $pulled),
                     nqp::until(
-                      nqp::eqaddr($value,IterationEnd),
+                      nqp::isfalse(&!with($!last,$pulled))
+                        || nqp::eqaddr(
+                             ($pulled := $!iter.pull-one),
+                             IterationEnd
+                           ),
                       nqp::stmts(
-                        nqp::unless(  # doesn't sink
-                          with($last_as,$which := &!as($value)),
-                          $target.push($value)
-                        ),
-                        ($last_as := $which),
-                        ($value := $!iter.pull-one)
+                        ($!last := $old),
+                        ($old := $pulled)
                       )
-                    );
-                }
+                    )
+                  )
+                ),
+                ($!last := $pulled)
+              )
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            my Mu $value := $!iter.pull-one;
+            unless nqp::eqaddr($value,IterationEnd) {
+                my $last_val = $!last;
+                nqp::if(
+                  $!first,
+                  nqp::stmts(  # doesn't sink
+                    ($target.push($value)),
+                    ($last_val := $value),
+                    ($value := $!iter.pull-one)
+                  )
+                );
+                nqp::until(
+                  nqp::eqaddr($value,IterationEnd),
+                  nqp::stmts(
+                    nqp::unless(  # doesn't sink
+                      &!with($last_val, $value),
+                      $target.push($value)
+                    ),
+                    ($last_val := $value),
+                    ($value := $!iter.pull-one)
+                  )
+                );
             }
-            method is-lazy() { $!iter.is-lazy }
-        }.new(self.iterator, &as, &with))
+        }
+        method is-lazy() { $!iter.is-lazy }
     }
     multi method squish( :&with = &[===] ) {
-        Seq.new(class :: does Iterator {
-            has Mu $!iter;
-            has &!with;
-            has Mu $!last;
-            has int $!first;
-            method !SET-SELF($!iter, &!with) {
-                $!first = 1;
-                self
-            }
-            method new(\iter, \with) { nqp::create(self)!SET-SELF(iter, with) }
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
-                  IterationEnd,
-                  nqp::stmts(
-                    nqp::if(
-                      $!first,
-                      ($!first = 0),
-                      nqp::stmts(
-                        (my $old := $pulled),
-                        nqp::until(
-                          nqp::isfalse(with($!last,$pulled))
-                            || nqp::eqaddr(
-                                 ($pulled := $!iter.pull-one),
-                                 IterationEnd
-                               ),
-                          nqp::stmts(
-                            ($!last := $old),
-                            ($old := $pulled)
-                          )
-                        )
-                      )
-                    ),
-                    ($!last := $pulled)
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                my Mu $value := $!iter.pull-one;
-                unless nqp::eqaddr($value,IterationEnd) {
-                    my $last_val = $!last;
-                    nqp::if(
-                      $!first,
-                      nqp::stmts(  # doesn't sink
-                        ($target.push($value)),
-                        ($last_val := $value),
-                        ($value := $!iter.pull-one)
-                      )
-                    );
-                    nqp::until(
-                      nqp::eqaddr($value,IterationEnd),
-                      nqp::stmts(
-                        nqp::unless(  # doesn't sink
-                          with($last_val, $value),
-                          $target.push($value)
-                        ),
-                        ($last_val := $value),
-                        ($value := $!iter.pull-one)
-                      )
-                    );
-                }
-            }
-            method is-lazy() { $!iter.is-lazy }
-        }.new(self.iterator, &with))
+        Seq.new(Squish-With.new(self.iterator,&with))
     }
 
     proto method pairup(|) is nodal {*}

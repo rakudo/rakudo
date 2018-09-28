@@ -35,13 +35,13 @@ sub DYNAMIC(\name) is raw {
       nqp::getlexdyn(name),
       nqp::stmts(
         nqp::unless(
-          nqp::isnull(my $prom := nqp::getlexdyn('$*PROMISE')),
-          (my Mu $x := nqp::getlexreldyn(
-            nqp::getattr($prom,Promise,'$!dynamic_context'),name)
+          nqp::isnull(my \promise := nqp::getlexdyn('$*PROMISE')),
+          (my Mu \value := nqp::getlexreldyn(
+            nqp::getattr(promise,Promise,'$!dynamic_context'),name)
           )
         ),
         nqp::ifnull(
-          $x,
+          value,
           nqp::stmts(
             (my str $pkgname = nqp::replace(name,1,1,'')),
             nqp::ifnull(

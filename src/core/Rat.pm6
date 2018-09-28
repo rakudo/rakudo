@@ -11,7 +11,6 @@ my class Rat is Cool does Rational[Int, Int] {
             unless $d == 0 {
                 $d = $d div 5 while $d %% 5;
                 $d = $d div 2 while $d %% 2;
-                self.REDUCE-ME;
             }
             if $d == 1 and (my $b := self.base(10,*)).Numeric === self {
                 $b;
@@ -39,39 +38,45 @@ my class FatRat is Cool does Rational[Int, Int] {
 
 sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
     nqp::stmts(
-      (my Int $gcd         := de == 0 ?? 1 !! nu gcd de),
-      (my Int $numerator   := nu div $gcd),
-      (my Int $denominator := de div $gcd),
+      (my $numerator),
+      (my $denominator),
       nqp::if(
-        $denominator < 0,
+        de,
         nqp::stmts(
-          ($numerator   := -$numerator),
-          ($denominator := -$denominator))),
-      nqp::if(
-        nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),
-        nqp::p6bindattrinvres(
-          nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$numerator),
-          FatRat,'$!denominator',$denominator),
-        nqp::if(
-          $denominator < UINT64_UPPER,
-          nqp::p6bindattrinvres(
-            nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$numerator),
-            Rat,'$!denominator',$denominator),
-          nqp::p6box_n(nqp::div_In($numerator, $denominator)))))
+          (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
+          ($numerator   := nqp::div_I(nqp::decont(nu), $gcd, Int)),
+          ($denominator := nqp::div_I(nqp::decont(de), $gcd, Int)),
+          nqp::if(
+            nqp::islt_I($denominator, 0),
+            nqp::stmts(
+              ($numerator   := nqp::neg_I($numerator, Int)),
+              ($denominator := nqp::neg_I($denominator, Int))))),
+        nqp::stmts(
+          ($numerator   := nqp::box_i(
+            nqp::isgt_I(nqp::decont(nu), 0) ?? 1 !! nu ?? -1 !! 0, Int)),
+          ($denominator := nqp::decont(de)))),
+      RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE
+        $numerator, $denominator, t1, t2)
 }
 
-sub DON'T_DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
-    nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat)
-        ?? nqp::p6bindattrinvres(
-              nqp::p6bindattrinvres(
-                  nqp::create(FatRat),
-                  FatRat, '$!numerator', nqp::decont(nu)),
-              FatRat, '$!denominator', nqp::decont(de))
-        !! nqp::p6bindattrinvres(
-              nqp::p6bindattrinvres(
-                  nqp::create(Rat),
-                  Rat, '$!numerator', nqp::decont(nu)),
-              Rat, '$!denominator', nqp::decont(de))
+# ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot
+# ever get a non-normalized Rational, if we start with a normalized Rational.
+# For such cases, we can use this routine, to bypass normalization step,
+# which would be useless.
+sub RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(\nu, \de, \t1, \t2) {
+    nqp::if(
+      nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),
+      nqp::p6bindattrinvres(
+        nqp::p6bindattrinvres(nqp::create(FatRat),
+          FatRat,'$!numerator',nu),
+        FatRat,'$!denominator',de),
+      nqp::if(
+        nqp::islt_I(de, UINT64_UPPER),
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(Rat),
+            Rat,'$!numerator',nu),
+          Rat,'$!denominator',de),
+        nqp::p6box_n(nqp::div_In(nu, de))))
 }
 
 multi sub prefix:<->(Rat:D \a) {
@@ -82,55 +87,49 @@ multi sub prefix:<->(FatRat:D \a) {
 }
 
 multi sub infix:<+>(Rational:D \a, Rational:D \b) {
-    a.denominator == b.denominator
-        ?? DON'T_DIVIDE_NUMBERS(a.numerator + b.numerator, a.denominator, a, b)
-        !! DIVIDE_NUMBERS
-            a.numerator*b.denominator + b.numerator*a.denominator,
-            a.denominator*b.denominator,
-            a,
-            b
+    DIVIDE_NUMBERS
+        a.numerator*b.denominator + b.numerator*a.denominator,
+        a.denominator*b.denominator,
+        a,
+        b
 }
 multi sub infix:<+>(Rational:D \a, Int:D \b) {
-    DON'T_DIVIDE_NUMBERS(
-        (a.numerator + b * a.denominator),
+    DIVIDE_NUMBERS
+        a.numerator + b*a.denominator,
         a.denominator,
         a,
-        b,
-    );
+        b
 }
 multi sub infix:<+>(Int:D \a, Rational:D \b) {
-    DON'T_DIVIDE_NUMBERS(
-        (a * b.denominator + b.numerator),
+    DIVIDE_NUMBERS
+        a*b.denominator + b.numerator,
         b.denominator,
         a,
-        b,
-    );
+        b
 }
 
 multi sub infix:<->(Rational:D \a, Rational:D \b) {
-    a.denominator == b.denominator
-        ?? DON'T_DIVIDE_NUMBERS(a.numerator - b.numerator, a.denominator, a, b)
-        !! DIVIDE_NUMBERS
-            a.numerator*b.denominator - b.numerator*a.denominator,
-            a.denominator*b.denominator,
-            a,
-            b
+    DIVIDE_NUMBERS
+        a.numerator*b.denominator - b.numerator*a.denominator,
+        a.denominator*b.denominator,
+        a,
+        b
 }
 
 multi sub infix:<->(Rational:D \a, Int:D \b) {
-    DON'T_DIVIDE_NUMBERS
+    DIVIDE_NUMBERS
         a.numerator - b * a.denominator,
         a.denominator,
         a,
-        b;
+        b
 }
 
 multi sub infix:<->(Int:D \a, Rational:D \b) {
-    DON'T_DIVIDE_NUMBERS
+    DIVIDE_NUMBERS
         a * b.denominator - b.numerator,
         b.denominator,
         a,
-        b;
+        b
 }
 
 multi sub infix:<*>(Rational:D \a, Rational:D \b) {
@@ -138,7 +137,7 @@ multi sub infix:<*>(Rational:D \a, Rational:D \b) {
         a.numerator * b.numerator,
         a.denominator * b.denominator,
         a,
-        b;
+        b
 }
 
 multi sub infix:<*>(Rational:D \a, Int:D \b) {
@@ -146,7 +145,7 @@ multi sub infix:<*>(Rational:D \a, Int:D \b) {
         a.numerator * b,
         a.denominator,
         a,
-        b;
+        b
 }
 
 multi sub infix:<*>(Int:D \a, Rational:D \b) {
@@ -154,7 +153,7 @@ multi sub infix:<*>(Int:D \a, Rational:D \b) {
         a * b.numerator,
         b.denominator,
         a,
-        b;
+        b
 }
 
 multi sub infix:</>(Rational:D \a, Rational:D \b) {
@@ -162,7 +161,7 @@ multi sub infix:</>(Rational:D \a, Rational:D \b) {
         a.numerator * b.denominator,
         a.denominator * b.numerator,
         a,
-        b;
+        b
 }
 
 multi sub infix:</>(Rational:D \a, Int:D \b) {
@@ -170,16 +169,15 @@ multi sub infix:</>(Rational:D \a, Int:D \b) {
         a.numerator,
         a.denominator * b,
         a,
-        b;
+        b
 }
 
 multi sub infix:</>(Int:D \a, Rational:D \b) {
-    b.REDUCE-ME; # RT #126391: [BUG] Bad "divide by 0" error message
     DIVIDE_NUMBERS
         b.denominator * a,
         b.numerator,
         a,
-        b;
+        b
 }
 
 multi sub infix:</>(Int:D \a, Int:D \b) {
@@ -199,40 +197,50 @@ multi sub infix:<%>(Rational:D \a, Rational:D \b) {
 }
 
 multi sub infix:<**>(Rational:D \a, Int:D \b) {
-    b >= 0
-        ?? DIVIDE_NUMBERS
-            (a.numerator ** b // fail (a.numerator.abs > a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),
-            a.denominator ** b,  # we presume it likely already blew up on the numerator
-            a,
-            b
-        !! DIVIDE_NUMBERS
-            (a.denominator ** -b // fail (a.numerator.abs < a.denominator ?? X::Numeric::Overflow !! X::Numeric::Underflow).new),
-            a.numerator ** -b,
-            a,
-            b
+    my $nu;
+    my $de;
+    nqp::if(
+      nqp::isge_I(nqp::decont(b), 0),
+        nqp::if( # if we got Inf
+          nqp::istype(($nu := nqp::pow_I(a.numerator, nqp::decont(b), Num, Int)), Num),
+          Failure.new(X::Numeric::Overflow.new),
+          nqp::if( # if we got Inf
+            nqp::istype(($de := nqp::pow_I(a.denominator, nqp::decont(b), Num, Int)), Num),
+            Failure.new(X::Numeric::Overflow.new),
+            RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $nu, $de, a, b)),
+        nqp::if( # if we got Inf
+          nqp::istype(($nu := nqp::pow_I(a.numerator,
+            nqp::neg_I(nqp::decont(b), Int), Num, Int)), Num),
+          Failure.new(X::Numeric::Underflow.new),
+          nqp::if( # if we got Inf
+            nqp::istype(($de := nqp::pow_I(a.denominator,
+              nqp::neg_I(nqp::decont(b), Int), Num, Int)), Num),
+            Failure.new(X::Numeric::Underflow.new),
+            RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $de, $nu, a, b)))
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b) {
-    nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
-        ?? a.Num == b.Num
-        !! a.numerator * b.denominator == b.numerator * a.denominator
+    nqp::hllbool(
+      nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
+        ?? nqp::iseq_I(a.numerator, b.numerator)
+          && nqp::istrue(a.numerator) # NaN != NaN
+        !! nqp::iseq_I(
+            nqp::mul_I(a.numerator, b.denominator, Int),
+            nqp::mul_I(b.numerator, a.denominator, Int)))
 }
 multi sub infix:<==>(Rational:D \a, Int:D \b) {
-    a.REDUCE-ME;
-    a.numerator == b && a.denominator == 1
+    nqp::hllbool(
+      nqp::iseq_I(a.numerator, nqp::decont(b)) && nqp::iseq_I(a.denominator, 1))
 }
 multi sub infix:<==>(Int:D \a, Rational:D \b) {
-    b.REDUCE-ME;
-    a == b.numerator && b.denominator == 1;
+    nqp::hllbool(
+      nqp::iseq_I(nqp::decont(a), b.numerator) && nqp::iseq_I(b.denominator, 1))
 }
 multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
-    # Check whether we have 0-denominator rationals as well. Those can
-    # be `==` but have different numerator values and so should not `===` True.
-    # Since we're already checking equality first, we only need to check the
-    # zeroeness of the denominator of just one parameter
-    a.WHAT =:= b.WHAT
-        && (a == b || (a.isNaN && b.isNaN))
-        && (a.denominator.Bool || a.numerator == b.numerator)
+    nqp::hllbool(
+      nqp::eqaddr(a.WHAT, b.WHAT)
+        && nqp::iseq_I(a.numerator,   b.numerator)
+        && nqp::iseq_I(a.denominator, b.denominator))
 }
 
 multi sub infix:«<»(Rational:D \a, Rational:D \b) {

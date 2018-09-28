@@ -362,10 +362,27 @@ do {
         my $e := EXCEPTION($ex);
 
         if %*ENV<RAKUDO_EXCEPTIONS_HANDLER> -> $handler {
+            # REMOVE DEPRECATED CODE ON 201907
+            Rakudo::Deprecations.DEPRECATED: "PERL6_EXCEPTIONS_HANDLER", Nil,
+                '2019.07', :file("N/A"), :line("N/A"),
+                :what<RAKUDO_EXCEPTIONS_HANDLER env var>;
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
-                return unless $class.process($e)
+                unless $class.process($e) {
+                    nqp::getcurhllsym('&THE_END')();
+                    return
+                }
+            }
+        }
+        if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
+            my $class := ::("Exceptions::$handler");
+            unless nqp::istype($class,Failure) {
+                temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping
+                unless $class.process($e) {
+                    nqp::getcurhllsym('&THE_END')();
+                    return
+                }
             }
         }
 
@@ -1389,6 +1406,14 @@ my class X::Syntax::KeywordAsFunction does X::Syntax {
     }
 }
 
+my class X::Syntax::ParentAsHash does X::Syntax {
+    has $.parent;
+    method message() {
+        "Syntax error while specifying a parent class:\n"
+        ~ "Must specify a space between {$.parent.^name} and \{";
+    }
+}
+
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
     method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }
@@ -2134,7 +2159,11 @@ my class X::Cannot::Capture is Exception {
 
 my class X::Backslash::UnrecognizedSequence does X::Syntax {
     has $.sequence;
-    method message() { "Unrecognized backslash sequence: '\\$.sequence'" }
+    has $.suggestion;
+    method message() {
+        "Unrecognized backslash sequence: '\\$.sequence'"
+        ~ (nqp::defined($!suggestion) ?? ". Did you mean $!suggestion?" !! '')
+    }
 }
 
 my class X::Backslash::NonVariableDollar does X::Syntax {
@@ -2161,7 +2190,7 @@ my class X::ControlFlow::Return is X::ControlFlow {
     method message()   {
         'Attempt to return outside of ' ~ (
             $!out-of-dynamic-scope
-              ?? 'immediatelly-enclosing Routine (i.e. `return` execution is'
+              ?? 'immediately-enclosing Routine (i.e. `return` execution is'
                ~ ' outside the dynamic scope of the Routine where `return` was used)'
               !! 'any Routine'
         )
@@ -2260,11 +2289,16 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method message {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to $.symbol" !! "";
-        my $expected = $.expected =:= $.got
-            ?? "expected type $.expectedn cannot be itself " ~
-               "(perhaps Nil was assigned to a :D which had no default?)"
+        my $is-itself := $.expected =:= $.got;
+        my $expected = $is-itself
+            ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
-        self.priors() ~ "Type check failed in assignment$to; $expected";
+        my $maybe-Nil := $is-itself
+          || nqp::istype($.expected.HOW, Metamodel::DefiniteHOW)
+          && $.expected.^base_type =:= $.got
+          ?? ' (perhaps Nil was assigned to a :D which had no default?)' !! '';
+
+        self.priors() ~ "Type check failed in assignment$to; $expected$maybe-Nil"
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {

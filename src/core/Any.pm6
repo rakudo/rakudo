@@ -18,7 +18,7 @@ my class Any { # declared in BOOTSTRAP
     multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
     multi method ACCEPTS(Any:D: Mu:U $ --> False) { }
     multi method ACCEPTS(Any:U: Any \topic) { # use of Any on topic to force autothreading
-        nqp::p6bool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
+        nqp::hllbool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
     }
 
     proto method EXISTS-KEY(|) is nodal {*}
@@ -221,7 +221,7 @@ my class Any { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-POS(Any:D: int \pos) {
-        nqp::p6bool(nqp::iseq_i(pos,0));
+        nqp::hllbool(nqp::iseq_i(pos,0));
     }
     multi method EXISTS-POS(Any:D: Int:D \pos) {
         pos == 0;
@@ -251,30 +251,10 @@ my class Any { # declared in BOOTSTRAP
 
     proto method AT-POS(|) is nodal {*}
     multi method AT-POS(Any:U \SELF: int \pos) is raw {
-        nqp::p6bindattrinvres(
-          my $scalar,
-          Scalar,
-          '$!whence',
-          -> { nqp::if(
-                 nqp::isconcrete(SELF),
-                 SELF,
-                 (SELF = Array.new)
-               ).BIND-POS(pos, $scalar)
-             }
-        )
+        nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
     }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
-        nqp::p6bindattrinvres(
-          my $scalar,
-          Scalar,
-          '$!whence',
-          -> { nqp::if(
-                 nqp::isconcrete(SELF),
-                 SELF,
-                 (SELF = Array.new)
-               ).BIND-POS(pos, $scalar)
-             }
-        )
+        nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
@@ -405,21 +385,7 @@ my class Any { # declared in BOOTSTRAP
         )
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
-        nqp::p6bindattrinvres(
-          my $scalar,
-          Scalar,
-          '$!whence',
-          # NOTE: even though the signature indicates a non-concrete SELF,
-          # by the time the below code is executed, it *may* have become
-          # concrete: and then we don't want the execution to reset it to
-          # an empty Hash.
-          -> { nqp::if(
-                 nqp::isconcrete(SELF),
-                 SELF,
-                 (SELF = nqp::create(Hash))
-               ).BIND-KEY(key, $scalar)
-             }
-        )
+        nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyHash.new(SELF, key))
     }
 
     proto method BIND-KEY(|) is nodal {*}
@@ -488,7 +454,7 @@ Metamodel::ClassHOW.exclude_parent(Any);
 proto sub infix:<===>($?, $?, *%) is pure {*}
 multi sub infix:<===>($?)    { Bool::True }
 multi sub infix:<===>(\a, \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(nqp::decont(a),nqp::decont(b))
       || (nqp::eqaddr(a.WHAT,b.WHAT)
            && nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH)))

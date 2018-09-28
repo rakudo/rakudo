@@ -1,3 +1,5 @@
+#!/usr/bin/env perl6
+
 # This script reads the Rakudo/Internals.pm6 file from STDIN, and generates
 # the necessary lookup hashes for making magic Str .succ / .pred work, and
 # writes it to STDOUT.

@@ -20,9 +20,17 @@
 # See the "make quicktest" and "make stresstest" targets in
 # build/Makefile.in for examples of use.
 
+APPENDICES/A01-limits/overflow.t
+APPENDICES/A01-limits/misc.t
+APPENDICES/A02-some-day-maybe/io-cathandle.t
+APPENDICES/A02-some-day-maybe/multi-no-match.t
+APPENDICES/A02-some-day-maybe/concreteness.t
+APPENDICES/A03-older-specs/01-misc.t
 MISC/bug-coverage.t
 MISC/bug-coverage-6.d.t
 MISC/bug-coverage-stress.t                  # stress
+MISC/bug-coverage-stress-6.d.t              # stress
+MISC/misc-6.d.t
 S01-perl-5-integration/array.t              # perl5
 S01-perl-5-integration/basic.t              # perl5
 S01-perl-5-integration/class.t              # perl5
@@ -191,6 +199,7 @@ S03-junctions/misc.t
 S03-metaops/cross.t
 S03-metaops/eager-hyper.t
 S03-metaops/hyper.t
+S03-metaops/misc.t
 S03-metaops/not.t
 S03-metaops/reduce.t
 S03-metaops/reverse.t
@@ -308,7 +317,7 @@ S04-exception-handlers/catch.t
 S04-exception-handlers/control.t
 S04-exception-handlers/top-level.t
 S04-exceptions/control_across_runloop.t
-S04-exceptions/exceptions-json.t
+S04-exceptions/exceptions-alternatives.t
 S04-exceptions/fail.t
 S04-exceptions/pending.t
 S04-phasers/ascending-order.t
@@ -927,6 +936,7 @@ S26-documentation/01-delimited.t
 S26-documentation/02-paragraph.t
 S26-documentation/03-abbreviated.t
 S26-documentation/04-code.t
+S26-documentation/04a-input-output.t
 S26-documentation/05-comment.t
 S26-documentation/06-lists.t
 S26-documentation/07-tables.t
@@ -936,6 +946,8 @@ S26-documentation/07c-tables.t
 S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t
+S26-documentation/14-defn.t
+S26-documentation/15-numbered-alias.t
 S26-documentation/block-leading.t
 S26-documentation/block-trailing.t
 S26-documentation/module-comment.t
@@ -991,6 +1003,7 @@ S32-container/roundrobin.t
 S32-container/stringify.t
 S32-container/zip.t
 S32-encoding/encoder.t
+S32-encoding/decoder.t
 S32-encoding/registry.t
 S32-exceptions/misc.t
 S32-exceptions/misc2.t
@@ -1036,11 +1049,13 @@ S32-io/io-path.t
 S32-io/io-path-extension.t
 S32-io/IO-Socket-INET.t
 S32-io/move.t
+S32-io/mkdir_rmdir.t
 S32-io/native-descriptor.t  # moar
 S32-io/note.t
 S32-io/null-char.t
 S32-io/open.t
 S32-io/other.t
+S32-io/other-stress.t
 S32-io/out-buffering.t
 S32-io/pipe.t
 S32-io/rename.t

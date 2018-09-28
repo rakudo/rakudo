@@ -56,7 +56,7 @@ my class Backtrace::Frame {
         ?$!code.?is-hidden-from-backtrace
     }
     method is-routine(Backtrace::Frame:D:) {
-        nqp::p6bool(nqp::istype($!code,Routine))
+        nqp::hllbool(nqp::istype($!code,Routine))
     }
     method is-setting(Backtrace::Frame:D:) {
         $!file.starts-with("SETTING::")

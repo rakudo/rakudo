@@ -12,29 +12,25 @@ multi sub infix:<(-)>(Any $a)         { $a.Set } # also for Iterable/Map
 
 multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
-      nqp::if(                                 # elems in $a
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
-        nqp::create(Set).SET-SELF(             # both have elems
-          Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
-        ),
-        $a.Set,                                # no elems in $b
+      (my $araw := $a.RAW-HASH) && nqp::elems($araw)
+        && (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+      nqp::create($a.Setty).SET-SELF(             # both have elems
+        Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
       ),
-      set()                                    # no elems in $a
+      $a                                     # no elems in $a or $b
     )
 }
 multi sub infix:<(-)>(Setty:D $a, Map:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw),
-      nqp::create(Set).SET-SELF(                          # elems in $a
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::create($a.Setty).SET-SELF(                     # elems in $a
         nqp::if(
-          (my $braw := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-            && nqp::elems($braw),
-          Rakudo::QuantHash.SUB-MAP-FROM-SET($araw, $b),  # both have elems
-          nqp::clone($araw)                               # no elems in $b
+          nqp::elems(my \braw := nqp::getattr(nqp::decont($b),Map,'$!storage')),
+          Rakudo::QuantHash.SUB-MAP-FROM-SET(araw, $b),   # both have elems
+          nqp::clone(araw)                                # no elems in $b
         )
       ),
-      set()                                               # no elems in $a
+      $a                                                  # no elems in $a
     )
 }
 multi sub infix:<(-)>(Setty:D $a, Iterable:D $b) {
@@ -43,10 +39,10 @@ multi sub infix:<(-)>(Setty:D $a, Iterable:D $b) {
       Failure.new(X::Cannot::Lazy.new(:action('difference'),:what<set>)),
       nqp::if(
         (my $raw := $a.RAW-HASH) && nqp::elems($raw),
-        nqp::create(Set).SET-SELF(
+        nqp::create($a.Setty).SET-SELF(                   # elems in $b
           Rakudo::QuantHash.SUB-PAIRS-FROM-SET($raw, $iterator)
         ),
-        set()
+        $a                                                # no elems in $b
       )
     )
 }
@@ -57,7 +53,7 @@ multi sub infix:<(-)>(Mixy:D $a, QuantHash:D $b) {
     Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b)
 }
 multi sub infix:<(-)>(QuantHash:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mixy, $b)
 }
 multi sub infix:<(-)>(Mixy:D $a, Map:D $b) {
     Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b.Set)
@@ -69,7 +65,7 @@ multi sub infix:<(-)>(Any:D $a, Mixy:D $b) {
     Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
 }
 multi sub infix:<(-)>(Baggy:D $a, Mixy:D $b) {   # needed as tie-breaker
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mixy, $b)
 }
 multi sub infix:<(-)>(Baggy:D $a, Baggy:D $b) {  # needed as tie-breaker
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b)
@@ -78,7 +74,7 @@ multi sub infix:<(-)>(Baggy:D $a, QuantHash:D $b) {
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b)
 }
 multi sub infix:<(-)>(QuantHash:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Baggy, $b)
 }
 multi sub infix:<(-)>(Baggy:D $a, Map:D $b) {
     Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Bag)
@@ -133,6 +129,11 @@ multi sub infix:<(-)>(**@p) {
           Mix,
           nqp::if(nqp::istype($p,Baggy),Bag,Set)
         )),
+        (my $mutable :=
+             nqp::eqaddr($p.WHAT,MixHash)
+          || nqp::eqaddr($p.WHAT,BagHash)
+          || nqp::eqaddr($p.WHAT,SetHash)
+        ),
         (my $elems := nqp::if(
           nqp::istype($p,Baggy),
           nqp::if(                               # already have a Baggy, clone
@@ -213,6 +214,14 @@ multi sub infix:<(-)>(**@p) {
                 nqp::deletekey($elems,nqp::iterkey_s($iter))  # not valid in Bag
               )
             )
+          )
+        ),
+        nqp::if(                                 # set to mutable if so started
+          $mutable,
+          $type := nqp::if(
+            nqp::eqaddr($type,Mix),
+            MixHash,
+            nqp::if(nqp::eqaddr($type,Bag),BagHash,SetHash)
           )
         ),
         nqp::create($type).SET-SELF($elems)

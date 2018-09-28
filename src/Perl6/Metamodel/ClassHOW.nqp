@@ -219,7 +219,7 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method role_typecheck_list($obj) {
-        @!role_typecheck_list
+        $!composed ?? @!role_typecheck_list !! self.roles_to_compose($obj)
     }
 
     method concretization($obj, $ptype) {

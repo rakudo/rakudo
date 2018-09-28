@@ -39,7 +39,7 @@ my class Int does Real { # declared in BOOTSTRAP
         self.Str;
     }
     multi method Bool(Int:D:) {
-        nqp::p6bool(nqp::bool_I(self));
+        nqp::hllbool(nqp::bool_I(self));
     }
 
     method Capture() { die X::Cannot::Capture.new: :what(self) }
@@ -72,7 +72,7 @@ my class Int does Real { # declared in BOOTSTRAP
     method chr(Int:D:) {
         nqp::if(
           nqp::isbig_I(self),
-            die("chr codepoint %i (0x%X) is too large".sprintf(self, self)),
+            die("Error encoding UTF-8 string: could not encode codepoint %i (0x%X), codepoint out of bounds.".sprintf(self, self)),
           nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
         )
     }
@@ -137,7 +137,7 @@ my class Int does Real { # declared in BOOTSTRAP
     method expmod(Int:D: Int:D \base, Int:D \mod) {
         nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }
-    method is-prime(--> Bool:D) { nqp::p6bool(nqp::isprime_I(self,100)) }
+    method is-prime(--> Bool:D) { nqp::hllbool(nqp::isprime_I(self,100)) }
 
     method floor(Int:D:) { self }
     method ceiling(Int:D:) { self }
@@ -358,7 +358,7 @@ multi sub infix:<gcd>(int $a, int $b --> int) {
 }
 
 multi sub infix:<===>(Int:D \a, Int:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a.WHAT,b.WHAT)
       && nqp::iseq_I(nqp::decont(a), nqp::decont(b))
     )
@@ -369,40 +369,41 @@ multi sub infix:<===>(int $a, int $b) {
 }
 
 multi sub infix:<==>(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::iseq_I(nqp::decont(a), nqp::decont(b)))
+    nqp::hllbool(nqp::iseq_I(nqp::decont(a), nqp::decont(b)))
 }
 multi sub infix:<==>(int $a, int $b) {
-    nqp::p6bool(nqp::iseq_i($a, $b))
+    nqp::hllbool(nqp::iseq_i($a, $b))
 }
 
-multi sub infix:<!=>(int $a, int $b) { nqp::p6bool(nqp::isne_i($a, $b)) }
+multi sub infix:<!=>(int $a, int $b) { nqp::hllbool(nqp::isne_i($a, $b)) }
+multi sub infix:<!=>(Int:D \a, Int:D \b) { nqp::hllbool(nqp::isne_I(nqp::decont(a), nqp::decont(b))) }
 
 multi sub infix:«<»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::islt_I(nqp::decont(a), nqp::decont(b)))
+    nqp::hllbool(nqp::islt_I(nqp::decont(a), nqp::decont(b)))
 }
 multi sub infix:«<»(int $a, int $b) {
-    nqp::p6bool(nqp::islt_i($a, $b))
+    nqp::hllbool(nqp::islt_i($a, $b))
 }
 
 multi sub infix:«<=»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isle_I(nqp::decont(a), nqp::decont(b)))
+    nqp::hllbool(nqp::isle_I(nqp::decont(a), nqp::decont(b)))
 }
 multi sub infix:«<=»(int $a, int $b) {
-    nqp::p6bool(nqp::isle_i($a, $b))
+    nqp::hllbool(nqp::isle_i($a, $b))
 }
 
 multi sub infix:«>»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isgt_I(nqp::decont(a), nqp::decont(b)))
+    nqp::hllbool(nqp::isgt_I(nqp::decont(a), nqp::decont(b)))
 }
 multi sub infix:«>»(int $a, int $b) {
-    nqp::p6bool(nqp::isgt_i($a, $b))
+    nqp::hllbool(nqp::isgt_i($a, $b))
 }
 
 multi sub infix:«>=»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isge_I(nqp::decont(a), nqp::decont(b)))
+    nqp::hllbool(nqp::isge_I(nqp::decont(a), nqp::decont(b)))
 }
 multi sub infix:«>=»(int $a, int $b) {
-    nqp::p6bool(nqp::isge_i($a, $b))
+    nqp::hllbool(nqp::isge_i($a, $b))
 }
 
 multi sub infix:<+|>(Int:D \a, Int:D \b) {

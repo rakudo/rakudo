@@ -472,8 +472,8 @@ my class Binder {
                     }
 
                     # If it's a scalar, we always need to wrap it into a new
-                    # container and store it, for copy or ro case (the rw bit
-                    # in the container descriptor takes care of the rest).
+                    # container and store it; the container descriptor will be
+                    # provided and make it rw if it's an `is copy`.
                     else {
                         my $new_cont := nqp::create(Scalar);
                         nqp::bindattr($new_cont, Scalar, '$!descriptor',
@@ -741,10 +741,11 @@ my class Binder {
             elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
                 # We'll either take the current named arguments copy hash which
                 # will by definition contain all unbound named arguments and use
-                # that. Otherwise, putting Mu in there is fine; Hash is smart
-                # enough to know what to do.
+                # that. If there are none, just keep the storage uninitialized
+                # and rely on autovivification to build up an empty nqp::hash
+                # whenever needed.
                 my $hash := nqp::create(Hash);
-                nqp::bindattr($hash, Map, '$!storage', $named_args || Mu);
+                nqp::bindattr($hash, Map, '$!storage', $named_args) if $named_args;
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;
@@ -1121,6 +1122,231 @@ my class Binder {
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
 
+# Container descriptors come here so that they can refer to Perl 6 types.
+class ContainerDescriptor {
+    has     $!of;
+    has str $!name;
+    has     $!default;
+    has int $!dynamic;
+
+    method BUILD(:$of, str :$name, :$default, int :$dynamic) {
+        $!of := $of;
+        $!name := $name;
+        $!default := $default;
+        $!dynamic := $dynamic;
+    }
+
+    method of() { $!of }
+    method name() { $!name }
+    method default() { $!default }
+    method dynamic() { $!dynamic }
+
+    method set_of($of) { $!of := $of; self }
+    method set_default($default) { $!default := $default; self }
+    method set_dynamic($dynamic) { $!dynamic := $dynamic; self }
+
+    method is_generic() {
+        $!of.HOW.archetypes.generic
+    }
+
+    method instantiate_generic($type_environment) {
+        my $ins_of := $!of.HOW.instantiate_generic($!of, $type_environment);
+        my $ins := nqp::clone(self);
+        nqp::bindattr($ins, $?CLASS, '$!of', $ins_of);
+        $ins
+    }
+}
+role ContainerDescriptor::Whence {
+    has $!next-descriptor;
+
+    method next() {
+        my $next := $!next-descriptor;
+        nqp::isconcrete($next)
+            ?? $next
+            !! ($!next-descriptor := nqp::gethllsym('perl6', 'default_cont_spec'))
+    }
+    method of() { self.next.of }
+    method default() { self.next.default }
+    method dynamic() { self.next.dynamic }
+}
+class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
+    has $!target;
+    has int $!pos;
+
+    method new($desc, $target, int $pos) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos,
+            '$!target', $target);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos,
+            '$!pos', $pos);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindpos($!target, $!pos, $scalar);
+    }
+}
+class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
+    has $!target;
+    has int $!one;
+    has int $!two;
+
+    method new($desc, $target, int $one, int $two) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos2D,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos2D,
+            '$!target', $target);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos2D,
+            '$!one', $one);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos2D,
+            '$!two', $two);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindpos2d($!target, $!one, $!two, $scalar);
+    }
+}
+class ContainerDescriptor::BindArrayPos3D does ContainerDescriptor::Whence {
+    has $!target;
+    has int $!one;
+    has int $!two;
+    has int $!three;
+
+    method new($desc, $target, int $one, int $two, int $three) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos3D,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPos3D,
+            '$!target', $target);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos3D,
+            '$!one', $one);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos3D,
+            '$!two', $two);
+        nqp::bindattr_i($self, ContainerDescriptor::BindArrayPos3D,
+            '$!three', $three);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindpos3d($!target, $!one, $!two, $!three, $scalar);
+    }
+}
+class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
+    has $!target;
+    has $!idxs;
+
+    method new($desc, $target, $idxs) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPosND,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPosND,
+            '$!target', $target);
+        nqp::bindattr($self, ContainerDescriptor::BindArrayPosND,
+            '$!idxs', $idxs);
+        $self
+    }
+
+    method assigned($scalar) {
+        nqp::bindposnd($!target, $!idxs, $scalar);
+    }
+}
+class ContainerDescriptor::BindHashPos does ContainerDescriptor::Whence {
+    has $!target;
+    has $!key;
+
+    method new($desc, $target, $key) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindHashPos,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindHashPos,
+            '$!target', $target);
+        nqp::bindattr($self, ContainerDescriptor::BindHashPos,
+            '$!key', $key);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $hash := nqp::getattr($!target, Map, '$!storage');
+        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash())
+            unless nqp::isconcrete($hash);
+        nqp::bindkey($hash, $!key, $scalar);
+    }
+}
+class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
+    has $!target;
+    has $!key;
+    has $!which;
+    has $!pair;
+
+    method new($desc, $target, $key, $which, $pair) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!next-descriptor', $desc);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!target', $target);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!key', $key);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!which', $which);
+        nqp::bindattr($self, ContainerDescriptor::BindObjHashKey,
+            '$!pair', $pair);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $hash := nqp::getattr($!target, Map, '$!storage');
+        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash())
+            unless nqp::isconcrete($hash);
+        nqp::bindkey($hash, $!which, $!pair.new($!key, $scalar));
+    }
+}
+class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
+    has $!target;
+    has int $!pos;
+
+    method new($target, int $pos) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::VivifyArray,
+            '$!target', $target);
+        nqp::bindattr_i($self, ContainerDescriptor::VivifyArray,
+            '$!pos', $pos);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $target := $!target;
+        my $array := nqp::isconcrete($target)
+            ?? $target
+            !! nqp::assign($target, Array.new);
+        $array.BIND-POS($!pos, $scalar);
+    }
+}
+class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
+    has $!target;
+    has $!key;
+
+    method new($target, $key) {
+        my $self := nqp::create(self);
+        nqp::bindattr($self, ContainerDescriptor::VivifyHash,
+            '$!target', $target);
+        nqp::bindattr($self, ContainerDescriptor::VivifyHash,
+            '$!key', $key);
+        $self
+    }
+
+    method assigned($scalar) {
+        my $target := $!target;
+        my $array := nqp::isconcrete($target)
+            ?? $target
+            !! nqp::assign($target, Hash.new);
+        $array.BIND-KEY($!key, $scalar);
+    }
+}
+
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {
@@ -1182,7 +1408,11 @@ BEGIN {
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
             nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
-            if nqp::existskey(%other, 'container_descriptor') {
+            if nqp::existskey(%other, 'auto_viv_primitive') {
+                nqp::bindattr($attr, Attribute, '$!auto_viv_container',
+                    %other<auto_viv_primitive>);
+            }
+            elsif nqp::existskey(%other, 'container_descriptor') {
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', %other<container_descriptor>);
                 if nqp::existskey(%other, 'auto_viv_container') {
                     nqp::bindattr($attr, Attribute, '$!auto_viv_container',
@@ -1190,8 +1420,7 @@ BEGIN {
                 }
             }
             else {
-                my $cd := Perl6::Metamodel::ContainerDescriptor.new(
-                    :of($type), :rw(1), :name($name));
+                my $cd := ContainerDescriptor.new(:of($type), :$name);
                 my $scalar := nqp::create(Scalar);
                 nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
                 nqp::bindattr($scalar, Scalar, '$!value', $type);
@@ -1226,27 +1455,28 @@ BEGIN {
                 Attribute, '$!auto_viv_container');
         }));
     Attribute.HOW.add_method(Attribute, 'has_accessor', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!has_accessor'));
+            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!has_accessor'), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'rw', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!rw'));
+            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!rw'), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'set_rw', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!rw', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_readonly', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!ro', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {
+            $*W.add_object_if_no_sc($value);
             nqp::bindattr(nqp::decont($self),
                 Attribute, '$!required', $value);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'required', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
@@ -1257,7 +1487,7 @@ BEGIN {
             unless nqp::getattr_i($dcself, Attribute, '$!ro') {
                 nqp::bindattr_i($dcself, Attribute, '$!rw', 1);
             }
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_build', nqp::getstaticcode(sub ($self, $closure) {
             nqp::bindattr(nqp::decont($self), Attribute, '$!build_closure', $closure);
@@ -1270,7 +1500,7 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'set_box_target', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!box_target', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'box_target', nqp::getstaticcode(sub ($self) {
             nqp::getattr_i(nqp::decont($self),
@@ -1294,7 +1524,7 @@ BEGIN {
                 Attribute, '$!package');
             my $build := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!build_closure');
-            nqp::p6bool($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build));
+            nqp::hllboolfor($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             my $dcself   := nqp::decont($self);
@@ -1309,9 +1539,8 @@ BEGIN {
                     $type.HOW.instantiate_generic($type, $type_environment));
                 my $cd_ins := $cd.instantiate_generic($type_environment);
                 nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
-                my $avc_var  := nqp::p6var($avc);
-                my $avc_copy := nqp::clone($avc_var);
-                my @avc_mro  := $avc_var.HOW.mro($avc_var);
+                my $avc_copy := nqp::clone_nd($avc);
+                my @avc_mro  := nqp::how_nd($avc).mro($avc);
                 my int $i := 0;
                 $i := $i + 1 while @avc_mro[$i].HOW.is_mixin(@avc_mro[$i]);
                 nqp::bindattr($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins);
@@ -1331,11 +1560,9 @@ BEGIN {
     # class Scalar is Any {
     #     has Mu $!descriptor;
     #     has Mu $!value;
-    #     has Mu $!whence;
     Scalar.HOW.add_parent(Scalar, Any);
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
-    Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!whence>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_method(Scalar, 'is_generic', nqp::getstaticcode(sub ($self) {
         my $dcself := nqp::decont($self);
         nqp::getattr($dcself, Scalar, '$!descriptor').is_generic()
@@ -1354,8 +1581,97 @@ BEGIN {
     }));
     Scalar.HOW.compose_repr(Scalar);
 
-    # Scalar needs to be registered as a container type.
-    nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::null());
+    # To preserve historical behavior, we never repossess a Scalar container.
+    nqp::neverrepossess(Scalar);
+
+    # Scalar needs to be registered as a container type. Also provide the
+    # slow-path implementation of various container operations.
+    nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::hash(
+        'store', nqp::getstaticcode(sub ($cont, $val) {
+            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+            if nqp::isconcrete($desc) {
+                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                my $type := $desc.of;
+                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                    nqp::bindattr($cont, Scalar, '$!value', $val);
+                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+                        $desc.assigned($cont);
+                        nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+                    }
+                }
+                else {
+                    my %x := nqp::gethllsym('perl6', 'P6EX');
+                    if nqp::ishash(%x) {
+                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
+                    }
+                    else {
+                        nqp::die("Type check failed in assignment");
+                    }
+                }
+            }
+            else {
+                nqp::die("Cannot assign to a readonly variable or a value");
+            }
+        }),
+        'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
+            nqp::bindattr($cont, Scalar, '$!value', $val);
+            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+                $desc.assigned($cont);
+                nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+            }
+        }),
+        'cas', nqp::getstaticcode(sub ($cont, $expected, $val) {
+            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+            if nqp::isconcrete($desc) {
+                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                my $type := $desc.of;
+                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                    nqp::casattr($cont, Scalar, '$!value', $expected, $val);
+                }
+                else {
+                    my %x := nqp::gethllsym('perl6', 'P6EX');
+                    if nqp::ishash(%x) {
+                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
+                    }
+                    else {
+                        nqp::die("Type check failed in assignment");
+                    }
+                }
+            }
+            else {
+                nqp::die("Cannot assign to a readonly variable or a value");
+            }
+        }),
+        'atomic_store', nqp::getstaticcode(sub ($cont, $val) {
+            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+            if nqp::isconcrete($desc) {
+                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                my $type := $desc.of;
+                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                    nqp::atomicbindattr($cont, Scalar, '$!value', $val);
+                }
+                else {
+                    my %x := nqp::gethllsym('perl6', 'P6EX');
+                    if nqp::ishash(%x) {
+                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
+                    }
+                    else {
+                        nqp::die("Type check failed in assignment");
+                    }
+                }
+            }
+            else {
+                nqp::die("Cannot assign to a readonly variable or a value");
+            }
+        }),
+    ));
+
+    # Cache a single default Scalar container spec, to ensure we only get
+    # one of them.
+    Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
+        ContainerDescriptor.new(
+            :of(Mu), :default(Any), :name('element')));
 
     # Set up various native reference types.
     sub setup_native_ref_type($type, $primitive, $ref_kind) {
@@ -1389,11 +1705,14 @@ BEGIN {
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
     Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := nqp::getstaticcode(sub ($cont) {
-        nqp::decont(
-            nqp::getattr($cont, Proxy, '&!FETCH')(nqp::p6var($cont)))
+        my $var := nqp::create(Scalar);
+        nqp::bindattr($var, Scalar, '$!value', $cont);
+        nqp::decont(nqp::getattr($cont, Proxy, '&!FETCH')($var))
     })));
     Proxy.HOW.add_method(Proxy, 'STORE', ($PROXY_STORE := nqp::getstaticcode(sub ($cont, $val) {
-        nqp::getattr($cont, Proxy, '&!STORE')(nqp::p6var($cont), $val)
+        my $var := nqp::create(Scalar);
+        nqp::bindattr($var, Scalar, '$!value', $cont);
+        nqp::getattr($cont, Proxy, '&!STORE')($var, $val)
     })));
     Proxy.HOW.add_method(Proxy, 'new', nqp::getstaticcode(sub ($type, :$FETCH!, :$STORE!) {
         my $cont := nqp::create(Proxy);
@@ -1412,8 +1731,7 @@ BEGIN {
     # Attribute instance, complete with container descriptor and optional
     # auto-viv container.
     sub scalar_attr($name, $type, $package, :$associative_delegate, :$auto_viv_container = 1) {
-        my $cd := Perl6::Metamodel::ContainerDescriptor.new(
-            :of($type), :rw(1), :$name);
+        my $cd := ContainerDescriptor.new(:of($type), :$name);
         if $auto_viv_container {
             my $scalar := nqp::create(Scalar);
             nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
@@ -1426,6 +1744,13 @@ BEGIN {
             return Attribute.new( :$name, :$type, :$package,
                 :container_descriptor($cd), :$associative_delegate );
         }
+    }
+
+    # Helper for creating an attribute that vivifies to a clone of some VM
+    # storage type; used for the storage slots of arrays and hashes.
+    sub storage_attr($name, $type, $package, $clonee, :$associative_delegate) {
+        return Attribute.new( :$name, :$type, :$package, :auto_viv_primitive($clonee),
+            :$associative_delegate );
     }
 
     # class Signature is Any{
@@ -1447,7 +1772,7 @@ BEGIN {
                 my $is_generic := $_.is_generic();
                 if $is_generic { return $is_generic }
             }
-            return nqp::p6bool(0);
+            return nqp::hllboolfor(0, "perl6");
         }));
     Signature.HOW.add_method(Signature, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Go through parameters, builidng new list. If any
@@ -1475,13 +1800,14 @@ BEGIN {
                 Signature, '$!returns', nqp::decont($type));
         }));
     Signature.HOW.add_method(Signature, 'has_returns', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(
+            nqp::hllboolfor(
                 nqp::not_i(
                     nqp::isnull(
                         nqp::getattr(nqp::decont($self),
                             Signature, '$!returns')
                     )
-                )
+                ),
+                'perl6'
             );
         }));
     Signature.HOW.compose_repr(Signature);
@@ -1518,8 +1844,8 @@ BEGIN {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
-            nqp::p6bool($type.HOW.archetypes.generic ||
-                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic))
+            nqp::hllboolfor($type.HOW.archetypes.generic ||
+                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic), "perl6")
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -1573,16 +1899,12 @@ BEGIN {
                     nqp::atkey(%ex, 'X::Trait::Invalid')('is', 'rw', 'optional parameter', $varname);
                 }
             }
-            my $cd := nqp::getattr($dcself, Parameter, '$!container_descriptor');
-            if nqp::defined($cd) { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', nqp::getstaticcode(sub ($self) {
             my $SIG_ELEM_IS_COPY := 512;
             my $dcself := nqp::decont($self);
-            my $cd     := nqp::getattr($dcself, Parameter, '$!container_descriptor');
-            if nqp::defined($cd) { $cd.set_rw(1) }
             nqp::bindattr_i($dcself, Parameter, '$!flags',
                 nqp::getattr_i($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
             $dcself
@@ -1861,7 +2183,7 @@ BEGIN {
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
-            nqp::p6bool(nqp::defined($disp_list));
+            nqp::hllboolfor(nqp::defined($disp_list), "perl6");
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
@@ -2803,7 +3125,7 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'rw', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
-            nqp::p6bool(nqp::getattr_i($dcself, Routine, '$!rw'));
+            nqp::hllboolfor(nqp::getattr_i($dcself, Routine, '$!rw'), "perl6");
         }));
     Routine.HOW.add_method(Routine, 'set_inline_info', nqp::getstaticcode(sub ($self, $info) {
             my $dcself := nqp::decont($self);
@@ -2926,20 +3248,23 @@ BEGIN {
     # class Array is List {
     #     has Mu $!descriptor;
     Array.HOW.add_parent(Array, List);
-    Array.HOW.add_attribute(Array, scalar_attr('$!descriptor', Mu, Array, :!auto_viv_container));
+    Array.HOW.add_attribute(Array, storage_attr('$!descriptor', Mu, Array,
+        Scalar.HOW.cache_get(Scalar, 'default_cont_spec')));
     Array.HOW.compose_repr(Array);
 
     # my class Map is Cool {
     #     has Mu $!storage;
     Map.HOW.add_parent(Map, Cool);
-    Map.HOW.add_attribute(Map, scalar_attr('$!storage', Mu, Map, :associative_delegate));
+    Map.HOW.add_attribute(Map, storage_attr('$!storage', Mu, Map, nqp::hash(),
+        :associative_delegate));
     Map.HOW.compose_repr(Map);
     nqp::settypehllrole(Map, 5);
 
     # my class Hash is Map {
     #     has Mu $!descriptor;
     Hash.HOW.add_parent(Hash, Map);
-    Hash.HOW.add_attribute(Hash, scalar_attr('$!descriptor', Mu, Hash, :!auto_viv_container));
+    Hash.HOW.add_attribute(Hash, storage_attr('$!descriptor', Mu, Hash,
+        Scalar.HOW.cache_get(Scalar, 'default_cont_spec')));
     Hash.HOW.compose_repr(Hash);
     nqp::settypehllrole(Hash, 5);
 
@@ -3159,7 +3484,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Bool>       := Bool;
     EXPORT::DEFAULT.WHO<False>      := $false;
     EXPORT::DEFAULT.WHO<True>       := $true;
-    EXPORT::DEFAULT.WHO<ContainerDescriptor> := Perl6::Metamodel::ContainerDescriptor;
+    EXPORT::DEFAULT.WHO<ContainerDescriptor> := ContainerDescriptor;
     EXPORT::DEFAULT.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
     EXPORT::DEFAULT.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
@@ -3169,68 +3494,10 @@ BEGIN {
 EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
 EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
 
+#?if !moar
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);
-
-# Tell parametric role groups how to create a dispatcher.
-Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
-    my $sel := nqp::create(Sub);
-    my $onlystar := sub (*@pos, *%named) {
-        nqp::invokewithcapture(
-            nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
-            nqp::usecapture())
-    };
-    nqp::setcodeobj($onlystar, $sel);
-    nqp::bindattr($sel, Code, '$!do', $onlystar);
-    nqp::bindattr($sel, Routine, '@!dispatchees', []);
-    $sel
-});
-
-# Roles pretend to be narrower than certain types for the purpose
-# of type checking. Also, they pun to classes.
-my %excluded := nqp::hash(
-    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
-    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
-    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
-    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
-    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
-    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
-Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::ParametricRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::CurriedRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-
-# Similar for packages and modules, but just has methods from Any.
-Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
-Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
-Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
-
-# Let ClassHOW and EnumHOW know about the invocation handler.
-Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
-    Mu.HOW.invocation_handler(Mu));
-Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
-    Mu.HOW.invocation_handler(Mu));
-
-# Configure the MOP (not persisted as it ends up in a lexical...)
-Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
-Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
-
-# Register default parent types.
-Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
-Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
-
-# Put PROCESS in place, and ensure it's never repossessed.
-nqp::neverrepossess(PROCESS.WHO);
-nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
-nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
+#?endif
 
 # HLL configuration: interop, boxing and exit handling.
 nqp::sethllconfig('perl6', nqp::hash(
@@ -3238,6 +3505,8 @@ nqp::sethllconfig('perl6', nqp::hash(
     'num_box', Num,
     'str_box', Str,
     'null_value', Mu,
+    'true_value', (Bool.WHO)<True>,
+    'false_value', (Bool.WHO)<False>,
     'foreign_type_int', Int,
     'foreign_type_num', Num,
     'foreign_type_str', Str,
@@ -3442,6 +3711,71 @@ nqp::sethllconfig('perl6', nqp::hash(
     'str_multidim_ref', StrMultidimRef,
 #?endif
 ));
+
+# Tell parametric role groups how to create a dispatcher.
+Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
+    my $sel := nqp::create(Sub);
+    my $onlystar := sub (*@pos, *%named) {
+        nqp::invokewithcapture(
+            nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
+            nqp::usecapture())
+    };
+    nqp::setcodeobj($onlystar, $sel);
+    nqp::bindattr($sel, Code, '$!do', $onlystar);
+    nqp::bindattr($sel, Routine, '@!dispatchees', []);
+    $sel
+});
+
+# Roles pretend to be narrower than certain types for the purpose
+# of type checking. Also, they pun to classes.
+my %excluded := nqp::hash(
+    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
+    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
+    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
+    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
+    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
+    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
+Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::CurriedRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+
+# Similar for packages and modules, but just has methods from Any.
+Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
+Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
+Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
+
+# Let ClassHOW and EnumHOW know about the invocation handler.
+Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
+    Mu.HOW.invocation_handler(Mu));
+Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
+    Mu.HOW.invocation_handler(Mu));
+
+# Configure the MOP (not persisted as it ends up in a lexical...)
+Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
+Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
+
+# Register default parent types.
+Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
+Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
+
+# Put PROCESS in place, and ensure it's never repossessed.
+nqp::neverrepossess(PROCESS.WHO);
+nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
+nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
+
+# Stash Scalar and a default container spec away in the HLL state.
+nqp::bindhllsym('perl6', 'Scalar', Scalar);
+nqp::bindhllsym('perl6', 'default_cont_spec',
+    Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
 
 #?if jvm
 # On JVM, set up JVM interop bits.

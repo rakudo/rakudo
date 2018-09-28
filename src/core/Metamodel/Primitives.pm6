@@ -61,7 +61,7 @@ my class Metamodel::Primitives {
     }
 
     method is_type(Mu \obj, Mu \type) {
-        nqp::p6bool(nqp::istype(obj, type))
+        nqp::hllbool(nqp::istype(obj, type))
     }
 }
 

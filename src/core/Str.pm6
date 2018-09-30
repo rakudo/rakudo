@@ -1374,8 +1374,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 ($!pos = $nextpos + 1),
 #?endif
 #?if !moar
-                $!pos = $nextpos +
-                  (nqp::iseq_s(nqp::substr($!str, $nextpos, 2), "\r\n") ?? 2 !! 1);
+                ($!pos = $nextpos +
+                  (nqp::iseq_s(nqp::substr($!str, $nextpos, 2), "\r\n") ?? 2 !! 1)),
 #?endif
                 $found
               ),

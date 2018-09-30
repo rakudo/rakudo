@@ -708,18 +708,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     proto method isa(|) {*}
-    multi method isa(Mu \SELF: Mu $type) {
+    multi method isa(Mu \SELF: Mu $type --> Bool:D) {
         nqp::hllbool(SELF.^isa($type.WHAT))
     }
-    multi method isa(Mu \SELF: Str:D $name) {
-        my @mro = SELF.^mro;
-        my int $mro_count = @mro.elems;
-        my int $i = -1;
-
-        return True
-          if @mro[$i].^name eq $name
-          while nqp::islt_i(++$i,$mro_count);
-
+    multi method isa(Mu \SELF: Str:D $name --> Bool:D) {
+        return True if .^name eq $name for SELF.^mro;
         False
     }
 

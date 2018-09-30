@@ -161,7 +161,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             ++$i == 101 ?? '...'
                 !! $i == 102 ?? last()
                     !! nqp::if(nqp::iseq_i( # el.fmt: '%02x'
-                        nqp::chars(my str $v = nqp::lc(el.base: 16)),1),
+                        nqp::chars(my str $v = el.base: 16),1),
                         nqp::concat('0',$v),$v)
         }) ~ '>'
     }

@@ -36,13 +36,13 @@ constant('JS_FLAGS', '--nqp-runtime $(JS_RUNTIME) --perl6-runtime @perl6_runtime
 
 my @produced;
 
-sub nqp($file, $output, :$deps=[], :$execname) {
+sub nqp($file, $output, :$deps=[], :$execname, :$shebang) {
     @produced.push($output);
     nqp::unshift($deps, $file);
     my $options := $execname ?? "--execname $execname" !! "";
     rule($output, nqp::join(' ', $deps),
         make_parents($output),
-        "\$(JS_NQP) \$(JS_FLAGS) $options --substagestats --stagestats --target=js --source-map --output=$output --encoding=utf8 $file",
+        "\$(JS_NQP) \$(JS_FLAGS) $options --substagestats --stagestats --target=js --source-map {$shebang ?? '--shebang' !! ''} --output=$output --encoding=utf8 $file",
     );
 }
 
@@ -94,7 +94,7 @@ rule($main-version, '', "\$(PERL5) tools/build/gen-version.pl > $main-version");
 
 my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<main.nqp>);
 
-my $Perl6-main := nqp($main-nqp, 'rakudo.js', :execname('$(JS_RUNNER)'), :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
+my $Perl6-main := nqp($main-nqp, 'rakudo.js', :execname('$(JS_RUNNER)'), :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]), :shebang);
 
 
 rule('$(JS_RUNNER)', '', '$(PERL5) tools/build/create-js-runner.pl');

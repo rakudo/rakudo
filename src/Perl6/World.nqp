@@ -3272,8 +3272,8 @@ class Perl6::World is HLL::World {
                               $self, $class, $attr
                             );
 
-# nqp::if(
-#   my \tmp = nqp::atkey($init,'a'),
+# nqp::unless(
+#   nqp::isnull(my \tmp = nqp::atkey($init,'a')),
                             my $tmp := QAST::Node.unique('buildall_tmp_');
                             my $if := QAST::Op.new( :op<unless>,
                               QAST::Op.new( :op<isnull>,
@@ -3335,20 +3335,24 @@ class Perl6::World is HLL::World {
                         # 1,2,3 = initialize native from %init
                         elsif $code < 4 {
 
-# nqp::if(
-#   nqp::existskey($init,'a'),
-#   nqp::bindattr_x(self,Foo,'$!a',nqp::decont(nqp::atkey($init, 'a')))
+# nqp::unless(
+#   nqp::isnull(my \tmp := nqp::atkey($init,'a')),
+#   nqp::bindattr_x(self,Foo,'$!a',nqp::decont(tmp))
 # ),
-                            my $key :=
-                              QAST::SVal.new(:value(nqp::atpos($task,3)));
+                            my $tmp := QAST::Node.unique('buildall_tmp_');
                             $stmts.push(
-                              QAST::Op.new(:op<if>,
-                                QAST::Op.new(:op<existskey>, $init, $key),
+                              QAST::Op.new(:op<unless>,
+                                QAST::Op.new(:op<isnull>,
+                                  QAST::Op.new(:op<bind>,
+                                    QAST::Var.new(:decl<var>, :name($tmp), :scope<local>),
+                                    QAST::Op.new(:op<atkey>,
+                                      $init, QAST::SVal.new( :value(nqp::atpos($task,3)))
+                                    )
+                                  )
+                                ),
                                 QAST::Op.new(:op('bindattr' ~ @psp[$code]),
                                   $self, $class, $attr,
-                                  QAST::Op.new( :op<decont>,
-                                    QAST::Op.new(:op<atkey>, $init, $key)
-                                  )
+                                  QAST::Op.new(:op<decont>, QAST::Var.new(:name($tmp), :scope<local>))
                                 )
                               )
                             );

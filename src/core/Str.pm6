@@ -113,22 +113,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method chomp(Str:D:) {
-#?if js
         nqp::if(
-          (nqp::isge_i((my int $chars = nqp::sub_i(nqp::charsnfg($!value),1)),0)
-            && nqp::iscclassnfg(nqp::const::CCLASS_NEWLINE,$!value,$chars)),
-          nqp::p6box_s(nqp::substrnfg($!value,0,$chars)),
-          self
-        )
-#?endif
-#?if !js
-        nqp::if(
-          (nqp::isge_i((my int $chars = nqp::sub_i(nqp::chars($!value),1)),0)
+          (nqp::isge_i((my int $chars = nqp::sub_i(nqp::chars($!value),1)),0) #?js: NFG
             && nqp::iscclass(nqp::const::CCLASS_NEWLINE,$!value,$chars)),
-          nqp::p6box_s(nqp::substr($!value,0,$chars)),
+          nqp::p6box_s(nqp::substr($!value,0,$chars)), #?js: NFG
           self
         )
-#?endif
     }
 
     multi method chop(Str:D:) {
@@ -356,12 +346,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method !SET-SELF(\string) {
             nqp::stmts(
               ($!str   = nqp::unbox_s(string)),
-#?if !js
-              ($!chars = nqp::chars($!str)),
-#?endif
-#?if js
-              ($!chars = nqp::charsnfg($!str)),
-#?endif
+              ($!chars = nqp::chars($!str)), #?js: NFG
               ($!pos = -1),
               self
             )
@@ -370,12 +355,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method pull-one() {
             nqp::if(
               nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
-#?if !js
-              nqp::p6box_s(nqp::substr($!str,$!pos,1)),
-#?endif
-#?if js
-              nqp::p6box_s(nqp::substrnfg($!str,$!pos,1)),
-#?endif
+              nqp::p6box_s(nqp::substr($!str,$!pos,1)), #?js: NFG
               IterationEnd
             )
         }
@@ -389,12 +369,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               (my int $chars = $!chars),
               nqp::while(
                 nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
-#?if !js
-                $target.push(nqp::substr($str,$pos,1))
-#?endif
-#?if js
-                $target.push(nqp::substrnfg($str,$pos,1))
-#?endif
+                $target.push(nqp::substr($str,$pos,1)) #?js: NFG
               ),
               ($!pos = $pos)
             )
@@ -413,12 +388,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has int $!todo;
         method !SET-SELF(\string,\size,\limit) {
             $!str   = nqp::unbox_s(string);
-#?if !js
-            $!chars = nqp::chars($!str);
-#?endif
-#?if js
-            $!chars = nqp::charsnfg($!str);
-#?endif
+            $!chars = nqp::chars($!str); #?js: NFG
             $!size  = size < 1 ?? 1 !! size;
             $!pos   = -$!size;
             $!todo  = 1 + (($!chars - 1) div $!size);
@@ -438,12 +408,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::if(
               ($!todo = $!todo - 1),
               nqp::p6box_s(
-#?if !js
-                 nqp::substr($!str,($!pos = $!pos + $!size), $!size)
-#?endif
-#?if js
-                 nqp::substrnfg($!str,($!pos = $!pos + $!size), $!size)
-#?endif
+                 nqp::substr($!str,($!pos = $!pos + $!size), $!size) #?js: NFG
               ),
               IterationEnd
             )
@@ -457,12 +422,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ($todo = $todo - 1),
               $target.push(
                 nqp::p6box_s(
-#?if !js
-                  nqp::substr($!str,($pos = $pos + $size), $size)
-#?endif
-#?if js
-                  nqp::substrnfg($!str,($pos = $pos + $size), $size)
-#?endif
+                  nqp::substr($!str,($pos = $pos + $size), $size) #?js: NFG
                 )
               )
             );
@@ -2815,170 +2775,80 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method substr(Str:D: Int:D \start) {
-#?if !js
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)),
+            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
           Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
-          nqp::substr($!value,$from)
+          nqp::substr($!value,$from) #?js: NFG
         )
-#?endif
-#?if js
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::charsnfg($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
-          nqp::substrnfg($!value,$from)
-        )
-#?endif
     }
     multi method substr(Str:D: Int:D \start, Int:D \want) {
-#?if !js
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
           nqp::if(
             nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
             Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars)
+            nqp::substr($!value,$from,$chars) #?js: NFG
           )
         )
-#?endif
-#?if js
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::charsnfg($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
-          nqp::if(
-            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substrnfg($!value,$from,$chars)
-          )
-        )
-#?endif
     }
     multi method substr(Str:D: Int:D \start, Callable:D \want) {
-#?if !js
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
           nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0),
+            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0), #?js: NFG
             Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars)
+            nqp::substr($!value,$from,$chars) #?js: NFG
           )
         )
-#?endif
-#?if js
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::charsnfg($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
-          nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::charsnfg($!value) - $from)),0),
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substrnfg($!value,$from,$chars)
-          )
-        )
-#?endif
     }
     multi method substr(Str:D: Callable:D \start) {
-#?if !js
         nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0)
-            || nqp::isgt_i($from,nqp::chars($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
+            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
           nqp::substr($!value,$from)
         )
-#?endif
-#?if js
-        nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::charsnfg($!value))),0)
-            || nqp::isgt_i($from,nqp::charsnfg($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
-          nqp::substr($!value,$from)
-        )
-#?endif
     }
     multi method substr(Str:D: Callable:D \start, Int:D \want) {
-#?if !js
         nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0)
-            || nqp::isgt_i($from,nqp::chars($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
+            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
           nqp::if(
             nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
             Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars)
+            nqp::substr($!value,$from,$chars) #?js: NFG
           )
         )
-#?endif
-#?if js
-        nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::charsnfg($!value))),0)
-            || nqp::isgt_i($from,nqp::charsnfg($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
-          nqp::if(
-            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substrnfg($!value,$from,$chars)
-          )
-        )
-#?endif
     }
     multi method substr(Str:D: Callable:D \start, Callable:D \want) {
-#?if !js
         nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0)
-            || nqp::isgt_i($from,nqp::chars($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
+            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
           nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0),
+            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0), #?js: NFG
             Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars)
+            nqp::substr($!value,$from,$chars) #?js: NFG
           )
         )
-#?endif
-#?if js
-        nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::charsnfg($!value))),0)
-            || nqp::isgt_i($from,nqp::charsnfg($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
-          nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::charsnfg($!value) - $from)),0),
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substrnfg($!value,$from,$chars)
-          )
-        )
-#?endif
     }
     multi method substr(Str:D: Range:D \start) {
-#?if !js
         nqp::if(
           nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
-            || nqp::isgt_i($from,nqp::chars($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
+            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
+          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
           nqp::if(
             start.max == Inf,
-            nqp::substr($!value,$from),
-            nqp::substr($!value,$from,(start.max - start.excludes-max - $from + 1).Int)
+            nqp::substr($!value,$from), #?js: NFG
+            nqp::substr($!value,$from,(start.max - start.excludes-max - $from + 1).Int) #?js: NFG
           )
         )
-#?endif
-#?if js
-        nqp::if(
-          nqp::islt_i((my int $from = start.min + start.excludes-min),0)
-            || nqp::isgt_i($from,nqp::charsnfg($!value)),
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::charsnfg($!value)),
-          nqp::if(
-            start.max == Inf,
-            nqp::substrnfg($!value,$from),
-            nqp::substrnfg($!value,$from,start.max - start.excludes-max - $from + 1)
-          )
-        )
-#?endif
     }
     multi method substr(Str:D: Regex:D, $) {
         die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314
@@ -3045,12 +2915,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method chars(|) {*}
     multi method chars(Str:D: --> Int:D) {
-#?if !js
-        nqp::p6box_i(nqp::chars($!value))
-#?endif
-#?if js
-        nqp::p6box_i(nqp::charsnfg($!value))
-#?endif
+        nqp::p6box_i(nqp::chars($!value)) #?js: NFG
     }
     multi method chars(Str:U: --> Int:D) {
         self.Str;  # generate undefined warning
@@ -3075,12 +2940,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method tc(|) {*}
     multi method tc(Str:D:) {
-#?if !js
-        nqp::p6box_s(nqp::tc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1));
-#?endif
-#?if js
-        nqp::p6box_s(nqp::tc(nqp::substrnfg($!value,0,1)) ~ nqp::substrnfg($!value,1));
-#?endif
+        nqp::p6box_s(nqp::tc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1)); #?js: NFG
     }
     multi method tc(Str:U:) {
         self.Str
@@ -3179,21 +3039,11 @@ multi sub infix:<cmp>(str $a, str $b --> Order:D) {
 multi sub infix:<===>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::eqaddr(a.WHAT,b.WHAT)
-#?if !js
-      && nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b))
-#?endif
-#?if js
-      && nqp::iseq_snfg(nqp::unbox_s(a), nqp::unbox_s(b))
-#?endif
+      && nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)) #?js: NFG
     )
 }
 multi sub infix:<===>(str $a, str $b --> Bool:D) {
-#?if !js
-    nqp::hllbool(nqp::iseq_s($a, $b))
-#?endif
-#?if js
-    nqp::hllbool(nqp::iseq_snfg($a, $b))
-#?endif
+    nqp::hllbool(nqp::iseq_s($a, $b)) #?js: NFG
 }
 
 multi sub infix:<leg>(Str:D \a, Str:D \b --> Order:D) {
@@ -3204,20 +3054,10 @@ multi sub infix:<leg>(str $a, str $b --> Order:D) {
 }
 
 multi sub infix:<eq>(Str:D \a, Str:D \b --> Bool:D) {
-#?if !js
-    nqp::hllbool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b)))
-#?endif
-#?if js
-    nqp::hllbool(nqp::iseq_snfg(nqp::unbox_s(a), nqp::unbox_s(b)))
-#?endif
+    nqp::hllbool(nqp::iseq_s(nqp::unbox_s(a), nqp::unbox_s(b))) #?js: NFG
 }
 multi sub infix:<eq>(str $a, str $b --> Bool:D) {
-#?if !js
-    nqp::hllbool(nqp::iseq_s($a, $b))
-#?endif
-#?if js
-    nqp::hllbool(nqp::iseq_snfg($a, $b))
-#?endif
+    nqp::hllbool(nqp::iseq_s($a, $b)) #?js: NFG
 }
 
 multi sub infix:<ne>(Str:D \a, Str:D \b --> Bool:D) {

@@ -43,7 +43,12 @@ sub MAIN(*@ARGS) {
             } elsif $in_omit {
                 print("\n");
             } else {
-                print($_) unless nqp::eqat($_,"# vim:",0);
+                if $_ ~~ /'#?js: NFG'/ {
+                    print(subst($_, /nqp\:\:[chars|substr|iseq_s|iscclass]/,
+                        -> $op {$op ~ 'nfg'}, :global));
+                } else {
+                    print($_) unless nqp::eqat($_,"# vim:",0);
+                }
             }
             $line++;
         }

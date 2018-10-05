@@ -743,11 +743,7 @@ my class Binder {
                 # and rely on autovivification to build up an empty nqp::hash
                 # whenever needed.
                 my $hash := nqp::create(Hash);
-
-                # XXX JS WORKAROUND - BUILDALL doesn't like a Mu in $!storage
-                nqp::bindattr($hash, Map, '$!storage', $named_args || nqp::hash());
-                # nqp::bindattr($hash, Map, '$!storage', $named_args) if $named_args;
-
+                nqp::bindattr($hash, Map, '$!storage', $named_args) if $named_args;
                 $bind_fail := bind_one_param($lexpad, $sig, $param, $no_nom_type_check, $error,
                     0, $hash, 0, 0.0, '');
                 return $bind_fail if $bind_fail;

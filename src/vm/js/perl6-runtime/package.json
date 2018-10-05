@@ -8,10 +8,10 @@
   "licenses": [
     {
       "type": "Artistic 2",
-      "url": "http://opensource.org/licenses/Artistic-2.0"
+      "url": "https://opensource.org/licenses/Artistic-2.0"
     }
   ],
-  "repository": "http://github.com/rakudo/rakudo/",
+  "repository": "https://github.com/rakudo/rakudo/",
   "main": "runtime.js",
   "dependencies": {
   }

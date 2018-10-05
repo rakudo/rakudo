@@ -506,7 +506,7 @@ sub add-sink-to-final-call($parent, $pos, $qast = $parent[$pos]) {
     elsif nqp::istype($qast, QAST::Want) {
         add-sink-to-final-call($parent, $pos, $qast[0])
     }
-    elsif nqp::istype($qast, QAST::Op) && $qast.op eq 'call' {
+    elsif nqp::istype($qast, QAST::Op) && $qast.op eq 'call' && !$qast.nosink {
         $parent[$pos] := QAST::Op.new: :op<callmethod>, :name<sink>, $qast
     }
 }

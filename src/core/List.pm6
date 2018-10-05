@@ -880,25 +880,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::if(
           nqp::isconcrete($!todo),
           Array.from-iterator(self.iterator),
-          nqp::if(
-            nqp::isconcrete($!reified),
-            nqp::stmts(
-              (my int $elems = nqp::elems($!reified)),
-              (my $array := nqp::setelems(nqp::create(IterationBuffer),$elems)),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos($array, $i,
-                  nqp::assign(
-                    nqp::p6scalarfromdesc(nqp::null),
-                    nqp::atpos($!reified,$i)
-                  )
-                )
-              ),
-              nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',$array)
-            ),
-            nqp::create(Array)
-          )
+          Array.from-list(self)
         )
     }
 

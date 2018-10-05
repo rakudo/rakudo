@@ -1,5 +1,8 @@
+use lib <t/packages/>;
 use Test;
-plan 2;
+use Test::Helpers;
+
+plan 3;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -26,4 +29,24 @@ subtest 'IO::Handle.perl.EVAL roundtrips' => {
         is-deeply $evaled."$_"(), $orig."$_"(), $_
             for <path  chomp  nl-in  nl-out  encoding>;
     }
+}
+
+# https://github.com/MoarVM/MoarVM/issues/971
+if $*DISTRO.is-win {
+    skip 'code too complex for Win32 due to RT#132258';
+}
+else {
+    is-run :compiler-args[
+        '--profile', '--profile-filename=' ~ make-temp-path.absolute
+    ], ｢
+        my %functions = (
+            1 => sub (@args) { [-] @args },
+            4 => sub (@args) { [+] @args }
+        );
+        sub foo(@ast) {
+            %functions{@ast[0]}(@ast.map: {$_ ~~ Array ?? foo $_ !! $_} );
+        }([4, [1, 1, 2]]) for ^250;
+        print "success";
+    ｣, :out{.contains: 'success'}, :err{.contains: 'Writing profiler output'},
+    'profiler does not crash';
 }

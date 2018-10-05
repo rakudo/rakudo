@@ -59,6 +59,10 @@ sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
         $numerator, $denominator, t1, t2)
 }
 
+# ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot
+# ever get a non-normalized Rational, if we start with a normalized Rational.
+# For such cases, we can use this routine, to bypass normalization step,
+# which would be useless.
 sub RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(\nu, \de, \t1, \t2) {
     nqp::if(
       nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),

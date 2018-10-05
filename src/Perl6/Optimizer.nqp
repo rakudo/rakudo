@@ -1036,10 +1036,12 @@ class Perl6::Optimizer {
 
         # my constant \foo = 0
         elsif nqp::istype($node, QAST::WVal) {
-            try {  # don't know how to test for Ints here, so let coercing do it
-                my int $value := $node.value + $extra;
-                if $value > -2147483648 && $value < 2147483647 {
-                    return [QAST::IVal.new( :value($value) )];
+            try {
+                if nqp::istype($node.value, $!symbols.find_in_setting("Int")) {
+                    my int $value := $node.value + $extra;
+                    if $value > -2147483648 && $value < 2147483647 {
+                        return [QAST::IVal.new( :value($value) )];
+                    }
                 }
             }
         }
@@ -1090,10 +1092,10 @@ class Perl6::Optimizer {
         },
         '&infix:<...>', -> $op {
             my @result;
-            if get_bound($op[0], 0) -> @lt {
-                if nqp::istype(@lt[0],QAST::IVal) {
-                    if get_bound($op[1], 0) -> @rt {
-                        if nqp::istype(@rt[0],QAST::IVal) {
+            if get_bound($op[0], 0) -> @lt {                # left side ok
+                if nqp::istype(@lt[0],QAST::IVal) {         # and is an int
+                    if get_bound($op[1], 0) -> @rt {        # right side ok
+                        if nqp::istype(@rt[0],QAST::IVal) { # and is an int
                             @result.push(@lt[0]);
                             @result.push(@rt[0]);
                             @result.push(@lt[0].value > @rt[0].value ?? -1 !! 1)
@@ -1101,8 +1103,17 @@ class Perl6::Optimizer {
                     }
                 }
             }
-            else {
-                # attempt to handle 1,3...11 soon
+            elsif nqp::istype($op[0],QAST::Op)
+              && $op[0].name eq '&infix:<,>'          # left side is a list
+              && nqp::elems(my $list := $op[0]) == 2  # with 2 elements
+              && nqp::istype($list[0],QAST::Want) && nqp::istype($list[0][2],QAST::IVal) # 1st = Int
+              && nqp::istype($list[1],QAST::Want) && nqp::istype($list[1][2],QAST::IVal) # 2nd = int
+              && get_bound($op[1], 0) -> @rt {        # right side is ok
+                if nqp::istype(@rt[0],QAST::IVal) {   # and it is an Int
+                    @result.push($list[0][2]);
+                    @result.push(@rt[0]);
+                    @result.push($list[1][2].value - $list[0][2].value);
+                }
             }
             @result
         }

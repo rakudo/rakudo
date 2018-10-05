@@ -200,7 +200,7 @@ my class Array { # declared in BOOTSTRAP
             $iter.push-until-lazy(
               my \target := ArrayReificationTarget.new(
                 (my \buffer := nqp::create(IterationBuffer)),
-                nqp::getcurhllsym('default_cont_spec')
+                BEGIN nqp::getcurhllsym('default_cont_spec')
               )
             ),
             IterationEnd
@@ -218,6 +218,23 @@ my class Array { # declared in BOOTSTRAP
             nqp::p6bindattrinvres(result,List,'$!todo',todo)
           )
         )
+    }
+    method from-list(Array:U: Mu \list) {
+        my \params   := nqp::getattr(list,List,'$!reified');
+        my int $elems = list.elems;  # reifies
+        my int $i     = -1;
+        my \reified  := nqp::create(IterationBuffer);
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos(
+            reified, $i,
+            nqp::p6scalarwithvalue(
+              (BEGIN nqp::getcurhllsym('default_cont_spec')),
+              nqp::decont(nqp::atpos(params,$i))
+            )
+          )
+        );
+        nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',reified)
     }
 
     proto method new(|) {*}
@@ -507,23 +524,27 @@ my class Array { # declared in BOOTSTRAP
 
     # because this is a very hot path, we copied the code from the int candidate
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
-        my \reified := nqp::getattr(self,List,'$!reified');
         my \assignee_decont := nqp::decont(assignee);
-        my int $ipos = $pos;
-        nqp::isge_i($ipos, 0) && nqp::isconcrete(reified) &&
+        nqp::isge_i($pos, 0) && nqp::isconcrete(nqp::getattr(self,List,'$!reified')) &&
                   nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
-            ?? nqp::stmts(
-                 (nqp::p6assign(
-                   nqp::ifnull(
-                     nqp::atpos(reified, $ipos),
-                     nqp::bindpos(reified, $ipos,
-                       nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
-                   assignee_decont)),
-                 assignee_decont)
+            ?? self!ASSIGN_POS_FAST_PATH($pos, assignee_decont)
             !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
     }
 
-    method !ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) {
+    method !ASSIGN_POS_FAST_PATH(Array:D: Int:D $pos, Mu \assignee_decont) is raw {
+        my \reified := nqp::getattr(self,List,'$!reified');
+        my int $ipos = $pos;
+        nqp::stmts(
+          nqp::p6assign(
+            nqp::ifnull(
+              nqp::atpos(reified, $ipos),
+              nqp::bindpos(reified, $ipos,
+                nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
+            assignee_decont),
+          assignee_decont)
+    }
+
+    method !ASSIGN_POS_SLOW_PATH(Array:D: Int:D $pos, Mu \assignee) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
           self!INDEX_OOR($pos),
@@ -539,7 +560,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::bindpos(
                   nqp::getattr(self,List,'$!reified'),
                   $pos,
-                  nqp::p6scalarfromcertaindesc($!descriptor)
+                  nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
                 ),
                 nqp::if(
                   nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
@@ -554,14 +575,14 @@ my class Array { # declared in BOOTSTRAP
                       nqp::bindpos(              # outlander
                         nqp::getattr(self,List,'$!reified'),
                         $pos,
-                        nqp::p6scalarfromcertaindesc($!descriptor)
+                        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
                       )
                     )
                   ),
                   nqp::bindpos(                  # outlander without todo
                     nqp::getattr(self,List,'$!reified'),
                     $pos,
-                    nqp::p6scalarfromcertaindesc($!descriptor)
+                    nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
                   )
                 )
               )
@@ -569,7 +590,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindpos(                        # new outlander
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
               $pos,
-              nqp::p6scalarfromcertaindesc($!descriptor)
+              nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
             )
           ) = assignee
         )

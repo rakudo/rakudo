@@ -118,7 +118,7 @@ my role Iterable {
             Rakudo::Internals::HyperIteratorBatcher.new(:$.iterator)
 #?endif
 #?if js
-        self
+        HyperSeq.new($.iterator)
 #?endif
     }
 
@@ -131,7 +131,7 @@ my role Iterable {
             Rakudo::Internals::HyperIteratorBatcher.new(:$.iterator)
 #?endif
 #?if js
-        self
+        RaceSeq.new($.iterator)
 #?endif
     }
 

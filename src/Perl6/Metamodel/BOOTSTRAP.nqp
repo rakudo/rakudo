@@ -2848,10 +2848,7 @@ BEGIN {
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             sub add_to_cache($entry) {
-#?if jvm
-                return 0 if nqp::capturehasnameds($capture);
-#?endif
-#?if js
+#?if !moar
                 return 0 if nqp::capturehasnameds($capture);
 #?endif
                 nqp::scwbdisable();

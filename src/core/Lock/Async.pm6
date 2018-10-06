@@ -82,7 +82,7 @@ my class Lock::Async {
         }
 #?endif
 #?if js
-                    return KEPT-PROMISE;
+        return KEPT-PROMISE;
 #?endif
     }
 

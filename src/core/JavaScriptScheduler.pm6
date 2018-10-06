@@ -22,8 +22,6 @@ my class JavaScriptScheduler does Scheduler {
         die "Cannot specify :in in {self.^name}"
           if $in;
 
-        my $delay = $at ?? $at - now !! $in;
-        #sleep $delay if $delay;
         &catch //=
           self.uncaught_handler // -> $ex { self.handle_uncaught($ex) };
 

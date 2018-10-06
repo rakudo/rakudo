@@ -7,7 +7,7 @@ plan 1;
 
 # https://github.com/rakudo/rakudo/issues/1451
 subtest 'no SEGV with failed opens of MVM debug files' => {
-    plan 1 + my @vars := <
+    plan +my @vars := <
         MVM_SPESH_LOG  MVM_DYNVAR_LOG  MVM_COVERAGE_LOG
     >;
     my $dir := (make-temp-dir).absolute;
@@ -15,11 +15,6 @@ subtest 'no SEGV with failed opens of MVM debug files' => {
         (temp %*ENV){$_} = $dir;
         is-run ｢42.say｣, :out(*), :err{.contains: 'Failed to open file'},
             :exitcode(1), $_;
-    }
-
-    {
-        (temp %*ENV)<MVM_JIT_LOG> = $dir;
-        is-run ｢42.say｣, :out(*), :err(''), :0exitcode, 'MVM_JIT_LOG';
     }
 }
 

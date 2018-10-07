@@ -1758,6 +1758,7 @@ class Perl6::Optimizer {
                     }
                 }
 
+
                 # Don't constant fold the 'x' operator if the resulting string would be too big.
                 # 1024 is just a heuristic, measuring might show a bigger value would be fine.
                 if $all_args_known && self.op_eq_core($op, '&infix:<x>') {
@@ -2880,7 +2881,7 @@ class Perl6::Optimizer {
     # we may be passing.
     method call_ct_chosen_multi($call, $proto, $chosen) {
         self.simplify_refs($call, $chosen.signature);
-        if nqp::getcomp('perl6').backend.name ne 'moar' {
+        if nqp::getcomp('perl6').backend.name eq 'jvm' {
             my @cands := $proto.dispatchees();
             my int $idx := 0;
             for @cands {

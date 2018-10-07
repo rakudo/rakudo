@@ -28,6 +28,10 @@ my @clo := $comp.commandline_options();
 @clo.push('M=s');
 @clo.push('nqp-lib=s');
 
+#?if js
+@clo.push('beautify');
+#?endif
+
 # Set up END block list, which we'll run at exit.
 nqp::bindhllsym('perl6', '@END_PHASERS', []);
 
@@ -39,6 +43,9 @@ sub MAIN(*@ARGS) {
 #?endif
 #?if moar
 sub MAIN(@ARGS) {
+#?endif
+#?if js
+sub MAIN(*@ARGS) {
 #?endif
     # Enter the compiler.
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));

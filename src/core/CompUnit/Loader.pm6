@@ -43,7 +43,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
         my %*COMPILING := nqp::hash();
-#?if moar
+#?if !jvm
         # Switch file handle to binary mode before passing it off to the VM,
         # so we don't lose things hanging around in the decoder.
         $file.encoding(Nil);

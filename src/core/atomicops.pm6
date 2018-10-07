@@ -34,7 +34,7 @@ multi sub cas($target is rw, &code) {
 
 #== Native integer atomics only available on MoarVM ==============================
 
-#?if moar
+#?if !jvm
 my native atomicint is repr('P6int') is Int is ctype('atomic') { }
 
 #-- fetching a native integer value atomically

@@ -1342,9 +1342,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $unit.name('<unit>');
         $outer.name('<unit-outer>');
 
-        # Load the needed libraries.
-        $*W.add_libs($unit);
-
         # If the unit defines &MAIN, and this is in the mainline,
         # add a &MAIN_HELPER.
         if !$*W.is_precompilation_mode && +(@*MODULES // []) == 0 && $unit.symbol('&MAIN') {
@@ -1999,7 +1996,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # We'll install PAST in current block so it gets capture_lex'd.
             # Then evaluate to a reference to the block (non-closure - higher
             # up stuff does that if it wants to).
-            ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
+            $*W.push_inner_block(my $uninst := QAST::Stmts.new($block));
             Perl6::Pod::document($/, $*DECLARAND, $*POD_BLOCK, :leading);
             $*W.attach_signature($*DECLARAND, $signature);
             $*W.finish_code_object($*DECLARAND, $block);
@@ -2253,7 +2250,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*LABEL {
             my $label := QAST::WVal.new( :value($*W.find_symbol([$*LABEL])), :named('label') );
             $past[0].push($label);
-            $past[2].push($label);
         }
         $past[2].sunk(1);
         my $sinkee := $past[0];
@@ -4193,7 +4189,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # install it in the lexpad.
         my $outer := $*W.cur_lexpad();
         my $clone := !($outer =:= $*UNIT);
-        $outer[0].push(QAST::Stmt.new($block));
+
+        $*W.push_inner_block(QAST::Stmt.new($block));
 
         if $<deflongname> {
             # If it's a multi, need to associate it with the surrounding
@@ -5519,7 +5516,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     check_param_default_type($/, $maybe_code_obj);
                 }
                 %*PARAM_INFO<default_value> :=
-                    $*W.create_thunk($<default_value>[0], $val);
+                    $*W.create_thunk($<default_value>[0], $val, $*CURTHUNK);
             }
         }
 
@@ -8960,7 +8957,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub add_signature_binding_code($block, $sig_obj, @params) {
         # Set arity.
         my int $arity := 0;
-        my int $count := 0;
+        my $count := 0;
         for @params {
             next if $_<named_names> || $_<named_slurpy>;
             if $_<pos_slurpy> || $_<pos_onearg> {
@@ -8977,7 +8974,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # (e.g. we can get the same errors).
         my $need_full_binder := 1;
         unless nqp::defined($use_vm_binder) {
-            $use_vm_binder := nqp::getcomp('perl6').backend.name eq 'moar';
+            $use_vm_binder := nqp::getcomp('perl6').backend.name eq 'moar' || nqp::getcomp('perl6').backend.name eq 'js';
         }
         if $use_vm_binder {
             # If there are zero parameters, then we can trivially leave it to

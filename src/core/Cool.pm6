@@ -373,8 +373,9 @@ multi sub split($pat, Cool:D $target, |c) { $target.split($pat, |c) }
 
 proto sub chars($, *%) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
-multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
-multi sub chars(str $x --> int) { nqp::chars($x) }
+
+multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) } #?js: NFG
+multi sub chars(str $x --> int) { nqp::chars($x) } #?js: NFG
 
 # These probably belong in a separate unicodey file
 
@@ -394,6 +395,30 @@ multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
 multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
 multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
+#?endif
+
+#?if js
+proto sub unival(|) {*}
+multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
+multi sub unival(Int:D $code) {
+    state $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
+    state $deprop = nqp::unipropcode("Numeric_Value_Denominator");
+    my $nu = nqp::getuniprop_str($code, $nuprop);
+    my $de = nqp::getuniprop_str($code, $deprop);
+    !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
+}
+
+proto sub univals(|) {*}
+multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
+
+multi sub uniprop(|)      { die 'uniprop NYI on js backend' }
+multi sub uniprop-int(|)  { die 'uniprop-int NYI on js backend' }
+multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
+multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
+    nqp::getuniprop_str($code,nqp::unipropcode($propname));
+}
+multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
+multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
 #?endif
 
 #?if moar

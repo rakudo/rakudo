@@ -63,6 +63,8 @@ perl6-m
 perl6-m.bat
 perl6-debug-m
 perl6-debug-m.bat
+perl6-js
+perl6-js.bat
 t/localtest.data
 t/spec
 t/packages/tap-harness6
@@ -102,5 +104,6 @@ perl6-valgrind-m
 *.rakudo.jvm
 .precomp
 t/03-jvm/*.class
+rakudo.js
 /zef
 .DS_Store

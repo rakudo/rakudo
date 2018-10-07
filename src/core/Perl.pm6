@@ -9,7 +9,7 @@ class Perl does Systemic {
       --> Nil
     ) { }
 
-    method VMnames { <moar jvm > }
+    method VMnames { <moar jvm js> }
 
     method DISTROnames { <macosx linux freebsd mswin32 openbsd dragonfly netbsd> }
     method KERNELnames { <darwin linux freebsd openbsd netbsd  dragonfly win32>  }

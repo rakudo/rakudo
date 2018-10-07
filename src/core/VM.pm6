@@ -40,6 +40,15 @@ class VM does Systemic {
         $!precomp-target = "jar";
         $!config<os.name> = $!properties<os.name> // "unknown";
 #?endif
+#?if js
+        $!name           = 'js';
+        $!desc           = $desc // 'JavaScript';
+        $!auth           = "unknown";
+        $!version        = Version.new("unknown");
+        $!prefix         = 'todo-prefix';
+        $!precomp-ext    = "js";
+        $!precomp-target = "js";
+#?endif
 # add new backends here please
     }
 
@@ -58,7 +67,7 @@ class VM does Systemic {
         my $dll = self.config<dll>;
         my $platform-name = sprintf($dll, $basename);
 #?endif
-#?if jvm
+#?if !moar
         my $prefix = $is-win ?? '' !! 'lib';
         my $platform-name = "$prefix$basename" ~ ".{self.config<nativecall.so>}";
 #?endif
@@ -91,7 +100,7 @@ class VM does Systemic {
 }
 
 sub INITIALIZE-A-VM-NOW() {
-#?if moar
+#?if !jvm
     VM.new(:config(nqp::backendconfig));
 #?endif
 #?if jvm

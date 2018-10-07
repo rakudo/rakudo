@@ -119,7 +119,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method decode(Blob:D:) {
         nqp::p6box_s(nqp::decode(self, 'utf8'))
     }
-#?if moar
+#?if !jvm
     multi method decode(Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False) {
         nqp::p6box_s(
           nqp::decoderepconf(self,
@@ -134,7 +134,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             $strict ?? 0 !! 1))
     }
 #?endif
-#?if !moar
+#?if jvm
     multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
         nqp::p6box_s(
           nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))

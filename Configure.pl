@@ -66,19 +66,26 @@ MAIN: {
         $options{libdir} = $default;
     }
     my $prefix         = $options{'prefix'};
-    my @known_backends = qw/moar jvm/;
+    my @known_backends = qw/moar jvm js/;
+
+    my %backend_prefix = (jvm => 'j', moar => 'm', js  => 'js');
+
     my %known_backends = map { $_, 1; } @known_backends;
     my %letter_to_backend;
     my $default_backend;
     for (keys %known_backends) {
-        $letter_to_backend{ substr($_, 0, 1) } = $_;
+        $letter_to_backend{ $backend_prefix{$_} } = $_;
     }
     my @backends;
     my %backends;
     if (my $nqp_bin  = $options{'with-nqp'}) {
         die "Could not find $nqp_bin" unless -e $nqp_bin;
+        my $passed_backends = $options{backends};
         $options{backends} = qx{$nqp_bin -e 'print(nqp::getcomp("nqp").backend.name)'}
             or die "Could not get backend information from $nqp_bin";
+        if (defined $passed_backends && $passed_backends ne $options{backends}) {
+            die "Passed value to --backends ($passed_backends) is overwritten by the one infered by --with-nqp ($options{backends})";
+        }
     }
     if (defined $options{backends}) {
         $options{backends} = join ",", @known_backends
@@ -173,7 +180,7 @@ MAIN: {
         }
     }
 
-    for my $target (qw/common_bootstrap_sources moar_core_sources moar_core_d_sources jvm_core_sources jvm_core_d_sources/) {
+    for my $target (qw/common_bootstrap_sources js_core_sources moar_core_sources moar_core_d_sources jvm_core_sources jvm_core_d_sources/) {
         open my $FILELIST, '<', "tools/build/$target"
             or die "Cannot read 'tools/build/$target': $!";
         my @lines;
@@ -209,9 +216,9 @@ MAIN: {
 
     fill_template_file('tools/build/Makefile-common-macros.in', $MAKEFILE, %config);
 
-    my @prefixes = map substr($_, 0, 1), @backends;
+    my @prefixes = map $backend_prefix{$_}, @backends;
 
-    my $launcher = substr($default_backend, 0, 1) . '-runner-default';
+    my $launcher = $backend_prefix{$default_backend} . '-runner-default';
     print $MAKEFILE "all: ", join(' ', map("$_-all", @prefixes), $launcher), "\n";
     print $MAKEFILE "install: ", join(' ', map("$_-install", @prefixes), $launcher . '-install'), "\n";
 
@@ -267,7 +274,7 @@ MAIN: {
             $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
             $config{'bld_nqp_jars'}  = join( $config{'cpsep'}, map { $config{'sysroot'} . $_ } split( $config{'cpsep'}, $nqp_config{'jvm::runtime.jars'} ) );
             $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
-            $config{'nqp_libdir'}    = $nqp_config{'nqp::libdir'};
+            $config{'nqp::libdir'}    = $nqp_config{'nqp::libdir'};
             $config{'j_runner'}      = $win ? 'perl6-j.bat' : 'perl6-j';
 
 
@@ -312,6 +319,28 @@ MAIN: {
             fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
         }
     }
+    
+    if ($backends{js}) {
+        my %nqp_config;
+        $config{js_nqp} = $impls{js}{bin};
+        $config{js_nqp} =~ s{/}{\\}g if $win;
+        $config{'perl6_runtime'} = File::Spec->rel2abs('src/vm/js/perl6-runtime');
+        $config{'perl6_lowlevel_libs'} = File::Spec->rel2abs('node_modules') . '/';
+        $config{'perl6_js_runner'} = File::Spec->rel2abs('perl6-js');
+
+        if ( $impls{js}{ok} ) {
+            %nqp_config = %{ $impls{js}{config} };
+        }
+        elsif ( $impls{js}{config} ) {
+            push @errors, "The nqp-js is too old";
+        }
+        else {
+            push @errors, "Unable to read configuration from NQP on JS";
+        }
+
+        system("$config{js_nqp} tools/build/gen-js-makefile.nqp > gen/js/Makefile-JS.in");
+        fill_template_file('gen/js/Makefile-JS.in', $MAKEFILE, %config, %nqp_config);
+    }
 
     if ($errors{jvm}{'no gen-nqp'} || $errors{moar}{'no gen-nqp'}) {
         my @options_to_pass;
@@ -331,9 +360,8 @@ MAIN: {
     }
     sorry($options{'ignore-errors'}, @errors) if @errors;
 
-    my $l = uc substr($default_backend, 0, 1);
-    print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS5_WITH_FUDGE) --verbosity=1 \$\@\n];
-
+    my $l = uc $backend_prefix{$default_backend};
+    print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS_WITH_FUDGE) --verbosity=1 \$\@\n];
 
     close $MAKEFILE or die "Cannot write 'Makefile': $!";
 

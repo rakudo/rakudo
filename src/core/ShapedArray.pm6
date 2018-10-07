@@ -255,12 +255,7 @@
                 nqp::ifnull(
                   nqp::atposnd($!list,$!indices),
                   nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
-#?if moar
                   ) = nqp::multidimref_i($!from,$!indices)
-#?endif
-#?if !moar
-                  ) = nqp::atposnd_i($!from,$!indices)
-#?endif
             }
         }
         sub INTCPY(Mu \to, Mu \from) { IntCopy.new(to,from).sink-all }
@@ -278,12 +273,7 @@
                 nqp::ifnull(
                   nqp::atposnd($!list,$!indices),
                   nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
-#?if moar
                   ) = nqp::multidimref_n($!from,$!indices)
-#?endif
-#?if !moar
-                  ) = nqp::atposnd_n($!from,$!indices)
-#?endif
             }
         }
         sub NUMCPY(Mu \to, Mu \from) { NumCopy.new(to,from).sink-all }

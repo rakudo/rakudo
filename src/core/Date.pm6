@@ -116,8 +116,8 @@ my class Date does Dateish {
             self.new-from-daycount(self.daycount + $multiplier * $amount )
         }
         elsif $unit.starts-with('month') {
-            my int $month = $!month;
-            my int $year  = $!year;
+            my Int $month = $!month;
+            my Int $year  = $!year;
             $month += $amount;
             $year += floor(($month - 1) / 12);
             $month = ($month - 1) % 12 + 1;
@@ -128,7 +128,7 @@ my class Date does Dateish {
               !! $!day);
         }
         else { # year
-            my int $year = $!year + $amount;
+            my Int $year = $!year + $amount;
             self.new($year,$!month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$!month)
               !! $!day);

@@ -107,8 +107,9 @@ class Kernel does Systemic {
         @!signals //= [2, 9]
     }
 #?endif
+
     has $!signals-setup-lock = Lock.new;
-#?if moar
+#?if !jvm
     has $!signals-setup = False;
     method signals (Kernel:D:) {
         unless $!signals-setup {

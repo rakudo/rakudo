@@ -10,7 +10,12 @@ my class Rakudo::Deprecations { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
 my class Rakudo::Iterator { ... }
+#?if !js
 my class ThreadPoolScheduler { ... }
+#?endif
+#?if js
+my class JavaScriptScheduler { ... }
+#?endif
 my class Whatever { ... }
 my class WhateverCode { ... }
 my class X::Attribute::Required { ... }
@@ -49,7 +54,13 @@ my constant $?NL = "\x0A";
 PROCESS::<%ENV> := Rakudo::Internals.createENV(0);
 
 # This thread pool scheduler will be the default one.
+#?if !js
 PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
+#?endif
+
+#?if js
+PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
+#?endif
 
 # vim: ft=perl6 expandtab sw=4
 

@@ -88,11 +88,9 @@ my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-#?if moar
 my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-#?endif
 
 # Implement the signature binder.
 # The JVM backend really only uses trial_bind,
@@ -138,7 +136,7 @@ my class Binder {
     my $Positional;
     my $PositionalBindFailover;
 
-#?if moar
+#?if !jvm
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many, $lexpad) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;
@@ -630,7 +628,7 @@ my class Binder {
                 $default_value;
             }
             else {
-                $default_value()
+                nqp::p6capturelexwhere($default_value.clone)();
             }
         }
 
@@ -1690,11 +1688,9 @@ BEGIN {
     setup_native_ref_type(IntPosRef, int, 'positional');
     setup_native_ref_type(NumPosRef, num, 'positional');
     setup_native_ref_type(StrPosRef, str, 'positional');
-#?if moar
     setup_native_ref_type(IntMultidimRef, int, 'multidim');
     setup_native_ref_type(NumMultidimRef, num, 'multidim');
     setup_native_ref_type(StrMultidimRef, str, 'multidim');
-#?endif
 
     # class Proxy is Any {
     #    has Mu &!FETCH;
@@ -2037,7 +2033,7 @@ BEGIN {
                 my $do_cloned := nqp::clone($do);
                 nqp::bindattr($cloned, Code, '$!do', $do_cloned);
                 nqp::setcodeobj($do_cloned, $cloned);
-#?if moar
+#?if !jvm
                 my $phasers := nqp::getattr($dcself, Block, '$!phasers');
                 if nqp::isconcrete($phasers) {
                     $dcself."!clone_phasers"($cloned, $phasers);
@@ -2060,7 +2056,7 @@ BEGIN {
             }
         }));
     Block.HOW.add_method(Block, '!clone_phasers', nqp::getstaticcode(sub ($self, $cloned, $phasers) {
-#?if moar
+#?if !jvm
             my int $next := nqp::existskey($phasers, 'NEXT');
             my int $last := nqp::existskey($phasers, 'LAST');
             my int $quit := nqp::existskey($phasers, 'QUIT');
@@ -2115,7 +2111,7 @@ BEGIN {
         }));
     Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
-#?if moar
+#?if !jvm
             my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
             if nqp::isconcrete($phasers) {
                 my @next := nqp::atkey($phasers, 'NEXT');
@@ -2852,7 +2848,7 @@ BEGIN {
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             sub add_to_cache($entry) {
-#?if jvm
+#?if !moar
                 return 0 if nqp::capturehasnameds($capture);
 #?endif
                 nqp::scwbdisable();
@@ -3355,11 +3351,9 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
-#?if moar
     Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
-#?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
@@ -3539,7 +3533,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                     nqp::decont(nqp::atpos(@leaves,0))();
 #?endif
-#?if moar
+#?if !jvm
                     nqp::p6capturelexwhere(
                       nqp::decont(nqp::atpos(@leaves,0)).clone)();
 #?endif
@@ -3581,7 +3575,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                             $phaser();
 #?endif
-#?if moar
+#?if !jvm
                             nqp::p6capturelexwhere($phaser.clone())();
 #?endif
                             CATCH { nqp::push(@exceptions, $_) }
@@ -3598,7 +3592,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                     nqp::atpos(@posts, $i)($value);
 #?endif
-#?if moar
+#?if !jvm
                     nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);
 #?endif
                     CATCH { nqp::push(@exceptions, $_); last; }
@@ -3616,7 +3610,7 @@ nqp::sethllconfig('perl6', nqp::hash(
             }
         }
     },
-#?if moar
+#?if !jvm
     'bind_error', -> $capture {
         # Get signature and lexpad.
         my $caller := nqp::getcodeobj(nqp::callercode());
@@ -3705,11 +3699,9 @@ nqp::sethllconfig('perl6', nqp::hash(
     'int_pos_ref', IntPosRef,
     'num_pos_ref', NumPosRef,
     'str_pos_ref', StrPosRef,
-#?if moar
     'int_multidim_ref', IntMultidimRef,
     'num_multidim_ref', NumMultidimRef,
     'str_multidim_ref', StrMultidimRef,
-#?endif
 ));
 
 # Tell parametric role groups how to create a dispatcher.

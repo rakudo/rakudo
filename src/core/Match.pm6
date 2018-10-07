@@ -162,6 +162,12 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
+#?if js
+    my sub move_cursor($target, $pos) {
+       nqp::chars(nqp::substrnfg(nqp::substr($target, $pos), 0, 1)) || 1;
+    }
+#?endif
+
     method CURSOR_OVERLAP() {  # adapted from !cursor_more in nqp
         nqp::stmts(
           (my $new := nqp::create(self)),
@@ -183,7 +189,12 @@ my class Match is Capture is Cool does NQPMatchRole {
           nqp::bindattr_i($new,$?CLASS,'$!pos',
             nqp::if(
               nqp::isge_i($!from,$!pos),
+#?if !js
               nqp::add_i($!from,1),
+#?endif
+#?if js
+              nqp::add_i($!from, move_cursor(self.target, $!pos)),
+#?endif
               $!pos
             )
           ),
@@ -536,7 +547,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             $match = nqp::eqat($tgt, $topic_str, $pos);
         }
 
-#?if moar
+#?if !jvm
         # ignoremark+ignorecase
         elsif im == 3 {
             $match = nqp::eqaticim($tgt, $topic_str, $pos);
@@ -552,7 +563,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             $match = nqp::eqatic($tgt, $topic_str, $pos);
         }
 #?endif
-#?if !moar
+#?if jvm
 
 # This branch is required because neither the JVM nor the JS implementations
 # have the nqp::eqat* ops. However, nqp::ordbaseat just throws a NYI

@@ -111,7 +111,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     $*MAST_FRAME.add-label($done_lbl);
     $*REGALLOC.release_register($meth_reg, $MVM_reg_obj);
 
-    MAST::InstructionList.new(@ops, $cont_res.result_reg, $MVM_reg_obj)
+    MAST::InstructionList.new($cont_res.result_reg, $MVM_reg_obj)
 });
 $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     my @ops;
@@ -124,7 +124,7 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('hllbool'), $res_reg, $tmp_reg ));
     $*REGALLOC.release_register($value_res.result_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
-    MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
+    MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
 $ops.add_hll_moarop_mapping('perl6', 'p6capturelex', 'p6capturelex');
 $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
@@ -167,7 +167,7 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     $*MAST_FRAME.add-label($lbl_done);
     $*REGALLOC.release_register($err_rep.result_reg, $MVM_reg_obj);
 
-    MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+    MAST::InstructionList.new($value_res.result_reg, $MVM_reg_obj)
 });
 $ops.add_hll_moarop_mapping('perl6', 'p6stateinit', 'p6stateinit');
 $ops.add_hll_moarop_mapping('perl6', 'p6setpre', 'p6setpre');
@@ -183,7 +183,7 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('exreturnafterunwind'), $ex_reg ));
     $*REGALLOC.release_register($ex_reg, $MVM_reg_obj);
     nqp::push(@ops, MAST::Op.new( :op('return_o'), $value_res.result_reg ));
-    MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+    MAST::InstructionList.new($value_res.result_reg, $MVM_reg_obj)
 });
 $ops.add_hll_moarop_mapping('perl6', 'p6getouterctx', 'p6getouterctx', :decont(0));
 $ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);
@@ -215,7 +215,7 @@ $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     $*REGALLOC.release_register($n_reg, $MVM_reg_int64);
     $*REGALLOC.release_register($cmp_reg, $MVM_reg_int64);
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_obj);
-    MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
+    MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
 $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
     my @ops;
@@ -250,7 +250,7 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
 
     $*REGALLOC.release_register($ch_res.result_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($val_res.result_reg, $MVM_reg_obj);
-    MAST::InstructionList.new(@ops, $inv_res.result_reg, $MVM_reg_obj)
+    MAST::InstructionList.new($inv_res.result_reg, $MVM_reg_obj)
 });
 $ops.add_hll_moarop_mapping('perl6', 'p6finddispatcher', 'p6finddispatcher');
 $ops.add_hll_moarop_mapping('perl6', 'p6argsfordispatcher', 'p6argsfordispatcher');
@@ -293,7 +293,7 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
         # Add end label, and we're done.
         $*MAST_FRAME.add-label($done_lbl);
         $*REGALLOC.release_register($sinkee_res.result_reg, $MVM_reg_obj);
-        MAST::InstructionList.new(@ops, MAST::VOID, $MVM_reg_void);
+        MAST::InstructionList.new(MAST::VOID, $MVM_reg_void);
     }
     else {
         $sinkee_res
@@ -339,7 +339,7 @@ sub boxer($kind, $box_op, $type_op) {
         nqp::push(@ops, MAST::Op.new( :op($type_op), $res_reg ));
         nqp::push(@ops, MAST::Op.new( :op($box_op), $res_reg, $reg, $res_reg ));
         $*REGALLOC.release_register($reg, $kind);
-        MAST::InstructionList.new(@ops, $res_reg, $MVM_reg_obj)
+        MAST::InstructionList.new($res_reg, $MVM_reg_obj)
     }
 }
 $ops.add_hll_box('perl6', $MVM_reg_int64, boxer($MVM_reg_int64, 'box_i', 'hllboxtype_i'));
@@ -351,28 +351,28 @@ QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_int64, -> $qastcomp, $reg {
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_int64);
     nqp::push($il, MAST::Op.new( :op('decont_i'), $res_reg, $reg ));
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
-    MAST::InstructionList.new($il, $res_reg, $MVM_reg_int64)
+    MAST::InstructionList.new($res_reg, $MVM_reg_int64)
 });
 QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_num64, -> $qastcomp, $reg {
     my $il := nqp::list();
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_num64);
     nqp::push($il, MAST::Op.new( :op('decont_n'), $res_reg, $reg ));
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
-    MAST::InstructionList.new($il, $res_reg, $MVM_reg_num64)
+    MAST::InstructionList.new($res_reg, $MVM_reg_num64)
 });
 QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_str, -> $qastcomp, $reg {
     my $il := nqp::list();
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_str);
     nqp::push($il, MAST::Op.new( :op('decont_s'), $res_reg, $reg ));
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
-    MAST::InstructionList.new($il, $res_reg, $MVM_reg_str)
+    MAST::InstructionList.new($res_reg, $MVM_reg_str)
 });
 QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_uint64, -> $qastcomp, $reg {
     my $il := nqp::list();
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_uint64);
     nqp::push($il, MAST::Op.new( :op('decont_u'), $res_reg, $reg ));
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
-    MAST::InstructionList.new($il, $res_reg, $MVM_reg_uint64)
+    MAST::InstructionList.new($res_reg, $MVM_reg_uint64)
 });
 
 # Signature binding related bits.
@@ -396,7 +396,7 @@ $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
 
     $*REGALLOC.release_register($bind_res.result_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($isnull_result,       $MVM_reg_int64);
-    MAST::InstructionList.new(@ops, MAST::VOID, $MVM_reg_void);
+    MAST::InstructionList.new(MAST::VOID, $MVM_reg_void);
 });
 my $is_bindable := -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new(
@@ -466,7 +466,7 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             ));
             $*REGALLOC.release_register($plugin_reg, $MVM_reg_obj);
             $*REGALLOC.release_register($type_res.result_reg, $MVM_reg_obj);
-            MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
+            MAST::InstructionList.new($value_res.result_reg, $MVM_reg_obj)
         }
     }
     else {

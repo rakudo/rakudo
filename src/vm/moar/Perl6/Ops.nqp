@@ -84,8 +84,6 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     my @ops;
     my $cont_res  := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
     my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
-    push_ilist(@ops, $cont_res);
-    push_ilist(@ops, $value_res);
 
     my $iscont_reg  := $*REGALLOC.fresh_i();
     my $decont_reg  := $*REGALLOC.fresh_o();
@@ -116,7 +114,6 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
 $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     my @ops;
     my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-    push_ilist(@ops, $value_res);
     my $tmp_reg := $*REGALLOC.fresh_i();
     my $res_reg := $*REGALLOC.fresh_o();
     nqp::push(@ops, MAST::Op.new( :op('decont'), $res_reg, $value_res.result_reg ));
@@ -132,8 +129,6 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
     my @ops;
     my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
     my $type_res  := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
-    push_ilist(@ops, $value_res);
-    push_ilist(@ops, $type_res);
 
     # Emit a type check.
     my $tcr_reg  := $*REGALLOC.fresh_i();
@@ -158,7 +153,6 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
         }
     }
     my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&bind_error)) ));
-    push_ilist(@ops, $err_rep);
     nqp::push(@ops, MAST::Call.new(
         :target($err_rep.result_reg),
         :flags($Arg::obj, $Arg::obj),
@@ -177,7 +171,6 @@ $ops.add_hll_moarop_mapping('perl6', 'p6takefirstflag', 'p6takefirstflag');
 $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     my @ops;
     my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-    push_ilist(@ops, $value_res);
     my $ex_reg := $*REGALLOC.fresh_o();
     nqp::push(@ops, MAST::Op.new( :op('exception'), $ex_reg ));
     nqp::push(@ops, MAST::Op.new( :op('exreturnafterunwind'), $ex_reg ));
@@ -221,17 +214,14 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
     my @ops;
 
     my $inv_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-    push_ilist(@ops, $inv_res);
 
     my $ch_res := $qastcomp.as_mast(
         nqp::istype($op[1], QAST::WVal) && !nqp::isconcrete($op[1].value)
             ?? $op[1]
             !! QAST::Op.new( :op('decont'), $op[1] ),
         :want($MVM_reg_obj));
-    push_ilist(@ops, $ch_res);
 
     my $val_res := $qastcomp.as_mast($op[3], :want($MVM_reg_obj));
-    push_ilist(@ops, $val_res);
 
     my $name := $op[2];
     $name := $name[2] if nqp::istype($name, QAST::Want) && $name[1] eq 'Ss';
@@ -242,7 +232,6 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
     }
     else {
         my $nam_res := $qastcomp.as_mast($name, :want($MVM_reg_str));
-        push_ilist(@ops, $nam_res);
         nqp::push(@ops, MAST::Op.new( :op('bindattrs_o'), $inv_res.result_reg,
             $ch_res.result_reg, $nam_res.result_reg, $val_res.result_reg));
         $*REGALLOC.release_register($nam_res.result_reg, $MVM_reg_str);
@@ -269,7 +258,6 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
     if $sinkee_res.result_kind == $MVM_reg_obj {
         # Put computation of sinkee first.
         my @ops;
-        push_ilist(@ops, $sinkee_res);
 
         # Check it's concrete try to find the sink method.
         my $sinkee_reg := $sinkee_res.result_reg;
@@ -388,7 +376,6 @@ $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
                     QAST::Op.new( :op('savecapture') ),
                 ), :want($MVM_reg_obj)
             );
-    push_ilist(@ops, $bind_res);
     nqp::push(@ops, MAST::Op.new( :op('isnull'), $isnull_result, $bind_res.result_reg ));
     nqp::push(@ops, MAST::Op.new( :op('if_i'), $isnull_result, $dont_return_lbl ));
     nqp::push(@ops, MAST::Op.new( :op('return_o'), $bind_res.result_reg ));
@@ -447,8 +434,6 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
             my @ops;
             my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
             my $type_res := $qastcomp.as_mast(QAST::WVal.new( :value($type) ), :want($MVM_reg_obj));
-            push_ilist(@ops, $value_res);
-            push_ilist(@ops, $type_res);
             my $plugin_reg := $*REGALLOC.fresh_o();
             nqp::push(@ops, MAST::Call.new(
                 :target(MAST::SVal.new( :value('typecheckrv') )),
@@ -508,7 +493,3 @@ $ops.add_hll_op('perl6', 'p6configposbindfailover', :inlinable, -> $qastcomp, $o
             QAST::WVal.new( :value($Binder) ),
             $op[0], $op[1]), :want($MVM_reg_obj));
 });
-
-sub push_ilist(@dest, $src) {
-    nqp::splice(@dest, $src.instructions, +@dest, 0);
-}

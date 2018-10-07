@@ -100,7 +100,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('goto'), $done_lbl ));
 
     my $meth_reg := $*REGALLOC.fresh_o();
-    nqp::push(@ops, $no_cont_lbl);
+    $*MAST_FRAME.add-label($no_cont_lbl);
     nqp::push(@ops, MAST::Op.new( :op('findmeth'), $meth_reg, $cont_res.result_reg,
         MAST::SVal.new( :value('STORE') ) ));
     nqp::push(@ops, MAST::Call.new(
@@ -108,7 +108,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
         :flags($Arg::obj, $Arg::obj),
         $cont_res.result_reg, $value_res.result_reg
     ));
-    nqp::push(@ops, $done_lbl);
+    $*MAST_FRAME.add-label($done_lbl);
     $*REGALLOC.release_register($meth_reg, $MVM_reg_obj);
 
     MAST::InstructionList.new(@ops, $cont_res.result_reg, $MVM_reg_obj)
@@ -164,7 +164,7 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
         :flags($Arg::obj, $Arg::obj),
         $value_res.result_reg, $type_res.result_reg
     ));
-    nqp::push(@ops, $lbl_done);
+    $*MAST_FRAME.add-label($lbl_done);
     $*REGALLOC.release_register($err_rep.result_reg, $MVM_reg_obj);
 
     MAST::InstructionList.new(@ops, $value_res.result_reg, $MVM_reg_obj)
@@ -201,7 +201,7 @@ $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     my $lbl_done := MAST::Label.new();
     nqp::push(@ops, MAST::Op.new( :op('elems'), $n_reg, $res_reg ));
     nqp::push(@ops, MAST::Op.new( :op('const_i64'), $i_reg, MAST::IVal.new( :value(0) ) ));
-    nqp::push(@ops, $lbl_next);
+    $*MAST_FRAME.add-label($lbl_next);
     nqp::push(@ops, MAST::Op.new( :op('lt_i'), $cmp_reg, $i_reg, $n_reg ));
     nqp::push(@ops, MAST::Op.new( :op('unless_i'), $cmp_reg, $lbl_done ));
     nqp::push(@ops, MAST::Op.new( :op('atpos_o'), $tmp_reg, $res_reg, $i_reg ));
@@ -210,7 +210,7 @@ $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('const_i64'), $cmp_reg, MAST::IVal.new( :value(1) ) ));
     nqp::push(@ops, MAST::Op.new( :op('add_i'), $i_reg, $i_reg, $cmp_reg ));
     nqp::push(@ops, MAST::Op.new( :op('goto'), $lbl_next ));
-    nqp::push(@ops, $lbl_done);
+    $*MAST_FRAME.add-label($lbl_done);
     $*REGALLOC.release_register($i_reg, $MVM_reg_int64);
     $*REGALLOC.release_register($n_reg, $MVM_reg_int64);
     $*REGALLOC.release_register($cmp_reg, $MVM_reg_int64);
@@ -291,7 +291,7 @@ $ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
         $*REGALLOC.release_register($meth, $MVM_reg_obj);
 
         # Add end label, and we're done.
-        nqp::push(@ops, $done_lbl);
+        $*MAST_FRAME.add-label($done_lbl);
         $*REGALLOC.release_register($sinkee_res.result_reg, $MVM_reg_obj);
         MAST::InstructionList.new(@ops, MAST::VOID, $MVM_reg_void);
     }
@@ -392,7 +392,7 @@ $ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     nqp::push(@ops, MAST::Op.new( :op('isnull'), $isnull_result, $bind_res.result_reg ));
     nqp::push(@ops, MAST::Op.new( :op('if_i'), $isnull_result, $dont_return_lbl ));
     nqp::push(@ops, MAST::Op.new( :op('return_o'), $bind_res.result_reg ));
-    nqp::push(@ops, $dont_return_lbl);
+    $*MAST_FRAME.add-label($dont_return_lbl);
 
     $*REGALLOC.release_register($bind_res.result_reg, $MVM_reg_obj);
     $*REGALLOC.release_register($isnull_result,       $MVM_reg_int64);

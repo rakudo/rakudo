@@ -485,14 +485,14 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
-        method STORE_AT_KEY(TKey \key, TValue \x --> Nil) {
+        method STORE_AT_KEY(::?CLASS:D: TKey \key, Mu \value --> Nil) {
             nqp::bindkey(
               nqp::getattr(self,Map,'$!storage'),
               nqp::unbox_s(key.WHICH),
               Pair.new(
                 key,
                 nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor'))
-                = x
+                = value
               )
             )
         }

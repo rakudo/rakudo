@@ -515,21 +515,20 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
-        method ASSIGN-KEY(::?CLASS:D: TKey \key, TValue \assignval) is raw {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            my str $which = nqp::unbox_s(key.WHICH);
+        method ASSIGN-KEY(::?CLASS:D: TKey \key, Mu \assignval) is raw {
+            my \storage  := nqp::getattr(self, Map, '$!storage');
+            my \WHICH    := key.WHICH;
+            my \existing := nqp::atkey(storage,WHICH);
             nqp::if(
-              nqp::existskey(storage,$which),
-              (nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value')
-                = assignval),
-              nqp::getattr(
-                (nqp::bindkey(storage,$which,
-                  Pair.new(key,nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Hash,'$!descriptor')) = assignval)
-                )),
-                Pair,
-                '$!value'
-              )
+              nqp::isnull(existing),
+              nqp::stmts(
+                ((my \scalar := nqp::p6scalarfromdesc(    # assign before
+                  nqp::getattr(self,Hash,'$!descriptor')  # binding to get
+                )) = assignval),                          # type check
+                nqp::bindkey(storage,WHICH,Pair.new(key,scalar)),
+                scalar
+              ),
+              (nqp::getattr(existing,Pair,'$!value') = assignval)
             )
         }
 

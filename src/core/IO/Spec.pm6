@@ -2,7 +2,7 @@ my class VM { ... }
 
 my class IO::Spec {
 
-    my %module =                # only list the non-Unix ones in lowercase
+    BEGIN my %module =          # only list the non-Unix ones in lowercase
         'mswin32' => 'Win32',
         'os2' =>     'Win32',
         'dos'     => 'Win32',

@@ -1569,7 +1569,7 @@ my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
-    my %m =
+    BEGIN my %m =
       '$"'  => '.join() method',
       '$$'  => '$*PID',
       '$;'  => 'real multidimensional hashes',

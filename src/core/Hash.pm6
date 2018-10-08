@@ -213,21 +213,12 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     # introspection
-    method name() {
-        nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
-    }
-    method keyof() {
-        Str(Any)
-    }
-    method of() {
-        nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
-    }
-    method default() {
-        nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
-    }
-    method dynamic() {
-        nqp::isnull($!descriptor) ?? False !! nqp::hllbool($!descriptor.dynamic)
-    }
+    method keyof() { Str(Any) }  # overridden by TypedHash
+
+    method of(Hash:D:)      { $!descriptor.of }
+    method name(Hash:D:)    { $!descriptor.name }
+    method default(Hash:D:) { $!descriptor.default }
+    method dynamic(Hash:D:) { nqp::hllbool($!descriptor.dynamic) }
 
     method push(+values) {
         fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))

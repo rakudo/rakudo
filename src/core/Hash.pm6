@@ -462,6 +462,13 @@ my class Hash { # declared in BOOTSTRAP
               )
             )
         }
+        method BIND-KEY(\key, TValue \bindval) is raw {
+            nqp::bindkey(
+              nqp::getattr(self,Map,'$!storage'),
+              key.Str,
+              bindval
+            )
+        }
         multi method perl(::?CLASS:D \SELF:) {
             SELF.perlseen('Hash', {
                 '$' x nqp::iscont(SELF)  # self is always deconted

@@ -429,6 +429,15 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     my role TypedHash[::TValue] does Associative[TValue] {
+
+        # make sure we get the right descriptor
+        multi method new(::?CLASS:) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),Hash,'$!descriptor',
+              ContainerDescriptor.new(:of(TValue), :default(TValue))
+            ) 
+        }   
+
         # These ASSIGN-KEY candidates are only needed because of:
         #   my Int %h; try %h<a> = "foo"; dd %h
         # leaving an uninitialized Int for key <a> in the hash.  If
@@ -475,6 +484,14 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
     my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
+
+        # make sure we get the right descriptor
+        multi method new(::?CLASS:) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),Hash,'$!descriptor',
+              ContainerDescriptor.new(:of(TValue), :default(TValue))
+            ) 
+        }   
         method keyof () { TKey }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
             my \storage := nqp::getattr(self, Map, '$!storage');

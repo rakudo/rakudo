@@ -42,11 +42,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           ValueObjAt
         )
     }
-    method new(*@args) {
-        @args
-          ?? nqp::create(self).STORE(@args, :initialize)
-          !! nqp::create(self)
-    }
+
+    # Calling self.new for the arguments case ensures that the right
+    # descriptor will be added for typed hashes.
+    multi method new(Map:       ) { nqp::create(self) }
+    multi method new(Map: *@args) { self.new.STORE(@args, :initialize) }
 
     multi method Map(Map:) { self }
 

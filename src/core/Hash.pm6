@@ -429,37 +429,19 @@ my class Hash { # declared in BOOTSTRAP
             ) 
         }   
 
-        # These ASSIGN-KEY candidates are only needed because of:
-        #   my Int %h; try %h<a> = "foo"; dd %h
-        # leaving an uninitialized Int for key <a> in the hash.  If
-        # we could live with that, then these candidates can be
-        # removed.  However, there are spectest covering this
-        # eventuality, so to appease roast, we need these.
-        multi method ASSIGN-KEY(::?CLASS:D: Str:D \key, Mu \assignval) is raw {
-            my \storage := nqp::getattr(self, Map, '$!storage');
+        method ASSIGN-KEY(::?CLASS:D: Mu \key, Mu \assignval) is raw {
+            my \storage  := nqp::getattr(self, Map, '$!storage');
+            my \which    := key.Str;
+            my \existing := nqp::atkey(storage,which);
             nqp::if(
-              nqp::existskey(storage, nqp::unbox_s(key)),
-              (nqp::atkey(storage, nqp::unbox_s(key)) = assignval),
-              nqp::bindkey(
-                storage,
-                nqp::unbox_s(key),
-                nqp::p6scalarfromdesc(
-                  nqp::getattr(self,Hash,'$!descriptor')) = assignval
-              )
-            )
-        }
-        multi method ASSIGN-KEY(::?CLASS:D: \key, Mu \assignval) is raw {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            my str $key = nqp::unbox_s(key.Str);
-            nqp::if(
-              nqp::existskey(storage,$key),
-              (nqp::atkey(storage,$key) = assignval),
-              nqp::bindkey(
-                storage,
-                nqp::unbox_s(key.Str),
-                nqp::p6scalarfromdesc(
-                  nqp::getattr(self,Hash,'$!descriptor')) = assignval
-              )
+              nqp::isnull(existing),
+              nqp::stmts(
+                ((my \scalar := nqp::p6scalarfromdesc(    # assign before
+                  nqp::getattr(self,Hash,'$!descriptor')  # binding to get
+                )) = assignval),                          # type check
+                nqp::bindkey(storage,which,scalar)
+              ),
+              (existing = assignval)
             )
         }
         method BIND-KEY(\key, TValue \value) is raw {

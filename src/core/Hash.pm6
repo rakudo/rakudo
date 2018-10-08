@@ -462,11 +462,11 @@ my class Hash { # declared in BOOTSTRAP
               )
             )
         }
-        method BIND-KEY(\key, TValue \bindval) is raw {
+        method BIND-KEY(\key, TValue \value) is raw {
             nqp::bindkey(
               nqp::getattr(self,Map,'$!storage'),
               key.Str,
-              bindval
+              value
             )
         }
         multi method perl(::?CLASS:D \SELF:) {
@@ -533,12 +533,12 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
-        method BIND-KEY(TKey \key, TValue \bindval) is raw {
+        method BIND-KEY(TKey \key, TValue \value) is raw {
             nqp::getattr(
               nqp::bindkey(
                 nqp::getattr(self,Map,'$!storage'),
                 key.WHICH,
-                Pair.new(key,bindval)
+                Pair.new(key,value)
               ),
               Pair,
               '$!value'

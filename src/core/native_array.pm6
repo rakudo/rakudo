@@ -1620,7 +1620,7 @@ my class array does Iterable {
                 nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
                 nqp::bindpos($odims,$i,nqp::atpos_i($idims,$i))
               ),
-              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$odims)
+              $odims.List
             )
         }
 

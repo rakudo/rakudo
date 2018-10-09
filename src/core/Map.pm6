@@ -107,10 +107,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    method List() {
-        nqp::p6bindattrinvres(
-          nqp::create(List),List,'$!reified',self.IterationBuffer)
-    }
+    method List() { self.IterationBuffer.List }
 
     multi method head(Map:D:) {
         nqp::if(
@@ -129,9 +126,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         Seq.new(
           Rakudo::Iterator.ReifiedList(
             Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-              nqp::p6bindattrinvres(
-                nqp::create(List),List,'$!reified',self.IterationBuffer
-              ),
+              self.IterationBuffer.List,
               { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
             )
           )
@@ -203,10 +198,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     method iterator(Map:D:) { Iterate.new(self) }
 
-    method list(Map:D:) {
-        nqp::p6bindattrinvres(
-          nqp::create(List),List,'$!reified',self.IterationBuffer)
-    }
+    method list(Map:D:) { self.List }
+
     multi method pairs(Map:D:) { Seq.new(self.iterator) }
     multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
     multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }

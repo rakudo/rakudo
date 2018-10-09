@@ -118,7 +118,7 @@ my class Parameter { # declared in BOOTSTRAP
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos($buf,$i,nqp::atpos_s(@!named_names,$i))
             ),
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+            $buf.List
           ),
           nqp::create(List)
         )
@@ -185,7 +185,7 @@ my class Parameter { # declared in BOOTSTRAP
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos($buf,$i,nqp::atpos_s(@!type_captures,$i))
             ),
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+            $buf.List
           ),
           nqp::create(List)
         )

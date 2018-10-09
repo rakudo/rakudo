@@ -428,8 +428,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::if(
               $view,                              # assume no change in array
-              nqp::p6bindattrinvres(
-                nqp::create(List),List,'$!reified',$reified),
+              $reified.List,
               nqp::stmts(                         # make cow copy
                 (my int $elems = nqp::elems($reified)),
                 (my $cow := nqp::setelems(nqp::create(IterationBuffer),$elems)),
@@ -438,7 +437,7 @@ my class Array { # declared in BOOTSTRAP
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::bindpos($cow,$i,nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)),
                 ),
-                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$cow)
+                $cow.List
               )
             ),
             nqp::create(List)                     # was empty, is empty

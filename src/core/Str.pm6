@@ -207,7 +207,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ($pos = nqp::add_i($i,$add))
             )
           ),
-          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
+          $indices.List
         )
     }
     multi method indices(Str:D: Cool:D $needle, Cool:D $start, *%pars) {self.indices: $needle.Str, $start.Int, |%pars}
@@ -229,7 +229,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   ($pos = nqp::add_i($i,$add))
                 )
               ),
-              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
+              $indices.List
             )
           )
         )
@@ -880,8 +880,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       ),
                       nqp::push($matches,$pulled)
                     ),
-                    nqp::p6bindattrinvres(
-                      nqp::create(List),List,'$!reified',$matches)
+                    $matches.List
                   ),
                   nqp::stmts(                  # upto the max index
                     (my int $todo = $max - $min + 1),
@@ -896,8 +895,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     ),
                     nqp::if(
                       nqp::iseq_i($i,$todo),
-                      nqp::p6bindattrinvres(  # found all values
-                        nqp::create(List),List,'$!reified',$matches),
+                      $matches.List,          # found all values
                       Empty                   # no match, since not all values
                     )
                   )
@@ -968,8 +966,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ),
           nqp::if(
             nqp::elems($matches) >= $min,
-            nqp::p6bindattrinvres(
-              nqp::create(List),List,'$!reified',$matches),
+            $matches.List,
             ()
           )
         ))
@@ -2256,7 +2253,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         Words.new(self).push-all(my $words := nqp::create(IterationBuffer));
         nqp::elems($words) == 1
           ?? nqp::shift($words)
-          !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$words)
+          !! $words.List
     }
 
     proto method encode(|) {*}

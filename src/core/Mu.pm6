@@ -843,7 +843,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
             nqp::push($results,$meth(SELF, |c))    if $meth;
         }
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$results)
+        $results.List
     }
 
     method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {

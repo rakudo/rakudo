@@ -184,7 +184,7 @@ class Rakudo::Iterator {
                 nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
                 nqp::bindpos($buffer,$i,nqp::atpos_i($!dims,$i))
               ),
-              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buffer)
+              $buffer.List
             )
         }
 
@@ -560,9 +560,7 @@ class Rakudo::Iterator {
                   && ($!is-exhausted = 1) # set the flag
                   && ($!complete || nqp::not_i(nqp::elems(reified))),
                 IterationEnd,
-                nqp::p6bindattrinvres(
-                  nqp::create(List),List,'$!reified',reified
-                )
+                reified.List
               )
             )
           )
@@ -775,10 +773,7 @@ class Rakudo::Iterator {
                   nqp::if(
                     $!b,
                     nqp::clone($!combination),
-                    nqp::p6bindattrinvres(
-                      nqp::create(List),List,'$!reified',
-                      nqp::clone($!combination)
-                    )
+                    nqp::clone($!combination).List
                   )
                 ),
                 IterationEnd
@@ -919,8 +914,7 @@ class Rakudo::Iterator {
               nqp::stmts(
 
                 # set up result of this pull
-                (my $result := nqp::p6bindattrinvres(
-                  nqp::create(List),List,'$!reified',nqp::clone($!next))),
+                (my $result := nqp::clone($!next).List),
 
                 # start working on next result
                 nqp::unless(
@@ -2592,8 +2586,7 @@ class Rakudo::Iterator {
                 nqp::if(
                   $!b,
                   $permuted,
-                  nqp::p6bindattrinvres(
-                    nqp::create(List),List,'$!reified',$permuted)
+                  $permuted.List
                 )
               ),
               IterationEnd
@@ -3112,10 +3105,7 @@ class Rakudo::Iterator {
                 nqp::if(
                   nqp::islt_i($gap,0),
                   nqp::stmts(                      # keep some for next
-                    (my $result := nqp::p6bindattrinvres(
-                      nqp::create(List),List,'$!reified',
-                      nqp::clone($!buffer)
-                    )),
+                    (my $result := nqp::clone($!buffer).List),
                     nqp::if(
                       nqp::islt_i(nqp::elems($!buffer),$elems),
                       nqp::setelems($!buffer,0),   # was :partial, now done
@@ -3131,10 +3121,7 @@ class Rakudo::Iterator {
                     nqp::if(
                       nqp::isle_i(nqp::elems($!buffer),$elems),
                       nqp::stmts(                    # whole buffer ok
-                        ($result := nqp::p6bindattrinvres(
-                          nqp::create(List),List,'$!reified',
-                          $!buffer
-                        )),
+                        ($result := $!buffer.List),
                         ($!buffer := nqp::create(IterationBuffer))
                       ),
                       nqp::stmts(                    # partial buffer ok
@@ -3221,8 +3208,7 @@ class Rakudo::Iterator {
                 ),
                 nqp::if(
                   nqp::elems($buf),
-                  nqp::p6bindattrinvres( # at least one not exhausted
-                    nqp::create(List),List,'$!reified',$buf),
+                  $buf.List,
                   nqp::stmts(            # we're done
 #?if jvm
                     ($!iters := Mu),
@@ -3344,8 +3330,7 @@ class Rakudo::Iterator {
                     )
                   )
                 ),
-                nqp::p6bindattrinvres(         # what we found
-                  nqp::create(List),List,'$!reified',$buf)
+                $buf.List                      # what we found
               ),
               IterationEnd                     # done iterating
             )
@@ -4052,8 +4037,7 @@ class Rakudo::Iterator {
 #?endif
                     IterationEnd
                   ),
-                  nqp::p6bindattrinvres(
-                    nqp::create(List),List,'$!reified',buf)
+                  buf.List
                 )
               )
             )

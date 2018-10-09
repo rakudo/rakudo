@@ -1451,14 +1451,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method sort() {
         nqp::if(
           nqp::eqaddr(
-            self.iterator.push-until-lazy(my $list := IterationBuffer.new),
+            self.iterator.push-until-lazy(my \buf := IterationBuffer.new),
             IterationEnd
           ),
           Seq.new(
             Rakudo::Iterator.ReifiedList(
-              Rakudo::Sorting.MERGESORT-REIFIED-LIST(
-                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$list)
-              )
+              Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
             )
           ),
           X::Cannot::Lazy.new(:action<sort>).throw
@@ -1468,7 +1466,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         nqp::stmts(
           nqp::unless(
             nqp::eqaddr(
-              self.iterator.push-until-lazy(my $list := IterationBuffer.new),
+              self.iterator.push-until-lazy(my \buf := IterationBuffer.new),
               IterationEnd
             ),
             X::Cannot::Lazy.new(:action<sort>).throw
@@ -1477,22 +1475,11 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             Rakudo::Iterator.ReifiedList(
               nqp::if(
                 nqp::eqaddr(&by,&infix:<cmp>),
-                Rakudo::Sorting.MERGESORT-REIFIED-LIST(
-                  nqp::p6bindattrinvres(
-                    nqp::create(List),List,'$!reified',$list)
-                ),
+                Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List),
                 nqp::if(
                   &by.count < 2,
-                  Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-                    nqp::p6bindattrinvres(
-                      nqp::create(List),List,'$!reified',$list),
-                    &by
-                  ),
-                  Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
-                    nqp::p6bindattrinvres(
-                      nqp::create(List),List,'$!reified',$list),
-                    &by
-                  )
+                  Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(  buf.List,&by),
+                  Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(buf.List,&by)
                 )
               )
             )

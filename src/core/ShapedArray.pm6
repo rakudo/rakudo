@@ -473,7 +473,7 @@
         multi method List(::?CLASS:D:) {
             my \buf := nqp::create(IterationBuffer);
             self.iterator.push-all(buf);
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',buf)
+            buf.List
         }
 
         multi method Array(::?CLASS:D:) {

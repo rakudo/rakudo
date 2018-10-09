@@ -64,11 +64,7 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             }
         }
 
-        Capture.new(
-          list => nqp::p6bindattrinvres(
-                    nqp::create(List),List,'$!reified',$positional),
-          hash => %named
-        )
+        Capture.new( list => $positional.List, hash => %named )
     }
 
     # Generate $?USAGE string (default usage info for MAIN)

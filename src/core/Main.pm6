@@ -7,20 +7,20 @@
 
 my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
     # Do we have a MAIN at all?
-    my $m = callframe(1).my<&MAIN>;
-    return $retval unless $m;
+    my $main := callframe(1).my<&MAIN>;
+    return $retval unless $main;
 
     my %SUB-MAIN-OPTS  := %*SUB-MAIN-OPTS // {};
     my $no-named-after := nqp::isfalse(%SUB-MAIN-OPTS<named-anywhere>);
 
     sub thevalue(\a) {
-        ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))
-          ?? $type
+        ((my \type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS(type.HOW))
+          ?? type
           !! val(a)
     }
 
     # Convert raw command line args into positional and named args for MAIN
-    my sub process-cmd-args(@args is copy) {
+    my sub process-cmd-args(@args is copy --> Capture:D) {
         my $positional := nqp::create(IterationBuffer);
         my %named;
 
@@ -64,9 +64,11 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             }
         }
 
-        nqp::p6bindattrinvres(
-          nqp::create(List),List,'$!reified',$positional
-        ),%named;
+        Capture.new(
+          list => nqp::p6bindattrinvres(
+                    nqp::create(List),List,'$!reified',$positional),
+          hash => %named
+        )
     }
 
     # Generate $?USAGE string (default usage info for MAIN)
@@ -95,7 +97,7 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
         $prog-name = $prog-name eq '-e'
           ?? "-e '...'"
           !! strip_path_prefix($prog-name);
-        for $m.candidates -> $sub {
+        for $main.candidates -> $sub {
             next if $sub.?is-hidden-from-USAGE;
 
             my @required-named;
@@ -207,12 +209,12 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
     }
 
     # Process command line arguments
-    my ($p, $n) := process-cmd-args(@*ARGS);
+    my $capture := process-cmd-args(@*ARGS);
 
     # Generate default $?USAGE message
     my $usage;
     my $*USAGE := Proxy.new(
-        FETCH => -> | { $usage || ($usage = gen-usage()) },
+        FETCH => -> | { $usage ||= gen-usage() },
         STORE => -> | {
             die 'Cannot assign to $*USAGE. Please use `sub USAGE {}` to '
                 ~ 'output custom usage message'
@@ -220,34 +222,36 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
     );
 
     # Get a list of candidates that match according to the dispatcher
-    my @matching_candidates = $m.cando(Capture.new(list => $p, hash => $n));
+    my @matching_candidates = $main.cando($capture);
+
     # Sort out all that would fail due to binding
-    @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
+    @matching_candidates .=
+      grep: { !has-unexpected-named-arguments(.signature, $capture.hash) };
+
     # If there are still some candidates left, try to dispatch to MAIN
     if +@matching_candidates {
         if $IN-as-ARGSFILES {
             my $*ARGFILES := IO::ArgFiles.new: (my $in := $*IN),
                 :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),
                 :bin(nqp::hllbool(nqp::isfalse($in.encoding)));
-            $m(|@($p), |%($n));
+            $main(|$capture);
         }
         else {
-            $m(|@($p), |%($n));
+            $main(|$capture);
         }
         return;
     }
 
     # We could not find the correct MAIN to dispatch to!
     # Let's try to run a user defined USAGE sub
-    my $h = callframe(1).my<&USAGE>;
-    if $h {
-        $h();
+    if callframe(1).my<&USAGE> -> $usage {
+        $usage();
         return;
     }
 
     # We could not find a user defined USAGE sub!
     # Let's display the default USAGE message
-    if $n<help> {
+    if $capture<help> {
         $*OUT.say($*USAGE);
         exit 0;
     }

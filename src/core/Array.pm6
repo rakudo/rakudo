@@ -1151,7 +1151,7 @@ my class Array { # declared in BOOTSTRAP
     method !splice-offset-size-new(int $offset,int $size,@new) {
         nqp::if(
           nqp::eqaddr(@new.iterator.push-until-lazy(
-            (my $new := IterationBuffer.new)),IterationEnd),
+            (my $new := nqp::create(IterationBuffer))),IterationEnd),
           nqp::if(      # reified all values to splice in
             (nqp::isnull($!descriptor) || nqp::eqaddr(self.of,Mu)),
             nqp::stmts( # no typecheck needed

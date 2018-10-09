@@ -1473,7 +1473,7 @@ class Rakudo::Iterator {
         has int $!i;
         method !SET-SELF(\source) {
             $!source := source;
-            $!buffer := IterationBuffer.new;
+            $!buffer := nqp::create(IterationBuffer);
             self
         }
         method new(\source) { nqp::create(self)!SET-SELF(source) }

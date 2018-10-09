@@ -1451,7 +1451,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     multi method sort() {
         nqp::if(
           nqp::eqaddr(
-            self.iterator.push-until-lazy(my \buf := IterationBuffer.new),
+            self.iterator.push-until-lazy(
+              my \buf := nqp::create(IterationBuffer)),
             IterationEnd
           ),
           Seq.new(
@@ -1466,7 +1467,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         nqp::stmts(
           nqp::unless(
             nqp::eqaddr(
-              self.iterator.push-until-lazy(my \buf := IterationBuffer.new),
+              self.iterator.push-until-lazy(
+                my \buf := nqp::create(IterationBuffer)),
               IterationEnd
             ),
             X::Cannot::Lazy.new(:action<sort>).throw

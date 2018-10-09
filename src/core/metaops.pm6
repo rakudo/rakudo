@@ -609,7 +609,7 @@ multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$d
     my \lefti  := Rakudo::Iterator.DWIM(left-iterator);
     my \righti := Rakudo::Iterator.DWIM(right-iterator);
 
-    my \result := IterationBuffer.new;
+    my \result := nqp::create(IterationBuffer);
     loop {
         my \leftv := lefti.pull-one;
         my \rightv := righti.pull-one;

@@ -47,9 +47,9 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw
     }
 }
 sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
-    my \target = IterationBuffer.new;
+    my \target = nqp::create(IterationBuffer);
     MD-ARRAY-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', target)
+    target.List
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {

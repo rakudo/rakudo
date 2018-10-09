@@ -1592,7 +1592,7 @@ my class Rakudo::Internals {
 
         my \result := CoreMap.new(op, iterable.iterator, $deep);
         my \type := nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
-        my \buffer := IterationBuffer.new;
+        my \buffer := nqp::create(IterationBuffer);
         result.push-all(buffer);
         my \retval := type.new;
         nqp::bindattr(retval, List, '$!reified', buffer);

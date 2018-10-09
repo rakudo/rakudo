@@ -338,7 +338,7 @@ class CompUnit::RepositoryRegistry {
 
     # No need to do difficult things at startup when we can precompile this
     # into the setting.
-    BEGIN my %short-id2class = (
+    my %short-id2class = (
       'file',   CompUnit::Repository::FileSystem,
       'inst',   CompUnit::Repository::Installation,
       'ap',     CompUnit::Repository::AbsolutePath,

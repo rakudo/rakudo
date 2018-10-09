@@ -24,7 +24,7 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
         my $positional := nqp::create(IterationBuffer);
         my %named;
 
-        while ?@args {
+        while @args {
             my str $passed-value = @args.shift;
 
             # rest considered to be non-parsed

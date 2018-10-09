@@ -27,7 +27,7 @@
                     nqp::atposnd(reified,idxs),      # found it
                     nqp::p6scalarfromdesc(
                       ContainerDescriptor::BindArrayPosND.new(
-                        nqp::getattr(array, Array, '$!descriptor'),
+                        nqp::getattr(self, Array, '$!descriptor'),
                         reified, idxs
                       )
                     )

@@ -5,10 +5,10 @@
 #   * Allow exact Perl 6 forms, quoted away from shell
 # * Fix remaining XXXX
 
-my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
+my sub MAIN_HELPER($IN-as-ARGSFILES) {
     # Do we have a MAIN at all?
     my $m = callframe(1).my<&MAIN>;
-    return $retval unless $m;
+    return 0 unless $m;
 
     my %SUB-MAIN-OPTS  := %*SUB-MAIN-OPTS // {};
     my $no-named-after := nqp::isfalse(%SUB-MAIN-OPTS<named-anywhere>);

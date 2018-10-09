@@ -115,7 +115,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method chomp(Str:D:) {
         nqp::if(
           (nqp::isge_i((my int $chars = nqp::sub_i(nqp::chars($!value),1)),0) #?js: NFG
-            && nqp::iscclass(nqp::const::CCLASS_NEWLINE,$!value,$chars)),
+            && nqp::iscclass(nqp::const::CCLASS_NEWLINE,$!value,$chars)), #?js: NFG
           nqp::p6box_s(nqp::substr($!value,0,$chars)), #?js: NFG
           self
         )

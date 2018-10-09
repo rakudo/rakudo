@@ -63,7 +63,6 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
                 nqp::push($positional, thevalue($passed-value));
             }
         }
-
         Capture.new( list => $positional.List, hash => %named )
     }
 
@@ -188,20 +187,16 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             @help-msgs.append(@arg-help.map: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
         }
 
-        my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");
-        $usage;
+        "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n")
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {
         my @named-params = $signature.params.grep: *.named;
-        return False if @named-params.grep: *.slurpy;
+        return False if @named-params.first: *.slurpy;
 
-        my %accepts-argument = @named-params.map({ .named_names.Slip }) Z=> 1 xx *;
-        for %named-arguments.keys -> $name {
-            return True if !%accepts-argument{$name}
-        }
-
-        False;
+        my %accepts-argument is Set = @named-params.map( *.named_names.Slip );
+        return True unless %accepts-argument{$_} for %named-arguments.keys;
+        False
     }
 
     # Process command line arguments
@@ -230,24 +225,22 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             my $*ARGFILES := IO::ArgFiles.new: (my $in := $*IN),
                 :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),
                 :bin(nqp::hllbool(nqp::isfalse($in.encoding)));
-            $main(|$capture);
+            $main(|$capture).sink;
         }
         else {
-            $main(|$capture);
+            $main(|$capture).sink;
         }
-        return;
     }
 
     # We could not find the correct MAIN to dispatch to!
     # Let's try to run a user defined USAGE sub
-    if callframe(1).my<&USAGE> -> $usage {
+    elsif callframe(1).my<&USAGE> -> $usage {
         $usage();
-        return;
     }
 
     # We could not find a user defined USAGE sub!
     # Let's display the default USAGE message
-    if $capture<help> {
+    elsif $capture<help> {
         $*OUT.say($*USAGE);
         exit 0;
     }

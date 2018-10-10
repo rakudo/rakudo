@@ -13,7 +13,7 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
     my %SUB-MAIN-OPTS := %*SUB-MAIN-OPTS // {};
 
     # Convert raw command line args into positional and named args for MAIN
-    my sub ARGS-TO-CAPTURE(@args is copy --> Capture:D) {
+    my sub ARGS-TO-CAPTURE($, @args is copy --> Capture:D) {
         my $no-named-after = nqp::isfalse(%SUB-MAIN-OPTS<named-anywhere>);
 
         my $positional := nqp::create(IterationBuffer);
@@ -224,7 +224,7 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
 
     # Process command line arguments
     my $capture :=
-      (callframe(1).my<&ARGS-TO-CAPTURE> // &ARGS-TO-CAPTURE)(@*ARGS);
+      (callframe(1).my<&ARGS-TO-CAPTURE> // &ARGS-TO-CAPTURE)($main, @*ARGS);
 
     # Generate default $?USAGE message
     my $usage;

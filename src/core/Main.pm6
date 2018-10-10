@@ -10,19 +10,20 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
     my $main := callframe(1).my<&MAIN>;
     return $retval unless $main;
 
-    my %SUB-MAIN-OPTS  := %*SUB-MAIN-OPTS // {};
-    my $no-named-after := nqp::isfalse(%SUB-MAIN-OPTS<named-anywhere>);
-
-    sub thevalue(\a) {
-        ((my \type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS(type.HOW))
-          ?? type
-          !! val(a)
-    }
+    my %SUB-MAIN-OPTS := %*SUB-MAIN-OPTS // {};
 
     # Convert raw command line args into positional and named args for MAIN
-    my sub process-cmd-args(@args is copy --> Capture:D) {
+    my sub ARGS-TO-CAPTURE(@args is copy --> Capture:D) {
+        my $no-named-after = nqp::isfalse(%SUB-MAIN-OPTS<named-anywhere>);
+
         my $positional := nqp::create(IterationBuffer);
         my %named;
+
+        sub thevalue(\a) {
+            ((my \type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS(type.HOW))
+              ?? type
+              !! val(a)
+        }
 
         while @args {
             my str $passed-value = @args.shift;
@@ -66,29 +67,10 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
         Capture.new( list => $positional.List, hash => %named )
     }
 
-    # Select candidates for which to create USAGE string
-    sub usage-candidates($capture) {
-        my @candidates = $main.candidates;
-        my @positionals = $capture.list;
-
-        my @candos;
-        while @positionals && !@candos {
-
-            # Find candidates on which all these positionals match
-            @candos = @candidates.grep: -> $sub {
-                my @params = $sub.signature.params;
-                (^@positionals).first( -> int $i {
-                    !(@params[$i].constraints.ACCEPTS(@positionals[$i]))
-                } ).defined.not;
-            }
-            @positionals.pop;
-        }
-        (@candos || $main.candidates)
-          .grep: { nqp::not_i(nqp::can($_,'is-hidden-from-USAGE')) }
-    }
-
     # Generate $?USAGE string (default usage info for MAIN)
     my sub gen-usage($capture) {
+        my $no-named-after = nqp::isfalse(%SUB-MAIN-OPTS<named-anywhere>);
+
         my @help-msgs;
         my Pair @arg-help;
 
@@ -111,6 +93,27 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
         $prog-name = $prog-name eq '-e'
           ?? "-e '...'"
           !! strip_path_prefix($prog-name);
+
+        # Select candidates for which to create USAGE string
+        sub usage-candidates($capture) {
+            my @candidates = $main.candidates;
+            my @positionals = $capture.list;
+
+            my @candos;
+            while @positionals && !@candos {
+
+                # Find candidates on which all these positionals match
+                @candos = @candidates.grep: -> $sub {
+                    my @params = $sub.signature.params;
+                    (^@positionals).first( -> int $i {
+                        !(@params[$i].constraints.ACCEPTS(@positionals[$i]))
+                    } ).defined.not;
+                }
+                @positionals.pop;
+            }
+            (@candos || $main.candidates)
+              .grep: { nqp::not_i(nqp::can($_,'is-hidden-from-USAGE')) }
+        }
 
         for usage-candidates($capture) -> $sub {
             my @required-named;
@@ -220,7 +223,8 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
     }
 
     # Process command line arguments
-    my $capture := process-cmd-args(@*ARGS);
+    my $capture :=
+      (callframe(1).my<&ARGS-TO-CAPTURE> // &ARGS-TO-CAPTURE)(@*ARGS);
 
     # Generate default $?USAGE message
     my $usage;
@@ -240,7 +244,7 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
       grep: { !has-unexpected-named-arguments(.signature, $capture.hash) };
 
     # If there are still some candidates left, try to dispatch to MAIN
-    if +@matching_candidates {
+    if @matching_candidates {
         if $IN-as-ARGSFILES {
             my $*ARGFILES := IO::ArgFiles.new: (my $in := $*IN),
                 :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),

@@ -66,8 +66,29 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
         Capture.new( list => $positional.List, hash => %named )
     }
 
+    # Select candidates for which to create USAGE string
+    sub usage-candidates($capture) {
+        my @candidates = $main.candidates;
+        my @positionals = $capture.list;
+
+        my @candos;
+        while @positionals && !@candos {
+
+            # Find candidates on which all these positionals match
+            @candos = @candidates.grep: -> $sub {
+                my @params = $sub.signature.params;
+                (^@positionals).first( -> int $i {
+                    !(@params[$i].constraints.ACCEPTS(@positionals[$i]))
+                } ).defined.not;
+            }
+            @positionals.pop;
+        }
+        (@candos || $main.candidates)
+          .grep: { nqp::not_i(nqp::can($_,'is-hidden-from-USAGE')) }
+    }
+
     # Generate $?USAGE string (default usage info for MAIN)
-    my sub gen-usage() {
+    my sub gen-usage($capture) {
         my @help-msgs;
         my Pair @arg-help;
 
@@ -86,15 +107,12 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             $name;
         }
 
-        my $prog-name = %*ENV<PERL6_PROGRAM_NAME>:exists
-          ?? %*ENV<PERL6_PROGRAM_NAME>
-          !! $*PROGRAM-NAME;
+        my $prog-name = %*ENV<PERL6_PROGRAM_NAME> || $*PROGRAM-NAME;
         $prog-name = $prog-name eq '-e'
           ?? "-e '...'"
           !! strip_path_prefix($prog-name);
-        for $main.candidates -> $sub {
-            next if $sub.?is-hidden-from-USAGE;
 
+        for usage-candidates($capture) -> $sub {
             my @required-named;
             my @optional-named;
             my @positional;
@@ -177,7 +195,9 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents
             }
-            my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '');
+            my $msg = $no-named-after
+              ?? join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '')
+              !! join(' ', $prog-name, @positional, @required-named, @optional-named, $docs // '');
             @help-msgs.push($msg);
         }
 
@@ -205,7 +225,7 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
     # Generate default $?USAGE message
     my $usage;
     my $*USAGE := Proxy.new(
-        FETCH => -> | { $usage ||= gen-usage() },
+        FETCH => -> | { $usage ||= gen-usage($capture) },
         STORE => -> | {
             die 'Cannot assign to $*USAGE. Please use `sub USAGE {}` to '
                 ~ 'output custom usage message'

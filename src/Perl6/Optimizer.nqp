@@ -1921,9 +1921,7 @@ class Perl6::Optimizer {
             my $is-dec := nqp::eqat($op.name, '--', -3);
 
             if $primspec == 1 { # native int
-                my $one := QAST::Want.new: :$node,
-                  QAST::WVal.new(:value($!symbols.find_lexical: 'Int')),
-                    'Ii', QAST::IVal.new: :value(1);
+                my $one := QAST::IVal.new: :value(1);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
                     return QAST::Op.new: :op<assign_i>, :$node, :$returns, $var,
@@ -1942,9 +1940,7 @@ class Perl6::Optimizer {
                 }
             }
             elsif $primspec == 2 { # native num
-                my $one := QAST::Want.new: :$node,
-                  QAST::WVal.new(:value($!symbols.find_lexical: 'Num')),
-                    'Nn', QAST::NVal.new: :value(1);
+                my $one := QAST::NVal.new: :value(1);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
                     return QAST::Op.new: :op<assign_n>, :$node, :$returns, $var,

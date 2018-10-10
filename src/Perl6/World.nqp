@@ -3463,7 +3463,7 @@ class Perl6::World is HLL::World {
                                 $unless.push(
                                   QAST::Op.new(
                                     :op( $sigil eq '$' || $sigil eq '&'
-                                           ?? 'assign' !! 'p6store'
+                                           ?? 'p6assign' !! 'p6store'
                                     ),
                                     $getattr, $initializer
                                   )

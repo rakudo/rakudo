@@ -23,7 +23,7 @@ my class Bag does Baggy {
     }
 
 #--- interface methods
-    method STORE(*@pairs, :$initialize --> Bag:D) {
+    method STORE(Bag:D: *@pairs, :$initialize --> Bag:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),

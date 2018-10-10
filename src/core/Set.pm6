@@ -86,7 +86,7 @@ my class Set does Setty {
     multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
-    method STORE(*@pairs, :$initialize --> Set:D) {
+    method STORE(Set:D: *@pairs, :$initialize --> Set:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),

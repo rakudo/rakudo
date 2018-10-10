@@ -71,7 +71,7 @@ my class Hash { # declared in BOOTSTRAP
           )
         )
     }
-    method STORE(\to_store) {
+    method STORE(Hash:D: \to_store) {
         my $temp := nqp::p6bindattrinvres(
           nqp::clone(self),   # make sure we get a possible descriptor as well
           Map,

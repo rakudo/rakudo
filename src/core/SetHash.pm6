@@ -183,7 +183,7 @@ my class SetHash does Setty {
     multi method Mixy (SetHash:D:) { self.MixHash }
 
 #--- interface methods
-    method STORE(*@pairs --> SetHash:D) {
+    method STORE(SetHash:D: *@pairs --> SetHash:D) {
         nqp::if(
           (my \iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),

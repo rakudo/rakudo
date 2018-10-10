@@ -4,7 +4,7 @@ my class Mix does Mixy {
     has Real $!total-positive;
 
 #--- interface methods
-    method STORE(*@pairs, :$initialize --> Mix:D) {
+    method STORE(Mix:D: *@pairs, :$initialize --> Mix:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),

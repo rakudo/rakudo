@@ -140,5 +140,7 @@ rule('check_nqp_version',
     'tools/build/check-nqp-version.pl',
      '$(PERL5) tools/build/check-nqp-version.pl $(JS_NQP)');
 
+rule('js-install', 'j-all', '@echo "Installing the js backend is not yet implemented."');
+
 # Stub
-say("js-runner-default:")
+say("js-runner-default:");

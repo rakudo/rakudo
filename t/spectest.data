@@ -503,6 +503,7 @@ S06-other/introspection.t
 S06-other/main-eval.t
 S06-other/main.t
 S06-other/main-usage.t
+S06-other/main-refactored.t
 S06-other/main-semicolon.t
 S06-other/misc.t
 S06-other/pairs-as-lvalues.t

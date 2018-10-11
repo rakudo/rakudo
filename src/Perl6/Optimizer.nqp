@@ -1915,7 +1915,7 @@ class Perl6::Optimizer {
         # if we got a native int/num, we can rewrite into nqp ops
         if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref'
         && ((my $primspec := nqp::objprimspec($var.returns)) == 1 # native int
-          || $primspec == 2) # native num
+          || $primspec == 2 || $primspec == 4 || $primspec == 5) # native num or "emulated" 64bit int
         {
             my $returns := $var.returns;
             my $is-dec := nqp::eqat($op.name, '--', -3);
@@ -1956,6 +1956,26 @@ class Perl6::Optimizer {
                         QAST::Op.new: :op($is-dec ?? 'sub_n' !! 'add_n'),
                           :$returns, $var, $one),
                       $one
+                }
+            }
+            elsif $primspec == 4 || $primspec == 5 { # 64bit int on 32bit backends
+                my str $assign_op := $primspec == 4 ?? 'assign_i64' !! 'assign_u64';
+                my $one := QAST::IVal.new: :value(1);
+                if $!void_context || nqp::eqat($op.name, '&pre', 0) {
+                    # we can just use (or ignore) the result
+                    return QAST::Op.new: :op($assign_op), :$node, :$returns, $var,
+                      QAST::Op.new: :op($is-dec ?? 'sub_i64' !! 'add_i64'),
+                        :$returns, $var, $one
+                }
+                else {
+                    # need to assign original value; it's cheaper to just
+                    # do the reverse operation than to use a temp var
+                    return QAST::Op.new: :op($is-dec ?? 'add_i64' !! 'sub_i64'),
+                          :$node, :$returns,
+                        QAST::Op.new(:op($assign_op), :$returns, $var,
+                          QAST::Op.new: :op($is-dec ?? 'sub_i64' !! 'add_i64'),
+                           :$returns, $var, $one),
+                        $one
                 }
             }
         }

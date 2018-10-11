@@ -1593,7 +1593,7 @@ class Perl6::World is HLL::World {
         my $prim := %cont_info<sigil> eq '$' && nqp::objprimspec($descriptor.of);
         if $prim {
             if $scope eq 'state' { nqp::die("Natively typed state variables not yet implemented") }
-            if $prim == 1 {
+            if $prim == 1 || $prim == 4 || $prim == 5 {
                 $block[0].push(QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
                     QAST::IVal.new( :value(0) ) ))

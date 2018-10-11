@@ -92,6 +92,13 @@ my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 
+#?if js
+my stub Int64LexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub Int64AttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub Int64PosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+#?endif
+
 # Implement the signature binder.
 # The JVM backend really only uses trial_bind,
 # so we exclude everything else.
@@ -1703,6 +1710,13 @@ BEGIN {
     setup_native_ref_type(IntMultidimRef, int, 'multidim');
     setup_native_ref_type(NumMultidimRef, num, 'multidim');
     setup_native_ref_type(StrMultidimRef, str, 'multidim');
+
+#?if js
+    setup_native_ref_type(Int64LexRef, int64, 'lexical');
+    setup_native_ref_type(Int64AttrRef, int64, 'attribute');
+    setup_native_ref_type(Int64PosRef, int64, 'positional');
+    setup_native_ref_type(Int64MultidimRef, int64, 'multidim');
+#?endif
 
     # class Proxy is Any {
     #    has Mu &!FETCH;
@@ -3366,6 +3380,12 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
+#?if js
+    Perl6::Metamodel::NativeRefHOW.add_stash(Int64LexRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(Int64AttrRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(Int64PosRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(Int64MultidimRef);
+#?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
@@ -3483,6 +3503,11 @@ BEGIN {
     EXPORT::DEFAULT.WHO<IntPosRef>  := IntPosRef;
     EXPORT::DEFAULT.WHO<NumPosRef>  := NumPosRef;
     EXPORT::DEFAULT.WHO<StrPosRef>  := StrPosRef;
+#?if
+    EXPORT::DEFAULT.WHO<Int64LexRef>  := Int64LexRef;
+    EXPORT::DEFAULT.WHO<Int64AttrRef> := Int64AttrRef;
+    EXPORT::DEFAULT.WHO<Int64PosRef>  := Int64PosRef;
+#?endif
     EXPORT::DEFAULT.WHO<Proxy>      := Proxy;
     EXPORT::DEFAULT.WHO<Grammar>    := Grammar;
     EXPORT::DEFAULT.WHO<Junction>   := Junction;
@@ -3714,6 +3739,12 @@ nqp::sethllconfig('perl6', nqp::hash(
     'int_multidim_ref', IntMultidimRef,
     'num_multidim_ref', NumMultidimRef,
     'str_multidim_ref', StrMultidimRef,
+#?if js
+    'int64_lex_ref', Int64LexRef,
+    'int64_attr_ref', Int64AttrRef,
+    'int64_pos_ref', Int64PosRef,
+    'int64_multidim_ref', Int64MultidimRef,
+#?endif
 ));
 
 # Tell parametric role groups how to create a dispatcher.

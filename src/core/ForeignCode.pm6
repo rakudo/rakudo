@@ -52,6 +52,7 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
                   # currently compiling compilation unit
 
     my $LANG := $context<%?LANG> || CALLERS::<%?LANG>;
+    my $*INSIDE-EVAL = 1;
     my $compiled := $compiler.compile:
         $code,
         :outer_ctx($eval_ctx),

@@ -1343,17 +1343,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $outer.name('<unit-outer>');
 
         # If the unit defines &MAIN, and this is in the mainline,
-        # add a &MAIN_HELPER.
-        if !$*W.is_precompilation_mode && +(@*MODULES // []) == 0 && $unit.symbol('&MAIN') {
+        # add a call to &RUN-MAIN
+        if !$*W.is_precompilation_mode
+          && !$*INSIDE-EVAL
+          && +(@*MODULES // []) == 0
+          && $unit.symbol('&MAIN') -> $main {
             $mainline := QAST::Op.new(
-                :op('call'),
-                :name('&MAIN_HELPER'),
-                QAST::WVal.new( # $*IN as $*ARGSFILES
-                    value => $*W.find_symbol: [
-                        'Bool', $*W.lang-ver-before('d') ?? 'False' !! 'True'
-                    ]),
-                $mainline,
+              :op('call'),
+              :name('&RUN-MAIN'),
+              QAST::WVal.new(:value($main<value>)),
+              $mainline             # run the mainline and get its result
             );
+            unless $*W.lang-ver-before('d') {
+                $mainline.push(
+                  QAST::WVal.new( # $*IN as $*ARGSFILES
+                    value => $*W.find_symbol(['Bool','True'], :setting-only),
+                    :named('in-as-argsfiles')
+                  )
+                );
+            }
         }
 
         # If our caller wants to know the mainline ctx, provide it here.

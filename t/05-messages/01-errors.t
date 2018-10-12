@@ -69,7 +69,7 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 # RT #113954
 {
     is-run ｢multi MAIN(q|foo bar|) {}｣,
-       :err(qq|Usage:\n  -e '...' 'foo bar' \n|),
+       :err(qq|Usage:\n  -e '...' 'foo bar'\n|),
        :exitcode(*),
        'a space in a literal param to a MAIN() multi makes the suggestion quoted';
 
@@ -78,13 +78,13 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
     }
     else {
         is-run ｢multi MAIN(q|foo"bar|) {}｣,
-           :err(qq|Usage:\n  -e '...' 'foo"bar' \n|),
+           :err(qq|Usage:\n  -e '...' 'foo"bar'\n|),
            :exitcode(*),
            'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
     }
 
     is-run ｢multi MAIN(q|foo'bar|) {}｣,
-       :err(qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|),
+       :err(qq|Usage:\n  -e '...' 'foo'"'"'bar'\n|),
        :exitcode(*),
        'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
 }

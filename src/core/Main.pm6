@@ -13,13 +13,14 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     my $provided-g-u    := %caller-my<&GENERATE-USAGE>;
 
     my &args-to-capture := $provided-a-to-c // &default-args-to-capture;
+    my &generate-usage  := $provided-g-u    // &default-generate-usage;
     my %sub-main-opts   := %*SUB-MAIN-OPTS // {};
 
     # Set up proxy for default generated usage
     my $usage-produced;
     my $*USAGE := Proxy.new(
         FETCH => -> | {
-            $usage-produced //= default-generate-usage(\())
+            $usage-produced //= default-generate-usage(&main)
         },
         STORE => -> | {
             die 'Cannot assign to $*USAGE. Please create a '
@@ -98,7 +99,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     }
 
     # Generate $?USAGE string (default usage info for MAIN)
-    sub default-generate-usage($capture) {
+    sub default-generate-usage(&, |capture) {
         my $no-named-after = nqp::isfalse(%sub-main-opts<named-anywhere>);
 
         my @help-msgs;
@@ -147,7 +148,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
               .grep: { nqp::not_i(nqp::can($_,'is-hidden-from-USAGE')) }
         }
 
-        for usage-candidates($capture) -> $sub {
+        for usage-candidates(capture) -> $sub {
             my @required-named;
             my @optional-named;
             my @positional;
@@ -256,6 +257,10 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         False
     }
 
+    # set up other new style dynamic variables
+    my &*ARGS-TO-CAPTURE := &default-args-to-capture;
+    my &*GENERATE-USAGE  := &default-generate-usage;
+
     # Process command line arguments
     my $capture := args-to-capture(&main, @*ARGS);
 
@@ -290,15 +295,11 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
     # Display the default USAGE message on either STDOUT/STDERR
     elsif $capture<help> {
-        $*OUT.say: $provided-g-u
-          ?? $provided-g-u(&main,|$capture)
-          !! default-generate-usage($capture);
+        $*OUT.say: generate-usage(&main,|$capture);
         exit 0;
     }
     else {
-        $*ERR.say: $provided-g-u
-          ?? $provided-g-u(&main,|$capture)
-          !! default-generate-usage($capture);
+        $*ERR.say: generate-usage(&main,|$capture);
         exit 2;
     }
 }

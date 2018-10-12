@@ -231,8 +231,8 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 $docs = '-- ' ~ $sub.WHY.contents
             }
             my $msg = $no-named-after
-              ?? join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '')
-              !! join(' ', $prog-name, @positional, @required-named, @optional-named, $docs // '');
+              ?? join(' ', $prog-name, @required-named, @optional-named, @positional, ($docs if $docs))
+              !! join(' ', $prog-name, @positional, @required-named, @optional-named, ($docs if $docs));
             @help-msgs.push($msg);
         }
 

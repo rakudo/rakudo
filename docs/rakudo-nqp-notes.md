@@ -1,1 +1,1 @@
-# Notes and hints for working with Rakudo NQPr
+# Notes and hints for working with Rakudo NQP

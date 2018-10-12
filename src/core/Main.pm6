@@ -242,7 +242,9 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
             @help-msgs.append(@arg-help.map: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
         }
 
-        "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n")
+        @help-msgs
+          ?? "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n")
+          !! "No usage information could be determined"
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {

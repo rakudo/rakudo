@@ -611,11 +611,21 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                 if $type_ok {
                     for %matcher.kv -> $k, $v {
                         my $got is default(Nil) = $_."$k"();
-                        my $ok = $got ~~ $v,;
-                        ok $ok, ".$k matches $v.gist()";
-                        unless $ok {
-                            _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.perl)
-                              ~ "\nGot:      $got";
+                        # Match strings and Regex as regex, everything else gets a direct comparison.
+                        if (nqp::eqaddr($v.WHAT, Str) or nqp::eqaddr($v.WHAT, Regex)) {
+                            my $ok = $got ~~ $v,;
+                            ok $ok, ".$k matches $v.gist()";
+                            unless $ok {
+                                _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.perl)
+                                  ~ "\nGot:      $got";
+                            }
+                        } else {
+                            my $test = nqp::eqaddr($v.WHAT, Mu)
+                                ?? nqp::eqaddr($got.WHAT, Mu)
+                                    !! nqp::eqaddr($got.WHAT, Mu)
+                                        ?? False
+                                        !! $got eq $v;
+                            my $ok = proclaim($test, ".$k matches $v.gist()");
                         }
                     }
                 } else {

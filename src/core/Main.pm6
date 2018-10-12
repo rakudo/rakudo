@@ -15,16 +15,15 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     my &args-to-capture := $provided-a-to-c // &default-args-to-capture;
     my %sub-main-opts   := %*SUB-MAIN-OPTS // {};
 
-    # Set up proxy for old-style usage
+    # Set up proxy for default generated usage
     my $usage-produced;
     my $*USAGE := Proxy.new(
         FETCH => -> | {
-            # DEPRECATED MESSAGE HERE
             $usage-produced //= default-generate-usage(\())
         },
         STORE => -> | {
-            die 'Cannot assign to $*USAGE. Please use `sub USAGE {}` to '
-                ~ 'output custom usage message'
+            die 'Cannot assign to $*USAGE. Please create a '
+                ~ '`sub GENERATE-USAGE {}` to generate custom usage message'
         }
     );
 

@@ -39,11 +39,11 @@ Anyone wanting to work on any of the NYI items please coordinate on IRC #perl6-d
 avoid duplicate efforts.  Most of the items are being worked on in a generally logical
 order of need and knowledge gained during the process of implementing pod features.
 
-## The <pod_textcontent> call tree (WIP)
+## The <pod_textcontent> call tree (a WIP)
 
 The token **pod_textcontent** is the match object for regular text and formatted code as
-described above. It is the final object for regular text containers except for the
-table blocks which will be discussed separately.
+described above. It is the source of the final contents object for regular text containers
+except for the table blocks which will be discussed separately.
   
 
    

@@ -41,7 +41,7 @@ order of need and knowledge gained during the process of implementing pod featur
 
 ## The <pod_textcontent> call tree (WIP)
 
-The token #pod_textcontent is the match object for regular text and formatted code as
+The token **pod_textcontent** is the match object for regular text and formatted code as
 described above. It is the final object for regular text containers except for the
 table blocks which will be discussed separately.
   

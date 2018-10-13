@@ -19,7 +19,7 @@ of a table.  Ultimately, each paragraph of text should be grouped into the
 @contents array of a single Pod::Block::Para, but not all pod handling per S26
 has been fully implemented.
 
-Some notable unimplemented features:
+Some notable, not-yet-implemented (NYI) features (in order of one dev's TODO list)
 
 + formatting code in table cells is not yet handled
 
@@ -36,5 +36,5 @@ Some notable unimplemented features:
 + inconsistent use of the Pod::Block::Para as the leaf parent of all regular text
 
 Anyone wanting to work on any of the NYI items please coordinate on IRC #perl6-dev to
-avoid duplicate efforts as most of the items are being worked on in a generally logical
+avoid duplicate efforts.  Most of the items are being worked on in a generally logical
 order of need and knowledge gained during the process of implementing pod features.

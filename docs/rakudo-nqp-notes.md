@@ -6,7 +6,7 @@ Text inside pod blocks that are contents rather than markup is comprised of
 intermixed text and formatting code characters. Newlines and contiguous
 whitespace may or may not be significant depending upon the general block type
 (abbreviated, paragraph, delimited, or declarator) or block identifier (e.g.,
-code, input, output, or defn).
+code, input, output, defn, comment, or data).
 
 The content as it is parsed in Grammar.nqp is first broken into individual
 characters which are then assigned to one of three token groups: regular text, text with

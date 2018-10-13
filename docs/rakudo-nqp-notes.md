@@ -34,3 +34,7 @@ Some notable unimplemented features:
 + formatting code in declarator blocks is not yet handled
 
 + inconsistent use of the Pod::Block::Para as the leaf parent of all regular text
+
+Anyone wanting to work on any of the NYI items please coordinate on IRC #perl6-dev to
+avoid duplicate efforts as most of the items are being worked on in a generally logical
+order of need and knowledge gained during the process of implementing pod features.

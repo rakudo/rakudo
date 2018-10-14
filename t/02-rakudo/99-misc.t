@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 3;
+plan 4;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -50,3 +50,12 @@ else {
     ｣, :out{.contains: 'success'}, :err{.contains: 'Writing profiler output'},
     'profiler does not crash';
 }
+
+# RT #132710
+# XXX TODO 6.d REVIEW. Setting traits from multiple multies is undefined
+# and this test may need to be moved to rakudo's test suite. See RT#132710
+eval-lives-ok ｢
+    multi infix:<↑> is assoc<right> is tighter(&infix:<**>) { $^n ** $^m }
+    multi infix:<↑↑> ($, 0) is assoc<right> is tighter(&infix:<↑>) { 1 }
+    multi infix:<↑↑> is assoc<right> is tighter(&infix:<↑>) { [↑] $^n xx $^m }
+｣, 'no crash when defining multiple routines with tightnes';

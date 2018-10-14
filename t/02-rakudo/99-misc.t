@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 4;
+plan 5;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -59,3 +59,9 @@ eval-lives-ok ｢
     multi infix:<↑↑> ($, 0) is assoc<right> is tighter(&infix:<↑>) { 1 }
     multi infix:<↑↑> is assoc<right> is tighter(&infix:<↑>) { [↑] $^n xx $^m }
 ｣, 'no crash when defining multiple routines with tightnes';
+
+# https://github.com/rakudo/rakudo/issues/1411
+-> Positional:D[Int] \z {
+    is-deeply z.List, (1, 2, 3),
+    'parametarization of a DefiniteHOW does not complain about complex coercers'
+}(Array[Int].new: 1, 2, 3);

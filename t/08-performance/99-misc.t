@@ -1,6 +1,6 @@
 use Test;
 
-plan 3;
+plan 4;
 
 # https://github.com/rakudo/rakudo/issues/1488
 {
@@ -26,4 +26,11 @@ plan 3;
     is $result1, $result2, "is $result1 == $result2";
     ok $took2 < $took1 / 20,
         "was native .sum $took2 at least 20x as fast as $took1 ({$took1/$took2}x)";
+}
+
+{ # https://github.com/rakudo/rakudo/issues/1740
+    my $t-plain = { (^∞).grep(*.is-prime)[1000];       now - ENTER now }();
+    my $t-hyper = { (^∞).hyper.grep(*.is-prime)[1000]; now - ENTER now }();
+    cmp-ok $t-hyper, '≤', $t-plain*2,
+        'hypered .grep .is-prime is not hugely slower than plain grep';
 }

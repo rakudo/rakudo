@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 7;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -124,4 +124,14 @@ subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
         $var++;
         $var--;
     }
+}
+
+{ # https://github.com/rakudo/rakudo/issues/1481
+    my @res;
+    multi sub foo($x where /{@res.push: $x}./) {}
+    multi sub foo($y where /{@res.push: $y}./) {}
+    foo 'a';
+    foo 'b';
+    is-deeply @res, [<a a b b>],
+        'regex blocks update their lexical variables right';
 }

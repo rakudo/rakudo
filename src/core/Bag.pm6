@@ -23,20 +23,12 @@ my class Bag does Baggy {
     }
 
 #--- interface methods
-    method STORE(Bag:D: *@pairs, :$initialize --> Bag:D) {
-        nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
-          nqp::if(
-            $initialize,
-            self.SET-SELF(
-              Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-                nqp::create(Rakudo::Internals::IterationSet), $iterator
-              )
-            ),
-            X::Assignment::RO.new(value => self).throw
-          )
-        )
+    multi method STORE(Bag:D: *@pairs, :$INITIALIZE! --> Bag:D) {
+        (my $iterator := @pairs.iterator).is-lazy
+          ?? Failure.new(
+               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
+          !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet), $iterator))
     }
 
     multi method DELETE-KEY(Bag:D: \k) {

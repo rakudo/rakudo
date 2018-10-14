@@ -4,7 +4,7 @@ my class MixHash does Mixy {
     method total() { Rakudo::QuantHash.MIX-TOTAL($!elems) }
     method !total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
 
-    method STORE(MixHash:D: *@pairs --> MixHash:D) {
+    multi method STORE(MixHash:D: *@pairs --> MixHash:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),

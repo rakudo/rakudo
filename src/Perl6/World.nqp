@@ -3345,7 +3345,7 @@ class Perl6::World is HLL::World {
 
                             my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
 
-# nqp::getattr(self,Foo,'$!a').STORE(tmp, :initialize)
+# nqp::getattr(self,Foo,'$!a').STORE(tmp, :INITIALIZE)
                             if $sigil eq '@' || $sigil eq '%' {
                                 $if.push(
                                   QAST::Op.new( :op<callmethod>, :name<STORE>,
@@ -3355,7 +3355,7 @@ class Perl6::World is HLL::World {
                                       :value($!w.find_symbol(
                                         ['Bool','True'], :setting-only
                                       )),
-                                      :named('initialize')
+                                      :named('INITIALIZE')
                                     )
                                   )
                                 );
@@ -3444,7 +3444,7 @@ class Perl6::World is HLL::World {
                               !! QAST::WVal.new(:value(nqp::atpos($task,3)));
 
                             my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
-# nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')), :initialize)
+# nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')), :INITIALIZE)
                             if $sigil eq '@' || $sigil eq '%' {
                                 $unless.push(
                                   QAST::Op.new( :op<callmethod>, :name<STORE>,
@@ -3452,7 +3452,7 @@ class Perl6::World is HLL::World {
                                       :value($!w.find_symbol(
                                         ['Bool','True'], :setting-only
                                       )),
-                                      :named('initialize')
+                                      :named('INITIALIZE')
                                     )
                                   )
                                 );

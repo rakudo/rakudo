@@ -10,6 +10,12 @@ my role QuantHash does Associative {
         )
     }
 
+    # provide a proto for QuantHashes from here
+    proto method STORE(|) {*}
+    multi method STORE(QuantHash:D: |) {     # for immutable types
+        X::Assignment::RO.new(value => self).throw
+    }
+
     method Int     ( --> Int:D)     { self.total.Int }
     method Num     ( --> Num:D)     { self.total.Num }
     method Numeric ( --> Numeric:D) { self.total.Numeric }

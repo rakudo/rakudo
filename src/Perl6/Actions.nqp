@@ -7586,7 +7586,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # let STORE know if this is the first time
             if $initialize {
                 $past.push(QAST::WVal.new(
-                  :named('initialize'),
+                  :named('INITIALIZE'),
                   :value($*W.find_symbol(['Bool', 'True']))
                 ));
             }

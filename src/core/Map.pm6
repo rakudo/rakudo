@@ -46,7 +46,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # Calling self.new for the arguments case ensures that the right
     # descriptor will be added for typed hashes.
     multi method new(Map:       ) { nqp::create(self) }
-    multi method new(Map: *@args) { self.new.STORE(@args, :initialize) }
+    multi method new(Map: *@args) { self.new.STORE(@args, :INITIALIZE) }
 
     multi method Map(Map:) { self }
 
@@ -379,47 +379,40 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :$initialize) {
+    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!) {
         nqp::if(
-          $initialize,
+          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           nqp::if(
-            nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
+            nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
             nqp::if(
-              nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
-              nqp::if(
-                nqp::eqaddr(map.WHAT,Map),
-                nqp::p6bindattrinvres(self,Map,'$!storage',other),
-                nqp::p6bindattrinvres(
-                  self,Map,'$!storage',nqp::clone(other)
-                )!DECONTAINERIZE
-              ),
-              self                      # nothing to do
-            ),
-            nqp::p6bindattrinvres(
-              self, Map, '$!storage',
+              nqp::eqaddr(map.WHAT,Map),
+              nqp::p6bindattrinvres(self,Map,'$!storage',other),
               nqp::p6bindattrinvres(
-                nqp::create(self), Map, '$!storage', nqp::hash
-              )!STORE_MAP_FROM_OBJECT_HASH(map)
-            )
+                self,Map,'$!storage',nqp::clone(other)
+              )!DECONTAINERIZE
+            ),
+            self                      # nothing to do
           ),
-          X::Assignment::RO.new(value => self).throw
-        )
-    }
-    multi method STORE(Map:D: \to_store, :$initialize) {
-        nqp::if(
-          $initialize,
           nqp::p6bindattrinvres(
             self, Map, '$!storage',
-            nqp::getattr(
-              nqp::p6bindattrinvres(
-                nqp::create(self), Map, '$!storage', nqp::hash
-              )!STORE_MAP_FROM_ITERATOR(to_store.iterator),
-              Map, '$!storage'
-            )
-          ),
-          X::Assignment::RO.new(value => self).throw
+            nqp::p6bindattrinvres(
+              nqp::create(self), Map, '$!storage', nqp::hash
+            )!STORE_MAP_FROM_OBJECT_HASH(map)
+          )
         )
     }
+    multi method STORE(Map:D: \to_store, :$INITIALIZE!) {
+        nqp::p6bindattrinvres(
+          self, Map, '$!storage',
+          nqp::getattr(
+            nqp::p6bindattrinvres(
+              nqp::create(self), Map, '$!storage', nqp::hash
+            )!STORE_MAP_FROM_ITERATOR(to_store.iterator),
+            Map, '$!storage'
+          )
+        )
+    }
+    multi method STORE(Map:D: |) { X::Assignment::RO.new(value => self).throw }
 
     method Capture(Map:D:) {
         nqp::p6bindattrinvres(nqp::create(Capture),Capture,'%!hash',$!storage)

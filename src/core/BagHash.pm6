@@ -1,7 +1,7 @@
 my class BagHash does Baggy {
 
 #--- interface methods
-    method STORE(BagHash:D: *@pairs --> BagHash:D) {
+    multi method STORE(BagHash:D: *@pairs --> BagHash:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),

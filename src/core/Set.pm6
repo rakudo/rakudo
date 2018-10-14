@@ -86,20 +86,12 @@ my class Set does Setty {
     multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
-    method STORE(Set:D: *@pairs, :$initialize --> Set:D) {
-        nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
-          nqp::if(
-            $initialize,
-            self.SET-SELF(
-              Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-                nqp::create(Rakudo::Internals::IterationSet), $iterator
-              )
-            ),
-            X::Assignment::RO.new(value => self).throw
-          )
-        )
+    multi method STORE(Set:D: *@pairs, :$INITIALIZE! --> Set:D) {
+        (my $iterator := @pairs.iterator).is-lazy
+          ?? Failure.new(
+               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
+          !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+               nqp::create(Rakudo::Internals::IterationSet), $iterator))
     }
 
     multi method AT-KEY(Set:D: \k --> Bool:D) {

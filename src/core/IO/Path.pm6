@@ -71,7 +71,7 @@ my class IO::Path is Cool does IO {
 
     method parts {
         %!parts || (%!parts := nqp::create(Map).STORE:
-          $!SPEC.split($!path), :initialize)
+          $!SPEC.split($!path), :INITIALIZE)
     }
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }

@@ -21,7 +21,7 @@ has been fully implemented.
 
 Some notable, not-yet-implemented (NYI) features (in order of one dev's TODO list)
 
-1. %config :numbered aliasing with '#' is not handled for paragraph or delmited blocks
+1. %config :numbered aliasing with '#' is not handled for paragraph or delimited blocks
 
 2. pod data blocks are not yet handled
 
@@ -44,6 +44,19 @@ order of need and knowledge gained during the process of implementing pod featur
 The token **pod_textcontent** is the match object for regular text and formatted code as
 described above. It is the source of the final contents object for regular text containers
 except for the table blocks which will be discussed separately.
+
+## :numbered aliasing
+
+S26 allows for the '#' mark, as the first word in a block, to turn on the **:numbered** %config
+key; in that case the '#' will be removed from the data. The user can allow a '#' to be
+recognized as data by either (1) setting the %config numbered key to false, typically with the
+**:!numbered** form, or (2) using the **V** formatting code around the '#' in the data like this: **V<#>**.
+
+Proper handling of this feature requires changing the block's %config hash after the block data have been
+parsed or possibly changing the parsing of the first block data word due to the presence of **:!numbered** in
+the %config hash. Another problem is how to handle duplicate or incompatible %config keys and values.
+
+Following are examples of situations that have to be handled gracefully or else result in an exception.
   
 
    

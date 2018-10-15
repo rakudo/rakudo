@@ -78,15 +78,15 @@ Following are examples of situations in other block types that are
 not good practice but have to be handled gracefully:
 
 ```
-  =for para :!numbered
-  # foo bar
+=for para :!numbered
+# foo bar
 ```
 
 The **:!numbered** is interpreted to mean accepting the '#' as part of block data.
 
 ```
-  =for para :numbered
-  # foo bar
+=for para :numbered
+# foo bar
 ```
 
 The '#' means the same as the **:numbered** option: the renderer should number the

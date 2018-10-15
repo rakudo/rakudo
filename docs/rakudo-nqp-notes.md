@@ -39,7 +39,7 @@ Anyone wanting to work on any of the NYI items please coordinate on IRC #perl6-d
 avoid duplicate efforts.  Most of the items are being worked on in a generally logical
 order of need and knowledge gained during the process of implementing pod features.
 
-## The <pod_textcontent> call tree (a WIP)
+## The <pod_textcontent> token
 
 The token **pod_textcontent** is the match object for regular text and formatted code as
 described above. It is the source of the final contents object for regular text containers
@@ -61,20 +61,37 @@ The easiest case to handle is the abbreviated block which cannot have explicit %
 which the :numbered alias is most useful. Examples of the abbreviated blocks most likely to
 use this option are the **=item**, **=head**, and **=defn** types.
 
-Following are examples of situations that have to be handled gracefully or else result in an exception:
+The '#' turns on the **:numbered** configuration in all these cases:
+
+```
+=item # foo bar
+
+=item #
+foo bar
+
+=item
+#
+foo bar
+```
+
+Following are examples of situations in other block types that are
+not good practice but have to be handled gracefully:
 
 ```
   =for para :!numbered
   # foo bar
 ```
 
-The :!numbered is interpreted to mean accepting the '#' as part of block data.
+The **:!numbered** is interpreted to mean accepting the '#' as part of block data.
 
+```
   =for para :numbered
   # foo bar
-  
-The '#' means the same as the :numbered option: the renderer should number the
-paragraph and the two :numbered keys (one explict and one implicit) are redundent.
-  
+```
 
-   
+The '#' means the same as the **:numbered** option: the renderer should number the
+paragraph and the two **:numbered** keys (one explict and one implicit) are redundant.
+  
+## Handling :numbered aliasing in Grammar.nqp, Actions.nqp, and Pod.nqp
+
+Pseudo code to define needed code changes: (WIP)

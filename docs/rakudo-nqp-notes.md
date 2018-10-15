@@ -21,19 +21,19 @@ has been fully implemented.
 
 Some notable, not-yet-implemented (NYI) features (in order of one dev's TODO list)
 
-1. %config :numbered aliasing with '#' is not handled for paragraph or delimited blocks
+1. NYI: %config :numbered aliasing with '#' for paragraph or delimited blocks
 
-2. pod data blocks are not yet handled
+2. NYI: pod data blocks
 
-3. formatting code in defn block terms is not yet handled
+3. NYI: formatting code in defn block terms
 
-4. formatting code in table cells is not yet handled
+4. NYI: formatting code in table cells
 
-5. pod configuration aliasing is not yet handled
+5. NYI: pod configuration aliasing
 
-6. formatting code in declarator blocks is not yet handled
+6. NYI: formatting code in declarator blocks
 
-7. inconsistent use of the Pod::Block::Para as the leaf parent of all regular text
+7. NYI: consistent use of the Pod::Block::Para as the leaf parent of all regular text
 
 Anyone wanting to work on any of the NYI items please coordinate on IRC #perl6-dev to
 avoid duplicate efforts.  Most of the items are being worked on in a generally logical

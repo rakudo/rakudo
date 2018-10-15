@@ -3503,7 +3503,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<IntPosRef>  := IntPosRef;
     EXPORT::DEFAULT.WHO<NumPosRef>  := NumPosRef;
     EXPORT::DEFAULT.WHO<StrPosRef>  := StrPosRef;
-#?if
+#?if js
     EXPORT::DEFAULT.WHO<Int64LexRef>  := Int64LexRef;
     EXPORT::DEFAULT.WHO<Int64AttrRef> := Int64AttrRef;
     EXPORT::DEFAULT.WHO<Int64PosRef>  := Int64PosRef;

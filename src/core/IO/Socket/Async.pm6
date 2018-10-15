@@ -122,7 +122,7 @@ my class IO::Socket::Async {
                     nqp::decont($!buf), SocketCancellation);
                 $tap := Tap.new({ nqp::cancel($cancellation) });
                 tap($tap);
-            };
+            }
 
             $!close-promise.then: {
                 $lock.protect: {
@@ -195,8 +195,8 @@ my class IO::Socket::Async {
                 if err {
                     $v.break: err;
                 } else {
-                    my \client = nqp::create(self);
-                    my $encoding      = Encoding::Registry.find($enc);
+                    my \client   = nqp::create(self);
+                    my $encoding = Encoding::Registry.find($enc);
                     nqp::bindattr(client, IO::Socket::Async, '$!VMIO', client-socket);
                     nqp::bindattr(client, IO::Socket::Async, '$!enc', $encoding.name);
                     nqp::bindattr(client, IO::Socket::Async, '$!encoder', $encoding.encoder());
@@ -219,8 +219,12 @@ my class IO::Socket::Async {
 
         submethod BUILD(Mu :$!VMIO, Promise :$!socket-host, Promise :$!socket-port) { }
 
-        method new(&on-close, Mu :$VMIO, Promise :$socket-host, Promise :$socket-port) {
+        method new(&on-close!, Mu :$VMIO!, Promise :$socket-host!, Promise :$socket-port!) {
             self.bless: :&on-close, :$VMIO, :$socket-host, :$socket-port;
+        }
+
+        method native-descriptor(--> Int) {
+            nqp::filenofh(nqp::decont($!VMIO))
         }
     }
 
@@ -298,9 +302,8 @@ my class IO::Socket::Async {
 
                 CATCH {
                     default {
-                        $tap = ListenSocket.new({ Nil }, :$VMIO,
+                        tap($tap = ListenSocket.new: { Nil }, :$VMIO,
                             :$socket-host, :$socket-port) unless $tap;
-                        tap($tap);
                         quit($_);
                     }
                 }
@@ -325,6 +328,10 @@ my class IO::Socket::Async {
         my $p := Promise.new;
         nqp::bindattr(socket, IO::Socket::Async, '$!close-promise', $p);
         nqp::bindattr(socket, IO::Socket::Async, '$!close-vow', $p.vow);
+    }
+
+    method native-descriptor(--> Int) {
+        nqp::filenofh(nqp::decont($!VMIO))
     }
 
 #?if moar

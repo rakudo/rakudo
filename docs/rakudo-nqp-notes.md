@@ -47,7 +47,7 @@ except for the table blocks which will be discussed separately.
 
 ## :numbered aliasing
 
-S26 allows for the '#' character (Unicode name **NUMBER SIGN**) as the first word in a block, 
+S26 allows for the '#' character (Unicode name **NUMBER SIGN**), as the first word in a block, 
 to turn on the **:numbered** %config key; in that case the '#' will be removed from the data.
 The user can allow a '#' to be recognized as data by either (1) setting the %config numbered
 key to false, typically with the **:!numbered** form, or (2) using the **V** formatting code
@@ -64,11 +64,17 @@ use this option are the **=item**, **=head**, and **=defn** types.
 Following are examples of situations that have to be handled gracefully or else result in an exception:
 
 ```
-  =for :!numbered
+  =for para :!numbered
   # foo bar
 ```
 
 The :!numbered is interpreted to mean accepting the '#' as part of block data.
+
+  =for para :numbered
+  # foo bar
+  
+The '#' means the same as the :numbered option: the renderer should number the
+paragraph and the two :numbered keys (one explict and one implicit) are redundent.
   
 
    

@@ -63,9 +63,11 @@ use this option are the **=item**, **=head**, and **=defn** types.
 
 Following are examples of situations that have to be handled gracefully or else result in an exception:
 
+```
   =for :!numbered
   # foo bar
-  
+```
+
 The :!numbered is interpreted to mean accepting the '#' as part of block data.
   
 

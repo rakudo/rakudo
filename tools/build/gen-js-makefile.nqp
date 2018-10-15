@@ -42,7 +42,7 @@ sub nqp($file, $output, :$deps=[], :$execname, :$shebang) {
     my $options := $execname ?? "--execname $execname" !! "";
     rule($output, nqp::join(' ', $deps),
         make_parents($output),
-        "\$(JS_NQP) \$(JS_FLAGS) $options --substagestats --stagestats --target=js --source-map {$shebang ?? '--shebang' !! ''} --output=$output --encoding=utf8 $file",
+        "\$(JS_NQP) \$(JS_FLAGS) $options --substagestats --stagestats --target=js --source-map {$shebang ?? '--shebang' !! ''} --output=$output $file",
     );
 }
 
@@ -96,6 +96,7 @@ my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<main.nqp>)
 
 my $Perl6-main := nqp($main-nqp, 'rakudo.js', :execname('$(JS_RUNNER)'), :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]), :shebang);
 
+my $load-compiler := nqp('src/vm/js/load-compiler.nqp', "$blib/load-compiler.js", :deps([$Perl6-Grammar, $Perl6-Actions, $Perl6-Compiler, $Perl6-Pod]));
 
 rule('$(JS_RUNNER)', '', '$(PERL5) tools/build/create-js-runner.pl');
 
@@ -124,7 +125,7 @@ rule($CORE, "$CORE-combined rakudo.js $Perl6-Bootstrap",
 );
 
 
-say("js-all: check_nqp_version $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE \$(JS_RUNNER)\n");
+say("js-all: check_nqp_version $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE \$(JS_RUNNER) $load-compiler\n");
 
 say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp rakudo.js $CORE $CORE-combined {nqp::join(' ', @produced)}");
 

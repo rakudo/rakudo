@@ -47,26 +47,26 @@ except for the table blocks which will be discussed separately.
 
 ## :numbered aliasing
 
-S26 allows for the '#' character (Unicode name **NUMBER SIGN**, also known as **octothorpe**
-or **hash sign**)umber** mark) as the first word in a block, to turn on the **:numbered** %config
-key; in that case the '#' will be removed from the data. The user can allow a '#' to be
-recognized as data by either (1) setting the %config numbered key to false, typically with the
-**:!numbered** form, or (2) using the **V** formatting code around the '#' in the data like this: **V<#>**.
+S26 allows for the '#' character (Unicode name **NUMBER SIGN**) as the first word in a block, 
+to turn on the **:numbered** %config key; in that case the '#' will be removed from the data.
+The user can allow a '#' to be recognized as data by either (1) setting the %config numbered
+key to false, typically with the **:!numbered** form, or (2) using the **V** formatting code
+around the '#' in the data like this: **V<#>**.
 
 Proper handling of this feature requires changing the block's %config hash after the block data have been
 parsed or possibly changing the parsing of the first block data word due to the presence of **:!numbered** in
 the %config hash. Another problem is how to handle duplicate or incompatible %config keys and values.
 
-The easiest case to handle is the abbreviated block which cannot hsve explicitly %config data and for
+The easiest case to handle is the abbreviated block which cannot have explicit %config data and for
 which the :numbered alias is most useful. Examples of the abbreviated blocks most likely to
-use this option are the **=item**, **=head**, and **=defn** types.  Examples:
+use this option are the **=item**, **=head**, and **=defn** types.
 
 Following are examples of situations that have to be handled gracefully or else result in an exception:
 
   =for :!numbered
   # foo bar
   
-
+The :!numbered is interpreted to mean accepting the '#' as part of block data.
   
 
    

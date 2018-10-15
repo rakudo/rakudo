@@ -40,9 +40,7 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
         }
         return {*};
     }
-    $code = nqp::istype($code,Blob) ?? $code.decode(
-        $compiler.cli-options<encoding> // 'utf8'
-    ) !! $code.Str;
+    $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;
 
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');

@@ -74,10 +74,6 @@ class Perl6::Compiler is HLL::Compiler {
         my $repl-class := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
         $p6repl := $repl-class.new(self, %adverbs);
         my $stdin    := stdin();
-        my $encoding := ~%adverbs<encoding>;
-        if $encoding && $encoding ne 'fixed_8' {
-            $stdin.set-encoding($encoding);
-        }
 
         $p6repl.repl-loop(:interactive(1), |%adverbs)
     }
@@ -100,7 +96,6 @@ and, by default, also executes the compiled code.
   -M module            loads the module prior to running the program
   --target=stage       specify compilation stage to emit
   --optimize=level     use the given level of optimization (0..3)
-  --encoding=mode      specify string encoding mode
   -o, --output=name    specify name of output file
   -v, --version        display version information
   -V                   print configuration summary

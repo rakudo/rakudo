@@ -356,7 +356,7 @@ my class DateTime does Dateish {
     }
     method whole-second() { $!second.Int }
 
-    method in-timezone($timezone) {
+    method in-timezone(Int(Cool) $timezone) {
         return self if $timezone == $!timezone;
 
         my int $old-offset = self.offset;

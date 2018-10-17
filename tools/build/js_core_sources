@@ -209,5 +209,6 @@ src/core/Process.pm6
 src/core/Slang.pm6
 src/core/Metamodel/Primitives.pm6
 src/core/REPL.pm6
+src/core/WrappedJSObject.pm6
 src/core/Rakudo/Metaops.pm6
 src/core/core_epilogue.pm6

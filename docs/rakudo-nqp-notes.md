@@ -1,5 +1,14 @@
 # Notes and hints for working with Rakudo NQP
 
+## Traps for the Perl 6 programmer
+
++ **Don't use "$0" in match results** - The Perl 6 shorthand for a match variable "**$0**" doesn't
+  work in NQP. Note the parser will be very confused and it currently cannot point to the error.
+  
++ **Don't use "nqp:say"** - The routine "**say**" is an NQP built-in routine and it does not need
+  the "**nqp::**" prefix. You can sometimes get away with using "**nqp::say**" but, when you least
+  expect it, the parser will fail without a helpful error message.
+  
 ## Pod block text content handling
 
 Text inside pod blocks that are contents rather than markup is comprised of

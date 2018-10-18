@@ -47,6 +47,10 @@ Some notable, not-yet-implemented (NYI) features (in order of one dev's TODO lis
 
 7. NYI: consistent use of the Pod::Block::Para as the leaf parent of all regular text
 
+8. NYI: pod configuration lines
+
+9. NYI: Pod::Ambient class
+
 Anyone wanting to work on any of the NYI items please coordinate on IRC #perl6-dev to
 avoid duplicate efforts.  Most of the items are being worked on in a generally logical
 order of need and knowledge gained during the process of implementing pod features.

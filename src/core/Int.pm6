@@ -327,6 +327,10 @@ multi sub infix:<%>(int $a, int $b --> int) {
     nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix RT #128318
 }
 
+multi sub infix:<%%>(int $a, int $b) {
+    nqp::hllbool(nqp::iseq_i(nqp::mod_i($a, $b), 0))
+}
+
 multi sub infix:<**>(Int:D \a, Int:D \b) {
     my $power := nqp::pow_I(nqp::decont(a), nqp::decont(b >= 0 ?? b !! -b), Num, Int);
     # when a**b is too big nqp::pow_I returns Inf

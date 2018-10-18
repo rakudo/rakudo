@@ -68,11 +68,26 @@ class Perl6::Metamodel::ClassHOW
         @!fallbacks[+@!fallbacks] := %desc;
     }
 
+    sub has_method($target, $name) {
+        for $target.HOW.mro($target) {
+            my %mt := nqp::hllize($_.HOW.method_table($_));
+            if nqp::existskey(%mt, $name) {
+                return 1;
+            }
+            %mt := nqp::hllize($_.HOW.submethod_table($_));
+            if nqp::existskey(%mt, $name) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
     method compose($obj, :$compiler_services) {
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
         my @roles_to_compose := self.roles_to_compose($obj);
+        my @stubs;
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
@@ -84,7 +99,7 @@ class Perl6::Metamodel::ClassHOW
                 nqp::push(@!concretizations, [$r, $ins]);
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
-            RoleToClassApplier.apply($obj, @ins_roles);
+            @stubs := RoleToClassApplier.apply($obj, @ins_roles);
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
@@ -115,6 +130,16 @@ class Perl6::Metamodel::ClassHOW
 
         # Compose attributes.
         self.compose_attributes($obj, :$compiler_services);
+
+        # Test the remaining stubs
+        for @stubs -> %data {
+            if !has_method(%data<target>, %data<name>) {
+                nqp::die("Method '" ~ %data<name> ~ "' must be implemented by " ~
+                         %data<target>.HOW.name(%data<target>) ~
+                         " because it is required by roles: " ~
+                         nqp::join(", ", %data<needed>) ~ ".");
+            }
+        }
 
         # See if we have a Bool method other than the one in the top type.
         # If not, all it does is check if we have the type object.

@@ -99,6 +99,8 @@ my class RoleToClassApplier {
             }
         }
 
+        my @stubs;
+
         # Compose in any methods.
         sub compose_method_table(%methods) {
             for %methods {
@@ -116,10 +118,7 @@ my class RoleToClassApplier {
                                 }
                             }
                         }
-                        nqp::die("Method '$name' must be implemented by " ~
-                                 $target.HOW.name($target) ~
-                                 " because it is required by roles: " ~
-                                 nqp::join(", ", @needed) ~ ".");
+                        nqp::push(@stubs, nqp::hash('name', $name, 'needed', @needed, 'target', $target));
                     }
                 }
                 elsif !has_method($target, $name, 1) {
@@ -211,6 +210,6 @@ my class RoleToClassApplier {
             }
         }
 
-        1;
+        @stubs;
     }
 }

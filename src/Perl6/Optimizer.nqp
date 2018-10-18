@@ -438,6 +438,12 @@ my class BlockVarOptimizer {
     # If p6bindsig is used.
     has int $!uses_bindsig;
 
+    # If we're currently inside a handler argument of an nqp::handle. These
+    # are code-gen'd with an implicit block around them, so we mustn't lower
+    # lexicals referenced in them to locals.
+    has int $!in_handle_handler;
+    has %!used_in_handle_handler;
+
     method add_decl($var) {
         my str $scope := $var.scope;
         if $scope eq 'lexical' || $scope eq 'lexicalref' {
@@ -455,6 +461,9 @@ my class BlockVarOptimizer {
                 %!usages_flat{$name} := @usages;
             }
             nqp::push(@usages, $var);
+            if $!in_handle_handler {
+                %!used_in_handle_handler{$name} := 1;
+            }
         }
     }
 
@@ -479,6 +488,10 @@ my class BlockVarOptimizer {
     method poison_lowering() { $!poisoned := 1; }
 
     method uses_bindsig() { $!uses_bindsig := 1; }
+
+    method entering_handle_handler() { $!in_handle_handler++; }
+
+    method leaving_handle_handler() { $!in_handle_handler--; }
 
     method get_decls() { %!decls }
 
@@ -609,13 +622,13 @@ my class BlockVarOptimizer {
         return 0 if $!poisoned || $!uses_bindsig;
         return 0 unless nqp::istype($block[0], QAST::Stmts);
         for %!decls {
-            # We're looking for lexical var decls; these have no magical
-            # vivification lexical behavior and so are safe to lower.
+            # We're looking for lexical var/contvar decls.
             my $qast := $_.value;
-            my str $decl := $qast.decl;
-            next unless $decl eq 'var';
             my str $scope := $qast.scope;
             next unless $scope eq 'lexical';
+            my str $decl := $qast.decl;
+            my int $is_contvar := $decl eq 'contvar';
+            next unless $is_contvar || $decl eq 'var';
 
             # Also ensure not dynamic.
             my $qv := $qast.value;
@@ -623,9 +636,18 @@ my class BlockVarOptimizer {
                 try nqp::getattr($qv, nqp::what_nd($qv), '$!descriptor').dynamic;
             next if $dynamic;
 
-            # Consider name. Can't lower if it's used by any nested blocks.
+            # If it's a contvar, then the value should be a concrete P6opaque
+            # for us to lower its initialization.
+            if $is_contvar {
+                next unless nqp::isconcrete_nd($qv) &&
+                    nqp::reprname(nqp::what_nd($qv)) eq 'P6opaque';
+            }
+
+            # Consider name. Can't lower if it's used by any nested blocks or
+            # in an nqp::handlers handler.
             my str $name := $_.key;
-            unless nqp::existskey(%!usages_inner, $name) {
+            unless nqp::existskey(%!usages_inner, $name) ||
+                    nqp::existskey(%!used_in_handle_handler, $name) {
                 # Lowerable if it's a normal variable.
                 next if nqp::chars($name) < 1;
                 unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 0) {
@@ -648,12 +670,32 @@ my class BlockVarOptimizer {
                 next if $ref'd;
 
                 # Seems good; lower it. Note we need to retain a lexical in
-                # case of binder failover to generate errors.
+                # case of binder failover to generate errors. (TODO: only
+                # retain them for parameters.)
                 my $new_name := $qast.unique('__lowered_lex');
                 $block[0].unshift(QAST::Var.new( :name($qast.name), :scope('lexical'),
                                                  :decl('var'), :returns($qast.returns) ));
                 $qast.name($new_name);
                 $qast.scope('local');
+                if $is_contvar {
+                    # Instead of the vivify on first read, we instead set up
+                    # the variable's container. The naive way to do that would
+                    # be a clone of the prototype value, but to explicitly
+                    # bindattr is much more analyzable by VM-level optimizers,
+                    # such as MoarVM's spesh. We skip this for the `our` case,
+                    # as it is bound immediately.
+                    $qast.decl('var');
+                    unless $qast.ann('our_decl') {
+                        $block[0].push(QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($new_name), :scope('local') ),
+                            QAST::Op.new(
+                                :op('clone_nd'),
+                                QAST::WVal.new( :value($qv) )
+                            )
+                        ));
+                    }
+                }
                 if %!usages_flat{$name} {
                     for %!usages_flat{$name} {
                         $_.scope('local');
@@ -2375,7 +2417,7 @@ class Perl6::Optimizer {
     method visit_handle($op) {
         my int $orig_void := $!void_context;
         $!void_context    := 0;
-        self.visit_children($op, :skip_selectors);
+        self.visit_children($op, :skip_selectors, :handle);
         $!void_context := $orig_void;
         $op
     }
@@ -2613,7 +2655,8 @@ class Perl6::Optimizer {
     }
 
     # Visits all of a node's children, and dispatches appropriately.
-    method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default) {
+    method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default,
+                          :$handle) {
         note("method visit_children $!void_context\n" ~ $node.dump) if $!debug;
         my int $r := $resultchild // -1;
         my int $i := 0;
@@ -2635,6 +2678,9 @@ class Perl6::Optimizer {
                 }
                 else {
                     note("Non-QAST node visited " ~ $visit.HOW.name($visit)) if $!debug;
+                }
+                if $handle && $i > 0 {
+                    @!block_var_stack[nqp::elems(@!block_var_stack) - 1].entering_handle_handler();
                 }
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
@@ -2710,6 +2756,9 @@ class Perl6::Optimizer {
                 { }
                 else {
                     note("Weird node visited: " ~ $visit.HOW.name($visit)) if $!debug;
+                }
+                if $handle && $i > 0 {
+                    @!block_var_stack[nqp::elems(@!block_var_stack) - 1].leaving_handle_handler();
                 }
             }
             $i               := $first ?? $n !! $i + 1;

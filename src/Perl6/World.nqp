@@ -1625,6 +1625,7 @@ class Perl6::World is HLL::World {
                 :scope('lexical'), :name($name), :decl('var'),
                 :returns(%cont_info<bind_constraint>)
             );
+            $var.annotate('our_decl', 1) if $scope eq 'our';
             $block[0].unshift($var);
         }
         $block.symbol($name, :scope('lexical'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));

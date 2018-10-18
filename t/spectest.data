@@ -1112,7 +1112,6 @@ S32-list/seq.t
 S32-list/skip.t
 S32-list/sort.t
 S32-list/tail.t
-S32-list/toggle.t
 S32-list/unique.t
 S32-list/squish.t
 S32-num/abs.t

@@ -1,4 +1,4 @@
-# Notes and hints for working with Rakudo NQP
+# Notes and hints for working with Rakudo NQP and Pod
 
 ## Traps for the Perl 6 programmer
 

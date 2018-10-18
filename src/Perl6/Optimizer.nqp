@@ -490,16 +490,6 @@ my class BlockVarOptimizer {
 
     method is_poisoned() { $!poisoned }
 
-    method is_flattenable() {
-        for %!decls {
-            my $var := $_.value;
-            my str $scope := $var.scope;
-            return 0 if $scope eq 'lexical' || $scope eq 'lexicalref';
-            return 0 if $var.decl eq 'param';
-        }
-        1
-    }
-
     method incorporate_inner($vars_info, $flattened) {
         # We'll exclude anything that the inner or flattened thing has as
         # a declaration, since those are its own.

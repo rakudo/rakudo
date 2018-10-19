@@ -1575,7 +1575,8 @@ class Rakudo::Iterator {
                 nqp::iseq_i($!i, $!n),
                 nqp::stmts(
                   (my \got1 := $!source.pull-one),
-                  self!FINISH-UP(1),
+                  self!FINISH-UP(
+                    nqp::isfalse(nqp::eqaddr(got1, IterationEnd))),
                   got1),
                 nqp::stmts(
                   $!n || self!FINISH-UP(1),

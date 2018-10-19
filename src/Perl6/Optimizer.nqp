@@ -1913,7 +1913,7 @@ class Perl6::Optimizer {
         $op.op: 'callstatic'; # by now we know 'tis a core op
 
         # if we got a native int/num, we can rewrite into nqp ops
-        if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref'
+        if nqp::istype($var,QAST::Var) && ($var.scope eq 'lexicalref' || $var.scope eq 'attributeref')
         && ((my $primspec := nqp::objprimspec($var.returns)) == 1 # native int
           || $primspec == 2 || $primspec == 4 || $primspec == 5) # native num or "emulated" 64bit int
         {

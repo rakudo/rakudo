@@ -504,7 +504,7 @@ my class IO::Handle {
           ?? Seq.new(self!LINES-ITERATOR($close))
           !! $close
             ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
-                self!LINES-ITERATOR($close), $limit.Int, {SELF.close}))
+                self!LINES-ITERATOR(0), $limit.Int, {SELF.close}))
             !! self.lines.head($limit.Int)
     }
     multi method lines(IO::Handle:D \SELF: :$close) {

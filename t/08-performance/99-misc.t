@@ -24,8 +24,8 @@ plan 4;
     my $took2 = now - $then;
 
     is $result1, $result2, "is $result1 == $result2";
-    ok $took2 < $took1 / 20,
-        "was native .sum $took2 at least 20x as fast as $took1 ({$took1/$took2}x)";
+    ok $took2 < $took1 / 10,
+        "was native .sum $took2 at least 10x as fast as $took1 ({$took1/$took2}x)";
 }
 
 { # https://github.com/rakudo/rakudo/issues/1740

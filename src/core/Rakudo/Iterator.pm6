@@ -1566,17 +1566,26 @@ class Rakudo::Iterator {
     my class FirstNThenSinkAllN does Iterator {
         has $!source;
         has int $!n;
-        has int $!i = -1;
+        has int $!i;
         has &!callable;
         method pull-one() is raw {
             nqp::if(
-              nqp::islt_i($!n, ($!i = nqp::add_i($!i, 1)))
-                && self!FINISH-UP(1)
-              || nqp::eqaddr((my \got := $!source.pull-one),IterationEnd)
-                && self!FINISH-UP(0),
-              IterationEnd,
-              got
-            )
+              nqp::isle_i($!n, ($!i = nqp::add_i($!i, 1))),
+              nqp::if(
+                nqp::iseq_i($!i, $!n),
+                nqp::stmts(
+                  (my \got1 := $!source.pull-one),
+                  self!FINISH-UP(1),
+                  got1),
+                nqp::stmts(
+                  $!n || self!FINISH-UP(1),
+                  IterationEnd)),
+              nqp::if(
+                nqp::eqaddr((my \got2 := $!source.pull-one),IterationEnd),
+                nqp::stmts(
+                  self!FINISH-UP(0),
+                  IterationEnd),
+                got2))
         }
         method sink-all(--> IterationEnd) { self.FINISH-UP }
         method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }

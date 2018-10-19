@@ -52,6 +52,10 @@ my role Sequence does PositionalBindFailover {
 
     method Numeric(::?CLASS:D:) { self.cache.elems }
 
+    multi method ZEN-POS(::?CLASS:D: |c) is raw {
+        self.cache.ZEN-POS(|c)
+    }
+
     multi method AT-POS(::?CLASS:D: Int:D $idx) is raw {
         self.cache.AT-POS($idx)
     }

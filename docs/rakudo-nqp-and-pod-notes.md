@@ -11,6 +11,23 @@
 
 + **DO use 'nqp::die'** - As opposed to '**say**', '**die**' does need to be qualified with '**nqp::**'.
   If used without the '**nqp::**' prefix, you sometimes may get a very unhelpful error message.
+
++ **BE WARNED about "return if (...)" statements** - Sometimes they  work and sometimes not. But the
+  failure message is usually good enough to find the offending code.
+  
+For example, all these failed
+ 
+```
+return if !nqp::elems(@arr);
+return unless nqp::elems(@arr);
+```
+but this finally worked:
+
+```
+if !nqp::elems(@arr) {
+    return;
+}
+```
   
 ## Pod block text content handling
 

@@ -133,6 +133,10 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     if (ctx.codeRef().staticCode === wantedStaticInfo) {
       closure.outerCtx = ctx;
       closure.capture(closure.staticCode.freshBlock());
+    } else if (ctx && ctx.$$outer && ctx.$$outer.$$outer && ctx.$$outer.$$outer.codeRef().staticCode === wantedStaticInfo) {
+      /* workaround for rakudo emitting incorrectly nested closures */
+      closure.outerCtx = ctx.$$outer.$$outer;
+      closure.capture(closure.staticCode.freshBlock());
     } else {
       /* HACK - workaround for rakudo bugs */
       //console.log("HORRIBLE hack - p6capturelex will do nothing");

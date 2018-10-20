@@ -115,6 +115,13 @@ rule($CORE-combined, '@js_core_sources@',
 
 );
 
+my $CORE-d-combined := $build_dir ~ "/CORE.d.setting";
+rule($CORE-d-combined, '@js_core_d_sources@',
+    '@echo "The following step can take a very long time, please be patient."',
+    "\$(JS_NQP) tools/build/gen-cat.nqp js  -f tools/build/js_core_d_sources > $CORE-d-combined"
+
+);
+
 my $Perl6-Metamodel := nqp($Metamodel-combined, "$blib/Perl6-Metamodel.js",  :deps([$Perl6-Ops]));
 
 my $Perl6-Bootstrap := nqp($Bootstrap-combined, "$blib/Perl6-BOOTSTRAP.js",  :deps([$Perl6-Metamodel]));
@@ -124,8 +131,12 @@ rule($CORE, "$CORE-combined rakudo.js $Perl6-Bootstrap",
     "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --source-map --target=js --setting=NULL --output=node_modules/CORE.setting.js $CORE-combined"
 );
 
+my $CORE-d := "$blib/CORE.d.setting.js";
+rule($CORE-d, "$CORE-d-combined rakudo.js $Perl6-Bootstrap $CORE",
+    "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --source-map --target=js --output=$CORE-d $CORE-d-combined"
+);
 
-say("js-all: check_nqp_version $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE \$(JS_RUNNER) $load-compiler\n");
+say("js-all: check_nqp_version $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE $CORE-d \$(JS_RUNNER) $load-compiler\n");
 
 say("js-clean:\n\t\$(RM_F) $ModuleLoader-nqp rakudo.js $CORE $CORE-combined {nqp::join(' ', @produced)}");
 

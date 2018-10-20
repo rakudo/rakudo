@@ -319,9 +319,8 @@ my class IO::Socket::Async {
     method listen(IO::Socket::Async:U: Str() $host, Int() $port, Int() $backlog = 128,
                   :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $encoding = Encoding::Registry.find: $enc;
-        my $tappable =  SocketListenerTappable.new:
+        Supply.new: SocketListenerTappable.new:
             :$host, :$port, :$backlog, :$encoding, :$scheduler;
-        Supply.new: $tappable;
     }
 
     sub setup-close(\socket --> Nil) {

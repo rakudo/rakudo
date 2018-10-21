@@ -10,18 +10,18 @@ my class Encoding::Registry {
         my $lookup := nqp::bindattr(%lookup,Map,'$!storage',nqp::hash);
         ### If updating encodings here, also update src/core/Rakudo/Internals.pm6
         my $encodings := nqp::list(
-          nqp::list('utf8','utf-8'),
-          nqp::list('utf8-c8','utf8c8', 'utf-8-c8'),
-          nqp::list('utf16','utf-16'),
-          nqp::list('utf16le', 'utf-16le'),
-          nqp::list('utf16be', 'utf-16be'),
-          nqp::list('utf32','utf-32'),
+          nqp::list('utf8',    'utf-8'),
+          nqp::list('utf8-c8', 'utf8c8',   'utf-8-c8'),
+          nqp::list('utf16',   'utf-16'),
+          nqp::list('utf16le', 'utf-16le', 'utf16-le', 'utf-16-le'),
+          nqp::list('utf16be', 'utf-16be', 'utf16-be', 'utf-16-be'),
+          nqp::list('utf32',   'utf-32'),
           nqp::list('ascii'),
           nqp::list('iso-8859-1','iso_8859-1:1987','iso_8859-1','iso-ir-100',
             'latin1','latin-1','csisolatin1','l1','ibm819','cp819'),
           nqp::list('windows-1251', 'windows1251'),
           nqp::list('windows-1252', 'windows1252'),
-          nqp::list('windows-932', 'windows932')
+          nqp::list('windows-932',  'windows932')
         );
         my int $i = -1;
         my int $elems = nqp::elems($encodings);

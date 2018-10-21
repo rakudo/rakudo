@@ -166,11 +166,11 @@ my class IO::Socket::Async {
         $!close-vow.keep(True);
     }
 
-    sub create-socket(Bool :$listening = False, :$scheduler = $*SCHEDULER --> Promise) {
+    sub create-socket(Bool :$listening = False, :$scheduler = $*SCHEDULER, Bool :$hint-affinity = False --> Promise) {
         my Promise $p .= new;
         my $v = $p.vow;
         nqp::asyncsocket(
-            $scheduler.queue,
+            $scheduler.queue(:$hint-affinity),
             -> Mu \socket, Mu \err {
                 if err {
                     $v.break: err;
@@ -188,7 +188,7 @@ my class IO::Socket::Async {
                    :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my Promise $p .= new;
         my $v = $p.vow;
-        my \server-socket = await create-socket(:$scheduler);
+        my \server-socket = create-socket(:$scheduler).result;
         nqp::asyncconnect(
             $scheduler.queue,
             -> Mu \client-socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
@@ -244,7 +244,7 @@ my class IO::Socket::Async {
         method tap(&emit, &done, &quit, &tap --> ListenSocket) {
             my $lock := Lock::Async.new;
             my $tap;
-            my $VMIO = await create-socket(:listening, :$!scheduler);
+            my $VMIO = create-socket(:listening, :$!scheduler, :hint-affinity).result;
             my int $finished = 0;
             my Promise $socket-host .= new;
             my Promise $socket-port .= new;

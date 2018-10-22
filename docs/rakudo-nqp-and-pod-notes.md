@@ -13,7 +13,8 @@
 
 + **DO use 'nqp::die'** - As opposed to '**say**', '**die**' does need to be qualified with '**nqp::**'.
   If used without the '**nqp::**' prefix, you sometimes may get a very unhelpful error message.
-+ **DO NOT use '$<some-match-var>' inside a sub with a '$/' arg** - Use the full syntax for
+  
++ **DO NOT use '$\<some-match-var>' inside a sub with a '$/' arg** - Use the full syntax for
   a match variable ('**/$<some-match-var**') for more reliable results.
 
 + **BE WARNED about "return if (...)" statements** - Sometimes they  work and sometimes not. But the

@@ -3,7 +3,9 @@
 ## Traps for the Perl 6 programmer
 
 + **DO NOT use '$0' in match results** - The Perl 6 shorthand for a match variable '**$0**' doesn't
-  work in NQP. Note the parser will be very confused and it currently cannot point to the error.
+  work in NQP. Instead, use **$/[0]** for the zeroeth match. 
+  Note the parser will be very confused otherwise and it currently cannot point to the error.
+  
   
 + **DO NOT use 'nqp::say'** - The routine '**say**' is an NQP built-in and it does not need
   the '**nqp::**' prefix. You can sometimes get away with using '**nqp::say**' but, when you least
@@ -11,6 +13,8 @@
 
 + **DO use 'nqp::die'** - As opposed to '**say**', '**die**' does need to be qualified with '**nqp::**'.
   If used without the '**nqp::**' prefix, you sometimes may get a very unhelpful error message.
++ **DO NOT use '$<some-match-var>' inside a sub with a '$/' arg** - Use the full syntax for
+  a match variable ('**/$<some-match-var**') for more reliable results.
 
 + **BE WARNED about "return if (...)" statements** - Sometimes they  work and sometimes not. But the
   failure message is usually good enough to find the offending code.

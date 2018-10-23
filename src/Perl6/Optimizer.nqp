@@ -2017,7 +2017,9 @@ class Perl6::Optimizer {
         )
     }
 
-    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
+    # The _i64 and _u64 are only used on backends that emulate int64/uint64
+    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i64', 'assign_u64'];
+
     method optimize_nameless_call($op) {
       return NQPMu
         unless nqp::elems($op)

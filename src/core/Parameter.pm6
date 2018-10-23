@@ -108,6 +108,7 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method type() { $!nominal_type }
+    method coerce_type() { $!coerce_type }
     method named_names() {
         nqp::if(
           @!named_names && (my int $elems = nqp::elems(@!named_names)),
@@ -332,6 +333,8 @@ my class Parameter { # declared in BOOTSTRAP
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
+        $type = $!coerce_type.^name ~ "($type)"
+          unless nqp::isnull($!coerce_type);
         my $modifier = self.modifier;
 
         $perl ~= "::$_ " for @($.type_captures);

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 24;
+plan 25;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -171,5 +171,9 @@ else {
 cmp-ok X::OutOfRange.new(
     :what<a range>, :got(0..3000), :range(1..3000)
 ).message.chars, '<', 150, 'X::OutOfRange does not stringify given Ranges';
+
+# https://github.com/rakudo/rakudo/issues/2320
+is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
+'Use placeholder variables in a method should yield a useful error message';
 
 # vim: ft=perl6 expandtab sw=4

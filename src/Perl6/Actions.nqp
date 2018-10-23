@@ -4286,9 +4286,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 my $non-placeholder-names := nqp::join(', ', @non-placeholder-names);
 
-                my $first-placeholder-name := $past.ann('placeholder_sig')[0]<placeholder>;
+                my $first-placeholder := $past.ann('placeholder_sig')[0];
+                my $first-placeholder-name := $first-placeholder<placeholder>;
 
-                $/.PRECURSOR.panic("Placeholder variables (eg. $first-placeholder-name) cannot be used in a method.\nPlease specify an explicit signature, like $*METHODTYPE $method-name ($non-placeholder-names) \{ ... \}");
+                $first-placeholder<ast>.PRECURSOR.panic("Placeholder variables (eg. $first-placeholder-name) cannot be used in a method.\nPlease specify an explicit signature, like $*METHODTYPE $method-name ($non-placeholder-names) \{ ... \}");
             }
             if is_clearly_returnless($past) {
                 $past[1] := QAST::Op.new(

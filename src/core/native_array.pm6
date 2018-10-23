@@ -3228,6 +3228,11 @@ my class array does Iterable {
         elsif $kind == 3 {
             $what := arr.^mixin(strarray[$t]);
         }
+#?if js
+        elsif $kind == 4 || $kind == 5 {
+            $what := arr.^mixin(intarray[$t]);
+        }
+#?endif
         else {
             return "Can only parameterize array with a native type, not {t.^name}";
         }

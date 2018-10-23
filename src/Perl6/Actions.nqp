@@ -4268,29 +4268,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $past := WANTED($<blockoid>.ast,'method_def');
-            if $past.ann('placeholder_sig') {
-                my $placeholders := nqp::iterator($past.ann('placeholder_sig'));
-                my @non-placeholder-names;
-                my $method-name := $<longname><name>;
-                while $placeholders {
-                    my $placeholder := nqp::shift($placeholders);
-                    my $name := $placeholder<placeholder>;
-                    my $non-placeholder-name;
-                    if $placeholder<named_names> {
-                        $non-placeholder-name := nqp::concat(':', nqp::concat(nqp::substr($name, 0, 1), nqp::substr($name, 2)));
-                    } else {
-                        $non-placeholder-name := nqp::concat(nqp::substr($name, 0, 1), nqp::substr($name, 2));
-                    }
-                    nqp::push( @non-placeholder-names, $non-placeholder-name);
-                }
-
-                my $non-placeholder-names := nqp::join(', ', @non-placeholder-names);
-
-                my $first-placeholder := $past.ann('placeholder_sig')[0];
-                my $first-placeholder-name := $first-placeholder<placeholder>;
-
-                $first-placeholder<ast>.PRECURSOR.panic("Placeholder variables (eg. $first-placeholder-name) cannot be used in a method.\nPlease specify an explicit signature, like $*METHODTYPE $method-name ($non-placeholder-names) \{ ... \}");
-            }
             if is_clearly_returnless($past) {
                 $past[1] := QAST::Op.new(
                     :op(decontrv_op()),
@@ -4338,6 +4315,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past.name($name ?? $name !! '<anon>');
+
+        if $past.ann('placeholder_sig') {
+            my $placeholders := nqp::iterator($past.ann('placeholder_sig'));
+            my @non-placeholder-names;
+            my $method-name := $past.name;
+            while $placeholders {
+                my $placeholder := nqp::shift($placeholders);
+                my $name := $placeholder<placeholder>;
+                my $non-placeholder-name;
+                if $placeholder<named_names> {
+                    $non-placeholder-name := nqp::concat(':', nqp::concat(nqp::substr($name, 0, 1), nqp::substr($name, 2)));
+                } else {
+                    $non-placeholder-name := nqp::concat(nqp::substr($name, 0, 1), nqp::substr($name, 2));
+                }
+                nqp::push( @non-placeholder-names, $non-placeholder-name);
+            }
+
+            my $non-placeholder-names := nqp::join(', ', @non-placeholder-names);
+
+            my $first-placeholder := $past.ann('placeholder_sig')[0];
+            my $first-placeholder-name := $first-placeholder<placeholder>;
+
+            $first-placeholder<ast>.PRECURSOR.panic("Placeholder variables (eg. $first-placeholder-name) cannot be used in a method.\nPlease specify an explicit signature, like $*METHODTYPE $method-name ($non-placeholder-names) \{ ... \}");
+        }
 
         my $code := methodize_block($/, $*DECLARAND, $past, $*SIG_OBJ,
             %*SIG_INFO, :yada(is_yada($/)));

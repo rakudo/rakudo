@@ -4337,7 +4337,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $first-placeholder := $past.ann('placeholder_sig')[0];
             my $first-placeholder-name := $first-placeholder<placeholder>;
 
-            $first-placeholder<ast>.PRECURSOR.panic("Placeholder variables (eg. $first-placeholder-name) cannot be used in a method.\nPlease specify an explicit signature, like $*METHODTYPE $method-name ($non-placeholder-names) \{ ... \}");
+            $first-placeholder<node>.PRECURSOR.panic("Placeholder variables (eg. $first-placeholder-name) cannot be used in a method.\nPlease specify an explicit signature, like $*METHODTYPE $method-name ($non-placeholder-names) \{ ... \}");
         }
 
         my $code := methodize_block($/, $*DECLARAND, $past, $*SIG_OBJ,
@@ -9447,7 +9447,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             pos_slurpy        => $pos_slurpy,
             named_slurpy      => $named_slurpy,
             placeholder       => $full_name,
-            ast               => $/,
+            node              => $/,
             is_multi_invocant => 1,
             sigil             => ~$sigil);
 

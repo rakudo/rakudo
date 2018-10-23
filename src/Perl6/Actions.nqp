@@ -9445,6 +9445,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             pos_slurpy        => $pos_slurpy,
             named_slurpy      => $named_slurpy,
             placeholder       => $full_name,
+            ast               => $/,
             is_multi_invocant => 1,
             sigil             => ~$sigil);
 

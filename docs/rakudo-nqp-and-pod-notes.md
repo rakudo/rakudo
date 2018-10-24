@@ -88,6 +88,13 @@ described above. It is the source of the final contents object for regular text 
 except for the table blocks which will be discussed separately. It has a corresponding action
 method.
 
+Tracing the pod class building code is tedious and not well documented. Tokens in the grammar
+are often made early, along with other objects, and attached to that token's match object's .ast
+attribute which is then used later in another object.  The developer who wants to change the called .ast
+code in that other object (which may be in the grammar, actions, or src/Perl6/Pod.nqp) has to refer
+back to the original make point to see its format before doing any changes--not fun!
+There is an ongoing effort to better document the process for later developers.
+
 ## :numbered aliasing
 
 S26 allows for the '#' character (Unicode name **NUMBER SIGN**), as the first word in a block, 
@@ -134,7 +141,3 @@ The **:!numbered** is interpreted to mean accepting the '#' as part of block dat
 
 The '#' means the same as the **:numbered** option: the renderer should number the
 paragraph and the two **:numbered** keys (one explict and one implicit) are redundant.
-  
-## Handling :numbered aliasing in Grammar.nqp, Actions.nqp, and Pod.nqp
-
-Pseudo code to define needed code changes: (WIP)

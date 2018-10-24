@@ -75,7 +75,7 @@ Some notable, not-yet-implemented (NYI) features (in order of one dev's TODO lis
 
 10. NYI: nested delimited comment blocks
 
-11. NYI: configuration data on continuation lines
+11. NYI: configuration data on continuation lines are not always handled correctly
 
 Anyone wanting to work on any of the NYI items please coordinate on IRC #perl6-dev to
 avoid duplicate efforts.  Most of the items are being worked on in a generally logical
@@ -85,7 +85,8 @@ order of need and knowledge gained during the process of implementing pod featur
 
 The token **pod_textcontent** is the match object for regular text and formatted code as
 described above. It is the source of the final contents object for regular text containers
-except for the table blocks which will be discussed separately.
+except for the table blocks which will be discussed separately. It has a corresponding action
+method.
 
 ## :numbered aliasing
 

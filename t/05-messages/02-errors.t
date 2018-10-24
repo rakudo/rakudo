@@ -16,7 +16,6 @@ throws-like { for [:a] X [:b] -> ($i, $j) { } },
     message => / '<anon>' /,
     "anonymous subs get '<anon>' in arity error messages";
 
-todo 'needs better error message';
 throws-like {
     sub l { IO::Socket::Async.listen: "localhost", 111390 }
     react whenever l() {

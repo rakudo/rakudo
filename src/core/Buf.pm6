@@ -116,8 +116,10 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
 
     proto method decode(|) {*}
-    multi method decode(Blob:D:) {
-        nqp::p6box_s(nqp::decode(self, 'utf8'))
+    multi method decode(Blob:D: $encoding = self.encoding // "utf-8") {
+        nqp::p6box_s(
+          nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding))
+        )
     }
 #?if !jvm
     multi method decode(Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False) {
@@ -476,36 +478,18 @@ constant blob32 = Blob[uint32];
 constant blob64 = Blob[uint64];
 
 my class utf8 does Blob[uint8] is repr('VMArray') {
-    multi method decode(utf8:D: $encoding) {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-8 buffer as if it were $encoding"
-            unless $enc eq 'utf8';
-        nqp::p6box_s(nqp::decode(self, 'utf8'))
-    }
     method encoding(--> "utf-8") { }
     multi method Str(utf8:D:) { self.decode }
     multi method Stringy(utf8:D:) { self.decode }
 }
 
 my class utf16 does Blob[uint16] is repr('VMArray') {
-    multi method decode(utf16:D: $encoding = 'utf-16') {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-16 buffer as if it were $encoding"
-            unless $enc eq 'utf16' || $enc eq 'utf16le' || $enc eq 'utf16be';
-        nqp::p6box_s(nqp::decode(self, $enc))
-    }
     method encoding(--> "utf-16") { }
     multi method Str(utf16:D:) { self.decode }
     multi method Stringy(utf16:D:) { self.decode }
 }
 
 my class utf32 does Blob[uint32] is repr('VMArray') {
-    multi method decode(utf32:D: $encoding = 'utf-32') {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-32 buffer as if it were $encoding"
-            unless $enc eq 'utf32';
-        nqp::p6box_s(nqp::decode(self, 'utf32'))
-    }
     method encoding(--> "utf-32") { }
     multi method Str(utf32:D:) { self.decode }
     multi method Stringy(utf32:D:) { self.decode }

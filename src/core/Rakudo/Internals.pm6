@@ -314,16 +314,13 @@ my class Rakudo::Internals {
       'windows932',      'windows-932',
     );
     method NORMALIZE_ENCODING(Str:D \encoding) {
-        my str $key = nqp::unbox_s(encoding);
-        if nqp::existskey($encodings,$key) {
-            nqp::atkey($encodings,$key)
-        }
-        else {
-            my str $lc = nqp::lc($key);
-            nqp::existskey($encodings,$lc)
-              ?? nqp::atkey($encodings,$lc)
-              !! nqp::lc($key)
-        }
+        nqp::ifnull(
+          nqp::atkey($encodings,encoding),
+          nqp::ifnull(
+            nqp::atkey($encodings,nqp::lc(encoding)),
+            nqp::lc(encoding)
+          )
+        )
     }
 
     # 1 if all elements of given type, otherwise 0

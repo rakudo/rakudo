@@ -13,7 +13,7 @@ my class Code does Callable { # declared in BOOTSTRAP
     method count(Code:D:) { nqp::getattr($!signature,Signature,'$!count') }
 
     method signature(Code:D:) { $!signature }
-    method cando(Capture:D $c) { $!signature.ACCEPTS($c) }
+    method cando(Capture:D $c) { $!signature.ACCEPTS($c) ?? (self,) !! () }
 
     proto method prec(|) {*}
     multi method prec() { my % }

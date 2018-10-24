@@ -15,7 +15,7 @@
   If used without the '**nqp::**' prefix, you sometimes may get a very unhelpful error message.
   
 + **DO NOT use '$\<some-match-var>' inside a sub with a '$/' arg** - Use the full syntax for
-  a match variable ('**/$<some-match-var**') for more reliable results.
+  a match variable ('**/$<some-match-var**') for more reliable (or at least self-documenting) results.
 
 + **BE WARNED about "return if (...)" statements** - Sometimes they  work and sometimes not. But the
   failure message is usually good enough to find the offending code.

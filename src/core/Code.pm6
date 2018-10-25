@@ -140,10 +140,10 @@ my class Code does Callable { # declared in BOOTSTRAP
             $sig = $sig.params[0].sub_signature;
         }
 
-        my @plist = (); # Positionals in the returned closure's signature
-        my @clist = (); # The positional args used to call the original code
-        my @tlist = (); # Positional params to verify binding primers against
-        my @alist = (); # Primers as positional arguments after processing
+        my @plist; # Positionals in the returned closure's signature
+        my @clist; # The positional args used to call the original code
+        my @tlist; # Positional params to verify binding primers against
+        my @alist; # Primers as positional arguments after processing
 
         # Find a name safe to use across slurpies, captures and sigilless
         my $safename = '_';

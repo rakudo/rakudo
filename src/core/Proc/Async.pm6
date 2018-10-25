@@ -283,17 +283,21 @@ my class Proc::Async {
         $promise;
     }
 
+    has $!start-lock = Lock.new;
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
         X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
-        $!started = True;
+        $!start-lock.protect: {
+            X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
+            $!started = True;
 
-        my @blockers;
-        if $!stdin-fd ~~ Promise {
-            @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
+            my @blockers;
+            if $!stdin-fd ~~ Promise {
+                @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
+            }
+            @blockers
+                ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
+                !! self!start-internal(:$scheduler, :$ENV, :$cwd)
         }
-        @blockers
-            ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
-            !! self!start-internal(:$scheduler, :$ENV, :$cwd)
     }
 
     method !start-internal(:$scheduler, :$ENV, :$cwd) {

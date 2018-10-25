@@ -96,6 +96,8 @@ my class Code does Callable { # declared in BOOTSTRAP
                 }
                 $perl = '' unless soft_indirect_name_lookup($type);
             }
+            $perl = $parm.coerce_type.^name ~ "($perl)"
+              unless nqp::eqaddr($parm.coerce_type,Mu);
             $perl ~= $parm.modifier if $perl ne '';
 
             my $name = $parm.name;

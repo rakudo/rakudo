@@ -133,6 +133,20 @@ my class Proc::Async {
         -> { (channel == 1 ?? $!stdout_descriptor_used !! $!stderr_descriptor_used).keep(True) }
     }
 
+    my class ProcInternalSupplier is Supplier::Preserving {
+        has $.vow is rw;
+
+        method done(::?CLASS:D: --> Nil) {
+            $!vow.keep(self) if $!vow;
+            self.Supplier::Preserving::done();
+        }
+
+        method quit(::?CLASS:D: $err) {
+            $!vow.keep( (self, $err) ) if $!vow;
+            self.Supplier::Preserving::quit($err);
+        }
+    }
+
     method !pipe(\what, \the-supplier, \type, \value, \fd-vow, \permit-channel) {
         X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
           if $!started;
@@ -140,19 +154,7 @@ my class Proc::Async {
           if the-supplier and type != value;
 
         type           = value;
-        the-supplier //= class :: is Supplier::Preserving {
-            has $.vow is rw;
-
-            method done(::?CLASS:D: --> Nil) {
-                $!vow.keep(self) if $!vow;
-                self.Supplier::Preserving::done();
-            }
-
-            method quit(::?CLASS:D: $err) {
-                $!vow.keep( (self, $err) ) if $!vow;
-                self.Supplier::Preserving::quit($err);
-            }
-        }.new;
+        the-supplier //= ProcInternalSupplier.new;
 
         if nqp::iscont(fd-vow) {
             my $native-descriptor = Promise.new;

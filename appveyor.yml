@@ -53,5 +53,5 @@ install:
 # Testing
 test_script:
   - perl Configure.pl %RAKUDO_OPTIONS%
+  - nmake test
   - nmake install
-  - prove -e perl6 -vlr t

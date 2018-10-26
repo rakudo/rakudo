@@ -3802,7 +3802,7 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::AdHoc', payload => $curried)
             }
 
-            self.add_object($curried);
+            self.add_object_if_no_sc($curried);
             return $curried;
         }
         $role;

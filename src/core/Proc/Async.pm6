@@ -102,7 +102,7 @@ my class Proc::Async {
     has $.w;
     has $.enc = 'utf8';
     has $.translate-nl = True;
-    has Bool $.started = False;
+    has atomicint $.started = 0;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
     has $!stderr_supply;
@@ -271,13 +271,8 @@ my class Proc::Async {
         $promise;
     }
 
-    has $!start-lock = Lock.new;
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
-        X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
-        $!start-lock.protect: {
-            X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
-            $!started = True;
-
+        when cas($!started, 0, 1) == 0 {
             my @blockers;
             if $!stdin-fd ~~ Promise {
                 @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
@@ -286,6 +281,7 @@ my class Proc::Async {
                 ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
                 !! self!start-internal(:$scheduler, :$ENV, :$cwd)
         }
+        X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
     }
 
     method !start-internal(:$scheduler, :$ENV, :$cwd) {

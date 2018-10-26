@@ -4324,7 +4324,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $placeholder := nqp::shift($placeholders);
                 my $name := $placeholder<placeholder>;
                 my $non-placeholder-name;
-                if $placeholder<named_names> {
+                if $placeholder<pos_slurpy> || $placeholder<named_slurpy> {
+                    $non-placeholder-name := nqp::concat('*', $name);
+                } elsif $placeholder<named_names> {
                     $non-placeholder-name := nqp::concat(':', nqp::concat(nqp::substr($name, 0, 1), nqp::substr($name, 2)));
                 } else {
                     $non-placeholder-name := nqp::concat(nqp::substr($name, 0, 1), nqp::substr($name, 2));

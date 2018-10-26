@@ -20,7 +20,7 @@
 + **BE WARNED about "return if (...)" statements** - Sometimes they  work and sometimes not. But the
   failure message is usually good enough to find the offending code.
   
-For example, all these failed
+For example, all these failed:
  
 ```
 return if !nqp::elems(@arr);
@@ -94,6 +94,12 @@ attribute which is then used later in another object.  The developer who wants t
 code in that other object (which may be in the grammar, actions, or src/Perl6/Pod.nqp) has to refer
 back to the original make point to see its format before doing any changes--not fun!
 There is an ongoing effort to better document the process for later developers.
+
+Following is the start of a table to show the grammar tokens that have action methods.
+
+| Grammar tokens  | Action method? | Pod sub? |
+| ---         | ---         | ---     |
+| pod_textcontent | yes
 
 ## :numbered aliasing
 

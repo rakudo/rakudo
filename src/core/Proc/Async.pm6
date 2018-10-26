@@ -102,6 +102,7 @@ my class Proc::Async {
     has $.w;
     has $.enc = 'utf8';
     has $.translate-nl = True;
+    has Bool $.started = False;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
     has $!stderr_supply;
@@ -116,13 +117,6 @@ my class Proc::Async {
     has @!promises;
     has $!encoder;
     has @!close-after-exit;
-
-#?if moar
-    has atomicint $.started = 0;
-#?endif
-#?if !moar
-    has Bool $.started = False;
-#?endif
 
     proto method new(|) {*}
     multi method new(*@args where .so) {
@@ -279,7 +273,7 @@ my class Proc::Async {
 
 #?if moar
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
-        when cas($!started, 0, 1) == 0 {
+        if cas($!started, False, True) == False {
             my @blockers;
             if $!stdin-fd ~~ Promise {
                 @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
@@ -288,7 +282,9 @@ my class Proc::Async {
                 ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
                 !! self!start-internal(:$scheduler, :$ENV, :$cwd)
         }
-        X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
+        else {
+            X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
+        }
     }
 #?endif
 

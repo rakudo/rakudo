@@ -64,7 +64,7 @@ sub combine(:$sources, :$file) {
     rule($target, $sources,
         make_parents($target),
         "\$(JS_NQP) tools/build/gen-cat.nqp js $sources > $target"
-    ); 
+    );
 }
 
 my $ModuleLoader-nqp := combine(:sources("src/vm/js/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp"), :file<ModuleLoader.nqp>);
@@ -103,7 +103,7 @@ rule('$(JS_RUNNER)', '', '$(PERL5) tools/build/create-js-runner.pl');
 my $Metamodel-combined := $build_dir ~ "/Metamodel.nqp";
 rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
     "\$(JS_NQP) tools/build/gen-cat.nqp js -f tools/build/common_bootstrap_sources > $Metamodel-combined"
-); 
+);
 @produced.push($Metamodel-combined);
 
 my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<Perl6-BOOTSTRAP.nqp>);

@@ -1304,6 +1304,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
         :my $*IN_STMT_MOD := 0;                    # are we inside a statement modifier?
         :my $*COMPILING_CORE_SETTING := 0;         # are we compiling CORE.setting?
+        # TODO XXX: see https://github.com/rakudo/rakudo/issues/2432
+        :my $*SET_DEFAULT_LANG_VER := 1;
         :my %*SIG_INFO;                            # information about recent signature
 
         # Various interesting scopes we'd like to keep to hand.

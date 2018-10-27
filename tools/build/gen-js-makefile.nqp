@@ -133,7 +133,7 @@ rule($CORE, "$CORE-combined rakudo.js $Perl6-Bootstrap",
 
 my $CORE-d := "$blib/CORE.d.setting.js";
 rule($CORE-d, "$CORE-d-combined rakudo.js $Perl6-Bootstrap $CORE",
-    "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --source-map --target=js --output=$CORE-d $CORE-d-combined"
+    "node --max-old-space-size=8192 rakudo.js \$(JS_FLAGS) --source-map --target=js --setting=NULL.d --output=$CORE-d $CORE-d-combined"
 );
 
 say("js-all: check_nqp_version $ModuleLoader-nqp $Perl6-Grammar $Perl6-Actions $Perl6-Compiler $Perl6-Pod $Perl6-main $Perl6-Bootstrap $CORE $CORE-d \$(JS_RUNNER) $load-compiler\n");

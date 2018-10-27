@@ -521,6 +521,43 @@ class Perl6::World is HLL::World {
           $want
         ) == -1
     }
+    method load-lang-ver($ver-match, $comp) {
+        $*MAIN   := 'MAIN';
+        $*STRICT := 1 if $*begin_compunit;
+
+        my str $version := ~$ver-match;
+        # fast-past the common cases
+        if $version eq 'v6.c' {
+            $comp.set_language_version: '6.c';
+            # CORE.c is currently our lowest core, which we don't "load"
+            return;
+        }
+
+        if $version eq 'v6' ?? nqp::substr($comp.language_version, 2, 1)
+        !! $version eq 'v6.d' ?? 'd'
+        !! $version eq 'v6.d.PREVIEW' ?? 'd'
+        !! '' -> $lang {
+            $comp.set_language_version:       '6.' ~ $lang;
+            self.load_setting: $ver-match, 'CORE.' ~ $lang;
+            return;
+        }
+
+        my $Version := self.find_symbol: ['Version'];
+        my $vWant   := $ver-match.ast.compile_time_value;
+        for $comp.can_language_versions -> $can-ver {
+            next unless $vWant.ACCEPTS: my $vCan := $Version.new: $can-ver;
+
+            my $lang := $vCan.parts.AT-POS: 1;
+            $comp.set_language_version:       '6.' ~ $lang;
+
+            # CORE.c is currently our lowest core, which we don't "load"
+            self.load_setting: $ver-match, 'CORE.' ~ $lang
+                unless $lang eq 'c';
+            return;
+        }
+
+        $/.typed_panic: 'X::Language::Unsupported', :$version;
+    }
 
     method RAKUDO_MODULE_DEBUG() {
         if nqp::isconcrete($!RAKUDO_MODULE_DEBUG) {

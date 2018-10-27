@@ -325,21 +325,6 @@ sub unwanted($ast, $by) {
             $ast.sunk(1);
         }
         elsif $ast.op eq 'callmethod' {
-            if $ast.has_ann('promise_starter') && ! $*W.lang-ver-before('d') {
-                $ast[1] := QAST::WVal.new: value =>
-                  $*W.find_symbol(['&trait_mod:<is>'])(:hidden-from-backtrace,
-                    $*W.create_thunk: $ast.node,
-                    QAST::Op.new: :op<handle>,
-                      QAST::Op.new(:op<call>, $ast[1]), # Promised code block
-                      'CATCH',
-                        QAST::Op.new: :op<callmethod>,
-                          :name<handle-exception>,
-                          QAST::Op.new(:op<getcomp>,
-                            QAST::SVal.new: :value<perl6>),
-                          QAST::Op.new: :op<exception>
-                  );
-                return $ast;
-            }
             if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
                 return $ast if $*ALREADY_ADDED_SINK_CALL;
                 $ast.sunk(1);
@@ -2755,13 +2740,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.install_lexical_magical($block, '$!');
         }
         make QAST::Op.new(
-            :node($/),
             :op('callmethod'),
             :name('start'),
             :returns($*W.find_symbol(['Promise'])),
             QAST::WVal.new( :value($*W.find_symbol(['Promise'])) ),
             $<blorst>.ast
-        ).annotate_self: 'promise_starter', 1;
+        );
     }
 
     method statement_prefix:sym<lazy>($/) {

@@ -1,6 +1,19 @@
 unit module Test::Helpers;
 use Test;
 
+sub group-of (
+    Pair (
+        Int:D :key($plan),
+        Pair  :value((
+            Str:D :key($desc),
+                  :value(&tests))))
+) is export {
+    subtest $desc => {
+        plan $plan;
+        tests
+    }
+}
+
 sub is-run (
     Str() $code, $desc = "$code runs",
     Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
@@ -148,6 +161,28 @@ sub make-temp-dir (Int $chmod? --> IO::Path:D) is export {
 }
 
 =begin pod
+
+=head2 group-of
+group-of (Pair (Int:D :key($plan), Pair :value((Str:D :key($desc), :value(&tests)))))
+
+A more concise way to write subtests. Code:
+
+    group-of 42 => 'some feature' => {
+        ok 1;
+        ok 2;
+        ...
+        ok 42;
+    }
+
+Is equivalent to:
+
+    subtest 'some feature' => {
+        plan 42;
+        ok 1;
+        ok 2;
+        ...
+        ok 42;
+    }
 
 =head2 is-run
 

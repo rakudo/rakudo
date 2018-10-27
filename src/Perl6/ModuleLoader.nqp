@@ -210,6 +210,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         my $setting;
 
         if $setting_name ne 'NULL' {
+            # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
+            $setting_name := 'CORE' if $setting_name eq 'NULL.d';
             # Unless we already did so, locate and load the setting.
             unless nqp::defined(%settings_loaded{$setting_name}) {
                 DEBUG("Loading settings $setting_name") if $DEBUG;

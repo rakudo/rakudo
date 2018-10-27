@@ -2965,6 +2965,11 @@ my class X::Language::Unsupported is Exception {
         "No compiler available for Perl $.version"
     }
 }
+my class X::Language::TooLate is Exception {
+    method message() {
+        "Too late to switch language version. Must be used as the very first statement."
+    }
+}
 
 my class X::Proc::Unsuccessful is Exception {
     has $.proc;

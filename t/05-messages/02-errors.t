@@ -16,14 +16,15 @@ throws-like { for [:a] X [:b] -> ($i, $j) { } },
     message => / '<anon>' /,
     "anonymous subs get '<anon>' in arity error messages";
 
-if $*DISTRO.is-win {
-    skip 'test appears to hang on Windows (long socket timeouts?); https://github.com/rakudo/rakudo/issues/2424';
-}
-else {
-    throws-like {
-        react whenever IO::Socket::Async.listen: "localhost", 2¹⁶+100 {}
-    }, X::AdHoc, message => 'invalid argument';
-}
+todo 'needs better error message';
+
+skip 'crashes: https://github.com/rakudo/rakudo/issues/2402';
+#throws-like {
+#    sub l { IO::Socket::Async.listen: "localhost", 111390 }
+#    react whenever l() {
+#        whenever l() {} # try to listen on already open sock
+#    }
+#}, X::AdHoc, message => /'something good'/;
 
 # RT #132283
 is-deeply class { has $.bar }.^methods».name.sort, <BUILDALL bar>,

@@ -50,8 +50,6 @@ sub named2text($pod) {
     given $pod.name {
         when 'pod'  { pod2text($pod.contents)     }
         when 'para' { para2text($pod.contents[0]) }
-        when 'defn' { pod2text($pod.contents[0]) ~ "\n"
-                    ~ pod2text($pod.contents[1..*-1]) }
         when 'config' { }
         when 'nested' { }
         default     { $pod.name ~ "\n" ~ pod2text($pod.contents) }

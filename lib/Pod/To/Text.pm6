@@ -12,18 +12,21 @@ if %*ENV<POD_TO_TEXT_ANSI> {
 
 sub pod2text($pod) is export {
     given $pod {
-        when Pod::Heading      { heading2text($pod)             }
-        when Pod::Block::Code  { code2text($pod)                }
-        when Pod::Block::Named { named2text($pod)               }
-        when Pod::Block::Para  { twrap( $pod.contents.map({pod2text($_)}).join("") ) }
-        when Pod::Block::Table { table2text($pod)               }
-        when Pod::Block::Declarator { declarator2text($pod)     }
-        when Pod::Item         { item2text($pod).indent(2)      }
-        when Pod::FormattingCode { formatting2text($pod)        }
-        when Positional        { .flat».&pod2text.grep(?*).join: "\n\n" }
-        when Pod::Block::Comment { '' }
-        when Pod::Config       { '' }
-        default                { $pod.Str                       }
+        when Pod::Heading           { heading2text($pod)             }
+        when Pod::Block::Code       { code2text($pod)                }
+        when Pod::Block::Named      { named2text($pod)               }
+        when Pod::Block::Para       { twrap( $pod.contents.map({pod2text($_)}).join("") ) }
+        when Pod::Block::Table      { table2text($pod)               }
+        when Pod::Block::Declarator { declarator2text($pod)          }
+        when Pod::Item              { item2text($pod).indent(2)      }
+        when Pod::Defn              { pod2text($pod.contents[0]) ~ "\n"
+                                      ~ pod2text($pod.contents[1..*-1]) }
+
+        when Pod::FormattingCode    { formatting2text($pod)          }
+        when Positional             { .flat».&pod2text.grep(?*).join: "\n\n" }
+        when Pod::Block::Comment    { '' }
+        when Pod::Config            { '' }
+        default                     { $pod.Str                       }
     }
 }
 

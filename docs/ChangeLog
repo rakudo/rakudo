@@ -1,3 +1,78 @@
+New in 2018.10:
+  + SPECIAL NOTES:
+    + This is the first Rakudo release that comes with an additional
+      JS backend. See `6pad` project for running Perl 6 code directly
+      in your browser.
+  + Deprecations:
+    + Deprecated gethostname() in favor of $*KERNEL.hostname [f7fa5185]
+  + Fixes:
+    + Fixed/improved divide-by-zero errors in
+        `Rational.floor`/`.ceiling`/`.Str` [6d70346c][a639fa9c]
+    + `Nil` is now allowed in initialization and assignment of hashes
+        [7e86d4e3][605bcb39][f61ba41a]
+    + Fixed hash descriptor when doing `Hash[Int].new` [9acbf000][ea710414]
+    + Fixed issue with custom `bless` method [64137bd2]
+    + Fixed semantics of `[Nil]` [88e6de22]
+    + Made nativecall's `postcircumfix:<[ ]>` return containers [be2d4cb4]
+    + Fixed ContainerDescriptor for arrays with a dimension of three [a2e78ec8]
+    + Fixed indexing of shaped arrays with a dimension higher than 3 [0307c366]
+    + `.in-timezone`s value is now coerced to Int [c8438e6a]
+    + Stub methods from roles are now verified [fd5d5bdf]
+    + Consistified Rat.base to fail instead of throw [a804ab57]
+    + Fixed double-closing of handles in `.lines` when `:close` and
+        `$limit` are used [6edb142f]
+    + Fixed closing of handles in `IO::Handle.lines` when `$limit`
+        is used [c1c75740]
+    + Fixed enforcing of return constraints on multi method stubs [abba67b2]
+    + Various improvements to produced messages [cc2fcc9a][9894eda5]
+        [7d02b949][243a2f01][560e94ef][0243275d][bf10f4c5]
+  + Additions:
+    + Pluggable `MAIN` interface refactored, documented and tested
+        [2c43d2bf][24413b5f][341190e2][fbfccfa2][8c3a4131]
+        [33c24153][7c9b2955][35f3d83d][f234b9af]
+    + Usage message now limits itself to partially matching candidates
+        [0d1be77e]
+    + Zero-Denominator Rationals are now normalized on creation [671c4115]
+        [75ec2248]
+    + Made `my @a is List = 1,2,3,4` work [2bdf2b35]
+    + Using `is Type` on `@` and `%` attributes is now allowed [b537ce2e]
+    + [6.d] DefiniteHOWs' (type smileys) default default is now the base
+        type [38b198c9]
+    + [6.d] Constructs `$()`/`@()`/`%()` no longer have any `$/`-related
+        magic [bb88a032]
+    + Added a BOM on `open` for utf16 filehandles [959b89cf][479348f3]
+    + Added additional dashed variants for utf16le and utf16be [4307996a]
+    + Added `Parameter.coerce_type` method [0243275d]
+    + Added `Code.cando` method to allow for `.cando` on all `Callable`s
+        [45eeab78][69533b50]
+    + Added initial support for Unicode 11.0 [5c272ee4]
+  + Removals:
+    + Removed --encoding support [bea08ec6][31b19d09]
+  + Efficiency:
+    + Made Hash.push/append between 1.2x and 1.4x as fast [12cfde2a]
+    + Made many cases of `for (range-like things)` up to 150x as fast
+        [89787028][49baea70][dfd6450d][645eeb52][2dd02751][2af789d7]
+    + Made `==` with Rationals up to 1.55x as fast [c5a2eb81]
+    + Made Rational `===` Rational 2.47x as fast [97e8413b]
+    + Made `.isa` about 2x as fast [4e8740c8]
+    + Made `Array.List` coercion 1.5x as fast [3d405e89]
+    + Made `[@a]` and `[1,2,3]` about 1.4x as fast [e430813f]
+    + Made `[42]` not allocate anything anymore [8c4546bb]
+    + Made `infix:<%%>` 10.42x as fast on natives [3d161a56]
+    + Made `"".ord` orders of magnitude faster [b22edce4]
+    + Other minor optimizations [8cc3d5d7][ab83b9d8][b107cda5][464a86b1]
+  + Internal:
+    + Added `$*INSIDE-EVAL` to mark that we're inside an `EVAL` [73b7c603]
+    + Made sure `.STORE` only works on instances [9daac683]
+    + Made it not go through `.new` if we can `nqp::create` [84311b77]
+    + Introduced `IterationBuffer.List` [8c10da6a]
+    + Simplified initialization of `CompUnit::RepositoryRegistry`
+        [0425d927][8e1cd01a]
+    + More things are now initialized at setting compile time
+        [92735770][688cbac1][06dfbf02]
+    + Made `make` an only [369068ae]
+    + Added skip-one method to appropriate PredictiveIterators [e54885e5]
+
 New in 2018.09:
   + Fixes:
     + Made native arrays throw when storing a lazy Seq [fc8c7f84][bb963a25]

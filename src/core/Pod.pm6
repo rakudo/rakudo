@@ -46,7 +46,6 @@ my class Pod::Block::Named is Pod::Block {
 my class Pod::Block::Comment is Pod::Block { }
 
 my class Pod::Block::Code is Pod::Block {
-    has @.allowed;
 }
 
 my class Pod::Block::Declarator is Pod::Block {

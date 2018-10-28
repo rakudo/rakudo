@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 7;
+plan 8;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -134,4 +134,14 @@ subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
     foo 'b';
     is-deeply @res, [<a a b b>],
         'regex blocks update their lexical variables right';
+}
+
+group-of 2 => 'collation experiment' => {
+    is-run ｢$*COLLATION.set: :primary; print 'pass'｣,
+        :out<pass>, '$*COLLECTION.set no longer requires experimental pragma';
+    is-run ｢
+        use experimental :collation;
+        $*COLLATION.set: :primary;
+        print 'pass'
+    ｣, :out<pass>, 'we can still use the pragma (to support old code)';
 }

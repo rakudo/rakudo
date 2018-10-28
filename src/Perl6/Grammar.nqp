@@ -1304,6 +1304,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
         :my $*IN_STMT_MOD := 0;                    # are we inside a statement modifier?
         :my $*COMPILING_CORE_SETTING := 0;         # are we compiling CORE.setting?
+        # TODO XXX: see https://github.com/rakudo/rakudo/issues/2432
+        :my $*SET_DEFAULT_LANG_VER := 1;
         :my %*SIG_INFO;                            # information about recent signature
 
         # Various interesting scopes we'd like to keep to hand.
@@ -1343,6 +1345,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         <.finishpad>
         <.bom>?
+        <lang-version>
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
 
         <.install_doc_phaser>
@@ -1362,6 +1365,25 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             :shared(self.'!shared'()),
             :braid(self."!braid"()."!clone"()));
         $new;
+    }
+
+    rule lang-version {
+        :my $comp := nqp::getcomp('perl6');
+        [
+          <.ws>? 'use' <version> {} # <-- update $/ so we can grab $<version>
+          # we parse out the numeral, since we could have "6d"
+          :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
+          [
+          ||  <?{ $version == 6 }> { $*W.load-lang-ver: $<version>, $comp }
+          ||  { $/.typed_panic: 'X::Language::Unsupported',
+                  version => ~$<version> }
+          ]
+        || {
+              # This is the path we take when the user did not
+              # provide any `use v6.blah` lang version statement
+              $*W.load-lang-ver: 'v6', $comp if $*SET_DEFAULT_LANG_VER;
+          }
+        ]
     }
 
     rule statementlist($*statement_level = 0) {
@@ -1757,31 +1779,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
-        | <version> {} # <-- update $/ so we can grab $<version>
-                    # we parse out the numeral, since we could have "6c"
-                    :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
-                    [
-                    ||  <?{ $version == 6 }> {
-                            my $version_parts := $<version><vnum>;
-                            my $vwant := $<version>.ast.compile_time_value;
-                            my $comp := nqp::getcomp('perl6');
-                            my $vhave := $*W.find_symbol(['Version']).new($comp.language_version());
-                            my $vcould := $*W.find_symbol(['Version']).new('6.d.PREVIEW');
-                            my $sm := $*W.find_symbol(['&infix:<~~>']);
-                            if $sm($vcould, $vwant) && $vwant.parts.AT-POS($vwant.parts.elems - 1) eq 'PREVIEW' {
-                                $comp.set_language_version('6.d');
-                                $*W.load_setting($/, 'CORE.d');
-                            }
-                            elsif !$sm($vhave,$vwant) {
-                                $/.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
-                            }
-                            $*MAIN   := 'MAIN';
-                            $*STRICT := 1 if $*begin_compunit;
-                        }
-                    ||  {
-                            $/.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
-                        }
-                    ]
+        | <version>
+            { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
         | <module_name>
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>

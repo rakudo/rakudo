@@ -4,6 +4,7 @@ use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
     has $!language_version;
+    has $!can_language_versions;
 
     method compilation-id() {
         my class IDHolder { }
@@ -24,8 +25,13 @@ class Perl6::Compiler is HLL::Compiler {
             $!language_version
         }
         else {
-            $!language_version := self.config<language_version>
+            $!language_version := self.config<language-version>
         }
+    }
+    method    can_language_versions() {
+            $!can_language_versions
+        ??  $!can_language_versions
+        !! ($!can_language_versions := self.config<can-language-versions>)
     }
 
     method command_eval(*@args, *%options) {

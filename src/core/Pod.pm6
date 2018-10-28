@@ -8,7 +8,7 @@ my class Pod::Block {
         my $leading = ' ' x $level;
         my %confs;
         my @chunks;
-        for <config name level caption type> {
+        for <config name level caption type term> {
             my $thing = $pod.?"$_"();
             if $thing {
                 %confs{$_} = nqp::istype($thing,Iterable)
@@ -46,7 +46,6 @@ my class Pod::Block::Named is Pod::Block {
 my class Pod::Block::Comment is Pod::Block { }
 
 my class Pod::Block::Code is Pod::Block {
-    has @.allowed;
 }
 
 my class Pod::Block::Declarator is Pod::Block {
@@ -69,11 +68,14 @@ my class Pod::Block::Declarator is Pod::Block {
     method contents {
         if @!leading && @!trailing {
             [ $.leading ~ "\n" ~ $.trailing ]
-        } elsif @!leading {
+        }
+        elsif @!leading {
             [ $.leading ]
-        } elsif @!trailing {
+        }
+        elsif @!trailing {
             [ $.trailing ]
-        } else {
+        }
+        else {
             []
         }
     }

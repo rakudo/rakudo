@@ -18,7 +18,7 @@ New in 2018.10:
     + Fixed indexing of shaped arrays with a dimension higher than 3 [0307c366]
     + `.in-timezone`s value is now coerced to Int [c8438e6a]
     + Stub methods from roles are now verified [fd5d5bdf]
-    + Fixed double-closing of handles in `.lines` when `:close` and
+    + Fixed double-closing of handles in `IO::Handle.lines` when `:close` and
         `$limit` are used [6edb142f]
     + Fixed closing of handles in `IO::Handle.lines` when `$limit`
         is used [c1c75740]
@@ -62,14 +62,14 @@ New in 2018.10:
     + Other minor optimizations [464a86b1][ab83b9d8][8cc3d5d7][b107cda5]
   + Internal:
     + Made `make` an only [369068ae]
-    + Added skip-one method to appropriate PredictiveIterators [e54885e5]
+    + Added skip-one method to appropriate `PredictiveIterator`s [e54885e5]
     + More things are now initialized at setting compile time
         [06dfbf02][688cbac1][92735770]
     + Simplified initialization of `CompUnit::RepositoryRegistry`
         [0425d927][8e1cd01a]
     + Introduced `IterationBuffer.List` [8c10da6a]
-    + Made it not go through `.new` if we can `nqp::create` [84311b77]
-    + Made sure `.STORE` only works on instances [9daac683]
+    + Use `nqp::create` for IterationBuffer instead of .new [84311b77]
+    + Made sure `.STORE` only works on instances of mixy/baggy types [9daac683]
     + Added `$*INSIDE-EVAL` to mark that we're inside an `EVAL` [73b7c603]
 
 New in 2018.09:

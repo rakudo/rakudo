@@ -526,7 +526,7 @@ class Perl6::World is HLL::World {
         $*STRICT := 1 if $*begin_compunit;
 
         my str $version := ~$ver-match;
-        # fast-past the common cases
+        # fast-path the common cases
         if $version eq 'v6.c' {
             $comp.set_language_version: '6.c';
             # CORE.c is currently our lowest core, which we don't "load"

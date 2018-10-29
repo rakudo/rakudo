@@ -1,6 +1,7 @@
 use v6;
-use lib <lib  t/02-rakudo/test-packages>;
+use lib <lib  t/packages t/02-rakudo/test-packages>;
 use Test;
+use Test::Helpers;
 use CustomOps; # test cmp-ok handling custom infixes that we imported
 
 plan 6;
@@ -11,7 +12,7 @@ sub check-fail (&test-to-run) {
     nok test-to-run(), $message;
 }
 
-subtest 'string comparators', {
+group-of 13 => 'string comparators' => {
     cmp-ok 'foo', 'eq', 'foo';
     cmp-ok 1, '<', 2;
 
@@ -27,7 +28,7 @@ subtest 'string comparators', {
     check-fail { cmp-ok 2, 'non-exisistant-op', 2 }
 }
 
-subtest '&[] comparators', {
+group-of 11 => '&[] comparators' => {
     cmp-ok 'foo', &[eq], 'foo';
     cmp-ok 1, &[<], 2;
 
@@ -42,7 +43,7 @@ subtest '&[] comparators', {
     check-fail { cmp-ok 'foo', &[eq], 'bar', '"foo" eq "bar"' }
 }
 
-subtest 'custom operators (in code)', {
+group-of 6 => 'custom operators (in code)' => {
     sub infix:<◀> { $^a < $^b };
     cmp-ok 1, &[◀], 2, 'comparing using a fancy operator (Callable version)';
     cmp-ok 1,  '◀', 2, 'comparing using a fancy operator (Str version)';
@@ -50,7 +51,7 @@ subtest 'custom operators (in code)', {
     check-fail { cmp-ok 2,  '◀', 1, 'failing comparison custom op (Str)' }
 }
 
-subtest 'custom operators (in nested scope)', {
+group-of 6 => 'custom operators (in nested scope)' => {
     sub infix:<◀> { $^a < $^b };
     {
         {
@@ -62,7 +63,7 @@ subtest 'custom operators (in nested scope)', {
     }
 }
 
-subtest 'custom operators (imported)', {
+group-of 24 => 'custom operators (imported)' => {
     # Commented out tests fails due to some other bug regarding using
     # &[...] notation with imported ops with `<`/`>` in them, like `<=»`
 
@@ -93,8 +94,6 @@ subtest 'custom operators (imported)', {
     check-fail { cmp-ok 2,  '<«>»', 1, 'failing <«>» op, Str'      }
 }
 
-subtest 'no EVAL exploit (RT#128283)', {
+group-of 2 => 'no EVAL exploit (RT#128283)' => {
     check-fail { cmp-ok '', '~~>;exit; <z', '', '' };
 }
-
-done-testing;

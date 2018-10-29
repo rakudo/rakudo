@@ -157,14 +157,14 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
             :err{.contains: c}, :out(*), :exitcode(*), desc
     }
 
-    subtest 'named params' => {
+    group-of 3 => 'named params' => {
         uhas ｢UInt :$x!｣,          '<UInt>', 'mentions subset name';
         uhas ｢Int :$x! where 42｣,  '<Int where { ... }>',
             'Type + where clauses shown sanely';
         uhas ｢UInt :$x! where 42｣, '<UInt where { ... }>',
             'subset + where clauses shown sanely';
     }
-    subtest 'anon positional params' => {
+    group-of 3 => 'anon positional params' => {
         uhas ｢UInt $｣,          '<UInt>', 'mentions subset name';
         uhas ｢Int $ where 42｣,  '<Int where { ... }>',
             'where clauses shown sanely';

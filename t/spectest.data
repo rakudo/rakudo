@@ -515,7 +515,6 @@ S06-routine-modifiers/native-lvalue-subroutines.t
 S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
-S06-signature/caller-param.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
 S06-signature/code.t

@@ -34,13 +34,20 @@ function prepare(oldPath, newPath) {
 }
 
 for (const file of fs.readdirSync(precompiledPerl6)) {
-  if (!/\.js$/.test(file)) continue;
-
-  const oldPath = path.join(precompiledPerl6, file);
-  const newPath = path.join(releaseDir, file);
-  prepare(oldPath, newPath);
+  if (/\.js$/.test(file)) {
+    const oldPath = path.join(precompiledPerl6, file);
+    const newPath = path.join(releaseDir, file);
+    prepare(oldPath, newPath);
+  } else if (/\.map$/.test(file)) {
+    const oldPath = path.join(precompiledPerl6, file);
+    const newPath = path.join(releaseDir, file);
+    fs.copyFileSync(oldPath, newPath);
+  } else {
+    console.log('skipping', file);
+  }
 }
 
+fs.copyFileSync('rakudo.js.map', path.join(releaseDir, 'rakudo.js.map'));
 prepare('rakudo.js', path.join(releaseDir, 'rakudo.js'));
 
 fs.copyFileSync('src/vm/js/rakudo-library.js', path.join(releaseDir, 'rakudo-library.js'));

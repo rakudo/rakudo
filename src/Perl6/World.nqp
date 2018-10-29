@@ -1321,7 +1321,7 @@ class Perl6::World is HLL::World {
             $RMD("  Pre-compiling '$module_name'") if $RMD;
             my $opt_hash := QAST::Op.new( :op('hash') );
             for %opts {
-                self.add_object($_.value);
+                self.add_object_if_no_sc($_.value);
                 $opt_hash.push(QAST::SVal.new( :value($_.key) ));
                 my $Str := self.find_symbol(['Str'], :setting-only);
                 if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
@@ -1363,7 +1363,7 @@ class Perl6::World is HLL::World {
             :version-matcher(%opts<ver> // $true),
             :source-line-number($line)
         );
-        self.add_object($spec);
+        self.add_object_if_no_sc($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);
         my $comp_unit := $registry.head.need($spec);
         my $globalish := $comp_unit.handle.globalish-package;
@@ -1573,7 +1573,7 @@ class Perl6::World is HLL::World {
     method install_lexical_symbol($block, str $name, $obj, :$clone) {
         # Install the object directly as a block symbol.
         if nqp::isnull(nqp::getobjsc($obj)) {
-            self.add_object($obj);
+            self.add_object_if_no_sc($obj);
         }
         if $block.symbol($name) {
             for @($block[0]) {
@@ -1670,7 +1670,7 @@ class Perl6::World is HLL::World {
     method create_container_descriptor($of, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
         my $cd_type := self.find_symbol(['ContainerDescriptor'], :setting-only);
         my $cd := $cd_type.new( :$of, :$name, :$default, :$dynamic );
-        self.add_object($cd);
+        self.add_object_if_no_sc($cd);
         $cd
     }
 
@@ -1711,7 +1711,7 @@ class Perl6::World is HLL::World {
     # Builds a container and adds it to the SC.
     method build_container_and_add_to_sc(%cont_info, $descriptor) {
         my $cont := self.build_container(%cont_info, $descriptor);
-        self.add_object($cont);
+        self.add_object_if_no_sc($cont);
         $cont;
     }
 
@@ -2002,7 +2002,7 @@ class Perl6::World is HLL::World {
         # Create parameter object now.
         my $par_type  := self.find_symbol(['Parameter'], :setting-only);
         my $parameter := nqp::create($par_type);
-        self.add_object($parameter);
+        self.add_object_if_no_sc($parameter);
 
         # Calculate flags.
         my int $flags := 0;
@@ -2254,7 +2254,7 @@ class Perl6::World is HLL::World {
         my $sig_type   := self.find_symbol(['Signature'], :setting-only);
         my $signature  := nqp::create($sig_type);
         my @parameters := %signature_info<parameter_objects>;
-        self.add_object($signature);
+        self.add_object_if_no_sc($signature);
 
         # Set parameters.
         nqp::bindattr($signature, $sig_type, '@!params', @parameters);
@@ -2338,7 +2338,7 @@ class Perl6::World is HLL::World {
         my $type_obj := self.find_symbol([$type], :setting-only);
         my $code     := nqp::create($type_obj);
         self.context().push_code_object($code);
-        self.add_object($code);
+        self.add_object_if_no_sc($code);
         $code
     }
 
@@ -2447,7 +2447,7 @@ class Perl6::World is HLL::World {
                 # If we clone the stub, then we must remember to do a fixup
                 # of it also.
                 @compstuff[2] := sub ($orig, $clone) {
-                    self.add_object($clone);
+                    self.add_object_if_no_sc($clone);
                     self.context().add_cleanup_task(sub () {
                         nqp::bindattr($clone, $code_type, '@!compstuff', nqp::null());
                     });
@@ -2504,7 +2504,7 @@ class Perl6::World is HLL::World {
 
     method add_quasi_fixups($quasi_ast, $block) {
         $quasi_ast := nqp::decont($quasi_ast);
-        self.add_object($quasi_ast);
+        self.add_object_if_no_sc($quasi_ast);
         unless $quasi_ast.is_quasi_ast {
             return "";
         }
@@ -2639,7 +2639,7 @@ class Perl6::World is HLL::World {
     method derive_dispatcher($proto) {
         # Immediately do so and add to SC.
         my $derived := $proto.derive_dispatcher();
-        self.add_object($derived);
+        self.add_object_if_no_sc($derived);
         return $derived;
     }
 
@@ -2661,7 +2661,7 @@ class Perl6::World is HLL::World {
     method scalar_wrap($obj) {
         my $scalar_type := self.find_symbol(['Scalar'], :setting-only);
         my $scalar      := nqp::create($scalar_type);
-        self.add_object($scalar);
+        self.add_object_if_no_sc($scalar);
         nqp::bindattr($scalar, $scalar_type, '$!value', $obj);
         $scalar;
     }
@@ -2835,7 +2835,7 @@ class Perl6::World is HLL::World {
         }
 
         # Add to SC.
-        self.add_object($constant);
+        self.add_object_if_no_sc($constant);
 
         # Build QAST for getting the boxed constant from the constants
         # table, but also annotate it with the constant itself in case
@@ -2889,7 +2889,7 @@ class Perl6::World is HLL::World {
         my $the_whatever := self.context().whatever();
         unless nqp::isconcrete($the_whatever) {
             $the_whatever := nqp::create(self.find_symbol(['Whatever'], :setting-only));
-            self.add_object($the_whatever);
+            self.add_object_if_no_sc($the_whatever);
             self.context().set_whatever($the_whatever);
         }
         QAST::WVal.new( :value($the_whatever), :returns($the_whatever.WHAT) )
@@ -2899,7 +2899,7 @@ class Perl6::World is HLL::World {
         my $the_hyper_whatever := self.context().hyper_whatever();
         unless nqp::isconcrete($the_hyper_whatever) {
             $the_hyper_whatever := nqp::create(self.find_symbol(['HyperWhatever'], :setting-only));
-            self.add_object($the_hyper_whatever);
+            self.add_object_if_no_sc($the_hyper_whatever);
             self.context().set_hyper_whatever($the_hyper_whatever);
         }
         QAST::WVal.new( :value($the_hyper_whatever), :returns($the_hyper_whatever.WHAT) )
@@ -3066,7 +3066,7 @@ class Perl6::World is HLL::World {
             %args<signatured> := %extra<signatured>;
         }
         my $mo := $how.new_type(|%args);
-        self.add_object($mo);
+        self.add_object_if_no_sc($mo);
 
         # Result is just the object.
         return $mo;
@@ -3084,7 +3084,7 @@ class Perl6::World is HLL::World {
         my $cont := self.build_container(%cont_info, $descriptor);
         my $attr := $meta_attr.new(:auto_viv_container($cont), |%args);
         $obj.HOW.add_attribute($obj, $attr);
-        self.add_object($attr);
+        self.add_object_if_no_sc($attr);
         $attr
     }
 
@@ -3855,7 +3855,7 @@ class Perl6::World is HLL::World {
         my %args := hash(:refinee($refinee), :refinement($refinement));
         if nqp::defined($name) { %args<name> := $name; }
         my $mo := $how.new_type(|%args);
-        self.add_object($mo);
+        self.add_object_if_no_sc($mo);
         return $mo;
     }
 
@@ -3865,7 +3865,7 @@ class Perl6::World is HLL::World {
        # Create the meta-object and add to root objects.
         my $mo := $how.new_type(:$base_type, :$definite);
 
-        if nqp::isnull(nqp::getobjsc($mo)) { self.add_object($mo); }
+        if nqp::isnull(nqp::getobjsc($mo)) { self.add_object_if_no_sc($mo); }
 
         return $mo;
     }
@@ -3877,7 +3877,7 @@ class Perl6::World is HLL::World {
         nqp::bindattr($val, $enum_type_obj, '$!key', $key);
         nqp::bindattr($val, $enum_type_obj, '$!value', $value);
         nqp::bindattr_i($val, $enum_type_obj, '$!index', $index);
-        self.add_object($val);
+        self.add_object_if_no_sc($val);
 
         # Add to meta-object.
         $enum_type_obj.HOW.add_enum_value($enum_type_obj, $val);
@@ -3891,7 +3891,7 @@ class Perl6::World is HLL::World {
     method create_coercion_type($/, $target, $constraint) {
         self.ex-handle($/, {
             my $type := $/.how('coercion').new_type($target, $constraint);
-            if nqp::isnull(nqp::getobjsc($type)) { self.add_object($type); }
+            if nqp::isnull(nqp::getobjsc($type)) { self.add_object_if_no_sc($type); }
             $type
         })
     }
@@ -3985,7 +3985,7 @@ class Perl6::World is HLL::World {
                         my $W := $*W;
                         my $cur_handle := $W.handle;
                         if $cur_handle ne $!resolver {
-                            $W.add_object($code);
+                            $W.add_object_if_no_sc($code);
                             $W.add_fixup_task(:deserialize_ast(QAST::Op.new(
                                 :op('callmethod'), :name('update'),
                                 QAST::WVal.new( :value(self) ),
@@ -4017,7 +4017,7 @@ class Perl6::World is HLL::World {
 
         # Create a list and put it in the SC.
         my $fixup_list := nqp::create(FixupList);
-        self.add_object($fixup_list);
+        self.add_object_if_no_sc($fixup_list);
         nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
         nqp::bindattr($fixup_list, FixupList, '$!resolver', self.handle());
 

@@ -1447,7 +1447,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my str $prematch  := nqp::substr($orig, $from > 20 ?? $from - 20 !! 0, $from > 20 ?? 20 !! $from);
             my str $postmatch := nqp::substr($orig, $to, 20);
             my $label     := $*W.find_symbol(['Label']).new( :name($*LABEL), :$line, :$prematch, :$postmatch );
-            $*W.add_object($label);
+            $*W.add_object_if_no_sc($label);
             $*W.install_lexical_symbol($*W.cur_lexpad(), $*LABEL, $label);
         }
     }

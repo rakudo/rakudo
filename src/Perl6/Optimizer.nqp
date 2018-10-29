@@ -1785,7 +1785,7 @@ class Perl6::Optimizer {
                     }
                     if $survived && self.constant_foldable_type($ret_value) {
                         return $NULL if $!void_context && !$!in_declaration;
-                        $*W.add_object($ret_value);
+                        $*W.add_object_if_no_sc($ret_value);
                         my $wval := QAST::WVal.new(:value($ret_value));
                         if $op.named {
                             $wval.named($op.named);
@@ -2171,7 +2171,7 @@ class Perl6::Optimizer {
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if nqp::defined($meth) && $meth {
                     if nqp::isnull(nqp::getobjsc($meth)) {
-                        try $*W.add_object($meth);
+                        try $*W.add_object_if_no_sc($meth);
                     }
                     unless nqp::isnull(nqp::getobjsc($meth)) {
                         my $call := QAST::WVal.new( :value($meth) );

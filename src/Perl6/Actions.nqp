@@ -3202,7 +3202,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op<callmethod>, :name<new>, :returns($*W.find_symbol(['Slang'])),
                 QAST::Var.new( :name<Slang>, :scope<lexical> ));
             my $g := $/.slang_grammar($desigilname);
-            $*W.add_object($g);
+            $*W.add_object_if_no_sc($g);
             my $a := $/.slang_actions($desigilname);
             if !nqp::isnull($g) {
                 my $wval := QAST::WVal.new( :value($g) );
@@ -3244,7 +3244,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $name eq '$?LANG' {
                 my $cursor := $/;
-                $*W.add_object($cursor);
+                $*W.add_object_if_no_sc($cursor);
                 $past := QAST::WVal.new(:value($cursor));
             }
             elsif $name eq '$?LINE' {
@@ -3263,7 +3263,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $resources {
                 $past := QAST::WVal.new( :value($resources) );
                 if nqp::isnull(nqp::getobjsc($resources)) {
-                    $*W.add_object($resources);
+                    $*W.add_object_if_no_sc($resources);
                 }
             }
             else {
@@ -5804,7 +5804,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $*NEGATE_VALUE {
                 my $neg-op := $*W.find_symbol(['&prefix:<->']);
                 $val := $neg-op($val);
-                $*W.add_object($val);
+                $*W.add_object_if_no_sc($val);
             }
 
             %*PARAM_INFO<nominal_type> := $val.WHAT;
@@ -8214,7 +8214,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method version($/) {
         my $v := $*W.find_symbol(['Version']).new(~$<vstr>);
-        $*W.add_object($v);
+        $*W.add_object_if_no_sc($v);
         make QAST::WVal.new( :value($v) );
     }
 
@@ -8932,7 +8932,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := $<block>.ast.ann('past_block').pop;
         nqp::bindattr($quasi_ast, $ast_class, '$!past', $past);
         nqp::bindattr($quasi_ast, $ast_class, '$!Str', $/.Str());
-        $*W.add_object($quasi_ast);
+        $*W.add_object_if_no_sc($quasi_ast);
         my $throwaway_block := QAST::Block.new();
         my $quasi_context := block_closure(
             reference_to_code_object(
@@ -10467,7 +10467,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 if $thisq.has_compile_time_value {
                     try {
                         my $result := $*W.find_symbol(['&val'])($thisq.compile_time_value);
-                        $*W.add_object($result);
+                        $*W.add_object_if_no_sc($result);
                         nqp::push(@results, QAST::WVal.new(:value($result), :node($/)));
 
                         CATCH { nqp::push(@results, $thisq) }
@@ -10483,7 +10483,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
         } elsif $qast.has_compile_time_value { # a single string that we can handle
             try {
                 my $result := $*W.find_symbol(['&val'])($qast.compile_time_value);
-                $*W.add_object($result);
+                $*W.add_object_if_no_sc($result);
                 $qast := QAST::WVal.new(:value($result));
 
                 CATCH { }

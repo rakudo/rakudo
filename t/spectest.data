@@ -818,7 +818,6 @@ S16-io/note.t
 S16-io/print.t
 S16-io/prompt.t
 S16-io/put.t
-S16-io/quoting-syntax.t
 S16-io/readchars.t
 S16-io/say-and-ref.t
 S16-io/say.t

@@ -1849,7 +1849,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
     }
 
     proto method pairup(|) is nodal {*}
-    multi method pairup(Any:U:) { () }
+    multi method pairup(Any:U:) { ().Seq }
     multi method pairup(Any:D:) {
         my \iter := self.iterator;
         gather {

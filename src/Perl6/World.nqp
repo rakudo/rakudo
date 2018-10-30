@@ -1616,6 +1616,7 @@ class Perl6::World is HLL::World {
                 if nqp::istype($_, QAST::Var) && $_.name eq $name {
                     $var := $_;
                     $var.returns(%cont_info<bind_constraint>);
+                    $var.annotate('our_decl', 1) if $scope eq 'our';
                     last;
                 }
             }

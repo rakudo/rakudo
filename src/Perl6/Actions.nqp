@@ -3802,7 +3802,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 nqp::bindattr($varvar, $Variable, '$!var', $cont);
                 nqp::bindattr($varvar, $Variable, '$!block', $*CODE_OBJECT);
                 nqp::bindattr($varvar, $Variable, '$!slash', $/);
+                nqp::assign(
+                    nqp::getattr($varvar, $Variable, '$!implicit-lexical-usage'),
+                    $*W.find_symbol(['Bool', 'True']));
                 $*W.apply_traits(@late_traits, $varvar);
+                if $varvar.implicit-lexical-usage {
+                    $*W.mark_lexical_used_implicitly($BLOCK, $name);
+                }
             }
         }
         elsif $*SCOPE eq '' {

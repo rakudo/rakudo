@@ -630,7 +630,8 @@ my class BlockVarOptimizer {
             my int $is_contvar := $decl eq 'contvar';
             next unless $is_contvar || $decl eq 'var';
 
-            # Also ensure not dynamic.
+            # Also ensure not dynamic or with an implicit lexical usage.
+            next if $qast.ann('lexical_used_implicitly');
             my $qv := $qast.value;
             my $dynamic := nqp::isconcrete_nd($qv) &&
                 try nqp::getattr($qv, nqp::what_nd($qv), '$!descriptor').dynamic;

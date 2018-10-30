@@ -1668,6 +1668,17 @@ class Perl6::World is HLL::World {
         $cont
     }
 
+    # Mark a container as being implicitly used lexically (to prevent it
+    # being optimized away).
+    method mark_lexical_used_implicitly($block, str $name) {
+        for @($block[0]) {
+            if nqp::istype($_, QAST::Var) && $_.name eq $name {
+                $_.annotate('lexical_used_implicitly', 1);
+                last;
+            }
+        }
+    }
+
     # Creates a new container descriptor and adds it to the SC.
     method create_container_descriptor($of, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
         my $cd_type := self.find_symbol(['ContainerDescriptor'], :setting-only);

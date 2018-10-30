@@ -17,9 +17,9 @@
 + **BE WARNED about '$\<some-match-var>' inside a sub with a '$/' arg** - Use the full syntax for
   a match variable ('**/$<some-match-var**') for more reliable (or at least self-documenting) results.
   
-+ **BE WARNED about '$\<a-match-var>+' versus '$\<a-match-var>\*\*1'** - The '+' will result in a concatenated object
-  while the '\*\*' form will result in an array.  Either form may be appropriate for the situation,
-  but proper handling will vary for each.
++ **BE WARNED about '$\<a-match-var>' versus '$\<a-match-var>\*\*1'** - The first form will result in a
+  scalar object while the '\*\*' form will result in an array.  Either form may be appropriate
+  for the situation, but proper handling will vary for each.
 
 + **BE WARNED about "return if (...)" statements** - Sometimes they  work and sometimes not. But the
   failure message is usually good enough to find the offending code.

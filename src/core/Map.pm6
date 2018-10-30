@@ -31,12 +31,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                     nqp::stmts(
                       (my \key := nqp::atpos_s(sorted,$i)),
                       nqp::push_s(strings,key),
-                      (my \value := nqp::atkey($!storage,key).WHICH),
-                      nqp::if(
-                        nqp::istype(value,ValueObjAt),
-                        nqp::push_s(strings,value),
-                        (return self.Mu::WHICH)
-                      )
+                      nqp::push_s(strings,nqp::atkey($!storage,key).WHICH)
                     )
                   ),
                   strings

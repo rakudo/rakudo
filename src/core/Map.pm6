@@ -16,25 +16,30 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               nqp::join(
                 '|',
                 nqp::stmts(  # cannot use native str arrays early in setting
-                  (my $keys := nqp::list_s),
+                  (my \keys := nqp::list_s),
                   (my \iter := nqp::iterator($!storage)),
                   nqp::while(
                     iter,
-                    nqp::push_s($keys,nqp::iterkey_s(nqp::shift(iter)))
+                    nqp::push_s(keys,nqp::iterkey_s(nqp::shift(iter)))
                   ),
-                  (my $sorted   := Rakudo::Sorting.MERGESORT-str($keys)),
+                  (my \sorted   := Rakudo::Sorting.MERGESORT-str(keys)),
                   (my int $i     = -1),
-                  (my int $elems = nqp::elems($sorted)),
-                  (my $strings  := nqp::list_s),
+                  (my int $elems = nqp::elems(sorted)),
+                  (my \strings  := nqp::list_s),
                   nqp::while(
                     nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                     nqp::stmts(
-                      (my $key := nqp::atpos_s($sorted,$i)),
-                      nqp::push_s($strings,$key),
-                      nqp::push_s($strings,nqp::atkey($!storage,$key).perl)
+                      (my \key := nqp::atpos_s(sorted,$i)),
+                      nqp::push_s(strings,key),
+                      (my \value := nqp::atkey($!storage,key).WHICH),
+                      nqp::if(
+                        nqp::istype(value,ValueObjAt),
+                        nqp::push_s(strings,value),
+                        (return self.Mu::WHICH)
+                      )
                     )
                   ),
-                  $strings
+                  strings
                 )
               )
             )

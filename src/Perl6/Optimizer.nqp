@@ -1368,7 +1368,7 @@ class Perl6::Optimizer {
                 @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_autoslurpy_setup($op);
             }
         }
-        elsif $optype eq 'p6bindsig' {
+        elsif $optype eq 'p6bindsig' || $optype eq 'p6bindcaptosig' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].uses_bindsig();
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {

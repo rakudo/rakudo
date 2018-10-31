@@ -636,19 +636,20 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     multi method perl(Mu:D:) {
         nqp::eqaddr(self,IterationEnd)
           ?? "IterationEnd"
-          !! nqp::iscont(self)         # Proxy object would have a conted `self`
+          !! nqp::iscont(self)                  # Proxies have a conted `self`
             ?? nqp::decont(self).perl
-            !! self.perlseen: self.^name,
-                 nqp::eqaddr(self.^find_method("new"),Mu.^find_method("new"))
-              ?? {
-                     my @attrs = self.^attributes
-                       .grep( { .has_accessor } )
-                       .map: { "$_.Str.substr(2) => $_.get_value(self).perl()" }
-                     @attrs
-                       ?? self.^name ~ ".new(@attrs.join(', '))"
-                       !! self.^name ~ ".new"
-                  }
-              !! { self.^name ~ ".new(...)" }
+            !! self.perlseen: self.^name, {
+                  my $prefix = self.^name ~ (
+                    nqp::eqaddr(self.^find_method("new"),Mu.^find_method("new"))
+                      ?? '.new' !! '.bless'
+                  );
+                  my @attrs = self.^attributes
+                    .grep( { .has_accessor } )
+                    .map: { "$_.Str.substr(2) => $_.get_value(self).perl()" }
+                  @attrs
+                    ?? $prefix ~ "(@attrs.join(', '))"
+                    !! $prefix
+               }
     }
 
     proto method DUMP(|) {*}

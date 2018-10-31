@@ -51,12 +51,14 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
 
     my $LANG := $context<%?LANG> || CALLERS::<%?LANG>;
     my $*INSIDE-EVAL = 1;
+    my Mu $optimize = nqp::getcomp('perl6').cli-options
+        && nqp::getcomp('perl6').cli-options<optimize>;
     my $compiled := $compiler.compile:
         $code,
         :outer_ctx($eval_ctx),
         :global(GLOBAL),
         :mast_frames(mast_frames),
-        |(:optimize($_) with nqp::getcomp('perl6').cli-options<optimize>),
+        |(:optimize($_) with $optimize),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
 
     $*W.add_additional_frames(mast_frames)

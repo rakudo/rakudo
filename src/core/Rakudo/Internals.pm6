@@ -761,7 +761,7 @@ my class Rakudo::Internals {
     }
 
     # easy access to compile options
-    my Mu $compiling-options := nqp::atkey(%*COMPILING, '%?OPTIONS');
+    my Mu $compiling-options := %*COMPILING ?? nqp::atkey(%*COMPILING, '%?OPTIONS') !! nqp::hash();
 
     # running with --ll-exception
     method LL-EXCEPTION() {

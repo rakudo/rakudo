@@ -634,20 +634,21 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     proto method perl(|) {*}
     multi method perl(Mu:U:) { self.^name }
     multi method perl(Mu:D:) {
-        nqp::if(
-          nqp::eqaddr(self,IterationEnd),
-          "IterationEnd",
-          nqp::if(
-            nqp::iscont(self), # a Proxy object would have a conted `self`
-            nqp::decont(self).perl,
-            self.perlseen: self.^name, {
-                my @attrs;
-                for self.^attributes().flat.grep: { .has_accessor } -> $attr {
-                    my $name := substr($attr.Str,2);
-                    @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
-                }
-                self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
-            }))
+        nqp::eqaddr(self,IterationEnd)
+          ?? "IterationEnd"
+          !! nqp::iscont(self)         # Proxy object would have a conted `self`
+            ?? nqp::decont(self).perl
+            !! self.perlseen: self.^name,
+                 nqp::eqaddr(self.^find_method("new"),Mu.^find_method("new"))
+              ?? {
+                     my @attrs = self.^attributes
+                       .grep( { .has_accessor } )
+                       .map: { "$_.Str.substr(2) => $_.get_value(self).perl()" }
+                     @attrs
+                       ?? self.^name ~ ".new(@attrs.join(', '))"
+                       !! self.^name ~ ".new"
+                  }
+              !! { self.^name ~ ".new(...)" }
     }
 
     proto method DUMP(|) {*}

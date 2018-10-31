@@ -1,3 +1,6 @@
+const fs = require('fs');
+const tmp = require('tmp');
+
 const nqp = require('nqp-runtime');
 const oldRun = nqp.run;
 
@@ -19,20 +22,35 @@ nqp.args = function(calledFrom) {
 
 const code = require('./rakudo.js');
 
-
 const core = require('nqp-runtime/core.js');
 
 module.exports = function(source) {
-    passedArgs = ['perl6-js', '--target=js', source];
+    const tmpFile = tmp.tmpNameSync();
+
+    passedArgs = ['perl6-js', '--output', tmpFile, '--target=js', source];
 
     const oldWritefh = nqp.op.getstdout().constructor.prototype.$$writefh;
-    let output;
+    const output = [];
     nqp.op.getstdout().constructor.prototype.$$writefh = function(buf) {
-      output = core.toRawBuffer(buf).toString();
+      output.push(core.toRawBuffer(buf));
     }
-    code();
-    nqp.op.getstdout().constructor.prototype.$$writefh = oldWritefh;
-    return output;
-};
 
-   
+    code();
+
+    nqp.op.getstdout().constructor.prototype.$$writefh = oldWritefh;
+    const lines = Buffer.concat(output).toString().split(/\n/);
+
+    const loaded = [];
+
+    for (const line of lines) {
+      let match;
+      if (/^[A-Z0-9]{40}\0/.test(line)) {
+      } else if (match = line.match(/^load-unit: (.+)/)) {
+        loaded.push(match[1]);
+      } else {
+      }
+    }
+
+
+    return {js: fs.readFileSync(tmpFile, 'utf8'), loaded: loaded};
+};

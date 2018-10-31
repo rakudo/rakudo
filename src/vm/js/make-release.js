@@ -74,6 +74,7 @@ fs.writeFileSync(path.join(releaseDir, 'package.json'), JSON.stringify({
   "dependencies": {
     "nqp-runtime": version,
     "perl6-runtime": version,
-    "nqp-js-on-js": version
+    "nqp-js-on-js": version,
+    "tmp": "0.0.33"
   }
 }, null, 2));

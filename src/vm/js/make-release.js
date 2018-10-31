@@ -30,6 +30,9 @@ function prepare(oldPath, newPath) {
   contents = contents.replace('nqp.libpath(["' + path.join(rakudoPath, "node_modules/") + '","' + path.join(nqpInstallPath, "share/nqp/lib/nqp-js-on-js/") + '"]);', 'nqp.libpath([{module: module, prefix:\'.\/\'}, {module: module, prefix:\'nqp-js-on-js/\'}]);\n');
 
   contents = contents.replace('nqp.extraRuntime(\'perl6\', "' + path.join(rakudoPath, "src/vm/js/perl6-runtime") + '")', 'nqp.extraRuntime(\'perl6\', module);');
+
+  contents = contents.replace('nqp.execname("' + path.join(rakudoPath, "perl6-js") + '")', 'nqp.execname(module.filename, true)');
+
   fs.writeFileSync(newPath, contents);
 }
 

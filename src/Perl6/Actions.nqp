@@ -3554,7 +3554,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method variable_declarator($/) {
-        my $past   := $<variable>.ast;
+        my $qast   := $<variable>.ast;
         my $sigil  := $<variable><sigil>;
         my $twigil := $<variable><twigil>;
         my $desigilname := ~$<variable><desigilname>;
@@ -3566,14 +3566,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $desigilname := nqp::substr($name, nqp::chars($sigil ~ $twigil));
         }
 
-        my @post;
-        for $<post_constraint> {
-            @post.push($_.ast);
-        }
         if $<variable><desigilname> {
             my $lex := $*W.cur_lexpad();
             if $lex.symbol($name) {
                 $/.typed_worry('X::Redeclaration', symbol => $name);
+                unless $name eq '$_' {
+                    $qast.scope('lexical') if nqp::istype($qast, QAST::Var) && !$qast.scope;
+                    make $qast;
+                    return;
+                }
             }
             else {
                 ensure_unused_in_scope($/, $name, $twigil);
@@ -3582,7 +3583,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::elems($<semilist>) > 1 {
             $/.panic('Multiple shapes not yet understood');
         }
-        make declare_variable($/, $past, ~$sigil, ~$twigil, $desigilname, $<trait>, $<semilist>, :@post);
+        my @post;
+        for $<post_constraint> {
+            @post.push($_.ast);
+        }
+        make declare_variable($/, $qast, ~$sigil, ~$twigil, $desigilname, $<trait>, $<semilist>, :@post);
     }
 
     sub ensure_unused_in_scope($/, $name, $twigil) {

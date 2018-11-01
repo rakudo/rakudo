@@ -964,8 +964,8 @@ multi sub infix:<eqv>($?)            { Bool::True }
 multi sub infix:<eqv>(Any:U \a, Any:U \b) {
     nqp::hllbool(nqp::eqaddr(nqp::decont(a),nqp::decont(b)))
 }
-multi sub infix:<eqv>(Any:D \a, Any:U \b) { False }
-multi sub infix:<eqv>(Any:U \a, Any:D \b) { False }
+multi sub infix:<eqv>(Any:D \a, Any:U \b --> False) { }
+multi sub infix:<eqv>(Any:U \a, Any:D \b --> False) { }
 multi sub infix:<eqv>(Any:D \a, Any:D \b) {
     nqp::hllbool(
       nqp::eqaddr(a,b)

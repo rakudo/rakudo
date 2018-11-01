@@ -453,7 +453,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                     }
                     elsif nqp::istype($expr, HyperWhatever) {
                         $pkg.^add_fallback(
-                            -> $obj, $name { True },
+                            -> $, $ --> True { },
                             -> $obj, $name {
                                 -> $self, |c {
                                     $attr.get_value($self)."$name"(|c)

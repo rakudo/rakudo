@@ -857,7 +857,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     proto method Bool(|) {*}
-    multi method Bool(Match:U:) { False }
+    multi method Bool(Match:U: --> False) { }
     multi method Bool(Match:D:) { nqp::hllbool($!pos >= $!from) }
 
     multi method Numeric(Match:D:) {

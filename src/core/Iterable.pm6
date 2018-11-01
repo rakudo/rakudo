@@ -100,7 +100,7 @@ my role Iterable {
             $!iterator.push-exactly($target, $n);
         }
 
-        method is-lazy() { True }
+        method is-lazy(--> True) { }
     }
     method lazy() {
         # Return a Seq with an iterator wrapping this Iterable, claiming to

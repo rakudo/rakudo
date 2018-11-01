@@ -37,7 +37,7 @@ my class RaceSeq does Iterable does Sequence {
 
     method race(RaceSeq:D:) { self }
 
-    method is-lazy() { False }
+    method is-lazy(--> False) { }
 
     multi method serial(RaceSeq:D:) { self.Seq }
 

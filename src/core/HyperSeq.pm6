@@ -34,7 +34,7 @@ my class HyperSeq does Iterable does Sequence {
         RaceSeq.new(:$!configuration, :$!work-stage-head)
     }
 
-    method is-lazy() { False }
+    method is-lazy(--> False) { }
 
     multi method serial(HyperSeq:D:) { self.Seq }
 

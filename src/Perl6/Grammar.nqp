@@ -5364,7 +5364,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:ch { $<ch> = [\S] { self.ccstate($<ch>) } }
 
         token backslash:delim { <text=.starter> | <text=.stopper> }
-        token backslash:<\\> { <text=.sym> }
+        token backslash:sym<\\> { <text=.sym> }
         token backslash:sym<a> { :i <sym> }
         token backslash:sym<b> { :i <sym> }
         token backslash:sym<c> { :i <sym> <charspec> }

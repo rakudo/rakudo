@@ -671,11 +671,14 @@ my class BlockVarOptimizer {
                 next if $ref'd;
 
                 # Seems good; lower it. Note we need to retain a lexical in
-                # case of binder failover to generate errors. (TODO: only
-                # retain them for parameters.)
+                # case of binder failover to generate errors for parameters
+                # (we don't do this for contvar, which is a decent heuristic
+                # for "not a parameter").
                 my $new_name := $qast.unique('__lowered_lex');
-                $block[0].unshift(QAST::Var.new( :name($qast.name), :scope('lexical'),
-                                                 :decl('var'), :returns($qast.returns) ));
+                unless $is_contvar {
+                    $block[0].unshift(QAST::Var.new( :name($qast.name), :scope('lexical'),
+                                                     :decl('var'), :returns($qast.returns) ));
+                }
                 $qast.name($new_name);
                 $qast.scope('local');
                 if $is_contvar {

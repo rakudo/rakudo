@@ -294,6 +294,13 @@ multi sub infix:<*>(int $a, int $b --> int) {
     nqp::mul_i($a, $b);
 }
 
+multi sub infix:<eqv>(Int:D $a, Int:D $b --> Bool:D) {
+    nqp::hllbool(nqp::iseq_I($a,$b))
+}
+multi sub infix:<eqv>(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::iseq_i($a,$b))
+}
+
 multi sub infix:<div>(Int:D \a, Int:D \b) {
     b
       ?? nqp::div_I(nqp::decont(a), nqp::decont(b), Int)

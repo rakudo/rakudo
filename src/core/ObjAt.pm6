@@ -29,4 +29,11 @@ my class ObjAt { # declared in BOOTSTRAP
     }
 }
 
+multi sub infix:<eqv>(ObjAt:D $a, ObjAt:D $b) {
+    nqp::hllbool(
+      nqp::eqaddr($a.WHAT,$b.WHAT)
+        && nqp::iseq_s(nqp::unbox_s($a),nqp::unbox_s($b))
+    )
+}
+
 # vim: ft=perl6 expandtab sw=4

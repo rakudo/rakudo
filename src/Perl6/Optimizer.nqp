@@ -1163,7 +1163,11 @@ class Perl6::Optimizer {
         'callsame', NQPMu, '&callsame', NQPMu,
         'nextwith', NQPMu, '&nextwith', NQPMu,
         'nextsame', NQPMu, '&nextsame', NQPMu,
-        'samewith', NQPMu, '&samewith', NQPMu);
+        'samewith', NQPMu, '&samewith', NQPMu,
+        # This is a hack to compensate for Test.pm6 using unspecified
+        # behavior. The EVAL form of it should be deprecated and then
+        # removed, at which point this can go away.
+        '&throws-like', NQPMu);
 
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.

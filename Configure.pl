@@ -361,7 +361,7 @@ MAIN: {
     sorry($options{'ignore-errors'}, @errors) if @errors;
 
     my $l = uc $backend_prefix{$default_backend};
-    print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS_WITH_FUDGE) --verbosity=1 \$\@\n];
+    print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS5_WITH_FUDGE) --verbosity=1 \$\@\n];
 
     close $MAKEFILE or die "Cannot write 'Makefile': $!";
 

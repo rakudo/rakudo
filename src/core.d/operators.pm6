@@ -9,14 +9,18 @@ multi sub undefine(Array \x) is raw { x = Empty }
 multi sub undefine(Hash  \x) is raw { x = Empty }
 
 sub infix:<<(<+)>> (|) {
-    die "(<+) was removed in 6.d, please use (<=) operator instead"
+    die "(<+) was removed in v6.d, please use (<=) operator instead
+or compile your code with 'use v6.c'"
 }
 sub infix:<≼>(|) {
-    die "≼ was removed in 6.d, please use ⊆ operator instead"
+    die "≼ was removed in v6.d, please use ⊆ operator instead
+or compile your code with 'use v6.c'"
 }
 sub infix:<<(>+)>> (|) {
-    die "(>+) was removed in 6.d, please use (>=) operator instead"
+    die "(>+) was removed in v6.d, please use (>=) operator instead
+or compile your code with 'use v6.c'"
 }
 sub infix:<≽>(|) {
-    die "≽ was removed in 6.d, please use ⊇ operator instead"
+    die "≽ was removed in v6.d, please use ⊇ operator instead
+or compile your code with 'use v6.c'"
 }

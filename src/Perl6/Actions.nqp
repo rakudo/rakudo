@@ -2162,6 +2162,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $block := $*W.blocks[+$*W.blocks - 2] if $block.HOW.name($block) eq 'Code';
         if !$lexpad.symbol('%REQUIRE_SYMBOLS') {
             declare_variable($/, $past, '%', '', 'REQUIRE_SYMBOLS', []);
+            $*W.mark_lexical_used_implicitly($lexpad, '%REQUIRE_SYMBOLS');
         }
         my $require_past := WANTED(QAST::Op.new(:node($/), :op<call>,
                                         :name<&REQUIRE_IMPORT>,

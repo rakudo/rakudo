@@ -2225,10 +2225,11 @@ class Perl6::World is HLL::World {
             if $varname && ($flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_COPY) {
                 my %sym := $lexpad.symbol($varname);
                 if +%sym && !nqp::existskey(%sym, 'descriptor') {
-                    my $desc := self.create_container_descriptor($_<nominal_type>, $varname);
+                    my $type := $_<nominal_type>;
+                    my $desc := self.create_container_descriptor($type, $varname);
                     $_<container_descriptor> := $desc;
                     nqp::bindattr($param_obj, $param_type, '$!container_descriptor', $desc);
-                    $lexpad.symbol($varname, :descriptor($desc));
+                    $lexpad.symbol($varname, :descriptor($desc), :$type);
                 }
             }
 

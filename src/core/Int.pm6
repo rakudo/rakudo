@@ -295,7 +295,9 @@ multi sub infix:<*>(int $a, int $b --> int) {
 }
 
 multi sub infix:<eqv>(Int:D $a, Int:D $b --> Bool:D) {
-    nqp::hllbool(nqp::iseq_I($a,$b))
+    nqp::hllbool(  # need to check types as enums such as Bool wind up here
+      nqp::eqaddr($a.WHAT,$b.WHAT) && nqp::iseq_I($a,$b)
+    )
 }
 multi sub infix:<eqv>(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::iseq_i($a,$b))

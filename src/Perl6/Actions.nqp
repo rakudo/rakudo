@@ -2480,13 +2480,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
         unless $block.symbol('$!') {
             $*W.install_lexical_magical($block, '$!');
         }
-        make QAST::Op.new(
+        my $qast := QAST::Op.new(
             :op('callmethod'),
             :name('start'),
             :returns($*W.find_symbol(['Promise'])),
             QAST::WVal.new( :value($*W.find_symbol(['Promise'])) ),
             $<blorst>.ast
         );
+        unless $*W.lang-ver-before('d') {
+            $qast.push(QAST::WVal.new(
+                :value($*W.find_symbol(['Bool', 'True'])),
+                :named('report-broken-if-sunk')
+            ));
+        }
+        make $qast;
     }
 
     method statement_prefix:sym<lazy>($/) {

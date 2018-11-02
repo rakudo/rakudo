@@ -540,24 +540,21 @@ multi sub HYPER(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$d
         %keyset{$_} = 1 for right.keys;
     }
     my @keys = %keyset.keys;
-    my $type = left.WHAT;
-    my \result := $type.new;
+    my \result := left.WHAT.new;
     result = quietly @keys Z=> HYPER(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right);
     nqp::iscont(left) ?? result.item !! result;
 }
 
 multi sub HYPER(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
     my @keys = left.keys;
-    my $type = left.WHAT;
-    my \result := $type.new;
+    my \result := left.WHAT.new;
     result = @keys Z=> HYPER(&op, left{@keys}, right, :$dwim-left, :$dwim-right);
     nqp::iscont(left) ?? result.item !! result;
 }
 
 multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
     my @keys = right.keys;
-    my $type = right.WHAT;
-    my \result := $type.new;
+    my \result := right.WHAT.new;
     result = @keys Z=> HYPER(&op, left, right{@keys}, :$dwim-left, :$dwim-right);
     nqp::iscont(right) ?? result.item !! result;
 }

@@ -370,10 +370,10 @@ multi sub infix:<gcd>(int $a, int $b --> int) {
     nqp::gcd_i($a, $b)
 }
 
-multi sub infix:<===>(Int:D \a, Int:D \b) {
+multi sub infix:<===>(Int:D $a, Int:D $b) {
     nqp::hllbool(
-      nqp::eqaddr(a.WHAT,b.WHAT)
-      && nqp::iseq_I(nqp::decont(a), nqp::decont(b))
+      nqp::eqaddr($a.WHAT,$b.WHAT)
+      && nqp::iseq_I($a, $b)
     )
 }
 multi sub infix:<===>(int $a, int $b) {

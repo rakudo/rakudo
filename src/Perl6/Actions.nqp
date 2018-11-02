@@ -1073,6 +1073,10 @@ role STDActions {
 }
 
 class Perl6::Actions is HLL::Actions does STDActions {
+    #================================================================
+    # AMBIENT AND POD-COMMON CODE HANDLERS
+    #================================================================
+
     our @MAX_PERL_VERSION;
 
     # Could add to this based on signatures.
@@ -1439,269 +1443,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $/, 'INIT', $*W.create_code_obj_and_add_child($block, 'Block'), $block
             );
         }
-    }
-
-    method pod_content_toplevel($/) {
-        my $child := $<pod_block>.ast;
-        # make sure we don't push the same thing twice
-        if $child {
-            my $id := $/.from ~ "," ~ ~$/.to;
-            if !$*POD_BLOCKS_SEEN{$id} {
-                $*POD_BLOCKS.push($child);
-                $*POD_BLOCKS_SEEN{$id} := 1;
-            }
-        }
-        make $child;
-    }
-
-    method pod_content:sym<block>($/) {
-        make $<pod_block>.ast;
-    }
-
-    # TODO The spaces arg from Grammar.nqp seems
-    #      NOT to be handled. That shows up
-    #      in testing for config continuation lines.
-    method pod_configuration($/) {
-        make Perl6::Pod::make_config($/);
-    }
-
-    method pod_block:sym<delimited>($/) {
-        if $<type>.Str ~~ /^defn/ {
-            make Perl6::Pod::defn($/, $delim-block);
-        }
-        else {
-            make Perl6::Pod::any_block($/, $delim-block);
-        }
-    }
-
-    method pod_block:sym<delimited_comment>($/) {
-        make Perl6::Pod::raw_block($/);
-    }
-
-    method pod_block:sym<delimited_table>($/) {
-        make Perl6::Pod::table($/, $delim-block);
-    }
-
-    method pod_block:sym<delimited_code>($/) {
-        # TODO add numbered-alias handling
-        my $config   := $<pod_configuration>.ast;
-        my @contents := $<delimited_code_content>.ast;
-        @contents    := Perl6::Pod::serialize_array(@contents).compile_time_value;
-        make Perl6::Pod::serialize_object('Pod::Block::Code',
-                                          :@contents,:$config).compile_time_value
-    }
-
-    method delimited_code_content($/) {
-        my @contents := [];
-        for $/[0] {
-            if $_<pod_string> {
-                nqp::splice(@contents,
-                            Perl6::Pod::pod_strings_from_matches($_<pod_string>),
-                            +@contents, 0);
-                nqp::push(@contents, $*W.add_constant(
-                    'Str', 'str', ~$_<pod_newline>
-                ).compile_time_value);
-            } else {
-                @contents.push($*W.add_constant('Str', 'str', "\n").compile_time_value);
-            }
-        }
-        make @contents;
-    }
-
-    method pod_block:sym<paragraph>($/) {
-        if $<type>.Str ~~ /^defn/ {
-            make Perl6::Pod::defn($/, $para-block);
-        }
-        else {
-            make Perl6::Pod::any_block($/, $para-block);
-        }
-    }
-
-    method pod_block:sym<paragraph_comment>($/) {
-        make Perl6::Pod::raw_block($/);
-    }
-
-    method pod_block:sym<paragraph_table>($/) {
-        make Perl6::Pod::table($/, $para-block);
-    }
-
-    method pod_block:sym<paragraph_code>($/) {
-        # TODO make config via call to make_config in Pod.nqp
-        my $config := $<pod_configuration>.ast;
-        my @contents := [];
-        for $<pod_line> {
-            nqp::splice(@contents, $_.ast, +@contents, 0);
-        }
-        @contents  := Perl6::Pod::serialize_array(@contents).compile_time_value;
-        make Perl6::Pod::serialize_object('Pod::Block::Code',
-                                          :@contents,:$config).compile_time_value;
-    }
-
-    method pod_block:sym<abbreviated>($/) {
-        if $<type>.Str ~~ /^defn/ {
-            make Perl6::Pod::defn($/, $abbrev-block);
-        }
-        else {
-            make Perl6::Pod::any_block($/, $abbrev-block);
-        }
-    }
-
-    method pod_block:sym<abbreviated_comment>($/) {
-        make Perl6::Pod::raw_block($/);
-    }
-
-    method pod_block:sym<abbreviated_table>($/) {
-        make Perl6::Pod::table($/, $abbrev-block);
-    }
-
-    method pod_block:sym<abbreviated_code>($/) {
-        my @contents := [];
-        for $<pod_line> {
-            nqp::splice(@contents, $_.ast, +@contents, 0);
-        }
-        @contents := Perl6::Pod::serialize_array(@contents).compile_time_value;
-        make Perl6::Pod::serialize_object(
-            'Pod::Block::Code', :@contents
-        ).compile_time_value
-    }
-
-    method pod_line ($/) {
-        my @contents := Perl6::Pod::pod_strings_from_matches($<pod_string>);
-        @contents.push($*W.add_constant(
-            'Str', 'str', ~$<pod_newline>
-        ).compile_time_value);
-        make @contents;
-    }
-
-    method pod_block:sym<finish>($/) {
-        $*W.install_lexical_symbol(
-          $*UNIT,'$=finish', nqp::hllizefor(~$<finish>, 'perl6'));
-    }
-
-    method pod_content:sym<config>($/) {
-        make Perl6::Pod::config($/);
-    }
-
-    method pod_content:sym<text>($/) {
-        my @ret := [];
-        for $<pod_textcontent> {
-            @ret.push($_.ast);
-        }
-        my $past := Perl6::Pod::serialize_array(@ret);
-        make $past.compile_time_value;
-    }
-
-    method pod_textcontent:sym<regular>($/) {
-        my @contents := Perl6::Pod::pod_strings_from_matches($<pod_string>);
-        @contents    := Perl6::Pod::serialize_array(@contents).compile_time_value;
-        make Perl6::Pod::serialize_object('Pod::Block::Para', :@contents).compile_time_value
-    }
-
-    method pod_textcontent:sym<code>($/) {
-        my $s := $<spaces>.Str;
-        my $t := subst($<text>.Str, /\n$s/, "\n", :global);
-        $t    := subst($t, /\n$/, ''); # chomp!
-        my $past := Perl6::Pod::serialize_object(
-            'Pod::Block::Code',
-            :contents(Perl6::Pod::serialize_aos([$t]).compile_time_value),
-        );
-        make $past.compile_time_value;
-    }
-
-    method pod_formatting_code($/) {
-        if $<code> eq 'V' {
-            make ~$<contents>;
-        } elsif $<code> eq 'E' {
-            my @contents := [];
-            my @meta    := [];
-            for $/[0] {
-                if $_<html_ref> {
-                    @contents.push(~$_);
-                    @meta.push($*W.add_string_constant(~$_).compile_time_value);
-                    #my $s := Perl6::Pod::str_from_entity(~$_);
-                    #$s ?? @contents.push($s) && @meta.push(~$_)
-                    #   !! $/.worry("\"$_\" is not a valid HTML5 entity.");
-                } else {
-                    my $n := $_<integer>
-                          ?? $_<integer>.made
-                          !! nqp::codepointfromname(~$_);
-                    if $n >= 0 {
-                        @contents.push(nqp::chr($n));
-                        @meta.push($n);
-                    } else {
-                        $/.worry("\"$_\" is not a valid Unicode character name or code point.");
-                    }
-                }
-            }
-            @contents := Perl6::Pod::serialize_aos(@contents).compile_time_value;
-            @meta    := Perl6::Pod::serialize_array(@meta).compile_time_value;
-            make Perl6::Pod::serialize_object(
-                'Pod::FormattingCode',
-                :type($*W.add_string_constant(~$<code>).compile_time_value),
-                :@contents,
-                :@meta,
-            ).compile_time_value;
-        } else {
-            my @chars := Perl6::Pod::build_pod_chars($<pod_string_character>);
-            my @meta := [];
-            if $<code> eq 'X' {
-                for $/[0] {
-                    my @tmp := [];
-                    for $_<meta> {
-                        @tmp.push(~$_);
-                    }
-                    @meta.push(@tmp);
-                }
-                @meta := Perl6::Pod::serialize_aoaos(@meta).compile_time_value;
-            } else {
-                for $<meta> {
-                    @meta.push(~$_)
-                }
-                @meta := Perl6::Pod::serialize_aos(@meta).compile_time_value;
-            }
-            my @contents  := Perl6::Pod::build_pod_strings([@chars]);
-            @contents := Perl6::Pod::serialize_array(@contents).compile_time_value;
-            my $past := Perl6::Pod::serialize_object(
-                'Pod::FormattingCode',
-                :type($*W.add_string_constant(~$<code>).compile_time_value),
-                :@contents,
-                :meta(@meta),
-            );
-            make $past.compile_time_value;
-        }
-    }
-
-    method pod_string($/) {
-        make Perl6::Pod::build_pod_chars($<pod_string_character>);
-    }
-
-    method pod_balanced_braces($/) {
-        if $<endtag> {
-            my @chars := Perl6::Pod::build_pod_chars($<pod_string_character>);
-            @chars.unshift(~$<start>);
-            @chars.push(~$<endtag>);
-            make @chars;
-        } else {
-            make ~$<braces>
-        }
-    }
-
-    method pod_string_character($/) {
-        if $<pod_formatting_code> {
-            make $<pod_formatting_code>.ast
-        } elsif $<pod_balanced_braces> {
-            make $<pod_balanced_braces>.ast
-        } else {
-            make ~$<char>;
-        }
-    }
-
-    method table_row($/) {
-        make ~$/
-    }
-
-    method table_row_or_blank($/) {
-        make ~$/
     }
 
     method unitstart($/) {
@@ -10368,6 +10109,280 @@ class Perl6::Actions is HLL::Actions does STDActions {
         try { return nqp::istype($val, $type) }
         0
     }
+
+    #================================================================
+    # POD-ONLY CODE HANDLERS
+    #================================================================
+    # move ALL Pod-only action objects here
+
+    method pod_content_toplevel($/) {
+        my $child := $<pod_block>.ast;
+        # make sure we don't push the same thing twice
+        if $child {
+            my $id := $/.from ~ "," ~ ~$/.to;
+            if !$*POD_BLOCKS_SEEN{$id} {
+                $*POD_BLOCKS.push($child);
+                $*POD_BLOCKS_SEEN{$id} := 1;
+            }
+        }
+        make $child;
+    }
+
+    method pod_content:sym<block>($/) {
+        make $<pod_block>.ast;
+    }
+
+    # TODO The spaces arg from Grammar.nqp seems
+    #      NOT to be handled. That shows up
+    #      in testing for config continuation lines.
+    method pod_configuration($/) {
+        make Perl6::Pod::make_config($/);
+    }
+
+    method pod_block:sym<delimited>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, $delim-block);
+        }
+        else {
+            make Perl6::Pod::any_block($/, $delim-block);
+        }
+    }
+
+    method pod_block:sym<delimited_comment>($/) {
+        make Perl6::Pod::raw_block($/);
+    }
+
+    method pod_block:sym<delimited_table>($/) {
+        make Perl6::Pod::table($/, $delim-block);
+    }
+
+    method pod_block:sym<delimited_code>($/) {
+        # TODO add numbered-alias handling
+        my $config   := $<pod_configuration>.ast;
+        my @contents := $<delimited_code_content>.ast;
+        @contents    := Perl6::Pod::serialize_array(@contents).compile_time_value;
+        make Perl6::Pod::serialize_object('Pod::Block::Code',
+                                          :@contents,:$config).compile_time_value
+    }
+
+    method delimited_code_content($/) {
+        my @contents := [];
+        for $/[0] {
+            if $_<pod_string> {
+                nqp::splice(@contents,
+                            Perl6::Pod::pod_strings_from_matches($_<pod_string>),
+                            +@contents, 0);
+                nqp::push(@contents, $*W.add_constant(
+                    'Str', 'str', ~$_<pod_newline>
+                ).compile_time_value);
+            } else {
+                @contents.push($*W.add_constant('Str', 'str', "\n").compile_time_value);
+            }
+        }
+        make @contents;
+    }
+
+    method pod_block:sym<paragraph>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, $para-block);
+        }
+        else {
+            make Perl6::Pod::any_block($/, $para-block);
+        }
+    }
+
+    method pod_block:sym<paragraph_comment>($/) {
+        make Perl6::Pod::raw_block($/);
+    }
+
+    method pod_block:sym<paragraph_table>($/) {
+        make Perl6::Pod::table($/, $para-block);
+    }
+
+    method pod_block:sym<paragraph_code>($/) {
+        # TODO make config via call to make_config in Pod.nqp
+        my $config := $<pod_configuration>.ast;
+        my @contents := [];
+        for $<pod_line> {
+            nqp::splice(@contents, $_.ast, +@contents, 0);
+        }
+        @contents  := Perl6::Pod::serialize_array(@contents).compile_time_value;
+        make Perl6::Pod::serialize_object('Pod::Block::Code',
+                                          :@contents,:$config).compile_time_value;
+    }
+
+    method pod_block:sym<abbreviated>($/) {
+        if $<type>.Str ~~ /^defn/ {
+            make Perl6::Pod::defn($/, $abbrev-block);
+        }
+        else {
+            make Perl6::Pod::any_block($/, $abbrev-block);
+        }
+    }
+
+    method pod_block:sym<abbreviated_comment>($/) {
+        make Perl6::Pod::raw_block($/);
+    }
+
+    method pod_block:sym<abbreviated_table>($/) {
+        make Perl6::Pod::table($/, $abbrev-block);
+    }
+
+    method pod_block:sym<abbreviated_code>($/) {
+        my @contents := [];
+        for $<pod_line> {
+            nqp::splice(@contents, $_.ast, +@contents, 0);
+        }
+        @contents := Perl6::Pod::serialize_array(@contents).compile_time_value;
+        make Perl6::Pod::serialize_object(
+            'Pod::Block::Code', :@contents
+        ).compile_time_value
+    }
+
+    method pod_line ($/) {
+        my @contents := Perl6::Pod::pod_strings_from_matches($<pod_string>);
+        @contents.push($*W.add_constant(
+            'Str', 'str', ~$<pod_newline>
+        ).compile_time_value);
+        make @contents;
+    }
+
+    method pod_block:sym<finish>($/) {
+        $*W.install_lexical_symbol(
+          $*UNIT,'$=finish', nqp::hllizefor(~$<finish>, 'perl6'));
+    }
+
+    method pod_content:sym<config>($/) {
+        make Perl6::Pod::config($/);
+    }
+
+    method pod_content:sym<text>($/) {
+        my @ret := [];
+        for $<pod_textcontent> {
+            @ret.push($_.ast);
+        }
+        my $past := Perl6::Pod::serialize_array(@ret);
+        make $past.compile_time_value;
+    }
+
+    method pod_textcontent:sym<regular>($/) {
+        my @contents := Perl6::Pod::pod_strings_from_matches($<pod_string>);
+        @contents    := Perl6::Pod::serialize_array(@contents).compile_time_value;
+        make Perl6::Pod::serialize_object('Pod::Block::Para', :@contents).compile_time_value
+    }
+
+    method pod_textcontent:sym<code>($/) {
+        my $s := $<spaces>.Str;
+        my $t := subst($<text>.Str, /\n$s/, "\n", :global);
+        $t    := subst($t, /\n$/, ''); # chomp!
+        my $past := Perl6::Pod::serialize_object(
+            'Pod::Block::Code',
+            :contents(Perl6::Pod::serialize_aos([$t]).compile_time_value),
+        );
+        make $past.compile_time_value;
+    }
+
+    method pod_formatting_code($/) {
+        if $<code> eq 'V' {
+            make ~$<contents>;
+        } elsif $<code> eq 'E' {
+            my @contents := [];
+            my @meta    := [];
+            for $/[0] {
+                if $_<html_ref> {
+                    @contents.push(~$_);
+                    @meta.push($*W.add_string_constant(~$_).compile_time_value);
+                    #my $s := Perl6::Pod::str_from_entity(~$_);
+                    #$s ?? @contents.push($s) && @meta.push(~$_)
+                    #   !! $/.worry("\"$_\" is not a valid HTML5 entity.");
+                } else {
+                    my $n := $_<integer>
+                          ?? $_<integer>.made
+                          !! nqp::codepointfromname(~$_);
+                    if $n >= 0 {
+                        @contents.push(nqp::chr($n));
+                        @meta.push($n);
+                    } else {
+                        $/.worry("\"$_\" is not a valid Unicode character name or code point.");
+                    }
+                }
+            }
+            @contents := Perl6::Pod::serialize_aos(@contents).compile_time_value;
+            @meta    := Perl6::Pod::serialize_array(@meta).compile_time_value;
+            make Perl6::Pod::serialize_object(
+                'Pod::FormattingCode',
+                :type($*W.add_string_constant(~$<code>).compile_time_value),
+                :@contents,
+                :@meta,
+            ).compile_time_value;
+        } else {
+            my @chars := Perl6::Pod::build_pod_chars($<pod_string_character>);
+            my @meta := [];
+            if $<code> eq 'X' {
+                for $/[0] {
+                    my @tmp := [];
+                    for $_<meta> {
+                        @tmp.push(~$_);
+                    }
+                    @meta.push(@tmp);
+                }
+                @meta := Perl6::Pod::serialize_aoaos(@meta).compile_time_value;
+            } else {
+                for $<meta> {
+                    @meta.push(~$_)
+                }
+                @meta := Perl6::Pod::serialize_aos(@meta).compile_time_value;
+            }
+            my @contents  := Perl6::Pod::build_pod_strings([@chars]);
+            @contents := Perl6::Pod::serialize_array(@contents).compile_time_value;
+            my $past := Perl6::Pod::serialize_object(
+                'Pod::FormattingCode',
+                :type($*W.add_string_constant(~$<code>).compile_time_value),
+                :@contents,
+                :meta(@meta),
+            );
+            make $past.compile_time_value;
+        }
+    }
+
+    method pod_string($/) {
+        make Perl6::Pod::build_pod_chars($<pod_string_character>);
+    }
+
+    method pod_balanced_braces($/) {
+        if $<endtag> {
+            my @chars := Perl6::Pod::build_pod_chars($<pod_string_character>);
+            @chars.unshift(~$<start>);
+            @chars.push(~$<endtag>);
+            make @chars;
+        } else {
+            make ~$<braces>
+        }
+    }
+
+    method pod_string_character($/) {
+        if $<pod_formatting_code> {
+            make $<pod_formatting_code>.ast
+        } elsif $<pod_balanced_braces> {
+            make $<pod_balanced_braces>.ast
+        } else {
+            make ~$<char>;
+        }
+    }
+
+    method table_row($/) {
+        make ~$/
+    }
+
+    method table_row_or_blank($/) {
+        make ~$/
+    }
+
+
+
+    #================================================================
+    # end of class Perl6::Actions block
+    #================================================================
 }
 
 class Perl6::QActions is HLL::Actions does STDActions {

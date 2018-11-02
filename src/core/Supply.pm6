@@ -1537,22 +1537,34 @@ my class Supplier {
 
         method tap(&emit, &done, &quit, &tap) {
             my $tle := TapListEntry.new(:&emit, :&done, :&quit);
+            # Since we run `tap` before adding, there's a small chance of
+            # a tap removal attempt happening for the add attempt. We use
+            # these two flags to handle that case. This is safe since we
+            # only ever access them under lock.
+            my $added := False;
+            my $removed := False;
             my $t = Tap.new({
                 $!lock.protect({
-                    my Mu $update := nqp::list();
-                    for nqp::hllize($!tappers) -> \entry {
-                        nqp::push($update, entry) unless entry =:= $tle;
+                    if $added {
+                        my Mu $update := nqp::list();
+                        for nqp::hllize($!tappers) -> \entry {
+                            nqp::push($update, entry) unless entry =:= $tle;
+                        }
+                        $!tappers := $update;
                     }
-                    $!tappers := $update;
+                    $removed := True;
                 });
             });
             tap($t);
             $!lock.protect({
-                my Mu $update := nqp::isconcrete($!tappers)
-                    ?? nqp::clone($!tappers)
-                    !! nqp::list();
-                nqp::push($update, $tle);
-                $!tappers := $update;
+                unless $removed {
+                    my Mu $update := nqp::isconcrete($!tappers)
+                        ?? nqp::clone($!tappers)
+                        !! nqp::list();
+                    nqp::push($update, $tle);
+                    $!tappers := $update;
+                }
+                $added := True;
             });
             $t
         }

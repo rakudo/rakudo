@@ -127,10 +127,7 @@ multi sub doesn't-hang (
 
 sub make-rand-path (--> IO::Path:D) {
     my $p = $*TMPDIR;
-    # XXX TODO .resolve is broken on Windows in Rakudo; .resolve for all OSes
-    # when it is fixed
-    $p .= resolve unless $*DISTRO.is-win;
-    $p.child: (
+    $p.resolve.child: (
         'perl6_roast_',
         $*PROGRAM.basename, '_line',
         ((try callframe(3).code.line)||''), '_',

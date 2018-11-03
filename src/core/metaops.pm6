@@ -549,6 +549,10 @@ multi sub HYPER(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$d
     nqp::iscont(left) ?? result.item !! result;
 }
 
+multi sub HYPER(&op, Associative:D \left, Iterable:D \right, :$dwim-left, :$dwim-right) {
+    die "{left.^name} {&op.name} {right.^name} can never work reliably:
+  the order of keys in {left.^name} is indeterminate"
+}
 multi sub HYPER(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
     my @keys = left.keys;
     my \result := left.WHAT.new.STORE(
@@ -558,6 +562,10 @@ multi sub HYPER(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
     nqp::iscont(left) ?? result.item !! result;
 }
 
+multi sub HYPER(&op, Iterable:D \left, Associative:D \right, :$dwim-left, :$dwim-right) {
+    die "{left.^name} {&op.name} {right.^name} can never work reliably:
+  the order of keys in {right.^name} is indeterminate"
+}
 multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
     my @keys = right.keys;
     my \result := right.WHAT.new.STORE(

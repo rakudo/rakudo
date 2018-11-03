@@ -112,7 +112,7 @@ gained during the process of implementing pod features.
 ## Pod nesting
 
 Complicating work with pod is that pod blocks can be nested, i.e., a
-pod block can have pod blocks as children, to any depth!  Necessarily
+pod block can have pod blocks as children, to any depth.  Necessarily
 that applies, in general, to *delimited blocks*. (Other block types
 may have single blocks as children, usually as one or two
 **Pod::Block::Paras**.)
@@ -131,9 +131,9 @@ before the block itself can be created.  Those parts are:
 
   * The configuration cannot be created until the block text data are analyzed.
 
-Note that *abbreviated* blocks cannot have an explicit configuration
-section, but they may have limited implicit configuration data throuse
-use of a *:numbered alias* (see below).
+  * Note that *abbreviated* blocks cannot have an explicit configuration
+section, but they may have limited implicit configuration data through
+use of *:numbered aliasing* (see below).
 
 * Contents - `@.contents` [all blocks inheriting from class **Pod::Block**]
 

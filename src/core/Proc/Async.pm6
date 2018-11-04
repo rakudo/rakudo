@@ -97,8 +97,9 @@ my class Proc::Async {
     has $!stderr_descriptor_vow;
     has $!stdout_descriptor_used = Promise.new;
     has $!stderr_descriptor_used = Promise.new;
-    has $.path;
-    has @.args;
+    has $.path; # XXX TODO deprecated on 2018-11-04
+    has @.args; # XXX TODO deprecated on 2018-11-04
+    has @.command is List;
     has $.w;
     has $.enc = 'utf8';
     has $.translate-nl = True;
@@ -120,8 +121,11 @@ my class Proc::Async {
 
     proto method new(|) {*}
     multi method new(*@args where .so) {
+        # XXX TODO .args and .path deprecated on 2018-11-04 to be
+        # replaced by .command https://github.com/rakudo/rakudo/issues/2444
+        my @command := @args.List;
         my $path = @args.shift;
-        self.bless(:$path, :@args, |%_)
+        self.bless(:$path, :@args, :@command, |%_)
     }
 
     submethod TWEAK(--> Nil) {

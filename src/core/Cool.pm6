@@ -337,7 +337,7 @@ multi sub ords(Cool:D $s) { $s.ords }
 proto sub comb($, $, $?, *%) {*}
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
-multi sub comb(Int:D $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
+multi sub comb(Int:D $size, Cool $input, $limit = *) { $input.comb($size, $limit) }
 
 proto sub wordcase($, *%) is pure {*}
 multi sub wordcase(Str:D $x) {$x.wordcase }

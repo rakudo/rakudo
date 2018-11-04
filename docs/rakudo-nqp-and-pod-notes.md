@@ -176,10 +176,10 @@ action methods and their resulting `.ast` values.
 | ---                      | ---            
 | pod_textcontent          | 
 | pod_block:sym\<delimited> | QAST node [instance of Pod::Heading] 
-| pod_block:sym<delimited> | QAST node [instance of Pod::Item] 
-| pod_block:sym<delimited> | QAST node [instance of Pod::Defn] 
-| pod_block:sym<delimited> | QAST node [instance of Pod::Block::Named] 
-| pod_content:sym<block>   | $<pod_block>.ast;
+| pod_block:sym\<delimited> | QAST node [instance of Pod::Item] 
+| pod_block:sym\<delimited> | QAST node [instance of Pod::Defn] 
+| pod_block:sym\<delimited> | QAST node [instance of Pod::Block::Named] 
+| pod_content:sym\<block>   | $<pod_block>.ast;
 | pod_content_toplevel     | $<pod_block>.ast
 
 ## :numbered aliasing

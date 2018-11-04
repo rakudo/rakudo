@@ -194,8 +194,7 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.match(|c)
     }
 
-    method 
-    |c) { self.Str.comb(|c) }
+    method |c) { self.Str.comb(|c) }
     method lines(Cool:D: |c) { self.Str.lines(|c) }
     method words(Cool:D: |c) { self.Str.words(|c) }
 

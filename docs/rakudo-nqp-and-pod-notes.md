@@ -175,7 +175,7 @@ action methods and their resulting `.ast` values.
 | Actions method           | `made` (`ast`) value 
 | ---                      | ---            
 | pod_textcontent          | 
-| pod_block:sym<delimited> | QAST node [instance of Pod::Heading] 
+| pod_block:sym\<delimited> | QAST node [instance of Pod::Heading] 
 | pod_block:sym<delimited> | QAST node [instance of Pod::Item] 
 | pod_block:sym<delimited> | QAST node [instance of Pod::Defn] 
 | pod_block:sym<delimited> | QAST node [instance of Pod::Block::Named] 

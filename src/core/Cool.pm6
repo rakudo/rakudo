@@ -194,7 +194,8 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.match(|c)
     }
 
-    method comb(|c) { self.Str.comb(|c) }
+    method 
+    |c) { self.Str.comb(|c) }
     method lines(Cool:D: |c) { self.Str.lines(|c) }
     method words(Cool:D: |c) { self.Str.words(|c) }
 
@@ -337,7 +338,7 @@ multi sub ords(Cool:D $s) { $s.ords }
 proto sub comb($, $, $?, *%) {*}
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
-multi sub comb(Int:D $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
+multi sub comb(Int:D $size, Cool $input, $limit = *) { $input.comb($size, $limit) }
 
 proto sub wordcase($, *%) is pure {*}
 multi sub wordcase(Str:D $x) {$x.wordcase }

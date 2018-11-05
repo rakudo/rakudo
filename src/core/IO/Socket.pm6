@@ -111,6 +111,14 @@ my role IO::Socket {
         $!PIO := nqp::null;
     }
 
+    method get-option(Int:D \option --> Int) {
+        nqp::box_i(nqp::getsockopt($!PIO, nqp::unbox_i(option)), Int)
+    }
+
+    method set-option(Int:D \option, Int:D \value) {
+        nqp::setsockopt($!PIO, nqp::unbox_i(option), nqp::unbox_i(value))
+    }
+
     method native-descriptor(::?CLASS:D:) {
         nqp::filenofh($!PIO)
     }

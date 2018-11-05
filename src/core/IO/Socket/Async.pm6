@@ -211,6 +211,14 @@ my class IO::Socket::Async {
         method native-descriptor(--> Int) {
             nqp::filenofh(await $!VMIO-tobe)
         }
+
+        method get-option(IO::Socket::Async:D: Int:D \option --> Int) {
+            nqp::box_i(nqp::getsockopt($!VMIO-tobe, nqp::unbox_i(option)), Int)
+        }
+
+        method set-option(IO::Socket::Async:D: Int:D \option, Int:D \value) {
+            nqp::setsockopt(await $!VMIO-tobe, nqp::unbox_i(option), nqp::unbox_i(value))
+        }
     }
 
     my class SocketListenerTappable does Tappable {
@@ -311,6 +319,13 @@ my class IO::Socket::Async {
 
     method native-descriptor(--> Int) {
         nqp::filenofh($!VMIO)
+
+    method get-option(IO::Socket::Async:D: Int:D \option --> Int) {
+        nqp::box_i(nqp::getsockopt($!VMIO, nqp::unbox_i(option)), Int)
+    }
+
+    method set-option(IO::Socket::Async:D: Int:D \option, Int:D \value) {
+        nqp::setsockopt($!VMIO, nqp::unbox_i(option), nqp::unbox_i(value))
     }
 
     sub setup-close(\socket --> Nil) {

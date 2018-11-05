@@ -1,5 +1,7 @@
 my role QuantHash does Associative {
 
+    method keyof() { Any }
+
     method SET-SELF(QuantHash:D: \elems) {  # cannot be a private method
         nqp::stmts(
           nqp::if(

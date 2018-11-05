@@ -173,6 +173,7 @@ src/core/IO/Socket/INET.pm6
 src/core/IO/Socket/Async.pm6
 src/core/Proc.pm6
 src/core/signals.pm6
+src/core/sockopts.pm6
 src/core/Proc/Async.pm6
 src/core/Systemic.pm6
 src/core/VM.pm6

@@ -2328,9 +2328,11 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 my class X::Assignment::RO is Exception {
     has $.value = "value";
     method message {
-        "Cannot modify an immutable {$!value.^name} ({
-            Rakudo::Internals.SHORT-GIST: $!value
-        })"
+        nqp::isconcrete($!value) 
+          ?? "Cannot modify an immutable {$!value.^name} ({
+                 Rakudo::Internals.SHORT-GIST: $!value
+             })"
+          !! "Cannot modify an immutable '{$!value.^name}' type object"
     }
     method typename { $.value.^name }
 }

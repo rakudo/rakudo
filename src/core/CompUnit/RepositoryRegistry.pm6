@@ -10,6 +10,10 @@ class CompUnit::Repository::JavaRuntime { ... }
 class CompUnit::Repository::Java { ... }
 #?endif
 
+#?if js
+class CompUnit::Repository::FileSystemWithRecording { ... }
+#?endif
+
 class CompUnit::RepositoryRegistry {
     my $lock     = Lock.new;
     my %include-spec2cur;
@@ -345,6 +349,9 @@ class CompUnit::RepositoryRegistry {
 #?if jvm
       'javart', CompUnit::Repository::JavaRuntime,
       'java',   CompUnit::Repository::Java,
+#?endif
+#?if js
+      'filerecording', CompUnit::Repository::FileSystemWithRecording,
 #?endif
     );
     my $sid-lock := Lock.new;

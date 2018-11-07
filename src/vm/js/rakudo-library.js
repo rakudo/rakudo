@@ -24,7 +24,7 @@ const code = require('./rakudo.js');
 
 const core = require('nqp-runtime/core.js');
 
-module.exports = function(source) {
+module.exports = function(source, options = {}) {
   const tmpFile = tmp.tmpNameSync();
 
   passedArgs = ['perl6-js', '--output', tmpFile, '--target=js', source];
@@ -35,7 +35,14 @@ module.exports = function(source) {
     output.push(core.toRawBuffer(buf));
   }
 
-  code();
+  if (options.rakudoPrecompWith) {
+    const oldValue = options.rakudoPrecompWith;
+    process.env.RAKUDO_PRECOMP_WITH = options.rakudoPrecompWith;
+    code();
+    process.env.RAKUDO_PRECOMP_WITH = oldValue;
+  } else {
+    code();
+  }
 
   nqp.op.getstdout().constructor.prototype.$$writefh = oldWritefh;
   const lines = Buffer.concat(output).toString().split(/\n/);
@@ -45,9 +52,11 @@ module.exports = function(source) {
   for (const line of lines) {
     let match;
     if (/^[A-Z0-9]{40}\0/.test(line)) {
-    } else if (match = line.match(/^load-unit: (.+)/)) {
-      loaded.push(match[1]);
+    } else if (match = line.match(/^LOAD-UNIT ID:(.*?) DEPS:(.*?) PATH:(.*)/)) {
+      const deps = match[2] == '' ? [] : match[2].split(',');
+      loaded.push({id: match[1], deps: deps, path: match[3]});
     } else {
+      console.warn('extra line', line);
     }
   }
 

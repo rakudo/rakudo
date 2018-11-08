@@ -2,8 +2,8 @@
 
 class Hyper {
     has &.operator;
-    has int $.dwim-left;
-    has int $.dwim-right;
+    has $.dwim-left;
+    has $.dwim-right;
 
     proto method infix(|) {*}
 
@@ -74,7 +74,7 @@ class Hyper {
 
         nqp::until(
           nqp::eqaddr((my \value := iterator.pull-one),IterationEnd),
-          nqp::push(values, self.op(value,right))
+          nqp::push(values, self.infix(value,right))
         );
 
         my \result := nqp::p6bindattrinvres(
@@ -104,7 +104,7 @@ class Hyper {
 
         nqp::until(
           nqp::eqaddr((my \value := iterator.pull-one),IterationEnd),
-          nqp::push(values, self.op(left,value))
+          nqp::push(values, self.infix(left,value))
         );
 
         my \result := nqp::p6bindattrinvres(

@@ -214,7 +214,7 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         X::Method::NotFound,
         message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_1'>>/, /\W '!bar'>>/, /<<'baz'>>/),
         'a private method of the same name as the public missing method is suggested';
-    throws-like q| class RT123078_2 { method foo { self!bar }; method bar { }; method baz { } }; RT123078_2.new.foo |,
+    throws-like q| class RT123078_2 { method foo { self!bar }; method bar { }; method baz { } } |,
         X::Method::NotFound,
         message => all(/<<"No such private method '!bar'" \W/, /<<'RT123078_2'>>/, /<<'bar'>>/, /<<'baz'>>/),
         'a public method of the same name as the missing private method is suggested';

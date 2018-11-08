@@ -1,14 +1,18 @@
 # A class to perform hyper operations of the form left op right
 
 class Hyper {
-    has &.operator;
-    has $.dwim-left;
-    has $.dwim-right;
+    has $.operator;  # for some reason we can't make this a &.operator
+    has int8 $.dwim-left;
+    has int8 $.dwim-right;
+
+    method new(\op, Bool() :$dwim-left, Bool() :$dwim-right) {
+        self.bless( :operator(op), :$dwim-left, :$dwim-right)
+    }
 
     proto method infix(|) {*}
 
     # x >>op<< y
-    multi method infix(\left, \right) is raw { &!operator(left,right) }
+    multi method infix(\left, \right) is raw { $!operator(left,right) }
 
     # %x >>op<< %y
     multi method infix(
@@ -24,7 +28,7 @@ class Hyper {
 
     # %x >>op<< ...
     multi method infix(Associative:D \left, Iterable:D \right) {
-        die "{left.^name} {&!operator.name} {right.^name} can never work
+        die "{left.^name} {$!operator.name} {right.^name} can never work
   reliably: the order of keys in {left.^name} is indeterminate"
     }
 
@@ -32,8 +36,10 @@ class Hyper {
     multi method infix(Associative:D \left, \right --> Associative:D) {
         my @keys = left.keys;
         my \result := left.WHAT.new.STORE(
-            Rakudo::Iterator.RoundrobinIterablesFlat(
-              (@keys, self.infix(left{@keys}, right))
+            Seq.new(
+              Rakudo::Iterator.RoundrobinIterablesFlat(
+                (@keys, self.infix(left{@keys}, right))
+              )
             )
         );
         nqp::iscont(left) ?? result.item !! result;
@@ -41,7 +47,7 @@ class Hyper {
 
     # ... >>op<< %y
     multi method infix(Iterable:D \left, Associative:D \right) {
-        die "{left.^name} {&!operator.name} {right.^name} can never work
+        die "{left.^name} {$!operator.name} {right.^name} can never work
   reliably: the order of keys in {right.^name} is indeterminate"
     }
 
@@ -49,8 +55,10 @@ class Hyper {
     multi method infix(\left, Associative:D \right --> Associative:D) {
         my @keys = right.keys;
         my \result := right.WHAT.new.STORE(
-            Rakudo::Iterator.RoundrobinIterablesFlat(
-              (@keys, self.infix(left, right{@keys}))
+            Seq.new(
+              Rakudo::Iterator.RoundrobinIterablesFlat(
+                (@keys, self.infix(left, right{@keys}))
+              )
             )
         );
         nqp::iscont(left) ?? result.item !! result;
@@ -58,12 +66,12 @@ class Hyper {
 
     # [x] >>op<< y
     multi method infix(Positional:D \left, \right --> Positional:D) {
-        X::HyperOp::Infinite.new(:side<left>, :&!operator).throw
+        X::HyperOp::Infinite.new(:side<left>, :$!operator).throw
           if left.is-lazy;
 
         my int $left-elems = left.elems;
         X::HyperOp::NonDWIM.new(
-          :&!operator, :$left-elems, :right-elems(1), :recursing
+          :$!operator, :$left-elems, :right-elems(1), :recursing
         ).throw
           unless $left-elems == 1
             or $left-elems  > 1 and $!dwim-right
@@ -88,12 +96,12 @@ class Hyper {
 
     # x >>op<< [y]
     multi method infix(\left, Positional:D \right --> Positional:D) {
-        X::HyperOp::Infinite.new(:side<right>, :&!operator).throw
+        X::HyperOp::Infinite.new(:side<right>, :$!operator).throw
           if right.is-lazy;
 
         my int $right-elems = right.elems;
         X::HyperOp::NonDWIM.new(
-          :&!operator, :left-elems(1), :$right-elems, :recursing
+          :$!operator, :left-elems(1), :$right-elems, :recursing
         ).throw
           unless $right-elems == 1
             or $right-elems  > 1 and $!dwim-left
@@ -109,7 +117,7 @@ class Hyper {
 
         my \result := nqp::p6bindattrinvres(
           nqp::create(
-            nqp::istype(left,List) ?? left.WHAT !! List  # keep subtype
+            nqp::istype(right,List) ?? right.WHAT !! List  # keep subtype
           ),
           List, '$!reified', values
         );
@@ -127,16 +135,16 @@ class Hyper {
 
         # Check whether any side is lazy. They must not be to proceed.
         if left-iterator.is-lazy {
-            X::HyperOp::Infinite.new(:side<both>, :&!operator).throw
+            X::HyperOp::Infinite.new(:side<both>, :$!operator).throw
               if right-iterator.is-lazy;
-            X::HyperOp::Infinite.new(:side<left>, :&!operator).throw
+            X::HyperOp::Infinite.new(:side<left>, :$!operator).throw
               if nqp::not_i($!dwim-left) || $!dwim-right;
         }
-        X::HyperOp::Infinite.new(:side<right>, :&!operator).throw
+        X::HyperOp::Infinite.new(:side<right>, :$!operator).throw
           if right-iterator.is-lazy
           and (nqp::not_i($!dwim-right) || $!dwim-left);
 
-        my \retval := (
+        my \values :=
           $!dwim-left
             ?? $!dwim-right
               ?? self!iterables-left-right(left-iterator,right-iterator)
@@ -144,16 +152,22 @@ class Hyper {
             !! $!dwim-right
               ?? self!iterables-right(left-iterator,right-iterator)
               !! self!iterables(left-iterator,right-iterator)
-        ).List;
-        nqp::iscont(left) ?? retval.item !! retval;
+        ;
+        my \result := nqp::p6bindattrinvres(
+          nqp::create(
+            nqp::istype(left,List) ?? left.WHAT !! List  # keep subtype
+          ),
+          List, '$!reified', values
+        );
+        nqp::iscont(left) ?? result.item !! result;
     }
 
     # using an infix on a one element list in a meta op
     multi method infix(\object) {
         nqp::if(
-          nqp::can(&!operator,"nodal"),
-          nodemap(&!operator,object),
-          deepmap(&!operator,object)
+          nqp::can($!operator,"nodal"),
+          nodemap($!operator,object),
+          deepmap($!operator,object)
         )
     }
 
@@ -184,12 +198,19 @@ class Hyper {
 
     # ... <<op<< ...
     method !iterables-left(Iterator:D \left, Iterator:D \right) {
-        my \righti := Rakudo::Iterator.DWIM(right);
+        my \lefti  := Rakudo::Iterator.DWIM(left);
         my \result := nqp::create(IterationBuffer);
 
-        nqp::until(
-          nqp::eqaddr((my \leftv  := left.pull-one),IterationEnd),
-          nqp::push(result, self.infix(leftv,righti.pull-one))
+        my \leftv := lefti.pull-one;
+        nqp::unless(
+          lefti.ended,
+          nqp::until(
+            nqp::eqaddr((my \rightv := right.pull-one),IterationEnd),
+            nqp::stmts(
+              nqp::push(result,self.infix(leftv,rightv)),
+              nqp::bind(leftv,lefti.pull-one)
+            )
+          )
         );
 
         result
@@ -197,12 +218,19 @@ class Hyper {
 
     # ... >>op>> ...
     method !iterables-right(Iterator:D \left, Iterator:D \right) {
-        my \lefti  := Rakudo::Iterator.DWIM(left);
+        my \righti := Rakudo::Iterator.DWIM(right);
         my \result := nqp::create(IterationBuffer);
 
-        nqp::until(
-          nqp::eqaddr((my \rightv  := right.pull-one),IterationEnd),
-          nqp::push(result, self.infix(lefti.pull-one,rightv))
+        my \rightv := righti.pull-one;
+        nqp::unless(
+          righti.ended,
+          nqp::until(
+            nqp::eqaddr((my \leftv := left.pull-one),IterationEnd),
+            nqp::stmts(
+              nqp::push(result, self.infix(leftv,rightv)),
+              nqp::bind(rightv,righti.pull-one)
+            )
+          )
         );
 
         result
@@ -216,12 +244,15 @@ class Hyper {
 
         my \leftv  := lefti.pull-one;
         my \rightv := righti.pull-one;
-        nqp::until(
-          lefti.ended && righti.ended,
-          nqp::stmts(
-            nqp::push(result, self.infix(leftv,rightv)),
-            nqp::bind(leftv, lefti.pull-one),
-            nqp::bind(rightv,righti.pull-one)
+        nqp::unless(
+          lefti.ended || righti.ended,
+          nqp::until(
+            lefti.ended && righti.ended,
+            nqp::stmts(
+              nqp::push(result,self.infix(leftv,rightv)),
+              nqp::bind(leftv, lefti.pull-one),
+              nqp::bind(rightv,righti.pull-one)
+            )
           )
         );
         
@@ -275,8 +306,10 @@ class Hyper {
 
         # run with the left/right values
         my \result := left.WHAT.new.STORE(
-            Rakudo::Iterator.RoundrobinIterablesFlat(
-              (@keys, quietly self.infix(left{@keys}, right{$keys}))
+            Seq.new(
+              Rakudo::Iterator.RoundrobinIterablesFlat(
+                (@keys, quietly self.infix(left{@keys}, right{$keys}))
+              )
             )
         );
         nqp::iscont(left) ?? result.item !! result;
@@ -290,7 +323,7 @@ class Hyper {
           ++$right-elems
         );
         X::HyperOp::NonDWIM.new(
-          :&!operator, :$left-elems, :$right-elems, :recursing
+          :$!operator, :$left-elems, :$right-elems, :recursing
         ).throw;
     }
 
@@ -302,7 +335,7 @@ class Hyper {
           ++$left-elems
         );
         X::HyperOp::NonDWIM.new(
-          :&!operator, :$left-elems, :$right-elems, :recursing
+          :$!operator, :$left-elems, :$right-elems, :recursing
         ).throw;
     }
 }

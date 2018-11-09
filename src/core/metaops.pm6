@@ -522,7 +522,9 @@ sub METAOP_HYPER_PREFIX(\op) {
 
 sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
 
-proto sub HYPER(|) {*}
+proto sub HYPER(\operator, :$dwim-left, :$dwim-right, |c) {
+    Hyper.new(operator, :$dwim-left, :$dwim-right).infix(|c)
+}
 
 multi sub HYPER(&op, \left, \right, :$dwim-left, :$dwim-right) {
     op(left, right);

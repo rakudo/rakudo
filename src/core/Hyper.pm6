@@ -61,7 +61,7 @@ class Hyper {
               )
             )
         );
-        nqp::iscont(left) ?? result.item !! result;
+        nqp::iscont(right) ?? result.item !! result;
     }
 
     # [x] >>op<< y
@@ -91,7 +91,7 @@ class Hyper {
           ),
           List, '$!reified', values
         );
-        nqp::iscont(result) ?? result.item !! result
+        nqp::iscont(left) ?? result.item !! result
     }
 
     # x >>op<< [y]
@@ -121,7 +121,7 @@ class Hyper {
           ),
           List, '$!reified', values
         );
-        nqp::iscont(result) ?? result.item !! result
+        nqp::iscont(right) ?? result.item !! result
     }
 
     # ... >>op<< ...

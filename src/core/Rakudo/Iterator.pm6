@@ -1489,7 +1489,7 @@ class Rakudo::Iterator {
                     self.pull-one,
                   ),
                   nqp::stmts(                   # save / return value
-                    $!buffer.push(value),
+                    nqp::push($!buffer,value),
                     value
                   )
                 )

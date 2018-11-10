@@ -92,11 +92,11 @@ class Hyper {
         );
 
         my \result := nqp::p6bindattrinvres(
-          nqp::create(
-            nqp::istype(left,List) ?? left.WHAT !! List  # keep subtype
-          ),
-          List, '$!reified', values
+          nqp::create(List), List, '$!reified', values
         );
+        nqp::bind(result,nqp::clone(left).STORE(result))
+          if nqp::istype(left.WHAT,List)                # a subtype of List
+          && nqp::not_i(nqp::eqaddr(left.WHAT,List));
         nqp::iscont(left) ?? result.item !! result
     }
 
@@ -122,11 +122,11 @@ class Hyper {
         );
 
         my \result := nqp::p6bindattrinvres(
-          nqp::create(
-            nqp::istype(right,List) ?? right.WHAT !! List  # keep subtype
-          ),
-          List, '$!reified', values
+          nqp::create(List), List, '$!reified', values
         );
+        nqp::bind(result,nqp::clone(right).STORE(result))
+          if nqp::istype(right.WHAT,List)                # a subtype of List
+          && nqp::not_i(nqp::eqaddr(right.WHAT,List));
         nqp::iscont(right) ?? result.item !! result
     }
 

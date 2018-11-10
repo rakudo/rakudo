@@ -167,7 +167,7 @@ my class IO::Socket::Async {
         $!close-vow.keep(True);
     }
 
-    method connect(IO::Socket::Async:U: Str() $host, Int() $port where * ~~ Port-Number,
+    method connect(IO::Socket::Async:U: Str() $host, Int() $port where Port-Number,
                    :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
@@ -292,7 +292,7 @@ my class IO::Socket::Async {
         method serial(--> True) { }
     }
 
-    method listen(IO::Socket::Async:U: Str() $host, Int() $port where * ~~ Port-Number,
+    method listen(IO::Socket::Async:U: Str() $host, Int() $port where Port-Number,
                   Int() $backlog = 128, :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $encoding = Encoding::Registry.find($enc);
         Supply.new: SocketListenerTappable.new:
@@ -331,7 +331,7 @@ my class IO::Socket::Async {
         await $p
     }
 
-    method bind-udp(IO::Socket::Async:U: Str() $host, Int() $port where * ~~ Port-Number,
+    method bind-udp(IO::Socket::Async:U: Str() $host, Int() $port where Port-Number,
                     :$broadcast, :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $encoding = Encoding::Registry.find($enc);
@@ -357,12 +357,12 @@ my class IO::Socket::Async {
         await $p
     }
 
-    method print-to(IO::Socket::Async:D: Str() $host, Int() $port where * ~~ Port-Number,
+    method print-to(IO::Socket::Async:D: Str() $host, Int() $port where Port-Number,
                     Str() $str, :$scheduler = $*SCHEDULER) {
         self.write-to($host, $port, $!encoder.encode-chars($str), :$scheduler)
     }
 
-    method write-to(IO::Socket::Async:D: Str() $host, Int() $port where * ~~ Port-Number,
+    method write-to(IO::Socket::Async:D: Str() $host, Int() $port where Port-Number,
                     Blob $b, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;

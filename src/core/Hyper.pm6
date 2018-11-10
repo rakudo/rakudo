@@ -1,12 +1,18 @@
 # A class to perform hyper operations of the form left op right
 
 class Hyper {
-    has $.operator;  # for some reason we can't make this a &.operator
-    has int8 $.dwim-left;
-    has int8 $.dwim-right;
+    has $.operator;         # for some reason we cant make this a &.operator
+    has int8 $.dwim-left;   # left side wont end
+    has int8 $.dwim-right;  # right side wont end
+    has int8 $.assigns;     # assigns to left side
 
     method new(\op, Bool() :$dwim-left, Bool() :$dwim-right) {
-        self.bless( :operator(op), :$dwim-left, :$dwim-right)
+        self.bless(
+          :operator(op),
+          :$dwim-left,
+          :$dwim-right,
+          :assigns(op.name.ends-with("=>")),
+        )
     }
 
     proto method infix(|) {*}

@@ -95,7 +95,8 @@ class Hyper {
           nqp::create(List), List, '$!reified', values
         );
         nqp::bind(result,nqp::clone(left).STORE(result))
-          unless nqp::eqaddr(left.WHAT,List);  # don't need to .STORE
+          if nqp::istype(left.WHAT,List)                # a subtype of List
+          && nqp::not_i(nqp::eqaddr(left.WHAT,List));
         nqp::iscont(left) ?? result.item !! result
     }
 
@@ -124,7 +125,8 @@ class Hyper {
           nqp::create(List), List, '$!reified', values
         );
         nqp::bind(result,nqp::clone(right).STORE(result))
-          unless nqp::eqaddr(right.WHAT,List);  # don't need to .STORE
+          if nqp::istype(right.WHAT,List)                # a subtype of List
+          && nqp::not_i(nqp::eqaddr(right.WHAT,List));
         nqp::iscont(right) ?? result.item !! result
     }
 

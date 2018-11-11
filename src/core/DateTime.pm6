@@ -278,12 +278,21 @@ my class DateTime does Dateish {
     method hh-mm-ss()          { sprintf "%02d:%02d:%02d", $!hour,$!minute,$!second }
 
     method later(:$earlier, *%unit) {
-        my @pairs = %unit.pairs;
-        die "More than one time unit supplied" if @pairs > 1;
-        die "No time unit supplied"        unless @pairs;
 
-        my $unit   = self!VALID-UNIT(@pairs.AT-POS(0).key);
-        my $amount = @pairs.AT-POS(0).value;
+        # basic sanity check
+        nqp::if(
+          nqp::eqaddr(
+            (my \later := (my \iterator := %unit.iterator).pull-one),
+            IterationEnd
+          ),
+          (die "No time unit supplied"),
+          nqp::unless(
+            nqp::eqaddr(iterator.pull-one,IterationEnd),
+            (die "More than one time unit supplied")
+          )
+        );
+        my $unit  := later.key;
+        my $amount = later.value;
         $amount = -$amount if $earlier;
 
         # work on instant (tai)

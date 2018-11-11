@@ -6,7 +6,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!precomp-stores;
     has $!precomp-store;
 
-    my @extensions = <pm6 pm>;
+    my @extensions := <pm6 pm>;
     my $extensions := nqp::hash('pm6',1,'pm',1);
 
     # global cache of files seen

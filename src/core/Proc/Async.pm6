@@ -274,13 +274,7 @@ my class Proc::Async {
 #?if moar
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
         if cas($!started, False, True) == False {
-            my @blockers;
-            if $!stdin-fd ~~ Promise {
-                @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
-            }
-            @blockers
-                ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
-                !! self!start-internal(:$scheduler, :$ENV, :$cwd)
+            self!start-common(:$scheduler, :$ENV, :$cwd);
         }
         else {
             X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
@@ -296,17 +290,20 @@ my class Proc::Async {
             X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
             $!started = True;
 
-            my @blockers;
-            if $!stdin-fd ~~ Promise {
-                @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
-            }
-            @blockers
-                ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
-                !! self!start-internal(:$scheduler, :$ENV, :$cwd)
+            self!start-common(:$scheduler, :$ENV, :$cwd);
         }
     }
 #?endif
 
+    method !start-common(:$scheduler, :$ENV, :$cwd) {
+        my @blockers;
+        if $!stdin-fd ~~ Promise {
+            @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
+        }
+        @blockers
+            ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
+            !! self!start-internal(:$scheduler, :$ENV, :$cwd)
+    }
 
     method !start-internal(:$scheduler, :$ENV, :$cwd) {
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;

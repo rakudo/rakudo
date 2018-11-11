@@ -40,7 +40,7 @@ class Hyper {
 
     # %x >>op<< y
     multi method infix(Associative:D \left, \right --> Associative:D) {
-        my @keys = left.keys;
+        my @keys is List = left.keys;
         my \result := left.WHAT.new.STORE(
             Seq.new(
               Rakudo::Iterator.RoundrobinIterablesFlat(
@@ -59,7 +59,7 @@ class Hyper {
 
     # x >>op<< %y
     multi method infix(\left, Associative:D \right --> Associative:D) {
-        my @keys = right.keys;
+        my @keys is List = right.keys;
         my \result := right.WHAT.new.STORE(
             Seq.new(
               Rakudo::Iterator.RoundrobinIterablesFlat(
@@ -278,7 +278,7 @@ class Hyper {
         }
 
         # create HLL version of keys
-        my @keys =
+        my @keys is List =
           nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$keys).keys;
 
         # run with the left/right values
@@ -306,7 +306,7 @@ class Hyper {
         }
 
         # create HLL version of keys
-        my @keys =
+        my @keys is List =
           nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$keys).values;
 
         # run with the left/right values

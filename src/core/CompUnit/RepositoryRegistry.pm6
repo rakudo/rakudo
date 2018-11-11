@@ -251,7 +251,7 @@ class CompUnit::RepositoryRegistry {
     }
 
     method file-for-spec(Str $spec) {
-        my @parts = $spec.split('#', 2);
+        my @parts is List = $spec.split('#', 2);
         if @parts.elems == 2 {
             my $repo = self.repository-for-name(@parts[0]);
             return $repo.source-file(@parts[1]) if $repo.can('source-file');
@@ -264,7 +264,8 @@ class CompUnit::RepositoryRegistry {
         shift @*ARGS if $auth;
         shift @*ARGS if $ver;
         $name //= $dist-name;
-        my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
+        my @installations is List =
+          $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
         my @binaries = @installations.map({ .script("bin/$script", :$name, :$auth, :$ver) }).grep(*.defined);
         unless +@binaries {
             @binaries = flat @installations.map: { .script("bin/$script", :$name) };

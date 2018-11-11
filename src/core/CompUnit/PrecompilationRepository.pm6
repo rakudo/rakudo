@@ -285,7 +285,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
         }
 
-        my @result = $out.lines.unique;
+        my @result is List = $out.lines.unique;
         if $status {  # something wrong
             self.store.unlock;
             $RMD("Precompiling $path failed: $status") if $RMD;

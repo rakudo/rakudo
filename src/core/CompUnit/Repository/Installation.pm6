@@ -145,7 +145,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         self!bin-dir;
         if ($version < 1) {
             for $short-dir.dir -> $file {
-                my @ids = $file.lines.unique;
+                my @ids is List = $file.lines.unique;
                 $file.unlink;
                 $file.mkdir;
                 for @ids -> $id {
@@ -379,7 +379,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
 
         # Scripts using this interface could only have been installed long after the introduction of
         # repo version 1, so we don't have to care about very old repos in this method.
-        my @dists = $lookup.dir.map({
+        my @dists is List = $lookup.dir.map({
                 my ($ver, $auth, $api, $resource-id) = $_.slurp.split("\n");
                 $resource-id ||= self!read-dist($_.basename)<files>{$file};
                 (id => $_.basename, ver => Version.new( $ver || 0 ), :$auth, :$api, :$resource-id).hash
@@ -398,7 +398,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         my $lookup = $prefix.add('short').add(nqp::sha1($name));
         if $lookup.e {
             my $repo-version = self!repository-version;
-            my @dists = $repo-version < 1
+            my @dists is List = $repo-version < 1
                 ?? $lookup.lines.unique.map({
                         self!read-dist($_)
                     })
@@ -423,7 +423,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
             my $repo-version = self!repository-version;
             my $lookup = $.prefix.add('short').add(nqp::sha1($spec.short-name));
             if $lookup.e {
-                my @dists = (
+                my @dists is List = (
                         $repo-version < 1
                         ?? $lookup.lines.unique.map({
                                 $_ => self!read-dist($_)

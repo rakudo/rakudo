@@ -94,9 +94,11 @@ class Hyper {
         my \result := nqp::eqaddr(left.WHAT,List)
           || nqp::eqaddr(left.WHAT,Slip)
           ?? nqp::p6bindattrinvres(nqp::create(left),List,'$!reified',values)
-          !! left.WHAT.new(
-               nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',values)
-             );
+          !! nqp::can(left,"STORE")
+            ?? left.WHAT.new(nqp::p6bindattrinvres(
+                 nqp::create(List),List,'$!reified',values
+               ))
+            !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',values);
         nqp::iscont(left) ?? result.item !! result
     }
 
@@ -123,10 +125,14 @@ class Hyper {
 
         my \result := nqp::eqaddr(right.WHAT,List)
           || nqp::eqaddr(right.WHAT,Slip)
-          ?? nqp::p6bindattrinvres(nqp::create(right),List,'$!reified',values)
-          !! right.WHAT.new(
-               nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',values)
-             );
+          ?? nqp::p6bindattrinvres(                         # List or Slip
+               nqp::create(right),List,'$!reified',values
+             )
+          !! nqp::can(right,"STORE")
+            ?? right.WHAT.new(nqp::p6bindattrinvres(
+                 nqp::create(List),List,'$!reified',values
+               ))
+            !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',values);
         nqp::iscont(right) ?? result.item !! result
     }
 

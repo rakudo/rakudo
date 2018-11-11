@@ -153,11 +153,11 @@ class Hyper {
         my \values :=
           $!dwim-left
             ?? $!dwim-right
-              ?? self!iterables-left-right(left-iterator,right-iterator)
-              !! self!iterables-left(left-iterator,right-iterator)
+              ?? self!iterators-left-right(left-iterator,right-iterator)
+              !! self!iterators-left(left-iterator,right-iterator)
             !! $!dwim-right
-              ?? self!iterables-right(left-iterator,right-iterator)
-              !! self!iterables(left-iterator,right-iterator)
+              ?? self!iterators-right(left-iterator,right-iterator)
+              !! self!iterators(left-iterator,right-iterator)
         ;
         my \result := nqp::p6bindattrinvres(
           nqp::create(
@@ -180,7 +180,7 @@ class Hyper {
 #--- Private helper methods ----------------------------------------------------
 
     # ... >>op<< ...
-    method !iterables(Iterator:D \left, Iterator:D \right) {
+    method !iterators(Iterator:D \left, Iterator:D \right) {
         my \result := nqp::create(IterationBuffer);
 
         nqp::until(
@@ -203,7 +203,7 @@ class Hyper {
     }
 
     # ... <<op<< ...
-    method !iterables-left(Iterator:D \left, Iterator:D \right) {
+    method !iterators-left(Iterator:D \left, Iterator:D \right) {
         my \lefti  := Rakudo::Iterator.DWIM(left);
         my \result := nqp::create(IterationBuffer);
 
@@ -223,7 +223,7 @@ class Hyper {
     }
 
     # ... >>op>> ...
-    method !iterables-right(Iterator:D \left, Iterator:D \right) {
+    method !iterators-right(Iterator:D \left, Iterator:D \right) {
         my \righti := Rakudo::Iterator.DWIM(right);
         my \result := nqp::create(IterationBuffer);
 
@@ -243,7 +243,7 @@ class Hyper {
     }
 
     # ... <<op>> ...
-    method !iterables-left-right(Iterator:D \left, Iterator:D \right) {
+    method !iterators-left-right(Iterator:D \left, Iterator:D \right) {
         my \lefti  := Rakudo::Iterator.DWIM(left);
         my \righti := Rakudo::Iterator.DWIM(right);
         my \result := nqp::create(IterationBuffer);

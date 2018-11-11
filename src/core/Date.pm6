@@ -30,7 +30,7 @@ my class Date does Dateish {
                :got($day),
                :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
-        self === Date
+        nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
@@ -43,7 +43,7 @@ my class Date does Dateish {
                :got($day),
                :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
-        self === Date
+        nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
@@ -62,7 +62,7 @@ my class Date does Dateish {
         self.new($0,$1,$2,:&formatter,|%_)
     }
     multi method new(Date: Dateish $d, :&formatter, *%_) {
-        self === Date
+        nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($d.year,$d.month,$d.day,&formatter)
           !! self.bless(
                :year($d.year),
@@ -77,7 +77,7 @@ my class Date does Dateish {
     }
     method new-from-daycount($daycount,:&formatter) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
-        self === Date
+        nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
           !! self.bless(:$year,:$month,:$day,:&formatter,:$daycount)
     }

@@ -162,7 +162,7 @@ my class DateTime does Dateish {
         my int $month = $m + 3 - 12 * ($m div 10);
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
-        my $dt = self === DateTime
+        my $dt = nqp::eqaddr(self.WHAT,DateTime)
           ?? ( %_ ?? die "Unexpected named parameter{"s" if %_ > 1} "
                     ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
                     ~ "trying to use the named parameter form of .new() but "
@@ -237,7 +237,7 @@ my class DateTime does Dateish {
         )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
-        return self.clone(|%_) unless self === DateTime;
+        return self.clone(|%_) unless nqp::eqaddr(self.WHAT,DateTime);
 
         my $h := nqp::getattr(%_,Map,'$!storage');
         nqp::create(self)!SET-SELF(

@@ -41,12 +41,13 @@ class Hyper {
     # %x >>op<< y
     multi method infix(Associative:D \left, \right --> Associative:D) {
         my @keys is List = left.keys;
-        my \result := left.WHAT.new.STORE(
+        my \result := nqp::create(left.WHAT).STORE(
             Seq.new(
               Rakudo::Iterator.RoundrobinIterablesFlat(
                 (@keys, self.infix(left{@keys}, right))
               )
-            )
+            ),
+            :INITIALIZE
         );
         nqp::iscont(left) ?? result.item !! result;
     }
@@ -60,12 +61,13 @@ class Hyper {
     # x >>op<< %y
     multi method infix(\left, Associative:D \right --> Associative:D) {
         my @keys is List = right.keys;
-        my \result := right.WHAT.new.STORE(
+        my \result := nqp::create(right.WHAT).STORE(
             Seq.new(
               Rakudo::Iterator.RoundrobinIterablesFlat(
                 (@keys, self.infix(left, right{@keys}))
               )
-            )
+            ),
+            :INITIALIZE
         );
         nqp::iscont(right) ?? result.item !! result;
     }
@@ -288,12 +290,13 @@ class Hyper {
           nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$keys).keys;
 
         # run with the left/right values
-        my \result := left.WHAT.new.STORE(
+        my \result := nqp::create(left.WHAT).STORE(
             Seq.new(
               Rakudo::Iterator.RoundrobinIterablesFlat(
                 (@keys, quietly self.infix(left{@keys}, right{@keys}))
               )
-            )
+            ),
+            :INITIALIZE
         );
         nqp::iscont(left) ?? result.item !! result;
     }
@@ -316,12 +319,13 @@ class Hyper {
           nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$keys).values;
 
         # run with the left/right values
-        my \result := left.WHAT.new.STORE(
+        my \result := nqp::create(left.WHAT).STORE(
             Seq.new(
               Rakudo::Iterator.RoundrobinIterablesFlat(
                 (@keys, quietly self.infix(left{@keys}, right{$keys}))
               )
-            )
+            ),
+            :INITIALIZE
         );
         nqp::iscont(left) ?? result.item !! result;
     }

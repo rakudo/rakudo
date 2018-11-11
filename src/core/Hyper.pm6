@@ -91,12 +91,12 @@ class Hyper {
           nqp::push(values, self.infix(value,right))
         );
 
-        my \result := nqp::p6bindattrinvres(
-          nqp::create(List), List, '$!reified', values
-        );
-        nqp::bind(result,nqp::clone(left).STORE(result))
-          if nqp::istype(left.WHAT,List)                # a subtype of List
-          && nqp::not_i(nqp::eqaddr(left.WHAT,List));
+        my \result := nqp::eqaddr(left.WHAT,List)
+          || nqp::eqaddr(left.WHAT,Slip)
+          ?? nqp::p6bindattrinvres(nqp::create(left),List,'$!reified',values)
+          !! left.WHAT.new(
+               nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',values)
+             );
         nqp::iscont(left) ?? result.item !! result
     }
 
@@ -121,12 +121,12 @@ class Hyper {
           nqp::push(values, self.infix(left,value))
         );
 
-        my \result := nqp::p6bindattrinvres(
-          nqp::create(List), List, '$!reified', values
-        );
-        nqp::bind(result,nqp::clone(right).STORE(result))
-          if nqp::istype(right.WHAT,List)                # a subtype of List
-          && nqp::not_i(nqp::eqaddr(right.WHAT,List));
+        my \result := nqp::eqaddr(right.WHAT,List)
+          || nqp::eqaddr(right.WHAT,Slip)
+          ?? nqp::p6bindattrinvres(nqp::create(right),List,'$!reified',values)
+          !! right.WHAT.new(
+               nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',values)
+             );
         nqp::iscont(right) ?? result.item !! result
     }
 

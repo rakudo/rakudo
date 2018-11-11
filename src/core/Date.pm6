@@ -147,19 +147,18 @@ my class Date does Dateish {
     method clone(*%_) {
         my $h := nqp::getattr(%_,Map,'$!storage');
         self.new(
-          nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
-          nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
-          nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
-          formatter => nqp::existskey($h,'formatter')
-            ?? nqp::atkey($h,'formatter') !! &!formatter,
+          nqp::ifnull(nqp::atkey($h,'year'), $!year),
+          nqp::ifnull(nqp::atkey($h,'month'),$!month),
+          nqp::ifnull(nqp::atkey($h,'day'),  $!day),
+          formatter => nqp::ifnull(nqp::atkey($h,'formatter'),&!formatter),
         )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
         my $h := nqp::getattr(%_,Map,'$!storage');
         nqp::create(self)!SET-SELF(
-          nqp::existskey($h,'year')  ?? nqp::atkey($h,'year')  !! $!year,
-          nqp::existskey($h,'month') ?? nqp::atkey($h,'month') !! $!month,
-          nqp::existskey($h,'day')   ?? nqp::atkey($h,'day')   !! $!day,
+          nqp::ifnull(nqp::atkey($h,'year'), $!year),
+          nqp::ifnull(nqp::atkey($h,'month'),$!month),
+          nqp::ifnull(nqp::atkey($h,'day'),  $!day),
           &!formatter,
         )
     }

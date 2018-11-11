@@ -163,11 +163,26 @@ my class Date does Dateish {
         )
     }
 
+    method new-from-diff(Date:D: Int:D $diff) {
+        nqp::isconcrete($!daycount)
+          ?? nqp::stmts(
+               (my \new := nqp::clone(self)),
+               nqp::bindattr(new,Date,'$!day', $!day + $diff),
+               nqp::bindattr(new,Date,'$!daycount',$!daycount + $diff),
+               new
+             )
+          !! nqp::p6bindattrinvres(nqp::clone(self),Date,'$!day',$!day + $diff)
+    }
+
     method succ(Date:D:) {
-        self.new-from-daycount(self.daycount + 1);
+        $!day < 28 && nqp::eqaddr(self.WHAT,Date)
+          ?? self.new-from-diff(1)
+          !! self.new-from-daycount(self.daycount + 1)
     }
     method pred(Date:D:) {
-        self.new-from-daycount(self.daycount - 1);
+        $!day > 1 && nqp::eqaddr(self.WHAT,Date)
+          ?? self.new-from-diff(-1)
+          !! self.new-from-daycount(self.daycount - 1)
     }
 
     multi method perl(Date:D:) {
@@ -184,13 +199,19 @@ my class Date does Dateish {
 }
 
 multi sub infix:<+>(Date:D $d, Int:D $x) {
-    Date.new-from-daycount($d.daycount + $x)
+    nqp::eqaddr($d.WHAT,Date) && $d.day + $x <= 28
+      ?? $d.new-from-diff($x)
+      !! Date.new-from-daycount($d.daycount + $x)
 }
 multi sub infix:<+>(Int:D $x, Date:D $d) {
-    Date.new-from-daycount($d.daycount + $x)
+    nqp::eqaddr($d.WHAT,Date) && $d.day + $x <= 28
+      ?? $d.new-from-diff($x)
+      !! Date.new-from-daycount($d.daycount + $x)
 }
 multi sub infix:<->(Date:D $d, Int:D $x) {
-    Date.new-from-daycount($d.daycount - $x)
+    nqp::eqaddr($d.WHAT,Date) && $d.day - $x > 0
+      ?? $d.new-from-diff(-$x)
+      !! Date.new-from-daycount($d.daycount - $x)
 }
 multi sub infix:<->(Date:D $a, Date:D $b) {
     $a.daycount - $b.daycount;

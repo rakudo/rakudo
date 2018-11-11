@@ -189,7 +189,6 @@ class Hyper {
           nqp::push(result, self.infix(leftv, rightv))
         );
 
-        my int $left-elems = my int $right-elems = nqp::elems(result);
         nqp::if(
           nqp::eqaddr(rightv,IterationEnd),
           self!right-exhausted(left,nqp::elems(result)),

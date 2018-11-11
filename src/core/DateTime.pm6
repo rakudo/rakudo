@@ -221,35 +221,36 @@ my class DateTime does Dateish {
     }
 
     method clone(*%_) {
-        my $h := nqp::getattr(%_,Map,'$!storage');
+        my \h := nqp::getattr(%_,Map,'$!storage');
         self!new-from-positional(
-          nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
-          nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
-          nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
-          nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
-          nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
-          nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
+          nqp::ifnull(nqp::atkey(h,'year'),  $!year),
+          nqp::ifnull(nqp::atkey(h,'month'), $!month),
+          nqp::ifnull(nqp::atkey(h,'day'),   $!day),
+          nqp::ifnull(nqp::atkey(h,'hour'),  $!hour),
+          nqp::ifnull(nqp::atkey(h,'minute'),$!minute),
+          nqp::ifnull(nqp::atkey(h,'second'),$!second),
           %_,
-          timezone => nqp::existskey($h,'timezone')
-            ?? nqp::atkey($h,'timezone')  !! $!timezone,
-          formatter => nqp::existskey($h,'formatter')
-            ?? nqp::atkey($h,'formatter') !! &!formatter,
+          timezone  => nqp::ifnull(nqp::atkey(h,'timezone'),$!timezone),
+          formatter => nqp::ifnull(nqp::atkey(h,'formatter'),&!formatter),
         )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
-        return self.clone(|%_) unless nqp::eqaddr(self.WHAT,DateTime);
-
-        my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::create(self)!SET-SELF(
-          nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
-          nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
-          nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
-          nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
-          nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
-          nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
-          nqp::existskey($h,'timezone')
-            ?? nqp::atkey($h,'timezone') !! $!timezone,
-          &!formatter,
+        nqp::if(
+          nqp::eqaddr(self.WHAT,DateTime),
+          nqp::stmts(
+            (my \h := nqp::getattr(%_,Map,'$!storage')),
+            nqp::create(self)!SET-SELF(
+              nqp::ifnull(nqp::atkey(h,'year'),    $!year),
+              nqp::ifnull(nqp::atkey(h,'month'),   $!month),
+              nqp::ifnull(nqp::atkey(h,'day'),     $!day),
+              nqp::ifnull(nqp::atkey(h,'hour'),    $!hour),
+              nqp::ifnull(nqp::atkey(h,'minute'),  $!minute),
+              nqp::ifnull(nqp::atkey(h,'second'),  $!second),
+              nqp::ifnull(nqp::atkey(h,'timezone'),$!timezone),
+              &!formatter,
+            )
+          ),
+          self.clone(|%_)
         )
     }
 

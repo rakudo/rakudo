@@ -46,15 +46,16 @@ my class DateTime does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method !SET-SELF(\y,\mo,\d,\h,\mi,\s,\t,\f) {
-        $!year      = y;
-        $!month     = mo;
-        $!day       = d;
-        $!hour      = h;
-        $!minute    = mi;
-        $!second    = s;
-        $!timezone  = t;
-        &!formatter = f;
+    method !SET-SELF(
+        $!year,
+        $!month,
+        $!day,
+        $!hour,
+        $!minute,
+        $!second,
+        $!timezone,
+        &!formatter,
+    ) {
         self
     }
     method !new-from-positional(DateTime:

@@ -25,7 +25,7 @@ sub METAOP_CROSS(\op, &reduce) {
     -> +lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
         my $laze = False;
-        my @loi = eager for lol -> \elem {
+        my @loi is List = eager for lol -> \elem {
             if nqp::iscont(elem) {
                 $laze = False;
                 (elem,).iterator
@@ -86,7 +86,7 @@ sub METAOP_ZIP(\op, &reduce) {
         my $arity = lol.elems;
         my $rop = $arity == 2 ?? op !! &reduce(op);
         my $laze = True;
-        my @loi = eager for lol -> \elem {
+        my @loi is List = eager for lol -> \elem {
             if nqp::iscont(elem) {
                 $laze = False;
                 Rakudo::Iterator.OneValue(elem)

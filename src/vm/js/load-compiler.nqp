@@ -37,3 +37,12 @@ nqp::bindhllsym('perl6', '@END_PHASERS', []);
 
 # In an embedding environment, let @*ARGS be empty instead of crashing
 nqp::bindhllsym('perl6', '$!ARGITER', 0);
+
+nqp::sethllconfig('perl6', nqp::hash(
+    'uncaught_control', -> $exception {
+        nqp::getcomp('perl6').handle-control($exception);
+    },
+    'uncaught_exception', -> $exception {
+        nqp::getcomp('perl6').handle-exception($exception);
+    }
+));

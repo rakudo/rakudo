@@ -690,13 +690,29 @@ my class BlockVarOptimizer {
                     # as it is bound immediately.
                     $qast.decl('var');
                     unless $qast.ann('our_decl') {
+                        my $type := nqp::what_nd($qv);
+                        my $setup := QAST::Op.new(
+                            :op('create'),
+                            QAST::WVal.new( :value($type) )
+                        );
+                        for $type.HOW.mro($type) -> $mro_entry {
+                            for $mro_entry.HOW.attributes($mro_entry, :local) -> $attr {
+                                my str $name := $attr.name;
+                                if nqp::attrinited($qv, $mro_entry, $name) {
+                                    $setup := QAST::Op.new(
+                                        :op('p6bindattrinvres'),
+                                        $setup,
+                                        QAST::WVal.new( :value($mro_entry) ),
+                                        QAST::SVal.new( :value($name) ),
+                                        QAST::WVal.new( :value(nqp::getattr($qv, $mro_entry, $name)) )
+                                    );
+                                }
+                            }
+                        }
                         $block[0].push(QAST::Op.new(
                             :op('bind'),
                             QAST::Var.new( :name($new_name), :scope('local') ),
-                            QAST::Op.new(
-                                :op('clone_nd'),
-                                QAST::WVal.new( :value($qv) )
-                            )
+                            $setup
                         ));
                     }
                 }

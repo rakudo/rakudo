@@ -322,7 +322,7 @@ class Hyper {
         my \result := nqp::create(left.WHAT).STORE(
             Seq.new(
               Rakudo::Iterator.RoundrobinIterablesFlat(
-                (@keys, quietly self.infix(left{@keys}, right{$keys}))
+                (@keys, quietly self.infix(left{@keys}, right{@keys}))
               )
             ),
             :INITIALIZE

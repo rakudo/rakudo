@@ -176,6 +176,41 @@ class Hyper {
         nqp::iscont(left) ?? result.item !! result;
     }
 
+    # :x >>op<< y
+    multi method infix(Pair:D \left, \right) {
+        nqp::p6bindattrinvres(
+          nqp::clone(left),
+          Pair,
+          '$!value',
+          self.infix(nqp::getattr(left,Pair,'$!value'), right)
+        )
+    }
+
+    # x >>op<< :y
+    multi method infix(\left, Pair:D \right) {
+        nqp::p6bindattrinvres(
+          nqp::clone(right),
+          Pair,
+          '$!value',
+          self.infix(left, nqp::getattr(right,Pair,'$!value'))
+        )
+    }
+
+    # :x >>op<< :y
+    multi method infix(Pair:D \left, Pair:D \right) {
+        nqp::if(
+          nqp::getattr(left,Pair,'$!key').WHICH
+            eq nqp::getattr(right,Pair,'$!key').WHICH,
+          nqp::p6bindattrinvres(
+            nqp::clone(left),Pair,'$!value',self.infix(
+              nqp::getattr(left, Pair,'$!value'),
+              nqp::getattr(right,Pair,'$!value')
+            )
+          ),
+          Nil
+        )
+    }
+
     # using an infix on a one element list in a meta op
     multi method infix(\object) {
         nqp::if(

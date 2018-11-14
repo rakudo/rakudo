@@ -15,6 +15,15 @@ my class MixHash does Mixy {
           )
         )
     }
+    multi method STORE(MixHash:D: \objects, \values --> MixHash:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            values.iterator
+          )
+        )
+    }
     multi method AT-KEY(MixHash:D: \k) is raw {
         Proxy.new(
           FETCH => {

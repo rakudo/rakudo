@@ -194,6 +194,21 @@ my class SetHash does Setty {
           )
         )
     }
+    multi method STORE(SetHash:D: \objects, \bools --> SetHash:D) {
+        my \iterobjs  := objects.iterator;
+        my \iterbools := bools.iterator;
+        nqp::bindattr(
+          self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
+        );
+        nqp::until(
+          nqp::eqaddr((my \object := iterobjs.pull-one),IterationEnd),
+          nqp::if(
+            iterbools.pull-one,
+            nqp::bindkey($!elems,object.WHICH,nqp::decont(object))
+          )
+        );
+        self
+    }
 
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(

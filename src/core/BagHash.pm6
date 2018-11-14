@@ -12,6 +12,15 @@ my class BagHash does Baggy {
           )
         )
     }
+    multi method STORE(BagHash:D: \objects, \values --> BagHash:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            values.iterator
+          )
+        )
+    }
     multi method AT-KEY(BagHash:D: \k) is raw {
         Proxy.new(
           FETCH => {

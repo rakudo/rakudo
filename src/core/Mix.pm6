@@ -11,6 +11,15 @@ my class Mix does Mixy {
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                nqp::create(Rakudo::Internals::IterationSet), $iterator))
     }
+    multi method STORE(Mix:D: \objects, \values, :$INITIALIZE! --> Mix:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
+            nqp::create(Rakudo::Internals::IterationSet), 
+            objects.iterator,
+            values.iterator
+          )
+        )
+    }
 
     multi method DELETE-KEY(Mix:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;

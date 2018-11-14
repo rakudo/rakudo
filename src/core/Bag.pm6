@@ -30,6 +30,15 @@ my class Bag does Baggy {
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
               nqp::create(Rakudo::Internals::IterationSet), $iterator))
     }
+    multi method STORE(Bag:D: \objects, \values, :$INITIALIZE! --> Bag:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            values.iterator
+          )
+        )
+    }
 
     multi method DELETE-KEY(Bag:D: \k) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;

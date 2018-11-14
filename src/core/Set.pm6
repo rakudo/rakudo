@@ -93,6 +93,15 @@ my class Set does Setty {
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet), $iterator))
     }
+    multi method STORE(Set:D: \objects, \bools, :$INITIALIZE! --> Set:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-SET(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            bools.iterator
+          )
+        )
+    }
 
     multi method AT-KEY(Set:D: \k --> Bool:D) {
         nqp::hllbool($!elems ?? nqp::existskey($!elems,k.WHICH) !! 0)

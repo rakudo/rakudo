@@ -26,10 +26,16 @@ class Hyper {
       Associative:D \right
       --> Associative:D
     ) is default {
-        nqp::eqaddr(left.keyof,Str(Any))
-          && nqp::eqaddr(right.keyof,Str(Any))
-          ?? self!str-associatives(left,right)
-          !! self!obj-associatives(left,right)
+        nqp::istype(left,Pair)
+          ?? nqp::istype(right,Pair)
+            ?? self!pair-pair(left,right)
+            !! self!pair-mu(left,right)
+          !! nqp::istype(right,Pair)
+            ?? self!mu-pair(left,right)
+            !! nqp::eqaddr(left.keyof,Str(Any))
+              && nqp::eqaddr(right.keyof,Str(Any))
+              ?? self!str-associatives(left,right)
+              !! self!obj-associatives(left,right)
     }
 
     # %x >>op<< ...
@@ -40,6 +46,8 @@ class Hyper {
 
     # %x >>op<< y
     multi method infix(Associative:D \left, \right --> Associative:D) {
+        return self!pair-mu(left,right) if nqp::istype(left,Pair);
+
         my @keys is List = left.keys;
         my \result := nqp::create(left.WHAT).STORE(
             Seq.new(
@@ -60,6 +68,8 @@ class Hyper {
 
     # x >>op<< %y
     multi method infix(\left, Associative:D \right --> Associative:D) {
+        return self!mu-pair(left,right) if nqp::istype(right,Pair);
+
         my @keys is List = right.keys;
         my \result := nqp::create(right.WHAT).STORE(
             Seq.new(
@@ -177,7 +187,8 @@ class Hyper {
     }
 
     # :x >>op<< y
-    multi method infix(Pair:D \left, \right) {
+    method !pair-mu(\left,\right) {
+#    multi method infix(Pair:D \left, \right) {
         nqp::p6bindattrinvres(
           nqp::clone(left),
           Pair,
@@ -187,7 +198,8 @@ class Hyper {
     }
 
     # x >>op<< :y
-    multi method infix(\left, Pair:D \right) {
+    method !mu-pair(\left,\right) {
+#    multi method infix(\left, Pair:D \right) {
         nqp::p6bindattrinvres(
           nqp::clone(right),
           Pair,
@@ -197,7 +209,8 @@ class Hyper {
     }
 
     # :x >>op<< :y
-    multi method infix(Pair:D \left, Pair:D \right) {
+    method !pair-pair(\left, \right) {
+#    multi method infix(Pair:D \left, Pair:D \right) {
         nqp::if(
           nqp::getattr(left,Pair,'$!key').WHICH
             eq nqp::getattr(right,Pair,'$!key').WHICH,

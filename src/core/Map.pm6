@@ -412,6 +412,20 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
+    multi method STORE(Map:D: \keys, \values, :$INITIALIZE!) {
+        my \iterkeys   := keys.iterator;
+        my \itervalues := values.iterator;
+        my \storage    := $!storage := nqp::hash;
+        nqp::until(
+          nqp::eqaddr((my \key := iterkeys.pull-one),IterationEnd),
+          nqp::bindkey(
+            storage,
+            nqp::if(nqp::istype(key,Str),key,key.Str),
+            nqp::decont(itervalues.pull-one)
+          )
+        );
+        self
+    }
     multi method STORE(Map:D: |) { X::Assignment::RO.new(value => self).throw }
 
     method Capture(Map:D:) {

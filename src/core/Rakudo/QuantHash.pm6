@@ -345,7 +345,7 @@ my class Rakudo::QuantHash {
             nqp::bindkey(elems,object.WHICH,nqp::decont(object))
           )
         );
-        self
+        elems
     }
 
     # Add to given IterationSet with setty semantics the keys of given Map
@@ -843,7 +843,7 @@ my class Rakudo::QuantHash {
             nqp::bindkey(elems,object.WHICH,Pair.new(object,value))
           )
         );
-        self
+        elems
     }
 
     # Take the given IterationSet with baggy semantics, and add the other

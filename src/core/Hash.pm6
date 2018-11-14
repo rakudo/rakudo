@@ -113,6 +113,16 @@ my class Hash { # declared in BOOTSTRAP
 
         nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
+    multi method STORE(Hash:D: \keys, \values) {
+        my \iterkeys   := keys.iterator;
+        my \itervalues := values.iterator;
+        nqp::bindattr(self,Map,'$!storage',nqp::hash);
+        nqp::until(
+          nqp::eqaddr((my \key := iterkeys.pull-one),IterationEnd),
+          self.STORE_AT_KEY(key,itervalues.pull-one)
+        );
+        self
+    }
 
     multi method ASSIGN-KEY(Hash:D: Str:D $key, Mu \assignval) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');

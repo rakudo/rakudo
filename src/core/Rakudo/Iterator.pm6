@@ -3175,56 +3175,6 @@ class Rakudo::Iterator {
         )
     }
 
-    # Return an iterator that will roundrobin the given iterables producing
-    # one value at a time.  Stops as soon as one of the iterators is done.
-    my class RoundrobinIterablesFlat does Iterator {
-        has $!iters;
-        has int $!i;
-        has int $!elems;
-        has int $!lazy;
-        method !SET-SELF(\iterables) {
-            my $iterables := nqp::getattr(iterables,List,'$!reified');
-            my int $elems = $!elems = nqp::elems($iterables);
-            $!iters := nqp::setelems(nqp::list,$elems);
-            my int $i = $!i = -1;
-
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos($!iters,$i,
-                nqp::if(
-                  nqp::iscont(my \elem := nqp::atpos($iterables,$i)),
-                  Rakudo::Iterator.OneValue(elem),
-                  nqp::stmts(
-                    nqp::if(elem.is-lazy,($!lazy = 1)),
-                    elem.iterator
-                  )
-                )
-              )
-            );
-            self
-        }
-        method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
-        method pull-one() {
-            nqp::eqaddr($!iters,IterationEnd)
-              ?? IterationEnd
-              !! nqp::eqaddr(
-                   (my \pulled :=
-                     nqp::atpos($!iters,nqp::mod_i(++$!i,$!elems)).pull-one),
-                   IterationEnd
-                 )
-                ?? ($!iters := IterationEnd)
-                !!  pulled
-        }
-        method is-lazy() { nqp::hllbool($!lazy) }
-    }
-    method RoundrobinIterablesFlat(@iterables) {
-        nqp::isgt_i((my int $n = @iterables.elems),1)  # reifies
-          ?? RoundrobinIterablesFlat.new(@iterables)
-          !! nqp::iseq_i($n,0)
-            ?? Rakudo::Iterator.Empty
-            !! nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
-    }
-
     # Return an iterator from a source iterator that is supposed to
     # generate iterators. As soon as an iterator is exhausted, the next iterator
     # will be fetched and iterated over until exhausted.

@@ -503,6 +503,34 @@ class Rakudo::Iterator {
     }
     method AntiPair(\iterator) { AntiPair.new(iterator) }
 
+    # Return an iterator that takes an Associative and an Iterable that
+    # generates keys, to call the AT-KEY method on the Associative.
+    my class AssociativeIterableKeys does Iterator {
+        has $!associative;
+        has $!iterator;
+        method !SET-SELF($!associative,$!iterator) { self }
+        method new(\asso,\iter) { nqp::create(self)!SET-SELF(asso,iter) }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::eqaddr((my \key := $!iterator.pull-one),IterationEnd),
+              IterationEnd,
+              $!associative.AT-KEY(key)
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            my \iterator    := $!iterator;
+            my \associative := $!associative;
+            nqp::until(
+              nqp::eqaddr((my \key := iterator.pull-one),IterationEnd),
+              $target.push(associative.AT-KEY(key))
+            )
+        }
+    }
+    method AssociativeIterableKeys(\asso, \iterable) {
+        AssociativeIterableKeys.new(asso,iterable.iterator)
+    }
+
     # Return an iterator that batches the given source iterator in
     # batches of the given size.  The third parameter indicates whether
     # a partial batch should be returned when the source iterator has

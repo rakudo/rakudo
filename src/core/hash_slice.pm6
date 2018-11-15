@@ -49,12 +49,24 @@ multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$v!, *%other ) is raw {
 multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is raw {
     nqp::iscont(key)
       ?? SELF.AT-KEY(key)
-      !! key.flatmap({ SELF{$_} }).eager.list;
+      !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+           nqp::stmts(
+             Rakudo::Iterator.AssociativeIterableKeys(SELF,key)
+               .push-all(my \buffer := nqp::create(IterationBuffer)),
+             buffer
+           )
+         )
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is raw {
     nqp::iscont(key)
       ?? SELF.ASSIGN-KEY(key, ASSIGN)
-      !! (key.flatmap({ SELF{$_} }).eager.list = ASSIGN)
+      !! (nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+           nqp::stmts(
+             Rakudo::Iterator.AssociativeIterableKeys(SELF,key)
+               .push-all(my \buffer := nqp::create(IterationBuffer)),
+             buffer
+           )
+         ) = ASSIGN)
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

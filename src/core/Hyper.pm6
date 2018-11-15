@@ -348,19 +348,7 @@ class Hyper {
         # create HLL version of keys
         my @keys is List =
           nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$keys).keys;
-
-        if $!assigns {
-            quietly self.infix(left{@keys}, right{@keys});
-            left
-        }
-        else {
-            my \result := nqp::create(left.WHAT).STORE(
-              @keys,
-              (quietly self.infix(left{@keys}, right{@keys})),
-              :INITIALIZE
-            );
-            nqp::iscont(left) ?? result.item !! result;
-        }
+        self!associatives(@keys, left, right)
     }
 
     # handle object hashes / QuantHashes
@@ -379,18 +367,19 @@ class Hyper {
         # create HLL version of keys
         my @keys is List =
           nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$keys).values;
+        self!associatives(@keys, left, right)
+    }
 
+    # actually handle 2 associatives
+    method !associatives(@keys, \left, \right) {
+        my \values := quietly self.infix(left{@keys}, right{@keys});
         if $!assigns {
-            quietly self.infix(left{@keys}, right{@keys});
             left
         }
         else {
-            my \result := nqp::create(left.WHAT).STORE(
-              @keys,
-              (quietly self.infix(left{@keys}, right{@keys})),
-              :INITIALIZE
-            );
-            nqp::iscont(left) ?? result.item !! result;
+            my \result :=
+              nqp::create(left.WHAT).STORE(@keys, values, :INITIALIZE);
+            nqp::iscont(left) ?? result.item !! result
         }
     }
 

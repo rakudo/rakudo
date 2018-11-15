@@ -2,24 +2,23 @@
 my $METAOP_ASSIGN := nqp::hash;
 sub METAOP_ASSIGN(\op) {
     nqp::ifnull(
-      nqp::atkey($METAOP_ASSIGN,nqp::objectid(op)),
+      nqp::atkey($METAOP_ASSIGN,op.name),
       METAOP_ASSIGN_NEW(op)
     )
 }
 sub METAOP_ASSIGN_NEW(\op) {
-    nqp::bindkey($METAOP_ASSIGN,nqp::objectid(op),nqp::stmts(
-      (my \metaop := -> Mu \a, Mu \b {
-          a = op.((a.DEFINITE ?? a !! op.()), b)
-      }),
-      metaop.set_name(
-        nqp::if(
-          (my \name := op.name),
-          name.substr(0,*-1) ~ "=>",
-          "infix:<unnamed-op=>"
-        )
-      ),
-      metaop
-    ))
+    # Fast path the case where there is *no* name for the op.  If we *do* have
+    # a name, then we'll only be here once for that op, so it doesn't matter
+    # that we call op.name multiple times.
+    op.name
+      ?? nqp::bindkey($METAOP_ASSIGN,op.name,nqp::stmts(
+           (my \metaop :=
+             -> Mu \a, Mu \b { a = op.((a.DEFINITE ?? a !! op.()), b) }
+           ),
+           metaop.set_name(op.name.substr(0,*-1) ~ "=>"),
+           metaop
+         ))
+      !! -> Mu \a, Mu \b { a = op.((a.DEFINITE ?? a !! op.()), b) }
 }
 
 sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }

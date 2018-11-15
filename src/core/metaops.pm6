@@ -1,6 +1,19 @@
 
+my $METAOP_ASSIGN := nqp::hash;
 sub METAOP_ASSIGN(\op) {
-    -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
+    nqp::ifnull(
+      nqp::atkey($METAOP_ASSIGN,op.name),
+      METAOP_ASSIGN_NEW(op)
+    )
+}
+sub METAOP_ASSIGN_NEW(\op) {
+    nqp::bindkey($METAOP_ASSIGN,op.name,nqp::stmts(
+      (my \metaop := -> Mu \a, Mu \b {
+          a = op.((a.DEFINITE ?? a !! op.()), b)
+      }),
+      metaop.set_name(op.name.substr(0,*-1) ~ "=>"),
+      metaop
+    ))
 }
 
 sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }

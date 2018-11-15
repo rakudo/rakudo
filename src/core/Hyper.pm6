@@ -48,13 +48,19 @@ class Hyper {
     multi method infix(Associative:D \left, \right --> Associative:D) {
         return self!pair-mu(left,right) if nqp::istype(left,Pair);
 
-        my @keys is List = left.keys;
-        my \result := nqp::create(left.WHAT).STORE(
-          @keys,
-          self.infix(left{@keys},right),
-          :INITIALIZE
-        );
-        nqp::iscont(left) ?? result.item !! result;
+        if $!assigns {
+            self.infix(left.values,right);
+            left
+        }
+        else {
+            my @keys is List = left.keys;
+            my \result := nqp::create(left.WHAT).STORE(
+              @keys,
+              self.infix(left{@keys},right),
+              :INITIALIZE
+            );
+            nqp::iscont(left) ?? result.item !! result;
+        }
     }
 
     # ... >>op<< %y
@@ -89,23 +95,35 @@ class Hyper {
             or $left-elems  > 1 and $!dwim-right
             or $left-elems == 0 and $!dwim-left || $!dwim-right;
 
-        my \values := nqp::create(IterationBuffer);
         my \iterator := left.iterator;
+        if $!assigns {
+            nqp::until(
+              nqp::eqaddr((my \value := iterator.pull-one),IterationEnd),
+              self.infix(value,right)
+            );
+            left
+        }
+        else {
+            my \values := nqp::create(IterationBuffer);
+            nqp::until(
+              nqp::eqaddr((my \value := iterator.pull-one),IterationEnd),
+              nqp::push(values, self.infix(value,right))
+            );
 
-        nqp::until(
-          nqp::eqaddr((my \value := iterator.pull-one),IterationEnd),
-          nqp::push(values, self.infix(value,right))
-        );
-
-        my \result := nqp::eqaddr(left.WHAT,List)
-          || nqp::eqaddr(left.WHAT,Slip)
-          ?? nqp::p6bindattrinvres(nqp::create(left),List,'$!reified',values)
-          !! nqp::can(left,"STORE")
-            ?? left.WHAT.new(nqp::p6bindattrinvres(
-                 nqp::create(List),List,'$!reified',values
-               ))
-            !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',values);
-        nqp::iscont(left) ?? result.item !! result
+            my \result := nqp::eqaddr(left.WHAT,List)
+              || nqp::eqaddr(left.WHAT,Slip)
+              ?? nqp::p6bindattrinvres(
+                   nqp::create(left),List,'$!reified',values
+                 )
+              !! nqp::can(left,"STORE")
+                ?? left.WHAT.new(nqp::p6bindattrinvres(
+                     nqp::create(List),List,'$!reified',values
+                   ))
+                !! nqp::p6bindattrinvres(
+                     nqp::create(List),List,'$!reified',values
+                   );
+            nqp::iscont(left) ?? result.item !! result
+        }
     }
 
     # x >>op<< [y]
@@ -310,7 +328,7 @@ class Hyper {
             )
           )
         );
-        
+
         result
     }
 
@@ -331,13 +349,18 @@ class Hyper {
         my @keys is List =
           nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$keys).keys;
 
-        # run with the left/right values
-        my \result := nqp::create(left.WHAT).STORE(
-          @keys,
-          (quietly self.infix(left{@keys}, right{@keys})),
-          :INITIALIZE
-        );
-        nqp::iscont(left) ?? result.item !! result;
+        if $!assigns {
+            quietly self.infix(left{@keys}, right{@keys});
+            left
+        }
+        else {
+            my \result := nqp::create(left.WHAT).STORE(
+              @keys,
+              (quietly self.infix(left{@keys}, right{@keys})),
+              :INITIALIZE
+            );
+            nqp::iscont(left) ?? result.item !! result;
+        }
     }
 
     # handle object hashes / QuantHashes
@@ -357,13 +380,18 @@ class Hyper {
         my @keys is List =
           nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$keys).values;
 
-        # run with the left/right values
-        my \result := nqp::create(left.WHAT).STORE(
-          @keys,
-          (quietly self.infix(left{@keys}, right{@keys})),
-          :INITIALIZE
-        );
-        nqp::iscont(left) ?? result.item !! result;
+        if $!assigns {
+            quietly self.infix(left{@keys}, right{@keys});
+            left
+        }
+        else {
+            my \result := nqp::create(left.WHAT).STORE(
+              @keys,
+              (quietly self.infix(left{@keys}, right{@keys})),
+              :INITIALIZE
+            );
+            nqp::iscont(left) ?? result.item !! result;
+        }
     }
 
     # error when left side of non-DWIM exhausted

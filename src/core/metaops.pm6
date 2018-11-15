@@ -2,16 +2,22 @@
 my $METAOP_ASSIGN := nqp::hash;
 sub METAOP_ASSIGN(\op) {
     nqp::ifnull(
-      nqp::atkey($METAOP_ASSIGN,op.name),
+      nqp::atkey($METAOP_ASSIGN,nqp::objectid(op)),
       METAOP_ASSIGN_NEW(op)
     )
 }
 sub METAOP_ASSIGN_NEW(\op) {
-    nqp::bindkey($METAOP_ASSIGN,op.name,nqp::stmts(
+    nqp::bindkey($METAOP_ASSIGN,nqp::objectid(op),nqp::stmts(
       (my \metaop := -> Mu \a, Mu \b {
           a = op.((a.DEFINITE ?? a !! op.()), b)
       }),
-      metaop.set_name(op.name.substr(0,*-1) ~ "=>"),
+      metaop.set_name(
+        nqp::if(
+          (my \name := op.name),
+          name.substr(0,*-1) ~ "=>",
+          "infix:<unnamed-op=>"
+        )
+      ),
       metaop
     ))
 }

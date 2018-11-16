@@ -53,10 +53,9 @@ class Hyper {
             left
         }
         else {
-            my @keys is List = left.keys;
             my \result := nqp::create(left.WHAT).STORE(
-              @keys,
-              self.infix(left{@keys},right),
+              left.keys,
+              self.infix(left.values,right),
               :INITIALIZE
             );
             nqp::iscont(left) ?? result.item !! result;
@@ -73,10 +72,9 @@ class Hyper {
     multi method infix(\left, Associative:D \right --> Associative:D) {
         return self!mu-pair(left,right) if nqp::istype(right,Pair);
 
-        my @keys is List = right.keys;
         my \result := nqp::create(right.WHAT).STORE(
-          @keys,
-          self.infix(left,right{@keys}),
+          right.keys,
+          self.infix(left,right.values),
           :INITIALIZE
         );
         nqp::iscont(right) ?? result.item !! result;

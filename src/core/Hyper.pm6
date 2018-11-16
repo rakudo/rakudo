@@ -372,7 +372,13 @@ class Hyper {
 
     # actually handle 2 associatives
     method !associatives(@keys, \left, \right) {
-        my \values := quietly self.infix(left{@keys}, right{@keys});
+        my \values := nqp::p6bindattrinvres(
+          nqp::create(List),List,'$!reified',
+          quietly self!iterators(
+            Rakudo::Iterator.AssociativeIterableKeys(left, @keys),
+            Rakudo::Iterator.AssociativeIterableKeys(right,@keys),
+          )
+        );
         if $!assigns {
             left
         }

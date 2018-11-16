@@ -1,6 +1,6 @@
 
 sub METAOP_ASSIGN(\op) {
-    -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
+    -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) } #= METAOP_ASSIGN
 }
 
 sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }

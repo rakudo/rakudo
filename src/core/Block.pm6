@@ -66,7 +66,7 @@ my class Block { # declared in BOOTSTRAP
 
     method WHY() {
         if nqp::isnull($!why) {
-            nextsame
+            nextsame unless $*COMPILING_CORE_SETTING;
         } else {
             $!why.set_docee(self);
             $!why

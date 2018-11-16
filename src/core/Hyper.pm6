@@ -15,6 +15,19 @@ class Hyper {
         )
     }
 
+    # for error messages
+    method name() {
+        my str $name = $!operator.name || 'infix:<op>';
+        my int $start = nqp::index($name,"«");
+        $start = nqp::index($name,"<") if $start == -1;
+        my int $end = nqp::index($name,"»");
+        $end = nqp::index($name,">") if $end == -1;
+
+        ($!dwim-left ?? '<<' !! '>>')
+          ~ nqp::substr($name,$start + 1,$end - $start -1)
+          ~ ($!dwim-right ?? '>>' !! '<<')
+    }
+
     proto method infix(|) {*}
 
     # x >>op<< y
@@ -40,8 +53,7 @@ class Hyper {
 
     # %x >>op<< ...
     multi method infix(Associative:D \left, List:D \right) {
-        die "{left.^name} {$!operator.name} {right.^name} can never work
-  reliably: the order of keys in {left.^name} is indeterminate"
+        die "{left.^name} $.name {right.^name} can never work reliably: order of keys in {left.^name} is indeterminate"
     }
 
     # %x >>op<< y
@@ -64,8 +76,7 @@ class Hyper {
 
     # ... >>op<< %y
     multi method infix(List:D \left, Associative:D \right) {
-        die "{left.^name} {$!operator.name} {right.^name} can never work
-  reliably: the order of keys in {right.^name} is indeterminate"
+        die "{left.^name} $.name {right.^name} can never work reliably: order of keys in {right.^name} is indeterminate"
     }
 
     # x >>op<< %y

@@ -51,7 +51,7 @@ multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is raw {
       ?? SELF.AT-KEY(key)
       !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
            nqp::stmts(
-             Rakudo::Iterator.AssociativeIterableKeys(SELF //= {},key)
+             Rakudo::Iterator.AssociativeIterableKeys(SELF,key)
                .push-all(my \buffer := nqp::create(IterationBuffer)),
              buffer
            )

@@ -39,7 +39,7 @@ class Hyper {
     }
 
     # %x >>op<< ...
-    multi method infix(Associative:D \left, Iterable:D \right) {
+    multi method infix(Associative:D \left, List:D \right) {
         die "{left.^name} {$!operator.name} {right.^name} can never work
   reliably: the order of keys in {left.^name} is indeterminate"
     }
@@ -63,7 +63,7 @@ class Hyper {
     }
 
     # ... >>op<< %y
-    multi method infix(Iterable:D \left, Associative:D \right) {
+    multi method infix(List:D \left, Associative:D \right) {
         die "{left.^name} {$!operator.name} {right.^name} can never work
   reliably: the order of keys in {right.^name} is indeterminate"
     }

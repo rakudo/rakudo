@@ -7,18 +7,17 @@ class Hyper {
     has int8 $.assigns;     # assigns to left side
 
     method new(\op, Bool() :$dwim-left, Bool() :$dwim-right) {
-        my $assigns = so (op.WHY && op.WHY.Str eq 'METAOP_ASSIGN');
         self.bless(
           :operator(op),
           :$dwim-left,
           :$dwim-right,
-          :$assigns,
+          :assigns(op.name.ends-with("=>")),
         )
     }
 
     # for error messages
     method name() {
-        my str $name = $!operator.name || "infix:<op{'=' if $!assigns}>";
+        my str $name = $!operator.name || 'infix:<op>';
         my int $start = nqp::index($name,"«");
         $start = nqp::index($name,"<") if $start == -1;
         my int $end = nqp::index($name,"»");

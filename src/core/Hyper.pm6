@@ -11,7 +11,7 @@ class Hyper {
           :operator(op),
           :$dwim-left,
           :$dwim-right,
-          :assigns(op.name.ends-with("=>")),
+          :assigns(op.name.ends-with(' + {assigning}')),
         )
     }
 

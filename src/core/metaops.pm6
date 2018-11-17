@@ -1,6 +1,8 @@
 
 sub METAOP_ASSIGN(\op) {
-    -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) } #= METAOP_ASSIGN
+    my \op-is := -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
+    op-is.set_name(op.name ~ ' + {assigning}');  # checked for in Hyper.new
+    op-is
 }
 
 sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }

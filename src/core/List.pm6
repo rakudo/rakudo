@@ -177,9 +177,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         method is-lazy() {
             nqp::if(
-              nqp::isconcrete($!current-iter),
-              $!current-iter.is-lazy,
-              False
+              nqp::isconcrete($!current-iter) && nqp::eqaddr($!current-iter.is-lazy, True),
+              True,
+              nqp::if(
+                nqp::isconcrete($!future),
+                nqp::stmts( # Check $!future to determine if any element is lazy
+                  (my $res  := False),
+                  (my $iter := nqp::iterator($!future)),
+                  nqp::while(
+                    $iter && nqp::eqaddr($res, False),
+                    nqp::if(
+                      nqp::can((my $cur := nqp::shift($iter)), 'is-lazy'),
+                      ($res := $cur.is-lazy),
+                    ),
+                  ),
+                  $res,
+                ),
+                False,
+              ),
             )
         }
     }

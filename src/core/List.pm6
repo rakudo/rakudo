@@ -187,7 +187,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   nqp::while(
                     $iter && nqp::eqaddr($res, False),
                     nqp::if(
-                      nqp::can((my $cur := nqp::shift($iter)), 'is-lazy'),
+                      nqp::eqaddr((my $cur := nqp::shift($iter)), Slip),
                       ($res := $cur.is-lazy),
                     ),
                   ),

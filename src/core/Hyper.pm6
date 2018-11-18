@@ -196,7 +196,10 @@ class Hyper {
               !! self!iterators-left(left-iterator,right-iterator)
             !! $!dwim-right
               ?? self!iterators-right(left-iterator,right-iterator)
-              !! self!iterators(left-iterator,right-iterator)
+              !! nqp::istype(left-iterator,PredictiveIterator)
+                   && nqp::istype(right-iterator,PredictiveIterator)
+                ?? self!predictive-iterators(left-iterator,right-iterator)
+                !! self!iterators(left-iterator,right-iterator)
         ;
         my \result := nqp::p6bindattrinvres(
           nqp::create(
@@ -255,6 +258,28 @@ class Hyper {
     }
 
 #--- Private helper methods ----------------------------------------------------
+
+    # ... >>op<< ...
+    method !predictive-iterators(
+      PredictiveIterator:D \left,
+      PredictiveIterator:D \right,
+    ) {
+        X::HyperOp::NonDWIM.new(
+          :$!operator,
+          :left-elems(left.count-only),
+          :right-elems(right.count-only),
+          :recursing
+        ).throw
+          if left.count-only != right.count-only;
+
+        # sure they have same number of elems, so only need to check one
+        my \result := nqp::create(IterationBuffer);
+        nqp::until(
+          nqp::eqaddr((my \leftv := left.pull-one),IterationEnd),
+          nqp::push(result,self.infix(leftv,right.pull-one))
+        );
+        result
+    }
 
     # ... >>op<< ...
     method !iterators(Iterator:D \left, Iterator:D \right) {

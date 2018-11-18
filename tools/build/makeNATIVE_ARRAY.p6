@@ -92,6 +92,7 @@ for $*IN.lines -> $line {
                 :action<store>, :what(self.^name)
               ).throw,
               nqp::stmts(
+                nqp::setelems(self,0),
                 $iterator.push-all(self),
                 self
               )

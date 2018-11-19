@@ -92,6 +92,17 @@
             nqp::bindpos(nqp::getattr(self,List,'$!reified'),one,value)
         }
 
+        method !RE-INITIALIZE(::?CLASS:D:) {
+            my \list := nqp::getattr(self,List,'$!reified');
+            nqp::bind(   # rebind newly created list
+              list,
+              nqp::bindattr(
+                self,List,'$!reified',
+                nqp::setelems(nqp::create(list),nqp::elems(list))
+              )
+            )
+        }
+
         proto method STORE(::?CLASS:D: |) {*}
         multi method STORE(::?CLASS:D: ::?CLASS:D \from-array) {
             nqp::stmts(
@@ -121,17 +132,13 @@
             )
         }
         multi method STORE(::?CLASS:D: Iterable:D \in, :$INITIALIZE) {
-            my \list := nqp::getattr(self,List,'$!reified');
-            my int $elems = nqp::elems(list);
-            nqp::bind(   # rebind newly created list if not the first time
-              list,
-              nqp::bindattr(
-                self,List,'$!reified',nqp::setelems(nqp::create(list),$elems)
-              )
-            ) unless $INITIALIZE;
+            my \list := $INITIALIZE
+              ?? nqp::getattr(self,List,'$!reified')
+              !! self!RE-INITIALIZE;
             my \desc := nqp::getattr(self,Array,'$!descriptor');
             my \iter := in.iterator;
             my int $i = -1;
+            my int $elems = nqp::elems(list);
             nqp::until(
               nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
                 || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
@@ -145,14 +152,9 @@
             self
         }
         multi method STORE(::?CLASS:D: Mu \item, :$INITIALIZE) {
-            my \list := nqp::getattr(self,List,'$!reified');
-            nqp::bind(   # rebind newly created list if not the first time
-              list,
-              nqp::bindattr(
-                self,List,'$!reified',
-                nqp::setelems(nqp::create(list),nqp::elems(list))
-              )
-            ) unless $INITIALIZE;
+            my \list := $INITIALIZE
+              ?? nqp::getattr(self,List,'$!reified')
+              !! self!RE-INITIALIZE;
             nqp::bindpos(list,0,
               nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor'))
             ) = item;

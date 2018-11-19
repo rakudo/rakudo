@@ -443,29 +443,34 @@ $ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
         nqp::die('p6dtypecheckrv expects a QAST::WVal as its second child');
     }
 });
-$ops.add_hll_op('perl6', 'p6decontrv', -> $qastcomp, $op {
-    my $is_rw;
-    if nqp::istype($op[0], QAST::WVal) {
-        $is_rw := nqp::istrue($op[0].value.rw);
-    }
-    else {
-        nqp::die('p6decontrv expects a QAST::WVal as its first child');
-    }
-    if $is_rw {
-        $qastcomp.as_mast($op[1])
-    }
-    else {
-        my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[0].value);
-        if !nqp::isnull($type) && nqp::objprimspec(nqp::decont($type)) -> int $prim {
-            if    $prim == 1 { $qastcomp.as_mast($op[1], :want($MVM_reg_int64)) }
-            elsif $prim == 2 { $qastcomp.as_mast($op[1], :want($MVM_reg_num64)) }
-            else             { $qastcomp.as_mast($op[1], :want($MVM_reg_str)) }
+sub decontrv_op($version) {
+    -> $qastcomp, $op {
+        my $is_rw;
+        if nqp::istype($op[0], QAST::WVal) {
+            $is_rw := nqp::istrue($op[0].value.rw);
         }
         else {
-            $qastcomp.as_mast(QAST::Op.new( :op('p6decontrv_internal'), $op[1] ));
+            nqp::die('p6decontrv expects a QAST::WVal as its first child');
+        }
+        if $is_rw {
+            $qastcomp.as_mast($op[1])
+        }
+        else {
+            my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[0].value);
+            if !nqp::isnull($type) && nqp::objprimspec(nqp::decont($type)) -> int $prim {
+                if    $prim == 1 { $qastcomp.as_mast($op[1], :want($MVM_reg_int64)) }
+                elsif $prim == 2 { $qastcomp.as_mast($op[1], :want($MVM_reg_num64)) }
+                else             { $qastcomp.as_mast($op[1], :want($MVM_reg_str)) }
+            }
+            else {
+                $qastcomp.as_mast(QAST::Op.new( :op("p6decontrv_internal"), $op[1], $version ));
+            }
         }
     }
-});
+}
+$ops.add_hll_op('perl6', 'p6decontrv', decontrv_op(''));
+$ops.add_hll_op('perl6', 'p6decontrv_6c', decontrv_op('6c'));
+
 $ops.add_hll_op('perl6', 'p6setautothreader', :inlinable, -> $qastcomp, $op {
     $qastcomp.as_mast(
         QAST::Op.new( :op('callmethod'), :name('set_autothreader'),

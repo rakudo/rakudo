@@ -116,7 +116,7 @@ sub wanted($ast,$by) {
             $ast[0] := WANTED($ast[0], $byby) if nqp::elems(@($ast));
             $ast.wanted(1);
         }
-        elsif $ast.op eq 'p6decontrv' {
+        elsif $ast.op eq 'p6decontrv' || $ast.op eq 'p6decontrv_6c' {
             $ast[1] := WANTED($ast[1], $byby) if nqp::elems(@($ast));
             $ast.wanted(1);
         }
@@ -335,7 +335,7 @@ sub unwanted($ast, $by) {
             $ast[0] := UNWANTED($ast[0], $byby) if nqp::elems(@($ast));
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'p6decontrv' {
+        elsif $ast.op eq 'p6decontrv' || $ast.op eq 'p6decontrv_6c' {
             $ast[1] := UNWANTED($ast[1], $byby) if nqp::elems(@($ast));
             $ast.sunk(1);
         }
@@ -859,7 +859,7 @@ register_op_desugar('p6var', -> $qast {
                     :op('call'),
                     QAST::Op.new(
                         :op('speshresolve'),
-                        QAST::SVal.new( :value('decontrv') ),
+                        QAST::SVal.new( :value($qast[1] eq '6c' ?? 'decontrv_6c' !! 'decontrv') ),
                         QAST::Var.new( :name($result), :scope('local') )
                     ),
                     QAST::Var.new( :name($result), :scope('local') ),
@@ -3812,6 +3812,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method routine_declarator:sym<method>($/) { make $<method_def>.ast; }
     method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
 
+    sub decontrv_op() {
+        $*W.lang-ver-before('d') && nqp::getcomp('perl6').backend.name eq 'moar'
+            ?? 'p6decontrv_6c'
+            !! 'p6decontrv'
+    }
+
     method routine_def($/) {
         my $block;
 
@@ -3829,7 +3835,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if is_clearly_returnless($block) {
                 $block[1] := QAST::Op.new(
-                    :op('p6decontrv'),
+                    :op(decontrv_op()),
                     QAST::WVal.new( :value($*DECLARAND) ),
                     $block[1]);
                 $block[1] := wrap_return_type_check($block[1], $*DECLARAND);
@@ -4267,7 +4273,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if is_clearly_returnless($past) {
                 $past[1] := QAST::Op.new(
-                    :op('p6decontrv'),
+                    :op(decontrv_op()),
                     QAST::WVal.new( :value($*DECLARAND) ),
                     $past[1]);
                 $past[1] := wrap_return_type_check($past[1], $*DECLARAND);
@@ -10071,7 +10077,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op<handlepayload>,
                 # If we fall off the bottom, decontainerize if
                 # rw not set.
-                QAST::Op.new( :op('p6decontrv'), QAST::WVal.new( :value($*DECLARAND) ), $past ),
+                QAST::Op.new( :op(decontrv_op()), QAST::WVal.new( :value($*DECLARAND) ), $past ),
                 'RETURN',
                 QAST::Op.new( :op<lastexpayload> )
             ),

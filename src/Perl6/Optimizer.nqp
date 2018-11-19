@@ -1347,7 +1347,7 @@ class Perl6::Optimizer {
         }
 
         # May be able to eliminate some decontrv operations.
-        if $optype eq 'p6decontrv' {
+        if $optype eq 'p6decontrv' || $optype eq 'p6decontrv_6c' {
             # If it's rw, don't need to decont at all.
             my $value := $op[1];
             return $value if $op[0].value.rw;

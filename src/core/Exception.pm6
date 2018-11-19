@@ -2647,8 +2647,8 @@ my class X::Multi::NoMatch is Exception {
                 else {
                     try @bits.push(":$(.key)\($($where
                         ?? Rakudo::Internals.SHORT-GIST: .value
-                        !! .value.WHAT.?perl):$(.value.defined ?? "D" !! "U")
-                    )");
+                        !! .value.WHAT.?perl
+                    ))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
             }

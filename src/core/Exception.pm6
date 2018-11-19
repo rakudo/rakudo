@@ -2630,7 +2630,7 @@ my class X::Multi::NoMatch is Exception {
         if $.capture {
             for $.capture.list {
                 try @bits.push(
-                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl
+                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
                 when Failure {
@@ -2647,8 +2647,8 @@ my class X::Multi::NoMatch is Exception {
                 else {
                     try @bits.push(":$(.key)\($($where
                         ?? Rakudo::Internals.SHORT-GIST: .value
-                        !! .value.WHAT.?perl
-                    ))");
+                        !! .value.WHAT.?perl):$(.value.defined ?? "D" !! "U")
+                    )");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
             }

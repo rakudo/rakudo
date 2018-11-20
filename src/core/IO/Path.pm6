@@ -283,8 +283,9 @@ my class IO::Path is Cool does IO {
             if nqp::iseq_s($part, $up) {
                 next unless $res-list;
                 nqp::pop_s($res-list);
-                $resolved = $res-list ?? $sep ~ nqp::join($sep, $res-list)
-                                      !! $empty;
+                $resolved = $res-list
+                  ?? nqp::concat(nqp::concat($volume, $sep), nqp::join($sep, $res-list))
+                  !! $empty;
                 next;
             }
 

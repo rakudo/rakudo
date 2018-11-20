@@ -15,6 +15,8 @@ my class X::Str::Sprintf::Directives::Count { ... }
 my class X::Str::Sprintf::Directives::Unsupported { ... }
 my class X::TypeCheck { ... }
 
+my $CORE_METAOP_ASSIGN := nqp::null;  # lazy storage for core METAOP_ASSIGN ops
+
 my class Rakudo::Internals {
 
     # for use in nqp::splice
@@ -1615,6 +1617,25 @@ my class Rakudo::Internals {
         )
     }
 
+    # Method for lazily installing fast versions of METAOP_ASSIGN ops for
+    # core infix ops.  Since the compilation of &[op] happens at build time
+    # of the setting, we're sure we're referring to the core ops and not one
+    # that has been locally installed.  Called by METAOP_ASSIGN.  Please add
+    # any other core ops that seem to be necessary.
+    method INSTALL-CORE-METAOPS() {
+        $CORE_METAOP_ASSIGN := nqp::create(Rakudo::Internals::IterationSet);
+        for (
+          &[+], -> Mu \a, Mu \b { a = a.DEFINITE ?? a + b !! +b },
+          &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! Failure.new("No zero-arg meaning for infix:<%>")},
+          &[-], -> Mu \a, Mu \b { a = a.DEFINITE ?? a - b !! -b },
+          &[*], -> Mu \a, Mu \b { a = a.DEFINITE ?? a * b !! +b },
+          &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! ~b },
+        ) -> \op, \metaop {
+            metaop.set_name(op.name ~ ' + {assigning}');
+            nqp::bindkey($CORE_METAOP_ASSIGN,nqp::objectid(op),metaop);
+        }
+        $CORE_METAOP_ASSIGN
+    }
 }
 
 # expose the number of bits a native int has

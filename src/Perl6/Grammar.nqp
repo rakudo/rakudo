@@ -4279,7 +4279,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $META.name('&METAOP_HYPER_POSTFIX') if $META.name eq '&METAOP_HYPER_POSTFIX_ARGS';
                 my $fun := $*W.compile_time_evaluate(self.MATCH,$META);
                 $*W.install_lexical_symbol($*W.cur_lexpad(),'&' ~ $categorical[0],$fun);
-                $fun.set_name($name);
+                $fun.set_name($name) unless $fun.name;
                 return self;
             }
         }

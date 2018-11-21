@@ -631,7 +631,7 @@ my class Hash { # declared in BOOTSTRAP
         method keys() { Seq.new(Keys.new(self)) }
 
         my class Values does Rakudo::Iterator::Mappy {
-            method pull-one() {
+            method pull-one() is raw {
                 nqp::if(
                   $!iter,
                   nqp::getattr(nqp::iterval(nqp::shift($!iter)),

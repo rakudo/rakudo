@@ -1,6 +1,8 @@
 use Test;
 
-plan 4;
+my $skip = %*ENV<RAKUDO_SKIP_TIMING_TESTS> ?? 1 !! 0;
+
+plan 4 - $skip;
 
 # https://github.com/rakudo/rakudo/issues/1488
 {
@@ -28,7 +30,7 @@ plan 4;
         "was native .sum $took2 at least 10x as fast as $took1 ({$took1/$took2}x)";
 }
 
-{ # https://github.com/rakudo/rakudo/issues/1740
+unless $skip { # https://github.com/rakudo/rakudo/issues/1740
     my $t-plain = { (^∞).grep(*.is-prime)[1000];       now - ENTER now }();
     my $t-hyper = { (^∞).hyper.grep(*.is-prime)[1000]; now - ENTER now }();
     cmp-ok $t-hyper, '≤', $t-plain*2,

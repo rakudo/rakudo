@@ -193,12 +193,10 @@ my class MixHash does Mixy {
             )
         }
 
-        # same as Baggy.values
         method push-all($target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(nqp::getattr(
-                nqp::iterval(nqp::shift($!iter)),Pair,'$!value'))
+              $target.push(proxy(nqp::shift($!iter),$!hash))
             )
         }
     }

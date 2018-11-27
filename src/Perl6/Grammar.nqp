@@ -2281,7 +2281,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {
             $*VARIABLE := $<variable>.ast.name;
             $/.add_variable($*VARIABLE);
-            $sigil := nqp::substr($*VARIABLE, 0, 1);
+            $sigil := $<variable><sigil>.Str;
             $*IN_DECL := '';
         }
         [

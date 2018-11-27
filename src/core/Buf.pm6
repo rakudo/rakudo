@@ -1,3 +1,4 @@
+my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
@@ -41,11 +42,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::splice(nqp::create(self),@values,0,0)
     }
     multi method new(Blob: @values) {
-        @values.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<new>,:what(self.^name)))
-          !! self!push-list("initializ",nqp::create(self),@values)
+        nqp::create(self).STORE(@values, :INITIALIZE)
     }
-    multi method new(Blob: *@values) { self.new(@values) }
+    multi method new(Blob: *@values) {
+        nqp::create(self).STORE(@values, :INITIALIZE)
+    }
+
+    proto method STORE(Blob:D: |) {*}
+    multi method STORE(Blob:D: Iterable:D \iterable, :$INITIALIZE) {
+        $INITIALIZE
+          ?? iterable.is-lazy
+            ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+            !! self!push-list("initializ",self,iterable)
+          !! X::Assignment::RO.new(:value(self)).throw
+    }
 
     proto method allocate(|) {*}
     multi method allocate(Blob:U: Int:D $elements) {
@@ -525,6 +535,19 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::bindpos_i(self,$pos,assignee)
+    }
+
+    multi method STORE(Buf:D: Blob:D $blob) {
+        nqp::splice(nqp::setelems(self,0),$blob,0,0)
+    }
+    # The "is default" is needed to prevent runtime dispatch errors
+    multi method STORE(Buf:D: int @values) is default {
+        nqp::splice(nqp::setelems(self,0),@values,0,0)
+    }
+    multi method STORE(Buf:D: Iterable:D \iterable) {
+        iterable.is-lazy
+          ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+          !! self!push-list("initializ",nqp::setelems(self,0),iterable);
     }
 
     multi method list(Buf:D:) {

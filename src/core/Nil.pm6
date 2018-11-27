@@ -1,5 +1,3 @@
-class X::Assignment::RO { ... }
-
 my class Nil is Cool { # declared in BOOTSTRAP
     method new(*@ --> Nil)    { }
     multi method gist(Nil:)   { 'Nil' }

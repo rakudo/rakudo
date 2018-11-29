@@ -48,8 +48,8 @@ my class Match is Capture is Cool does NQPMatchRole {
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
                                 ?? nqp::bindpos(
                                         nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
-                                        nqp::fromstr_I($name, Int), [])
-                                !! nqp::bindkey($hash, $name, []);
+                                        nqp::fromstr_I($name, Int), nqp::create(Array))
+                                !! nqp::bindkey($hash, $name, nqp::create(Array));
                         }
                     }
                     $onlyname = $name if nqp::iseq_i($namecount, 1);

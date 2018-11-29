@@ -45,14 +45,14 @@ my class Match is Capture is Cool does NQPMatchRole {
                         $namecount = nqp::add_i($namecount, 1);
                         if nqp::iterval(nqp::shift($iter)) >= 2 {
                             $name = nqp::iterkey_s($iter);
-                            $onlyname = $name if nqp::iseq_i($namecount, 1);
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
                                 ?? nqp::bindpos(
                                         nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
-                                        nqp::fromstr_I($name, Int), [])
-                                !! nqp::bindkey($hash, $name, []);
+                                        nqp::fromstr_I($name, Int), nqp::create(Array))
+                                !! nqp::bindkey($hash, $name, nqp::create(Array));
                         }
                     }
+                    $onlyname = $name if nqp::iseq_i($namecount, 1);
                 }
             }
 

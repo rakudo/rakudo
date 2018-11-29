@@ -52,7 +52,7 @@ New in 2018.11:
     + Optimized various operations on `Date` and `DateTime` making
         them up to 3x as fast [11cb4fac][b6292fe9][08fac045][98d07cf6]
         [b463746d][bf3eb8ec][a11d599f]
-    + Fast-path Metaops indicated by `&[+=]` syntax in Hyperops [e7ce194a]
+    + Made metaops use the fast path for `&[+=]`-like ops [e7ce194a]
     + Hyper operator refactor makes many things like
         `%h >>+>> 1` 1.3x to 8x as fast [bfe2ad63][130cc817][0bc72e05]
           [75c9456a][ec2848c4][f06e8582][73eb297f][194daab7][a575effe]
@@ -64,15 +64,14 @@ New in 2018.11:
           [19f0c842][86ce4f4e][50f2207b][2e5be5b8][1b7253df][64a47d87]
           [005261a4][10693d16]
   + Internal:
-    + Mod CORE.d setting compilation to propagate indicator flags [4a6d9108]
+    + Changed CORE.d setting compilation to propagate indicator flags [4a6d9108]
     + Made sure we don't add object to serialization context more
         than once [3995e423]
-    + Use signature to return constant value [5f1a81e0]
     + New QAST to mbc compiler [edc4c054][6aafe18d][f8be2fa0][656a8045][bb43acdb]
     + Added `Hash.STORE(\keys,\values)` [faa19ab9]
     + Introduced `R:I.AssociativeIterableKeys` [6fe27894]
-    + Various internal optimizations [1766435a][8e858c8d][00eb7b85][0fa6988c]
-        [bf3575cc][18ded174]
+    + Various internal optimizations [5f1a81e0][1766435a][8e858c8d][00eb7b85]
+        [0fa6988c][bf3575cc][18ded174]
 
 New in 2018.10:
   + SPECIAL NOTES:

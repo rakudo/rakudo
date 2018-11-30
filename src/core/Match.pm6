@@ -25,11 +25,12 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     method !MATCH() {
-        my int $from = nqp::getattr_i(self, Match, '$!from');
-        my int $pos  = nqp::getattr_i(self, Match, '$!pos');
         my Mu $list;
         my Mu $hash := nqp::hash();
-        if nqp::isge_i($pos, $from) {
+        if nqp::isge_i(
+          nqp::getattr_i(self,Match,'$!pos'),
+          nqp::getattr_i(self, Match, '$!from')
+        ) {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
             my $rxsub   := nqp::getattr(self, Match, '$!regexsub');

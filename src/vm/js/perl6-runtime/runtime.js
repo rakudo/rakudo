@@ -4,14 +4,24 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
   let Scalar, True, False, Str, Code, Mu, Signature;
 
+  nqp.saveThisGlobalContext(context => {
+    context.p6binder = nqp.p6binder;
+  });
+
+  nqp.restoreThisGlobalContext(context => {
+    nqp.p6binder = context.p6binder;
+  });
+
   op.p6settypes = function(types) {
-    Scalar = types.content.get('Scalar');
-    True = types.content.get('True');
-    False = types.content.get('False');
-    Str = types.content.get('Str');
-    Code = types.content.get('Code');
-    Mu = types.content.get('Mu');
-    Signature = types.content.get('Signature');
+    nqp.restoreThisGlobalContext(context => {
+      Scalar = types.content.get('Scalar');
+      True = types.content.get('True');
+      False = types.content.get('False');
+      Str = types.content.get('Str');
+      Code = types.content.get('Code');
+      Mu = types.content.get('Mu');
+      Signature = types.content.get('Signature');
+    });
 
     return types;
   };
@@ -193,12 +203,11 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return cont;
   };
 
-  const p6HLL = nqp.getHLL('perl6');
 
   op.p6argvmarray = function(ctx, args) {
     const array = [];
     for (let i=2; i < args.length; i++) {
-      array[i-2] = nqp.op.hllizefor(ctx, nqp.arg(p6HLL, args[i]), 'perl6');
+      array[i-2] = nqp.op.hllizefor(ctx, nqp.arg(nqp.getHLL('perl6'), args[i]), 'perl6');
     }
     return nqp.createArray(array);
   };
@@ -291,6 +300,28 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
     return nqp.retval(currentHLL, code.$$call(invokingUnder, null));
 
+  };
+
+  op.p6fakerun = function(HLL, options) {
+    const code = options.content.get('code').$$getStr();
+    const input = options.content.get('input').$$getStr();
+
+    const compilerArgs = options.content.get('compiler-args').array;
+    const args = options.content.get('args').array;
+
+    const env = options.content.get('env');
+
+    const rakudoLibrary = nqp.requireExtraStuff('./rakudo-library.nqp-raw-runtime');
+
+    const result = rakudoLibrary.capturedRun(code, input, compilerArgs, args, env);
+
+    const hash = nqp.hash();
+
+    hash.content.set('out', nqp.op.box_s(result.out, HLL.get('str_box')));
+    hash.content.set('err', nqp.op.box_s(result.err, HLL.get('str_box')));
+    hash.content.set('status', nqp.op.box_i(result.status, HLL.get('int_box')));
+
+    return hash;
   };
 
   function RakudoScalar(STable) {

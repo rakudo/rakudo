@@ -1,37 +1,37 @@
-const fs = require('fs');
-const tmp = require('tmp');
-
 const nqp = require('nqp-runtime');
-const oldRun = nqp.run;
-
-const oldArgs = nqp.args;
-
-nqp.run = function(code) {
-  nqp.run = oldRun;
-  return code;
-};
 
 let passedArgs;
 
-nqp.args = function(calledFrom) {
-  if (calledFrom.parent === module) {
-      return passedArgs.map(arg => new nqp.NativeStrArg(arg));
-  }
-  return oldArgs(calledFrom);
+let oldArgs;
+
+function fakeArgs(isMain) {
+  return isMain ? passedArgs.map(arg => new nqp.NativeStrArg(arg)) : [];
 };
 
-const code = require('./rakudo.js');
+
+const code = function() {
+  require('./rakudo.js')(true);
+};
 
 const core = require('nqp-runtime/core.js');
 
 module.exports.compile = function(source, options = {}) {
+  const oldGlobalContext = nqp.freshGlobalContext();
+
+  const oldArgs = nqp.args;
+  nqp.args = fakeArgs;
+  const tmp = require('tmp');
   const tmpFile = tmp.tmpNameSync();
 
   passedArgs = ['perl6-js', '--output', tmpFile, '--target=js', source];
 
-  const oldWritefh = nqp.op.getstdout().constructor.prototype.$$writefh;
+  if (Object.prototype.hasOwnProperty.call(nqp.op.getstdout(), '$$writefh')) {
+    throw `Can't overwrite $$writefh on stdout, it's already set`;
+  }
+
   const output = [];
-  nqp.op.getstdout().constructor.prototype.$$writefh = function(buf) {
+
+  nqp.op.getstdout().$$writefh = function(buf) {
     output.push(core.toRawBuffer(buf));
   }
 
@@ -44,7 +44,8 @@ module.exports.compile = function(source, options = {}) {
     code();
   }
 
-  nqp.op.getstdout().constructor.prototype.$$writefh = oldWritefh;
+  delete nqp.op.getstdout().$$writefh;
+
   const lines = Buffer.concat(output).toString().split(/\n/);
 
   const loaded = [];
@@ -60,11 +61,32 @@ module.exports.compile = function(source, options = {}) {
     }
   }
 
+  nqp.args = oldArgs;
 
+  nqp.setGlobalContext(oldGlobalContext);
+
+  const fs = require('fs');
   return {js: fs.readFileSync(tmpFile, 'utf8'), loaded: loaded};
 };
 
-module.exports.capturedRun = function(source, input, compileArgs, args) {
+module.exports.capturedRun = function(source, input, compileArgs, args, passedEnv) {
+  const oldGlobalContext = nqp.freshGlobalContext();
+
+  const env = nqp.hash();
+
+  passedEnv.content.forEach((value, key, map) => {
+    env.content.set(key, new nqp.NQPStr(value.$$getStr()));
+  });
+
+  const oldArgs = nqp.args;
+  nqp.args = fakeArgs;
+
+  const oldGetEnvHash = nqp.op.getenvhash;
+
+  nqp.op.getenvhash = function() {
+    return env;
+  };
+
   const out = [];
   const err = [];
 
@@ -82,15 +104,21 @@ module.exports.capturedRun = function(source, input, compileArgs, args) {
     throw new Exit(status);
   };
 
-  const oldStdoutWritefh = nqp.op.getstdout().constructor.prototype.$$writefh;
-  nqp.op.getstdout().constructor.prototype.$$writefh = function(buf) {
-    out.push(core.toRawBuffer(buf));
+  if (Object.prototype.hasOwnProperty.call(nqp.op.getstdout(), '$$writefh')) {
+    throw `Can't overwrite $$writefh on stdout, it's already set`;
   }
 
-  const oldStderrWritefh = nqp.op.getstderr().constructor.prototype.$$writefh;
-  nqp.op.getstderr().constructor.prototype.$$writefh = function(buf) {
-    err.push(core.toRawBuffer(buf));
+  nqp.op.getstdout().$$writefh = function(buf) {
+    out.push(core.toRawBuffer(buf));
+  };
+
+  if (Object.prototype.hasOwnProperty.call(nqp.op.getstderr(), '$$writefh')) {
+    throw `Can't overwrite $$writefh on stderr, it's already set`;
   }
+
+  nqp.op.getstderr().$$writefh = function(buf) {
+    err.push(core.toRawBuffer(buf));
+  };
 
   const oldOpen = nqp.op.open;
 
@@ -144,11 +172,15 @@ module.exports.capturedRun = function(source, input, compileArgs, args) {
     }
   }
 
-  nqp.op.getstdout().constructor.prototype.$$writefh = oldStdoutWritefh;
-  nqp.op.getstderr().constructor.prototype.$$writefh = oldStderrWritefh;
+  delete nqp.op.getstdout().$$writefh;
+  delete nqp.op.getstderr().$$writefh;
 
   nqp.op.exit = oldExit;
   nqp.op.open = oldOpen;
+  nqp.args = oldArgs;
+  nqp.op.getenvhash = oldGetEnvHash;
+
+  nqp.setGlobalContext(oldGlobalContext);
 
   return {
     status: status,

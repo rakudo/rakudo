@@ -154,25 +154,33 @@ multi sub infix:<(|)>(Failure:D $a, Any $b) { $a.throw }
 multi sub infix:<(|)>(Any $a, Failure:D $b) { $b.throw }
 multi sub infix:<(|)>(Any $a, Any $b) {
     nqp::if(
-      nqp::istype($a,Mixy),
-      infix:<(|)>($a, $b.Mix),
+      nqp::isconcrete($a),
       nqp::if(
-        nqp::istype($a,Baggy),
-        infix:<(|)>($a, $b.Bag),
+        nqp::istype($a,Mixy),
+        infix:<(|)>($a, $b.Mix),
         nqp::if(
-          nqp::istype($a,Setty),
-          infix:<(|)>($a, $b.Set),
+          nqp::istype($a,Baggy),
+          infix:<(|)>($a, $b.Bag),
           nqp::if(
-            nqp::istype($b,Mixy),
-            infix:<(|)>($a.Mix, $b),
+            nqp::istype($a,Setty),
+            infix:<(|)>($a, $b.Set),
             nqp::if(
-              nqp::istype($b,Baggy),
-              infix:<(|)>($a.Bag, $b),
-              infix:<(|)>($a.Set, $b.Set)
+              nqp::isconcrete($b),
+              nqp::if(
+                nqp::istype($b,Mixy),
+                infix:<(|)>($a.Mix, $b),
+                nqp::if(
+                  nqp::istype($b,Baggy),
+                  infix:<(|)>($a.Bag, $b),
+                  infix:<(|)>($a.Set, $b.Set)
+                )
+              ),
+              infix:<(|)>($a, $b.Set)
             )
           )
         )
-      )
+      ),
+      infix:<(|)>($a.Set, $b)
     )
 }
 

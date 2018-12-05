@@ -130,7 +130,10 @@ multi sub infix:<(&)>(Failure:D $a, Any $) { $a.throw }
 # Note that we cannot create a Setty:D,Any candidate because that will result
 # in an ambiguous dispatch, so we need to hack a check for Setty in here.
 multi sub infix:<(&)>(Any $a, Any $b) {
-    infix:<(&)>(nqp::istype($a,Setty) ?? $a !! $a.Set,$b.Set)
+    infix:<(&)>(
+      nqp::istype($a,Setty) && nqp::isconcrete($a) ?? $a !! $a.Set,
+      $b.Set
+    )
 }
 
 multi sub infix:<(&)>(**@p) {

@@ -54,9 +54,11 @@ multi sub infix:<(.)>(Failure:D $a, Any $) { $a.throw }
 # in here.
 multi sub infix:<(.)>(Any $a, Any $b) {
     infix:<(.)>(
-      nqp::istype($a,Setty)
-        ?? $a.Baggy
-        !!  nqp::istype($a,Baggy) ?? $a !! $a.Bag,
+      nqp::isconcrete($a)
+        ?? nqp::istype($a,Setty)
+          ?? $a.Baggy
+          !! nqp::istype($a,Baggy) ?? $a !! $a.Bag
+        !! $a.Bag,
       $b.Bag
     )
 }

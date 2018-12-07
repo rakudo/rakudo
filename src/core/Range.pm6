@@ -149,12 +149,12 @@ my class Range is Cool does Iterable does Positional {
                   !! Rakudo::Iterator.SuccFromInf(
                        $!excludes-min ?? $!min.succ !! $!min
                      )
-                !! nqp::istype($!min,Str) && nqp::istype($!max,Str)
+                !! nqp::istype($!min,Str)
                   # we have a string range
                   ?? $!min.chars == 1 && $!max.chars == 1
                     # we have (simple) char range
                     ?? Rakudo::Iterator.CharFromTo(
-                         $!min,$!max,$!excludes-min,$!excludes-max
+                         $!min,$!max.Str,$!excludes-min,$!excludes-max
                        )
                     # generic string sequence
                     !! SEQUENCE(

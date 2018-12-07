@@ -10,7 +10,7 @@ function fakeArgs(isMain) {
 
 
 const code = function() {
-  require('./rakudo.js')(true);
+  require('./rakudo.js')(nqp, true);
 };
 
 const core = require('nqp-runtime/core.js');
@@ -57,7 +57,7 @@ module.exports.compile = function(source, options = {}) {
       const deps = match[2] == '' ? [] : match[2].split(',');
       loaded.push({id: match[1], deps: deps, path: match[3]});
     } else {
-      console.warn('extra line', line);
+      // console.warn('extra line', line);
     }
   }
 

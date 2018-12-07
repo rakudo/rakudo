@@ -6,9 +6,11 @@ const releaseDir = 'release';
 const version = process.argv[2];
 const rakudoPath = process.argv[3];
 const nqpInstallPath = process.argv[4];
+const nqpPath = process.argv[5];
+const parcelPluginPath = process.argv[6];
 
-if (!version) {
-  console.error('USAGE: node make-release.js VERSION');
+if (process.argv.length !== 7) {
+  console.error('USAGE: node make-release.js VERSION PATH-TO-RAKUDO PATH-To-NQP-INSTALL PATH-TO-NQP-REPO PATH-TO-PARCEL-PLUGIN-REPO');
   process.exit();
 }
 
@@ -24,8 +26,11 @@ function prepare(oldPath, newPath) {
   console.log('generating', newPath);
   let contents = fs.readFileSync(oldPath, 'utf8');
 
+  const runtime = path.join(nqpInstallPath, "share/nqp/lib/nqp-js-on-js/node_modules/nqp-runtime");
+
   contents = contents.replace('var nqp = require("' + path.join(nqpInstallPath, "share/nqp/lib/nqp-js-on-js/node_modules/nqp-runtime") + '");', 'var nqp = require("nqp-runtime");\n');
 
+  contents = contents.replace('body(require("' + runtime + '"), true)', 'body(require("nqp-runtime"), true)');
 
   contents = contents.replace('nqp.libpath(["' + path.join(rakudoPath, "node_modules/") + '","' + path.join(nqpInstallPath, "share/nqp/lib/nqp-js-on-js/") + '"]);', 'nqp.libpath([{module: module, prefix:\'.\/\'}, {module: module, prefix:\'nqp-js-on-js/\'}]);\n');
 
@@ -63,7 +68,7 @@ fs.writeFileSync(path.join(releaseDir, 'package.json'), JSON.stringify({
     "perl6-js": "rakudo.js"
   },
   "files": [
-    "*.js"
+    "*.js", "*.js.map"
   ],
   "licenses": [
     {
@@ -78,3 +83,26 @@ fs.writeFileSync(path.join(releaseDir, 'package.json'), JSON.stringify({
     "tmp": "0.0.33"
   }
 }, null, 2));
+
+function updateVersionFor(keyword, version, content) {
+  const regexp = new RegExp('("' + keyword + '": ")' + '\\d+\\.\\d+\\.\\d+');
+  return content.replace(regexp,
+    (whole, before) => before + version);
+}
+
+function bumpVersion(path, version, bumpDeps=[]) {
+  let content = fs.readFileSync(path, 'utf8');
+
+  content = updateVersionFor('version', version, content);
+
+  for (const dep of bumpDeps) {
+    content = updateVersionFor(dep, version, content);
+  }
+
+  fs.writeFileSync(path, content);
+}
+
+bumpVersion('src/vm/js/perl6-runtime/package.json', version);
+bumpVersion(path.join(nqpPath, 'src/vm/js/nqp-runtime/package.json'), version);
+bumpVersion(path.join(nqpPath, 'nqp-js-on-js/package.json'), version, ['nqp-runtime']);
+bumpVersion(path.join(parcelPluginPath, 'package.json'), version, ['rakudo', 'nqp-browser-runtime']);

@@ -11,6 +11,8 @@ $comp.addstage('syntaxcheck', :before<ast>);
 $comp.addstage('optimize', :after<ast>);
 
 
+nqp::bindattr($comp, HLL::Compiler, '%!cli-options', nqp::hash());
+
 $comp.set_language_version('6.d');
 
 sub hll-config($config) {

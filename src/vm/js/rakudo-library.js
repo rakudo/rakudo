@@ -9,8 +9,8 @@ function fakeArgs(isMain) {
 };
 
 
-const code = function() {
-  require('./rakudo.js')(nqp, true);
+const code = /*async*/ function() {
+  /*await*/ require('./rakudo.js')(nqp, true);
 };
 
 const core = require('nqp-runtime/core.js');
@@ -69,7 +69,7 @@ module.exports.compile = function(source, options = {}) {
   return {js: fs.readFileSync(tmpFile, 'utf8'), loaded: loaded};
 };
 
-module.exports.capturedRun = function(source, input, compileArgs, args, passedEnv) {
+module.exports.capturedRun = /*await*/ function(source, input, compileArgs, args, passedEnv) {
   const oldGlobalContext = nqp.freshGlobalContext();
 
   const env = nqp.hash();
@@ -163,7 +163,7 @@ module.exports.capturedRun = function(source, input, compileArgs, args, passedEn
   let status = 0;
 
   try {
-    code();
+    /*await*/ code();
   } catch (e) {
     if (e instanceof Exit) {
       status = e.status;

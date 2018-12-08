@@ -1,6 +1,6 @@
 {
   "name": "perl6-runtime",
-  "version": "0.17.0",
+  "version": "0.28.0",
   "description": "the runtime for the js backend for rakudo",
   "bugs": {
     "email": "pawelmurias@gmail.com"

@@ -34,37 +34,37 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return (obj === Null || obj.typeObject_) ? False : True;
   };
 
-  op.p6typecheckrv = function(ctx, rv, routine, bypassType) {
+  op.p6typecheckrv = /*async*/ function(ctx, rv, routine, bypassType) {
     const sig = routine.$$getattr(Code, '$!signature');
     let rtype = sig.$$getattr(Signature, '$!returns');
     if (rtype !== Null && nqp.op.objprimspec(rtype) === 0) {
       let targetType;
       const how = rtype._STable.HOW;
-      const archetypes = how.archetypes(ctx, null, how);
-      const isCoercive = nqp.retval_bool(ctx, archetypes.coercive(ctx, null, archetypes));
+      const archetypes = /*await*/ how.archetypes(ctx, null, how);
+      const isCoercive = nqp.retval_bool(ctx, /*await*/ archetypes.coercive(ctx, null, archetypes));
 
       if (isCoercive) {
-        targetType = how.target_type(ctx, null, how, rtype);
-        rtype = how.constraint_type(ctx, null, how, rtype);
+        targetType = /*await*/ how.target_type(ctx, null, how, rtype);
+        rtype = /*await*/ how.constraint_type(ctx, null, how, rtype);
       }
 
-      const decontValue = rv.$$decont(ctx);
-      if (decontValue.$$istype(ctx, rtype) === 0 && decontValue.$$istype(ctx, bypassType) === 0) {
+      const decontValue = /*await*/ rv.$$decont(ctx);
+      if (/*await*/ decontValue.$$istype(ctx, rtype) === 0 && /*await*/ decontValue.$$istype(ctx, bypassType) === 0) {
         const thrower = getThrower("X::TypeCheck::Return");
         if (thrower === Null) {
-            ctx.die("Type check failed for return value");
+            /*await*/ ctx.die("Type check failed for return value");
         } else {
-            thrower.$$call(ctx, null, decontValue, rtype);
+            /*await*/ thrower.$$call(ctx, null, decontValue, rtype);
         }
       }
 
       if (targetType !== undefined && targetType !== rtype) {
-        const targetTypeName = targetType._STable.HOW.name(
+        const targetTypeName = /*await*/ targetType._STable.HOW.name(
           ctx, null, targetType._STable.HOW, targetType).$$getStr();
-        if (rv.$$can(ctx, targetTypeName)) {
+        if (/*await*/ rv.$$can(ctx, targetTypeName)) {
           return rv[targetTypeName](ctx, null, rv);
         } else {
-          const rtypeName = rtype._STable.HOW.name(ctx, null, rtype._STable.HOW, rtype).$$getStr();
+          const rtypeName = /*await*/ rtype._STable.HOW.name(ctx, null, rtype._STable.HOW, rtype).$$getStr();
           throw new nqp.NQPException(
             `Unable to coerce the return value from ${rtypeName} to ${targetTypeName} ;` +
               `no coercion method defined`);
@@ -174,40 +174,40 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return codeObj;
   };
 
-  op.p6bindassert = function(ctx, value, type) {
+  op.p6bindassert = /*async*/ function(ctx, value, type) {
     if (type !== Mu) {
-      if (value.$$decont(ctx).$$istype(ctx, type) == 0) {
+      if (/*await*/ value.$$decont(ctx).$$istype(ctx, type) == 0) {
         const thrower = getThrower("X::TypeCheck::Binding");
 
         if (thrower === null) {
-          ctx.die("Type check failed in binding");
+          /*await*/ ctx.die("Type check failed in binding");
         } else {
-          thrower.$$call(ctx, null, value, type);
+          /*await*/ thrower.$$call(ctx, null, value, type);
         }
       }
     }
     return value;
   };
 
-  op.p6store = function(ctx, cont, value) {
+  op.p6store = /*async*/ function(ctx, cont, value) {
     if (cont.$$assign) {
-      cont.$$assign(ctx, value.$$decont(ctx));
+      /*await*/ cont.$$assign(ctx, value.$$decont(ctx));
     } else {
       if (!cont.STORE) {
         // TODO throw typed exception X::Assignment::RO
         ctx.die("Cannot assign to a non-container");
       } else {
-        cont.STORE(ctx, null, cont, value);
+        /*await*/ cont.STORE(ctx, null, cont, value);
       }
     }
     return cont;
   };
 
 
-  op.p6argvmarray = function(ctx, args) {
+  op.p6argvmarray = /*async*/ function(ctx, args) {
     const array = [];
     for (let i=2; i < args.length; i++) {
-      array[i-2] = nqp.op.hllizefor(ctx, nqp.arg(nqp.getHLL('perl6'), args[i]), 'perl6');
+      array[i-2] = /*await*/ nqp.op.hllizefor(ctx, nqp.arg(nqp.getHLL('perl6'), args[i]), 'perl6');
     }
     return nqp.createArray(array);
   };
@@ -225,7 +225,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     ]);
   }
 
-  op.p6finddispatcher = function(ctx, usage) {
+  op.p6finddispatcher = /*async*/ function(ctx, usage) {
     let dispatcher;
     let search = ctx.$$caller;
     while (search) {
@@ -233,7 +233,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       if (search.hasOwnProperty("$*DISPATCHER") && search["$*DISPATCHER"] !== Null) {
         dispatcher = search["$*DISPATCHER"];
         if (dispatcher.typeObject_) {
-          dispatcher = dispatcher.vivify_for(ctx, null, dispatcher, search.codeRef().codeObj, search, new Capture(search.$$args[1], Array.prototype.slice.call(search.$$args, 2)));
+          dispatcher = /*await*/ dispatcher.vivify_for(ctx, null, dispatcher, search.codeRef().codeObj, search, new Capture(search.$$args[1], Array.prototype.slice.call(search.$$args, 2)));
           search["$*DISPATCHER"] = dispatcher;
         }
         return dispatcher;
@@ -243,9 +243,9 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
     const thrower = getThrower("X::NoDispatcher");
     if (thrower === Null) {
-        ctx.die(usage + ' is not in the dynamic scope of a dispatcher');
+        /*await*/ ctx.die(usage + ' is not in the dynamic scope of a dispatcher');
     } else {
-        thrower.$$call(ctx, null, new nqp.NativeStrArg(usage));
+        /*await*/ thrower.$$call(ctx, null, new nqp.NativeStrArg(usage));
     }
 
   };
@@ -263,7 +263,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     throw 'Could not find arguments for dispatcher';
   };
 
-  op.p6sink = function(ctx, obj) {
+  op.p6sink = /*async*/ function(ctx, obj) {
     if (obj.typeObject_ || obj === Null) return;
     if (obj.$$can(ctx, 'sink')) {
       obj.sink(ctx, null, obj);
@@ -291,14 +291,14 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return closure.outerCtx || Null;
   };
 
-  op.p6invokeunder = function(ctx, currentHLL, fake, code) {
+  op.p6invokeunder = /*async*/ function(ctx, currentHLL, fake, code) {
     const spec = fake._STable.invocationSpec;
 
     const fakeCode = fake.$$getattr(spec.classHandle, spec.attrName);
 
     const invokingUnder = new nqp.Ctx(ctx, fakeCode.outerCtx, fakeCode);
 
-    return nqp.retval(currentHLL, code.$$call(invokingUnder, null));
+    return nqp.retval(currentHLL, /*await*/ code.$$call(invokingUnder, null));
 
   };
 
@@ -344,11 +344,11 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     const store_unchecked = this.store_unchecked;
 
     this.STable.addInternalMethod('$$assignunchecked', function(ctx, value) {
-      store_unchecked.$$call(ctx, null, this, value);
+      return store_unchecked.$$call(ctx, null, this, value);
     });
 
     this.STable.addInternalMethod('$$assign', function(ctx, value) {
-      store.$$call(ctx, null, this, value);
+      return store.$$call(ctx, null, this, value);
     });
 
     this.STable.addInternalMethod('$$decont', function(ctx) {

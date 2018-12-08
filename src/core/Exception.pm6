@@ -2630,7 +2630,7 @@ my class X::Multi::NoMatch is Exception {
         if $.capture {
             for $.capture.list {
                 try @bits.push(
-                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl
+                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
                 when Failure {

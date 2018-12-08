@@ -18,7 +18,7 @@ my class IO::Notification {
     method watch-path(Str() $path, :$scheduler = $*SCHEDULER) {
         my $is-dir = $path.IO.d;
         my $s = Supplier.new;
-        nqp::watchfile(
+        my $task := nqp::watchfile(
             $scheduler.queue(:hint-affinity),
             -> \path, \rename, \err {
                 if err {
@@ -31,7 +31,7 @@ my class IO::Notification {
                 }
             },
             $path, FileWatchCancellation);
-        $s.Supply
+        $s.Supply.on-close( { nqp::cancel( $task ) } );
     }
 }
 

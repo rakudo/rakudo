@@ -164,7 +164,7 @@ my class Attribute { # declared in BOOTSTRAP
         # None by default.
     }
 
-    method get_value(Mu $obj) {
+    method get_value(Mu $obj) is rw {
         nqp::if(
           nqp::iseq_i((my int $t = nqp::objprimspec($!type)),0),
           nqp::getattr(nqp::decont($obj),$!package,$!name),

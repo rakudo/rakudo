@@ -1957,68 +1957,79 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
         Seq.new( $iter.skip-at-least($n) ?? $iter !! Rakudo::Iterator.Empty )
     }
 
+    # Note that the implementation of minpairs/maxpairs only differs in the
+    # value against which the result of cmp is compared (-1 for minpairs,
+    # +1 for maxpairs).  Abstracting the logic in a helper sub, did not change
+    # the binary size significantly, but would introduce a runtime penalty.
+    # Hence the almost identical pieces of code here.
     proto method minpairs(|) {*}
     multi method minpairs(Any:D:) {
-        Seq.new(
-          nqp::if(
-            nqp::eqaddr(
-              (my $pulled := (my $iter := self.pairs.iterator).pull-one),
-              IterationEnd
-            ),
-            Rakudo::Iterator.Empty,
-            nqp::stmts(
-              nqp::push((my $result := nqp::create(IterationBuffer)),$pulled),
-              (my $min := $pulled.value),
-              nqp::until(
-                nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
+        my \iter   := self.pairs.iterator;
+        my \result := nqp::create(IterationBuffer);
+        nqp::until(
+          nqp::eqaddr((my \pair := iter.pull-one),IterationEnd)
+            || nqp::isconcrete(my \target := pair.value),
+          nqp::null
+        );
+        nqp::unless(
+          nqp::eqaddr(pair,IterationEnd),
+          nqp::stmts(                               # found at least one value
+            nqp::push(result,pair),
+            nqp::until(
+              nqp::eqaddr(nqp::bind(pair,iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::isconcrete(my \value := pair.value),
                 nqp::if(
-                  nqp::iseq_i((my $cmp := $pulled.value cmp $min), -1),
-                  nqp::stmts(
-                    nqp::push(nqp::setelems($result,0),$pulled),
-                    ($min := $pulled.value)
+                  nqp::iseq_i((my \cmp-result := value cmp target),-1),
+                  nqp::stmts(                       # new best
+                    nqp::push(nqp::setelems(result,0),pair),
+                    nqp::bind(target,value)
                   ),
-                  nqp::if(
-                    nqp::iseq_i($cmp,0),
-                    nqp::push($result,$pulled)
+                  nqp::if(                          # additional best
+                    nqp::iseq_i(cmp-result,0),
+                    nqp::push(result,pair)
                   )
                 )
-              ),
-              Rakudo::Iterator.ReifiedList($result)
+              )
             )
           )
-        )
+        );
+        Seq.new(Rakudo::Iterator.ReifiedList(result))
     }
 
     proto method maxpairs(|) {*}
     multi method maxpairs(Any:D:) {
-        Seq.new(
-          nqp::if(
-            nqp::eqaddr(
-              (my $pulled := (my $iter := self.pairs.iterator).pull-one),
-              IterationEnd
-            ),
-            Rakudo::Iterator.Empty,
-            nqp::stmts(
-              nqp::push((my $result := nqp::create(IterationBuffer)),$pulled),
-              (my $max := $pulled.value),
-              nqp::until(
-                nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
+        my \iter   := self.pairs.iterator;
+        my \result := nqp::create(IterationBuffer);
+        nqp::until(
+          nqp::eqaddr((my \pair := iter.pull-one),IterationEnd)
+            || nqp::isconcrete(my \target := pair.value),
+          nqp::null
+        );
+        nqp::unless(
+          nqp::eqaddr(pair,IterationEnd),
+          nqp::stmts(                               # found at least one value
+            nqp::push(result,pair),
+            nqp::until(
+              nqp::eqaddr(nqp::bind(pair,iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::isconcrete(my \value := pair.value),
                 nqp::if(
-                  nqp::iseq_i((my $cmp := $pulled.value cmp $max), 1),
-                  nqp::stmts(
-                    nqp::push(nqp::setelems($result,0),$pulled),
-                    ($max := $pulled.value)
+                  nqp::iseq_i((my \cmp-result := value cmp target),+1),
+                  nqp::stmts(                       # new best
+                    nqp::push(nqp::setelems(result,0),pair),
+                    nqp::bind(target,value)
                   ),
-                  nqp::if(
-                    nqp::iseq_i($cmp,0),
-                    nqp::push($result,$pulled)
+                  nqp::if(                          # additional best
+                    nqp::iseq_i(cmp-result,0),
+                    nqp::push(result,pair)
                   )
                 )
-              ),
-              Rakudo::Iterator.ReifiedList($result)
+              )
             )
           )
-        )
+        );
+        Seq.new(Rakudo::Iterator.ReifiedList(result))
     }
 
     proto method batch(|) is nodal {*}

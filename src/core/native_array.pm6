@@ -3305,6 +3305,8 @@ my class array does Iterable {
 
     multi method elems(array:D:)    { nqp::elems(self) }
     method shape() { (*,) }
+    proto method Real(|) {*}
+    multi method Real(array:D:)     { nqp::elems(self) }
     proto method Int(|) {*}
     multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }

@@ -1982,7 +1982,7 @@ my class array does Iterable {
               ),
               nqp::unless(
                 nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos_i(list,$i) # too many values on non-lazy it
+                nqp::atpos_i(self,$i) # too many values on non-lazy it
               ),
               self
             )

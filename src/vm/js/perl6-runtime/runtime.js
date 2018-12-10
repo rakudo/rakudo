@@ -39,7 +39,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     let rtype = sig.$$getattr(Signature, '$!returns');
     if (rtype !== Null && nqp.op.objprimspec(rtype) === 0) {
       let targetType;
-      const how = rtype._STable.HOW;
+      const how = rtype.$$STable.HOW;
       const archetypes = /*await*/ how.archetypes(ctx, null, how);
       const isCoercive = nqp.retval_bool(ctx, /*await*/ archetypes.coercive(ctx, null, archetypes));
 
@@ -59,12 +59,12 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       }
 
       if (targetType !== undefined && targetType !== rtype) {
-        const targetTypeName = /*await*/ targetType._STable.HOW.name(
-          ctx, null, targetType._STable.HOW, targetType).$$getStr();
+        const targetTypeName = /*await*/ targetType.$$STable.HOW.name(
+          ctx, null, targetType.$$STable.HOW, targetType).$$getStr();
         if (/*await*/ rv.$$can(ctx, targetTypeName)) {
           return rv[targetTypeName](ctx, null, rv);
         } else {
-          const rtypeName = /*await*/ rtype._STable.HOW.name(ctx, null, rtype._STable.HOW, rtype).$$getStr();
+          const rtypeName = /*await*/ rtype.$$STable.HOW.name(ctx, null, rtype.$$STable.HOW, rtype).$$getStr();
           throw new nqp.NQPException(
             `Unable to coerce the return value from ${rtypeName} to ${targetTypeName} ;` +
               `no coercion method defined`);
@@ -276,8 +276,8 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   op.p6reprname = function(obj) {
-    const repr = Str._STable.REPR;
-    const boxed = repr.allocate(Str._STable);
+    const repr = Str.$$STable.REPR;
+    const boxed = repr.allocate(Str.$$STable);
     boxed.$$setStr(nqp.op.reprname(obj));
     return boxed;
   };
@@ -292,7 +292,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   op.p6invokeunder = /*async*/ function(ctx, currentHLL, fake, code) {
-    const spec = fake._STable.invocationSpec;
+    const spec = fake.$$STable.invocationSpec;
 
     const fakeCode = fake.$$getattr(spec.classHandle, spec.attrName);
 

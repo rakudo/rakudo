@@ -69,7 +69,7 @@ module.exports.compile = function(source, options = {}) {
   return {js: fs.readFileSync(tmpFile, 'utf8'), loaded: loaded};
 };
 
-module.exports.capturedRun = /*await*/ function(source, input, compileArgs, args, passedEnv) {
+module.exports.capturedRun = /*async*/ function(source, input, compileArgs, args, passedEnv) {
   const oldGlobalContext = nqp.freshGlobalContext();
 
   const env = nqp.hash();

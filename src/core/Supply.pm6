@@ -1920,6 +1920,21 @@ augment class Rakudo::Internals {
             $done-handler() if $done-handler.DEFINITE;
         }
 
+        method run-last(Tap $tap, &code --> Nil) {
+            self.delete-active-tap($tap);
+            self.decrement-active();
+            $tap.close();
+            &code.fire_if_phasers("LAST");
+            $!lock.protect: {
+                if $!active == 0 {
+                    self.teardown();
+                    my $done-handler := &!done;
+                    $done-handler() if $done-handler.DEFINITE;
+                }
+            }
+        }
+
+
         method run-catch(--> Nil) {
             my \ex = EXCEPTION(nqp::exception());
             self.get-and-zero-active();
@@ -1952,14 +1967,14 @@ augment class Rakudo::Internals {
                             },
                             -> \value {
                                 self!run-supply-code(&whenever-block, value, $state,
-                                    &add-whenever)
+                                    &add-whenever, $tap)
                             },
                             done => {
                                 $state.delete-active-tap($tap);
                                 my @phasers := &whenever-block.phasers('LAST');
                                 if @phasers {
                                     self!run-supply-code({ .() for @phasers }, Nil, $state,
-                                        &add-whenever)
+                                        &add-whenever, $tap)
                                 }
                                 $tap.close;
                                 self!deactivate-one($state);
@@ -1976,7 +1991,7 @@ augment class Rakudo::Internals {
                                         $state.quit().(ex) if $state.quit;
                                         $state.teardown();
                                     }
-                                }, Nil, $state, &add-whenever);
+                                }, Nil, $state, &add-whenever, $tap);
                                 if $handled {
                                     $tap.close;
                                     self!deactivate-one($state);
@@ -2001,13 +2016,13 @@ augment class Rakudo::Internals {
             # counts as an active runner).
             self!run-supply-code:
                 { &!block(); self!deactivate-one-internal($state) },
-                Nil, $state, &add-whenever;
+                Nil, $state, &add-whenever, $t;
 
             # Evaluate to the Tap.
             $t
         }
 
-        method !run-supply-code(&code, \value, SupplyBlockState $state, &add-whenever) {
+        method !run-supply-code(&code, \value, SupplyBlockState $state, &add-whenever, $tap) {
             my @run-after;
             my $queued := $state.run-async-lock.protect-or-queue-on-recursion: {
                 my &*ADD-WHENEVER := &add-whenever;
@@ -2015,6 +2030,7 @@ augment class Rakudo::Internals {
                     'EMIT', $state.run-emit(),
                     'DONE', $state.run-done(),
                     'CATCH', $state.run-catch(),
+                    'LAST', $state.run-last($tap, &code),
                     'NEXT', 0);
                 @run-after = $state.awaiter.take-all;
             }
@@ -2102,6 +2118,11 @@ augment class Rakudo::Internals {
                 my $done-handler := &!done;
                 $done-handler() if $done-handler.DEFINITE;
             }
+        }
+
+        method run-last(&code, --> Nil) {
+            &code.fire_if_phasers("LAST");
+            self.run-done;
         }
 
         method run-catch(--> Nil) {
@@ -2211,6 +2232,7 @@ augment class Rakudo::Internals {
                     'EMIT', $state.run-emit(),
                     'DONE', $state.run-done(),
                     'CATCH', $state.run-catch(),
+                    'LAST', $state.run-last(&code),
                     'NEXT', 0);
             }(); # XXX Workaround for optimizer bug
         }

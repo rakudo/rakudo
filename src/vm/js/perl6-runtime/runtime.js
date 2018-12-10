@@ -31,7 +31,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   op.p6definite = function(obj) {
-    return (obj === Null || obj.typeObject_) ? False : True;
+    return (obj === Null || obj.$$typeObject) ? False : True;
   };
 
   op.p6typecheckrv = /*async*/ function(ctx, rv, routine, bypassType) {
@@ -232,7 +232,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       /* Do we have a dispatcher here? */
       if (search.hasOwnProperty("$*DISPATCHER") && search["$*DISPATCHER"] !== Null) {
         dispatcher = search["$*DISPATCHER"];
-        if (dispatcher.typeObject_) {
+        if (dispatcher.$$typeObject) {
           dispatcher = /*await*/ dispatcher.vivify_for(ctx, null, dispatcher, search.codeRef().codeObj, search, new Capture(search.$$args[1], Array.prototype.slice.call(search.$$args, 2)));
           search["$*DISPATCHER"] = dispatcher;
         }
@@ -264,7 +264,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   op.p6sink = /*async*/ function(ctx, obj) {
-    if (obj.typeObject_ || obj === Null) return;
+    if (obj.$$typeObject || obj === Null) return;
     if (obj.$$can(ctx, 'sink')) {
       obj.sink(ctx, null, obj);
     }
@@ -380,7 +380,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     });
 
     this.STable.addInternalMethod('$$isrwcont', function() {
-      if (this.typeObject_) return 0;
+      if (this.$$typeObject) return 0;
       let desc = this.$$getattr(Scalar, '$!descriptor');
       return desc === Null ? 0 : 1;
     });

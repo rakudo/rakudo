@@ -59,29 +59,29 @@ $ops.add_op('p6bindsig', :!inlinable, sub ($comp, $node, :$want) {
     my $ops := nqp::getcomp('QAST').operations;
     my $tmp := $*BLOCK.add_tmp;
     $ops.new_chunk($ops.VOID, "", [
-        "$tmp = /*await*/ nqp.p6binder.bind_sig($*CTX, null, nqp.p6binder, nqp.op.savecapture(Array.prototype.slice.call(arguments)));\n",
+        "$tmp = /*await*/ nqp.p6binder.p6\$bind_sig($*CTX, null, nqp.p6binder, nqp.op.savecapture(Array.prototype.slice.call(arguments)));\n",
         "if ($tmp !== nqp.Null) return $tmp;\n"
     ]);
 });
 
 $ops.add_simple_op('p6configposbindfailover', $ops.VOID, [$ops.OBJ, $ops.OBJ], sub ($pos, $pos_bind_failover) {
-    "/*await*/ nqp.p6binder.set_pos_bind_failover($*CTX, null, nqp.p6binder, $pos, $pos_bind_failover)"
+    "/*await*/ nqp.p6binder.p6\$set_pos_bind_failover($*CTX, null, nqp.p6binder, $pos, $pos_bind_failover)"
 }, :side_effects);
 
 $ops.add_simple_op('p6setautothreader', $ops.VOID, [$ops.OBJ], sub ($autothreader) {
-    "/*await*/ nqp.p6binder.set_autothreader($*CTX, null, nqp.p6binder, $autothreader)"
+    "/*await*/ nqp.p6binder.p6\$set_autothreader($*CTX, null, nqp.p6binder, $autothreader)"
 }, :side_effects);
 
 $ops.add_simple_op('p6trialbind', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ], :!inlinable, sub ($sig, $args, $sig_flags) {
-        "/*await*/ nqp.p6binder.trial_bind($*CTX, null, nqp.p6binder, $sig, $args, $sig_flags)"
+        "/*await*/ nqp.p6binder.p6\$trial_bind($*CTX, null, nqp.p6binder, $sig, $args, $sig_flags)"
 });
 
 $ops.add_simple_op('p6isbindable', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :!inlinable, sub ($sig, $cap) {
-    "nqp.retval(HLL, /*await*/ nqp.p6binder.is_bindable($*CTX, null, nqp.p6binder, $sig, $cap))"
+    "nqp.retval(HLL, /*await*/ nqp.p6binder.p6\$is_bindable($*CTX, null, nqp.p6binder, $sig, $cap))"
 });
 
 $ops.add_simple_op('p6bindcaptosig', $ops.OBJ, [$ops.OBJ, $ops.OBJ], sub ($sig, $cap) {
-    "/*await*/ nqp.p6binder.bind_cap_to_sig($*CTX, null, nqp.p6binder, $sig, $cap)"
+    "/*await*/ nqp.p6binder.p6\$bind_cap_to_sig($*CTX, null, nqp.p6binder, $sig, $cap)"
 }, :side_effects);
 
 $ops.add_op('p6bindattrinvres', $ops.bindattr($ops.OBJ, :inverted_result));

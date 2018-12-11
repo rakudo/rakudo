@@ -40,12 +40,12 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     if (rtype !== Null && nqp.op.objprimspec(rtype) === 0) {
       let targetType;
       const how = rtype.$$STable.HOW;
-      const archetypes = /*await*/ how.archetypes(ctx, null, how);
-      const isCoercive = nqp.retval_bool(ctx, /*await*/ archetypes.coercive(ctx, null, archetypes));
+      const archetypes = /*await*/ how.p6$archetypes(ctx, null, how);
+      const isCoercive = nqp.retval_bool(ctx, /*await*/ archetypes.p6$coercive(ctx, null, archetypes));
 
       if (isCoercive) {
-        targetType = /*await*/ how.target_type(ctx, null, how, rtype);
-        rtype = /*await*/ how.constraint_type(ctx, null, how, rtype);
+        targetType = /*await*/ how.p6$target_type(ctx, null, how, rtype);
+        rtype = /*await*/ how.p6$constraint_type(ctx, null, how, rtype);
       }
 
       const decontValue = /*await*/ rv.$$decont(ctx);
@@ -59,12 +59,12 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       }
 
       if (targetType !== undefined && targetType !== rtype) {
-        const targetTypeName = /*await*/ targetType.$$STable.HOW.name(
+        const targetTypeName = /*await*/ targetType.$$STable.HOW.p6$name(
           ctx, null, targetType.$$STable.HOW, targetType).$$getStr();
         if (/*await*/ rv.$$can(ctx, targetTypeName)) {
-          return rv[targetTypeName](ctx, null, rv);
+          return rv['p6$' + targetTypeName](ctx, null, rv);
         } else {
-          const rtypeName = /*await*/ rtype.$$STable.HOW.name(ctx, null, rtype.$$STable.HOW, rtype).$$getStr();
+          const rtypeName = /*await*/ rtype.$$STable.HOW.p6$name(ctx, null, rtype.$$STable.HOW, rtype).$$getStr();
           throw new nqp.NQPException(
             `Unable to coerce the return value from ${rtypeName} to ${targetTypeName} ;` +
               `no coercion method defined`);
@@ -193,11 +193,11 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     if (cont.$$assign) {
       /*await*/ cont.$$assign(ctx, value.$$decont(ctx));
     } else {
-      if (!cont.STORE) {
+      if (!cont.p6$STORE) {
         // TODO throw typed exception X::Assignment::RO
         ctx.die("Cannot assign to a non-container");
       } else {
-        /*await*/ cont.STORE(ctx, null, cont, value);
+        /*await*/ cont.p6$STORE(ctx, null, cont, value);
       }
     }
     return cont;
@@ -233,7 +233,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       if (search.hasOwnProperty("$*DISPATCHER") && search["$*DISPATCHER"] !== Null) {
         dispatcher = search["$*DISPATCHER"];
         if (dispatcher.$$typeObject) {
-          dispatcher = /*await*/ dispatcher.vivify_for(ctx, null, dispatcher, search.codeRef().codeObj, search, new Capture(search.$$args[1], Array.prototype.slice.call(search.$$args, 2)));
+          dispatcher = /*await*/ dispatcher.p6$vivify_for(ctx, null, dispatcher, search.codeRef().codeObj, search, new Capture(search.$$args[1], Array.prototype.slice.call(search.$$args, 2)));
           search["$*DISPATCHER"] = dispatcher;
         }
         return dispatcher;
@@ -266,7 +266,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   op.p6sink = /*async*/ function(ctx, obj) {
     if (obj.$$typeObject || obj === Null) return;
     if (obj.$$can(ctx, 'sink')) {
-      obj.sink(ctx, null, obj);
+      obj.p6$sink(ctx, null, obj);
     }
   };
 

@@ -1569,7 +1569,7 @@ my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
-    my %m =
+    BEGIN my %m =
       '$"'  => '.join() method',
       '$$'  => '$*PID',
       '$;'  => 'real multidimensional hashes',
@@ -2328,9 +2328,11 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 my class X::Assignment::RO is Exception {
     has $.value = "value";
     method message {
-        "Cannot modify an immutable {$!value.^name} ({
-            Rakudo::Internals.SHORT-GIST: $!value
-        })"
+        nqp::isconcrete($!value) 
+          ?? "Cannot modify an immutable {$!value.^name} ({
+                 Rakudo::Internals.SHORT-GIST: $!value
+             })"
+          !! "Cannot modify an immutable '{$!value.^name}' type object"
     }
     method typename { $.value.^name }
 }
@@ -2628,7 +2630,7 @@ my class X::Multi::NoMatch is Exception {
         if $.capture {
             for $.capture.list {
                 try @bits.push(
-                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl
+                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
                 when Failure {
@@ -2710,10 +2712,10 @@ my class X::PhaserExceptions is Exception {
 }
 
 
-#?if jvm
+#?if !moar
 nqp::bindcurhllsym('P6EX', nqp::hash(
 #?endif
-#?if !jvm
+#?if moar
 nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
 #?endif
   'X::TypeCheck::Binding',
@@ -2944,12 +2946,15 @@ my class X::IllegalDimensionInShape is Exception {
     }
 }
 
-my class X::Assignment::ArrayShapeMismatch is Exception {
+my class X::ArrayShapeMismatch is Exception {
+    has $.action = "assign";
     has $.target-shape;
     has $.source-shape;
     method message() {
         "Cannot assign an array of shape $.source-shape to an array of shape $.target-shape"
     }
+}
+my class X::Assignment::ArrayShapeMismatch is X::ArrayShapeMismatch {
 }
 
 my class X::Assignment::ToShaped is Exception {
@@ -2963,6 +2968,11 @@ my class X::Language::Unsupported is Exception {
     has $.version;
     method message() {
         "No compiler available for Perl $.version"
+    }
+}
+my class X::Language::TooLate is Exception {
+    method message() {
+        "Too late to switch language version. Must be used as the very first statement."
     }
 }
 

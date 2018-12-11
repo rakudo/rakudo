@@ -1,7 +1,7 @@
 my class BagHash does Baggy {
 
 #--- interface methods
-    method STORE(*@pairs --> BagHash:D) {
+    multi method STORE(BagHash:D: *@pairs --> BagHash:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
@@ -9,6 +9,15 @@ my class BagHash does Baggy {
             Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
               nqp::create(Rakudo::Internals::IterationSet), $iterator
             )
+          )
+        )
+    }
+    multi method STORE(BagHash:D: \objects, \values --> BagHash:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            values.iterator
           )
         )
     }
@@ -203,12 +212,10 @@ my class BagHash does Baggy {
             )
         }
 
-        # same as Baggy.values
         method push-all($target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(nqp::getattr(
-                nqp::iterval(nqp::shift($!iter)),Pair,'$!value'))
+              $target.push(proxy(nqp::shift($!iter),$!hash))
             )
         }
     }

@@ -1,9 +1,27 @@
+my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
 my class X::Cannot::Empty       { ... }
 my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
+
+# these constants temporary until they are available as nqp::const::FOO
+constant BINARY_ENDIAN_NATIVE =  0;
+constant BINARY_ENDIAN_LITTLE =  1;
+constant BINARY_ENDIAN_BIG    =  2;
+
+constant BINARY_SIZE_8_BIT    =  0;
+constant BINARY_SIZE_16_BIT   =  4;
+constant BINARY_SIZE_32_BIT   =  8;
+constant BINARY_SIZE_64_BIT   = 12;
+
+# externalize the endian indicators
+enum Endian (
+  native-endian => BINARY_ENDIAN_NATIVE,
+  little-endian => BINARY_ENDIAN_LITTLE,
+  big-endian    => BINARY_ENDIAN_BIG,
+);
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     X::NYI.new(
@@ -41,11 +59,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::splice(nqp::create(self),@values,0,0)
     }
     multi method new(Blob: @values) {
-        @values.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<new>,:what(self.^name)))
-          !! self!push-list("initializ",nqp::create(self),@values)
+        nqp::create(self).STORE(@values, :INITIALIZE)
     }
-    multi method new(Blob: *@values) { self.new(@values) }
+    multi method new(Blob: *@values) {
+        nqp::create(self).STORE(@values, :INITIALIZE)
+    }
+
+    proto method STORE(Blob:D: |) {*}
+    multi method STORE(Blob:D: Iterable:D \iterable, :$INITIALIZE) {
+        $INITIALIZE
+          ?? iterable.is-lazy
+            ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+            !! self!push-list("initializ",self,iterable)
+          !! X::Assignment::RO.new(:value(self)).throw
+    }
 
     proto method allocate(|) {*}
     multi method allocate(Blob:U: Int:D $elements) {
@@ -101,6 +128,66 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
 
+    # for simplicity's sake, these are not multis
+    method read-int8( int $offset, Endian $? --> int) is raw {
+        nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE))
+    }
+    method read-int16(
+      int $offset, Endian $endian = native-endian --> int
+    ) is raw {
+        nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+    }
+    method read-int32(
+      int $offset, Endian $endian = native-endian --> int
+    ) is raw {
+        nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+    }
+    method read-int64(
+      int $offset, Endian $endian = native-endian --> int
+    ) is raw {
+        nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+    }
+
+    method read-uint8(int $offset, Endian $? --> uint) is raw {
+        nqp::readuint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE))
+    }
+    method read-uint16(
+      int $offset, Endian $endian = native-endian --> uint
+    ) is raw {
+        nqp::readuint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+    }
+    method read-uint32(
+      int $offset, Endian $endian = native-endian --> uint
+    ) is raw {
+        nqp::readuint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+    }
+    method read-uint64(
+      int $offset, Endian $endian = native-endian --> uint
+    ) is raw {
+        nqp::readuint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+    }
+
+    method read-num32(
+      int $offset, Endian $endian = native-endian --> num
+    ) is raw {
+        nqp::readnum(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+    }
+    method read-num64(
+      int $offset, Endian $endian = native-endian --> num
+    ) is raw {
+        nqp::readnum(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+    }
+
     multi method Bool(Blob:D:) { nqp::hllbool(nqp::elems(self)) }
     method Capture(Blob:D:) { self.List.Capture }
 
@@ -116,10 +203,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
 
     proto method decode(|) {*}
-    multi method decode(Blob:D:) {
-        nqp::p6box_s(nqp::decode(self, 'utf8'))
+    multi method decode(Blob:D: $encoding = self.encoding // "utf-8") {
+        nqp::p6box_s(
+          nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding))
+        )
     }
-#?if moar
+#?if !jvm
     multi method decode(Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False) {
         nqp::p6box_s(
           nqp::decoderepconf(self,
@@ -134,7 +223,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             $strict ?? 0 !! 1))
     }
 #?endif
-#?if !moar
+#?if jvm
     multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
         nqp::p6box_s(
           nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
@@ -161,7 +250,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             ++$i == 101 ?? '...'
                 !! $i == 102 ?? last()
                     !! nqp::if(nqp::iseq_i( # el.fmt: '%02x'
-                        nqp::chars(my str $v = nqp::lc(el.base: 16)),1),
+                        nqp::chars(my str $v = el.base: 16),1),
                         nqp::concat('0',$v),$v)
         }) ~ '>'
     }
@@ -476,37 +565,19 @@ constant blob32 = Blob[uint32];
 constant blob64 = Blob[uint64];
 
 my class utf8 does Blob[uint8] is repr('VMArray') {
-    multi method decode(utf8:D: $encoding) {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-8 buffer as if it were $encoding"
-            unless $enc eq 'utf8';
-        nqp::p6box_s(nqp::decode(self, 'utf8'))
-    }
-    method encoding() { 'utf-8' }
+    method encoding(--> "utf-8") { }
     multi method Str(utf8:D:) { self.decode }
     multi method Stringy(utf8:D:) { self.decode }
 }
 
 my class utf16 does Blob[uint16] is repr('VMArray') {
-    multi method decode(utf16:D: $encoding = 'utf-16') {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-16 buffer as if it were $encoding"
-            unless $enc eq 'utf16' || $enc eq 'utf16le' || $enc eq 'utf16be';
-        nqp::p6box_s(nqp::decode(self, $enc))
-    }
-    method encoding() { 'utf-16' }
+    method encoding(--> "utf-16") { }
     multi method Str(utf16:D:) { self.decode }
     multi method Stringy(utf16:D:) { self.decode }
 }
 
 my class utf32 does Blob[uint32] is repr('VMArray') {
-    multi method decode(utf32:D: $encoding = 'utf-32') {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-32 buffer as if it were $encoding"
-            unless $enc eq 'utf32';
-        nqp::p6box_s(nqp::decode(self, 'utf32'))
-    }
-    method encoding() { 'utf-32' }
+    method encoding(--> "utf-32") { }
     multi method Str(utf32:D:) { self.decode }
     multi method Stringy(utf32:D:) { self.decode }
 }
@@ -541,6 +612,81 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::bindpos_i(self,$pos,assignee)
+    }
+
+    multi method STORE(Buf:D: Blob:D $blob) {
+        nqp::splice(nqp::setelems(self,0),$blob,0,0)
+    }
+    # The "is default" is needed to prevent runtime dispatch errors
+    multi method STORE(Buf:D: int @values) is default {
+        nqp::splice(nqp::setelems(self,0),@values,0,0)
+    }
+    multi method STORE(Buf:D: Iterable:D \iterable) {
+        iterable.is-lazy
+          ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+          !! self!push-list("initializ",nqp::setelems(self,0),iterable);
+    }
+
+    # for simplicity's sake, these are not multis
+    method write-int8(
+      int $offset, int $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writeint(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
+    }
+    method write-int16(
+      int $offset, int $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writeint(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+    }
+    method write-int32(
+      int $offset, int $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writeint(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+    }
+    method write-int64(
+      int $offset, int $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writeint(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+    }
+    method write-uint8(
+      int $offset, uint8 $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writeuint(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
+    }
+    method write-uint16(
+      int $offset, uint16 $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writeuint(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+    }
+    method write-uint32(
+      int $offset, uint32 $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writeuint(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+    }
+    method write-uint64(
+      int $offset, uint64 $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writeuint(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+    }
+    method write-num32(
+      int $offset, num32 $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writenum(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+    }
+    method write-num64(
+      int $offset, num64 $value, Endian $endian = native-endian --> Nil
+    ) is raw {
+        nqp::writenum(self,$offset,$value,
+          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
 
     multi method list(Buf:D:) {

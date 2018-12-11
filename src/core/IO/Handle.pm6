@@ -177,8 +177,17 @@ my class IO::Handle {
             $!decoder.set-line-separators(($!nl-in = $nl-in).list);
             $!encoder := $encoding.encoder(:translate-nl);
             $!encoding = $encoding.name;
+
+            # Add a byte order mark to the start of the file for utf16
+            nqp::if(nqp::iseq_s($!encoding, 'utf16'), (
+                if $create && !$exclusive && (!$append || $append && $!path.s == 0) {
+                  self.write: Buf[uint16].new(0xFEFF);
+                })
+            );
         }
         self!set-out-buffer-size($out-buffer);
+
+
         self;
     }
 
@@ -495,7 +504,7 @@ my class IO::Handle {
           ?? Seq.new(self!LINES-ITERATOR($close))
           !! $close
             ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
-                self!LINES-ITERATOR($close), $limit.Int, {SELF.close}))
+                self!LINES-ITERATOR(0), $limit.Int, {SELF.close}))
             !! self.lines.head($limit.Int)
     }
     multi method lines(IO::Handle:D \SELF: :$close) {

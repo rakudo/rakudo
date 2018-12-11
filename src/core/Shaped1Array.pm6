@@ -92,6 +92,17 @@
             nqp::bindpos(nqp::getattr(self,List,'$!reified'),one,value)
         }
 
+        method !RE-INITIALIZE(::?CLASS:D:) {
+            my \list := nqp::getattr(self,List,'$!reified');
+            nqp::bind(   # rebind newly created list
+              list,
+              nqp::bindattr(
+                self,List,'$!reified',
+                nqp::setelems(nqp::create(list),nqp::elems(list))
+              )
+            )
+        }
+
         proto method STORE(::?CLASS:D: |) {*}
         multi method STORE(::?CLASS:D: ::?CLASS:D \from-array) {
             nqp::stmts(
@@ -120,34 +131,32 @@
               )
             )
         }
-        multi method STORE(::?CLASS:D: Iterable:D \in) {
-            nqp::stmts(
-              (my \list := nqp::getattr(self,List,'$!reified')),
-              (my \desc := nqp::getattr(self,Array,'$!descriptor')),
-              (my \iter := in.iterator),
-              (my int $elems = nqp::elems(list)),
-              (my int $i = -1),
-              nqp::until(
-                nqp::eqaddr((my $pulled := iter.pull-one),IterationEnd)
-                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::ifnull(
-                  nqp::atpos(list,$i),
-                  nqp::bindpos(list,$i,nqp::p6scalarfromdesc(desc))
-                ) = $pulled
-              ),
-              nqp::unless(
-                nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos(list,$i) # too many values on non-lazy iter, error
-              ),
-              self
-            )
+        multi method STORE(::?CLASS:D: Iterable:D \in, :$INITIALIZE) {
+            my \list := $INITIALIZE
+              ?? nqp::getattr(self,List,'$!reified')
+              !! self!RE-INITIALIZE;
+            my \desc := nqp::getattr(self,Array,'$!descriptor');
+            my \iter := in.iterator;
+            my int $i = -1;
+            my int $elems = nqp::elems(list);
+            nqp::until(
+              nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
+                || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::ifnull(
+                nqp::atpos(list,$i),
+                nqp::bindpos(list,$i,nqp::p6scalarfromdesc(desc))
+              ) = pulled
+            );
+            nqp::atpos(list,$i) # too many values on non-lazy iter, error
+              unless nqp::islt_i($i,$elems) || iter.is-lazy;
+            self
         }
-        multi method STORE(::?CLASS:D: Mu \item) {
-            my \reified := nqp::getattr(self,List,'$!reified');
-            nqp::ifnull(
-              nqp::atpos(reified,0),
-              nqp::bindpos(reified,0,
-                nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor')))
+        multi method STORE(::?CLASS:D: Mu \item, :$INITIALIZE) {
+            my \list := $INITIALIZE
+              ?? nqp::getattr(self,List,'$!reified')
+              !! self!RE-INITIALIZE;
+            nqp::bindpos(list,0,
+              nqp::p6scalarfromdesc(nqp::getattr(self,Array,'$!descriptor'))
             ) = item;
             self
         }

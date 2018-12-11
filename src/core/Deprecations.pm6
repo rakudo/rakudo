@@ -74,9 +74,10 @@ class Rakudo::Deprecations {
             $index = $_ with $bt.next-interesting-index($index, :noproto);
         }
         else {
-            $index = $_
-              with $bt.next-interesting-index($index, :noproto, :setting)
-              for ^$up;
+            for ^$up -> $level {
+                $index = $_
+                  with $bt.next-interesting-index($index, :noproto, :setting)
+            }
         }
         my $callsite = $bt[$index];
 

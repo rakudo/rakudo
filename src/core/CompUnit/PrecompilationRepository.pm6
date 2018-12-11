@@ -67,11 +67,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     method !load-handle-for-path(CompUnit::PrecompilationUnit $unit) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$unit") }
-#?if moar
+#?if !jvm
         my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
         $unit.close;
 #?endif
-#?if !moar
+#?if jvm
         my $handle := CompUnit::Loader.load-precompilation($unit.bytecode);
 #?endif
         nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
@@ -285,7 +285,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
         }
 
-        my @result = $out.lines.unique;
+        my @result is List = $out.lines.unique;
         if $status {  # something wrong
             self.store.unlock;
             $RMD("Precompiling $path failed: $status") if $RMD;

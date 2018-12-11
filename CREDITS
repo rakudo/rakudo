@@ -98,6 +98,11 @@ U: brrt
 E: bartwiegmans@gmail.com
 D: Hack MoarVM JIT stuff
 
+N: Ben Davies
+U: Kaiepi
+E: kaiepi@outlook.com
+D: Improving *BSD and networking support
+
 N: Bernhard Schmalhofer
 U: bernhard
 E: Bernhard.Schmalhofer@gmx.de
@@ -316,11 +321,6 @@ N: François Perrad
 E: francois.perrad@gadz.org
 W: http://fperrad.googlepages.com/home
 U: fperrad
-
-N: M. Faiz Zakwan Zamzuri
-E: skelic3@gmail.com
-U: faraco
-W: https://faracosite.wordpress.com
 
 N: Gabor Szabo
 E: szabgab@gmail.com
@@ -603,6 +603,10 @@ D: Test infrastructure, tests, general Rakudo hacking
 N: Mouq
 E: alexmoquin@gmail.com
 
+N: Momo
+E: skelic3@gmail.com
+U: momozor
+
 N: Nicholas Clark
 U: nicholas
 E: nick@ccl4.org
@@ -641,6 +645,7 @@ U: paultcochrane
 E: paul@liekut.de
 
 N: Paweł Murias
+N: Pawel Murias
 U: pmurias
 E: pawelmurias@gmail.com
 

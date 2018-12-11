@@ -24,9 +24,10 @@ BEGIN {
 }
 
 {
-    my $perl := BEGIN Perl.new;
+    # XXX TODO: https://github.com/rakudo/rakudo/issues/2433
+    # my $perl := BEGIN Perl.new;
     Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
-        PROCESS::<$PERL> := $perl;
+        PROCESS::<$PERL> := Perl.new;
     }
 }
 

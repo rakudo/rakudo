@@ -27,7 +27,7 @@
                     nqp::atposnd(reified,idxs),      # found it
                     nqp::p6scalarfromdesc(
                       ContainerDescriptor::BindArrayPosND.new(
-                        nqp::getattr(array, Array, '$!descriptor'),
+                        nqp::getattr(self, Array, '$!descriptor'),
                         reified, idxs
                       )
                     )
@@ -255,12 +255,7 @@
                 nqp::ifnull(
                   nqp::atposnd($!list,$!indices),
                   nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
-#?if moar
                   ) = nqp::multidimref_i($!from,$!indices)
-#?endif
-#?if !moar
-                  ) = nqp::atposnd_i($!from,$!indices)
-#?endif
             }
         }
         sub INTCPY(Mu \to, Mu \from) { IntCopy.new(to,from).sink-all }
@@ -278,21 +273,24 @@
                 nqp::ifnull(
                   nqp::atposnd($!list,$!indices),
                   nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
-#?if moar
                   ) = nqp::multidimref_n($!from,$!indices)
-#?endif
-#?if !moar
-                  ) = nqp::atposnd_n($!from,$!indices)
-#?endif
             }
         }
         sub NUMCPY(Mu \to, Mu \from) { NumCopy.new(to,from).sink-all }
 
+        method !RE-INITIALIZE(::?CLASS:D:) {
+            nqp::bindattr(  # this is a yucky way to re-init, but it works
+              self,List,'$!reified',
+              nqp::getattr(self.new(:shape(self.shape)),List,'$!reified')
+            )
+        }
+
         proto method STORE(::?CLASS:D: |) {*}
-        multi method STORE(::?CLASS:D: ::?CLASS:D \in) {
+        multi method STORE(::?CLASS:D: ::?CLASS:D \in, :$INITIALIZE) {
             nqp::if(
               in.shape eqv self.shape,
               nqp::stmts(
+                nqp::unless($INITIALIZE,self!RE-INITIALIZE),
                 MEMCPY(self,in),     # VM-supported memcpy-like thing?
                 self
               ),
@@ -302,10 +300,11 @@
               ).throw
             )
         }
-        multi method STORE(::?CLASS:D: array:D \in) {
+        multi method STORE(::?CLASS:D: array:D \in, :$INITIALIZE) {
             nqp::if(
               in.shape eqv self.shape,
               nqp::stmts(
+                nqp::unless($INITIALIZE,self!RE-INITIALIZE),
                 nqp::if(
                   nqp::istype(in.of,Int),
                   INTCPY(self,in),     # copy from native int
@@ -386,7 +385,8 @@
                 )
             }
         }
-        multi method STORE(::?CLASS:D: Iterable:D \in) {
+        multi method STORE(::?CLASS:D: Iterable:D \in, :$INITIALIZE) {
+            self!RE-INITIALIZE unless $INITIALIZE;
             StoreIterable.new(self,in).sink-all;
             self
         }
@@ -414,7 +414,8 @@
                 )
             }
         }
-        multi method STORE(::?CLASS:D: Iterator:D \iterator) {
+        multi method STORE(::?CLASS:D: Iterator:D \iterator, :$INITIALIZE) {
+            self!RE-INITIALIZE unless $INITIALIZE;
             StoreIterator.new(self,iterator).sink-all;
             self
         }
@@ -483,7 +484,7 @@
         multi method List(::?CLASS:D:) {
             my \buf := nqp::create(IterationBuffer);
             self.iterator.push-all(buf);
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',buf)
+            buf.List
         }
 
         multi method Array(::?CLASS:D:) {

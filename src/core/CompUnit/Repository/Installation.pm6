@@ -123,7 +123,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         self!bin-dir;
         if ($version < 1) {
             for $short-dir.dir -> $file {
-                my @ids = $file.lines.unique;
+                my @ids is List = $file.lines.unique;
                 $file.unlink;
                 $file.mkdir;
                 for @ids -> $id {
@@ -197,6 +197,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my %links; # map name-path to new content address
         my %provides; # meta data gets added, but the format needs to change to
                       # only extend the structure, not change it
+
+        # the following 3 `for` loops should be a single loop, but has been
+        # left this way due to impeding precomp changes
 
         # lib/ source files
         for $dist.meta<provides>.kv -> $name, $file is copy {
@@ -467,7 +470,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         Nil
     }
 
-    # A distribution that provides a subset of its meta data without parsing the full json structure
+    # A distribution that provides a subset of its meta data without parsing the full original
+    # original json version, while lazily parsing once fields outside of that subset are used.
     my role LazyMetaReader {
         has $.meta-reader;
         method AT-KEY($key)     { $!meta-reader($key) }
@@ -500,7 +504,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         method meta(--> Hash:D) {
             my %hash = $!meta.hash;
             unless $!installed-dist.defined {
-                # Allow certain meta fields to be read without full parsing, and fallback
+                # Allow certain meta fields to be read without a full parsing, and fallback
                 # to calling self!dist to populate the entire meta data from json.
                 %hash does LazyMetaReader({ $!meta.hash{$^a} // self!dist.meta.{$^a} });
 
@@ -570,8 +574,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $handle      = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
                     :id(CompUnit::PrecompilationId.new-without-check($id)),
-                    :src($repo-prefix ?? $repo-prefix ~ 'sources'.IO.add($source-file-name) !! $loader.absolute),
-                    :checksum($meta<checksum> // Str),
+                    :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.absolute),
+                    :checksum(.meta<checksum> // Str),
                     :$spec,
                 ),
                 :source($loader),

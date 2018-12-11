@@ -146,6 +146,9 @@ multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
     # different container type
     return False unless a.WHAT =:= b.WHAT;
 
+    # different return
+    return False unless a.returns =:= b.returns;
+
     # arity or count mismatch
     return False if a.arity != b.arity || a.count != b.count;
 

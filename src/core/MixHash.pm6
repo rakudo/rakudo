@@ -4,7 +4,7 @@ my class MixHash does Mixy {
     method total() { Rakudo::QuantHash.MIX-TOTAL($!elems) }
     method !total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
 
-    method STORE(*@pairs --> MixHash:D) {
+    multi method STORE(MixHash:D: *@pairs --> MixHash:D) {
         nqp::if(
           (my $iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
@@ -12,6 +12,15 @@ my class MixHash does Mixy {
             Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
               nqp::create(Rakudo::Internals::IterationSet), $iterator
             )
+          )
+        )
+    }
+    multi method STORE(MixHash:D: \objects, \values --> MixHash:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            values.iterator
           )
         )
     }
@@ -184,12 +193,10 @@ my class MixHash does Mixy {
             )
         }
 
-        # same as Baggy.values
         method push-all($target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(nqp::getattr(
-                nqp::iterval(nqp::shift($!iter)),Pair,'$!value'))
+              $target.push(proxy(nqp::shift($!iter),$!hash))
             )
         }
     }

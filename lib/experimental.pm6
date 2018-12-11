@@ -193,7 +193,12 @@ package EXPORT::pack {
 }
 
 package EXPORT::collation {
-    OUR::<EXPERIMENTAL-COLLATION> := True;
+    # this is no longer experimental, but keep the package to prevent
+    # code that caters to this and earlier versions of compilers from
+    # breaking
+    #
+    # XXX TODO: should be fine to remove on 2019-12. There is also a test
+    # in t/02-rakudo/99-misc.t that will need to be removed too at the time
 }
 
 # vim: ft=perl6 expandtab sw=4

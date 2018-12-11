@@ -108,6 +108,7 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method type() { $!nominal_type }
+    method coerce_type() { $!coerce_type }
     method named_names() {
         nqp::if(
           @!named_names && (my int $elems = nqp::elems(@!named_names)),
@@ -118,7 +119,7 @@ my class Parameter { # declared in BOOTSTRAP
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos($buf,$i,nqp::atpos_s(@!named_names,$i))
             ),
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+            $buf.List
           ),
           nqp::create(List)
         )
@@ -185,7 +186,7 @@ my class Parameter { # declared in BOOTSTRAP
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos($buf,$i,nqp::atpos_s(@!type_captures,$i))
             ),
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$buf)
+            $buf.List
           ),
           nqp::create(List)
         )
@@ -332,6 +333,8 @@ my class Parameter { # declared in BOOTSTRAP
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
+        $type = $!coerce_type.^name ~ "($type)"
+          unless nqp::isnull($!coerce_type);
         my $modifier = self.modifier;
 
         $perl ~= "::$_ " for @($.type_captures);

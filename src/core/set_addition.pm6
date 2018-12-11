@@ -144,7 +144,7 @@ multi sub infix:<(+)>(Any $, Failure:D $b) { $b.throw }
 multi sub infix:<(+)>(Failure:D $a, Any $) { $a.throw }
 multi sub infix:<(+)>(Any $a, Any $b) {
     nqp::if(
-      nqp::istype($a,QuantHash),
+      nqp::istype($a,QuantHash) && nqp::isconcrete($a),
       nqp::if(
         nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
         infix:<(+)>($a.Mixy,  $b.Mix(:view)),

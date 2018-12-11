@@ -15,6 +15,8 @@ my class X::Str::Sprintf::Directives::Count { ... }
 my class X::Str::Sprintf::Directives::Unsupported { ... }
 my class X::TypeCheck { ... }
 
+my $CORE_METAOP_ASSIGN := nqp::null;  # lazy storage for core METAOP_ASSIGN ops
+
 my class Rakudo::Internals {
 
     # for use in nqp::splice
@@ -277,10 +279,16 @@ my class Rakudo::Internals {
       # utf16
       'utf16',           'utf16',
       'utf-16',          'utf16',
+      # utf16le
       'utf16le',         'utf16le',
       'utf-16le',        'utf16le',
+      'utf16-le',        'utf16le',
+      'utf-16-le',       'utf16le',
+      # utf16be
       'utf16be',         'utf16be',
       'utf-16be',        'utf16be',
+      'utf16-be',        'utf16be',
+      'utf-16-be',       'utf16be',
       # utf32
       'utf32',           'utf32',
       'utf-32',          'utf32',
@@ -308,16 +316,13 @@ my class Rakudo::Internals {
       'windows932',      'windows-932',
     );
     method NORMALIZE_ENCODING(Str:D \encoding) {
-        my str $key = nqp::unbox_s(encoding);
-        if nqp::existskey($encodings,$key) {
-            nqp::atkey($encodings,$key)
-        }
-        else {
-            my str $lc = nqp::lc($key);
-            nqp::existskey($encodings,$lc)
-              ?? nqp::atkey($encodings,$lc)
-              !! nqp::lc($key)
-        }
+        nqp::ifnull(
+          nqp::atkey($encodings,encoding),
+          nqp::ifnull(
+            nqp::atkey($encodings,nqp::lc(encoding)),
+            nqp::lc(encoding)
+          )
+        )
     }
 
     # 1 if all elements of given type, otherwise 0
@@ -695,8 +700,10 @@ my class Rakudo::Internals {
     my num $init-time-num = nqp::time_n;
     method INITTIME() is raw { $init-time-num }
 
+#?if moar
     my $init-thread := nqp::currentthread();
     method INITTHREAD() { $init-thread }
+#?endif
 
     my $escapes := nqp::hash(
      "\0",   '\0',
@@ -715,10 +722,10 @@ my class Rakudo::Internals {
 
     method PERLIFY-STR(Str \string) {
         sub char-to-escapes(Str $char) is pure {
-#?if moar
+#?if !jvm
             '\x[' ~ $char.NFC.list.map({.base: 16}).join(',') ~ ']'
 #?endif
-#?if !moar
+#?if jvm
             '\x[' ~ $char.ord.base(16) ~ ']'
 #?endif
         }
@@ -735,14 +742,14 @@ my class Rakudo::Internals {
         my int $i = -1;
         while ($i = $i + 1) < $chars {
             my str $char = nqp::substr($to-escape, $i, 1);
-#?if moar
+#?if !jvm
             my int $ord = nqp::ord($char);
             $escaped ~= nqp::isge_i($ord,256)
-              && +uniprop($ord,'Canonical_Combining_Class')
+              && +uniprop-str($ord,'Canonical_Combining_Class')
               ?? char-to-escapes($char)
               !! nqp::iseq_s($char,"\r\n") ?? '\r\n' !!
 #?endif
-#?if !moar
+#?if jvm
             $escaped ~=
 #?endif
 
@@ -756,7 +763,7 @@ my class Rakudo::Internals {
     }
 
     # easy access to compile options
-    my Mu $compiling-options := nqp::atkey(%*COMPILING, '%?OPTIONS');
+    my Mu $compiling-options := %*COMPILING ?? nqp::atkey(%*COMPILING, '%?OPTIONS') !! nqp::hash();
 
     # running with --ll-exception
     method LL-EXCEPTION() {
@@ -793,6 +800,10 @@ my class Rakudo::Internals {
 #?if jvm
     method PRECOMP-EXT()    { "jar" }
     method PRECOMP-TARGET() { "jar" }
+#?endif
+#?if js
+    method PRECOMP-EXT()    { "js" }
+    method PRECOMP-TARGET() { "js" }
 #?endif
 
     method get-local-timezone-offset() {
@@ -1586,7 +1597,7 @@ my class Rakudo::Internals {
 
         my \result := CoreMap.new(op, iterable.iterator, $deep);
         my \type := nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
-        my \buffer := IterationBuffer.new;
+        my \buffer := nqp::create(IterationBuffer);
         result.push-all(buffer);
         my \retval := type.new;
         nqp::bindattr(retval, List, '$!reified', buffer);
@@ -1606,6 +1617,25 @@ my class Rakudo::Internals {
         )
     }
 
+    # Method for lazily installing fast versions of METAOP_ASSIGN ops for
+    # core infix ops.  Since the compilation of &[op] happens at build time
+    # of the setting, we're sure we're referring to the core ops and not one
+    # that has been locally installed.  Called by METAOP_ASSIGN.  Please add
+    # any other core ops that seem to be necessary.
+    method INSTALL-CORE-METAOPS() {
+        $CORE_METAOP_ASSIGN := nqp::create(Rakudo::Internals::IterationSet);
+        for (
+          &[+], -> Mu \a, Mu \b { a = a.DEFINITE ?? a + b !! +b },
+          &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! Failure.new("No zero-arg meaning for infix:<%>")},
+          &[-], -> Mu \a, Mu \b { a = a.DEFINITE ?? a - b !! -b },
+          &[*], -> Mu \a, Mu \b { a = a.DEFINITE ?? a * b !! +b },
+          &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! ~b },
+        ) -> \op, \metaop {
+            metaop.set_name(op.name ~ ' + {assigning}');
+            nqp::bindkey($CORE_METAOP_ASSIGN,nqp::objectid(op),metaop);
+        }
+        $CORE_METAOP_ASSIGN
+    }
 }
 
 # expose the number of bits a native int has

@@ -1,7 +1,7 @@
 my class Failure is Nil {
     has $.exception;
     has $.backtrace;
-#?if moar
+#?if !jvm
     has int $!handled;
 #?endif
 #?if jvm
@@ -60,7 +60,7 @@ my class Failure is Nil {
     method handled() is rw {
         Proxy.new(
           FETCH => {
-#?if moar
+#?if !jvm
               nqp::hllbool($!handled)
 #?endif
 #?if jvm

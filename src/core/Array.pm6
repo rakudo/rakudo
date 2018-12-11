@@ -219,6 +219,23 @@ my class Array { # declared in BOOTSTRAP
           )
         )
     }
+    method from-list(Array:U: Mu \list) {
+        my \params   := nqp::getattr(list,List,'$!reified');
+        my int $elems = list.elems;  # reifies
+        my int $i     = -1;
+        my \reified  := nqp::create(IterationBuffer);
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos(
+            reified, $i,
+            nqp::p6scalarwithvalue(
+              (BEGIN nqp::getcurhllsym('default_cont_spec')),
+              nqp::decont(nqp::atpos(params,$i))
+            )
+          )
+        );
+        nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',reified)
+    }
 
     proto method new(|) {*}
     multi method new(:$shape!) {
@@ -411,8 +428,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::if(
               $view,                              # assume no change in array
-              nqp::p6bindattrinvres(
-                nqp::create(List),List,'$!reified',$reified),
+              $reified.List,
               nqp::stmts(                         # make cow copy
                 (my int $elems = nqp::elems($reified)),
                 (my $cow := nqp::setelems(nqp::create(IterationBuffer),$elems)),
@@ -421,7 +437,7 @@ my class Array { # declared in BOOTSTRAP
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::bindpos($cow,$i,nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)),
                 ),
-                nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$cow)
+                $cow.List
               )
             ),
             nqp::create(List)                     # was empty, is empty
@@ -543,7 +559,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::bindpos(
                   nqp::getattr(self,List,'$!reified'),
                   $pos,
-                  nqp::p6scalarfromcertaindesc($!descriptor)
+                  nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
                 ),
                 nqp::if(
                   nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
@@ -558,14 +574,14 @@ my class Array { # declared in BOOTSTRAP
                       nqp::bindpos(              # outlander
                         nqp::getattr(self,List,'$!reified'),
                         $pos,
-                        nqp::p6scalarfromcertaindesc($!descriptor)
+                        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
                       )
                     )
                   ),
                   nqp::bindpos(                  # outlander without todo
                     nqp::getattr(self,List,'$!reified'),
                     $pos,
-                    nqp::p6scalarfromcertaindesc($!descriptor)
+                    nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
                   )
                 )
               )
@@ -573,7 +589,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::bindpos(                        # new outlander
               nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
               $pos,
-              nqp::p6scalarfromcertaindesc($!descriptor)
+              nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
             )
           ) = assignee
         )
@@ -1135,7 +1151,7 @@ my class Array { # declared in BOOTSTRAP
     method !splice-offset-size-new(int $offset,int $size,@new) {
         nqp::if(
           nqp::eqaddr(@new.iterator.push-until-lazy(
-            (my $new := IterationBuffer.new)),IterationEnd),
+            (my $new := nqp::create(IterationBuffer))),IterationEnd),
           nqp::if(      # reified all values to splice in
             (nqp::isnull($!descriptor) || nqp::eqaddr(self.of,Mu)),
             nqp::stmts( # no typecheck needed

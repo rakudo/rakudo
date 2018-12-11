@@ -16,25 +16,25 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               nqp::join(
                 '|',
                 nqp::stmts(  # cannot use native str arrays early in setting
-                  (my $keys := nqp::list_s),
+                  (my \keys := nqp::list_s),
                   (my \iter := nqp::iterator($!storage)),
                   nqp::while(
                     iter,
-                    nqp::push_s($keys,nqp::iterkey_s(nqp::shift(iter)))
+                    nqp::push_s(keys,nqp::iterkey_s(nqp::shift(iter)))
                   ),
-                  (my $sorted   := Rakudo::Sorting.MERGESORT-str($keys)),
+                  (my \sorted   := Rakudo::Sorting.MERGESORT-str(keys)),
                   (my int $i     = -1),
-                  (my int $elems = nqp::elems($sorted)),
-                  (my $strings  := nqp::list_s),
+                  (my int $elems = nqp::elems(sorted)),
+                  (my \strings  := nqp::list_s),
                   nqp::while(
                     nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                     nqp::stmts(
-                      (my $key := nqp::atpos_s($sorted,$i)),
-                      nqp::push_s($strings,$key),
-                      nqp::push_s($strings,nqp::atkey($!storage,$key).perl)
+                      (my \key := nqp::atpos_s(sorted,$i)),
+                      nqp::push_s(strings,key),
+                      nqp::push_s(strings,nqp::atkey($!storage,key).WHICH)
                     )
                   ),
-                  $strings
+                  strings
                 )
               )
             )
@@ -42,11 +42,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           ValueObjAt
         )
     }
-    method new(*@args) {
-        @args
-          ?? nqp::create(self).STORE(@args, :initialize)
-          !! nqp::create(self)
-    }
+
+    # Calling self.new for the arguments case ensures that the right
+    # descriptor will be added for typed hashes.
+    multi method new(Map:       ) { nqp::create(self) }
+    multi method new(Map: *@args) { self.new.STORE(@args, :INITIALIZE) }
 
     multi method Map(Map:) { self }
 
@@ -107,10 +107,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    method List() {
-        nqp::p6bindattrinvres(
-          nqp::create(List),List,'$!reified',self.IterationBuffer)
-    }
+    method List() { self.IterationBuffer.List }
 
     multi method head(Map:D:) {
         nqp::if(
@@ -129,9 +126,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         Seq.new(
           Rakudo::Iterator.ReifiedList(
             Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-              nqp::p6bindattrinvres(
-                nqp::create(List),List,'$!reified',self.IterationBuffer
-              ),
+              self.IterationBuffer.List,
               { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
             )
           )
@@ -203,10 +198,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     method iterator(Map:D:) { Iterate.new(self) }
 
-    method list(Map:D:) {
-        nqp::p6bindattrinvres(
-          nqp::create(List),List,'$!reified',self.IterationBuffer)
-    }
+    method list(Map:D:) { self.List }
+
     multi method pairs(Map:D:) { Seq.new(self.iterator) }
     multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
     multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }
@@ -386,47 +379,54 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :$initialize) {
+    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!) {
         nqp::if(
-          $initialize,
+          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           nqp::if(
-            nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
+            nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
             nqp::if(
-              nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
-              nqp::if(
-                nqp::eqaddr(map.WHAT,Map),
-                nqp::p6bindattrinvres(self,Map,'$!storage',other),
-                nqp::p6bindattrinvres(
-                  self,Map,'$!storage',nqp::clone(other)
-                )!DECONTAINERIZE
-              ),
-              self                      # nothing to do
-            ),
-            nqp::p6bindattrinvres(
-              self, Map, '$!storage',
+              nqp::eqaddr(map.WHAT,Map),
+              nqp::p6bindattrinvres(self,Map,'$!storage',other),
               nqp::p6bindattrinvres(
-                nqp::create(self), Map, '$!storage', nqp::hash
-              )!STORE_MAP_FROM_OBJECT_HASH(map)
-            )
+                self,Map,'$!storage',nqp::clone(other)
+              )!DECONTAINERIZE
+            ),
+            self                      # nothing to do
           ),
-          X::Assignment::RO.new(value => self).throw
-        )
-    }
-    multi method STORE(Map:D: \to_store, :$initialize) {
-        nqp::if(
-          $initialize,
           nqp::p6bindattrinvres(
             self, Map, '$!storage',
-            nqp::getattr(
-              nqp::p6bindattrinvres(
-                nqp::create(self), Map, '$!storage', nqp::hash
-              )!STORE_MAP_FROM_ITERATOR(to_store.iterator),
-              Map, '$!storage'
-            )
-          ),
-          X::Assignment::RO.new(value => self).throw
+            nqp::p6bindattrinvres(
+              nqp::create(self), Map, '$!storage', nqp::hash
+            )!STORE_MAP_FROM_OBJECT_HASH(map)
+          )
         )
     }
+    multi method STORE(Map:D: \to_store, :$INITIALIZE!) {
+        nqp::p6bindattrinvres(
+          self, Map, '$!storage',
+          nqp::getattr(
+            nqp::p6bindattrinvres(
+              nqp::create(self), Map, '$!storage', nqp::hash
+            )!STORE_MAP_FROM_ITERATOR(to_store.iterator),
+            Map, '$!storage'
+          )
+        )
+    }
+    multi method STORE(Map:D: \keys, \values, :$INITIALIZE!) {
+        my \iterkeys   := keys.iterator;
+        my \itervalues := values.iterator;
+        my \storage    := $!storage := nqp::hash;
+        nqp::until(
+          nqp::eqaddr((my \key := iterkeys.pull-one),IterationEnd),
+          nqp::bindkey(
+            storage,
+            nqp::if(nqp::istype(key,Str),key,key.Str),
+            nqp::decont(itervalues.pull-one)
+          )
+        );
+        self
+    }
+    multi method STORE(Map:D: |) { X::Assignment::RO.new(value => self).throw }
 
     method Capture(Map:D:) {
         nqp::p6bindattrinvres(nqp::create(Capture),Capture,'%!hash',$!storage)

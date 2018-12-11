@@ -28,7 +28,7 @@ my class Routine { # declared in BOOTSTRAP
             (self,)
     }
 
-    method cando(Capture $c) {
+    method cando(Capture:D $c) {
         my $disp;
         if self.is_dispatcher {
             $disp := self;

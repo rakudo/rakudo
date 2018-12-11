@@ -101,14 +101,19 @@ class Kernel does Systemic {
         $!bits //= $.hardware ~~ m/_64|w|amd64/ ?? 64 !! 32;  # naive approach
     }
 
+    method hostname {
+        nqp::p6box_s(nqp::gethostname)
+    }
+
     has @!signals;  # Signal
 #?if jvm
     method signals (Kernel:D:) {
         @!signals //= [2, 9]
     }
 #?endif
+
     has $!signals-setup-lock = Lock.new;
-#?if moar
+#?if !jvm
     has $!signals-setup = False;
     method signals (Kernel:D:) {
         unless $!signals-setup {

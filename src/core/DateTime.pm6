@@ -46,15 +46,16 @@ my class DateTime does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method !SET-SELF(\y,\mo,\d,\h,\mi,\s,\t,\f) {
-        $!year      = y;
-        $!month     = mo;
-        $!day       = d;
-        $!hour      = h;
-        $!minute    = mi;
-        $!second    = s;
-        $!timezone  = t;
-        &!formatter = f;
+    method !SET-SELF(
+        $!year,
+        $!month,
+        $!day,
+        $!hour,
+        $!minute,
+        $!second,
+        $!timezone,
+        &!formatter,
+    ) {
         self
     }
     method !new-from-positional(DateTime:
@@ -161,7 +162,7 @@ my class DateTime does Dateish {
         my int $month = $m + 3 - 12 * ($m div 10);
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
-        my $dt = self === DateTime
+        my $dt = nqp::eqaddr(self.WHAT,DateTime)
           ?? ( %_ ?? die "Unexpected named parameter{"s" if %_ > 1} "
                     ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
                     ~ "trying to use the named parameter form of .new() but "
@@ -220,35 +221,36 @@ my class DateTime does Dateish {
     }
 
     method clone(*%_) {
-        my $h := nqp::getattr(%_,Map,'$!storage');
+        my \h := nqp::getattr(%_,Map,'$!storage');
         self!new-from-positional(
-          nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
-          nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
-          nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
-          nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
-          nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
-          nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
+          nqp::ifnull(nqp::atkey(h,'year'),  $!year),
+          nqp::ifnull(nqp::atkey(h,'month'), $!month),
+          nqp::ifnull(nqp::atkey(h,'day'),   $!day),
+          nqp::ifnull(nqp::atkey(h,'hour'),  $!hour),
+          nqp::ifnull(nqp::atkey(h,'minute'),$!minute),
+          nqp::ifnull(nqp::atkey(h,'second'),$!second),
           %_,
-          timezone => nqp::existskey($h,'timezone')
-            ?? nqp::atkey($h,'timezone')  !! $!timezone,
-          formatter => nqp::existskey($h,'formatter')
-            ?? nqp::atkey($h,'formatter') !! &!formatter,
+          timezone  => nqp::ifnull(nqp::atkey(h,'timezone'),$!timezone),
+          formatter => nqp::ifnull(nqp::atkey(h,'formatter'),&!formatter),
         )
     }
     method !clone-without-validating(*%_) { # A premature optimization.
-        return self.clone(|%_) unless self === DateTime;
-
-        my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::create(self)!SET-SELF(
-          nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
-          nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
-          nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
-          nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
-          nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
-          nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
-          nqp::existskey($h,'timezone')
-            ?? nqp::atkey($h,'timezone') !! $!timezone,
-          &!formatter,
+        nqp::if(
+          nqp::eqaddr(self.WHAT,DateTime),
+          nqp::stmts(
+            (my \h := nqp::getattr(%_,Map,'$!storage')),
+            nqp::create(self)!SET-SELF(
+              nqp::ifnull(nqp::atkey(h,'year'),    $!year),
+              nqp::ifnull(nqp::atkey(h,'month'),   $!month),
+              nqp::ifnull(nqp::atkey(h,'day'),     $!day),
+              nqp::ifnull(nqp::atkey(h,'hour'),    $!hour),
+              nqp::ifnull(nqp::atkey(h,'minute'),  $!minute),
+              nqp::ifnull(nqp::atkey(h,'second'),  $!second),
+              nqp::ifnull(nqp::atkey(h,'timezone'),$!timezone),
+              &!formatter,
+            )
+          ),
+          self.clone(|%_)
         )
     }
 
@@ -278,12 +280,21 @@ my class DateTime does Dateish {
     method hh-mm-ss()          { sprintf "%02d:%02d:%02d", $!hour,$!minute,$!second }
 
     method later(:$earlier, *%unit) {
-        my @pairs = %unit.pairs;
-        die "More than one time unit supplied" if @pairs > 1;
-        die "No time unit supplied"        unless @pairs;
 
-        my $unit   = self!VALID-UNIT(@pairs.AT-POS(0).key);
-        my $amount = @pairs.AT-POS(0).value;
+        # basic sanity check
+        nqp::if(
+          nqp::eqaddr(
+            (my \later := (my \iterator := %unit.iterator).pull-one),
+            IterationEnd
+          ),
+          (die "No time unit supplied"),
+          nqp::unless(
+            nqp::eqaddr(iterator.pull-one,IterationEnd),
+            (die "More than one time unit supplied")
+          )
+        );
+        my $unit  := later.key;
+        my $amount = later.value;
         $amount = -$amount if $earlier;
 
         # work on instant (tai)
@@ -356,7 +367,7 @@ my class DateTime does Dateish {
     }
     method whole-second() { $!second.Int }
 
-    method in-timezone($timezone) {
+    method in-timezone(Int(Cool) $timezone) {
         return self if $timezone == $!timezone;
 
         my int $old-offset = self.offset;

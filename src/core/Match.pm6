@@ -25,11 +25,12 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     method !MATCH() {
-        my int $from = nqp::getattr_i(self, Match, '$!from');
-        my int $pos  = nqp::getattr_i(self, Match, '$!pos');
         my Mu $list;
         my Mu $hash := nqp::hash();
-        if nqp::isge_i($pos, $from) {
+        if nqp::isge_i(
+          nqp::getattr_i(self,Match,'$!pos'),
+          nqp::getattr_i(self, Match, '$!from')
+        ) {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
             my $rxsub   := nqp::getattr(self, Match, '$!regexsub');
@@ -45,14 +46,14 @@ my class Match is Capture is Cool does NQPMatchRole {
                         $namecount = nqp::add_i($namecount, 1);
                         if nqp::iterval(nqp::shift($iter)) >= 2 {
                             $name = nqp::iterkey_s($iter);
-                            $onlyname = $name if nqp::iseq_i($namecount, 1);
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
                                 ?? nqp::bindpos(
                                         nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
-                                        nqp::fromstr_I($name, Int), [])
-                                !! nqp::bindkey($hash, $name, []);
+                                        nqp::fromstr_I($name, Int), nqp::create(Array))
+                                !! nqp::bindkey($hash, $name, nqp::create(Array));
                         }
                     }
+                    $onlyname = $name if nqp::iseq_i($namecount, 1);
                 }
             }
 
@@ -162,6 +163,12 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
+#?if js
+    my sub move_cursor($target, $pos) {
+       nqp::chars(nqp::substrnfg(nqp::substr($target, $pos), 0, 1)) || 1;
+    }
+#?endif
+
     method CURSOR_OVERLAP() {  # adapted from !cursor_more in nqp
         nqp::stmts(
           (my $new := nqp::create(self)),
@@ -183,7 +190,12 @@ my class Match is Capture is Cool does NQPMatchRole {
           nqp::bindattr_i($new,$?CLASS,'$!pos',
             nqp::if(
               nqp::isge_i($!from,$!pos),
+#?if !js
               nqp::add_i($!from,1),
+#?endif
+#?if js
+              nqp::add_i($!from, move_cursor(self.target, $!pos)),
+#?endif
               $!pos
             )
           ),
@@ -536,7 +548,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             $match = nqp::eqat($tgt, $topic_str, $pos);
         }
 
-#?if moar
+#?if !jvm
         # ignoremark+ignorecase
         elsif im == 3 {
             $match = nqp::eqaticim($tgt, $topic_str, $pos);
@@ -552,7 +564,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             $match = nqp::eqatic($tgt, $topic_str, $pos);
         }
 #?endif
-#?if !moar
+#?if jvm
 
 # This branch is required because neither the JVM nor the JS implementations
 # have the nqp::eqat* ops. However, nqp::ordbaseat just throws a NYI
@@ -846,7 +858,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     proto method Bool(|) {*}
-    multi method Bool(Match:U:) { False }
+    multi method Bool(Match:U: --> False) { }
     multi method Bool(Match:D:) { nqp::hllbool($!pos >= $!from) }
 
     multi method Numeric(Match:D:) {

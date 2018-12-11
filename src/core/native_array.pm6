@@ -89,7 +89,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-09-15T11:00:21+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-11-18T17:27:23+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx) is raw {
@@ -135,6 +135,7 @@ my class array does Iterable {
                 :action<store>, :what(self.^name)
               ).throw,
               nqp::stmts(
+                nqp::setelems(self,0),
                 $iterator.push-all(self),
                 self
               )
@@ -572,7 +573,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-09-15T11:00:21+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-11-18T17:27:23+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx) is raw {
@@ -618,6 +619,7 @@ my class array does Iterable {
                 :action<store>, :what(self.^name)
               ).throw,
               nqp::stmts(
+                nqp::setelems(self,0),
                 $iterator.push-all(self),
                 self
               )
@@ -1107,7 +1109,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-09-15T11:00:21+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-11-18T17:27:23+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx) is raw {
@@ -1153,6 +1155,7 @@ my class array does Iterable {
                 :action<store>, :what(self.^name)
               ).throw,
               nqp::stmts(
+                nqp::setelems(self,0),
                 $iterator.push-all(self),
                 self
               )
@@ -1620,7 +1623,7 @@ my class array does Iterable {
                 nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
                 nqp::bindpos($odims,$i,nqp::atpos_i($idims,$i))
               ),
-              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$odims)
+              $odims.List
             )
         }
 
@@ -1675,12 +1678,7 @@ my class array does Iterable {
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
-#?if moar
                 nqp::multidimref_i(self,$idxs)
-#?endif
-#?if !moar
-                nqp::atposnd_i(self,$idxs)
-#?endif
               ),
               nqp::if(
                 nqp::isgt_i($numind,$numdims),
@@ -1737,12 +1735,7 @@ my class array does Iterable {
             method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
             method result(--> Nil) {
                 nqp::bindposnd_i($!list,$!indices,
-#?if moar
                   nqp::multidimref_i($!from,$!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_i($!from,$!indices))
-#?endif
             }
         }
         sub NATCPY(Mu \to, Mu \from) is raw {
@@ -1879,12 +1872,7 @@ my class array does Iterable {
 
         my class Iterate-int does Rakudo::Iterator::ShapeLeaf {
             method result() is raw {
-#?if moar
                 nqp::multidimref_i($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                nqp::atposnd_i($!list,nqp::clone($!indices))
-#?endif
             }
         }
         method iterator(::?CLASS:D:) { Iterate-int.new(self) }
@@ -1900,12 +1888,7 @@ my class array does Iterable {
                       nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
                     result
                   ),
-#?if moar
                   nqp::multidimref_i($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_i($!list,nqp::clone($!indices))
-#?endif
                 )
             }
             # needs its own push-all since it fiddles with $!indices
@@ -1922,12 +1905,7 @@ my class array does Iterable {
             method result() {
                 Pair.new(
                   self.indices,
-#?if moar
                   nqp::multidimref_i($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_i($!list,nqp::clone($!indices))
-#?endif
                 )
             }
         }
@@ -2004,7 +1982,7 @@ my class array does Iterable {
               ),
               nqp::unless(
                 nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos_i(list,$i) # too many values on non-lazy it
+                nqp::atpos_i(self,$i) # too many values on non-lazy it
               ),
               self
             )
@@ -2130,20 +2108,10 @@ my class array does Iterable {
 
     role shaped2intarray does shapedintarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
-#?if moar
             nqp::multidimref_i(self,nqp::list_i(one, two))
-#?endif
-#?if !moar
-            nqp::atpos2d_i(self,one,two)
-#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
-#?if moar
             nqp::multidimref_i(self,nqp::list_i(one, two))
-#?endif
-#?if !moar
-            nqp::atpos2d_i(self,one,two)
-#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Int:D \value) {
@@ -2173,20 +2141,10 @@ my class array does Iterable {
 
     role shaped3intarray does shapedintarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
-#?if moar
             nqp::multidimref_i(self,nqp::list_i(one, two, three))
-#?endif
-#?if !moar
-            nqp::atpos3d_i(self,one,two,three)
-#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
-#?if moar
             nqp::multidimref_i(self,nqp::list_i(one, two, three))
-#?endif
-#?if !moar
-            nqp::atpos3d_i(self,one,two,three)
-#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Int:D \value) {
@@ -2238,12 +2196,7 @@ my class array does Iterable {
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
-#?if moar
                 nqp::multidimref_n(self,$idxs)
-#?endif
-#?if !moar
-                nqp::atposnd_n(self,$idxs)
-#?endif
               ),
               nqp::if(
                 nqp::isgt_i($numind,$numdims),
@@ -2300,12 +2253,7 @@ my class array does Iterable {
             method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
             method result(--> Nil) {
                 nqp::bindposnd_n($!list,$!indices,
-#?if moar
                   nqp::multidimref_n($!from,$!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_n($!from,$!indices))
-#?endif
             }
         }
         sub NATCPY(Mu \to, Mu \from) is raw {
@@ -2442,12 +2390,7 @@ my class array does Iterable {
 
         my class Iterate-num does Rakudo::Iterator::ShapeLeaf {
             method result() is raw {
-#?if moar
                 nqp::multidimref_n($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                nqp::atposnd_n($!list,nqp::clone($!indices))
-#?endif
             }
         }
         method iterator(::?CLASS:D:) { Iterate-num.new(self) }
@@ -2463,12 +2406,7 @@ my class array does Iterable {
                       nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
                     result
                   ),
-#?if moar
                   nqp::multidimref_n($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_n($!list,nqp::clone($!indices))
-#?endif
                 )
             }
             # needs its own push-all since it fiddles with $!indices
@@ -2485,12 +2423,7 @@ my class array does Iterable {
             method result() {
                 Pair.new(
                   self.indices,
-#?if moar
                   nqp::multidimref_n($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_n($!list,nqp::clone($!indices))
-#?endif
                 )
             }
         }
@@ -2693,20 +2626,10 @@ my class array does Iterable {
 
     role shaped2numarray does shapednumarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
-#?if moar
             nqp::multidimref_n(self,nqp::list_i(one, two))
-#?endif
-#?if !moar
-            nqp::atpos2d_n(self,one,two)
-#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
-#?if moar
             nqp::multidimref_n(self,nqp::list_i(one, two))
-#?endif
-#?if !moar
-            nqp::atpos2d_n(self,one,two)
-#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Num:D \value) {
@@ -2736,20 +2659,10 @@ my class array does Iterable {
 
     role shaped3numarray does shapednumarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
-#?if moar
             nqp::multidimref_n(self,nqp::list_i(one, two, three))
-#?endif
-#?if !moar
-            nqp::atpos3d_n(self,one,two,three)
-#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
-#?if moar
             nqp::multidimref_n(self,nqp::list_i(one, two, three))
-#?endif
-#?if !moar
-            nqp::atpos3d_n(self,one,two,three)
-#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Num:D \value) {
@@ -2801,12 +2714,7 @@ my class array does Iterable {
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
-#?if moar
                 nqp::multidimref_s(self,$idxs)
-#?endif
-#?if !moar
-                nqp::atposnd_s(self,$idxs)
-#?endif
               ),
               nqp::if(
                 nqp::isgt_i($numind,$numdims),
@@ -2863,12 +2771,7 @@ my class array does Iterable {
             method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
             method result(--> Nil) {
                 nqp::bindposnd_s($!list,$!indices,
-#?if moar
                   nqp::multidimref_s($!from,$!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_s($!from,$!indices))
-#?endif
             }
         }
         sub NATCPY(Mu \to, Mu \from) is raw {
@@ -3005,12 +2908,7 @@ my class array does Iterable {
 
         my class Iterate-str does Rakudo::Iterator::ShapeLeaf {
             method result() is raw {
-#?if moar
                 nqp::multidimref_s($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                nqp::atposnd_s($!list,nqp::clone($!indices))
-#?endif
             }
         }
         method iterator(::?CLASS:D:) { Iterate-str.new(self) }
@@ -3026,12 +2924,7 @@ my class array does Iterable {
                       nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
                     result
                   ),
-#?if moar
                   nqp::multidimref_s($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_s($!list,nqp::clone($!indices))
-#?endif
                 )
             }
             # needs its own push-all since it fiddles with $!indices
@@ -3048,12 +2941,7 @@ my class array does Iterable {
             method result() {
                 Pair.new(
                   self.indices,
-#?if moar
                   nqp::multidimref_s($!list,nqp::clone($!indices))
-#?endif
-#?if !moar
-                  nqp::atposnd_s($!list,nqp::clone($!indices))
-#?endif
                 )
             }
         }
@@ -3256,20 +3144,10 @@ my class array does Iterable {
 
     role shaped2strarray does shapedstrarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
-#?if moar
             nqp::multidimref_s(self,nqp::list_i(one, two))
-#?endif
-#?if !moar
-            nqp::atpos2d_s(self,one,two)
-#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
-#?if moar
             nqp::multidimref_s(self,nqp::list_i(one, two))
-#?endif
-#?if !moar
-            nqp::atpos2d_s(self,one,two)
-#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Str:D \value) {
@@ -3299,20 +3177,10 @@ my class array does Iterable {
 
     role shaped3strarray does shapedstrarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
-#?if moar
             nqp::multidimref_s(self,nqp::list_i(one, two, three))
-#?endif
-#?if !moar
-            nqp::atpos3d_s(self,one,two,three)
-#?endif
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
-#?if moar
             nqp::multidimref_s(self,nqp::list_i(one, two, three))
-#?endif
-#?if !moar
-            nqp::atpos3d_s(self,one,two,three)
-#?endif
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Str:D \value) {
@@ -3363,6 +3231,11 @@ my class array does Iterable {
         elsif $kind == 3 {
             $what := arr.^mixin(strarray[$t]);
         }
+#?if js
+        elsif $kind == 4 || $kind == 5 {
+            $what := arr.^mixin(intarray[$t]);
+        }
+#?endif
         else {
             return "Can only parameterize array with a native type, not {t.^name}";
         }
@@ -3432,6 +3305,8 @@ my class array does Iterable {
 
     multi method elems(array:D:)    { nqp::elems(self) }
     method shape() { (*,) }
+    proto method Real(|) {*}
+    multi method Real(array:D:)     { nqp::elems(self) }
     proto method Int(|) {*}
     multi method Int(array:D:)      { nqp::elems(self) }
     multi method end(array:D:)      { nqp::elems(self) - 1 }

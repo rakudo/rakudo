@@ -8,15 +8,15 @@ On behalf of the Rakudo development team, I’m very happy to announce the
 «month» «year» release of Rakudo Perl 6 #«release-num». Rakudo is an implementation of
 Perl 6 on the Moar Virtual Machine[^1].
 
-This release implements the 6.c version of the Perl 6 specifications.
-It includes bugfixes and optimizations on top of
-the 2015.12 release of Rakudo.
+This release implements 6.c and 6.d versions of the Perl 6 specification.
+6.c version of the language is available if you use the `use v6.c`
+version pragma, otherwise 6.d is the default.
 
 Upcoming releases in «upcoming-year» will include new functionality that is not
-part of the 6.c specification, available with a lexically scoped
-pragma. Our goal is to ensure that anything that is tested as part of the
-6.c specification will continue to work unchanged. There may be incremental
-spec releases this year as well.
+part of 6.c or 6.d specifications, available with a lexically scoped
+pragma. Our goal is to ensure that anything that is tested as part of
+6.c and 6.d specifications will continue to work unchanged. There may
+be incremental spec releases this year as well.
 
 The tarball for this release is available from <https://rakudo.org/files/rakudo>.
 

@@ -7,6 +7,11 @@ class CompUnit::Repository::Perl5 { ... }
 
 #?if jvm
 class CompUnit::Repository::JavaRuntime { ... }
+class CompUnit::Repository::Java { ... }
+#?endif
+
+#?if js
+class CompUnit::Repository::FileSystemWithRecording { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
@@ -246,7 +251,7 @@ class CompUnit::RepositoryRegistry {
     }
 
     method file-for-spec(Str $spec) {
-        my @parts = $spec.split('#', 2);
+        my @parts is List = $spec.split('#', 2);
         if @parts.elems == 2 {
             my $repo = self.repository-for-name(@parts[0]);
             return $repo.source-file(@parts[1]) if $repo.can('source-file');
@@ -336,13 +341,26 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-    sub short-id2class(Str:D $short-id) is rw {
-        state %short-id2class;
-        state $lock = Lock.new;
+    my %short-id2class = (
+      'file',   CompUnit::Repository::FileSystem,
+      'inst',   CompUnit::Repository::Installation,
+      'ap',     CompUnit::Repository::AbsolutePath,
+      'nqp',    CompUnit::Repository::NQP,
+      'perl5',  CompUnit::Repository::Perl5,
+#?if jvm
+      'javart', CompUnit::Repository::JavaRuntime,
+      'java',   CompUnit::Repository::Java,
+#?endif
+#?if js
+      'filerecording', CompUnit::Repository::FileSystemWithRecording,
+#?endif
+    );
+    my $sid-lock := Lock.new;
 
+    sub short-id2class(Str:D $short-id) is rw {
         Proxy.new(
           FETCH => {
-              $lock.protect( {
+              $sid-lock.protect( {
                   if %short-id2class.EXISTS-KEY($short-id) {
                       %short-id2class.AT-KEY($short-id);
                   }
@@ -370,21 +388,10 @@ class CompUnit::RepositoryRegistry {
           STORE => -> $, $class {
               my $type = ::($class);
               die "Must load class '$class' first" if nqp::istype($type,Failure);
-              $lock.protect( { %short-id2class{$short-id} := $type } );
+              $sid-lock.protect( { %short-id2class{$short-id} := $type } );
           },
         );
     }
-
-# prime the short-id -> class lookup
-    short-id2class('file')  = 'CompUnit::Repository::FileSystem';
-    short-id2class('inst')  = 'CompUnit::Repository::Installation';
-    short-id2class('ap')    = 'CompUnit::Repository::AbsolutePath';
-    short-id2class('nqp')   = 'CompUnit::Repository::NQP';
-    short-id2class('perl5') = 'CompUnit::Repository::Perl5';
-#?if jvm
-    short-id2class('javart')  = 'CompUnit::Repository::JavaRuntime';
-    short-id2class('java')  = 'CompUnit::Repository::Java';
-#?endif
 
     sub parse-include-specS(Str:D $specs) {
         my @found;

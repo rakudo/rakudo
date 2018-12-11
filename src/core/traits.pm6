@@ -374,12 +374,6 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
     $target.^mixin(Callable.^parameterize($type))
 }
 
-multi sub trait_mod:<is>(Code:D $r, :$hidden-from-backtrace!) {
-    $r.^mixin( role is-hidden-from-backtrace {
-        method is-hidden-from-backtrace(--> True) { }
-    }) if $hidden-from-backtrace;
-}
-
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
     $r.^mixin( role is-hidden-from-backtrace {
         method is-hidden-from-backtrace(--> True) { }
@@ -459,7 +453,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                     }
                     elsif nqp::istype($expr, HyperWhatever) {
                         $pkg.^add_fallback(
-                            -> $obj, $name { True },
+                            -> $, $ --> True { },
                             -> $obj, $name {
                                 -> $self, |c {
                                     $attr.get_value($self)."$name"(|c)

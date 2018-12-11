@@ -183,7 +183,7 @@ my class SetHash does Setty {
     multi method Mixy (SetHash:D:) { self.MixHash }
 
 #--- interface methods
-    method STORE(*@pairs --> SetHash:D) {
+    multi method STORE(SetHash:D: *@pairs --> SetHash:D) {
         nqp::if(
           (my \iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
@@ -193,6 +193,21 @@ my class SetHash does Setty {
             )
           )
         )
+    }
+    multi method STORE(SetHash:D: \objects, \bools --> SetHash:D) {
+        my \iterobjs  := objects.iterator;
+        my \iterbools := bools.iterator;
+        nqp::bindattr(
+          self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
+        );
+        nqp::until(
+          nqp::eqaddr((my \object := iterobjs.pull-one),IterationEnd),
+          nqp::if(
+            iterbools.pull-one,
+            nqp::bindkey($!elems,object.WHICH,nqp::decont(object))
+          )
+        );
+        self
     }
 
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {

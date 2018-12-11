@@ -1347,7 +1347,7 @@ class Perl6::Optimizer {
         }
 
         # May be able to eliminate some decontrv operations.
-        if $optype eq 'p6decontrv' {
+        if $optype eq 'p6decontrv' || $optype eq 'p6decontrv_6c' {
             # If it's rw, don't need to decont at all.
             my $value := $op[1];
             return $value if $op[0].value.rw;
@@ -1758,6 +1758,7 @@ class Perl6::Optimizer {
                     }
                 }
 
+
                 # Don't constant fold the 'x' operator if the resulting string would be too big.
                 # 1024 is just a heuristic, measuring might show a bigger value would be fine.
                 if $all_args_known && self.op_eq_core($op, '&infix:<x>') {
@@ -1776,6 +1777,7 @@ class Perl6::Optimizer {
                     my int $survived := 0;
                     my $ret_value;
                     try {
+                        my $*FOLDING := 1;
                         $ret_value := $obj(|@args);
                         $survived  := 1 ;
                         CONTROL {
@@ -1784,7 +1786,7 @@ class Perl6::Optimizer {
                     }
                     if $survived && self.constant_foldable_type($ret_value) {
                         return $NULL if $!void_context && !$!in_declaration;
-                        $*W.add_object($ret_value);
+                        $*W.add_object_if_no_sc($ret_value);
                         my $wval := QAST::WVal.new(:value($ret_value));
                         if $op.named {
                             $wval.named($op.named);
@@ -1912,17 +1914,15 @@ class Perl6::Optimizer {
         $op.op: 'callstatic'; # by now we know 'tis a core op
 
         # if we got a native int/num, we can rewrite into nqp ops
-        if nqp::istype($var,QAST::Var) && $var.scope eq 'lexicalref'
+        if nqp::istype($var,QAST::Var) && ($var.scope eq 'lexicalref' || $var.scope eq 'attributeref')
         && ((my $primspec := nqp::objprimspec($var.returns)) == 1 # native int
-          || $primspec == 2) # native num
+          || $primspec == 2 || $primspec == 4 || $primspec == 5) # native num or "emulated" 64bit int
         {
             my $returns := $var.returns;
             my $is-dec := nqp::eqat($op.name, '--', -3);
 
             if $primspec == 1 { # native int
-                my $one := QAST::Want.new: :$node,
-                  QAST::WVal.new(:value($!symbols.find_lexical: 'Int')),
-                    'Ii', QAST::IVal.new: :value(1);
+                my $one := QAST::IVal.new: :value(1);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
                     return QAST::Op.new: :op<assign_i>, :$node, :$returns, $var,
@@ -1941,9 +1941,7 @@ class Perl6::Optimizer {
                 }
             }
             elsif $primspec == 2 { # native num
-                my $one := QAST::Want.new: :$node,
-                  QAST::WVal.new(:value($!symbols.find_lexical: 'Num')),
-                    'Nn', QAST::NVal.new: :value(1);
+                my $one := QAST::NVal.new: :value(1);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
                     return QAST::Op.new: :op<assign_n>, :$node, :$returns, $var,
@@ -1959,6 +1957,26 @@ class Perl6::Optimizer {
                         QAST::Op.new: :op($is-dec ?? 'sub_n' !! 'add_n'),
                           :$returns, $var, $one),
                       $one
+                }
+            }
+            elsif $primspec == 4 || $primspec == 5 { # 64bit int on 32bit backends
+                my str $assign_op := $primspec == 4 ?? 'assign_i64' !! 'assign_u64';
+                my $one := QAST::IVal.new: :value(1);
+                if $!void_context || nqp::eqat($op.name, '&pre', 0) {
+                    # we can just use (or ignore) the result
+                    return QAST::Op.new: :op($assign_op), :$node, :$returns, $var,
+                      QAST::Op.new: :op($is-dec ?? 'sub_i64' !! 'add_i64'),
+                        :$returns, $var, $one
+                }
+                else {
+                    # need to assign original value; it's cheaper to just
+                    # do the reverse operation than to use a temp var
+                    return QAST::Op.new: :op($is-dec ?? 'add_i64' !! 'sub_i64'),
+                          :$node, :$returns,
+                        QAST::Op.new(:op($assign_op), :$returns, $var,
+                          QAST::Op.new: :op($is-dec ?? 'sub_i64' !! 'add_i64'),
+                           :$returns, $var, $one),
+                        $one
                 }
             }
         }
@@ -1999,7 +2017,9 @@ class Perl6::Optimizer {
         )
     }
 
-    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s'];
+    # The _i64 and _u64 are only used on backends that emulate int64/uint64
+    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i64', 'assign_u64'];
+
     method optimize_nameless_call($op) {
       return NQPMu
         unless nqp::elems($op)
@@ -2154,7 +2174,7 @@ class Perl6::Optimizer {
                 my $meth := $pkg.HOW.find_private_method($pkg, $name);
                 if nqp::defined($meth) && $meth {
                     if nqp::isnull(nqp::getobjsc($meth)) {
-                        try $*W.add_object($meth);
+                        try $*W.add_object_if_no_sc($meth);
                     }
                     unless nqp::isnull(nqp::getobjsc($meth)) {
                         my $call := QAST::WVal.new( :value($meth) );
@@ -2880,7 +2900,7 @@ class Perl6::Optimizer {
     # we may be passing.
     method call_ct_chosen_multi($call, $proto, $chosen) {
         self.simplify_refs($call, $chosen.signature);
-        if nqp::getcomp('perl6').backend.name ne 'moar' {
+        if nqp::getcomp('perl6').backend.name eq 'jvm' {
             my @cands := $proto.dispatchees();
             my int $idx := 0;
             for @cands {

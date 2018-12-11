@@ -334,6 +334,20 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Add to given IterationSet with setty semantics the values of the two
+    # given iterators where the first iterator supplies objects, and the
+    # second supplies values (only include if value is trueish).
+    method ADD-OBJECTS-VALUES-TO-SET(\elems,Mu \objects, Mu \bools) is raw {
+        nqp::until(
+          nqp::eqaddr((my \object := objects.pull-one),IterationEnd),
+          nqp::if(
+            bools.pull-one,
+            nqp::bindkey(elems,object.WHICH,nqp::decont(object))
+          )
+        );
+        elems
+    }
+
     # Add to given IterationSet with setty semantics the keys of given Map
     method ADD-MAP-TO-SET(\elems, \map) {
         nqp::stmts(
@@ -818,6 +832,20 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # Add to given IterationSet with baggy semantics the values of the two
+    # given iterators where the first iterator supplies objects, and the
+    # second supplies values.
+    method ADD-OBJECTS-VALUES-TO-BAG(\elems,Mu \objects, Mu \values) is raw {
+        nqp::until(
+          nqp::eqaddr((my \object := objects.pull-one),IterationEnd),
+          nqp::if(
+            (my \value := values.pull-one.Int) > 0,
+            nqp::bindkey(elems,object.WHICH,Pair.new(object,value))
+          )
+        );
+        elems
+    }
+
     # Take the given IterationSet with baggy semantics, and add the other
     # IterationSet with setty semantics to it.  Return the given IterationSet.
     method ADD-SET-TO-BAG(\elems,Mu \set) {
@@ -1240,6 +1268,33 @@ my class Rakudo::QuantHash {
           ),
           elems                      # we're done, return what we got so far
         )
+    }
+
+    # Add to given IterationSet with mixy semantics the values of the two
+    # given iterators where the first iterator supplies objects, and the
+    # second supplies values.
+    method ADD-OBJECTS-VALUES-TO-MIX(\elems,Mu \objects, Mu \values) is raw {
+        nqp::until(
+          nqp::eqaddr((my \object := objects.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype((my \value := values.pull-one),Num)
+              && nqp::isnanorinf(value),
+            X::OutOfRange.new( # NaN or -Inf or Inf, we're done
+              what  => 'Value',
+              got   => value,
+              range => '-Inf^..^Inf'
+            ).throw,
+            nqp::if(
+              nqp::istype(nqp::bind(value,value.Real),Real),
+              nqp::if(
+                value,
+                nqp::bindkey(elems,object.WHICH,Pair.new(object,value))
+              ),
+              value.throw
+            )
+          )
+        );
+        elems
     }
 
     # Take the given IterationSet with mixy semantics, and add the other

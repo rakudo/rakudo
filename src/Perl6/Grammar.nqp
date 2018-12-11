@@ -473,6 +473,9 @@ role STD {
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
+    #================================================================
+    # AMBIENT AND POD-COMMON CODE HANDLERS
+    #================================================================
     my class SerializationContextId {
         my $count := 0;
         my $lock  := NQPLock.new;
@@ -714,532 +717,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    proto token comment { <...> }
-
-    token comment:sym<#> {
-       '#' {} \N*
-    }
-
-    token comment:sym<#`(...)> {
-        '#`' <?opener> {}
-        [ <.quibble(self.slang_grammar('Quote'))> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
-    }
-
-    token comment:sym<#|(...)> {
-        '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
-        {
-            unless $*POD_BLOCKS_SEEN{ self.from() } {
-                $*POD_BLOCKS_SEEN{ self.from() } := 1;
-                if $*DECLARATOR_DOCS eq '' {
-                    $*DECLARATOR_DOCS := $<attachment><nibble>;
-                } else {
-                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment><nibble>));
-                }
-            }
-        }
-    }
-
-    token comment:sym<#|> {
-        '#|' \h+ $<attachment>=[\N*]
-        {
-            unless $*POD_BLOCKS_SEEN{ self.from() } {
-                $*POD_BLOCKS_SEEN{ self.from() } := 1;
-                if $*DECLARATOR_DOCS eq '' {
-                    $*DECLARATOR_DOCS := $<attachment>;
-                } else {
-                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment>));
-                }
-            }
-        }
-    }
-
-    token comment:sym<#=(...)> {
-        '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
-        {
-            self.attach_trailing_docs(~$<attachment><nibble>);
-        }
-    }
-
-    token comment:sym<#=> {
-        '#=' \h+ $<attachment>=[\N*]
-        {
-            self.attach_trailing_docs(~$<attachment>);
-        }
-    }
-
-    method attach_leading_docs() {
-        # TODO allow some limited text layout here
-        if ~$*DOC ne '' {
-            my $cont  := Perl6::Pod::serialize_aos(
-                [Perl6::Pod::normalize_text(~$*DOC)]
-            ).compile_time_value;
-            my $block := $*W.add_constant(
-                'Pod::Block::Declarator', 'type_new',
-                :nocache, :leading([$cont]),
-            );
-            $*POD_BLOCK := $block.compile_time_value;
-            $*POD_BLOCKS.push($*POD_BLOCK);
-        }
-        self
-    }
-
-    method attach_trailing_docs($doc) {
-        # TODO allow some limited text layout here
-        unless $*POD_BLOCKS_SEEN{ self.from() } {
-            $*POD_BLOCKS_SEEN{ self.from() } := 1;
-            my $pod_block;
-            if $doc ne '' {
-                my $cont  := Perl6::Pod::serialize_aos(
-                    [Perl6::Pod::normalize_text($doc)]
-                ).compile_time_value;
-                my $block := $*W.add_constant(
-                    'Pod::Block::Declarator', 'type_new',
-                    :nocache, :trailing([$cont]),
-                );
-                $pod_block := $block.compile_time_value;
-            }
-            unless $*PRECEDING_DECL =:= Mu {
-                Perl6::Pod::document(self.MATCH, $*PRECEDING_DECL, $pod_block, :trailing);
-            }
-        }
-    }
-
-    token pod_content_toplevel {
-        <pod_block>
-    }
-
-    proto token pod_content { <...> }
-
-    token pod_content:sym<block> {
-        <pod_newline>*
-        <pod_block>
-        <pod_newline>*
-    }
-
-    # any number of paragraphs of text
-    # the paragraphs are separated by one
-    #   or more pod_newlines
-    # each paragraph originally could have
-    #   consisted of more than one line of
-    #   text that were subsequently squeezed
-    #   into one line
-    token pod_content:sym<text> {
-        <pod_newline>*
-
-        # TODO get first line if IN-DEFN-BLOCK
-        <pod_textcontent>+ % <pod_newline>+
-
-        <pod_newline>*
-    }
-
-    # not a block, just a directive
-    token pod_content:sym<config> {
-        <pod_newline>*
-        ^^ \h* '=config' \h+ $<type>=\S+ <pod_configuration>
-        <pod_newline>+
-    }
-
-    proto token pod_textcontent { <...> }
-
-    # for non-code (i.e., regular) text
-    token pod_textcontent:sym<regular> {
-        $<spaces>=[ \h* ]
-         <?{ $*POD_IN_CODE_BLOCK
-             || !$*ALLOW_INLINE_CODE
-             || ($<spaces>.to - $<spaces>.from) <= $*VMARGIN }>
-
-        $<text> = [
-            \h* <!before '=' \w> <pod_string> [ <pod_newline> | $ ]
-        ] +
-    }
-
-    token pod_textcontent:sym<code> {
-        $<spaces>=[ \h* ]
-        <?{ !$*POD_IN_CODE_BLOCK
-            && $*ALLOW_INLINE_CODE
-            && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
-
-        # TODO get first line if IN-DEFN-BLOCK
-        $<text> = [
-            [<!before '=' \w> \N+]+ % [<pod_newline>+ $<spaces>]
-        ]
-    }
-
-    token pod_formatting_code {
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        :my $*POD_IN_FORMATTINGCODE := nqp::getlexdyn('$*POD_IN_FORMATTINGCODE');
-        :my $*POD_ANGLE_COUNT := nqp::getlexdyn('$*POD_ANGLE_COUNT');
-        <?{ $*POD_ALLOW_FCODES }>
-
-        :my $endtag;
-        <code=[A..Z]>
-        $<begin-tag>=['<'+ <![<]> | '«'] { $*POD_IN_FORMATTINGCODE := 1 }
-        <?{
-            my $codenum := nqp::ord($<code>.Str) - nqp::ord("A");
-            if !($*POD_ALLOW_FCODES +& (2 ** $codenum)) {
-                0
-            } elsif ~$<begin-tag> eq '«' {
-              $endtag := "»";
-              $*POD_ANGLE_COUNT := -1;
-              1
-            } else {
-              my int $ct := nqp::chars($<begin-tag>);
-              $endtag := nqp::x(">", $ct);
-              my $rv := $*POD_ANGLE_COUNT <= 0 || $*POD_ANGLE_COUNT >= $ct;
-              $*POD_ANGLE_COUNT := $ct;
-              $rv;
-            }
-        }>
-        {
-            if $<code>.Str eq "V" || $<code>.Str eq "C" {
-                $*POD_ALLOW_FCODES := 0;
-            }
-        }
-        [ <!{$<code> eq 'E'}>
-          $<contents>=[
-              <!before $endtag>
-              [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
-              <pod_string_character>
-          ]*
-        ]?
-        [
-        | <?{$<code> eq 'L'}> \s* \| \s* $<meta>=[<!before $endtag>.]+
-        | <?{$<code> eq 'X'}> \s* \| \s* ( [$<meta>=[<!before $endtag | <[,;]> >.]+] +%% \, ) +%% \;
-        | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \; >.]+] +%% \;
-        | <?{$<code> eq 'E'}> ( <integer> | $<uni_name>=<[A..Z\s]>+ <![a..z]> || $<html_ref>=<[A..Za..z]>+ ) +%% \;
-        ]?
-        [ $endtag || <.worry: "Pod formatting code $<code> missing endtag '$endtag'."> ]
-    }
-
-    token pod_balanced_braces {
-        <?{ $*POD_IN_FORMATTINGCODE }>
-        :my $endtag;
-        [
-            $<braces>=[
-                      || '<'+ <![<]>
-                      || '>'+ <![>]>
-                      ]
-            <?{ nqp::chars($<braces>) < $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
-          ||
-            <?{ $*POD_ANGLE_COUNT >= 1 }>
-            $<start>=['<'+] <![<]>
-            <?{ nqp::chars($<start>) == $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
-            {
-                $endtag := nqp::x(">", nqp::chars($<start>));
-            }
-            $<contents>=[ <pod_string_character>*?]
-            <!after '>'> $<endtag>=[$endtag]
-        ]
-    }
-
-    token pod_string {
-        <pod_string_character>+
-    }
-
-    token pod_string_character {
-        <pod_balanced_braces> || <pod_formatting_code> || $<char>=[ \N || [
-            <?{ $*POD_IN_FORMATTINGCODE }> \n [
-                <?{ $*POD_DELIMITED_CODE_BLOCK }> <!before \h* '=end' \h+ <pod-delim-code-typ> > ||
-                <!before \h* '=' \w>
-                ]
-            ]
-        ]
-    }
-
-    proto token pod_block { <...> }
-
-    token pod_configuration($spaces = '') {
-        [ [\n $spaces '=']? \h+ <colonpair> ]*
-    }
-
-    token pod_block:sym<delimited_comment> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=begin' \h+ 'comment' {}
-        <pod_configuration($<spaces>)> <pod_newline>+
-        [
-         $<pod_content> = [ .*? ]
-         ^^ $<spaces> '=end' \h+
-         [
-            'comment' [ <pod_newline> | $ ]
-            || $<instead>=<identifier>? {
-                   $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
-                       type    => 'comment',
-                       spaces  => ~$<spaces>,
-                       instead => $<instead> ?? ~$<instead> !! ''
-               }
-         ]
-        ]
-    }
-
-    regex pod_block:sym<delimited> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=begin'
-        [ <?pod_newline>
-          <.typed_panic('X::Syntax::Pod::BeginWithoutIdentifier')>
-        ]?
-        \h+ <!before 'finish'>
-        {
-            $*VMARGIN    := $<spaces>.to - $<spaces>.from;
-        }
-        :my $*ALLOW_INLINE_CODE := 0;
-        $<type> = [
-            <pod_code_parent> {
-                $*ALLOW_INLINE_CODE := 1;
-            }
-            || <identifier>
-        ]
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)> <pod_newline>+
-        [
-         # TODO need first line to check for ws-separated '#'
-         <pod_content> *
-         ^^ $<spaces> '=end' \h+
-         [
-             $<type> [ <pod_newline> | $ ]
-             || $<instead>=<identifier>? {
-                    $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
-                        type    => ~$<type>,
-                        spaces  => ~$<spaces>,
-                        instead => $<instead> ?? ~$<instead> !! ''
-                    }
-         ]
-        ]
-    }
-
-
-    token pod_block:sym<delimited_table> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=begin' \h+ 'table' {}
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)> <pod_newline>+
-        [
-         [ $<table_row>=<.table_row_or_blank> ]*
-         ^^ \h* '=end' \h+
-         [
-            'table' [ <pod_newline> | $ ]
-             || $<instead>=<identifier>? {
-                    $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
-                        type    => 'table',
-                        spaces  => ~$<spaces>,
-                        instead => $<instead> ?? ~$<instead> !! ''
-                    }
-         ]
-        ]
-    }
-
-    # There are several different identifiers for pod blocks
-    # that are treated essentially the same: 'code', 'input',
-    # and 'output'.
-    token pod-delim-code-typ { code | input | output }
-    token pod_block:sym<delimited_code> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=begin' \h+ $<typ>=<pod-delim-code-typ> {}
-        :my $*POD_ALLOW_FCODES  := 0;
-        :my $*POD_IN_CODE_BLOCK := 1;
-        :my $*POD_DELIMITED_CODE_BLOCK := 1;
-        <pod_configuration($<spaces>)> <pod_newline>+
-        [
-        || <delimited_code_content($<spaces>)> $<spaces> '=end' \h+
-            [ $<end>=<pod-delim-code-typ> [ <pod_newline> | $ ]
-              { if ~$<end> ne ~$<typ> {
-                         $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
-                         type    => ~$<typ>,
-                         spaces  => ~$<spaces>,
-                         instead => $<end> ?? ~$<end> !! ''
-              }}
-              || $<instead>=<identifier>? {
-                     $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
-                     type    => $<typ>,
-                     spaces  => ~$<spaces>,
-                     instead => $<instead> ?? ~$<instead> !! ''
-                 }
-            ]
-        ]
-    }
-
-    token delimited_code_content($spaces = '') {
-        ^^
-        (
-        | $spaces
-            <!before '=end' \h+ <pod-delim-code-typ> [ <pod_newline> | $ ]>
-            <pod_string>**0..1 <pod_newline>
-        | <pod_newline>
-        )*
-    }
-
-    token table_row {
-        \h* <!before '=' \w> \N+ [ \n | $ ]
-    }
-
-    token table_row_or_blank {
-        <.table_row> | [\h* <!before '=' \w> \n ]
-    }
-
-    token pod_block:sym<finish> {
-        ^^ \h*
-        [
-            | '=begin' \h+ 'finish' <pod_newline>
-            | '=for'   \h+ 'finish' <pod_newline>
-            | '=finish' <pod_newline>
-        ]
-        $<finish> = .*
-    }
-
-    token pod_block:sym<paragraph> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=for' \h+ <!before 'finish'>
-        {
-            $*VMARGIN := $<spaces>.to - $<spaces>.from;
-        }
-        :my $*ALLOW_INLINE_CODE := 0;
-        [ :!ratchet
-            $<type> = [
-                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
-                || <identifier>
-            ]
-            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-            <pod_configuration($<spaces>)>
-            <pod_newline>
-        ]
-        # TODO [defn, term], [first text, line numbered-alias]
-        #   if this is a defn block
-        #     the first line of the first pod_textcontent
-        #     becomes the term
-        #     then combine the rest of the text
-        # TODO exchange **0..1 for modern syntax
-        <pod_content=.pod_textcontent>**0..1
-    }
-
-    token pod_block:sym<paragraph_comment> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=for' \h+ 'comment' {}
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)> <pod_newline>
-        $<pod_content> = [ \h* <!before '=' \w> \N+ [ \n | $ ] ]*
-    }
-
-    token pod_block:sym<paragraph_table> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=for' \h+ 'table' {}
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_configuration($<spaces>)> <pod_newline>
-
-        # TODO add numbered-alias token here
-        [ <!before \h* \n> <table_row>]*
-    }
-
-    token pod_block:sym<paragraph_code> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=for' \h+ <pod-delim-code-typ> {}
-        :my $*POD_ALLOW_FCODES := 0;
-        :my $*POD_IN_CODE_BLOCK := 1;
-        <pod_configuration($<spaces>)> <pod_newline>
-
-        # TODO get first line if IN-DEFN-BLOCK
-        [ <!before \h* '=' \w> <pod_line> ]*
-    }
-
-    # TODO make sure this token works in all desired
-    #      places: may have to remove the before/afters
-    #      when using with non-abbreviated blocks
-    #      (particulary code blocks)
-    token numbered-alias { <after [^|\s]> '#' <before \s> }
-    token pod_block:sym<abbreviated> {
-        # Note an abbreviated block does not have
-        # %config data, but see the hash mark
-        # handling below.
-        ^^
-        $<spaces> = [ \h* ]
-        '=' <!before begin || end || for || finish || config>
-        {
-            $*VMARGIN := $<spaces>.to - $<spaces>.from;
-        }
-        :my $*ALLOW_INLINE_CODE := 0;
-        [ :!ratchet
-            $<type> = [
-                <pod_code_parent> {
-                    $*ALLOW_INLINE_CODE := 1;
-                }
-                || <identifier>
-            ]
-            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-
-            # An optional hash char here is special.
-            [\h+ <numbered-alias>]?
-
-            [\h*\n|\h+]
-        ]
-        # TODO [defn, term], [first text, line numbered-alias]
-        # TODO exchange **0..1 for modern syntax
-        <pod_content=.pod_textcontent>**0..1
-    }
-
-    token pod_block:sym<abbreviated_comment> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=comment' {}
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        [\h*\n|\h+]
-        $<pod_content> = [ \h* <!before '=' \w> \N+ [ \n | $ ] ]*
-    }
-
-    token pod_block:sym<abbreviated_table> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=table' {}
-
-        # An optional hash char here is special.
-        [\h+ <numbered-alias>]?
-
-        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
-        <pod_newline>
-        [ <!before \h* \n> <table_row>]*
-    }
-
-    token pod_block:sym<abbreviated_code> {
-        ^^
-        $<spaces> = [ \h* ]
-        '=' <pod-delim-code-typ> {}
-        :my $*POD_ALLOW_FCODES  := 0;
-        :my $*POD_IN_CODE_BLOCK := 1;
-
-        # An optional hash char here is special.
-        # For the code block, we want to eat any ws
-        # between the '#' and the next char
-        #$<numbered-alias>=[\h+ '#' \s]?
-        $<numbered-alias>=[\h+ '#' \s]?
-
-        [\h*\n|\h+]
-
-        [ <!before \h* '=' \w> <pod_line> ]*
-    }
-
-    # TODO exchange **1 for modern syntax
-    token pod_line { <pod_string>**1 [ <pod_newline> | $ ] }
-
-    token pod_newline {
-        \h* \n
-    }
-
-    # These parents can contain implicit code blocks when data
-    # lines begin with whitespace indention from the virtual
-    # margin.
-    token pod_code_parent {
-        [
-        | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]
-        | <upper>+
-        ]
-        <![\w]>
-    }
-
     token install_doc_phaser { <?> }
 
     token vnum {
@@ -1304,6 +781,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*NEXT_STATEMENT_ID := 1;              # to give each statement an ID
         :my $*IN_STMT_MOD := 0;                    # are we inside a statement modifier?
         :my $*COMPILING_CORE_SETTING := 0;         # are we compiling CORE.setting?
+        # TODO XXX: see https://github.com/rakudo/rakudo/issues/2432
+        :my $*SET_DEFAULT_LANG_VER := 1;
         :my %*SIG_INFO;                            # information about recent signature
 
         # Various interesting scopes we'd like to keep to hand.
@@ -1343,6 +822,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         <.finishpad>
         <.bom>?
+        <lang-version>
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
 
         <.install_doc_phaser>
@@ -1362,6 +842,25 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             :shared(self.'!shared'()),
             :braid(self."!braid"()."!clone"()));
         $new;
+    }
+
+    rule lang-version {
+        :my $comp := nqp::getcomp('perl6');
+        [
+          <.ws>? 'use' <version> {} # <-- update $/ so we can grab $<version>
+          # we parse out the numeral, since we could have "6d"
+          :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
+          [
+          ||  <?{ $version == 6 }> { $*W.load-lang-ver: $<version>, $comp }
+          ||  { $/.typed_panic: 'X::Language::Unsupported',
+                  version => ~$<version> }
+          ]
+        || {
+              # This is the path we take when the user did not
+              # provide any `use v6.blah` lang version statement
+              $*W.load-lang-ver: 'v6', $comp if $*SET_DEFAULT_LANG_VER;
+          }
+        ]
     }
 
     rule statementlist($*statement_level = 0) {
@@ -1425,7 +924,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my str $prematch  := nqp::substr($orig, $from > 20 ?? $from - 20 !! 0, $from > 20 ?? 20 !! $from);
             my str $postmatch := nqp::substr($orig, $to, 20);
             my $label     := $*W.find_symbol(['Label']).new( :name($*LABEL), :$line, :$prematch, :$postmatch );
-            $*W.add_object($label);
+            $*W.add_object_if_no_sc($label);
             $*W.install_lexical_symbol($*W.cur_lexpad(), $*LABEL, $label);
         }
     }
@@ -1568,6 +1067,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             }
     }
     token newpad { <?> { $*W.push_lexpad($/) } }
+    token newthunk { <?> { $*W.push_thunk($/) } }
     token finishpad { <?> }
 
     token bom { \xFEFF }
@@ -1756,31 +1256,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<doc>=[ 'DOC' \h+ ]**0..1
         <sym> <.ws>
         [
-        | <version> {} # <-- update $/ so we can grab $<version>
-                    # we parse out the numeral, since we could have "6c"
-                    :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
-                    [
-                    ||  <?{ $version == 6 }> {
-                            my $version_parts := $<version><vnum>;
-                            my $vwant := $<version>.ast.compile_time_value;
-                            my $comp := nqp::getcomp('perl6');
-                            my $vhave := $*W.find_symbol(['Version']).new($comp.language_version());
-                            my $vcould := $*W.find_symbol(['Version']).new('6.d.PREVIEW');
-                            my $sm := $*W.find_symbol(['&infix:<~~>']);
-                            if $sm($vcould, $vwant) && $vwant.parts.AT-POS($vwant.parts.elems - 1) eq 'PREVIEW' {
-                                $comp.set_language_version('6.d');
-                                $*W.load_setting($/, 'CORE.d');
-                            }
-                            elsif !$sm($vhave,$vwant) {
-                                $/.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
-                            }
-                            $*MAIN   := 'MAIN';
-                            $*STRICT := 1 if $*begin_compunit;
-                        }
-                    ||  {
-                            $/.typed_panic: 'X::Language::Unsupported', version => ~$<version>;
-                        }
-                    ]
+        | <version>
+            { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
         | <module_name>
             [
             || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
@@ -2804,7 +2281,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {
             $*VARIABLE := $<variable>.ast.name;
             $/.add_variable($*VARIABLE);
-            $sigil := nqp::substr($*VARIABLE, 0, 1);
+            $sigil := $<variable><sigil>.Str;
             $*IN_DECL := '';
         }
         [
@@ -3120,6 +2597,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # We'll collect parameter information into a hash, then use it to
         # build up the parameter object in the action method
         :my %*PARAM_INFO;
+        :my $*CURTHUNK;
         [
         | <type_constraint>+
             [
@@ -3148,6 +2626,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
         <trait>*
         <post_constraint('param')>*
+        <.newthunk>
         [
             <default_value>
             [ <modifier=.trait> {
@@ -3157,6 +2636,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
             }]?
         ]**0..1
+        { $*CURTHUNK := $*W.pop_thunk() }
 
         # enforce zone constraints
         {
@@ -3707,7 +3187,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <complex_number>
         | 'Inf' >>
         | $<uinf>='∞'
-        | <?{ nqp::existskey(nqp::backendconfig(), 'moarlib') }> <unum=:No+:Nl>
+        | <unum=:No+:Nl>
         ]
     }
 
@@ -4799,7 +4279,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $META.name('&METAOP_HYPER_POSTFIX') if $META.name eq '&METAOP_HYPER_POSTFIX_ARGS';
                 my $fun := $*W.compile_time_evaluate(self.MATCH,$META);
                 $*W.install_lexical_symbol($*W.cur_lexpad(),'&' ~ $categorical[0],$fun);
-                $fun.set_name($name);
+                $fun.set_name($name) unless $fun.name;
                 return self;
             }
         }
@@ -5134,6 +4614,539 @@ if $*COMPILING_CORE_SETTING {
         }
         self.O(|%prec)
     }
+
+    #================================================================
+    # POD-ONLY CODE HANDLERS
+    #================================================================
+    # move ALL Pod-only grammar objects here
+
+    proto token comment { <...> }
+
+    token comment:sym<#> {
+       '#' {} \N*
+    }
+
+    token comment:sym<#`(...)> {
+        '#`' <?opener> {}
+        [ <.quibble(self.slang_grammar('Quote'))> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
+    }
+
+    token comment:sym<#|(...)> {
+        '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
+        {
+            unless $*POD_BLOCKS_SEEN{ self.from() } {
+                $*POD_BLOCKS_SEEN{ self.from() } := 1;
+                if $*DECLARATOR_DOCS eq '' {
+                    $*DECLARATOR_DOCS := $<attachment><nibble>;
+                } else {
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment><nibble>));
+                }
+            }
+        }
+    }
+
+    token comment:sym<#|> {
+        '#|' \h+ $<attachment>=[\N*]
+        {
+            unless $*POD_BLOCKS_SEEN{ self.from() } {
+                $*POD_BLOCKS_SEEN{ self.from() } := 1;
+                if $*DECLARATOR_DOCS eq '' {
+                    $*DECLARATOR_DOCS := $<attachment>;
+                } else {
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment>));
+                }
+            }
+        }
+    }
+
+    token comment:sym<#=(...)> {
+        '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
+        {
+            self.attach_trailing_docs(~$<attachment><nibble>);
+        }
+    }
+
+    token comment:sym<#=> {
+        '#=' \h+ $<attachment>=[\N*]
+        {
+            self.attach_trailing_docs(~$<attachment>);
+        }
+    }
+
+    method attach_leading_docs() {
+        # TODO allow some limited text layout here
+        if ~$*DOC ne '' {
+            my $cont  := Perl6::Pod::serialize_aos(
+                [Perl6::Pod::normalize_text(~$*DOC)]
+            ).compile_time_value;
+            my $block := $*W.add_constant(
+                'Pod::Block::Declarator', 'type_new',
+                :nocache, :leading([$cont]),
+            );
+            $*POD_BLOCK := $block.compile_time_value;
+            $*POD_BLOCKS.push($*POD_BLOCK);
+        }
+        self
+    }
+
+    method attach_trailing_docs($doc) {
+        # TODO allow some limited text layout here
+        unless $*POD_BLOCKS_SEEN{ self.from() } {
+            $*POD_BLOCKS_SEEN{ self.from() } := 1;
+            my $pod_block;
+            if $doc ne '' {
+                my $cont  := Perl6::Pod::serialize_aos(
+                    [Perl6::Pod::normalize_text($doc)]
+                ).compile_time_value;
+                my $block := $*W.add_constant(
+                    'Pod::Block::Declarator', 'type_new',
+                    :nocache, :trailing([$cont]),
+                );
+                $pod_block := $block.compile_time_value;
+            }
+            unless $*PRECEDING_DECL =:= Mu {
+                Perl6::Pod::document(self.MATCH, $*PRECEDING_DECL, $pod_block, :trailing);
+            }
+        }
+    }
+
+    token pod_content_toplevel {
+        <pod_block>
+    }
+
+    proto token pod_content { <...> }
+
+    token pod_content:sym<block> {
+        <pod_newline>*
+        <pod_block>
+        <pod_newline>*
+    }
+
+    # any number of paragraphs of text
+    # the paragraphs are separated by one
+    #   or more pod_newlines
+    # each paragraph originally could have
+    #   consisted of more than one line of
+    #   text that were subsequently squeezed
+    #   into one line
+    token pod_content:sym<text> {
+        <pod_newline>*
+
+        # TODO get first line if IN-DEFN-BLOCK
+        <pod_textcontent>+ % <pod_newline>+
+
+        <pod_newline>*
+    }
+
+    # not a block, just a directive
+    token pod_content:sym<config> {
+        <pod_newline>*
+        ^^ \h* '=config' \h+ $<type>=\S+ <pod_configuration>
+        <pod_newline>+
+    }
+
+    proto token pod_textcontent { <...> }
+
+    # for non-code (i.e., regular) text
+    token pod_textcontent:sym<regular> {
+        $<spaces>=[ \h* ]
+         <?{ $*POD_IN_CODE_BLOCK
+             || !$*ALLOW_INLINE_CODE
+             || ($<spaces>.to - $<spaces>.from) <= $*VMARGIN }>
+
+        $<text> = [
+            \h* <!before '=' \w> <pod_string> [ <pod_newline> | $ ]
+        ] +
+    }
+
+    token pod_textcontent:sym<code> {
+        $<spaces>=[ \h* ]
+        <?{ !$*POD_IN_CODE_BLOCK
+            && $*ALLOW_INLINE_CODE
+            && ($<spaces>.to - $<spaces>.from) > $*VMARGIN }>
+
+        # TODO get first line if IN-DEFN-BLOCK
+        $<text> = [
+            [<!before '=' \w> \N+]+ % [<pod_newline>+ $<spaces>]
+        ]
+    }
+
+    token pod_formatting_code {
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        :my $*POD_IN_FORMATTINGCODE := nqp::getlexdyn('$*POD_IN_FORMATTINGCODE');
+        :my $*POD_ANGLE_COUNT := nqp::getlexdyn('$*POD_ANGLE_COUNT');
+        <?{ $*POD_ALLOW_FCODES }>
+
+        :my $endtag;
+        <code=[A..Z]>
+        $<begin-tag>=['<'+ <![<]> | '«'] { $*POD_IN_FORMATTINGCODE := 1 }
+        <?{
+            my $codenum := nqp::ord($<code>.Str) - nqp::ord("A");
+            if !($*POD_ALLOW_FCODES +& (2 ** $codenum)) {
+                0
+            } elsif ~$<begin-tag> eq '«' {
+              $endtag := "»";
+              $*POD_ANGLE_COUNT := -1;
+              1
+            } else {
+              my int $ct := nqp::chars($<begin-tag>);
+              $endtag := nqp::x(">", $ct);
+              my $rv := $*POD_ANGLE_COUNT <= 0 || $*POD_ANGLE_COUNT >= $ct;
+              $*POD_ANGLE_COUNT := $ct;
+              $rv;
+            }
+        }>
+        {
+            if $<code>.Str eq "V" || $<code>.Str eq "C" {
+                $*POD_ALLOW_FCODES := 0;
+            }
+        }
+        [ <!{$<code> eq 'E'}>
+          $<contents>=[
+              <!before $endtag>
+              [ <?{$<code> ne 'L' && $<code> ne 'D' && $<code> ne 'X' }> || <!before \s* \| > ]
+              <pod_string_character>
+          ]*
+        ]?
+        [
+        | <?{$<code> eq 'L'}> \s* \| \s* $<meta>=[<!before $endtag>.]+
+        | <?{$<code> eq 'X'}> \s* \| \s* ( [$<meta>=[<!before $endtag | <[,;]> >.]+] +%% \, ) +%% \;
+        | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \; >.]+] +%% \;
+        | <?{$<code> eq 'E'}> ( <integer> | $<uni_name>=<[A..Z\s]>+ <![a..z]> || $<html_ref>=<[A..Za..z]>+ ) +%% \;
+        ]?
+        [ $endtag || <.worry: "Pod formatting code $<code> missing endtag '$endtag'."> ]
+    }
+
+    token pod_balanced_braces {
+        <?{ $*POD_IN_FORMATTINGCODE }>
+        :my $endtag;
+        [
+            $<braces>=[
+                      || '<'+ <![<]>
+                      || '>'+ <![>]>
+                      ]
+            <?{ nqp::chars($<braces>) < $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
+          ||
+            <?{ $*POD_ANGLE_COUNT >= 1 }>
+            $<start>=['<'+] <![<]>
+            <?{ nqp::chars($<start>) == $*POD_ANGLE_COUNT || $*POD_ANGLE_COUNT < 0 }>
+            {
+                $endtag := nqp::x(">", nqp::chars($<start>));
+            }
+            $<contents>=[ <pod_string_character>*?]
+            <!after '>'> $<endtag>=[$endtag]
+        ]
+    }
+
+    token pod_string {
+        <pod_string_character>+
+    }
+
+    token pod_string_character {
+        <pod_balanced_braces> || <pod_formatting_code> || $<char>=[ \N || [
+            <?{ $*POD_IN_FORMATTINGCODE }> \n [
+                <?{ $*POD_DELIMITED_CODE_BLOCK }> <!before \h* '=end' \h+ <pod-delim-code-typ> > ||
+                <!before \h* '=' \w>
+                ]
+            ]
+        ]
+    }
+
+    proto token pod_block { <...> }
+
+    token pod_configuration($spaces = '') {
+        [ [\n $spaces '=']? \h+ <colonpair> ]*
+    }
+
+    token pod_block:sym<delimited_comment> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ 'comment' {}
+        <pod_configuration($<spaces>)> <pod_newline>+
+        [
+         $<pod_content> = [ .*? ]
+         ^^ $<spaces> '=end' \h+
+         [
+            'comment' [ <pod_newline> | $ ]
+            || $<instead>=<identifier>? {
+                   $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                       type    => 'comment',
+                       spaces  => ~$<spaces>,
+                       instead => $<instead> ?? ~$<instead> !! ''
+               }
+         ]
+        ]
+    }
+
+    regex pod_block:sym<delimited> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin'
+        [ <?pod_newline>
+          <.typed_panic('X::Syntax::Pod::BeginWithoutIdentifier')>
+        ]?
+        \h+ <!before 'finish'>
+        {
+            $*VMARGIN    := $<spaces>.to - $<spaces>.from;
+        }
+        :my $*ALLOW_INLINE_CODE := 0;
+        $<type> = [
+            <pod_code_parent> {
+                $*ALLOW_INLINE_CODE := 1;
+            }
+            || <identifier>
+        ]
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        <pod_configuration($<spaces>)> <pod_newline>+
+        [
+         # TODO need first line to check for ws-separated '#'
+         <pod_content> *
+         ^^ $<spaces> '=end' \h+
+         [
+             $<type> [ <pod_newline> | $ ]
+             || $<instead>=<identifier>? {
+                    $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                        type    => ~$<type>,
+                        spaces  => ~$<spaces>,
+                        instead => $<instead> ?? ~$<instead> !! ''
+                    }
+         ]
+        ]
+    }
+
+
+    token pod_block:sym<delimited_table> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ 'table' {}
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        <pod_configuration($<spaces>)> <pod_newline>+
+        [
+         [ $<table_row>=<.table_row_or_blank> ]*
+         ^^ \h* '=end' \h+
+         [
+            'table' [ <pod_newline> | $ ]
+             || $<instead>=<identifier>? {
+                    $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                        type    => 'table',
+                        spaces  => ~$<spaces>,
+                        instead => $<instead> ?? ~$<instead> !! ''
+                    }
+         ]
+        ]
+    }
+
+    # There are several different identifiers for pod blocks
+    # that are treated essentially the same: 'code', 'input',
+    # and 'output'.
+    token pod-delim-code-typ { code | input | output }
+    token pod_block:sym<delimited_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=begin' \h+ $<typ>=<pod-delim-code-typ> {}
+        :my $*POD_ALLOW_FCODES  := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
+        :my $*POD_DELIMITED_CODE_BLOCK := 1;
+        <pod_configuration($<spaces>)> <pod_newline>+
+        [
+        || <delimited_code_content($<spaces>)> $<spaces> '=end' \h+
+            [ $<end>=<pod-delim-code-typ> [ <pod_newline> | $ ]
+              { if ~$<end> ne ~$<typ> {
+                         $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                         type    => ~$<typ>,
+                         spaces  => ~$<spaces>,
+                         instead => $<end> ?? ~$<end> !! ''
+              }}
+              || $<instead>=<identifier>? {
+                     $/.typed_panic: 'X::Syntax::Pod::BeginWithoutEnd',
+                     type    => $<typ>,
+                     spaces  => ~$<spaces>,
+                     instead => $<instead> ?? ~$<instead> !! ''
+                 }
+            ]
+        ]
+    }
+
+    token delimited_code_content($spaces = '') {
+        ^^
+        (
+        | $spaces
+            <!before '=end' \h+ <pod-delim-code-typ> [ <pod_newline> | $ ]>
+            <pod_string>**0..1 <pod_newline>
+        | <pod_newline>
+        )*
+    }
+
+    token table_row {
+        \h* <!before '=' \w> \N+ [ \n | $ ]
+    }
+
+    token table_row_or_blank {
+        <.table_row> | [\h* <!before '=' \w> \n ]
+    }
+
+    token pod_block:sym<finish> {
+        ^^ \h*
+        [
+            | '=begin' \h+ 'finish' <pod_newline>
+            | '=for'   \h+ 'finish' <pod_newline>
+            | '=finish' <pod_newline>
+        ]
+        $<finish> = .*
+    }
+
+    token pod_block:sym<paragraph> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=for' \h+ <!before 'finish'>
+        {
+            $*VMARGIN := $<spaces>.to - $<spaces>.from;
+        }
+        :my $*ALLOW_INLINE_CODE := 0;
+        [ :!ratchet
+            $<type> = [
+                <pod_code_parent> { $*ALLOW_INLINE_CODE := 1 }
+                || <identifier>
+            ]
+            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+            <pod_configuration($<spaces>)>
+            <pod_newline>
+        ]
+        # TODO [defn, term], [first text, line numbered-alias]
+        #   if this is a defn block
+        #     the first line of the first pod_textcontent
+        #     becomes the term
+        #     then combine the rest of the text
+        # TODO exchange **0..1 for modern syntax
+        <pod_content=.pod_textcontent>**0..1
+    }
+
+    token pod_block:sym<paragraph_comment> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=for' \h+ 'comment' {}
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        <pod_configuration($<spaces>)> <pod_newline>
+        $<pod_content> = [ \h* <!before '=' \w> \N+ [ \n | $ ] ]*
+    }
+
+    token pod_block:sym<paragraph_table> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=for' \h+ 'table' {}
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        <pod_configuration($<spaces>)> <pod_newline>
+
+        # TODO add numbered-alias token here
+        [ <!before \h* \n> <table_row>]*
+    }
+
+    token pod_block:sym<paragraph_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=for' \h+ <pod-delim-code-typ> {}
+        :my $*POD_ALLOW_FCODES := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
+        <pod_configuration($<spaces>)> <pod_newline>
+
+        # TODO get first line if IN-DEFN-BLOCK
+        [ <!before \h* '=' \w> <pod_line> ]*
+    }
+
+    # TODO make sure this token works in all desired
+    #      places: may have to remove the before/afters
+    #      when using with non-abbreviated blocks
+    #      (particulary code blocks)
+    token numbered-alias { <after [^|\s]> '#' <before \s> }
+    token pod_block:sym<abbreviated> {
+        # Note an abbreviated block does not have
+        # %config data, but see the hash mark
+        # handling below.
+        ^^
+        $<spaces> = [ \h* ]
+        '=' <!before begin || end || for || finish || config>
+        {
+            $*VMARGIN := $<spaces>.to - $<spaces>.from;
+        }
+        :my $*ALLOW_INLINE_CODE := 0;
+        [ :!ratchet
+            $<type> = [
+                <pod_code_parent> {
+                    $*ALLOW_INLINE_CODE := 1;
+                }
+                || <identifier>
+            ]
+            :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+
+            # An optional hash char here is special.
+            [\h+ <numbered-alias>]?
+
+            [\h*\n|\h+]
+        ]
+        # TODO [defn, term], [first text, line numbered-alias]
+        # TODO exchange **0..1 for modern syntax
+        <pod_content=.pod_textcontent>**0..1
+    }
+
+    token pod_block:sym<abbreviated_comment> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=comment' {}
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        [\h*\n|\h+]
+        $<pod_content> = [ \h* <!before '=' \w> \N+ [ \n | $ ] ]*
+    }
+
+    token pod_block:sym<abbreviated_table> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=table' {}
+
+        # An optional hash char here is special.
+        [\h+ <numbered-alias>]?
+
+        :my $*POD_ALLOW_FCODES := nqp::getlexdyn('$*POD_ALLOW_FCODES');
+        <pod_newline>
+        [ <!before \h* \n> <table_row>]*
+    }
+
+    token pod_block:sym<abbreviated_code> {
+        ^^
+        $<spaces> = [ \h* ]
+        '=' <pod-delim-code-typ> {}
+        :my $*POD_ALLOW_FCODES  := 0;
+        :my $*POD_IN_CODE_BLOCK := 1;
+
+        # An optional hash char here is special.
+        # For the code block, we want to eat any ws
+        # between the '#' and the next char
+        #$<numbered-alias>=[\h+ '#' \s]?
+        $<numbered-alias>=[\h+ '#' \s]?
+
+        [\h*\n|\h+]
+
+        [ <!before \h* '=' \w> <pod_line> ]*
+    }
+
+    # TODO exchange **1 for modern syntax
+    token pod_line { <pod_string>**1 [ <pod_newline> | $ ] }
+
+    token pod_newline {
+        \h* \n
+    }
+
+    # These parents can contain implicit code blocks when data
+    # lines begin with whitespace indention from the virtual
+    # margin.
+    token pod_code_parent {
+        [
+        | [ 'pod' | 'item' \d* | 'nested' | 'defn' | 'finish' ]
+        | <upper>+
+        ]
+        <![\w]>
+    }
+
+
 }
 
 grammar Perl6::QGrammar is HLL::Grammar does STD {
@@ -5361,7 +5374,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         token escape:ch { $<ch> = [\S] { self.ccstate($<ch>) } }
 
         token backslash:delim { <text=.starter> | <text=.stopper> }
-        token backslash:<\\> { <text=.sym> }
+        token backslash:sym<\\> { <text=.sym> }
         token backslash:sym<a> { :i <sym> }
         token backslash:sym<b> { :i <sym> }
         token backslash:sym<c> { :i <sym> <charspec> }

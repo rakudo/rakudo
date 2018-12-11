@@ -294,6 +294,15 @@ multi sub infix:<*>(int $a, int $b --> int) {
     nqp::mul_i($a, $b);
 }
 
+multi sub infix:<eqv>(Int:D $a, Int:D $b --> Bool:D) {
+    nqp::hllbool(  # need to check types as enums such as Bool wind up here
+      nqp::eqaddr($a.WHAT,$b.WHAT) && nqp::iseq_I($a,$b)
+    )
+}
+multi sub infix:<eqv>(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::iseq_i($a,$b))
+}
+
 multi sub infix:<div>(Int:D \a, Int:D \b) {
     b
       ?? nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
@@ -327,6 +336,10 @@ multi sub infix:<%>(int $a, int $b --> int) {
     nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix RT #128318
 }
 
+multi sub infix:<%%>(int $a, int $b) {
+    nqp::hllbool(nqp::iseq_i(nqp::mod_i($a, $b), 0))
+}
+
 multi sub infix:<**>(Int:D \a, Int:D \b) {
     my $power := nqp::pow_I(nqp::decont(a), nqp::decont(b >= 0 ?? b !! -b), Num, Int);
     # when a**b is too big nqp::pow_I returns Inf
@@ -357,10 +370,10 @@ multi sub infix:<gcd>(int $a, int $b --> int) {
     nqp::gcd_i($a, $b)
 }
 
-multi sub infix:<===>(Int:D \a, Int:D \b) {
+multi sub infix:<===>(Int:D $a, Int:D $b) {
     nqp::hllbool(
-      nqp::eqaddr(a.WHAT,b.WHAT)
-      && nqp::iseq_I(nqp::decont(a), nqp::decont(b))
+      nqp::eqaddr($a.WHAT,$b.WHAT)
+      && nqp::iseq_I($a, $b)
     )
 }
 multi sub infix:<===>(int $a, int $b) {

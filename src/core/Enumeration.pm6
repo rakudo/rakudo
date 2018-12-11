@@ -30,8 +30,6 @@ my role Enumeration {
         )
     }
 
-    # Make sure we always accept any element of the enumeration
-    multi method ACCEPTS(::?CLASS:D: ::?CLASS:U $ --> True) { }
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }
 
     proto method CALL-ME(|) {*}

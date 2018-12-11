@@ -5,13 +5,14 @@
 #   ≽       succeeds
 
 proto sub infix:<<(<+)>>($, $, *% --> Bool:D) is pure {
+    die if $*FOLDING;  # not going to constant fold something that's deprecated
     Rakudo::Deprecations.DEPRECATED(
       "set operator {$*INSTEAD // "(<=)"}",
       "",
       "6.d",
       :what("Set operator {$*WHAT // "(<+)"}"),
       :up( 1 + ?$*WHAT )
-    );
+    ) unless $*INTERNAL;
     {*}
 }
 multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
@@ -102,6 +103,7 @@ multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:D $b --> Bool:D ) {
 multi sub infix:<<(<+)>>(Any $, Failure:D $b) { $b.throw }
 multi sub infix:<<(<+)>>(Failure:D $a, Any $) { $a.throw }
 multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool:D) {
+    my $*INTERNAL = 1;
     nqp::if(
       nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
       infix:<<(<+)>>($a.Mix, $b.Mix),

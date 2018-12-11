@@ -1,5 +1,7 @@
 my role QuantHash does Associative {
 
+    method keyof() { Any }
+
     method SET-SELF(QuantHash:D: \elems) {  # cannot be a private method
         nqp::stmts(
           nqp::if(
@@ -8,6 +10,12 @@ my role QuantHash does Associative {
           ),
           self
         )
+    }
+
+    # provide a proto for QuantHashes from here
+    proto method STORE(|) {*}
+    multi method STORE(QuantHash:D: |) {     # for immutable types
+        X::Assignment::RO.new(value => self).throw
     }
 
     method Int     ( --> Int:D)     { self.total.Int }

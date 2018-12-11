@@ -79,9 +79,15 @@ role Perl6::Metamodel::BUILDPLAN {
             # in Mu, we produce ops here per attribute that may
             # need initializing.
             for @attrs {
+                my int $primspec := nqp::objprimspec($_.type);
+#?if js
+                my int $is_oversized_int := $primspec == 4 || $primspec == 5;
+                $primspec := $is_oversized_int ?? 0 !! $primspec;
+#?endif
+
                 if $_.has_accessor {
                     nqp::push(@plan,[
-                      nqp::add_i(0,nqp::objprimspec($_.type)),
+                      0 + $primspec,
                       $obj,
                       $_.name,
                       nqp::substr($_.name, 2)
@@ -102,9 +108,14 @@ role Perl6::Metamodel::BUILDPLAN {
         for @attrs {
             if nqp::can($_, 'build') {
                 my $default := $_.build;
+                my int $primspec := nqp::objprimspec($_.type);
+#?if js
+                my int $is_oversized_int := $primspec == 4 || $primspec == 5;
+                $primspec := $is_oversized_int ?? 0 !! $primspec;
+#?endif
                 if nqp::isconcrete($default) {
                     nqp::push(@plan,[
-                      nqp::add_i(4,nqp::objprimspec($_.type)),
+                      4 + $primspec,
                       $obj,
                       $_.name,
                       $default

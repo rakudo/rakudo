@@ -117,7 +117,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             nqp::findmethod(Mu,'bless')
           ),
           nqp::create(self).BUILDALL(Empty, %attrinit),
-          $bless(|%attrinit)
+          $bless(self,|%attrinit)
         )
     }
     multi method new($, *@) {
@@ -708,18 +708,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     proto method isa(|) {*}
-    multi method isa(Mu \SELF: Mu $type) {
+    multi method isa(Mu \SELF: Mu $type --> Bool:D) {
         nqp::hllbool(SELF.^isa($type.WHAT))
     }
-    multi method isa(Mu \SELF: Str:D $name) {
-        my @mro = SELF.^mro;
-        my int $mro_count = @mro.elems;
-        my int $i = -1;
-
-        return True
-          if @mro[$i].^name eq $name
-          while nqp::islt_i(++$i,$mro_count);
-
+    multi method isa(Mu \SELF: Str:D $name --> Bool:D) {
+        return True if .^name eq $name for SELF.^mro;
         False
     }
 
@@ -850,7 +843,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
             nqp::push($results,$meth(SELF, |c))    if $meth;
         }
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$results)
+        $results.List
     }
 
     method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {
@@ -971,11 +964,11 @@ multi sub infix:<eqv>($?)            { Bool::True }
 multi sub infix:<eqv>(Any:U \a, Any:U \b) {
     nqp::hllbool(nqp::eqaddr(nqp::decont(a),nqp::decont(b)))
 }
-multi sub infix:<eqv>(Any:D \a, Any:U \b) { False }
-multi sub infix:<eqv>(Any:U \a, Any:D \b) { False }
+multi sub infix:<eqv>(Any:D \a, Any:U \b --> False) { }
+multi sub infix:<eqv>(Any:U \a, Any:D \b --> False) { }
 multi sub infix:<eqv>(Any:D \a, Any:D \b) {
     nqp::hllbool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.perl,b.perl))
     )
 }

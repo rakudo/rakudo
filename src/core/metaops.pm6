@@ -1,6 +1,14 @@
 
 sub METAOP_ASSIGN(\op) {
-    -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
+    my \op-is := nqp::ifnull(
+      nqp::atkey(                                    # is it a core op?
+        nqp::ifnull($CORE_METAOP_ASSIGN,Rakudo::Internals.INSTALL-CORE-METAOPS),
+        nqp::objectid(op)
+      ),
+      -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
+    );
+    op-is.set_name(op.name ~ ' + {assigning}');      # checked for in Hyper.new
+    op-is
 }
 
 sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }
@@ -25,7 +33,7 @@ sub METAOP_CROSS(\op, &reduce) {
     -> +lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
         my $laze = False;
-        my @loi = eager for lol -> \elem {
+        my @loi is List = eager for lol -> \elem {
             if nqp::iscont(elem) {
                 $laze = False;
                 (elem,).iterator
@@ -86,7 +94,7 @@ sub METAOP_ZIP(\op, &reduce) {
         my $arity = lol.elems;
         my $rop = $arity == 2 ?? op !! &reduce(op);
         my $laze = True;
-        my @loi = eager for lol -> \elem {
+        my @loi is List = eager for lol -> \elem {
             if nqp::iscont(elem) {
                 $laze = False;
                 Rakudo::Iterator.OneValue(elem)
@@ -522,121 +530,8 @@ sub METAOP_HYPER_PREFIX(\op) {
 
 sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
 
-proto sub HYPER(|) {*}
-
-multi sub HYPER(&op, \left, \right, :$dwim-left, :$dwim-right) {
-    op(left, right);
-}
-
-multi sub HYPER(&op, Associative:D \left, Associative:D \right, :$dwim-left, :$dwim-right) {
-    my %keyset;
-    if !$dwim-left {
-        %keyset{$_} = 1 for left.keys;
-    }
-    else {
-        %keyset{$_} = 1 if right.EXISTS-KEY($_) for left.keys;
-    }
-    if !$dwim-right {
-        %keyset{$_} = 1 for right.keys;
-    }
-    my @keys = %keyset.keys;
-    my $type = left.WHAT;
-    my \result := $type.new;
-    result = quietly @keys Z=> HYPER(&op, left{@keys}, right{@keys}, :$dwim-left, :$dwim-right);
-    nqp::iscont(left) ?? result.item !! result;
-}
-
-multi sub HYPER(&op, Associative:D \left, \right, :$dwim-left, :$dwim-right) {
-    my @keys = left.keys;
-    my $type = left.WHAT;
-    my \result := $type.new;
-    result = @keys Z=> HYPER(&op, left{@keys}, right, :$dwim-left, :$dwim-right);
-    nqp::iscont(left) ?? result.item !! result;
-}
-
-multi sub HYPER(&op, \left, Associative:D \right, :$dwim-left, :$dwim-right) {
-    my @keys = right.keys;
-    my $type = right.WHAT;
-    my \result := $type.new;
-    result = @keys Z=> HYPER(&op, left, right{@keys}, :$dwim-left, :$dwim-right);
-    nqp::iscont(right) ?? result.item !! result;
-}
-
-multi sub HYPER(&operator, Positional:D \left, \right, :$dwim-left, :$dwim-right) {
-    my @result;
-    X::HyperOp::Infinite.new(:side<left>, :&operator).throw if left.is-lazy;
-    my int $elems = left.elems;
-    X::HyperOp::NonDWIM.new(:&operator, :left-elems($elems), :right-elems(1), :recursing(?(callframe(2).code andthen .name eq 'HYPER'))).throw
-        unless $elems == 1 or $elems > 1 and $dwim-right or $elems == 0 and $dwim-left || $dwim-right;
-    my \lefti := left.iterator;
-    my int $i = 0;
-    until nqp::eqaddr((my \value := lefti.pull-one),IterationEnd) {
-        @result[$i++] := HYPER(&operator, value, right, :$dwim-left, :$dwim-right);
-    }
-    # Coerce to the original type if it's a subtype of List
-    my $type = nqp::istype(left, List) ?? left.WHAT !! List;
-    nqp::iscont(left) ?? $type(|@result.eager).item !! $type(|@result.eager)
-}
-
-multi sub HYPER(&operator, \left, Positional:D \right, :$dwim-left, :$dwim-right) {
-    my @result;
-    X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right.is-lazy;
-    my int $elems = right.elems;
-    X::HyperOp::NonDWIM.new(:&operator, :left-elems(1), :right-elems($elems), :recursing(?(callframe(3).code andthen .name eq 'HYPER'))).throw
-        unless $elems == 1 or $elems > 1 and $dwim-left or $elems == 0 and $dwim-left || $dwim-right;
-    my \righti := right.iterator;
-    my int $i = 0;
-    until nqp::eqaddr((my \value := righti.pull-one),IterationEnd) {
-        @result[$i++] := HYPER(&operator, left, value, :$dwim-left, :$dwim-right);
-    }
-    # Coerce to the original type if it's a subtype of List
-    my $type = nqp::istype(right, List) ?? right.WHAT !! List;
-    nqp::iscont(right) ?? $type(|@result.eager).item !! $type(|@result.eager)
-}
-
-multi sub HYPER(&operator, Iterable:D \left, Iterable:D \right, :$dwim-left, :$dwim-right) {
-    my \left-iterator = left.iterator;
-    my \right-iterator = right.iterator;
-
-    # Check whether any side is lazy. They must not be to proceed.
-    if left-iterator.is-lazy {
-        X::HyperOp::Infinite.new(:side<both>, :&operator).throw if right-iterator.is-lazy;
-        X::HyperOp::Infinite.new(:side<left>, :&operator).throw if not $dwim-left or $dwim-right;
-    }
-    X::HyperOp::Infinite.new(:side<right>, :&operator).throw if right-iterator.is-lazy and
-        (not $dwim-right or $dwim-left);
-
-    my \lefti  := Rakudo::Iterator.DWIM(left-iterator);
-    my \righti := Rakudo::Iterator.DWIM(right-iterator);
-
-    my \result := IterationBuffer.new;
-    loop {
-        my \leftv := lefti.pull-one;
-        my \rightv := righti.pull-one;
-
-        X::HyperOp::NonDWIM.new(:&operator, :left-elems(lefti.count-elems), :right-elems(righti.count-elems), :recursing(?(callframe(3).code andthen .name eq 'HYPER'))).throw
-            if !$dwim-left and !$dwim-right and (lefti.ended != righti.ended);
-
-        last if ($dwim-left and $dwim-right) ?? (lefti.ended and righti.ended) !!
-               (($dwim-left or lefti.ended) and ($dwim-right or righti.ended));
-        last if $++ == 0 and ($dwim-left and lefti.ended or $dwim-right and righti.ended);
-
-        nqp::push(result,HYPER(&operator, leftv, rightv, :$dwim-left, :$dwim-right));
-    }
-
-    # Coerce to the original type
-    my $type = nqp::istype(left, List) ?? left.WHAT !! List; # keep subtypes of List
-    my \retval = $type.new;
-    nqp::bindattr(retval, List, '$!reified', result);
-    nqp::iscont(left) ?? retval.item !! retval;
-}
-
-multi sub HYPER(\op, \obj) {
-    nqp::if(
-      nqp::can(op,"nodal"),
-      nodemap(op, obj),
-      deepmap(op,obj)
-    )
+sub HYPER(\operator, :$dwim-left, :$dwim-right, |c) {
+    Hyper.new(operator, :$dwim-left, :$dwim-right).infix(|c)
 }
 
 proto sub deepmap($, $, *%) {*}

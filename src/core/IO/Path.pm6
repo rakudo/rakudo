@@ -71,7 +71,7 @@ my class IO::Path is Cool does IO {
 
     method parts {
         %!parts || (%!parts := nqp::create(Map).STORE:
-          $!SPEC.split($!path), :initialize)
+          $!SPEC.split($!path), :INITIALIZE)
     }
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
@@ -283,8 +283,9 @@ my class IO::Path is Cool does IO {
             if nqp::iseq_s($part, $up) {
                 next unless $res-list;
                 nqp::pop_s($res-list);
-                $resolved = $res-list ?? $sep ~ nqp::join($sep, $res-list)
-                                      !! $empty;
+                $resolved = $res-list
+                  ?? nqp::concat(nqp::concat($volume, $sep), nqp::join($sep, $res-list))
+                  !! $empty;
                 next;
             }
 

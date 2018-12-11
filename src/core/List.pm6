@@ -673,7 +673,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    multi method ACCEPTS(List:D: Iterable:U) { True }
+    multi method ACCEPTS(List:D: Iterable:U --> True) { }
     multi method ACCEPTS(List:D: Iterable:D $topic) {
         CATCH { default { return False } } # .elems on lazies throws
         return True if nqp::eqaddr(self, nqp::decont($topic));
@@ -756,15 +756,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
-    multi method STORE(List:D: Iterable:D \iterable, :$initialize!) {
-        if $initialize {
-            my \buffer := nqp::create(IterationBuffer);
-            iterable.iterator.push-all(buffer);
-            nqp::p6bindattrinvres(self,List,'$!reified',buffer)
-        }
-        else {
-            self.STORE(iterable);
-        }
+    multi method STORE(List:D: Iterable:D \iterable, :$INITIALIZE!) {
+        my \buffer := nqp::create(IterationBuffer);
+        iterable.iterator.push-all(buffer);
+        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
 
     multi method STORE(List:D: Iterable:D \iterable) {
@@ -880,25 +875,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::if(
           nqp::isconcrete($!todo),
           Array.from-iterator(self.iterator),
-          nqp::if(
-            nqp::isconcrete($!reified),
-            nqp::stmts(
-              (my int $elems = nqp::elems($!reified)),
-              (my $array := nqp::setelems(nqp::create(IterationBuffer),$elems)),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos($array, $i,
-                  nqp::assign(
-                    nqp::p6scalarfromdesc(nqp::null),
-                    nqp::atpos($!reified,$i)
-                  )
-                )
-              ),
-              nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',$array)
-            ),
-            nqp::create(Array)
-          )
+          Array.from-list(self)
         )
     }
 

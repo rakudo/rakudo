@@ -18,7 +18,7 @@
             )
         }
         sub AT-POS-CONTAINER(\array, int \one, int \two, int \three) is raw {
-            nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos2D.new(
+            nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos3D.new(
                nqp::getattr(array, Array, '$!descriptor'),
                nqp::getattr(array, List, '$!reified'),
                one, two, three))

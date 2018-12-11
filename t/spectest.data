@@ -23,9 +23,11 @@
 APPENDICES/A01-limits/overflow.t
 APPENDICES/A01-limits/misc.t
 APPENDICES/A02-some-day-maybe/io-cathandle.t
+APPENDICES/A02-some-day-maybe/misc.t
 APPENDICES/A02-some-day-maybe/multi-no-match.t
 APPENDICES/A02-some-day-maybe/concreteness.t
 APPENDICES/A03-older-specs/01-misc.t
+APPENDICES/A04-experimental/01-misc.t
 MISC/bug-coverage.t
 MISC/bug-coverage-6.d.t
 MISC/bug-coverage-stress.t                  # stress
@@ -199,6 +201,7 @@ S03-junctions/misc.t
 S03-metaops/cross.t
 S03-metaops/eager-hyper.t
 S03-metaops/hyper.t
+S03-metaops/infix.t
 S03-metaops/misc.t
 S03-metaops/not.t
 S03-metaops/reduce.t
@@ -503,6 +506,7 @@ S06-other/introspection.t
 S06-other/main-eval.t
 S06-other/main.t
 S06-other/main-usage.t
+S06-other/main-refactored.t
 S06-other/main-semicolon.t
 S06-other/misc.t
 S06-other/pairs-as-lvalues.t
@@ -512,7 +516,6 @@ S06-routine-modifiers/native-lvalue-subroutines.t
 S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
-S06-signature/caller-param.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
 S06-signature/code.t
@@ -816,7 +819,6 @@ S16-io/note.t
 S16-io/print.t
 S16-io/prompt.t
 S16-io/put.t
-S16-io/quoting-syntax.t
 S16-io/readchars.t
 S16-io/say-and-ref.t
 S16-io/say.t
@@ -1065,6 +1067,7 @@ S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-io/tell.t
+S32-io/utf16.t
 S32-list/batch.t
 S32-list/categorize.t
 S32-list/categorize-list.t
@@ -1110,7 +1113,6 @@ S32-list/seq.t
 S32-list/skip.t
 S32-list/sort.t
 S32-list/tail.t
-S32-list/toggle.t
 S32-list/unique.t
 S32-list/squish.t
 S32-num/abs.t

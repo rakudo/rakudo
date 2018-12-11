@@ -129,11 +129,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     # for simplicity's sake, these are not multis
-    method read-int8(
-      int $offset, Endian $endian = native-endian --> int
-    ) is raw {
+    method read-int8( int $offset, Endian $? --> int) is raw {
         nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
+          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE))
     }
     method read-int16(
       int $offset, Endian $endian = native-endian --> int
@@ -154,11 +152,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
 
-    method read-uint8(
-      int $offset, Endian $endian = native-endian --> uint
-    ) is raw {
+    method read-uint8(int $offset, Endian $? --> uint) is raw {
         nqp::readuint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
+          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE))
     }
     method read-uint16(
       int $offset, Endian $endian = native-endian --> uint

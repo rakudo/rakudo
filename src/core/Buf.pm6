@@ -130,26 +130,35 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     # for simplicity's sake, these are not multis
     method read-int8( int $offset, Endian $? --> int) is raw {
-        nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE))
+        my \unsigned := nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE));
+        unsigned >= 1 +< 7 ?? unsigned - 1 +< 8 !! unsigned
     }
     method read-int16(
       int $offset, Endian $endian = native-endian --> int
     ) is raw {
-        nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+        my \unsigned := nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian));
+        unsigned >= 1 +< 15 ?? unsigned - 1 +< 16 !! unsigned
     }
     method read-int32(
       int $offset, Endian $endian = native-endian --> int
     ) is raw {
-        nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+        my \unsigned := nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian));
+        unsigned >= 1 +< 31 ?? unsigned - 1 +< 32 !! unsigned
     }
     method read-int64(
       int $offset, Endian $endian = native-endian --> int
     ) is raw {
         nqp::readint(self,$offset,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+    }
+    method read-int128(
+      int $offset, Endian $endian = native-endian --> Int
+    ) is raw {
+        my \unsigned := self.read-uint128($offset,$endian);
+        unsigned >= 1 +< 127 ?? unsigned - 1 +< 128 !! unsigned
     }
 
     method read-uint8(int $offset, Endian $? --> uint) is raw {
@@ -171,8 +180,16 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method read-uint64(
       int $offset, Endian $endian = native-endian --> uint
     ) is raw {
-        nqp::readuint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+        my \signed := nqp::readuint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian));
+        signed < 0 ?? signed + 1 +< 64 !! signed
+
+    }
+    method read-uint128(
+      int $offset, Endian $endian = native-endian --> uint
+    ) is raw {
+        self.read-uint64($offset + 8, $endian) +< 64
+          +| self.read-uint64($offset, $endian)
     }
 
     method read-num32(

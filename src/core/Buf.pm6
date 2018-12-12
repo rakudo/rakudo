@@ -188,8 +188,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method read-uint128(
       int $offset, Endian $endian = native-endian --> uint
     ) is raw {
-        self.read-uint64($offset + 8, $endian) +< 64
-          +| self.read-uint64($offset, $endian)
+        my \first  := self.read-uint64($offset,     $endian);
+        my \second := self.read-uint64($offset + 8, $endian);
+        $endian == big-endian   # XXX fix for native big-endian systems
+          ?? first +< 64 +| second
+          !! second +< 64 +| first
     }
 
     method read-num32(

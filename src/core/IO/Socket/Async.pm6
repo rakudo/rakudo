@@ -198,11 +198,18 @@ my class IO::Socket::Async {
     }
 
     class ListenSocket is Tap {
+        has Promise $!VMIO-tobe;
         has Promise $.socket-host;
         has Promise $.socket-port;
 
-        method new(&on-close, Promise :$socket-host, Promise :$socket-port) {
-            self.bless(:&on-close, :$socket-host, :$socket-port);
+        submethod TWEAK(Promise :$!VMIO-tobe, Promise :$!socket-host, Promise :$!socket-port) { }
+
+        method new(&on-close, Promise :$VMIO-tobe, Promise :$socket-host, Promise :$socket-port) {
+            self.bless(:&on-close, :$VMIO-tobe, :$socket-host, :$socket-port);
+        }
+
+        method native-descriptor(--> Int) {
+            nqp::filenofh(await $!VMIO-tobe)
         }
     }
 
@@ -223,15 +230,17 @@ my class IO::Socket::Async {
             my $lock := Lock::Async.new;
             my $tap;
             my int $finished = 0;
+            my Promise $VMIO-tobe   .= new;
             my Promise $socket-host .= new;
             my Promise $socket-port .= new;
+            my $VMIO-vow = $VMIO-tobe.vow;
             my $host-vow = $socket-host.vow;
             my $port-vow = $socket-port.vow;
             $lock.protect: {
                 my $cancellation := nqp::asynclisten(
                     $!scheduler.queue(:hint-affinity),
-                    -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port,
-                       Mu \socket-host, Mu \socket-port {
+                    -> Mu \client-socket, Mu \err, Mu \peer-host, Mu \peer-port,
+                       Mu \server-socket, Mu \socket-host, Mu \socket-port {
                         $lock.protect: {
                             if $finished {
                                 # do nothing
@@ -243,10 +252,10 @@ my class IO::Socket::Async {
                                 $port-vow.break($exc) unless $port-vow.promise;
                                 $finished = 1;
                             }
-                            elsif socket {
+                            elsif client-socket {
                                 my $client_socket := nqp::create(IO::Socket::Async);
                                 nqp::bindattr($client_socket, IO::Socket::Async,
-                                    '$!VMIO', socket);
+                                    '$!VMIO', client-socket);
                                 nqp::bindattr($client_socket, IO::Socket::Async,
                                     '$!enc', $!encoding.name);
                                 nqp::bindattr($client_socket, IO::Socket::Async,
@@ -262,7 +271,8 @@ my class IO::Socket::Async {
                                 setup-close($client_socket);
                                 emit($client_socket);
                             }
-                            elsif socket-host {
+                            elsif server-socket {
+                                $VMIO-vow.keep(server-socket);
                                 $host-vow.keep(~socket-host);
                                 $port-vow.keep(+socket-port);
                             }
@@ -274,12 +284,12 @@ my class IO::Socket::Async {
                     my $v = $p.vow;
                     nqp::cancelnotify($cancellation, $!scheduler.queue, { $v.keep(True); });
                     $p
-                }, :$socket-host, :$socket-port;
+                }, :$VMIO-tobe, :$socket-host, :$socket-port;
                 tap($tap);
                 CATCH {
                     default {
                         tap($tap = ListenSocket.new({ Nil },
-                            :$socket-host, :$socket-port)) unless $tap;
+                            :$VMIO-tobe, :$socket-host, :$socket-port)) unless $tap;
                         quit($_);
                     }
                 }
@@ -297,6 +307,10 @@ my class IO::Socket::Async {
         my $encoding = Encoding::Registry.find($enc);
         Supply.new: SocketListenerTappable.new:
             :$host, :$port, :$backlog, :$encoding, :$scheduler
+    }
+
+    method native-descriptor(--> Int) {
+        nqp::filenofh($!VMIO)
     }
 
     sub setup-close(\socket --> Nil) {

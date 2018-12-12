@@ -1,3 +1,4 @@
+my class Kernel                 { ... }
 my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
@@ -190,7 +191,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     ) is raw {
         my \first  := self.read-uint64($offset,     $endian);
         my \second := self.read-uint64($offset + 8, $endian);
-        $endian == BigEndian   # XXX fix for native BigEndian systems
+        $endian == BigEndian
+          || ($endian == NativeEndian && Kernel.Endian == BigEndian)
           ?? first +< 64 +| second
           !! second +< 64 +| first
     }

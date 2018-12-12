@@ -131,23 +131,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     # for simplicity's sake, these are not multis
     method read-int8( int $offset, Endian $? --> int) is raw {
-        my \unsigned := nqp::readint(self,$offset,
+        nqp::readint(self,$offset,
           nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE));
-        unsigned >= 1 +< 7 ?? unsigned - 1 +< 8 !! unsigned
     }
     method read-int16(
       int $offset, Endian $endian = NativeEndian --> int
     ) is raw {
-        my \unsigned := nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian));
-        unsigned >= 1 +< 15 ?? unsigned - 1 +< 16 !! unsigned
+        nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
     }
     method read-int32(
       int $offset, Endian $endian = NativeEndian --> int
     ) is raw {
-        my \unsigned := nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian));
-        unsigned >= 1 +< 31 ?? unsigned - 1 +< 32 !! unsigned
+        nqp::readint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
     method read-int64(
       int $offset, Endian $endian = NativeEndian --> int

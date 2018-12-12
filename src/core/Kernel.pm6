@@ -186,7 +186,7 @@ class Kernel does Systemic {
     }
 
     my $endian := nqp::null;
-    method Endian(--> Endian:D) {
+    method endian(--> Endian:D) {
         nqp::ifnull(
           $endian,
           nqp::bind($endian,nqp::if(

@@ -192,7 +192,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my \first  := self.read-uint64($offset,     $endian);
         my \second := self.read-uint64($offset + 8, $endian);
         $endian == BigEndian
-          || ($endian == NativeEndian && Kernel.Endian == BigEndian)
+          || ($endian == NativeEndian && Kernel.endian == BigEndian)
           ?? first +< 64 +| second
           !! second +< 64 +| first
     }

@@ -35,6 +35,10 @@ my class array does Iterable {
     multi method unshift(array:D: **@values) { self.unshift(@values) }
     multi method prepend(array:D:  *@values) { self.unshift(@values) }
 
+    sub INDEX_OUT_OF_RANGE(Int:D $got --> Nil) {
+        X::OutOfRange.new(what => "Index", :$got, range => "0..^Inf").throw
+    }
+
     sub EQV_DIMENSIONS(Mu \one, Mu \two) is raw {
         nqp::iseq_i(     # much faster than one.shape eqv two.shape
           (my int $dims = nqp::elems(
@@ -89,29 +93,41 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-11-18T17:27:23+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-12-12T18:28:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-        multi method AT-POS(strarray:D: int $idx) is raw {
-            nqp::atposref_s(self, $idx)
+        multi method AT-POS(strarray:D: int $idx --> str) is raw {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_s(self,$idx)
         }
-        multi method AT-POS(strarray:D: Int:D $idx) is raw {
-            nqp::atposref_s(self, $idx)
+        multi method AT-POS(strarray:D: Int:D $idx --> str) is raw {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_s(self,$idx)
         }
 
-        multi method ASSIGN-POS(strarray:D: int $idx, str $value) {
-            nqp::bindpos_s(self, $idx, $value)
+        multi method ASSIGN-POS(strarray:D: int $idx, str $value --> str) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_s(self, $idx, $value)
         }
-        multi method ASSIGN-POS(strarray:D: Int:D $idx, str $value) {
-            nqp::bindpos_s(self, $idx, $value)
+        multi method ASSIGN-POS(strarray:D: Int:D $idx, str $value --> str) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_s(self, $idx, $value)
         }
-        multi method ASSIGN-POS(strarray:D: int $idx, Str:D $value) {
-            nqp::bindpos_s(self, $idx, $value)
+        multi method ASSIGN-POS(strarray:D: int $idx, Str:D $value --> str) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_s(self, $idx, $value)
         }
-        multi method ASSIGN-POS(strarray:D: Int:D $idx, Str:D $value) {
-            nqp::bindpos_s(self, $idx, $value)
+        multi method ASSIGN-POS(strarray:D: Int:D $idx, Str:D $value --> str) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_s(self, $idx, $value)
         }
-        multi method ASSIGN-POS(strarray:D: Any $idx, Mu \value) {
+        multi method ASSIGN-POS(strarray:D: Any $idx, Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => "assignment to str array element #$idx",
                 got       => value,
@@ -175,7 +191,7 @@ my class array does Iterable {
             nqp::push_s(self, $value);
             self
         }
-        multi method push(strarray:D: Mu \value) {
+        multi method push(strarray:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'push to str array',
                 got       => value,
@@ -573,29 +589,41 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-11-18T17:27:23+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-12-12T18:28:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-        multi method AT-POS(intarray:D: int $idx) is raw {
-            nqp::atposref_i(self, $idx)
+        multi method AT-POS(intarray:D: int $idx --> int) is raw {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_i(self,$idx)
         }
-        multi method AT-POS(intarray:D: Int:D $idx) is raw {
-            nqp::atposref_i(self, $idx)
+        multi method AT-POS(intarray:D: Int:D $idx --> int) is raw {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_i(self,$idx)
         }
 
-        multi method ASSIGN-POS(intarray:D: int $idx, int $value) {
-            nqp::bindpos_i(self, $idx, $value)
+        multi method ASSIGN-POS(intarray:D: int $idx, int $value --> int) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(intarray:D: Int:D $idx, int $value) {
-            nqp::bindpos_i(self, $idx, $value)
+        multi method ASSIGN-POS(intarray:D: Int:D $idx, int $value --> int) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(intarray:D: int $idx, Int:D $value) {
-            nqp::bindpos_i(self, $idx, $value)
+        multi method ASSIGN-POS(intarray:D: int $idx, Int:D $value --> int) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(intarray:D: Int:D $idx, Int:D $value) {
-            nqp::bindpos_i(self, $idx, $value)
+        multi method ASSIGN-POS(intarray:D: Int:D $idx, Int:D $value --> int) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(intarray:D: Any $idx, Mu \value) {
+        multi method ASSIGN-POS(intarray:D: Any $idx, Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => "assignment to int array element #$idx",
                 got       => value,
@@ -659,7 +687,7 @@ my class array does Iterable {
             nqp::push_i(self, $value);
             self
         }
-        multi method push(intarray:D: Mu \value) {
+        multi method push(intarray:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'push to int array',
                 got       => value,
@@ -1109,29 +1137,41 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-11-18T17:27:23+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-12-12T18:28:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-        multi method AT-POS(numarray:D: int $idx) is raw {
-            nqp::atposref_n(self, $idx)
+        multi method AT-POS(numarray:D: int $idx --> num) is raw {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_n(self,$idx)
         }
-        multi method AT-POS(numarray:D: Int:D $idx) is raw {
-            nqp::atposref_n(self, $idx)
+        multi method AT-POS(numarray:D: Int:D $idx --> num) is raw {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_n(self,$idx)
         }
 
-        multi method ASSIGN-POS(numarray:D: int $idx, num $value) {
-            nqp::bindpos_n(self, $idx, $value)
+        multi method ASSIGN-POS(numarray:D: int $idx, num $value --> num) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(numarray:D: Int:D $idx, num $value) {
-            nqp::bindpos_n(self, $idx, $value)
+        multi method ASSIGN-POS(numarray:D: Int:D $idx, num $value --> num) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(numarray:D: int $idx, Num:D $value) {
-            nqp::bindpos_n(self, $idx, $value)
+        multi method ASSIGN-POS(numarray:D: int $idx, Num:D $value --> num) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(numarray:D: Int:D $idx, Num:D $value) {
-            nqp::bindpos_n(self, $idx, $value)
+        multi method ASSIGN-POS(numarray:D: Int:D $idx, Num:D $value --> num) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(numarray:D: Any $idx, Mu \value) {
+        multi method ASSIGN-POS(numarray:D: Any $idx, Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => "assignment to num array element #$idx",
                 got       => value,
@@ -1195,7 +1235,7 @@ my class array does Iterable {
             nqp::push_n(self, $value);
             self
         }
-        multi method push(numarray:D: Mu \value) {
+        multi method push(numarray:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'push to num array',
                 got       => value,

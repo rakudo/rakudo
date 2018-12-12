@@ -184,6 +184,18 @@ class Kernel does Systemic {
           + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
           + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC)
     }
+
+    my $endian := nqp::null;
+    method Endian(--> Endian:D) {
+        nqp::ifnull(
+          $endian,
+          nqp::bind($endian,nqp::if(
+            blob8.new(0,1).read-int16(0) == 1,  # hacky way to find out
+            BigEndian,
+            LittleEndian
+          ))
+        )
+    }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

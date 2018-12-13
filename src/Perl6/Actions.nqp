@@ -10833,9 +10833,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                 QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                 QAST::IVal.new( :value(0) ),
-                QAST::Op.new( :op<callmethod>, :name<new>,
-                    QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
-                )
+                get_pseudo_stash(),
             ),
             :rxtype<subrule>, :subtype<method>, :node($/));
     }
@@ -10849,9 +10847,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
-                    QAST::Op.new( :op<callmethod>, :name<new>,
-                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
-                    ),
+                    get_pseudo_stash(),
                 ),
                  :rxtype<subrule>, :subtype<method>, :node($/));
     }
@@ -10887,9 +10883,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
-                    QAST::Op.new( :op<callmethod>, :name<new>,
-                        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
-                    ),
+                    get_pseudo_stash(),
                 ),
                 :rxtype<subrule>, :subtype<method>, :node($/));
         }
@@ -11026,6 +11020,24 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
     method store_regex_nfa($code_obj, $block, $nfa) {
         $code_obj.SET_NFA($nfa.save);
+    }
+
+    # We only need to create one PseudoStash object for the current
+    # scope, not one every single time. Since we can scan when doing an
+    # interpolated regex, this can save a lot of context creations.
+    sub get_pseudo_stash() {
+        my $lexpad := $*W.cur_lexpad();
+        unless $lexpad.ann('has_pseudo_stash_for_regex') {
+            $lexpad[0].unshift(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :scope('lexical'), :name('__RX_PSEUDO_STASH'), :decl('var') ),
+                QAST::Op.new( :op<callmethod>, :name<new>,
+                    QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
+                )
+            ));
+            $lexpad.annotate('has_pseudo_stash_for_regex', 1);
+        }
+        return QAST::Var.new( :scope('lexical'), :name('__RX_PSEUDO_STASH') );
     }
 }
 

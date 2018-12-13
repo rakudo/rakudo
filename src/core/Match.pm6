@@ -67,10 +67,9 @@ my class Match is Capture is Cool does NQPMatchRole {
                 # If there's only one destination, avoid repeated hash lookups
                 my int $cselems = nqp::elems($cs);
                 my int $csi = -1;
-                my Mu $dest;
 
                 # numeric: <= ord("9") so positional capture
-                $dest := nqp::islt_i(nqp::ord($onlyname),58)
+                my Mu $dest := nqp::islt_i(nqp::ord($onlyname),58)
                   ?? nqp::atpos($list, $onlyname)
                   !! nqp::atkey($hash, $onlyname);
 

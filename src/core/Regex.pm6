@@ -16,15 +16,18 @@ my class Regex { # declared in BOOTSTRAP
         nqp::hllbool(nqp::istype(topic, self))
     }
 
-    # Create a braid that we can use with all the normal, "boring", regex
-    # matches that don't have anything exicting on it.
-    my $braid := Match.'!cursor_init'('').braid;
+    # Create a braid and fail cursor that we can use with all the normal,
+    # "boring", regex matches that are on the Regex type. This saves them
+    # being created every single time.
+    my $cursor := Match.'!cursor_init'('');
+    my $braid := $cursor.braid;
+    my $fail_cursor := $cursor.'!cursor_start_cur'();
 
     multi method ACCEPTS(Regex:D \SELF: Any \topic) {
         nqp::decont(
           nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
           nqp::stmts(
-            (my \cursor := SELF.(Match.'!cursor_init'(topic, :c(0), :$braid))),
+            (my \cursor := SELF.(Match.'!cursor_init'(topic, :c(0), :$braid, :$fail_cursor))),
             nqp::if(
               nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
               cursor.MATCH,
@@ -63,7 +66,7 @@ my class Regex { # declared in BOOTSTRAP
                 (my $pulled := iter.pull-one),IterationEnd)
                 || nqp::isge_i(                            # valid match?
                      nqp::getattr_i(
-                       (my \cursor := SELF.(Match.'!cursor_init'($pulled,:0c,:$braid))),
+                       (my \cursor := SELF.(Match.'!cursor_init'($pulled,:0c,:$braid,:$fail_cursor))),
                        Match,'$!pos'),
                    0),
               nqp::null

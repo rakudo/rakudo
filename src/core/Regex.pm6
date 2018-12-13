@@ -16,11 +16,15 @@ my class Regex { # declared in BOOTSTRAP
         nqp::hllbool(nqp::istype(topic, self))
     }
 
+    # Create a braid that we can use with all the normal, "boring", regex
+    # matches that don't have anything exicting on it.
+    my $braid := Match.'!cursor_init'('').braid;
+
     multi method ACCEPTS(Regex:D \SELF: Any \topic) {
         nqp::decont(
           nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
           nqp::stmts(
-            (my \cursor := SELF.(Match.'!cursor_init'(topic, :c(0)))),
+            (my \cursor := SELF.(Match.'!cursor_init'(topic, :c(0), :$braid))),
             nqp::if(
               nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
               cursor.MATCH,
@@ -59,7 +63,7 @@ my class Regex { # declared in BOOTSTRAP
                 (my $pulled := iter.pull-one),IterationEnd)
                 || nqp::isge_i(                            # valid match?
                      nqp::getattr_i(
-                       (my \cursor := SELF.(Match.'!cursor_init'($pulled,:0c))),
+                       (my \cursor := SELF.(Match.'!cursor_init'($pulled,:0c,:$braid))),
                        Match,'$!pos'),
                    0),
               nqp::null

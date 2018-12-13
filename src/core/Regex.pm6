@@ -5,9 +5,6 @@ my class Regex { # declared in BOOTSTRAP
     #     has %!alt_nfas;
     #     has str $!source;
 
-    # cache cursor initialization lookup
-    my $cursor-init := Match.^lookup("!cursor_init");
-
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Regex:D: Mu:U \a) {
         False
@@ -23,7 +20,7 @@ my class Regex { # declared in BOOTSTRAP
         nqp::decont(
           nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
           nqp::stmts(
-            (my \cursor := SELF.($cursor-init(Match, topic, :c(0)))),
+            (my \cursor := SELF.(Match.'!cursor_init'(topic, :c(0)))),
             nqp::if(
               nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
               cursor.MATCH,
@@ -62,7 +59,7 @@ my class Regex { # declared in BOOTSTRAP
                 (my $pulled := iter.pull-one),IterationEnd)
                 || nqp::isge_i(                            # valid match?
                      nqp::getattr_i(
-                       (my \cursor := SELF.($cursor-init(Match,$pulled,:0c))),
+                       (my \cursor := SELF.(Match.'!cursor_init'($pulled,:0c))),
                        Match,'$!pos'),
                    0),
               nqp::null

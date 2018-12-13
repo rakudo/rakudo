@@ -690,10 +690,21 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
     method write-uint64(
-      int $offset, uint64 $value, Endian $endian = NativeEndian --> Nil
+      int $offset, UInt $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+    }
+    method write-uint128(
+      int $offset, UInt $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        my \first  := $value +> 64;
+        my \second := $value +& ( 1 +< 64 - 1 );
+        my $be = $endian == BigEndian
+          || ($endian == NativeEndian && Kernel.endian == BigEndian);
+
+        self.write-uint64($offset,     $be ?? first !! second, $endian);
+        self.write-uint64($offset + 8, $be ?? second !! first, $endian);
     }
     method write-num32(
       int $offset, num32 $value, Endian $endian = NativeEndian --> Nil

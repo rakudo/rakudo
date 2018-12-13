@@ -74,6 +74,14 @@ module.exports.capturedRun = /*async*/ function(source, input, compileArgs, args
 
   const env = nqp.hash();
 
+  const pid = core.randomInt()[0];
+
+  const oldGetpid = nqp.op.getpid;
+
+  nqp.op.getpid = function() {
+    return pid;
+  };
+
   passedEnv.content.forEach((value, key, map) => {
     env.content.set(key, new nqp.NQPStr(value.$$getStr()));
   });
@@ -179,6 +187,7 @@ module.exports.capturedRun = /*async*/ function(source, input, compileArgs, args
   nqp.op.open = oldOpen;
   nqp.args = oldArgs;
   nqp.op.getenvhash = oldGetEnvHash;
+  nqp.op.getpid = oldGetpid;
 
   nqp.setGlobalContext(oldGlobalContext);
 

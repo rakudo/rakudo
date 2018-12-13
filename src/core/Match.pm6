@@ -25,7 +25,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     method !MATCH() {
-        my Mu $list;
+        my Mu $list := Nil;
         my Mu $hash := nqp::hash();
         if nqp::isge_i(
           nqp::getattr_i(self,Match,'$!pos'),

@@ -5,9 +5,6 @@ my class Regex { # declared in BOOTSTRAP
     #     has %!alt_nfas;
     #     has str $!source;
 
-    # cache cursor initialization lookup
-    my $cursor-init := Match.^lookup("!cursor_init");
-
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Regex:D: Mu:U \a) {
         False
@@ -19,11 +16,18 @@ my class Regex { # declared in BOOTSTRAP
         nqp::hllbool(nqp::istype(topic, self))
     }
 
+    # Create a braid and fail cursor that we can use with all the normal,
+    # "boring", regex matches that are on the Regex type. This saves them
+    # being created every single time.
+    my $cursor := Match.'!cursor_init'('');
+    my $braid := $cursor.braid;
+    my $fail_cursor := $cursor.'!cursor_start_cur'();
+
     multi method ACCEPTS(Regex:D \SELF: Any \topic) {
         nqp::decont(
           nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
           nqp::stmts(
-            (my \cursor := SELF.($cursor-init(Match, topic, :c(0)))),
+            (my \cursor := SELF.(Match.'!cursor_init'(topic, :c(0), :$braid, :$fail_cursor))),
             nqp::if(
               nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
               cursor.MATCH,
@@ -62,7 +66,7 @@ my class Regex { # declared in BOOTSTRAP
                 (my $pulled := iter.pull-one),IterationEnd)
                 || nqp::isge_i(                            # valid match?
                      nqp::getattr_i(
-                       (my \cursor := SELF.($cursor-init(Match,$pulled,:0c))),
+                       (my \cursor := SELF.(Match.'!cursor_init'($pulled,:0c,:$braid,:$fail_cursor))),
                        Match,'$!pos'),
                    0),
               nqp::null

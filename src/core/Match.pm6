@@ -25,7 +25,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     method !MATCH() {
-        my Mu $list;
+        my Mu $list := Nil;
         my Mu $hash := nqp::hash();
         if nqp::isge_i(
           nqp::getattr_i(self,Match,'$!pos'),
@@ -67,10 +67,9 @@ my class Match is Capture is Cool does NQPMatchRole {
                 # If there's only one destination, avoid repeated hash lookups
                 my int $cselems = nqp::elems($cs);
                 my int $csi = -1;
-                my Mu $dest;
 
                 # numeric: <= ord("9") so positional capture
-                $dest := nqp::islt_i(nqp::ord($onlyname),58)
+                my Mu $dest := nqp::islt_i(nqp::ord($onlyname),58)
                   ?? nqp::atpos($list, $onlyname)
                   !! nqp::atkey($hash, $onlyname);
 
@@ -720,8 +719,6 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     multi method INTERPOLATE_ASSERTION(Mu:D \var, int \im, int \monkey, $, $, \context) {
-        my \cur     = self.'!cursor_start_cur'();
-
         # We are in a regex assertion, the strings we get will be
         # treated as regex rules.
         my $rx     := MAKE_REGEX(var,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
@@ -730,9 +727,9 @@ my class Match is Capture is Cool does NQPMatchRole {
 
         match.Bool
           && nqp::isgt_i($len,-1)
-          && nqp::isle_i(nqp::add_i(nqp::getattr_i(cur, $?CLASS, '$!from'),$len),nqp::chars(cur.target))
+          && nqp::isle_i(nqp::add_i(nqp::getattr_i(self, $?CLASS, '$!pos'),$len),nqp::chars(self.target))
           ?? match
-          !! cur
+          !! self.'!cursor_start_fail'()
     }
 
     method CALL_SUBRULE($rule, |c) {

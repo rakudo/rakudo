@@ -1,3 +1,4 @@
+my class Kernel                 { ... }
 my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
@@ -18,9 +19,9 @@ constant BINARY_SIZE_64_BIT   = 12;
 
 # externalize the endian indicators
 enum Endian (
-  native-endian => BINARY_ENDIAN_NATIVE,
-  little-endian => BINARY_ENDIAN_LITTLE,
-  big-endian    => BINARY_ENDIAN_BIG,
+  NativeEndian => BINARY_ENDIAN_NATIVE,
+  LittleEndian => BINARY_ENDIAN_LITTLE,
+  BigEndian    => BINARY_ENDIAN_BIG,
 );
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
@@ -129,60 +130,78 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     # for simplicity's sake, these are not multis
-    method read-int8( int $offset, Endian $? --> int) is raw {
+    method read-int8(::?ROLE:D: int $offset, Endian $? --> int) is raw {
         nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE))
+          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE));
     }
-    method read-int16(
-      int $offset, Endian $endian = native-endian --> int
+    method read-int16(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> int
     ) is raw {
         nqp::readint(self,$offset,
           nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
     }
-    method read-int32(
-      int $offset, Endian $endian = native-endian --> int
+    method read-int32(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> int
     ) is raw {
         nqp::readint(self,$offset,
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
-    method read-int64(
-      int $offset, Endian $endian = native-endian --> int
+    method read-int64(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> int
     ) is raw {
         nqp::readint(self,$offset,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
+    method read-int128(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> Int
+    ) is raw {
+        my \unsigned := self.read-uint128($offset,$endian);
+        unsigned >= 1 +< 127 ?? unsigned - 1 +< 128 !! unsigned
+    }
 
-    method read-uint8(int $offset, Endian $? --> uint) is raw {
+    method read-uint8(::?ROLE:D: int $offset, Endian $? --> uint) is raw {
         nqp::readuint(self,$offset,
           nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE))
     }
-    method read-uint16(
-      int $offset, Endian $endian = native-endian --> uint
+    method read-uint16(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> uint
     ) is raw {
         nqp::readuint(self,$offset,
           nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
     }
-    method read-uint32(
-      int $offset, Endian $endian = native-endian --> uint
+    method read-uint32(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> uint
     ) is raw {
         nqp::readuint(self,$offset,
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
-    method read-uint64(
-      int $offset, Endian $endian = native-endian --> uint
+    method read-uint64(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> uint
     ) is raw {
-        nqp::readuint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+        my \signed := nqp::readuint(self,$offset,
+          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian));
+        signed < 0 ?? signed + 1 +< 64 !! signed
+
+    }
+    method read-uint128(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> uint
+    ) is raw {
+        my \first  := self.read-uint64($offset,     $endian);
+        my \second := self.read-uint64($offset + 8, $endian);
+        $endian == BigEndian
+          || ($endian == NativeEndian && Kernel.endian == BigEndian)
+          ?? first +< 64 +| second
+          !! second +< 64 +| first
     }
 
-    method read-num32(
-      int $offset, Endian $endian = native-endian --> num
+    method read-num32(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> num
     ) is raw {
         nqp::readnum(self,$offset,
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
-    method read-num64(
-      int $offset, Endian $endian = native-endian --> num
+    method read-num64(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> num
     ) is raw {
         nqp::readnum(self,$offset,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
@@ -628,62 +647,73 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     # for simplicity's sake, these are not multis
-    method write-int8(
-      int $offset, int $value, Endian $endian = native-endian --> Nil
+    method write-int8(::?ROLE:D:
+      int $offset, int $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
     }
-    method write-int16(
-      int $offset, int $value, Endian $endian = native-endian --> Nil
+    method write-int16(::?ROLE:D:
+      int $offset, int $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
     }
-    method write-int32(
-      int $offset, int $value, Endian $endian = native-endian --> Nil
+    method write-int32(::?ROLE:D:
+      int $offset, int $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
-    method write-int64(
-      int $offset, int $value, Endian $endian = native-endian --> Nil
+    method write-int64(::?ROLE:D:
+      int $offset, int $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
-    method write-uint8(
-      int $offset, uint8 $value, Endian $endian = native-endian --> Nil
+    method write-uint8(::?ROLE:D:
+      int $offset, uint8 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
     }
-    method write-uint16(
-      int $offset, uint16 $value, Endian $endian = native-endian --> Nil
+    method write-uint16(::?ROLE:D:
+      int $offset, uint16 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
     }
-    method write-uint32(
-      int $offset, uint32 $value, Endian $endian = native-endian --> Nil
+    method write-uint32(::?ROLE:D:
+      int $offset, uint32 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
-    method write-uint64(
-      int $offset, uint64 $value, Endian $endian = native-endian --> Nil
+    method write-uint64(::?ROLE:D:
+      int $offset, UInt $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
-    method write-num32(
-      int $offset, num32 $value, Endian $endian = native-endian --> Nil
+    method write-uint128(::?ROLE:D:
+      int $offset, UInt $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        my \first  := $value +> 64;
+        my \second := $value +& ( 1 +< 64 - 1 );
+        my $be = $endian == BigEndian
+          || ($endian == NativeEndian && Kernel.endian == BigEndian);
+
+        self.write-uint64($offset,     $be ?? first !! second, $endian);
+        self.write-uint64($offset + 8, $be ?? second !! first, $endian);
+    }
+    method write-num32(::?ROLE:D:
+      int $offset, num32 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writenum(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
-    method write-num64(
-      int $offset, num64 $value, Endian $endian = native-endian --> Nil
+    method write-num64(::?ROLE:D:
+      int $offset, num64 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writenum(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))

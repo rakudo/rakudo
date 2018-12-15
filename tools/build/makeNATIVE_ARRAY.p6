@@ -49,26 +49,38 @@ for $*IN.lines -> $line {
     # spurt the role
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
-        multi method AT-POS(#type#array:D: int $idx) is raw {
-            nqp::atposref_#postfix#(self, $idx)
+        multi method AT-POS(#type#array:D: int $idx --> #type#) is raw {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_#postfix#(self,$idx)
         }
-        multi method AT-POS(#type#array:D: Int:D $idx) is raw {
-            nqp::atposref_#postfix#(self, $idx)
+        multi method AT-POS(#type#array:D: Int:D $idx --> #type#) is raw {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_#postfix#(self,$idx)
         }
 
-        multi method ASSIGN-POS(#type#array:D: int $idx, #type# $value) {
-            nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: int $idx, #type# $value --> #type#) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #type# $value) {
-            nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #type# $value --> #type#) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: int $idx, #Type#:D $value) {
-            nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: int $idx, #Type#:D $value --> #type#) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #Type#:D $value) {
-            nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #Type#:D $value --> #type#) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: Any $idx, Mu \value) {
+        multi method ASSIGN-POS(#type#array:D: Any $idx, Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => "assignment to #type# array element #$idx",
                 got       => value,
@@ -132,7 +144,7 @@ for $*IN.lines -> $line {
             nqp::push_#postfix#(self, $value);
             self
         }
-        multi method push(#type#array:D: Mu \value) {
+        multi method push(#type#array:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'push to #type# array',
                 got       => value,

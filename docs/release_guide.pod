@@ -271,7 +271,7 @@ C<make spectest> (you can abort it  after the repository is retrieved).
   make stresstest
   (cd t/spec && git checkout 6.c-errata) # test stable language spec (6.c)
   make stresstest
-  (cd t/spec && git checkout 6.d-errata) # test stable language spec (6.c)
+  (cd t/spec && git checkout 6.d-errata) # test stable language spec (6.d)
   make stresstest
 
 There are many tests to run for the stresstest target.  If

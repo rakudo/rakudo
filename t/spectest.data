@@ -194,6 +194,7 @@ S03-binding/nested.t
 S03-binding/ro.t
 S03-binding/scalars.t
 S03-buf/read-int.t
+S03-buf/write-int.t
 S03-feeds/basic.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t

@@ -648,31 +648,31 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     # for simplicity's sake, these are not multis
     method write-int8(::?ROLE:D:
-      uint $offset, int $value, Endian $endian = NativeEndian --> Nil
+      uint $offset, int8 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
     }
     method write-int16(::?ROLE:D:
-      uint $offset, int $value, Endian $endian = NativeEndian --> Nil
+      uint $offset, int16 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
     }
     method write-int32(::?ROLE:D:
-      uint $offset, int $value, Endian $endian = NativeEndian --> Nil
+      uint $offset, int32 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
     method write-int64(::?ROLE:D:
-      uint $offset, int $value, Endian $endian = NativeEndian --> Nil
+      uint $offset, Int:D $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
     method write-int128(::?ROLE:D:
-      uint $offset, Int $value, Endian $endian = NativeEndian --> Nil
+      uint $offset, Int:D $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         # These uints are intentional to keep the value within 64 bits
         my uint $first  = ($value +> 64) +& (1 +< 64 - 1);
@@ -702,13 +702,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
     }
     method write-uint64(::?ROLE:D:
-      uint $offset, UInt $value, Endian $endian = NativeEndian --> Nil
+      uint $offset, UInt:D $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
     method write-uint128(::?ROLE:D:
-      uint $offset, UInt $value, Endian $endian = NativeEndian --> Nil
+      uint $offset, UInt:D $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         my \first  := $value +> 64;
         my \second := $value +& ( 1 +< 64 - 1 );

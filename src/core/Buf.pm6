@@ -129,6 +129,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
 
+#?if moar
     # for simplicity's sake, these are not multis
     method read-int8(::?ROLE:D: int $offset, Endian $? --> int) is raw {
         nqp::readint(self,$offset,
@@ -206,6 +207,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::readnum(self,$offset,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
+#?endif
 
     multi method Bool(Blob:D:) { nqp::hllbool(nqp::elems(self)) }
     method Capture(Blob:D:) { self.List.Capture }
@@ -646,6 +648,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           !! self!push-list("initializ",nqp::setelems(self,0),iterable);
     }
 
+#?if moar
     # for simplicity's sake, these are not multis
     method write-int8(::?ROLE:D:
       int $offset, int8 $value, Endian $endian = NativeEndian --> Nil
@@ -730,6 +733,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         nqp::writenum(self,$offset,$value,
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
+#?endif
 
     multi method list(Buf:D:) {
         Seq.new(class :: does Rakudo::Iterator::Blobby {

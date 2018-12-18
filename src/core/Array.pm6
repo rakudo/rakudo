@@ -237,32 +237,45 @@ my class Array { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',reified)
     }
 
+    # handle non-straighthforward shapes
+    method !difficult-shape(\shape) {
+        nqp::if(
+          Metamodel::EnumHOW.ACCEPTS(shape.HOW),
+          set-shape(self,shape.^elems),
+          nqp::stmts(
+            warn("Ignoring [{ shape.^name }] as shape specification, did you mean 'my { shape.^name } @foo' ?"),
+            nqp::create(self)
+          )
+        )
+    }
+
     proto method new(|) {*}
     multi method new(:$shape!) {
         nqp::if(
-          nqp::defined($shape),
+          nqp::isconcrete($shape),
           set-shape(self,$shape),
-          nqp::if(
-            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
-            set-shape(self,$shape.^elems),
-            nqp::stmts(
-              warn("Ignoring [{ $shape.^name }] as shape specification"),
-              nqp::create(self)
-            )
-          )
+          self!difficult-shape($shape)
         )
     }
     multi method new() {
         nqp::create(self)
     }
     multi method new(\values, :$shape!) {
-        self.new(:$shape).STORE(values)
+        nqp::if(
+          nqp::isconcrete($shape),
+          set-shape(self,$shape),
+          self!difficult-shape($shape)
+        ).STORE(values)
     }
     multi method new(\values) {
         nqp::create(self).STORE(values)
     }
     multi method new(**@values is raw, :$shape!) {
-        self.new(:$shape).STORE(@values)
+        nqp::if(
+          nqp::isconcrete($shape),
+          set-shape(self,$shape),
+          self!difficult-shape($shape)
+        ).STORE(@values)
     }
     multi method new(**@values is raw) {
         nqp::create(self).STORE(@values)

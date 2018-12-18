@@ -12,6 +12,7 @@ $comp.addstage('optimize', :after<ast>);
 
 
 nqp::bindattr($comp, HLL::Compiler, '%!cli-options', nqp::hash());
+nqp::bindattr($comp, HLL::Compiler, '$!user_progname', nqp::gethllsym('perl6', 'progname'));
 
 $comp.set_language_version('6.d');
 

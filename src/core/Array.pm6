@@ -245,7 +245,10 @@ my class Array { # declared in BOOTSTRAP
           nqp::if(
             Metamodel::EnumHOW.ACCEPTS($shape.HOW),
             set-shape(self,$shape.^elems),
-            nqp::create(self)
+            nqp::stmts(
+              warn("Ignoring [{ $shape.^name }] as shape specification"),
+              nqp::create(self)
+            )
           )
         )
     }
@@ -253,29 +256,13 @@ my class Array { # declared in BOOTSTRAP
         nqp::create(self)
     }
     multi method new(\values, :$shape!) {
-        nqp::if(
-          nqp::defined($shape),
-          set-shape(self,$shape),
-          nqp::if(
-            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
-            set-shape(self,$shape.^elems),
-            nqp::create(self)
-          )
-        ).STORE(values)
+        self.new(:$shape).STORE(values)
     }
     multi method new(\values) {
         nqp::create(self).STORE(values)
     }
     multi method new(**@values is raw, :$shape!) {
-        nqp::if(
-          nqp::defined($shape),
-          set-shape(self,$shape),
-          nqp::if(
-            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
-            set-shape(self,$shape.^elems),
-            nqp::create(self)
-          )
-        ).STORE(@values)
+        self.new(:$shape).STORE(@values)
     }
     multi method new(**@values is raw) {
         nqp::create(self).STORE(@values)

@@ -231,6 +231,7 @@ my class IO::Socket::Async {
                 my $cancellation := nqp::asynclisten(
                     $!scheduler.queue(:hint-affinity),
                     -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port,
+                       Mu \something-else,
                        Mu \socket-host, Mu \socket-port {
                         $lock.protect: {
                             if $finished {

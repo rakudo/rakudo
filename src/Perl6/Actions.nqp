@@ -1297,6 +1297,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
+
+        my $stub := nqp::freshcoderef(sub () { nqp::die("This stub should never be called") });
+        $*W.add_root_code_ref($stub, $unit);
+
         my $mainline := QAST::Stmts.new(
             $*POD_PAST,
             statementlist_with_handlers($/)

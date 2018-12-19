@@ -237,7 +237,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',reified)
     }
 
-    # handle non-straighthforward shapes
+    # handle non-straightforward shapes
     method !difficult-shape(\shape) {
         nqp::if(
           Metamodel::EnumHOW.ACCEPTS(shape.HOW),

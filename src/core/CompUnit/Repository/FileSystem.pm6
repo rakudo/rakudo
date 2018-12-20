@@ -163,8 +163,8 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             !! Version.new($spec.api-matcher);
 
         return Empty unless ($distribution.meta<auth> // '') ~~ $spec.auth-matcher
-            and Version.new($distribution.meta<ver> // 0) ~~ $version-matcher
-            and Version.new($distribution.meta<api> // 0) ~~ $api-matcher;
+            and (($distribution.meta<ver> // '*') eq '*' || Version.new($distribution.meta<ver> // 0) ~~ $version-matcher)
+            and (($distribution.meta<api> // '*') eq '*' || Version.new($distribution.meta<api> // 0) ~~ $api-matcher);
 
         return ($distribution,);
     }
@@ -211,27 +211,31 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method !distribution {
         # Path contains a META6.json file, so only use paths/modules explicitly declared therein ( -I ./ )
-        return Distribution::Path.new($!prefix) if $!prefix.add('META6.json').f;
+        my $dist = $!prefix.add('META6.json').f
+            ?? Distribution::Path.new($!prefix)
+            !! do {
+                # Path does not contain a META6.json file so grep for files to be used to map to arbitrary module names later ( -I ./lib )
+                # This is considered a developmental mode of library inclusion -- technically a Distribution, but probably a poorly formed one.
+                my &ls := { Rakudo::Internals.DIR-RECURSE($_).map({ .IO.relative(self!files-prefix).subst(:g, '\\', '/') }) };
+                Distribution::Hash.new(:prefix(self!files-prefix), %(
+                    name      => ~$!prefix, # must make up a name when using -Ilib / use lib 'lib'
+                    ver       => '*',
+                    api       => '*',
+                    auth      => '',
+                    files     => (my %files = %( # files is a non-spec internal field used by CompUnit::Repository::Installation included to make cross CUR install easier
+                        &ls(self!files-prefix.child('bin').absolute).map({ $_ => $_ }).Slip,
+                        &ls(self!files-prefix.child('resources').absolute).map({
+                            $_ ~~ m/^resources\/libraries\/(.*)/
+                                ?? ('resources/libraries/' ~ ($0.IO.dirname eq '.'??''!!$0.IO.dirname~"/") ~ $0.IO.basename.subst(/^lib/, '').subst(/\..*/, '') => $_)
+                                !! ($_ => $_)
+                        }).Slip,
+                    )),
+                    resources => %files.keys.grep(*.starts-with('resources/')).map(*.substr(10)).List, # already grepped resources/ for %files, so reuse that information
+                    provides  => &ls($!prefix.absolute).grep(*.ends-with(any(@extensions))).map({ $_.subst(:g, /\//, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_ }).hash,
+                ));
+            };
 
-        # Path does not contain a META6.json file so grep for files to be used to map to arbitrary module names later ( -I ./lib )
-        # This is considered a developmental mode of library inclusion -- technically a Distribution, but probably a poorly formed one.
-        my &ls := { Rakudo::Internals.DIR-RECURSE($_).map({ .IO.relative(self!files-prefix).subst(:g, '\\', '/') }) };
-        return Distribution::Hash.new(:prefix(self!files-prefix), %(
-            name      => ~$!prefix, # must make up a name when using -Ilib / use lib 'lib'
-            ver       => '*',
-            api       => '*',
-            auth      => '',
-            files     => (my %files = %( # files is a non-spec internal field used by CompUnit::Repository::Installation included to make cross CUR install easier
-                &ls(self!files-prefix.child('bin').absolute).map({ $_ => $_ }).Slip,
-                &ls(self!files-prefix.child('resources').absolute).map({
-                    $_ ~~ m/^resources\/libraries\/(.*)/
-                        ?? ('resources/libraries/' ~ ($0.IO.dirname eq '.'??''!!$0.IO.dirname~"/") ~ $0.IO.basename.subst(/^lib/, '').subst(/\..*/, '') => $_)
-                        !! ($_ => $_)
-                }).Slip,
-            )),
-            resources => %files.keys.grep(*.starts-with('resources/')).map(*.substr(10)).List, # already grepped resources/ for %files, so reuse that information
-            provides  => &ls($!prefix.absolute).grep(*.ends-with(any(@extensions))).map({ $_.subst(:g, /\//, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_ }).hash,
-        ));
+        return CompUnit::Repository::Distribution.new($dist);
     }
 
     method resource($dist-id, $key) {

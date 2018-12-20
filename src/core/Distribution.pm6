@@ -28,8 +28,8 @@ role Distribution::Locally does Distribution {
 
 # A distribution passed to `CURI.install()` will get encapsulated in this
 # class, which normalizes the meta6 data and adds identifiers/content-id
-class CompUnit::Repository::Distribution {
-    has Distribution $!dist handles 'content';
+class CompUnit::Repository::Distribution does Distribution {
+    has Distribution $!dist handles <content prefix>;
     has $!meta;
     submethod BUILD(:$!meta, :$!dist --> Nil) { }
     method new(Distribution $dist) {
@@ -45,7 +45,6 @@ class CompUnit::Repository::Distribution {
         ~ ":ver<{$.meta<ver>   // ''}>"
         ~ ":auth<{$.meta<auth> // ''}>"
         ~ ":api<{$.meta<api>   // ''}>";
-
     }
 
     method id() {

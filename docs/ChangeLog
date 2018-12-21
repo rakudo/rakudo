@@ -26,7 +26,7 @@ New in 2018.12:
     + Added `Kernel.endian` [2a761ca7][af43b159]
     + Implemented `Blob.readint` / `Buf.writeint` [4f14d713][fecfb22d]
         [5cc0e02d][79dd1c8e][ceaf7218][631940c7][38afa2d6][e7b61aff]
-    + Added `.native-descriptor for async sockets [a4db9139][2fd90b1e]
+    + Added `.native-descriptor` for async sockets [a4db9139][2fd90b1e]
     + Added `.Real` method to native arrays [dd3f91a2]
     + Implemented `last` and `LAST` in `whenever` blocks [890d628a]
   + Efficiency:

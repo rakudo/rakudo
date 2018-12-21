@@ -22,6 +22,9 @@ class Kernel does Systemic {
                 when 'mswin32' {
                     'win32'
                 }
+                when 'browser' {
+                    'browser';
+                }
                 default {
                     lc uname '-s';
                 }

@@ -1,6 +1,7 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
-    has %!loaded;
+    has %!loaded; # cache compunit lookup for self.need(...)
+    has %!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
     has $!id;
     has Int $!version;
@@ -51,39 +52,19 @@ __END__
 :endofperl
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
-sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
-    CompUnit::RepositoryRegistry.run-script("#name#", :dist-name<#dist-name#>, :$name, :$auth, :$ver);
+sub MAIN(:$name, :$auth, :$ver, *@, *%) {
+    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
 }';
 
-    method !sources-dir() {
-        my $sources = $.prefix.add('sources');
-        $sources.mkdir unless $sources.e;
-        $sources
-    }
-
-    method !resources-dir() {
-        my $resources = $.prefix.add('resources');
-        $resources.mkdir unless $resources.e;
-        $resources
-    }
-
-    method !dist-dir() {
-        my $dist = $.prefix.add('dist');
-        $dist.mkdir unless $dist.e;
-        $dist
-    }
-
-    method !bin-dir() {
-        my $bin = $.prefix.add('bin');
-        $bin.mkdir unless $bin.e;
-        $bin
-    }
+    method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }
+    method !resources-dir { with $.prefix.add('resources') { once { .mkdir unless .e }; $_ } }
+    method !dist-dir      { with $.prefix.add('dist')      { once { .mkdir unless .e }; $_ } }
+    method !bin-dir       { with $.prefix.add('bin')       { once { .mkdir unless .e }; $_ } }
+    method !short-dir     { with $.prefix.add('short')     { once { .mkdir unless .e }; $_ } }
 
     method !add-short-name($name, $dist, $source?, $checksum?) {
-        my $short-dir = $.prefix.add('short');
         my $id = nqp::sha1($name);
-        my $lookup = $short-dir.add($id);
-        $lookup.mkdir;
+        my $lookup = self!short-dir.add($id) andthen { .mkdir unless .e }
         $lookup.add($dist.id).spurt(
                 "{$dist.meta<ver>  // ''}\n"
             ~   "{$dist.meta<auth> // ''}\n"
@@ -94,7 +75,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method !remove-dist-from-short-name-lookup-files($dist --> Nil) {
-        my $short-dir = $.prefix.add('short');
+        my $short-dir = self!short-dir;
         return unless $short-dir.e;
 
         my $id = $dist.id;
@@ -106,8 +87,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method !file-id(Str $name, Str $dist-id) {
-        my $id = $name ~ $dist-id;
-        nqp::sha1($id)
+        nqp::sha1($name ~ $dist-id)
     }
 
     method name(--> Str:D) {
@@ -115,27 +95,25 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
     }
 
     method !repo-prefix() {
-        my $repo-prefix = self.name // '';
-        $repo-prefix ~= '#' if $repo-prefix;
-        $repo-prefix
+        self.name ?? (self.name ~ '#') !! ''
     }
 
     method !read-dist($id) {
-        my $dist = Rakudo::Internals::JSON.from-json($.prefix.add('dist').add($id).slurp);
-        $dist<ver> = $dist<ver> ?? Version.new( ~$dist<ver> ) !! Version.new('0');
-        $dist
+        my $meta = Rakudo::Internals::JSON.from-json(self!dist-dir.add($id).slurp);
+        $meta<ver> = $meta<ver> ?? Version.new( ~$meta<ver> ) !! Version.new('0');
+        $meta
     }
 
     method !repository-version(--> Int:D) {
-        return $!version if defined $!version;
-        my $version-file = $.prefix.add('version');
-        return $!version = 0 unless $version-file ~~ :f;
-        $!version = $version-file.slurp.Int
+        $!version //= do {
+            my $version-file = $.prefix.add('version');
+            $version-file.f ?? $version-file.slurp.Int !! 0
+        }
     }
 
     method upgrade-repository() {
         my $version = self!repository-version;
-        my $short-dir = $.prefix.add('short');
+        my $short-dir = self!short-dir;
         mkdir $short-dir unless $short-dir.e;
         my $precomp-dir = $.prefix.add('precomp');
         mkdir $precomp-dir unless $precomp-dir.e;
@@ -149,8 +127,8 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
                 $file.unlink;
                 $file.mkdir;
                 for @ids -> $id {
-                    my $dist = self!read-dist($id);
-                    $file.add($id).spurt("{$dist<ver> // ''}\n{$dist<auth> // ''}\n{$dist<api> // ''}\n");
+                    my $meta = self!read-dist($id);
+                    $file.add($id).spurt("{$meta<ver> // ''}\n{$meta<auth> // ''}\n{$meta<api> // ''}\n");
                 }
             }
         }
@@ -170,24 +148,7 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         $!version = 2;
     }
 
-    proto method install(|) {*}
-    multi method install($dist, %sources, %scripts?, %resources?, Bool :$force) {
-        # XXX: Deprecation shim
-        my %files;
-        %files{"bin/$_.key()"} = $_.value for %scripts.pairs;
-        %files{"resources/$_.key()"} = $_.value for %resources.pairs;
-        my %meta6 = %(
-            name     => $dist.?name,
-            ver      => $dist.?ver // $dist.?version,
-            api      => $dist.?api,
-            auth     => $dist.?auth // $dist.?authority,
-            provides => %sources,
-            files    => %files,
-        );
-
-        return samewith(Distribution::Hash.new(%meta6, :prefix($*CWD)), :$force);
-    }
-    multi method install(Distribution $distribution, Bool :$force) {
+    method install(Distribution $distribution, Bool :$force) {
         my $dist  = CompUnit::Repository::Distribution.new($distribution);
         my %files = $dist.meta<files>.grep(*.defined).map: -> $link {
             $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])
@@ -246,12 +207,13 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         # bin/ scripts
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
+            my $name        = $name-path.subst(/^bin\//, '');
             my $id          = self!file-id(~$file, $dist-id);
             my $destination = $resources-dir.add($id); # wrappers are put in bin/; originals in resources/
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m' -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
-                    $perl_wrapper.subst('#name#', $name-path.IO.basename, :g).subst('#perl#', "perl6$be").subst('#dist-name#', $dist.meta<name>);
+                    $perl_wrapper.subst('#name#', $name, :g).subst('#perl#', "perl6$be");
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
                         $windows_wrapper.subst('#perl#', "perl6$be", :g);
@@ -372,103 +334,180 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         unlink( $dist-dir.add($dist.id) )
     }
 
-    method script($file, :$name!, :$auth, :$ver) {
-        my $prefix = self.prefix;
-        my $lookup = $prefix.add('short').add(nqp::sha1($file));
-        return unless $lookup.e;
+    # Ideally this would return Distributions, but it'd break older bin/ scripts
+    proto method files(|) {*}
+    multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
+        # if we have to include :$name then we take the slow path
 
-        # Scripts using this interface could only have been installed long after the introduction of
-        # repo version 1, so we don't have to care about very old repos in this method.
-        my @dists is List = $lookup.dir.map({
-                my ($ver, $auth, $api, $resource-id) = $_.slurp.split("\n");
-                $resource-id ||= self!read-dist($_.basename)<files>{$file};
-                (id => $_.basename, ver => Version.new( $ver || 0 ), :$auth, :$api, :$resource-id).hash
-            }).grep({
-                $_.<auth> ~~ $auth
-                and $_.<ver> ~~ $ver
-            });
-        for @dists.sort(*.<ver>).reverse {
-            return self!resources-dir.add($_<resource-id>);
+        my $spec = CompUnit::DependencySpecification.new(
+            short-name      => $name,
+            auth-matcher    => $auth // True,
+            version-matcher => $ver  // True,
+            api-matcher     => $api  // True,
+        );
+
+        with self.candidates($spec) {
+            my $matches := $_.grep: { .meta<files>{$file}:exists }
+
+            my $absolutified-metas := $matches.map: {
+                my $meta      = $_.meta;
+                $meta<source> = self!resources-dir.add($meta<files>{$file});
+                $meta;
+            }
+
+            return $absolutified-metas.grep(*.<source>.e);
+        }
+    }
+    multi method files($file, :$auth, :$ver, :$api) {
+        # avoid parsing json if we don't need to know the short-name
+
+        my $spec = CompUnit::DependencySpecification.new(
+            short-name      => $file,
+            auth-matcher    => $auth // True,
+            version-matcher => $ver  // True,
+            api-matcher     => $api  // True,
+        );
+
+        with self.candidates($spec) {
+            my $absolutified-metas := $_.map: {
+                my $meta      = $_.meta;
+                $meta<source> = self!resources-dir.add($meta<source> || $meta<files>{$file});
+                $meta;
+            }
+
+            return $absolutified-metas.grep(*.<source>.e);
         }
     }
 
-    method files($file, :$name!, :$auth, :$ver) {
-        my @candi;
-        my $prefix = self.prefix;
-        my $lookup = $prefix.add('short').add(nqp::sha1($name));
-        if $lookup.e {
-            my $repo-version = self!repository-version;
-            my @dists is List = $repo-version < 1
+    proto method candidates(|) {*}
+    multi method candidates(Str:D $name, :$auth, :$ver, :$api) {
+        return samewith(CompUnit::DependencySpecification.new(
+            short-name      => $name,
+            auth-matcher    => $auth // True,
+            version-matcher => $ver  // True,
+            api-matcher     => $api  // True,
+        ));
+    }
+    multi method candidates(CompUnit::DependencySpecification $spec) {
+        return Empty unless $spec.from eq 'Perl6';
+
+        # $lookup is a file system resource that acts as a fast meta data lookup for a given module short name.
+        my $lookup = self!short-dir.add(nqp::sha1($spec.short-name));
+        return Empty unless $lookup.e;
+
+        # Each item contains a subset of meta data - notably items needed `use "Foo:ver<*>"`
+        # All items match the given module short name, but may differ in ver, auth, api, etc.
+        my $metas := (
+                self!repository-version < 1
                 ?? $lookup.lines.unique.map({
-                        self!read-dist($_)
+                        $_ => self!read-dist($_)
                     })
                 !! $lookup.dir.map({
-                        my ($ver, $auth, $api) = $_.slurp.split("\n");
-                        (id => $_.basename, ver => Version.new( $ver || 0 ), auth => $auth, api => $api).hash
-                    });
-            for @dists.grep({$_<auth> ~~ $auth and $_<ver> ~~ $ver}) -> $dist is copy {
-                $dist = self!read-dist($dist<id>) if $repo-version >= 1;
-                with $dist<files>{$file} {
-                    my $candi = %$dist;
-                    $candi<files>{$file} = self!resources-dir.add($candi<files>{$file});
-                    @candi.push: $candi;
-                }
-            }
+                        my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
+                        $_.basename => {
+                            name     => $spec.short-name,
+                            auth     => $auth,
+                            api      => Version.new( $api || 0 ), # Create the Version objects once
+                            ver      => Version.new( $ver || 0 ), # (used to compare, and then sort)
+                            source   => $source || Any,
+                            checksum => $checksum || Str,
+                        }
+                    })
+            );
+
+        my $version-matcher = ($spec.version-matcher ~~ Bool)
+            ?? $spec.version-matcher # fast path for matching Version.new(*)
+            !! Version.new($spec.version-matcher);
+        my $api-matcher = ($spec.api-matcher ~~ Bool)
+            ?? $spec.api-matcher
+            !! Version.new($spec.api-matcher);
+
+        # $metas has already been filtered by name via $lookup, so do remaining filtering on fast lookup fields
+        my $matching-metas := $metas.grep: {
+            $_.value<auth> ~~ $spec.auth-matcher
+            and $_.value<ver> ~~ $version-matcher
+            and $_.value<api> ~~ $api-matcher
         }
-        @candi
+
+        # Sort from highest to lowest by version and api
+        my $sorted-metas := $matching-metas.sort(*.value<api>).sort(*.value<ver>).reverse;
+
+        # There is nothing left to do with the subset of meta data, so initialize a lazy distribution with it
+        my $distributions := $sorted-metas.map(*.kv).map: -> ($dist-id, $meta) { self!lazy-distribution($dist-id, :$meta) }
+
+        # A different policy might wish to implement additional/alternative filtering or sorting at this point,
+        # with the caveat that calling a non-lazy field will require parsing json for each matching distribution.
+        # my $policy-okd-dists := $distributions.grep({ .meta<license> eq 'Artistic-2.0' }).sort(-*.meta<production>)`
+
+        return $distributions;
     }
 
+    # An equivalent of self.candidates($spec).head that caches the best match
     method !matching-dist(CompUnit::DependencySpecification $spec) {
-        if $spec.from eq 'Perl6' {
-            my $repo-version = self!repository-version;
-            my $lookup = $.prefix.add('short').add(nqp::sha1($spec.short-name));
-            if $lookup.e {
-                my @dists is List = (
-                        $repo-version < 1
-                        ?? $lookup.lines.unique.map({
-                                $_ => self!read-dist($_)
-                            })
-                        !! $lookup.dir.map({
-                                my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
-                                $_.basename => {
-                                    ver      => Version.new( $ver || 0 ),
-                                    auth     => $auth,
-                                    api      => $api,
-                                    source   => $source || Any,
-                                    checksum => $checksum || Str,
-                                }
-                            })
-                    ).grep({
-                        $_.value<auth> ~~ $spec.auth-matcher
-                        and $_.value<api> ~~ $spec.api-matcher
-                        and $_.value<ver> ~~ (($spec.version-matcher ~~ Bool)
-                            ?? $spec.version-matcher # fast path for matching Version.new(*)
-                            !! Version.new($spec.version-matcher))
-                    });
-                for @dists.sort(*.value<ver>).reverse.map(*.kv) -> ($dist-id, $dist) {
-                    return ($dist-id, $dist);
-                }
-            }
+        return $_ with %!seen{~$spec};
+
+        with self.candidates($spec).head {
+            $!lock.protect: { return %!seen{~$spec} //= $_ }
         }
+
         Nil
     }
 
-    my class Lazy does Distribution::Locally {
+    # A distribution that provides a subset of its meta data without parsing the full original
+    # original json version, while lazily parsing once fields outside of that subset are used.
+    my role LazyMetaReader {
+        has $.meta-reader;
+        method AT-KEY($key)     { $!meta-reader($key) }
+        method EXISTS-KEY($key) { $!meta-reader($key).defined }
+    }
+    my role MetaAssigner {
+        has $.meta-writer;
+        method ASSIGN-KEY($key, $value) { $!meta-writer($key, $value) }
+    }
+    my class LazyDistribution does Distribution::Locally {
         has $.dist-id;
         has $.read-dist;
         has $!installed-dist;
+        has $.meta;
+
+        # Parses dist info from json and populates $.meta with any new fields
         method !dist {
-            $!installed-dist //= InstalledDistribution.new($.read-dist()(), :$.prefix)
+            unless $!installed-dist.defined {
+                $!installed-dist = InstalledDistribution.new($.read-dist()($!dist-id), :$.prefix);
+
+                # Keep fields of the meta data subset that do not exist in the full meta data
+                # (source, default values for versions, etc)
+                my %hash = $!installed-dist.meta.hash;
+                %hash{$_} //= $!meta{$_} for $!meta.hash.keys;
+                $!meta = %hash;
+            }
+            $!installed-dist;
         }
-        method meta(--> Hash:D)                      { self!dist.meta }
+
+        method meta(--> Hash:D) {
+            my %hash = $!meta.hash;
+            unless $!installed-dist.defined {
+                # Allow certain meta fields to be read without a full parsing, and fallback
+                # to calling self!dist to populate the entire meta data from json.
+                %hash does LazyMetaReader({ $!meta.hash{$^a} // self!dist.meta.{$^a} });
+
+                # Allows absolutifying paths in .meta<files source> to keep .files() happy
+                %hash does MetaAssigner({ $!meta.ASSIGN-KEY($^a, $^b) });
+            }
+
+            return %hash;
+        }
         method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
-        method Str()                               { self!dist.Str }
+        method Str { CompUnit::Repository::Distribution.new(self).Str }
+        method id { $.dist-id }
     }
-    method !lazy-distribution($dist-id) {
-        Lazy.new(
-          :$dist-id,
-          :read-dist(-> { self!read-dist($dist-id) })
-          :$.prefix,
+
+    method !lazy-distribution($dist-id, :$meta) {
+        LazyDistribution.new(
+            :$dist-id,
+            :read-dist(-> $_ { self!read-dist($_) }),
+            :$meta,
+            :$.prefix,
         )
     }
 
@@ -476,17 +515,16 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::DependencySpecification $spec,
         --> CompUnit:D)
     {
-        my ($dist-id, $dist) = self!matching-dist($spec);
-        if $dist-id {
-            # xxx: replace :distribution with meta6
+        with self!matching-dist($spec) {
+            my $meta = .meta;
             return CompUnit.new(
                 :handle(CompUnit::Handle),
                 :short-name($spec.short-name),
-                :version($dist<ver>),
-                :auth($dist<auth> // Str),
+                :version($meta<ver>),
+                :auth($meta<auth> // Str),
                 :repo(self),
-                :repo-id($dist<source> // self!read-dist($dist-id)<provides>{$spec.short-name}.values[0]<file>),
-                :distribution(self!lazy-distribution($dist-id)),
+                :repo-id($meta<source>),
+                :distribution($_),
             );
         }
         return self.next-repo.resolve($spec) if self.next-repo;
@@ -505,54 +543,54 @@ sub MAIN(:$name is copy, :$auth, :$ver, *@, *%) {
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
         --> CompUnit:D)
     {
-        my ($dist-id, $dist) = self!matching-dist($spec);
-        if $dist-id {
-            return %!loaded{~$spec} if %!loaded{~$spec}:exists;
-            my $source-file-name = $dist<source>
-                // do {
-                    my $provides = self!read-dist($dist-id)<provides>;
-                    X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw
-                        unless $provides{$spec.short-name}:exists;
-                    $provides{$spec.short-name}.values[0]<file>
-                };
+        with self!matching-dist($spec) {
+            my $meta = .meta;
+            my $source-file-name = $meta<source>;
+            X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw
+                unless $source-file-name;
             my $loader = $.prefix.add('sources').add($source-file-name);
-            my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
-            my $id = $loader.basename;
+            my $id     = $loader.basename;
+            return $_ with %!loaded{$id};
+
+            my $*RESOURCES  = Distribution::Resources.new(:repo(self), :dist-id(.dist-id));
             my $repo-prefix = self!repo-prefix;
-            my $handle = $precomp.try-load(
+            my $handle      = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
                     :id(CompUnit::PrecompilationId.new-without-check($id)),
-                    :src($repo-prefix ?? $repo-prefix ~ 'sources'.IO.add($source-file-name) !! $loader.absolute),
-                    :checksum($dist<checksum>:exists ?? $dist<checksum> !! Str),
+                    :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.absolute),
+                    :checksum(.meta<checksum> // Str),
                     :$spec,
                 ),
                 :source($loader),
                 :@precomp-stores,
             );
+
             my $precompiled = defined $handle;
             $handle //= CompUnit::Loader.load-source-file($loader);
 
-            # xxx: replace :distribution with meta6
             my $compunit = CompUnit.new(
                 :$handle,
-                :short-name($spec.short-name),
-                :version($dist<ver>),
-                :auth($dist<auth> // Str),
+                :short-name($meta<name>),
+                :version($meta<ver>),
+                :auth($meta<auth> // Str),
                 :repo(self),
                 :repo-id($id),
                 :$precompiled,
-                :distribution(self!lazy-distribution($dist-id)),
+                :distribution($_),
             );
-            return %!loaded{~$spec} = $compunit;
+
+            $!lock.protect: {
+                return %!loaded{$id} //= $compunit;
+            }
         }
         return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
     method resource($dist-id, $key) {
-        my $dist = %!dist-metas{$dist-id} //= Rakudo::Internals::JSON.from-json(self!dist-dir.add($dist-id).slurp);
+        my $meta = %!dist-metas{$dist-id} //= Rakudo::Internals::JSON.from-json(self!dist-dir.add($dist-id).slurp);
         # need to strip the leading resources/ on old repositories
-        self!resources-dir.add($dist<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
+        self!resources-dir.add($meta<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
     }
 
     method id() {

@@ -69,6 +69,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         return $_ with %!loaded{~$spec};
 
         with self!matching-dist($spec) {
+            $*DISTRIBUTION = $_;
             my $name = $spec.short-name;
             my $id   = self!comp-unit-id($name);
             my $*RESOURCES     = Distribution::Resources.new(:repo(self), :dist-id(''));

@@ -544,6 +544,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         --> CompUnit:D)
     {
         with self!matching-dist($spec) {
+            $*DISTRIBUTION = $_;
             my $meta = .meta;
             my $source-file-name = $meta<source>;
             X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw

@@ -221,4 +221,8 @@ class Distribution::Resources does Associative {
     }
 }
 
+Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRIBUTION', {
+    PROCESS::<$DISTRIBUTION> = Nil;
+}
+
 # vim: ft=perl6 expandtab sw=4

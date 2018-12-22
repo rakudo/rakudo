@@ -265,8 +265,8 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
   op.p6sink = /*async*/ function(ctx, obj) {
     if (obj.$$typeObject || obj === Null) return;
-    if (obj.$$can(ctx, 'sink')) {
-      obj.p6$sink(ctx, null, obj);
+    if (/*await*/ obj.$$can(ctx, 'sink')) {
+      /*await*/ obj.p6$sink(ctx, null, obj);
     }
   };
 
@@ -302,7 +302,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
   };
 
-  op.p6fakerun = function(HLL, options) {
+  op.p6fakerun = /*async*/ function(HLL, options) {
     const code = options.content.get('code').$$getStr();
     const input = options.content.get('input').$$getStr();
 
@@ -313,7 +313,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
 
     const rakudoLibrary = nqp.requireExtraStuff('./rakudo-library.nqp-raw-runtime');
 
-    const result = rakudoLibrary.capturedRun(code, input, compilerArgs, args, env);
+    const result = /*await*/ rakudoLibrary.capturedRun(code, input, compilerArgs, args, env);
 
     const hash = nqp.hash();
 

@@ -3018,6 +3018,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
             }
         }
+        elsif $name eq '$*DISTRIBUTION' {
+            my $distribution := nqp::getlexdyn('$*DISTRIBUTION');
+            if $distribution {
+                $past := QAST::WVal.new( :value($distribution) );
+                if nqp::isnull(nqp::getobjsc($distribution)) {
+                    $*W.add_object_if_no_sc($distribution);
+                }
+            }
+            else {
+                $past := QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
+            }
+        }
         elsif $name eq '&?BLOCK' || $name eq '&?ROUTINE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',

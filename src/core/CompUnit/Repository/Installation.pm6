@@ -544,7 +544,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         --> CompUnit:D)
     {
         with self!matching-dist($spec) {
-            $*DISTRIBUTION = $_;
             my $meta = .meta;
             my $source-file-name = $meta<source>;
             X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw
@@ -553,6 +552,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $id     = $loader.basename;
             return $_ with %!loaded{$id};
 
+            my $*DISTRIBUTION = $_;
             my $*RESOURCES  = Distribution::Resources.new(:repo(self), :dist-id(.dist-id));
             my $repo-prefix = self!repo-prefix;
             my $handle      = $precomp.try-load(

@@ -69,9 +69,9 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         return $_ with %!loaded{~$spec};
 
         with self!matching-dist($spec) {
-            $*DISTRIBUTION = $_;
             my $name = $spec.short-name;
             my $id   = self!comp-unit-id($name);
+            my $*DISTRIBUTION  = $_;
             my $*RESOURCES     = Distribution::Resources.new(:repo(self), :dist-id(''));
             my $source-handle  = $_.content($_.meta<provides>{$name});
             my $precomp-handle = $precomp.try-load(
@@ -236,7 +236,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 ));
             };
 
-        return CompUnit::Repository::Distribution.new($dist);
+        CompUnit::Repository::Distribution.new($dist);
     }
 
     method resource($dist-id, $key) {

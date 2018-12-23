@@ -209,6 +209,67 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?endif
 
+    method read-bits(::?ROLE:D \SELF: int $pos, Int:D $bits --> Int:D) {
+        my $result := SELF.read-ubits($pos, $bits);
+        $result > 1 +< ($bits - 1) - 1
+          ?? $result - 1 +< $bits
+          !! $result
+    }
+
+    method read-ubits(::?ROLE:D \SELF: int $pos, Int:D $bits --> UInt:D) {
+
+        # sanity checking
+        die "Can only read from position 0..{
+            nqp::elems(self) * 8 - 1
+        } in buffer{
+            " '" ~ SELF.VAR.name ~ "'" if nqp::iscont(SELF)
+        }, you tried: $pos"
+          if $pos < 0;
+
+        die "Can only read 1..{
+            nqp::elems(self) * 8 - $pos
+        } bits from position $pos in buffer{
+            " '" ~ SELF.VAR.name ~ "'" if nqp::iscont(SELF)
+        }, you tried: $bits"
+          if ($pos + $bits - 1) +> 3 >= nqp::elems(self);
+
+        # set up stuff to work with
+        my int $first-bit = $pos +& 7;             # 0 = left-aligned
+        my int $last-bit  = ($pos + $bits) +& 7;   # 0 = right-aligned
+        my int $first-byte = $pos +> 3;
+        my int $last-byte  = ($pos + $bits - 1) +> 3;
+
+# l=least significant byte, m=most significant byte
+# 00010010 00110100 01011100 01111000 10011010
+# ________ mmmmmmmm llllllll ________ ________   8,16 mmmmmmmm llllllll
+# ________ __mmmmmm llllllll ________ ________   8,16   mmmmmm llllllll
+# ________ mmmmmmll llllll__ ________ ________   8,16   mmmmmm llllllll
+# ________ __mmmmmm mmllllll ll______ ________  10,16 mmmmmmmm llllllll
+# ________ ________ ______ll lll_____ ________  21, 5             lllll
+# ________ ________ ________ __lllll_ ________  26, 5             lllll
+            
+        nqp::if(
+          nqp::iseq_i($first-byte,$last-byte),
+          (my $result := nqp::atpos_i(self,$first-byte)),
+          nqp::stmts(
+            ($result  := 0),
+            (my int $i = $first-byte - 1),
+            nqp::while(
+              nqp::isle_i(++$i,$last-byte),
+              ($result :=
+                nqp::bitshiftl_I($result,8,Int) +| nqp::atpos_i(self,$i))
+            )
+          )
+        );
+
+        $last-bit
+          ?? ($result +> (8 - $last-bit)) # not right-aligned, so
+               +& (1 +< $bits - 1)         # shift and mask
+          !! $first-bit                   # right-aligned
+            ?? $result +& (1 +< $bits - 1) # but not left-aligned, so mask
+            !! $result                     # also left-aligned, already done
+    }
+
     multi method Bool(Blob:D:) { nqp::hllbool(nqp::elems(self)) }
     method Capture(Blob:D:) { self.List.Capture }
 
@@ -734,6 +795,77 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
     }
 #?endif
+
+    method write-bits(
+      ::?ROLE:D \SELF: int $pos, Int:D $bits, Int:D \value
+    --> Nil) {
+        SELF.write-ubits($pos, $bits, value +& (1 +< $bits - 1))
+    }
+
+    method write-ubits(
+      ::?ROLE:D \SELF: int $pos, Int:D $bits, UInt:D \value
+    --> Nil) {
+
+        # sanity check
+        die "Can only write from position 0..*in buffer{
+            " '" ~ SELF.VAR.name ~ "'" if nqp::iscont(SELF)
+        }, you tried: $pos"
+          if $pos < 0;
+
+        # set up basic info
+        my int $first-bit = $pos +& 7;
+        my int $last-bit  = ($pos + $bits) +& 7;
+        my int $first-byte = $pos +> 3;
+        my int $last-byte  = ($pos + $bits - 1) +> 3;
+
+        my $value := value +& (1 +< $bits - 1);            # mask valid part
+        $value := $value +< (8 - $last-bit) if $last-bit;  # move into position
+
+        my int $lmask = nqp::sub_i(1 +< $first-bit,1) +< (8 - $first-bit)
+          if $first-bit;
+        my int $rmask = 1 +< nqp::sub_i(8 - $last-bit,1)
+          if $last-bit;
+
+        # all done in a single byte
+        if $first-byte == $last-byte {
+            nqp::bindpos_i(self,$first-byte,
+              $value +| (nqp::atpos_i(self,$first-byte) +& ($lmask +| $rmask))
+            );
+        }
+
+        # spread over multiple bytes
+        else {
+            my int $i = $last-byte;
+
+            # process last byte first if it is a partial
+            if $last-bit {
+                nqp::bindpos_i(self,$i,
+                  ($value +& 255) +| (nqp::atpos_i(self,$i) +& $rmask)
+                );
+                $value := $value +> 8;
+            }
+
+            # not a partial, so make sure we process last byte later
+            else {
+                ++$i;
+            }
+
+            # walk from right to left, exclude left-most is partial
+            my int $last = $first-byte + nqp::isgt_i($first-bit,0);
+            nqp::while(
+              nqp::isge_i(--$i,$last),
+              nqp::stmts(
+                nqp::bindpos_i(self,$i,($value +& 255)),
+                ($value := $value +> 8)
+              )
+            );
+
+            # process last byte if it was a partial
+            nqp::bindpos_i(self,$i,($value +& 255)
+              +| (nqp::atpos_i(self,$i) +& $lmask))
+              if $first-bit;
+        }
+    }
 
     multi method list(Buf:D:) {
         Seq.new(class :: does Rakudo::Iterator::Blobby {

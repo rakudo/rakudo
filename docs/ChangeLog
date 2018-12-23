@@ -1,3 +1,42 @@
+New in 2018.12:
+  + Fixes:
+    + Fixed infiniloops with some set operators [99d94db4][9f5cc8d1]
+    + Fixed regression in handling of `"1"..9` [d92b155c]
+    + Fixed use of `Proxy` in a class attribute using
+        the `Attribute`.`get_value`/`set_value` interface [a5411e45]
+    + Fixed semantics of `minpairs`/`maxpairs` (ignore undefined values) [7bf7a2c6]
+    + Fixed error on `@a > 2` if `@a` is a native array
+    + Fixed error reporting on initializing shaped array with
+        improperly shaped data [fd216fec]
+    + Negative indexes on native arrays are now checked properly [dd2af90c]
+    + Fixed use of uninitialized value in `IO::Notification` [83d0056b]
+    + Enums can now have private methods mixed in [3c2cfb22]
+    + Fixed resource content lookup for `Distribution::Path` [370310b3]
+    + Fixed precompilation when cwd gets changed at run time [e2e5cc53]
+    + Shared library versions are now ignored on OpenBSD [5603128e]
+    + Many improvements to the JS backend [1865db0d][fdd249a3][194c84b9]
+        [1dd59f10][52c2af5d][8b13655c][2869a48b][cf5432ae][758caa89]
+        [e0b943d0][a759f9d7]
+    + Various improvements to produced messages [869b9e58][abfb9a40]
+        [79824db5][55d08c8f][24c8e172]
+  + Additions:
+    + Added `Endian` enum and implemented new methods in `blob8`/`buf8`
+        for reading/writing native values [46d4c9fe][011c6f11][f66861dc]
+        [f0279313][b781f8cc][543219c9][77182713][06156a7c]
+    + Added `Kernel.endian` [2a761ca7][af43b159]
+    + Implemented `Blob.readint` / `Buf.writeint` [4f14d713][fecfb22d]
+        [5cc0e02d][79dd1c8e][ceaf7218][631940c7][38afa2d6][e7b61aff]
+    + Added `.native-descriptor` for async sockets [a4db9139][2fd90b1e]
+    + Added `.Real` method to native arrays [dd3f91a2]
+    + Implemented `last` and `LAST` in `whenever` blocks [890d628a]
+  + Efficiency:
+    + Made `<$rx>` interpolation 1.05x as fast [62243cd9]
+    + Made simple regex matches 1.05x as fast [01c56b48]
+    + Other minor optimizations [93ea7ed1][a0cb89a7][adb85609][6c2f3c83]
+  + Internal:
+    + Introduced a more generally usable `X::ArrayShapeMismatch` error [dd030145]
+    + Internal micro-optimizations [38bc682b][f18432ea]
+
 New in 2018.11:
   + SPECIAL NOTES:
     + 🎆❇️🔥 Default language version is now `v6.d` 🔥❇️🎆 [46ef0ea0]

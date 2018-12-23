@@ -5,6 +5,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!id;
     has $!precomp-stores;
     has $!precomp-store;
+    has $!distribution;
 
     my @extensions = <pm6 pm>;
 
@@ -152,9 +153,17 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     multi method candidates(CompUnit::DependencySpecification $spec) {
         return Empty unless $spec.from eq 'Perl6';
 
-        my $distribution := self!distribution;
-        return Empty unless ($distribution.meta<provides> && $distribution.meta<provides>{$spec.short-name})
-                        or  ($distribution.meta<files>    && $distribution.meta<files>{$spec.short-name});
+        my $distribution = self!distribution;
+
+        unless ($distribution.meta<provides> && $distribution.meta<provides>{$spec.short-name})
+            or ($distribution.meta<files>    && $distribution.meta<files>{$spec.short-name})
+        {
+            # Break the !distribution cache if we failed to find a match using the cached distribution
+            # but still found an existing file that matches the $spec.short-name
+            return Empty unless @extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ ".$_") }).first(*.f);
+            $!distribution = Nil;
+            $distribution = self!distribution;
+        }
 
         my $version-matcher = ($spec.version-matcher ~~ Bool)
             ?? $spec.version-matcher
@@ -211,6 +220,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 
     method !distribution {
+        return $!distribution if $!distribution.defined;
         # Path contains a META6.json file, so only use paths/modules explicitly declared therein ( -I ./ )
         my $dist = $!prefix.add('META6.json').f
             ?? Distribution::Path.new($!prefix)
@@ -236,7 +246,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 ));
             };
 
-        CompUnit::Repository::Distribution.new($dist);
+        return $!distribution = CompUnit::Repository::Distribution.new($dist);
     }
 
     method resource($dist-id, $key) {

@@ -583,7 +583,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 }
 
 multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is raw is export(:DEFAULT, :types) is default {
-    $pos ~~ Iterable ?? $pos.map: { array.AT-POS($_) } !! array.AT-POS($pos);
+    nqp::istype($pos, Iterable) ?? $pos.map: { array.AT-POS($_) } !! array.AT-POS($pos);
 }
 multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is raw is export(:DEFAULT, :types) {
     @pos.map: { array.AT-POS($_) };

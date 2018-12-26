@@ -2,7 +2,7 @@ my class Date does Dateish {
 
     method !formatter() { sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day }
 
-    my $valid-units := nqp::hash(
+    my constant $valid-units = nqp::hash(
       'day',    1,
       'days',   1,
       'week',   7,
@@ -12,6 +12,7 @@ my class Date does Dateish {
       'year',   0,
       'years',  0,
     );
+
     method !VALID-UNIT($unit) {
         nqp::existskey($valid-units,$unit)
           ?? $unit

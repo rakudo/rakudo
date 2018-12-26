@@ -22,7 +22,7 @@ my class PseudoStash is Map {
 
     method WHICH() { self.Mu::WHICH }
 
-    my $pseudoers := nqp::hash(
+    my constant $pseudoers = nqp::hash(
         'MY', sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);

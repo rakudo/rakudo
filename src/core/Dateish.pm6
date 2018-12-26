@@ -11,7 +11,7 @@ my role Dateish {
     sub IS-LEAP-YEAR($y) { $y %% 4 and not $y %% 100 or $y %% 400 }
     method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
 
-    my $days-in-month := nqp::list_i(
+    my constant $days-in-month = nqp::list_i(
       0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     );
     # This method is used by Date and DateTime:
@@ -97,7 +97,7 @@ my role Dateish {
         ($!day - 1) div 7 + 1
     }
 
-    my $days-at-start-of-month := nqp::list_i(
+    my constant $days-at-start-of-month = nqp::list_i(
       0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
     );
     method day-of-year() {

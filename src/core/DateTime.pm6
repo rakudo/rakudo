@@ -24,7 +24,7 @@ my class DateTime does Dateish {
                   ($!timezone.abs/60%60).floor)
     }
 
-    my $valid-units := nqp::hash(
+    my constant $valid-units = nqp::hash(
       'second',  0,
       'seconds', 0,
       'minute',  0,
@@ -40,6 +40,7 @@ my class DateTime does Dateish {
       'year',    1,
       'years',   1,
     );
+
     method !VALID-UNIT($unit) {
         nqp::existskey($valid-units,$unit)
           ?? $unit

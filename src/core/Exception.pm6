@@ -1569,43 +1569,43 @@ my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
-    BEGIN my %m =
-      '$"'  => '.join() method',
-      '$$'  => '$*PID',
-      '$;'  => 'real multidimensional hashes',
-      '$&'  => '$<>',
-      '$`'  => '$/.prematch',
-      '$\'' => '$/.postmatch',
-      '$,'  => '.join() method',
-      '$.'  => "the .kv method on e.g. .lines",
-      '$/'  => "the filehandle's .nl-in attribute",
-      '$\\' => "the filehandle's .nl-out attribute",
-      '$|'  => "the filehandle's .out-buffer attribute",
-      '$?'  => '$! for handling child errors also',
-      '$@'  => '$!',
-      '$]'  => '$*PERL.version or $*PERL.compiler.version',
+    my constant $m = nqp::hash(
+      '$"',    '.join() method',
+      '$$',    '$*PID',
+      '$;',    'real multidimensional hashes',
+      '$&',    '$<>',
+      '$`',    '$/.prematch',
+      '$\'',   '$/.postmatch',
+      '$,',    '.join() method',
+      '$.',    "the .kv method on e.g. .lines",
+      '$/',    "the filehandle's .nl-in attribute",
+      '$\\',   "the filehandle's .nl-out attribute",
+      '$|',    "the filehandle's .out-buffer attribute",
+      '$?',    '$! for handling child errors also',
+      '$@',    '$!',
+      '$]',    '$*PERL.version or $*PERL.compiler.version',
 
-      '$^C' => 'COMPILING namespace',
-      '$^H' => '$?FOO variables',
-      '$^N' => '$/[*-1]',
-      '$^O' => 'VM.osname',
-      '$^R' => 'an explicit result variable',
-      '$^S' => 'context function',
-      '$^T' => '$*INIT-INSTANT',
-      '$^V' => '$*PERL.version or $*PERL.compiler.version',
-      '$^X' => '$*EXECUTABLE-NAME',
+      '$^C',   'COMPILING namespace',
+      '$^H',   '$?FOO variables',
+      '$^N',   '$/[*-1]',
+      '$^O',   'VM.osname',
+      '$^R',   'an explicit result variable',
+      '$^S',   'context function',
+      '$^T',   '$*INIT-INSTANT',
+      '$^V',   '$*PERL.version or $*PERL.compiler.version',
+      '$^X',   '$*EXECUTABLE-NAME',
 
-      '@-'  => '.from method',
-      '@+'  => '.to method',
+      '@-',    '.from method',
+      '@+',    '.to method',
 
-      '%-'  => '.from method',
-      '%+'  => '.to method',
-      '%^H' => '$?FOO variables',
-    ;
+      '%-',    '.from method',
+      '%+',    '.to method',
+      '%^H',   '$?FOO variables',
+    );
     method message() {
         my $name = $!name;
         my $v    = $name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
-        my $sugg = %m{~$v};
+        my $sugg = nqp::atkey($m,~$v);
         if $name eq '$#' {
             # Currently only `$#` var has this identifier business handling.
             # Should generalize the logic if we get more of stuff like this.

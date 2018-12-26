@@ -2,22 +2,26 @@ my class VM { ... }
 
 my class IO::Spec {
 
-    BEGIN my %module =          # only list the non-Unix ones in lowercase
-        'mswin32' => 'Win32',
-        'os2' =>     'Win32',
-        'dos'     => 'Win32',
-        'symbian' => 'Win32',
-        'netware' => 'Win32',
-        'win32'   => 'Win32',
-        'cygwin'  => 'Cygwin',
-        'qnx'     => 'QNX',
-        'nto'     => 'QNX',
-        # <MacOS Mac>  »=>» 'Mac',
-        # 'VMS'     => 'VMS'
-    ;
+    my constant $module = nqp::hash( # only list the non-Unix ones in lowercase
+      'mswin32', 'Win32',
+      'os2',     'Win32',
+      'dos',     'Win32',
+      'symbian', 'Win32',
+      'netware', 'Win32',
+      'win32',   'Win32',
+      'cygwin',  'Cygwin',
+      'qnx',     'QNX',
+      'nto',     'QNX',
+    # <MacOS Mac>  »=>» 'Mac',
+     # 'VMS'     => 'VMS'
+    );
 
-    method select(IO::Spec:U: $token?) {
-        IO::Spec::{%module{ lc($token // VM.osname) } // 'Unix'};
+    proto method select(|) {*}
+    multi method select(IO::Spec:U:) {
+        IO::Spec::{nqp::ifnull(nqp::atkey($module,VM.osname),'Unix')};
+    }
+    multi method select(IO::Spec:U: $token) {
+        IO::Spec::{nqp::ifnull(nqp::atkey($module,$token.lc),'Unix')};
     }
 }
 

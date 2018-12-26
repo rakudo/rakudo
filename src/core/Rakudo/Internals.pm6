@@ -830,10 +830,10 @@ my class Rakudo::Internals {
 # http://tf.nist.gov/pubs/bulletin/leapsecond.htm
 # http://hpiers.obspm.fr/eop-pc/earthor/utc/TAI-UTC_tab.html
 
-    my int $initial-offset = 10;
+    my int constant $initial-offset = 10;
     # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
-    my $dates := nqp::list_s(
+    my constant $dates = nqp::list_s(
         #BEGIN leap-second-dates
         '1972-06-30',
         '1972-12-31',
@@ -873,7 +873,7 @@ my class Rakudo::Internals {
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
-    my $posixes := nqp::list_i(
+    my constant $posixes = nqp::list_i(
         #BEGIN leap-second-posix
           78796800,
           94694400,
@@ -904,7 +904,7 @@ my class Rakudo::Internals {
         1483228800,
         #END leap-second-posix
     );
-    my int $elems = nqp::elems($dates);
+    my int constant $elems = nqp::elems($dates);
 
     method is-leap-second-date(\date) {
         nqp::hllbool(

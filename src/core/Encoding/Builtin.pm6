@@ -33,7 +33,8 @@ class Encoding::Builtin does Encoding {
             !! $encoder
     }
 
-    my $enc_type := nqp::hash('utf8',utf8,'utf16',utf16,'utf32',utf32);
+    my constant $enc_type = nqp::hash('utf8',utf8,'utf16',utf16,'utf32',utf32);
+
     method !buf-type() {
         nqp::ifnull(nqp::atkey($enc_type, $!name), blob8)
     }

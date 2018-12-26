@@ -341,7 +341,7 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-    my %short-id2class = (
+    my constant $short-id2class = nqp::hash(
       'file',   CompUnit::Repository::FileSystem,
       'inst',   CompUnit::Repository::Installation,
       'ap',     CompUnit::Repository::AbsolutePath,
@@ -361,34 +361,30 @@ class CompUnit::RepositoryRegistry {
         Proxy.new(
           FETCH => {
               $sid-lock.protect( {
-                  if %short-id2class.EXISTS-KEY($short-id) {
-                      %short-id2class.AT-KEY($short-id);
-                  }
-                  else {
-                      my $type = try ::($short-id);
-                      if $type !=== Any {
-                          if $type.?short-id -> $id {
-                              if %short-id2class.EXISTS-KEY($id) {
-                                  %short-id2class.AT-KEY($id);
-                              }
-                              else {
-                                  %short-id2class.BIND-KEY($id, $type);
-                              }
-                          }
-                          else {
-                              die "Class '$type.^name()' is not a CompUnit::Repository";
-                          }
-                      }
-                      else {
-                          Any
-                      }
-                  }
+                  nqp::ifnull(
+                    nqp::atkey($short-id2class,$short-id),
+                    nqp::if(
+                      nqp::istype((my \type := ::($short-id)),Failure),
+                      (type.defined || Any),  # no unhandled Failure warnings
+                      nqp::if(
+                        nqp::can(type,"short-id")
+                          && (my str $id = type.short-id),
+                        nqp::ifnull(
+                          nqp::atkey($short-id2class,$id),
+                          nqp::bindkey($short-id2class,$id,type)
+                        ),
+                        (die "Class '{type.^name}' is not a 'CompUnit::Repository'")
+                      )
+                    )
+                  )
               } );
           },
           STORE => -> $, $class {
-              my $type = ::($class);
-              die "Must load class '$class' first" if nqp::istype($type,Failure);
-              $sid-lock.protect( { %short-id2class{$short-id} := $type } );
+              nqp::istype((my \type = ::($class)),Failure)
+                ?? (die "Must load class '$class' first")
+                !! $sid-lock.protect: {
+                       nqp::bindkey($short-id2class,$short-id,type)
+                   }
           },
         );
     }

@@ -1252,7 +1252,7 @@ my class Supply does Awaitable {
         return @s[0]  if +@s == 1;          # nothing to be done
 
         supply {
-            my @values = [] xx +@s;
+            my @values = nqp::create(Array) xx +@s;
             for @s.kv -> $index, $supply {
                 if &with {
                     whenever $supply -> \val {

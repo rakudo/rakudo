@@ -503,7 +503,7 @@ my class Rakudo::Internals {
         method sort(|c)         { self.flat.sort(|c) }
 
         multi method gist(::?CLASS:D:) {
-            self.gistseen('Array', { self!gist([], self.shape) })
+            self.gistseen('Array', { self!gist(nqp::create(Array),self.shape) })
         }
         method !gist(@path, @dims) {
             if @dims.elems == 1 {
@@ -521,7 +521,7 @@ my class Rakudo::Internals {
                 ~ '.new(:shape'
                 ~ nqp::decont(self.shape).perl
                 ~ ', '
-                ~ self!perl([], self.shape)
+                ~ self!perl(nqp::create(Array), self.shape)
                 ~ ')'
                 ~ (nqp::iscont(SELF) ?? '.item' !! '')
             })

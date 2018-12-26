@@ -105,9 +105,9 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     method so()  { self.Bool }
     method not() { self ?? False !! True }
 
-    method defined() {
-        nqp::hllbool(nqp::isconcrete(self))
-    }
+    proto method defined(|) {*}
+    multi method defined(Mu:U: --> False) { }
+    multi method defined(Mu:D: --> True)  { }
 
     proto method new(|) {*}
     multi method new(*%attrinit) {

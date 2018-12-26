@@ -49,10 +49,7 @@ my class Failure is Nil {
     method AT-POS(|) { self }
     method AT-KEY(|) { self }
 
-    # TODO: should be Failure:D: multi just like method Bool,
-    # but obscure problems prevent us from making Mu.defined
-    # a multi. See http://irclog.perlgeek.de/perl6/2011-06-28#i_4016747
-    method defined(--> False) { $!handled = 1 if nqp::isconcrete(self) }
+    multi method defined(Failure:D: --> False) { $!handled = 1 }
 
     multi method Bool(Failure:D: --> False) { $!handled = 1 }
     method handled() is rw {

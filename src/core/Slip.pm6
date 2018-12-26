@@ -2,7 +2,9 @@
 # or another List. Other than that, it's a totally normal List.
 my class Slip { # is List
     multi method Slip(Slip:D:) { self }
-    method defined ()          { self.so }
+    multi method defined (Slip:D:) { # XXX this makes an empty Slip undefined?
+        self.Bool
+    }
     method CALL-ME (+args)     { args.Slip }
     multi method perl(Slip:D:) {
         nqp::if(

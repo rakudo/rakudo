@@ -68,7 +68,7 @@ my class Junction { # declared in BOOTSTRAP
         nqp::create(Junction)!SET-SELF(type,values)
     }
 
-    method defined(Junction:D:) {
+    multi method defined(Junction:D:) {
         nqp::hllbool(
           nqp::stmts(
             (my int $elems = nqp::elems($!storage)),

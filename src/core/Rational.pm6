@@ -250,11 +250,18 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             !! self;
     }
 
-    multi method round(::?CLASS:D:) {
-        nqp::div_I(
-          nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
-          nqp::mul_I($!denominator, 2, Int),
-          Int)
+    multi method round(::?CLASS:D: --> Int:D) {
+        $!denominator
+          ?? nqp::div_I(
+               nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+               nqp::mul_I($!denominator, 2, Int),
+               Int
+             )
+          !! Failure.new(
+               X::Numeric::DivideByZero.new(
+                 :details('when calling .round on Rational')
+               )
+             )
     }
 }
 

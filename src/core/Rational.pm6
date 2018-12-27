@@ -54,27 +54,38 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
           nqp::decont($!denominator)))
     }
 
-    method floor(Rational:D:) {
-      $!denominator || fail X::Numeric::DivideByZero.new:
-          :details('when calling .floor on Rational');
-        $!denominator == 1
-            ?? $!numerator
-            !! $!numerator div $!denominator
+    method floor(Rational:D: --> Int:D) {
+      $!denominator
+        ?? $!denominator == 1
+          ?? $!numerator
+          !! $!numerator div $!denominator
+        !! Failure.new(
+             X::Numeric::DivideByZero.new(
+               :details('when calling .floor on Rational')
+             )
+           )
     }
 
-    method ceiling(Rational:D:) {
-      $!denominator || fail X::Numeric::DivideByZero.new:
-          :details('when calling .ceiling on Rational');
-        $!denominator == 1
-            ?? $!numerator
-            !! ($!numerator div $!denominator + 1)
+    method ceiling(Rational:D: --> Int:D) {
+      $!denominator
+        ?? $!denominator == 1
+          ?? $!numerator
+          !! ($!numerator div $!denominator + 1)
+        !! Failure.new(
+             X::Numeric::DivideByZero.new(
+               :details('when calling .ceiling on Rational')
+             )
+           )
     }
 
-    method Int() {
+    method Int(--> Int:D) {
         $!denominator
-            ?? self.truncate
-            !! fail X::Numeric::DivideByZero.new:
-                   :details('when coercing Rational to Int')
+          ?? self.truncate
+          !! Failure.new(
+               X::Numeric::DivideByZero.new(
+                 :details('when coercing Rational to Int')
+               )
+             )
     }
 
     multi method Bool(::?CLASS:D:) { nqp::hllbool(nqp::istrue($!numerator)) }

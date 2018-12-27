@@ -6,6 +6,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!precomp-stores;
     has $!precomp-store;
     has $!distribution;
+    has $!files-prefix;
 
     my @extensions = <pm6 pm>;
 
@@ -137,7 +138,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     #                                                           packages/../resources?
     #                                                           packages/resources?
     method !files-prefix {
-        $!prefix.child('META6.json').e ?? $!prefix !! $!prefix.parent
+        $!files-prefix //= $!prefix.child('META6.json').e ?? $!prefix !! $!prefix.parent
     }
 
     proto method candidates(|) {*}

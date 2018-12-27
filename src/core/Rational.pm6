@@ -1,8 +1,8 @@
 # stub of this role is also present in Numeric.pm6; be sure to update
 # definition there as well, if changing this one
 my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
-    has NuT $.numerator   = 0;
-    has DeT $.denominator = 1;
+    has NuT $.numerator;
+    has DeT $.denominator;
 
     multi method WHICH(Rational:D:) {
         nqp::box_s(
@@ -48,10 +48,8 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     method nude() { $!numerator, $!denominator }
 
-    method Num() {
-        nqp::p6box_n(nqp::div_In(
-          nqp::decont($!numerator),
-          nqp::decont($!denominator)))
+    method Num(--> Num:D) {
+        nqp::p6box_n(nqp::div_In($!numerator,$!denominator))
     }
 
     method floor(Rational:D: --> Int:D) {

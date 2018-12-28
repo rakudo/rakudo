@@ -1,19 +1,25 @@
 my class Set does Setty {
-    has $!WHICH;
+    has ValueObjAt $!WHICH;
 
-    multi method WHICH (Set:D:) {
+    multi method WHICH (Set:D: --> ValueObjAt:D) {
         nqp::if(
           nqp::attrinited(self,Set,'$!WHICH'),
           $!WHICH,
-          $!WHICH := nqp::if(
-            nqp::istype(self.WHAT,Set),
-            'Set|',
-            nqp::concat(self.^name,'|')
-          ) ~ nqp::sha1(
+          $!WHICH := nqp::box_s(
+            nqp::concat(
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Set),
+                'Set|',
+                nqp::concat(nqp::unbox_s(self.^name), '|')
+              ),
+              nqp::sha1(
                 nqp::join("\0",Rakudo::Sorting.MERGESORT-str(
                   Rakudo::QuantHash.RAW-KEYS(self)
                 ))
-            )
+              )
+            ),
+            ValueObjAt
+          )
         )
     }
 

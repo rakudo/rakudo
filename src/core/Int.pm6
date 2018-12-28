@@ -4,7 +4,9 @@ my class X::Numeric::DivideByZero { ... }
 my class X::NYI::BigInt { ... }
 
 my class Int { ... }
-my subset UInt of Int where {not .defined or $_ >= 0};
+my subset UInt of Int where {
+    nqp::not_i(nqp::isconcrete($_)) || nqp::isge_I($_,0)
+}
 
 my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool

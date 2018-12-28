@@ -850,7 +850,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         $new;
     }
 
-    multi method WHICH (Match:D:) {
+    multi method WHICH(Match:D: --> ObjAt:D) {
         self.Mu::WHICH # skip Capture's as Match is not a value type
     }
 

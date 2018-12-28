@@ -12,7 +12,7 @@ my class Complex is Cool does Numeric {
     multi method new() { self.new: 0, 0 }
     multi method new(Real \re, Real \im) { nqp::create(self)!SET-SELF(re, im) }
 
-    multi method WHICH(Complex:D:) {
+    multi method WHICH(Complex:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

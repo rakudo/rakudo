@@ -85,7 +85,7 @@ my class Date does Dateish {
 
     method today(:&formatter) { self.new(DateTime.now, :&formatter) }
 
-    multi method WHICH(Date:D:) {
+    multi method WHICH(Date:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

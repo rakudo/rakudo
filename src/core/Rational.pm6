@@ -4,7 +4,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     has NuT $.numerator;
     has DeT $.denominator;
 
-    multi method WHICH(Rational:D:) {
+    multi method WHICH(Rational:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

@@ -25,7 +25,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method WHICH(|) {*}
-    multi method WHICH(Mu:U:) {
+    multi method WHICH(Mu:U: --> ValueObjAt:D) {
         nqp::box_s(
             nqp::concat(
                 nqp::concat(nqp::unbox_s(self.^name), '|U'),
@@ -34,7 +34,7 @@ my class Mu { # declared in BOOTSTRAP
             ValueObjAt
         )
     }
-    multi method WHICH(Mu:D:) {
+    multi method WHICH(Mu:D: --> ObjAt:D) {
         nqp::box_s(
             nqp::concat(
                 nqp::concat(nqp::unbox_s(self.^name), '|'),

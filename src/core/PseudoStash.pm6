@@ -20,7 +20,7 @@ my class PseudoStash is Map {
         $obj
     }
 
-    method WHICH() { self.Mu::WHICH }
+    multi method WHICH(PseudoStash:D --> ObjAt:D) { self.Mu::WHICH }
 
     my constant $pseudoers = nqp::hash(
         'MY', sub ($cur) {

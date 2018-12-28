@@ -93,7 +93,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-12-12T18:28:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-12-28T19:47:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
@@ -135,16 +135,16 @@ my class array does Iterable {
             ).throw;
         }
 
-        multi method STORE(strarray:D: $value) {
+        multi method STORE(strarray:D: $value --> strarray:D) {
             nqp::setelems(self,1);
             nqp::bindpos_s(self, 0, nqp::unbox_s($value));
             self
         }
-        multi method STORE(strarray:D: strarray:D \values) {
+        multi method STORE(strarray:D: strarray:D \values --> strarray:D) {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
         }
-        multi method STORE(strarray:D: Seq:D \seq) {
+        multi method STORE(strarray:D: Seq:D \seq --> strarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
               X::Cannot::Lazy.new(
@@ -157,7 +157,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method STORE(strarray:D: List:D \values) {
+        multi method STORE(strarray:D: List:D \values --> strarray:D) {
             my int $elems = values.elems;    # reifies
             my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
@@ -170,7 +170,7 @@ my class array does Iterable {
             );
             self
         }
-        multi method STORE(strarray:D: @values) {
+        multi method STORE(strarray:D: @values --> strarray:D) {
             my int $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
@@ -183,11 +183,11 @@ my class array does Iterable {
             self
         }
 
-        multi method push(strarray:D: str $value) {
+        multi method push(strarray:D: str $value --> strarray:D) {
             nqp::push_s(self, $value);
             self
         }
-        multi method push(strarray:D: Str:D $value) {
+        multi method push(strarray:D: Str:D $value --> strarray:D) {
             nqp::push_s(self, $value);
             self
         }
@@ -198,18 +198,18 @@ my class array does Iterable {
                 expected  => T,
             ).throw;
         }
-        multi method append(strarray:D: str $value) {
+        multi method append(strarray:D: str $value --> strarray:D) {
             nqp::push_s(self, $value);
             self
         }
-        multi method append(strarray:D: Str:D $value) {
+        multi method append(strarray:D: Str:D $value --> strarray:D) {
             nqp::push_s(self, $value);
             self
         }
-        multi method append(strarray:D: strarray:D $values) is default {
+        multi method append(strarray:D: strarray:D $values --> strarray:D) is default {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
-        multi method append(strarray:D: @values) {
+        multi method append(strarray:D: @values --> strarray:D) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
               if @values.is-lazy;
             nqp::push_s(self, $_) for flat @values;
@@ -228,21 +228,21 @@ my class array does Iterable {
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
 
-        multi method unshift(strarray:D: str $value) {
+        multi method unshift(strarray:D: str $value --> strarray:D) {
             nqp::unshift_s(self, $value);
             self
         }
-        multi method unshift(strarray:D: Str:D $value) {
+        multi method unshift(strarray:D: Str:D $value --> strarray:D) {
             nqp::unshift_s(self, $value);
             self
         }
-        multi method unshift(strarray:D: @values) {
+        multi method unshift(strarray:D: @values --> strarray:D) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
               if @values.is-lazy;
             nqp::unshift_s(self, @values.pop) while @values;
             self
         }
-        multi method unshift(strarray:D: Mu \value) {
+        multi method unshift(strarray:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'unshift to str array',
                 got       => value,
@@ -252,12 +252,12 @@ my class array does Iterable {
 
         my $empty_s := nqp::list_s;
 
-        multi method splice(strarray:D:) {
+        multi method splice(strarray:D: --> strarray:D) {
             my $splice := nqp::clone(self);
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(strarray:D: Int:D \offset) {
+        multi method splice(strarray:D: Int:D \offset --> strarray:D) {
             nqp::if(
               nqp::islt_i((my int $offset = offset),0)
                 || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
@@ -282,7 +282,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method splice(strarray:D: Int:D $offset, Int:D $size) {
+        multi method splice(strarray:D: Int:D $offset, Int:D $size --> strarray:D) {
             nqp::unless(
               nqp::istype(
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
@@ -292,7 +292,7 @@ my class array does Iterable {
             );
             $slice
         }
-        multi method splice(strarray:D: Int:D $offset, Int:D $size, strarray:D \values) {
+        multi method splice(strarray:D: Int:D $offset, Int:D $size, strarray:D \values --> strarray:D) {
             nqp::unless(
               nqp::istype(
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
@@ -307,7 +307,7 @@ my class array does Iterable {
             );
             $slice
         }
-        multi method splice(strarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
+        multi method splice(strarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> strarray:D) {
             nqp::if(
               seq.is-lazy,
               X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
@@ -323,7 +323,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method splice(strarray:D: $offset=0, $size=Whatever, *@values) {
+        multi method splice(strarray:D: $offset=0, $size=Whatever, *@values --> strarray:D) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
@@ -386,7 +386,7 @@ my class array does Iterable {
               -Inf
             )
         }
-        multi method minmax(strarray:D:) {
+        multi method minmax(strarray:D: --> Range:D) {
             nqp::if(
               (my int $elems = nqp::elems(self)),
               nqp::stmts(
@@ -448,9 +448,9 @@ my class array does Iterable {
                 $!i = $i;
             }
         }
-        method iterator(strarray:D:) { Iterate.new(self) }
+        method iterator(strarray:D: --> Iterate:D) { Iterate.new(self) }
 
-        method reverse(strarray:D:) is nodal {
+        method reverse(strarray:D: --> strarray:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my int $last  = nqp::sub_i($elems,1)),
@@ -464,7 +464,7 @@ my class array does Iterable {
               $to
             )
         }
-        method rotate(strarray:D: Int(Cool) $rotate = 1) is nodal {
+        method rotate(strarray:D: Int(Cool) $rotate = 1 --> strarray:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my $to := nqp::clone(self)),
@@ -483,11 +483,11 @@ my class array does Iterable {
               $to
             )
         }
-        multi method sort(strarray:D:) {
+        multi method sort(strarray:D: --> strarray:D) {
             Rakudo::Sorting.MERGESORT-str(nqp::clone(self))
         }
 
-        multi method ACCEPTS(strarray:D: strarray:D \other) {
+        multi method ACCEPTS(strarray:D: strarray:D \other --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
                 nqp::eqaddr(self,other),
@@ -513,13 +513,13 @@ my class array does Iterable {
             )
         }
         proto method grab(|) {*}
-        multi method grab(strarray:D:) {
+        multi method grab(strarray:D: --> str) {
             nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
         }
-        multi method grab(strarray:D: Callable:D $calculate) {
+        multi method grab(strarray:D: Callable:D $calculate --> str) {
             self.grab($calculate(nqp::elems(self)))
         }
-        multi method grab(strarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(strarray:D: Whatever --> Seq:D) { self.grab(Inf) }
 
         my class GrabN does Iterator {
             has $!array;
@@ -553,7 +553,7 @@ my class array does Iterable {
                 )
             }
         }
-        multi method grab(strarray:D: \count) {
+        multi method grab(strarray:D: \count --> Seq:D) {
             Seq.new(nqp::if(
               nqp::elems(self),
               GrabN.new(self,count),
@@ -561,7 +561,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(strarray:D:) {
+        method GRAB_ONE(strarray:D: --> str) {
             nqp::stmts(
               (my $value := nqp::atpos_s(
                 self,
@@ -589,7 +589,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-12-12T18:28:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-12-28T19:47:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
@@ -631,16 +631,16 @@ my class array does Iterable {
             ).throw;
         }
 
-        multi method STORE(intarray:D: $value) {
+        multi method STORE(intarray:D: $value --> intarray:D) {
             nqp::setelems(self,1);
             nqp::bindpos_i(self, 0, nqp::unbox_i($value));
             self
         }
-        multi method STORE(intarray:D: intarray:D \values) {
+        multi method STORE(intarray:D: intarray:D \values --> intarray:D) {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
         }
-        multi method STORE(intarray:D: Seq:D \seq) {
+        multi method STORE(intarray:D: Seq:D \seq --> intarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
               X::Cannot::Lazy.new(
@@ -653,7 +653,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method STORE(intarray:D: List:D \values) {
+        multi method STORE(intarray:D: List:D \values --> intarray:D) {
             my int $elems = values.elems;    # reifies
             my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
@@ -666,7 +666,7 @@ my class array does Iterable {
             );
             self
         }
-        multi method STORE(intarray:D: @values) {
+        multi method STORE(intarray:D: @values --> intarray:D) {
             my int $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
@@ -679,11 +679,11 @@ my class array does Iterable {
             self
         }
 
-        multi method push(intarray:D: int $value) {
+        multi method push(intarray:D: int $value --> intarray:D) {
             nqp::push_i(self, $value);
             self
         }
-        multi method push(intarray:D: Int:D $value) {
+        multi method push(intarray:D: Int:D $value --> intarray:D) {
             nqp::push_i(self, $value);
             self
         }
@@ -694,18 +694,18 @@ my class array does Iterable {
                 expected  => T,
             ).throw;
         }
-        multi method append(intarray:D: int $value) {
+        multi method append(intarray:D: int $value --> intarray:D) {
             nqp::push_i(self, $value);
             self
         }
-        multi method append(intarray:D: Int:D $value) {
+        multi method append(intarray:D: Int:D $value --> intarray:D) {
             nqp::push_i(self, $value);
             self
         }
-        multi method append(intarray:D: intarray:D $values) is default {
+        multi method append(intarray:D: intarray:D $values --> intarray:D) is default {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
-        multi method append(intarray:D: @values) {
+        multi method append(intarray:D: @values --> intarray:D) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
               if @values.is-lazy;
             nqp::push_i(self, $_) for flat @values;
@@ -724,21 +724,21 @@ my class array does Iterable {
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
 
-        multi method unshift(intarray:D: int $value) {
+        multi method unshift(intarray:D: int $value --> intarray:D) {
             nqp::unshift_i(self, $value);
             self
         }
-        multi method unshift(intarray:D: Int:D $value) {
+        multi method unshift(intarray:D: Int:D $value --> intarray:D) {
             nqp::unshift_i(self, $value);
             self
         }
-        multi method unshift(intarray:D: @values) {
+        multi method unshift(intarray:D: @values --> intarray:D) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
               if @values.is-lazy;
             nqp::unshift_i(self, @values.pop) while @values;
             self
         }
-        multi method unshift(intarray:D: Mu \value) {
+        multi method unshift(intarray:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'unshift to int array',
                 got       => value,
@@ -748,12 +748,12 @@ my class array does Iterable {
 
         my $empty_i := nqp::list_i;
 
-        multi method splice(intarray:D:) {
+        multi method splice(intarray:D: --> intarray:D) {
             my $splice := nqp::clone(self);
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(intarray:D: Int:D \offset) {
+        multi method splice(intarray:D: Int:D \offset --> intarray:D) {
             nqp::if(
               nqp::islt_i((my int $offset = offset),0)
                 || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
@@ -778,7 +778,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method splice(intarray:D: Int:D $offset, Int:D $size) {
+        multi method splice(intarray:D: Int:D $offset, Int:D $size --> intarray:D) {
             nqp::unless(
               nqp::istype(
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
@@ -788,7 +788,7 @@ my class array does Iterable {
             );
             $slice
         }
-        multi method splice(intarray:D: Int:D $offset, Int:D $size, intarray:D \values) {
+        multi method splice(intarray:D: Int:D $offset, Int:D $size, intarray:D \values --> intarray:D) {
             nqp::unless(
               nqp::istype(
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
@@ -803,7 +803,7 @@ my class array does Iterable {
             );
             $slice
         }
-        multi method splice(intarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
+        multi method splice(intarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> intarray:D) {
             nqp::if(
               seq.is-lazy,
               X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
@@ -819,7 +819,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method splice(intarray:D: $offset=0, $size=Whatever, *@values) {
+        multi method splice(intarray:D: $offset=0, $size=Whatever, *@values --> intarray:D) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
@@ -882,7 +882,7 @@ my class array does Iterable {
               -Inf
             )
         }
-        multi method minmax(intarray:D:) {
+        multi method minmax(intarray:D: --> Range:D) {
             nqp::if(
               (my int $elems = nqp::elems(self)),
               nqp::stmts(
@@ -944,9 +944,9 @@ my class array does Iterable {
                 $!i = $i;
             }
         }
-        method iterator(intarray:D:) { Iterate.new(self) }
+        method iterator(intarray:D: --> Iterate:D) { Iterate.new(self) }
 
-        method reverse(intarray:D:) is nodal {
+        method reverse(intarray:D: --> intarray:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my int $last  = nqp::sub_i($elems,1)),
@@ -960,7 +960,7 @@ my class array does Iterable {
               $to
             )
         }
-        method rotate(intarray:D: Int(Cool) $rotate = 1) is nodal {
+        method rotate(intarray:D: Int(Cool) $rotate = 1 --> intarray:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my $to := nqp::clone(self)),
@@ -979,11 +979,11 @@ my class array does Iterable {
               $to
             )
         }
-        multi method sort(intarray:D:) {
+        multi method sort(intarray:D: --> intarray:D) {
             Rakudo::Sorting.MERGESORT-int(nqp::clone(self))
         }
 
-        multi method ACCEPTS(intarray:D: intarray:D \other) {
+        multi method ACCEPTS(intarray:D: intarray:D \other --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
                 nqp::eqaddr(self,other),
@@ -1009,13 +1009,13 @@ my class array does Iterable {
             )
         }
         proto method grab(|) {*}
-        multi method grab(intarray:D:) {
+        multi method grab(intarray:D: --> int) {
             nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
         }
-        multi method grab(intarray:D: Callable:D $calculate) {
+        multi method grab(intarray:D: Callable:D $calculate --> int) {
             self.grab($calculate(nqp::elems(self)))
         }
-        multi method grab(intarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(intarray:D: Whatever --> Seq:D) { self.grab(Inf) }
 
         my class GrabN does Iterator {
             has $!array;
@@ -1049,7 +1049,7 @@ my class array does Iterable {
                 )
             }
         }
-        multi method grab(intarray:D: \count) {
+        multi method grab(intarray:D: \count --> Seq:D) {
             Seq.new(nqp::if(
               nqp::elems(self),
               GrabN.new(self,count),
@@ -1057,7 +1057,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(intarray:D:) {
+        method GRAB_ONE(intarray:D: --> int) {
             nqp::stmts(
               (my $value := nqp::atpos_i(
                 self,
@@ -1137,7 +1137,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-12-12T18:28:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2018-12-28T19:47:48+01:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
@@ -1179,16 +1179,16 @@ my class array does Iterable {
             ).throw;
         }
 
-        multi method STORE(numarray:D: $value) {
+        multi method STORE(numarray:D: $value --> numarray:D) {
             nqp::setelems(self,1);
             nqp::bindpos_n(self, 0, nqp::unbox_n($value));
             self
         }
-        multi method STORE(numarray:D: numarray:D \values) {
+        multi method STORE(numarray:D: numarray:D \values --> numarray:D) {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
         }
-        multi method STORE(numarray:D: Seq:D \seq) {
+        multi method STORE(numarray:D: Seq:D \seq --> numarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
               X::Cannot::Lazy.new(
@@ -1201,7 +1201,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method STORE(numarray:D: List:D \values) {
+        multi method STORE(numarray:D: List:D \values --> numarray:D) {
             my int $elems = values.elems;    # reifies
             my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
@@ -1214,7 +1214,7 @@ my class array does Iterable {
             );
             self
         }
-        multi method STORE(numarray:D: @values) {
+        multi method STORE(numarray:D: @values --> numarray:D) {
             my int $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
@@ -1227,11 +1227,11 @@ my class array does Iterable {
             self
         }
 
-        multi method push(numarray:D: num $value) {
+        multi method push(numarray:D: num $value --> numarray:D) {
             nqp::push_n(self, $value);
             self
         }
-        multi method push(numarray:D: Num:D $value) {
+        multi method push(numarray:D: Num:D $value --> numarray:D) {
             nqp::push_n(self, $value);
             self
         }
@@ -1242,18 +1242,18 @@ my class array does Iterable {
                 expected  => T,
             ).throw;
         }
-        multi method append(numarray:D: num $value) {
+        multi method append(numarray:D: num $value --> numarray:D) {
             nqp::push_n(self, $value);
             self
         }
-        multi method append(numarray:D: Num:D $value) {
+        multi method append(numarray:D: Num:D $value --> numarray:D) {
             nqp::push_n(self, $value);
             self
         }
-        multi method append(numarray:D: numarray:D $values) is default {
+        multi method append(numarray:D: numarray:D $values --> numarray:D) is default {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
-        multi method append(numarray:D: @values) {
+        multi method append(numarray:D: @values --> numarray:D) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
               if @values.is-lazy;
             nqp::push_n(self, $_) for flat @values;
@@ -1272,21 +1272,21 @@ my class array does Iterable {
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
 
-        multi method unshift(numarray:D: num $value) {
+        multi method unshift(numarray:D: num $value --> numarray:D) {
             nqp::unshift_n(self, $value);
             self
         }
-        multi method unshift(numarray:D: Num:D $value) {
+        multi method unshift(numarray:D: Num:D $value --> numarray:D) {
             nqp::unshift_n(self, $value);
             self
         }
-        multi method unshift(numarray:D: @values) {
+        multi method unshift(numarray:D: @values --> numarray:D) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
               if @values.is-lazy;
             nqp::unshift_n(self, @values.pop) while @values;
             self
         }
-        multi method unshift(numarray:D: Mu \value) {
+        multi method unshift(numarray:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'unshift to num array',
                 got       => value,
@@ -1296,12 +1296,12 @@ my class array does Iterable {
 
         my $empty_n := nqp::list_n;
 
-        multi method splice(numarray:D:) {
+        multi method splice(numarray:D: --> numarray:D) {
             my $splice := nqp::clone(self);
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(numarray:D: Int:D \offset) {
+        multi method splice(numarray:D: Int:D \offset --> numarray:D) {
             nqp::if(
               nqp::islt_i((my int $offset = offset),0)
                 || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
@@ -1326,7 +1326,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method splice(numarray:D: Int:D $offset, Int:D $size) {
+        multi method splice(numarray:D: Int:D $offset, Int:D $size --> numarray:D) {
             nqp::unless(
               nqp::istype(
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
@@ -1336,7 +1336,7 @@ my class array does Iterable {
             );
             $slice
         }
-        multi method splice(numarray:D: Int:D $offset, Int:D $size, numarray:D \values) {
+        multi method splice(numarray:D: Int:D $offset, Int:D $size, numarray:D \values --> numarray:D) {
             nqp::unless(
               nqp::istype(
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
@@ -1351,7 +1351,7 @@ my class array does Iterable {
             );
             $slice
         }
-        multi method splice(numarray:D: Int:D $offset, Int:D $size, Seq:D \seq) {
+        multi method splice(numarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> numarray:D) {
             nqp::if(
               seq.is-lazy,
               X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
@@ -1367,7 +1367,7 @@ my class array does Iterable {
               )
             )
         }
-        multi method splice(numarray:D: $offset=0, $size=Whatever, *@values) {
+        multi method splice(numarray:D: $offset=0, $size=Whatever, *@values --> numarray:D) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
@@ -1430,7 +1430,7 @@ my class array does Iterable {
               -Inf
             )
         }
-        multi method minmax(numarray:D:) {
+        multi method minmax(numarray:D: --> Range:D) {
             nqp::if(
               (my int $elems = nqp::elems(self)),
               nqp::stmts(
@@ -1492,9 +1492,9 @@ my class array does Iterable {
                 $!i = $i;
             }
         }
-        method iterator(numarray:D:) { Iterate.new(self) }
+        method iterator(numarray:D: --> Iterate:D) { Iterate.new(self) }
 
-        method reverse(numarray:D:) is nodal {
+        method reverse(numarray:D: --> numarray:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my int $last  = nqp::sub_i($elems,1)),
@@ -1508,7 +1508,7 @@ my class array does Iterable {
               $to
             )
         }
-        method rotate(numarray:D: Int(Cool) $rotate = 1) is nodal {
+        method rotate(numarray:D: Int(Cool) $rotate = 1 --> numarray:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my $to := nqp::clone(self)),
@@ -1527,11 +1527,11 @@ my class array does Iterable {
               $to
             )
         }
-        multi method sort(numarray:D:) {
+        multi method sort(numarray:D: --> numarray:D) {
             Rakudo::Sorting.MERGESORT-num(nqp::clone(self))
         }
 
-        multi method ACCEPTS(numarray:D: numarray:D \other) {
+        multi method ACCEPTS(numarray:D: numarray:D \other --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
                 nqp::eqaddr(self,other),
@@ -1557,13 +1557,13 @@ my class array does Iterable {
             )
         }
         proto method grab(|) {*}
-        multi method grab(numarray:D:) {
+        multi method grab(numarray:D: --> num) {
             nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
         }
-        multi method grab(numarray:D: Callable:D $calculate) {
+        multi method grab(numarray:D: Callable:D $calculate --> num) {
             self.grab($calculate(nqp::elems(self)))
         }
-        multi method grab(numarray:D: Whatever) { self.grab(Inf) }
+        multi method grab(numarray:D: Whatever --> Seq:D) { self.grab(Inf) }
 
         my class GrabN does Iterator {
             has $!array;
@@ -1597,7 +1597,7 @@ my class array does Iterable {
                 )
             }
         }
-        multi method grab(numarray:D: \count) {
+        multi method grab(numarray:D: \count --> Seq:D) {
             Seq.new(nqp::if(
               nqp::elems(self),
               GrabN.new(self,count),
@@ -1605,7 +1605,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(numarray:D:) {
+        method GRAB_ONE(numarray:D: --> num) {
             nqp::stmts(
               (my $value := nqp::atpos_n(
                 self,

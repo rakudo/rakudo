@@ -37,16 +37,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
 
-    multi method Bool(Str:D:) {
+    multi method Bool(Str:D: --> Bool:D) {
         nqp::hllbool(nqp::chars($!value));
     }
     method Capture() { die X::Cannot::Capture.new: :what(self) }
 
-    multi method Str(Str:D:)     { self }
-    multi method Stringy(Str:D:) { self }
-    multi method DUMP(Str:D:) { self.perl }
+    multi method Str(Str:D: --> Str:D)     { self }
+    multi method Stringy(Str:D: --> Str:D) { self }
+    multi method DUMP(Str:D: --> Str:D) { self.perl }
 
-    method Int(Str:D:) {
+    method Int(Str:D: --> Int:D) {
         nqp::if(
           nqp::isge_i(
             nqp::findnotcclass(
@@ -73,7 +73,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    method Num(Str:D:) {
+    method Num(Str:D: --> Num:D) {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric),Failure),
             $numeric,
@@ -105,14 +105,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    multi method ACCEPTS(Str:D: Str:D \other) {
+    multi method ACCEPTS(Str:D: Str:D \other --> Bool:D) {
         nqp::hllbool(nqp::iseq_s(nqp::unbox_s(other),$!value));
     }
-    multi method ACCEPTS(Str:D: Any:D \other) {
+    multi method ACCEPTS(Str:D: Any:D \other --> Bool:D) {
         nqp::hllbool(nqp::iseq_s(nqp::unbox_s(other.Str),$!value));
     }
 
-    method chomp(Str:D:) {
+    method chomp(Str:D: --> Str:D) {
         nqp::if(
           (nqp::isge_i((my int $chars = nqp::sub_i(nqp::chars($!value),1)),0) #?js: NFG
             && nqp::iscclass(nqp::const::CCLASS_NEWLINE,$!value,$chars)), #?js: NFG
@@ -121,7 +121,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    multi method chop(Str:D:) {
+    multi method chop(Str:D: --> Str:D) {
         nqp::if(
           nqp::isgt_i(nqp::chars($!value),0),
           nqp::p6box_s(
@@ -129,7 +129,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ''
         )
     }
-    multi method chop(Str:D: Int() $chopping) {
+    multi method chop(Str:D: Int() $chopping --> Str:D) {
         nqp::isbig_I(nqp::decont($chopping))
           || (my int $chars = nqp::sub_i(nqp::chars($!value),$chopping)) <= 0
           ?? ''
@@ -138,15 +138,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method starts-with(|) {*}
-    multi method starts-with(Str:D: Cool:D $needle) {self.starts-with: $needle.Str}
-    multi method starts-with(Str:D: Str:D $needle) {
+    multi method starts-with(Str:D: Cool:D $needle --> Bool:D) {
+        self.starts-with: $needle.Str
+    }
+    multi method starts-with(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::eqat(self, $needle, 0))
     }
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method ends-with(|) {*}
-    multi method ends-with(Str:D: Cool:D $suffix) {self.ends-with: $suffix.Str}
-    multi method ends-with(Str:D: Str:D $suffix) {
+    multi method ends-with(Str:D: Cool:D $suffix --> Bool:D) {
+        self.ends-with: $suffix.Str
+    }
+    multi method ends-with(Str:D: Str:D $suffix --> Bool:D) {
         my \value := nqp::getattr($suffix,Str,'$!value');
         nqp::hllbool(
           nqp::eqat(
@@ -157,12 +161,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method substr-eq(|) {*}
-    multi method substr-eq(Str:D: Cool:D $needle) {self.substr-eq: $needle.Str}
-    multi method substr-eq(Str:D: Str:D $needle) {
+    multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
+        self.substr-eq: $needle.Str
+    }
+    multi method substr-eq(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
     }
-    multi method substr-eq(Str:D: Cool:D $needle, Int:D $pos) {self.substr-eq: $needle.Str, $pos.Int}
-    multi method substr-eq(Str:D: Str:D $needle, Int:D $pos) {
+    multi method substr-eq(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
+        self.substr-eq: $needle.Str, $pos.Int
+    }
+    multi method substr-eq(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::if(
             (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
@@ -173,14 +181,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method contains(|) {*}
-    multi method contains(Str:D: Cool:D $needle) {self.contains: $needle.Str}
-    multi method contains(Str:D: Str:D $needle) {
+    multi method contains(Str:D: Cool:D $needle --> Bool:D) {
+        self.contains: $needle.Str
+    }
+    multi method contains(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::isne_i(
           nqp::index($!value,nqp::getattr($needle,Str,'$!value'),0),-1
         ))
     }
-    multi method contains(Str:D: Cool:D $needle, Int(Cool:D) $pos) {self.contains: $needle.Str, $pos}
-    multi method contains(Str:D: Str:D $needle, Int:D $pos) {
+    multi method contains(Str:D: Cool:D $needle, Int(Cool:D) $pos --> Bool:D) {
+        self.contains: $needle.Str, $pos
+    }
+    multi method contains(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::if(
             (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
@@ -192,7 +204,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method indices(|) {*}
-    multi method indices(Str:D: Cool:D $needle, *%pars) {self.indices: $needle.Str, |%pars}
+    multi method indices(Str:D: Cool:D $needle, *%pars) {
+        self.indices: $needle.Str, |%pars
+    }
     multi method indices(Str:D: Str:D $needle, :$overlap) {
         nqp::stmts(
           (my $need    := nqp::getattr($needle,Str,'$!value')),
@@ -210,7 +224,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           $indices.List
         )
     }
-    multi method indices(Str:D: Cool:D $needle, Cool:D $start, *%pars) {self.indices: $needle.Str, $start.Int, |%pars}
+    multi method indices(Str:D: Cool:D $needle, Cool:D $start, *%pars) {
+        self.indices: $needle.Str, $start.Int, |%pars
+    }
     multi method indices(Str:D: Str:D $needle, Int:D $start, :$overlap) {
         nqp::stmts(
           (my int $pos = $start),
@@ -237,10 +253,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method index(|) {*}
-    multi method index(Str:D: Cool:D $needle) {
+    multi method index(Str:D: Cool:D $needle --> Int:D) {
         self.index: $needle.Str
     }
-    multi method index(Str:D: Str:D $needle) {
+    multi method index(Str:D: Str:D $needle --> Int:D) {
         nqp::if(
           nqp::islt_i((my int $i =
             nqp::index($!value,nqp::getattr($needle,Str,'$!value'))),
@@ -250,10 +266,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::p6box_i($i)
         )
     }
-    multi method index(Str:D: Cool:D $needle, Cool:D $pos) {
+    multi method index(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
         self.index: $needle.Str, $pos.Int
     }
-    multi method index(Str:D: Str:D $needle, Int:D $pos) {
+    multi method index(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
         nqp::if(
           nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
           self!INDEX-OOR($pos),
@@ -276,10 +292,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # TODO Use coercer in 1 candidate when RT131014
     proto method rindex(|) {*}
-    multi method rindex(Str:D: Cool:D $needle) {
+    multi method rindex(Str:D: Cool:D $needle --> Int:D) {
         self.rindex: $needle.Str
     }
-    multi method rindex(Str:D: Str:D $needle) {
+    multi method rindex(Str:D: Str:D $needle --> Int:D) {
         nqp::if(
           nqp::islt_i((my int $i =
             nqp::rindex($!value,nqp::getattr($needle,Str,'$!value'))),
@@ -289,10 +305,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::p6box_i($i)
         )
     }
-    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos) {
+    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
         self.rindex: $needle.Str, $pos.Int
     }
-    multi method rindex(Str:D: Str:D $needle, Int:D $pos) {
+    multi method rindex(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
         nqp::if(
           nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
           self!RINDEX-OOR($pos),
@@ -313,27 +329,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
-    method pred(Str:D:) {
+    method pred(Str:D: --> Str:D) {
         (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
           ?? Rakudo::Internals.PRED(self,$chars - 1)
           !! self
     }
 
-    method succ(Str:D:) {
+    method succ(Str:D: --> Str:D) {
         (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
           ?? Rakudo::Internals.SUCC(self,$chars - 1)
           !! self
     }
 
-    multi method Numeric(Str:D:) {
+    multi method Numeric(Str:D: --> Numeric:D) {
         # Handle special empty string
         self.trim eq ""
           ?? 0
           !! val(self, :val-or-fail)
     }
 
-    multi method gist(Str:D:) { self }
-    multi method perl(Str:D:) {
+    multi method gist(Str:D: --> Str:D) { self }
+    multi method perl(Str:D: --> Str:D) {
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
@@ -378,7 +394,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::p6box_i($!chars - $!pos - nqp::islt_i($!pos,$!chars))
         }
     }
-    multi method comb(Str:D:) { Seq.new(CombAll.new(self)) }
+    multi method comb(Str:D: --> Seq:D) { Seq.new(CombAll.new(self)) }
 
     my class CombN does PredictiveIterator {
         has str $!str;
@@ -433,7 +449,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method comb(Str:D: Int:D $size is copy, $limit = *) {
+    multi method comb(Str:D: Int:D $size is copy, $limit = * --> Seq:D) {
         $size <= 1 && (nqp::istype($limit,Whatever) || $limit == Inf)
           ?? self.comb
           !! Seq.new(CombN.new(self,$size,$limit))
@@ -460,7 +476,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
     }
-    multi method comb(Str:D: Str $pat) {
+    multi method comb(Str:D: Str $pat --> Seq:D) {
         $pat
           ?? Seq.new(CombPat.new(self,$pat))
           !! self.comb
@@ -492,7 +508,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
     }
-    multi method comb(Str:D: Str $pat, $limit) {
+    multi method comb(Str:D: Str $pat, $limit --> Seq:D) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.comb($pat)
           !! $pat
@@ -500,14 +516,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! self.comb(1,$limit)
     }
 
-    multi method comb(Str:D: Regex:D $pattern, :$match) {
+    multi method comb(Str:D: Regex:D $pattern, :$match --> Seq:D) {
         Seq.new(nqp::if(
           $match,
           self.match($pattern, :g),
           self.match($pattern, :g, :as(Str))
         ).iterator)
     }
-    multi method comb(Str:D: Regex:D $pattern, $limit, :$match) {
+    multi method comb(Str:D: Regex:D $pattern, $limit, :$match --> Seq:D) {
         nqp::if(
           nqp::istype($limit,Whatever) || $limit == Inf,
           self.comb($pattern, :$match),
@@ -1273,7 +1289,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method ords(Str:D:) { self.NFC.list }
 #?endif
 #?if jvm
-    multi method ords(Str:D:) {
+    multi method ords(Str:D: --> Seq:D) {
         Seq.new(class :: does Iterator {
             has str $!str;
             has int $!chars;
@@ -1297,11 +1313,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 
     proto method lines(|) {*}
-    multi method lines(Str:D: :$count!) {
+    multi method lines(Str:D: :$count! --> Int:D) {
         # we should probably deprecate this feature
         $count ?? self.lines.elems !! self.lines;
     }
-    multi method lines(Str:D: $limit) {
+    multi method lines(Str:D: $limit --> Seq:D) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.lines
           !! self.lines.head($limit)
@@ -1374,7 +1390,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::hllbool(nqp::islt_i($!pos,$!chars))
         }
     }
-    multi method lines(Str:D:) { Seq.new(Lines.new(self)) }
+    multi method lines(Str:D: --> Seq:D) { Seq.new(Lines.new(self)) }
 
     method !ensure-split-sanity(\v,\k,\kv,\p) {
         # cannot combine these
@@ -1397,7 +1413,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         limit = Inf if nqp::istype(limit,Whatever);
     }
 
-    method parse-base(Str:D: Int:D $radix) {
+    method parse-base(Str:D: Int:D $radix --> Numeric:D) {
         fail X::Syntax::Number::RadixOutOfRange.new(:$radix)
             unless 2 <= $radix <= 36; # (0..9,"a".."z").elems == 36
 
@@ -1449,7 +1465,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
 
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
@@ -1526,7 +1542,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: Str(Cool) $match;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+      :$v is copy, :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
         # nothing to work with
@@ -1746,7 +1762,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method split(Str:D: @needles, $parts is copy = Inf;;
-       :$v is copy, :$k, :$kv, :$p, :$skip-empty) {
+       :$v is copy, :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
 
         # must all be Cool, otherwise we'll just use a regex
@@ -1948,7 +1964,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Note that in these same* methods, as used by s/LHS/RHS/, the
     # pattern is actually the original string matched by LHS, while the
     # invocant "original" is really the replacement RHS part.  Confusing...
-    method samecase(Str:D: Str:D $pattern) {
+    method samecase(Str:D: Str:D $pattern --> Str:D) {
         nqp::if(
           nqp::chars(nqp::unbox_s($pattern)),        # something to work with
           nqp::stmts(
@@ -2016,7 +2032,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
 #?if !jvm
-    method samemark(Str:D: Str:D $pattern) {
+    method samemark(Str:D: Str:D $pattern --> Str:D) {
         nqp::if(
           nqp::chars(nqp::unbox_s($pattern)),        # something to work with
           nqp::stmts(
@@ -2148,7 +2164,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::join("",$ret)
     }
 
-    method trim-leading(Str:D:) {
+    method trim-leading(Str:D: --> Str:D) {
         my str $str = nqp::unbox_s(self);
         my int $pos = nqp::findnotcclass(
                           nqp::const::CCLASS_WHITESPACE,
@@ -2156,7 +2172,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $pos ?? nqp::p6box_s(nqp::substr($str, $pos)) !! self;
     }
 
-    method trim-trailing(Str:D:) {
+    method trim-trailing(Str:D: --> Str:D) {
         my str $str = nqp::unbox_s(self);
         my int $pos = nqp::chars($str) - 1;
         $pos = $pos - 1
@@ -2165,7 +2181,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::islt_i($pos, 0) ?? '' !! nqp::p6box_s(nqp::substr($str, 0, $pos + 1));
     }
 
-    method trim(Str:D:) {
+    method trim(Str:D: --> Str:D) {
         my str $str  = nqp::unbox_s(self);
         my int $pos  = nqp::chars($str) - 1;
         my int $left = nqp::findnotcclass(
@@ -2177,7 +2193,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method words(|) {*}
-    multi method words(Str:D: $limit) {
+    multi method words(Str:D: $limit --> Seq:D) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.words
           !! self.words.head($limit)
@@ -2246,7 +2262,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::hllbool(nqp::islt_i($!pos,$!chars))
         }
     }
-    multi method words(Str:D:) { Seq.new(Words.new(self)) }
+    multi method words(Str:D: --> Seq:D) { Seq.new(Words.new(self)) }
 
     # Internal method, used in Actions.postprocess_words/postprocess_quotewords
     method WORDS_AUTODEREF(Str:D:) {
@@ -2257,23 +2273,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method encode(|) {*}
-    multi method encode(Str:D $encoding = 'utf8', :$replacement, Bool() :$translate-nl = False, :$strict) {
+    multi method encode(Str:D $encoding = 'utf8',
+      :$replacement, Bool() :$translate-nl = False, :$strict --> Blob:D) {
         Encoding::Registry.find($encoding)
             .encoder(:$replacement, :$translate-nl, :$strict)
             .encode-chars(self)
     }
 
 #?if !jvm
-    method NFC() {
+    method NFC(--> NFC:D) {
         nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFC, nqp::create(NFC))
     }
-    method NFD() {
+    method NFD(--> NFD:D) {
         nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFD, nqp::create(NFD))
     }
-    method NFKC() {
+    method NFKC(--> NFKC:D) {
         nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKC, nqp::create(NFKC))
     }
-    method NFKD() {
+    method NFKD(--> NFKD:D) {
         nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
     }
 #?endif
@@ -2284,7 +2301,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method NFKD() { X::NYI.new(:feature<NFKD>).throw }
 #?endif
 
-    method wordcase(Str:D: :&filter = &tclc, Mu :$where = True) {
+    method wordcase(Str:D: :&filter = &tclc, Mu :$where = True --> Str:D) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {  # ' highlighting
             my Str $s = $m.Str;
             $s ~~ $where ?? filter($s) !! $s;
@@ -2292,7 +2309,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
-    multi method trans(Str:D: Pair:D \what, *%n) {
+    multi method trans(Str:D: Pair:D \what, *%n --> Str:D) {
         my $from = what.key;
         my $to   = what.value;
         $/ := nqp::getlexcaller('$/');
@@ -2534,7 +2551,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
     multi method trans(Str:D:
-      *@changes, :c(:$complement), :s(:$squash), :d(:$delete)) {
+      *@changes, :c(:$complement), :s(:$squash), :d(:$delete) --> Str:D) {
 
         # nothing to do
         return self unless self.chars;
@@ -2648,11 +2665,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method parse-names(Str:D:) {
+    method parse-names(Str:D: --> Str:D) {
         # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
         self.uniparse
     }
-    method uniparse(Str:D:) {
+    method uniparse(Str:D: --> Str:D) {
         my     \names := nqp::split(',', self);
         my int $elems  = nqp::elems(names);
         my int $i      = -1;
@@ -2672,7 +2689,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method indent($) {*}
     # Zero indent does nothing
-    multi method indent(Int() $steps where { $_ == 0 }) {
+    multi method indent(Str:D: Int() $steps where { $_ == 0 }) {
         self;
     }
 
@@ -2771,7 +2788,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    multi method substr(Str:D: Int:D \start) {
+    multi method substr(Str:D: Int:D \start --> Str:D) {
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
@@ -2779,7 +2796,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::substr($!value,$from) #?js: NFG
         )
     }
-    multi method substr(Str:D: Int:D \start, Int:D \want) {
+    multi method substr(Str:D: Int:D \start, Int:D \want --> Str:D) {
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
@@ -2791,7 +2808,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    multi method substr(Str:D: Int:D \start, Callable:D \want) {
+    multi method substr(Str:D: Int:D \start, Callable:D \want --> Str:D) {
         nqp::if(
           nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
@@ -2803,7 +2820,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    multi method substr(Str:D: Callable:D \start) {
+    multi method substr(Str:D: Callable:D \start --> Str:D) {
         nqp::if(
           nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
@@ -2811,7 +2828,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::substr($!value,$from)
         )
     }
-    multi method substr(Str:D: Callable:D \start, Int:D \want) {
+    multi method substr(Str:D: Callable:D \start, Int:D \want --> Str:D) {
         nqp::if(
           nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
@@ -2823,7 +2840,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    multi method substr(Str:D: Callable:D \start, Callable:D \want) {
+    multi method substr(Str:D: Callable:D \start, Callable:D \want --> Str:D) {
         nqp::if(
           nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
@@ -2835,7 +2852,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    multi method substr(Str:D: Range:D \start) {
+    multi method substr(Str:D: Range:D \start --> Str:D) {
         nqp::if(
           nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
@@ -2850,10 +2867,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method substr(Str:D: Regex:D, $) {
         die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314
     }
-    multi method substr(Str:D: \start) {
+    multi method substr(Str:D: \start --> Str:D) {
         self.substr(start.Int)
     }
-    multi method substr(Str:D: \from, \want) {
+    multi method substr(Str:D: \from, \want --> Str:D) {
         nqp::istype(want,Whatever)
         || (! nqp::istype(want, Callable) && want == Inf)
           ?? self.substr(from)
@@ -2920,55 +2937,55 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method uc(|) {*}
-    multi method uc(Str:D:) {
+    multi method uc(Str:D: --> Str:D) {
         nqp::p6box_s(nqp::uc($!value));
     }
-    multi method uc(Str:U:) {
+    multi method uc(Str:U: --> Str:D) {
         self.Str;
     }
 
     proto method lc(|) {*}
-    multi method lc(Str:D:) {
+    multi method lc(Str:D: --> Str:D) {
         nqp::p6box_s(nqp::lc($!value));
     }
-    multi method lc(Str:U:) {
+    multi method lc(Str:U: --> Str:D) {
         self.Str;
     }
 
     proto method tc(|) {*}
-    multi method tc(Str:D:) {
+    multi method tc(Str:D: --> Str:D) {
         nqp::p6box_s(nqp::tc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1)); #?js: NFG
     }
-    multi method tc(Str:U:) {
+    multi method tc(Str:U: --> Str:D) {
         self.Str
     }
 
     proto method fc(|) {*}
-    multi method fc(Str:D:) {
+    multi method fc(Str:D: --> Str:D) {
         nqp::p6box_s(nqp::fc($!value));
     }
-    multi method fc(Str:U:) {
+    multi method fc(Str:U: --> Str:D) {
         self.Str;
     }
 
     proto method tclc(|) {*}
-    multi method tclc(Str:D:) {
+    multi method tclc(Str:D: --> Str:D) {
         nqp::p6box_s(nqp::tclc($!value))
     }
-    multi method tclc(Str:U:) {
+    multi method tclc(Str:U: --> Str:D) {
         self.Str
     }
 
     proto method flip(|) {*}
-    multi method flip(Str:D:) {
+    multi method flip(Str:D: --> Str:D) {
         nqp::p6box_s(nqp::flip($!value))
     }
-    multi method flip(Str:U:) {
+    multi method flip(Str:U: --> Str:D) {
         self.Str
     }
 
     proto method ord(|) {*}
-    multi method ord(Str:D:) {
+    multi method ord(Str:D: --> Int:D) {
         nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
           !! Nil;
@@ -2977,8 +2994,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 }
 
 
-multi sub prefix:<~>(Str:D \a)         { a.Str }
-multi sub prefix:<~>(str   $a --> str) { $a    }
+multi sub prefix:<~>(Str:D \a --> Str:D) { a.Str }
+multi sub prefix:<~>(str   $a --> str)   { $a    }
 
 multi sub infix:<~>(str $a, str $b   --> str) {
     nqp::concat($a, $b)
@@ -3112,7 +3129,7 @@ multi sub prefix:<~^>(Str \a) {
 }
 
 # XXX: String-wise shifts NYI
-multi sub infix:«~>»(Str:D \a, Int:D \b --> Str:D) {
+multi sub infix:«~>»(Str:D \a, Int:D \b) {
     X::NYI.new(feature => "infix:«~>»").throw;
 }
 multi sub infix:«~>»(str $a, int $b) {
@@ -3139,7 +3156,7 @@ proto sub UNBASE ($, $, *%) {*}
 multi sub UNBASE(Int:D $base, Any:D $num) {
     X::Numeric::Confused.new(:$num, :$base).throw;
 }
-multi sub UNBASE(Int:D $base, Str:D $str) {
+multi sub UNBASE(Int:D $base, Str:D $str --> Numeric:D) {
     my Str $ch = substr($str, 0, 1);
     if $ch eq '0' {
         $ch = substr($str, 1, 1);
@@ -3185,7 +3202,7 @@ multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
         nqp::unicmp_s(
             nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0))
 }
-multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
+multi sub infix:<unicmp>(Pair:D \a, Pair:D \b --> Order:D) {
     (a.key unicmp b.key) || (a.value unicmp b.value)
 }
 multi sub infix:<coll>(Str:D \a, Str:D \b --> Order:D) {
@@ -3198,7 +3215,7 @@ multi sub infix:<coll>(Cool:D \a, Cool:D \b --> Order:D) {
         nqp::unicmp_s(
             nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), $*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
+multi sub infix:<coll>(Pair:D \a, Pair:D \b --> Order:D) {
     (a.key coll b.key) || (a.value coll b.value)
 }
 #?endif
@@ -3214,16 +3231,16 @@ proto sub parse-base($, $, *%) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 
 proto sub substr($, $?, $?, *%) {*}
-multi sub substr(\what)                { what.substr             }
-multi sub substr(\what, \from)         { what.substr(from)       }
-multi sub substr(\what, \from, \chars) { what.substr(from,chars) }
+multi sub substr(\what --> Str:D)                { what.substr             }
+multi sub substr(\what, \from --> Str:D)         { what.substr(from)       }
+multi sub substr(\what, \from, \chars --> Str:D) { what.substr(from,chars) }
 
 proto sub substr-rw($, $?, $?, *%) is rw {*}
 multi sub substr-rw(\what) is rw                { what.substr-rw             }
 multi sub substr-rw(\what, \from) is rw         { what.substr-rw(from)       }
 multi sub substr-rw(\what, \from, \chars) is rw { what.substr-rw(from,chars) }
 
-multi sub infix:<eqv>(Str:D \a, Str:D \b) {
+multi sub infix:<eqv>(Str:D \a, Str:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
@@ -3233,7 +3250,7 @@ multi sub infix:<eqv>(Str:D \a, Str:D \b) {
 }
 
 proto sub samemark($, $, *%) {*}
-multi sub samemark($s, $pat) { $s.samemark($pat) }
+multi sub samemark($s, $pat --> Str:D) { $s.samemark($pat) }
 
 sub parse-names(Str:D \names) {
     # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
@@ -3241,6 +3258,6 @@ sub parse-names(Str:D \names) {
 }
 
 proto sub uniparse($, *%) {*}
-multi sub uniparse(Str:D \names) { names.uniparse }
+multi sub uniparse(Str:D \names --> Str:D) { names.uniparse }
 
 # vim: ft=perl6 expandtab sw=4

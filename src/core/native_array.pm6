@@ -1701,11 +1701,11 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2018-09-23T11:51:05+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-28T20:28:30+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
-        multi method AT-POS(::?CLASS:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices --> int) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -1734,7 +1734,7 @@ my class array does Iterable {
             )
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices --> int) {
             nqp::stmts(
               (my int $value = @indices.pop),
               nqp::if(
@@ -1915,7 +1915,9 @@ my class array does Iterable {
                 nqp::multidimref_i($!list,nqp::clone($!indices))
             }
         }
-        method iterator(::?CLASS:D:) { Iterate-int.new(self) }
+        method iterator(::?CLASS:D: --> Iterate-int:D) {
+            Iterate-int.new(self)
+        }
 
         my class KV-int does Rakudo::Iterator::ShapeLeaf {
             has int $!on-key;
@@ -1939,7 +1941,7 @@ my class array does Iterable {
                 )
             }
         }
-        multi method kv(::?CLASS:D:) { Seq.new(KV-int.new(self)) }
+        multi method kv(::?CLASS:D: --> Seq:D) { Seq.new(KV-int.new(self)) }
 
         my class Pairs-int does Rakudo::Iterator::ShapeLeaf {
             method result() {
@@ -1949,45 +1951,45 @@ my class array does Iterable {
                 )
             }
         }
-        multi method pairs(::?CLASS:D:) { Seq.new(Pairs-int.new(self)) }
+        multi method pairs(::?CLASS:D: --> Seq:D) { Seq.new(Pairs-int.new(self)) }
 
         my class Antipairs-int does Rakudo::Iterator::ShapeLeaf {
             method result() {
                 Pair.new(nqp::atposnd_i($!list,$!indices),self.indices)
             }
         }
-        multi method antipairs(::?CLASS:D:) {
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
             Seq.new(Antipairs-int.new(self))
         }
     }  # end of shapedintarray role
 
     role shaped1intarray does shapedintarray {
-        multi method AT-POS(::?CLASS:D: int \one) is raw {
+        multi method AT-POS(::?CLASS:D: int \one --> int) is raw {
            nqp::atposref_i(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one --> int) is raw {
            nqp::atposref_i(self,one)
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \value --> int) {
             nqp::bindpos_i(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, int \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, int \value --> int) {
             nqp::bindpos_i(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: int \one, Int:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, Int:D \value --> int) {
             nqp::bindpos_i(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \value --> int) {
             nqp::bindpos_i(self,one,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one) {
+        multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
@@ -2022,7 +2024,7 @@ my class array does Iterable {
               ),
               nqp::unless(
                 nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos_i(self,$i) # too many values on non-lazy it
+                nqp::atpos_i(list,$i) # too many values on non-lazy it
               ),
               self
             )
@@ -2080,9 +2082,11 @@ my class array does Iterable {
                 $!pos = nqp::elems($!list)
             }
         }
-        method iterator(::?CLASS:D:) { Iterate-int.new(self) }
+        method iterator(::?CLASS:D: --> Iterate-int:D) {
+            Iterate-int.new(self)
+        }
 
-        multi method kv(::?CLASS:D:) {
+        multi method kv(::?CLASS:D: --> Seq:D) {
             my int $i = -1;
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
@@ -2097,7 +2101,7 @@ my class array does Iterable {
                 )
             }))
         }
-        multi method pairs(::?CLASS:D:) {
+        multi method pairs(::?CLASS:D: --> Seq:D) {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
@@ -2108,10 +2112,10 @@ my class array does Iterable {
                 )
             }))
         }
-        multi method antipairs(::?CLASS:D:) {
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
         }
-        method reverse(::?CLASS:D:) is nodal {
+        method reverse(::?CLASS:D: --> ::?CLASS:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my int $last  = nqp::sub_i($elems,1)),
@@ -2125,7 +2129,7 @@ my class array does Iterable {
               $to
             )
         }
-        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1 --> ::?CLASS:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my $to := nqp::clone(self)),
@@ -2147,21 +2151,21 @@ my class array does Iterable {
     } # end of shaped1intarray role
 
     role shaped2intarray does shapedintarray {
-        multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two))
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Int:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Int:D \value --> int) {
             nqp::bindpos2d_i(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \value --> int) {
             nqp::bindpos2d_i(self,one,two,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -2169,7 +2173,7 @@ my class array does Iterable {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -2180,21 +2184,21 @@ my class array does Iterable {
     } # end of shaped2intarray role
 
     role shaped3intarray does shapedintarray {
-        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two, three))
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Int:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Int:D \value --> int) {
             nqp::bindpos3d_i(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Int:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Int:D \value --> int) {
             nqp::bindpos3d_i(self,one,two,three,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -2204,7 +2208,7 @@ my class array does Iterable {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -2219,11 +2223,11 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2018-09-23T11:51:05+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-28T20:28:30+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
-        multi method AT-POS(::?CLASS:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices --> num) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -2252,7 +2256,7 @@ my class array does Iterable {
             )
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices --> num) {
             nqp::stmts(
               (my num $value = @indices.pop),
               nqp::if(
@@ -2433,7 +2437,9 @@ my class array does Iterable {
                 nqp::multidimref_n($!list,nqp::clone($!indices))
             }
         }
-        method iterator(::?CLASS:D:) { Iterate-num.new(self) }
+        method iterator(::?CLASS:D: --> Iterate-num:D) {
+            Iterate-num.new(self)
+        }
 
         my class KV-num does Rakudo::Iterator::ShapeLeaf {
             has int $!on-key;
@@ -2457,7 +2463,7 @@ my class array does Iterable {
                 )
             }
         }
-        multi method kv(::?CLASS:D:) { Seq.new(KV-num.new(self)) }
+        multi method kv(::?CLASS:D: --> Seq:D) { Seq.new(KV-num.new(self)) }
 
         my class Pairs-num does Rakudo::Iterator::ShapeLeaf {
             method result() {
@@ -2467,45 +2473,45 @@ my class array does Iterable {
                 )
             }
         }
-        multi method pairs(::?CLASS:D:) { Seq.new(Pairs-num.new(self)) }
+        multi method pairs(::?CLASS:D: --> Seq:D) { Seq.new(Pairs-num.new(self)) }
 
         my class Antipairs-num does Rakudo::Iterator::ShapeLeaf {
             method result() {
                 Pair.new(nqp::atposnd_n($!list,$!indices),self.indices)
             }
         }
-        multi method antipairs(::?CLASS:D:) {
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
             Seq.new(Antipairs-num.new(self))
         }
     }  # end of shapednumarray role
 
     role shaped1numarray does shapednumarray {
-        multi method AT-POS(::?CLASS:D: int \one) is raw {
+        multi method AT-POS(::?CLASS:D: int \one --> num) is raw {
            nqp::atposref_n(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one --> num) is raw {
            nqp::atposref_n(self,one)
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, num \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, num \value --> num) {
             nqp::bindpos_n(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, num \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, num \value --> num) {
             nqp::bindpos_n(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: int \one, Num:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, Num:D \value --> num) {
             nqp::bindpos_n(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Num:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Num:D \value --> num) {
             nqp::bindpos_n(self,one,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one) {
+        multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
@@ -2598,9 +2604,11 @@ my class array does Iterable {
                 $!pos = nqp::elems($!list)
             }
         }
-        method iterator(::?CLASS:D:) { Iterate-num.new(self) }
+        method iterator(::?CLASS:D: --> Iterate-num:D) {
+            Iterate-num.new(self)
+        }
 
-        multi method kv(::?CLASS:D:) {
+        multi method kv(::?CLASS:D: --> Seq:D) {
             my int $i = -1;
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
@@ -2615,7 +2623,7 @@ my class array does Iterable {
                 )
             }))
         }
-        multi method pairs(::?CLASS:D:) {
+        multi method pairs(::?CLASS:D: --> Seq:D) {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
@@ -2626,10 +2634,10 @@ my class array does Iterable {
                 )
             }))
         }
-        multi method antipairs(::?CLASS:D:) {
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
         }
-        method reverse(::?CLASS:D:) is nodal {
+        method reverse(::?CLASS:D: --> ::?CLASS:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my int $last  = nqp::sub_i($elems,1)),
@@ -2643,7 +2651,7 @@ my class array does Iterable {
               $to
             )
         }
-        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1 --> ::?CLASS:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my $to := nqp::clone(self)),
@@ -2665,21 +2673,21 @@ my class array does Iterable {
     } # end of shaped1numarray role
 
     role shaped2numarray does shapednumarray {
-        multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two))
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Num:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Num:D \value --> num) {
             nqp::bindpos2d_n(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Num:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Num:D \value --> num) {
             nqp::bindpos2d_n(self,one,two,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -2687,7 +2695,7 @@ my class array does Iterable {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -2698,21 +2706,21 @@ my class array does Iterable {
     } # end of shaped2numarray role
 
     role shaped3numarray does shapednumarray {
-        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two, three))
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Num:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Num:D \value --> num) {
             nqp::bindpos3d_n(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Num:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Num:D \value --> num) {
             nqp::bindpos3d_n(self,one,two,three,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -2722,7 +2730,7 @@ my class array does Iterable {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -2737,11 +2745,11 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2018-09-23T11:51:05+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-28T20:28:30+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
-        multi method AT-POS(::?CLASS:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices --> str) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -2770,7 +2778,7 @@ my class array does Iterable {
             )
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices --> str) {
             nqp::stmts(
               (my str $value = @indices.pop),
               nqp::if(
@@ -2951,7 +2959,9 @@ my class array does Iterable {
                 nqp::multidimref_s($!list,nqp::clone($!indices))
             }
         }
-        method iterator(::?CLASS:D:) { Iterate-str.new(self) }
+        method iterator(::?CLASS:D: --> Iterate-str:D) {
+            Iterate-str.new(self)
+        }
 
         my class KV-str does Rakudo::Iterator::ShapeLeaf {
             has int $!on-key;
@@ -2975,7 +2985,7 @@ my class array does Iterable {
                 )
             }
         }
-        multi method kv(::?CLASS:D:) { Seq.new(KV-str.new(self)) }
+        multi method kv(::?CLASS:D: --> Seq:D) { Seq.new(KV-str.new(self)) }
 
         my class Pairs-str does Rakudo::Iterator::ShapeLeaf {
             method result() {
@@ -2985,45 +2995,45 @@ my class array does Iterable {
                 )
             }
         }
-        multi method pairs(::?CLASS:D:) { Seq.new(Pairs-str.new(self)) }
+        multi method pairs(::?CLASS:D: --> Seq:D) { Seq.new(Pairs-str.new(self)) }
 
         my class Antipairs-str does Rakudo::Iterator::ShapeLeaf {
             method result() {
                 Pair.new(nqp::atposnd_s($!list,$!indices),self.indices)
             }
         }
-        multi method antipairs(::?CLASS:D:) {
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
             Seq.new(Antipairs-str.new(self))
         }
     }  # end of shapedstrarray role
 
     role shaped1strarray does shapedstrarray {
-        multi method AT-POS(::?CLASS:D: int \one) is raw {
+        multi method AT-POS(::?CLASS:D: int \one --> str) is raw {
            nqp::atposref_s(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one --> str) is raw {
            nqp::atposref_s(self,one)
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, str \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, str \value --> str) {
             nqp::bindpos_s(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, str \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, str \value --> str) {
             nqp::bindpos_s(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: int \one, Str:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, Str:D \value --> str) {
             nqp::bindpos_s(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Str:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Str:D \value --> str) {
             nqp::bindpos_s(self,one,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one) {
+        multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
@@ -3116,9 +3126,11 @@ my class array does Iterable {
                 $!pos = nqp::elems($!list)
             }
         }
-        method iterator(::?CLASS:D:) { Iterate-str.new(self) }
+        method iterator(::?CLASS:D: --> Iterate-str:D) {
+            Iterate-str.new(self)
+        }
 
-        multi method kv(::?CLASS:D:) {
+        multi method kv(::?CLASS:D: --> Seq:D) {
             my int $i = -1;
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
@@ -3133,7 +3145,7 @@ my class array does Iterable {
                 )
             }))
         }
-        multi method pairs(::?CLASS:D:) {
+        multi method pairs(::?CLASS:D: --> Seq:D) {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
@@ -3144,10 +3156,10 @@ my class array does Iterable {
                 )
             }))
         }
-        multi method antipairs(::?CLASS:D:) {
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
         }
-        method reverse(::?CLASS:D:) is nodal {
+        method reverse(::?CLASS:D: --> ::?CLASS:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my int $last  = nqp::sub_i($elems,1)),
@@ -3161,7 +3173,7 @@ my class array does Iterable {
               $to
             )
         }
-        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1 --> ::?CLASS:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my $to := nqp::clone(self)),
@@ -3183,21 +3195,21 @@ my class array does Iterable {
     } # end of shaped1strarray role
 
     role shaped2strarray does shapedstrarray {
-        multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two))
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Str:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Str:D \value --> str) {
             nqp::bindpos2d_s(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Str:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Str:D \value --> str) {
             nqp::bindpos2d_s(self,one,two,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -3205,7 +3217,7 @@ my class array does Iterable {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -3216,21 +3228,21 @@ my class array does Iterable {
     } # end of shaped2strarray role
 
     role shaped3strarray does shapedstrarray {
-        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two, three))
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Str:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Str:D \value --> str) {
             nqp::bindpos3d_s(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Str:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Str:D \value --> str) {
             nqp::bindpos3d_s(self,one,two,three,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -3240,7 +3252,7 @@ my class array does Iterable {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)

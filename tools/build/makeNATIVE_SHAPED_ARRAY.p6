@@ -45,7 +45,7 @@ for $*IN.lines -> $line {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
     role shaped#type#array does shapedarray {
-        multi method AT-POS(::?CLASS:D: **@indices) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices --> #type#) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -74,7 +74,7 @@ for $*IN.lines -> $line {
             )
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: **@indices) {
+        multi method ASSIGN-POS(::?CLASS:D: **@indices --> #type#) {
             nqp::stmts(
               (my #type# $value = @indices.pop),
               nqp::if(
@@ -255,7 +255,9 @@ for $*IN.lines -> $line {
                 nqp::multidimref_#postfix#($!list,nqp::clone($!indices))
             }
         }
-        method iterator(::?CLASS:D:) { Iterate-#type#.new(self) }
+        method iterator(::?CLASS:D: --> Iterate-#type#:D) {
+            Iterate-#type#.new(self)
+        }
 
         my class KV-#type# does Rakudo::Iterator::ShapeLeaf {
             has int $!on-key;
@@ -279,7 +281,7 @@ for $*IN.lines -> $line {
                 )
             }
         }
-        multi method kv(::?CLASS:D:) { Seq.new(KV-#type#.new(self)) }
+        multi method kv(::?CLASS:D: --> Seq:D) { Seq.new(KV-#type#.new(self)) }
 
         my class Pairs-#type# does Rakudo::Iterator::ShapeLeaf {
             method result() {
@@ -289,45 +291,45 @@ for $*IN.lines -> $line {
                 )
             }
         }
-        multi method pairs(::?CLASS:D:) { Seq.new(Pairs-#type#.new(self)) }
+        multi method pairs(::?CLASS:D: --> Seq:D) { Seq.new(Pairs-#type#.new(self)) }
 
         my class Antipairs-#type# does Rakudo::Iterator::ShapeLeaf {
             method result() {
                 Pair.new(nqp::atposnd_#postfix#($!list,$!indices),self.indices)
             }
         }
-        multi method antipairs(::?CLASS:D:) {
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
             Seq.new(Antipairs-#type#.new(self))
         }
     }  # end of shaped#type#array role
 
     role shaped1#type#array does shaped#type#array {
-        multi method AT-POS(::?CLASS:D: int \one) is raw {
+        multi method AT-POS(::?CLASS:D: int \one --> #type#) is raw {
            nqp::atposref_#postfix#(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one --> #type#) is raw {
            nqp::atposref_#postfix#(self,one)
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, #type# \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, #type# \value --> #type#) {
             nqp::bindpos_#postfix#(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, #type# \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, #type# \value --> #type#) {
             nqp::bindpos_#postfix#(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: int \one, #Type#:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, #Type#:D \value --> #type#) {
             nqp::bindpos_#postfix#(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, #Type#:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, #Type#:D \value --> #type#) {
             nqp::bindpos_#postfix#(self,one,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one) {
+        multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
@@ -420,9 +422,11 @@ for $*IN.lines -> $line {
                 $!pos = nqp::elems($!list)
             }
         }
-        method iterator(::?CLASS:D:) { Iterate-#type#.new(self) }
+        method iterator(::?CLASS:D: --> Iterate-#type#:D) {
+            Iterate-#type#.new(self)
+        }
 
-        multi method kv(::?CLASS:D:) {
+        multi method kv(::?CLASS:D: --> Seq:D) {
             my int $i = -1;
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
@@ -437,7 +441,7 @@ for $*IN.lines -> $line {
                 )
             }))
         }
-        multi method pairs(::?CLASS:D:) {
+        multi method pairs(::?CLASS:D: --> Seq:D) {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
@@ -448,10 +452,10 @@ for $*IN.lines -> $line {
                 )
             }))
         }
-        multi method antipairs(::?CLASS:D:) {
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
         }
-        method reverse(::?CLASS:D:) is nodal {
+        method reverse(::?CLASS:D: --> ::?CLASS:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my int $last  = nqp::sub_i($elems,1)),
@@ -465,7 +469,7 @@ for $*IN.lines -> $line {
               $to
             )
         }
-        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1 --> ::?CLASS:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my $to := nqp::clone(self)),
@@ -487,21 +491,21 @@ for $*IN.lines -> $line {
     } # end of shaped1#type#array role
 
     role shaped2#type#array does shaped#type#array {
-        multi method AT-POS(::?CLASS:D: int \one, int \two) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two --> #type#) is raw {
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> #type#) is raw {
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, #Type#:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, #Type#:D \value --> #type#) {
             nqp::bindpos2d_#postfix#(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, #Type#:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, #Type#:D \value --> #type#) {
             nqp::bindpos2d_#postfix#(self,one,two,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -509,7 +513,7 @@ for $*IN.lines -> $line {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -520,21 +524,21 @@ for $*IN.lines -> $line {
     } # end of shaped2#type#array role
 
     role shaped3#type#array does shaped#type#array {
-        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three) is raw {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> #type#) is raw {
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) is raw {
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> #type#) is raw {
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, #Type#:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, #Type#:D \value --> #type#) {
             nqp::bindpos3d_#postfix#(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, #Type#:D \value) {
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, #Type#:D \value --> #type#) {
             nqp::bindpos3d_#postfix#(self,one,two,three,value)
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)
@@ -544,7 +548,7 @@ for $*IN.lines -> $line {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
             nqp::hllbool(
               nqp::isge_i(one,0)
                 && nqp::isge_i(two,0)

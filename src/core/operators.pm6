@@ -797,4 +797,7 @@ multi sub infix:<o> (&f, &g --> Block:D) {
 # U+2218 RING OPERATOR
 my constant &infix:<∘> := &infix:<o>;
 
+# to allow =~ to work with "no isms <Perl5>", otherwise caught in compilation
+sub infix:<=~>(\a,\b) { a = ~b }
+
 # vim: ft=perl6 expandtab sw=4

@@ -1,7 +1,7 @@
 my class Mix does Mixy {
-    has $!WHICH;
-    has Real $!total;
-    has Real $!total-positive;
+    has ValueObjAt $!WHICH;
+    has Real       $!total;
+    has Real       $!total-positive;
 
 #--- interface methods
     multi method STORE(Mix:D: *@pairs, :$INITIALIZE! --> Mix:D) {
@@ -30,11 +30,21 @@ my class Mix does Mixy {
         nqp::if(
           nqp::attrinited(self,Mix,'$!WHICH'),
           $!WHICH,
-          $!WHICH := ValueObjAt.new('Mix|' ~ nqp::sha1(
-            nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
-              Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
-            ))
-          ))
+          $!WHICH := nqp::box_s(
+            nqp::concat(
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Mix),
+                'Mix|',
+                nqp::concat(nqp::unbox_s(self.^name), '|')
+              ),
+              nqp::sha1(
+                nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+                  Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+                ))
+              )
+            ),
+            ValueObjAt
+          )
         )
     }
     method total(Mix:D: --> Real:D) {

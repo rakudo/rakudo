@@ -1,17 +1,25 @@
 my %DEPRECATIONS; # where we keep our deprecation info
 
 class Deprecation {
-    has $.file;         # file of the code that is deprecated
-    has $.type;         # type of code (sub/method etc.) that is deprecated
-    has $.package;      # package of code that is deprecated
-    has $.name;         # name of code that is deprecated
-    has $.alternative;  # alternative for code that is deprecated
-    has %.callsites;    # places where called (file -> line -> count)
-    has Version $.from;    # release version from which deprecated
-    has Version $.removed; # release version when will be removed
+    has str $.file;         # file of the code that is deprecated
+    has str $.type;         # type of code (sub/method etc.) that is deprecated
+    has str $.package;      # package of code that is deprecated
+    has str $.name;         # name of code that is deprecated
+    has str $.alternative;  # alternative for code that is deprecated
+    has %.callsites;        # places where called (file -> line -> count)
+    has Version $.from;     # release version from which deprecated
+    has Version $.removed;  # release version when will be removed
 
-    multi method WHICH (Deprecation:D:) {
-        ($!file||"",$!type||"",$!package||"",$!name).join(':');
+    multi method WHICH (Deprecation:D: --> ValueObjAt:D) {
+        my $which := nqp::list_s("Deprecation");
+        nqp::push_s($which,$!file    || "");
+        nqp::push_s($which,$!type    || "");
+        nqp::push_s($which,$!package || "");
+        nqp::push_s($which,$!name    || "");
+        nqp::box_s(
+          nqp::join("|",$which),
+          ValueObjAt
+        )
     }
 
     proto method report (|) {*}

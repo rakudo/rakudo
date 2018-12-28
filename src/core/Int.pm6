@@ -46,7 +46,7 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method Capture() { die X::Cannot::Capture.new: :what(self) }
 
-    method Int(--> Int:D) { self }
+    method Int(--> Int) { self }
 
     multi method Str(Int:D: --> Str:D) {
         nqp::p6box_s(nqp::tostr_I(self));

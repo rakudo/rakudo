@@ -368,12 +368,14 @@ role STD {
                 when        => $when,
             );
         }
+        self;
     }
     method obsvar($name, $identifier-name?) {
         unless $*LANG.pragma('p5isms') {
             $*W.throw(self.MATCH(), ['X', 'Syntax', 'Perl5Var'],
               :$name, :$identifier-name);
         }
+        self;
     }
     method sorryobs($old, $new, $when = 'in Perl 6') {
         unless $*LANG.pragma('p5isms') {
@@ -383,6 +385,7 @@ role STD {
                 when        => $when,
             );
         }
+        self;
     }
     method worryobs($old, $new, $when = 'in Perl 6') {
         unless $*LANG.pragma('p5isms') {
@@ -392,6 +395,7 @@ role STD {
                 when        => $when,
             );
         }
+        self;
     }
 
     method dupprefix($prefixes) {

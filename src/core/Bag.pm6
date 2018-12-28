@@ -1,17 +1,27 @@
 my class Bag does Baggy {
-    has Int $!total;
-    has $!WHICH;
+    has ValueObjAt $!WHICH;
+    has Int        $!total;
 
 #--- introspection methods
-    multi method WHICH(Bag:D:)   {
+    multi method WHICH(Bag:D: --> ValueObjAt:D)   {
         nqp::if(
           nqp::attrinited(self,Bag,'$!WHICH'),
           $!WHICH,
-          $!WHICH := ValueObjAt.new('Bag!' ~ nqp::sha1(
-            nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
-              Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
-            ))
-          ))
+          $!WHICH := nqp::box_s(
+            nqp::concat(
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Bag),
+                'Bag|',
+                nqp::concat(nqp::unbox_s(self.^name), '|')
+              ),
+              nqp::sha1(
+                nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+                  Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+                ))
+              )
+            ),
+            ValueObjAt
+          )
         )
     }
     method total(Bag:D: --> Int:D) {

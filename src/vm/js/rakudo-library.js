@@ -136,7 +136,7 @@ module.exports.capturedRun = /*async*/ function(source, input, compileArgs, args
     }
 
     $$readfh(buf, bytes) {
-      core.writeBuffer(buf, this.source.slice(0, bytes));
+      core.writeBuffer(buf, 0, this.source.slice(0, bytes));
       this.source = this.source.slice(bytes);
       return buf;
     }

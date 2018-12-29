@@ -45,13 +45,17 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     # Calling self.new for the arguments case ensures that the right
     # descriptor will be added for typed hashes.
-    multi method new(Map:       ) { nqp::create(self) }
-    multi method new(Map: *@args) { self.new.STORE(@args, :INITIALIZE) }
+    multi method new(Map:        --> Map:D) {
+        nqp::create(self)
+    }
+    multi method new(Map: *@args --> Map:D) {
+        self.new.STORE(@args, :INITIALIZE)
+    }
 
     multi method Map(Map:) { self }
 
     multi method Hash(Map:U:) { Hash }
-    multi method Hash(Map:D:) {
+    multi method Hash(Map:D: --> Hash:D) {
         if nqp::elems($!storage) {
             my \hash       := nqp::create(Hash);
             my \storage    := nqp::bindattr(hash,Map,'$!storage',nqp::hash);
@@ -73,17 +77,18 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }
     }
 
-    multi method Bool(Map:D:) {
+    multi method Bool(Map:D: --> Bool:D) {
         nqp::hllbool(nqp::elems($!storage));
     }
-    method elems(Map:D:) {
+    method elems(Map:D: --> Int:D) {
         nqp::p6box_i(nqp::elems($!storage));
     }
-    multi method Int(Map:D:)     { self.elems }
-    multi method Numeric(Map:D:) { self.elems }
-    multi method Str(Map:D:)     { self.sort.join("\n") }
+    multi method Int(Map:D:     --> Int:D) { self.elems }
+    multi method Numeric(Map:D: --> Int:D) { self.elems }
 
-    method IterationBuffer() {
+    multi method Str(Map:D: --> Str:D) { self.sort.join("\n") }
+
+    method IterationBuffer(--> IterationBuffer:D) {
         nqp::stmts(
           (my \buffer := nqp::create(IterationBuffer)),
           nqp::if(
@@ -107,7 +112,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    method List() { self.IterationBuffer.List }
+    method List(--> List:D) { self.IterationBuffer.List }
 
     multi method head(Map:D:) {
         nqp::if(
@@ -122,7 +127,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    multi method sort(Map:D:) {
+    multi method sort(Map:D: --> Seq:D) {
         Seq.new(
           Rakudo::Iterator.ReifiedList(
             Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
@@ -133,34 +138,34 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    multi method ACCEPTS(Map:D: Any $topic) {
+    multi method ACCEPTS(Map:D: Any $topic --> Bool:D) {
         self.EXISTS-KEY($topic.any);
     }
 
-    multi method ACCEPTS(Map:D: Cool:D $topic) {
+    multi method ACCEPTS(Map:D: Cool:D $topic --> Bool:D) {
         self.EXISTS-KEY($topic);
     }
 
-    multi method ACCEPTS(Map:D: Positional $topic) {
+    multi method ACCEPTS(Map:D: Positional $topic --> Bool:D) {
         self.EXISTS-KEY($topic.any);
     }
 
-    multi method ACCEPTS(Map:D: Regex $topic) {
+    multi method ACCEPTS(Map:D: Regex $topic --> Bool:D) {
         so self.keys.any.match($topic);
     }
 
-    multi method ACCEPTS(Map:D: Map:D \m --> Bool) {
+    multi method ACCEPTS(Map:D: Map:D \m --> Bool:D) {
         try {self eqv m} // False;
     }
 
-    multi method EXISTS-KEY(Map:D: Str:D \key) {
+    multi method EXISTS-KEY(Map:D: Str:D \key --> Bool:D) {
         nqp::hllbool(nqp::existskey($!storage,key))
     }
-    multi method EXISTS-KEY(Map:D: \key) {
+    multi method EXISTS-KEY(Map:D: \key --> Bool:D) {
         nqp::hllbool(nqp::existskey($!storage,key.Str))
     }
 
-    multi method gist(Map:D:) {
+    multi method gist(Map:D: --> Str:D) {
         self.^name ~ '.new((' ~ self.sort.map({
             state $i = 0;
             ++$i == 101 ?? '...'
@@ -169,7 +174,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }).join(', ') ~ '))'
     }
 
-    multi method perl(Map:D \SELF:) {
+    multi method perl(Map:D \SELF: --> Str:D) {
         my $p = self.^name ~ '.new((' ~ self.sort.map({.perl}).join(',') ~ '))';
         nqp::iscont(SELF) ?? '$(' ~ $p ~ ')' !! $p
     }
@@ -196,13 +201,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
     }
-    method iterator(Map:D:) { Iterate.new(self) }
+    method iterator(Map:D: --> Iterator:D) { Iterate.new(self) }
 
-    method list(Map:D:) { self.List }
+    method list(Map:D: --> List:D) { self.List }
 
-    multi method pairs(Map:D:) { Seq.new(self.iterator) }
-    multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
-    multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }
+    multi method pairs(Map:D: --> Seq:D) {
+        Seq.new(self.iterator)
+    }
+    multi method keys(Map:D: --> Seq:D) {
+        Seq.new(Rakudo::Iterator.Mappy-keys(self))
+    }
+    multi method values(Map:D: --> Seq:D) {
+        Seq.new(Rakudo::Iterator.Mappy-values(self))
+    }
 
     my class KV does Rakudo::Iterator::Mappy-kv-from-pairs {
         method pull-one() is raw {
@@ -232,7 +243,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
     }
-    multi method kv(Map:D:) { Seq.new(KV.new(self)) }
+    multi method kv(Map:D: --> Seq:D) { Seq.new(KV.new(self)) }
 
     my class AntiPairs does Rakudo::Iterator::Mappy {
         method pull-one() {
@@ -256,9 +267,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
     }
-    multi method antipairs(Map:D:) { Seq.new(AntiPairs.new(self)) }
+    multi method antipairs(Map:D: --> Seq:D) { Seq.new(AntiPairs.new(self)) }
 
-    multi method invert(Map:D:) {
+    multi method invert(Map:D: --> Seq:D) {
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
@@ -327,7 +338,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     # Store the contents of an iterator into the Map
-    method !STORE_MAP_FROM_ITERATOR(\iter) is raw {
+    method !STORE_MAP_FROM_ITERATOR(\iter --> Map:D) is raw {
         nqp::stmts(
           nqp::until(
             nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
@@ -360,7 +371,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
-    method !DECONTAINERIZE() {
+    method !DECONTAINERIZE(--> Map:D) {
         nqp::stmts(
           (my \iter := nqp::iterator($!storage)),
           nqp::while(
@@ -379,7 +390,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!) {
+    multi method STORE(Map:D: Map:D \map, :$INITIALIZE! --> Map:D) {
         nqp::if(
           nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           nqp::if(
@@ -401,7 +412,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
-    multi method STORE(Map:D: \to_store, :$INITIALIZE!) {
+    multi method STORE(Map:D: \to_store, :$INITIALIZE! --> Map:D) {
         nqp::p6bindattrinvres(
           self, Map, '$!storage',
           nqp::getattr(
@@ -412,7 +423,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
-    multi method STORE(Map:D: \keys, \values, :$INITIALIZE!) {
+    multi method STORE(Map:D: \keys, \values, :$INITIALIZE! --> Map:D) {
         my \iterkeys   := keys.iterator;
         my \itervalues := values.iterator;
         my \storage    := $!storage := nqp::hash;
@@ -437,14 +448,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         $!storage
     }
 
-    method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n") {
+    method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n" --> Str:D) {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
           ?? self.keys.fmt($format, $sep)
           !! self.pairs.fmt($format, $sep)
     }
 
     method hash() { self }
-    method clone(Map:D:) is raw { self }
+    method clone(Map:D: --> Map:D) is raw { self }
 
     multi method roll(Map:D:) {
         nqp::if(
@@ -523,27 +534,27 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method pick(Map:D:) { self.roll }
 
-    multi method Set(Map:D:)     {
+    multi method Set(Map:D: --> Set:D) {
         nqp::create(Set).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
     }
-    multi method SetHash(Map:D:)     {
+    multi method SetHash(Map:D: --> SetHash:D) {
         nqp::create(SetHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
     }
-    multi method Bag(Map:D:)     {
+    multi method Bag(Map:D: --> Bag:D) {
         nqp::create(Bag).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
     }
-    multi method BagHash(Map:D:)     {
+    multi method BagHash(Map:D: --> BagHash:D) {
         nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
     }
-    multi method Mix(Map:D:)     {
+    multi method Mix(Map:D: --> Mix:D)     {
         nqp::create(Mix).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
     }
-    multi method MixHash(Map:D:)     {
+    multi method MixHash(Map:D: --> MixHash:D)     {
         nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
     }
 }
 
-multi sub infix:<eqv>(Map:D \a, Map:D \b) {
+multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
 
     class NotEQV { }
 

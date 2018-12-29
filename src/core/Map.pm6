@@ -185,12 +185,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               $!iter,
               nqp::stmts(  # doesn't sink
                  nqp::shift($!iter),
-                 $target.push(
+                 target.push(
                    Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter)))
               )
             )
@@ -222,12 +222,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
               nqp::stmts(
-                $target.push(nqp::iterkey_s(nqp::shift($!iter))),
-                $target.push(nqp::iterval($!iter))
+                target.push(nqp::iterkey_s(nqp::shift($!iter))),
+                target.push(nqp::iterval($!iter))
               )
             )
         }
@@ -245,12 +245,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               IterationEnd
             );
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               $!iter,
               nqp::stmts(  # doesn't sink
                 nqp::shift($!iter),
-                $target.push(
+                target.push(
                   Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) ))
               )
             )

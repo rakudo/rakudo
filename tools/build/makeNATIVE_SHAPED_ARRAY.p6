@@ -274,10 +274,10 @@ for $*IN.lines -> $line {
                 )
             }
             # needs its own push-all since it fiddles with $!indices
-            method push-all($target --> IterationEnd) {
+            method push-all(\target --> IterationEnd) {
                 nqp::until(
                   nqp::eqaddr((my \pulled := self.pull-one),IterationEnd),
-                  $target.push(pulled)
+                  target.push(pulled)
                 )
             }
         }
@@ -400,13 +400,13 @@ for $*IN.lines -> $line {
             method skip-one() {
                 nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
             }
-            method push-all($target --> IterationEnd) {
+            method push-all(\target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),
                   (my int $pos = $!pos),
                   nqp::while(
                     nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
-                    $target.push(nqp::atpos_#postfix#($!list,$pos))
+                    target.push(nqp::atpos_#postfix#($!list,$pos))
                   ),
                   ($!pos = $pos)
                 )

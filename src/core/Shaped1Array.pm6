@@ -204,13 +204,13 @@
             method skip-one() {
                 nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!reified))
             }
-            method push-all($target --> IterationEnd) {
+            method push-all(\target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!reified)),
                   (my int $i = $!pos),
                   nqp::while(
                     nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                    $target.push(
+                    target.push(
                       nqp::ifnull(
                         nqp::atpos($!reified,$i),
                         nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(

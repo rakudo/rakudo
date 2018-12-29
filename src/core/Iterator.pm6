@@ -25,13 +25,13 @@ my role Iterator {
     # side-effects as a result of producing values then up to $n of them will
     # occur; you must be sure this is desired. Returns the number of things
     # pushed, or IterationEnd if it reached the end of the iteration.
-    method push-exactly($target, int $n) {
+    method push-exactly(\target, int $n) {
         nqp::stmts(
           (my int $todo = nqp::add_i($n,1)),
           nqp::until(  # doesn't sink
             nqp::not_i($todo = nqp::sub_i($todo,1))
               || nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-            $target.push($pulled) # don't .sink $pulled here, it can be a Seq
+            target.push($pulled) # don't .sink $pulled here, it can be a Seq
           ),
           nqp::if(
             nqp::eqaddr($pulled,IterationEnd),
@@ -46,8 +46,8 @@ my role Iterator {
     # be the same as push-exactly. Those that know they can safely work ahead
     # to achieve better throughput may do so. Returns the number of things
     # pushed, or IterationEnd if it reached the end of the iteration.
-    method push-at-least($target, int $n) {
-        self.push-exactly($target, $n)
+    method push-at-least(\target, int $n) {
+        self.push-exactly(target, $n)
     }
 
     # Has the iterator produce all of its values into the target.  Typically

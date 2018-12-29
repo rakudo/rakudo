@@ -378,14 +378,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method skip-one() {
             nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my str $str = $!str),      # locals are faster
               (my int $pos = $!pos),
               (my int $chars = $!chars),
               nqp::while(
                 nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
-                $target.push(nqp::substr($str,$pos,1)) #?js: NFG
+                target.push(nqp::substr($str,$pos,1)) #?js: NFG
               ),
               ($!pos = $pos)
             )
@@ -429,14 +429,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $todo  = $!todo;
             my int $pos   = $!pos;
             my int $size  = $!size;
             my int $chars = $!chars;
             nqp::while(
               ($todo = $todo - 1),
-              $target.push(
+              target.push(
                 nqp::p6box_s(
                   nqp::substr($!str,($pos = $pos + $size), $size) #?js: NFG
                 )
@@ -574,11 +574,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ($!cursor := $!move($!cursor)),
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               nqp::stmts(
-                $target.push($!post($!cursor)),
+                target.push($!post($!cursor)),
                 ($!cursor := $!move($!cursor))
               )
             )
@@ -612,11 +612,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ($!cursor := $!move($!cursor)),
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               nqp::stmts(
-                $target.push($!cursor),
+                target.push($!cursor),
                 ($!cursor := $!move($!cursor))
               )
             )
@@ -1355,7 +1355,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $left;
             my int $nextpos;
 
@@ -1363,7 +1363,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $nextpos = nqp::findcclass(
                   nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
 
-                $target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
+                target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
 #?if moar
                 $!pos = $nextpos + 1;
 #?endif
@@ -1647,15 +1647,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   !! IterationEnd
             }
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             while $!todo {
                 $!todo = $!todo - 1;
                 my int $found = nqp::index($!string,$!match,$!pos);
                 nqp::islt_i($found,0)
                   ?? ($!todo = 0)
-                  !! $target.push(self!next-part($found));
+                  !! target.push(self!next-part($found));
             }
-            $target.push(self!last-part) if nqp::isle_i($!pos,$!chars);
+            target.push(self!last-part) if nqp::isle_i($!pos,$!chars);
         }
         method sink-all(--> IterationEnd) { }
     }
@@ -1708,17 +1708,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 IterationEnd
             }
         }
-        method push-all($target --> IterationEnd) {
-            $target.push("") if $!first;
+        method push-all(\target --> IterationEnd) {
+            target.push("") if $!first;
             $!todo = $!todo - 1;
             while $!todo {
-                $target.push(
+                target.push(
                   nqp::p6box_s(nqp::substr($!string,$!pos++,1)));
                 $!todo = $!todo - 1;
             }
-            $target.push( nqp::p6box_s(nqp::substr($!string,$!pos)))
+            target.push( nqp::p6box_s(nqp::substr($!string,$!pos)))
               if nqp::islt_i($!pos,$!chars);
-            $target.push("") if $!last;
+            target.push("") if $!last;
         }
         method count-only() { nqp::p6box_i($!todo + $!first + $!last) }
         method sink-all(--> IterationEnd) { }
@@ -2227,7 +2227,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $left;
             my int $nextpos;
 
@@ -2235,7 +2235,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $nextpos = nqp::findcclass(
                   nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
 
-                $target.push(nqp::p6box_s(
+                target.push(nqp::p6box_s(
                   nqp::substr($!str, $!pos, $nextpos - $!pos)
                 ));
                 $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,

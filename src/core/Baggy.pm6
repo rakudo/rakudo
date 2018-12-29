@@ -148,10 +148,10 @@ my role Baggy does QuantHash {
               ?? nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
               !! IterationEnd
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(
+              target.push(
                 nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
               )
             )
@@ -171,10 +171,10 @@ my role Baggy does QuantHash {
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(
+              target.push(
                 nqp::getattr(
                   nqp::iterval(nqp::shift($!iter)),
                   Pair,
@@ -194,10 +194,10 @@ my role Baggy does QuantHash {
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               $!iter,
-              $target.push(nqp::iterval(nqp::shift($!iter)).antipair),
+              target.push(nqp::iterval(nqp::shift($!iter)).antipair),
             )
         }
     }
@@ -233,7 +233,7 @@ my role Baggy does QuantHash {
         method skip-one() { # the default skip-one, too difficult to handle
             nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               $!iter,
               nqp::stmts(
@@ -246,7 +246,7 @@ my role Baggy does QuantHash {
                   nqp::add_i(nqp::getattr(pair,Pair,'$!value'),1)),
                 nqp::while(  # doesn't sink
                   ($!times = nqp::sub_i($!times,1)),
-                  $target.push($!key)
+                  target.push($!key)
                 )
               )
             )
@@ -515,14 +515,14 @@ my role Baggy does QuantHash {
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my $todo = $!todo),
               nqp::while(
                 $todo,
                 nqp::stmts(
                   --$todo,
-                  $target.push(nqp::getattr(
+                  target.push(nqp::getattr(
                     nqp::atkey($!raw,self.BAG-PICK),
                     Pair,
                     '$!key'

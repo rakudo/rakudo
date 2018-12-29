@@ -175,10 +175,10 @@ my class MixHash does Mixy {
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(nqp::iterval(nqp::shift($!iter)))
+              target.push(nqp::iterval(nqp::shift($!iter)))
             )
         }
     }
@@ -193,10 +193,10 @@ my class MixHash does Mixy {
             )
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(proxy(nqp::shift($!iter),$!hash))
+              target.push(proxy(nqp::shift($!iter),$!hash))
             )
         }
     }

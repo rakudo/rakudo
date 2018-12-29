@@ -999,7 +999,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my $list := $!list),
               (my int $number = $!number),
@@ -1007,7 +1007,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::while(
                 ($number = nqp::sub_i($number,1)),
                 nqp::stmts(  # doesn't sink
-                  $target.push(nqp::atpos(
+                  target.push(nqp::atpos(
                     $list,
                     (my int $i = nqp::floor_n(nqp::rand_n($elems)))
                   )),
@@ -1082,13 +1082,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my int $todo  = $!todo),
               (my int $elems = $!elems),
               nqp::while(
                 ($todo = nqp::sub_i($todo,1)),
-                $target.push(nqp::atpos(
+                target.push(nqp::atpos(
                   $!list,
                  nqp::floor_n(nqp::rand_n($elems))
                 ))

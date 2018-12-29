@@ -182,10 +182,10 @@ my class Range is Cool does Iterable does Positional {
 
         method pull-one() { ( $!i = $!i - 1 ) >= $!n ?? $!i !! IterationEnd }
         method skip-one() { ( $!i = $!i - 1 ) >= $!n }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $i = $!i;
             my int $n = $!n;
-            $target.push(nqp::p6box_i($i)) while ($i = $i - 1) >= $n;
+            target.push(nqp::p6box_i($i)) while ($i = $i - 1) >= $n;
             $!i = $i;
         }
         method count-only(--> Int:D) {
@@ -224,10 +224,10 @@ my class Range is Cool does Iterable does Positional {
               !! IterationEnd
         }
         method skip-one() { ( $!i = $!i - 1 ) >= $!n }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $i = $!i;
             my int $n = $!n;
-            $target.push(nqp::chr($i)) while ($i = $i - 1) >= $n;
+            target.push(nqp::chr($i)) while ($i = $i - 1) >= $n;
             $!i = $i;
         }
         method count-only(--> Int:D) {
@@ -260,18 +260,18 @@ my class Range is Cool does Iterable does Positional {
                 IterationEnd
             }
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my Mu $i = $!i;
             my Mu $e = $!e;
             if $!exclude {
                 while $i after $e {
-                    $target.push(nqp::clone($i));
+                    target.push(nqp::clone($i));
                     $i = $i.pred;
                 }
             }
             else {
                 while not $i before $e {
-                    $target.push(nqp::clone($i));
+                    target.push(nqp::clone($i));
                     $i = $i.pred;
                 }
             }
@@ -471,8 +471,8 @@ my class Range is Cool does Iterable does Positional {
               ?? $!min + nqp::rand_I($!elems, Int)
               !! IterationEnd
         }
-        method push-all($target --> IterationEnd) {
-            $target.push($!min + nqp::rand_I($!elems, Int))
+        method push-all(\target --> IterationEnd) {
+            target.push($!min + nqp::rand_I($!elems, Int))
               while $!todo--;
         }
     }
@@ -538,13 +538,13 @@ my class Range is Cool does Iterable does Positional {
                 IterationEnd
             }
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my str $key;
             while $!todo {
                 my Int $value = $!min + nqp::rand_I($!elems, Int);
                 $key = nqp::tostr_I(nqp::decont($value));
                 unless nqp::existskey($!seen,$key) {
-                    $target.push($value);
+                    target.push($value);
                     $!todo = $!todo - 1;
                     nqp::bindkey($!seen,$key,1);
                 }

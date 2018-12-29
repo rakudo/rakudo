@@ -51,12 +51,12 @@ my role Iterable {
             )
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               nqp::if(
                 $!nested,
                 nqp::stmts(
-                  $!nested.push-all($target),
+                  $!nested.push-all(target),
                   ($!nested := Iterator)
                 )
               ),
@@ -64,11 +64,11 @@ my role Iterable {
                 nqp::eqaddr((my \got := $!source.pull-one), IterationEnd),
                 nqp::if(
                   nqp::iscont(got),
-                  $target.push(got),
+                  target.push(got),
                   nqp::if(
                     nqp::istype(got,Iterable),
-                    got.flat.iterator.push-all($target),
-                    $target.push(got)
+                    got.flat.iterator.push-all(target),
+                    target.push(got)
                   )
                 )
               )
@@ -95,9 +95,9 @@ my role Iterable {
             $!iterator.pull-one
         }
 
-        method push-exactly($target, int $n) {
+        method push-exactly(\target, int $n) {
             $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.push-exactly($target, $n);
+            $!iterator.push-exactly(target, $n);
         }
 
         method is-lazy(--> True) { }

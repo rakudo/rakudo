@@ -366,7 +366,7 @@ my class IO::Handle {
                 IterationEnd
             }
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $chars;
             my int $left;
             my int $nextpos;
@@ -377,7 +377,7 @@ my class IO::Handle {
                       nqp::const::CCLASS_WHITESPACE,$!str,$!pos,$left);
                     last unless $left = $chars - $nextpos; # broken word
 
-                    $target.push(nqp::p6box_s(
+                    target.push(nqp::p6box_s(
                       nqp::substr($!str, $!pos, $nextpos - $!pos)
                     ));
 
@@ -386,7 +386,7 @@ my class IO::Handle {
                 }
                 self!next-chunk;
             }
-            $target.push(nqp::p6box_s(nqp::substr($!str,$!pos)))
+            target.push(nqp::p6box_s(nqp::substr($!str,$!pos)))
               if $!pos < $chars;
             $!handle.close if $!close;
         }
@@ -429,20 +429,20 @@ my class IO::Handle {
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               nqp::if(
                 nqp::isconcrete(
                   my \consumed := $!decoder.consume-line-chars(:$!chomp)
                 ),
                 nqp::stmts(
-                  $target.push(consumed),
+                  target.push(consumed),
                   1
                 ),
                 nqp::if(
                   nqp::isconcrete(my \got := $!handle.get),
                   nqp::stmts(
-                    $target.push(got),
+                    target.push(got),
                     1
                   )
                 )
@@ -476,10 +476,10 @@ my class IO::Handle {
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               nqp::isconcrete(my \line := $!handle.get),
-              $target.push(line)
+              target.push(line)
             );
             $!handle.close if $!close;
         }

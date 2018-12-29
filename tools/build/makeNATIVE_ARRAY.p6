@@ -391,12 +391,12 @@ for $*IN.lines -> $line {
                   )
                 )
             }
-            method push-all($target --> IterationEnd) {
+            method push-all(\target --> IterationEnd) {
                 my int $i     = $!i;
                 my int $elems = nqp::elems($!array);
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  $target.push(nqp::atposref_#postfix#($!array,$i))
+                  target.push(nqp::atposref_#postfix#($!array,$i))
                 );
                 $!i = $i;
             }

@@ -194,10 +194,10 @@ my class BagHash does Baggy {
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(nqp::iterval(nqp::shift($!iter)))
+              target.push(nqp::iterval(nqp::shift($!iter)))
             )
         }
     }
@@ -212,10 +212,10 @@ my class BagHash does Baggy {
             )
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(proxy(nqp::shift($!iter),$!hash))
+              target.push(proxy(nqp::shift($!iter),$!hash))
             )
         }
     }

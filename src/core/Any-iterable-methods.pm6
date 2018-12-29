@@ -105,7 +105,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             $result
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::unless(
               $!did-init,
               nqp::stmts(
@@ -126,7 +126,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               $!slipping,
               nqp::until(
                 nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                $target.push($value)
+                target.push($value)
               )
             );
 
@@ -145,8 +145,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                           nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
                           nqp::if(
                             nqp::istype($pulled,Slip),
-                            self.slip-all($pulled,$target),
-                            $target.push($pulled)
+                            self.slip-all($pulled,target),
+                            target.push($pulled)
                           )
                         ),
                         'LABELED', $!label,
@@ -278,7 +278,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             }
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my $pulled;
             my int $stopped;
             nqp::until(
@@ -290,7 +290,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   nqp::stmts(
                     ($stopped = 1),
                     nqp::handle(
-                      $target.push(&!block($pulled)),
+                      target.push(&!block($pulled)),
                       'LABELED', $!label,
                       'REDO', ($stopped = 0),
                       'NEXT', nqp::null, # need NEXT for next LABEL support
@@ -402,14 +402,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             $result
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my $value),
               nqp::if(
                 $!slipping,
                 nqp::until(
                   nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                  $target.push($value)
+                  target.push($value)
                 )
               ),
               nqp::until(
@@ -423,8 +423,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                       nqp::handle(
                         nqp::if(
                           nqp::istype((my $result := &!block($value)),Slip),
-                          self.slip-all($result,$target),
-                          $target.push($result)
+                          self.slip-all($result,target),
+                          target.push($result)
                         ),
                         'LABELED', $!label,
                         'REDO', ($redo = 1),
@@ -551,14 +551,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             $result
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my $value),
               nqp::if(
                 $!slipping,
                 nqp::until(
                   nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                  $target.push($value)
+                  target.push($value)
                 )
               ),
               nqp::until(
@@ -579,8 +579,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                             (my $result := &!block($value)),
                             nqp::if(
                               nqp::istype($result,Slip),
-                              self.slip-all($result,$target),
-                              $target.push($result)
+                              self.slip-all($result,target),
+                              target.push($result)
                             ),
                             return
                           ),
@@ -589,8 +589,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                               ($result := &!block($value,$value2)),
                               Slip
                             ),
-                            self.slip-all($result,$target),
-                            $target.push($result)
+                            self.slip-all($result,target),
+                            target.push($result)
                           )
                         ),
                         'LABELED', $!label,
@@ -801,7 +801,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my $iter := $!iter),  # lexicals faster than attrs
               (my $test := $!test),
@@ -812,7 +812,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ($i = nqp::add_i($i,1)),
                   nqp::if(
                     $!test($_),
-                    $target.push(nqp::p6box_i($i))
+                    target.push(nqp::p6box_i($i))
                   )
                 )
               ),
@@ -859,7 +859,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::until(
               nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
               nqp::stmts(
@@ -867,8 +867,8 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 nqp::if(
                   $!test($_),
                   nqp::stmts(  # doesn't sink
-                    $target.push(nqp::p6box_i($!index));
-                    $target.push($_);
+                    target.push(nqp::p6box_i($!index));
+                    target.push($_);
                   )
                 )
               )
@@ -902,7 +902,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my $iter := $!iter),   # lexicals are faster than attrs
               (my $test := $!test),
@@ -913,7 +913,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   ($i = nqp::add_i($i,1)),
                   nqp::if(
                     $test($_),
-                    $target.push(Pair.new($i,$_))
+                    target.push(Pair.new($i,$_))
                   )
                 )
               ),
@@ -975,12 +975,12 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             );
             $_
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::until(
               nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
               nqp::if(  # doesn't sink
                 $!test.ACCEPTS($_),
-                $target.push($_)
+                target.push($_)
               )
             );
         }
@@ -1542,14 +1542,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               pulled
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::until(
               nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd),
               nqp::unless(
                 nqp::existskey($!seen,(my \needle := pulled.WHICH)),
                 nqp::stmts(
                   nqp::bindkey($!seen,needle,1),
-                  $target.push(pulled)
+                  target.push(pulled)
                 )
               )
             )
@@ -1594,14 +1594,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::until(
               nqp::eqaddr((my \value := $!iter.pull-one),IterationEnd),
               nqp::unless(
                 nqp::existskey($!seen,my \needle := &!as(value).WHICH),
                 nqp::stmts(  # doesn't sink
                   nqp::bindkey($!seen,needle,1),
-                  $target.push(value)
+                  target.push(value)
                 )
               )
             )
@@ -1639,13 +1639,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             );
             IterationEnd
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my Mu $value;
             my str $needle;
             nqp::until( # doesn't sink
               nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
               nqp::existskey($!seen,$needle = nqp::unbox_s($value.WHICH))
-                ?? $target.push($value)
+                ?? target.push($value)
                 !! nqp::bindkey($!seen, $needle, 1)
             );
         }
@@ -1684,13 +1684,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             );
             IterationEnd
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my Mu $value;
             my str $needle;
             nqp::until(  # doesn't sink
               nqp::eqaddr(($value := $!iter.pull-one),IterationEnd),
               nqp::existskey($!seen,$needle = nqp::unbox_s(&!as($value).WHICH))
-                ?? $target.push($value)
+                ?? target.push($value)
                 !! nqp::bindkey($!seen, $needle, 1)
             );
         }
@@ -1747,7 +1747,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my Mu $value := $!iter.pull-one;
             unless nqp::eqaddr($value,IterationEnd) {
                 my $which;
@@ -1755,7 +1755,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 nqp::if(
                   $!first,
                   nqp::stmts(  # doesn't sink
-                    ($target.push($value)),
+                    (target.push($value)),
                     ($which := &!as($value)),
                     ($last_as := $which),
                     ($value := $!iter.pull-one)
@@ -1766,7 +1766,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   nqp::stmts(
                     nqp::unless(  # doesn't sink
                       &!with($last_as,$which := &!as($value)),
-                      $target.push($value)
+                      target.push($value)
                     ),
                     ($last_as := $which),
                     ($value := $!iter.pull-one)
@@ -1817,14 +1817,14 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my Mu $value := $!iter.pull-one;
             unless nqp::eqaddr($value,IterationEnd) {
                 my $last_val = $!last;
                 nqp::if(
                   $!first,
                   nqp::stmts(  # doesn't sink
-                    ($target.push($value)),
+                    (target.push($value)),
                     ($last_val := $value),
                     ($value := $!iter.pull-one)
                   )
@@ -1834,7 +1834,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                   nqp::stmts(
                     nqp::unless(  # doesn't sink
                       &!with($last_val, $value),
-                      $target.push($value)
+                      target.push($value)
                     ),
                     ($last_val := $value),
                     ($value := $!iter.pull-one)

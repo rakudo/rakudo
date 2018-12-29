@@ -40,14 +40,14 @@ class Rakudo::Iterator {
         # We can provide a generic push-all to the iterator as the
         # result of a push-all is always immutable, so we can use
         # the atpos_i here in both cases.
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my $blob := $!blob),     # attribute access is slower
               (my int $elems = nqp::elems($blob)),
               (my int $i = $!i),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                $target.push(nqp::atpos_i($blob,$i))
+                target.push(nqp::atpos_i($blob,$i))
               ),
               ($!i = $i)
             )
@@ -124,13 +124,13 @@ class Rakudo::Iterator {
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               $!iter,
               nqp::stmts(  # doesn't sink
                 (my $pair := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
-                $target.push(nqp::getattr($pair,Pair,'$!key')),
-                $target.push(nqp::getattr($pair,Pair,'$!value'))
+                target.push(nqp::getattr($pair,Pair,'$!key')),
+                target.push(nqp::getattr($pair,Pair,'$!value'))
               )
             )
         }
@@ -347,7 +347,7 @@ class Rakudo::Iterator {
             )
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               $!indices,
               nqp::stmts(                                   # still iterating
@@ -355,7 +355,7 @@ class Rakudo::Iterator {
                 nqp::while(
                   nqp::isle_i(($i = nqp::add_i($i,1)),$!max),
                   nqp::stmts(
-                    $target.push(self.result),              # process
+                    target.push(self.result),              # process
                     nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
                   )
                 ),
@@ -493,11 +493,11 @@ class Rakudo::Iterator {
               Pair.new(pulled,+($!key = nqp::add_i($!key,1)))
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $key = -1;
             nqp::until(
               nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd),
-              $target.push(Pair.new(pulled,+($key = nqp::add_i($key,1))))
+              target.push(Pair.new(pulled,+($key = nqp::add_i($key,1))))
             )
         }
     }
@@ -518,12 +518,12 @@ class Rakudo::Iterator {
               $!associative.AT-KEY(key)
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my \iterator    := $!iterator;
             my \associative := $!associative;
             nqp::until(
               nqp::eqaddr((my \key := iterator.pull-one),IterationEnd),
-              $target.push(associative.AT-KEY(key))
+              target.push(associative.AT-KEY(key))
             )
         }
     }
@@ -732,10 +732,10 @@ class Rakudo::Iterator {
               !! IterationEnd
         }
         method skip-one() { ( $!i = $!i + 1 ) <= $!n }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $i = $!i;
             my int $n = $!n;
-            $target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
+            target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
             $!i = $i;
         }
         method count-only(--> Int:D) { nqp::p6box_i($!n - $!i) }
@@ -1784,12 +1784,12 @@ class Rakudo::Iterator {
             )
         }
 
-        method push-exactly($target, int $n) {
+        method push-exactly(\target, int $n) {
             nqp::if(
               nqp::isgt_i($n,0),
               nqp::stmts(
                 ($!wanted = $n),
-                ($!push-target := $target),
+                ($!push-target := target),
                 nqp::if(
                   $!slipping && nqp::not_i(
                     nqp::eqaddr(self!slip-wanted,IterationEnd)
@@ -1886,7 +1886,7 @@ class Rakudo::Iterator {
             )
         }
         method skip-one() { nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last) }
-        method push-exactly($target, int $batch-size) {
+        method push-exactly(\target, int $batch-size) {
             nqp::stmts(
               (my int $todo = nqp::add_i($batch-size,1)),
               (my int $i    = $!i),      # lexicals are faster than attrs
@@ -1894,7 +1894,7 @@ class Rakudo::Iterator {
               nqp::while(
                 ($todo = nqp::sub_i($todo,1))
                   && nqp::isle_i(($i = nqp::add_i($i,1)),$last),
-                $target.push(nqp::p6box_i($i))
+                target.push(nqp::p6box_i($i))
               ),
               ($!i = $i),                # make sure pull-one ends
               nqp::if(
@@ -1904,13 +1904,13 @@ class Rakudo::Iterator {
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my int $i    = $!i),      # lexicals are faster than attrs
               (my int $last = $!last),
               nqp::while(
                 nqp::isle_i(($i = nqp::add_i($i,1)),$last),
-                $target.push(nqp::p6box_i($i))
+                target.push(nqp::p6box_i($i))
               ),
               ($!i = $i),                # make sure pull-one ends
             )
@@ -2024,7 +2024,7 @@ class Rakudo::Iterator {
               $!pulled,
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my int $key = -1;
             nqp::until(
               nqp::eqaddr(
@@ -2032,8 +2032,8 @@ class Rakudo::Iterator {
                 IterationEnd
               ),
               nqp::stmts(
-                $target.push(nqp::p6box_i(($key = nqp::add_i($key,1)))),
-                $target.push(pulled),
+                target.push(nqp::p6box_i(($key = nqp::add_i($key,1)))),
+                target.push(pulled),
               )
             )
         }
@@ -2253,10 +2253,10 @@ class Rakudo::Iterator {
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               $!iter,
-              $target.push(nqp::iterkey_s(nqp::shift($!iter)))
+              target.push(nqp::iterkey_s(nqp::shift($!iter)))
             )
         }
     }
@@ -2280,10 +2280,10 @@ class Rakudo::Iterator {
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              $target.push(nqp::iterval(nqp::shift($!iter)))
+              target.push(nqp::iterval(nqp::shift($!iter)))
             )
         }
     }
@@ -2404,11 +2404,11 @@ class Rakudo::Iterator {
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               nqp::unless(
                 nqp::eqaddr($!value,IterationEnd),
-                $target.push($!value)
+                target.push($!value)
               ),
               ($!value := IterationEnd)
             )
@@ -2457,12 +2457,12 @@ class Rakudo::Iterator {
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::while(
               $!times,
               nqp::stmts(
                 --$!times,
-                $target.push($!value)
+                target.push($!value)
               )
             )
         }
@@ -2490,12 +2490,12 @@ class Rakudo::Iterator {
               Pair.new(($!key = nqp::add_i($!key,1)),$pulled)
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my $pulled;
             my int $key = -1;
             nqp::until(
               nqp::eqaddr(($pulled := $!iter.pull-one),IterationEnd),
-              $target.push(Pair.new(($key = nqp::add_i($key,1)),$pulled))
+              target.push(Pair.new(($key = nqp::add_i($key,1)),$pulled))
             )
         }
     }
@@ -2635,7 +2635,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method push-exactly($target, int $batch-size) {
+        method push-exactly(\target, int $batch-size) {
             nqp::stmts(
               (my int $todo = nqp::add_i($batch-size,1)),
               (my int $i    = $!i),      # lexicals are faster than attrs
@@ -2643,7 +2643,7 @@ class Rakudo::Iterator {
               nqp::while(
                 ($todo = nqp::sub_i($todo,1))
                   && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                $target.push(
+                target.push(
                   nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                 )
               ),
@@ -2656,13 +2656,13 @@ class Rakudo::Iterator {
             )
         }
 
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my int $elems = nqp::elems($!reified)),
               (my int $i = $!i),
               nqp::while(   # doesn't sink
                 nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                $target.push(
+                target.push(
                   nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                 )
               ),
@@ -2730,7 +2730,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method push-exactly($target, int $batch-size) {
+        method push-exactly(\target, int $batch-size) {
             nqp::stmts(
               (my int $todo = nqp::add_i($batch-size,1)),
               (my int $i    = $!i),      # lexicals are faster than attrs
@@ -2738,7 +2738,7 @@ class Rakudo::Iterator {
               nqp::while(
                 ($todo = nqp::sub_i($todo,1))
                   && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                $target.push(nqp::atpos($!reified,$i))
+                target.push(nqp::atpos($!reified,$i))
               ),
               ($!i = $i),                # make sure pull-one ends
               nqp::if(
@@ -2748,13 +2748,13 @@ class Rakudo::Iterator {
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my int $elems = nqp::elems($!reified)),
               (my int $i = $!i), # lexicals are faster than attributes
               nqp::while(  # doesn't sink
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                $target.push(nqp::atpos($!reified,$i))
+                target.push(nqp::atpos($!reified,$i))
               ),
               ($!i = $i)
             )
@@ -2817,12 +2817,12 @@ class Rakudo::Iterator {
               IterationEnd
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               (my int $i = nqp::elems($!reified)),
               nqp::while(  # doesn't sink
                 $i,
-                $target.push(nqp::atpos($!reified,($i = nqp::sub_i($i,1))))
+                target.push(nqp::atpos($!reified,($i = nqp::sub_i($i,1))))
               ),
               ($!i = 0)
             )
@@ -3350,18 +3350,18 @@ class Rakudo::Iterator {
                 IterationEnd
             }
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             my Mu $i = $!i;
             my Mu $e = $!e;
             if $!exclude {
                 while $i before $e {
-                    $target.push(nqp::clone($i));
+                    target.push(nqp::clone($i));
                     $i = $i.succ;
                 }
             }
             else {
                 while not $i after $e {
-                    $target.push(nqp::clone($i));
+                    target.push(nqp::clone($i));
                     $i = $i.succ;
                 }
             }
@@ -3546,14 +3546,14 @@ class Rakudo::Iterator {
               )
             )
         }
-        method push-all($target --> IterationEnd) {
+        method push-all(\target --> IterationEnd) {
             nqp::stmts(
               nqp::if(
                 nqp::eqaddr($!val1,IterationEnd),
-                nqp::unless(nqp::eqaddr($!val2,Mu),$target.push($!val2)),
+                nqp::unless(nqp::eqaddr($!val2,Mu),target.push($!val2)),
                 nqp::stmts(
-                  $target.push($!val1),
-                  $target.push($!val2)
+                  target.push($!val1),
+                  target.push($!val2)
                 )
               ),
               ($!val1 := $!val2 := IterationEnd)

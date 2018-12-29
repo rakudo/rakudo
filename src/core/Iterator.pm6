@@ -52,10 +52,10 @@ my role Iterator {
 
     # Has the iterator produce all of its values into the target.  Typically
     # called in .STORE if the iterator is non-lazy.  Returns IterationEnd.
-    method push-all($target --> IterationEnd) {
+    method push-all(\target --> IterationEnd) {
         nqp::until( # we may not .sink $pulled here, since it can be a Seq
-          nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-          $target.push($pulled)
+          nqp::eqaddr((my \pulled := self.pull-one),IterationEnd),
+          target.push(pulled)
         )
     }
 
@@ -66,10 +66,10 @@ my role Iterator {
     # calls push-all. If all values the iterator can produce are pushed, then
     # IterationEnd should be returned. Otherwise, return something else (Mu
     # will do fine).
-    method push-until-lazy($target) {
+    method push-until-lazy(\target) {
         nqp::unless(
           self.is-lazy,
-          self.push-all($target)
+          self.push-all(target)
         )
     }
 

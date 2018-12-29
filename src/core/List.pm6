@@ -630,14 +630,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             IterationEnd
         }
 
-        method push-until-lazy($target) {
+        method push-until-lazy(\target) {
             nqp::if(
               nqp::isconcrete($!todo),
               nqp::stmts(                # something to reify still
                 (my int $elems = $!todo.reify-until-lazy),
                 nqp::while(  # doesn't sink
                   nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
-                  $target.push(nqp::atpos($!reified,$!i))
+                  target.push(nqp::atpos($!reified,$!i))
                 ),
                 nqp::if(
                   $!todo.fully-reified,
@@ -652,7 +652,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ($elems = nqp::elems($!reified)),
                 nqp::while(  # doesn't sink
                   nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
-                  $target.push(nqp::atpos($!reified,$!i))
+                  target.push(nqp::atpos($!reified,$!i))
                 ),
                 IterationEnd
               )

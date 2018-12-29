@@ -73,6 +73,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         with self!matching-dist($spec) {
             my $name = $spec.short-name;
             my $id   = self!comp-unit-id($name);
+            my $*DISTRIBUTION  = CompUnit::Repository::Distribution.new($_, :repo(self), :dist-id($_.Str));
             my $*RESOURCES     = Distribution::Resources.new(:repo(self), :dist-id(''));
             my $source-handle  = $_.content($_.meta<provides>{$name});
             my $precomp-handle = $precomp.try-load(
@@ -255,6 +256,19 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 return $path.is-relative ?? $dist.prefix.add( $path ) !! $path;
             }
         }
+    }
+
+    method distribution(Str $id --> Distribution) {
+        my $dist-spec = CompUnit::DependencySpecification.from-string($id);
+
+        my $module-spec = CompUnit::DependencySpecification.new(
+            short-name      => self!distribution.meta<provides>.keys.head,
+            auth-matcher    => $dist-spec.auth-matcher    // True,
+            version-matcher => $dist-spec.version-matcher // True,
+            api-matcher     => $dist-spec.api-matcher     // True,
+        );
+
+        return self.candidates($module-spec).head;
     }
 
     method precomp-store(--> CompUnit::PrecompilationStore:D) {

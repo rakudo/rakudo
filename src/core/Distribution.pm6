@@ -31,12 +31,22 @@ role Distribution::Locally does Distribution {
 class CompUnit::Repository::Distribution does Distribution {
     has Distribution $!dist handles <content prefix>;
     has $!meta;
-    submethod BUILD(:$!meta, :$!dist --> Nil) { }
-    method new(Distribution $dist) {
+    has $.repo;
+    has $.dist-id;
+    has $.repo-name;
+
+    submethod TWEAK(|) {
+        $!repo-name //= $!repo.name if ($!repo.?name // '') ne '';
+        $!repo = $!repo.path-spec if $!repo.defined && $!repo !~~ Str;
+    }
+
+    submethod BUILD(:$!meta, :$!dist, :$!repo, :$!dist-id, :$!repo-name --> Nil) { }
+
+    method new(Distribution $dist, *%_) {
         my $meta = $dist.meta.hash;
         $meta<ver>  //= $meta<version>;
         $meta<auth> //= $meta<authority> // $meta<author>;
-        self.bless(:$dist, :$meta);
+        self.bless(:$dist, :$meta, |%_);
     }
     method meta { $!meta }
 
@@ -49,6 +59,24 @@ class CompUnit::Repository::Distribution does Distribution {
 
     method id() {
         return nqp::sha1(self.Str);
+    }
+
+    method from-precomp(CompUnit::Repository::Distribution:U: --> CompUnit::Repository::Distribution) {
+        if %*ENV<RAKUDO_PRECOMP_DISTRIBUTION> -> \dist {
+            my %data := Rakudo::Internals::JSON.from-json: dist;
+            my $repo := %data<repo-name>
+                ?? CompUnit::RepositoryRegistry.repository-for-name(%data<repo-name>)
+                !! CompUnit::RepositoryRegistry.repository-for-spec(%data<repo>);
+            my $dist := $repo.distribution(%data<dist-id>);
+            self.new($dist, :repo(%data<repo>), :repo-name(%data<repo-name>));
+        }
+        else {
+            Nil
+        }
+    }
+
+    method serialize() {
+        Rakudo::Internals::JSON.to-json: {:$.repo, :$.repo-name, :$.dist-id}
     }
 }
 

@@ -258,6 +258,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             PROCESS::<$REPO> := self; # Precomp files should only depend on downstream repos
             my $precomp = $*REPO.precomp-repository;
             my $repo-prefix = self!repo-prefix;
+            my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
 
@@ -552,6 +553,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $id     = $loader.basename;
             return $_ with %!loaded{$id};
 
+            my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($_, :repo(self), :dist-id(.dist-id));
             my $*RESOURCES  = Distribution::Resources.new(:repo(self), :dist-id(.dist-id));
             my $repo-prefix = self!repo-prefix;
             my $handle      = $precomp.try-load(
@@ -607,7 +609,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         return %!loaded.values;
     }
 
-    method distribution($id) {
+    method distribution(Str $id --> Distribution) {
         InstalledDistribution.new(self!read-dist($id), :prefix(self.prefix))
     }
 

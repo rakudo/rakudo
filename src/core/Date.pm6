@@ -1,6 +1,8 @@
 my class Date does Dateish {
 
-    method !formatter() { sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day }
+    method !formatter(--> Str:D) {
+        sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day
+    }
 
     my constant $valid-units = nqp::hash(
       'day',    1,
@@ -19,10 +21,14 @@ my class Date does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method !SET-SELF($!year,$!month,$!day,&!formatter,$!daycount = Int) { self }
+    method !SET-SELF(
+      $!year,$!month,$!day,&!formatter,$!daycount = Int
+    --> Date:D) { self }
 
     proto method new(|) {*}
-    multi method new(Date: Int:D() $year, Int:D() $month, Int:D() $day, :&formatter, *%_) {
+    multi method new(Date:
+      Int:D() $year, Int:D() $month, Int:D() $day, :&formatter, *%_
+    --> Date:D) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
         1 <= $day <= self!DAYS-IN-MONTH($year,$month)
@@ -35,7 +41,9 @@ my class Date does Dateish {
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
-    multi method new(Date: Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter, *%_) {
+    multi method new(Date:
+      Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter, *%_
+    --> Date:D) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
         1 <= $day <= self!DAYS-IN-MONTH($year,$month)
@@ -48,7 +56,7 @@ my class Date does Dateish {
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
           !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
     }
-    multi method new(Date: Str $date, :&formatter, *%_) {
+    multi method new(Date: Str $date, :&formatter, *%_ --> Date:D) {
         X::Temporal::InvalidFormat.new(
           invalid-str => $date,
           target      => 'Date',
@@ -62,7 +70,7 @@ my class Date does Dateish {
         $/;
         self.new($0,$1,$2,:&formatter,|%_)
     }
-    multi method new(Date: Dateish $d, :&formatter, *%_) {
+    multi method new(Date: Dateish $d, :&formatter, *%_ --> Date:D) {
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($d.year,$d.month,$d.day,&formatter)
           !! self.bless(
@@ -73,17 +81,17 @@ my class Date does Dateish {
                |%_
              )
     }
-    multi method new(Date: Instant $i, :&formatter, *%_) {
+    multi method new(Date: Instant $i, :&formatter, *%_ --> Date:D) {
         self.new(DateTime.new($i),:&formatter,|%_)
     }
-    method new-from-daycount($daycount,:&formatter) {
+    method new-from-daycount($daycount,:&formatter --> Date:D) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
           !! self.bless(:$year,:$month,:$day,:&formatter,:$daycount)
     }
 
-    method today(:&formatter) { self.new(DateTime.now, :&formatter) }
+    method today(:&formatter --> Date:D) { self.new(DateTime.now, :&formatter) }
 
     multi method WHICH(Date:D: --> ValueObjAt:D) {
         nqp::box_s(
@@ -99,12 +107,12 @@ my class Date does Dateish {
         )
     }
 
-    method truncated-to(Cool $unit) {
+    method truncated-to(Cool $unit --> Date:D) {
         self!clone-without-validating(
           |self!truncate-ymd(self!VALID-UNIT($unit)));
     }
 
-    method later(:$earlier, *%unit) {
+    method later(:$earlier, *%unit --> Date:D) {
 
         # basic sanity check
         nqp::if(
@@ -145,7 +153,7 @@ my class Date does Dateish {
         }
     }
 
-    method clone(*%_) {
+    method clone(Date:D: *%_ --> Date:D) {
         my $h := nqp::getattr(%_,Map,'$!storage');
         self.new(
           nqp::ifnull(nqp::atkey($h,'year'), $!year),
@@ -154,7 +162,9 @@ my class Date does Dateish {
           formatter => nqp::ifnull(nqp::atkey($h,'formatter'),&!formatter),
         )
     }
-    method !clone-without-validating(*%_) { # A premature optimization.
+
+    # A premature optimization.
+    method !clone-without-validating(Date:D: *%_ --> Date:D) {
         my $h := nqp::getattr(%_,Map,'$!storage');
         nqp::create(self)!SET-SELF(
           nqp::ifnull(nqp::atkey($h,'year'), $!year),
@@ -164,7 +174,7 @@ my class Date does Dateish {
         )
     }
 
-    method new-from-diff(Date:D: Int:D $diff) {
+    method new-from-diff(Date:D: Int:D $diff --> Date:D) {
         nqp::isconcrete($!daycount)
           ?? nqp::stmts(
                (my \new := nqp::clone(self)),
@@ -175,67 +185,69 @@ my class Date does Dateish {
           !! nqp::p6bindattrinvres(nqp::clone(self),Date,'$!day',$!day + $diff)
     }
 
-    method succ(Date:D:) {
+    method succ(Date:D: --> Date:D) {
         $!day < 28 && nqp::eqaddr(self.WHAT,Date)
           ?? self.new-from-diff(1)
           !! self.new-from-daycount(self.daycount + 1)
     }
-    method pred(Date:D:) {
+    method pred(Date:D: --> Date:D) {
         $!day > 1 && nqp::eqaddr(self.WHAT,Date)
           ?? self.new-from-diff(-1)
           !! self.new-from-daycount(self.daycount - 1)
     }
 
-    multi method perl(Date:D:) {
+    multi method perl(Date:D: --> Str:D) {
         self.^name ~ ".new($!year,$!month,$!day)"
     }
-    multi method ACCEPTS(Date:D: DateTime:D $dt) {
+    multi method ACCEPTS(Date:D: DateTime:D $dt --> Bool:D) {
         $dt.day == $!day && $dt.month == $!month && $dt.year == $!year
     }
 
     proto method DateTime()  {*}
-    multi method DateTime(Date:D:) { DateTime.new(:$!year, :$!month, :$!day) }
-    multi method DateTime(Date:U:) { DateTime }
-    method Date() { self }
+    multi method DateTime(Date:D: --> DateTime:D) {
+        DateTime.new(:$!year, :$!month, :$!day)
+    }
+    multi method DateTime(Date:U: --> DateTime:U) { DateTime }
+    method Date(--> Date) { self }
 }
 
-multi sub infix:<+>(Date:D $d, Int:D $x) {
+multi sub infix:<+>(Date:D $d, Int:D $x --> Date:D) {
     nqp::eqaddr($d.WHAT,Date) && $d.day + $x <= 28
       ?? $d.new-from-diff($x)
       !! Date.new-from-daycount($d.daycount + $x)
 }
-multi sub infix:<+>(Int:D $x, Date:D $d) {
+multi sub infix:<+>(Int:D $x, Date:D $d --> Date:D) {
     nqp::eqaddr($d.WHAT,Date) && $d.day + $x <= 28
       ?? $d.new-from-diff($x)
       !! Date.new-from-daycount($d.daycount + $x)
 }
-multi sub infix:<->(Date:D $d, Int:D $x) {
+multi sub infix:<->(Date:D $d, Int:D $x --> Date:D) {
     nqp::eqaddr($d.WHAT,Date) && $d.day - $x > 0
       ?? $d.new-from-diff(-$x)
       !! Date.new-from-daycount($d.daycount - $x)
 }
-multi sub infix:<->(Date:D $a, Date:D $b) {
+multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
     $a.daycount - $b.daycount;
 }
-multi sub infix:<cmp>(Date:D $a, Date:D $b) {
+multi sub infix:<cmp>(Date:D $a, Date:D $b --> Order:D) {
     $a.daycount cmp $b.daycount
 }
-multi sub infix:«<=>»(Date:D $a, Date:D $b) {
+multi sub infix:«<=>»(Date:D $a, Date:D $b --> Order:D) {
     $a.daycount <=> $b.daycount
 }
-multi sub infix:<==>(Date:D $a, Date:D $b) {
+multi sub infix:<==>(Date:D $a, Date:D $b --> Bool:D) {
     $a.daycount == $b.daycount
 }
-multi sub infix:«<=»(Date:D $a, Date:D $b) {
+multi sub infix:«<=»(Date:D $a, Date:D $b --> Bool:D) {
     $a.daycount <= $b.daycount
 }
-multi sub infix:«<»(Date:D $a, Date:D $b) {
+multi sub infix:«<»(Date:D $a, Date:D $b --> Bool:D) {
     $a.daycount < $b.daycount
 }
-multi sub infix:«>=»(Date:D $a, Date:D $b) {
+multi sub infix:«>=»(Date:D $a, Date:D $b --> Bool:D) {
     $a.daycount >= $b.daycount
 }
-multi sub infix:«>»(Date:D $a, Date:D $b) {
+multi sub infix:«>»(Date:D $a, Date:D $b --> Bool:D) {
     $a.daycount > $b.daycount
 }
 

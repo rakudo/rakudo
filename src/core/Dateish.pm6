@@ -5,23 +5,29 @@ my role Dateish {
     has Int $.daycount;
     has     &.formatter;
 
-    method IO(Dateish:D:) { IO::Path.new(~self) }  # because Dateish is not Cool
+    method IO(Dateish:D: --> IO::Path:D) {  # because Dateish is not Cool
+        IO::Path.new(~self)
+    }
 
     # this sub is also used by DAYS-IN-MONTH, which is used by other types
-    sub IS-LEAP-YEAR($y) { $y %% 4 and not $y %% 100 or $y %% 400 }
-    method is-leap-year(Dateish:D:) { IS-LEAP-YEAR($!year) }
+    sub IS-LEAP-YEAR($y) {
+        $y %% 4 and not $y %% 100 or $y %% 400
+    }
+    method is-leap-year(Dateish:D: --> Bool:D) { IS-LEAP-YEAR($!year) }
 
     my constant $days-in-month = nqp::list_i(
       0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     );
     # This method is used by Date and DateTime:
-    method !DAYS-IN-MONTH(\year, \month) {
+    method !DAYS-IN-MONTH(\year, \month --> Int:D) {
         nqp::atpos_i($days-in-month,month) ||
           ( month == 2 ?? 28 + IS-LEAP-YEAR(year) !! Nil );
     }
-    method days-in-month(Dateish:D:) { self!DAYS-IN-MONTH($!year,$!month) }
+    method days-in-month(Dateish:D: --> Int:D) {
+        self!DAYS-IN-MONTH($!year,$!month)
+    }
 
-    method !year-Str() {
+    method !year-Str(--> Str:D) {
         sprintf 0 <= $!year <= 9999 ?? '%04d' !! '%+05d', $!year;
     }
 
@@ -32,12 +38,12 @@ my role Dateish {
         )
     }
 
-    multi method Str(Dateish:D:) {
+    multi method Str(Dateish:D: --> Str:D) {
         &!formatter ?? &!formatter(self) !! self!formatter
     }
-    multi method gist(Dateish:D:) { self.Str }
+    multi method gist(Dateish:D: --> Str:D) { self.Str }
 
-    method daycount() {
+    method daycount(--> Int:D) {
         $!daycount //= do {
             # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
             my int $m = $!month < 3 ?? $!month + 12 !! $!month;
@@ -68,8 +74,8 @@ my role Dateish {
         }
     }
 
-    method day-of-month() { $!day }
-    method day-of-week(Dateish:D:) { (self.daycount + 2) % 7 + 1 }
+    method day-of-month(--> Int:D) { $!day }
+    method day-of-week(Dateish:D:--> Int:D) { (self.daycount + 2) % 7 + 1 }
 
     method week() { # algorithm from Claus Tøndering
         my int $a = $!year - ($!month <= 2).floor.Int;
@@ -90,23 +96,25 @@ my role Dateish {
         !! $n > 364 + $s ?? ($!year + 1, 1                   )
         !!                  ($!year,     $n div 7 + 1        );
     }
-    method week-year()   { self.week.AT-POS(0) }
-    method week-number() { self.week.AT-POS(1) }
+    method week-year(--> Int:D)   { self.week.AT-POS(0) }
+    method week-number(--> Int:D) { self.week.AT-POS(1) }
 
-    method weekday-of-month {
+    method weekday-of-month(--> Int:D) {
         ($!day - 1) div 7 + 1
     }
 
     my constant $days-at-start-of-month = nqp::list_i(
       0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
     );
-    method day-of-year() {
+    method day-of-year(--> Int:D) {
         $!day
           + nqp::atpos_i($days-at-start-of-month,$!month)
           + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 
-    method yyyy-mm-dd() { sprintf '%04d-%02d-%02d',$!year,$!month,$!day }
+    method yyyy-mm-dd(--> Str:D) {
+        sprintf '%04d-%02d-%02d',$!year,$!month,$!day
+    }
 
     method earlier(*%unit) { self.later(:earlier, |%unit) }
 

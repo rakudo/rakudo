@@ -243,7 +243,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                                 !! ($_ => $_)
                         }).Slip,
                     )),
-                    resources => %files.keys.grep(*.starts-with('resources/')).map(*.substr(10)).List, # already grepped resources/ for %files, so reuse that information
+                    resources => %files.keys.grep(*.starts-with('resources/')).map(*.substr(10)).List.eager, # already grepped resources/ for %files, so reuse that information
                     provides  => &ls($!prefix.absolute).grep(*.ends-with(any(@extensions))).map({ $_.subst(:g, /\//, "::").subst(:g, /\:\:+/, '::').subst(/^.*?'::'/, '').subst(/\..*/, '') => $_ }).hash,
                 ));
             };

@@ -7,21 +7,11 @@ my class X::Cannot::Empty       { ... }
 my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
 
-# these constants temporary until they are available as nqp::const::FOO
-constant BINARY_ENDIAN_NATIVE =  0;
-constant BINARY_ENDIAN_LITTLE =  1;
-constant BINARY_ENDIAN_BIG    =  2;
-
-constant BINARY_SIZE_8_BIT    =  0;
-constant BINARY_SIZE_16_BIT   =  4;
-constant BINARY_SIZE_32_BIT   =  8;
-constant BINARY_SIZE_64_BIT   = 12;
-
 # externalize the endian indicators
 enum Endian (
-  NativeEndian => BINARY_ENDIAN_NATIVE,
-  LittleEndian => BINARY_ENDIAN_LITTLE,
-  BigEndian    => BINARY_ENDIAN_BIG,
+  NativeEndian => nqp::box_i(nqp::const::BINARY_ENDIAN_NATIVE,Int),
+  LittleEndian => nqp::box_i(nqp::const::BINARY_ENDIAN_LITTLE,Int),
+  BigEndian    => nqp::box_i(nqp::const::BINARY_ENDIAN_BIG,Int),
 );
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
@@ -133,25 +123,29 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     # for simplicity's sake, these are not multis
     method read-int8(::?ROLE:D: int $offset, Endian $? --> int) is raw {
         nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE));
+          nqp::bitor_i(
+            nqp::const::BINARY_SIZE_8_BIT,
+            nqp::const::BINARY_ENDIAN_NATIVE
+          )
+        )
     }
     method read-int16(::?ROLE:D:
       int $offset, Endian $endian = NativeEndian --> int
     ) is raw {
         nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian))
     }
     method read-int32(::?ROLE:D:
       int $offset, Endian $endian = NativeEndian --> int
     ) is raw {
         nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
     }
     method read-int64(::?ROLE:D:
       int $offset, Endian $endian = NativeEndian --> int
     ) is raw {
         nqp::readint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
     }
     method read-int128(::?ROLE:D:
       int $offset, Endian $endian = NativeEndian --> Int
@@ -162,25 +156,29 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method read-uint8(::?ROLE:D: int $offset, Endian $? --> uint) is raw {
         nqp::readuint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_8_BIT,BINARY_ENDIAN_NATIVE))
+          nqp::bitor_i(
+            nqp::const::BINARY_SIZE_8_BIT,
+            nqp::const::BINARY_ENDIAN_NATIVE
+          )
+        )
     }
     method read-uint16(::?ROLE:D:
       int $offset, Endian $endian = NativeEndian --> uint
     ) is raw {
         nqp::readuint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian))
     }
     method read-uint32(::?ROLE:D:
       int $offset, Endian $endian = NativeEndian --> uint
     ) is raw {
         nqp::readuint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
     }
     method read-uint64(::?ROLE:D:
       int $offset, Endian $endian = NativeEndian --> uint
     ) is raw {
         my \signed := nqp::readuint(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian));
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian));
         signed < 0 ?? signed + 1 +< 64 !! signed
 
     }
@@ -199,13 +197,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
       int $offset, Endian $endian = NativeEndian --> num
     ) is raw {
         nqp::readnum(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
     }
     method read-num64(::?ROLE:D:
       int $offset, Endian $endian = NativeEndian --> num
     ) is raw {
         nqp::readnum(self,$offset,
-          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
     }
 #?endif
 
@@ -715,25 +713,25 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
       int $offset, int8 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_8_BIT,$endian))
     }
     method write-int16(::?ROLE:D:
       int $offset, int16 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian))
     }
     method write-int32(::?ROLE:D:
       int $offset, int32 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
     }
     method write-int64(::?ROLE:D:
       int $offset, Int:D $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeint(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
     }
     method write-int128(::?ROLE:D:
       int $offset, Int:D $value, Endian $endian = NativeEndian --> Nil
@@ -751,25 +749,25 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
       int $offset, uint8 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_8_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_8_BIT,$endian))
     }
     method write-uint16(::?ROLE:D:
       int $offset, uint16 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_16_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian))
     }
     method write-uint32(::?ROLE:D:
       int $offset, uint32 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
     }
     method write-uint64(::?ROLE:D:
       int $offset, UInt:D $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writeuint(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
     }
     method write-uint128(::?ROLE:D:
       int $offset, UInt:D $value, Endian $endian = NativeEndian --> Nil
@@ -786,13 +784,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
       int $offset, num32 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writenum(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_32_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
     }
     method write-num64(::?ROLE:D:
       int $offset, num64 $value, Endian $endian = NativeEndian --> Nil
     ) is raw {
         nqp::writenum(self,$offset,$value,
-          nqp::bitor_i(BINARY_SIZE_64_BIT,$endian))
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
     }
 #?endif
 

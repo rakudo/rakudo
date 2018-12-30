@@ -73,7 +73,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         with self!matching-dist($spec) {
             my $name = $spec.short-name;
             my $id   = self!comp-unit-id($name);
-            my $*DISTRIBUTION  = CompUnit::Repository::Distribution.new($_, :repo(self), :dist-id($_.Str));
+            my $*DISTRIBUTION  = $_;
             my $*RESOURCES     = Distribution::Resources.new(:repo(self), :dist-id(''));
             my $source-handle  = $_.content($_.meta<provides>{$name});
             my $precomp-handle = $precomp.try-load(
@@ -222,6 +222,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
     method !distribution {
         return $!distribution if $!distribution.defined;
+
         # Path contains a META6.json file, so only use paths/modules explicitly declared therein ( -I ./ )
         my $dist = $!prefix.add('META6.json').f
             ?? Distribution::Path.new($!prefix)
@@ -247,7 +248,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 ));
             };
 
-        return $!distribution = CompUnit::Repository::Distribution.new($dist);
+        return $!distribution = $_.clone(:dist-id($_.Str)) with CompUnit::Repository::Distribution.new($dist, :repo(self));
     }
 
     method resource($dist-id, $key) {

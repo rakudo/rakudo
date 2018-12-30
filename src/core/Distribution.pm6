@@ -36,18 +36,21 @@ class CompUnit::Repository::Distribution does Distribution {
     has $.repo-name;
 
     submethod TWEAK(|) {
+        my $meta = $!dist.meta.hash;
+        $meta<ver>  //= $meta<version>;
+        $meta<auth> //= $meta<authority> // $meta<author>;
+        $!meta = $meta;
+
         $!repo-name //= $!repo.name if ($!repo.?name // '') ne '';
         $!repo = $!repo.path-spec if $!repo.defined && $!repo !~~ Str;
     }
 
-    submethod BUILD(:$!meta, :$!dist, :$!repo, :$!dist-id, :$!repo-name --> Nil) { }
+    submethod BUILD(:$!dist, :$!repo, :$!dist-id, :$!repo-name --> Nil) { }
 
     method new(Distribution $dist, *%_) {
-        my $meta = $dist.meta.hash;
-        $meta<ver>  //= $meta<version>;
-        $meta<auth> //= $meta<authority> // $meta<author>;
-        self.bless(:$dist, :$meta, |%_);
+        self.bless(:$dist, |%_)
     }
+
     method meta { $!meta }
 
     method Str() {
@@ -68,7 +71,7 @@ class CompUnit::Repository::Distribution does Distribution {
                 ?? CompUnit::RepositoryRegistry.repository-for-name(%data<repo-name>)
                 !! CompUnit::RepositoryRegistry.repository-for-spec(%data<repo>);
             my $dist := $repo.distribution(%data<dist-id>);
-            self.new($dist, :repo(%data<repo>), :repo-name(%data<repo-name>));
+            self.new($dist, :repo(%data<repo>), :repo-name(%data<repo-name>), :dist-id(%data<dist-id>));
         }
         else {
             Nil
@@ -77,6 +80,10 @@ class CompUnit::Repository::Distribution does Distribution {
 
     method serialize() {
         Rakudo::Internals::JSON.to-json: {:$.repo, :$.repo-name, :$.dist-id}
+    }
+
+    method perl {
+        self.^name ~ ".new({$!dist.perl}, repo => {$!repo.perl}, repo-name => {$!repo-name.perl})";
     }
 }
 

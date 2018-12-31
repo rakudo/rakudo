@@ -259,17 +259,10 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         }
     }
 
-    method distribution(Str $id --> Distribution) {
-        my $dist-spec = CompUnit::DependencySpecification.from-string($id);
-
-        my $module-spec = CompUnit::DependencySpecification.new(
-            short-name      => self!distribution.meta<provides>.keys.head,
-            auth-matcher    => $dist-spec.auth-matcher    // True,
-            version-matcher => $dist-spec.version-matcher // True,
-            api-matcher     => $dist-spec.api-matcher     // True,
-        );
-
-        return self.candidates($module-spec).head;
+    method distribution(Str $id? --> Distribution) {
+        # CURFS is a single-distribution repository so there is no need for $id
+        # ( similar to $dist-id of method resource )
+        return self!distribution;
     }
 
     method precomp-store(--> CompUnit::PrecompilationStore:D) {

@@ -65,7 +65,7 @@ class CompUnit::Repository::Distribution does Distribution {
     }
 
     method from-precomp(CompUnit::Repository::Distribution:U: --> CompUnit::Repository::Distribution) {
-        if %*ENV<RAKUDO_PRECOMP_DISTRIBUTION> -> \dist {
+        if %*ENV<RAKUDO_PRECOMP_DIST> -> \dist {
             my %data := Rakudo::Internals::JSON.from-json: dist;
             my $repo := %data<repo-name>
                 ?? CompUnit::RepositoryRegistry.repository-for-name(%data<repo-name>)

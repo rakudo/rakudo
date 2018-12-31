@@ -2292,7 +2292,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method message {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to $.symbol" !! "";
-        my $is-itself := $.expected =:= $.got;
+        my $is-itself := try $.expected =:= $.got;
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";

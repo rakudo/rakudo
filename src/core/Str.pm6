@@ -3030,8 +3030,8 @@ multi sub infix:<~>(Str:D \a, Any:D \b --> Str:D) {
 # Any/Any candidate in src/core/Stringy.pm6
 
 multi sub infix:<~>(str @args --> str) { nqp::join('',@args) }
-multi sub infix:<~>(@args --> Str:D)   { @args.join }
-multi sub infix:<~>(*@args --> Str:D)  { @args.join }
+multi sub infix:<~>(@args)  { @args.join }
+multi sub infix:<~>(*@args) { @args.join }
 
 multi sub infix:<x>(Str:D $s, Bool:D $repetition --> Str:D) {
     nqp::if($repetition, $s, '')

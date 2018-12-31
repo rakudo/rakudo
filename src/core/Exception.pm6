@@ -146,6 +146,7 @@ my class X::Method::NotFound is Exception {
     has $.method;
     has $.typename;
     has Bool $.private = False;
+    has $.addendum;
     method message() {
         my $message = $.private
           ?? "No such private method '!$.method' for invocant of type '$.typename'"
@@ -195,7 +196,9 @@ my class X::Method::NotFound is Exception {
             $message ~= ". Did you mean any of these?\n    { %suggestions.sort(*.value)>>.key.head(4).join("\n    ") }\n";
         }
 
-        $message;
+        $.addendum
+          ?? "$message\n$.addendum"
+          !!  $message
     }
 }
 

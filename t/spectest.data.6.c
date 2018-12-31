@@ -552,6 +552,8 @@ S11-modules/need.t
 S11-modules/nested.t
 S11-modules/require.t
 S11-repository/curli-install.t
+S11-repository/cur-candidates.t
+S11-repository/cur-current-distribution.t
 S12-attributes/class.t
 S12-attributes/clone.t
 S12-attributes/defaults.t

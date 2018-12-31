@@ -10,7 +10,7 @@ my role Dateish {
     }
 
     # this sub is also used by DAYS-IN-MONTH, which is used by other types
-    sub IS-LEAP-YEAR($y) {
+    sub IS-LEAP-YEAR(int $y --> Bool:D) {
         $y %% 4 and not $y %% 100 or $y %% 400
     }
     method is-leap-year(Dateish:D: --> Bool:D) { IS-LEAP-YEAR($!year) }

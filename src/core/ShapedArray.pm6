@@ -79,7 +79,7 @@
             )
         }
 
-        multi method EXISTS-POS(::?CLASS:D: **@indices) {
+        multi method EXISTS-POS(::?CLASS:D: **@indices --> Bool:D) {
             nqp::hllbool(
               nqp::stmts(
                 (my int $numind = @indices.elems),     # reifies
@@ -420,7 +420,7 @@
             self
         }
 
-        multi method STORE(::?CLASS:D: Mu \item) {
+        multi method STORE(::?CLASS:D: Mu \item --> Nil) {
             X::Assignment::ToShaped.new(shape => self.shape).throw
         }
 
@@ -479,15 +479,17 @@
                 Pair.new(nqp::atposnd($!list,$!indices),self.indices)
             }
         }
-        multi method antipairs(::?CLASS:D:) { Seq.new(AntiPairs.new(self)) }
+        multi method antipairs(::?CLASS:D:) {
+            Seq.new(AntiPairs.new(self))
+        }
 
-        multi method List(::?CLASS:D:) {
+        multi method List(::?CLASS:D: --> List:D) {
             my \buf := nqp::create(IterationBuffer);
             self.iterator.push-all(buf);
             buf.List
         }
 
-        multi method Array(::?CLASS:D:) {
+        multi method Array(::?CLASS:D: --> Array:D) {
             my @Array := nqp::eqaddr(self.of,Mu)
               ?? Array.new
               !! Array[self.of].new;
@@ -516,18 +518,18 @@
                )
             }
         }
-        method iterator(::?CLASS:D:) { Iterate.new(self) }
+        method iterator(::?CLASS:D: --> Iterator:D) { Iterate.new(self) }
 
         # A shaped array isn't lazy, these methods don't need to go looking
         # into the "todo".
         method eager() { self }
 
         method sum() is nodal { self.Any::sum }
-        multi method elems(::?CLASS:D:) {
+        multi method elems(::?CLASS:D: --> Int:D) {
             nqp::elems(nqp::getattr(self,List,'$!reified'))
         }
 
-        method clone() {
+        method clone(::?CLASS:D:) {
             my \obj := nqp::create(self);
             nqp::bindattr(obj,Array,'$!descriptor',
               nqp::getattr(self,Array,'$!descriptor'));

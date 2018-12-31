@@ -41,7 +41,7 @@
             ) = value
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three) {
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
             my \reified := nqp::getattr(self,List,'$!reified');
             my \dims := nqp::dimensions(reified);
             nqp::hllbool(
@@ -53,7 +53,7 @@
                        )
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
             my \reified := nqp::getattr(self,List,'$!reified');
             my \dims := nqp::dimensions(reified);
             nqp::hllbool(

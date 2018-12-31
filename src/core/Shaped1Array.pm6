@@ -45,7 +45,7 @@
             ) = value
         }
 
-        multi method EXISTS-POS(::?CLASS:D: int \one) {
+        multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
             my \reified := nqp::getattr(self,List,'$!reified');
             nqp::hllbool(
               nqp::islt_i(one,nqp::elems(reified))
@@ -53,7 +53,7 @@
               ))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
             my \reified := nqp::getattr(self,List,'$!reified');
             nqp::hllbool(
               nqp::islt_i(one,nqp::elems(reified))
@@ -233,7 +233,7 @@
                 $!pos = nqp::elems($!reified)
             }
         }
-        method iterator(::?CLASS:D:) { Iterate.new(self) }
+        method iterator(::?CLASS:D: --> Iterator:D) { Iterate.new(self) }
 
         method reverse(::?CLASS:D:) is nodal {
             Seq.new(nqp::if(

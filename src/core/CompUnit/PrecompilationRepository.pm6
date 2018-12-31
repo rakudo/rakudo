@@ -246,7 +246,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];
         die "Circular module loading detected trying to precompile $path" if $modules.Set{$path.Str}:exists;
         %env<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
-        %env<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
+        %env<RAKUDO_PRECOMP_DIST> = $*DISTRIBUTION ?? $*DISTRIBUTION.serialize !! '{}';
 
         $RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $RMD;
         my $perl6 = $*EXECUTABLE.absolute

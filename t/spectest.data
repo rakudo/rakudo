@@ -40,6 +40,7 @@ S01-perl-5-integration/context.t            # perl5
 S01-perl-5-integration/eval_lex.t           # perl5
 S01-perl-5-integration/exception_handling.t # perl5
 S01-perl-5-integration/hash.t               # perl5
+S01-perl-5-integration/isms.t
 S01-perl-5-integration/import.t             # perl5
 S01-perl-5-integration/method.t             # perl5
 S01-perl-5-integration/return.t             # perl5

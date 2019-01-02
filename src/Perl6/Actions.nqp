@@ -3413,13 +3413,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 my $post := $_<post_constraints> ?? $_<post_constraints> !! [];
                 if $_<variable_name> {
-                    my $past := QAST::Var.new( :name($_<variable_name>) );
-                    $past := declare_variable($/, $past, $_<sigil>, $_<twigil>,
-                        $_<desigilname>, $<trait>, :$post);
+                    my $name := $_<variable_name>;
+                    my $sigil := $_<sigil>;
+                    my $twigil := $_<twigil>;
+                    my $desigilname := $_<desigilname>;
+                    if $desigilname {
+                        ensure_unused_in_scope($/, $name, $twigil)
+                    }
+                    my $past := QAST::Var.new( :$name );
+                    $past := declare_variable($/, $past, $sigil, $twigil,
+                        $desigilname, $<trait>, :$post);
                     unless nqp::istype($past, QAST::Op) && $past.op eq 'null' {
                         $list.push($past);
-                        if $_<sigil> eq '' {
-                            nqp::push(@nosigil, ~$_<desigilname>);
+                        if $sigil eq '' {
+                            nqp::push(@nosigil, ~$desigilname);
                         }
                     }
                 }
@@ -3567,19 +3574,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $lex.symbol($name) {
                 $/.typed_worry('X::Redeclaration', symbol => $name);
             }
-            elsif $lex.ann('also_uses') && $lex.ann('also_uses'){$name} {
-                if ~$twigil eq '*' {
-                    $/.typed_sorry('X::Dynamic::Postdeclaration', symbol => $name);
-                }
-                else {
-                    $/.typed_sorry('X::Redeclaration::Outer', symbol => $name);
-                }
+            else {
+                ensure_unused_in_scope($/, $name, $twigil);
             }
         }
         if nqp::elems($<semilist>) > 1 {
             $/.panic('Multiple shapes not yet understood');
         }
         make declare_variable($/, $past, ~$sigil, ~$twigil, $desigilname, $<trait>, $<semilist>, :@post);
+    }
+
+    sub ensure_unused_in_scope($/, $name, $twigil) {
+        my $lex := $*W.cur_lexpad();
+        if $lex.ann('also_uses') && $lex.ann('also_uses'){$name} {
+            if ~$twigil eq '*' {
+                $/.typed_sorry('X::Dynamic::Postdeclaration', symbol => $name);
+            }
+            else {
+                $/.typed_sorry('X::Redeclaration::Outer', symbol => $name);
+            }
+        }
     }
 
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {

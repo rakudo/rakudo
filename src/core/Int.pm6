@@ -56,10 +56,16 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     method Rat(Int:D: $? --> Rat:D) {
-        Rat.new(self, 1);
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',self),
+          Rat,'$!denominator',1
+        )
     }
     method FatRat(Int:D: $? --> FatRat:D) {
-        FatRat.new(self, 1);
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',self),
+          FatRat,'$!denominator',1
+        )
     }
 
     method abs(Int:D: --> Int:D) {

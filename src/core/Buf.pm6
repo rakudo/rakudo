@@ -245,7 +245,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 # ________ __mmmmmm mmllllll ll______ ________  10,16 mmmmmmmm llllllll
 # ________ ________ ______ll lll_____ ________  21, 5             lllll
 # ________ ________ ________ __lllll_ ________  26, 5             lllll
-            
+
         nqp::if(
           nqp::iseq_i($first-byte,$last-byte),
           (my $result := nqp::atpos_i(self,$first-byte)),

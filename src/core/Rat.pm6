@@ -293,7 +293,7 @@ multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
 
 multi sub infix:«<»(Rational:D \a, Rational:D \b --> Bool:D) {
 #    a.numerator * b.denominator < b.numerator * a.denominator
-    nqp::hllbool(       
+    nqp::hllbool(
       nqp::islt_I(
         nqp::mul_I(
           nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
@@ -310,7 +310,7 @@ multi sub infix:«<»(Rational:D \a, Rational:D \b --> Bool:D) {
 }
 multi sub infix:«<»(Rational:D \a, Int:D \b --> Bool:D) {
 #    a.numerator  < b * a.denominator
-    nqp::hllbool(       
+    nqp::hllbool(
       nqp::islt_I(
         nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
         nqp::mul_I(
@@ -323,7 +323,7 @@ multi sub infix:«<»(Rational:D \a, Int:D \b --> Bool:D) {
 }
 multi sub infix:«<»(Int:D \a, Rational:D \b --> Bool:D) {
 #    a * b.denominator < b.numerator
-    nqp::hllbool(       
+    nqp::hllbool(
       nqp::islt_I(
         nqp::mul_I(
           nqp::decont(a),
@@ -354,7 +354,7 @@ multi sub infix:«<=»(Rational:D \a, Rational:D \b --> Bool:D) {
 }
 multi sub infix:«<=»(Rational:D \a, Int:D \b --> Bool:D) {
 #    a.numerator  <= b * a.denominator
-    nqp::hllbool(       
+    nqp::hllbool(
       nqp::isle_I(
         nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
         nqp::mul_I(

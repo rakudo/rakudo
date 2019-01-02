@@ -438,8 +438,8 @@ my class Hash { # declared in BOOTSTRAP
             nqp::p6bindattrinvres(
               nqp::create(self),Hash,'$!descriptor',
               ContainerDescriptor.new(:of(TValue), :default(TValue))
-            ) 
-        }   
+            )
+        }
 
         method ASSIGN-KEY(::?CLASS:D: Mu \key, Mu \assignval) is raw {
             my \storage  := nqp::getattr(self, Map, '$!storage');
@@ -482,8 +482,8 @@ my class Hash { # declared in BOOTSTRAP
             nqp::p6bindattrinvres(
               nqp::create(self),Hash,'$!descriptor',
               ContainerDescriptor.new(:of(TValue), :default(TValue))
-            ) 
-        }   
+            )
+        }
         method keyof () { TKey }
         method AT-KEY(::?CLASS:D: TKey \key) is raw {
             my \storage := nqp::getattr(self, Map, '$!storage');

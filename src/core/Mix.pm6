@@ -14,7 +14,7 @@ my class Mix does Mixy {
     multi method STORE(Mix:D: \objects, \values, :$INITIALIZE! --> Mix:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
-            nqp::create(Rakudo::Internals::IterationSet), 
+            nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
             values.iterator
           )

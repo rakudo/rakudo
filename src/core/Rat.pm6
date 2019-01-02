@@ -258,58 +258,234 @@ multi sub infix:<==>(Int:D \a, Rational:D \b --> Bool:D) {
 multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::eqaddr(a.WHAT, b.WHAT)
-        && nqp::iseq_I(a.numerator,   b.numerator)
-        && nqp::iseq_I(a.denominator, b.denominator))
+        && nqp::iseq_I(
+             nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+             nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+        ) && nqp::iseq_I(
+               nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+               nqp::getattr(nqp::decont(b),Rat,'$!denominator')
+            )
+    )
 }
 
-multi sub infix:«<»(Rational:D \a, Rational:D \b) {
-    a.numerator * b.denominator < b.numerator * a.denominator
+multi sub infix:«<»(Rational:D \a, Rational:D \b --> Bool:D) {
+#    a.numerator * b.denominator < b.numerator * a.denominator
+    nqp::hllbool(       
+      nqp::islt_I(
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«<»(Rational:D \a, Int:D \b) {
-    a.numerator  < b * a.denominator
+multi sub infix:«<»(Rational:D \a, Int:D \b --> Bool:D) {
+#    a.numerator  < b * a.denominator
+    nqp::hllbool(       
+      nqp::islt_I(
+        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        nqp::mul_I(
+          nqp::decont(b),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«<»(Int:D \a, Rational:D \b) {
-    a * b.denominator < b.numerator
+multi sub infix:«<»(Int:D \a, Rational:D \b --> Bool:D) {
+#    a * b.denominator < b.numerator
+    nqp::hllbool(       
+      nqp::islt_I(
+        nqp::mul_I(
+          nqp::decont(a),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+      )
+    )
 }
 
-multi sub infix:«<=»(Rational:D \a, Rational:D \b) {
-    a.numerator * b.denominator <= b.numerator * a.denominator
+multi sub infix:«<=»(Rational:D \a, Rational:D \b --> Bool:D) {
+#    a.numerator * b.denominator <= b.numerator * a.denominator
+    nqp::hllbool(
+      nqp::isle_I(
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«<=»(Rational:D \a, Int:D \b) {
-    a.numerator  <= b * a.denominator
+multi sub infix:«<=»(Rational:D \a, Int:D \b --> Bool:D) {
+#    a.numerator  <= b * a.denominator
+    nqp::hllbool(       
+      nqp::isle_I(
+        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        nqp::mul_I(
+          nqp::decont(b),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«<=»(Int:D \a, Rational:D \b) {
-    a * b.denominator <= b.numerator
+multi sub infix:«<=»(Int:D \a, Rational:D \b --> Bool:D) {
+#    a * b.denominator <= b.numerator
+    nqp::hllbool(
+      nqp::isle_I(
+        nqp::mul_I(
+          nqp::decont(a),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+      )
+    )
 }
 
-multi sub infix:«>»(Rational:D \a, Rational:D \b) {
-    a.numerator * b.denominator > b.numerator * a.denominator
+multi sub infix:«>»(Rational:D \a, Rational:D \b --> Bool:D) {
+#    a.numerator * b.denominator > b.numerator * a.denominator
+    nqp::hllbool(
+      nqp::isgt_I(
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«>»(Rational:D \a, Int:D \b) {
-    a.numerator  > b * a.denominator
+multi sub infix:«>»(Rational:D \a, Int:D \b --> Bool:D) {
+#    a.numerator  > b * a.denominator
+    nqp::hllbool(
+      nqp::isgt_I(
+        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        nqp::mul_I(
+          nqp::decont(b),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«>»(Int:D \a, Rational:D \b) {
-    a * b.denominator > b.numerator
+multi sub infix:«>»(Int:D \a, Rational:D \b --> Bool:D) {
+#    a * b.denominator > b.numerator
+    nqp::hllbool(
+      nqp::isgt_I(
+        nqp::mul_I(
+          nqp::decont(a),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+      )
+    )
 }
 
-multi sub infix:«>=»(Rational:D \a, Rational:D \b) {
-    a.numerator * b.denominator >= b.numerator * a.denominator
+multi sub infix:«>=»(Rational:D \a, Rational:D \b --> Bool:D) {
+#    a.numerator * b.denominator >= b.numerator * a.denominator
+    nqp::hllbool(
+      nqp::isge_I(
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«>=»(Rational:D \a, Int:D \b) {
-    a.numerator  >= b * a.denominator
+multi sub infix:«>=»(Rational:D \a, Int:D \b --> Bool:D) {
+#    a.numerator  >= b * a.denominator
+    nqp::hllbool(
+      nqp::isge_I(
+        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        nqp::mul_I(
+          nqp::decont(b),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«>=»(Int:D \a, Rational:D \b) {
-    a * b.denominator >= b.numerator
+multi sub infix:«>=»(Int:D \a, Rational:D \b --> Bool:D) {
+#    a * b.denominator >= b.numerator
+    nqp::hllbool(
+      nqp::isge_I(
+        nqp::mul_I(
+          nqp::decont(a),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+      )
+    )
 }
 
-multi sub infix:«<=>»(Rational:D \a, Rational:D \b) {
-    a.numerator * b.denominator <=> b.numerator * a.denominator
+multi sub infix:«<=>»(Rational:D \a, Rational:D \b --> Order:D) {
+#    a.numerator * b.denominator <=> b.numerator * a.denominator
+    ORDER(
+      nqp::cmp_I(
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::mul_I(
+          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«<=>»(Rational:D \a, Int:D \b) {
-    a.numerator  <=> b * a.denominator
+multi sub infix:«<=>»(Rational:D \a, Int:D \b --> Order:D) {
+#    a.numerator  <=> b * a.denominator
+    ORDER(
+      nqp::cmp_I(
+        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        nqp::mul_I(
+          nqp::decont(b),
+          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          Int
+        )
+      )
+    )
 }
-multi sub infix:«<=>»(Int:D \a, Rational:D \b) {
-    a * b.denominator <=> b.numerator
+multi sub infix:«<=>»(Int:D \a, Rational:D \b --> Order:D) {
+#    a * b.denominator <=> b.numerator
+    ORDER(
+      nqp::cmp_I(
+        nqp::mul_I(
+          nqp::decont(a),
+          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          Int
+        ),
+        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+      )
+    )
 }
 
 # vim: ft=perl6 expandtab sw=4

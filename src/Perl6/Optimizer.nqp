@@ -1005,10 +1005,12 @@ class Perl6::Optimizer {
         # Visit children.
         if $block.ann('DYNAMICALLY_COMPILED') {
             my $*DYNAMICALLY_COMPILED := 1;
-            self.visit_children($block, :resultchild(+@($block) - 1),:void_default);
+            self.visit_children($block, :resultchild(+@($block) - 1),
+                :void_default, :block_structure);
         }
         else {
-            self.visit_children($block, :resultchild(+@($block) - 1),:void_default);
+            self.visit_children($block, :resultchild(+@($block) - 1),
+                :void_default, :block_structure);
         }
 
         # Pop block from block stack and get computed block var info.
@@ -2693,7 +2695,7 @@ class Perl6::Optimizer {
 
     # Visits all of a node's children, and dispatches appropriately.
     method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default,
-                          :$handle) {
+                          :$handle, :$block_structure) {
         note("method visit_children $!void_context\n" ~ $node.dump) if $!debug;
         my int $r := $resultchild // -1;
         my int $i := 0;
@@ -2731,7 +2733,8 @@ class Perl6::Optimizer {
                 elsif nqp::istype($visit, QAST::Block) {
                     $node[$i] := self.visit_block($visit);
                 }
-                elsif nqp::istype($visit, QAST::Stmts) && nqp::elems($visit.list) == 1 && !$visit.named {
+                elsif !$block_structure && nqp::istype($visit, QAST::Stmts) &&
+                        nqp::elems($visit.list) == 1 && !$visit.named {
                     self.visit_children($visit,:void_default);
                     $node[$i] := $visit[0];
                 }

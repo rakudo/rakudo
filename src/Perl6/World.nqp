@@ -1913,8 +1913,8 @@ class Perl6::World is HLL::World {
                 'default_value',   $WHAT,
                 'scalar_value',    $WHAT,
             );
-            my $desc :=
-              self.create_container_descriptor($Mu, $name, $WHAT, 1);
+            my $dynamic := $*W.lang-ver-before('d') || $name ne '$_';
+            my $desc := self.create_container_descriptor($Mu, $name, $WHAT, $dynamic);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);
 

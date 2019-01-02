@@ -824,9 +824,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $*W.loading_and_symbol_setup($/)
         }
 
-        <.finishpad>
         <.bom>?
         <lang-version>
+        <.finishpad>
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
 
         <.install_doc_phaser>

@@ -2,8 +2,15 @@ my class Duration is Cool does Real {
     has Rat $.tai is default(0.0);
       # A linear count of seconds.
 
-    method new($tai) {
-        nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',$tai.Rat.self) # .self blows up Failures
+    multi method new(Duration: Rat:D \tai --> Duration:D) {
+        nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
+    }
+    multi method new(Duration: \value --> Duration:D) {
+        nqp::if(
+          nqp::istype((my \tai := value.Rat),Failure),
+          tai.throw,
+          nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
+        )
     }
 
     method Bridge(Duration:D:) { $!tai.Num    }

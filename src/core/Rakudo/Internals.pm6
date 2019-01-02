@@ -36,6 +36,11 @@ my class Rakudo::Internals {
         }
     }
 
+    # Marker symbol for lexicals that we have lowered away.
+    class LoweredAwayLexical {
+        method dynamic() { False }
+    }
+
     # rotate nqp list to another given list without using push/pop
     method RotateListToList(\from,\n,\to) {
         nqp::stmts(

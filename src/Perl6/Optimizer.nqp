@@ -34,6 +34,7 @@ my class Symbols {
     has $!Nil;
     has $!Failure;
     has $!Seq;
+    has $!LoweredAwayLexical;
 
     # Top routine, for faking it when optimizing post-inline.
     has $!fake_top_routine;
@@ -61,6 +62,7 @@ my class Symbols {
         $!Nil         := self.find_lexical('Nil');
         $!Failure     := self.find_lexical('Failure');
         $!Seq         := self.find_lexical('Seq');
+        $!LoweredAwayLexical := self.find_symbol(['Rakudo', 'Internals', 'LoweredAwayLexical']);
         nqp::pop(@!block_stack);
     }
 
@@ -103,6 +105,7 @@ my class Symbols {
     method Nil()         { $!Nil }
     method Failure()     { $!Failure }
     method Seq()         { $!Seq }
+    method LoweredAwayLexical() { $!LoweredAwayLexical }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
     # Finds a symbol that has a known value at compile time from the
@@ -618,7 +621,7 @@ my class BlockVarOptimizer {
         }
     }
 
-    method lexical_vars_to_locals($block) {
+    method lexical_vars_to_locals($block, $LoweredAwayLexical) {
         return 0 if $!poisoned || $!uses_bindsig;
         return 0 unless nqp::istype($block[0], QAST::Stmts);
         for %!decls {
@@ -671,13 +674,23 @@ my class BlockVarOptimizer {
                 next if $ref'd;
 
                 # Seems good; lower it. Note we need to retain a lexical in
-                # case of binder failover to generate errors for parameters
-                # (we don't do this for contvar, which is a decent heuristic
-                # for "not a parameter").
+                # case of binder failover to generate errors for parameters,
+                # and also to preserve behavior of CALLER::foo dying when we
+                # try to access a lexical that was lowered. We install the
+                # symbol Rakudo::Internals::LoweredAwayLexical for the latter
+                # purpose.
                 my $new_name := $qast.unique('__lowered_lex');
-                unless $is_contvar {
-                    $block[0].unshift(QAST::Var.new( :name($qast.name), :scope('lexical'),
-                                                     :decl('var'), :returns($qast.returns) ));
+                if nqp::objprimspec($qast.returns) {
+                    $block[0].unshift(QAST::Var.new(
+                        :name($qast.name), :scope('lexical'), :decl('var'),
+                        :returns($qast.returns)
+                    ));
+                }
+                else {
+                    $block[0].unshift(QAST::Var.new(
+                        :name($qast.name), :scope('lexical'), :decl('static'),
+                        :value($LoweredAwayLexical)
+                    ));
                 }
                 $qast.name($new_name);
                 $qast.scope('local');
@@ -1053,7 +1066,7 @@ class Perl6::Optimizer {
 
         # Do any possible lexical => local lowering.
         if $!level >= 2 {
-            $vars_info.lexical_vars_to_locals($block);
+            $vars_info.lexical_vars_to_locals($block, $!symbols.LoweredAwayLexical);
         }
 
         # Incorporate this block's info into outer block's info.

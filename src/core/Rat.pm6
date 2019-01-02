@@ -86,10 +86,22 @@ sub RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(\nu, \de, \t1, \t2) {
 }
 
 multi sub prefix:<->(Rat:D \a --> Rat:D) {
-    Rat.new(-a.numerator, a.denominator);
+#    Rat.new(-a.numerator, a.denominator);
+    nqp::p6bindattrinvres(
+      nqp::clone(nqp::decont(a)),
+      Rat,
+      '$!numerator',
+      nqp::neg_I(nqp::getattr(nqp::decont(a),Rat,'$!numerator'),Int)
+    )
 }
 multi sub prefix:<->(FatRat:D \a --> FatRat:D) {
-    FatRat.new(-a.numerator, a.denominator);
+#    FatRat.new(-a.numerator, a.denominator);
+    nqp::p6bindattrinvres(
+      nqp::clone(nqp::decont(a)),
+      FatRat,
+      '$!numerator',
+      nqp::neg_I(nqp::getattr(nqp::decont(a),FatRat,'$!numerator'),Int)
+    )
 }
 
 multi sub infix:<+>(Rational:D \a, Rational:D \b) {

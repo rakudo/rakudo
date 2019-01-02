@@ -42,7 +42,11 @@ my class FatRat is Cool does Rational[Int, Int] {
     }
 }
 
-sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) {
+# NORMALIZE two integer values and create a Rat/FatRat/float from them.
+# Provide two types: if either of them is a FatRat, then a FatRat will be
+# returned.  If a Rat is to be created, then a check for denominator overflow
+# is done: if that is the case, then a float will be returned.
+sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) is raw {
     nqp::if(
       $de,
       nqp::stmts(
@@ -51,15 +55,15 @@ sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) {
         (my \denominator := nqp::div_I($de,gcd,Int)),
         nqp::if(
           nqp::islt_I(denominator,0),
-          RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(
+          CREATE_RATIONAL_FROM_INTS(
             nqp::neg_I(numerator,Int), nqp::neg_I(denominator,Int), t1, t2
           ),
-          RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(
+          CREATE_RATIONAL_FROM_INTS(
             numerator, denominator, t1, t2
           )
         )
       ),
-      RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(
+      CREATE_RATIONAL_FROM_INTS(
         nqp::box_i(nqp::isgt_I($nu,0) || nqp::neg_i(nqp::istrue($nu)),Int),
         0, t1, t2
       )
@@ -69,21 +73,43 @@ sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) {
 # ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot
 # ever get a non-normalized Rational, if we start with a normalized Rational.
 # For such cases, we can use this routine, to bypass normalization step,
-# which would be useless.
-sub RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(\nu, \de, \t1, \t2) {
+# which would be useless.  Also used when normalization *was* needed.
+proto sub CREATE_RATIONAL_FROM_INTS(|) {*}
+multi sub CREATE_RATIONAL_FROM_INTS(Int:D \nu, Int:D \de, \t1, \t2) is raw {
     nqp::if(
-      nqp::istype(t1, FatRat) || nqp::istype(t2, FatRat),
-      nqp::p6bindattrinvres(
-        nqp::p6bindattrinvres(nqp::create(FatRat),
-          FatRat,'$!numerator',nu),
-        FatRat,'$!denominator',de),
-      nqp::if(
-        nqp::islt_I(de, UINT64_UPPER),
-        nqp::p6bindattrinvres(
-          nqp::p6bindattrinvres(nqp::create(Rat),
-            Rat,'$!numerator',nu),
-          Rat,'$!denominator',de),
-        nqp::p6box_n(nqp::div_In(nu, de))))
+      nqp::islt_I(de,UINT64_UPPER),         # do we need to downgrade to float?
+      nqp::p6bindattrinvres(                # no, we need to keep a Rat
+        nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',nu),
+        Rat,'$!denominator',de
+      ),
+      nqp::p6box_n(nqp::div_In(nu,de))      # downgrade to float
+    )
+}
+
+# already a FatRat, so keep that
+multi sub CREATE_RATIONAL_FROM_INTS(
+  Int:D \nu, Int:D \de, FatRat \t1, \t2
+) is raw {
+    nqp::p6bindattrinvres(
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
+      FatRat,'$!denominator',de
+    )
+}
+multi sub CREATE_RATIONAL_FROM_INTS(
+  Int:D \nu, Int:D \de, \t1, FatRat \t2
+) is raw {
+    nqp::p6bindattrinvres(
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
+      FatRat,'$!denominator',de
+    )
+}
+multi sub CREATE_RATIONAL_FROM_INTS(
+  Int:D \nu, Int:D \de, FatRat \t1, FatRat \t2
+) is raw {
+    nqp::p6bindattrinvres(
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
+      FatRat,'$!denominator',de
+    )
 }
 
 multi sub prefix:<->(Rat:D \a --> Rat:D) {
@@ -230,7 +256,7 @@ multi sub infix:<**>(Rational:D \a, Int:D \b) {
           nqp::if( # if we got Inf
             nqp::istype(($de := nqp::pow_I(a.denominator, nqp::decont(b), Num, Int)), Num),
             Failure.new(X::Numeric::Overflow.new),
-            RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $nu, $de, a, b)),
+            CREATE_RATIONAL_FROM_INTS $nu, $de, a, b)),
         nqp::if( # if we got Inf
           nqp::istype(($nu := nqp::pow_I(a.numerator,
             nqp::neg_I(nqp::decont(b), Int), Num, Int)), Num),
@@ -239,7 +265,7 @@ multi sub infix:<**>(Rational:D \a, Int:D \b) {
             nqp::istype(($de := nqp::pow_I(a.denominator,
               nqp::neg_I(nqp::decont(b), Int), Num, Int)), Num),
             Failure.new(X::Numeric::Underflow.new),
-            RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $de, $nu, a, b)))
+            CREATE_RATIONAL_FROM_INTS $de, $nu, a, b)))
 }
 
 multi sub infix:<==>(Rational:D \a, Rational:D \b --> Bool:D) {

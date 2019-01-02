@@ -1,8 +1,12 @@
 # XXX: should be Rational[Int, uint]
 my class Rat is Cool does Rational[Int, Int] {
-    method Rat   (Rat:D: Real $?) { self }
-    method FatRat(Rat:D: Real $?) { FatRat.new($!numerator, $!denominator); }
-    multi method perl(Rat:D:) {
+    method Rat(Rat:D: Real $? --> Rat:D) {
+        self
+    }
+    method FatRat(Rat:D: Real $? --> FatRat:D) {
+        FatRat.new($!numerator, $!denominator)
+    }
+    multi method perl(Rat:D: --> Str:D) {
         if $!denominator == 1 {
             $!numerator ~ '.0'
         }
@@ -25,13 +29,15 @@ my class Rat is Cool does Rational[Int, Int] {
 my constant UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
 
 my class FatRat is Cool does Rational[Int, Int] {
-    method FatRat(FatRat:D: Real $?) { self }
-    method Rat   (FatRat:D: Real $?) {
+    method FatRat(FatRat:D: Real $? --> FatRat) {
+        self
+    }
+    method Rat(FatRat:D: Real $? --> Rat:D) {
         $!denominator < UINT64_UPPER
           ?? Rat.new($!numerator, $!denominator)
           !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
-    multi method perl(FatRat:D:) {
+    multi method perl(FatRat:D: --> Str:D) {
         "FatRat.new($!numerator, $!denominator)";
     }
 }
@@ -79,10 +85,10 @@ sub RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(\nu, \de, \t1, \t2) {
         nqp::p6box_n(nqp::div_In(nu, de))))
 }
 
-multi sub prefix:<->(Rat:D \a) {
+multi sub prefix:<->(Rat:D \a --> Rat:D) {
     Rat.new(-a.numerator, a.denominator);
 }
-multi sub prefix:<->(FatRat:D \a) {
+multi sub prefix:<->(FatRat:D \a --> FatRat:D) {
     FatRat.new(-a.numerator, a.denominator);
 }
 

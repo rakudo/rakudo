@@ -42,27 +42,28 @@ my class FatRat is Cool does Rational[Int, Int] {
     }
 }
 
-sub DIVIDE_NUMBERS(Int:D \nu, Int:D \de, \t1, \t2) {
-    nqp::stmts(
-      (my $numerator),
-      (my $denominator),
-      nqp::if(
-        de,
-        nqp::stmts(
-          (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
-          ($numerator   := nqp::div_I(nqp::decont(nu), $gcd, Int)),
-          ($denominator := nqp::div_I(nqp::decont(de), $gcd, Int)),
-          nqp::if(
-            nqp::islt_I($denominator, 0),
-            nqp::stmts(
-              ($numerator   := nqp::neg_I($numerator, Int)),
-              ($denominator := nqp::neg_I($denominator, Int))))),
-        nqp::stmts(
-          ($numerator   := nqp::box_i(
-            nqp::isgt_I(nqp::decont(nu), 0) ?? 1 !! nu ?? -1 !! 0, Int)),
-          ($denominator := nqp::decont(de)))),
-      RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE
-        $numerator, $denominator, t1, t2)
+sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) {
+    nqp::if(
+      $de,
+      nqp::stmts(
+        (my \gcd         := nqp::gcd_I($nu,$de,Int)),
+        (my \numerator   := nqp::div_I($nu,gcd,Int)),
+        (my \denominator := nqp::div_I($de,gcd,Int)),
+        nqp::if(
+          nqp::islt_I(denominator,0),
+          RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(
+            nqp::neg_I(numerator,Int), nqp::neg_I(denominator,Int), t1, t2
+          ),
+          RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(
+            numerator, denominator, t1, t2
+          )
+        )
+      ),
+      RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE(
+        nqp::box_i(nqp::isgt_I($nu,0) || nqp::neg_i(nqp::istrue($nu)),Int),
+        0, t1, t2
+      )
+    )
 }
 
 # ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot

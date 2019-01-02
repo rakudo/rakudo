@@ -2162,6 +2162,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $block := $*W.blocks[+$*W.blocks - 2] if $block.HOW.name($block) eq 'Code';
         if !$lexpad.symbol('%REQUIRE_SYMBOLS') {
             declare_variable($/, $past, '%', '', 'REQUIRE_SYMBOLS', []);
+            $*W.mark_lexical_used_implicitly($lexpad, '%REQUIRE_SYMBOLS');
         }
         my $require_past := WANTED(QAST::Op.new(:node($/), :op<call>,
                                         :name<&REQUIRE_IMPORT>,
@@ -3553,7 +3554,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method variable_declarator($/) {
-        my $past   := $<variable>.ast;
+        my $qast   := $<variable>.ast;
         my $sigil  := $<variable><sigil>;
         my $twigil := $<variable><twigil>;
         my $desigilname := ~$<variable><desigilname>;
@@ -3565,14 +3566,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $desigilname := nqp::substr($name, nqp::chars($sigil ~ $twigil));
         }
 
-        my @post;
-        for $<post_constraint> {
-            @post.push($_.ast);
-        }
         if $<variable><desigilname> {
             my $lex := $*W.cur_lexpad();
             if $lex.symbol($name) {
                 $/.typed_worry('X::Redeclaration', symbol => $name);
+                unless $name eq '$_' {
+                    $qast.scope('lexical') if nqp::istype($qast, QAST::Var) && !$qast.scope;
+                    make $qast;
+                    return;
+                }
             }
             else {
                 ensure_unused_in_scope($/, $name, $twigil);
@@ -3581,7 +3583,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::elems($<semilist>) > 1 {
             $/.panic('Multiple shapes not yet understood');
         }
-        make declare_variable($/, $past, ~$sigil, ~$twigil, $desigilname, $<trait>, $<semilist>, :@post);
+        my @post;
+        for $<post_constraint> {
+            @post.push($_.ast);
+        }
+        make declare_variable($/, $qast, ~$sigil, ~$twigil, $desigilname, $<trait>, $<semilist>, :@post);
     }
 
     sub ensure_unused_in_scope($/, $name, $twigil) {
@@ -3802,7 +3808,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 nqp::bindattr($varvar, $Variable, '$!var', $cont);
                 nqp::bindattr($varvar, $Variable, '$!block', $*CODE_OBJECT);
                 nqp::bindattr($varvar, $Variable, '$!slash', $/);
+                nqp::assign(
+                    nqp::getattr($varvar, $Variable, '$!implicit-lexical-usage'),
+                    $*W.find_symbol(['Bool', 'True']));
                 $*W.apply_traits(@late_traits, $varvar);
+                if $varvar.implicit-lexical-usage {
+                    $*W.mark_lexical_used_implicitly($BLOCK, $name);
+                }
             }
         }
         elsif $*SCOPE eq '' {

@@ -1616,6 +1616,7 @@ class Perl6::World is HLL::World {
                 if nqp::istype($_, QAST::Var) && $_.name eq $name {
                     $var := $_;
                     $var.returns(%cont_info<bind_constraint>);
+                    $var.annotate('our_decl', 1) if $scope eq 'our';
                     last;
                 }
             }
@@ -1625,6 +1626,7 @@ class Perl6::World is HLL::World {
                 :scope('lexical'), :name($name), :decl('var'),
                 :returns(%cont_info<bind_constraint>)
             );
+            $var.annotate('our_decl', 1) if $scope eq 'our';
             $block[0].unshift($var);
         }
         $block.symbol($name, :scope('lexical'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
@@ -1664,6 +1666,17 @@ class Perl6::World is HLL::World {
 
         # Evaluate to the container.
         $cont
+    }
+
+    # Mark a container as being implicitly used lexically (to prevent it
+    # being optimized away).
+    method mark_lexical_used_implicitly($block, str $name) {
+        for @($block[0]) {
+            if nqp::istype($_, QAST::Var) && $_.name eq $name {
+                $_.annotate('lexical_used_implicitly', 1);
+                last;
+            }
+        }
     }
 
     # Creates a new container descriptor and adds it to the SC.
@@ -2212,10 +2225,11 @@ class Perl6::World is HLL::World {
             if $varname && ($flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_COPY) {
                 my %sym := $lexpad.symbol($varname);
                 if +%sym && !nqp::existskey(%sym, 'descriptor') {
-                    my $desc := self.create_container_descriptor($_<nominal_type>, $varname);
+                    my $type := $_<nominal_type>;
+                    my $desc := self.create_container_descriptor($type, $varname);
                     $_<container_descriptor> := $desc;
                     nqp::bindattr($param_obj, $param_type, '$!container_descriptor', $desc);
-                    $lexpad.symbol($varname, :descriptor($desc));
+                    $lexpad.symbol($varname, :descriptor($desc), :$type);
                 }
             }
 

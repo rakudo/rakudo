@@ -219,22 +219,41 @@ multi sub infix:<**>(Rational:D \a, Int:D \b) {
             RAKUDO_INTERNAL_DIVIDE_NUMBERS_NO_NORMALIZE $de, $nu, a, b)))
 }
 
-multi sub infix:<==>(Rational:D \a, Rational:D \b) {
+multi sub infix:<==>(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::isfalse(a.denominator) || nqp::isfalse(b.denominator)
-        ?? nqp::iseq_I(a.numerator, b.numerator)
-          && nqp::istrue(a.numerator) # NaN != NaN
-        !! nqp::iseq_I(
-            nqp::mul_I(a.numerator, b.denominator, Int),
-            nqp::mul_I(b.numerator, a.denominator, Int)))
+      nqp::iseq_I(
+        (my \anum := nqp::getattr(nqp::decont(a),Rat,'$!numerator')),
+        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+      ) && nqp::iseq_I(
+             (my \adenom := nqp::getattr(nqp::decont(a),Rat,'$!denominator')),
+             nqp::getattr(nqp::decont(b),Rat,'$!denominator')
+          ) && (                         # num/denom both same
+                 nqp::istrue(anum)       # 1/X, Inf == Inf also true
+                 || nqp::istrue(adenom)  # 0/1, NaN == NaN becomes false
+               )
+    )
 }
-multi sub infix:<==>(Rational:D \a, Int:D \b) {
+multi sub infix:<==>(Rational:D \a, Int:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::iseq_I(a.numerator, nqp::decont(b)) && nqp::iseq_I(a.denominator, 1))
+      nqp::iseq_I(
+        nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+        1
+      ) && nqp::iseq_I(
+             nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+             nqp::decont(b)
+           )
+    )
 }
-multi sub infix:<==>(Int:D \a, Rational:D \b) {
+multi sub infix:<==>(Int:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::iseq_I(nqp::decont(a), b.numerator) && nqp::iseq_I(b.denominator, 1))
+      nqp::iseq_I(
+        nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+        1
+      ) && nqp::iseq_I(
+             nqp::decont(a),
+             nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+           )
+    )
 }
 multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(

@@ -631,7 +631,7 @@ my class BlockVarOptimizer {
             next unless $scope eq 'lexical';
             my str $decl := $qast.decl;
             my int $is_contvar := $decl eq 'contvar';
-            next unless $is_contvar || $decl eq 'var';
+            next unless $is_contvar || $decl eq 'var' || $decl eq 'param';
 
             # Also ensure not dynamic or with an implicit lexical usage.
             next if $qast.ann('lexical_used_implicitly');

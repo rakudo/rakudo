@@ -21,29 +21,46 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         )
     }
 
-    method new(NuT \nu = 0, DeT \de = 1) {
-        nqp::unless(
+    method new(NuT:D \nu = 0, DeT:D \de = 1) {
+        my \object := nqp::create(self);
+        nqp::if(
           de,
-          nqp::p6bindattrinvres( # zero-denominator-rational; normalize
-            nqp::p6bindattrinvres(
-              nqp::create(self),
-              ::?CLASS, '$!denominator', nqp::decont(de)),
-            ::?CLASS, '$!numerator',  nqp::box_i(
-              nqp::isgt_I(nqp::decont(nu), 0) ?? 1 !! nu ?? -1 !! 0, nu.WHAT)),
-          nqp::stmts( # normal rational
-            (my $gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
-            (my $nu  := nqp::div_I(nqp::decont(nu), $gcd, NuT)),
-            (my $de  := nqp::div_I(nqp::decont(de), $gcd, DeT)),
+          nqp::stmts(                                   # normal rational
+            (my \gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
+            (my \numerator   := nqp::div_I(nqp::decont(nu), gcd, NuT)),
+            (my \denominator := nqp::div_I(nqp::decont(de), gcd, DeT)),
             nqp::if(
-              nqp::islt_I($de, 0),
-              nqp::stmts(
-                ($nu := nqp::neg_I($nu, $nu.WHAT)),
-                ($de := nqp::neg_I($de, $de.WHAT)))),
-            nqp::p6bindattrinvres( # zero-denominator-rational
-              nqp::p6bindattrinvres(
-                nqp::create(self),
-                ::?CLASS, '$!denominator', $de),
-              ::?CLASS, '$!numerator', $nu)))
+              nqp::islt_I(denominator,0),               # need to switch sign?
+              nqp::stmts(                                # yup, so switch
+                nqp::bindattr(
+                  object,::?CLASS,'$!numerator',nqp::neg_I(numerator,Int)
+                ),
+                nqp::p6bindattrinvres(
+                  object,::?CLASS,'$!denominator',nqp::neg_I(denominator,Int)
+                )
+              ),
+              nqp::stmts(                                # no, so just store
+                nqp::bindattr(
+                  object,::?CLASS,'$!numerator',numerator
+                ),
+                nqp::p6bindattrinvres(
+                  object,::?CLASS,'$!denominator',denominator
+                )
+              )
+            )
+          ),
+          nqp::stmts(                                   # Inf / NaN
+            nqp::bindattr(object,::?CLASS,'$!numerator',
+              nqp::box_i(
+                nqp::isgt_I(nqp::decont(nu),0) || nqp::neg_i(nqp::istrue(nu)),
+                nu.WHAT
+              )
+            ),
+            nqp::p6bindattrinvres(object,::?CLASS,'$!denominator',
+              nqp::decont(de)
+            )
+          )
+        )
     }
 
     method nude() { $!numerator, $!denominator }

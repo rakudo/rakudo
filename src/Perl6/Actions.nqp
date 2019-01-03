@@ -8805,15 +8805,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $need_full_binder := 0;
             }
 
-            # If there is a single $_ and it takes its value from outer, then
-            # this is easily handled too. Very common case.
-            elsif is_default_topic(@params) {
+            # If there is a single raw $_ then handle this very common case
+            # also. Two possibilities: optional and not.
+            elsif default_topic_kind(@params) -> $kind {
                 my $var := find_var_decl($block, '$_');
                 $var.decl('param');
-                $var.default(QAST::Op.new(
-                    :op('getlexouter'),
-                    QAST::SVal.new( :value('$_') )
-                ));
+                if $kind eq 'optional' {
+                    $var.default(QAST::Op.new(
+                        :op('getlexouter'),
+                        QAST::SVal.new( :value('$_') )
+                    ));
+                }
                 $need_full_binder := 0;
             }
 
@@ -8853,16 +8855,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         0
     }
-    sub is_default_topic(@params) {
+    sub default_topic_kind(@params) {
         if nqp::elems(@params) == 1 {
             my $only := @params[0];
-            if $only<default_from_outer> && $only<is_raw> && $only<variable_name> eq '$_' {
-                if $only<nominal_type> =:= $*W.find_symbol(['Mu']) {
-                    return 1;
-                }
+            if $only<is_raw> && $only<variable_name> eq '$_' &&
+                    $only<nominal_type> =:= $*W.find_symbol(['Mu']) {
+                return $only<default_from_outer> ?? 'optional' !! 'required';
             }
         }
-        0
+        return '';
     }
     my $SIG_ELEM_IS_RW       := 256;
     my $SIG_ELEM_IS_RAW      := 1024;

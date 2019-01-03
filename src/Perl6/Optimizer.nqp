@@ -502,6 +502,8 @@ my class BlockVarOptimizer {
 
     method get_usages_inner() { %!usages_inner }
 
+    method get_getlexouter_binds() { @!getlexouter_binds }
+
     method get_calls() { $!calls }
 
     method is_poisoned() { $!poisoned }
@@ -517,6 +519,15 @@ my class BlockVarOptimizer {
         # Flat ones depend on if we flattened this block into ourself.
         add_to_set($flattened ?? %!usages_flat !! %!usages_inner,
             $vars_info.get_usages_flat, %decls);
+
+        # If the inner block uses getlexouter then we need to store those as
+        # usages.
+        for $vars_info.get_getlexouter_binds() {
+            my $name := $_[1][0].value;
+            my %target := $flattened ?? %!usages_flat !! %!usages_inner;
+            %target{$name} := [] unless %target{$name};
+            nqp::push(%target{$name}, $_);
+        }
 
         # Add up call counts.
         $!calls := $!calls + $vars_info.get_calls;
@@ -665,7 +676,7 @@ my class BlockVarOptimizer {
                 my int $ref'd := 0;
                 if %!usages_flat{$name} {
                     for %!usages_flat{$name} {
-                        if $_.scope eq 'lexicalref' {
+                        if nqp::istype($_, QAST::Var) && $_.scope eq 'lexicalref' {
                             $ref'd := 1;
                             last;
                         }
@@ -731,8 +742,17 @@ my class BlockVarOptimizer {
                 }
                 if %!usages_flat{$name} {
                     for %!usages_flat{$name} {
-                        $_.scope('local');
-                        $_.name($new_name);
+                        if nqp::istype($_, QAST::Var) {
+                            $_.scope('local');
+                            $_.name($new_name);
+                        }
+                        elsif nqp::istype($_, QAST::Op) && $_.op eq 'bind' &&
+                                nqp::istype($_[1], QAST::Op) && $_[1].op eq 'getlexouter' {
+                            $_[1] := QAST::Var.new( :name($new_name), :scope('local') );
+                        }
+                        else {
+                            nqp::die("Unexpected node in usages_flat");
+                        }
                     }
                 }
             }

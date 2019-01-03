@@ -2,4 +2,5 @@
 # Rat FatRats.
 
 my constant Rat is export = FatRat;
-my sub infix:</>(Int:D \nu,Int:D \de) is export { FatRat.new(nu,de) }
+my constant &old-infix-slash = &infix:</>;
+my sub infix:</>(\nu, \de) is export { old-infix-slash(nu,de).FatRat }

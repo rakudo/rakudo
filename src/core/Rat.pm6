@@ -89,7 +89,7 @@ multi sub CREATE_RATIONAL_FROM_INTS(Int:D \nu, Int:D \de, \t1, \t2) is raw {
 # already a FatRat, so keep that
 multi sub CREATE_RATIONAL_FROM_INTS(
   Int:D \nu, Int:D \de, FatRat \t1, \t2
-) is raw {
+--> FatRat:D) is raw {
     nqp::p6bindattrinvres(
       nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
       FatRat,'$!denominator',de
@@ -97,7 +97,7 @@ multi sub CREATE_RATIONAL_FROM_INTS(
 }
 multi sub CREATE_RATIONAL_FROM_INTS(
   Int:D \nu, Int:D \de, \t1, FatRat \t2
-) is raw {
+--> FatRat:D) is raw {
     nqp::p6bindattrinvres(
       nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
       FatRat,'$!denominator',de
@@ -105,7 +105,7 @@ multi sub CREATE_RATIONAL_FROM_INTS(
 }
 multi sub CREATE_RATIONAL_FROM_INTS(
   Int:D \nu, Int:D \de, FatRat \t1, FatRat \t2
-) is raw {
+--> FatRat:D) is raw {
     nqp::p6bindattrinvres(
       nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
       FatRat,'$!denominator',de

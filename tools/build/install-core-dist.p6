@@ -7,6 +7,7 @@ my %provides =
     "NativeCall::Compiler::GNU"     => "lib/NativeCall/Compiler/GNU.pm6",
     "NativeCall::Compiler::MSVC"    => "lib/NativeCall/Compiler/MSVC.pm6",
     "Pod::To::Text"                 => "lib/Pod/To/Text.pm6",
+    "full-precision"                => "lib/full-precision.pm6",
     "newline"                       => "lib/newline.pm6",
     "experimental"                  => "lib/experimental.pm6",
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm6",

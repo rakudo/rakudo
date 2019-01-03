@@ -2,3 +2,4 @@
 # Rat FatRats.
 
 my constant Rat is export = FatRat;
+my sub infix:</>(Int:D \nu,Int:D \de) is export { FatRat.new(nu,de) }

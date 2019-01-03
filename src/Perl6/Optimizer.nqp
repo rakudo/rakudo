@@ -666,13 +666,14 @@ my class BlockVarOptimizer {
             my str $name := $_.key;
             unless nqp::existskey(%!usages_inner, $name) ||
                     nqp::existskey(%!used_in_handle_handler, $name) {
-                # Lowerable if it's a normal variable.
+                # Lowerable if it's a normal variable, including $_.
                 next if nqp::chars($name) < 1;
                 unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 0) {
                     my str $sigil := nqp::substr($name, 0, 1);
                     next unless $sigil eq '$' || $sigil eq '@' || $sigil eq '%';
                     next unless nqp::chars($name) >= 2 &&
-                                nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1);
+                                (nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1) ||
+                                 nqp::eqat($name, '_', 1));
                 }
 
                 # Also must not lexicalref it.

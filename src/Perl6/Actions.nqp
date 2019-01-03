@@ -1705,10 +1705,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 if $*IMPLICIT {
+                    my $optional := $*IMPLICIT == 1;
                     @params.push(hash(
-                        :variable_name('$_'), :optional(1),
+                        :variable_name('$_'), :$optional,
                         :nominal_type($*W.find_symbol(['Mu'])),
-                        :default_from_outer(1), :is_raw(1),
+                        :default_from_outer($optional), :is_raw(1),
                     ));
                 }
                 elsif !$block.symbol('$_') {

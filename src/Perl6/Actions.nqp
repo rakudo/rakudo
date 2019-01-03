@@ -8986,6 +8986,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
             my int $spec  := nqp::objprimspec($nomtype);
             my $decont_name;
+            my int $decont_name_invalid := 0;
+            sub get_decont_name() {
+                return NQPMu if $decont_name_invalid;
+                unless $decont_name {
+                    # We decont it once before checks that need a decont value,
+                    # to avoid doing so repeatedly.
+                    $decont_name := QAST::Node.unique("__lowered_param_decont_");
+                    $var.push(QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($decont_name), :scope('local'), :decl('var') ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :name($name), :scope('local') )
+                        )));
+                }
+                return $decont_name;
+            }
             if $spec && !%info<nominal_generic> {
                 if $is_rw {
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
@@ -9007,23 +9024,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new( :name($name), :scope('local') )
                     )));
 
-                # We decont it once before the checks, to avoid doing so
-                # repeatedly.
-                $decont_name := QAST::Node.unique("__lowered_param_decont_");
-                $var.push(QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($decont_name), :scope('local'), :decl('var') ),
-                    QAST::Op.new(
-                        :op('decont'),
-                        QAST::Var.new( :name($name), :scope('local') )
-                    )));
-
                 # Type-check, unless it's Mu, in which case skip it.
                 if $is_generic {
                     my $genericname := $nomtype.HOW.name(%info<attr_package>);
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('istype_nd'),
-                        QAST::Var.new( :name($decont_name), :scope('local') ),
+                        QAST::Var.new( :name(get_decont_name()), :scope('local') ),
                         QAST::Var.new( :name($genericname), :scope<typevar> )
                     )));
                 } elsif !($nomtype =:= $*W.find_symbol(['Mu'])) {
@@ -9036,12 +9042,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :op('if'),
                                 QAST::Op.new(
                                     :op('istype_nd'),
-                                    QAST::Var.new( :name($decont_name), :scope('local') ),
+                                    QAST::Var.new( :name(get_decont_name()), :scope('local') ),
                                     QAST::WVal.new( :value($*W.find_symbol(['PositionalBindFailover'])) )
                                 ),
                                 QAST::Op.new(
                                     :op('bind'),
-                                    QAST::Var.new( :name($decont_name), :scope('local') ),
+                                    QAST::Var.new( :name(get_decont_name()), :scope('local') ),
                                     QAST::Op.new(
                                         :op('decont'),
                                         QAST::Op.new(
@@ -9049,12 +9055,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                             QAST::Var.new( :name($name), :scope('local') ),
                                             QAST::Op.new(
                                                 :op('callmethod'), :name('cache'),
-                                                QAST::Var.new( :name($decont_name), :scope('local') )
+                                                QAST::Var.new( :name(get_decont_name()), :scope('local') )
                                             ))))));
                         }
                         $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                             :op('istype_nd'),
-                            QAST::Var.new( :name($decont_name), :scope('local') ),
+                            QAST::Var.new( :name(get_decont_name()), :scope('local') ),
                             QAST::WVal.new( :value($nomtype) )
                         )));
                     }
@@ -9064,13 +9070,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         :op('not_i'),
                         QAST::Op.new(
                             :op('isconcrete_nd'),
-                            QAST::Var.new( :name($decont_name), :scope('local') )
+                            QAST::Var.new( :name(get_decont_name()), :scope('local') )
                         ))));
                 }
                 if %info<defined_only> {
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('isconcrete_nd'),
-                        QAST::Var.new( :name($decont_name), :scope('local') )
+                        QAST::Var.new( :name(get_decont_name()), :scope('local') )
                     )));
                 }
                 if $is_rw {
@@ -9087,7 +9093,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $coerce_to.HOW.archetypes.generic {
                     return 0;
                 }
-                $decont_name := NQPMu;
+                $decont_name_invalid := 1;
                 $var.push(QAST::Op.new(
                     :op('unless'),
                     QAST::Op.new(
@@ -9107,7 +9113,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # If it's optional, do any default handling.
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                $decont_name := NQPMu;
+                $decont_name_invalid := 1;
                 if nqp::existskey(%info, 'default_value') {
                     my $wval := QAST::WVal.new( :value(%info<default_value>) );
                     if %info<default_is_literal> {
@@ -9166,8 +9172,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $var.push( QAST::Op.new(
                         :op<bind>,
                         QAST::Var.new( :name(nqp::shift($iter)), :scope<lexical> ),
-                        $decont_name
-                            ?? QAST::Op.new( :op<what_nd>, QAST::Var.new( :name($decont_name), :scope<local> ) )
+                        get_decont_name()
+                            ?? QAST::Op.new( :op<what_nd>, QAST::Var.new( :name(get_decont_name()), :scope<local> ) )
                             !! QAST::Op.new( :op<what>, QAST::Var.new( :name($name), :scope<local> ) )
                         )
                     );
@@ -9180,8 +9186,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $var.push(QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name('self'), :scope('lexical') ),
-                    $decont_name
-                        ?? QAST::Var.new( :name($decont_name), :scope('local') )
+                    get_decont_name()
+                        ?? QAST::Var.new( :name(get_decont_name()), :scope('local') )
                         !! QAST::Op.new(
                             :op('decont'),
                             QAST::Var.new( :name($name), :scope('local') )
@@ -9285,7 +9291,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                             :op('p6scalarfromdesc'),
                                             QAST::WVal.new( :value(%info<container_descriptor>) )
                                         ),
-                                        QAST::Var.new( :name($decont_name || $name), :scope('local') )
+                                        QAST::Var.new( :name(get_decont_name() || $name), :scope('local') )
                                    )
                                 !! QAST::Op.new(
                                         :op('p6bindattrinvres'),
@@ -9295,8 +9301,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         ),
                                         QAST::WVal.new( :value($Scalar) ),
                                         QAST::SVal.new( :value('$!value') ),
-                                        $decont_name
-                                            ?? QAST::Var.new( :name($decont_name), :scope('local') )
+                                        get_decont_name()
+                                            ?? QAST::Var.new( :name(get_decont_name()), :scope('local') )
                                             !! QAST::Op.new(
                                                 :op('decont'),
                                                 QAST::Var.new( :name($name), :scope('local') )
@@ -9308,8 +9314,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $var.push(QAST::Op.new(
                             :op('bind'),
                             WANTED(QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),'lower_signature'),
-                            $decont_name
-                                ?? QAST::Var.new( :name($decont_name), :scope('local') )
+                            get_decont_name()
+                                ?? QAST::Var.new( :name(get_decont_name()), :scope('local') )
                                 !! QAST::Op.new(
                                     :op('decont'),
                                     QAST::Var.new( :name($name), :scope('local') )

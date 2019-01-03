@@ -2908,15 +2908,17 @@ class Perl6::Optimizer {
         if $preserve_topic {
             my $pres_topic_name := QAST::Node.unique('pres_topic_');
             $outer[0].push(QAST::Var.new( :scope('local'), :name($pres_topic_name), :decl('var') ));
+            my $topic_lex := QAST::Var.new( :name('$_'), :scope('lexical') );
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].add_usage($topic_lex);
             return QAST::Stmts.new(
                 :resultchild(1),
                 QAST::Op.new( :op('bind'),
                     QAST::Var.new( :name($pres_topic_name), :scope('local') ),
-                    QAST::Var.new( :name('$_'), :scope('lexical') )
+                    $topic_lex
                 ),
                 $stmts,
                 QAST::Op.new( :op('bind'),
-                    QAST::Var.new( :name('$_'), :scope('lexical') ),
+                    $topic_lex,
                     QAST::Var.new( :name($pres_topic_name), :scope('local') )
                 )
             );

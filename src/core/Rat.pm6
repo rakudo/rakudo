@@ -116,67 +116,61 @@ multi sub prefix:<->(Rat:D \a --> Rat:D) {
 #    Rat.new(-a.numerator, a.denominator);
     nqp::p6bindattrinvres(
       nqp::clone(nqp::decont(a)),
-      Rat,
-      '$!numerator',
-      nqp::neg_I(nqp::getattr(nqp::decont(a),Rat,'$!numerator'),Int)
+      Rat,'$!numerator',nqp::neg_I(a.numerator,Int)
     )
 }
 multi sub prefix:<->(FatRat:D \a --> FatRat:D) {
 #    FatRat.new(-a.numerator, a.denominator);
     nqp::p6bindattrinvres(
       nqp::clone(nqp::decont(a)),
-      FatRat,
-      '$!numerator',
-      nqp::neg_I(nqp::getattr(nqp::decont(a),FatRat,'$!numerator'),Int)
+      FatRat,'$!numerator',nqp::neg_I(a.numerator,Int)
     )
 }
 
 multi sub infix:<+>(Rational:D \a, Rational:D \b) {
-    my \adenom := nqp::getattr(nqp::decont(a),a.WHAT,'$!denominator');
-    my \bdenom := nqp::getattr(nqp::decont(b),b.WHAT,'$!denominator');
+    my \adenom := a.denominator;
+    my \bdenom := b.denominator;
     DIVIDE_NUMBERS(
-      nqp::getattr(nqp::decont(a),a.WHAT,'$!numerator') * bdenom
-        + nqp::getattr(nqp::decont(b),b.WHAT,'$!numerator') * adenom,
+      a.numerator * bdenom + b.numerator * adenom,
       adenom * bdenom, a, b
     )
 }
 multi sub infix:<+>(Rational:D \a, Int:D \b) {
-    my \adenom := nqp::getattr(nqp::decont(a),a.WHAT,'$!denominator');
+    my \adenom := a.denominator;
     DIVIDE_NUMBERS(
-      nqp::getattr(nqp::decont(a),a.WHAT,'$!numerator') + b * adenom,
+      a.numerator + b * adenom,
       adenom, a, b
     )
 }
 multi sub infix:<+>(Int:D \a, Rational:D \b) {
-    my \bdenom := nqp::getattr(nqp::decont(b),b.WHAT,'$!denominator');
+    my \bdenom := b.denominator;
     DIVIDE_NUMBERS(
-      a * bdenom + nqp::getattr(nqp::decont(b),b.WHAT,'$!numerator'),
+      a * bdenom + b.numerator,
       bdenom, a, b
     )
 }
 
 multi sub infix:<->(Rational:D \a, Rational:D \b) {
-    my \adenom := nqp::getattr(nqp::decont(a),a.WHAT,'$!denominator');
-    my \bdenom := nqp::getattr(nqp::decont(b),b.WHAT,'$!denominator');
+    my \adenom := a.denominator;
+    my \bdenom := b.denominator;
     DIVIDE_NUMBERS(
-      nqp::getattr(nqp::decont(a),a.WHAT,'$!numerator') * bdenom
-        - nqp::getattr(nqp::decont(b),b.WHAT,'$!numerator') * adenom,
+      a.numerator * bdenom - b.numerator * adenom,
       adenom * bdenom, a, b
     )
 }
 
 multi sub infix:<->(Rational:D \a, Int:D \b) {
-    my \adenom := nqp::getattr(nqp::decont(a),a.WHAT,'$!denominator');
+    my \adenom := a.denominator;
     DIVIDE_NUMBERS(
-      nqp::getattr(nqp::decont(a),a.WHAT,'$!numerator') - b * adenom,
+      a.numerator - b * adenom,
       adenom, a, b
     )
 }
 
 multi sub infix:<->(Int:D \a, Rational:D \b) {
-    my \bdenom := nqp::getattr(nqp::decont(b),b.WHAT,'$!denominator');
+    my \bdenom := b.denominator;
     DIVIDE_NUMBERS(
-      a * bdenom - nqp::getattr(nqp::decont(b),b.WHAT,'$!numerator'),
+      a * bdenom - b.numerator,
       bdenom, a, b
     )
 }

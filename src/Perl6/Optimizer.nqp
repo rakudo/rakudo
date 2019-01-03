@@ -426,7 +426,7 @@ my class BlockVarOptimizer {
     has int $!calls;
 
     # Usages of getlexouter.
-    has @!getlexouter_binds;
+    has @!getlexouter_usages;
 
     # Setup and bind (hopefully one each) of %_.
     has @!autoslurpy_setups;
@@ -472,8 +472,8 @@ my class BlockVarOptimizer {
 
     method register_call() { $!calls++; }
 
-    method register_getlexouter_bind($node) {
-        nqp::push(@!getlexouter_binds, $node);
+    method register_getlexouter_usage($node) {
+        nqp::push(@!getlexouter_usages, $node);
     }
 
     method register_autoslurpy_setup($node) {
@@ -502,7 +502,7 @@ my class BlockVarOptimizer {
 
     method get_usages_inner() { %!usages_inner }
 
-    method get_getlexouter_binds() { @!getlexouter_binds }
+    method get_getlexouter_usages() { @!getlexouter_usages }
 
     method get_calls() { $!calls }
 
@@ -522,8 +522,10 @@ my class BlockVarOptimizer {
 
         # If the inner block uses getlexouter then we need to store those as
         # usages.
-        for $vars_info.get_getlexouter_binds() {
-            my $name := $_[1][0].value;
+        for $vars_info.get_getlexouter_usages() {
+            my $name := nqp::istype($_, QAST::Op)
+                ?? $_[1][0].value   # The bind case
+                !! $_[0][0].value;  # The parameter default case
             my %target := $flattened ?? %!usages_flat !! %!usages_inner;
             %target{$name} := [] unless %target{$name};
             nqp::push(%target{$name}, $_);
@@ -576,13 +578,14 @@ my class BlockVarOptimizer {
             my str $decl := %!decls<$_>.decl;
             if $decl eq 'var' || $decl eq 'contvar' {
                 if !nqp::existskey(%!usages_flat, '$_') && !nqp::existskey(%!usages_inner, '$_') {
-                    if !@!getlexouter_binds {
+                    if !@!getlexouter_usages {
                         %kill<$_> := 1;
                         nqp::deletekey(%!decls, '$_');
                     }
-                    elsif nqp::elems(@!getlexouter_binds) == 1 {
-                        my $glob := @!getlexouter_binds[0];
-                        if $glob[0].name eq '$_' && $glob[1][0].value eq '$_' {
+                    elsif nqp::elems(@!getlexouter_usages) == 1 {
+                        my $glob := @!getlexouter_usages[0];
+                        if nqp::istype($glob, QAST::Op) && $glob[0].name eq '$_' &&
+                                $glob[1][0].value eq '$_' {
                             $glob.op('null');
                             $glob.shift(); $glob.shift();
                             %kill<$_> := 1;
@@ -749,6 +752,10 @@ my class BlockVarOptimizer {
                         elsif nqp::istype($_, QAST::Op) && $_.op eq 'bind' &&
                                 nqp::istype($_[1], QAST::Op) && $_[1].op eq 'getlexouter' {
                             $_[1] := QAST::Var.new( :name($new_name), :scope('local') );
+                        }
+                        elsif nqp::istype($_, QAST::Stmts) && nqp::istype($_[0], QAST::Op) &&
+                                $_[0].op eq 'getlexouter' {
+                            $_[0] := QAST::Var.new( :name($new_name), :scope('local') );
                         }
                         else {
                             nqp::die("Unexpected node in usages_flat");
@@ -1418,7 +1425,7 @@ class Perl6::Optimizer {
         # Some ops are significant for variable analysis/lowering.
         if $optype eq 'bind' {
             if nqp::istype($op[1], QAST::Op) && $op[1].op eq 'getlexouter' {
-                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_bind($op);
+                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_usage($op);
             }
             elsif nqp::istype($op[0], QAST::Var) && $op[0].name eq '%_' {
                 @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_autoslurpy_bind($op);
@@ -2570,8 +2577,14 @@ class Perl6::Optimizer {
                     my $default := $var.default;
                     if $default {
                         my $stmts_def := QAST::Stmts.new( $default );
-                        self.visit_children($stmts_def);
-                        $var.default($stmts_def[0]);
+                        if nqp::istype($default, QAST::Op) && $default.op eq 'getlexouter' {
+                            @!block_var_stack[$top].register_getlexouter_usage($stmts_def);
+                            $var.default($stmts_def);
+                        }
+                        else {
+                            self.visit_children($stmts_def);
+                            $var.default($stmts_def[0]);
+                        }
                     }
                 }
             }

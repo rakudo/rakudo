@@ -8,7 +8,8 @@ my class Instant is Cool does Real {
       # Rakudo::Internals.initial-offset. Thus, $.tai matches TAI from 1970
       # to the present.
 
-    method SET-SELF($!tai) { self } # cannot be private because of operators
+    # cannot be private because of operators
+    method SET-SELF(\tai) { $!tai := tai; self }
 
     method new(*@) { X::Cannot::New.new(class => self).throw }
 

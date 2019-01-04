@@ -6759,8 +6759,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         if $is_hash && $past.ann('past_block').arity == 0 {
-            migrate_blocks($past.ann('past_block'), $*W.cur_lexpad());
-            my @children := @($past.ann('past_block')[1]);
+            my $orig_block := $past.ann('past_block');
+            migrate_blocks($orig_block, $*W.cur_lexpad());
+            my @children := @($orig_block[1]);
             $past := QAST::Op.new(
                 :op('call'),
                 :name(
@@ -6798,6 +6799,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
             }
+            # Clear out the now-unused QAST::Block, so we don't leave it behind in
+            # the AST.
+            $orig_block.shift() while @($orig_block);
         }
         else {
             my $block := $past.ann('past_block');

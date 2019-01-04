@@ -35,6 +35,7 @@ my class Symbols {
     has $!Nil;
     has $!Failure;
     has $!Seq;
+    has $!AST;
     has $!LoweredAwayLexical;
 
     # Top routine, for faking it when optimizing post-inline.
@@ -64,6 +65,7 @@ my class Symbols {
         $!Nil         := self.find_lexical('Nil');
         $!Failure     := self.find_lexical('Failure');
         $!Seq         := self.find_lexical('Seq');
+        $!AST         := self.find_lexical('AST');
         $!LoweredAwayLexical := self.find_symbol(['Rakudo', 'Internals', 'LoweredAwayLexical']);
         nqp::pop(@!block_stack);
     }
@@ -108,6 +110,7 @@ my class Symbols {
     method Nil()         { $!Nil }
     method Failure()     { $!Failure }
     method Seq()         { $!Seq }
+    method AST()         { $!AST }
     method LoweredAwayLexical() { $!LoweredAwayLexical }
 
     # The following function is a nearly 1:1 copy of World.find_symbol.
@@ -2835,6 +2838,9 @@ class Perl6::Optimizer {
                     }
                     elsif nqp::istype($visit.value, $!symbols.Regex) {
                         @!block_var_stack[@!block_var_stack - 1].poison_topic_lowering();
+                    }
+                    elsif nqp::istype($visit.value, $!symbols.AST) {
+                        @!block_var_stack[@!block_var_stack - 1].poison_lowering();
                     }
                 }
                 elsif nqp::istype($visit, QAST::ParamTypeCheck) {

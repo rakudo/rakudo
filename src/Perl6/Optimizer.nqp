@@ -31,6 +31,7 @@ my class Symbols {
     has $!Block;
     has $!PseudoStash;
     has $!Routine;
+    has $!Regex;
     has $!Nil;
     has $!Failure;
     has $!Seq;
@@ -59,6 +60,7 @@ my class Symbols {
         $!Block       := self.find_lexical('Block');
         $!PseudoStash := self.find_lexical('PseudoStash');
         $!Routine     := self.find_lexical('Routine');
+        $!Regex       := self.find_lexical('Regex');
         $!Nil         := self.find_lexical('Nil');
         $!Failure     := self.find_lexical('Failure');
         $!Seq         := self.find_lexical('Seq');
@@ -101,6 +103,7 @@ my class Symbols {
     method Mu()          { $!Mu }
     method Any()         { $!Any }
     method Block()       { $!Block }
+    method Regex()       { $!Regex }
     method PseudoStash() { $!PseudoStash }
     method Nil()         { $!Nil }
     method Failure()     { $!Failure }
@@ -438,6 +441,9 @@ my class BlockVarOptimizer {
     # If lowering is, for some reason, poisoned.
     has int $!poisoned;
 
+    # If topic lowering is, for some reason, poisoned.
+    has int $!topic_poisoned;
+
     # If p6bindsig is used.
     has int $!uses_bindsig;
 
@@ -489,6 +495,8 @@ my class BlockVarOptimizer {
     }
 
     method poison_lowering() { $!poisoned := 1; }
+
+    method poison_topic_lowering() { $!topic_poisoned := 1; }
 
     method uses_bindsig() { $!uses_bindsig := 1; }
 
@@ -674,7 +682,7 @@ my class BlockVarOptimizer {
                     next unless $sigil eq '$' || $sigil eq '@' || $sigil eq '%';
                     next unless nqp::chars($name) >= 2 &&
                                 (nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1) ||
-                                 $can_lower_topic && nqp::eqat($name, '_', 1));
+                                 $can_lower_topic && !$!topic_poisoned && nqp::eqat($name, '_', 1));
                 }
 
                 # Also must not lexicalref it.
@@ -2824,6 +2832,9 @@ class Perl6::Optimizer {
                     }
                     if $visit.value =:= $!symbols.PseudoStash {
                         self.poison_var_lowering();
+                    }
+                    elsif nqp::istype($visit.value, $!symbols.Regex) {
+                        @!block_var_stack[@!block_var_stack - 1].poison_topic_lowering();
                     }
                 }
                 elsif nqp::istype($visit, QAST::ParamTypeCheck) {

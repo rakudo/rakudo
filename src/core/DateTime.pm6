@@ -1,8 +1,8 @@
 my class DateTime does Dateish {
-    has int $.hour;
-    has int $.minute;
+    has Int $.hour;
+    has Int $.minute;
     has     $.second;
-    has int $.timezone;  # UTC
+    has Int $.timezone;  # UTC
       # Not an optimization but a necessity to ensure that
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
       # DST-induced ambiguity could ruin our day.
@@ -48,17 +48,27 @@ my class DateTime does Dateish {
     }
 
     method !SET-SELF(
-        $!year,
-        $!month,
-        $!day,
-        $!hour,
-        $!minute,
-        $!second,
-        $!timezone,
-        &!formatter,
+        Int:D \year,
+        Int:D \month,
+        Int:D \day,
+        Int:D \hour,
+        Int:D \minute,
+              \second,
+        Int:D \timezone,
+              &formatter
     --> DateTime:D) {
+        nqp::bind($!year,      year);  # R#2581
+        nqp::bind($!month,     month);
+        nqp::bind($!day,       day);
+        nqp::bind(&!formatter, &formatter);
+        nqp::bind($!daycount,  nqp::null);
+        $!hour      := hour;
+        $!minute    := minute;
+        $!second    := second;
+        $!timezone  := timezone;
         self
     }
+
     method !new-from-positional(DateTime:
       Int() $year,
       Int() $month,

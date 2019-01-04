@@ -21,9 +21,15 @@ my class Date does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method !SET-SELF(
-      $!year,$!month,$!day,&!formatter,$!daycount = Int
-    --> Date:D) { self }
+    method !SET-SELF(\year,\month,\day,\formatter,$daycount? --> Date:D) {
+        nqp::bind($!year,      year);  # R#2581
+        nqp::bind($!month,     month);
+        nqp::bind($!day,       day);
+        nqp::bind(&!formatter, formatter);
+        nqp::bind($!daycount,
+          nqp::isconcrete($daycount) ?? $daycount !! nqp::null);
+        self
+    }
 
     proto method new(|) {*}
     multi method new(Date:

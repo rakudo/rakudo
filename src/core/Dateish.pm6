@@ -1,7 +1,7 @@
 my role Dateish {
     has Int $.year;
-    has Int $.month;     # should be int
-    has Int $.day;       # should be int
+    has Int $.month;
+    has Int $.day;
     has Int $.daycount;
     has     &.formatter;
 
@@ -44,14 +44,19 @@ my role Dateish {
     multi method gist(Dateish:D: --> Str:D) { self.Str }
 
     method daycount(--> Int:D) {
-        $!daycount //= do {
-            # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-            my int $m = $!month < 3 ?? $!month + 12 !! $!month;
-            my int $y = $!year - ($!month < 3);
-            -678973 + $!day + (153 * $m - 2) div 5
-              + 365 * $y + $y div 4
-              - $y div 100  + $y div 400;
-        }
+        nqp::ifnull(
+          $!daycount,
+          $!daycount := self!calculate-daycount
+        )
+    }
+    method !calculate-daycount(--> Int:D) {
+        # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
+        my int $d = $!day;
+        my int $m = $!month < 3 ?? $!month + 12 !! $!month;
+        my int $y = $!year - ($!month < 3);
+        -678973 + $d + (153 * $m - 2) div 5
+          + 365 * $y + $y div 4
+          - $y div 100  + $y div 400
     }
 
     method !ymd-from-daycount($daycount,\year,\month,\day --> Nil) {

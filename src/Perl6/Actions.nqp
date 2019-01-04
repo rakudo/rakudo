@@ -1398,6 +1398,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $outer
         ).annotate_self( # Pass some extra bits along to the optimizer.
             'UNIT', $unit
+        ).annotate_self(
+            'CAN_LOWER_TOPIC', $*CAN_LOWER_TOPIC
         ).annotate_self('GLOBALish', $*GLOBALish).annotate_self('W', $*W)
     }
 

@@ -788,6 +788,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # TODO XXX: see https://github.com/rakudo/rakudo/issues/2432
         :my $*SET_DEFAULT_LANG_VER := 1;
         :my %*SIG_INFO;                            # information about recent signature
+        :my $*CAN_LOWER_TOPIC := 1;                # true if we optimize the $_ lexical away
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;

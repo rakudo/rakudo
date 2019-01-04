@@ -529,6 +529,7 @@ class Perl6::World is HLL::World {
         # fast-path the common cases
         if $version eq 'v6.c' {
             $comp.set_language_version: '6.c';
+            $*CAN_LOWER_TOPIC := 0;
             # CORE.c is currently our lowest core, which we don't "load"
             return;
         }
@@ -549,6 +550,7 @@ class Perl6::World is HLL::World {
 
             my $lang := $vCan.parts.AT-POS: 1;
             $comp.set_language_version:       '6.' ~ $lang;
+            $*CAN_LOWER_TOPIC := 0 if $lang eq 'c';
 
             # CORE.c is currently our lowest core, which we don't "load"
             self.load_setting: $ver-match, 'CORE.' ~ $lang

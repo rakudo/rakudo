@@ -635,7 +635,7 @@ my class BlockVarOptimizer {
         }
     }
 
-    method lexical_vars_to_locals($block, $LoweredAwayLexical) {
+    method lexical_vars_to_locals($block, $LoweredAwayLexical, $can_lower_topic) {
         return 0 if $!poisoned || $!uses_bindsig;
         return 0 unless nqp::istype($block[0], QAST::Stmts);
         for %!decls {
@@ -666,14 +666,15 @@ my class BlockVarOptimizer {
             my str $name := $_.key;
             unless nqp::existskey(%!usages_inner, $name) ||
                     nqp::existskey(%!used_in_handle_handler, $name) {
-                # Lowerable if it's a normal variable, including $_.
+                # Lowerable if it's a normal variable, including $_ if we're in a
+                # Perl 6 version that allows lowering that.
                 next if nqp::chars($name) < 1;
                 unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 0) {
                     my str $sigil := nqp::substr($name, 0, 1);
                     next unless $sigil eq '$' || $sigil eq '@' || $sigil eq '%';
                     next unless nqp::chars($name) >= 2 &&
                                 (nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 1) ||
-                                 nqp::eqat($name, '_', 1));
+                                 $can_lower_topic && nqp::eqat($name, '_', 1));
                 }
 
                 # Also must not lexicalref it.
@@ -983,6 +984,10 @@ class Perl6::Optimizer {
     # one shared QAST tree we'll put into every block we've eliminated
     has $!eliminated_block_contents;
 
+    # Are we allowed to lower the topic ($_) to a local?
+    has $!can_lower_topic;
+
+    # Are we in debug mode?
     has $!debug;
 
     # Entry point for the optimization process.
@@ -995,6 +1000,7 @@ class Perl6::Optimizer {
         $!chain_depth             := 0;
         $!in_declaration          := 0;
         $!void_context            := 0;
+        $!can_lower_topic         := $past.ann('CAN_LOWER_TOPIC');
         $!debug                   := nqp::getenvhash<RAKUDO_OPTIMIZER_DEBUG>;
         my $*DYNAMICALLY_COMPILED := 0;
         my $*W                    := $past.ann('W');
@@ -1096,7 +1102,7 @@ class Perl6::Optimizer {
 
         # Do any possible lexical => local lowering.
         if $!level >= 2 {
-            $vars_info.lexical_vars_to_locals($block, $!symbols.LoweredAwayLexical);
+            $vars_info.lexical_vars_to_locals($block, $!symbols.LoweredAwayLexical, $!can_lower_topic);
         }
 
         # Incorporate this block's info into outer block's info.

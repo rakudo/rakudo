@@ -561,48 +561,57 @@ my class BlockVarOptimizer {
         }
     }
 
-    method delete_unused_magicals($block) {
-        # Magicals are contextual, so if we call anything when we're done for.
-        return 0 if $!calls || $!poisoned || $!uses_bindsig;
+    method delete_unused_magicals($block, $can_lower_topic) {
+        # Can't if we're poisoned or have to use the slow-path binder.
+        return 0 if $!poisoned || $!uses_bindsig || $*DYNAMICALLY_COMPILED;
 
-        # Otherwise see if there's any we can kill.
+        # We handle $_ first, because it is lexical rather than dynamic. We
+        # need to ensure topic lowering is OK; if it's not, there might be a
+        # late-bound access.
         my %kill;
-        if nqp::existskey(%!decls, '$/') {
-            if !nqp::existskey(%!usages_flat, '$/') && !nqp::existskey(%!usages_inner, '$/') {
-                %kill<$/> := 1;
-                nqp::deletekey(%!decls, '$/');
-            }
-        }
-        if nqp::existskey(%!decls, '$!') {
-            if !nqp::existskey(%!usages_flat, '$!') && !nqp::existskey(%!usages_inner, '$!') {
-                %kill<$!> := 1;
-                nqp::deletekey(%!decls, '$!');
-            }
-        }
-        if nqp::existskey(%!decls, '$¢') {
-            if !nqp::existskey(%!usages_flat, '$¢') && !nqp::existskey(%!usages_inner, '$¢') {
-                %kill<$¢> := 1;
-                nqp::deletekey(%!decls, '$¢');
-            }
-        }
-        if nqp::existskey(%!decls, '$_') {
-            my str $decl := %!decls<$_>.decl;
-            if $decl eq 'var' || $decl eq 'contvar' {
-                if !nqp::existskey(%!usages_flat, '$_') && !nqp::existskey(%!usages_inner, '$_') {
-                    if !@!getlexouter_usages {
-                        %kill<$_> := 1;
-                        nqp::deletekey(%!decls, '$_');
-                    }
-                    elsif nqp::elems(@!getlexouter_usages) == 1 {
-                        my $glob := @!getlexouter_usages[0];
-                        if nqp::istype($glob, QAST::Op) && $glob[0].name eq '$_' &&
-                                $glob[1][0].value eq '$_' {
-                            $glob.op('null');
-                            $glob.shift(); $glob.shift();
+        if $can_lower_topic && !$!topic_poisoned {
+            if nqp::existskey(%!decls, '$_') {
+                my str $decl := %!decls<$_>.decl;
+                if $decl eq 'var' || $decl eq 'contvar' {
+                    unless nqp::existskey(%!usages_flat, '$_') || nqp::existskey(%!usages_inner, '$_') {
+                        if !@!getlexouter_usages {
                             %kill<$_> := 1;
                             nqp::deletekey(%!decls, '$_');
                         }
+                        elsif nqp::elems(@!getlexouter_usages) == 1 {
+                            my $glob := @!getlexouter_usages[0];
+                            if nqp::istype($glob, QAST::Op) && $glob[0].name eq '$_' &&
+                                    $glob[1][0].value eq '$_' {
+                                $glob.op('null');
+                                $glob.shift(); $glob.shift();
+                                %kill<$_> := 1;
+                                nqp::deletekey(%!decls, '$_');
+                            }
+                        }
                     }
+                }
+            }
+        }
+
+        # Other magicals are contextual, so only consider those if we've no
+        # calls (will be true in really simple builtins).
+        unless $!calls {
+            if nqp::existskey(%!decls, '$/') {
+                if !nqp::existskey(%!usages_flat, '$/') && !nqp::existskey(%!usages_inner, '$/') {
+                    %kill<$/> := 1;
+                    nqp::deletekey(%!decls, '$/');
+                }
+            }
+            if nqp::existskey(%!decls, '$!') {
+                if !nqp::existskey(%!usages_flat, '$!') && !nqp::existskey(%!usages_inner, '$!') {
+                    %kill<$!> := 1;
+                    nqp::deletekey(%!decls, '$!');
+                }
+            }
+            if nqp::existskey(%!decls, '$¢') {
+                if !nqp::existskey(%!usages_flat, '$¢') && !nqp::existskey(%!usages_inner, '$¢') {
+                    %kill<$¢> := 1;
+                    nqp::deletekey(%!decls, '$¢');
                 }
             }
         }
@@ -1071,7 +1080,7 @@ class Perl6::Optimizer {
         # We might be able to delete some of the magical variables when they
         # are trivially unused, and also simplify takedispatcher.
         if $!level >= 1 {
-            $vars_info.delete_unused_magicals($block);
+            $vars_info.delete_unused_magicals($block, $!can_lower_topic);
             $vars_info.delete_unused_autoslurpy();
             $vars_info.simplify_takedispatcher();
         }

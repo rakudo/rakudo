@@ -13,12 +13,12 @@ my class Instant is Cool does Real {
     method new(*@) { X::Cannot::New.new(class => self).throw }
 
     proto method from-posix(|) {*}
-    multi method from-posix($posix) {
+    multi method from-posix($posix --> Instant:D) {
         nqp::create(Instant).SET-SELF(
           Rakudo::Internals.tai-from-posix($posix,0).Rat
         )
     }
-    multi method from-posix($posix, Bool $prefer-leap-second) {
+    multi method from-posix($posix, Bool $prefer-leap-second --> Instant:D) {
     # $posix is in general not expected to be an integer.
     # If $prefer-leap-second is true, 915148800 is interpreted to
     # mean 1998-12-31T23:59:60Z rather than 1999-01-01T00:00:00Z.
@@ -27,28 +27,28 @@ my class Instant is Cool does Real {
         )
     }
 
-    method to-posix() {
+    method to-posix(--> List:D) {
     # The inverse of .from-posix, except that the second return
     # value is true if *and only if* this Instant is in a leap
     # second.
         Rakudo::Internals.posix-from-tai($!tai)
     }
 
-    multi method Str(Instant:D:) {
+    multi method Str(Instant:D: --> Str:D) {
         'Instant:' ~ $!tai
     }
-    multi method perl(Instant:D:) {
+    multi method perl(Instant:D: --> Str:D) {
         "Instant.from-posix{self.to-posix.perl}";
     }
-    method Bridge(Instant:D:) { $!tai.Bridge }
-    method Num   (Instant:D:) { $!tai.Num    }
-    method Rat   (Instant:D:) { $!tai        }
-    method Int   (Instant:D:) { $!tai.Int    }
-    method narrow(Instant:D:) { $!tai.narrow }
+    method Bridge(Instant:D:          ) { $!tai.Bridge }
+    method Num   (Instant:D: --> Num:D) { $!tai.Num    }
+    method Rat   (Instant:D: --> Rat:D) { $!tai        }
+    method Int   (Instant:D: --> Int:D) { $!tai.Int    }
+    method narrow(Instant:D:          ) { $!tai.narrow }
 
-    method Date(Instant:D:)     { Date.new(self)     }
-    method DateTime(Instant:D:) { DateTime.new(self) }
-    method Instant() { self }
+    method Date(Instant:D:     --> Date:D)     { Date.new(self)     }
+    method DateTime(Instant:D: --> DateTime:D) { DateTime.new(self) }
+    method Instant(--> Instant) { self }
 
 #    TODO: should be the new .gist, probably
 #    method Str() {
@@ -57,59 +57,59 @@ my class Instant is Cool does Real {
 #    }
 }
 
-multi sub infix:«cmp»(Instant:D $a, Instant:D $b) {
+multi sub infix:«cmp»(Instant:D $a, Instant:D $b --> Order:D) {
     $a.tai <=> $b.tai }
 
-multi sub infix:«<=>»(Instant:D $a, Instant:D $b) {
+multi sub infix:«<=>»(Instant:D $a, Instant:D $b --> Order:D) {
     $a.tai <=> $b.tai
 }
 
-multi sub infix:«==»(Instant:D $a, Instant:D $b) {
+multi sub infix:«==»(Instant:D $a, Instant:D $b --> Bool:D) {
     $a.tai == $b.tai
 }
 
-multi sub infix:«!=»(Instant:D $a, Instant:D $b) {
+multi sub infix:«!=»(Instant:D $a, Instant:D $b --> Bool:D) {
     $a.tai != $b.tai
 }
 
-multi sub infix:«<»(Instant:D $a, Instant:D $b) {
+multi sub infix:«<»(Instant:D $a, Instant:D $b --> Bool:D) {
     $a.tai < $b.tai
 }
 
-multi sub infix:«>»(Instant:D $a, Instant:D $b) {
+multi sub infix:«>»(Instant:D $a, Instant:D $b --> Bool:D) {
     $a.tai > $b.tai
 }
 
-multi sub infix:«<=»(Instant:D $a, Instant:D $b) {
+multi sub infix:«<=»(Instant:D $a, Instant:D $b --> Bool:D) {
     $a.tai <= $b.tai
 }
 
-multi sub infix:«>=»(Instant:D $a, Instant:D $b) {
+multi sub infix:«>=»(Instant:D $a, Instant:D $b --> Bool:D) {
     $a.tai >= $b.tai
 }
 
-multi sub infix:<+>(Instant:D $a, Real:D $b) {
+multi sub infix:<+>(Instant:D $a, Real:D $b --> Instant:D) {
     nqp::create(Instant).SET-SELF($a.tai + $b.Rat)
 }
-multi sub infix:<+>(Real:D $a, Instant:D $b) {
+multi sub infix:<+>(Real:D $a, Instant:D $b --> Instant:D) {
     nqp::create(Instant).SET-SELF($a.Rat + $b.tai)
 }
-multi sub infix:<+>(Instant:D $a, Duration:D $b) {
+multi sub infix:<+>(Instant:D $a, Duration:D $b --> Instant:D) {
     nqp::create(Instant).SET-SELF($a.tai + $b.tai)
 }
-multi sub infix:<+>(Duration:D $a, Instant:D $b) {
+multi sub infix:<+>(Duration:D $a, Instant:D $b --> Instant:D) {
     nqp::create(Instant).SET-SELF($a.tai + $b.tai)
 }
 
-multi sub infix:<->(Instant:D $a, Instant:D $b) {
+multi sub infix:<->(Instant:D $a, Instant:D $b --> Duration:D) {
     Duration.new: $a.tai - $b.tai;
 }
-multi sub infix:<->(Instant:D $a, Real:D $b) {
+multi sub infix:<->(Instant:D $a, Real:D $b --> Instant:D) {
     nqp::create(Instant).SET-SELF($a.tai - $b.Rat)
 }
 
-sub term:<time>() { nqp::p6box_i(nqp::time_i()) }
-sub term:<now>() {
+sub term:<time>(--> Int:D) { nqp::p6box_i(nqp::time_i()) }
+sub term:<now>(--> Instant:D) {
     # FIXME: During a leap second, the returned value is one
     # second greater than it should be.
     nqp::create(Instant).SET-SELF(

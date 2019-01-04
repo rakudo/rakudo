@@ -825,16 +825,16 @@ implementation detail and has no serviceable parts inside"
 #?endif
 
     method get-local-timezone-offset() {
-        my $utc     = time;
+        my $utc    := time;
         my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
 
         DateTime.new(
-          :year(nqp::atpos_i($fia,5)),
-          :month(nqp::atpos_i($fia,4)),
-          :day(nqp::atpos_i($fia,3)),
-          :hour(nqp::atpos_i($fia,2)),
-          :minute(nqp::atpos_i($fia,1)),
-          :second(nqp::atpos_i($fia,0)),
+          nqp::atpos_i($fia,5),  # year
+          nqp::atpos_i($fia,4),  # month
+          nqp::atpos_i($fia,3),  # day
+          nqp::atpos_i($fia,2),  # hour
+          nqp::atpos_i($fia,1),  # minute
+          nqp::atpos_i($fia,0),  # second
         ).posix(True) - $utc;
     }
 

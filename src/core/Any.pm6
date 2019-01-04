@@ -17,8 +17,11 @@ my class Any { # declared in BOOTSTRAP
 
     multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
     multi method ACCEPTS(Any:D: Mu:U $ --> False) { }
-    multi method ACCEPTS(Any:U: Any \topic) { # use of Any on topic to force autothreading
-        nqp::hllbool(nqp::istype(topic, self)) # so that all(@foo) ~~ Type works as expected
+
+    # use of Any on topic to force autothreading
+    # so that all(@foo) ~~ Type works as expected
+    multi method ACCEPTS(Any:U: Any \topic --> Bool:D) {
+        nqp::hllbool(nqp::istype(topic, self))
     }
 
     proto method EXISTS-KEY(|) is nodal {*}
@@ -220,31 +223,31 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{$pos.^name}' as an index";
     }
 
-    multi method EXISTS-POS(Any:D: int \pos) {
+    multi method EXISTS-POS(Any:D: int \pos --> Bool:D) {
         nqp::hllbool(nqp::iseq_i(pos,0));
     }
-    multi method EXISTS-POS(Any:D: Int:D \pos) {
+    multi method EXISTS-POS(Any:D: Int:D \pos --> Bool:D) {
         pos == 0;
     }
-    multi method EXISTS-POS(Any:D: Num:D \pos) {
+    multi method EXISTS-POS(Any:D: Num:D \pos --> Bool:D) {
         X::Item.new(aggregate => self, index => pos).throw
           if nqp::isnanorinf(pos);
         self.AT-POS(nqp::unbox_i(pos.Int));
         pos == 0;
     }
-    multi method EXISTS-POS(Any:D: Any:D \pos) {
+    multi method EXISTS-POS(Any:D: Any:D \pos --> Bool:D) {
         pos.Int == 0;
     }
     multi method EXISTS-POS(Any:D: Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method EXISTS-POS(Any:D: \one, \two) is raw {
+    multi method EXISTS-POS(Any:D: \one, \two --> Bool:D) is raw {
         self.AT-POS(one).EXISTS-POS(two)
     }
-    multi method EXISTS-POS(Any:D: \one, \two,\three) is raw {
+    multi method EXISTS-POS(Any:D: \one, \two,\three --> Bool:D) is raw {
         self.AT-POS(one).AT-POS(two).EXISTS-POS(three)
     }
-    multi method EXISTS-POS(Any:D: **@indices) {
+    multi method EXISTS-POS(Any:D: **@indices --> Bool:D) {
         my $final := @indices.pop;
         Rakudo::Internals.WALK-AT-POS(self,@indices).EXISTS-POS($final)
     }
@@ -411,28 +414,40 @@ my class Any { # declared in BOOTSTRAP
     method FLATTENABLE_HASH() is nodal { nqp::hash() }
 
     proto method Set(|) is nodal {*}
-    multi method Set(Any:) { Set.new-from-pairs(self.list) }
+    multi method Set(Any: --> Set:D) {
+        Set.new-from-pairs(self.list)
+    }
 
     proto method SetHash(|) is nodal {*}
-    multi method SetHash(Any:) { SetHash.new-from-pairs(self.list) }
+    multi method SetHash(Any: --> SetHash:D) {
+        SetHash.new-from-pairs(self.list)
+    }
 
     proto method Bag(|) is nodal {*}
-    multi method Bag(Any:) { Bag.new-from-pairs(self.list) }
+    multi method Bag(Any: --> Bag:D) {
+        Bag.new-from-pairs(self.list)
+    }
 
     proto method BagHash(|) is nodal {*}
-    multi method BagHash(Any:) { BagHash.new-from-pairs(self.list) }
+    multi method BagHash(Any: --> BagHash:D) {
+        BagHash.new-from-pairs(self.list)
+    }
 
     proto method Mix(|) is nodal {*}
-    multi method Mix(Any:) { Mix.new-from-pairs(self.list) }
+    multi method Mix(Any: --> Mix:D) {
+        Mix.new-from-pairs(self.list)
+    }
 
     proto method MixHash(|) is nodal {*}
-    multi method MixHash() { MixHash.new-from-pairs(self.list) }
+    multi method MixHash(Any: --> MixHash:D) {
+        MixHash.new-from-pairs(self.list)
+    }
 
     # XXX GLR does this really need to force a list?
     proto method Supply(|) is nodal {*}
     multi method Supply() { self.list.Supply }
 
-    method nl-out() { "\n" }
+    method nl-out(--> Str:D) { "\n" }
     method print-nl() { self.print(self.nl-out) }
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
@@ -452,8 +467,8 @@ Metamodel::ClassHOW.exclude_parent(Any);
 
 # builtin ops
 proto sub infix:<===>($?, $?, *%) is pure {*}
-multi sub infix:<===>($?)    { Bool::True }
-multi sub infix:<===>(\a, \b) {
+multi sub infix:<===>($? --> True) { }
+multi sub infix:<===>(\a, \b --> Bool:D) {
     nqp::hllbool(
       nqp::eqaddr(nqp::decont(a),nqp::decont(b))
       || (nqp::eqaddr(a.WHAT,b.WHAT)
@@ -462,12 +477,12 @@ multi sub infix:<===>(\a, \b) {
 }
 
 proto sub infix:<before>($?, $?, *%)  is pure {*}
-multi sub infix:<before>($?)      { Bool::True }
-multi sub infix:<before>(\a, \b)   { (a cmp b) < 0 }
+multi sub infix:<before>($? --> True) { }
+multi sub infix:<before>(\a, \b --> Bool:D) { (a cmp b) < 0 }
 
 proto sub infix:<after>($?, $?, *%) is pure {*}
-multi sub infix:<after>($x?)       { Bool::True }
-multi sub infix:<after>(\a, \b)    { (a cmp b) > 0 }
+multi sub infix:<after>($x? --> True) { }
+multi sub infix:<after>(\a, \b --> Bool:D) { (a cmp b) > 0 }
 
 proto sub prefix:<++>(Mu, *%)        {*}
 multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }

@@ -89,7 +89,8 @@ multi sub infix:«>=»(Instant:D $a, Instant:D $b --> Bool:D) {
 }
 
 multi sub infix:<+>(Instant:D $a, Instant:D $b) {
-    die "Adding two Instant values has no meaning, did you mean to subtract?"
+    die "Adding two Instant values has no meaning.
+Did you mean to subtract?  Perhaps you need to convert to .Numeric first?"
 }
 multi sub infix:<+>(Instant:D $a, Real:D $b --> Instant:D) {
     nqp::create(Instant).SET-SELF($a.tai + $b.Rat)

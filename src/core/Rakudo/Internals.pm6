@@ -812,16 +812,16 @@ implementation detail and has no serviceable parts inside"
     }
 
 #?if moar
-    method PRECOMP-EXT()    { "moarvm" }
-    method PRECOMP-TARGET() { "mbc"    }
+    method PRECOMP-EXT(--> "moarvm") { }
+    method PRECOMP-TARGET(--> "mbc") { }
 #?endif
 #?if jvm
-    method PRECOMP-EXT()    { "jar" }
-    method PRECOMP-TARGET() { "jar" }
+    method PRECOMP-EXT(   --> "jar") { }
+    method PRECOMP-TARGET(--> "jar") { }
 #?endif
 #?if js
-    method PRECOMP-EXT()    { "js" }
-    method PRECOMP-TARGET() { "js" }
+    method PRECOMP-EXT(   --> "js") { }
+    method PRECOMP-TARGET(--> "js") { }
 #?endif
 
     method get-local-timezone-offset() {

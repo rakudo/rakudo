@@ -788,6 +788,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # TODO XXX: see https://github.com/rakudo/rakudo/issues/2432
         :my $*SET_DEFAULT_LANG_VER := 1;
         :my %*SIG_INFO;                            # information about recent signature
+        :my $*CAN_LOWER_TOPIC := 1;                # true if we optimize the $_ lexical away
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -824,9 +825,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             $*W.loading_and_symbol_setup($/)
         }
 
-        <.finishpad>
         <.bom>?
         <lang-version>
+        <.finishpad>
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
 
         <.install_doc_phaser>
@@ -981,13 +982,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || { $/.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
     }
 
-    token xblock($*IMPLICIT = 0) {
+    # Options for xblock/block implicit topic.
+    my $PBLOCK_NO_TOPIC := 0;
+    my $PBLOCK_OPTIONAL_TOPIC := 1;
+    my $PBLOCK_REQUIRED_TOPIC := 2;
+
+    token xblock($*IMPLICIT = $PBLOCK_NO_TOPIC) {
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR> <.ws> <pblock($*IMPLICIT)>
     }
 
-    token pblock($*IMPLICIT = 0) {
+    token pblock($*IMPLICIT = $PBLOCK_NO_TOPIC) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
         :my $*CODE_OBJECT := $*DECLARAND;
         :my $*SIG_OBJ;
@@ -1111,22 +1117,25 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule statement_control:sym<if> {
         $<sym>=[if|with]<.kok> {}
-        <xblock(so ~$<sym>[0] ~~ /with/)>
+        <xblock(~$<sym>[0] ~~ /with/ ?? $PBLOCK_REQUIRED_TOPIC !! $PBLOCK_NO_TOPIC)>
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
             | 'elif' { $/.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
             | $<sym>='elsif' <xblock>
-            | $<sym>='orwith' <xblock(1)>
+            | $<sym>='orwith' <xblock($PBLOCK_REQUIRED_TOPIC)>
             ]
         ]*
         {}
-        [ 'else' <else=.pblock(so ~$<sym>[-1] ~~ /with/)> ]?
+        [
+            'else'
+            <else=.pblock(~$<sym>[-1] ~~ /with/ ?? $PBLOCK_REQUIRED_TOPIC !! $PBLOCK_NO_TOPIC)>
+        ]?
     }
 
     rule statement_control:sym<unless> {
         $<sym>='unless'<.kok>
-        <xblock(0)> # 0 means we're not parsing `without`
+        <xblock($PBLOCK_NO_TOPIC)> # 0 means we're not parsing `without`
         [ <!before [els[e|if]|orwith]» >
             || $<wrong-keyword>=[els[e|if]|orwith]» {}
                 <.typed_panic: 'X::Syntax::UnlessElse',
@@ -1137,7 +1146,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule statement_control:sym<without> {
         $<sym>='without'<.kok>
-        <xblock(1)> # 1 means we're not parsing `unless`
+        <xblock($PBLOCK_REQUIRED_TOPIC)> # 1 means we're not parsing `unless`
         [ <!before [els[e|if]|orwith]» >
             || $<wrong-keyword>=[els[e|if]|orwith]» {}
                 <.typed_panic: 'X::Syntax::WithoutElse',
@@ -1167,7 +1176,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.typed_panic: 'X::Syntax::P5'> ]?
         [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
             <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
-        <xblock(1)>
+        <xblock($PBLOCK_REQUIRED_TOPIC)>
     }
 
     rule statement_control:sym<whenever> {
@@ -1180,7 +1189,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <.typed_panic('X::Comp::WheneverOutOfScope')>
         ]
         { $*WHENEVER_COUNT++ }
-        <xblock(1)>
+        <xblock($PBLOCK_REQUIRED_TOPIC)>
     }
 
     rule statement_control:sym<foreach> {
@@ -1341,7 +1350,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule statement_control:sym<given> {
-        <sym><.kok> <xblock(1)>
+        <sym><.kok> <xblock($PBLOCK_REQUIRED_TOPIC)>
     }
     rule statement_control:sym<when> {
         <sym><.kok> <xblock>
@@ -2964,7 +2973,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
-    rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock(1)> }
+    rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock($PBLOCK_OPTIONAL_TOPIC)> }
     rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>]
                                   || 'return' <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'> }
@@ -3548,7 +3557,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token circumfix:sym<« »> { :dba('shell-quote words') '«' ~ '»' <nibble(self.quote_lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))> }
     token circumfix:sym<{ }> {
         :my $*FAKE_INFIX_FOUND := 0;
-        <?[{]> <pblock(1)>
+        <?[{]> <pblock($PBLOCK_OPTIONAL_TOPIC)>
         {
             $*BORG<block> := $<pblock>
         }

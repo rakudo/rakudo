@@ -529,6 +529,7 @@ class Perl6::World is HLL::World {
         # fast-path the common cases
         if $version eq 'v6.c' {
             $comp.set_language_version: '6.c';
+            $*CAN_LOWER_TOPIC := 0;
             # CORE.c is currently our lowest core, which we don't "load"
             return;
         }
@@ -549,6 +550,7 @@ class Perl6::World is HLL::World {
 
             my $lang := $vCan.parts.AT-POS: 1;
             $comp.set_language_version:       '6.' ~ $lang;
+            $*CAN_LOWER_TOPIC := 0 if $lang eq 'c';
 
             # CORE.c is currently our lowest core, which we don't "load"
             self.load_setting: $ver-match, 'CORE.' ~ $lang
@@ -1299,6 +1301,8 @@ class Perl6::World is HLL::World {
             self.do_import($/, $comp_unit.handle, $name, $arglist);
             self.import_EXPORTHOW($/, $comp_unit.handle);
             $RMD("Imports for '$name' done") if $RMD;
+            # Workaround: P5foo modules rely on finding $_; don't lower it.
+            $*CAN_LOWER_TOPIC := 0 if nqp::eqat($name, 'P5', 0);
         }
         else {
             nqp::die("Don't know how to 'no $name' just yet");
@@ -1913,8 +1917,8 @@ class Perl6::World is HLL::World {
                 'default_value',   $WHAT,
                 'scalar_value',    $WHAT,
             );
-            my $desc :=
-              self.create_container_descriptor($Mu, $name, $WHAT, 1);
+            my $dynamic := $*W.lang-ver-before('d') || $name ne '$_';
+            my $desc := self.create_container_descriptor($Mu, $name, $WHAT, $dynamic);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);
 

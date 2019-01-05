@@ -2301,6 +2301,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method NFKD() { X::NYI.new(:feature<NFKD>).throw }
 #?endif
 
+    method unival(Str:D:) { self ?? self.ord.unival !! Nil }
+
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True --> Str:D) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {  # ' highlighting
             my Str $s = $m.Str;

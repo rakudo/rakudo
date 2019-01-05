@@ -103,7 +103,7 @@ my class Cool { # declared in BOOTSTRAP
 
     method uniname()        { uniname(self) }
     method uninames()       { uninames(self) }
-    method unival()         { unival(self) }
+    method unival(Cool:D:)  { self.Int.unival }
     method univals()        { univals(self) }
     method uniprop(|c)      { uniprop(self, |c) }
     method uniprop-int(|c)  { uniprop-int(self, |c) }
@@ -502,7 +502,7 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
                   nqp::getuniname($code),
                   nqp::if(
                     nqp::iseq_s($pref, 'nv'),
-                    unival($code),
+                    $code.unival,
                     nqp::if(
                       nqp::iseq_s($pref, 'bmg'),
                       nqp::stmts(
@@ -548,17 +548,11 @@ multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
 }
 
 proto sub unival($, *%) {*}
-multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
-multi sub unival(Int:D $code) {
-    state $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
-    state $deprop = nqp::unipropcode("Numeric_Value_Denominator");
-    my $nu = nqp::getuniprop_str($code, $nuprop);
-    my $de = nqp::getuniprop_str($code, $deprop);
-    !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
-}
+multi sub unival(Str:D $str) { $str ?? $str.ord.unival !! Nil }
+multi sub unival(Int:D $code) { $code.unival }
 
 proto sub univals($, *%) {*}
-multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
+multi sub univals(Str:D $str) { $str.ords.map: { .unival } }
 
 proto sub unimatch($, |) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }

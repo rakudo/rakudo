@@ -389,9 +389,6 @@ multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
 #?if js
-proto sub univals(|) {*}
-multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
-
 multi sub uniprop(|)      { die 'uniprop NYI on js backend' }
 multi sub uniprop-int(|)  { die 'uniprop-int NYI on js backend' }
 multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
@@ -406,6 +403,9 @@ multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
 proto sub unival($, *%) {*}
 multi sub unival(Str:D $str) { $str ?? $str.ord.unival !! Nil }
 multi sub unival(Int:D $code) { $code.unival }
+
+proto sub univals($, *%) {*}
+multi sub univals(Str:D $str) { $str.ords.map: { .unival } }
 #?endif
 
 #?if moar
@@ -542,9 +542,6 @@ proto sub uniprops($, $?, *%) {*}
 multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
     $str.ords.map: { uniprop($_, $propname) }
 }
-
-proto sub univals($, *%) {*}
-multi sub univals(Str:D $str) { $str.ords.map: { .unival } }
 
 proto sub unimatch($, |) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }

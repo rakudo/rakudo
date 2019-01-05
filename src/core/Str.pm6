@@ -2302,6 +2302,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 
     method unival(Str:D:) { self ?? self.ord.unival !! Nil }
+    method univals(Str:D:) { self.ords.map: *.unival }
 
     method wordcase(Str:D: :&filter = &tclc, Mu :$where = True --> Str:D) {
         self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {  # ' highlighting

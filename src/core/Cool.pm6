@@ -104,7 +104,7 @@ my class Cool { # declared in BOOTSTRAP
     method uniname()        { uniname(self) }
     method uninames()       { uninames(self) }
     method unival(Cool:D:)  { self.Int.unival }
-    method univals()        { univals(self) }
+    method univals(Cool:D:) { self.Str.univals }
     method uniprop(|c)      { uniprop(self, |c) }
     method uniprop-int(|c)  { uniprop-int(self, |c) }
     method uniprop-bool(|c) { uniprop-bool(self, |c) }
@@ -405,7 +405,7 @@ multi sub unival(Str:D $str) { $str ?? $str.ord.unival !! Nil }
 multi sub unival(Int:D $code) { $code.unival }
 
 proto sub univals($, *%) {*}
-multi sub univals(Str:D $str) { $str.ords.map: { .unival } }
+multi sub univals(Str:D $str) { $str.univals }
 #?endif
 
 #?if moar

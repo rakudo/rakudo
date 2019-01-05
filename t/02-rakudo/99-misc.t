@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 8;
+plan 9;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -144,4 +144,10 @@ group-of 2 => 'collation experiment' => {
         $*COLLATION.set: :primary;
         print 'pass'
     ｣, :out<pass>, 'we can still use the pragma (to support old code)';
+}
+
+subtest 'Distribution::Resource can be stringified', {
+    lives-ok { Distribution::Resource.perl }, 'Can use .perl';
+    lives-ok { Distribution::Resource.Str  }, 'Can use .Str';
+    lives-ok { Distribution::Resource.gist }, 'Can use .gist';
 }

@@ -389,16 +389,6 @@ multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
 #?if js
-proto sub unival(|) {*}
-multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
-multi sub unival(Int:D $code) {
-    state $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
-    state $deprop = nqp::unipropcode("Numeric_Value_Denominator");
-    my $nu = nqp::getuniprop_str($code, $nuprop);
-    my $de = nqp::getuniprop_str($code, $deprop);
-    !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
-}
-
 proto sub univals(|) {*}
 multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
 
@@ -410,6 +400,12 @@ multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
 }
 multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
+#?endif
+
+#?if !jvm
+proto sub unival($, *%) {*}
+multi sub unival(Str:D $str) { $str ?? $str.ord.unival !! Nil }
+multi sub unival(Int:D $code) { $code.unival }
 #?endif
 
 #?if moar
@@ -546,10 +542,6 @@ proto sub uniprops($, $?, *%) {*}
 multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
     $str.ords.map: { uniprop($_, $propname) }
 }
-
-proto sub unival($, *%) {*}
-multi sub unival(Str:D $str) { $str ?? $str.ord.unival !! Nil }
-multi sub unival(Int:D $code) { $code.unival }
 
 proto sub univals($, *%) {*}
 multi sub univals(Str:D $str) { $str.ords.map: { .unival } }

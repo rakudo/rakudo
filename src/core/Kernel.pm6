@@ -8,10 +8,11 @@ class Kernel does Systemic {
     has Str $!hardware;
     has Str $!arch;
     has Int $!bits;
+    has Bool $!has_uname;
 
-    sub uname($opt) {
-        state $has_uname = "/bin/uname".IO.x || "/usr/bin/uname".IO.x;
-        $has_uname ?? qqx/uname $opt/.chomp !! 'unknown';
+    method !uname($opt) {
+        $!has_uname //= "/bin/uname".IO.x || "/usr/bin/uname".IO.x;
+        $!has_uname ?? qqx/uname $opt/.chomp !! 'unknown';
     }
 
     submethod BUILD(:$!auth = "unknown" --> Nil) { }
@@ -26,7 +27,7 @@ class Kernel does Systemic {
                     'browser';
                 }
                 default {
-                    lc uname '-s';
+                    lc self!uname('-s');
                 }
             }
         }
@@ -36,10 +37,10 @@ class Kernel does Systemic {
         $!version //= Version.new( do {
             given $*DISTRO.name {
                 when 'freebsd' {
-                    uname '-r'; # -K -U not introduced until 10.0
+                    self!uname('-r'); # -K -U not introduced until 10.0
                 }
                 when 'macosx' {
-                    my $unamev = uname '-v';
+                    my $unamev = self!uname('-v');
                     $unamev ~~ m/^Darwin \s+ Kernel \s+ Version \s+ (<[\d\.]>+)/
                       ?? ~$0
                       !! $unamev.chomp;
@@ -49,10 +50,10 @@ class Kernel does Systemic {
                         when 'linux' {
                             # somewhat counter-intuitively the '-r' is what
                             # most people think of the kernel version
-                            uname '-r';
+                            self!uname('-r');
                         }
                         default {
-                            uname '-v';
+                            self!uname('-v');
                         }
                     }
                 }
@@ -64,10 +65,10 @@ class Kernel does Systemic {
         $!release //= do {
             given $*DISTRO.name {
                 when any <openbsd netbsd dragonfly> { # needs adapting
-                    uname '-r';
+                    self!uname('-r');
                 }
                 default {
-                    uname '-v';
+                    self!uname('-v');
                 }
             }
         }
@@ -77,7 +78,7 @@ class Kernel does Systemic {
         $!hardware //= do {
             given $*DISTRO.name {
                 default {
-                    uname '-m';
+                    self!uname('-m');
                 }
             }
         }
@@ -87,10 +88,10 @@ class Kernel does Systemic {
         $!arch //= do {
             given $*DISTRO.name {
                 when 'raspbian' {
-                    uname '-m';
+                    self!uname('-m');
                 }
                 default {
-                    uname '-p';
+                    self!uname('-p');
                 }
             }
         }

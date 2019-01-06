@@ -3,6 +3,7 @@
 
 use v6;
 my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, $blib, @libpaths) = @*ARGS;
+my $relocatable = True;
 
 $p6_mbc_path = $*SPEC.rel2abs($p6_mbc_path || $*SPEC.curdir);
 $blib = ' ' ~ $blib if $blib;
@@ -66,10 +67,28 @@ elsif ($toolchain eq 'valgrind') {
 }
 else {
     my $fh = open $install_to, :w;
-    $fh.print(sprintf(q:to/EOS/, $moar, $libpath-line));
-    #!/bin/sh
-    exec %s  --execname="$0" %s "$@"
-    EOS
+    if $relocatable {
+        $fh.print(sprintf(q:to/EOS/));
+        #!/bin/bash
+
+        # Sourced from https://stackoverflow.com/a/246128/1975049
+        SOURCE="${BASH_SOURCE[0]}"
+        while [ -h "$SOURCE" ]; do
+          DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null && pwd )"
+          SOURCE="$(readlink "$SOURCE")"
+          [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+        done
+        DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null && pwd )"
+
+        exec $DIR/moar  --execname="$0" --libpath="$DIR/../share/nqp/lib" --libpath="$DIR/../share/perl6/lib" --libpath="$DIR/../share/perl6/runtime" $DIR/../share/perl6/runtime/perl6.moarvm "$@"
+        EOS
+    }
+    else {
+        $fh.print(sprintf(q:to/EOS/, $moar, $libpath-line));
+        #!/bin/sh
+        exec %s  --execname="$0" %s "$@"
+        EOS
+    }
     $fh.close;
     chmod(0o755, $install_to);
 }

@@ -325,14 +325,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method list(Blob:D:) { Seq.new(BlobAsList.new(self)).cache }
 
     multi method gist(Blob:D:) {
-        self.^name ~ ':0x<' ~ self.map( -> \el {
-            state $i = 0;
-            ++$i == 101 ?? '...'
-                !! $i == 102 ?? last()
-                    !! nqp::if(nqp::iseq_i( # el.fmt: '%02x'
-                        nqp::chars(my str $v = el.base: 16),1),
-                        nqp::concat('0',$v),$v)
-        }) ~ '>'
+        my int $todo = nqp::elems(self) min 100;
+        my $bytes := nqp::list_s;
+        for ^$todo -> int $i {
+            nqp::push_s(
+              $bytes,
+              nqp::if(
+                nqp::isle_i((my int $byte = nqp::atpos_i(self,$i)),15),
+                nqp::concat("0",nqp::base_I(nqp::box_i($byte,Int),16)),
+                nqp::base_I(nqp::box_i($byte,Int),16)
+              )
+            )
+        }
+        nqp::push_s($bytes,"...") if nqp::elems(self) > $todo;
+        self.^name ~ ':0x<' ~ nqp::join(" ",$bytes) ~ '>'
     }
     multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';

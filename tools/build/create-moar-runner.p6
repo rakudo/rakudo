@@ -80,7 +80,7 @@ else {
         done
         DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null && pwd )"
 
-        exec $DIR/moar  --execname="$0" --libpath="$DIR/../share/nqp/lib" --libpath="$DIR/../share/perl6/lib" --libpath="$DIR/../share/perl6/runtime" $DIR/../share/perl6/runtime/perl6.moarvm "$@"
+        exec $DIR/moar  --execname="$0" --libpath="$DIR/../share/nqp/lib" --libpath="$DIR/../share/perl6/lib" --libpath="$DIR/../share/perl6/runtime" $DIR/../share/perl6/runtime/perl6.moarvm --nqp-lib="$DIR/../share/nqp/lib" "$@"
         EOS
     }
     else {

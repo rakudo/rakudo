@@ -2776,7 +2776,7 @@ class Perl6::Optimizer {
                 else {
                     note("Non-QAST node visited " ~ $visit.HOW.name($visit)) if $!debug;
                 }
-                if $handle && $i > 0 {
+                if $handle {
                     @!block_var_stack[nqp::elems(@!block_var_stack) - 1].entering_handle_handler();
                 }
                 if nqp::istype($visit, QAST::Op) {

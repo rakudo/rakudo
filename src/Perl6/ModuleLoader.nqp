@@ -49,8 +49,14 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
             my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
-            my $include := nqp::getcomp('perl6').cli-options<nqp-lib>;
-            $file := ($include ?? $include ~ '/' !! nqp::getcomp('perl6').config<libdir> ~ '/nqp/lib/') ~ $file;
+
+            my @prefixes := %language_module_loaders<NQP>.search_path('module-path');
+            for @prefixes -> $prefix {
+                if nqp::stat("$prefix/$file", 0) {
+                    $file := "$prefix/$file";
+                    last;
+                }
+            }
 
             if nqp::existskey(%modules_loaded, $file) {
                 return nqp::ctxlexpad(%modules_loaded{$file});
@@ -67,7 +73,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
             return $UNIT;
         }
-
         if nqp::existskey(%language_module_loaders, %opts<from> // 'NQP') {
             # We expect that custom module loaders will accept a Stash, only
             # NQP expects a hash and therefor needs special handling.

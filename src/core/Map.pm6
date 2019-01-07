@@ -134,7 +134,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::while(
             iter,
             nqp::push_s($keys,nqp::iterkey_s(nqp::shift(iter)))
-          ),
+          )
         );
         $keys
     }

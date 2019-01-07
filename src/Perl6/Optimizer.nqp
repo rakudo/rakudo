@@ -519,6 +519,17 @@ my class BlockVarOptimizer {
 
     method is_poisoned() { $!poisoned }
 
+    method get_escaping_handler_vars() {
+        my @esc;
+        for %!used_in_handle_handler {
+            my $name := $_.key;
+            unless %!decls{$name} {
+                @esc.push($name);
+            }
+        }
+        return @esc;
+    }
+
     method incorporate_inner($vars_info, $flattened) {
         # We'll exclude anything that the inner or flattened thing has as
         # a declaration, since those are its own.
@@ -547,6 +558,11 @@ my class BlockVarOptimizer {
             my %target := $flattened ?? %!usages_flat !! %!usages_inner;
             %target{$name} := [] unless %target{$name};
             nqp::push(%target{$name}, $_);
+        }
+
+        # Also need to copy handler usages.
+        for $vars_info.get_escaping_handler_vars() {
+            %!used_in_handle_handler{$_} := 1;
         }
 
         # Add up call counts.
@@ -2797,7 +2813,7 @@ class Perl6::Optimizer {
                 else {
                     note("Non-QAST node visited " ~ $visit.HOW.name($visit)) if $!debug;
                 }
-                if $handle {
+                if $handle && $i > 0 {
                     @!block_var_stack[nqp::elems(@!block_var_stack) - 1].entering_handle_handler();
                 }
                 if nqp::istype($visit, QAST::Op) {

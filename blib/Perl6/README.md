@@ -1,4 +1,0 @@
-# Don't remove this file and dir
-
-They are needed to host the bytecode files during the build process
-for any VM.

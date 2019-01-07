@@ -213,12 +213,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method gist(Map:D: --> Str:D) {
-        self.^name ~ '.new((' ~ self.sort.map({
-            state $i = 0;
-            ++$i == 101 ?? '...'
-                !! $i == 102 ?? last()
-                    !! .gist
-        }).join(', ') ~ '))'
+        my @pairs = self.sort.head(100).map: *.gist;
+        @pairs.push("...") if self.elems > 100;
+        self.^name ~ '.new((' ~ @pairs.join(', ') ~ '))'
     }
 
     multi method perl(Map:D \SELF: --> Str:D) {

@@ -534,9 +534,16 @@ my class BlockVarOptimizer {
         # If the inner block uses getlexouter then we need to store those as
         # usages.
         for $vars_info.get_getlexouter_usages() {
-            my $name := nqp::istype($_, QAST::Op)
-                ?? $_[1][0].value   # The bind case
-                !! $_[0][0].value;  # The parameter default case
+            my $name;
+            if nqp::istype($_, QAST::Op) {
+                # The bind case; note some may be rewritten away.
+                next unless nqp::istype($_[1], QAST::Op) && $_[1].op eq 'getlexouter';
+                $name := $_[1][0].value;
+            }
+            else {
+                # The parameter default case
+                $name := $_[0][0].value;
+            }
             my %target := $flattened ?? %!usages_flat !! %!usages_inner;
             %target{$name} := [] unless %target{$name};
             nqp::push(%target{$name}, $_);
@@ -784,6 +791,9 @@ my class BlockVarOptimizer {
                         }
                     }
                 }
+
+                # Stsah the name we lowered it to.
+                $block.symbol($name, :lowered($new_name));
             }
         }
     }
@@ -1085,42 +1095,53 @@ class Perl6::Optimizer {
             $vars_info.simplify_takedispatcher();
         }
 
-        # If the block is immediate, we may be able to inline it.
+        # Do any possible lexical => local lowering.
+        if $!level >= 2 {
+            $vars_info.lexical_vars_to_locals($block, $!symbols.LoweredAwayLexical, $!can_lower_topic);
+        }
+
+        # If the block is immediate, we may be able to inline it. This is possible
+        # when we have lowered any lexicals that it declares into locals, and so
+        # it can be said that the scope doesn't have any runtime significance.
         my int $flattened := 0;
-        my $result        := $block;
+        my $result := $block;
         if $!level >= 2 && $block.blocktype eq 'immediate' && $block.arity == 0
                 && !$vars_info.is_poisoned && !$block.has_exit_handler {
-            # Scan symbols for any non-interesting ones.
-            my @sigsyms;
+            # Scan symbols for any non-lowered ones.
+            my $impossible := 0;
             for $block.symtable() {
-                my $name := $_.key;
-                if $name ne '$_' && $name ne '$*DISPATCHER' {
-                    @sigsyms.push($name);
+                my %sym := $_.value;
+                if %sym<scope> eq 'lexical' && !%sym<lowered> {
+                    $impossible := 1;
+                    last;
                 }
             }
 
-            # If we dynamically compiled it, then it must not contain
-            # any nested blocks.
-            if $*DYNAMICALLY_COMPILED {
+            # If we dynamically compiled it, then it must not contain any
+            # nested blocks. Otherwise, just make sure there's no parameters
+            # we can't understand in there.
+            if !$impossible {
                 for $block[0].list {
-                    if nqp::istype($_, QAST::Block) && $_.blocktype ne 'raw' {
-                        @sigsyms.push('');
+                    if nqp::istype($_, QAST::Var) && $_.decl eq 'param' {
+                        $impossible := 1;
+                        last;
+                    }
+                    elsif $*DYNAMICALLY_COMPILED {
+                        if nqp::istype($_, QAST::Block) && $_.blocktype ne 'raw' {
+                            $impossible := 1;
+                            last;
+                        }
                     }
                 }
             }
 
-            # If we have no interesting ones, then we can inline the
-            # statements.
-            if +@sigsyms == 0 {
+            # If we have nothing blocking us, do the immediate inlining of it.
+            unless $impossible {
                 my $outer := $!symbols.top_block;
                 $result := self.inline_immediate_block($block, $outer,
                     nqp::existskey($vars_info.get_decls(), '$_'));
+                $flattened := 1 unless $result =:= $block;
             }
-        }
-
-        # Do any possible lexical => local lowering.
-        if $!level >= 2 {
-            $vars_info.lexical_vars_to_locals($block, $!symbols.LoweredAwayLexical, $!can_lower_topic);
         }
 
         # Incorporate this block's info into outer block's info.
@@ -2945,51 +2966,43 @@ class Perl6::Optimizer {
         $block[0] := $!eliminated_block_contents;
         $outer[0].push($block);
 
-        # Copy over interesting stuff in declaration section.
+        # Extract interesting stuff in declaration section.
+        my @copy_decls;
         for @($decls) {
             if nqp::istype($_, QAST::Op) && ($_.op eq 'p6bindsig' ||
                     $_.op eq 'bind' && $_[0].name eq 'call_sig') {
                 # Don't copy this binder call or setup.
             }
-            elsif nqp::istype($_, QAST::Op) && $_.op eq 'bind' && $_[0].name eq '$_' {
-                # Don't copy the $_ initialization from outer.
+            elsif nqp::istype($_, QAST::Op) && $_.op eq 'bind' &&
+                    nqp::istype($_[1], QAST::Op) && $_[1].op eq 'getlexouter' {
+                # Initialization from outer $_ simply becomes reading the $_ in
+                # the block we're flattening into and binding it to the inner
+                # lowered one.
+                $_[1] := QAST::Var.new( :name($_[1][0].value), :scope('lexical') );
+                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].add_usage($_[1]);
+                @copy_decls.push($_);
             }
-            elsif nqp::istype($_, QAST::Var) && ($_.name eq '$/' || $_.name eq '$!' ||
-                    $_.name eq '$_' || $_.name eq '$*DISPATCHER') {
-                # Don't copy this variable node.
+            elsif nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
+                # It's a lexical. If the outer we're merging into already has such
+                # a symbol, do nothing (we just need it for "fallback" purposes).
+                # Otherwise, copy it and register it in the outer.
+                my $name := $_.name;
+                unless $name eq '$*DISPATCHER' || $outer.symbol($name) {
+                    @copy_decls.push($_);
+                    $outer.symbol($name, :scope('lexical'));
+                }
             }
             elsif nqp::istype($_, QAST::Op) && $_.op eq 'takedispatcher' {
                 # Don't copy the dispatcher take, since the $*DISPATCHER is
                 # also not copied.
             }
             else {
-                $outer[0].push($_);
+                @copy_decls.push($_);
             }
         }
 
-        # Hand back the statements, but be sure to preserve $_ around them if
-        # the block uses it.
-        if $preserve_topic {
-            my $pres_topic_name := QAST::Node.unique('pres_topic_');
-            $outer[0].push(QAST::Var.new( :scope('local'), :name($pres_topic_name), :decl('var') ));
-            my $topic_lex := QAST::Var.new( :name('$_'), :scope('lexical') );
-            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].add_usage($topic_lex);
-            return QAST::Stmts.new(
-                :resultchild(1),
-                QAST::Op.new( :op('bind'),
-                    QAST::Var.new( :name($pres_topic_name), :scope('local') ),
-                    $topic_lex
-                ),
-                $stmts,
-                QAST::Op.new( :op('bind'),
-                    $topic_lex,
-                    QAST::Var.new( :name($pres_topic_name), :scope('local') )
-                )
-            );
-        }
-        else {
-            return $stmts;
-        }
+        # Hand back the decls and statements that we're inlining.
+        return QAST::Stmts.new( |@copy_decls, $stmts );
     }
 
     # Inlines a call to a sub.

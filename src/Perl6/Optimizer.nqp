@@ -1088,7 +1088,7 @@ class Perl6::Optimizer {
         # If the block is immediate, we may be able to inline it.
         my int $flattened := 0;
         my $result        := $block;
-        if $block.blocktype eq 'immediate' && $block.arity == 0
+        if $!level >= 2 && $block.blocktype eq 'immediate' && $block.arity == 0
                 && !$vars_info.is_poisoned && !$block.has_exit_handler {
             # Scan symbols for any non-interesting ones.
             my @sigsyms;
@@ -1112,11 +1112,9 @@ class Perl6::Optimizer {
             # If we have no interesting ones, then we can inline the
             # statements.
             if +@sigsyms == 0 {
-                if $!level >= 2 {
-                    my $outer := $!symbols.top_block;
-                    $result := self.inline_immediate_block($block, $outer,
-                        nqp::existskey($vars_info.get_decls(), '$_'));
-                }
+                my $outer := $!symbols.top_block;
+                $result := self.inline_immediate_block($block, $outer,
+                    nqp::existskey($vars_info.get_decls(), '$_'));
             }
         }
 

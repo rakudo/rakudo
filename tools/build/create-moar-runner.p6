@@ -2,8 +2,8 @@
 # Copyright (C) 2013-2018, The Perl Foundation.
 
 use v6;
-my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, $blib, @libpaths) = @*ARGS;
-my $relocatable = True;
+my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, $blib, $relocatable, @libpaths) = @*ARGS;
+$relocatable = $relocatable eq "relocatable";
 
 $p6_mbc_path = $*SPEC.rel2abs($p6_mbc_path || $*SPEC.curdir);
 $blib = ' ' ~ $blib if $blib;

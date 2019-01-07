@@ -826,7 +826,7 @@ implementation detail and has no serviceable parts inside"
 
     method get-local-timezone-offset() {
         my $utc    := time;
-        my Mu $fia := nqp::p6decodelocaltime(nqp::unbox_i($utc));
+        my Mu $fia := nqp::decodelocaltime(nqp::unbox_i($utc));
 
         DateTime.new(
           nqp::atpos_i($fia,5),  # year

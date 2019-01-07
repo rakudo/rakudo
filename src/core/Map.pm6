@@ -126,14 +126,62 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         )
     }
 
+    # Produce a native str array with all the keys
+    method !keys-as-str() {
+        my $keys := nqp::list_s;
+        nqp::if(
+          ($!storage && my \iter := nqp::iterator($!storage)),
+          nqp::while(
+            iter,
+            nqp::push_s($keys,nqp::iterkey_s(nqp::shift(iter)))
+          ),
+        );
+        $keys
+    }
+
+    # Iterator over a native string array holding the keys and producing
+    # Pairs.
+    my class Iterate-keys does Iterator {
+        has $!map;
+        has $!iter;
+        method new(Mu \map, Mu \keys) {
+            nqp::p6bindattrinvres(
+              nqp::p6bindattrinvres(
+                nqp::create(self),
+                self,
+                '$!map',nqp::getattr(map,Map,'$!storage')
+              ),
+              self,
+              '$!iter',
+              nqp::iterator(keys)
+            )
+        }
+        method pull-one() {
+            nqp::if(
+              $!iter,
+              nqp::stmts(
+                (my \key := nqp::shift($!iter)),
+                Pair.new(key,nqp::atkey($!map,key))
+              ),
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            my \map  := $!map;
+            my \iter := $!iter;
+            nqp::while(
+              iter,
+              nqp::stmts(
+                (my \key := nqp::shift(iter)),
+                $target.push(Pair.new(key,nqp::atkey(map,key)))
+              )
+            )
+        }
+    }
+
     multi method sort(Map:D: --> Seq:D) {
         Seq.new(
-          Rakudo::Iterator.ReifiedList(
-            Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-              self.IterationBuffer.List,
-              { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
-            )
-          )
+          Iterate-keys.new(self,Rakudo::Sorting.MERGESORT-str(self!keys-as-str))
         )
     }
 

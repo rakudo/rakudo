@@ -618,6 +618,17 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
+        multi method sort(::?CLASS:D: --> Seq:D) {
+            Seq.new(
+              Rakudo::Iterator.ReifiedList(
+                Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
+                  self.IterationBuffer.List,
+                  { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
+                )
+              )
+            )
+        }
+
         my class Keys does Rakudo::Iterator::Mappy {
             method pull-one() {
                 nqp::if(

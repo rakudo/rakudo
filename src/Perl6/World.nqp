@@ -368,7 +368,13 @@ class Perl6::World is HLL::World {
                 $i := $i - 1;
                 my %sym := @!PADS[$i].symbol($name);
                 if +%sym {
-                    return %sym<scope> eq 'lexical';
+                    return %sym<scope> eq 'lexical' &&
+                        # Make sure it's now a lowered away lexical from a flattened
+                        # inner scope in an EVAL in the REPL
+                        ($i > 0 || nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 0) ||
+                         !nqp::istype(
+                             $*W.force_value(%sym, $name, 0),
+                             $*W.find_symbol(['Rakudo', 'Internals', 'LoweredAwayLexical'])));
                 }
             }
             0;

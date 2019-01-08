@@ -61,6 +61,8 @@ perl6-debug-j.bat
 /perl6-lldb-m
 perl6-m
 perl6-m.bat
+perl6-mc
+perl6-mc.exe
 perl6-debug-m
 perl6-debug-m.bat
 perl6-js

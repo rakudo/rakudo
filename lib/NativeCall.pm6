@@ -288,7 +288,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 return_hash_for($r.signature, $r, :$!entry-point));
             $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
             $!arity = $r.signature.arity;
-            ($*W && $*W.is_precompilation_mode ?? $!precomp-setup !! $!setup) = $jitted ?? 2 !! 1;
 
             $!any-optionals = self!any-optionals;
 
@@ -305,6 +304,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                     Code.HOW.invocation_attr_name(Code),
                     nqp::null());
             }
+
+            ($*W && $*W.is_precompilation_mode ?? $!precomp-setup !! $!setup) = $jitted ?? 2 !! 1;
         }
     }
 
@@ -564,10 +565,11 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 
     method CALL-ME(|args) {
         self.create-optimized-call() unless
-            $!is-clone # Clones and original would share the invokespec but not the $!do attribute
+            $!optimized-body # Already have the optimized body
+            or $!is-clone # Clones and original would share the invokespec but not the $!do attribute
             or $!any-optionals # the compiled code doesn't support optional parameters yet
             or $*W;    # Avoid issues with compiling specialized version during BEGIN time
-        self!setup();
+        self!setup() unless $!setup;
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
         if nqp::elems($args) != $!arity {

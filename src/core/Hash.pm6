@@ -195,16 +195,12 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     multi method gist(Hash:D:) {
-        self.gistseen(self.^name, {
-            '{' ~
-            self.sort.map({
-                state $i = 0;
-                ++$i == 101 ?? '...'
-                    !! $i == 102 ?? last()
-                        !! .gist
-            }).join(', ')
-            ~ '}'
-        })
+        self.gistseen: self.^name, {
+            '{'
+              ~ self.sort.head(100).map(*.gist).join(', ')
+              ~ (', ...' if self.elems > 100)
+              ~ '}'
+        }
     }
 
     multi method DUMP(Hash:D: :$indent-step = 4, :%ctx) {

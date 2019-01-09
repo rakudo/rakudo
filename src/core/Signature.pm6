@@ -8,6 +8,15 @@ my class Signature { # declared in BOOTSTRAP
     #   has Num $!count;          # count
     #   has Code $!code;
 
+    method BUILD(
+      :@params, Mu :$returns, Int:D :$arity = 0, Num:D :$count = $arity.Num
+    ) {
+        nqp::bind(@!params,nqp::getattr(@params,List,'$!reified')),
+        $!returns := $returns;
+        $!arity    = $arity;
+        $!count   := $count;
+    }
+
     multi method ACCEPTS(Signature:D: Mu \topic) {
         nqp::hllbool(nqp::istrue(try self.ACCEPTS: topic.Capture))
     }

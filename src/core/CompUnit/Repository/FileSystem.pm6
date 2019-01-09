@@ -110,8 +110,9 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $name-path = $!prefix.add($file).relative(self!files-prefix).IO.cleanup.Str.subst(:g, '\\', '/');
             %!precomp-to-name = $dist.meta<provides>.hash.keys.map({ self!comp-unit-id($_).id => $_ }).hash
                 unless %!precomp-to-name.keys;
-            my $precompiled = %!precomp-to-name{($file.basename ~~ /(.*?)\./)[0].Str}.defined;
-            my $name = %!precomp-to-name{($name-path ~~ /(.*?)\./)[0].Str}
+            my $precomp-name-path = ($file.basename ~~ /(.*?)\.?/)[0].Str;
+            my $precompiled = %!precomp-to-name{$precomp-name-path}.defined;
+            my $name = %!precomp-to-name{$precomp-name-path}
                     // $dist.meta<provides>.antipairs.hash{$name-path};
             my $spec  = CompUnit::DependencySpecification.new(
                 short-name      => $name,

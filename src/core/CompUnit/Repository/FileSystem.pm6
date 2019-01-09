@@ -7,6 +7,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!precomp-store;
     has $!distribution;
     has $!files-prefix;
+    has %!precomp-to-name;
 
     my @extensions = <pm6 pm>;
 
@@ -61,15 +62,11 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         Nil
     }
 
-    method need(
+    method !need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
-
-        --> CompUnit:D)
-    {
-        return $_ with %!loaded{~$spec};
-
+    ) {
         with self!matching-dist($spec) {
             my $name = $spec.short-name;
             my $id   = self!comp-unit-id($name);
@@ -94,32 +91,35 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
                 :distribution($_),
             );
         }
+    }
 
+    method need(
+        CompUnit::DependencySpecification $spec,
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+        CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
+        --> CompUnit:D)
+    {
+        return $_ with self!need($spec, $precomp, :@precomp-stores);
         return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
         X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
     method load(IO::Path:D $file --> CompUnit:D) {
-        unless $file.is-absolute {
-
-            # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
-            my $precompiled = $file.Str.ends-with(Rakudo::Internals.PRECOMP-EXT);
-            my $path = $!prefix.add($file);
-
-            if $path.f {
-                return %!loaded{$file.Str} //= CompUnit.new(
-                    :handle(
-                        $precompiled
-                            ?? CompUnit::Loader.load-precompilation-file($path)
-                            !! CompUnit::Loader.load-source-file($path)
-                    ),
-                    :short-name($file.Str),
-                    :repo(self),
-                    :repo-id($file.Str),
-                    :$precompiled,
-                    :distribution(self!distribution),
-                );
-            }
+        if $file.is-relative && $!prefix.add($file).f {
+            my $dist := self!distribution;
+            my $name-path = $!prefix.add($file).relative(self!files-prefix).IO.cleanup.Str.subst(:g, '\\', '/');
+            %!precomp-to-name = $dist.meta<provides>.hash.keys.map({ self!comp-unit-id($_).id => $_ }).hash
+                unless %!precomp-to-name.keys;
+            my $precompiled = %!precomp-to-name{($file.basename ~~ /(.*?)\./)[0].Str}.defined;
+            my $name = %!precomp-to-name{($name-path ~~ /(.*?)\./)[0].Str}
+                    // $dist.meta<provides>.antipairs.hash{$name-path};
+            my $spec  = CompUnit::DependencySpecification.new(
+                short-name      => $name,
+                auth-matcher    => True,
+                version-matcher => True,
+                api-matcher     => True,
+            );
+            return $_ with self!need($spec);
         }
 
         return self.next-repo.load($file) if self.next-repo;

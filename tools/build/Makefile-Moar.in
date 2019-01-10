@@ -216,12 +216,12 @@ $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.p6 $(PERL6_MOAR) $(SETTING_
 	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-valgrind-m . "valgrind" --nqp-lib=blib norelocatable . blib "$(M_LIBPATH)"
 	-$(CHMOD) 755 $(M_VALGRIND_RUNNER)
 
-$(M_C_RUNNER): tools/build/moar-runner.c
+$(M_C_RUNNER): src/vm/moar/runner/main.c
 	$(RM_F) $(M_C_RUNNER)
 # Using only the pkgconfig moar includes does not work, because moar.h assumes all the specific includes below.
 	$(M_CC) @moar::ccshared@ $(M_CFLAGS) $(M_LDFLAGS) -I$(M_INCPATH) -I$(M_INCPATH)/moar \
 	    -I$(M_INCPATH)/libatomic_ops -I$(M_INCPATH)/dyncall -I$(M_INCPATH)/moar -I$(M_INCPATH)/sha1 -I$(M_INCPATH)/tinymt -I$(M_INCPATH)/libtommath -I$(M_INCPATH)/libuv \
-	    -L@moar::libdir@ -Wl,-z,origin,-rpath,'$$ORIGIN/../lib' -lmoar @moar::ccout@$@ tools/build/moar-runner.c
+	    -L@moar::libdir@ -Wl,-z,origin,-rpath,'$$ORIGIN/../lib' -lmoar @moar::ccout@$@ src/vm/moar/runner/main.c
 
 
 ##  testing targets

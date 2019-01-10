@@ -82,6 +82,7 @@ int wmain(int argc, wchar_t *wargv[])
     int          res;
     char        *input_file;
     char        *exec_path;
+    char        *dir_path;
     size_t       exec_path_size;
     int          dir_path_size;
     char        *lib_path[3];
@@ -177,25 +178,27 @@ int wmain(int argc, wchar_t *wargv[])
         return EXIT_FAILURE;
     }
 
+    dir_path = (char*)malloc(exec_path_size);
+    memcpy(dir_path, exec_path, exec_path_size);
+
 #ifdef _WIN32
-    PathRemoveFileSpecA(exec_path);
+    PathRemoveFileSpecA(dir_path);
 #else
-    exec_path = dirname(exec_path);
+    dir_path = dirname(dir_path);
 #endif
 
-    dir_path_size = strlen(exec_path);
+    dir_path_size = strlen(dir_path);
 
     lib_path[0] = (char*)malloc(dir_path_size + 50);
     lib_path[1] = (char*)malloc(dir_path_size + 50);
     lib_path[2] = (char*)malloc(dir_path_size + 50);
     input_file  = (char*)malloc(dir_path_size + 50);
 
-    memcpy(lib_path[0], exec_path, dir_path_size);
-    memcpy(lib_path[1], exec_path, dir_path_size);
-    memcpy(lib_path[2], exec_path, dir_path_size);
-    memcpy(input_file,  exec_path, dir_path_size);
+    memcpy(lib_path[0], dir_path, dir_path_size);
+    memcpy(lib_path[1], dir_path, dir_path_size);
+    memcpy(lib_path[2], dir_path, dir_path_size);
+    memcpy(input_file,  dir_path, dir_path_size);
 
-    free(exec_path);
 
 #ifdef _WIN32
     strcpy(lib_path[0] + dir_path_size, "\\..\\share\\nqp\\lib");
@@ -214,6 +217,7 @@ int wmain(int argc, wchar_t *wargv[])
     /* stash the rest of the raw command line args in the instance */
     MVM_vm_set_clargs(instance, new_argc, argv);
     MVM_vm_set_prog_name(instance, input_file);
+    MVM_vm_set_exec_name(instance, exec_path);
     MVM_vm_set_lib_path(instance, 3, (const char **)lib_path);
 
     /* Ignore SIGPIPE by default, since we error-check reads/writes. This does
@@ -247,4 +251,6 @@ int wmain(int argc, wchar_t *wargv[])
     free(lib_path[1]);
     free(lib_path[2]);
     free(input_file);
+    free(exec_path);
+    free(dir_path);
 }

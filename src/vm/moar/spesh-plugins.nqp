@@ -257,7 +257,7 @@ sub identity($obj) { $obj }
                 if $definite_check == 0 {
                     nqp::speshguardtypeobj($rv);
                 }
-                elsif $definite_check == 1 {
+                elsif $definite_check == 1 && !nqp::istype($rv, Nil) {
                     nqp::speshguardconcrete($rv);
                 }
 

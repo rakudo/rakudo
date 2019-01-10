@@ -98,7 +98,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         Capture.new( list => $positional.List, hash => %named )
     }
 
-    # Generate $?USAGE string (default usage info for MAIN)
+    # Generate $*USAGE string (default usage info for MAIN)
     sub default-generate-usage(&, |capture) {
         my $no-named-after = nqp::isfalse(%sub-main-opts<named-anywhere>);
 

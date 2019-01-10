@@ -31,6 +31,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_CAPTURE         = 1 +< 15;
     my constant $SIG_ELEM_UNDEFINED_ONLY     = 1 +< 16;
     my constant $SIG_ELEM_DEFINED_ONLY       = 1 +< 17;
+    my constant $SIG_ELEM_DEFAULT_IS_LITERAL = 1 +< 20;
     my constant $SIG_ELEM_SLURPY_ONEARG      = 1 +< 24;
     my constant $SIG_ELEM_CODE_SIGIL         = 1 +< 25;
 
@@ -46,6 +47,177 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_NOT_READONLY = $SIG_ELEM_IS_RW
                                          +| $SIG_ELEM_IS_COPY
                                          +| $SIG_ELEM_IS_RAW;
+
+    my $sigils2bit := nqp::null;
+    sub set-sigil-bits(str $sigil, \flags --> Nil) {
+        if nqp::atkey(
+          nqp::ifnull(
+            $sigils2bit,
+            $sigils2bit := nqp::hash(
+              Q/@/, $SIG_ELEM_ARRAY_SIGIL,
+              Q/%/, $SIG_ELEM_HASH_SIGIL,
+              Q/&/, $SIG_ELEM_CODE_SIGIL,
+              Q/\/, $SIG_ELEM_IS_RAW,
+              Q/|/, $SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_IS_RAW,
+            )
+          ),
+          $sigil
+        ) -> $bit {
+            flags +|= $bit
+        }
+    }
+
+    sub definitize-type(Str:D $type, Bool:D $definite) {
+        Metamodel::DefiniteHOW.new_type(:base_type(::($type)), :$definite)
+    }
+
+    sub str-to-type(Str:D $type, $flags is rw) {
+        if $type.ends-with(Q/:D/) {
+            $flags +|= $SIG_ELEM_DEFINED_ONLY;
+            definitize-type($type.chop(2), True)
+        }
+        elsif $type.ends-with(Q/:U/) {
+            $flags +|= $SIG_ELEM_UNDEFINED_ONLY;
+            definitize-type($type.chop(2), False)
+        }
+        elsif $type.ends-with(Q/:_/) {
+            ::($type.chop(2))
+        }
+        else {
+            ::($type)
+        }
+    }
+
+    method BUILD(
+       Str:D :$name      is copy = "",
+       Int:D :$flags     is copy = 0,
+      Bool:D :$named     is copy = False,
+      Bool:D :$optional  is copy = False,
+      Bool:D :$mandatory is copy = False,
+      Bool:D :$is_copy           = False,
+      Bool:D :$is_rw             = False,
+      Bool:D :$is_raw            = False,
+      # type / default / where captured through %_
+      ) {
+
+        if $name {                                 # specified a name?
+
+            if $name.ends-with(Q/!/) {
+                $name      = $name.substr(0,*-1);
+                $mandatory = True;
+            }
+            elsif $name.ends-with(Q/?/) {
+                $name     = $name.substr(0,*-1);
+                $optional = True;
+            }
+
+            my $sigil = $name.substr(0,1);
+
+            if $sigil eq Q/:/ {
+                $name  = $name.substr(1);
+                $sigil = $name.substr(0,1);
+                $named = True;
+            }
+
+            if $name.ends-with(Q/)/) {
+                if $named {
+                    my $start = $name.index(Q/(/); # XXX handle multiple
+                    @!named_names := nqp::list_s($name.substr(0,$start));
+                    $name := $name.substr($start + 1, *-1);
+                }
+                else {
+                    die "Can only specify alternative names on named parameters: $name";
+                }
+            }
+
+            if $sigil eq Q/*/ {                     # is it a slurpy?
+                $name  = $name.substr(1);
+                $sigil = $name.substr(0,1);
+
+                if %_.EXISTS-KEY('type') {
+                    die "Slurpy named parameters with type constraints are not supported|"
+                }
+
+                if $sigil eq Q/*/ {                  # is it a double slurpy?
+                    $name  = $name.substr(1);
+                    $sigil = $name.substr(0,1);
+                    $flags +|= $SIG_ELEM_SLURPY_LOL;
+                }
+                elsif $sigil eq Q/@/ {               # a slurpy array?
+                    $flags +|= $SIG_ELEM_SLURPY_POS;
+                }
+                elsif $sigil eq Q/%/ {               # a slurpy hash?
+                    $flags +|= $SIG_ELEM_SLURPY_NAMED;
+                }
+            }
+
+            if $name.substr(1,1) -> $twigil {
+                if $twigil eq Q/!/ {
+                    $flags +|= $SIG_ELEM_BIND_PRIVATE_ATTR;
+                }
+                elsif $twigil eq Q/./ {
+                    $flags +|= $SIG_ELEM_BIND_PUBLIC_ATTR;
+                }
+            }
+
+            set-sigil-bits($sigil, $flags);
+            $name = $name.substr(1) if $sigil eq Q/\/ || $sigil eq Q/|/;
+        }
+
+        if %_.EXISTS-KEY('type') {
+            my $type = %_.AT-KEY('type');
+            $type = $type.^name
+              unless $type.DEFINITE && nqp::istype($type,Str);
+
+            if $type.ends-with(Q/)/) {
+                my $start = $type.index(Q/(/);
+                $!nominal_type :=
+                  str-to-type($type.substr($start + 1, *-1), my $);
+                $!coerce_type :=
+                  str-to-type($type.substr(0, $start), $flags);
+            }
+            else {
+                $!nominal_type := str-to-type($type, $flags)
+            }
+        }
+        else {
+            $!nominal_type := Any;
+        }
+
+        if %_.EXISTS-KEY('default') {
+            my $default := %_.AT-KEY('default');
+            if nqp::istype($default,Code) {
+                $!default_value := $default;
+            }
+            else {
+                nqp::bind($!default_value,$default);
+                $flags +|= $SIG_ELEM_DEFAULT_IS_LITERAL;
+            }
+            $flags +|= $SIG_ELEM_IS_OPTIONAL;
+        }
+
+        if %_.EXISTS-KEY('where') {
+            nqp::bind(@!post_constraints,nqp::list(%_.AT-KEY('where')));
+        }
+
+        if $named {
+            $flags +|= $SIG_ELEM_IS_OPTIONAL unless $mandatory;
+            @!named_names := nqp::list_s($name.substr(1))
+              unless @!named_names;
+        }
+        else {
+            $flags +|= $SIG_ELEM_IS_OPTIONAL if $optional;
+        }
+
+        $flags +|= $SIG_ELEM_MULTI_INVOCANT;  # seems to be needed always??
+        $flags +|= $SIG_ELEM_IS_COPY if $is_copy;
+        $flags +|= $SIG_ELEM_IS_RW   if $is_rw;
+        $flags +|= $SIG_ELEM_IS_RAW  if $is_raw;
+
+        $!variable_name = $name;
+        $!flags = $flags;
+        self
+    }
 
     method name() {
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name

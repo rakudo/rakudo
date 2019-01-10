@@ -14,25 +14,25 @@ my class Parameter { # declared in BOOTSTRAP
     #     has Mu $!attr_package;
     #     has Mu $!why;
 
-    my constant $SIG_ELEM_BIND_CAPTURE       = 1;
-    my constant $SIG_ELEM_BIND_PRIVATE_ATTR  = 2;
-    my constant $SIG_ELEM_BIND_PUBLIC_ATTR   = 4;
-    my constant $SIG_ELEM_SLURPY_POS         = 8;
-    my constant $SIG_ELEM_SLURPY_NAMED       = 16;
-    my constant $SIG_ELEM_SLURPY_LOL         = 32;
-    my constant $SIG_ELEM_INVOCANT           = 64;
-    my constant $SIG_ELEM_MULTI_INVOCANT     = 128;
-    my constant $SIG_ELEM_IS_RW              = 256;
-    my constant $SIG_ELEM_IS_COPY            = 512;
-    my constant $SIG_ELEM_IS_RAW             = 1024;
-    my constant $SIG_ELEM_IS_OPTIONAL        = 2048;
-    my constant $SIG_ELEM_ARRAY_SIGIL        = 4096;
-    my constant $SIG_ELEM_HASH_SIGIL         = 8192;
-    my constant $SIG_ELEM_IS_CAPTURE         = 32768;
-    my constant $SIG_ELEM_UNDEFINED_ONLY     = 65536;
-    my constant $SIG_ELEM_DEFINED_ONLY       = 131072;
-    my constant $SIG_ELEM_SLURPY_ONEARG      = 16777216;
-    my constant $SIG_ELEM_CODE_SIGIL         = 33554432;
+    my constant $SIG_ELEM_BIND_CAPTURE       = 1;           # 1 +<  0
+    my constant $SIG_ELEM_BIND_PRIVATE_ATTR  = 2;           # 1 +<  1
+    my constant $SIG_ELEM_BIND_PUBLIC_ATTR   = 4;           # 1 +<  2
+    my constant $SIG_ELEM_SLURPY_POS         = 8;           # 1 +<  3
+    my constant $SIG_ELEM_SLURPY_NAMED       = 16;          # 1 +<  4
+    my constant $SIG_ELEM_SLURPY_LOL         = 32;          # 1 +<  5
+    my constant $SIG_ELEM_INVOCANT           = 64;          # 1 +<  6
+    my constant $SIG_ELEM_MULTI_INVOCANT     = 128;         # 1 +<  7
+    my constant $SIG_ELEM_IS_RW              = 256;         # 1 +<  8
+    my constant $SIG_ELEM_IS_COPY            = 512;         # 1 +<  9
+    my constant $SIG_ELEM_IS_RAW             = 1024;        # 1 +< 10
+    my constant $SIG_ELEM_IS_OPTIONAL        = 2048;        # 1 +< 11
+    my constant $SIG_ELEM_ARRAY_SIGIL        = 4096;        # 1 +< 12
+    my constant $SIG_ELEM_HASH_SIGIL         = 8192;        # 1 +< 13
+    my constant $SIG_ELEM_IS_CAPTURE         = 32768;       # 1 +< 15
+    my constant $SIG_ELEM_UNDEFINED_ONLY     = 65536;       # 1 +< 16
+    my constant $SIG_ELEM_DEFINED_ONLY       = 131072;      # 1 +< 17
+    my constant $SIG_ELEM_SLURPY_ONEARG      = 16777216;    # 1 +< 24
+    my constant $SIG_ELEM_CODE_SIGIL         = 33554432;    # 1 +< 25
 
     my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
                                            +| $SIG_ELEM_SLURPY_NAMED
@@ -345,7 +345,7 @@ my class Parameter { # declared in BOOTSTRAP
             $perl ~= $/ ~ $modifier if $/;
         }
         elsif $modifier or
-                !nqp::eqaddr(nqp::decont($!nominal_type), nqp::decont($elide-type)) {
+                !nqp::eqaddr($!nominal_type, nqp::decont($elide-type)) {
             $perl ~= $type ~ $modifier;
         }
         my $name = $.name;

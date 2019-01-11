@@ -315,16 +315,12 @@ m-install: m-all tools/build/create-moar-runner.p6 tools/build/install-core-dist
 	.@slash@$(M_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_LANG_DIR)/vendor
 	.@slash@$(M_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_LANG_DIR)/site
 	.@slash@$(M_RUNNER) tools/build/install-core-dist.p6 $(DESTDIR)$(PERL6_LANG_DIR)
-	#$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "" relocatable "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(CP) $(M_C_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-m@exe@
 	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_LANG_DIR)/runtime" "" "" relocatable "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
-	#$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6-m@exe@
 @m_install@
 
 m-runner-default-install: m-install
-	#$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-m "$(PERL6_LANG_DIR)/runtime" "" "" relocatable "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"
 	$(CP) $(DESTDIR)$(PREFIX)/bin/perl6-m@exe@ $(DESTDIR)$(PREFIX)/bin/perl6@exe@
-	#$(CHMOD) 755 $(DESTDIR)$(PREFIX)/bin/perl6@exe
 
 manifest:
 	echo MANIFEST >MANIFEST

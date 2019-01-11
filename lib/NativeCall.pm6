@@ -643,7 +643,7 @@ multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
 }
 
 role CPPConst {
-    method cpp-const() { 1 }
+    method cpp-const(--> 1) { }
 }
 multi trait_mod:<is>(Routine $p, :$cpp-const!) is export(:DEFAULT, :traits) {
     $p does CPPConst;
@@ -653,15 +653,14 @@ multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
 }
 
 role CPPRef {
-    method cpp-ref() { 1 }
+    method cpp-ref(--> 1) { }
 }
 multi trait_mod:<is>(Parameter $p, :$cpp-ref!) is export(:DEFAULT, :traits) {
     $p does CPPRef;
 }
 
-multi refresh($obj) is export(:DEFAULT, :utils) {
+multi refresh($obj --> 1) is export(:DEFAULT, :utils) {
     nqp::nativecallrefresh($obj);
-    1;
 }
 
 multi sub nativecast(Signature $target-type, $source) is export(:DEFAULT) {

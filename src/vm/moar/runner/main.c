@@ -72,6 +72,62 @@ static int parse_flag(const char *arg)
         return UNKNOWN_FLAG;
 }
 
+int file_exists(const char *path)
+{
+    FILE *file;
+    if ((file = fopen(path, "r")))
+    {
+        fclose(file);
+        return 1;
+    }
+    return 0;
+}
+
+void platformify_path(char *path) {
+#ifdef _WIN32
+    int i;
+    for(i = 0; path[i]; i++) {
+        if (path[i] == '/') {
+            path[i] = '\\';
+        }
+    }
+#endif
+}
+
+int retrieve_home(char *out_home, char *rel_home, char *env_var, char *exec_dir_path, int exec_dir_path_size, char *check_file) {
+    char *check_file_path;
+    char *env_home = getenv(env_var);
+    int home_size;
+    if (env_home) {
+        strcpy(out_home, env_home);
+        home_size = strlen(out_home);
+#ifdef _WIN32
+        if (*(out_home + home_size - 1) == '\\') {
+#else
+        if (*(out_home + home_size - 1) == '/') {
+#endif
+            *(out_home + home_size - 1) = '\0';
+            home_size--;
+        }
+    }
+    else {
+        memcpy(out_home, exec_dir_path, exec_dir_path_size);
+        strcpy(out_home + exec_dir_path_size, rel_home);
+        platformify_path(out_home + exec_dir_path_size);
+        home_size = strlen(out_home);
+    }
+
+    check_file_path = (char*)malloc(home_size + 50);
+    memcpy(check_file_path, out_home, home_size);
+    strcpy(check_file_path + home_size, check_file);
+	if (!file_exists(check_file_path)) {
+        free(check_file_path);
+        return 0;
+	}
+    free(check_file_path);
+    return 1;
+}
+
 #ifndef _WIN32
 int main(int argc, char *argv[])
 #else
@@ -197,53 +253,21 @@ int wmain(int argc, wchar_t *wargv[])
 #endif
     dir_path_size = strlen(dir_path);
 
-    /* Put together PERL6_HOME and NQP_HOME. */
+    /* Retrieve PERL6_HOME and NQP_HOME. */
 
-    perl6_home = getenv("PERL6_HOME");
-    if (perl6_home) {
-        perl6_home_size = strlen(perl6_home);
-#ifdef _WIN32
-        if (*(perl6_home + perl6_home_size - 1) == '\\') {
-#else
-        if (*(perl6_home + perl6_home_size - 1) == '/') {
-#endif
-            *(perl6_home + perl6_home_size - 1) = '\0';
-            perl6_home_size--;
-        }
-    }
-    else {
-        perl6_home = (char*)malloc(dir_path_size + 50);
-        memcpy(perl6_home, dir_path, dir_path_size);
-#ifdef _WIN32
-        strcpy(perl6_home + dir_path_size, "\\..\\share\\perl6");
-#else
-        strcpy(perl6_home + dir_path_size, "/../share/perl6");
-#endif
-        perl6_home_size = strlen(perl6_home);
-    }
+    nqp_home = (char*)malloc(dir_path_size + 50);
+    if (!retrieve_home(nqp_home, "/../share/nqp", "NQP_HOME", dir_path, dir_path_size, "/lib/NQPCORE.setting.moarvm")) {
+        fprintf(stderr, "ERROR: NQP_HOME is invalid: %s\n", nqp_home);
+        return EXIT_FAILURE;
+	}
+    nqp_home_size = strlen(nqp_home);
 
-    nqp_home = getenv("NQP_HOME");
-    if (nqp_home) {
-        nqp_home_size = strlen(nqp_home);
-#ifdef _WIN32
-        if (*(nqp_home + nqp_home_size - 1) == '\\') {
-#else
-        if (*(nqp_home + nqp_home_size - 1) == '/') {
-#endif
-            *(nqp_home + nqp_home_size - 1) = '\0';
-            nqp_home_size--;
-        }
-    }
-    else {
-        nqp_home = (char*)malloc(dir_path_size + 50);
-        memcpy(nqp_home, dir_path, dir_path_size);
-#ifdef _WIN32
-        strcpy(nqp_home + dir_path_size, "\\..\\share\\nqp");
-#else
-        strcpy(nqp_home + dir_path_size, "/../share/nqp");
-#endif
-        nqp_home_size = strlen(nqp_home);
-    }
+    perl6_home = (char*)malloc(dir_path_size + 50);
+    if (!retrieve_home(perl6_home, "/../share/perl6", "PERL6_HOME", dir_path, dir_path_size, "/runtime/perl6.moarvm")) {
+        fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", perl6_home);
+        return EXIT_FAILURE;
+	}
+    perl6_home_size = strlen(perl6_home);
 
     /* Put together the lib paths and perl6_file path. */
 
@@ -268,8 +292,6 @@ int wmain(int argc, wchar_t *wargv[])
     strcpy(lib_path[2] + perl6_home_size, "/runtime");
     strcpy(perl6_file  + perl6_home_size, "/runtime/perl6.moarvm");
 #endif
-
-    printf("%s %s\n", nqp_home, perl6_home);
 
     /* Start up the VM. */
 

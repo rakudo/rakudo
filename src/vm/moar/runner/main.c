@@ -80,10 +80,14 @@ int wmain(int argc, wchar_t *wargv[])
 {
     MVMInstance *instance;
     int          res;
-    char        *input_file;
+    char        *perl6_home;
+    size_t       perl6_home_size;
+    char        *nqp_home;
+    size_t       nqp_home_size;
+    char        *perl6_file;
     char        *exec_path;
-    char        *dir_path;
     size_t       exec_path_size;
+    char        *dir_path;
     int          dir_path_size;
     char        *lib_path[3];
 
@@ -101,6 +105,8 @@ int wmain(int argc, wchar_t *wargv[])
 
     MVMuint32 debugserverport = 0;
     int start_suspended = 0;
+
+    /* Filter out VM arguments from the command line. */
 
     for (; (flag = parse_flag(argv[argi])) != NOT_A_FLAG; ++argi) {
         switch (flag) {
@@ -140,6 +146,8 @@ int wmain(int argc, wchar_t *wargv[])
         }
     }
 
+    /* Move over the remaining arguments. */
+
     for (; argv[argi]; ++argi) {
         argv[new_argc++] = argv[argi];
     }
@@ -165,6 +173,8 @@ int wmain(int argc, wchar_t *wargv[])
     }
 #endif
 
+    /* Retrieve the executable directory path. */
+
     exec_path_size = 4096;
     exec_path = (char*)malloc(exec_path_size);
     res = MVM_exepath(exec_path, &exec_path_size);
@@ -180,43 +190,93 @@ int wmain(int argc, wchar_t *wargv[])
 
     dir_path = (char*)malloc(exec_path_size);
     memcpy(dir_path, exec_path, exec_path_size);
-
 #ifdef _WIN32
     PathRemoveFileSpecA(dir_path);
 #else
     dir_path = dirname(dir_path);
 #endif
-
     dir_path_size = strlen(dir_path);
+
+    /* Put together PERL6_HOME and NQP_HOME. */
+
+    perl6_home = getenv("PERL6_HOME");
+    if (perl6_home) {
+        perl6_home_size = strlen(perl6_home);
+#ifdef _WIN32
+        if (*(perl6_home + perl6_home_size - 1) == '\\') {
+#else
+        if (*(perl6_home + perl6_home_size - 1) == '/') {
+#endif
+            *(perl6_home + perl6_home_size - 1) = '\0';
+            perl6_home_size--;
+        }
+    }
+    else {
+        perl6_home = (char*)malloc(dir_path_size + 50);
+        memcpy(perl6_home, dir_path, dir_path_size);
+#ifdef _WIN32
+        strcpy(perl6_home + dir_path_size, "\\..\\share\\perl6");
+#else
+        strcpy(perl6_home + dir_path_size, "/../share/perl6");
+#endif
+        perl6_home_size = strlen(perl6_home);
+    }
+
+    nqp_home = getenv("NQP_HOME");
+    if (nqp_home) {
+        nqp_home_size = strlen(nqp_home);
+#ifdef _WIN32
+        if (*(nqp_home + nqp_home_size - 1) == '\\') {
+#else
+        if (*(nqp_home + nqp_home_size - 1) == '/') {
+#endif
+            *(nqp_home + nqp_home_size - 1) = '\0';
+            nqp_home_size--;
+        }
+    }
+    else {
+        nqp_home = (char*)malloc(dir_path_size + 50);
+        memcpy(nqp_home, dir_path, dir_path_size);
+#ifdef _WIN32
+        strcpy(nqp_home + dir_path_size, "\\..\\share\\nqp");
+#else
+        strcpy(nqp_home + dir_path_size, "/../share/nqp");
+#endif
+        nqp_home_size = strlen(nqp_home);
+    }
+
+    /* Put together the lib paths and perl6_file path. */
 
     lib_path[0] = (char*)malloc(dir_path_size + 50);
     lib_path[1] = (char*)malloc(dir_path_size + 50);
     lib_path[2] = (char*)malloc(dir_path_size + 50);
-    input_file  = (char*)malloc(dir_path_size + 50);
+    perl6_file  = (char*)malloc(dir_path_size + 50);
 
-    memcpy(lib_path[0], dir_path, dir_path_size);
-    memcpy(lib_path[1], dir_path, dir_path_size);
-    memcpy(lib_path[2], dir_path, dir_path_size);
-    memcpy(input_file,  dir_path, dir_path_size);
-
+    memcpy(lib_path[0], nqp_home,     nqp_home_size);
+    memcpy(lib_path[1], perl6_home, perl6_home_size);
+    memcpy(lib_path[2], perl6_home, perl6_home_size);
+    memcpy(perl6_file,  perl6_home, perl6_home_size);
 
 #ifdef _WIN32
-    strcpy(lib_path[0] + dir_path_size, "\\..\\share\\nqp\\lib");
-    strcpy(lib_path[1] + dir_path_size, "\\..\\share\\perl6\\lib");
-    strcpy(lib_path[2] + dir_path_size, "\\..\\share\\perl6\\runtime");
-    strcpy(input_file  + dir_path_size, "\\..\\share\\perl6\\runtime\\perl6.moarvm");
+    strcpy(lib_path[0] +   nqp_home_size, "\\lib");
+    strcpy(lib_path[1] + perl6_home_size, "\\lib");
+    strcpy(lib_path[2] + perl6_home_size, "\\runtime");
+    strcpy(perl6_file  + perl6_home_size, "\\runtime\\perl6.moarvm");
 #else
-    strcpy(lib_path[0] + dir_path_size, "/../share/nqp/lib");
-    strcpy(lib_path[1] + dir_path_size, "/../share/perl6/lib");
-    strcpy(lib_path[2] + dir_path_size, "/../share/perl6/runtime");
-    strcpy(input_file  + dir_path_size, "/../share/perl6/runtime/perl6.moarvm");
+    strcpy(lib_path[0] +   nqp_home_size, "/lib");
+    strcpy(lib_path[1] + perl6_home_size, "/lib");
+    strcpy(lib_path[2] + perl6_home_size, "/runtime");
+    strcpy(perl6_file  + perl6_home_size, "/runtime/perl6.moarvm");
 #endif
+
+    printf("%s %s\n", nqp_home, perl6_home);
+
+    /* Start up the VM. */
 
     instance   = MVM_vm_create_instance();
 
-    /* stash the rest of the raw command line args in the instance */
     MVM_vm_set_clargs(instance, new_argc, argv);
-    MVM_vm_set_prog_name(instance, input_file);
+    MVM_vm_set_prog_name(instance, perl6_file);
     MVM_vm_set_exec_name(instance, exec_path);
     MVM_vm_set_lib_path(instance, 3, (const char **)lib_path);
 
@@ -235,8 +295,8 @@ int wmain(int argc, wchar_t *wargv[])
         }
     }
 
-    if (dump) MVM_vm_dump_file(instance, input_file);
-    else MVM_vm_run_file(instance, input_file);
+    if (dump) MVM_vm_dump_file(instance, perl6_file);
+    else MVM_vm_run_file(instance, perl6_file);
 
 #ifdef HAVE_TELEMEH
     if (getenv("MVM_TELEMETRY_LOG") && telemeh_inited) {
@@ -250,7 +310,9 @@ int wmain(int argc, wchar_t *wargv[])
     free(lib_path[0]);
     free(lib_path[1]);
     free(lib_path[2]);
-    free(input_file);
+    free(perl6_file);
     free(exec_path);
     free(dir_path);
+    free(perl6_home);
+    free(nqp_home);
 }

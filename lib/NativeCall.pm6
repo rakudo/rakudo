@@ -5,7 +5,7 @@ use NativeCall::Types;
 use NativeCall::Compiler::GNU;
 use NativeCall::Compiler::MSVC;
 
-my $repr_map := nqp::hash(
+my constant $repr_map = nqp::hash(
   "CArray",    "carray",
   "CPPStruct", "cppstruct",
   "CPointer",  "cpointer",
@@ -123,11 +123,15 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point) {
     $result
 }
 
-my $signed_ints_by_size :=
+sub nativesizeof($obj) is export(:DEFAULT) {
+    nqp::nativecallsizeof($obj)
+}
+
+my constant $signed_ints_by_size =
   nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
 
 # Gets the NCI type code to use based on a given Perl 6 type.
-my $type_map := nqp::hash(
+my constant $type_map = nqp::hash(
   "Bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
   "bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
   "Callable",   "callback",
@@ -681,10 +685,6 @@ multi sub nativecast(Num $target-type, $source) is export(:DEFAULT) {
 multi sub nativecast($target-type, $source) is export(:DEFAULT) {
     nqp::nativecallcast(nqp::decont($target-type),
         nqp::decont($target-type), nqp::decont($source));
-}
-
-sub nativesizeof($obj) is export(:DEFAULT) {
-    nqp::nativecallsizeof($obj)
 }
 
 sub cglobal($libname, $symbol, $target-type) is export is rw {

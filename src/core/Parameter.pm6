@@ -88,17 +88,34 @@ my class Parameter { # declared in BOOTSTRAP
         }
     }
 
-    method BUILD(
-       Str:D :$name      is copy = "",
-       Int:D :$flags     is copy = 0,
-      Bool:D :$named     is copy = False,
-      Bool:D :$optional  is copy = False,
-      Bool:D :$mandatory is copy = False,
-      Bool:D :$is-copy           = False,
-      Bool:D :$is-rw             = False,
-      Bool:D :$is-raw            = False,
-      Bool:D :$multi-invocant    = True,
-      # type / default / where captured through %_
+    multi method new(Parameter:U:
+       Str:D :$name           = "",
+       Int:D :$flags          = 0,
+      Bool:D :$named          = False,
+      Bool:D :$optional       = False,
+      Bool:D :$mandatory      = False,
+      Bool:D :$is-copy        = False,
+      Bool:D :$is-raw         = False,
+      Bool:D :$is-rw          = False,
+      Bool:D :$multi-invocant = True,
+    ) {
+        nqp::create(self)!SET-SELF(
+          $name, $flags, $named, $optional, $mandatory,
+          $is-copy, $is-raw, $is-rw, $multi-invocant, %_
+        )
+    }
+
+    method !SET-SELF(
+       Str:D $name      is copy,
+       Int:D $flags     is copy,
+      Bool:D $named     is copy,
+      Bool:D $optional  is copy,
+      Bool:D $mandatory is copy,
+      Bool:D $is-copy,
+      Bool:D $is-raw,
+      Bool:D $is-rw,
+      Bool:D $multi-invocant,
+             %args  # type / default / where captured through %_
       ) {
 
         if $name {                                 # specified a name?
@@ -165,8 +182,8 @@ my class Parameter { # declared in BOOTSTRAP
             $name = $name.substr(1) if $sigil eq Q/\/ || $sigil eq Q/|/;
         }
 
-        if %_.EXISTS-KEY('type') {
-            my $type := %_.AT-KEY('type');
+        if %args.EXISTS-KEY('type') {
+            my $type := %args.AT-KEY('type');
             if $type.DEFINITE {
                 if nqp::istype($type,Str) {
                     if $type.ends-with(Q/)/) {
@@ -192,8 +209,8 @@ my class Parameter { # declared in BOOTSTRAP
             $!nominal_type := Any;
         }
 
-        if %_.EXISTS-KEY('default') {
-            my $default := %_.AT-KEY('default');
+        if %args.EXISTS-KEY('default') {
+            my $default := %args.AT-KEY('default');
             if nqp::istype($default,Code) {
                 $!default_value := $default;
             }
@@ -204,8 +221,8 @@ my class Parameter { # declared in BOOTSTRAP
             $flags +|= $SIG_ELEM_IS_OPTIONAL;
         }
 
-        if %_.EXISTS-KEY('where') {
-            nqp::bind(@!post_constraints,nqp::list(%_.AT-KEY('where')));
+        if %args.EXISTS-KEY('where') {
+            nqp::bind(@!post_constraints,nqp::list(%args.AT-KEY('where')));
         }
 
         if $named {

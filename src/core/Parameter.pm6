@@ -567,7 +567,12 @@ my class Parameter { # declared in BOOTSTRAP
         }
         my $default = self.default();
         if self.slurpy {
-            $name = ($!flags +& $SIG_ELEM_SLURPY_ONEARG ?? '+' !! ($!flags +& $SIG_ELEM_SLURPY_LOL ?? "**" !! "*") ~ $name);
+            $name = $!flags +& $SIG_ELEM_SLURPY_ONEARG
+              ?? "+$name"
+              !! $!flags +& $SIG_ELEM_SLURPY_LOL
+                ?? "**$name"
+                !! "*$name";
+
         } elsif self.named {
             my $name1 := substr($name,1);
             if @(self.named_names).first({$_ && $_ eq $name1}) {

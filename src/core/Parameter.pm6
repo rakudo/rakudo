@@ -97,6 +97,7 @@ my class Parameter { # declared in BOOTSTRAP
       Bool:D :$is_copy           = False,
       Bool:D :$is_rw             = False,
       Bool:D :$is_raw            = False,
+      Bool:D :$exclude           = False,
       # type / default / where captured through %_
       ) {
 
@@ -165,19 +166,26 @@ my class Parameter { # declared in BOOTSTRAP
         }
 
         if %_.EXISTS-KEY('type') {
-            my $type = %_.AT-KEY('type');
-            $type = $type.^name
-              unless $type.DEFINITE && nqp::istype($type,Str);
-
-            if $type.ends-with(Q/)/) {
-                my $start = $type.index(Q/(/);
-                $!nominal_type :=
-                  str-to-type($type.substr($start + 1, *-1), my $);
-                $!coerce_type :=
-                  str-to-type($type.substr(0, $start), $flags);
+            my $type := %_.AT-KEY('type');
+            if $type.DEFINITE {
+                if nqp::istype($type,Str) {
+                    if $type.ends-with(Q/)/) {
+                        my $start = $type.index(Q/(/);
+                        $!nominal_type :=
+                          str-to-type($type.substr($start + 1, *-1), my $);
+                        $!coerce_type :=
+                          str-to-type($type.substr(0, $start), $flags);
+                    }
+                    else {
+                        $!nominal_type := str-to-type($type, $flags)
+                    }
+                }
+                else {
+                    $!nominal_type := $type.WHAT;
+                }
             }
             else {
-                $!nominal_type := str-to-type($type, $flags)
+                $!nominal_type := $type;
             }
         }
         else {
@@ -209,7 +217,7 @@ my class Parameter { # declared in BOOTSTRAP
             $flags +|= $SIG_ELEM_IS_OPTIONAL if $optional;
         }
 
-        $flags +|= $SIG_ELEM_MULTI_INVOCANT;  # seems to be needed always??
+        $flags +|= $SIG_ELEM_MULTI_INVOCANT unless $exclude;
         $flags +|= $SIG_ELEM_IS_COPY if $is_copy;
         $flags +|= $SIG_ELEM_IS_RW   if $is_rw;
         $flags +|= $SIG_ELEM_IS_RAW  if $is_raw;

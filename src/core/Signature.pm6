@@ -8,13 +8,18 @@ my class Signature { # declared in BOOTSTRAP
     #   has Num $!count;          # count
     #   has Code $!code;
 
-    method BUILD(
+    multi method new(Signature:U:
       :@params, Mu :$returns, Int:D :$arity = 0, Num:D :$count = $arity.Num
     ) {
+        nqp::create(self)!SET-SELF(@params, $returns, $arity, $count)
+    }
+
+    method !SET-SELF(@params, $returns, $arity, $count) {
         nqp::bind(@!params,nqp::getattr(@params,List,'$!reified')),
         $!returns := $returns;
         $!arity    = $arity;
         $!count   := $count;
+        self
     }
 
     multi method ACCEPTS(Signature:D: Mu \topic) {

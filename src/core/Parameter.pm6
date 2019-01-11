@@ -94,10 +94,10 @@ my class Parameter { # declared in BOOTSTRAP
       Bool:D :$named     is copy = False,
       Bool:D :$optional  is copy = False,
       Bool:D :$mandatory is copy = False,
-      Bool:D :$is_copy           = False,
-      Bool:D :$is_rw             = False,
-      Bool:D :$is_raw            = False,
-      Bool:D :$exclude           = False,
+      Bool:D :$is-copy           = False,
+      Bool:D :$is-rw             = False,
+      Bool:D :$is-raw            = False,
+      Bool:D :$multi-invocant    = True,
       # type / default / where captured through %_
       ) {
 
@@ -217,10 +217,10 @@ my class Parameter { # declared in BOOTSTRAP
             $flags +|= $SIG_ELEM_IS_OPTIONAL if $optional;
         }
 
-        $flags +|= $SIG_ELEM_MULTI_INVOCANT unless $exclude;
-        $flags +|= $SIG_ELEM_IS_COPY if $is_copy;
-        $flags +|= $SIG_ELEM_IS_RW   if $is_rw;
-        $flags +|= $SIG_ELEM_IS_RAW  if $is_raw;
+        $flags +|= $SIG_ELEM_MULTI_INVOCANT if $multi-invocant;
+        $flags +|= $SIG_ELEM_IS_COPY        if $is-copy;
+        $flags +|= $SIG_ELEM_IS_RAW         if $is-raw;
+        $flags +|= $SIG_ELEM_IS_RW          if $is-rw;
 
         $!variable_name = $name;
         $!flags = $flags;

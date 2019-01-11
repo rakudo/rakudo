@@ -9,7 +9,10 @@ my class Signature { # declared in BOOTSTRAP
     #   has Code $!code;
 
     multi method new(Signature:U:
-      :@params, Mu :$returns, Int:D :$arity = 0, Num:D :$count = $arity.Num
+            :@params,
+         Mu :$returns,
+      Int:D :$arity = @params.elems,
+      Num:D :$count = $arity.Num
     ) {
         nqp::create(self)!SET-SELF(@params, $returns, $arity, $count)
     }

@@ -222,7 +222,7 @@ my class Parameter { # declared in BOOTSTRAP
         $flags +|= $SIG_ELEM_IS_RAW         if $is-raw;
         $flags +|= $SIG_ELEM_IS_RW          if $is-rw;
 
-        $!variable_name = $name;
+        $!variable_name = $name if $name;
         $!flags = $flags;
         self
     }

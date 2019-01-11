@@ -369,9 +369,9 @@ my class Parameter { # declared in BOOTSTRAP
     method default() {
         nqp::isnull($!default_value)
           ?? Any
-          !! nqp::istype($!default_value,Code)
-            ?? $!default_value
-            !! { $!default_value }
+          !! nqp::bitand_i($!flags,$SIG_ELEM_DEFAULT_IS_LITERAL)
+            ?? { $!default_value }
+            !! $!default_value
     }
     method type_captures() {
         nqp::if(

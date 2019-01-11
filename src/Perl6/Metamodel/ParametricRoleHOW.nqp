@@ -72,7 +72,9 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!in_group ?? $!group !! $obj
     }
 
-    method compose($obj, :$compiler_services) {
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         my @rtl;
         if $!in_group {
             @rtl.push($!group);

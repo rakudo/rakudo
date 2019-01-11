@@ -82,7 +82,9 @@ class Perl6::Metamodel::ClassHOW
         return 0;
     }
 
-    method compose($obj, :$compiler_services) {
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.

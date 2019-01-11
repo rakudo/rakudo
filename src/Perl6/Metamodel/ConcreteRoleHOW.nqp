@@ -58,7 +58,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
         );
     }
 
-    method compose($obj) {
+    method compose($the-obj) {
+        my $obj := nqp::decont($the-obj);
+
         RoleToRoleApplier.apply($obj, self.roles_to_compose($obj));
         for self.roles_to_compose($obj) {
             @!role_typecheck_list[+@!role_typecheck_list] := $_;

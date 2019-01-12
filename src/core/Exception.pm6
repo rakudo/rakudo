@@ -1,5 +1,6 @@
 my role X::Comp { ... }
 my class X::ControlFlow { ... }
+my role X::Control { ... }
 
 my class Exception {
     has $!ex;
@@ -51,7 +52,11 @@ my class Exception {
     }
 
     method throw(Exception:D: $bt?) {
-        $!ex := nqp::newexception() unless nqp::isconcrete($!ex) and $bt;
+        unless nqp::isconcrete($!ex) and $bt {
+            my $orig-ex := $!ex;
+            $!ex := nqp::newexception();
+            self!maybe-set-control() unless nqp::isconcrete($orig-ex);
+        }
         $!bt := $bt; # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::throw($!ex)
@@ -60,9 +65,16 @@ my class Exception {
         unless nqp::isconcrete($!ex) {
             $!ex := nqp::newexception();
             try nqp::setmessage($!ex, self.message);
+            self!maybe-set-control();
         }
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
+    }
+
+    method !maybe-set-control(--> Nil) {
+        if nqp::istype(self, X::Control) {
+            nqp::setextype($!ex, nqp::const::CONTROL_ANY);
+        }
     }
 
     method resume(Exception:D: --> True) {

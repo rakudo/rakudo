@@ -136,6 +136,11 @@ my class Parameter { # declared in BOOTSTRAP
                 $sigil = $name.substr(0,1);
                 $named = True;
             }
+            elsif $sigil eq Q/+/ {
+                $name  = $name.substr(1);
+                $sigil = $name.substr(0,1);
+                $flags +|= $SIG_ELEM_IS_RAW +| $SIG_ELEM_SLURPY_ONEARG;
+            }
 
             if $name.ends-with(Q/)/) {
                 if $named {

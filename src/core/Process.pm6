@@ -37,7 +37,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM-NAME', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM', {
-    PROCESS::<$PROGRAM> := IO::Path.new($*PROGRAM-NAME);
+    PROCESS::<$PROGRAM> := IO::Path.new(:CWD(INIT nqp::cwd()), $*PROGRAM-NAME);
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*TMPDIR', {

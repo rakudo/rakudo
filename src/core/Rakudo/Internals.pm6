@@ -457,10 +457,6 @@ my class Rakudo::Internals {
         )
     }
 
-    our role Constraint[::CONSTRAINT] {
-        method keyof() { CONSTRAINT }
-    }
-
     our role ImplementationDetail {
         method new(|) { die self.gist }
         method gist(--> Str:D) {
@@ -1657,6 +1653,16 @@ implementation detail and has no serviceable parts inside"
             nqp::bindkey($CORE_METAOP_ASSIGN,nqp::objectid(op),metaop);
         }
         $CORE_METAOP_ASSIGN
+    }
+
+    # handle parameterization by just adding a "keyof" method
+    my role KeyOf[::CONSTRAINT] {
+        method keyof() { CONSTRAINT }
+    }
+    method PARAMETERIZE-KEYOF(Mu \base, Mu \type) {
+        my \what := base.^mixin(KeyOf[type]);
+        what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
+        what
     }
 }
 

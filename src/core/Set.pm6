@@ -2,9 +2,7 @@ my class Set does Setty {
     has ValueObjAt $!WHICH;
 
     method ^parameterize(Mu \base, Mu \type) {
-        my \what := base.^mixin(Rakudo::Internals::Constraint[type]);
-        what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
-        what
+        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
     }
 
     multi method WHICH (Set:D: --> ValueObjAt:D) {

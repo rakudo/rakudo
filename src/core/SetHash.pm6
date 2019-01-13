@@ -1,10 +1,8 @@
 my class SetHash does Setty {
 
-    method ^parameterize(Mu \base, Mu \type) {
-        my \what := base.^mixin(Rakudo::Internals::Constraint[type]);
-        what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
-        what
-    }
+    method ^parameterize(Mu \base, Mu \type) { 
+        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
+    }  
 
 #--- selector methods
 

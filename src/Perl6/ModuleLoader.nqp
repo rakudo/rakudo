@@ -50,7 +50,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $*MAIN_CTX;
             my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
 
-            my @prefixes := %language_module_loaders<NQP>.search_path('module-path');
+            my @prefixes := self.search_path();
             for @prefixes -> $prefix {
                 if nqp::stat("$prefix/$file", 0) {
                     $file := "$prefix/$file";

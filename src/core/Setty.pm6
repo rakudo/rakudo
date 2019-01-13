@@ -1,16 +1,16 @@
-my role Setty[::CONSTRAINT = Mu] does QuantHash[CONSTRAINT] {
+my role Setty does QuantHash {
     has Rakudo::Internals::IterationSet $!elems; # key.WHICH => key
 
     method of() { Bool }
 
-    # helper sub to create Set from iterator, check for laziness
-    sub create-from-iterator(\type, \iterator --> Setty:D) {
+    # private method to create Set from iterator, check for laziness
+    method !create-from-iterator(\type, \iterator --> Setty:D) {
         nqp::if(
           iterator.is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
           nqp::create(type).SET-SELF(
             Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet), iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )
@@ -20,7 +20,7 @@ my role Setty[::CONSTRAINT = Mu] does QuantHash[CONSTRAINT] {
     multi method new(Setty: \value --> Setty:D) {
         nqp::if(
           nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value)),
-          create-from-iterator(self, value.iterator),
+          self!create-from-iterator(self, value.iterator),
           nqp::stmts(
             nqp::bindkey(
               (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
@@ -32,16 +32,16 @@ my role Setty[::CONSTRAINT = Mu] does QuantHash[CONSTRAINT] {
         )
     }
     multi method new(Setty: **@args --> Setty:D) {
-        create-from-iterator(self, @args.iterator)
+        self!create-from-iterator(self, @args.iterator)
     }
 
     method new-from-pairs(*@pairs --> Setty:D) {
         nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
+          (my \iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::create(self).SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet), $iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )

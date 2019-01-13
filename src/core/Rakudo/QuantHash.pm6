@@ -1,4 +1,5 @@
 my role Real { ... }
+my class X::TypeCheck::Binding { ... }
 
 my class Rakudo::QuantHash {
 
@@ -294,15 +295,27 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # bind the given value to the given IterationSet, check for given type
+    method BIND-TO-TYPED-SET(\elems, Mu \value, Mu \type --> Nil) {
+        nqp::if(
+          nqp::istype(value,type),
+          nqp::bindkey(elems,value.WHICH,value),
+          X::TypeCheck::Binding.new(
+            got      => value.WHAT,
+            expected => type
+          ).throw
+        )
+    }
+
     # add to given IterationSet with setty semantics the values of iterator
-    method ADD-ITERATOR-TO-SET(\elems,Mu \iterator) {
+    method ADD-ITERATOR-TO-SET(\elems,Mu \iterator, Mu \type) {
         nqp::stmts(
           nqp::until(
             nqp::eqaddr(
-              (my $pulled := nqp::decont(iterator.pull-one)),
+              (my \pulled := nqp::decont(iterator.pull-one)),
               IterationEnd
             ),
-            nqp::bindkey(elems,$pulled.WHICH,$pulled)
+            self.BIND-TO-TYPED-SET(elems, pulled, type)
           ),
           elems
         )
@@ -310,24 +323,22 @@ my class Rakudo::QuantHash {
 
     # Add to IterationSet with setty semantics the values of the given
     # iterator while checking for Pairs (only include if value is trueish)
-    method ADD-PAIRS-TO-SET(\elems,Mu \iterator) {
+    method ADD-PAIRS-TO-SET(\elems,Mu \iterator, Mu \type) {
         nqp::stmts(
           nqp::until(
             nqp::eqaddr(
-              (my $pulled := nqp::decont(iterator.pull-one)),
+              (my \pulled := nqp::decont(iterator.pull-one)),
               IterationEnd
             ),
             nqp::if(
-              nqp::istype($pulled,Pair),
+              nqp::istype(pulled,Pair),
               nqp::if(
-                nqp::getattr($pulled,Pair,'$!value'),
-                nqp::bindkey(
-                  elems,
-                  nqp::getattr($pulled,Pair,'$!key').WHICH,
-                  nqp::getattr($pulled,Pair,'$!key')
+                nqp::getattr(pulled,Pair,'$!value'),
+                self.BIND-TO-TYPED-SET(
+                  elems, nqp::getattr(pulled,Pair,'$!key'), type
                 )
               ),
-              nqp::bindkey(elems,$pulled.WHICH,$pulled)
+              self.BIND-TO-TYPED-SET(elems, pulled, type)
             )
           ),
           elems

@@ -457,6 +457,10 @@ my class Rakudo::Internals {
         )
     }
 
+    our role Constraint[::CONSTRAINT] {
+        method keyof() { CONSTRAINT }
+    }
+
     our role ImplementationDetail {
         method new(|) { die self.gist }
         method gist(--> Str:D) {

@@ -177,11 +177,11 @@ my role Iterable {
 
     sub SETIFY(\iterable, \type) {
         nqp::if(
-          (my $iterator := iterable.flat.iterator).is-lazy,
+          (my \iterator := iterable.flat.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
           nqp::if(
             nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet),$iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
             )),
             nqp::create(type).SET-SELF($elems),
             nqp::if(

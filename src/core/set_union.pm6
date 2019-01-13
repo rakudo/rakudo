@@ -142,9 +142,11 @@ multi sub infix:<(|)>(Iterable:D $a, Iterable:D $b) {
         Rakudo::QuantHash.ADD-PAIRS-TO-SET(
           Rakudo::QuantHash.ADD-PAIRS-TO-SET(
             nqp::create(Rakudo::Internals::IterationSet),
-            $aiterator
+            $aiterator,
+            Mu
           ),
-          $biterator
+          $biterator,
+          Mu
         )
       )
     )

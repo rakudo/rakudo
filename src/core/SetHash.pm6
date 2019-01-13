@@ -1,5 +1,11 @@
 my class SetHash does Setty {
 
+    method ^parameterize(Mu \base, Mu \type) {
+        my \what := base.^mixin(Rakudo::Internals::Constraint[type]);
+        what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
+        what
+    }
+
 #--- selector methods
 
     multi method grab(SetHash:D:) {
@@ -189,7 +195,7 @@ my class SetHash does Setty {
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
           self.SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet), iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )
@@ -222,12 +228,12 @@ my class SetHash does Setty {
                   nqp::stmts(
                     nqp::unless(
                       $!elems,
-# XXX for some reason, $!elems := nqp::create(...) doesn't work
-# Type check failed in binding; expected NQPMu but got Rakudo::Internals::IterationSet
                       nqp::bindattr(self,::?CLASS,'$!elems',
                         nqp::create(Rakudo::Internals::IterationSet))
                     ),
-                    nqp::bindkey($!elems,k.WHICH,nqp::decont(k))
+                    Rakudo::QuantHash.BIND-TO-TYPED-SET(
+                      $!elems, nqp::decont(k), self.keyof
+                    )
                   ),
                   $!elems && nqp::deletekey($!elems,k.WHICH)
                 ),

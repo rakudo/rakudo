@@ -1,6 +1,12 @@
 my class Set does Setty {
     has ValueObjAt $!WHICH;
 
+    method ^parameterize(Mu \base, Mu \type) {
+        my \what := base.^mixin(Rakudo::Internals::Constraint[type]);
+        what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
+        what
+    }
+
     multi method WHICH (Set:D: --> ValueObjAt:D) {
         nqp::if(
           nqp::attrinited(self,Set,'$!WHICH'),
@@ -93,11 +99,14 @@ my class Set does Setty {
 
 #--- interface methods
     multi method STORE(Set:D: *@pairs, :$INITIALIZE! --> Set:D) {
-        (my $iterator := @pairs.iterator).is-lazy
+        (my \iterator := @pairs.iterator).is-lazy
           ?? Failure.new(
                X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-               nqp::create(Rakudo::Internals::IterationSet), $iterator))
+               nqp::create(Rakudo::Internals::IterationSet),
+               iterator,
+               self.keyof
+             ))
     }
     multi method STORE(Set:D: \objects, \bools, :$INITIALIZE! --> Set:D) {
         self.SET-SELF(

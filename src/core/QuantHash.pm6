@@ -1,8 +1,8 @@
-my role QuantHash[::CONSTRAINT = Mu] does Associative {
+my role QuantHash does Associative {
 
-    method keyof(::?CLASS:D:) { CONSTRAINT }
+    method keyof() { Mu }
 
-    method SET-SELF(::?CLASS:D: \elems) {  # cannot be a private method
+    method SET-SELF(QuantHash:D: \elems) {  # cannot be a private method
         nqp::stmts(
           nqp::if(
             nqp::elems(elems),
@@ -18,17 +18,17 @@ my role QuantHash[::CONSTRAINT = Mu] does Associative {
         X::Assignment::RO.new(value => self).throw
     }
 
-    method Int     (::?CLASS:D: --> Int:D)     { self.total.Int }
-    method Num     (::?CLASS:D: --> Num:D)     { self.total.Num }
-    method Numeric (::?CLASS:D: --> Numeric:D) { self.total.Numeric }
-    method Real    (::?CLASS:D: --> Real:D)    { self.total.Real }
+    method Int     ( --> Int:D)     { self.total.Int }
+    method Num     ( --> Num:D)     { self.total.Num }
+    method Numeric ( --> Numeric:D) { self.total.Numeric }
+    method Real    ( --> Real:D)    { self.total.Real }
 
-    method Capture(::?CLASS:D:) { self.Hash.Capture }
+    method Capture() { self.Hash.Capture }
 
     multi method list(QuantHash:U:) { self.Any::list }
     multi method list(QuantHash:D:) { self.pairs.cache }
 
-    method fmt(::?CLASS: Cool $format = "%s\t\%s", $sep = "\n") {
+    method fmt(QuantHash: Cool $format = "%s\t\%s", $sep = "\n") {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
           ?? self.keys.fmt($format, $sep)
           !! self.pairs.fmt($format, $sep)

@@ -7,7 +7,8 @@ role Perl6::Metamodel::AttributeContainer {
     has $!attr_rw_by_default;
 
     # Adds an attribute.
-    method add_attribute($obj, $meta_attr) {
+    method add_attribute($obj, $attr) {
+        my $meta_attr := nqp::decont($attr);
         my $name := $meta_attr.name;
         if nqp::isnull(%!attribute_lookup) {
             @!attributes := nqp::list();

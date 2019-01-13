@@ -300,9 +300,9 @@ MAIN: {
         unless ($win) {
             $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
             $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
-            $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "" relocatable "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
-                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "$(PERL6_LANG_DIR)/runtime" "lldb" "" relocatable "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
-                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_LANG_DIR)/runtime" "valgrind" "" relocatable "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"';
+            $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_HOME)/runtime" "gdb" "" relocatable "$(M_LIBPATH)" "$(PERL6_HOME)/lib" "$(PERL6_HOME)/runtime"' . "\n"
+                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "$(PERL6_HOME)/runtime" "lldb" "" relocatable "$(M_LIBPATH)" "$(PERL6_HOME)/lib" "$(PERL6_HOME)/runtime"' . "\n"
+                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_HOME)/runtime" "valgrind" "" relocatable "$(M_LIBPATH)" "$(PERL6_HOME)/lib" "$(PERL6_HOME)/runtime"';
         }
 
         unless (@errors) {

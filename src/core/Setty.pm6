@@ -1,4 +1,4 @@
-my role Setty does QuantHash {
+my role Setty[::CONSTRAINT = Mu] does QuantHash[CONSTRAINT] {
     has Rakudo::Internals::IterationSet $!elems; # key.WHICH => key
 
     method of() { Bool }

@@ -230,6 +230,10 @@ my class Parameter { # declared in BOOTSTRAP
             nqp::bind(@!post_constraints,nqp::list(%args.AT-KEY('where')));
         }
 
+        if %args.EXISTS-KEY('sub-signature') {
+            $!sub_signature := %args.AT-KEY('sub-signature');
+        }
+
         if $named {
             $flags +|= $SIG_ELEM_IS_OPTIONAL unless $mandatory;
             @!named_names := nqp::list_s($name.substr(1))

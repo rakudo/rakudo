@@ -2,6 +2,20 @@ use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
 
+# Determine Perl6 and NQP dirs.
+my $sep := nqp::backendconfig()<osname> eq 'MSWin32' ?? '\\' !! '/';
+my $exec-dir := nqp::substr(nqp::execname(), 0, nqp::rindex(nqp::execname(), $sep));
+my $perl6-home := nqp::getenvhash()<PERL6_HOME> // $exec-dir ~ '/../share/perl6';
+if (nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep) {
+    $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
+}
+my $nqp-home := nqp::getenvhash()<NQP_HOME> // $exec-dir ~ '/../share/nqp';
+if (nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep) {
+    $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
+}
+nqp::bindhllsym('perl6', '$PERL6_HOME', $perl6-home);
+nqp::bindhllsym('perl6', '$NQP_HOME', $nqp-home);
+
 # Initialize Rakudo runtime support.
 nqp::p6init();
 

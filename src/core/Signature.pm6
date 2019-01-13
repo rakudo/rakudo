@@ -17,7 +17,7 @@ my class Signature { # declared in BOOTSTRAP
         nqp::create(self)!SET-SELF(@params, $returns, $arity, $count)
     }
 
-    method !SET-SELF(@params, $returns, $arity, $count) {
+    method !SET-SELF(@params, Mu $returns, $arity, $count) {
         nqp::bind(@!params,nqp::getattr(@params,List,'$!reified')),
         $!returns := $returns;
         $!arity    = $arity;

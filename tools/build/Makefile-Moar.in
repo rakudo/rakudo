@@ -185,7 +185,7 @@ $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC) $(SETTING_MOAR
 
 $(M_RUNNER): tools/build/create-moar-runner.p6 $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-m . "" --nqp-lib=blib norelocatable . blib "$(M_LIBPATH)"
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-m . "" --nqp-lib=blib norelocatable $(PERL6_HOME) $(NQP_HOME) . blib "$(M_LIBPATH)"
 	-$(CHMOD) 755 $(M_RUNNER)
 
 m-runner-default: $(M_RUNNER)
@@ -199,21 +199,21 @@ $(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init $(M_BUILD_DIR)/perl6-debug.nqp
 
 $(M_DEBUG_RUNNER): tools/build/create-moar-runner.p6 $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "" --nqp-lib=blib norelocatable . blib "$(M_LIBPATH)"
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6-debug.moarvm perl6-debug-m . "" --nqp-lib=blib norelocatable $(PERL6_HOME) $(NQP_HOME) . blib "$(M_LIBPATH)"
 
 $(M_GDB_RUNNER): tools/build/create-moar-runner.p6 $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_GDB_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib norelocatable . blib "$(M_LIBDEFPATH)" "$(M_LIBPATH)"
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-gdb-m . "gdb" --nqp-lib=blib norelocatable $(PERL6_HOME) $(NQP_HOME) . blib "$(M_LIBDEFPATH)" "$(M_LIBPATH)"
 	-$(CHMOD) 755 $(M_GDB_RUNNER)
 
 $(M_LLDB_RUNNER): tools/build/create-moar-runner.p6 $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_LLDB_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-lldb-m . "lldb" --nqp-lib=blib norelocatable . blib "$(M_LIBPATH)"
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-lldb-m . "lldb" --nqp-lib=blib norelocatable $(PERL6_HOME) $(NQP_HOME) . blib "$(M_LIBPATH)"
 	-$(CHMOD) 755 $(M_LLDB_RUNNER)
 
 $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.p6 $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_VALGRIND_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-valgrind-m . "valgrind" --nqp-lib=blib norelocatable . blib "$(M_LIBPATH)"
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm perl6-valgrind-m . "valgrind" --nqp-lib=blib norelocatable $(PERL6_HOME) $(NQP_HOME) . blib "$(M_LIBPATH)"
 	-$(CHMOD) 755 $(M_VALGRIND_RUNNER)
 
 $(M_C_RUNNER): src/vm/moar/runner/main.c
@@ -316,7 +316,7 @@ m-install: m-all tools/build/create-moar-runner.p6 tools/build/install-core-dist
 	.@slash@$(M_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_HOME)/site
 	.@slash@$(M_RUNNER) tools/build/install-core-dist.p6 $(DESTDIR)$(PERL6_HOME)
 	$(CP) $(M_C_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-m@exe@
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_HOME)/runtime" "" "" relocatable "$(M_LIBPATH)" "$(PERL6_HOME)/lib" "$(PERL6_HOME)/runtime"
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6-debug.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-debug-m "$(PERL6_HOME)/runtime" "" "" relocatable $(PERL6_HOME) $(NQP_HOME) "$(M_LIBPATH)" "$(PERL6_HOME)/lib" "$(PERL6_HOME)/runtime"
 @m_install@
 
 m-runner-default-install: m-install

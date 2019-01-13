@@ -2,7 +2,7 @@
 # Copyright (C) 2013-2018, The Perl Foundation.
 
 use v6;
-my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, $blib, $relocatable, @libpaths) = @*ARGS;
+my ($moar, $mbc, $install_to, $p6_mbc_path, $toolchain, $blib, $relocatable, $perl6-home, $nqp-home, @libpaths) = @*ARGS;
 $relocatable = $relocatable eq "relocatable";
 
 $p6_mbc_path = $*SPEC.rel2abs($p6_mbc_path || $*SPEC.curdir);
@@ -84,9 +84,9 @@ else {
         EOS
     }
     else {
-        $fh.print(sprintf(q:to/EOS/, $moar, $libpath-line));
+        $fh.print(sprintf(q:to/EOS/, $perl6-home, $nqp-home, $moar, $libpath-line));
         #!/bin/sh
-        exec %s  --execname="$0" %s "$@"
+        PERL6_HOME=%s NQP_HOME=%s exec %s  --execname="$0" %s "$@"
         EOS
     }
     $fh.close;

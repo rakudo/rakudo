@@ -836,6 +836,7 @@ S16-io/words.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/stress.t     # stress slow
+S17-channel/subscription-drain-in-react.t
 S17-lowlevel/atomic.t    # moar
 S17-lowlevel/atomic-ops.t # moar
 S17-lowlevel/cas.t

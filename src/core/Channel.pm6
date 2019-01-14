@@ -78,12 +78,14 @@ my class Channel does Awaitable {
             nqp::istype(msg, CHANNEL_CLOSE),
             nqp::stmts(
               $!closed_promise_vow.keep(Nil),
+              nqp::push($!queue, msg),
               Nil
             ),
             nqp::if(
               nqp::istype(msg, CHANNEL_FAIL),
               nqp::stmts(
                 $!closed_promise_vow.break(msg.error),
+                nqp::push($!queue, msg),
                 Nil
               ),
               msg

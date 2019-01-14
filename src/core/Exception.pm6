@@ -900,7 +900,11 @@ my class X::Trait::Unknown is Exception {
     has $.subtype;    # wrong subtype being tried
     has $.declaring;  # variable, sub, parameter, etc.
     method message () {
-        "Can't use unknown trait '$.type $.subtype' in a$.declaring declaration."
+        "Can't use unknown trait '{
+            try { $.type } // "unknown type"
+        }' -> '{
+            try { $.subtype } // "unknown subtype"
+        }' in a$.declaring declaration."
     }
 }
 my class X::Comp::Trait::Unknown is X::Trait::Unknown does X::Comp { };

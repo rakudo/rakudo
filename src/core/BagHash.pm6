@@ -1,13 +1,19 @@
 my class BagHash does Baggy {
 
+    method ^parameterize(Mu \base, Mu \type) {
+        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
+    }
+
 #--- interface methods
     multi method STORE(BagHash:D: *@pairs --> BagHash:D) {
         nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
+          (my \iterator := @pairs.iterator).is-lazy,
+          Failure.new(
+            X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
+          ),
           self.SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet), $iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )
@@ -17,17 +23,19 @@ my class BagHash does Baggy {
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
-            values.iterator
+            values.iterator,
+            self.keyof
           )
         )
     }
     multi method AT-KEY(BagHash:D: \k) is raw {
+        my \type := self.keyof;
         Proxy.new(
           FETCH => {
               nqp::if(
-                $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
+                nqp::istrue($!elems)
+                  && nqp::existskey($!elems,(my $which := k.WHICH)),
                 nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value'),
-                0
               )
           },
           STORE => -> $, Int() $value {
@@ -53,20 +61,18 @@ my class BagHash does Baggy {
                     ),
                     nqp::if(
                       $value > 0,               # new
-                      nqp::bindkey(
-                        $!elems,
-                        $which,
-                        Pair.new(k,nqp::decont($value))
+                      Rakudo::QuantHash.BIND-TO-TYPED-BAG(
+                        $!elems, $which, k, nqp::decont($value), type
                       )
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
                     $value > 0,
-                    nqp::bindkey(
-                      nqp::bindattr(self,::?CLASS,'$!elems',
-                        nqp::create(Rakudo::Internals::IterationSet)),
-                      k.WHICH,
-                      Pair.new(k,nqp::decont($value))
+                    Rakudo::QuantHash.BIND-TO-TYPED-BAG(
+                      nqp::bindattr(self,BagHash,'$!elems',
+                        nqp::create(Rakudo::Internals::IterationSet)
+                      ),
+                      k.WHICH, k, nqp::decont($value), type
                     )
                   )
                 )
@@ -118,8 +124,8 @@ my class BagHash does Baggy {
     method clone() {
         nqp::if(
           $!elems && nqp::elems($!elems),
-          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(BagHash)
+          nqp::create(self).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
+          nqp::create(self)
         )
     }
 

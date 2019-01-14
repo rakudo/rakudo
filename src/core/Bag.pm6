@@ -2,6 +2,10 @@ my class Bag does Baggy {
     has ValueObjAt $!WHICH;
     has Int        $!total;
 
+    method ^parameterize(Mu \base, Mu \type) {
+        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
+    }
+
 #--- introspection methods
     multi method WHICH(Bag:D: --> ValueObjAt:D)   {
         nqp::if(
@@ -34,18 +38,21 @@ my class Bag does Baggy {
 
 #--- interface methods
     multi method STORE(Bag:D: *@pairs, :$INITIALIZE! --> Bag:D) {
-        (my $iterator := @pairs.iterator).is-lazy
+        (my \iterator := @pairs.iterator).is-lazy
           ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
+               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
+             )
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet), $iterator))
+               nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
+             ))
     }
     multi method STORE(Bag:D: \objects, \values, :$INITIALIZE! --> Bag:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
-            values.iterator
+            values.iterator,
+            self.keyof
           )
         )
     }

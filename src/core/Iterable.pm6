@@ -157,13 +157,13 @@ my role Iterable {
 
     sub BAGGIFY(\iterable, \type) {
         nqp::if(
-          (my $iterator := iterable.flat.iterator).is-lazy,
+          (my \iterator := iterable.flat.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
           nqp::if(
-            nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet),$iterator
+            nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+              nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
             )),
-            nqp::create(type).SET-SELF($elems),
+            nqp::create(type).SET-SELF(elems),
             nqp::if(
               nqp::eqaddr(type,Bag),
               bag(),

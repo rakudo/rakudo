@@ -600,22 +600,37 @@ my class Rakudo::QuantHash {
         )
     }
 
-    method ADD-ITERATOR-TO-BAG(\elems,Mu \iterator) {
+    # bind the given which/object/value to the given IterationSet,
+    # check object for given type
+    method BIND-TO-TYPED-BAG(
+      \elems, Mu \which, Mu \object, Int:D \value, Mu \type
+    --> Nil) {
+        nqp::if(
+          nqp::istype(object,type),
+          nqp::bindkey(elems,which,Pair.new(object,value)),
+          X::TypeCheck::Binding.new(
+            got      => object.WHAT,
+            expected => type
+          ).throw
+        )
+    }
+
+    method ADD-ITERATOR-TO-BAG(\elems, Mu \iterator, Mu \type) {
         nqp::stmts(
           nqp::until(
             nqp::eqaddr(
-              (my $pulled := nqp::decont(iterator.pull-one)),
+              (my \pulled := nqp::decont(iterator.pull-one)),
               IterationEnd
             ),
             nqp::if(
-              nqp::existskey(elems,(my $WHICH := $pulled.WHICH)),
+              nqp::existskey(elems,(my \which := pulled.WHICH)),
               nqp::stmts(
-                (my $pair := nqp::atkey(elems,$WHICH)),
-                nqp::bindattr($pair,Pair,'$!value',
-                  nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+                (my \pair := nqp::atkey(elems,which)),
+                nqp::bindattr(pair,Pair,'$!value',
+                  nqp::add_i(nqp::getattr(pair,Pair,'$!value'),1)
                 )
               ),
-              nqp::bindkey(elems,$WHICH,Pair.new($pulled,1))
+              self.BIND-TO-TYPED-BAG(elems, which, pulled, 1, type)
             )
           ),
           elems
@@ -775,7 +790,7 @@ my class Rakudo::QuantHash {
 
     # Add to given IterationSet with baggy semantics the values of the given
     # iterator while checking for Pairs with numeric values.
-    method ADD-PAIRS-TO-BAG(\elems,Mu \iterator) {
+    method ADD-PAIRS-TO-BAG(\elems, Mu \iterator, Mu \type) {
         nqp::stmts(
           nqp::until(
             nqp::eqaddr(
@@ -806,15 +821,12 @@ my class Rakudo::QuantHash {
                         nqp::getattr($pair,Pair,'$!value') + $value
                       )
                     ),
-                    nqp::bindkey(    # new, create new Pair
+                    self.BIND-TO-TYPED-BAG(    # new, create new Pair
                       elems,
                       $which,
-                      nqp::p6bindattrinvres(
-                        nqp::clone($pulled),
-                        Pair,
-                        '$!value',
-                        $value
-                      )
+                      nqp::getattr($pulled,Pair,'$!key'),
+                      $value,
+                      type
                     )
                   )
                 ),
@@ -834,8 +846,9 @@ my class Rakudo::QuantHash {
                     nqp::getattr($pair,Pair,'$!value') + 1
                   )
                 ),
-                nqp::bindkey(        # new, create new Pair
-                  elems,$which,Pair.new($pulled,1))
+                self.BIND-TO-TYPED-BAG(    # new, create new Pair
+                  elems, $which, $pulled, 1, type
+                )
               )
             )
           ),
@@ -846,12 +859,16 @@ my class Rakudo::QuantHash {
     # Add to given IterationSet with baggy semantics the values of the two
     # given iterators where the first iterator supplies objects, and the
     # second supplies values.
-    method ADD-OBJECTS-VALUES-TO-BAG(\elems,Mu \objects, Mu \values) is raw {
+    method ADD-OBJECTS-VALUES-TO-BAG(
+      \elems, Mu \objects, Mu \values, Mu \type
+    ) is raw {
         nqp::until(
           nqp::eqaddr((my \object := objects.pull-one),IterationEnd),
           nqp::if(
             (my \value := values.pull-one.Int) > 0,
-            nqp::bindkey(elems,object.WHICH,Pair.new(object,value))
+            self.BIND-TO-TYPED-BAG(    # new, create new Pair
+              elems, object.WHICH, object, value, type
+            )
           )
         );
         elems
@@ -859,24 +876,24 @@ my class Rakudo::QuantHash {
 
     # Take the given IterationSet with baggy semantics, and add the other
     # IterationSet with setty semantics to it.  Return the given IterationSet.
-    method ADD-SET-TO-BAG(\elems,Mu \set) {
+    method ADD-SET-TO-BAG(\elems, Mu \set) {
         nqp::stmts(
           nqp::if(
             set && nqp::elems(set),
             nqp::stmts(
-              (my $iter := nqp::iterator(set)),
+              (my \iter := nqp::iterator(set)),
               nqp::while(
-                $iter,
+                iter,
                 nqp::if(
-                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift($iter))),
+                  nqp::existskey(elems,nqp::iterkey_s(nqp::shift(iter))),
                   nqp::stmts(
-                    (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
-                    nqp::bindattr($pair,Pair,'$!value',
-                      nqp::getattr($pair,Pair,'$!value') + 1
+                    (my \pair := nqp::atkey(elems,nqp::iterkey_s(iter))),
+                    nqp::bindattr(pair,Pair,'$!value',
+                      nqp::getattr(pair,Pair,'$!value') + 1
                     )
                   ),
-                  nqp::bindkey(elems,nqp::iterkey_s($iter),
-                    Pair.new(nqp::iterval($iter), 1)
+                  nqp::bindkey(elems,nqp::iterkey_s(iter),
+                    Pair.new(nqp::iterval(iter), 1)
                   )
                 )
               )

@@ -93,14 +93,14 @@ my role Baggy does QuantHash {
 
 #--- object creation methods
 
-    # helper sub to create Bag from iterator, check for laziness
-    sub create-from-iterator(\type, \iterator --> Baggy:D) {
+    # helper method to create Bag from iterator, check for laziness
+    method !create-from-iterator(\type, \iterator --> Baggy:D) {
         nqp::if(
           iterator.is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
           nqp::create(type).SET-SELF(
             Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet), iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )
@@ -110,7 +110,7 @@ my role Baggy does QuantHash {
     multi method new(Baggy:_: \value --> Baggy:D) {
         nqp::if(
           nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value)),
-          create-from-iterator(self, value.iterator),
+          self!create-from-iterator(self, value.iterator),
           nqp::stmts(
             nqp::bindkey(
               (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
@@ -122,7 +122,7 @@ my role Baggy does QuantHash {
         )
     }
     multi method new(Baggy:_: **@args) {
-        create-from-iterator(self, @args.iterator)
+        self!create-from-iterator(self, @args.iterator)
     }
 
     method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {
@@ -131,7 +131,7 @@ my role Baggy does QuantHash {
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::create(self).SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet),iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )
@@ -330,22 +330,29 @@ my role Baggy does QuantHash {
     multi method perl(Baggy:D: --> Str:D) {
         nqp::if(
           $!elems && nqp::elems($!elems),
-          nqp::concat(
-            nqp::concat(
-              '(',
-              nqp::join(',',
-                Rakudo::QuantHash.RAW-VALUES-MAP(self, {
+          nqp::stmts(
+            (my \pairs := nqp::join(',',
+              Rakudo::QuantHash.RAW-VALUES-MAP(self, {
+                  nqp::concat(
                     nqp::concat(
-                      nqp::concat(
-                        nqp::getattr($_,Pair,'$!key').perl,
-                        '=>'
-                      ),
-                      nqp::getattr($_,Pair,'$!value').perl
-                    )
-                })
+                      nqp::getattr($_,Pair,'$!key').perl,
+                      '=>'
+                    ),
+                    nqp::getattr($_,Pair,'$!value').perl
+                  )
+              })
+            )),
+            nqp::if(
+              nqp::eqaddr(self.keyof,Mu),
+              nqp::concat(
+                nqp::concat('(',pairs),
+                nqp::concat(').',self.^name)
+              ),
+              nqp::concat(
+                nqp::concat(self.^name,'.new-from-pairs('),
+                nqp::concat(pairs,')')
               )
-            ),
-            nqp::concat(').',self.^name)
+            )
           ),
           nqp::if(
             nqp::eqaddr(self,bag()),

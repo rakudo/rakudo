@@ -808,7 +808,7 @@ my class BlockVarOptimizer {
                     }
                 }
 
-                # Stsah the name we lowered it to.
+                # Stash the name we lowered it to.
                 $block.symbol($name, :lowered($new_name));
             }
         }

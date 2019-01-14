@@ -1,16 +1,20 @@
 my class MixHash does Mixy {
 
+    method ^parameterize(Mu \base, Mu \type) {
+        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
+    }
+
 #--- interface methods
     method total() { Rakudo::QuantHash.MIX-TOTAL($!elems) }
     method !total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
 
     multi method STORE(MixHash:D: *@pairs --> MixHash:D) {
         nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
+          (my \iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
           self.SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-              nqp::create(Rakudo::Internals::IterationSet), $iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )
@@ -20,7 +24,8 @@ my class MixHash does Mixy {
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
-            values.iterator
+            values.iterator,
+            self.keyof
           )
         )
     }

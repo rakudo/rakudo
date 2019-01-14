@@ -3,20 +3,26 @@ my class Mix does Mixy {
     has Real       $!total;
     has Real       $!total-positive;
 
+    method ^parameterize(Mu \base, Mu \type) {
+        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
+    }
+
 #--- interface methods
     multi method STORE(Mix:D: *@pairs, :$INITIALIZE! --> Mix:D) {
-        (my $iterator := @pairs.iterator).is-lazy
+        (my \iterator := @pairs.iterator).is-lazy
           ?? Failure.new(
                X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-               nqp::create(Rakudo::Internals::IterationSet), $iterator))
+               nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
+             ))
     }
     multi method STORE(Mix:D: \objects, \values, :$INITIALIZE! --> Mix:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
-            values.iterator
+            values.iterator,
+            self.keyof
           )
         )
     }

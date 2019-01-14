@@ -1221,9 +1221,24 @@ my class Rakudo::QuantHash {
         )
     }
 
+    # bind the given which/object/value to the given IterationSet,
+    # check object for given type
+    method BIND-TO-TYPED-MIX(
+      \elems, Mu \which, Mu \object, Real:D \value, Mu \type
+    --> Nil) {
+        nqp::if(
+          nqp::istype(object,type),
+          nqp::bindkey(elems,which,Pair.new(object,value)),
+          X::TypeCheck::Binding.new(
+            got      => object.WHAT,
+            expected => type
+          ).throw
+        )
+    }
+
     # Add to given IterationSet with mixy semantics the values of the given
     # iterator while checking for Pairs with numeric values.
-    method ADD-PAIRS-TO-MIX(\elems,Mu \iterator) is raw {
+    method ADD-PAIRS-TO-MIX(\elems, Mu \iterator, Mu \type) is raw {
         nqp::stmts(
           nqp::until(
             nqp::eqaddr(
@@ -1261,15 +1276,10 @@ my class Rakudo::QuantHash {
                         nqp::bindattr($pair,Pair,'$!value',$value),  # non-zero
                         nqp::deletekey(elems,$which)                 # zero
                       ),
-                      nqp::bindkey(  # new, create new Pair
-                        elems,
-                        $which,
-                        nqp::p6bindattrinvres(
-                          nqp::clone($pulled),
-                          Pair,
-                          '$!value',
-                          $value
-                        )
+                      self.BIND-TO-TYPED-MIX(  # new, create new Pair
+                        elems, $which,
+                        nqp::getattr($pulled,Pair,'$!key'),
+                        $value,type
                       )
                     )
                   )
@@ -1289,8 +1299,9 @@ my class Rakudo::QuantHash {
                     nqp::getattr($pair,Pair,'$!value') + 1
                   )
                 ),
-                nqp::bindkey(        # new, create new Pair
-                  elems,$which,Pair.new($pulled,1))
+                self.BIND-TO-TYPED-MIX(  # new, create new Pair
+                  elems, $which, $pulled, 1, type
+                )
               )
             )
           ),
@@ -1301,7 +1312,9 @@ my class Rakudo::QuantHash {
     # Add to given IterationSet with mixy semantics the values of the two
     # given iterators where the first iterator supplies objects, and the
     # second supplies values.
-    method ADD-OBJECTS-VALUES-TO-MIX(\elems,Mu \objects, Mu \values) is raw {
+    method ADD-OBJECTS-VALUES-TO-MIX(
+      \elems, Mu \objects, Mu \values, Mu \type
+    ) is raw {
         nqp::until(
           nqp::eqaddr((my \object := objects.pull-one),IterationEnd),
           nqp::if(
@@ -1316,7 +1329,9 @@ my class Rakudo::QuantHash {
               nqp::istype(nqp::bind(value,value.Real),Real),
               nqp::if(
                 value,
-                nqp::bindkey(elems,object.WHICH,Pair.new(object,value))
+                self.BIND-TO-TYPED-MIX(
+                  elems, object.WHICH, object, value, type
+                )
               ),
               value.throw
             )

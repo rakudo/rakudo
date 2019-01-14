@@ -509,9 +509,12 @@ class Perl6::World is HLL::World {
 
     has $!record_precompilation_dependencies;
 
+    has %!quote_lang_cache;
+
     method BUILD(*%adv) {
         %!code_object_fixup_list := {};
         $!record_precompilation_dependencies := 1;
+        %!quote_lang_cache := {};
     }
 
     method create_nested() {
@@ -5341,6 +5344,10 @@ class Perl6::World is HLL::World {
 
     method resume_recording_precompilation_dependencies() {
         $!record_precompilation_dependencies := 1;
+    }
+
+    method quote_lang_cache() {
+        %!quote_lang_cache
     }
 }
 

@@ -115,7 +115,7 @@ my class Parameter { # declared in BOOTSTRAP
       Bool:D $is-raw,
       Bool:D $is-rw,
       Bool:D $multi-invocant,
-             %args  # type / default / where captured through %_
+             %args  # type / default / where / sub_signature captured through %_
       ) {
 
         if $name {                                 # specified a name?

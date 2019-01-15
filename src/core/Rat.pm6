@@ -70,11 +70,6 @@ sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) is raw {
     )
 }
 
-# Initialize the $*FULL-PRECISION dynamic var so that it can be used
-{
-    PROCESS::<$FULL-PRECISION> := my Bool:D $FULL-PRECISION = False;
-}
-
 # ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot
 # ever get a non-normalized Rational, if we start with a normalized Rational.
 # For such cases, we can use this routine, to bypass normalization step,
@@ -82,16 +77,12 @@ sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) is raw {
 proto sub CREATE_RATIONAL_FROM_INTS(|) {*}
 multi sub CREATE_RATIONAL_FROM_INTS(Int:D \nu, Int:D \de, \t1, \t2) is raw {
     nqp::if(
-      nqp::islt_I(de,UINT64_UPPER),                    # downgrade to float?
-      nqp::p6bindattrinvres(                            # no, keep as Rat
+      nqp::islt_I(de,UINT64_UPPER),         # do we need to downgrade to float?
+      nqp::p6bindattrinvres(                # no, we need to keep a Rat
         nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',nu),
         Rat,'$!denominator',de
       ),
-      nqp::if(
-        $*FULL-PRECISION,                               # keep precision?
-        CREATE_RATIONAL_FROM_INTS(nu,de,FatRat,FatRat),  # yes, make FatRat
-        nqp::p6box_n(nqp::div_In(nu,de))                 # downgrade to float
-      )
+      nqp::p6box_n(nqp::div_In(nu,de))      # downgrade to float
     )
 }
 

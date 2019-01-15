@@ -1567,6 +1567,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $cond_block := $past.ann('past_block');
                     remove_block($*W.cur_lexpad(), $cond_block);
                     $cond_block.blocktype('immediate');
+                    unless $cond_block.ann('placeholder_sig') {
+                        $cond_block.arity(0);
+                        $cond_block.annotate('count', 0);
+                    }
                     $past := $cond_block;
                 }
                 $mc_ast.push($past);

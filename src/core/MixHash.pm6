@@ -30,6 +30,7 @@ my class MixHash does Mixy {
         )
     }
     multi method AT-KEY(MixHash:D: \k) is raw {
+        my \type := self.keyof;
         Proxy.new(
           FETCH => {
               nqp::if(
@@ -61,16 +62,18 @@ my class MixHash does Mixy {
                     ),
                     nqp::unless(
                       $value == 0,
-                      nqp::bindkey($!elems,$which,Pair.new(k,nqp::decont($value)))
+                      Rakudo::QuantHash.BIND-TO-TYPED-BAG(
+                        $!elems, $which, k, nqp::decont($value), type
+                      )
                     )
                   ),
                   nqp::unless(                  # no hash allocated yet
                     $value == 0,
-                    nqp::bindkey(
+                    Rakudo::QuantHash.BIND-TO-TYPED-BAG(
                       nqp::bindattr(self,::?CLASS,'$!elems',
-                        nqp::create(Rakudo::Internals::IterationSet)),
-                      k.WHICH,
-                      Pair.new(k,nqp::decont($value))
+                        nqp::create(Rakudo::Internals::IterationSet)
+                      ),
+                      k.WHICH, k, nqp::decont($value), type
                     )
                   )
                 )

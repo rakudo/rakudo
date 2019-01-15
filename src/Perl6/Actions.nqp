@@ -3643,7 +3643,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $of_type := $type;
                     next;
                 }
-                if $mod eq '&trait_mod:<is>' {
+                elsif $mod eq '&trait_mod:<is>' {
                     my @args  := $trait.args;
                     unless nqp::isconcrete(@args[0]) {  # not a type, so ignore
                         my $type  := @args[0];
@@ -3653,22 +3653,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $is_type := $type;
                             next;
                         }
-                        elsif $elems == 2 {
-                            my $how := $type.HOW;
-                            if nqp::can($how,'parameterize') {
-                                $have_is_type := 1;
-                                # XXX the second element in @args is a HLL
-                                # Array.  This should probably need to be
-                                # slipped into the call to parameterize.
-                                # Not sure how to do that generically.
-                                # Calling .Slip on it will just parameterize
-                                # to Slip.  So until we can slip the values
-                                # in the Array, just send the first parameter
-                                # into the parameterize call using .AT-POS
-                                $is_type :=
-                                  $how.parameterize($type,@args[1].AT-POS(0));
-                                next;
-                            }
+                        elsif $elems == 2
+                          && nqp::istype($type,$*W.find_symbol(['QuantHash'])) {
+                            $have_is_type := 1;
+                            # XXX the second element in @args is a HLL
+                            # Array.  This should probably need to be
+                            # slipped into the call to parameterize.
+                            # Not sure how to do that generically.
+                            # Calling .Slip on it will just parameterize
+                            # to Slip.  So until we can slip the values
+                            # in the Array, just send the first parameter
+                            # into the parameterize call using .AT-POS
+                            $is_type :=
+                              $type.HOW.parameterize($type,@args[1].AT-POS(0));
+                            next;
                         }
                     }
                 }

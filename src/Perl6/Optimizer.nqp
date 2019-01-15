@@ -3002,7 +3002,7 @@ class Perl6::Optimizer {
                 # a symbol, do nothing (we just need it for "fallback" purposes).
                 # Otherwise, copy it and register it in the outer.
                 my $name := $_.name;
-                unless $name eq '$*DISPATCHER' || $outer.symbol($name) {
+                unless $name eq '$*DISPATCHER' || $name eq '$_' || $outer.symbol($name) {
                     @copy_decls.push($_);
                     $outer.symbol($name, :scope('lexical'));
                 }

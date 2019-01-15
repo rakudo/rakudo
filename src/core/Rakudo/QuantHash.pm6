@@ -301,7 +301,7 @@ my class Rakudo::QuantHash {
           nqp::istype(value,type),
           nqp::bindkey(elems,value.WHICH,value),
           X::TypeCheck::Binding.new(
-            got      => value.WHAT,
+            got      => value,
             expected => type
           ).throw
         )
@@ -609,7 +609,7 @@ my class Rakudo::QuantHash {
           nqp::istype(object,type),
           nqp::bindkey(elems,which,Pair.new(object,value)),
           X::TypeCheck::Binding.new(
-            got      => object.WHAT,
+            got      => object,
             expected => type
           ).throw
         )
@@ -1230,7 +1230,7 @@ my class Rakudo::QuantHash {
           nqp::istype(object,type),
           nqp::bindkey(elems,which,Pair.new(object,value)),
           X::TypeCheck::Binding.new(
-            got      => object.WHAT,
+            got      => object,
             expected => type
           ).throw
         )

@@ -1154,8 +1154,7 @@ class Perl6::Optimizer {
             # If we have nothing blocking us, do the immediate inlining of it.
             unless $impossible {
                 my $outer := $!symbols.top_block;
-                $result := self.inline_immediate_block($block, $outer,
-                    nqp::existskey($vars_info.get_decls(), '$_'));
+                $result := self.inline_immediate_block($block, $outer);
                 $flattened := 1 unless $result =:= $block;
             }
         }
@@ -2966,7 +2965,7 @@ class Perl6::Optimizer {
     }
 
     # Inlines an immediate block.
-    method inline_immediate_block($block, $outer, $preserve_topic) {
+    method inline_immediate_block($block, $outer) {
         # Sanity check.
         return $block if +@($block) != 2;
         return $block unless nqp::istype($outer[0], QAST::Stmts);

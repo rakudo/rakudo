@@ -86,16 +86,6 @@ my @tfiles = $randomize
   ? shuffle map { all_in($_) } @files
   : map { all_in($_) } sort @files;
 
-if ($precompile) {
-  @tfiles = grep {
-      my $seen_use_lib = 0;
-      open(my $fh, '<', $_);
-      while (my $line = <$fh>) {
-         $seen_use_lib = 1 if $line =~ /^\s*use lib/;
-      }
-      !$seen_use_lib;
-  } @tfiles;
-}
 
 if (@slow) {
     @slow = map { all_in($_) } @slow;
@@ -111,6 +101,26 @@ if (@slow) {
 
 if ($do_fudge) {
     @tfiles = map { fudge(@$_) } batch( 200, @tfiles );
+}
+
+sub has_use_lib {
+  my ($file) = @_;
+  my $seen_use_lib = 0;
+  open(my $fh, '<', $file);
+  while (my $line = <$fh>) {
+     $seen_use_lib = 1 if $line =~ /^\s*use lib/;
+  }
+  $seen_use_lib;
+}
+
+if ($precompile) {
+  @tfiles = map {
+    if (ref $_) {
+      [grep {!has_use_lib($_)} @$_];
+    } else {
+      has_use_lib($_) ? () : $_;
+    }
+  } @tfiles;
 }
 
 my $tap_harness_class = 'TAP::Harness';

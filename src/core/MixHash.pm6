@@ -62,14 +62,14 @@ my class MixHash does Mixy {
                     ),
                     nqp::unless(
                       $value == 0,
-                      Rakudo::QuantHash.BIND-TO-TYPED-BAG(
+                      Rakudo::QuantHash.BIND-TO-TYPED-MIX(
                         $!elems, $which, k, nqp::decont($value), type
                       )
                     )
                   ),
                   nqp::unless(                  # no hash allocated yet
                     $value == 0,
-                    Rakudo::QuantHash.BIND-TO-TYPED-BAG(
+                    Rakudo::QuantHash.BIND-TO-TYPED-MIX(
                       nqp::bindattr(self,::?CLASS,'$!elems',
                         nqp::create(Rakudo::Internals::IterationSet)
                       ),

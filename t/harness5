@@ -85,6 +85,18 @@ if ($list_file) {
 my @tfiles = $randomize
   ? shuffle map { all_in($_) } @files
   : map { all_in($_) } sort @files;
+
+if ($precompile) {
+  @tfiles = grep {
+      my $seen_use_lib = 0;
+      open(my $fh, '<', $_);
+      while (my $line = <$fh>) {
+         $seen_use_lib = 1 if $line =~ /^\s*use lib/;
+      }
+      !$seen_use_lib;
+  } @tfiles;
+}
+
 if (@slow) {
     @slow = map { all_in($_) } @slow;
 

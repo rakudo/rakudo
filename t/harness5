@@ -28,6 +28,7 @@ GetOptions(
     'quick:1'           => \my $do_quick,
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
+    'precompile'        => \my $precompile,
     'jvm'               => \my $jvm,
     'js'               => \my $js,
     'moar'              => \my $moar,
@@ -120,8 +121,9 @@ if ($jvm) {
 }
 
 if (eval "require $tap_harness_class;") {
+    my $run_with_perl = $precompile ? [$ENV{HARNESS_PERL}, 't/precompileandrun'] : [$ENV{HARNESS_PERL}];
     my %harness_options = (
-        exec        => $jvm ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : [$ENV{HARNESS_PERL}],
+        exec        => $jvm ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : $run_with_perl,
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs,
         ignore_exit => 1,
@@ -239,6 +241,7 @@ Options:
     --slow - spread tests marked "slow" equally over the run (default on non-Win)
     --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM backend
     --no-merge - pass STDERR from the tests through to the terminal's STDERR
+    --precompile - precompile tests before running them
 
     --verbosity=[level] - set the verbosity level.
        1   verbose        Print individual test results to STDOUT.

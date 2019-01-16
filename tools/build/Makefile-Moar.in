@@ -240,6 +240,10 @@ m-coretest5: m-all
 m-spectest5: m-testable t/spectest.data
 	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=t/spectest.data
 
+# Run the spectests that we know work after precompiling them.
+m-spectest5_precompile: m-testable t/spectest.data
+	$(M_HARNESS5_WITH_FUDGE) --precompile --tests-from-file=t/spectest.data
+
 m-spectest_full5: m-testable
 	$(M_HARNESS5_WITH_FUDGE) t/spec
 

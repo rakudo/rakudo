@@ -939,7 +939,13 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
           $test.count == 1,
           sequential-map(
             self.iterator,
-            { nqp::if($test($_),$_,Empty) },
+            {
+                my \result := $test($_);
+                nqp::if(
+                  nqp::istype(result, Regex) ?? result.ACCEPTS($_) !! result,
+                  $_,
+                  Empty)
+            },
             Any)
           ,
           nqp::stmts(

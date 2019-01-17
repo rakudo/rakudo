@@ -6,7 +6,7 @@ my class PseudoStash { ... }
 my class Label { ... }
 class CompUnit::DependencySpecification { ... }
 
-sub THROW(int $type, Mu \arg) {
+sub THROW(int $type, Mu \arg) is raw {
     my Mu $ex := nqp::newexception();
     nqp::setpayload($ex, arg);
     nqp::setextype($ex, $type);

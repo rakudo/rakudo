@@ -1327,8 +1327,12 @@ class Perl6::World is HLL::World {
             self.do_import($/, $comp_unit.handle, $name, $arglist);
             self.import_EXPORTHOW($/, $comp_unit.handle);
             $RMD("Imports for '$name' done") if $RMD;
-            # Workaround: P5foo modules rely on finding $_; don't lower it.
-            $*CAN_LOWER_TOPIC := 0 if nqp::eqat($name, 'P5', 0);
+            # Workaround: P5foo modules rely on dynamic scoping of either $_ or
+            # of all the things.
+            if nqp::eqat($name, 'P5', 0) {
+                $*CAN_LOWER_TOPIC := 0;
+                self.do_pragma($/, 'dynamic-scope', 1, NQPMu);
+            }
         }
         else {
             nqp::die("Don't know how to 'no $name' just yet");

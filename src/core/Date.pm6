@@ -30,6 +30,10 @@ my class Date does Dateish {
           nqp::isconcrete($daycount) ?? $daycount !! nqp::null);
         self
     }
+    method !SET-DAYCOUNT() {
+        nqp::bind($!daycount,nqp::null) unless nqp::isconcrete($!daycount);
+        self
+    }
 
     proto method new(|) {*}
     multi method new(Date:
@@ -45,7 +49,7 @@ my class Date does Dateish {
              ).throw;
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
-          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
+          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)!SET-DAYCOUNT
     }
     multi method new(Date:
       Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter, *%_
@@ -60,7 +64,7 @@ my class Date does Dateish {
              ).throw;
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
-          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)
+          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)!SET-DAYCOUNT
     }
     multi method new(Date: Str $date, :&formatter, *%_ --> Date:D) {
         X::Temporal::InvalidFormat.new(
@@ -80,12 +84,8 @@ my class Date does Dateish {
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($d.year,$d.month,$d.day,&formatter)
           !! self.bless(
-               :year($d.year),
-               :month($d.month),
-               :day($d.day),
-               :&formatter,
-               |%_
-             )
+               :year($d.year),:month($d.month),:day($d.day),:&formatter, |%_
+             )!SET-DAYCOUNT
     }
     multi method new(Date: Instant $i, :&formatter, *%_ --> Date:D) {
         self.new(DateTime.new($i),:&formatter,|%_)
@@ -94,7 +94,9 @@ my class Date does Dateish {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
-          !! self.bless(:$year,:$month,:$day,:&formatter,:$daycount)
+          !! self.bless(
+               :$year,:$month,:$day,:&formatter,:$daycount
+             )!SET-DAYCOUNT
     }
 
     method today(:&formatter --> Date:D) { self.new(DateTime.now, :&formatter) }

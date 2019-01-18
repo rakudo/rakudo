@@ -1209,6 +1209,23 @@ class Perl6::World is HLL::World {
                 $*LANG.set_pragma($_.value, $on) for %isms;
             }
         }
+        elsif $name eq 'dynamic-scope' {
+            unless $on {
+                self.throw($/, 'X::Pragma::CannotWhat', :what<no>, :$name);
+            }
+            if nqp::islist($arglist) && nqp::elems($arglist) {
+                # Just some variables.
+                my %dyn;
+                for $arglist {
+                    %dyn{$_} := 1;
+                }
+                $*LANG.set_pragma('dynamic-scope', -> $var { %dyn{$var} || 0 });
+            }
+            else {
+                # All variables.
+                $*LANG.set_pragma('dynamic-scope', -> $var { 1 });
+            }
+        }
         else {
             $RMD("  '$name' is not a valid pragma") if $RMD;
             return 0;                        # go try module
@@ -1693,11 +1710,23 @@ class Perl6::World is HLL::World {
     }
 
     # Creates a new container descriptor and adds it to the SC.
-    method create_container_descriptor($of, $name, $default = $of, $dynamic = nqp::chars($name) > 2 && nqp::eqat($name, '*', 1)) {
+    method create_container_descriptor($of, $name, $default = $of, $dynamic = is_dynamic($name)) {
         my $cd_type := self.find_symbol(['ContainerDescriptor'], :setting-only);
         my $cd := $cd_type.new( :$of, :$name, :$default, :$dynamic );
         self.add_object_if_no_sc($cd);
         $cd
+    }
+
+    sub is_dynamic($name) {
+        # Dynamic if has the * twigil.
+        if nqp::chars($name) > 2 && nqp::eqat($name, '*', 1) {
+            1
+        }
+        # Otherwise, check pragma.
+        else {
+            my $dynprag := $*LANG.pragma('dynamic-scope');
+            $dynprag ?? $dynprag($name) !! 0
+        }
     }
 
     # Builds a container.

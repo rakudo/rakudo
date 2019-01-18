@@ -37,6 +37,10 @@ multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
         ).throw;
     }
 }
+multi sub trait_mod:<is>(Mu:U \child, Mu:U \parent, @subtypes) {
+    # re-dispatch properly parameterized R#2611
+    trait_mod:<is>(child,parent.^parameterize(|@subtypes))
+}
 multi sub trait_mod:<is>(Mu:U $child, :$DEPRECATED!) {
 # add COMPOSE phaser for this child, which will add an ENTER phaser to an
 # existing "new" method, or create a "new" method with a call to DEPRECATED

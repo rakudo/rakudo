@@ -104,6 +104,7 @@ S02-magicals/USER.t
 S02-magicals/VM.t
 S02-names/bare-sigil.t
 S02-names/caller.t
+S02-names/dynamic-scope.t
 S02-names/identifier.t
 S02-names/indirect.t
 S02-names/is_cached.t

@@ -2174,11 +2174,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method trim-trailing(Str:D: --> Str:D) {
         my str $str = nqp::unbox_s(self);
-        my int $pos = nqp::chars($str) - 1;
-        $pos = $pos - 1
-            while nqp::isge_i($pos, 0)
-               && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos);
-        nqp::islt_i($pos, 0) ?? '' !! nqp::p6box_s(nqp::substr($str, 0, $pos + 1));
+        my int $pos = nqp::chars($str);
+        nqp::while(
+          nqp::isge_i(--$pos, 0)
+            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos),
+          nqp::null
+        );
+        nqp::box_s(nqp::substr($str, 0, $pos + 1), Str)
     }
 
     method trim(Str:D: --> Str:D) {

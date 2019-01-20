@@ -296,9 +296,8 @@ multi sub postfix:<++>(Num:D $a is rw) {
     $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0));
     $b
 }
-multi sub postfix:<++>(Num:U $a is rw) {
+multi sub postfix:<++>(Num:U $a is rw --> 0e0) {
     $a = 1e0;
-    0e0
 }
 multi sub postfix:<++>(num $a is rw --> num) {
     my num $b = $a;
@@ -310,9 +309,8 @@ multi sub postfix:<-->(Num:D $a is rw) {
     $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1e0));
     $b
 }
-multi sub postfix:<-->(Num:U $a is rw) {
+multi sub postfix:<-->(Num:U $a is rw --> 0e0) {
     $a = -1e0;
-    0e0
 }
 multi sub postfix:<-->(num $a is rw --> num) {
     my num $b = $a;

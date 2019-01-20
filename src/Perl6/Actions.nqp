@@ -8275,7 +8275,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method bare_complex_number($/) {
-        my $Num := $*W.find_symbol: ['Num'], :setting-only;
         my $ast := $*W.add_constant: 'Complex', 'type_new', :nocache(1),
             $*W.add_constant('Num', 'num',
                 $<re><sign> eq '-' || $<re><sign> eq '−'

@@ -11,7 +11,7 @@ for @true-tests -> ($range, $thing) {
 }
 for @false-tests -> ($range, $thing) {
     throws-like { $range.in-range($thing) }, X::OutOfRange,
-        "$thing is in not in range $range";
+        "$thing is not in range $range";
 }
 
 # RT#130452

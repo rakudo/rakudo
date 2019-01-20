@@ -22,7 +22,12 @@ my class PseudoStash is Map {
 
     multi method WHICH(PseudoStash:D --> ObjAt:D) { self.Mu::WHICH }
 
+#?if moar
     my constant $pseudoers = nqp::hash(
+#?endif
+#?if !moar
+    my $pseudoers := nqp::hash(
+#?endif
         'MY', sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);

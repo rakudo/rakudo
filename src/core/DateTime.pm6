@@ -24,7 +24,12 @@ my class DateTime does Dateish {
                   ($!timezone.abs/60%60).floor)
     }
 
+#?if moar
     my constant $valid-units = nqp::hash(
+#?endif
+#?if !moar
+    my $valid-units := nqp::hash(
+#?endif
       'second',  0,
       'seconds', 0,
       'minute',  0,

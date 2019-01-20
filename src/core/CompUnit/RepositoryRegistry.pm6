@@ -341,7 +341,12 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
+#?if moar
     my constant $short-id2class = nqp::hash(
+#?endif
+#?if !moar
+    my $short-id2class := nqp::hash(
+#?endif
       'file',   CompUnit::Repository::FileSystem,
       'inst',   CompUnit::Repository::Installation,
       'ap',     CompUnit::Repository::AbsolutePath,

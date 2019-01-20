@@ -4,7 +4,12 @@ my class Date does Dateish {
         sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day
     }
 
+#?if moar
     my constant $valid-units = nqp::hash(
+#?endif
+#?if !moar
+    my $valid-units := nqp::hash(
+#?endif
       'day',    1,
       'days',   1,
       'week',   7,

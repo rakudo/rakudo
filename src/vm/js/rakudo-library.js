@@ -25,6 +25,10 @@ module.exports.compile = function(source, options = {}) {
 
   passedArgs = ['perl6-js', '--output', tmpFile, '--target=js', source];
 
+  if (options.sourceMap) {
+    passedArgs.splice(1, 0, '--source-map');
+  }
+
   if (Object.prototype.hasOwnProperty.call(nqp.op.getstdout(), '$$writefh')) {
     throw `Can't overwrite $$writefh on stdout, it's already set`;
   }
@@ -66,7 +70,13 @@ module.exports.compile = function(source, options = {}) {
   nqp.setGlobalContext(oldGlobalContext);
 
   const fs = require('fs');
-  return {js: fs.readFileSync(tmpFile, 'utf8'), loaded: loaded};
+  const returnValue = {js: fs.readFileSync(tmpFile, 'utf8'), loaded: loaded};
+
+  if (options.sourceMap) {
+    returnValue.sourceMap = JSON.parse(fs.readFileSync(tmpFile + '.map', 'utf8'));
+  }
+
+  return returnValue;
 };
 
 module.exports.capturedRun = /*async*/ function(source, input, compileArgs, args, passedEnv) {

@@ -631,6 +631,14 @@ multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
     $p does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
 }
 
+class CStr is repr('CStr') { }
+
+role WithEncoding[Str $encoding] {
+    method encoding(--> Str) {
+        $encoding
+    }
+}
+
 role ExplicitlyManagedString {
     has $.cstr is rw;
 }
@@ -638,7 +646,7 @@ role ExplicitlyManagedString {
 multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
 :utils) {
     $x does ExplicitlyManagedString;
-    my $class = class CStr is repr('CStr') { method encoding() { $encoding; } };
+    my $class = CStr but WithEncoding[$encoding];
     $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont($class));
 }
 

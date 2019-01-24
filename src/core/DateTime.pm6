@@ -104,7 +104,8 @@ my class DateTime does Dateish {
                $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
           !! self.bless(
                :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:$timezone,:&formatter,|%extra);
+               :$hour,:$minute,:$second,:$timezone,:&formatter,|%extra
+             )!SET-DAYCOUNT;
 
         $second >= 60 ?? $dt!check-leap-second !! $dt
     }
@@ -191,8 +192,9 @@ my class DateTime does Dateish {
                   !! nqp::create(self)!SET-SELF(
                     $year,$month,$day,$hour,$minute,$second,0,&formatter)
           ) !! self.bless(
-               :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_);
+                 :$year,:$month,:$day,
+                 :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_
+               )!SET-DAYCOUNT;
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(DateTime:

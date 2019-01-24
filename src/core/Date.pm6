@@ -35,10 +35,6 @@ my class Date does Dateish {
           nqp::isconcrete($daycount) ?? $daycount !! nqp::null);
         self
     }
-    method !SET-DAYCOUNT() {
-        nqp::bind($!daycount,nqp::null) unless nqp::isconcrete($!daycount);
-        self
-    }
 
     proto method new(|) {*}
     multi method new(Date:

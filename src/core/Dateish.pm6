@@ -31,6 +31,12 @@ my role Dateish {
         sprintf 0 <= $!year <= 9999 ?? '%04d' !! '%+05d', $!year;
     }
 
+    # make sure $!daycount is nulled for subclasses
+    method !SET-DAYCOUNT() {
+        nqp::bind($!daycount,nqp::null) unless nqp::isconcrete($!daycount);
+        self
+    }
+
     multi method new(Dateish:) {
         Failure.new(
             "Cannot call {self.^name}.new with "

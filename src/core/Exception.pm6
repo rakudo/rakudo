@@ -2657,7 +2657,7 @@ my class X::Multi::NoMatch is Exception {
                     $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
-                when Failure {
+                if nqp::istype($_,Failure) {
                     @priors.push(" " ~ .mess);
                 }
             }

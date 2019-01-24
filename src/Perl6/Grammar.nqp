@@ -1287,10 +1287,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             || {
                     unless ~$<doc> && !%*COMPILING<%?OPTIONS><doc> {
                         my $oldmain := %*LANG<MAIN>;
-                        CATCH {
-                            nqp::say("Died doing '" ~ $/ ~ "' with:");
-                            nqp::rethrow($_);
-                        }
+#                        CATCH {
+#                            nqp::say("Died doing '" ~ $/ ~ "' with:");
+#                            nqp::rethrow($_);
+#                        }
                         $*W.do_pragma_or_load_module($/,1);
                         $¢ := $*LANG;
                         if nqp::istype($oldmain, %*LANG<MAIN>.WHAT) {

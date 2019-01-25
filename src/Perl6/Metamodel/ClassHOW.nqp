@@ -29,8 +29,6 @@ class Perl6::Metamodel::ClassHOW
     has @!fallbacks;
     has $!composed;
 
-    method composed() { $!composed }
-
     my $archetypes := Perl6::Metamodel::Archetypes.new(
         :nominal(1), :inheritable(1), :augmentable(1) );
     method archetypes() {

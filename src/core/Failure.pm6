@@ -91,7 +91,8 @@ my class Failure is Nil {
     }
     multi method perl(Failure:U:) { self.^name }
     method mess (Failure:D:) {
-        "(HANDLED) " x $!handled ~ self.exception.message ~ "\n" ~ self.backtrace;
+        my $message = (try self.exception.?message) // self.exception.^name ~ ' with no message';
+        "(HANDLED) " x $!handled ~ "$message\n" ~ self.backtrace;
     }
 
     method sink(Failure:D:) {

@@ -31,6 +31,9 @@ BEGIN {
     }
 }
 
+# temporary fix for R#2640
+BEGIN .^compose for Array,array,Bag,BagHash,Hash,Mix,MixHash,Set,SetHash;
+
 {YOU_ARE_HERE}
 
 # vim: ft=perl6 expandtab sw=4

@@ -3187,11 +3187,15 @@ BEGIN {
     #     has Mu $!nfa;
     #     has @!alt_nfas;
     #     has str $!source;
+    #     has $!topic;
+    #     has $!slash;
     Regex.HOW.add_parent(Regex, Method);
     Regex.HOW.add_attribute(Regex, scalar_attr('@!caps', List, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!topic', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!slash', Mu, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
             nqp::bindattr(nqp::decont($self), Regex, '@!caps', $caps)
         }));

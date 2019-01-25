@@ -4,6 +4,8 @@ my class Regex { # declared in BOOTSTRAP
     #     has Mu $!nfa;
     #     has %!alt_nfas;
     #     has str $!source;
+    #     has Mu $!topic;
+    #     has Mu $!slash;
 
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Regex:D: Mu:U \a) {
@@ -81,24 +83,9 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     multi method Bool(Regex:D:) {
-        nqp::stmts(
-          (my $ctx := nqp::ctx),
-          nqp::until(
-            nqp::isnull($ctx := nqp::ctxcallerskipthunks($ctx))
-              || nqp::isconcrete(
-                   my $underscore := nqp::getlexrelcaller($ctx,'$_')
-            ),
-            nqp::null
-          ),
-          nqp::if(
-            nqp::isnull($ctx),
-            False,
-            nqp::stmts(
-              (my $slash := nqp::getlexrelcaller($ctx,'$/')),
-              ($slash = $underscore.match(self)).Bool
-            )
-          )
-        )
+        nqp::isconcrete($!topic)
+            ?? ($!slash = $!topic.match(self)).Bool
+            !! False
     }
 
     multi method gist(Regex:D:) {
@@ -107,6 +94,12 @@ my class Regex { # declared in BOOTSTRAP
 
     multi method perl(Regex:D:) {
         nqp::ifnull($!source,'')
+    }
+
+    method clone(Mu :$topic is raw, Mu :$slash is raw --> Regex) {
+        nqp::p6bindattrinvres(
+            nqp::p6bindattrinvres(self.Method::clone, Regex, '$!topic', $topic),
+            Regex, '$!slash', $slash)
     }
 }
 

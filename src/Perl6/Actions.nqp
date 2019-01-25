@@ -15,14 +15,18 @@ my $abbrev-block := 'abbreviated';
 # 2147483648 == 2**31. By adding 1 to it with add_i op, on 32-bit boxes it will overflow
 my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
-sub block_closure($code) {
-    QAST::Op.new( :op('p6capturelex'),
-      QAST::Op.new(
-        :op('callmethod'), :name('clone'),
-        $code)
+sub block_closure($code, :$regex) {
+    my $clone := $regex
+        ?? QAST::Op.new(
+            :op('callmethod'), :name('clone'), $code,
+            QAST::Var.new( :name('$_'), :scope('lexical'), :named('topic') ),
+            QAST::Var.new( :name('$/'), :scope('lexical'), :named('slash') ),
+           )
+        !! QAST::Op.new( :op('callmethod'), :name('clone'), $code );
+    QAST::Op.new( :op('p6capturelex'), $clone ).annotate_self(
+        'past_block', $code.ann('past_block')
     ).annotate_self(
-      'past_block', $code.ann('past_block')
-    ).annotate_self('code_object', $code.ann('code_object'))
+        'code_object', $code.ann('code_object'))
 }
 
 sub wantall($ast, $by) {
@@ -4792,7 +4796,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Return closure if not in sink context.
-        make block_closure($coderef).annotate_self(
+        make block_closure($coderef, :regex).annotate_self(
             'sink_ast', QAST::Op.new( :op('null') ))
     }
 
@@ -8485,7 +8489,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<nibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<nibble>.ast;
         # Return closure if not in sink context.
-        my $closure := block_closure($coderef);
+        my $closure := block_closure($coderef, :regex);
         $closure.annotate('sink_ast', QAST::Op.new( :op<callmethod>, :name<Bool>, $closure));
         make $closure;
     }
@@ -8496,7 +8500,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
             $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<quibble>.ast;
-        my $past := block_closure($coderef);
+        my $past := block_closure($coderef, :regex);
         $past.annotate('sink_ast', QAST::Op.new(:op<callmethod>, :name<Bool>, $past));
         make $past;
     }
@@ -8510,7 +8514,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :node($/),
             :op('callmethod'), :name('match'),
             WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'m'),
-            block_closure($coderef)
+            block_closure($coderef, :regex)
         );
         if self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
             # if this match returns a list of matches instead of a single

@@ -1219,11 +1219,11 @@ class Perl6::World is HLL::World {
                 for $arglist {
                     %dyn{$_} := 1;
                 }
-                $*LANG.set_pragma('dynamic-scope', -> $var { %dyn{$var} || 0 });
+                $*LANG.set_pragma('dynamic-scope', sub ($var) { %dyn{$var} || 0 });
             }
             else {
                 # All variables.
-                $*LANG.set_pragma('dynamic-scope', -> $var { 1 });
+                $*LANG.set_pragma('dynamic-scope', sub ($var) { 1 });
             }
         }
         else {

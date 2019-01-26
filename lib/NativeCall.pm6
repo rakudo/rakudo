@@ -66,6 +66,7 @@ sub param_hash_for(Parameter $p) {
     my $type := $p.type();
     nqp::bindkey($result, 'typeobj', nqp::decont($type));
     nqp::bindkey($result, 'rw', nqp::unbox_i(1)) if $p.rw;
+    nqp::bindkey($result, 'copy', nqp::unbox_i(1)) if $p.copy;
     if $type ~~ Str {
         my $enc := $p.?native_call_encoded() || 'utf8';
         nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
@@ -74,7 +75,7 @@ sub param_hash_for(Parameter $p) {
     elsif $type ~~ Callable {
         nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
         my $info := param_list_for($p.sub_signature);
-        nqp::unshift($info, return_hash_for($p.sub_signature, :with-typeobj));
+        nqp::unshift($info, return_hash_for($p.sub_signature, :with-typeobj, :is-copy($p.copy)));
         nqp::bindkey($result, 'callback_args', $info);
     }
     else {
@@ -104,11 +105,12 @@ sub param_list_for(Signature $sig, &r?) {
 }
 
 # Builds a hash of type information for the specified return type.
-sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point) {
+sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point, :$is-copy) {
     my Mu $result := nqp::hash();
     my $returns := $s.returns;
-    nqp::bindkey($result, 'typeobj',     nqp::decont($returns))     if $with-typeobj;
+    nqp::bindkey($result, 'typeobj',     nqp::decont($returns))     if $with-typeobj or $is-copy;
     nqp::bindkey($result, 'entry_point', nqp::decont($entry-point)) if $entry-point;
+    nqp::bindkey($result, 'copy',        nqp::unbox_i(1))           if $is-copy;
     if $returns ~~ Str {
         my $enc := &r.?native_call_encoded() || 'utf8';
         nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
@@ -203,6 +205,10 @@ multi sub map_return_type($type) {
                             !! nqp::istype($type, Num) ?? Num !! $type;
 }
 
+my role CopyReturnStruct {
+    method ret-struct-copy(--> 1) { }
+}
+
 my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
@@ -289,7 +295,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call
                 nqp::unbox_s($conv),        # calling convention
                 $arg_info,
-                return_hash_for($r.signature, $r, :$!entry-point));
+                return_hash_for($r.signature, $r, :$!entry-point, :is-copy(self.does(CopyReturnStruct))));
             $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
             $!arity = $r.signature.arity;
 
@@ -617,6 +623,10 @@ multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
 # Specifies the calling convention to use for a native call.
 multi trait_mod:<is>(Routine $r, :$nativeconv!) is export(:DEFAULT, :traits) {
     $r does NativeCallingConvention[$nativeconv];
+}
+
+multi trait_mod:<is>(Routine $r, :$copy!) is export(:DEFAULT, :traits) {
+    $r does CopyReturnStruct;
 }
 
 # Ways to specify how to marshall strings.

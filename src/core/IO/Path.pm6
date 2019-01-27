@@ -526,8 +526,7 @@ my class IO::Path is Cool does IO {
     proto method dir(|) {*} # make it possible to augment with multies from modulespace
     multi method dir(IO::Path:D: Mu :$test = $*SPEC.curupdir) {
         CATCH { default {
-            fail X::IO::Dir.new(
-              :path($.absolute), :os-error(.Str) );
+            X::IO::Dir.new(:path($.absolute), :os-error(.Str)).throw
         } }
 
         my str $dir-sep  = $!SPEC.dir-sep;

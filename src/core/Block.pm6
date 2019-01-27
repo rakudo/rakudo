@@ -78,7 +78,7 @@ my class Block { # declared in BOOTSTRAP
     }
 
     # helper method for array slicing
-    method pos(Block:D $self: \list) {
+    method POSITIONS(Block:D $self: \list) {
       nqp::if(
         (nqp::istype(
           (my \n := nqp::getattr(

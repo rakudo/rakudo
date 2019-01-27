@@ -159,6 +159,9 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
         unless ($distribution.meta<provides> && $distribution.meta<provides>{$spec.short-name})
             or ($distribution.meta<files>    && $distribution.meta<files>{$spec.short-name})
         {
+            # Only break the cache if there is no inclusion authority (i.e. META6.json)
+            return Empty if $!prefix.child('META6.json').e;
+
             # Break the !distribution cache if we failed to find a match using the cached distribution
             # but still found an existing file that matches the $spec.short-name
             return Empty unless @extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ ".$_") }).first(*.f);

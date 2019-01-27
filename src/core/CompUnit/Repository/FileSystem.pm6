@@ -173,7 +173,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             ?? $spec.api-matcher
             !! Version.new($spec.api-matcher);
 
-        return Empty unless ($distribution.meta<auth> // '') ~~ $spec.auth-matcher
+        return Empty unless (($distribution.meta<auth> // '') eq '' || ($distribution.meta<auth> // '') ~~ $spec.auth-matcher)
             and (($distribution.meta<ver> // '*') eq '*' || Version.new($distribution.meta<ver> // 0) ~~ $version-matcher)
             and (($distribution.meta<api> // '*') eq '*' || Version.new($distribution.meta<api> // 0) ~~ $api-matcher);
 

@@ -253,7 +253,7 @@ is-run ｢my Str where 'foo' $test｣, :exitcode(*),
 # RT#132285
 throws-like ｢Blob[num32].new: 2e0｣,
     Exception,
-    :message{ .contains: ｢not yet implemented｣ & ｢num32｣ and not .contains: ｢got null｣ },
+    :message{ .contains: ｢Can only parameterize｣ & ｢num32｣ and not .contains: ｢got null｣ },
     'sane NYI error for num32 Blob';
 
 # RT#77754

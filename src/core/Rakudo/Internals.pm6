@@ -41,6 +41,9 @@ my class Rakudo::Internals {
         method dynamic() { False }
     }
 
+    # Marker symbol for 6.c-mode regex boolification.
+    class RegexBoolification6cMarker { }
+
     # rotate nqp list to another given list without using push/pop
     method RotateListToList(\from,\n,\to) {
         nqp::stmts(

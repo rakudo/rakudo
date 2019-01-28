@@ -16,13 +16,17 @@ my $abbrev-block := 'abbreviated';
 my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 
 sub block_closure($code, :$regex) {
-    my $clone := $regex
-        ?? QAST::Op.new(
-            :op('callmethod'), :name('clone'), $code,
-            QAST::Var.new( :name('$_'), :scope('lexical'), :named('topic') ),
-            QAST::Var.new( :name('$/'), :scope('lexical'), :named('slash') ),
-           )
-        !! QAST::Op.new( :op('callmethod'), :name('clone'), $code );
+    my $clone := QAST::Op.new( :op('callmethod'), :name('clone'), $code );
+    if $regex {
+        if $*W.lang-ver-before('d') {
+            my $marker := $*W.find_symbol(['Rakudo', 'Internals', 'RegexBoolification6cMarker']);
+            $clone.push(QAST::WVal.new( :value($marker), :named('topic') ));
+        }
+        else {
+            $clone.push(QAST::Var.new( :name('$_'), :scope('lexical'), :named('topic') ));
+            $clone.push(QAST::Var.new( :name('$/'), :scope('lexical'), :named('slash') ));
+        }
+    }
     QAST::Op.new( :op('p6capturelex'), $clone ).annotate_self(
         'past_block', $code.ann('past_block')
     ).annotate_self(

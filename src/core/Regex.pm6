@@ -83,9 +83,33 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     multi method Bool(Regex:D:) {
-        nqp::isconcrete($!topic)
-            ?? ($!slash = $!topic.match(self)).Bool
-            !! False
+        my Mu \topic = $!topic;
+        nqp::istype_nd(topic, Rakudo::Internals::RegexBoolification6cMarker)
+            ?? self!Bool6c()
+            !! nqp::isconcrete(topic)
+                ?? ($!slash = topic.match(self)).Bool
+                !! False
+    }
+
+    method !Bool6c() {
+        nqp::stmts(
+          (my $ctx := nqp::ctx),
+          nqp::until(
+            nqp::isnull($ctx := nqp::ctxcallerskipthunks($ctx))
+              || nqp::isconcrete(
+                   my $underscore := nqp::getlexrelcaller($ctx,'$_')
+            ),
+            nqp::null
+          ),
+          nqp::if(
+            nqp::isnull($ctx),
+            False,
+            nqp::stmts(
+              (my $slash := nqp::getlexrelcaller($ctx,'$/')),
+              ($slash = $underscore.match(self)).Bool
+            )
+          )
+        )
     }
 
     multi method gist(Regex:D:) {

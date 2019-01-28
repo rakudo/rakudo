@@ -285,12 +285,20 @@ int wmain(int argc, wchar_t *wargv[])
     strcpy(lib_path[0] +   nqp_home_size, "\\lib");
     strcpy(lib_path[1] + perl6_home_size, "\\lib");
     strcpy(lib_path[2] + perl6_home_size, "\\runtime");
+#ifdef MOAR_PERL6_RUNNER_DEBUG
+    strcpy(perl6_file  + perl6_home_size, "\\runtime\\perl6-debug.moarvm");
+#else
     strcpy(perl6_file  + perl6_home_size, "\\runtime\\perl6.moarvm");
+#endif
 #else
     strcpy(lib_path[0] +   nqp_home_size, "/lib");
     strcpy(lib_path[1] + perl6_home_size, "/lib");
     strcpy(lib_path[2] + perl6_home_size, "/runtime");
+#ifdef MOAR_PERL6_RUNNER_DEBUG
+    strcpy(perl6_file  + perl6_home_size, "/runtime/perl6-debug.moarvm");
+#else
     strcpy(perl6_file  + perl6_home_size, "/runtime/perl6.moarvm");
+#endif
 #endif
 
     /* Start up the VM. */

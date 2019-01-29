@@ -942,7 +942,9 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             {
                 my \result := $test($_);
                 nqp::if(
-                  nqp::istype(result, Regex) ?? result.ACCEPTS($_) !! result,
+                  nqp::istype(result, Regex) || nqp::istype(result, Junction)
+                      ?? result.ACCEPTS($_)
+                      !! result,
                   $_,
                   Empty)
             },
@@ -1063,28 +1065,28 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                 nqp::istype($t,Regex:D)
                   ?? self!grep-k: { $t.ACCEPTS($_) }
                   !! nqp::istype($t,Callable:D)
-                       ?? self!grep-k: $t
+                       ?? self!grep-k: self!wrap-callable-for-grep($t)
                        !! self!grep-k: { $t.ACCEPTS($_) }
             }
             elsif nqp::atkey($storage,"kv") {
                 nqp::istype($t,Regex:D)
                   ?? self!grep-kv: { $t.ACCEPTS($_) }
                   !! nqp::istype($t,Callable:D)
-                       ?? self!grep-kv: $t
+                       ?? self!grep-kv: self!wrap-callable-for-grep($t)
                        !! self!grep-kv: { $t.ACCEPTS($_) }
             }
             elsif nqp::atkey($storage,"p") {
                 nqp::istype($t,Regex:D)
                   ?? self!grep-p: { $t.ACCEPTS($_) }
                   !! nqp::istype($t,Callable:D)
-                       ?? self!grep-p: $t
+                       ?? self!grep-p: self!wrap-callable-for-grep($t)
                        !! self!grep-p: { $t.ACCEPTS($_) }
             }
             elsif nqp::atkey($storage,"v") {
                 nqp::istype($t,Regex:D)
                   ?? self!grep-accepts: $t
                   !! nqp::istype($t,Callable:D)
-                       ?? self!grep-callable: $t
+                       ?? self!grep-callable: self!wrap-callable-for-grep($t)
                        !! self!grep-accepts: $t
             }
             else {
@@ -1094,7 +1096,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
                     nqp::istype($t,Regex:D)
                       ?? self!grep-accepts: $t
                       !! nqp::istype($t,Callable:D)
-                           ?? self!grep-callable: $t
+                           ?? self!grep-callable: self!wrap-callable-for-grep($t)
                            !! self!grep-accepts: $t
                 }
                 else {
@@ -1116,6 +1118,15 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } )
             ).throw
         }
+    }
+
+    method !wrap-callable-for-grep($test) {
+        ({
+            my \result := $test($_);
+            nqp::istype(result, Regex) || nqp::istype(result, Junction)
+                ?? result.ACCEPTS($_)
+                !! result
+        })
     }
 
     proto method first(|) is nodal {*}

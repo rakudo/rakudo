@@ -808,8 +808,9 @@ my class BlockVarOptimizer {
                     }
                 }
 
-                # Stash the name we lowered it to.
+                # Stash the name we lowered it to, and add a debug mapping.
                 $block.symbol($name, :lowered($new_name));
+                $block.add_local_debug_mapping($new_name, $name);
             }
         }
     }
@@ -3014,6 +3015,11 @@ class Perl6::Optimizer {
             else {
                 @copy_decls.push($_);
             }
+        }
+
+        # Copy local debug name mappings.
+        for $block.local_debug_map {
+            $outer.add_local_debug_mapping($_.key, $_.value);
         }
 
         # Hand back the decls and statements that we're inlining.

@@ -30,7 +30,9 @@ my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
 my $perl6dir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6') : $prefix;
 my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6dir : '${PERL6_DIR}', 'runtime') : $prefix;
 my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6dir : '${PERL6_DIR}', 'lib') : 'blib';
-my $sharedir = File::Spec->catfile($prefix, 'share', 'perl6', 'site', 'lib');
+my $sharedir = File::Spec->catfile(
+    ($type eq 'install' && $^O ne 'MSWin32' ? '$DIR/..' : $prefix),
+    'share', 'perl6', 'site', 'lib');
 my $perl6jars = join( $cpsep,
     $^O eq 'MSWin32' ? $nqpjars : '${NQP_JARS}',
     File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
@@ -38,7 +40,7 @@ my $perl6jars = join( $cpsep,
 
 my $NQP_LIB = $blib ? ': ${NQP_LIB:="blib"}' : '';
 
-my $preamble_reloc $^O eq 'MSWin32' ? '@' : "#!/bin/bash
+my $preamble_reloc = "#!/bin/bash
 
 # Sourced from https://stackoverflow.com/a/246128/1975049
 SOURCE=\"\${BASH_SOURCE[0]}\"
@@ -84,7 +86,7 @@ sub install {
 my $classpath = join($cpsep, ($perl6jars, $jardir, $libdir, $nqplibdir));
 my $jopts = '-noverify -Xms100m'
           . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
-          . ' -Dperl6.prefix=' . $prefix
+          . ' -Dperl6.prefix=' . ($type eq 'install' && $^O ne 'MSWin32' ? '$DIR/..' : $prefix)
           . ' -Djna.library.path=' . $sharedir
           . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');
 my $jdbopts = '-Xdebug -Xrunjdwp:transport=dt_socket,address=' 

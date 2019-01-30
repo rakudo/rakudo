@@ -37,7 +37,27 @@ my $perl6jars = join( $cpsep,
     File::Spec->catfile($jardir, $debugger ? 'perl6-debug.jar' : 'perl6.jar'));
 
 my $NQP_LIB = $blib ? ': ${NQP_LIB:="blib"}' : '';
-my $preamble = $^O eq 'MSWin32' ? '@' : "#!/bin/sh
+
+my $preamble_reloc $^O eq 'MSWin32' ? '@' : "#!/bin/bash
+
+# Sourced from https://stackoverflow.com/a/246128/1975049
+SOURCE=\"\${BASH_SOURCE[0]}\"
+while [ -h \"\$SOURCE\" ]; do
+  DIR=\"\$( cd -P \"\$( dirname \"\$SOURCE\" )\" >/dev/null && pwd )\"
+  SOURCE=\"\$(readlink \"\$SOURCE\")\"
+  [[ \$SOURCE != /* ]] && SOURCE=\"\$DIR/\$SOURCE\"
+done
+DIR=\"\$( cd -P \"\$( dirname \"\$SOURCE\" )\" >/dev/null && pwd )\"
+
+: \${NQP_DIR:=\"\$DIR/../share/nqp\"}
+: \${NQP_JARS:=\"$nqpjars\"}
+: \${PERL6_DIR:=\"\$DIR/../share/perl6\"}
+: \${PERL6_JARS:=\"$perl6jars\"}
+exec ";
+
+my $preamble = $^O eq 'MSWin32' ? '@' :
+               $type eq 'install' ? $preamble_reloc :
+               "#!/bin/sh
 $NQP_LIB
 : \${NQP_DIR:=\"$nqpdir\"}
 : \${NQP_JARS:=\"$nqpjars\"}

@@ -140,24 +140,59 @@ module.exports.capturedRun = /*async*/ function(source, input, compileArgs, args
 
   const oldOpen = nqp.op.open;
 
-  class SourceFileHandle {
-    constructor(source) {
+  class ReadFromStringHandle {
+    constructor(source, flag) {
       this.source = Buffer.from(source, 'utf8');
     }
 
     $$readfh(buf, bytes) {
+      if (this.flag) console.log('$$readfh');
       core.writeBuffer(buf, 0, this.source.slice(0, bytes));
       this.source = this.source.slice(bytes);
       return buf;
     }
 
-    $$closefh() {
+    $$eoffh() {
+      if (this.flag) console.log('$$eoffh');
+      return (this.source.length === 0 ? 1 : 0);
     }
+
+    $$closefh() {
+      if (this.flag) console.log('$$closefh');
+    }
+
+    $$decont(ctx) {
+      return this;
+    }
+
+    $$isttyfh() {
+      return 0;
+    }
+
+    $$setbuffersizefh(size) {
+      return this;
+    }
+
+    $$can(ctx, name) {
+      return 0;
+    }
+
+    $$toBool(ctx) {
+      return 1;
+    }
+  };
+
+  const oldGetstdin = nqp.op.getstdin;
+
+  const fakeStdin = new ReadFromStringHandle(input, true);
+
+  nqp.op.getstdin = function() {
+    return fakeStdin;
   };
 
   nqp.op.open = function(name, mode) {
     if (name === '*SOURCE*') {
-      return new SourceFileHandle(source);
+      return new ReadFromStringHandle(source);
     } else {
       return oldOpen(name, mode);
     }
@@ -198,6 +233,7 @@ module.exports.capturedRun = /*async*/ function(source, input, compileArgs, args
   nqp.args = oldArgs;
   nqp.op.getenvhash = oldGetEnvHash;
   nqp.op.getpid = oldGetpid;
+  nqp.op.getstdin = oldGetstdin;
 
   nqp.setGlobalContext(oldGlobalContext);
 

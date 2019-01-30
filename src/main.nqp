@@ -4,13 +4,20 @@ use Perl6::Compiler;
 
 # Determine Perl6 and NQP dirs.
 my $sep := nqp::backendconfig()<osname> eq 'MSWin32' ?? '\\' !! '/';
+#?if jvm
+my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');
+my $exec-dir := nqp::substr($execname, 0, nqp::rindex($execname, $sep));
+#?endif
+#?if !jvm
 my $exec-dir := nqp::substr(nqp::execname(), 0, nqp::rindex(nqp::execname(), $sep));
+#?endif
+
 my $perl6-home := nqp::getenvhash()<PERL6_HOME> // $exec-dir ~ '/../share/perl6';
-if (nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep) {
+if nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep {
     $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
 }
 my $nqp-home := nqp::getenvhash()<NQP_HOME> // $exec-dir ~ '/../share/nqp';
-if (nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep) {
+if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {
     $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
 }
 nqp::bindhllsym('perl6', '$PERL6_HOME', $perl6-home);

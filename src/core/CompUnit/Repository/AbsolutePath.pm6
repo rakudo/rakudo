@@ -32,7 +32,7 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
         }
 
         return self.next-repo.load($file) if self.next-repo;
-        die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
+        die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4));
     }
 
     method loaded(--> Iterable:D) {

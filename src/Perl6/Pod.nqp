@@ -186,27 +186,6 @@ class Perl6::Pod {
         return $config;
     }
 
-    our sub make-para($s) {
-        # TODO
-        # This is planned to be used to turn strings into paras, including
-        # chunks of formatting code (fc). Currently, there are strings that
-        # have fc that have not been properly turned into compiled fc
-        # blocks inside para contents. Some examples include table cells
-        # and defn block terms and definitions.
-        #
-        # NOTE This could be done in the grammar if we can untangle the
-        #      first line of pod contents to treat as a separate
-        #      entity and then recombine t with its original para string
-        #      or make it the term for a defn block.
-        #      However, this would still be needed for properly
-        #      handling fc in table cells!
-        =begin comment
-        my @contents := pod_strings_from_matches(nqp::list($s));
-        @contents    := serialize_array(@contents).compile_time_value;
-        return serialize_object('Pod::Block::Para', :@contents).compile_time_value;
-        =end comment
-    }
-
     our sub defn($/, $blocktype) {
         # produces a Perl 6 instance of Pod::Defn
 
@@ -232,10 +211,6 @@ class Perl6::Pod {
         }
 
         my $term := @children.shift;
-        =begin comment
-        # TODO for future change
-        $term := make-para($term);
-        =end comment
 
         # The remaining @children array should have lines of text with
         # an empty line being a paragraph separator. Combine
@@ -266,10 +241,6 @@ class Perl6::Pod {
             my @contents := nqp::list($para);
             @contents    := serialize_array(@contents).compile_time_value;
             my $obj := serialize_object('Pod::Block::Para', :@contents).compile_time_value;
-            =begin comment
-            # TODO for future change
-            my $obj := make-para($para);
-            =end comment
             @pcontents.push($obj);
         }
         my $contents := serialize_array(@pcontents).compile_time_value;
@@ -1386,13 +1357,6 @@ class Perl6::Pod {
                 nqp::say($_) for @rows; # the original table as input
                 nqp::say("===end WARNING table $t input rows");
             }
-            =begin comment
-            elsif $warns && $show_warning {
-                    nqp::say("===WARNING: One or more tables evidence bad practice.");
-                    nqp::say("==          Set environment variable 'RAKUDO_POD_TABLE_DEBUG' for more details.");
-                    $show_warning := 0;
-            }
-            =end comment
         }
 
         sub normalize_vis_col_sep_rows(@Rows) {

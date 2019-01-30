@@ -450,6 +450,9 @@ my class BlockVarOptimizer {
     # If p6bindsig is used.
     has int $!uses_bindsig;
 
+    # If p6return is used
+    has int $!uses_p6return;
+
     # If we're currently inside a handler argument of an nqp::handle. These
     # are code-gen'd with an implicit block around them, so we mustn't lower
     # lexicals referenced in them to locals.
@@ -503,6 +506,8 @@ my class BlockVarOptimizer {
 
     method uses_bindsig() { $!uses_bindsig := 1; }
 
+    method uses_p6return() { $!uses_p6return := 1; }
+
     method entering_handle_handler() { $!in_handle_handler++; }
 
     method leaving_handle_handler() { $!in_handle_handler--; }
@@ -518,6 +523,10 @@ my class BlockVarOptimizer {
     method get_calls() { $!calls }
 
     method is_poisoned() { $!poisoned }
+
+    method is_inlineable() {
+        !($!poisoned || $!uses_p6return)
+    }
 
     method get_escaping_handler_vars() {
         my @esc;
@@ -1123,7 +1132,7 @@ class Perl6::Optimizer {
         my int $flattened := 0;
         my $result := $block;
         if $!level >= 2 && $block.blocktype eq 'immediate' && $block.arity == 0
-                && !$vars_info.is_poisoned && !$block.has_exit_handler {
+                && $vars_info.is_inlineable && !$block.has_exit_handler {
             # Scan symbols for any non-lowered ones.
             my $impossible := 0;
             for $block.symtable() {
@@ -1498,6 +1507,9 @@ class Perl6::Optimizer {
         }
         elsif $optype eq 'p6bindsig' || $optype eq 'p6bindcaptosig' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].uses_bindsig();
+        }
+        elsif $optype eq 'p6return' {
+            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].uses_p6return();
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();

@@ -84,7 +84,7 @@ module.exports.capturedRun = /*async*/ function(source, input, compileArgs, args
 
   const env = nqp.hash();
 
-  const pid = core.randomInt()[0];
+  const pid = core.fakePid();
 
   const oldGetpid = nqp.op.getpid;
 

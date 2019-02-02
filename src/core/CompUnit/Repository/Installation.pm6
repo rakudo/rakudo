@@ -406,7 +406,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 !! $lookup.dir.map({
                         my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
                         $_.basename => {
-                            name     => $spec.short-name,
                             auth     => $auth,
                             api      => Version.new( $api || 0 ), # Create the Version objects once
                             ver      => Version.new( $ver || 0 ), # (used to compare, and then sort)
@@ -572,7 +571,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
             my $compunit = CompUnit.new(
                 :$handle,
-                :short-name($meta<name>),
+                :short-name($spec.short-name),
                 :version($meta<ver>),
                 :auth($meta<auth> // Str),
                 :repo(self),

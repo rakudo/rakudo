@@ -14,7 +14,9 @@ Rakudo::Internals.REGISTER-DYNAMIC: '@*ARGS', {
     #     @ARGFILEPATHS.push($arg_s) if $canread > 0;
     #     @ARGS.push($arg_s);
     # }
-    
+    # PROCESS::<@ARGFILEPATHS> := @ARGFILEPATHS:
+    # PROCESS::<@ARGS> := @ARGS;
+    # to replace existing code here:
     @ARGS.push(nqp::p6box_s(nqp::shift($argiter))) while $argiter;
     PROCESS::<@ARGS> := @ARGS;
 }

@@ -1,6 +1,20 @@
 Rakudo::Internals.REGISTER-DYNAMIC: '@*ARGS', {
     my @ARGS;
     my Mu $argiter := nqp::getcurhllsym('$!ARGITER');
+    # could we generate a new var here, say @*ARGFILEPATHS, then
+    #
+    # Rakudo::Internals.REGISTER-DYNAMIC: '@*ARGS, @*ARGFILEPATHS, {
+    # my @ARGS;
+    # my @ARGFILEPATHS;
+    # my Mu $argiter := nqp::getcurhllsym('$!ARGITER');
+    # while $argiter {
+    #     my $arg     := nqp::shift($argiter);
+    #     my $arg_s   := nqp::p6box_s($arg);
+    #     my $canread := nqp::filereadable($arg);
+    #     @ARGFILEPATHS.push($arg_s) if $canread > 0;
+    #     @ARGS.push($arg_s);
+    # }
+    
     @ARGS.push(nqp::p6box_s(nqp::shift($argiter))) while $argiter;
     PROCESS::<@ARGS> := @ARGS;
 }

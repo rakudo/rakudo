@@ -122,10 +122,10 @@ int retrieve_home(char *out_home, char *rel_home, char *env_var, char *exec_dir_
     check_file_path = (char*)malloc(home_size + 50);
     memcpy(check_file_path, out_home, home_size);
     strcpy(check_file_path + home_size, check_file);
-	if (!file_exists(check_file_path)) {
+    if (!file_exists(check_file_path)) {
         free(check_file_path);
         return 0;
-	}
+    }
     free(check_file_path);
     return 1;
 }
@@ -246,8 +246,9 @@ int wmain(int argc, wchar_t *wargv[])
         return EXIT_FAILURE;
     }
 
-    dir_path = (char*)malloc(exec_path_size);
-    memcpy(dir_path, exec_path, exec_path_size);
+    /* The +1 is the trailing \0 terminating the string. */
+    dir_path = (char*)malloc(exec_path_size + 1);
+    memcpy(dir_path, exec_path, exec_path_size + 1);
 #ifdef _WIN32
     PathRemoveFileSpecA(dir_path);
 #else
@@ -261,14 +262,14 @@ int wmain(int argc, wchar_t *wargv[])
     if (!retrieve_home(nqp_home, "/../share/nqp", "NQP_HOME", dir_path, dir_path_size, "/lib/NQPCORE.setting.moarvm")) {
         fprintf(stderr, "ERROR: NQP_HOME is invalid: %s\n", nqp_home);
         return EXIT_FAILURE;
-	}
+    }
     nqp_home_size = strlen(nqp_home);
 
     perl6_home = (char*)malloc(dir_path_size + 50);
     if (!retrieve_home(perl6_home, "/../share/perl6", "PERL6_HOME", dir_path, dir_path_size, "/runtime/perl6.moarvm")) {
         fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", perl6_home);
         return EXIT_FAILURE;
-	}
+    }
     perl6_home_size = strlen(perl6_home);
 
     /* Put together the lib paths and perl6_file path. */

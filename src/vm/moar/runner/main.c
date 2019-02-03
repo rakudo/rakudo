@@ -6,6 +6,8 @@
 
 #ifndef _WIN32
 #  include <libgen.h>
+#else
+#  include <shlwapi.h>
 #endif
 
 #ifndef _WIN32

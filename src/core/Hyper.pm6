@@ -122,7 +122,7 @@ class Hyper {
             my \result := nqp::eqaddr(left.WHAT,List)
               || nqp::eqaddr(left.WHAT,Slip)
               ?? nqp::p6bindattrinvres(
-                   nqp::create(left),List,'$!reified',values
+                   nqp::create(left.WHAT),List,'$!reified',values
                  )
               !! nqp::can(left,"STORE")
                 ?? left.WHAT.new(nqp::p6bindattrinvres(
@@ -159,7 +159,7 @@ class Hyper {
         my \result := nqp::eqaddr(right.WHAT,List)
           || nqp::eqaddr(right.WHAT,Slip)
           ?? nqp::p6bindattrinvres(                         # List or Slip
-               nqp::create(right),List,'$!reified',values
+               nqp::create(right.WHAT),List,'$!reified',values
              )
           !! nqp::can(right,"STORE")
             ?? right.WHAT.new(nqp::p6bindattrinvres(

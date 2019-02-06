@@ -22,10 +22,10 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
     does Perl6::Metamodel::Finalization
+    does Perl6::Metamodel::Concretization
 {
     has @!roles;
     has @!role_typecheck_list;
-    has @!concretizations;
     has @!fallbacks;
     has $!composed;
 
@@ -98,7 +98,7 @@ class Perl6::Metamodel::ClassHOW
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 my $ins := $r.HOW.specialize($r, $obj);
                 @ins_roles.push($ins);
-                nqp::push(@!concretizations, [$r, $ins]);
+                self.add_concretization($obj, $r, $ins);
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
             @stubs := RoleToClassApplier.apply($obj, @ins_roles);
@@ -247,15 +247,6 @@ class Perl6::Metamodel::ClassHOW
 
     method role_typecheck_list($obj) {
         $!composed ?? @!role_typecheck_list !! self.roles_to_compose($obj)
-    }
-
-    method concretization($obj, $ptype) {
-        for @!concretizations {
-            if nqp::decont($_[0]) =:= nqp::decont($ptype) {
-                return $_[1];
-            }
-        }
-        nqp::die("No concretization found for " ~ $ptype.HOW.name($ptype));
     }
 
     method is_composed($obj) {

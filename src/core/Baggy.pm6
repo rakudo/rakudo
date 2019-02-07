@@ -55,7 +55,7 @@ my role Baggy does QuantHash {
           )
         )
     }
-    multi method ACCEPTS(Baggy:D: Mu \other --> Bool:D) {
+    multi method ACCEPTS(Baggy:D: \other --> Bool:D) {
         self.ACCEPTS(other.Bag)
     }
 

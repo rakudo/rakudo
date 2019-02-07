@@ -377,7 +377,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.Str
     }
 
-    multi method ACCEPTS(Range:D: Mu \topic) {
+    multi method ACCEPTS(Range:D: \topic) {
         (topic cmp $!min) > -(!$!excludes-min)
           and (topic cmp $!max) < +(!$!excludes-max)
     }
@@ -390,7 +390,7 @@ my class Range is Cool does Iterable does Positional {
     multi method ACCEPTS(Range:D: Complex:D \got) {
         nqp::istype(($_ := got.Real), Failure) ?? False !! nextwith $_
     }
-    multi method ACCEPTS(Range:D: Range \topic) {
+    multi method ACCEPTS(Range:D: Range:D \topic) {
         nqp::istype($!min, Numeric)
             ?? # RHS is a numeric range, use numeric comparators
                 try {

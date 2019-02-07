@@ -8,6 +8,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::ArrayType
+    does Perl6::Metamodel::Concretization
 {
     # Any collisions to resolve.
     has @!collisions;

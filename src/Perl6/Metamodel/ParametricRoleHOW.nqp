@@ -192,12 +192,14 @@ class Perl6::Metamodel::ParametricRoleHOW
         # Roles done by this role need fully specializing also; all
         # they'll be missing is the target class (e.g. our first arg).
         for self.roles_to_compose($obj) {
-            my $r := $_;
+            my $ins := my $r := $_;
             if $_.HOW.archetypes.generic {
-                $r := $r.HOW.instantiate_generic($r, $type_env);
-                $conc.HOW.add_to_role_typecheck_list($conc, $r);
+                $ins := $ins.HOW.instantiate_generic($ins, $type_env);
+                $conc.HOW.add_to_role_typecheck_list($conc, $ins);
             }
-            $conc.HOW.add_role($conc, $r.HOW.specialize($r, @pos_args[0]));
+            $ins := $ins.HOW.specialize($ins, @pos_args[0]);
+            $conc.HOW.add_role($conc, $ins);
+            $conc.HOW.add_concretization($conc, $r, $ins);
         }
 
         # Pass along any parents that have been added, resolving them in

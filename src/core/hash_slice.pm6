@@ -1,6 +1,6 @@
 # all sub postcircumfix {} candidates here please
 
-proto sub postcircumfix:<{ }>($, $?, Mu $?, *%) is nodal {*}
+proto sub postcircumfix:<{ }>(Mu $, $?, Mu $?, *%) is nodal {*}
 
 # %h<key>
 multi sub postcircumfix:<{ }>( \SELF, \key ) is raw {
@@ -163,10 +163,9 @@ multi sub postcircumfix:<{ }>(\SELF, Bool() :$v!, *%other) is raw {
       ?? SLICE_MORE_HASH( SELF, SELF.keys.list, 'v', $v, %other )
       !! SELF{SELF.keys.list};
 }
-multi sub postcircumfix:<{ }>( \SELF, *%other ) is raw {
-    SELF.ZEN-KEY(|%other);
+multi sub postcircumfix:<{ }>(Mu \SELF, *%other ) is raw {
+    %other ?? SELF.ZEN-KEY(|%other) !! nqp::decont(SELF)
 }
-
 
 proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}
 

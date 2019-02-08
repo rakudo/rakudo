@@ -28,7 +28,7 @@ script:
 
 branches:
    only:
-     - issue_2657
+     - master
      - /smoke-me/
 
 notifications:

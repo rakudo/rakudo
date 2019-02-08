@@ -89,7 +89,7 @@ our class Pointer                               is repr('CPointer') {
 }
 
 # CArray class, used to represent C arrays.
-our class CArray is repr('CArray') is array_type(Pointer) {
+our class CArray is repr('CArray') does Iterable is array_type(Pointer) {
     method AT-POS(::?CLASS:D: $pos) { die "CArray cannot be used without a type" }
 
     my role IntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {

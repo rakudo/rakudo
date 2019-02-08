@@ -597,7 +597,7 @@ multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is raw is export(:DEFAULT,
 multi sub postcircumfix:<[ ]>(CArray:D \array, Callable:D $block) is raw is export(:DEFAULT, :types) {
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
-      array[$block.pos(array)]
+      array[$block.POSITIONS(array)]
     )
 }
 multi sub postcircumfix:<[ ]>(CArray:D \array) is export(:DEFAULT, :types) {

@@ -377,7 +377,7 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.Str
     }
 
-    multi method ACCEPTS(Range:D: \topic) {
+    multi method ACCEPTS(Range:D: Mu \topic) {
         (topic cmp $!min) > -(!$!excludes-min)
           and (topic cmp $!max) < +(!$!excludes-max)
     }

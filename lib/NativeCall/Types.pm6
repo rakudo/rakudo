@@ -6,16 +6,17 @@ sub nativecast($target-type, $source) {
         nqp::decont(map_return_type($target-type)), nqp::decont($source));
 }
 
-our native long     is Int is ctype("long")     is repr("P6int") { };
-our native longlong is Int is ctype("longlong") is repr("P6int") { };
+our native long      is Int is ctype("long")                 is repr("P6int") { };
+our native longlong  is Int is ctype("longlong")             is repr("P6int") { };
 our native ulong     is Int is ctype("long")     is unsigned is repr("P6int") { };
 our native ulonglong is Int is ctype("longlong") is unsigned is repr("P6int") { };
 our native size_t    is Int is ctype("size_t")   is unsigned is repr("P6int") { };
 our native ssize_t   is Int is ctype("size_t")               is repr("P6int") { };
 our native bool      is Int is ctype("bool")                 is repr("P6int") { };
-our class void                                  is repr('Uninstantiable') { };
+our class void                                               is repr('Uninstantiable') { };
+
 # Expose a Pointer class for working with raw pointers.
-our class Pointer                               is repr('CPointer') {
+our class Pointer is repr('CPointer') {
     method of() { void }
 
     multi method new() {
@@ -81,10 +82,10 @@ our class Pointer                               is repr('CPointer') {
             "  (u)int8, (u)int16, (u)int32, (u)int64, (u)long, (u)longlong, num16, num32, (s)size_t, bool, Str\n" ~
             "  and types with representation: CArray, CPointer, CStruct, CPPStruct and CUnion" ~
             "not: {t.^name}"
-            unless t ~~ Int|Num|Bool || t === Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
+            unless t ~~ Int|Num|Bool|Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
         my $w := p.^mixin: TypedPointer[t.WHAT];
         $w.^set_name: "{p.^name}[{t.^name}]";
-        $w;
+        $w
     }
 }
 

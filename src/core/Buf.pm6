@@ -43,10 +43,14 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     multi method new(Blob:) { nqp::create(self) }
     multi method new(Blob: Blob:D $blob) {
-        nqp::splice(nqp::create(self),$blob,0,0)
+        my Int \elems = nqp::elems($blob);
+        my     \this  = nqp::setelems(nqp::create(self), nqp::unbox_i(elems));
+        nqp::splice(this, $blob, 0, nqp::unbox_i(elems));
     }
     multi method new(Blob: int @values) {
-        nqp::splice(nqp::create(self),@values,0,0)
+        my \elems = nqp::elems(@values);
+        my \this  = nqp::setelems(nqp::create(self), elems);
+        nqp::splice(this, @values, 0, elems)
     }
     multi method new(Blob: @values) {
         nqp::create(self).STORE(@values, :INITIALIZE)
@@ -700,11 +704,15 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method STORE(Buf:D: Blob:D $blob) {
-        nqp::splice(nqp::setelems(self,0),$blob,0,0)
+        my Int \elems = nqp::elems($blob);
+        my     \this  = nqp::setelems(nqp::create(self), nqp::unbox_i(elems));
+        nqp::splice(self, $blob, 0, nqp::unbox_i(elems))
     }
     # The "is default" is needed to prevent runtime dispatch errors
     multi method STORE(Buf:D: int @values) is default {
-        nqp::splice(nqp::setelems(self,0),@values,0,0)
+        my \elems = nqp::elems(@values);
+        my \this  = nqp::setelems(nqp::create(self), elems);
+        nqp::splice(self, @values, 0, elems)
     }
     multi method STORE(Buf:D: Iterable:D \iterable) {
         iterable.is-lazy

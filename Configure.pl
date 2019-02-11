@@ -420,18 +420,18 @@ Configure.pl - $lang Configure
 
 General Options:
     --help             Show this text
-    --prefix=dir       Install files in dir; also look for executables there
-    --libdir=dir       Install architecture-specific files in dir; Perl6 modules included
-    --sdkroot=dir      When given, use for searching build tools here, e.g.
+    --prefix=<path>    Install files in dir; also look for executables there
+    --libdir=<path>    Install architecture-specific files in dir; Perl6 modules included
+    --sdkroot=<path>   When given, use for searching build tools here, e.g.
                        nqp, java, node etc.
-    --sysroot=dir      When given, use for searching runtime components here
+    --sysroot=<path>   When given, use for searching runtime components here
     --backends=jvm,moar,js
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
                        Download, build, and install a copy of NQP before writing the Makefile
     --gen-moar[=branch]
                        Download, build, and install a copy of MoarVM to use before writing the Makefile
-    --with-nqp='/path/to/nqp'
+    --with-nqp=<path>
                        Provide path to already installed nqp
     --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'

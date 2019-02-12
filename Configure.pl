@@ -36,6 +36,7 @@ MAIN: {
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s', 'libdir=s',
                'sysroot=s', 'sdkroot=s',
+               'no-relocatable',
                'backends=s', 'no-clean!',
                'with-nqp=s', 'gen-nqp:s',
                'gen-moar:s', 'moar-option=s@',
@@ -147,6 +148,18 @@ MAIN: {
     $config{libdir} = $options{libdir};
     $config{sdkroot} = $options{sdkroot} || '';
     $config{sysroot} = $options{sysroot} || '';
+    if ($options{'no-relocatable'}) {
+        $config{static_nqp_home} = File::Spec->catdir($prefix, 'share', 'nqp');
+        $config{static_perl6_home} = File::Spec->catdir($prefix, 'share', 'perl6');
+        $config{static_nqp_home_define} = '-DSTATIC_NQP_HOME=' . $config{static_nqp_home};
+        $config{static_perl6_home_define} = '-DSTATIC_PERL6_HOME=' . $config{static_perl6_home};
+    }
+    else {
+        $config{static_nqp_home} = '';
+        $config{static_perl6_home} = '';
+        $config{static_nqp_home_define} = '';
+        $config{static_perl6_home_define} = '';
+    }
     $config{slash}  = $slash;
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
@@ -422,6 +435,8 @@ General Options:
     --help             Show this text
     --prefix=<path>    Install files in dir; also look for executables there
     --libdir=<path>    Install architecture-specific files in dir; Perl6 modules included
+    --no-relocatable
+                       Create a perl6 with a fixed NQP and Perl6 home dir instead of dynamically identifying it
     --sdkroot=<path>   When given, use for searching build tools here, e.g.
                        nqp, java, node etc.
     --sysroot=<path>   When given, use for searching runtime components here

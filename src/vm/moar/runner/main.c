@@ -24,6 +24,9 @@
 #define strtoll _strtoi64
 #endif
 
+#define STRINGIFY1(x) #x
+#define STRINGIFY(x) STRINGIFY1(x)
+
 /* flags need to be sorted alphabetically */
 
 enum {
@@ -258,18 +261,26 @@ int wmain(int argc, wchar_t *wargv[])
 
     /* Retrieve PERL6_HOME and NQP_HOME. */
 
+#ifdef STATIC_NQP_HOME
+    nqp_home = STRINGIFY(STATIC_NQP_HOME);
+#else
     nqp_home = (char*)malloc(dir_path_size + 50);
     if (!retrieve_home(nqp_home, "/../share/nqp", "NQP_HOME", dir_path, dir_path_size, "/lib/NQPCORE.setting.moarvm")) {
         fprintf(stderr, "ERROR: NQP_HOME is invalid: %s\n", nqp_home);
         return EXIT_FAILURE;
     }
+#endif
     nqp_home_size = strlen(nqp_home);
 
+#ifdef STATIC_PERL6_HOME
+    perl6_home = STRINGIFY(STATIC_PERL6_HOME);
+#else
     perl6_home = (char*)malloc(dir_path_size + 50);
     if (!retrieve_home(perl6_home, "/../share/perl6", "PERL6_HOME", dir_path, dir_path_size, "/runtime/perl6.moarvm")) {
         fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", perl6_home);
         return EXIT_FAILURE;
     }
+#endif
     perl6_home_size = strlen(perl6_home);
 
     /* Put together the lib paths and perl6_file path. */

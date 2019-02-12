@@ -12,22 +12,30 @@ my $exec-dir := nqp::substr($execname, 0, nqp::rindex($execname, $sep));
 my $exec-dir := nqp::substr(nqp::execname(), 0, nqp::rindex(nqp::execname(), $sep));
 #?endif
 
-my $perl6-home := nqp::getenvhash()<PERL6_HOME> // $exec-dir ~ '/../share/perl6';
-if nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep {
-    $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
-}
-my $nqp-home := nqp::getenvhash()<NQP_HOME> // $exec-dir ~ '/../share/nqp';
-if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {
-    $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
-}
-nqp::bindhllsym('perl6', '$PERL6_HOME', $perl6-home);
-nqp::bindhllsym('perl6', '$NQP_HOME', $nqp-home);
 
 # Initialize Rakudo runtime support.
 nqp::p6init();
 
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
+
+my $perl6-home := $comp.config<static_perl6_home>
+    // nqp::getenvhash()<PERL6_HOME>
+    // $exec-dir ~ '/../share/perl6';
+if nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep {
+    $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
+}
+
+my $nqp-home := $comp.config<static_nqp_home>
+    // nqp::getenvhash()<NQP_HOME>
+    // $exec-dir ~ '/../share/nqp';
+if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {
+    $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
+}
+
+nqp::bindhllsym('perl6', '$PERL6_HOME', $perl6-home);
+nqp::bindhllsym('perl6', '$NQP_HOME', $nqp-home);
+
 $comp.language('perl6');
 $comp.parsegrammar(Perl6::Grammar);
 $comp.parseactions(Perl6::Actions);

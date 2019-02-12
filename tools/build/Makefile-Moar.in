@@ -108,7 +108,7 @@ M_HARNESS6_WITH_FUDGE = $(M_HARNESS6) --fudge
 
 M_RUN_CLEAN_TARGET_FILES = $(M_RUN_PERL6) -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '/' ~ .IO.basename.Str) { say 'rm -f ' ~ .Str; .IO.unlink if .IO.e } }"
 
-m-all: check_nqp_version $(PERL6_MOAR) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(M_BAT_RUNNER) $(PERL6_DEBUG_MOAR) $(M_BAT_DEBUG_RUNNER) @m_all@
+m-all: check_nqp_version $(PERL6_MOAR) $(SETTING_MOAR) $(SETTING_D_MOAR) $(R_SETTING_MOAR) $(M_BAT_RUNNER) $(PERL6_DEBUG_MOAR) $(M_BAT_DEBUG_RUNNER) $(M_C_RUNNER) $(M_C_DEBUG_RUNNER) @m_all@
 
 check_nqp_version: tools/build/check-nqp-version.pl
 	$(PERL5) tools/build/check-nqp-version.pl $(M_NQP)
@@ -313,7 +313,7 @@ m-localtest_loud: m-all spectest_checkout t/localtest.data
 m-sometests: m-all
 	@$(M_HARNESS6_WITH_FUDGE) $(TESTFILES)
 
-m-install: m-all tools/build/create-moar-runner.p6 tools/build/install-core-dist.p6 $(SETTING_MOAR) $(M_C_RUNNER)
+m-install: m-all tools/build/create-moar-runner.p6 tools/build/install-core-dist.p6 $(SETTING_MOAR)
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
 	$(MKPATH) $(DESTDIR)$(M_LIBPATH)/Perl6
 	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_LANG_OUTPUT) $(DESTDIR)/$(M_LIBPATH)/Perl6

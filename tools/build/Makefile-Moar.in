@@ -232,7 +232,7 @@ $(M_C_RUNNER): src/vm/moar/runner/main.c
 	    -L@moar::libdir@ $(M_LDRPATH) $(M_MINGW_UNICODE) @moar::ccout@$@ src/vm/moar/runner/main.c -lmoar $(M_C_RUNNER_LIBS)
 
 $(M_C_DEBUG_RUNNER): src/vm/moar/runner/main.c
-	$(RM_F) $(M_C_RUNNER)
+	$(RM_F) $(M_C_DEBUG_RUNNER)
 # Using only the pkgconfig moar includes does not work, because moar.h assumes all the specific includes below.
 	$(M_CC) @moar::ccshared@ @static_nqp_home_define@ @static_perl6_home_define@ -DMOAR_PERL6_RUNNER_DEBUG $(M_CFLAGS) $(M_LDFLAGS) -I$(M_INCPATH) -I$(M_INCPATH)/moar \
 	    -I$(M_INCPATH)/libatomic_ops -I$(M_INCPATH)/dyncall -I$(M_INCPATH)/moar -I$(M_INCPATH)/sha1 -I$(M_INCPATH)/tinymt -I$(M_INCPATH)/libtommath -I$(M_INCPATH)/libuv \

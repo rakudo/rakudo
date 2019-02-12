@@ -310,7 +310,11 @@ MAIN: {
 
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
-        $config{ldrpath} = $options{'no-relocatable'} ? $nqp_config{'moar::ldrpath'} : $nqp_config{'moar::ldrpath_relocatable'};
+        # Strip rpath from ldflags so we can set it differently ourself.
+        $config{ldflags} = join(' ', $nqp_config{'moar::ldflags'}, $nqp_config{'moar::ldmiscflags'}, $nqp_config{'moar::ldoptiflags'}, $nqp_config{'moar::ldlibs'});
+        $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath'}\E ?//;
+        $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath_relocatable'}\E ?//;
+        $config{ldflags} .= ' ' . ($options{'no-relocatable'} ? $nqp_config{'moar::ldrpath'} : $nqp_config{'moar::ldrpath_relocatable'});
 
         if ($win) {
 			if ($prefix . $slash . 'bin' ne $nqp_config{'moar::libdir'}) {

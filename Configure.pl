@@ -310,6 +310,8 @@ MAIN: {
 
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
+        $config{ldrpath} = $options{'no-relocatable'} ? $nqp_config{'moar::ldrpath'} : $nqp_config{'moar::ldrpath_relocatable'};
+
         if ($win) {
 			if ($prefix . $slash . 'bin' ne $nqp_config{'moar::libdir'}) {
 				$config{'m_install'} = "\t" . '$(CP) ' . $nqp_config{'moar::libdir'} . $slash . $nqp_config{'moar::moar'} . ' $(PREFIX)' . $slash . 'bin';

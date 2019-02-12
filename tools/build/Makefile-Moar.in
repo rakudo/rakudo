@@ -2,7 +2,7 @@ M_CC      = @moar::cc@
 M_LD      = @moar::ld@
 M_CFLAGS  = @moar::cflags@ @moar::ccmiscflags@ @moar::ccoptiflags@ @moar::ccwarnflags@
 M_LDFLAGS = @moar::ldflags@ @moar::ldmiscflags@ @moar::ldoptiflags@ @moar::ldlibs@
-M_LDRPATH = @moar::ldrpath@
+M_LDRPATH = @ldrpath@
 M_C_RUNNER_LIBS = @c_runner_libs@
 M_MINGW_UNICODE = @mingw_unicode@
 

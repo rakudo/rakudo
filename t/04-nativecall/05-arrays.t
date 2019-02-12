@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 42;
+plan 43;
 
 compile_test_lib('05-arrays');
 
@@ -179,4 +179,19 @@ subtest 'CArray allocation' => {
     is-deeply CArray[Pointer].allocate(42).list, Pointer.new xx 42,
         'Allocation works with miscellaneously typed CArray';
 }
+
+# R#2687
+{
+    class Data is repr('CStruct') {
+        has CArray[num32] $.data-in;
+
+        submethod BUILD(CArray :$data-in) {
+            $!data-in := $data-in;
+        }
+    }
+
+    lives-ok { Data.new(data-in => CArray[num32].new) },
+      'can we build with a CArray attribute';
+}
+
 # vim:ft=perl6

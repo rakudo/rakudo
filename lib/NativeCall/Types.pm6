@@ -92,7 +92,7 @@ our class Pointer                               is repr('CPointer') {
 our class CArray is repr('CArray') is array_type(Pointer) {
     method AT-POS(::?CLASS:D: $pos) { die "CArray cannot be used without a type" }
 
-    my role IntTypedCArray[::TValue] does Iterable does Positional[TValue] is array_type(TValue) {
+    my role IntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
             nqp::atposref_i(nqp::decont(arr), $pos);
         }
@@ -124,7 +124,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         }
     }
 
-    my role NumTypedCArray[::TValue] does Iterable does Positional[TValue] is array_type(TValue) {
+    my role NumTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
             nqp::atposref_n(nqp::decont(arr), $pos);
         }
@@ -156,7 +156,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         }
     }
 
-    my role TypedCArray[::TValue] does Iterable does Positional[TValue] is array_type(TValue) {
+    my role TypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {

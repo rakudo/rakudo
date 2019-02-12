@@ -127,7 +127,7 @@ my class Rakudo::Internals {
 
     method EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
         my @export_packages = $*EXPORT;
-        for flat nqp::hllize(@*PACKAGES) {
+        for nqp::hllize(@*PACKAGES).list {
             unless .WHO.EXISTS-KEY('EXPORT') {
                 .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
                 .WHO<EXPORT>.^compose;

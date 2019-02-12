@@ -63,6 +63,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             !! self!push-list("initializ",self,iterable)
           !! X::Assignment::RO.new(:value(self)).throw
     }
+    multi method STORE(Blob:D: Any:D \non-iterable, :$INITIALIZE) {
+        X::Assignment::RO.new(:value(self)).throw unless $INITIALIZE;
+        my int $elems = non-iterable.elems;
+        self.ASSIGN-POS($_, non-iterable.AT-POS($_)) for ^$elems; 
+        self
+    }
 
     proto method allocate(|) {*}
     multi method allocate(Blob:U: Int:D $elements) {
@@ -710,6 +716,11 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         iterable.is-lazy
           ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
           !! self!push-list("initializ",nqp::setelems(self,0),iterable);
+    }
+    multi method STORE(Buf:D: Any:D \non-iterable) {
+        my int $elems = non-iterable.elems;
+        self.ASSIGN-POS($_, non-iterable.AT-POS($_)) for ^$elems;
+        nqp::setelems(self,$elems)
     }
 
 #?if moar

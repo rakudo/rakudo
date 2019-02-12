@@ -66,7 +66,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method STORE(Blob:D: Any:D \non-iterable, :$INITIALIZE) {
         X::Assignment::RO.new(:value(self)).throw unless $INITIALIZE;
         my int $elems = non-iterable.elems;
-        self.ASSIGN-POS($_, non-iterable.AT-POS($_)) for ^$elems; 
+        nqp::push_i(self,non-iterable.AT-POS($_)) for ^$elems; 
         self
     }
 
@@ -719,8 +719,9 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
     multi method STORE(Buf:D: Any:D \non-iterable) {
         my int $elems = non-iterable.elems;
-        self.ASSIGN-POS($_, non-iterable.AT-POS($_)) for ^$elems;
-        nqp::setelems(self,$elems)
+        nqp::setelems(self,0);
+        nqp::push_i(self,non-iterable.AT-POS($_)) for ^$elems; 
+        self
     }
 
 #?if moar

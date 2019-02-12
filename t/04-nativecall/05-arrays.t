@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 43;
+plan 45;
 
 compile_test_lib('05-arrays');
 
@@ -192,6 +192,13 @@ subtest 'CArray allocation' => {
 
     lives-ok { Data.new(data-in => CArray[num32].new) },
       'can we build with a CArray attribute';
+}
+
+# R#2681
+{
+    is-deeply .new(CArray[uint8].new(1,2,3)), .new(1,2,3),
+      "can we create a {.^name} from a CArray"
+      for Buf, Blob;
 }
 
 # vim:ft=perl6

@@ -81,7 +81,7 @@ role Perl6::Metamodel::Mixins {
 
         # Create new type, derive it from ourself and then add
         # all the roles we're mixing it.
-        my $new_type := self.new_type(:name($new_name), :repr($obj.REPR));
+        my $new_type := self.new_type(:name($new_name), :repr($obj.REPR), :is_mixin);
         $new_type.HOW.set_is_mixin($new_type);
         $new_type.HOW.add_parent($new_type, $obj.WHAT);
         for @roles {

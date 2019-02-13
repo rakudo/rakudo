@@ -317,15 +317,15 @@ MAIN: {
         $config{ldflags} .= ' ' . ($options{'no-relocatable'} ? $nqp_config{'moar::ldrpath'} : $nqp_config{'moar::ldrpath_relocatable'});
 
         if ($win) {
-			if ($prefix . $slash . 'bin' ne $nqp_config{'moar::libdir'}) {
-				$config{'m_install'} = "\t" . '$(CP) ' . $nqp_config{'moar::libdir'} . $slash . $nqp_config{'moar::moar'} . ' $(PREFIX)' . $slash . 'bin';
-			}
-			$config{'mingw_unicode'} = '';
-			if ($nqp_config{'moar::os'} eq 'mingw32') {
-				$config{'mingw_unicode'} = '-municode';
-			}
-			$config{'c_runner_libs'} = '-lShlwapi';
-		} else {
+            if ($prefix . $slash . 'bin' ne $nqp_config{'moar::libdir'}) {
+                $config{'m_install'} = "\t" . '$(CP) ' . $nqp_config{'moar::libdir'} . $slash . $nqp_config{'moar::moar'} . ' $(PREFIX)' . $slash . 'bin';
+            }
+            $config{'mingw_unicode'} = '';
+            if ($nqp_config{'moar::os'} eq 'mingw32') {
+                $config{'mingw_unicode'} = '-municode';
+            }
+            $config{'c_runner_libs'} = '-lShlwapi';
+        } else {
             $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
             $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
             $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "gdb" "" "" ""' . "\n"

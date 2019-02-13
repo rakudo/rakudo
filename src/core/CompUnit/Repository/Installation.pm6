@@ -316,7 +316,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 when /^bin\/(.*)/ {
                     # wrappers are located in $bin-dir (only delete if no other versions use wrapper)
                     unless self.files($name-path, :name($dist.meta<name>)).elems {
-                        unlink-if-exists( $bin-dir.add("$0$_") ) for '', '-m', '-j';
+                        unlink-if-exists( $bin-dir.add("$0$_") ) for '', '-m', '-j', '.bat', '-m.bat', '-j.bat';
                     }
 
                     # original bin scripts are in $resources-dir

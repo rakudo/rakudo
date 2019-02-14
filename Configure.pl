@@ -125,9 +125,9 @@ MAIN: {
             $default_backend ||= 'moar';
         }
         unless (%backends or exists $options{'with-nqp'}) {
-            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n\n"
+            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{js,j,m} executables\n\n"
               . "Example to build for all backends (which will take a while):\n"
-              . "\tperl Configure.pl --backends=moar,jvm --gen-moar\n\n"
+              . "\tperl Configure.pl --backends=ALL --gen-moar\n\n"
               . "Example to build for MoarVM only:\n"
               . "\tperl Configure.pl --gen-moar\n\n"
               . "Example to build for JVM only:\n"
@@ -306,7 +306,7 @@ MAIN: {
         }
 
         unless (@errors) {
-            print "Using $config{m_nqp} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
+            print "Using $config{'m_nqp'} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
 
             $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
 
@@ -319,7 +319,6 @@ MAIN: {
             fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
         }
     }
-    
     if ($backends{js}) {
         my %nqp_config;
         $config{js_nqp} = $impls{js}{bin};
@@ -332,7 +331,7 @@ MAIN: {
             %nqp_config = %{ $impls{js}{config} };
         }
         elsif ( $impls{js}{config} ) {
-            push @errors, "The nqp-js is too old";
+            push @errors, "The nqp-js binary is too old";
         }
         else {
             push @errors, "Unable to read configuration from NQP on JS";
@@ -415,9 +414,9 @@ General Options:
     --prefix=dir       Install files in dir; also look for executables there
     --libdir=dir       Install architecture-specific files in dir; Perl6 modules included
     --sdkroot=dir      When given, use for searching build tools here, e.g.
-                       nqp, java etc.
+                       nqp, java, node etc.
     --sysroot=dir      When given, use for searching runtime components here
-    --backends=jvm,moar
+    --backends=jvm,moar,js
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
                        Download, build, and install a copy of NQP before writing the Makefile

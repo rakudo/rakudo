@@ -211,7 +211,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $id          = self!file-id(~$file, $dist-id);
             my $destination = $resources-dir.add($id); # wrappers are put in bin/; originals in resources/
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
-            for '', '-j', '-m' -> $be {
+            for '', '-j', '-m', '-js' -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
                     $perl_wrapper.subst('#name#', $name, :g).subst('#perl#', "perl6$be");
                 if $is-win {
@@ -244,7 +244,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         my %meta = %($dist.meta);
-        %meta<files>    = %links;    # add our new name-path => conent-id mapping
+        %meta<files>    = %links;    # add our new name-path => content-id mapping
         %meta<provides> = %provides; # new meta data added to provides
         %!dist-metas{$dist-id} = %meta;
         $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta);
@@ -316,7 +316,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 when /^bin\/(.*)/ {
                     # wrappers are located in $bin-dir (only delete if no other versions use wrapper)
                     unless self.files($name-path, :name($dist.meta<name>)).elems {
-                        unlink-if-exists( $bin-dir.add("$0$_") ) for '', '-m', '-j', '.bat', '-m.bat', '-j.bat';
+                        unlink-if-exists( $bin-dir.add("$0$_") ) for '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
                     }
 
                     # original bin scripts are in $resources-dir

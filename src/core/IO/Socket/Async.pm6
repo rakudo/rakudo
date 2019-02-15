@@ -27,8 +27,8 @@ my class IO::Socket::Async {
     }
 
     method write(IO::Socket::Async:D: Blob $b, :$scheduler = $*SCHEDULER) {
-        my $p = Promise.new;
-        my $v = $p.vow;
+        my $p := Promise.new;
+        my $v := $p.vow;
         nqp::asyncwritebytes(
             $!VMIO,
             $scheduler.queue,

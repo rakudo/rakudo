@@ -2346,11 +2346,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_prefix:sym<BEGIN>($/) {
-        begin_time_lexical_fixup($<blorst>.ast.ann('past_block'));
+        my $qast_block := $<blorst>.ast.ann('past_block');
+        begin_time_lexical_fixup($qast_block);
+        $qast_block.annotate('BEGINISH', 1);
         make $*W.add_phaser($/, 'BEGIN', wanted($<blorst>.ast,'BEGIN').ann('code_object'));
     }
     method statement_prefix:sym<CHECK>($/) {
-        begin_time_lexical_fixup($<blorst>.ast.ann('past_block'));
+        my $qast_block := $<blorst>.ast.ann('past_block');
+        begin_time_lexical_fixup($qast_block);
+        $qast_block.annotate('BEGINISH', 1);
         make $*W.add_phaser($/, 'CHECK', wanted($<blorst>.ast,'CHECK').ann('code_object'));
     }
     method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', unwanted($<blorst>.ast,'COMPOSE').ann('code_object')); }
@@ -5197,6 +5201,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $con_block.push($value_ast);
+            $con_block.annotate('BEGINISH', 1);
             my $value_thunk := $W.create_code_obj_and_add_child($con_block, 'Block');
             $value := $W.handle-begin-time-exceptions($/, 'evaluating a constant', $value_thunk);
             $*W.add_constant_folded_result($value);

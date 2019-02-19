@@ -221,17 +221,17 @@ my class Date does Dateish {
 }
 
 multi sub infix:<+>(Date:D $d, Int:D $x --> Date:D) {
-    nqp::eqaddr($d.WHAT,Date) && $d.day + $x <= 28
+    nqp::eqaddr($d.WHAT,Date) && 0 < $d.day + $x <= 28
       ?? $d.new-from-diff($x)
       !! Date.new-from-daycount($d.daycount + $x)
 }
 multi sub infix:<+>(Int:D $x, Date:D $d --> Date:D) {
-    nqp::eqaddr($d.WHAT,Date) && $d.day + $x <= 28
+    nqp::eqaddr($d.WHAT,Date) && 0 < $d.day + $x <= 28
       ?? $d.new-from-diff($x)
       !! Date.new-from-daycount($d.daycount + $x)
 }
 multi sub infix:<->(Date:D $d, Int:D $x --> Date:D) {
-    nqp::eqaddr($d.WHAT,Date) && $d.day - $x > 0
+    nqp::eqaddr($d.WHAT,Date) && 0 < $d.day - $x <= 28
       ?? $d.new-from-diff(-$x)
       !! Date.new-from-daycount($d.daycount - $x)
 }

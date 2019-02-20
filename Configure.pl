@@ -316,6 +316,8 @@ MAIN: {
         $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath_relocatable'}\E ?//;
         $config{ldflags} .= ' ' . ($options{'no-relocatable'} ? $nqp_config{'moar::ldrpath'} : $nqp_config{'moar::ldrpath_relocatable'});
 
+        $config{rakudoshared} = $options{'no-relocatable'} ? $nqp_config{'moar::moarshared_norelocatable'} : $nqp_config{'moar::moarshared_relocatable'};
+
         if ($win) {
             if ($prefix . $slash . 'bin' ne $nqp_config{'moar::libdir'}) {
                 $config{'m_install'} = "\t" . '$(CP) ' . $nqp_config{'moar::libdir'} . $slash . $nqp_config{'moar::moar'} . ' $(PREFIX)' . $slash . 'bin';

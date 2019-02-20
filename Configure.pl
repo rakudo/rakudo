@@ -144,6 +144,9 @@ MAIN: {
         close($CONFIG_STATUS);
     }
 
+    # Relocatability is not supported on AIX.
+    $options{'no-relocatable'} = 1 if $^O eq 'aix';
+
     $config{prefix} = $prefix;
     $config{libdir} = $options{libdir};
     $config{sdkroot} = $options{sdkroot} || '';
@@ -445,6 +448,7 @@ General Options:
     --libdir=<path>    Install architecture-specific files in dir; Perl6 modules included
     --no-relocatable
                        Create a perl6 with a fixed NQP and Perl6 home dir instead of dynamically identifying it
+                       (On AIX MoarVM is always built non-relocatable, since AIX misses a necessary mechanism.)
     --sdkroot=<path>   When given, use for searching build tools here, e.g.
                        nqp, java, node etc.
     --sysroot=<path>   When given, use for searching runtime components here

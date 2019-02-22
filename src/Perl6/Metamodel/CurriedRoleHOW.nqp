@@ -26,21 +26,27 @@ class Perl6::Metamodel::CurriedRoleHOW
     has %!named_args;
     has @!role_typecheck_list;
     has $!is_complete;
+    has $!archetypes;
 
     my $archetypes_g := Perl6::Metamodel::Archetypes.new( :composable(1), :inheritalizable(1), :parametric(1), :generic(1) );
     my $archetypes_ng := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
+    method !choose_archetype() {
+        for @!pos_args {
+            if $_.HOW.archetypes.generic {
+                return $archetypes_g;
+            }
+        }
+        for %!named_args {
+            if $_.value.HOW.archetypes.generic {
+                return $archetypes_g;
+            }
+        }
+        $archetypes_ng
+    }
     method archetypes() {
         if nqp::isconcrete(self) {
-            for @!pos_args {
-                if $_.HOW.archetypes.generic {
-                    return $archetypes_g;
-                }
-            }
-            for %!named_args {
-                if $_.value.HOW.archetypes.generic {
-                    return $archetypes_g;
-                }
-            }
+            $!archetypes := self.'!choose_archetype'() unless $!archetypes;
+            return $!archetypes;
         }
         $archetypes_ng
     }
@@ -64,14 +70,6 @@ class Perl6::Metamodel::CurriedRoleHOW
             :named_args(%named_args), :name($name));
         my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
         nqp::settypecheckmode($type, 2);
-    }
-
-    method complete_parameterization($obj) {
-        unless $!is_complete {
-            self.parameterize_roles($obj);
-            self.update_role_typecheck_list($obj);
-            $!is_complete := 1;
-        }
     }
 
     method parameterize_roles($obj) {
@@ -112,6 +110,17 @@ class Perl6::Metamodel::CurriedRoleHOW
             }
         }
         @!role_typecheck_list := @rtl;
+        unless self.archetypes.generic {
+            nqp::settypecache($obj, @rtl);
+        }
+    }
+
+    method complete_parameterization($obj) {
+        unless $!is_complete {
+            self.parameterize_roles($obj);
+            self.update_role_typecheck_list($obj);
+            $!is_complete := 1;
+        }
     }
 
     method instantiate_generic($obj, $type_env) {

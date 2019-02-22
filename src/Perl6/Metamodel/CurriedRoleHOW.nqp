@@ -100,6 +100,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     method update_role_typecheck_list($obj) {
         my @rtl;
         nqp::push(@rtl, $!curried_role);
+        # XXX Not sure if it makes sense adding roles from group into the type checking.
         # for $!curried_role.HOW.role_typecheck_list($obj) {
         #     nqp::push(@rtl, $_);
         # }
@@ -110,9 +111,6 @@ class Perl6::Metamodel::CurriedRoleHOW
             }
         }
         @!role_typecheck_list := @rtl;
-        unless self.archetypes.generic {
-            nqp::settypecache($obj, @rtl);
-        }
     }
 
     method complete_parameterization($obj) {

@@ -80,15 +80,11 @@ class Perl6::Metamodel::CurriedRoleHOW
         }
         my $candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
         my $type_env;
-        my $error;
         try {
-            my $body_block := nqp::decont($candidate.HOW.body_block($candidate));
             my @result := $candidate.HOW.body_block($candidate)(|@pos_args, |%!named_args);
             $type_env := @result[1];
         }
-        my @r := $candidate.HOW.roles($candidate, :!transitive);
-        for @r {
-            my $role := $_;
+        for $candidate.HOW.roles($candidate, :!transitive) -> $role {
             if nqp::can($_.HOW, 'curried_role') && $_.HOW.archetypes.generic && $type_env {
                 $role := $_.HOW.instantiate_generic($_, $type_env);
             }

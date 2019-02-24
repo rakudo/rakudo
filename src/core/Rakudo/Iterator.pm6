@@ -528,7 +528,10 @@ class Rakudo::Iterator {
         }
     }
     method AssociativeIterableKeys(\asso, \iterable) {
-        AssociativeIterableKeys.new(asso,iterable.iterator)
+        AssociativeIterableKeys.new(
+          nqp::if(nqp::isconcrete(asso),asso,asso = nqp::create(Hash)),
+          iterable.iterator
+        )
     }
 
     # Return an iterator that batches the given source iterator in

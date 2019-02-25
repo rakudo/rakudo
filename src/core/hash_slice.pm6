@@ -49,13 +49,15 @@ multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$v!, *%other ) is raw {
 multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is raw {
     nqp::iscont(key)
       ?? SELF.AT-KEY(key)
-      !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-           nqp::stmts(
-             Rakudo::Iterator.AssociativeIterableKeys(SELF,key)
-               .push-all(my \buffer := nqp::create(IterationBuffer)),
-             buffer
+      !! nqp::iscont(SELF) && nqp::not_i(nqp::isconcrete(SELF))
+        ?? key.flatmap({ SELF{$_} }).eager.list
+        !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
+             nqp::stmts(
+               Rakudo::Iterator.AssociativeIterableKeys(SELF,key)
+                 .push-all(my \buffer := nqp::create(IterationBuffer)),
+               buffer
+             )
            )
-         )
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is raw {
     nqp::iscont(key)

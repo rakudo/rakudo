@@ -1,3 +1,4 @@
+my class Rat { ... }
 my class X::Cannot::Capture       { ... }
 my class X::Numeric::DivideByZero { ... }
 my class X::NYI::BigInt { ... }

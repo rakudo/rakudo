@@ -62,7 +62,7 @@ our sub todo_output is rw {
     $todo_output
 }
 
-proto sub plan ($, Cool:D :$skip-all) {*}
+proto sub plan ($, Cool :$skip-all) {*}
 
 multi sub plan (Cool:D :skip-all($reason)!) {
     _init_io() unless $output;

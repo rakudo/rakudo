@@ -3553,7 +3553,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub check_default_value_type($/, $descriptor, $bind_constraint, $what) {
-        unless nqp::istype($descriptor.default, $bind_constraint) {
+        unless !( ( $descriptor.of.HOW =:= $*W.find_symbol(['Metamodel', 'DefiniteHOW']))
+                    || $descriptor.explicit_default )
+                  || nqp::istype($descriptor.default, $bind_constraint ) {
             $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
                 implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>

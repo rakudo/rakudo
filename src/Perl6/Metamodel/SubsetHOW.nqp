@@ -77,8 +77,7 @@ class Perl6::Metamodel::SubsetHOW
 
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($obj, $checkee) {
-        nqp::hllboolfor(nqp::istrue($checkee.HOW =:= self) ||
-            nqp::istype($!refinee, $checkee), "perl6")
+        nqp::hllboolfor( nqp::istype($!refinee, $checkee), "perl6" )
     }
 
     # Here we check the value itself (when on RHS on smartmatch).

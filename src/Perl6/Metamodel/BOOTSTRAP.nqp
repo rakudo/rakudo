@@ -1133,22 +1133,26 @@ class ContainerDescriptor {
     has str $!name;
     has     $!default;
     has int $!dynamic;
+    has int $!explicit_default; # I.e. default is explicitly set, not taken from $!of
 
-    method BUILD(:$of, str :$name, :$default, int :$dynamic) {
+    method BUILD(:$of, str :$name, :$default, int :$dynamic, int :$explicit_default = 0) {
         $!of := $of;
         $!name := $name;
         $!default := $default;
         $!dynamic := $dynamic;
+        $!explicit_default := $explicit_default;
     }
 
     method of() { $!of }
     method name() { $!name }
     method default() { $!default }
     method dynamic() { $!dynamic }
+    method explicit_default() { $!explicit_default }
 
     method set_of($of) { $!of := $of; self }
-    method set_default($default) { $!default := $default; self }
+    method set_default($default) { $!explicit_default := 1; $!default := $default; self }
     method set_dynamic($dynamic) { $!dynamic := $dynamic; self }
+    method set_explicit_default($explicit) { $!explicit_default := $explicit; self }
 
     method is_generic() {
         $!of.HOW.archetypes.generic
@@ -1212,7 +1216,7 @@ class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { 
+    method name() {
         'element at [' ~ $!one ~ ',' ~ $!two ~ ']'  # XXX name ?
     }
     method assigned($scalar) {

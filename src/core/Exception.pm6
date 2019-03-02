@@ -2114,7 +2114,7 @@ my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.directive;
     has $.value;
     method message() {
-        "Directive $.directive not applicable for value of type $.type ($.value[0])"
+        "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
     }
 }
 

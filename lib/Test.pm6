@@ -62,8 +62,6 @@ our sub todo_output is rw {
     $todo_output
 }
 
-proto sub plan ($, Cool :$skip-all) {*}
-
 multi sub plan (Cool:D :skip-all($reason)!) {
     _init_io() unless $output;
     $output.say: $indents ~ "1..0 # Skipped: $reason";

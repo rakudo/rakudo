@@ -2112,8 +2112,9 @@ my class X::Str::Sprintf::Directives::Unsupported is Exception {
 my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.type;
     has str $.directive;
+    has $.value;
     method message() {
-        "Directive $.directive not applicable for type $.type"
+        "Directive $.directive not applicable for value of type $.type ($.value[0])"
     }
 }
 

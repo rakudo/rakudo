@@ -6,6 +6,10 @@ my class JSONException is Exception {
     }
 }
 
+# A slightly modified version of https://github.com/timo/json_fast/blob/5ce76c039dc143fa9a068f1dfa47b42e58046821/lib/JSON/Fast.pm6
+# Key differences:
+#  - to-json stringifies Version objects
+#  - Removes $*JSON_NAN_INF_SUPPORT and the Falsey code path(s) that use it
 my class Rakudo::Internals::JSON {
 
     my multi sub to-surrogate-pair(Int $ord) {

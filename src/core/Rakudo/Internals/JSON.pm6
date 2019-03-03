@@ -10,6 +10,7 @@ my class JSONException is Exception {
 # Key differences:
 #  - to-json stringifies Version objects
 #  - Removes $*JSON_NAN_INF_SUPPORT and the Falsey code path(s) that use it
+#  - Custom code for stringifying some exception related things
 my class Rakudo::Internals::JSON {
 
     my multi sub to-surrogate-pair(Int $ord) {
@@ -65,6 +66,20 @@ my class Rakudo::Internals::JSON {
 
         return 'null' if not $obj.defined;
 
+        if $obj ~~ Exception {
+           return $.to-json($obj.^name => Hash.new(
+              (message => $obj.?message),
+              $obj.^attributes.grep(*.has_accessor).map: {
+                  with .name.substr(2) -> $attr {
+                      $attr => (
+                        (.defined and not $_ ~~ Real|Positional|Associative)
+                          ?? .Str !! $_
+                      ) given $obj."$attr"()
+                  }
+              }
+            ), :$pretty, :$level, :$spacing, :$sorted-keys);
+        }
+        
         # Handle allomorphs like IntStr.new(0, '') properly.
         return $obj.Int.Str if $obj ~~ Int;
         return $.to-json($obj.Rat, :$pretty, :$level, :$spacing, :$sorted-keys) if $obj ~~ RatStr;

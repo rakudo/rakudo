@@ -10,8 +10,11 @@ multi sub print(**@args is raw) { $*OUT.print: @args.join }
 proto sub say(|) {*}
 multi sub say() { $*OUT.print-nl }
 multi sub say(\x) {
-    my $out := $*OUT;
-    $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out));
+    nqp::if(
+      nqp::istype((my $out := $*OUT),IO::Handle),
+      $out.say(x.gist),
+      $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out))
+    )
 }
 multi sub say(**@args is raw) {
     my str $str;

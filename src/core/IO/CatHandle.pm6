@@ -134,12 +134,12 @@ my class IO::CatHandle is IO::Handle {
     method !WORDS {
       nqp::if(
         nqp::defined($!active-handle),
-          nqp::if(nqp::isfalse(nqp::elems($!handles)), # Only 1 handle?
-            $!active-handle.words,
+          nqp::if(nqp::elems($!handles), # More than 1 handle?
             (flat $!active-handle.words, gather {
               nqp::while(
                 nqp::defined(self.next-handle),
-                take $!active-handle.words)})),
+                take $!active-handle.words)}),
+            $!active-handle.words),
         Seq.new(Rakudo::Iterator.Empty)
       )
     }
@@ -162,12 +162,12 @@ my class IO::CatHandle is IO::Handle {
     method !LINES {
       nqp::if(
         nqp::defined($!active-handle),
-          nqp::if(nqp::isfalse(nqp::elems($!handles)), # Only 1 handle?
-            $!active-handle.lines,
+          nqp::if(nqp::elems($!handles), # More than 1 handle?
             (flat $!active-handle.lines, gather {
               nqp::while(
                 nqp::defined(self.next-handle),
-                take $!active-handle.lines)})),
+                take $!active-handle.lines)}),
+            $!active-handle.lines),
         Seq.new(Rakudo::Iterator.Empty)
       )
     }

@@ -134,7 +134,7 @@ my class IO::CatHandle is IO::Handle {
     method !WORDS {
       nqp::if(
         nqp::defined($!active-handle),
-        (flat $!active-handle.words, gather {
+        ($!active-handle.words.flat, gather {
           nqp::while(
             nqp::defined(self.next-handle),
             take $!active-handle.words)}),
@@ -160,7 +160,7 @@ my class IO::CatHandle is IO::Handle {
     method !LINES {
       nqp::if(
         nqp::defined($!active-handle),
-        (flat $!active-handle.lines, gather {
+        ($!active-handle.lines.flat, gather {
           nqp::while(
             nqp::defined(self.next-handle),
             take $!active-handle.lines)}),

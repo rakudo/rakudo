@@ -75,7 +75,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
             my $id   = self!comp-unit-id($name);
             my $*DISTRIBUTION  = $_;
             my $*RESOURCES     = Distribution::Resources.new(:repo(self), :dist-id(''));
-            my $source-handle  = $_.content($_.meta<provides>{$name});
+            my $source-handle  = $_.content($_.meta<provides>{$name} // $_.meta<provides>{$_.meta<emulates>.antipairs.hash{$name}});
             my $precomp-handle = $precomp.try-load(
                 CompUnit::PrecompilationDependency::File.new(
                     :$id,
@@ -158,6 +158,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
         unless ($distribution.meta<provides> && $distribution.meta<provides>{$spec.short-name})
             or ($distribution.meta<files>    && $distribution.meta<files>{$spec.short-name})
+            or ($distribution.meta<emulates> && $distribution.meta<emulates>.antipairs.hash{$spec.short-name})
         {
             # Only break the cache if there is no inclusion authority (i.e. META6.json)
             return Empty if $!prefix.child('META6.json').e;

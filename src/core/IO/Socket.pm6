@@ -106,20 +106,23 @@ my role IO::Socket {
     }
 
     method close(--> True) {
-        fail("Not connected!") unless $!PIO;
+        fail("Socket not available") unless $!PIO;
         nqp::closefh($!PIO);
         $!PIO := nqp::null;
     }
 
     method get-option(Int:D \option --> Int) {
-        nqp::box_i(nqp::getsockopt($!PIO, nqp::unbox_i(option)), Int)
+        fail('Socket not available') unless $!PIO;
+        nqp::getsockopt($!PIO, nqp::unbox_i(option))
     }
 
-    method set-option(Int:D \option, Int:D \value) {
+    method set-option(Int:D \option, Int:D \value --> Nil) {
+        fail('Socket not available') unless $!PIO;
         nqp::setsockopt($!PIO, nqp::unbox_i(option), nqp::unbox_i(value))
     }
 
-    method native-descriptor(::?CLASS:D:) {
+    method native-descriptor(--> Int) {
+        fail('Socket not available') unless $!PIO;
         nqp::filenofh($!PIO)
     }
 }

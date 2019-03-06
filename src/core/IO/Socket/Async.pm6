@@ -208,16 +208,19 @@ my class IO::Socket::Async {
             self.bless(:&on-close, :$VMIO-tobe, :$socket-host, :$socket-port);
         }
 
+        method get-option(Int:D \option --> Int) {
+            my Mu \VMIO = await $!VMIO-tobe;
+            nqp::getsockopt(VMIO, nqp::unbox_i(option))
+        }
+
+        method set-option(Int:D \option, Int:D \value --> Nil) {
+            my Mu \VMIO = await $!VMIO-tobe;
+            nqp::setsockopt(VMIO, nqp::unbox_i(option), nqp::unbox_i(value))
+        }
+
         method native-descriptor(--> Int) {
-            nqp::filenofh(await $!VMIO-tobe)
-        }
-
-        method get-option(IO::Socket::Async:D: Int:D \option --> Int) {
-            nqp::box_i(nqp::getsockopt($!VMIO-tobe, nqp::unbox_i(option)), Int)
-        }
-
-        method set-option(IO::Socket::Async:D: Int:D \option, Int:D \value) {
-            nqp::setsockopt(await $!VMIO-tobe, nqp::unbox_i(option), nqp::unbox_i(value))
+            my Mu \VMIO = await $!VMIO-tobe;
+            nqp::filenofh(VMIO)
         }
     }
 
@@ -317,15 +320,16 @@ my class IO::Socket::Async {
             :$host, :$port, :$backlog, :$encoding, :$scheduler
     }
 
-    method native-descriptor(--> Int) {
-        nqp::filenofh($!VMIO)
-
     method get-option(IO::Socket::Async:D: Int:D \option --> Int) {
-        nqp::box_i(nqp::getsockopt($!VMIO, nqp::unbox_i(option)), Int)
+        nqp::getsockopt($!VMIO, nqp::unbox_i(option))
     }
 
-    method set-option(IO::Socket::Async:D: Int:D \option, Int:D \value) {
+    method set-option(IO::Socket::Async:D: Int:D \option, Int:D \value --> Nil) {
         nqp::setsockopt($!VMIO, nqp::unbox_i(option), nqp::unbox_i(value))
+    }
+
+    method native-descriptor(IO::Socket::Async:D: --> Int) {
+        nqp::filenofh($!VMIO)
     }
 
     sub setup-close(\socket --> Nil) {

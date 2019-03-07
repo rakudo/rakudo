@@ -176,10 +176,26 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method is-lazy() {
-            nqp::if(
-              nqp::isconcrete($!current-iter),
-              $!current-iter.is-lazy,
-              False
+            nqp::unless(
+              nqp::isconcrete($!current-iter) && $!current-iter.is-lazy,
+              nqp::if(
+                nqp::isconcrete($!future),
+                nqp::stmts( # Check $!future to determine if any element is lazy
+                  (my \iter := nqp::iterator($!future)),
+                  nqp::while(
+                    iter
+                      && nqp::can((my $cur := nqp::shift(iter)),'is-lazy')
+                      && nqp::isfalse($cur.is-lazy),
+                    nqp::null
+                  ),
+                  nqp::if(
+                    iter,
+                    True,          # did not did do all iterations, so lazy
+                    $cur.is-lazy   # check last one, could be non-lazy
+                  )
+                ),
+                False
+              )
             )
         }
     }

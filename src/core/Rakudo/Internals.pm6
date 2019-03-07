@@ -661,9 +661,10 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
-    method SHORT-GIST(\thing) {
+    method SHORT-GIST(Mu \thing) {
+        my str $gist = nqp::can(thing, 'gist') ??  thing.gist !! thing.^name;
         nqp::if(
-          nqp::isgt_i(nqp::chars(my str $gist = thing.gist), 23),
+          nqp::isgt_i(nqp::chars($gist), 23),
           nqp::concat(nqp::substr($gist, 0, 20), '...'),
           $gist);
     }
@@ -1370,6 +1371,7 @@ implementation detail and has no serviceable parts inside"
                 X::Str::Sprintf::Directives::BadType.new:
                     type      => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'TYPE'),
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'DIRECTIVE'),
+                    value     => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'VALUE'),
             }
             elsif nqp::existskey(payload, 'BAD_DIRECTIVE') {
                 X::Str::Sprintf::Directives::Unsupported.new:

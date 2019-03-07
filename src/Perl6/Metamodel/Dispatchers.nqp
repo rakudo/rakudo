@@ -1,32 +1,60 @@
 class Perl6::Metamodel::BaseDispatcher {
     has @!candidates;
     has $!idx;
+    has $!next_dispatcher; # The dispatcher we must pass control to when own queue exhausts
 
     method candidates() { @!candidates }
 
-    method exhausted() { $!idx >= +@!candidates }
+    method exhausted() { $!idx >= +@!candidates && (!nqp::isconcrete($!next_dispatcher) || $!next_dispatcher.exhausted()) }
 
     method last()      { @!candidates := [] }
 
-    method call_with_args(*@pos, *%named) {
-        my $call := @!candidates[$!idx];
-        $!idx := $!idx + 1;
-        if self.has_invocant {
-            my $inv := self.invocant;
-            nqp::setdispatcherfor(self, $call);
-            $call($inv, |@pos, |%named);
+    method set_next_dispatcher ($next_dispatcher) { $!next_dispatcher := $next_dispatcher }
+
+    method get_call () { # Returns [$call, $is_dispatcher]
+        my $call := @!candidates[$!idx++];
+
+        my $disp;
+        try {
+            # XXX Are there any better way to determine a invocation handler with own dispatcher in $!dispatcher?
+            $disp := nqp::getattr($call, nqp::what($call), '$!dispatcher'); # If $call is a handler. But there must be better way to deal with this.
+            $disp := nqp::null() unless nqp::istype($disp, Perl6::Metamodel::BaseDispatcher); # Protect from multi-Routine dispatcher attribute
+        }
+        if nqp::isconcrete($disp) {
+            $disp.set_next_dispatcher(self);
+            return [$disp, 1];
         }
         else {
-            nqp::setdispatcherfor(self, $call);
-            $call(|@pos, |%named);
+            if $!idx >= +@!candidates && nqp::isconcrete($!next_dispatcher) {
+                nqp::setdispatcherfor($!next_dispatcher, $call);
+            }
+            else {
+                nqp::setdispatcherfor(self, $call);
+            }
+        }
+        [$call, 0]
+    }
+
+    method call_with_args(*@pos, *%named) {
+        my @call := self.get_call;
+        if @call[1] {
+            return @call[0].enter_with_args(|@pos, |%named);
+        }
+        if self.has_invocant {
+            my $inv := self.invocant;
+            @call[0]($inv, |@pos, |%named);
+        }
+        else {
+            @call[0](|@pos, |%named);
         }
     }
 
     method call_with_capture($capture) {
-        my $call := @!candidates[$!idx];
-        $!idx := $!idx + 1;
-        nqp::setdispatcherfor(self, $call);
-        nqp::invokewithcapture(nqp::decont($call), $capture)
+        my @call := self.get_call;
+        if @call[1] { # Got a dispatcher
+            return @call[0].enter_with_capture($capture);
+        }
+        nqp::invokewithcapture(@call[0], $capture);
     }
 
     method shift_callee() {
@@ -120,10 +148,17 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
         return 0;
     }
 
-    method enter(*@pos, *%named) {
+    method enter_with_args(*@pos, *%named) {
         my $fresh := nqp::clone(self);
         my $first := self.candidates[0];
         nqp::setdispatcherfor($fresh, $first);
         $first(|@pos, |%named)
+    }
+
+    method enter_with_capture($capture) {
+        my $fresh := nqp::clone(self);
+        my $first := self.candidates[0];
+        nqp::setdispatcherfor($fresh, $first);
+        nqp::invokewithcapture($first, $capture);
     }
 }

@@ -24,7 +24,7 @@ my class Rakudo::Internals::EvalIdSource {
         $lock.protect: { $count++ }
     }
 }
-proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, Str :$filename, *%n) {
+proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, Str() :$filename, *%n) {
     die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
       if nqp::istype($code,Callable);
     # First look in compiler registry.
@@ -64,7 +64,7 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
     $compiled();
 }
 
-multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context, Str :$filename) {
+multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context, Str() :$filename) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     state $p5;

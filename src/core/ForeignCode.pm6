@@ -24,7 +24,7 @@ my class Rakudo::Internals::EvalIdSource {
         $lock.protect: { $count++ }
     }
 }
-proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
+proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, Str :$filename, *%n) {
     die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
       if nqp::istype($code,Callable);
     # First look in compiler registry.
@@ -43,7 +43,7 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
 
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+    my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     my \mast_frames := nqp::hash();
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
                   # currently compiling compilation unit
@@ -64,9 +64,9 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
     $compiled();
 }
 
-multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
+multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context, Str :$filename) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+    my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     state $p5;
     unless $p5 {
         {
@@ -86,7 +86,7 @@ multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash
 
 proto sub EVALFILE($, *%) {*}
 multi sub EVALFILE($filename, :$lang = 'perl6') {
-    EVAL slurp(:bin, $filename), :$lang, :context(CALLER::);
+    EVAL slurp(:bin, $filename), :$lang, :context(CALLER::), :$filename;
 }
 
 # vim: ft=perl6 expandtab sw=4

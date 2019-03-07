@@ -23,10 +23,10 @@ New in 2019.03:
     + Fixed hang in Channel `subscribe/close/drain` [9b77459b]
     + Fixed `Inline::Perl5` failing to load when installed through the
         Staging repository [1c101a04]
-    + Allowed parameterization of parent class in `class` specification
+    + Allowed parameterization of parent class in `class` declaration
         [35ecfc8e]
-    + Fixed `IO::Path.dir` to throw rather than return `Failure` to
-        prevent silent stuffing [38f4b7b4]
+    + Made `IO::Path.dir` on non-existent paths throw rather than
+        return a `Failure` [38f4b7b4]
     + Fixed line number accuracy in backtraces [5b231e09]
     + Made regex literals capture `$/` and `$!` [8ef7c15e][ee2238f7]
         [4a2124a6]

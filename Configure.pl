@@ -180,6 +180,20 @@ MAIN: {
         }
     }
 
+    if ($^O eq 'darwin') {
+        # This would let us use the same make which is likely to be chosen by
+        # MoarMV's Configure.pl. Though very unlikely, but this would prevent
+        # problems stemming from possible discrepancies in handling Makefile's
+        # by different make versions.
+        my $cc = `which cc` || `which clang`;
+        die "No C compiler found. Do you have XCode or other toolchain installed?" unless $cc;
+        say "using $cc";
+        system "grep -bi 'xcode' $cc";
+        if ($? == 0) {
+            $make = '/usr/bin/make' if -x '/usr/bin/make';
+        }
+    }
+
     for my $target (qw/common_bootstrap_sources js_core_sources js_core_d_sources moar_core_sources moar_core_d_sources jvm_core_sources jvm_core_d_sources/) {
         open my $FILELIST, '<', "tools/build/$target"
             or die "Cannot read 'tools/build/$target': $!";

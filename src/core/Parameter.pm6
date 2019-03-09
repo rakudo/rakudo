@@ -610,6 +610,17 @@ my class Parameter { # declared in BOOTSTRAP
             $rest ~= ' ' ~ $sig;
         }
         unless nqp::isnull(@!post_constraints) {
+            # it's a Cool constant
+            if !$rest
+              && $name eq '$'
+              && nqp::elems(@!post_constraints) == 1
+              && nqp::istype(
+                   (my \value := nqp::atpos(@!post_constraints,0)),
+                   Cool
+                 ) {
+                return value.perl;
+            }
+
             $rest ~= ' where { ... }';
         }
         $rest ~= " = $!default_value.perl()" if $default;

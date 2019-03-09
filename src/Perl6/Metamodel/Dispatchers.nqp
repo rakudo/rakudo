@@ -9,12 +9,12 @@ class Perl6::Metamodel::BaseDispatcher {
 
     method last()      { @!candidates := [] }
 
-    method set_next_dispatcher ($next_dispatcher) { $!next_dispatcher := $next_dispatcher }
+    method set_next_dispatcher($next_dispatcher) { $!next_dispatcher := $next_dispatcher }
 
     # Wrapper-like dispatchers don't set dispatcher for the last candidate.
-    method is_wrapper_like () { 0 }
+    method is_wrapper_like() { 0 }
 
-    method get_call () { # Returns [$call, $is_dispatcher]
+    method get_call() { # Returns [$call, $is_dispatcher]
         my $call := @!candidates[$!idx++];
 
         my $disp;
@@ -135,7 +135,7 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
 
     method has_invocant() { 0 }
 
-    method is_wrapper_like () { 1 }
+    method is_wrapper_like() { 1 }
 
     method add($wrapper) {
         self.candidates.unshift($wrapper)

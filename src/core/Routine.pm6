@@ -103,7 +103,7 @@ my class Routine { # declared in BOOTSTRAP
                 $handle
             }
             method CALL-ME(|c) is raw {
-                $!dispatcher.enter_with_args(|c);
+                $!dispatcher.enter(|c);
             }
             method soft(--> True) { }
         }

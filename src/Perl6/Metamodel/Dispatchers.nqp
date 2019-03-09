@@ -11,6 +11,9 @@ class Perl6::Metamodel::BaseDispatcher {
 
     method set_next_dispatcher ($next_dispatcher) { $!next_dispatcher := $next_dispatcher }
 
+    # Wrapper-like dispatchers don't set dispatcher for the last candidate.
+    method is_wrapper_like () { 0 }
+
     method get_call () { # Returns [$call, $is_dispatcher]
         my $call := @!candidates[$!idx++];
 
@@ -21,15 +24,16 @@ class Perl6::Metamodel::BaseDispatcher {
             $disp := nqp::null() unless nqp::istype($disp, Perl6::Metamodel::BaseDispatcher); # Protect from multi-Routine dispatcher attribute
         }
         if nqp::isconcrete($disp) {
-            $disp.set_next_dispatcher(self);
             return [$disp, 1];
         }
         else {
-            if $!idx >= +@!candidates && nqp::isconcrete($!next_dispatcher) {
+            my $last_candidate := $!idx >= +@!candidates;
+            if  $last_candidate && nqp::isconcrete($!next_dispatcher) {
                 nqp::setdispatcherfor($!next_dispatcher, $call);
+                $!next_dispatcher := nqp::null();
             }
             else {
-                nqp::setdispatcherfor(self, $call);
+                nqp::setdispatcherfor(self, $call) unless $last_candidate && self.is_wrapper_like;
             }
         }
         [$call, 0]
@@ -38,7 +42,7 @@ class Perl6::Metamodel::BaseDispatcher {
     method call_with_args(*@pos, *%named) {
         my @call := self.get_call;
         if @call[1] {
-            return @call[0].enter_with_args(|@pos, |%named);
+            return @call[0].enter_with_args(@pos, %named, :next_dispatcher(self));
         }
         if self.has_invocant {
             my $inv := self.invocant;
@@ -52,7 +56,7 @@ class Perl6::Metamodel::BaseDispatcher {
     method call_with_capture($capture) {
         my @call := self.get_call;
         if @call[1] { # Got a dispatcher
-            return @call[0].enter_with_capture($capture);
+            return @call[0].enter_with_capture($capture, :next_dispatcher(self));
         }
         nqp::invokewithcapture(@call[0], $capture);
     }
@@ -131,6 +135,8 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
 
     method has_invocant() { 0 }
 
+    method is_wrapper_like () { 1 }
+
     method add($wrapper) {
         self.candidates.unshift($wrapper)
     }
@@ -148,17 +154,25 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
         return 0;
     }
 
-    method enter_with_args(*@pos, *%named) {
+    method get_first($next_dispatcher) {
         my $fresh := nqp::clone(self);
+        $fresh.set_next_dispatcher($next_dispatcher) if $next_dispatcher;
         my $first := self.candidates[0];
         nqp::setdispatcherfor($fresh, $first);
-        $first(|@pos, |%named)
+        $first
     }
 
-    method enter_with_capture($capture) {
-        my $fresh := nqp::clone(self);
-        my $first := self.candidates[0];
-        nqp::setdispatcherfor($fresh, $first);
+    # This method is a bridge between Perl6 and NQP.
+    method enter(*@pos, *%named) {
+        self.enter_with_args(@pos, %named);
+    }
+
+    method enter_with_args(@pos, %named, :$next_dispatcher?) {
+        self.get_first($next_dispatcher)(|@pos, |%named)
+    }
+
+    method enter_with_capture($capture, :$next_dispatcher?) {
+        my $first := self.get_first($next_dispatcher);
         nqp::invokewithcapture($first, $capture);
     }
 }

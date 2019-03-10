@@ -11,7 +11,7 @@ class Kernel does Systemic {
     has Bool $!has_uname;
 
     method !uname($opt) {
-        $!has_uname //= ("/bin/uname", "/usr/bin/uname").first({ .IO.e && .IO.x });
+        $!has_uname //= ("/bin/uname", "/usr/bin/uname").first({ .IO.e && .IO.x }).so;
         $!has_uname ?? qqx/uname $opt/.chomp !! 'unknown';
     }
 

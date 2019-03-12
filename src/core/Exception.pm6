@@ -2149,6 +2149,15 @@ my class X::Sequence::Deduction is Exception {
     }
 }
 
+my class X::Cannot::Map is Exception {
+    has $.what   = "(<unknown type>)";
+    has $.using  = "(<an unknown expression>)";
+    has $.suggestion;
+    method message() {
+        my $message = "Cannot map a $.what using $.using";
+        $.suggestion ?? "$message\n$.suggestion" !! $message
+    }
+}
 my class X::Cannot::Lazy is Exception {
     has $.action;
     has $.what;

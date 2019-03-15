@@ -39,6 +39,9 @@ my class Failure is Nil {
         unless $!handled;
     }
 
+    # allow Failures to throw when they replace an Iterable
+    multi method iterator(Failure:D:) { self!throw }
+
     # Marks the Failure has handled (since we're now fatalizing it) and throws.
     method !throw(Failure:D:) {
         $!handled = 1;

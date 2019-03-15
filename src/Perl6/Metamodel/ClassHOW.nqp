@@ -40,9 +40,16 @@ class Perl6::Metamodel::ClassHOW
     }
 
     my $anon_id := 1;
-    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api) {
+    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api, :$is_mixin) {
         my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
+        my $new_type;
+        if $is_mixin {
+            $new_type := nqp::newmixintype($metaclass, $repr);
+        }
+        else {
+            $new_type := nqp::newtype($metaclass, $repr);
+        }
+        my $obj := nqp::settypehll($new_type, 'perl6');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;

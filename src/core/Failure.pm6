@@ -41,6 +41,7 @@ my class Failure is Nil {
 
     # allow Failures to throw when they replace an Iterable
     multi method iterator(Failure:D:) { self!throw }
+    multi method list(Failure:D:)     { self!throw }
 
     # Marks the Failure has handled (since we're now fatalizing it) and throws.
     method !throw(Failure:D:) {

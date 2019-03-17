@@ -1,3 +1,146 @@
+New in 2019.03.1:
+  + Fixes:
+    + Fixed issues with `$*KERNEL` on Windows [190a7148][2f9d69c2]
+
+New in 2019.03:
+  + Fixes:
+    + Fixed uncaught processor floating point exception on
+        `Rat.round` [11da0fb4]
+    + Fixed `$a=~$a` if `use isms <Perl5>` is active [df748ea7]
+        [af868f84]
+    + Fixed `.WHICH` methods that did not return `ObjAt` types
+        [e50f4f2e][6b401dad][67cbd993][9df09621][0d29768a][ca8d8afc]
+        [4b91610e][537621e4]
+    + Fixed missing redeclaration of bound outer error
+        [23663609]
+    + Made `X::TypeCheck::Assignment` and `X::Trait::Unknown` more
+        resilient against strange values [a6d8858e][54fe8a1a]
+    + [6.d] `$_` container is no longer `is dynamic` [33f79fef]
+        [3d581c8d][c2e272ef]
+    + Fixed thread safety of some state variables [a5b9fc2d]
+    + Fixed `.^compose` calls on types stored in a scalar [ab8052dd]
+    + Fixed `Parameter.perl` for slurpy parameters [d8b7fabe]
+    + Fixed `$*EXECUTABLE` path construction after a `chdir` [5c14916b]
+    + Fixed `$*PROGRAM` path construction after a `chdir` [cebf0cb7]
+    + Fixed `.^add_attribute` calls with `Attribute` object stored in
+        a scalar [bf0dbbe6]
+    + Fixed hang in Channel `subscribe`/`close`/`drain` [9b77459b]
+    + Fixed `Inline::Perl5` failing to load when installed through the
+        Staging repository [1c101a04]
+    + Allowed parameterization of parent class in `class` declaration
+        [35ecfc8e]
+    + Made `IO::Path.dir` on non-existent paths throw rather than
+        return a `Failure` [38f4b7b4]
+    + Fixed line number accuracy in backtraces [5b231e09]
+    + Made regex literals capture `$/` and `$!` [8ef7c15e][ee2238f7]
+        [4a2124a6]
+    + Fixed `«=>»` crash if RHS is a List in a Scalar container
+        [df96fa0f]
+    + Tweaked `Range.ACCEPTS` to work better with Junctions [46409c07]
+        [f3f7c5cb][d904b704]
+    + Made `Baggy.ACCEPTS` signature the same as `Setty.ACCEPTS`
+        [37ce147c]
+    + Fixed "No concretization found" on role-qualified method call with
+        inheritance [a6c8180f]
+    + Fixed use of a role by its short name in some cases [b3eb3826]
+        [9d6e508d]
+    + Made sure that `CArray` can be `STORE`d into `Buf`/`Blob`
+        [ada116ef][5e5c909d][30fc5146][84ed8548][bfadefaa][05b9aa0d]
+        [b394b63c]
+    + Made CUR uninstall `.bat` wrapper scripts [121ca5fd]
+    + Fixed a problem with adding/subtracting negative values from
+        `Date` [91ca8275]
+    + Made sure hash slice auto-vivifies using infix metaop [616b757a]
+        [e68e38e0]
+    + Many improvements to the JS backend [634633be][8f2d9ed0][fc39f5ff]
+        [9b20c476][822962da][e233f287][52de9657][6dd723a9][7b053d54]
+        [17a2bcca][f7ba400e][ada01420]
+    + Various improvements to produced messages [e48712a3][59bafb83]
+        [6a8f08b9][89ca56af][8095cead][d499bd4b][7133b81e][f7704267]
+  + Additions:
+    + Added a candidates method to `CompUnit::Repository::FileSystem`
+        and `CompUnit::Repository::Installation`, which acts as the API
+        for module lookup. Internals were refactored to use this API for
+        module lookup, which fixes some issues as a side effect (i.e.
+        old bin scripts being invoked instead of a newer version)
+        [2d007bf4][07f62c60][bed3bbd0][a25d5fa4][29d74709][085fa19c]
+        [78de05eb][b378a157][d0a3fec9][d533d450][877e7dc0][270b355e]
+        [683df8bf][e1ef571e][077f88a5][22021fdd][603010be][27e141cc]
+        [ddb6abd0][c868ca9c][339ea850][3999d753][bfff01a5][d998c1ea]
+        [83f0fd6c][d39e2fc4][74ccb4c8][67cf829f][92ebc333]
+    + Added `buf8`/`blob8` read-(u)bits / write-(u)bits methods for
+        reading/writing any number of **bits** [45a945b5]
+    + Added `$?DISTRIBUTION` to give introspection and IO capabilities
+        to the current `Distribution` [32d480ab]
+    + Added `addendum` to `X::Method::NotFound` so that we can give
+        better error messages for specific cases [04dd52f9][b6c8f5ed]
+    + Added HLL interface for creating `Signature` and `Parameter`
+        objects [f329d6c6][3d3578b6][c4723cba][e116f3ad][3b9fd81d]
+        [e4635189][9cd42b1f][86557cfd][d6b1bd2a][9485dd2b][7be075eb]
+        [081b15ee][eb50d8ce]
+    + Made `does X::Control` imply throwing to CONTROL [ca177e58]
+    + Made `QuantHashes` parameterizable to limit the type of value that
+        can be put in them [0d9e9f34][4bb5c33c][e87b7afb][fe38bdba]
+        [bcc8054a][87b71c27][836c18ae][71a19c61]
+    + Allowed `is Type` trait to handle parameterization like
+        `is Set[Int]` [2ed2f398]
+    + Added a `dynamic-scope` lexical pragma [871cbefc][88c46676]
+        [9517c377]
+  + Removals:
+    + Removed `ComptUnit::Repository::Installation` and `Distribution`
+        compatibility shims for old versions of panda and zef [f430518f]
+    + Renamed `Block/WhateverCode.pos` to `.POSITIONS` [ccf350e4]
+  + Build system:
+    + Added a `m-spectest5_precompile` to run tests in precompilation
+        mode [89fee86a][ec289a6c][bb36f04a]
+    + Added create and remove JavaScript wrappers in
+        `ComptUnit::Repository::Installation` [83286e29]
+  + Efficiency:
+    + Made `postcircumfix:<[]>` for `CArray` more than 3x as fast
+        [f009cb4a]
+    + Made `Rational.floor/ceiling/Int` about 1.1x as fast [cf0a6eaa]
+    + Made `Rational.Num` about 1.05x as fast [236351ad]
+    + Made stringification of `Rat`/`FatRat` 1.2x to 2.2x as fast
+        [5c0ac4db]
+    + Made constraint check on `UInt` 1.15x as fast [922d41b3]
+    + Made comparisons with `Rat`s 1.4x to 15x as fast [c11e7e6b]
+        [4fecb72a]
+    + Made negation of `Rat`/`FatRat` about 3x as fast [d195e146]
+    + Made coercion of `Int` to `Rat`/`FatRat` 4x as fast [92321beb]
+    + Several other `Rat`/`FatRat` optimizations [29d7f709][6dad5caf]
+        [395d633d][e29554f5][91f67494]
+    + Made `unival()` about 2x as fast [08ae9bfc][27332f04]
+    + Made `Buf`/`Blob.gist` about 2.5x as fast [6d58e0b0]
+    + Made `Map`/`Hash.sort` about 12x as fast [8ae4310e][edb53081]
+    + Made `Str.trim-trailing` about 1.1x as fast [304feae9]
+    + Several improvements to `Date`/`DateTime`/`Instant`/`Duration`
+        handling [467394b8][de933656][9f28a423][92956164][3488a65e]
+    + Added return type signatures for more optimization opportunities
+        [ef565b2b][66f8ee0f][fb517b29][6af22bc3][30a534d1][2ce79561]
+        [7a68df2b][5cf65b57][01d2e11c][26c0e620][0368fe95][e0cd1d99]
+        [0797f93e][cbc3e72e][c45d2b82][bb84b66d][50f0bb2b][e58e3764]
+    + Fixed a memory leak when a Callable has a definite return
+        signature but the actual returned value was Nil [7aa796a9]
+    + More aggressive lexical lowering and block flattening [e73853a1]
+        [c28a0924][685f6cc3][b41e9f57][b0e7e375][5bbaabb9][42024539]
+        [2468dea7][cf9e1f59][053f929f][852a593d][871b6f54][401a3547]
+        [f741374c][64d08ad6][2a33bb1a][83c2070e][ab7f07db][91a4b3b1]
+        [6b44c581][eb3917c2][a4c994f5][31c8fda2][17bf7415][8aa73306]
+        [11884e03][87fcda81][6b078a05][19e4ace6][fcfd51be][541a4f16]
+        [d2df5b80][7fb098d7][c0f83788][623450d8][08d87f70][f71ca0de]
+        [c6053e6a]
+    + Many small internal optimizations [6392634f][5540212c][7d3b7e11]
+        [2d704af4][1611795d][cf0a6eaa][236351ad][501231ee][a904d25a]
+        [87698317][93b5e2ef][f2ed3db7][485dec4d][64c88f91][839f28e7]
+        [b4d114a3][225d2f96][7dea20ab][df8c5780][50e1ec33][3eeb7276]
+        [5d707977][eb8561ba][f56e0756]
+  + Internal:
+    + Added `nqp::const(BINARY_)` constants [32c10e3c][420abcb9]
+    + Added `Rakudo::Internals::ImplementationDetail` role to mark
+        internal functionality [d248d47e][588037f0]
+    + Moved some constant return values in Num methods to their
+        signature [f02bceb7]
+
 New in 2018.12:
   + Fixes:
     + Fixed infiniloops with some set operators [99d94db4][9f5cc8d1]

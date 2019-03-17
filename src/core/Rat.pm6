@@ -265,11 +265,11 @@ multi sub infix:<**>(Rational:D \a, Int:D \b) {
 multi sub infix:<==>(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::iseq_I(
-        (my \anum := nqp::getattr(nqp::decont(a),Rat,'$!numerator')),
-        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+        (my \anum := a.numerator),
+        b.numerator
       ) && nqp::iseq_I(
-             (my \adenom := nqp::getattr(nqp::decont(a),Rat,'$!denominator')),
-             nqp::getattr(nqp::decont(b),Rat,'$!denominator')
+             (my \adenom := a.denominator),
+             b.denominator
           ) && (                         # num/denom both same
                  nqp::istrue(anum)       # 1/X, Inf == Inf also true
                  || nqp::istrue(adenom)  # 0/1, NaN == NaN becomes false
@@ -279,10 +279,10 @@ multi sub infix:<==>(Rational:D \a, Rational:D \b --> Bool:D) {
 multi sub infix:<==>(Rational:D \a, Int:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::iseq_I(
-        nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+        a.denominator,
         1
       ) && nqp::iseq_I(
-             nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+             a.numerator,
              nqp::decont(b)
            )
     )
@@ -290,11 +290,11 @@ multi sub infix:<==>(Rational:D \a, Int:D \b --> Bool:D) {
 multi sub infix:<==>(Int:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::iseq_I(
-        nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+        b.denominator,
         1
       ) && nqp::iseq_I(
              nqp::decont(a),
-             nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+             b.numerator
            )
     )
 }
@@ -302,11 +302,11 @@ multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::eqaddr(a.WHAT, b.WHAT)
         && nqp::iseq_I(
-             nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
-             nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+             a.numerator,
+             b.numerator
         ) && nqp::iseq_I(
-               nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
-               nqp::getattr(nqp::decont(b),Rat,'$!denominator')
+               a.denominator,
+               b.denominator
             )
     )
 }
@@ -316,13 +316,13 @@ multi sub infix:«<»(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::islt_I(
         nqp::mul_I(
-          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          a.numerator,
+          b.denominator,
           Int
         ),
         nqp::mul_I(
-          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          b.numerator,
+          a.denominator,
           Int
         )
       )
@@ -332,10 +332,10 @@ multi sub infix:«<»(Rational:D \a, Int:D \b --> Bool:D) {
 #    a.numerator  < b * a.denominator
     nqp::hllbool(
       nqp::islt_I(
-        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        a.numerator,
         nqp::mul_I(
           nqp::decont(b),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          a.denominator,
           Int
         )
       )
@@ -347,10 +347,10 @@ multi sub infix:«<»(Int:D \a, Rational:D \b --> Bool:D) {
       nqp::islt_I(
         nqp::mul_I(
           nqp::decont(a),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          b.denominator,
           Int
         ),
-        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+        b.numerator
       )
     )
 }
@@ -360,13 +360,13 @@ multi sub infix:«<=»(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::isle_I(
         nqp::mul_I(
-          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          a.numerator,
+          b.denominator,
           Int
         ),
         nqp::mul_I(
-          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          b.numerator,
+          a.denominator,
           Int
         )
       )
@@ -376,10 +376,10 @@ multi sub infix:«<=»(Rational:D \a, Int:D \b --> Bool:D) {
 #    a.numerator  <= b * a.denominator
     nqp::hllbool(
       nqp::isle_I(
-        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        a.numerator,
         nqp::mul_I(
           nqp::decont(b),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          a.denominator,
           Int
         )
       )
@@ -391,10 +391,10 @@ multi sub infix:«<=»(Int:D \a, Rational:D \b --> Bool:D) {
       nqp::isle_I(
         nqp::mul_I(
           nqp::decont(a),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          b.denominator,
           Int
         ),
-        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+        b.numerator
       )
     )
 }
@@ -404,13 +404,13 @@ multi sub infix:«>»(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::isgt_I(
         nqp::mul_I(
-          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          a.numerator,
+          b.denominator,
           Int
         ),
         nqp::mul_I(
-          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          b.numerator,
+          a.denominator,
           Int
         )
       )
@@ -420,10 +420,10 @@ multi sub infix:«>»(Rational:D \a, Int:D \b --> Bool:D) {
 #    a.numerator  > b * a.denominator
     nqp::hllbool(
       nqp::isgt_I(
-        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        a.numerator,
         nqp::mul_I(
           nqp::decont(b),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          a.denominator,
           Int
         )
       )
@@ -435,10 +435,10 @@ multi sub infix:«>»(Int:D \a, Rational:D \b --> Bool:D) {
       nqp::isgt_I(
         nqp::mul_I(
           nqp::decont(a),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          b.denominator,
           Int
         ),
-        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+        b.numerator
       )
     )
 }
@@ -448,13 +448,13 @@ multi sub infix:«>=»(Rational:D \a, Rational:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::isge_I(
         nqp::mul_I(
-          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          a.numerator,
+          b.denominator,
           Int
         ),
         nqp::mul_I(
-          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          b.numerator,
+          a.denominator,
           Int
         )
       )
@@ -464,10 +464,10 @@ multi sub infix:«>=»(Rational:D \a, Int:D \b --> Bool:D) {
 #    a.numerator  >= b * a.denominator
     nqp::hllbool(
       nqp::isge_I(
-        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        a.numerator,
         nqp::mul_I(
           nqp::decont(b),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          a.denominator,
           Int
         )
       )
@@ -479,10 +479,10 @@ multi sub infix:«>=»(Int:D \a, Rational:D \b --> Bool:D) {
       nqp::isge_I(
         nqp::mul_I(
           nqp::decont(a),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          b.denominator,
           Int
         ),
-        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+        b.numerator
       )
     )
 }
@@ -492,13 +492,13 @@ multi sub infix:«<=>»(Rational:D \a, Rational:D \b --> Order:D) {
     ORDER(
       nqp::cmp_I(
         nqp::mul_I(
-          nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          a.numerator,
+          b.denominator,
           Int
         ),
         nqp::mul_I(
-          nqp::getattr(nqp::decont(b),Rat,'$!numerator'),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          b.numerator,
+          a.denominator,
           Int
         )
       )
@@ -508,10 +508,10 @@ multi sub infix:«<=>»(Rational:D \a, Int:D \b --> Order:D) {
 #    a.numerator  <=> b * a.denominator
     ORDER(
       nqp::cmp_I(
-        nqp::getattr(nqp::decont(a),Rat,'$!numerator'),
+        a.numerator,
         nqp::mul_I(
           nqp::decont(b),
-          nqp::getattr(nqp::decont(a),Rat,'$!denominator'),
+          a.denominator,
           Int
         )
       )
@@ -523,10 +523,10 @@ multi sub infix:«<=>»(Int:D \a, Rational:D \b --> Order:D) {
       nqp::cmp_I(
         nqp::mul_I(
           nqp::decont(a),
-          nqp::getattr(nqp::decont(b),Rat,'$!denominator'),
+          b.denominator,
           Int
         ),
-        nqp::getattr(nqp::decont(b),Rat,'$!numerator')
+        b.numerator
       )
     )
 }

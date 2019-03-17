@@ -14,20 +14,21 @@ my class Failure is Nil {
         self
     }
 
-    multi method new() {
+    multi method new(Failure:D:) { self!throw }
+    multi method new(Failure:U:) {
         my $stash := CALLER::;
         my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
         nqp::create(self)!SET-SELF(
           $payload ~~ Exception ?? $payload !! X::AdHoc.new(:$payload)
         )
     }
-    multi method new(Exception:D \exception) {
+    multi method new(Failure:U: Exception:D \exception) {
         nqp::create(self)!SET-SELF(exception)
     }
-    multi method new($payload) {
+    multi method new(Failure:U: $payload) {
         nqp::create(self)!SET-SELF(X::AdHoc.new(:$payload))
     }
-    multi method new(|cap (*@msg)) {
+    multi method new(Failure:U: |cap (*@msg)) {
         nqp::create(self)!SET-SELF(X::AdHoc.from-slurpy(|cap))
     }
 
@@ -37,6 +38,10 @@ my class Failure is Nil {
             ~ ".so, .not, or .defined methods. The Failure was:\n" ~ self.mess
         unless $!handled;
     }
+
+    # allow Failures to throw when they replace an Iterable
+    multi method iterator(Failure:D:) { self!throw }
+    multi method list(Failure:D:)     { self!throw }
 
     # Marks the Failure has handled (since we're now fatalizing it) and throws.
     method !throw(Failure:D:) {

@@ -1,3 +1,7 @@
+New in 2019.03.1:
+  + Fixes:
+    + Fixed issues with `$*KERNEL` on Windows [190a7148][2f9d69c2]
+
 New in 2019.03:
   + Fixes:
     + Fixed uncaught processor floating point exception on

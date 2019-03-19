@@ -3553,9 +3553,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub check_default_value_type($/, $descriptor, $bind_constraint, $what) {
-        unless !( ( $descriptor.of.HOW =:= $*W.find_symbol(['Metamodel', 'DefiniteHOW']))
-                    || $descriptor.explicit_default )
-                  || nqp::istype($descriptor.default, $bind_constraint ) {
+        unless nqp::istype($descriptor.default, $bind_constraint) {
             $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
                 implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
@@ -4739,6 +4737,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Add dispatching code.
+        # $BLOCK.push(
+        #     QAST::Op.new(
+        #         :op('say'),
+        #         QAST::SVal.new(:value("onlystar call"))
+        #     )
+        # );
         $BLOCK.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(
@@ -6469,6 +6473,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<onlystar>($/) {
         my $dc_name := QAST::Node.unique('dispatch_cap');
         my $stmts := QAST::Stmts.new(
+            QAST::Op.new(
+                :op('say'),
+                QAST::SVal.new(:value("term:sym<onlystar> call"))
+            ),
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :name($dc_name), :scope('local'), :decl('var') ),

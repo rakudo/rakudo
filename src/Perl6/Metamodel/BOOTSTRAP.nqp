@@ -1133,26 +1133,22 @@ class ContainerDescriptor {
     has str $!name;
     has     $!default;
     has int $!dynamic;
-    has int $!explicit_default; # I.e. default is explicitly set, not taken from $!of
 
-    method BUILD(:$of, str :$name, :$default, int :$dynamic, int :$explicit_default = 0) {
+    method BUILD(:$of, str :$name, :$default, int :$dynamic) {
         $!of := $of;
         $!name := $name;
         $!default := $default;
         $!dynamic := $dynamic;
-        $!explicit_default := $explicit_default;
     }
 
     method of() { $!of }
     method name() { $!name }
     method default() { $!default }
     method dynamic() { $!dynamic }
-    method explicit_default() { $!explicit_default }
 
     method set_of($of) { $!of := $of; self }
-    method set_default($default) { $!explicit_default := 1; $!default := $default; self }
+    method set_default($default) { $!default := $default; self }
     method set_dynamic($dynamic) { $!dynamic := $dynamic; self }
-    method set_explicit_default($explicit) { $!explicit_default := $explicit; self }
 
     method is_generic() {
         $!of.HOW.archetypes.generic
@@ -2213,6 +2209,9 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
+
+            my $pkg := nqp::getattr($dc_self, Routine, '$!package');
+
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
             if nqp::defined($disp_list) {
                 $disp_list.push($dispatchee);
@@ -2371,8 +2370,11 @@ BEGIN {
             my $dcself     := nqp::decont($self);
             my @candidates := nqp::getattr($dcself, Routine, '@!dispatchees');
 
+            nqp::say("Sorting " ~ +@candidates ~ " candidate(s) on " ~ $dcself.HOW.name($dcself)) if $*DFBD;
+
             # Create a node for each candidate in the graph.
             my @graph;
+            my $ccnt := 0;
             for @candidates -> $candidate {
                 # Get hold of signature.
                 my $sig    := nqp::getattr($candidate, Code, '$!signature');
@@ -2611,8 +2613,12 @@ BEGIN {
 
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
+            my $pkg := nqp::getattr($dcself, Routine, '$!package');
+            nqp::say("Seeking on " ~ $pkg.HOW.name($pkg) ~ " " ~ $dcself.HOW.name($dcself)) if $*DFBD;
+            nqp::say("NUM ARGS: " ~ $num_args) if $*DFBD;
             my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
             if nqp::isnull(@candidates) {
+                nqp::say("no candidates, resorting") if $*DFBD;
                 nqp::scwbdisable();
                 @candidates := $dcself.'!sort_dispatchees_internal'();
                 nqp::bindattr($dcself, Routine, '@!dispatch_order', @candidates);
@@ -2635,12 +2641,20 @@ BEGIN {
             my $Positional := nqp::gethllsym('perl6', 'MD_Pos');
             until $done {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
+                nqp::say("? candidate // is concrete: " ~ nqp::isconcrete($cur_candidate)) if $*DFBD;
+                my $csub := nqp::atkey($cur_candidate, 'sub');
+                if $csub && $*DFBD {
+                    $pkg := nqp::getattr($csub, Routine, '$!package');
+                    nqp::say("? candidate name: " ~ $pkg.HOW.name($pkg) ~ "::" ~ $csub.name ~ " of " ~ $csub.HOW.name($csub));
+                }
 
                 if nqp::isconcrete($cur_candidate) {
                     # Check if it's admissible by arity.
+                    nqp::say("is concrete " ~ $cur_candidate.HOW.name($cur_candidate)) if $*DFBD;
                     unless $num_args < nqp::atkey($cur_candidate, 'min_arity')
                     || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
                         # Arity OK; now check if it's admissible by type.
+                        nqp::say("arity ok") if $*DFBD;
                         $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
                             ?? $num_args
                             !! nqp::atkey($cur_candidate, 'num_types');
@@ -2649,15 +2663,18 @@ BEGIN {
 
                         $i := 0;
                         while $i < $type_check_count && !$type_mismatch && !$rwness_mismatch {
+                            nqp::say("check param " ~ $i) if $*DFBD;
                             my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                             my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                             my int $got_prim   := nqp::captureposprimspec($capture, $i);
                             my int $rwness     := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
                             if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
+                                nqp::say("rw mismatch for " ~ $i) if $*DFBD;
                                 # If we need a container but don't have one it clearly can't work.
                                 $rwness_mismatch := 1;
                             }
                             elsif $type_flags +& $TYPE_NATIVE_MASK {
+                                nqp::say("natively typed? " ~ $i) if $*DFBD;
                                 # Looking for a natively typed value. Did we get one?
                                 if $got_prim == $BIND_VAL_OBJ {
                                     # Object, but could be a native container. If not, mismatch.
@@ -2679,6 +2696,7 @@ BEGIN {
                                 my $param;
                                 my int $primish := 0;
                                 if $got_prim == $BIND_VAL_OBJ {
+                                    nqp::say("BIND_VAL_OBJ") if $*DFBD;
                                     $param := nqp::captureposarg($capture, $i);
                                     if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
                                     elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
@@ -2686,25 +2704,31 @@ BEGIN {
                                     else { $param := nqp::hllizefor($param, 'perl6') }
                                 }
                                 else {
+                                    nqp::say("BIND_VAL_BASE") if $*DFBD;
                                     $param := $got_prim == $BIND_VAL_INT ?? Int !!
                                               $got_prim == $BIND_VAL_NUM ?? Num !!
                                                                             Str;
                                     $primish := 1;
                                 }
                                 if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+                                    nqp::say("type_obj type match?") if $*DFBD;
                                     if $i == 0 && nqp::existskey($cur_candidate, 'exact_invocant') {
                                         unless $param.WHAT =:= $type_obj {
+                                            nqp::say("type mismatch of param.WHAT =:= type_obj") if $*DFBD;
                                             $type_mismatch := 1;
                                         }
                                     }
                                 }
                                 else {
                                     if $type_obj =:= $Positional {
+                                        nqp::say("type_obj is Positional") if $*DFBD;
                                         my $PositionalBindFailover := nqp::gethllsym('perl6', 'MD_PBF');
                                         unless nqp::istype($param, $PositionalBindFailover) {
+                                            nqp::say("type mismatch: PositionalBindFailover") if $*DFBD;
                                             $type_mismatch := 1;
                                         }
                                     } else {
+                                        nqp::say("type mistmatch: not Positional") if $*DFBD;
                                         $type_mismatch := 1;
                                     }
                                 }
@@ -2713,6 +2737,7 @@ BEGIN {
                                     my int $desired := $type_flags +& $DEFCON_MASK;
                                     if ($defined && $desired == $DEFCON_UNDEFINED) ||
                                        (!$defined && $desired == $DEFCON_DEFINED) {
+                                           nqp::say("type mistmatch: DEFCON") if $*DFBD;
                                         $type_mismatch := 1;
                                     }
                                 }
@@ -2728,6 +2753,7 @@ BEGIN {
 
                     ++$cur_idx;
                 } else {
+                    nqp::say("end of a tied group: got " ~ +@possibles ~ " possibles") if $*DFBD;
                     # We've hit the end of a tied group now. If any of them have a
                     # bindability check requirement, we'll do any of those now.
                     if nqp::elems(@possibles) {
@@ -3757,6 +3783,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 
 # Tell parametric role groups how to create a dispatcher.
 Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
+    nqp::say("set_selector_creator") if $*DFBD;
     my $sel := nqp::create(Sub);
     my $onlystar := sub (*@pos, *%named) {
         nqp::invokewithcapture(

@@ -29,6 +29,7 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     method cando(Capture:D $c) {
+        nqp::say("Routine::cando");
         my $disp;
         if self.is_dispatcher {
             $disp := self;

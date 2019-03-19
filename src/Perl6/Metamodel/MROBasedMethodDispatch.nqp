@@ -3,6 +3,8 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     # this is here as a fallback.
     method find_method($obj, $name, :$no_fallback, *%adverbs) {
 
+        nqp::say("find_method(" ~ $name ~ ")") if $*DFBD;
+
 # uncomment line below for verbose information about uncached method lookups
 #nqp::say( "looking for " ~ $name ~ " in " ~ $obj.HOW.name($obj) );
 #

@@ -12,12 +12,32 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
-    proto method ACCEPTS(|) {*}
+    proto method ACCEPTS(|c) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {
+        nqp::say("Mu::ACCEPTS(Any): " ~ topic.^name);
         nqp::hllbool(nqp::istype(topic, self))
     }
     multi method ACCEPTS(Mu:U: Mu:U \topic) {
+        nqp::say("Mu::ACCEPTS(Mu:U): " ~ topic.^name);
         nqp::hllbool(nqp::istype(topic, self))
+    }
+
+    method arep {
+        nqp::say( "--arep-- " ~ ($*W ?? "compile time" !! "no compiler") ~ " on " ~ self.^name);
+        my $am = self.^find_method('ACCEPTS');
+        sub report_candidates ($m) {
+            nqp::say( ">------------------- " ~ $m.WHICH);
+            nqp::say($m.package.^name ~ "::" ~ $m.name);
+            nqp::say("is_dispatcher: " ~ nqp::istrue($m.is_dispatcher));
+            nqp::say("candidates: " ~ $m.candidates.elems);
+            for $m.candidates -> \c {
+                nqp::say(c.^name ~ " " ~ (c.defined ?? "defined" !! "undefined") ~ " " ~ c.package.^name ~ "::" ~ c.name);
+            }
+            nqp::say( "<-------------------" );
+        }
+        report_candidates($am);
+        report_candidates(Mu.^find_method('ACCEPTS'));
+        nqp::say("WHAT IF? " ~ self.ACCEPTS(Str));
     }
 
     method WHERE() {

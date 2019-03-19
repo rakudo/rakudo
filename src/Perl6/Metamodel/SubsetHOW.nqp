@@ -82,8 +82,22 @@ class Perl6::Metamodel::SubsetHOW
 
     # Here we check the value itself (when on RHS on smartmatch).
     method accepts_type($obj, $checkee) {
+        note("accepts_type(", $obj.HOW.name($obj), ", ", $checkee.HOW.name($checkee), ")");
+        note("refinement is: ", $!refinement.HOW.name($!refinement));
+        $!refinement.arep();
+
+        my &m := nqp::decont($!refinement.HOW.find_method($!refinement, 'ACCEPTS'));
+        nqp::say("Found ACCEPTS: " ~ &m.HOW.name(&m));
+        nqp::say("is dispatcher? " ~ &m.is_dispatcher);
+        my @cand := nqp::getattr(&m, $*W.find_symbol(['Routine']), '@!dispatchees');
+        nqp::say("candidates: " ~ +@cand);
+        my $*DFBD := 1; # Debug Find Best Dispatchee
+        nqp::say("ACCEPTS? " ~ nqp::callmethod($!refinement, 'ACCEPTS', $checkee));
+
         nqp::hllboolfor(
             nqp::istype($checkee, $!refinee) &&
-            nqp::istrue($!refinement.ACCEPTS($checkee)), "perl6")
+            nqp::istrue($!refinement.ACCEPTS($checkee)),
+            "perl6"
+        )
     }
 }

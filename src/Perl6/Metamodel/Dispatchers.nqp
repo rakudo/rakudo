@@ -81,6 +81,7 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
     }
 
     method vivify_for($sub, $lexpad, $args) {
+        nqp::say("MultiDispatcher::vivify_for");
         my $disp         := $sub.dispatcher();
         my $has_invocant := nqp::existskey($lexpad, 'self');
         my $invocant     := $has_invocant && $lexpad<self>;

@@ -26,12 +26,15 @@ my class Signature { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Signature:D: Mu \topic) {
+        nqp::say("Signature::ACCEPTS(Mu)");
         nqp::hllbool(nqp::istrue(try self.ACCEPTS: topic.Capture))
     }
     multi method ACCEPTS(Signature:D: Capture $topic) {
+        nqp::say("Signature::ACCEPTS(Capture)");
         nqp::hllbool(nqp::p6isbindable(self, nqp::decont($topic)));
     }
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
+        nqp::say("Signature::ACCEPTS(Signature)");
         my $sclass = self.params.classify({.named});
         my $tclass = $topic.params.classify({.named});
         my @spos := $sclass{False} // ();

@@ -1808,7 +1808,7 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := self.parameterize_type_with_args($/,
                     %info<bind_constraint>, [$vtype], nqp::hash());
                 %info<value_type>      := $vtype;
-                %info<default_value>   := self.maybe-definite-how-base: $vtype;
+                %info<default_value>   := self.maybe-nominalize: $vtype;
             }
             else {
                 %info<container_type> := %info<container_base>;
@@ -1876,7 +1876,7 @@ class Perl6::World is HLL::World {
                     %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
                 %info<default_value>
-                    := self.maybe-definite-how-base: @value_type[0];
+                    := self.maybe-nominalize: @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
@@ -1918,7 +1918,7 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := @value_type[0];
                 %info<value_type>      := @value_type[0];
                 %info<default_value>
-                    := self.maybe-definite-how-base: @value_type[0];
+                    := self.maybe-nominalize: @value_type[0];
             }
             else {
                 %info<bind_constraint> := self.find_symbol(['Mu'], :setting-only);
@@ -1929,12 +1929,20 @@ class Perl6::World is HLL::World {
         }
         %info
     }
-    method maybe-definite-how-base ($v) {
+
+    method maybe-definite-how-base($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
         ! $*W.lang-ver-before('d') && nqp::eqaddr($v.HOW,
             $*W.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
         ) ?? $v.HOW.base_type: $v !! $v
+    }
+
+    method maybe-nominalize($v) {
+        # if $*W.lang-ver-before('e') {
+        #     return self.maybe-definite-how-base($v);
+        # }
+        $v.HOW.archetypes.nominalizable ?? $v.HOW.nominalize($v) !! $v
     }
 
     # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
@@ -2469,9 +2477,15 @@ class Perl6::World is HLL::World {
             }
         };
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
+            if $*DFBD {
+                for @pos -> $pp {
+                    nqp::say("> pos: " ~ $pp.HOW.name($pp));
+                }
+            }
             unless $precomp {
                 $compiler_thunk();
             }
+            nqp::say("PRECOMP: " ~ $precomp.HOW.name($precomp)) if $*DFBD;
             $precomp(|@pos, |%named);
         });
         @compstuff[1] := $compiler_thunk;

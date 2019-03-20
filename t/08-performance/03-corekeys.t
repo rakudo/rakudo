@@ -12,7 +12,6 @@ my %allowed = (
   Q{$?COMPILATION-ID},
   Q{$?NL},
   Q{$?TABSTOP},
-  Q{$CORE_METAOP_ASSIGN},
   Q{$_},
   Q{%DEPRECATIONS},
   Q{&CLONE-HASH-DECONTAINERIZED},

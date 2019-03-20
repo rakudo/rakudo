@@ -1,10 +1,7 @@
-my role Signally {
-    multi method CALL-ME(Int() $signum) {
-        return self unless $signum;
-        nextsame
-    }
+my role Signal::Signally {
+    multi method CALL-ME(Int() $signum) { $signum ?? (nextsame) !! self }
 }
-my enum Signal does Signally ( |do {
+my enum Signal does Signal::Signally ( |do {
         my $res  := nqp::list;
         my $iter := nqp::iterator(nqp::getsignals);
         nqp::push(

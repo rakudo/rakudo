@@ -687,7 +687,6 @@ my %allowed = (
   Q{SetHash},
   Q{Setty},
   Q{Signal},
-  Q{Signally},
   Q{Signature},
   Q{Slang},
   Q{Slip},

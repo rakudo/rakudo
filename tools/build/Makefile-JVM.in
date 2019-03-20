@@ -13,8 +13,8 @@ J_LIBPATH = @nqp::libdir@
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
 
-J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@$(SYSROOT)@nqp_classpath@ nqp
-J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp .@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@$(SYSROOT)@nqp_classpath@ perl6
+J_RUN_NQP_RR = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp ./blib@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@$(SYSROOT)@nqp_classpath@ nqp
+J_RUN_PERL6 = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp ./blib@cpsep@$(BLD_NQP_JARS)@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@$(SYSROOT)@nqp_classpath@ perl6
 
 RUNTIME_JAVAS = src/vm/jvm/runtime/org/perl6/rakudo/*.java
 
@@ -219,18 +219,18 @@ sometests: j-all
 j-install: j-all tools/build/create-jvm-runner.pl tools/build/install-core-dist.p6
 	$(MKPATH) $(DESTDIR)$(PREFIX)/bin
 	$(MKPATH) $(DESTDIR)$(J_LIBPATH)/Perl6
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
+	$(MKPATH) $(DESTDIR)$(PERL6_HOME)/runtime
 	$(CP) $(PERL6_LANG_JARS) $(DESTDIR)$(J_LIBPATH)/Perl6
-	$(CP) $(SETTING_JAR) $(SETTING_D_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(CP) $(PERL6_DEBUG_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_LANG_DIR)/runtime
-	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_LANG_DIR)
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/vendor
-	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_LANG_DIR)/vendor
-	$(MKPATH) $(DESTDIR)$(PERL6_LANG_DIR)/site
-	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_LANG_DIR)/site
-	.@slash@$(J_RUNNER) tools/build/install-core-dist.p6 $(DESTDIR)$(PERL6_LANG_DIR)
+	$(CP) $(SETTING_JAR) $(SETTING_D_JAR) $(DESTDIR)$(PERL6_HOME)/runtime
+	$(CP) $(PERL6_JAR) $(DESTDIR)$(PERL6_HOME)/runtime
+	$(CP) $(PERL6_DEBUG_JAR) $(DESTDIR)$(PERL6_HOME)/runtime
+	$(CP) $(RUNTIME_JAR) $(DESTDIR)$(PERL6_HOME)/runtime
+	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_HOME)
+	$(MKPATH) $(DESTDIR)$(PERL6_HOME)/vendor
+	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_HOME)/vendor
+	$(MKPATH) $(DESTDIR)$(PERL6_HOME)/site
+	.@slash@$(J_RUNNER) tools/build/upgrade-repository.p6 $(DESTDIR)$(PERL6_HOME)/site
+	.@slash@$(J_RUNNER) tools/build/install-core-dist.p6 $(DESTDIR)$(PERL6_HOME)
 	$(PERL5) tools/build/create-jvm-runner.pl install "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) "" $(NQP_JARS)
 	$(PERL5) tools/build/create-jvm-runner.pl install-debug "$(DESTDIR)" $(PREFIX) $(NQP_PREFIX) "" $(NQP_JARS)
 

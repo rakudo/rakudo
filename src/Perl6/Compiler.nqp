@@ -140,9 +140,15 @@ and, by default, also executes the compiled code.
 
 Note that only boolean single-letter options may be bundled.
 
-To modify the include path, you can set the PERL6LIB environment variable:
+The following environment variables are respected:
 
-PERL6LIB="lib" perl6 example.pl
+  PERL6LIB    Modify the module search path
+  PERL6_HOME  Override the path of the Perl6 runtime files
+  NQP_HOME    Override the path of the NQP runtime files
+
+
+
+
 ♥); # end of usage statement
 
         nqp::exit(0);

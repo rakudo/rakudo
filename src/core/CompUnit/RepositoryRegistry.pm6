@@ -83,12 +83,9 @@ class CompUnit::RepositoryRegistry {
             }
         }
 
-        my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
+        my str $prefix = nqp::existskey($ENV,'RAKUDO_PREFIX')
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
-          !! nqp::concat(
-               nqp::atkey(nqp::getcomp('perl6').config,'libdir'),
-               "{$sep}perl6"
-             );
+          !! nqp::getcurhllsym('$PERL6_HOME');
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
         my str $home;

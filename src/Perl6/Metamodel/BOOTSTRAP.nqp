@@ -2231,8 +2231,12 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'derive_dispatcher', nqp::getstaticcode(sub ($self) {
             my $clone := $self.clone();
+            my $*DFBD := 1;
+            nqp::say("+++++ derive_dispatcher clone") if $*DFBD;
             nqp::bindattr($clone, Routine, '@!dispatchees',
                 nqp::clone(nqp::getattr($self, Routine, '@!dispatchees')));
+            nqp::bindattr($clone, Routine, '$!package', $*PACKAGE);
+            nqp::say("----- derive_dispatcher cloned") if $*DFBD;
             $clone
         }));
     Routine.HOW.add_method(Routine, 'dispatcher', nqp::getstaticcode(sub ($self) {
@@ -3786,6 +3790,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     nqp::say("set_selector_creator") if $*DFBD;
     my $sel := nqp::create(Sub);
     my $onlystar := sub (*@pos, *%named) {
+        nqp::say("set_selector_creator / onlystar") if $*DFBD;
         nqp::invokewithcapture(
             nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
             nqp::usecapture())

@@ -37,7 +37,6 @@ my class Mu { # declared in BOOTSTRAP
         }
         report_candidates($am);
         report_candidates(Mu.^find_method('ACCEPTS'));
-        nqp::say("WHAT IF? " ~ self.ACCEPTS(Str));
     }
 
     method WHERE() {

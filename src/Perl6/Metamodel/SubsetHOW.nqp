@@ -84,14 +84,19 @@ class Perl6::Metamodel::SubsetHOW
     method accepts_type($obj, $checkee) {
         note("accepts_type(", $obj.HOW.name($obj), ", ", $checkee.HOW.name($checkee), ")");
         note("refinement is: ", $!refinement.HOW.name($!refinement));
-        $!refinement.arep();
+        # $!refinement.arep();
 
-        my &m := nqp::decont($!refinement.HOW.find_method($!refinement, 'ACCEPTS'));
-        nqp::say("Found ACCEPTS: " ~ &m.HOW.name(&m));
-        nqp::say("is dispatcher? " ~ &m.is_dispatcher);
-        my @cand := nqp::getattr(&m, $*W.find_symbol(['Routine']), '@!dispatchees');
-        nqp::say("candidates: " ~ +@cand);
+        # my &m := nqp::decont($!refinement.HOW.find_method($!refinement, 'ACCEPTS'));
+        # nqp::say("Found ACCEPTS: " ~ &m.HOW.name(&m));
+        # nqp::say("is dispatcher? " ~ &m.is_dispatcher);
+        # my @cand := nqp::getattr(&m, $*W.find_symbol(['Routine']), '@!dispatchees');
+        # nqp::say("candidates: " ~ +@cand);
         my $*DFBD := 1; # Debug Find Best Dispatchee
+        my %mt := nqp::getattr($*W.find_symbol(['Code']).HOW, Perl6::Metamodel::ClassHOW, '%!methods');
+        my $m := nqp::atkey(%mt, 'ACCEPTS');
+        nqp::say("... From methods table: " ~ $m.HOW.name($m));
+        nqp::say("... Method package: " ~ $m.package.HOW.name($m.package));
+        nqp::say("... Is dispatcher? " ~ $m.is_dispatcher);
         nqp::say("ACCEPTS? " ~ nqp::callmethod($!refinement, 'ACCEPTS', $checkee));
 
         nqp::hllboolfor(

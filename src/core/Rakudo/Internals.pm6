@@ -1681,6 +1681,21 @@ implementation detail and has no serviceable parts inside"
         what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
         what
     }
+
+    # Return a nqp list iterator from an IterationSet
+    proto method ITERATIONSET2LISTITER(|) {*}
+    multi method ITERATIONSET2LISTITER(IterationSet:U) {
+        nqp::iterator(nqp::list_s)
+    }
+    multi method ITERATIONSET2LISTITER(IterationSet:D \iterationset) {
+        my $iter := nqp::iterator(iterationset);
+        my $keys := nqp::list_s;
+        nqp::while(
+          $iter,
+          nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
+        );
+        nqp::iterator($keys)
+    }
 }
 
 # expose the number of bits a native int has

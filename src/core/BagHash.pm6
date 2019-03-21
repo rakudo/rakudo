@@ -142,7 +142,7 @@ my class BagHash does Baggy {
         # processing.
         nqp::stmts(
           # save object for potential recreation
-          (my $object := nqp::atkey(elems,$key)),
+          (my $pair := nqp::atkey(elems,$key)),
 
           Proxy.new(
             FETCH => {
@@ -173,10 +173,11 @@ my class BagHash does Baggy {
                     ),
                     nqp::if(                    # where did it go?
                       nqp::isgt_i($value,0),
-                      nqp::bindkey(
-                        elems,
-                        $key,
-                        Pair.new($object,nqp::decont($value))
+                      nqp::bindattr(
+                        nqp::bindkey(elems,$key,$pair),
+                        Pair,
+                        '$!value',
+                        nqp::decont($value)
                       )
                     )
                   )

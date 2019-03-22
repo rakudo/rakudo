@@ -125,14 +125,30 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
           ?? "-e '...'"
           !! strip_path_prefix($prog-name);
 
+        # return the Cool constant if the post_constraints of a Parameter is
+        # a single Cool constant, else Nil
+        sub cool_constant(Parameter:D $p) {
+            nqp::not_i(
+              nqp::isnull(
+                (my \post_constraints :=
+                  nqp::getattr($p,Parameter,'@!post_constraints'))
+              )
+            ) && nqp::elems(post_constraints) == 1
+              && nqp::istype((my \value := nqp::atpos(post_constraints,0)),Cool)
+              ?? value
+              !! Nil
+        }
+
         # Select candidates for which to create USAGE string
         sub usage-candidates($capture) {
             my @candidates = &main.candidates.grep: { !.?is-hidden-from-USAGE }
             if $capture.list -> @positionals {
                 my $first := @positionals[0];
                 if @candidates.grep: -> $sub {
-                    if $sub.signature.params[0].cool_constant -> $literal {
-                       $literal.ACCEPTS($first)
+                    if $sub.signature.params[0] -> $param {
+                        if cool_constant($param) -> $literal {
+                            $literal.ACCEPTS($first)
+                        }
                     }
                 } -> @candos {
                     return @candos;

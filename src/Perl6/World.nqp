@@ -2464,11 +2464,9 @@ class Perl6::World is HLL::World {
 
             # Compile the block.
             $precomp := self.compile_in_context($code_past, $code_type);
-            nqp::say("??? precomp is: " ~ $precomp.HOW.name($precomp)) if $*DFBD;
 
             # Also compile the candidates if this is a proto.
             if $is_dispatcher {
-                nqp::say("??? is dispatcher in thunk") if $*DFBD;
                 for nqp::getattr($code, $routine_type, '@!dispatchees') {
                     my $cs := nqp::getattr($_, $code_type, '@!compstuff');
                     my $past := $cs[0] unless nqp::isnull($cs);
@@ -2479,16 +2477,13 @@ class Perl6::World is HLL::World {
             }
         };
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
-            if $*DFBD {
-                for @pos -> $pp {
-                    nqp::say("> pos: " ~ $pp.HOW.name($pp));
-                }
-            }
             unless $precomp {
-                nqp::say("??? compiler thunk?") if $*DFBD;
                 $compiler_thunk();
             }
-            nqp::say("PRECOMP: " ~ $precomp.HOW.name($precomp)) if $*DFBD;
+            my $code_obj := nqp::getcodeobj(nqp::curcode());
+            unless nqp::isnull($code_obj) {
+                return $code_obj(|@pos, |%named);
+            }
             $precomp(|@pos, |%named);
         });
         @compstuff[1] := $compiler_thunk;
@@ -2505,7 +2500,6 @@ class Perl6::World is HLL::World {
         # boundary.
         if self.is_precompilation_mode() {
             @compstuff[2] := sub ($orig, $clone) {
-                nqp::say("??? stub \$!do mark boundary");
                 my $do := nqp::getattr($clone, $code_type, '$!do');
                 nqp::markcodestub($do);
                 self.context().add_cleanup_task(sub () {
@@ -2529,6 +2523,7 @@ class Perl6::World is HLL::World {
                     self.context().add_cleanup_task(sub () {
                         nqp::bindattr($clone, $code_type, '@!compstuff', nqp::null());
                     });
+                    self.context().add_clone_for_cuid($clone, $cuid);
                     my $tmp := $fixups.unique('tmp_block_fixup');
                     $fixups.push(QAST::Stmt.new(
                         QAST::Op.new(
@@ -2748,7 +2743,6 @@ class Perl6::World is HLL::World {
     # We need to do this for BEGIN but also for things that get called in
     # the compilation process, like user defined traits.
     method compile_in_context($past, $code_type) {
-        nqp::say("??? compile_in_context") if $*DFBD;
         # Ensure that we have the appropriate op libs loaded and correct
         # HLL.
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), $past);
@@ -2789,7 +2783,6 @@ class Perl6::World is HLL::World {
             $cur_block := $cur_block.ann('outer');
         }
 
-        nqp::say("??? compile_in_context 2") if $*DFBD;
         # Compile it, set wrapper's static lexpad, then invoke the wrapper,
         # which fixes up the lexicals.
         my $compunit := QAST::CompUnit.new(
@@ -2801,9 +2794,7 @@ class Perl6::World is HLL::World {
         my $comp := nqp::getcomp('perl6');
         my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1),
              :lineposcache($*LINEPOSCACHE));
-        nqp::say("??? compile_in_context 2a") if $*DFBD;
         my $mainline := $comp.backend.compunit_mainline($precomp);
-        nqp::say("??? compile_in_context 3") if $*DFBD;
         $mainline();
 
         # Fix up Code object associations (including nested blocks).
@@ -2849,7 +2840,6 @@ class Perl6::World is HLL::World {
         }
 
         # Flag block as dynamically compiled.
-        nqp::say("??? compile_in_context 4") if $*DFBD;
         $past.annotate('DYNAMICALLY_COMPILED', 1);
 
         # Return the VM coderef that maps to the thing we were originally

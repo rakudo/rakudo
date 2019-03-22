@@ -1,15 +1,5 @@
 
-sub METAOP_ASSIGN(\op) {
-    my \op-is := nqp::ifnull(
-      nqp::atkey(                                    # is it a core op?
-        nqp::ifnull($CORE_METAOP_ASSIGN,Rakudo::Internals.INSTALL-CORE-METAOPS),
-        nqp::objectid(op)
-      ),
-      -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
-    );
-    op-is.set_name(op.name ~ ' + {assigning}');      # checked for in Hyper.new
-    op-is
-}
+sub METAOP_ASSIGN(\op) { Rakudo::Internals.METAOP_ASSIGN(op) }
 
 sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }
 sub METAOP_TEST_ASSIGN:<||>(\lhs, $rhs) is raw { lhs || (lhs = $rhs()) }

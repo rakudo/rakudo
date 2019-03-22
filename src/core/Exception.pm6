@@ -1511,7 +1511,7 @@ my class X::Syntax::Augment::Adverb does X::Syntax {
 
 my class X::Syntax::Type::Adverb does X::Syntax {
     has $.adverb;
-    method message() { "Cannot use adverb $.adverb on a type name (only 'ver' and 'auth' are understood)" }
+    method message() { "Cannot use adverb $.adverb on a type name (only 'ver', 'auth' and 'api' are understood)" }
 }
 
 my class X::Syntax::Argument::MOPMacro does X::Syntax {

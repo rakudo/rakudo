@@ -465,6 +465,11 @@ U: jdv79
 N: Kamil Kułaga
 E: teodozjan@users.noreply.github.com
 
+N: Kane Valentine
+U: kawaii
+E: kane@cute.im
+W: https://cute.im
+
 N: kboga
 E: kristofbogaerts@gmail.com
 
@@ -881,5 +886,9 @@ E: perl6@eaterofco.de
 N: Oleksii Varianyk
 U: cono
 E: q@cono.org.ua
+
+N: Vadim Belman
+U: vrurg
+E: vrurg@cpan.org
 
 =cut

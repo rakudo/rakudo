@@ -1212,7 +1212,7 @@ class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { 
+    method name() {
         'element at [' ~ $!one ~ ',' ~ $!two ~ ']'  # XXX name ?
     }
     method assigned($scalar) {

@@ -2209,9 +2209,6 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
-
-            my $pkg := nqp::getattr($dc_self, Routine, '$!package');
-
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
             if nqp::defined($disp_list) {
                 $disp_list.push($dispatchee);
@@ -2233,7 +2230,6 @@ BEGIN {
             my $clone := $self.clone();
             nqp::bindattr($clone, Routine, '@!dispatchees',
                 nqp::clone(nqp::getattr($self, Routine, '@!dispatchees')));
-            nqp::bindattr($clone, Routine, '$!package', $*PACKAGE);
             $clone
         }));
     Routine.HOW.add_method(Routine, 'dispatcher', nqp::getstaticcode(sub ($self) {
@@ -2373,7 +2369,6 @@ BEGIN {
 
             # Create a node for each candidate in the graph.
             my @graph;
-            my $ccnt := 0;
             for @candidates -> $candidate {
                 # Get hold of signature.
                 my $sig    := nqp::getattr($candidate, Code, '$!signature');
@@ -2612,7 +2607,6 @@ BEGIN {
 
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
-            my $pkg := nqp::getattr($dcself, Routine, '$!package');
             my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
             if nqp::isnull(@candidates) {
                 nqp::scwbdisable();

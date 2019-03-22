@@ -5,7 +5,6 @@ my class Code does Callable { # declared in BOOTSTRAP
     #     has @!compstuff;            # Place for the compiler to hang stuff
 
     multi method ACCEPTS(Code:D $self: Mu $topic is raw) {
-        nqp::say("Code::ACCEPTS??");
         $self.count ?? $self($topic) !! $self()
     }
 

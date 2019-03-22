@@ -8,10 +8,7 @@ my class IO::Socket::Async {
     has $!close-promise;
     has $!close-vow;
 
-    subset SS of Str where { True };
-    subset Port-Number of Int where { nqp::say("REFINEE!"); !defined($_) or $_ ~~ ^65536 };
-
-    has SS $.foo;
+    subset Port-Number of Int where { !defined($_) or $_ ~~ ^65536 };
 
     has Str $.peer-host;
     has Port-Number $.peer-port;

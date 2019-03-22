@@ -4737,12 +4737,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Add dispatching code.
-        # $BLOCK.push(
-        #     QAST::Op.new(
-        #         :op('say'),
-        #         QAST::SVal.new(:value("onlystar call"))
-        #     )
-        # );
         $BLOCK.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(
@@ -6473,10 +6467,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<onlystar>($/) {
         my $dc_name := QAST::Node.unique('dispatch_cap');
         my $stmts := QAST::Stmts.new(
-            QAST::Op.new(
-                :op('say'),
-                QAST::SVal.new(:value("term:sym<onlystar> call"))
-            ),
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :name($dc_name), :scope('local'), :decl('var') ),

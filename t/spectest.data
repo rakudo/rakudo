@@ -490,6 +490,7 @@ S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
 S06-macros/opaque-ast.t
 S06-multi/by-trait.t
+S06-multi/compile-time.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t

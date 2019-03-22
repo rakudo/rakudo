@@ -320,10 +320,12 @@ MAIN: {
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
         # Strip rpath from ldflags so we can set it differently ourself.
-        $config{ldflags} = join(' ', $nqp_config{'moar::ldflags'}, $nqp_config{'moar::ldmiscflags'}, $nqp_config{'moar::ldoptiflags'}, $nqp_config{'moar::ldlibs'});
+        $config{ldflags} = $nqp_config{'moar::ldflags'};
         $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath'}\E ?//;
         $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath_relocatable'}\E ?//;
         $config{ldflags} .= ' ' . ($options{'no-relocatable'} ? $nqp_config{'moar::ldrpath'} : $nqp_config{'moar::ldrpath_relocatable'});
+        
+        $config{ldlibs} = $nqp_config{'moar::ldlibs'};
         
         my @c_runner_libs;
         

@@ -1,8 +1,9 @@
 M_CC      = @moar::cc@
 M_LD      = @moar::ld@
-M_CCINC  = @moar::ccinc@
-M_CFLAGS  = @moar::cflags@ @moar::ccmiscflags@ @moar::ccoptiflags@ @moar::ccwarnflags@
+M_CCINC   = @moar::ccinc@
+M_CFLAGS  = @moar::cflags@
 M_LDFLAGS = @ldflags@
+M_LDLIBS  = @moar::ldlibs@
 M_C_RUNNER_LIBS = @c_runner_libs@
 M_MINGW_UNICODE = @mingw_unicode@
 
@@ -122,7 +123,7 @@ $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC)
 	    -I$(M_INCPATH)/dyncall -I$(M_INCPATH)/moar \
 	    -I$(M_INCPATH)/sha1 -I$(M_INCPATH)/tinymt  -I$(M_INCPATH)/libtommath \
 	    -I$(M_INCPATH)/libuv -I$(M_INCPATH) @moar::cincludes@ @moar::ccout@$(M_PERL6_CONT_OBJ) $(M_PERL6_CONT_SRC)
-	$(M_LD) @moar::ldswitch@ -L@moar::libdir@ @moar::ldshared@ $(M_LDFLAGS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) $(M_PERL6_CONT_OBJ) -lmoar @moarimplib@
+	$(M_LD) @moar::ldswitch@ -L@moar::libdir@ @moar::ldshared@ $(M_LDFLAGS) $(M_LDLIBS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) $(M_PERL6_CONT_OBJ) -lmoar @moarimplib@
 
 $(PERL6_ML_MOAR): src/Perl6/ModuleLoader.nqp src/vm/moar/ModuleLoaderVMConfig.nqp gen/nqp-version
 	$(M_NQP) $(M_GEN_CAT) src/vm/moar/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp > $(M_BUILD_DIR)/ModuleLoader.nqp

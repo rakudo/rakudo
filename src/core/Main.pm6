@@ -127,25 +127,18 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
         # Select candidates for which to create USAGE string
         sub usage-candidates($capture) {
-            my @candidates = &main.candidates;
-            my @positionals = $capture.list;
-
-            my @candos;
-            while @positionals && !@candos {
-
-                # Find candidates on which all these positionals match
-                @candos = @candidates.grep: -> $sub {
-                    my @params = $sub.signature.params;
-                    if @positionals <= @params {
-                        (^@positionals).first( -> int $i {
-                            !(@params[$i].constraints.ACCEPTS(@positionals[$i]))
-                        } ).defined.not
+            my @candidates = &main.candidates.grep: { !.?is-hidden-from-USAGE }
+            if $capture.list -> @positionals {
+                my $first := @positionals[0];
+                if @candidates.grep: -> $sub {
+                    if $sub.signature.params[0].cool_constant -> $literal {
+                       $literal.ACCEPTS($first)
                     }
+                } -> @candos {
+                    return @candos;
                 }
-                @positionals.pop;
             }
-            (@candos || @candidates)
-              .grep: { nqp::not_i(nqp::can($_,'is-hidden-from-USAGE')) }
+            @candidates
         }
 
         for usage-candidates(capture) -> $sub {

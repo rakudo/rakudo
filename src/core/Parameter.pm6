@@ -630,6 +630,15 @@ my class Parameter { # declared in BOOTSTRAP
         $perl ~ $rest;
     }
 
+    # return the cool constant if the post_constraint is a single Cool constant
+    method cool_constant() {
+        nqp::not_i(nqp::isnull(@!post_constraints))
+          && nqp::elems(@!post_constraints) == 1
+          && nqp::istype((my \value := nqp::atpos(@!post_constraints,0)),Cool)
+          ?? value
+          !! Nil
+    }
+
     method sub_signature(Parameter:D:) {
         nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
     }

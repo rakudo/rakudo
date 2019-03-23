@@ -614,6 +614,7 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
 
     my $targetWHO;
     my $sourceWHO;
+    my $stubWHO;
     if $existing-path {
         my @existing-path = @$existing-path;
         my $topname := @existing-path.shift;
@@ -639,6 +640,10 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
         $sourceWHO := $GLOBALish.AT-KEY($stubname).WHO;
         $targetWHO.merge-symbols($sourceWHO);
     }
+
+    if $stubname {
+        $stubWHO := $block.AT-KEY($stubname).WHO;
+    }
     # Set the runtime values for compile time stub symbols
     for @syms {
         unless $DEFAULT.EXISTS-KEY($_) {
@@ -647,6 +652,8 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
         }
         $block{$_} := $DEFAULT{$_};
     }
+
+
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
@@ -655,6 +662,11 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
         $block<%REQUIRE_SYMBOLS>,
         $GLOBALish,
     );
+
+    nqp::gethllsym('perl6', 'ModuleLoader').merge_globals(
+        $stubWHO,
+        $GLOBALish,
+    ) if $stubWHO;
 }
 
 proto sub infix:<andthen>(|) {*}

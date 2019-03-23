@@ -125,27 +125,36 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
           ?? "-e '...'"
           !! strip_path_prefix($prog-name);
 
+        # return the Cool constant if the post_constraints of a Parameter is
+        # a single Cool constant, else Nil
+        sub cool_constant(Parameter:D $p) {
+            nqp::not_i(
+              nqp::isnull(
+                (my \post_constraints :=
+                  nqp::getattr($p,Parameter,'@!post_constraints'))
+              )
+            ) && nqp::elems(post_constraints) == 1
+              && nqp::istype((my \value := nqp::atpos(post_constraints,0)),Cool)
+              ?? value
+              !! Nil
+        }
+
         # Select candidates for which to create USAGE string
         sub usage-candidates($capture) {
-            my @candidates = &main.candidates;
-            my @positionals = $capture.list;
-
-            my @candos;
-            while @positionals && !@candos {
-
-                # Find candidates on which all these positionals match
-                @candos = @candidates.grep: -> $sub {
-                    my @params = $sub.signature.params;
-                    if @positionals <= @params {
-                        (^@positionals).first( -> int $i {
-                            !(@params[$i].constraints.ACCEPTS(@positionals[$i]))
-                        } ).defined.not
+            my @candidates = &main.candidates.grep: { !.?is-hidden-from-USAGE }
+            if $capture.list -> @positionals {
+                my $first := @positionals[0];
+                if @candidates.grep: -> $sub {
+                    if $sub.signature.params[0] -> $param {
+                        if cool_constant($param) -> $literal {
+                            $literal.ACCEPTS($first)
+                        }
                     }
+                } -> @candos {
+                    return @candos;
                 }
-                @positionals.pop;
             }
-            (@candos || @candidates)
-              .grep: { nqp::not_i(nqp::can($_,'is-hidden-from-USAGE')) }
+            @candidates
         }
 
         for usage-candidates(capture) -> $sub {

@@ -15,7 +15,6 @@ my class X::Str::Sprintf::Directives::Count { ... }
 my class X::Str::Sprintf::Directives::Unsupported { ... }
 my class X::TypeCheck { ... }
 
-my $CORE_METAOP_ASSIGN := nqp::null;  # lazy storage for core METAOP_ASSIGN ops
 
 my class Rakudo::Internals {
 
@@ -661,9 +660,10 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
-    method SHORT-GIST(\thing) {
+    method SHORT-GIST(Mu \thing) {
+        my str $gist = nqp::can(thing, 'gist') ??  thing.gist !! thing.^name;
         nqp::if(
-          nqp::isgt_i(nqp::chars(my str $gist = thing.gist), 23),
+          nqp::isgt_i(nqp::chars($gist), 23),
           nqp::concat(nqp::substr($gist, 0, 20), '...'),
           $gist);
     }
@@ -1370,6 +1370,7 @@ implementation detail and has no serviceable parts inside"
                 X::Str::Sprintf::Directives::BadType.new:
                     type      => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'TYPE'),
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'DIRECTIVE'),
+                    value     => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'VALUE'),
             }
             elsif nqp::existskey(payload, 'BAD_DIRECTIVE') {
                 X::Str::Sprintf::Directives::Unsupported.new:
@@ -1638,13 +1639,26 @@ implementation detail and has no serviceable parts inside"
         )
     }
 
+    my $METAOP_ASSIGN := nqp::null;  # lazy storage for core METAOP_ASSIGN ops
+    method METAOP_ASSIGN(\op) {
+        my \op-is := nqp::ifnull(
+          nqp::atkey(                                # is it a core op?
+            nqp::ifnull($METAOP_ASSIGN,INSTALL-CORE-METAOPS()),
+            nqp::objectid(op)
+          ),
+          -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
+        );
+        op-is.set_name(op.name ~ ' + {assigning}');  # checked for in Hyper.new
+        op-is
+    }
+
     # Method for lazily installing fast versions of METAOP_ASSIGN ops for
     # core infix ops.  Since the compilation of &[op] happens at build time
     # of the setting, we're sure we're referring to the core ops and not one
     # that has been locally installed.  Called by METAOP_ASSIGN.  Please add
     # any other core ops that seem to be necessary.
-    method INSTALL-CORE-METAOPS() {
-        $CORE_METAOP_ASSIGN := nqp::create(Rakudo::Internals::IterationSet);
+    sub INSTALL-CORE-METAOPS() {
+        $METAOP_ASSIGN := nqp::create(Rakudo::Internals::IterationSet);
         for (
           &[+], -> Mu \a, Mu \b { a = a.DEFINITE ?? a + b !! +b },
           &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! Failure.new("No zero-arg meaning for infix:<%>")},
@@ -1653,9 +1667,9 @@ implementation detail and has no serviceable parts inside"
           &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! ~b },
         ) -> \op, \metaop {
             metaop.set_name(op.name ~ ' + {assigning}');
-            nqp::bindkey($CORE_METAOP_ASSIGN,nqp::objectid(op),metaop);
+            nqp::bindkey($METAOP_ASSIGN,nqp::objectid(op),metaop);
         }
-        $CORE_METAOP_ASSIGN
+        $METAOP_ASSIGN
     }
 
     # handle parameterization by just adding a "keyof" method
@@ -1666,6 +1680,21 @@ implementation detail and has no serviceable parts inside"
         my \what := base.^mixin(KeyOf[type]);
         what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
         what
+    }
+
+    # Return a nqp list iterator from an IterationSet
+    proto method ITERATIONSET2LISTITER(|) {*}
+    multi method ITERATIONSET2LISTITER(IterationSet:U) {
+        nqp::iterator(nqp::list_s)
+    }
+    multi method ITERATIONSET2LISTITER(IterationSet:D \iterationset) {
+        my $iter := nqp::iterator(iterationset);
+        my $keys := nqp::list_s;
+        nqp::while(
+          $iter,
+          nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
+        );
+        nqp::iterator($keys)
     }
 }
 

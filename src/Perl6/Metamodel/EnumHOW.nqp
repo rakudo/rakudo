@@ -52,9 +52,9 @@ class Perl6::Metamodel::EnumHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
 
-    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque') {
+    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque', :$is_mixin) {
         my $meta := self.new();
-        my $obj  := nqp::settypehll(nqp::newtype($meta, $repr), 'perl6');
+        my $obj  := nqp::settypehll(nqp::newmixintype($meta, $repr), 'perl6');
         $meta.set_name($obj, $name);
         $meta.set_base_type($meta, $base_type) unless $base_type =:= NQPMu;
         $meta.setup_mixin_cache($obj);

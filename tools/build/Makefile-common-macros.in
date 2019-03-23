@@ -11,11 +11,12 @@ RM_RF   = @rm_rf@
 TEST_F  = @test_f@
 @shell@
 
-SYSROOT= @sysroot@
-SDKROOT= @sdkroot@
-PREFIX = @prefix@
-LIBDIR = @libdir@
-PERL6_LANG_DIR = $(LIBDIR)/perl6
+SYSROOT = @sysroot@
+SDKROOT = @sdkroot@
+PREFIX  = @prefix@
+LIBDIR  = @libdir@
+NQP_HOME   = $(LIBDIR)/nqp
+PERL6_HOME = $(LIBDIR)/perl6
 
 BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/BOOTSTRAP.nqp \

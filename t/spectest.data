@@ -490,6 +490,7 @@ S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
 S06-macros/opaque-ast.t
 S06-multi/by-trait.t
+S06-multi/compile-time.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t
@@ -918,7 +919,6 @@ S17-supply/tail.t
 S17-supply/throttle.t     # slow
 S17-supply/unique.t       # slow
 S17-supply/wait.t         # slow
-S17-supply/watch-path.t   # slow
 S17-supply/words.t
 S17-supply/zip.t
 S17-supply/zip-latest.t

@@ -3,8 +3,6 @@ my class Exception { ... }
 my class Backtrace { ... }
 my class CompUnit::RepositoryRegistry is repr('Uninstantiable') { ... }
 
-my $RAKUDO-VERBOSE-STACKFRAME;
-
 my class Backtrace::Frame {
     has Str $.file;
     has Int $.line;
@@ -36,7 +34,7 @@ my class Backtrace::Frame {
         $s ~= ' ' if $s.chars;
         my $text = "  in {$s}$.subname at {$.file} line $.line\n";
 
-        if $RAKUDO-VERBOSE-STACKFRAME -> $extra {
+        if Backtrace.RAKUDO_VERBOSE_STACKFRAME -> $extra {
             my $io = $!file.IO;
             if $io.e {
                 my @lines = $io.lines;
@@ -75,9 +73,16 @@ my class Backtrace {
     has Mu $!frames;
     has Int $!bt-next;   # next bt index to vivify
 
+    my $RAKUDO_VERBOSE_STACKFRAME := nqp::null;
+    method RAKUDO_VERBOSE_STACKFRAME() {
+        nqp::ifnull(
+          $RAKUDO_VERBOSE_STACKFRAME,
+          $RAKUDO_VERBOSE_STACKFRAME :=
+            (%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0).Int
+        )
+    }
+
     method !SET-SELF($!bt,$!bt-next) {
-        once $RAKUDO-VERBOSE-STACKFRAME =
-          (%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0).Num;
         $!frames := nqp::list;
         self
     }

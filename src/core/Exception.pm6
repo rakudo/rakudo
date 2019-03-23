@@ -1511,7 +1511,7 @@ my class X::Syntax::Augment::Adverb does X::Syntax {
 
 my class X::Syntax::Type::Adverb does X::Syntax {
     has $.adverb;
-    method message() { "Cannot use adverb $.adverb on a type name (only 'ver' and 'auth' are understood)" }
+    method message() { "Cannot use adverb $.adverb on a type name (only 'ver', 'auth' and 'api' are understood)" }
 }
 
 my class X::Syntax::Argument::MOPMacro does X::Syntax {
@@ -2112,8 +2112,9 @@ my class X::Str::Sprintf::Directives::Unsupported is Exception {
 my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.type;
     has str $.directive;
+    has $.value;
     method message() {
-        "Directive $.directive not applicable for type $.type"
+        "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
     }
 }
 
@@ -2148,6 +2149,15 @@ my class X::Sequence::Deduction is Exception {
     }
 }
 
+my class X::Cannot::Map is Exception {
+    has $.what   = "(<unknown type>)";
+    has $.using  = "(<an unknown expression>)";
+    has $.suggestion;
+    method message() {
+        my $message = "Cannot map a $.what using $.using";
+        $.suggestion ?? "$message\n$.suggestion" !! $message
+    }
+}
 my class X::Cannot::Lazy is Exception {
     has $.action;
     has $.what;

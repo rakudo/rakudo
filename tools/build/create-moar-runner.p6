@@ -112,8 +112,8 @@ sub get-debugger-text($toolchain) {
 }
 
 sub get-perl6-debug-runner($toolchain, $perl6, $env-vars) {
-    my $cmdline = $toolchain eq 'gdb'  ?? '%sgdb --quiet --ex=run --args %s "$@"'.sprintf($env-vars, $perl6)
-               !! $toolchain eq 'lldb' ?? '%slldb %s -- "$@"'.sprintf($env-vars, $perl6) !! die;
+    my $cmdline = $toolchain eq 'gdb'  ?? '%sgdb --quiet --ex=run --args $DIR/%s "$@"'.sprintf($env-vars, $perl6)
+               !! $toolchain eq 'lldb' ?? '%slldb $DIR/%s -- "$@"'.sprintf($env-vars, $perl6) !! die;
     return sprintf(q:to/EOS/, $bash-prelude, $env-vars, $perl6, get-debugger-text($toolchain), $cmdline);
     %s
 

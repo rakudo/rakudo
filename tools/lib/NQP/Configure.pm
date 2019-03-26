@@ -4,6 +4,7 @@ use warnings;
 use Cwd;
 use File::Copy qw(copy);
 use File::Spec qw();
+use NQP::Configure::Macros;
 
 use base qw(Exporter);
 our @EXPORT_OK = qw(sorry slurp system_or_die
@@ -140,28 +141,77 @@ sub fill_template_file {
     }
 }
 
+sub expand_macros {
+    my $text = shift;
+    my %params = @_;
+
+    my %config = %{ $params{config} };
+
+    my $macros = NQP::Configure::Macros->new( config => \%config );
+
+    my $text_out = "";
+    while ( $text =~ /
+                 (?<text>.*? (?= @ | \z))
+                 (
+                     (?<msym> (?: @@ | @))
+                     (?:
+                         (?<macro_var> [:\w]+ )
+                       | (?: (?<macro_func> [:\w]+ )
+                           (?>
+                             \( 
+                               (?<mparam>
+                                 (
+                                     (?2)
+                                   | [^\)]
+                                   | \) (?! \k<msym> )
+                                   | \z (?{ die "Can't find closing \)$+{msym} for macro '$+{macro_func}'" })
+                                 )*
+                               )
+                             \) 
+                           )
+                       )
+                       | \z
+                     )
+                     \k<msym>
+                 )?
+                /sgcx ) {
+            my %m = %+;
+            $text_out .= $m{text} // "";
+            my $chunk;
+            if ( $m{macro_var} ) {
+                $chunk = $config{ $m{macro_var} };
+            }
+            elsif ( $m{macro_func} ) {
+                $chunk = $macros->execute( $m{macro_func}, $m{mparam} );
+                $chunk = expand_macros( $chunk, config => \%config );
+            }
+
+            if (defined $chunk) {
+                $text_out .= $m{msym} eq '@@' ? 
+                                $macros->execute( 'sp_escape', $chunk ) : 
+                                $chunk;
+            }
+    }
+
+    return $text_out;
+}
 
 sub fill_template_text {
     my $text = shift;
     my %config = @_;
 
-    my $escape = sub {
-        my $str = $_[0];
-        $str =~ s{ }{\\ }g;
-        $str;
-    };
+    my $text_out = expand_macros($text, config => \%config);
 
-    $text =~ s/@@([:\w]+)@@/$escape->($config{$1} || '')/ge;
-    $text =~ s/@([:\w]+)@/$config{$1} || ''/ge;
-    if ($text =~ /nqp::makefile/) {
+    if ($text_out =~ /nqp::makefile/) {
         if ($^O eq 'MSWin32') {
-            $text =~ s{/}{\\}g;
-            $text =~ s{\\\*}{\\\\*}g;
-            $text =~ s{(?:git|http):\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
-            $text =~ s/.*curl.*/do {my $t = $&; $t =~ s'%'%%'g; $t}/meg;
+            $text_out =~ s{/}{\\}g;
+            $text_out =~ s{\\\*}{\\\\*}g;
+            $text_out =~ s{(?:git|http):\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
+            $text_out =~ s/.*curl.*/do {my $t = $&; $t =~ s'%'%%'g; $t}/meg;
         }
         if ($config{'makefile-timing'}) {
-            $text =~ s{ (?<!\\\n)        # not after line ending in '\'
+            $text_out =~
+                      s{ (?<!\\\n)        # not after line ending in '\'
                         ^                # beginning of line
                         (\t(?>@?[ \t]*)) # capture tab, optional @, and hspace
                         (?!-)            # not before - (ignore error) lines
@@ -172,7 +222,7 @@ sub fill_template_text {
                       {$1time\ }mgx;
         }
     }
-    $text;
+    $text_out;
 }
 
 

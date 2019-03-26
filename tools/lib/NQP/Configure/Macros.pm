@@ -31,6 +31,65 @@ sub execute {
     $self->$method(@_);
 }
 
+sub expand {
+    my $self = shift;
+    my $text = shift;
+    my %params = @_;
+
+    my $config = $self->{config};
+
+    my $mobj = $self;
+
+    if ( $params{isolate} ) {
+        $mobj = NQP::Configure::Macros->new( config => $config );
+    }
+
+    my $text_out = "";
+    while ( $text =~ /
+                 (?<text>.*? (?= @ | \z))
+                 (
+                     (?<msym> (?: @@ | @))
+                     (?:
+                         (?<macro_var> [:\w]+ )
+                       | (?: (?<macro_func> [:\w]+ )
+                           (?>
+                             \( 
+                               (?<mparam>
+                                 (
+                                     (?2)
+                                   | [^\)]
+                                   | \) (?! \k<msym> )
+                                   | \z (?{ die "Can't find closing \)$+{msym} for macro '$+{macro_func}'" })
+                                 )*
+                               )
+                             \) 
+                           )
+                       )
+                       | \z
+                     )
+                     \k<msym>
+                 )?
+                /sgcx ) {
+            my %m = %+;
+            $text_out .= $m{text} // "";
+            my $chunk;
+            if ( $m{macro_var} ) {
+                $chunk = $config->{ $m{macro_var} };
+            }
+            elsif ( $m{macro_func} ) {
+                $chunk = $mobj->execute( $m{macro_func}, $m{mparam} );
+            }
+
+            if (defined $chunk) {
+                $text_out .= $m{msym} eq '@@' ? 
+                                $mobj->_m_sp_escape($chunk) : 
+                                $chunk;
+            }
+    }
+
+    return $text_out;
+}
+
 sub _m_test {
     #my $self = shift;
     return "*this is a test* ($_[1])";

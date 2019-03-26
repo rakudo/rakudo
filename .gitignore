@@ -1,5 +1,5 @@
 /gen/*
-nqp/
+/nqp/
 repo/
 install/
 install-jvm/

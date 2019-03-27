@@ -8,6 +8,7 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::MethodContainer
+    does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::BaseType
@@ -51,9 +52,9 @@ class Perl6::Metamodel::EnumHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
 
-    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque') {
+    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque', :$is_mixin) {
         my $meta := self.new();
-        my $obj  := nqp::settypehll(nqp::newtype($meta, $repr), 'perl6');
+        my $obj  := nqp::settypehll(nqp::newmixintype($meta, $repr), 'perl6');
         $meta.set_name($obj, $name);
         $meta.set_base_type($meta, $base_type) unless $base_type =:= NQPMu;
         $meta.setup_mixin_cache($obj);
@@ -97,7 +98,9 @@ class Perl6::Metamodel::EnumHOW
         @!enum_value_list
     }
 
-    method compose($obj, :$compiler_services) {
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.

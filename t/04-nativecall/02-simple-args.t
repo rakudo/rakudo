@@ -50,27 +50,20 @@ sub TakeUint16(uint16) returns int32 is native('./02-simple-args') { * }
 sub TakeUint32(uint32) returns int32 is native('./02-simple-args') { * }
 if $*DISTRO.name eq 'macosx' {
     #
-    # For some reason, on OS X with clang, the following two tests fail with -O3
+    # For some reason, on OS X with clang, the following test fails with -O3
     # specified.  One can only assume this is some weird compiler issue (tested
     # on Apple LLVM version 6.1.0 (clang-602.0.49) (based on LLVM 3.6.0svn).
     #
     skip("Cannot test TakeUint8(0xFE) on OS X with -O3");
-    skip("Cannot test TakeUint16(0xFFFE) on OS X with -O3");
-}
-elsif $*DISTRO.name eq 'freebsd' {
-    #
-    # For some reason, on FreeBSD with clang, the second test fails unless
-    # MoarVM is built with -O0 specified. Tested on FreeBSD 11.1-RELEASE-p4
-    # with Clang version 4.0.0 (tags/RELEASE_400/final 297347) (based on LLVM
-    # 4.0.0).
-    #
-    is TakeUint8(0xFE), 10, 'passed uint8 0xFE';
-    skip("Cannot test TakeUint16(0xFFFE) on FreeBSD without -O0");
 }
 else {
     is TakeUint8(0xFE),        10, 'passed uint8 0xFE';
-    is TakeUint16(0xFFFE),     11, 'passed uint16 0xFFFE';
 }
+# R#2124 https://github.com/rakudo/rakudo/issues/2124
+skip("Cannot test TakeUint16(0xFFFE) with clang without -O0");
+#is TakeUint16(0xFFFE),     11, 'passed uint16 0xFFFE';
+
+
 is TakeUint32(0xFFFFFFFE), 12, 'passed uint32 0xFFFFFFFE';
 
 sub TakeSizeT(size_t) returns int32 is native('./02-simple-args') { * }

@@ -1,64 +1,72 @@
 my class Set does Setty {
-    has $!WHICH;
+    has ValueObjAt $!WHICH;
 
-    multi method WHICH (Set:D:) {
+    method ^parameterize(Mu \base, Mu \type) {
+        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
+    }
+
+    multi method WHICH (Set:D: --> ValueObjAt:D) {
         nqp::if(
           nqp::attrinited(self,Set,'$!WHICH'),
           $!WHICH,
-          $!WHICH := nqp::if(
-            nqp::istype(self.WHAT,Set),
-            'Set|',
-            nqp::concat(self.^name,'|')
-          ) ~ nqp::sha1(
+          $!WHICH := nqp::box_s(
+            nqp::concat(
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Set),
+                'Set|',
+                nqp::concat(nqp::unbox_s(self.^name), '|')
+              ),
+              nqp::sha1(
                 nqp::join("\0",Rakudo::Sorting.MERGESORT-str(
                   Rakudo::QuantHash.RAW-KEYS(self)
                 ))
-            )
+              )
+            ),
+            ValueObjAt
+          )
         )
     }
 
-    method iterator(Set:D:) {
-        class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
+    my class Iterate does Rakudo::Iterator::Mappy {
+        method pull-one() {
+          nqp::if(
+            $!iter,
+            Pair.new(nqp::iterval(nqp::shift($!iter)),True),
+            IterationEnd
+          )
+        }
+    }
+    method iterator(Set:D:) { Iterate.new($!elems) }
+
+    my class KV does Rakudo::QuantHash::Quanty-kv {
+        method pull-one() is raw {
+            nqp::if(
+              $!on,
+              nqp::stmts(
+                ($!on = 0),
+                True,
+              ),
               nqp::if(
                 $!iter,
-                Pair.new(nqp::iterval(nqp::shift($!iter)),True),
+                nqp::stmts(
+                  ($!on = 1),
+                  nqp::iterval(nqp::shift($!iter))
+                ),
                 IterationEnd
               )
-            }
-        }.new($!elems)
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                target.push(nqp::iterval(nqp::shift($!iter))),
+                target.push(True)
+              )
+            )
+        }
     }
-
-    multi method kv(Set:D:) {
-        Seq.new(class :: does Rakudo::QuantHash::Quanty-kv {
-            method pull-one() is raw {
-                nqp::if(
-                  $!on,
-                  nqp::stmts(
-                    ($!on = 0),
-                    True,
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($!on = 1),
-                      nqp::iterval(nqp::shift($!iter))
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    $target.push(nqp::iterval(nqp::shift($!iter))),
-                    $target.push(True)
-                  )
-                )
-            }
-        }.new(self))
-    }
+    multi method kv(Set:D:) { Seq.new(KV.new(self)) }
     multi method values(Set:D:) { True xx self.total }
 
     multi method grab(Set:D: $count?) {
@@ -88,24 +96,28 @@ my class Set does Setty {
     multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
-    method STORE(*@pairs, :$initialize --> Set:D) {
-        nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
-          nqp::if(
-            $initialize,
-            self.SET-SELF(
-              Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-                nqp::create(Rakudo::Internals::IterationSet), $iterator
-              )
-            ),
-            X::Assignment::RO.new(value => self).throw
+    multi method STORE(Set:D: *@pairs, :$INITIALIZE! --> Set:D) {
+        (my \iterator := @pairs.iterator).is-lazy
+          ?? Failure.new(
+               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
+          !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+               nqp::create(Rakudo::Internals::IterationSet),
+               iterator,
+               self.keyof
+             ))
+    }
+    multi method STORE(Set:D: \objects, \bools, :$INITIALIZE! --> Set:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-SET(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            bools.iterator
           )
         )
     }
 
     multi method AT-KEY(Set:D: \k --> Bool:D) {
-        nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
+        nqp::hllbool($!elems ?? nqp::existskey($!elems,k.WHICH) !! 0)
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
         X::Assignment::RO.new(value => self).throw;

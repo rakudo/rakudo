@@ -6,7 +6,7 @@ my class PseudoStash { ... }
 my class Label { ... }
 class CompUnit::DependencySpecification { ... }
 
-sub THROW(int $type, Mu \arg) {
+sub THROW(int $type, Mu \arg) is raw {
     my Mu $ex := nqp::newexception();
     nqp::setpayload($ex, arg);
     nqp::setextype($ex, $type);
@@ -156,7 +156,7 @@ sub samewith(|c) {
 
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
-sub emit(\value --> Nil) {
+sub emit(Mu \value --> Nil) {
     THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
 }
 sub done(--> Nil) {

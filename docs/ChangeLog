@@ -1,3 +1,582 @@
+New in 2019.03.1:
+  + Fixes:
+    + Fixed issues with `$*KERNEL` on Windows [190a7148][2f9d69c2]
+
+New in 2019.03:
+  + Fixes:
+    + Fixed uncaught processor floating point exception on
+        `Rat.round` [11da0fb4]
+    + Fixed `$a=~$a` if `use isms <Perl5>` is active [df748ea7]
+        [af868f84]
+    + Fixed `.WHICH` methods that did not return `ObjAt` types
+        [e50f4f2e][6b401dad][67cbd993][9df09621][0d29768a][ca8d8afc]
+        [4b91610e][537621e4]
+    + Fixed missing redeclaration of bound outer error
+        [23663609]
+    + Made `X::TypeCheck::Assignment` and `X::Trait::Unknown` more
+        resilient against strange values [a6d8858e][54fe8a1a]
+    + [6.d] `$_` container is no longer `is dynamic` [33f79fef]
+        [3d581c8d][c2e272ef]
+    + Fixed thread safety of some state variables [a5b9fc2d]
+    + Fixed `.^compose` calls on types stored in a scalar [ab8052dd]
+    + Fixed `Parameter.perl` for slurpy parameters [d8b7fabe]
+    + Fixed `$*EXECUTABLE` path construction after a `chdir` [5c14916b]
+    + Fixed `$*PROGRAM` path construction after a `chdir` [cebf0cb7]
+    + Fixed `.^add_attribute` calls with `Attribute` object stored in
+        a scalar [bf0dbbe6]
+    + Fixed hang in Channel `subscribe`/`close`/`drain` [9b77459b]
+    + Fixed `Inline::Perl5` failing to load when installed through the
+        Staging repository [1c101a04]
+    + Allowed parameterization of parent class in `class` declaration
+        [35ecfc8e]
+    + Made `IO::Path.dir` on non-existent paths throw rather than
+        return a `Failure` [38f4b7b4]
+    + Fixed line number accuracy in backtraces [5b231e09]
+    + Made regex literals capture `$/` and `$!` [8ef7c15e][ee2238f7]
+        [4a2124a6]
+    + Fixed `«=>»` crash if RHS is a List in a Scalar container
+        [df96fa0f]
+    + Tweaked `Range.ACCEPTS` to work better with Junctions [46409c07]
+        [f3f7c5cb][d904b704]
+    + Made `Baggy.ACCEPTS` signature the same as `Setty.ACCEPTS`
+        [37ce147c]
+    + Fixed "No concretization found" on role-qualified method call with
+        inheritance [a6c8180f]
+    + Fixed use of a role by its short name in some cases [b3eb3826]
+        [9d6e508d]
+    + Made sure that `CArray` can be `STORE`d into `Buf`/`Blob`
+        [ada116ef][5e5c909d][30fc5146][84ed8548][bfadefaa][05b9aa0d]
+        [b394b63c]
+    + Made CUR uninstall `.bat` wrapper scripts [121ca5fd]
+    + Fixed a problem with adding/subtracting negative values from
+        `Date` [91ca8275]
+    + Made sure hash slice auto-vivifies using infix metaop [616b757a]
+        [e68e38e0]
+    + Many improvements to the JS backend [634633be][8f2d9ed0][fc39f5ff]
+        [9b20c476][822962da][e233f287][52de9657][6dd723a9][7b053d54]
+        [17a2bcca][f7ba400e][ada01420]
+    + Various improvements to produced messages [e48712a3][59bafb83]
+        [6a8f08b9][89ca56af][8095cead][d499bd4b][7133b81e][f7704267]
+  + Additions:
+    + Added a candidates method to `CompUnit::Repository::FileSystem`
+        and `CompUnit::Repository::Installation`, which acts as the API
+        for module lookup. Internals were refactored to use this API for
+        module lookup, which fixes some issues as a side effect (i.e.
+        old bin scripts being invoked instead of a newer version)
+        [2d007bf4][07f62c60][bed3bbd0][a25d5fa4][29d74709][085fa19c]
+        [78de05eb][b378a157][d0a3fec9][d533d450][877e7dc0][270b355e]
+        [683df8bf][e1ef571e][077f88a5][22021fdd][603010be][27e141cc]
+        [ddb6abd0][c868ca9c][339ea850][3999d753][bfff01a5][d998c1ea]
+        [83f0fd6c][d39e2fc4][74ccb4c8][67cf829f][92ebc333]
+    + Added `buf8`/`blob8` read-(u)bits / write-(u)bits methods for
+        reading/writing any number of **bits** [45a945b5]
+    + Added `$?DISTRIBUTION` to give introspection and IO capabilities
+        to the current `Distribution` [32d480ab]
+    + Added `addendum` to `X::Method::NotFound` so that we can give
+        better error messages for specific cases [04dd52f9][b6c8f5ed]
+    + Added HLL interface for creating `Signature` and `Parameter`
+        objects [f329d6c6][3d3578b6][c4723cba][e116f3ad][3b9fd81d]
+        [e4635189][9cd42b1f][86557cfd][d6b1bd2a][9485dd2b][7be075eb]
+        [081b15ee][eb50d8ce]
+    + Made `does X::Control` imply throwing to CONTROL [ca177e58]
+    + Made `QuantHashes` parameterizable to limit the type of value that
+        can be put in them [0d9e9f34][4bb5c33c][e87b7afb][fe38bdba]
+        [bcc8054a][87b71c27][836c18ae][71a19c61]
+    + Allowed `is Type` trait to handle parameterization like
+        `is Set[Int]` [2ed2f398]
+    + Added a `dynamic-scope` lexical pragma [871cbefc][88c46676]
+        [9517c377]
+  + Removals:
+    + Removed `ComptUnit::Repository::Installation` and `Distribution`
+        compatibility shims for old versions of panda and zef [f430518f]
+    + Renamed `Block/WhateverCode.pos` to `.POSITIONS` [ccf350e4]
+  + Build system:
+    + Added a `m-spectest5_precompile` to run tests in precompilation
+        mode [89fee86a][ec289a6c][bb36f04a]
+    + Added create and remove JavaScript wrappers in
+        `ComptUnit::Repository::Installation` [83286e29]
+  + Efficiency:
+    + Made `postcircumfix:<[]>` for `CArray` more than 3x as fast
+        [f009cb4a]
+    + Made `Rational.floor/ceiling/Int` about 1.1x as fast [cf0a6eaa]
+    + Made `Rational.Num` about 1.05x as fast [236351ad]
+    + Made stringification of `Rat`/`FatRat` 1.2x to 2.2x as fast
+        [5c0ac4db]
+    + Made constraint check on `UInt` 1.15x as fast [922d41b3]
+    + Made comparisons with `Rat`s 1.4x to 15x as fast [c11e7e6b]
+        [4fecb72a]
+    + Made negation of `Rat`/`FatRat` about 3x as fast [d195e146]
+    + Made coercion of `Int` to `Rat`/`FatRat` 4x as fast [92321beb]
+    + Several other `Rat`/`FatRat` optimizations [29d7f709][6dad5caf]
+        [395d633d][e29554f5][91f67494]
+    + Made `unival()` about 2x as fast [08ae9bfc][27332f04]
+    + Made `Buf`/`Blob.gist` about 2.5x as fast [6d58e0b0]
+    + Made `Map`/`Hash.sort` about 12x as fast [8ae4310e][edb53081]
+    + Made `Str.trim-trailing` about 1.1x as fast [304feae9]
+    + Several improvements to `Date`/`DateTime`/`Instant`/`Duration`
+        handling [467394b8][de933656][9f28a423][92956164][3488a65e]
+    + Added return type signatures for more optimization opportunities
+        [ef565b2b][66f8ee0f][fb517b29][6af22bc3][30a534d1][2ce79561]
+        [7a68df2b][5cf65b57][01d2e11c][26c0e620][0368fe95][e0cd1d99]
+        [0797f93e][cbc3e72e][c45d2b82][bb84b66d][50f0bb2b][e58e3764]
+    + Fixed a memory leak when a Callable has a definite return
+        signature but the actual returned value was Nil [7aa796a9]
+    + More aggressive lexical lowering and block flattening [e73853a1]
+        [c28a0924][685f6cc3][b41e9f57][b0e7e375][5bbaabb9][42024539]
+        [2468dea7][cf9e1f59][053f929f][852a593d][871b6f54][401a3547]
+        [f741374c][64d08ad6][2a33bb1a][83c2070e][ab7f07db][91a4b3b1]
+        [6b44c581][eb3917c2][a4c994f5][31c8fda2][17bf7415][8aa73306]
+        [11884e03][87fcda81][6b078a05][19e4ace6][fcfd51be][541a4f16]
+        [d2df5b80][7fb098d7][c0f83788][623450d8][08d87f70][f71ca0de]
+        [c6053e6a]
+    + Many small internal optimizations [6392634f][5540212c][7d3b7e11]
+        [2d704af4][1611795d][cf0a6eaa][236351ad][501231ee][a904d25a]
+        [87698317][93b5e2ef][f2ed3db7][485dec4d][64c88f91][839f28e7]
+        [b4d114a3][225d2f96][7dea20ab][df8c5780][50e1ec33][3eeb7276]
+        [5d707977][eb8561ba][f56e0756]
+  + Internal:
+    + Added `nqp::const(BINARY_)` constants [32c10e3c][420abcb9]
+    + Added `Rakudo::Internals::ImplementationDetail` role to mark
+        internal functionality [d248d47e][588037f0]
+    + Moved some constant return values in Num methods to their
+        signature [f02bceb7]
+
+New in 2018.12:
+  + Fixes:
+    + Fixed infiniloops with some set operators [99d94db4][9f5cc8d1]
+    + Fixed regression in handling of `"1"..9` [d92b155c]
+    + Fixed use of `Proxy` in a class attribute using
+        the `Attribute`.`get_value`/`set_value` interface [a5411e45]
+    + Fixed semantics of `minpairs`/`maxpairs` (ignore undefined values) [7bf7a2c6]
+    + Fixed error on `@a > 2` if `@a` is a native array
+    + Fixed error reporting on initializing shaped array with
+        improperly shaped data [fd216fec]
+    + Negative indexes on native arrays are now checked properly [dd2af90c]
+    + Fixed use of uninitialized value in `IO::Notification` [83d0056b]
+    + Enums can now have private methods mixed in [3c2cfb22]
+    + Fixed resource content lookup for `Distribution::Path` [370310b3]
+    + Fixed precompilation when cwd gets changed at run time [e2e5cc53]
+    + Shared library versions are now ignored on OpenBSD [5603128e]
+    + Many improvements to the JS backend [1865db0d][fdd249a3][194c84b9]
+        [1dd59f10][52c2af5d][8b13655c][2869a48b][cf5432ae][758caa89]
+        [e0b943d0][a759f9d7]
+    + Various improvements to produced messages [869b9e58][abfb9a40]
+        [79824db5][55d08c8f][24c8e172]
+  + Additions:
+    + Added `Endian` enum and implemented new methods in `blob8`/`buf8`
+        for reading/writing native values [46d4c9fe][011c6f11][f66861dc]
+        [f0279313][b781f8cc][543219c9][77182713][06156a7c]
+    + Added `Kernel.endian` [2a761ca7][af43b159]
+    + Implemented `Blob.readint` / `Buf.writeint` [4f14d713][fecfb22d]
+        [5cc0e02d][79dd1c8e][ceaf7218][631940c7][38afa2d6][e7b61aff]
+    + Added `.native-descriptor` for async sockets [a4db9139][2fd90b1e]
+    + Added `.Real` method to native arrays [dd3f91a2]
+    + Implemented `last` and `LAST` in `whenever` blocks [890d628a]
+  + Efficiency:
+    + Made `<$rx>` interpolation 1.05x as fast [62243cd9]
+    + Made simple regex matches 1.05x as fast [01c56b48]
+    + Other minor optimizations [93ea7ed1][a0cb89a7][adb85609][6c2f3c83]
+  + Internal:
+    + Introduced a more generally usable `X::ArrayShapeMismatch` error [dd030145]
+    + Internal micro-optimizations [38bc682b][f18432ea]
+
+New in 2018.11:
+  + SPECIAL NOTES:
+    + 🎆❇️🔥 Default language version is now `v6.d` 🔥❇️🎆 [46ef0ea0]
+  + Deprecations:
+    + Deprecated `.path`/`.args` in `Proc::Async`, use `.command`
+        instead [45bbc946]
+  + Fixes:
+    + Fixed `$*PERL.version` to always report the right version [c9ecfb7a]
+    + Consistified `:U.pairup` with `:D.pairup` to return a Seq [d73272e4]
+    + Provided a stable `.WHICH` for `Map` [4e0a1c24][052067fd]
+    + Made sure `DEPRECATED` reports location correctly when
+        using `:up` [8561d0ae]
+    + Fixed literal `\` in `tr///` [85107ec0]
+    + Fixed tap add/remove race in `Supplier` and `Supplier::Preserving`
+        [7ee1f3c5][68d79e70]
+    + `QuantHash`es now properly report `.of` and `.keyof` [8b93ec9f]
+    + Added type constraints to port numbers in `IO::Socket::Async` [547f28ba]
+    + Fixed re-initialization on some types of arrays [f1fa5adf]
+        [7262b4e8][49f07abe]
+    + Gave 6.d correct `is rw` Proxy semantics [7d37f9aa]
+    + Fixed `Match.^roles` [becbdeb9]
+    + Fixed missing path volume after `..` is resolved [8854bbd3]
+    + The `.values` method can now be used to change values in
+        object hashes [a728bb2d]
+    + Fixed shaped dynamic variables like `my %*a{Int}` [bcdf87a6]
+    + Made `my @a is Blob / Buf = ...` work [762c708f]
+    + Object hashes and `QuantHash`es can now be used with
+        metaops [Hyper refactor]
+    + Many improvements to the JS backend [32b7c089][f35dd301][9457f7e5]
+        [ea69c0a0][0e4969fe][9df074ba][78389aa2][1ef62aca][f460ad1a][cbbe16ed]
+    + Improved error message when using placeholders with methods [deae5bcd]
+        [0896c301][48093d0d][0bda7dc1][90103f6d][68b44e33][8549c4c1]
+    + Various improvements to produced messages [15c16e35][e6758492]
+  + Additions:
+    + Implemented `X::Language::TooLate` [3365094f]
+    + `$*COLLATION.set` is no longer experimental [20c41ca5]
+    + Added dynamic variable `$*FOLDING` [cec1f511]
+  + Removals:
+    + Removed unspecced `.allowed` attribute in `Pod::Block::Code` [5aba3e96]
+    + Set operators `(<+)`, `≼`, `(>+)`, `≽` now die when used [951303f9]
+        [7a1a1868][81474bf9][5598f37d]
+    + `Associative >>op<< Iterable` now dies, as the results are indeterminate
+        due to random hash key order [Hyper refactor]
+  + Build system:
+    + Fixed `t/*/*.t` rule in generated Makefile [d2c7e327]
+    + Made running timing based tests optional [72b896c8]
+  + Efficiency:
+    + Made `Int eqv Int` 3x and `int eqv int` 5x as fast [fb9a0454][94dd0a41]
+    + Made `ObjAt` `eqv` `ObjAt` also faster [5120d3d2]
+    + Made `Hash`/`Map` slices about 5x as fast [6fe27894][b83179f0]
+        [c4da4c7e][9a2c4b44]
+    + Optimized various operations on `Date` and `DateTime` making
+        them up to 3x as fast [11cb4fac][b6292fe9][08fac045][98d07cf6]
+        [b463746d][bf3eb8ec][a11d599f]
+    + Made metaops use the fast path for `&[+=]`-like ops [e7ce194a]
+    + Hyper operator refactor makes many things like
+        `%h >>+>> 1` 1.3x to 8x as fast [bfe2ad63][130cc817][0bc72e05]
+          [75c9456a][ec2848c4][f06e8582][73eb297f][194daab7][a575effe]
+          [c50cf82a][1a2b39dc][307a98bd][843118ea][6208c266][9221c08d]
+          [c03e71d5][78f64203][63ae9dcc][fa5215b6][d5a751d9][674a0837]
+          [8fa72681][80edefcf][cf5c8a09][534d8f65][7fad12b0][800d8fbb]
+          [c3f03e67][1ed2b098][21434dda][234e298b][e8285c01][32ab0d30]
+          [90ac0940][f7007ac0][dc67ee75][cae9847e][481dbf92][c4445649]
+          [19f0c842][86ce4f4e][50f2207b][2e5be5b8][1b7253df][64a47d87]
+          [005261a4][10693d16]
+  + Internal:
+    + Changed CORE.d setting compilation to propagate indicator flags [4a6d9108]
+    + Made sure we don't add object to serialization context more
+        than once [3995e423]
+    + New QAST to mbc compiler [edc4c054][6aafe18d][f8be2fa0][656a8045][bb43acdb]
+    + Added `Hash.STORE(\keys,\values)` [faa19ab9]
+    + Introduced `R:I.AssociativeIterableKeys` [6fe27894]
+    + Various internal optimizations [5f1a81e0][1766435a][8e858c8d][00eb7b85]
+        [0fa6988c][bf3575cc][18ded174]
+
+New in 2018.10:
+  + SPECIAL NOTES:
+    + This is the first Rakudo release that comes with an additional
+      JS backend. See `6pad` project for running Perl 6 code directly
+      in your browser.
+  + Deprecations:
+    + Deprecated `gethostname()` in favor of `$*KERNEL.hostname` [f7fa5185]
+  + Fixes:
+    + Fixed/improved divide-by-zero errors in
+        `Rational.floor`/`.ceiling`/`.Str` [a639fa9c][6d70346c]
+    + Fixed semantics of `[Nil]` [88e6de22]
+    + Fixed issue with custom `bless` method [64137bd2]
+    + Made nativecall's `postcircumfix:<[ ]>` return containers [be2d4cb4]
+    + Fixed hash descriptor when doing `Hash[Int].new` [9acbf000][ea710414]
+    + `Nil` is now allowed in initialization and assignment of hashes
+        [f61ba41a][605bcb39][7e86d4e3]
+    + Fixed ContainerDescriptor for arrays with a dimension of three [a2e78ec8]
+    + Fixed indexing of shaped arrays with a dimension higher than 3 [0307c366]
+    + `.in-timezone`s value is now coerced to Int [c8438e6a]
+    + Stub methods from roles are now verified [fd5d5bdf]
+    + Fixed double-closing of handles in `IO::Handle.lines` when `:close` and
+        `$limit` are used [6edb142f]
+    + Fixed closing of handles in `IO::Handle.lines` when `$limit`
+        is used [c1c75740]
+    + Consistified Rat.base to fail instead of throw [a804ab57]
+    + Fixed enforcing of return constraints on multi method stubs [abba67b2]
+    + Various improvements to produced messages [cc2fcc9a][560e94ef]
+        [bf10f4c5][243a2f01][7d02b949][9894eda5][0243275d]
+  + Additions:
+    + [6.d] Constructs `$()`/`@()`/`%()` no longer have any `$/`-related
+        magic [bb88a032]
+    + [6.d] DefiniteHOWs' (type smileys) default default is now the base
+        type [38b198c9]
+    + Zero-Denominator Rationals are now normalized on creation [671c4115]
+        [75ec2248]
+    + Made `my @a is List = 1,2,3,4` work [2bdf2b35]
+    + Using `is Type` on `@` and `%` attributes is now allowed [b537ce2e]
+    + Added a BOM on `open` for utf16 filehandles [959b89cf][479348f3]
+    + Added initial support for Unicode 11.0 [5c272ee4]
+    + Pluggable `MAIN` interface refactored, documented and tested
+        [f234b9af][35f3d83d][7c9b2955][33c24153][8c3a4131][fbfccfa2]][341190e2][24413b5f[2c43d2bf]
+    + Usage message now limits itself to partially matching candidates
+        [0d1be77e]
+    + Added additional dashed variants for utf16le and utf16be [4307996a]
+    + Added `Parameter.coerce_type` method [0243275d]
+    + Added `Code.cando` method to allow for `.cando` on all `Callable`s
+        [45eeab78][69533b50]
+  + Removals:
+    + Removed --encoding support [bea08ec6][31b19d09]
+  + Efficiency:
+    + Made Hash.push/append between 1.2x and 1.4x as fast [12cfde2a]
+    + Made `"".ord` orders of magnitude faster [b22edce4]
+    + Made `==` with Rationals up to 1.55x as fast [c5a2eb81]
+    + Made Rational `===` Rational 2.47x as fast [97e8413b]
+    + Made many cases of `for (range-like things)` up to 150x as fast
+        [2dd02751][645eeb52][dfd6450d][49baea70][89787028][2af789d7]
+    + Made `[42]` not allocate anything anymore [8c4546bb]
+    + Made `[@a]` and `[1,2,3]` about 1.4x as fast [e430813f]
+    + Made `Array.List` coercion 1.5x as fast [3d405e89]
+    + Made `.isa` about 2x as fast [4e8740c8]
+    + Made `infix:<%%>` 10.42x as fast on natives [3d161a56]
+    + Other minor optimizations [464a86b1][ab83b9d8][8cc3d5d7][b107cda5]
+  + Internal:
+    + Made `make` an only [369068ae]
+    + Added skip-one method to appropriate `PredictiveIterator`s [e54885e5]
+    + More things are now initialized at setting compile time
+        [06dfbf02][688cbac1][92735770]
+    + Simplified initialization of `CompUnit::RepositoryRegistry`
+        [0425d927][8e1cd01a]
+    + Introduced `IterationBuffer.List` [8c10da6a]
+    + Use `nqp::create` for IterationBuffer instead of .new [84311b77]
+    + Made sure `.STORE` only works on instances of mixy/baggy types [9daac683]
+    + Added `$*INSIDE-EVAL` to mark that we're inside an `EVAL` [73b7c603]
+
+New in 2018.09:
+  + Fixes:
+    + Made native arrays throw when storing a lazy Seq [fc8c7f84][bb963a25]
+    + Fixed smartmatching of Seqs against Iterables [d3cac14e]
+    + Made it possible to emit Mu [3f10e2d1][db3768e3]
+    + Fixed setting of `$/` when matching NDF [cf1df1d7]
+    + Fixed prefix calls with `.:< ... >` on integer literals [ec366c30]
+        [1835f280]
+    + `.Array` on shaped arrays now returns a proper `Array` instead of
+        dying [efbd58c8]
+    + Fixed `.keys` on one-dimensional native shaped arrays [5a9105ae]
+    + Made `Parameter.twigil` also work on dynamic Parameters [39f2d68a]
+    + Made sure the decoder is detached when closing handles [b07874e0]
+    + Made sure `X` handles empty lists on RHS [6c93fde8]
+    + Various improvements to produced messages [d419a313][c8db35e3]
+  + Additions:
+    + Added a `PredictiveIterator` role for `Iterator`s that can
+        determine how many values can still be generated, without
+        actually generating them [3ffacb9f][5cbbcc6e][842d4b32]
+        [78ae9028][000ac81e][c2c9df1c][cdf65305][ad64c757][eefbe6e1]
+        [da663afd][e717e21b][ca5825b4]
+    + Added `use isms <C++>` and make `use isms` assume all available
+        "isms" (now 'Perl5' and 'C++') [57f89278][c6c2b6c4][528def48]
+    + Partially implemented Pod `#` alias for `%config :numbered` [b4bf1660]
+    + Added utf16 decodestream and file handle write support [8fcebb86]
+        [e8a7564d][0bf909bb][d275ea09]
+  + Efficiency:
+    + Made `Str.words` about 3x as fast [b8f37bfc]
+    + Made `Str.lines` about 2x as fast [3dd09be3]
+    + Made `IO::Handle.lines` about 1.2x as fast [874ec002][d198c1b7]
+    + Made `IO::Path.lines` about 1.1x as fast [1905838c]
+    + Made `Str.chop(N)` about 5x as fast [07089e89]
+    + Made `Str.(r)index(needle,pos)` about 1.2x as fast [5d1d792a]
+    + Improved `.elems` and `.Bool` on `Seq` by adding
+        `count-only`/`bool-only` methods [89055755][86468e1e][070780e0]
+        [64ddacab][9738dfbf][d1e80dfe][9ff17367][b1c645ed][bd832061]
+        [708ff624][5f3c2bfc][2a011a0e][faed3a9c][e73e3ecc][78bebc7a]
+        [d970c2b3][f5ebad98]
+  + Internal:
+    + Moved some iterators from Range to `R::Iterator` [fcd45ff8]
+    + Streamlined quoted words handling [92951168][ae739adf]
+    + Fixed a bug in the optimizer where optimizations were
+        improperly combining [e436f4e5]
+    + Simplified `Map.kv` iterator [6977973d]
+    + Replaced use of `p6bool` by `hllbool` and `hllboolfor` [672196cd]
+        [20feda70][170ffd40][7e69c640][3272207a][f1f6825b]
+    + Removed obsolete p6settypes extop [de4e8225]
+    + Standardized use of proto's on `.STORE` methods [ed9b48de]
+    + Removed EmptySeq [a4db33e7]
+
+New in 2018.08:
+  + SPECIAL NOTES:
+    + Changed filenames and permissions of many scripts in the repo
+      (e.g. install-dist.pl is now install-dist.p6) [07b4100c][9d8b6600]
+      [c5c4ea38][59a6f7d2][248ee79c][906bec8c][683ae67b]
+  + Deprecations:
+    + Deprecated RAKUDO_EXCEPTIONS_HANDLER [5e1df41b][d2116efd]
+    + [6.d] Deprecated `undefine` [72bac670]
+  + Fixes:
+    + Fixed .assuming on subs with slurpies [93a8ec66]
+    + Fixed auto-printing of low-level (non-`Mu`) objects in REPL [9ea427a3]
+    + Made `Map.list` return a List instead of a Seq [60447c62]
+    + Made internal safely_stringify routine safer [0e2a7d93]
+    + Made .perl of `(|)` signature a bit more idiomatic [24467ed6]
+    + Fixed coping with failures to open a directory in internal
+        `DIR-RECURSE` sub [e9351cba]
+    + Fixed preservation of newlines in pod blocks [c6433838]
+    + Fixed big int values in `BagHash` [fd779109]
+    + Fixed several crashes and bugs involving meta assign operator [b9b0838d]
+    + Fixed roundtripability of `QuantHash`es [84f60ada][ddf496c7]
+    + Fixed `.comb` on allomorphs with leading 0's [f8d6a3f4][72ccd432]
+    + Fixed crash when doing EVAL :lang<Perl5> from multiple threads [66683080]
+    + Fixed potential race condition in EVAL [80bbfbb3]
+    + Fixed `Test`'s `diag` to no longer die on `Junction`s [5ec2c96e]
+    + Fixed Cool consistency in arguments of &round [e547811a]
+    + Fixed &prompt to convert numeric data to allomorphs [38d7f2a0]
+        [0275ea29][07b032d0]
+    + Many fixes and improvements to the contributors.p6 script
+        [7a87b7f5][8fee8d48][c5cfbc64][f6c8159d][1197c3f6][ade83c86]
+    + Made `Routine.perl` more verbose / precise [d6c161ba]
+    + Added some missing `is rw` [6caf86be][832ccd81]
+    + Fixed problem in concatenation of 2 `Junction`s [4ef8433a]
+    + Fixed failure to set up encoder/decoder in IO::Handle via
+        `.encoding` call in certain cases/encodings [86846ac5]
+    + Made it impossible to assign to a Map [fffe89c5]
+    + Fixed `Map.WHICH` to reflect subclasses correctly [199d276b]
+    + Gave PseudoStash its own non-value based .WHICH [bb5db6a8]
+    + Fixed `QuantHash`.hash/Hash return values [76298204]
+    + Made `Proc.command` return an immutable List instead of Array [925c1134]
+    + Fixed `loop` to always return Nil [aff96bae]
+    + Made an uncomposed class type-check against roles that have been added
+        [38d046fa]
+    + Fixed IO::Handle.encoding to check if$!decoder was set up [edf81bfe]
+    + Fixed `is required($reason)` [7c349b7e]
+    + Fixed `Range.roll(*)`/`roll(N)`/`pick(N)` with big ints [b30800c8]
+    + Removed `<?before>` token in `term:sym<multi_declarator>` [51e41da8]
+    + [6.d] Reserved `:sym` colonpair on names of routines [a68784a6]
+    + Fixed a ThreadPoolScheduler memory leak whereby certain usage
+        patterns caused it to build up an ever-deeper call stack, due
+        to continuation mis-use [bf514c15]
+    + Fixed misscoping of blocks in whatever curries [85495890]
+    + Made sure that onlystar Routines cannot be optimized away when
+        wrapped [434ede49][1188f801]
+    + Made it possible to use `Array::` as a top level namespace
+        in modules [a71e370b]
+    + Fixed Distribution::Resource.^mro to not error [bb46381a]
+    + [6.d] Changed `$*ARGFILES` to be based on `$*IN` inside sub MAIN
+        [84d45f07]
+    + [6.d] Made `num` variables default to 0e0 [f045042d]
+    + Made Rationals fully-immutable [5c429e4e]
+    + Fixed problem in QuantHash.ACCEPTS [712d0f0f]
+    + Slightly changed semantics of (+), (-), (&), (.), (^), (|) on QuantHashes
+        [3a6c1197][b826a07a][42595c27][f1693f26][64ab7179][8cedbbd1]
+    + Fixed wrong math with largish Ints [fec1bd74][8e2c70fa][342c5a9c]
+    + Fixed crash with attr + submethod TWEAK [d09756ae]
+    + Removed sig from Routine.perl if it is empty [546d08c1]
+    + Gave Routine its own .gist [6ad50d79]
+    + Made sure `my ($a,$b)` does not have any runtime effect [90ef3061]
+    + Prevented REPL from writing to filehandle when opening a file [07d00db1]
+    + Fixed a couple of thinkos in Map.STORE [6587bf75]
+    + Fixed Unicode Regional Indicators [80a7cff6]
+    + Normalized the path portion of repo specs [aae0827f]
+    + Gave Blob.subbuf the same feature set as Str.substr [26b49169]
+    + Added support for Buf.subbuf(x,Any) [22f779a8]
+    + Gave native arrays their own ACCEPTS [9726e644][6a481323]
+    + Gave Buf/Blob their own ACCEPTS [9531455d]
+    + Fixed occasional crashes in deprecation location handling code [0979b775]
+    + Various improvements to produced messages [e2e42181][e2bbe3f0]
+        [35fec8e0][1956df25][21eb168c][7a7e5e96][e9e8cd55][2e90c660][03574546]
+        [4494a249][d60be5e4][9a45b2b8][2c7692fc][08b449e1][b5e92a55][ef61ce32]
+  + Additions:
+    + Added `X::ParametricConstant` exception [b6cd6122]
+    + Added enforcement of type constraints on constants [1dea3034]
+    + Improved auto-coercion of values to `@`- and `%`-sigilled constants
+      (the `%`- one requires use of `v6.d.PREVIEW` pragma) [1dea3034]
+    + Added a warning on definition of anon sub in `sink` context
+        [d6c05395][08a54212]
+    + Exposed host and port of IO::Async::Socket.listen via the Tap
+        [cb2ea932][2d16e12c]
+    + Added ability to mixin roles on attrs, aka `has %.a does Foo` [3158ae7e]
+    + Added Callable indexing candidate for CArray [541922a0]
+        [68ebe71e][2a803a39]
+    + Added QuantHash.Setty|Baggy|Mixy coercer methods [3d9ea6eb][76e5f9c8]
+    + Added proper handling of pod =defn block [6e8ca327]
+  + Removals:
+    + Use of syntax for parameterized constants now throws (such
+        constrains were never enforced) [1dea3034]
+    + Removed unspecced/used pre-6.c jvm modules [e6c5e859]
+    + Removed unused Universal role [2670236f]
+    + Renamed `IO::Handle.*-internal` methods to their final names [03d79975]
+    + Removed previously deprecated `$*INITTIME` dynamic variable [a37c6aa4]
+  + Build system:
+    + Bumped JVM memory limit to survive setting build [80dca6b7][8feb13cd]
+    + Added passing of --execname to nqp so that nqp::execname() works
+        [359ac12d]
+  + Efficiency:
+    + Made `.first()` and `:first(:end)` without other parameters
+        about 2x as fast [e6e9daf1]
+    + Made nested meta assign operators 3.9x as fast [b9b0838d]
+    + Made `.?` 1.5x as fast by using a spesh plugin [708c1326][a167e6cc]
+    + Marked `set()`, `bag()` and `mix()` as `is pure` [c37c3b59]
+    + Made `Int != Int` about 4x as fast [b236faec]
+    + Made native `int` array `.sum` between 2.2x and 36x as fast [88e913b6]
+    + Made initialization of native `int` array from a `Range`
+        about 1.7x as fast [5682ee1f]
+    + Made `Map` initialization logic 1.5x-4x as fast [ee800ada]
+        [8f090821][6850a64f][ae6058ce][9f524d0a]
+    + Made `Map.WHICH` about 8x as fast [ac2fa03b]
+    + Made the `for ^100` loop optimization about 1.02x as fast [f43f118a]
+        [7043559b][d69fd2f3][9b07e7bf]
+    + Made Rational reduction 1.43x as fast [3d10a7f1]
+    + Made argless Rational.round 5.7x as fast [097826ef]
+    + Made creation of Rationals 1.19x as fast [db66a138]
+    + Made `infix:<**>(Rational, Int)` more than 10x as fast
+        [d1729da2][f9963bbf]
+    + Made `my @a = $string.comb` about 1.25x as fast [df5d82e8]
+    + Made subbuf up to 8.5x as fast [4e56ce95]
+    + Made Buf.subbuf up to 2.5x as fast [cd43c4f1][a50c0492]
+    + Made @a[1,3] with literal indices 5.6x as fast [67a528f0]
+        [c1044bce][1978a2fc][a3a87125]
+    + Made method LANG about 3.2x as fast [a6edf511]
+    + Made string interpolation up to 2x as fast [3ae97e5f]
+    + Simplified a lot of internal code [6e661e9e][0f1b36a7][bc2ca535]
+        [36d37cbc][81a5e4ba][9e71c22d][4da2f607][0601c43c][4eaff452]
+        [12bd328b][f0b705cd][9327f95b][934c3f9d][eee77141][1070fa0c]
+        [36841543][81bcc540][fc865a9a][7f1e41dd]
+    + Other minor optimizations [8f807fc4][ecd899c9][c6033401]
+        [45df171a][327cae7c]
+    + Many low level and other improvements [bd0a1f8b][aedf41ae]
+        [4f0b585c][6d271667][d3c5381b][8c0d9de8][3f832108][5e5c7870]
+        [c4076b70][bfe69474][397263e3][a7e3dce3][ea9cf08f][bdb9193a]
+        [593611ec][9ab3ad27][04b86ae0][1e825793][bfd9ee4e][3b40b1c7]
+        [40d19c75][a3c12486][a2208b0d][92026f54][35528c6c][52f1b89d]
+        [e9e89f88][ca2360a4][ebc6b124][27a7e9bb][4f4fb613][5b985f93]
+        [a30ae153][163e7759][beae9686][d1c755af][bff1bb83][7885f357]
+        [523ffae8][8d652761][59faed1d][5a6af277][0baeec02][d0aab741]
+        [05d7c39b][1b3dd35e][fa073679][ae25c4b0][8a76c00c][abfa1b15]
+        [980f692c][4766536b][8607f682][656b763d][0b1e6d54][99f7f4cc]
+        [1f65bf24][37c7e6e5][90f678f3][fa73bb48][fe5c8d49][db96cab3]
+        [f8be2a2d][bf9ab42e][a41c37c8][fd6164a1][9a5c538f][c60a347f]
+        [5559f4c9][ec7de841][8d8c755b][0b3fc077][574212ab][2b2f568a]
+        [66aa6892][06073c5b][34468f11]
+     \
+      More specifically:
+      + Refactored Scalar and numerous container operations, resulting
+          in Scalar being one attribute smaller and paving the way for
+          a range of new optimizations
+      + As part of the Scalar changes, also extensively refactored
+          auto-vivification to be cheaper and more optimizable
+      + Implemented specializer plugin for type-check elimination for
+          assignments
+      + Refactored the way return value handling is done, to generate a
+          shorter code sequence
+      + Improved the code generated for signature binding so as not to
+          repeatedly decontainerize passed values, but rather to only do
+          this once
+      + Avoided a number of exceptions that could be thrown and caught in
+          the optimizer, for a small performance win
+      + Avoided a number of situations where parts of the compiler were
+          repossessed for serialization purposes, resulting in smaller
+          precompilation output
+      + Tuned Map and Hash for better lookup and assignment
+          performance, as well as more compact code in numerous other
+          operations; this made it possible for single-element hash
+          access to be fully inlined
+      + Tuned Array.AT-POS to enable it to be fully inlined
+      + Tuned Array.ASSIGN-POS to do less work
+      + Improved `p6bindattrinvres` code-gen quality, which is a slight
+          improvement for the many places in CORE.setting that use it
+      + Made sure references to the Scalar type-objects compile into a
+          constant, not a lexical lookup
+  + Internal:
+    + Implemented `Perl6::World.lang-ver-before` for easier language
+        version check [4dcf5929]
+    + Removed `Set`, `Bag`, `Mix` `.clone` special casing [7865bfa6]
+    + Updated makeUNIPROP.pl6 with Unicode 10 property names [2ff46764]
+    + Removed propname → propname mapping from Cool.pm6 [a9e844a8]
+    + Made `infix:<!=>` for `Ints` consistent with other infix
+        operators [46e7640f]
+    + Simplified `Hash` → `Map` coercion [c567af73]
+    + `PseudoStash` "pseudoers" hash is now a native hash [8a8ce95e]
+    + Various `Range` internal changes [6ad096c8][806752fb]
+    + Tightened up some `trait_mod:<is>` signatures [f6209d73]
+    + Renamed nqp::getstrfromname to nqp::strfromname [4522132d]
+    + Changed install-dist.p6 to use and prefer full namespace for
+        builder identifier [0249afc2]
+    + Turned p6reprname into a desugar [07cfbeb2]
+
 New in 2018.06:
   + Fixes:
     + Fixed numeric values in Signal enum [aa622a95][852c1bd3][f2b50378]

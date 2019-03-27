@@ -20,7 +20,7 @@ my class PseudoStash is Map {
         $obj
     }
 
-    method WHICH() { self.Mu::WHICH }
+    multi method WHICH(PseudoStash:D --> ObjAt:D) { self.Mu::WHICH }
 
     my $pseudoers := nqp::hash(
         'MY', sub ($cur) {
@@ -256,7 +256,7 @@ my class PseudoStash is Map {
     method EXISTS-KEY(PseudoStash:D: Str() $key) {
         nqp::unless(
           nqp::existskey($pseudoers,$key),
-          nqp::p6bool(
+          nqp::hllbool(
             nqp::if(
               nqp::bitand_i($!mode,PRECISE_SCOPE),
               nqp::existskey(

@@ -12,7 +12,7 @@ my class Encoding::Encoder::Builtin does Encoding::Encoder {
         $!type := nqp::can($type.HOW, 'pun') ?? $type.^pun !! $type.WHAT;
         $!replacement = $replacement.defined ?? $replacement !! nqp::null_s();
         $!config = $strict ?? 0 !! 1;
-#?if !moar
+#?if jvm
         X::NYI.new(feature => 'encoding with replacement').throw if $replacement.defined;
         X::NYI.new(feature => 'encoding with strict').throw if $strict;
 #?endif
@@ -20,14 +20,14 @@ my class Encoding::Encoder::Builtin does Encoding::Encoder {
     }
 
     method encode-chars(str $str --> Blob:D) {
-#?if moar
+#?if !jvm
         nqp::encoderepconf($str,
             $!encoding,
             $!replacement,
             nqp::create($!type),
             $!config)
 #?endif
-#?if !moar
+#?if jvm
         nqp::encode($str, $!encoding, nqp::create($!type));
 
 #?endif

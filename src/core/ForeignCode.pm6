@@ -1,7 +1,10 @@
 # Takes a foreign code object and tries to make it feel somewhat like a Perl
 # 6 one. Note that it doesn't have signature information we can know about.
 
-my class ForeignCode does Callable { # declared in BOOTSTRAP
+my class ForeignCode
+  does Callable
+  does Rakudo::Internals::ImplementationDetail
+{ # declared in BOOTSTRAP
     # class ForeignCode
     #     has Code $!do;                # Code object we delegate to
 
@@ -12,10 +15,6 @@ my class ForeignCode does Callable { # declared in BOOTSTRAP
     method signature(ForeignCode:D:) { (sub (|) { }).signature }
 
     method name() { (nqp::can($!do, 'name') ?? $!do.name !! nqp::getcodename($!do)) || '<anon>' }
-
-    multi method gist(ForeignCode:D:) { self.name }
-
-    multi method Str(ForeignCode:D:) { self.name }
 }
 
 my class Rakudo::Internals::EvalIdSource {
@@ -25,7 +24,7 @@ my class Rakudo::Internals::EvalIdSource {
         $lock.protect: { $count++ }
     }
 }
-proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
+proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, Str() :$filename = Str, *%n) {
     die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
       if nqp::istype($code,Callable);
     # First look in compiler registry.
@@ -40,18 +39,17 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
         }
         return {*};
     }
-    $code = nqp::istype($code,Blob) ?? $code.decode(
-        $compiler.cli-options<encoding> // 'utf8'
-    ) !! $code.Str;
+    $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;
 
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+    my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     my \mast_frames := nqp::hash();
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
                   # currently compiling compilation unit
 
     my $LANG := $context<%?LANG> || CALLERS::<%?LANG>;
+    my $*INSIDE-EVAL = 1;
     my $compiled := $compiler.compile:
         $code,
         :outer_ctx($eval_ctx),
@@ -66,9 +64,9 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
     $compiled();
 }
 
-multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
+multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context, Str() :$filename = Str) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+    my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     state $p5;
     unless $p5 {
         {
@@ -88,7 +86,7 @@ multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash
 
 proto sub EVALFILE($, *%) {*}
 multi sub EVALFILE($filename, :$lang = 'perl6') {
-    EVAL slurp(:bin, $filename), :$lang, :context(CALLER::);
+    EVAL slurp(:bin, $filename), :$lang, :context(CALLER::), :$filename;
 }
 
 # vim: ft=perl6 expandtab sw=4

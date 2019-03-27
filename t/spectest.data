@@ -21,8 +21,13 @@
 # build/Makefile.in for examples of use.
 
 APPENDICES/A01-limits/overflow.t
+APPENDICES/A01-limits/misc.t
 APPENDICES/A02-some-day-maybe/io-cathandle.t
+APPENDICES/A02-some-day-maybe/misc.t
 APPENDICES/A02-some-day-maybe/multi-no-match.t
+APPENDICES/A02-some-day-maybe/concreteness.t
+APPENDICES/A03-older-specs/01-misc.t
+APPENDICES/A04-experimental/01-misc.t
 MISC/bug-coverage.t
 MISC/bug-coverage-6.d.t
 MISC/bug-coverage-stress.t                  # stress
@@ -35,6 +40,7 @@ S01-perl-5-integration/context.t            # perl5
 S01-perl-5-integration/eval_lex.t           # perl5
 S01-perl-5-integration/exception_handling.t # perl5
 S01-perl-5-integration/hash.t               # perl5
+S01-perl-5-integration/isms.t
 S01-perl-5-integration/import.t             # perl5
 S01-perl-5-integration/method.t             # perl5
 S01-perl-5-integration/return.t             # perl5
@@ -98,6 +104,7 @@ S02-magicals/USER.t
 S02-magicals/VM.t
 S02-names/bare-sigil.t
 S02-names/caller.t
+S02-names/dynamic-scope.t
 S02-names/identifier.t
 S02-names/indirect.t
 S02-names/is_cached.t
@@ -188,6 +195,11 @@ S03-binding/hashes.t
 S03-binding/nested.t
 S03-binding/ro.t
 S03-binding/scalars.t
+S03-buf/read-int.t
+S03-buf/read-num.t
+S03-buf/read-write-bits.t
+S03-buf/write-int.t
+S03-buf/write-num.t
 S03-feeds/basic.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t
@@ -196,6 +208,7 @@ S03-junctions/misc.t
 S03-metaops/cross.t
 S03-metaops/eager-hyper.t
 S03-metaops/hyper.t
+S03-metaops/infix.t
 S03-metaops/misc.t
 S03-metaops/not.t
 S03-metaops/reduce.t
@@ -477,6 +490,7 @@ S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
 S06-macros/opaque-ast.t
 S06-multi/by-trait.t
+S06-multi/compile-time.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t
@@ -500,6 +514,7 @@ S06-other/introspection.t
 S06-other/main-eval.t
 S06-other/main.t
 S06-other/main-usage.t
+S06-other/main-refactored.t
 S06-other/main-semicolon.t
 S06-other/misc.t
 S06-other/pairs-as-lvalues.t
@@ -509,7 +524,6 @@ S06-routine-modifiers/native-lvalue-subroutines.t
 S06-routine-modifiers/proxy.t
 S06-routine-modifiers/scoped-named-subs.t
 S06-signature/arity.t
-S06-signature/caller-param.t
 S06-signature/closure-over-parameters.t
 S06-signature/closure-parameters.t
 S06-signature/code.t
@@ -598,6 +612,8 @@ S11-modules/perl6lib.t
 S11-modules/require.t
 S11-modules/runtime.t
 S11-repository/curli-install.t
+S11-repository/cur-candidates.t
+S11-repository/cur-current-distribution.t
 S12-attributes/class.t
 S12-attributes/clone.t
 S12-attributes/defaults.t
@@ -709,6 +725,7 @@ S14-roles/parameterized-type.t
 S14-roles/parameter-subtyping.t
 S14-roles/stubs.t
 S14-roles/submethods.t
+S14-roles/typecheck.t
 S14-traits/attributes.t
 S14-traits/routines.t
 S15-literals/identifiers.t
@@ -812,7 +829,6 @@ S16-io/note.t
 S16-io/print.t
 S16-io/prompt.t
 S16-io/put.t
-S16-io/quoting-syntax.t
 S16-io/readchars.t
 S16-io/say-and-ref.t
 S16-io/say.t
@@ -823,6 +839,7 @@ S16-io/words.t
 S16-unfiled/rebindstdhandles.t
 S17-channel/basic.t
 S17-channel/stress.t     # stress slow
+S17-channel/subscription-drain-in-react.t
 S17-lowlevel/atomic.t    # moar
 S17-lowlevel/atomic-ops.t # moar
 S17-lowlevel/cas.t
@@ -902,7 +919,6 @@ S17-supply/tail.t
 S17-supply/throttle.t     # slow
 S17-supply/unique.t       # slow
 S17-supply/wait.t         # slow
-S17-supply/watch-path.t   # slow
 S17-supply/words.t
 S17-supply/zip.t
 S17-supply/zip-latest.t
@@ -943,6 +959,7 @@ S26-documentation/08-formattingcodes.t
 S26-documentation/09-configuration.t
 S26-documentation/10-doc-cli.t
 S26-documentation/14-defn.t
+S26-documentation/15-numbered-alias.t
 S26-documentation/block-leading.t
 S26-documentation/block-trailing.t
 S26-documentation/module-comment.t
@@ -1044,11 +1061,13 @@ S32-io/io-path.t
 S32-io/io-path-extension.t
 S32-io/IO-Socket-INET.t
 S32-io/move.t
+S32-io/mkdir_rmdir.t
 S32-io/native-descriptor.t  # moar
 S32-io/note.t
 S32-io/null-char.t
 S32-io/open.t
 S32-io/other.t
+S32-io/other-stress.t
 S32-io/out-buffering.t
 S32-io/pipe.t
 S32-io/rename.t
@@ -1058,6 +1077,7 @@ S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-io/tell.t
+S32-io/utf16.t
 S32-list/batch.t
 S32-list/categorize.t
 S32-list/categorize-list.t
@@ -1103,7 +1123,6 @@ S32-list/seq.t
 S32-list/skip.t
 S32-list/sort.t
 S32-list/tail.t
-S32-list/toggle.t
 S32-list/unique.t
 S32-list/squish.t
 S32-num/abs.t

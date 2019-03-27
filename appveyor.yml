@@ -49,6 +49,7 @@ install:
   - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
   - ECHO %RAKUDO_OPTIONS%
   - CD %APPVEYOR_BUILD_FOLDER%
+  - SET RAKUDO_SKIP_TIMING_TESTS=1
 
 # Testing
 test_script:

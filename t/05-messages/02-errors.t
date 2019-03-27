@@ -16,13 +16,12 @@ throws-like { for [:a] X [:b] -> ($i, $j) { } },
     message => / '<anon>' /,
     "anonymous subs get '<anon>' in arity error messages";
 
-todo 'needs better error message';
 throws-like {
     sub l { IO::Socket::Async.listen: "localhost", 111390 }
     react whenever l() {
         whenever l() {} # try to listen on already open sock
     }
-}, X::AdHoc, message => /'something good'/;
+}, X::TypeCheck::Binding::Parameter, message => /'type check failed'/;
 
 # RT #132283
 is-deeply class { has $.bar }.^methods».name.sort, <BUILDALL bar>,
@@ -155,14 +154,14 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
             :err{.contains: c}, :out(*), :exitcode(*), desc
     }
 
-    subtest 'named params' => {
+    group-of 3 => 'named params' => {
         uhas ｢UInt :$x!｣,          '<UInt>', 'mentions subset name';
         uhas ｢Int :$x! where 42｣,  '<Int where { ... }>',
             'Type + where clauses shown sanely';
         uhas ｢UInt :$x! where 42｣, '<UInt where { ... }>',
             'subset + where clauses shown sanely';
     }
-    subtest 'anon positional params' => {
+    group-of 3 => 'anon positional params' => {
         uhas ｢UInt $｣,          '<UInt>', 'mentions subset name';
         uhas ｢Int $ where 42｣,  '<Int where { ... }>',
             'where clauses shown sanely';
@@ -212,47 +211,52 @@ throws-like ｢Set.new(1..300)<42> = 42｣,
 subtest 'cannot use Int type object as an operand' => {
     plan 14;
 
+    CONTROL {
+        when CX::Warn {
+            die $_
+        }
+    }
     throws-like ｢(1/1)+Int｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'A Rational instance cannot be added by an Int type object';
     throws-like ｢Int+(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'An Int type object cannot be added by a Rational instance';
     throws-like ｢(1/1)-Int｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'A Rational instance cannot be subtracted by an Int type object';
     throws-like ｢Int-(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'An Int type object cannot be subtracted by a Rational instance';
     throws-like ｢(1/1)*Int｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'A Rational instance cannot be multiplied by an Int type object';
     throws-like ｢Int*(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'An Int type object cannot be multiplied by a Rational instance';
     throws-like ｢(1/1)/Int｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'A Rational instance cannot be divided by an Int type object';
     throws-like ｢Int/(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'An Int type object cannot be divided by a Rational instance';
     throws-like ｢Int/Int｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'An Int type object cannot be divided by an Int type object';
     throws-like ｢Int/1｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'An Int type object cannot be divided by an Int instance';
     throws-like ｢1/Int｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'An Int instance cannot be divided by an Int type object';
     throws-like ｢(1/1)%Int｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'A Rational instance modulo an Int type object is incalculable';
     throws-like ｢Int%(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'An Int type object modulo a Rational instance is incalculable';
     throws-like ｢(1/1)**Int｣,
-        X::Parameter::InvalidConcreteness,
+        CX::Warn,
         'A Rational instance cannot be powered by an Int type object';
 }
 

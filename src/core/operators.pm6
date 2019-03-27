@@ -650,6 +650,10 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
+    nqp::gethllsym('perl6','ModuleLoader').merge_globals(
+        $block.AT-KEY($stubname).WHO,
+        $GLOBALish,
+    ) if $stubname;
     # Merge GLOBAL from compunit.
     nqp::gethllsym('perl6','ModuleLoader').merge_globals(
         $block<%REQUIRE_SYMBOLS>,
@@ -796,5 +800,8 @@ multi sub infix:<o> (&f, &g --> Block:D) {
 }
 # U+2218 RING OPERATOR
 my constant &infix:<∘> := &infix:<o>;
+
+# to allow =~ to work with "no isms <Perl5>", otherwise caught in compilation
+sub infix:<=~>(\a,\b) { a = ~b }
 
 # vim: ft=perl6 expandtab sw=4

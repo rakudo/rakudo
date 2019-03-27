@@ -7,7 +7,7 @@ my class IO::Path is Cool does IO {
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
-        nqp::p6bool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
+        nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
@@ -58,20 +58,20 @@ my class IO::Path is Cool does IO {
         nqp::if(
           nqp::isconcrete($!is-absolute),
           $!is-absolute,
-          $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))
+          $!is-absolute = nqp::hllbool($!SPEC.is-absolute: $!path))
     }
     method is-relative() {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::not_i(
             nqp::if(
               nqp::isconcrete($!is-absolute),
               $!is-absolute,
-              $!is-absolute = nqp::p6bool($!SPEC.is-absolute: $!path))))
+              $!is-absolute = nqp::hllbool($!SPEC.is-absolute: $!path))))
     }
 
     method parts {
         %!parts || (%!parts := nqp::create(Map).STORE:
-          $!SPEC.split($!path), :initialize)
+          $!SPEC.split($!path), :INITIALIZE)
     }
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
@@ -283,8 +283,9 @@ my class IO::Path is Cool does IO {
             if nqp::iseq_s($part, $up) {
                 next unless $res-list;
                 nqp::pop_s($res-list);
-                $resolved = $res-list ?? $sep ~ nqp::join($sep, $res-list)
-                                      !! $empty;
+                $resolved = $res-list
+                  ?? nqp::concat(nqp::concat($volume, $sep), nqp::join($sep, $res-list))
+                  !! $empty;
                 next;
             }
 
@@ -525,8 +526,7 @@ my class IO::Path is Cool does IO {
     proto method dir(|) {*} # make it possible to augment with multies from modulespace
     multi method dir(IO::Path:D: Mu :$test = $*SPEC.curupdir) {
         CATCH { default {
-            fail X::IO::Dir.new(
-              :path($.absolute), :os-error(.Str) );
+            X::IO::Dir.new(:path($.absolute), :os-error(.Str)).throw
         } }
 
         my str $dir-sep  = $!SPEC.dir-sep;

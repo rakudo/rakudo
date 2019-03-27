@@ -5,26 +5,58 @@
 #   * Allow exact Perl 6 forms, quoted away from shell
 # * Fix remaining XXXX
 
-my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
-    # Do we have a MAIN at all?
-    my $m = callframe(1).my<&MAIN>;
-    return $retval unless $m;
+my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
-    my %SUB-MAIN-OPTS  := %*SUB-MAIN-OPTS // {};
-    my $no-named-after := nqp::isfalse(%SUB-MAIN-OPTS<named-anywhere>);
+    # Set up basic info
+    my %caller-my := callframe(1).my;
+    my $provided-a-to-c := %caller-my<&ARGS-TO-CAPTURE>;
+    my $provided-g-u    := %caller-my<&GENERATE-USAGE>;
 
-    sub thevalue(\a) {
-        ((my $type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS($type.HOW))
-          ?? $type
-          !! val(a)
+    my &args-to-capture := $provided-a-to-c // &default-args-to-capture;
+    my &generate-usage  := $provided-g-u    // &default-generate-usage;
+    my %sub-main-opts   := %*SUB-MAIN-OPTS // {};
+
+    # Set up proxy for default generated usage
+    my $usage-produced;
+    my $*USAGE := Proxy.new(
+        FETCH => -> | {
+            $usage-produced //= default-generate-usage(&main)
+        },
+        STORE => -> | {
+            die 'Cannot assign to $*USAGE. Please create a '
+                ~ '`sub GENERATE-USAGE {}` to generate custom usage message'
+        }
+    );
+
+    # Module loaded that depends on the old MAIN_HELPER interface and
+    # does not provide the new interface?
+    if !$provided-a-to-c && %caller-my<&MAIN_HELPER> -> &main_helper {
+        # DEPRECATED message here
+
+        # Make MAIN available at callframe(1) when executing main_helper
+        # but return if there is nothing to call (old semantics)
+        return $mainline unless my &MAIN := %caller-my<&MAIN>;
+
+        # Call the MAIN_HELPER, it should do everything
+        return &main_helper.count == 2
+          ?? main_helper($in-as-argsfiles,$mainline)  # post 2018.06 interface
+          !! main_helper($mainline)                   # original interface
     }
 
     # Convert raw command line args into positional and named args for MAIN
-    my sub process-cmd-args(@args is copy) {
+    sub default-args-to-capture($, @args is copy --> Capture:D) {
+        my $no-named-after = nqp::isfalse(%sub-main-opts<named-anywhere>);
+
         my $positional := nqp::create(IterationBuffer);
         my %named;
 
-        while ?@args {
+        sub thevalue(\a) {
+            ((my \type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS(type.HOW))
+              ?? type
+              !! val(a)
+        }
+
+        while @args {
             my str $passed-value = @args.shift;
 
             # rest considered to be non-parsed
@@ -63,14 +95,13 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
                 nqp::push($positional, thevalue($passed-value));
             }
         }
-
-        nqp::p6bindattrinvres(
-          nqp::create(List),List,'$!reified',$positional
-        ),%named;
+        Capture.new( list => $positional.List, hash => %named )
     }
 
-    # Generate $?USAGE string (default usage info for MAIN)
-    my sub gen-usage() {
+    # Generate $*USAGE string (default usage info for MAIN)
+    sub default-generate-usage(&, |capture) {
+        my $no-named-after = nqp::isfalse(%sub-main-opts<named-anywhere>);
+
         my @help-msgs;
         my Pair @arg-help;
 
@@ -89,15 +120,44 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             $name;
         }
 
-        my $prog-name = %*ENV<PERL6_PROGRAM_NAME>:exists
-          ?? %*ENV<PERL6_PROGRAM_NAME>
-          !! $*PROGRAM-NAME;
+        my $prog-name = %*ENV<PERL6_PROGRAM_NAME> || $*PROGRAM-NAME;
         $prog-name = $prog-name eq '-e'
           ?? "-e '...'"
           !! strip_path_prefix($prog-name);
-        for $m.candidates -> $sub {
-            next if $sub.?is-hidden-from-USAGE;
 
+        # return the Cool constant if the post_constraints of a Parameter is
+        # a single Cool constant, else Nil
+        sub cool_constant(Parameter:D $p) {
+            nqp::not_i(
+              nqp::isnull(
+                (my \post_constraints :=
+                  nqp::getattr($p,Parameter,'@!post_constraints'))
+              )
+            ) && nqp::elems(post_constraints) == 1
+              && nqp::istype((my \value := nqp::atpos(post_constraints,0)),Cool)
+              ?? value
+              !! Nil
+        }
+
+        # Select candidates for which to create USAGE string
+        sub usage-candidates($capture) {
+            my @candidates = &main.candidates.grep: { !.?is-hidden-from-USAGE }
+            if $capture.list -> @positionals {
+                my $first := @positionals[0];
+                if @candidates.grep: -> $sub {
+                    if $sub.signature.params[0] -> $param {
+                        if cool_constant($param) -> $literal {
+                            $literal.ACCEPTS($first)
+                        }
+                    }
+                } -> @candos {
+                    return @candos;
+                }
+            }
+            @candidates
+        }
+
+        for usage-candidates(capture) -> $sub {
             my @required-named;
             my @optional-named;
             my @positional;
@@ -180,7 +240,9 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents
             }
-            my $msg = join(' ', $prog-name, @required-named, @optional-named, @positional, $docs // '');
+            my $msg = $no-named-after
+              ?? join(' ', $prog-name, @required-named, @optional-named, @positional, ($docs if $docs))
+              !! join(' ', $prog-name, @positional, @required-named, @optional-named, ($docs if $docs));
             @help-msgs.push($msg);
         }
 
@@ -190,69 +252,82 @@ my sub MAIN_HELPER($IN-as-ARGSFILES, $retval = 0) {
             @help-msgs.append(@arg-help.map: { '  ' ~ .key ~ ' ' x ($offset - .key.chars) ~ .value });
         }
 
-        my $usage = "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n");
-        $usage;
+        @help-msgs
+          ?? "Usage:\n" ~ @help-msgs.map('  ' ~ *).join("\n")
+          !! "No usage information could be determined"
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {
         my @named-params = $signature.params.grep: *.named;
-        return False if @named-params.grep: *.slurpy;
+        return False if @named-params.first: *.slurpy;
 
-        my %accepts-argument = @named-params.map({ .named_names.Slip }) Z=> 1 xx *;
-        for %named-arguments.keys -> $name {
-            return True if !%accepts-argument{$name}
-        }
-
-        False;
+        my %accepts-argument is Set = @named-params.map( *.named_names.Slip );
+        return True unless %accepts-argument{$_} for %named-arguments.keys;
+        False
     }
+
+    sub find-candidates($capture) {
+        &main
+          # Get a list of candidates that match according to the dispatcher
+          .cando($capture)
+          # Sort out all that would fail due to binding
+          .grep: { !has-unexpected-named-arguments(.signature, $capture.hash) }
+    }
+
+    # turn scalar values of nameds into 1 element arrays, return new capture
+    sub scalars-into-arrays($capture) {
+        my %hash = $capture.hash.map: {
+            nqp::istype(.value,Positional) ?? $_ !! Pair.new(.key,[.value])
+        }
+        Capture.new( :list($capture.list), :%hash)
+    }
+
+    # set up other new style dynamic variables
+    my &*ARGS-TO-CAPTURE := &default-args-to-capture;
+    my &*GENERATE-USAGE  := &default-generate-usage;
 
     # Process command line arguments
-    my ($p, $n) := process-cmd-args(@*ARGS);
-
-    # Generate default $?USAGE message
-    my $usage;
-    my $*USAGE := Proxy.new(
-        FETCH => -> | { $usage || ($usage = gen-usage()) },
-        STORE => -> | {
-            die 'Cannot assign to $*USAGE. Please use `sub USAGE {}` to '
-                ~ 'output custom usage message'
-        }
-    );
+    my $capture := args-to-capture(&main, @*ARGS);
 
     # Get a list of candidates that match according to the dispatcher
-    my @matching_candidates = $m.cando(Capture.new(list => $p, hash => $n));
-    # Sort out all that would fail due to binding
-    @matching_candidates .=grep: {!has-unexpected-named-arguments($_.signature, $n)};
+    my @candidates = find-candidates($capture);
+    if !@candidates {
+        my $alternate = scalars-into-arrays($capture);
+        if find-candidates($alternate) -> @alternates {
+            $capture   := $alternate;
+            @candidates = @alternates;
+        }
+    }
+
     # If there are still some candidates left, try to dispatch to MAIN
-    if +@matching_candidates {
-        if $IN-as-ARGSFILES {
+    if @candidates {
+        if $in-as-argsfiles {
             my $*ARGFILES := IO::ArgFiles.new: (my $in := $*IN),
                 :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),
-                :bin(nqp::p6bool(nqp::isfalse($in.encoding)));
-            $m(|@($p), |%($n));
+                :bin(nqp::hllbool(nqp::isfalse($in.encoding)));
+            main(|$capture).sink;
         }
         else {
-            $m(|@($p), |%($n));
+            main(|$capture).sink;
         }
-        return;
     }
-
     # We could not find the correct MAIN to dispatch to!
-    # Let's try to run a user defined USAGE sub
-    my $h = callframe(1).my<&USAGE>;
-    if $h {
-        $h();
-        return;
+
+    # No new-style GENERATE-USAGE was provided, and no new style
+    # ARGS-TO-CAPTURE was provided either, so try to run a user defined
+    # USAGE sub of the old interface.
+    elsif !$provided-g-u && !$provided-a-to-c && %caller-my<&USAGE> -> &usage {
+        # DEPRECATED message here
+        usage;
     }
 
-    # We could not find a user defined USAGE sub!
-    # Let's display the default USAGE message
-    if $n<help> {
-        $*OUT.say($*USAGE);
+    # Display the default USAGE message on either STDOUT/STDERR
+    elsif $capture<help> {
+        $*OUT.say: generate-usage(&main,|$capture);
         exit 0;
     }
     else {
-        $*ERR.say($*USAGE);
+        $*ERR.say: generate-usage(&main,|$capture);
         exit 2;
     }
 }

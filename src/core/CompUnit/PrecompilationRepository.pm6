@@ -67,11 +67,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     method !load-handle-for-path(CompUnit::PrecompilationUnit $unit) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$unit") }
-#?if moar
+#?if !jvm
         my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
         $unit.close;
 #?endif
-#?if !moar
+#?if jvm
         my $handle := CompUnit::Loader.load-precompilation($unit.bytecode);
 #?endif
         nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
@@ -246,10 +246,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];
         die "Circular module loading detected trying to precompile $path" if $modules.Set{$path.Str}:exists;
         %env<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
-        %env<RAKUDO_PRECOMP_DIST> = $*RESOURCES ?? $*RESOURCES.Str !! '{}';
+        %env<RAKUDO_PRECOMP_DIST> = $*DISTRIBUTION ?? $*DISTRIBUTION.serialize !! '{}';
 
         $RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $RMD;
-        my $perl6 = $*EXECUTABLE
+        my $perl6 = $*EXECUTABLE.absolute
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
             .subst('perl6-gdb', 'perl6')
             .subst('perl6-jdb-server', 'perl6-j') ;
@@ -285,7 +285,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
         }
 
-        my @result = $out.lines.unique;
+        my @result is List = $out.lines.unique;
         if $status {  # something wrong
             self.store.unlock;
             $RMD("Precompiling $path failed: $status") if $RMD;

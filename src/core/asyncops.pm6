@@ -53,32 +53,4 @@ multi sub await(Supply:D $s) {
 multi sub await(Iterable:D $i) { eager $i.eager.map({ await $_ }) }
 multi sub await(*@awaitables)  { eager @awaitables.eager.map({await $_}) }
 
-sub awaiterator(@promises) {
-    Seq.new(class :: does Iterator {
-        has @!todo;
-        has @!done;
-        method !SET-SELF(\todo) { @!todo = todo; self }
-        method new(\todo) { nqp::create(self)!SET-SELF(todo) }
-        method pull-one() is raw {
-            if @!done {
-                @!done.shift
-            }
-            elsif @!todo {
-                Promise.anyof(@!todo).result;
-                my @next;
-                .status == Planned
-                  ?? @next.push($_)
-                  !! @!done.push($_.result)
-                    for @!todo;
-                @!todo := @next;
-                @!done.shift
-            }
-            else {
-                IterationEnd
-            }
-        }
-        method sink-all(--> IterationEnd) { Promise.allof(@promises).result }
-    }.new(@promises))
-}
-
 # vim: ft=perl6 expandtab sw=4

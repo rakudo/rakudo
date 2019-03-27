@@ -31,7 +31,9 @@ class Perl6::Metamodel::NativeHOW
         self.add_stash($obj);
     }
 
-    method compose($obj, :$compiler_services) {
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);

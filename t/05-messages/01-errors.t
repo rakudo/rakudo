@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 49;
+plan 48;
 
 # RT #129763
 throws-like '1++', X::Multi::NoMatch,
@@ -69,7 +69,7 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 # RT #113954
 {
     is-run ｢multi MAIN(q|foo bar|) {}｣,
-       :err(qq|Usage:\n  -e '...' 'foo bar' \n|),
+       :err(qq|Usage:\n  -e '...' 'foo bar'\n|),
        :exitcode(*),
        'a space in a literal param to a MAIN() multi makes the suggestion quoted';
 
@@ -78,13 +78,13 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
     }
     else {
         is-run ｢multi MAIN(q|foo"bar|) {}｣,
-           :err(qq|Usage:\n  -e '...' 'foo"bar' \n|),
+           :err(qq|Usage:\n  -e '...' 'foo"bar'\n|),
            :exitcode(*),
            'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
     }
 
     is-run ｢multi MAIN(q|foo'bar|) {}｣,
-       :err(qq|Usage:\n  -e '...' 'foo'"'"'bar' \n|),
+       :err(qq|Usage:\n  -e '...' 'foo'"'"'bar'\n|),
        :exitcode(*),
        'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
 }
@@ -198,11 +198,6 @@ throws-like { class { proto method x(|) {*} }.new.x }, X::Multi::NoMatch,
     :message{ .contains: 'only the proto' & none 'none of these signatures' },
     'error points out only only proto is defined';
 
-# GH #1746
-throws-like { EVAL 'proto x(|) {*}; x' }, X::Multi::NoMatch,
-    :message{ .contains: 'only the proto' & none 'none of these signatures' },
-    'error points out only only proto routine is defined';
-
 # RT #131367
 throws-like { Blob.split }, X::Multi::NoMatch,
     :message{ .contains: 'only the proto' & none 'none of these signatures' },
@@ -219,7 +214,7 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         X::Method::NotFound,
         message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_1'>>/, /\W '!bar'>>/, /<<'baz'>>/),
         'a private method of the same name as the public missing method is suggested';
-    throws-like q| class RT123078_2 { method foo { self!bar }; method bar { }; method baz { } }; RT123078_2.new.foo |,
+    throws-like q| class RT123078_2 { method foo { self!bar }; method bar { }; method baz { } } |,
         X::Method::NotFound,
         message => all(/<<"No such private method '!bar'" \W/, /<<'RT123078_2'>>/, /<<'bar'>>/, /<<'baz'>>/),
         'a public method of the same name as the missing private method is suggested';
@@ -258,7 +253,7 @@ is-run ｢my Str where 'foo' $test｣, :exitcode(*),
 # RT#132285
 throws-like ｢Blob[num32].new: 2e0｣,
     Exception,
-    :message{ .contains: ｢not yet implemented｣ & ｢num32｣ and not .contains: ｢got null｣ },
+    :message{ .contains: ｢Can only parameterize｣ & ｢num32｣ and not .contains: ｢got null｣ },
     'sane NYI error for num32 Blob';
 
 # RT#77754

@@ -1,7 +1,7 @@
 my class Failure is Nil {
     has $.exception;
     has $.backtrace;
-#?if moar
+#?if !jvm
     has int $!handled;
 #?endif
 #?if jvm
@@ -14,20 +14,21 @@ my class Failure is Nil {
         self
     }
 
-    multi method new() {
+    multi method new(Failure:D:) { self!throw }
+    multi method new(Failure:U:) {
         my $stash := CALLER::;
         my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
         nqp::create(self)!SET-SELF(
           $payload ~~ Exception ?? $payload !! X::AdHoc.new(:$payload)
         )
     }
-    multi method new(Exception:D \exception) {
+    multi method new(Failure:U: Exception:D \exception) {
         nqp::create(self)!SET-SELF(exception)
     }
-    multi method new($payload) {
+    multi method new(Failure:U: $payload) {
         nqp::create(self)!SET-SELF(X::AdHoc.new(:$payload))
     }
-    multi method new(|cap (*@msg)) {
+    multi method new(Failure:U: |cap (*@msg)) {
         nqp::create(self)!SET-SELF(X::AdHoc.from-slurpy(|cap))
     }
 
@@ -37,6 +38,10 @@ my class Failure is Nil {
             ~ ".so, .not, or .defined methods. The Failure was:\n" ~ self.mess
         unless $!handled;
     }
+
+    # allow Failures to throw when they replace an Iterable
+    multi method iterator(Failure:D:) { self!throw }
+    multi method list(Failure:D:)     { self!throw }
 
     # Marks the Failure has handled (since we're now fatalizing it) and throws.
     method !throw(Failure:D:) {
@@ -49,19 +54,14 @@ my class Failure is Nil {
     method AT-POS(|) { self }
     method AT-KEY(|) { self }
 
-    # TODO: should be Failure:D: multi just like method Bool,
-    # but obscure problems prevent us from making Mu.defined
-    # a multi. See http://irclog.perlgeek.de/perl6/2011-06-28#i_4016747
-    method defined() {
-        $!handled = 1 if nqp::isconcrete(self);
-        Bool::False;
-    }
-    multi method Bool(Failure:D:) { $!handled = 1; Bool::False; }
+    multi method defined(Failure:D: --> False) { $!handled = 1 }
+
+    multi method Bool(Failure:D: --> False) { $!handled = 1 }
     method handled() is rw {
         Proxy.new(
           FETCH => {
-#?if moar
-              nqp::p6bool($!handled)
+#?if !jvm
+              nqp::hllbool($!handled)
 #?endif
 #?if jvm
               $!handled.Bool
@@ -96,7 +96,8 @@ my class Failure is Nil {
     }
     multi method perl(Failure:U:) { self.^name }
     method mess (Failure:D:) {
-        "(HANDLED) " x $!handled ~ self.exception.message ~ "\n" ~ self.backtrace;
+        my $message = (try self.exception.?message) // self.exception.^name ~ ' with no message';
+        "(HANDLED) " x $!handled ~ "$message\n" ~ self.backtrace;
     }
 
     method sink(Failure:D:) {

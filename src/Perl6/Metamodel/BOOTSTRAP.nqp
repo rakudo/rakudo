@@ -88,10 +88,15 @@ my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-#?if moar
 my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+
+#?if js
+my stub Int64LexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub Int64AttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub Int64PosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 #?endif
 
 # Implement the signature binder.
@@ -138,7 +143,7 @@ my class Binder {
     my $Positional;
     my $PositionalBindFailover;
 
-#?if moar
+#?if !jvm
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many, $lexpad) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;
@@ -630,7 +635,7 @@ my class Binder {
                 $default_value;
             }
             else {
-                $default_value()
+                nqp::p6capturelexwhere($default_value.clone)();
             }
         }
 
@@ -1184,6 +1189,7 @@ class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
         $self
     }
 
+    method name() { self.next.name ~ '[' ~ $!pos ~ ']' }
     method assigned($scalar) {
         nqp::bindpos($!target, $!pos, $scalar);
     }
@@ -1206,6 +1212,9 @@ class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
         $self
     }
 
+    method name() {
+        'element at [' ~ $!one ~ ',' ~ $!two ~ ']'  # XXX name ?
+    }
     method assigned($scalar) {
         nqp::bindpos2d($!target, $!one, $!two, $scalar);
     }
@@ -1231,6 +1240,9 @@ class ContainerDescriptor::BindArrayPos3D does ContainerDescriptor::Whence {
         $self
     }
 
+    method name() {
+        'element at [' ~ $!one ~ ',' ~ $!two ~ ',' ~ $!three ~ ']'
+    }
     method assigned($scalar) {
         nqp::bindpos3d($!target, $!one, $!two, $!three, $scalar);
     }
@@ -1250,6 +1262,7 @@ class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
         $self
     }
 
+    method name() { 'element of ' ~ self.next.name }  # XXX show indexes
     method assigned($scalar) {
         nqp::bindposnd($!target, $!idxs, $scalar);
     }
@@ -1269,6 +1282,7 @@ class ContainerDescriptor::BindHashPos does ContainerDescriptor::Whence {
         $self
     }
 
+    method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
     method assigned($scalar) {
         my $hash := nqp::getattr($!target, Map, '$!storage');
         $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash())
@@ -1297,6 +1311,7 @@ class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
         $self
     }
 
+    method name() { 'element of ' ~ self.next.name }  # XXX correct key
     method assigned($scalar) {
         my $hash := nqp::getattr($!target, Map, '$!storage');
         $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash())
@@ -1317,6 +1332,7 @@ class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
         $self
     }
 
+    method name() { self.next.name ~ '[' ~ $!pos ~ ']' }
     method assigned($scalar) {
         my $target := $!target;
         my $array := nqp::isconcrete($target)
@@ -1338,6 +1354,7 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
         $self
     }
 
+    method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
     method assigned($scalar) {
         my $target := $!target;
         my $array := nqp::isconcrete($target)
@@ -1455,28 +1472,28 @@ BEGIN {
                 Attribute, '$!auto_viv_container');
         }));
     Attribute.HOW.add_method(Attribute, 'has_accessor', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!has_accessor'));
+            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!has_accessor'), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'rw', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!rw'));
+            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!rw'), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'set_rw', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!rw', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_readonly', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!ro', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {
             $*W.add_object_if_no_sc($value);
             nqp::bindattr(nqp::decont($self),
                 Attribute, '$!required', $value);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'required', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
@@ -1487,7 +1504,7 @@ BEGIN {
             unless nqp::getattr_i($dcself, Attribute, '$!ro') {
                 nqp::bindattr_i($dcself, Attribute, '$!rw', 1);
             }
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'set_build', nqp::getstaticcode(sub ($self, $closure) {
             nqp::bindattr(nqp::decont($self), Attribute, '$!build_closure', $closure);
@@ -1500,7 +1517,7 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'set_box_target', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!box_target', 1);
-            nqp::p6bool(1)
+            nqp::hllboolfor(1, "perl6")
         }));
     Attribute.HOW.add_method(Attribute, 'box_target', nqp::getstaticcode(sub ($self) {
             nqp::getattr_i(nqp::decont($self),
@@ -1524,7 +1541,7 @@ BEGIN {
                 Attribute, '$!package');
             my $build := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!build_closure');
-            nqp::p6bool($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build));
+            nqp::hllboolfor($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             my $dcself   := nqp::decont($self);
@@ -1690,10 +1707,15 @@ BEGIN {
     setup_native_ref_type(IntPosRef, int, 'positional');
     setup_native_ref_type(NumPosRef, num, 'positional');
     setup_native_ref_type(StrPosRef, str, 'positional');
-#?if moar
     setup_native_ref_type(IntMultidimRef, int, 'multidim');
     setup_native_ref_type(NumMultidimRef, num, 'multidim');
     setup_native_ref_type(StrMultidimRef, str, 'multidim');
+
+#?if js
+    setup_native_ref_type(Int64LexRef, int64, 'lexical');
+    setup_native_ref_type(Int64AttrRef, int64, 'attribute');
+    setup_native_ref_type(Int64PosRef, int64, 'positional');
+    setup_native_ref_type(Int64MultidimRef, int64, 'multidim');
 #?endif
 
     # class Proxy is Any {
@@ -1772,7 +1794,7 @@ BEGIN {
                 my $is_generic := $_.is_generic();
                 if $is_generic { return $is_generic }
             }
-            return nqp::p6bool(0);
+            return nqp::hllboolfor(0, "perl6");
         }));
     Signature.HOW.add_method(Signature, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Go through parameters, builidng new list. If any
@@ -1800,13 +1822,14 @@ BEGIN {
                 Signature, '$!returns', nqp::decont($type));
         }));
     Signature.HOW.add_method(Signature, 'has_returns', nqp::getstaticcode(sub ($self) {
-            nqp::p6bool(
+            nqp::hllboolfor(
                 nqp::not_i(
                     nqp::isnull(
                         nqp::getattr(nqp::decont($self),
                             Signature, '$!returns')
                     )
-                )
+                ),
+                'perl6'
             );
         }));
     Signature.HOW.compose_repr(Signature);
@@ -1843,8 +1866,8 @@ BEGIN {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
-            nqp::p6bool($type.HOW.archetypes.generic ||
-                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic))
+            nqp::hllboolfor($type.HOW.archetypes.generic ||
+                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic), "perl6")
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -2036,7 +2059,7 @@ BEGIN {
                 my $do_cloned := nqp::clone($do);
                 nqp::bindattr($cloned, Code, '$!do', $do_cloned);
                 nqp::setcodeobj($do_cloned, $cloned);
-#?if moar
+#?if !jvm
                 my $phasers := nqp::getattr($dcself, Block, '$!phasers');
                 if nqp::isconcrete($phasers) {
                     $dcself."!clone_phasers"($cloned, $phasers);
@@ -2059,7 +2082,7 @@ BEGIN {
             }
         }));
     Block.HOW.add_method(Block, '!clone_phasers', nqp::getstaticcode(sub ($self, $cloned, $phasers) {
-#?if moar
+#?if !jvm
             my int $next := nqp::existskey($phasers, 'NEXT');
             my int $last := nqp::existskey($phasers, 'LAST');
             my int $quit := nqp::existskey($phasers, 'QUIT');
@@ -2114,7 +2137,7 @@ BEGIN {
         }));
     Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
             my $dcself    := nqp::decont($self);
-#?if moar
+#?if !jvm
             my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
             if nqp::isconcrete($phasers) {
                 my @next := nqp::atkey($phasers, 'NEXT');
@@ -2182,7 +2205,7 @@ BEGIN {
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
-            nqp::p6bool(nqp::defined($disp_list));
+            nqp::hllboolfor(nqp::defined($disp_list), "perl6");
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
@@ -2851,7 +2874,7 @@ BEGIN {
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             sub add_to_cache($entry) {
-#?if jvm
+#?if !moar
                 return 0 if nqp::capturehasnameds($capture);
 #?endif
                 nqp::scwbdisable();
@@ -3124,7 +3147,7 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, 'rw', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
-            nqp::p6bool(nqp::getattr_i($dcself, Routine, '$!rw'));
+            nqp::hllboolfor(nqp::getattr_i($dcself, Routine, '$!rw'), "perl6");
         }));
     Routine.HOW.add_method(Routine, 'set_inline_info', nqp::getstaticcode(sub ($self, $info) {
             my $dcself := nqp::decont($self);
@@ -3164,11 +3187,15 @@ BEGIN {
     #     has Mu $!nfa;
     #     has @!alt_nfas;
     #     has str $!source;
+    #     has $!topic;
+    #     has $!slash;
     Regex.HOW.add_parent(Regex, Method);
     Regex.HOW.add_attribute(Regex, scalar_attr('@!caps', List, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!topic', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!slash', Mu, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
             nqp::bindattr(nqp::decont($self), Regex, '@!caps', $caps)
         }));
@@ -3354,10 +3381,14 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
-#?if moar
     Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
+#?if js
+    Perl6::Metamodel::NativeRefHOW.add_stash(Int64LexRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(Int64AttrRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(Int64PosRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(Int64MultidimRef);
 #?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
@@ -3476,6 +3507,11 @@ BEGIN {
     EXPORT::DEFAULT.WHO<IntPosRef>  := IntPosRef;
     EXPORT::DEFAULT.WHO<NumPosRef>  := NumPosRef;
     EXPORT::DEFAULT.WHO<StrPosRef>  := StrPosRef;
+#?if js
+    EXPORT::DEFAULT.WHO<Int64LexRef>  := Int64LexRef;
+    EXPORT::DEFAULT.WHO<Int64AttrRef> := Int64AttrRef;
+    EXPORT::DEFAULT.WHO<Int64PosRef>  := Int64PosRef;
+#?endif
     EXPORT::DEFAULT.WHO<Proxy>      := Proxy;
     EXPORT::DEFAULT.WHO<Grammar>    := Grammar;
     EXPORT::DEFAULT.WHO<Junction>   := Junction;
@@ -3493,73 +3529,10 @@ BEGIN {
 EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
 EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
 
+#?if !moar
 # Set up various type mappings.
 nqp::p6settypes(EXPORT::DEFAULT.WHO);
-
-# Tell parametric role groups how to create a dispatcher.
-Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
-    my $sel := nqp::create(Sub);
-    my $onlystar := sub (*@pos, *%named) {
-        nqp::invokewithcapture(
-            nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
-            nqp::usecapture())
-    };
-    nqp::setcodeobj($onlystar, $sel);
-    nqp::bindattr($sel, Code, '$!do', $onlystar);
-    nqp::bindattr($sel, Routine, '@!dispatchees', []);
-    $sel
-});
-
-# Roles pretend to be narrower than certain types for the purpose
-# of type checking. Also, they pun to classes.
-my %excluded := nqp::hash(
-    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
-    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
-    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
-    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
-    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
-    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
-Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::ParametricRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
-Perl6::Metamodel::CurriedRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-
-# Similar for packages and modules, but just has methods from Any.
-Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
-Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
-Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
-
-# Let ClassHOW and EnumHOW know about the invocation handler.
-Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
-    Mu.HOW.invocation_handler(Mu));
-Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
-    Mu.HOW.invocation_handler(Mu));
-
-# Configure the MOP (not persisted as it ends up in a lexical...)
-Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
-Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
-
-# Register default parent types.
-Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
-Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
-
-# Put PROCESS in place, and ensure it's never repossessed.
-nqp::neverrepossess(PROCESS.WHO);
-nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
-nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
-
-# Stash Scalar and a default container spec away in the HLL state.
-nqp::bindhllsym('perl6', 'Scalar', Scalar);
-nqp::bindhllsym('perl6', 'default_cont_spec',
-    Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
+#?endif
 
 # HLL configuration: interop, boxing and exit handling.
 nqp::sethllconfig('perl6', nqp::hash(
@@ -3567,6 +3540,8 @@ nqp::sethllconfig('perl6', nqp::hash(
     'num_box', Num,
     'str_box', Str,
     'null_value', Mu,
+    'true_value', (Bool.WHO)<True>,
+    'false_value', (Bool.WHO)<False>,
     'foreign_type_int', Int,
     'foreign_type_num', Num,
     'foreign_type_str', Str,
@@ -3599,7 +3574,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                     nqp::decont(nqp::atpos(@leaves,0))();
 #?endif
-#?if moar
+#?if !jvm
                     nqp::p6capturelexwhere(
                       nqp::decont(nqp::atpos(@leaves,0)).clone)();
 #?endif
@@ -3641,7 +3616,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                             $phaser();
 #?endif
-#?if moar
+#?if !jvm
                             nqp::p6capturelexwhere($phaser.clone())();
 #?endif
                             CATCH { nqp::push(@exceptions, $_) }
@@ -3658,7 +3633,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?if jvm
                     nqp::atpos(@posts, $i)($value);
 #?endif
-#?if moar
+#?if !jvm
                     nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);
 #?endif
                     CATCH { nqp::push(@exceptions, $_); last; }
@@ -3676,7 +3651,7 @@ nqp::sethllconfig('perl6', nqp::hash(
             }
         }
     },
-#?if moar
+#?if !jvm
     'bind_error', -> $capture {
         # Get signature and lexpad.
         my $caller := nqp::getcodeobj(nqp::callercode());
@@ -3765,12 +3740,81 @@ nqp::sethllconfig('perl6', nqp::hash(
     'int_pos_ref', IntPosRef,
     'num_pos_ref', NumPosRef,
     'str_pos_ref', StrPosRef,
-#?if moar
     'int_multidim_ref', IntMultidimRef,
     'num_multidim_ref', NumMultidimRef,
     'str_multidim_ref', StrMultidimRef,
+#?if js
+    'int64_lex_ref', Int64LexRef,
+    'int64_attr_ref', Int64AttrRef,
+    'int64_pos_ref', Int64PosRef,
+    'int64_multidim_ref', Int64MultidimRef,
 #?endif
 ));
+
+# Tell parametric role groups how to create a dispatcher.
+Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
+    my $sel := nqp::create(Sub);
+    my $onlystar := sub (*@pos, *%named) {
+        nqp::invokewithcapture(
+            nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
+            nqp::usecapture())
+    };
+    nqp::setcodeobj($onlystar, $sel);
+    nqp::bindattr($sel, Code, '$!do', $onlystar);
+    nqp::bindattr($sel, Routine, '@!dispatchees', []);
+    $sel
+});
+
+# Roles pretend to be narrower than certain types for the purpose
+# of type checking. Also, they pun to classes.
+my %excluded := nqp::hash(
+    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
+    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
+    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
+    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
+    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
+    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
+Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::ParametricRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
+Perl6::Metamodel::CurriedRoleHOW.configure_punning(
+    Perl6::Metamodel::ClassHOW, %excluded);
+
+# Similar for packages and modules, but just has methods from Any.
+Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
+Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
+Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
+
+# Let ClassHOW and EnumHOW know about the invocation handler.
+Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
+    Mu.HOW.invocation_handler(Mu));
+Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
+    Mu.HOW.invocation_handler(Mu));
+
+# Configure the MOP (not persisted as it ends up in a lexical...)
+Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
+Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
+
+# Register default parent types.
+Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
+Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
+
+# Put PROCESS in place, and ensure it's never repossessed.
+nqp::neverrepossess(PROCESS.WHO);
+nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
+nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
+
+# Stash Scalar and a default container spec away in the HLL state.
+nqp::bindhllsym('perl6', 'Scalar', Scalar);
+nqp::bindhllsym('perl6', 'default_cont_spec',
+    Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
 
 #?if jvm
 # On JVM, set up JVM interop bits.

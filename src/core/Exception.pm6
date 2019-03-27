@@ -1,5 +1,6 @@
 my role X::Comp { ... }
 my class X::ControlFlow { ... }
+my role X::Control { ... }
 
 my class Exception {
     has $!ex;
@@ -51,7 +52,11 @@ my class Exception {
     }
 
     method throw(Exception:D: $bt?) {
-        $!ex := nqp::newexception() unless nqp::isconcrete($!ex) and $bt;
+        unless nqp::isconcrete($!ex) and $bt {
+            my $orig-ex := $!ex;
+            $!ex := nqp::newexception();
+            self!maybe-set-control() unless nqp::isconcrete($orig-ex);
+        }
         $!bt := $bt; # Even if !$bt
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::throw($!ex)
@@ -60,9 +65,16 @@ my class Exception {
         unless nqp::isconcrete($!ex) {
             $!ex := nqp::newexception();
             try nqp::setmessage($!ex, self.message);
+            self!maybe-set-control();
         }
         nqp::setpayload($!ex, nqp::decont(self));
         nqp::rethrow($!ex)
+    }
+
+    method !maybe-set-control(--> Nil) {
+        if nqp::istype(self, X::Control) {
+            nqp::setextype($!ex, nqp::const::CONTROL_ANY);
+        }
     }
 
     method resume(Exception:D: --> True) {
@@ -146,6 +158,7 @@ my class X::Method::NotFound is Exception {
     has $.method;
     has $.typename;
     has Bool $.private = False;
+    has $.addendum;
     method message() {
         my $message = $.private
           ?? "No such private method '!$.method' for invocant of type '$.typename'"
@@ -195,7 +208,9 @@ my class X::Method::NotFound is Exception {
             $message ~= ". Did you mean any of these?\n    { %suggestions.sort(*.value)>>.key.head(4).join("\n    ") }\n";
         }
 
-        $message;
+        $.addendum
+          ?? "$message\n$.addendum"
+          !!  $message
     }
 }
 
@@ -885,7 +900,11 @@ my class X::Trait::Unknown is Exception {
     has $.subtype;    # wrong subtype being tried
     has $.declaring;  # variable, sub, parameter, etc.
     method message () {
-        "Can't use unknown trait '$.type $.subtype' in a$.declaring declaration."
+        "Can't use unknown trait '{
+            try { $.type } // "unknown type"
+        }' -> '{
+            try { $.subtype } // "unknown subtype"
+        }' in a$.declaring declaration."
     }
 }
 my class X::Comp::Trait::Unknown is X::Trait::Unknown does X::Comp { };
@@ -1492,7 +1511,7 @@ my class X::Syntax::Augment::Adverb does X::Syntax {
 
 my class X::Syntax::Type::Adverb does X::Syntax {
     has $.adverb;
-    method message() { "Cannot use adverb $.adverb on a type name (only 'ver' and 'auth' are understood)" }
+    method message() { "Cannot use adverb $.adverb on a type name (only 'ver', 'auth' and 'api' are understood)" }
 }
 
 my class X::Syntax::Argument::MOPMacro does X::Syntax {
@@ -1569,43 +1588,48 @@ my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
-    my %m =
-      '$"'  => '.join() method',
-      '$$'  => '$*PID',
-      '$;'  => 'real multidimensional hashes',
-      '$&'  => '$<>',
-      '$`'  => '$/.prematch',
-      '$\'' => '$/.postmatch',
-      '$,'  => '.join() method',
-      '$.'  => "the .kv method on e.g. .lines",
-      '$/'  => "the filehandle's .nl-in attribute",
-      '$\\' => "the filehandle's .nl-out attribute",
-      '$|'  => "the filehandle's .out-buffer attribute",
-      '$?'  => '$! for handling child errors also',
-      '$@'  => '$!',
-      '$]'  => '$*PERL.version or $*PERL.compiler.version',
+#?if moar
+    my constant $m = nqp::hash(
+#?endif
+#?if !moar
+    my $m := nqp::hash(
+#?endif
+      '$"',    '.join() method',
+      '$$',    '$*PID',
+      '$;',    'real multidimensional hashes',
+      '$&',    '$<>',
+      '$`',    '$/.prematch',
+      '$\'',   '$/.postmatch',
+      '$,',    '.join() method',
+      '$.',    "the .kv method on e.g. .lines",
+      '$/',    "the filehandle's .nl-in attribute",
+      '$\\',   "the filehandle's .nl-out attribute",
+      '$|',    "the filehandle's .out-buffer attribute",
+      '$?',    '$! for handling child errors also',
+      '$@',    '$!',
+      '$]',    '$*PERL.version or $*PERL.compiler.version',
 
-      '$^C' => 'COMPILING namespace',
-      '$^H' => '$?FOO variables',
-      '$^N' => '$/[*-1]',
-      '$^O' => 'VM.osname',
-      '$^R' => 'an explicit result variable',
-      '$^S' => 'context function',
-      '$^T' => '$*INIT-INSTANT',
-      '$^V' => '$*PERL.version or $*PERL.compiler.version',
-      '$^X' => '$*EXECUTABLE-NAME',
+      '$^C',   'COMPILING namespace',
+      '$^H',   '$?FOO variables',
+      '$^N',   '$/[*-1]',
+      '$^O',   'VM.osname',
+      '$^R',   'an explicit result variable',
+      '$^S',   'context function',
+      '$^T',   '$*INIT-INSTANT',
+      '$^V',   '$*PERL.version or $*PERL.compiler.version',
+      '$^X',   '$*EXECUTABLE-NAME',
 
-      '@-'  => '.from method',
-      '@+'  => '.to method',
+      '@-',    '.from method',
+      '@+',    '.to method',
 
-      '%-'  => '.from method',
-      '%+'  => '.to method',
-      '%^H' => '$?FOO variables',
-    ;
+      '%-',    '.from method',
+      '%+',    '.to method',
+      '%^H',   '$?FOO variables',
+    );
     method message() {
         my $name = $!name;
         my $v    = $name ~~ m/ <[ $ @ % & ]> [ \^ <[ A..Z ]> | \W ] /;
-        my $sugg = %m{~$v};
+        my $sugg = nqp::atkey($m,~$v);
         if $name eq '$#' {
             # Currently only `$#` var has this identifier business handling.
             # Should generalize the logic if we get more of stuff like this.
@@ -2088,8 +2112,9 @@ my class X::Str::Sprintf::Directives::Unsupported is Exception {
 my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.type;
     has str $.directive;
+    has $.value;
     method message() {
-        "Directive $.directive not applicable for type $.type"
+        "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
     }
 }
 
@@ -2124,6 +2149,15 @@ my class X::Sequence::Deduction is Exception {
     }
 }
 
+my class X::Cannot::Map is Exception {
+    has $.what   = "(<unknown type>)";
+    has $.using  = "(<an unknown expression>)";
+    has $.suggestion;
+    method message() {
+        my $message = "Cannot map a $.what using $.using";
+        $.suggestion ?? "$message\n$.suggestion" !! $message
+    }
+}
 my class X::Cannot::Lazy is Exception {
     has $.action;
     has $.what;
@@ -2289,11 +2323,16 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method message {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to $.symbol" !! "";
-        my $expected = $.expected =:= $.got
-            ?? "expected type $.expectedn cannot be itself " ~
-               "(perhaps Nil was assigned to a :D which had no default?)"
+        my $is-itself := try $.expected =:= $.got;
+        my $expected = $is-itself
+            ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
-        self.priors() ~ "Type check failed in assignment$to; $expected";
+        my $maybe-Nil := $is-itself
+          || nqp::istype($.expected.HOW, Metamodel::DefiniteHOW)
+          && $.expected.^base_type =:= $.got
+          ?? ' (perhaps Nil was assigned to a :D which had no default?)' !! '';
+
+        self.priors() ~ "Type check failed in assignment$to; $expected$maybe-Nil"
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {
@@ -2323,9 +2362,11 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 my class X::Assignment::RO is Exception {
     has $.value = "value";
     method message {
-        "Cannot modify an immutable {$!value.^name} ({
-            Rakudo::Internals.SHORT-GIST: $!value
-        })"
+        nqp::isconcrete($!value)
+          ?? "Cannot modify an immutable {$!value.^name} ({
+                 Rakudo::Internals.SHORT-GIST: $!value
+             })"
+          !! "Cannot modify an immutable '{$!value.^name}' type object"
     }
     method typename { $.value.^name }
 }
@@ -2623,10 +2664,10 @@ my class X::Multi::NoMatch is Exception {
         if $.capture {
             for $.capture.list {
                 try @bits.push(
-                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl
+                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
-                when Failure {
+                if nqp::istype($_,Failure) {
                     @priors.push(" " ~ .mess);
                 }
             }
@@ -2705,10 +2746,10 @@ my class X::PhaserExceptions is Exception {
 }
 
 
-#?if jvm
+#?if !moar
 nqp::bindcurhllsym('P6EX', nqp::hash(
 #?endif
-#?if !jvm
+#?if moar
 nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
 #?endif
   'X::TypeCheck::Binding',
@@ -2939,12 +2980,15 @@ my class X::IllegalDimensionInShape is Exception {
     }
 }
 
-my class X::Assignment::ArrayShapeMismatch is Exception {
+my class X::ArrayShapeMismatch is Exception {
+    has $.action = "assign";
     has $.target-shape;
     has $.source-shape;
     method message() {
         "Cannot assign an array of shape $.source-shape to an array of shape $.target-shape"
     }
+}
+my class X::Assignment::ArrayShapeMismatch is X::ArrayShapeMismatch {
 }
 
 my class X::Assignment::ToShaped is Exception {
@@ -2958,6 +3002,11 @@ my class X::Language::Unsupported is Exception {
     has $.version;
     method message() {
         "No compiler available for Perl $.version"
+    }
+}
+my class X::Language::TooLate is Exception {
+    method message() {
+        "Too late to switch language version. Must be used as the very first statement."
     }
 }
 
@@ -2990,7 +3039,7 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
         is-core($name)
             ?? "{$name} is a builtin type, not an external module"
             !! "Could not find $.specification at line $line in:\n"
-                ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4)
+                ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4)
                 ~ ($.specification ~~ / $<name>=.+ '::from' $ /
                     ?? "\n\nIf you meant to use the :from adverb, use"
                         ~ " a single colon for it: $<name>:from<...>\n"

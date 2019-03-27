@@ -27,7 +27,7 @@ sub MAIN(*@ARGS) {
         my int $line    := 1;
         while $fh.get -> $_ {
             if my $x := $_ ~~ / ^ '#?if' \s+ ('!')? \s* (\w+) \s* $ / {
-                nqp::die("Nested conditionals not supported") if $in_cond;
+                nqp::die("Nested conditionals not supported, line $line") if $in_cond;
                 $in_cond := 1;
                 $in_omit := $x[0] && $x[1] eq $backend || !$x[0] && $x[1] ne $backend;
                 print("\n");
@@ -43,7 +43,12 @@ sub MAIN(*@ARGS) {
             } elsif $in_omit {
                 print("\n");
             } else {
-                print($_) unless nqp::eqat($_,"# vim:",0);
+                if $backend eq 'js' && $_ ~~ /'#?js: NFG'/ {
+                    print(subst($_, /nqp\:\:[chars|substr|iseq_s|iscclass]/,
+                        -> $op {$op ~ 'nfg'}, :global));
+                } else {
+                    print($_) unless nqp::eqat($_,"# vim:",0);
+                }
             }
             $line++;
         }

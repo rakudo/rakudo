@@ -18,11 +18,15 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2018-08-18   Rakudo #125 (AlexDaniel + Releasable)
-  2018-09-15   Rakudo #126
-  2018-10-20   Rakudo #127
-  2018-11-17   Rakudo #128
-  2018-12-15   Rakudo #129
+  2019-04-20   Rakudo #131 (kawaii + Releasable)
+  2019-05-18   Rakudo #132
+  2019-06-15   Rakudo #133
+  2019-07-20   Rakudo #134
+  2019-08-17   Rakudo #135
+  2019-09-21   Rakudo #136
+  2019-10-19   Rakudo #137
+  2019-11-16   Rakudo #138
+  2019-12-21   Rakudo #139
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -261,7 +265,9 @@ C<make spectest> (you can abort it  after the repository is retrieved).
 
   (cd t/spec && git checkout master)     # test latest language spec
   make stresstest
-  (cd t/spec && git checkout 6.c-errata) # test stable language spec
+  (cd t/spec && git checkout 6.c-errata) # test stable language spec (6.c)
+  make stresstest
+  (cd t/spec && git checkout 6.d-errata) # test stable language spec (6.d)
   make stresstest
 
 There are many tests to run for the stresstest target.  If
@@ -495,10 +501,17 @@ Previous releases were bundled as part of monthly Parrot releases.
   2018-04-30   2018.04.1                       (AlexDaniel + Releasable)
   2018-05-24   Rakudo #123 "2018.05"           (AlexDaniel + Releasable)
   2018-06-22   Rakudo #124 "2018.06"           (AlexDaniel + Releasable)
+  2018-09-02   Rakudo #125 "2018.08"           (AlexDaniel + Releasable)
+  2018-09-23   Rakudo #126 "2018.09"           (AlexDaniel + Releasable)
+  2018-10-28   Rakudo #127 "2018.10"           (AlexDaniel + Releasable)
+  2018-11-29   Rakudo #128 "2018.11"           (AlexDaniel + Releasable) # v6.d
+  2018-12-21   Rakudo #129 "2018.12"           (AlexDaniel + Releasable)
+  2019-03-07   Rakudo #130 "2019.03"           (AlexDaniel + Releasable)
+  2019-03-17   2019.03.1                       (AlexDaniel + Releasable)
 
 =head1 COPYRIGHT
 
-Copyright © 2009-2018, The Perl Foundation.
+Copyright © 2009-2019, The Perl Foundation.
 
 =cut
 

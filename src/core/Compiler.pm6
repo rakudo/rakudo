@@ -3,7 +3,7 @@ class Compiler does Systemic {
     has Str $.release;
     has Str $!build-date;
     has Str $.codename;
-    BEGIN my $id = nqp::sha1(
+    my constant $id = nqp::sha1(
         $*W.handle.Str
         ~ nqp::atkey(nqp::getcurhllsym('$COMPILER_CONFIG'), 'source-digest')
     );

@@ -56,8 +56,8 @@ sub qast-is (Str:D $code is copy, &test, Str:D $desc,
     Bool:D :$full = False,
     Str:D  :$target where 'optimize'|'ast' = 'optimize',
 ) is export {
-    $code = "my \$qast-test-VAR-START-MARK;\n"
-      ~ $code ~ "\n; my \$qast-test-VAR-END-MARK;\n"
+    $code = "use nqp; nqp::qast_test_START_MARK;\n"
+      ~ $code ~ "\n; nqp::qast_test_END_MARK;\n"
     unless $full;
 
     my $eval_ctx := nqp::getattr(CALLER::, PseudoStash, '$!ctx');
@@ -74,16 +74,16 @@ sub qast-is (Str:D $code is copy, &test, Str:D $desc,
 sub find-tested-qast (Mu $parent, Mu $qast = $parent) {
     if nqp::istype($qast, QAST::Stmt)
     && nqp::elems(nqp::decont($qast)) == 1
-    && nqp::istype($qast.list[0], QAST::Var)
-    && $qast.list[0].name eq '$qast-test-VAR-START-MARK' {
+    && nqp::istype($qast.list[0], QAST::Op)
+    && $qast.list[0].op eq 'qast_test_START_MARK' {
         my $res := QAST::Stmts.new;
         for $parent.list -> Mu \v {
             next unless (nqp::istype(v, QAST::Stmt)
-                && nqp::istype(v.list[0], QAST::Var)
-                && v.list[0].name eq '$qast-test-VAR-START-MARK')
+                && nqp::istype(v.list[0], QAST::Op)
+                && v.list[0].op eq 'qast_test_START_MARK')
               ^ff^ (nqp::istype(v, QAST::Stmt)
-                && nqp::istype(v.list[0], QAST::Var)
-                && v.list[0].name eq '$qast-test-VAR-END-MARK');
+                && nqp::istype(v.list[0], QAST::Op)
+                && v.list[0].op eq 'qast_test_END_MARK');
             $res.push: v;
         }
         return $res;

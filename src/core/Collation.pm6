@@ -12,10 +12,6 @@ class Collation {
         Int :$tertiary   = 1,
         Int :$quaternary = 1)
     {
-        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-COLLATION')) and X::Experimental.new(
-            feature => 'the $*COLLATION dynamic variable',
-            use     => 'collation'
-        ).throw;
         my int $i = 0;
         $i += 1   if $primary.sign    ==  1;
         $i += 2   if $primary.sign    == -1;

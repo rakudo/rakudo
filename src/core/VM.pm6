@@ -40,12 +40,22 @@ class VM does Systemic {
         $!precomp-target = "jar";
         $!config<os.name> = $!properties<os.name> // "unknown";
 #?endif
+#?if js
+        $!name           = 'js';
+        $!desc           = $desc // 'JavaScript';
+        $!auth           = "unknown";
+        $!version        = Version.new("unknown");
+        $!prefix         = 'todo-prefix';
+        $!precomp-ext    = "js";
+        $!precomp-target = "js";
+#?endif
 # add new backends here please
     }
 
     method platform-library-name(IO::Path $library, Version :$version) {
         my int $is-win = Rakudo::Internals.IS-WIN;
         my int $is-darwin = self.osname eq 'darwin';
+        my int $is-openbsd = self.osname eq 'openbsd';
 
         my $basename  = $library.basename;
         my int $full-path = $library ne $basename;
@@ -58,13 +68,13 @@ class VM does Systemic {
         my $dll = self.config<dll>;
         my $platform-name = sprintf($dll, $basename);
 #?endif
-#?if jvm
+#?if !moar
         my $prefix = $is-win ?? '' !! 'lib';
         my $platform-name = "$prefix$basename" ~ ".{self.config<nativecall.so>}";
 #?endif
 
         $platform-name ~= '.' ~ $version
-            if $version.defined and nqp::iseq_i(nqp::add_i($is-darwin,$is-win),0);
+            if $version.defined and nqp::iseq_i(nqp::add_i(nqp::add_i($is-darwin,$is-win),$is-openbsd),0);
 
         $full-path
           ?? $dirname.IO.add($platform-name).absolute
@@ -91,7 +101,7 @@ class VM does Systemic {
 }
 
 sub INITIALIZE-A-VM-NOW() {
-#?if moar
+#?if !jvm
     VM.new(:config(nqp::backendconfig));
 #?endif
 #?if jvm

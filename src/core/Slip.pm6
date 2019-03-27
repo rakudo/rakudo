@@ -1,10 +1,13 @@
 # A Slip is a kind of List that is immediately incorporated into an iteration
 # or another List. Other than that, it's a totally normal List.
 my class Slip { # is List
-    multi method Slip(Slip:D:) { self }
-    method defined ()          { self.so }
+
+    # XXX this makes an empty Slip undefined?
+    multi method defined (Slip:D: --> Bool:D) { self.Bool }
+
+    multi method Slip(Slip:D: --> Slip:D) { self }
     method CALL-ME (+args)     { args.Slip }
-    multi method perl(Slip:D:) {
+    multi method perl(Slip:D: --> Str:D) {
         nqp::if(
           nqp::eqaddr(self,Empty),
           'Empty',
@@ -18,7 +21,7 @@ my class Slip { # is List
           )
         )
     }
-    multi method List(Slip:D:) {
+    multi method List(Slip:D: --> List:D) {
         nqp::stmts(
           (my $list := nqp::create(List)),
           nqp::if(
@@ -38,8 +41,8 @@ my class Slip { # is List
 
 # The slip(...) function creates a Slip.
 proto sub slip(|)     {*}
-multi sub slip()      { Empty }
-multi sub slip(@args) { @args.Slip }
-multi sub slip(+args) { args.Slip }
+multi sub slip(--> Empty) { }
+multi sub slip(@args --> Slip:D) { @args.Slip }
+multi sub slip(+args --> Slip:D) { args.Slip }
 
 # vim: ft=perl6 expandtab sw=4

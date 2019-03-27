@@ -50,9 +50,11 @@ role Perl6::Metamodel::BUILDPLAN {
                               workaround =>
                                 "Create/Adapt TWEAK method in class "
                                   ~ $obj.HOW.name($obj)
-                                  ~ ", e.g:\n    method TWEAK(:"
+                                  ~ ", e.g:\n\n    method TWEAK() \{\n        "
                                   ~ $_.name
-                                  ~ ' = (initial values)) { }'
+                                  ~ " := (initial values) unless "
+                                  ~ $_.name
+                                  ~ ";\n    }"
                             ).throw;
                         }
                     }
@@ -77,9 +79,15 @@ role Perl6::Metamodel::BUILDPLAN {
             # in Mu, we produce ops here per attribute that may
             # need initializing.
             for @attrs {
+                my int $primspec := nqp::objprimspec($_.type);
+#?if js
+                my int $is_oversized_int := $primspec == 4 || $primspec == 5;
+                $primspec := $is_oversized_int ?? 0 !! $primspec;
+#?endif
+
                 if $_.has_accessor {
                     nqp::push(@plan,[
-                      nqp::add_i(0,nqp::objprimspec($_.type)),
+                      0 + $primspec,
                       $obj,
                       $_.name,
                       nqp::substr($_.name, 2)
@@ -100,9 +108,14 @@ role Perl6::Metamodel::BUILDPLAN {
         for @attrs {
             if nqp::can($_, 'build') {
                 my $default := $_.build;
+                my int $primspec := nqp::objprimspec($_.type);
+#?if js
+                my int $is_oversized_int := $primspec == 4 || $primspec == 5;
+                $primspec := $is_oversized_int ?? 0 !! $primspec;
+#?endif
                 if nqp::isconcrete($default) {
                     nqp::push(@plan,[
-                      nqp::add_i(4,nqp::objprimspec($_.type)),
+                      4 + $primspec,
                       $obj,
                       $_.name,
                       $default
@@ -166,7 +179,7 @@ role Perl6::Metamodel::BUILDPLAN {
             my @mro := self.mro($obj);
             @!BUILDALLPLAN := +@mro > 1
               ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
-              !! @EMPTY    
+              !! @EMPTY
         }
     }
 

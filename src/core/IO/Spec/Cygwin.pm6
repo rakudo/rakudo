@@ -20,7 +20,7 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
 
     method is-absolute ($path) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
           || nqp::iseq_i($_, 47)                   # /^ ｢/｣ /
           || (nqp::eqat($path, ':', 1) # /^ <[A..Z a..z]> ':' [ ｢\｣ | ｢/｣ ] /

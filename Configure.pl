@@ -36,6 +36,7 @@ MAIN: {
     my %options;
     GetOptions(\%options, 'help!', 'prefix=s', 'libdir=s',
                'sysroot=s', 'sdkroot=s',
+               'no-relocatable',
                'backends=s', 'no-clean!',
                'with-nqp=s', 'gen-nqp:s',
                'gen-moar:s', 'moar-option=s@',
@@ -66,19 +67,26 @@ MAIN: {
         $options{libdir} = $default;
     }
     my $prefix         = $options{'prefix'};
-    my @known_backends = qw/moar jvm/;
+    my @known_backends = qw/moar jvm js/;
+
+    my %backend_prefix = (jvm => 'j', moar => 'm', js  => 'js');
+
     my %known_backends = map { $_, 1; } @known_backends;
     my %letter_to_backend;
     my $default_backend;
     for (keys %known_backends) {
-        $letter_to_backend{ substr($_, 0, 1) } = $_;
+        $letter_to_backend{ $backend_prefix{$_} } = $_;
     }
     my @backends;
     my %backends;
     if (my $nqp_bin  = $options{'with-nqp'}) {
         die "Could not find $nqp_bin" unless -e $nqp_bin;
+        my $passed_backends = $options{backends};
         $options{backends} = qx{$nqp_bin -e 'print(nqp::getcomp("nqp").backend.name)'}
             or die "Could not get backend information from $nqp_bin";
+        if (defined $passed_backends && $passed_backends ne $options{backends}) {
+            die "Passed value to --backends ($passed_backends) is overwritten by the one infered by --with-nqp ($options{backends})";
+        }
     }
     if (defined $options{backends}) {
         $options{backends} = join ",", @known_backends
@@ -118,9 +126,9 @@ MAIN: {
             $default_backend ||= 'moar';
         }
         unless (%backends or exists $options{'with-nqp'}) {
-            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{p,j,m} executables\n\n"
+            die "No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{js,j,m} executables\n\n"
               . "Example to build for all backends (which will take a while):\n"
-              . "\tperl Configure.pl --backends=moar,jvm --gen-moar\n\n"
+              . "\tperl Configure.pl --backends=ALL --gen-moar\n\n"
               . "Example to build for MoarVM only:\n"
               . "\tperl Configure.pl --gen-moar\n\n"
               . "Example to build for JVM only:\n"
@@ -136,10 +144,25 @@ MAIN: {
         close($CONFIG_STATUS);
     }
 
+    # Relocatability is not supported on AIX.
+    $options{'no-relocatable'} = 1 if $^O eq 'aix';
+
     $config{prefix} = $prefix;
     $config{libdir} = $options{libdir};
     $config{sdkroot} = $options{sdkroot} || '';
     $config{sysroot} = $options{sysroot} || '';
+    if ($options{'no-relocatable'}) {
+        $config{static_nqp_home} = File::Spec->catdir($prefix, 'share', 'nqp');
+        $config{static_perl6_home} = File::Spec->catdir($prefix, 'share', 'perl6');
+        $config{static_nqp_home_define} = '-DSTATIC_NQP_HOME=' . $config{static_nqp_home};
+        $config{static_perl6_home_define} = '-DSTATIC_PERL6_HOME=' . $config{static_perl6_home};
+    }
+    else {
+        $config{static_nqp_home} = '';
+        $config{static_perl6_home} = '';
+        $config{static_nqp_home_define} = '';
+        $config{static_perl6_home_define} = '';
+    }
     $config{slash}  = $slash;
     $config{'makefile-timing'} = $options{'makefile-timing'};
     $config{'stagestats'} = '--stagestats' if $options{'makefile-timing'};
@@ -173,7 +196,7 @@ MAIN: {
         }
     }
 
-    for my $target (qw/common_bootstrap_sources moar_core_sources moar_core_d_sources jvm_core_sources jvm_core_d_sources/) {
+    for my $target (qw/common_bootstrap_sources js_core_sources js_core_d_sources moar_core_sources moar_core_d_sources jvm_core_sources jvm_core_d_sources/) {
         open my $FILELIST, '<', "tools/build/$target"
             or die "Cannot read 'tools/build/$target': $!";
         my @lines;
@@ -209,9 +232,9 @@ MAIN: {
 
     fill_template_file('tools/build/Makefile-common-macros.in', $MAKEFILE, %config);
 
-    my @prefixes = map substr($_, 0, 1), @backends;
+    my @prefixes = map $backend_prefix{$_}, @backends;
 
-    my $launcher = substr($default_backend, 0, 1) . '-runner-default';
+    my $launcher = $backend_prefix{$default_backend} . '-runner-default';
     print $MAKEFILE "all: ", join(' ', map("$_-all", @prefixes), $launcher), "\n";
     print $MAKEFILE "install: ", join(' ', map("$_-install", @prefixes), $launcher . '-install'), "\n";
 
@@ -267,7 +290,7 @@ MAIN: {
             $config{'nqp_jars'}      = $nqp_config{'jvm::runtime.jars'};
             $config{'bld_nqp_jars'}  = join( $config{'cpsep'}, map { $config{'sysroot'} . $_ } split( $config{'cpsep'}, $nqp_config{'jvm::runtime.jars'} ) );
             $config{'nqp_classpath'} = $nqp_config{'jvm::runtime.classpath'};
-            $config{'nqp_libdir'}    = $nqp_config{'nqp::libdir'};
+            $config{'nqp::libdir'}    = $nqp_config{'nqp::libdir'};
             $config{'j_runner'}      = $win ? 'perl6-j.bat' : 'perl6-j';
 
 
@@ -290,16 +313,31 @@ MAIN: {
 
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
-        unless ($win) {
+        # Strip rpath from ldflags so we can set it differently ourself.
+        $config{ldflags} = join(' ', $nqp_config{'moar::ldflags'}, $nqp_config{'moar::ldmiscflags'}, $nqp_config{'moar::ldoptiflags'}, $nqp_config{'moar::ldlibs'});
+        $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath'}\E ?//;
+        $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath_relocatable'}\E ?//;
+        $config{ldflags} .= ' ' . ($options{'no-relocatable'} ? $nqp_config{'moar::ldrpath'} : $nqp_config{'moar::ldrpath_relocatable'});
+
+        if ($win) {
+            if ($prefix . $slash . 'bin' ne $nqp_config{'moar::libdir'}) {
+                $config{'m_install'} = "\t" . '$(CP) ' . $nqp_config{'moar::libdir'} . $slash . $nqp_config{'moar::moar'} . ' $(PREFIX)' . $slash . 'bin';
+            }
+            $config{'mingw_unicode'} = '';
+            if ($nqp_config{'moar::os'} eq 'mingw32') {
+                $config{'mingw_unicode'} = '-municode';
+            }
+            $config{'c_runner_libs'} = '-lShlwapi';
+        } else {
             $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
             $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
-            $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "$(PERL6_LANG_DIR)/runtime" "gdb" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
-                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "$(PERL6_LANG_DIR)/runtime" "lldb" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"' . "\n"
-                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 "$(MOAR)" perl6.moarvm $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "$(PERL6_LANG_DIR)/runtime" "valgrind" "" "$(M_LIBPATH)" "$(PERL6_LANG_DIR)/lib" "$(PERL6_LANG_DIR)/runtime"';
+            $config{'m_install'}  = "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "gdb" "" "" ""' . "\n"
+                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "lldb" "" "" ""' . "\n"
+                                  . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "valgrind" "" "" ""';
         }
 
         unless (@errors) {
-            print "Using $config{m_nqp} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
+            print "Using $config{'m_nqp'} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
 
             $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
 
@@ -311,6 +349,27 @@ MAIN: {
 
             fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
         }
+    }
+    if ($backends{js}) {
+        my %nqp_config;
+        $config{js_nqp} = $impls{js}{bin};
+        $config{js_nqp} =~ s{/}{\\}g if $win;
+        $config{'perl6_runtime'} = File::Spec->rel2abs('src/vm/js/perl6-runtime');
+        $config{'perl6_lowlevel_libs'} = File::Spec->rel2abs('node_modules') . '/';
+        $config{'perl6_js_runner'} = File::Spec->rel2abs('perl6-js');
+
+        if ( $impls{js}{ok} ) {
+            %nqp_config = %{ $impls{js}{config} };
+        }
+        elsif ( $impls{js}{config} ) {
+            push @errors, "The nqp-js binary is too old";
+        }
+        else {
+            push @errors, "Unable to read configuration from NQP on JS";
+        }
+
+        system("$config{js_nqp} tools/build/gen-js-makefile.nqp > gen/js/Makefile-JS.in");
+        fill_template_file('gen/js/Makefile-JS.in', $MAKEFILE, %config, %nqp_config);
     }
 
     if ($errors{jvm}{'no gen-nqp'} || $errors{moar}{'no gen-nqp'}) {
@@ -331,9 +390,8 @@ MAIN: {
     }
     sorry($options{'ignore-errors'}, @errors) if @errors;
 
-    my $l = uc substr($default_backend, 0, 1);
+    my $l = uc $backend_prefix{$default_backend};
     print $MAKEFILE qq[\nt/*/*.t t/*.t t/*/*/*.t: all\n\t\$(${l}_HARNESS5_WITH_FUDGE) --verbosity=1 \$\@\n];
-
 
     close $MAKEFILE or die "Cannot write 'Makefile': $!";
 
@@ -384,18 +442,21 @@ Configure.pl - $lang Configure
 
 General Options:
     --help             Show this text
-    --prefix=dir       Install files in dir; also look for executables there
-    --libdir=dir       Install architecture-specific files in dir; Perl6 modules included
-    --sdkroot=dir      When given, use for searching build tools here, e.g.
-                       nqp, java etc.
-    --sysroot=dir      When given, use for searching runtime components here
-    --backends=jvm,moar
+    --prefix=<path>    Install files in dir; also look for executables there
+    --libdir=<path>    Install architecture-specific files in dir; Perl6 modules included
+    --no-relocatable
+                       Create a perl6 with a fixed NQP and Perl6 home dir instead of dynamically identifying it
+                       (On AIX MoarVM is always built non-relocatable, since AIX misses a necessary mechanism.)
+    --sdkroot=<path>   When given, use for searching build tools here, e.g.
+                       nqp, java, node etc.
+    --sysroot=<path>   When given, use for searching runtime components here
+    --backends=jvm,moar,js
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
                        Download, build, and install a copy of NQP before writing the Makefile
     --gen-moar[=branch]
                        Download, build, and install a copy of MoarVM to use before writing the Makefile
-    --with-nqp='/path/to/nqp'
+    --with-nqp=<path>
                        Provide path to already installed nqp
     --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'

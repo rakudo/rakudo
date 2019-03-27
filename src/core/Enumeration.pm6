@@ -23,15 +23,13 @@ my role Enumeration {
     multi method Int(::?CLASS:D:)     { $!value.Int }
     multi method Real(::?CLASS:D:)    { $!value.Real }
 
-    multi method WHICH(::?CLASS:D:) {
+    multi method WHICH(::?CLASS:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(self.^name,nqp::concat("|",$!index)),
           ValueObjAt
         )
     }
 
-    # Make sure we always accept any element of the enumeration
-    multi method ACCEPTS(::?CLASS:D: ::?CLASS:U $ --> True) { }
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }
 
     proto method CALL-ME(|) {*}
@@ -123,7 +121,7 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
 # that simply unboxes the values. That's no good for us, since two different
 # Enumertaion:Ds could have the same Int:D value.
 multi infix:<===> (Enumeration:D \a, Enumeration:D \b) {
-    nqp::p6bool(nqp::eqaddr(nqp::decont(a), nqp::decont(b)))
+    nqp::hllbool(nqp::eqaddr(nqp::decont(a), nqp::decont(b)))
 }
 
 # vim: ft=perl6 expandtab sw=4

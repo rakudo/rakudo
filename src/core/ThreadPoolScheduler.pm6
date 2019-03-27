@@ -40,7 +40,7 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         sub holding-locks() {
-            nqp::p6bool(nqp::threadlockcount(nqp::currentthread()))
+            nqp::hllbool(nqp::threadlockcount(nqp::currentthread()))
         }
 
         method await(Awaitable:D $a) {

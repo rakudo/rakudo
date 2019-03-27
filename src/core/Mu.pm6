@@ -14,10 +14,10 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {
-        nqp::p6bool(nqp::istype(topic, self))
+        nqp::hllbool(nqp::istype(topic, self))
     }
     multi method ACCEPTS(Mu:U: Mu:U \topic) {
-        nqp::p6bool(nqp::istype(topic, self))
+        nqp::hllbool(nqp::istype(topic, self))
     }
 
     method WHERE() {
@@ -25,7 +25,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method WHICH(|) {*}
-    multi method WHICH(Mu:U:) {
+    multi method WHICH(Mu:U: --> ValueObjAt:D) {
         nqp::box_s(
             nqp::concat(
                 nqp::concat(nqp::unbox_s(self.^name), '|U'),
@@ -34,7 +34,7 @@ my class Mu { # declared in BOOTSTRAP
             ValueObjAt
         )
     }
-    multi method WHICH(Mu:D:) {
+    multi method WHICH(Mu:D: --> ObjAt:D) {
         nqp::box_s(
             nqp::concat(
                 nqp::concat(nqp::unbox_s(self.^name), '|'),
@@ -105,9 +105,9 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     method so()  { self.Bool }
     method not() { self ?? False !! True }
 
-    method defined() {
-        nqp::p6bool(nqp::isconcrete(self))
-    }
+    proto method defined(|) {*}
+    multi method defined(Mu:U: --> False) { }
+    multi method defined(Mu:D: --> True)  { }
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
@@ -117,7 +117,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             nqp::findmethod(Mu,'bless')
           ),
           nqp::create(self).BUILDALL(Empty, %attrinit),
-          nqp::invokewithcapture($bless,nqp::usecapture)
+          $bless(self,|%attrinit)
         )
     }
     multi method new($, *@) {
@@ -708,23 +708,16 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     proto method isa(|) {*}
-    multi method isa(Mu \SELF: Mu $type) {
-        nqp::p6bool(SELF.^isa($type.WHAT))
+    multi method isa(Mu \SELF: Mu $type --> Bool:D) {
+        nqp::hllbool(SELF.^isa($type.WHAT))
     }
-    multi method isa(Mu \SELF: Str:D $name) {
-        my @mro = SELF.^mro;
-        my int $mro_count = @mro.elems;
-        my int $i = -1;
-
-        return True
-          if @mro[$i].^name eq $name
-          while nqp::islt_i(++$i,$mro_count);
-
+    multi method isa(Mu \SELF: Str:D $name --> Bool:D) {
+        return True if .^name eq $name for SELF.^mro;
         False
     }
 
     method does(Mu \SELF: Mu $type) {
-        nqp::p6bool(nqp::istype(SELF, $type.WHAT))
+        nqp::hllbool(nqp::istype(SELF, $type.WHAT))
     }
 
     method can(Mu \SELF: $name) {
@@ -850,7 +843,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
             nqp::push($results,$meth(SELF, |c))    if $meth;
         }
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$results)
+        $results.List
     }
 
     method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {
@@ -959,7 +952,7 @@ multi sub infix:<!~~>(Mu \topic, Mu \matcher) {
 proto sub infix:<=:=>(Mu $?, Mu $?, *%) is pure {*}
 multi sub infix:<=:=>($?)      { Bool::True }
 multi sub infix:<=:=>(Mu \a, Mu \b) {
-    nqp::p6bool(nqp::eqaddr(a, b));
+    nqp::hllbool(nqp::eqaddr(a, b));
 }
 
 proto sub infix:<eqv>(Any $?, Any $?, *%) is pure {*}
@@ -969,19 +962,19 @@ multi sub infix:<eqv>($?)            { Bool::True }
 # please do not change this to be faster but wronger.  (Instead, add
 # specialized multis for datatypes that can be tested piecemeal.)
 multi sub infix:<eqv>(Any:U \a, Any:U \b) {
-    nqp::p6bool(nqp::eqaddr(nqp::decont(a),nqp::decont(b)))
+    nqp::hllbool(nqp::eqaddr(nqp::decont(a),nqp::decont(b)))
 }
-multi sub infix:<eqv>(Any:D \a, Any:U \b) { False }
-multi sub infix:<eqv>(Any:U \a, Any:D \b) { False }
+multi sub infix:<eqv>(Any:D \a, Any:U \b --> False) { }
+multi sub infix:<eqv>(Any:U \a, Any:D \b --> False) { }
 multi sub infix:<eqv>(Any:D \a, Any:D \b) {
-    nqp::p6bool(
-      nqp::eqaddr(a,b)
+    nqp::hllbool(
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.perl,b.perl))
     )
 }
 
 multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::if(                                 # not same object

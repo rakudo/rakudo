@@ -2,13 +2,12 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 24;
+plan 25;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
-    throws-like ｢^4 .map: {}｣, Exception,
-        :message{.contains: 'Cannot map a Range to a Hash.'}, 'hash';
-    throws-like ｢^4 .map: 42｣, X::Multi::NoMatch, 'Int';
+    throws-like ｢^4 .map: {}｣, X::Cannot::Map, 'Hash';
+    throws-like ｢^4 .map: 42｣, X::Cannot::Map, 'Int';
 
     sub foo ($x) { $x+2};
     is-deeply ^4 .map(&foo), (2, 3, 4, 5).Seq, 'subroutine';
@@ -171,5 +170,9 @@ else {
 cmp-ok X::OutOfRange.new(
     :what<a range>, :got(0..3000), :range(1..3000)
 ).message.chars, '<', 150, 'X::OutOfRange does not stringify given Ranges';
+
+# https://github.com/rakudo/rakudo/issues/2320
+is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
+'Use placeholder variables in a method should yield a useful error message';
 
 # vim: ft=perl6 expandtab sw=4

@@ -343,13 +343,13 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Bool() :$v!, *%other) is r
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block ) is raw {
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
-      SELF[$block.pos(SELF)]
+      SELF[$block.POSITIONS(SELF)]
     )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is raw {
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
-      SELF[$block.pos(SELF)] = assignee
+      SELF[$block.POSITIONS(SELF)] = assignee
     )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
@@ -359,7 +359,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$delete!,*%other) 
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
       nqp::if(
-        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        nqp::istype((my $pos := $block.POSITIONS(SELF)),Int),
         SLICE_ONE_LIST(  SELF,  $pos, 'delete', $delete, %other ),
         SLICE_MORE_LIST( SELF, @$pos, 'delete', $delete, %other )
       )
@@ -369,7 +369,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$exists!,*%other) 
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
       nqp::if(
-        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        nqp::istype((my $pos := $block.POSITIONS(SELF)),Int),
         SLICE_ONE_LIST(  SELF,  $pos, 'exists', $exists, %other ),
         SLICE_MORE_LIST( SELF, @$pos, 'exists', $exists, %other )
       )
@@ -379,7 +379,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$kv!,*%other) is r
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
       nqp::if(
-        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        nqp::istype((my $pos := $block.POSITIONS(SELF)),Int),
         SLICE_ONE_LIST(  SELF,  $pos, 'kv', $kv, %other ),
         SLICE_MORE_LIST( SELF, @$pos, 'kv', $kv, %other )
       )
@@ -389,7 +389,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$p!,*%other) is ra
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
       nqp::if(
-        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        nqp::istype((my $pos := $block.POSITIONS(SELF)),Int),
         SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other ),
         SLICE_MORE_LIST( SELF, @$pos, 'p', $p, %other )
       )
@@ -399,7 +399,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$k!,*%other) is ra
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
       nqp::if(
-        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        nqp::istype((my $pos := $block.POSITIONS(SELF)),Int),
         SLICE_ONE_LIST(  SELF,  $pos, 'k', $k, %other ),
         SLICE_MORE_LIST( SELF, @$pos, 'k', $k, %other )
       )
@@ -409,7 +409,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$v!,*%other) is ra
     nqp::stmts(
       (my $*INDEX = 'Effective index'),
       nqp::if(
-        nqp::istype((my $pos := $block.pos(SELF)),Int),
+        nqp::istype((my $pos := $block.POSITIONS(SELF)),Int),
         SLICE_ONE_LIST(  SELF,  $pos, 'v', $v, %other ),
         SLICE_MORE_LIST( SELF, @$pos, 'v', $v, %other )
       )

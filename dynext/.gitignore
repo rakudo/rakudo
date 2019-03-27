@@ -1,0 +1,3 @@
+# Used during building
+*.dll
+*.so

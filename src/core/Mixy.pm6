@@ -1,5 +1,7 @@
 my role Mixy does Baggy  {
 
+    method of() { Real }
+
     multi method hash(Mixy:D: --> Hash:D) { self!HASHIFY(Real) }
     multi method Hash(Mixy:D: --> Hash:D) { self!HASHIFY(Any) }
 
@@ -39,7 +41,7 @@ my role Mixy does Baggy  {
       nqp::if(
         (my $total := self!total-positive),
         self.roll($calculate($total)),
-        EmptySeq
+        Seq.new(Rakudo::Iterator.Empty)
       )
     }
     multi method roll(Mixy:D: $count) {
@@ -72,11 +74,11 @@ my role Mixy does Baggy  {
 #--- object creation methods
     method new-from-pairs(Mixy:_: *@pairs --> Mixy:D) {
         nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
+          (my \iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::create(self).SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-              nqp::create(Rakudo::Internals::IterationSet),$iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )

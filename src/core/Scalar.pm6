@@ -5,8 +5,14 @@ my class Scalar { # declared in BOOTSTRAP
 
     method new(|) { X::Cannot::New.new(class => self.WHAT).throw }
 
-    multi method WHICH(Scalar:D:) {
-        'Scalar|' ~ nqp::objectid($!descriptor);
+    multi method WHICH(Scalar:D: --> ValueObjAt:D) {
+        nqp::box_s(
+          nqp::concat(
+            'Scalar|',
+            nqp::tostr_I(nqp::objectid($!descriptor))
+          ),
+          ValueObjAt
+        )
     }
     method name() {
         my $d := $!descriptor;
@@ -22,7 +28,7 @@ my class Scalar { # declared in BOOTSTRAP
     }
     method dynamic() {
         my $d := $!descriptor;
-        nqp::isnull($d) ?? False !! nqp::p6bool($d.dynamic);
+        nqp::isnull($d) ?? False !! nqp::hllbool($d.dynamic);
     }
 }
 

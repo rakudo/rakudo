@@ -1,4 +1,4 @@
-#! perl
+#!/usr/bin/env perl
 # Copyright (C) 2008, The Perl Foundation.
 
 =head1 DESCRIPTION

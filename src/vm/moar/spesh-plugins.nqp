@@ -81,20 +81,13 @@ sub identity($obj) { $obj }
         }
     }
 
-    nqp::speshreg('perl6', 'decontrv', sub ($rv) {
+    sub decontrv_plugin($rv) {
         $Iterable := nqp::gethllsym('perl6', 'Iterable') if nqp::isnull($Iterable);
         nqp::speshguardtype($rv, nqp::what_nd($rv));
         if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
             # Guard that it's concrete, so this only applies for container
             # instances.
             nqp::speshguardconcrete($rv);
-
-            # This emulates a bug where Proxy was never decontainerized no
-            # matter what. The ecosystem came to depend on that, so we will
-            # accept it for now. We need to revisit this in the future.
-            if nqp::eqaddr(nqp::what_nd($rv), Proxy) {
-                return &identity;
-            }
 
             # If it's a Scalar container then we can optimize further.
             if nqp::eqaddr(nqp::what_nd($rv), Scalar) {
@@ -127,6 +120,21 @@ sub identity($obj) { $obj }
                 nqp::speshguardtypeobj($rv);
             }
             return nqp::isnull($rv) ?? &mu !! &identity;
+        }
+    }
+
+    nqp::speshreg('perl6', 'decontrv', &decontrv_plugin);
+    nqp::speshreg('perl6', 'decontrv_6c', -> $rv {
+        # This emulates a bug where Proxy was never decontainerized no
+        # matter what. The ecosystem came to depend on that, so we will
+        # accept it for now. We need to revisit this in the future.
+        if nqp::eqaddr(nqp::what_nd($rv), Proxy) && nqp::isconcrete_nd($rv) {
+            nqp::speshguardtype($rv, nqp::what_nd($rv));
+            nqp::speshguardconcrete($rv);
+            &identity
+        }
+        else {
+            decontrv_plugin($rv)
         }
     });
 }
@@ -249,7 +257,7 @@ sub identity($obj) { $obj }
                 if $definite_check == 0 {
                     nqp::speshguardtypeobj($rv);
                 }
-                elsif $definite_check == 1 {
+                elsif $definite_check == 1 && !nqp::istype($rv, Nil) {
                     nqp::speshguardconcrete($rv);
                 }
 

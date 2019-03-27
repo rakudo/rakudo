@@ -1,17 +1,25 @@
 my %DEPRECATIONS; # where we keep our deprecation info
 
 class Deprecation {
-    has $.file;         # file of the code that is deprecated
-    has $.type;         # type of code (sub/method etc.) that is deprecated
-    has $.package;      # package of code that is deprecated
-    has $.name;         # name of code that is deprecated
-    has $.alternative;  # alternative for code that is deprecated
-    has %.callsites;    # places where called (file -> line -> count)
-    has Version $.from;    # release version from which deprecated
-    has Version $.removed; # release version when will be removed
+    has str $.file;         # file of the code that is deprecated
+    has str $.type;         # type of code (sub/method etc.) that is deprecated
+    has str $.package;      # package of code that is deprecated
+    has str $.name;         # name of code that is deprecated
+    has str $.alternative;  # alternative for code that is deprecated
+    has %.callsites;        # places where called (file -> line -> count)
+    has Version $.from;     # release version from which deprecated
+    has Version $.removed;  # release version when will be removed
 
-    multi method WHICH (Deprecation:D:) {
-        ($!file||"",$!type||"",$!package||"",$!name).join(':');
+    multi method WHICH (Deprecation:D: --> ValueObjAt:D) {
+        my $which := nqp::list_s("Deprecation");
+        nqp::push_s($which,$!file    || "");
+        nqp::push_s($which,$!type    || "");
+        nqp::push_s($which,$!package || "");
+        nqp::push_s($which,$!name    || "");
+        nqp::box_s(
+          nqp::join("|",$which),
+          ValueObjAt
+        )
     }
 
     proto method report (|) {*}
@@ -52,8 +60,10 @@ class Deprecation {
 }
 
 class Rakudo::Deprecations {
+
+    my $ver;
     method DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool :$lang-vers) {
-        state $ver  = $*PERL.compiler.version;
+        $ver //= $*PERL.compiler.version;
         my $version = $lang-vers ?? nqp::getcomp('perl6').language_version !! $ver;
         # if $lang-vers was given, treat the provided versions as language
         # versions, rather than compiler versions. Note that we can't
@@ -68,15 +78,16 @@ class Rakudo::Deprecations {
 
         my $bt = Backtrace.new;
         my $deprecated =
-          $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) ];
+          $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) // 0 ];
 
         if $up ~~ Whatever {
             $index = $_ with $bt.next-interesting-index($index, :noproto);
         }
         else {
-            $index = $_
-              with $bt.next-interesting-index($index, :noproto, :setting)
-              for ^$up;
+            for ^$up -> $level {
+                $index = $_
+                  with $bt.next-interesting-index($index, :noproto, :setting)
+            }
         }
         my $callsite = $bt[$index];
 

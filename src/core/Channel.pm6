@@ -78,12 +78,14 @@ my class Channel does Awaitable {
             nqp::istype(msg, CHANNEL_CLOSE),
             nqp::stmts(
               $!closed_promise_vow.keep(Nil),
+              nqp::push($!queue, msg),
               Nil
             ),
             nqp::if(
               nqp::istype(msg, CHANNEL_FAIL),
               nqp::stmts(
                 $!closed_promise_vow.break(msg.error),
+                nqp::push($!queue, msg),
                 Nil
               ),
               msg
@@ -148,37 +150,36 @@ my class Channel does Awaitable {
         }
     }
 
-    method iterator(Channel:D:) {
-        class :: does Iterator {
-            has $!queue;
-            has $!vow;
-            method !SET-SELF(\queue,\vow) {
-                $!queue := queue;
-                $!vow := vow;
-                self
-            }
-            method new(\queue,\vow) { nqp::create(self)!SET-SELF(queue,vow) }
-            method pull-one() {
-                nqp::if(
-                  nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
-                  nqp::stmts(
-                    nqp::push($!queue,msg),     # make sure other readers see it
-                    $!vow.keep(Nil),
-                    IterationEnd
-                  ),
-                  nqp::if(
-                    nqp::istype(msg,CHANNEL_FAIL),
-                    nqp::stmts(
-                      nqp::push($!queue,msg),   # make sure other readers see it
-                      $!vow.break(my $error := msg.error),
-                      $error.rethrow
-                    ),
-                    msg
-                  )
-                )
-            }
-        }.new($!queue,$!closed_promise_vow)
+    my class Iterate does Iterator {
+        has $!queue;
+        has $!vow;
+        method !SET-SELF(\queue,\vow) {
+            $!queue := queue;
+            $!vow := vow;
+            self
+        }
+        method new(\queue,\vow) { nqp::create(self)!SET-SELF(queue,vow) }
+        method pull-one() {
+            nqp::if(
+              nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
+              nqp::stmts(
+                nqp::push($!queue,msg),     # make sure other readers see it
+                $!vow.keep(Nil),
+                IterationEnd
+              ),
+              nqp::if(
+                nqp::istype(msg,CHANNEL_FAIL),
+                nqp::stmts(
+                  nqp::push($!queue,msg),   # make sure other readers see it
+                  $!vow.break(my $error := msg.error),
+                  $error.rethrow
+                ),
+                msg
+              )
+            )
+        }
     }
+    method iterator(Channel:D:) { Iterate.new($!queue,$!closed_promise_vow) }
 
     method list(Channel:D:) { self.Seq.list }
 

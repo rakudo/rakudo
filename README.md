@@ -2,7 +2,7 @@
 
 This is Rakudo Perl 6, a Perl 6 compiler for the MoarVM and JVM.
 
-Rakudo Perl 6 is Copyright © 2008-2018, The Perl Foundation. Rakudo Perl 6
+Rakudo Perl 6 is Copyright © 2008-2019, The Perl Foundation. Rakudo Perl 6
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 
@@ -25,7 +25,7 @@ twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-
 
 ## Building and Installing Rakudo
 
-[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
+[![Build Status](https://circleci.com/gh/rakudo/rakudo.svg?style=shield)](https://circleci.com/gh/rakudo/rakudo)[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
 
 See the INSTALL.txt file for detailed prerequisites and build and
 installation instructions.

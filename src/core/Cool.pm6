@@ -109,8 +109,8 @@ my class Cool { # declared in BOOTSTRAP
 
     method uniname()        { uniname(self) }
     method uninames()       { uninames(self) }
-    method unival()         { unival(self) }
-    method univals()        { univals(self) }
+    method unival(Cool:D:)  { self.Int.unival }
+    method univals(Cool:D:) { self.Str.univals }
     method uniprop(|c)      { uniprop(self, |c) }
     method uniprop-int(|c)  { uniprop-int(self, |c) }
     method uniprop-bool(|c) { uniprop-bool(self, |c) }
@@ -151,7 +151,6 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr(|) {*}
-    multi method substr()              { self.Str.substr             }
     multi method substr(\from)         { self.Str.substr(from)       }
     multi method substr(\from, \chars) { self.Str.substr(from,chars) }
 
@@ -338,7 +337,7 @@ multi sub ords(Cool:D $s) { $s.ords }
 proto sub comb($, $, $?, *%) {*}
 multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
 multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
-multi sub comb(Int:D $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
+multi sub comb(Int:D $size, Cool $input, $limit = *) { $input.comb($size, $limit) }
 
 proto sub wordcase($, *%) is pure {*}
 multi sub wordcase(Str:D $x) {$x.wordcase }
@@ -355,11 +354,14 @@ multi sub sprintf(Cool:D $format, *@args) {
         }
     }
     Rakudo::Internals.initialize-sprintf-handler;
-    @args.elems;
     nqp::p6box_s(
-        nqp::sprintf(nqp::unbox_s($format.Stringy),
-            nqp::clone(nqp::getattr(@args||[], List, '$!reified'))
+      nqp::sprintf(nqp::unbox_s($format.Stringy),
+        nqp::if(
+          @args.elems,
+          nqp::clone(nqp::getattr(@args,List,'$!reified')),
+          nqp::create(IterationBuffer)
         )
+      )
     )
 }
 
@@ -374,8 +376,9 @@ multi sub split($pat, Cool:D $target, |c) { $target.split($pat, |c) }
 
 proto sub chars($, *%) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }
-multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
-multi sub chars(str $x --> int) { nqp::chars($x) }
+
+multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) } #?js: NFG
+multi sub chars(str $x --> int) { nqp::chars($x) } #?js: NFG
 
 # These probably belong in a separate unicodey file
 
@@ -395,6 +398,26 @@ multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
 multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
 multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
+#?endif
+
+#?if js
+multi sub uniprop(|)      { die 'uniprop NYI on js backend' }
+multi sub uniprop-int(|)  { die 'uniprop-int NYI on js backend' }
+multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
+multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
+    nqp::getuniprop_str($code,nqp::unipropcode($propname));
+}
+multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
+multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
+#?endif
+
+#?if !jvm
+proto sub unival($, *%) {*}
+multi sub unival(Str:D $str) { $str ?? $str.ord.unival !! Nil }
+multi sub unival(Int:D $code) { $code.unival }
+
+proto sub univals($, *%) {*}
+multi sub univals(Str:D $str) { $str.univals }
 #?endif
 
 #?if moar
@@ -472,7 +495,7 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
         nqp::getuniprop_int($code,$prop),
         nqp::if(
           nqp::iseq_s($pref, 'B'),
-          nqp::p6bool(nqp::getuniprop_bool($code,$prop)),
+          nqp::hllbool(nqp::getuniprop_bool($code,$prop)),
           nqp::if(
             nqp::iseq_s($pref, 'lc'),
             nqp::lc(nqp::chr(nqp::unbox_i($code))),
@@ -487,7 +510,7 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
                   nqp::getuniname($code),
                   nqp::if(
                     nqp::iseq_s($pref, 'nv'),
-                    unival($code),
+                    $code.unival,
                     nqp::if(
                       nqp::iseq_s($pref, 'bmg'),
                       nqp::stmts(
@@ -517,7 +540,7 @@ multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-bool($str.ord, $propname) !! Nil
 }
 multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
-    nqp::p6bool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
+    nqp::hllbool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
 }
 
 proto sub uniprop-str($, $, *%) {*}
@@ -532,19 +555,6 @@ multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
     $str.ords.map: { uniprop($_, $propname) }
 }
 
-proto sub unival($, *%) {*}
-multi sub unival(Str:D $str) { $str ?? unival($str.ord) !! Nil }
-multi sub unival(Int:D $code) {
-    state $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
-    state $deprop = nqp::unipropcode("Numeric_Value_Denominator");
-    my $nu = nqp::getuniprop_str($code, $nuprop);
-    my $de = nqp::getuniprop_str($code, $deprop);
-    !$de || $de eq '1' ?? $nu.Int !! $nu / $de;
-}
-
-proto sub univals($, *%) {*}
-multi sub univals(Str:D $str) { $str.ords.map: { unival($_) } }
-
 proto sub unimatch($, |) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
 # This multi below can be removed when MoarVM bug #448 is fixed
@@ -553,7 +563,7 @@ multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname) {
 }
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
     my $prop := nqp::unipropcode($propname);
-    nqp::p6bool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));
+    nqp::hllbool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));
 }
 #?endif
 

@@ -49,26 +49,38 @@ for $*IN.lines -> $line {
     # spurt the role
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
-        multi method AT-POS(#type#array:D: int $idx) is raw {
-            nqp::atposref_#postfix#(self, $idx)
+        multi method AT-POS(#type#array:D: int $idx --> #type#) is raw {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_#postfix#(self,$idx)
         }
-        multi method AT-POS(#type#array:D: Int:D $idx) is raw {
-            nqp::atposref_#postfix#(self, $idx)
+        multi method AT-POS(#type#array:D: Int:D $idx --> #type#) is raw {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_#postfix#(self,$idx)
         }
 
-        multi method ASSIGN-POS(#type#array:D: int $idx, #type# $value) {
-            nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: int $idx, #type# $value --> #type#) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #type# $value) {
-            nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #type# $value --> #type#) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: int $idx, #Type#:D $value) {
-            nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: int $idx, #Type#:D $value --> #type#) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #Type#:D $value) {
-            nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: Int:D $idx, #Type#:D $value --> #type#) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: Any $idx, Mu \value) {
+        multi method ASSIGN-POS(#type#array:D: Any $idx, Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => "assignment to #type# array element #$idx",
                 got       => value,
@@ -76,28 +88,29 @@ for $*IN.lines -> $line {
             ).throw;
         }
 
-        multi method STORE(#type#array:D: $value) {
+        multi method STORE(#type#array:D: $value --> #type#array:D) {
             nqp::setelems(self,1);
             nqp::bindpos_#postfix#(self, 0, nqp::unbox_#postfix#($value));
             self
         }
-        multi method STORE(#type#array:D: #type#array:D \values) {
+        multi method STORE(#type#array:D: #type#array:D \values --> #type#array:D) {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
         }
-        multi method STORE(#type#array:D: Seq:D \seq) {
+        multi method STORE(#type#array:D: Seq:D \seq --> #type#array:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
+              X::Cannot::Lazy.new(
                 :action<store>, :what(self.^name)
-              )),
+              ).throw,
               nqp::stmts(
+                nqp::setelems(self,0),
                 $iterator.push-all(self),
                 self
               )
             )
         }
-        multi method STORE(#type#array:D: List:D \values) {
+        multi method STORE(#type#array:D: List:D \values --> #type#array:D) {
             my int $elems = values.elems;    # reifies
             my \reified := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
@@ -110,7 +123,7 @@ for $*IN.lines -> $line {
             );
             self
         }
-        multi method STORE(#type#array:D: @values) {
+        multi method STORE(#type#array:D: @values --> #type#array:D) {
             my int $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
@@ -123,33 +136,33 @@ for $*IN.lines -> $line {
             self
         }
 
-        multi method push(#type#array:D: #type# $value) {
+        multi method push(#type#array:D: #type# $value --> #type#array:D) {
             nqp::push_#postfix#(self, $value);
             self
         }
-        multi method push(#type#array:D: #Type#:D $value) {
+        multi method push(#type#array:D: #Type#:D $value --> #type#array:D) {
             nqp::push_#postfix#(self, $value);
             self
         }
-        multi method push(#type#array:D: Mu \value) {
+        multi method push(#type#array:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'push to #type# array',
                 got       => value,
                 expected  => T,
             ).throw;
         }
-        multi method append(#type#array:D: #type# $value) {
+        multi method append(#type#array:D: #type# $value --> #type#array:D) {
             nqp::push_#postfix#(self, $value);
             self
         }
-        multi method append(#type#array:D: #Type#:D $value) {
+        multi method append(#type#array:D: #Type#:D $value --> #type#array:D) {
             nqp::push_#postfix#(self, $value);
             self
         }
-        multi method append(#type#array:D: #type#array:D $values) is default {
+        multi method append(#type#array:D: #type#array:D $values --> #type#array:D) is default {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
-        multi method append(#type#array:D: @values) {
+        multi method append(#type#array:D: @values --> #type#array:D) {
             fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
               if @values.is-lazy;
             nqp::push_#postfix#(self, $_) for flat @values;
@@ -168,21 +181,21 @@ for $*IN.lines -> $line {
               !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
         }
 
-        multi method unshift(#type#array:D: #type# $value) {
+        multi method unshift(#type#array:D: #type# $value --> #type#array:D) {
             nqp::unshift_#postfix#(self, $value);
             self
         }
-        multi method unshift(#type#array:D: #Type#:D $value) {
+        multi method unshift(#type#array:D: #Type#:D $value --> #type#array:D) {
             nqp::unshift_#postfix#(self, $value);
             self
         }
-        multi method unshift(#type#array:D: @values) {
+        multi method unshift(#type#array:D: @values --> #type#array:D) {
             fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
               if @values.is-lazy;
             nqp::unshift_#postfix#(self, @values.pop) while @values;
             self
         }
-        multi method unshift(#type#array:D: Mu \value) {
+        multi method unshift(#type#array:D: Mu \value --> Nil) {
             X::TypeCheck.new(
                 operation => 'unshift to #type# array',
                 got       => value,
@@ -192,12 +205,12 @@ for $*IN.lines -> $line {
 
         my $empty_#postfix# := nqp::list_#postfix#;
 
-        multi method splice(#type#array:D:) {
+        multi method splice(#type#array:D: --> #type#array:D) {
             my $splice := nqp::clone(self);
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(#type#array:D: Int:D \offset) {
+        multi method splice(#type#array:D: Int:D \offset --> #type#array:D) {
             nqp::if(
               nqp::islt_i((my int $offset = offset),0)
                 || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
@@ -222,7 +235,7 @@ for $*IN.lines -> $line {
               )
             )
         }
-        multi method splice(#type#array:D: Int:D $offset, Int:D $size) {
+        multi method splice(#type#array:D: Int:D $offset, Int:D $size --> #type#array:D) {
             nqp::unless(
               nqp::istype(
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
@@ -232,7 +245,7 @@ for $*IN.lines -> $line {
             );
             $slice
         }
-        multi method splice(#type#array:D: Int:D $offset, Int:D $size, #type#array:D \values) {
+        multi method splice(#type#array:D: Int:D $offset, Int:D $size, #type#array:D \values --> #type#array:D) {
             nqp::unless(
               nqp::istype(
                 (my $slice := CLONE_SLICE(self,$offset,$size)),
@@ -247,12 +260,10 @@ for $*IN.lines -> $line {
             );
             $slice
         }
-        multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq) {
+        multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq --> #type#array:D) {
             nqp::if(
               seq.is-lazy,
-              Failure.new(X::Cannot::Lazy.new(
-                :action<splice>, :what(self.^name)
-              )),
+              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -265,7 +276,7 @@ for $*IN.lines -> $line {
               )
             )
         }
-        multi method splice(#type#array:D: $offset=0, $size=Whatever, *@values) {
+        multi method splice(#type#array:D: $offset=0, $size=Whatever, *@values --> #type#array:D) {
             fail X::Cannot::Lazy.new(:action('splice in'))
               if @values.is-lazy;
 
@@ -328,7 +339,7 @@ for $*IN.lines -> $line {
               -Inf
             )
         }
-        multi method minmax(#type#array:D:) {
+        multi method minmax(#type#array:D: --> Range:D) {
             nqp::if(
               (my int $elems = nqp::elems(self)),
               nqp::stmts(
@@ -352,47 +363,47 @@ for $*IN.lines -> $line {
             )
         }
 
-        method iterator(#type#array:D:) {
-            class :: does Iterator {
-                has int $!i;
-                has $!array;    # Native array we're iterating
+        my class Iterate does Iterator {
+            has int $!i;
+            has $!array;    # Native array we're iterating
 
-                method !SET-SELF(\array) {
-                    $!array := nqp::decont(array);
-                    $!i = -1;
-                    self
-                }
-                method new(\array) { nqp::create(self)!SET-SELF(array) }
+            method !SET-SELF(\array) {
+                $!array := nqp::decont(array);
+                $!i = -1;
+                self
+            }
+            method new(\array) { nqp::create(self)!SET-SELF(array) }
 
-                method pull-one() is raw {
-                    ($!i = $!i + 1) < nqp::elems($!array)
-                      ?? nqp::atposref_#postfix#($!array,$!i)
-                      !! IterationEnd
-                }
-                method skip-one() {
-                    ($!i = $!i + 1) < nqp::elems($!array)
-                }
-                method skip-at-least(int $toskip) {
-                    nqp::unless(
-                      ($!i = $!i + $toskip) < nqp::elems($!array),
-                      nqp::stmts(
-                        ($!i = nqp::elems($!array)),
-                        0
-                      )
-                    )
-                }
-                method push-all($target --> IterationEnd) {
-                    my int $i     = $!i;
-                    my int $elems = nqp::elems($!array);
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      $target.push(nqp::atposref_#postfix#($!array,$i))
-                    );
-                    $!i = $i;
-                }
-            }.new(self)
+            method pull-one() is raw {
+                ($!i = $!i + 1) < nqp::elems($!array)
+                  ?? nqp::atposref_#postfix#($!array,$!i)
+                  !! IterationEnd
+            }
+            method skip-one() {
+                ($!i = $!i + 1) < nqp::elems($!array)
+            }
+            method skip-at-least(int $toskip) {
+                nqp::unless(
+                  ($!i = $!i + $toskip) < nqp::elems($!array),
+                  nqp::stmts(
+                    ($!i = nqp::elems($!array)),
+                    0
+                  )
+                )
+            }
+            method push-all(\target --> IterationEnd) {
+                my int $i     = $!i;
+                my int $elems = nqp::elems($!array);
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  target.push(nqp::atposref_#postfix#($!array,$i))
+                );
+                $!i = $i;
+            }
         }
-        method reverse(#type#array:D:) is nodal {
+        method iterator(#type#array:D: --> Iterate:D) { Iterate.new(self) }
+
+        method reverse(#type#array:D: --> #type#array:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my int $last  = nqp::sub_i($elems,1)),
@@ -406,7 +417,7 @@ for $*IN.lines -> $line {
               $to
             )
         }
-        method rotate(#type#array:D: Int(Cool) $rotate = 1) is nodal {
+        method rotate(#type#array:D: Int(Cool) $rotate = 1 --> #type#array:D) is nodal {
             nqp::stmts(
               (my int $elems = nqp::elems(self)),
               (my $to := nqp::clone(self)),
@@ -425,12 +436,12 @@ for $*IN.lines -> $line {
               $to
             )
         }
-        multi method sort(#type#array:D:) {
+        multi method sort(#type#array:D: --> #type#array:D) {
             Rakudo::Sorting.MERGESORT-#type#(nqp::clone(self))
         }
 
-        multi method ACCEPTS(#type#array:D: #type#array:D \other) {
-            nqp::p6bool(
+        multi method ACCEPTS(#type#array:D: #type#array:D \other --> Bool:D) {
+            nqp::hllbool(
               nqp::unless(
                 nqp::eqaddr(self,other),
                 nqp::if(
@@ -455,53 +466,55 @@ for $*IN.lines -> $line {
             )
         }
         proto method grab(|) {*}
-        multi method grab(#type#array:D:) {
+        multi method grab(#type#array:D: --> #type#) {
             nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
         }
-        multi method grab(#type#array:D: Callable:D $calculate) {
+        multi method grab(#type#array:D: Callable:D $calculate --> #type#) {
             self.grab($calculate(nqp::elems(self)))
         }
-        multi method grab(#type#array:D: Whatever) { self.grab(Inf) }
-        multi method grab(#type#array:D: $count) {
+        multi method grab(#type#array:D: Whatever --> Seq:D) { self.grab(Inf) }
+
+        my class GrabN does Iterator {
+            has $!array;
+            has int $!count;
+
+            method !SET-SELF(\array,\count) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems(array)),
+                  ($!array := array),
+                  nqp::if(
+                    count == Inf,
+                    ($!count = $elems),
+                    nqp::if(
+                      nqp::isgt_i(($!count = count.Int),$elems),
+                      ($!count = $elems)
+                    )
+                  ),
+                  self
+                )
+
+            }
+            method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
+            method pull-one() {
+                nqp::if(
+                  $!count && nqp::elems($!array),
+                  nqp::stmts(
+                    ($!count = nqp::sub_i($!count,1)),
+                    $!array.GRAB_ONE
+                  ),
+                  IterationEnd
+                )
+            }
+        }
+        multi method grab(#type#array:D: \count --> Seq:D) {
             Seq.new(nqp::if(
               nqp::elems(self),
-              class :: does Iterator {
-                  has $!array;
-                  has int $!count;
-
-                  method !SET-SELF(\array,\count) {
-                      nqp::stmts(
-                        (my int $elems = nqp::elems(array)),
-                        ($!array := array),
-                        nqp::if(
-                          count == Inf,
-                          ($!count = $elems),
-                          nqp::if(
-                            nqp::isgt_i(($!count = count.Int),$elems),
-                            ($!count = $elems)
-                          )
-                        ),
-                        self
-                      )
-
-                  }
-                  method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
-                  method pull-one() {
-                      nqp::if(
-                        $!count && nqp::elems($!array),
-                        nqp::stmts(
-                          ($!count = nqp::sub_i($!count,1)),
-                          $!array.GRAB_ONE
-                        ),
-                        IterationEnd
-                      )
-                  }
-              }.new(self,$count),
+              GrabN.new(self,count),
               Rakudo::Iterator.Empty
             ))
         }
 
-        method GRAB_ONE(#type#array:D:) {
+        method GRAB_ONE(#type#array:D: --> #type#) {
             nqp::stmts(
               (my $value := nqp::atpos_#postfix#(
                 self,

@@ -1,3 +1,4 @@
+my class PhasersList is repr('VMArray') {}
 my class Block { # declared in BOOTSTRAP
     # class Block is Code
     #     has Mu $!phasers;
@@ -11,7 +12,7 @@ my class Block { # declared in BOOTSTRAP
           unless nqp::attrinited(self,Block,'$!phasers');
 
         my str $name = name;
-        nqp::bindkey($!phasers,$name,nqp::create(IterationBuffer))
+        nqp::bindkey($!phasers,$name,nqp::create(PhasersList))
           unless nqp::existskey($!phasers,$name);
 
         if nqp::iseq_s($name,'LEAVE') || nqp::iseq_s($name,'KEEP') || nqp::iseq_s($name,'UNDO') {
@@ -65,7 +66,7 @@ my class Block { # declared in BOOTSTRAP
 
     method WHY() {
         if nqp::isnull($!why) {
-            nextsame
+            nextsame unless $*COMPILING_CORE_SETTING;
         } else {
             $!why.set_docee(self);
             $!why
@@ -77,7 +78,7 @@ my class Block { # declared in BOOTSTRAP
     }
 
     # helper method for array slicing
-    method pos(Block:D $self: \list) {
+    method POSITIONS(Block:D $self: \list) {
       nqp::if(
         (nqp::istype(
           (my \n := nqp::getattr(

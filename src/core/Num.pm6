@@ -6,7 +6,7 @@ my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool
     #     has num $!value is box_target;
 
-    multi method WHICH(Num:D:) {
+    multi method WHICH(Num:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::if(
@@ -19,7 +19,7 @@ my class Num does Real { # declared in BOOTSTRAP
           ValueObjAt
         )
     }
-    multi method Bool(Num:D:) { nqp::p6bool(nqp::isne_n(self,0e0)) }
+    multi method Bool(Num:D:) { nqp::hllbool(nqp::isne_n(self,0e0)) }
     method Capture() { die X::Cannot::Capture.new: :what(self) }
     method Num() { self }
     method Bridge(Num:D:) { self }
@@ -197,7 +197,10 @@ my class Num does Real { # declared in BOOTSTRAP
     multi method asinh(Num:D: ) {
         nqp::isnanorinf(self)
             ?? self
-            !! (self + (self * self + 1e0).sqrt).log;
+            !!
+                self >= 0
+                    ?? (self + (self * self + 1e0).sqrt).log
+                    !! -(-1e0 * self).asinh
     }
     proto method cosh(|) {*}
     multi method cosh(Num:D: ) {
@@ -243,7 +246,7 @@ my class Num does Real { # declared in BOOTSTRAP
         (1e0 / self).atanh;
     }
     method is-prime(--> Bool:D) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::if(
             nqp::isnanorinf(self),
             False,
@@ -269,7 +272,7 @@ my constant e   = 2.71828_18284_59045_235e0;
 
 my constant π := pi;
 my constant τ := tau;
-#?if moar
+#?if !jvm
 my constant 𝑒 := e;
 #?endif
 
@@ -296,9 +299,8 @@ multi sub postfix:<++>(Num:D $a is rw) {
     $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0));
     $b
 }
-multi sub postfix:<++>(Num:U $a is rw) {
+multi sub postfix:<++>(Num:U $a is rw --> 0e0) {
     $a = 1e0;
-    0e0
 }
 multi sub postfix:<++>(num $a is rw --> num) {
     my num $b = $a;
@@ -310,9 +312,8 @@ multi sub postfix:<-->(Num:D $a is rw) {
     $a = nqp::p6box_n(nqp::sub_n(nqp::unbox_n($a), 1e0));
     $b
 }
-multi sub postfix:<-->(Num:U $a is rw) {
+multi sub postfix:<-->(Num:U $a is rw --> 0e0) {
     $a = -1e0;
-    0e0
 }
 multi sub postfix:<-->(num $a is rw --> num) {
     my num $b = $a;
@@ -416,7 +417,7 @@ multi sub infix:«<=>»(num $a, num $b) {
 }
 
 multi sub infix:<===>(Num:D \a, Num:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
         nqp::eqaddr(a.WHAT,b.WHAT)
         && (
             ( # Both are NaNs
@@ -438,7 +439,7 @@ multi sub infix:<===>(Num:D \a, Num:D \b) {
     )
 }
 multi sub infix:<===>(num \a, num \b --> Bool:D) {
-    nqp::p6bool(
+    nqp::hllbool(
         nqp::eqaddr(a.WHAT,b.WHAT)
         && (
             ( # Both are NaNs
@@ -464,42 +465,42 @@ multi sub infix:<≅>( Inf,  Inf) { Bool::True }
 multi sub infix:<≅>(-Inf, -Inf) { Bool::True }
 
 multi sub infix:<==>(Num:D \a, Num:D \b --> Bool:D)  {
-    nqp::p6bool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::iseq_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:<==>(num $a, num $b --> Bool:D)  {
-    nqp::p6bool(nqp::iseq_n($a, $b))
+    nqp::hllbool(nqp::iseq_n($a, $b))
 }
 
 multi sub infix:<!=>(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isne_n($a, $b))
+    nqp::hllbool(nqp::isne_n($a, $b))
 }
 
 multi sub infix:«<»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::islt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::islt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«<»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::islt_n($a, $b))
+    nqp::hllbool(nqp::islt_n($a, $b))
 }
 
 multi sub infix:«<=»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::isle_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«<=»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isle_n($a, $b))
+    nqp::hllbool(nqp::isle_n($a, $b))
 }
 
 multi sub infix:«>»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isgt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::isgt_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«>»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isgt_n($a, $b))
+    nqp::hllbool(nqp::isgt_n($a, $b))
 }
 
 multi sub infix:«>=»(Num:D \a, Num:D \b --> Bool:D) {
-    nqp::p6bool(nqp::isge_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+    nqp::hllbool(nqp::isge_n(nqp::unbox_n(a), nqp::unbox_n(b)))
 }
 multi sub infix:«>=»(num $a, num $b --> Bool:D) {
-    nqp::p6bool(nqp::isge_n($a, $b))
+    nqp::hllbool(nqp::isge_n($a, $b))
 }
 
 proto sub rand(*%) {*}
@@ -561,12 +562,14 @@ multi sub asinh(num $x --> num) {
     # ln(x + √(x²+1))
     nqp::isnanorinf($x)
         ?? $x
-        !! nqp::log_n(
-            nqp::add_n(
-                $x,
-                nqp::pow_n( nqp::add_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+        !! $x >= 0
+            ?? nqp::log_n(
+                nqp::add_n(
+                    $x,
+                    nqp::pow_n( nqp::add_n(nqp::mul_n($x,$x), 1e0), .5e0 )
+                )
             )
-        )
+            !! -asinh(-$x);
 }
 
 multi sub cosh(num $x --> num) {

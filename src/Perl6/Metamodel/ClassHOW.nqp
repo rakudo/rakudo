@@ -22,10 +22,10 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
     does Perl6::Metamodel::Finalization
+    does Perl6::Metamodel::Concretization
 {
     has @!roles;
     has @!role_typecheck_list;
-    has @!concretizations;
     has @!fallbacks;
     has $!composed;
 
@@ -40,9 +40,16 @@ class Perl6::Metamodel::ClassHOW
     }
 
     my $anon_id := 1;
-    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api) {
+    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api, :$is_mixin) {
         my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
+        my $new_type;
+        if $is_mixin {
+            $new_type := nqp::newmixintype($metaclass, $repr);
+        }
+        else {
+            $new_type := nqp::newtype($metaclass, $repr);
+        }
+        my $obj := nqp::settypehll($new_type, 'perl6');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
@@ -68,11 +75,28 @@ class Perl6::Metamodel::ClassHOW
         @!fallbacks[+@!fallbacks] := %desc;
     }
 
-    method compose($obj, :$compiler_services) {
+    sub has_method($target, $name) {
+        for $target.HOW.mro($target) {
+            my %mt := nqp::hllize($_.HOW.method_table($_));
+            if nqp::existskey(%mt, $name) {
+                return 1;
+            }
+            %mt := nqp::hllize($_.HOW.submethod_table($_));
+            if nqp::existskey(%mt, $name) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
         my @roles_to_compose := self.roles_to_compose($obj);
+        my @stubs;
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
@@ -81,10 +105,10 @@ class Perl6::Metamodel::ClassHOW
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 my $ins := $r.HOW.specialize($r, $obj);
                 @ins_roles.push($ins);
-                nqp::push(@!concretizations, [$r, $ins]);
+                self.add_concretization($obj, $r, $ins);
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
-            RoleToClassApplier.apply($obj, @ins_roles);
+            @stubs := RoleToClassApplier.apply($obj, @ins_roles);
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
@@ -115,6 +139,16 @@ class Perl6::Metamodel::ClassHOW
 
         # Compose attributes.
         self.compose_attributes($obj, :$compiler_services);
+
+        # Test the remaining stubs
+        for @stubs -> %data {
+            if !has_method(%data<target>, %data<name>) {
+                nqp::die("Method '" ~ %data<name> ~ "' must be implemented by " ~
+                         %data<target>.HOW.name(%data<target>) ~
+                         " because it is required by roles: " ~
+                         nqp::join(", ", %data<needed>) ~ ".");
+            }
+        }
 
         # See if we have a Bool method other than the one in the top type.
         # If not, all it does is check if we have the type object.
@@ -220,15 +254,6 @@ class Perl6::Metamodel::ClassHOW
 
     method role_typecheck_list($obj) {
         $!composed ?? @!role_typecheck_list !! self.roles_to_compose($obj)
-    }
-
-    method concretization($obj, $ptype) {
-        for @!concretizations {
-            if nqp::decont($_[0]) =:= nqp::decont($ptype) {
-                return $_[1];
-            }
-        }
-        nqp::die("No concretization found for " ~ $ptype.HOW.name($ptype));
     }
 
     method is_composed($obj) {

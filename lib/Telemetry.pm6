@@ -205,7 +205,7 @@ HEADER
         }
 
         method EXISTS-KEY(Str:D $key) {
-            nqp::p6bool(nqp::existskey($dispatch,$key))
+            nqp::hllbool(nqp::existskey($dispatch,$key))
         }
 
         method !snap() is raw {
@@ -272,7 +272,7 @@ HEADER
         }
 
         method EXISTS-KEY(Str:D $key) {
-            nqp::p6bool(nqp::existskey($dispatch,$key))
+            nqp::hllbool(nqp::existskey($dispatch,$key))
         }
 
         method !snap() is raw { Thread.usage }
@@ -351,7 +351,7 @@ class Telemetry::Instrument::ThreadPool does Telemetry::Instrument {
         }
 
         method EXISTS-KEY(Str:D $key) {
-            nqp::p6bool(nqp::existskey($dispatch,$key))
+            nqp::hllbool(nqp::existskey($dispatch,$key))
         }
 
         method !snap() is raw {
@@ -435,7 +435,7 @@ class Telemetry::Instrument::AdHoc does Telemetry::Instrument {
         }
 
         method EXISTS-KEY(Str:D $key) {
-            nqp::p6bool(
+            nqp::hllbool(
               nqp::existskey(
                 nqp::getattr(
                   $!instrument,Telemetry::Instrument::AdHoc,'$!dispatch'),
@@ -620,7 +620,7 @@ class Telemetry does Associative {
     }
 
     method EXISTS-KEY($key) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::existskey(
             nqp::getattr($!sampler,Telemetry::Sampler,'$!dispatcher'),
             $key

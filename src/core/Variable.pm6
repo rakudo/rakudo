@@ -13,6 +13,7 @@ my class Variable {
     has $.var is rw;
     has $.block;
     has $.slash;
+    has $.implicit-lexical-usage is rw;
 
     # make throwing easier
     submethod throw ( |c ) {
@@ -157,18 +158,23 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$end! ) {
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
     $v.block.add_phaser('ENTER', $v.willdo($block, 1) );
+    $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$leave! ) {
     $v.block.add_phaser('LEAVE', $v.willdo($block) );
+    $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$keep! ) {
     $v.block.add_phaser('KEEP', $v.willdo($block));
+    $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$undo! ) {
     $v.block.add_phaser('UNDO', $v.willdo($block));
+    $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$first! ) {
     $v.block.add_phaser('FIRST', $v.willdo($block, 1));
+    $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$next! ) {
     $v.block.add_phaser('NEXT', $block);
@@ -178,6 +184,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :$last! ) {
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
     $v.block.add_phaser('PRE', $v.willdo($block, 1));
+    $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :$post! ) {
     $v.throw( 'X::Comp::NYI',

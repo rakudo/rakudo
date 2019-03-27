@@ -150,6 +150,7 @@ src/core/ObjAt.pm6
 src/core/Version.pm6
 src/core/ForeignCode.pm6
 src/core/operators.pm6
+src/core/Hyper.pm6
 src/core/metaops.pm6
 src/core/precedence.pm6
 src/core/Deprecations.pm6

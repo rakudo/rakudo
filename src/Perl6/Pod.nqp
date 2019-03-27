@@ -601,13 +601,32 @@ class Perl6::Pod {
             }
             else {
                 say("  DEBUG incoming colonpair non-circumfix val: |$colonpair|") if $debugp;
-                my $truth := !nqp::eqat($colonpair, '!', 1);
-                if 0 && $key eq 'numbered' {
-                    say("DEBUG: colonpair: :numbered truth value = '$truth'");
+                # issue #2793: should be able to use, e.g., ':nnnfoo' to represent:
+                #   foo => nnn
+                # new possibilities for non-circumfix val:
+                #   foo    === foo(True)  # Bool; prefix = ''
+                #   !foo   === foo(False) # Bool; prefix = '!'
+                #   nnnfoo === foo(nnn)   # Int;  prefix = 'nnn'
+                #
+                # colonpair = $prefix ~ $key
+                my $prefix := subst($colonpair, /$key/, '');
+                $prefix := subst($prefix, /':'/, '');
+                my $regex := /^ \d+ $/;
+
+                say("  DEBUG colonpair non-circumfix prefix: |$prefix|") if $debugp;
+                if $prefix eq '' {
+                    $val := $*W.add_constant('Bool', 'int', 1).compile_time_value;
                 }
-                say("        non-circumfix after processing: val: |$truth|")
-                    if $debugp;
-                $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+                elsif $prefix eq '!' {
+                    $val := $*W.add_constant('Bool', 'int', 0).compile_time_value;
+                }
+                elsif $prefix ~~ /^ \d+ $/ {
+                    $val := $*W.add_constant('Int', 'int', $prefix).compile_time_value;
+                }
+                else {
+                    nqp::die("FATAL:  Invalid key ($key) / colonpair ($colonpair) combo in pod config string");
+                }
+
             }
 
             if $key eq 'allow' {

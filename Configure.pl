@@ -23,11 +23,6 @@ my $slash  = $win ? '\\' : '/';
 # (not included with *every* Perl installation)
 use ExtUtils::Command;
 
-# This allows us to run on ancient perls.
-sub defined_or($$) {
-    defined $_[0] ? $_[0] : $_[1]
-}
-
 MAIN: {
     if (-r 'config.default') {
         unshift @ARGV, shellwords(slurp('config.default'));
@@ -346,7 +341,7 @@ MAIN: {
                                   . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "valgrind" "" "" ""';
         }
         $config{'c_runner_libs'} = join ' ', @c_runner_libs;
-        $config{'moar_lib'} = sprintf(defined_or($nqp_config{'moar::ldimp'}, $nqp_config{'moar::ldusr'}), $nqp_config{'moar::name'});
+        $config{'moar_lib'} = sprintf(($nqp_config{'moar::ldimp'} ? $nqp_config{'moar::ldimp'} : $nqp_config{'moar::ldusr'}), $nqp_config{'moar::name'});
 
         unless (@errors) {
             print "Using $config{'m_nqp'} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";

@@ -337,7 +337,7 @@ MAIN: {
             if ($nqp_config{'moar::os'} eq 'mingw32') {
                 $config{'mingw_unicode'} = '-municode';
             }
-            push @c_runner_libs, 'Shlwapi';
+            push @c_runner_libs, sprintf($nqp_config{'moar::ldusr'}, 'Shlwapi');
         } else {
             $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
             $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
@@ -345,20 +345,13 @@ MAIN: {
                                   . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "lldb" "" "" ""' . "\n"
                                   . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "valgrind" "" "" ""';
         }
-        $config{'c_runner_libs'} = join ' ',
-            (map { sprintf $nqp_config{'moar::ldusr'}, $_; } @c_runner_libs),
-            sprintf(defined_or($nqp_config{'moar::ldimp'}, $nqp_config{'moar::ldusr'}), $nqp_config{'moar::name'});
+        $config{'c_runner_libs'} = join ' ', @c_runner_libs;
+        $config{'moar_lib'} = sprintf(defined_or($nqp_config{'moar::ldimp'}, $nqp_config{'moar::ldusr'}), $nqp_config{'moar::name'});
 
         unless (@errors) {
             print "Using $config{'m_nqp'} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
 
             $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
-
-            # Add moar library to link command
-            # TODO: Get this from Moar somehow
-            $config{'moarimplib'} = $win || $^O eq 'darwin'
-                                  ? $nqp_config{'moar::libdir'} . '/' . $nqp_config{'moar::sharedlib'}
-                                  : '';
 
             fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
         }

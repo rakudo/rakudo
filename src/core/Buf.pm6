@@ -16,7 +16,7 @@ enum Endian (
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     die "Can only parameterize with native int types, not '{T.^name}'."
-      unless nqp::objprimspec(T) == 1;
+      unless nqp::objprimspec(T) == 1 || nqp::objprimspec(T) == 4 || nqp::objprimspec(T) == 5;
 
     # other then *8 not supported yet
     my int $bpe = try {

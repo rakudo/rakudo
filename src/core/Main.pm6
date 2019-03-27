@@ -194,14 +194,22 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                         }
                     }
                     else {
-                        my @names  = $param.named_names.reverse;
-                        $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
-                        if $param.type !=== Bool {
+                        my @names = $param.named_names.reverse;
+                        $argument = @names.map({
+                            (.chars == 1 ?? '-' !! '--') ~ $_
+                        }).join('|');
+
+                        my $type := $param.type;
+                        if $type ~~ Positional {
+                            $argument ~= "=<{ $constraints || "Any" }> ..."
+
+                        }
+                        elsif $type !=== Bool {
                             $argument ~= "=<{
-                                $constraints || $param.type.^name
+                                $constraints || $type.^name
                             }>";
-                            if Metamodel::EnumHOW.ACCEPTS($param.type.HOW) {
-                                my $options = $param.type.^enum_values.keys.sort.Str;
+                            if Metamodel::EnumHOW.ACCEPTS($type.HOW) {
+                                my $options = $type.^enum_values.keys.sort.Str;
                                 $argument ~= $options.chars > 50
                                   ?? ' (' ~ substr($options,0,50) ~ '...'
                                   !! " ($options)"

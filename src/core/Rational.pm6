@@ -189,13 +189,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         2 <= $base <= 36 or fail X::OutOfRange.new(
             what => "base argument to base", :got($base), :range<2..36>);
 
-        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
-        my $whole = self.abs.floor;
-        my $fract = self.abs - $whole;
-
-        # fight floating point noise issues RT#126016
-        if $fract.Num == 1e0 { $whole++; $fract = 0 }
-
         my $prec;
         if $digits ~~ Whatever {
             $digits = Nil;
@@ -217,17 +210,29 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             }
         }
         else {
+            # Limit log calculation to 10**307 or less.
+            # log coerces to Num. When larger than 10**307, it overflows and
+            # returns Inf.
             my $lim = 10**307;
             if $!denominator < $lim {
                 $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
             }
             else {
-                my $f = $!denominator;
-                my $exp2 = 0;
-                ++$exp2 while ($f div= $base) > $lim;
-                $prec =  $exp2 + $f.log($base).ceiling + 2;
+                # If the internal log method is modified to handle larger numbers,
+                # this branch can be modified/removed.
+                my $d = $!denominator;
+                my $exp = 0;
+                ++$exp while ($d div= $base) > $lim;
+                $prec = $exp + $d.log($base).ceiling + 2;
             }
         }
+
+        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
+        my $whole = self.abs.floor;
+        my $fract = self.abs - $whole;
+
+        # fight floating point noise issues RT#126016
+        if $fract.Num == 1e0 { $whole++; $fract = 0 }
 
         my $result = $sign ~ $whole.base($base);
         my @conversion := <0 1 2 3 4 5 6 7 8 9

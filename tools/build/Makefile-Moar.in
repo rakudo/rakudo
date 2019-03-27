@@ -4,7 +4,6 @@ M_CCINC   = @moar::ccinc@
 M_CFLAGS  = @moar::cflags@
 M_LDFLAGS = @ldflags@
 M_LDLIBS  = @moar::ldlibs@
-M_C_RUNNER_LIBS = @c_runner_libs@
 M_MINGW_UNICODE = @mingw_unicode@
 
 M_GEN_CAT = tools/build/gen-cat.nqp moar

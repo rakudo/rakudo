@@ -189,6 +189,13 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         2 <= $base <= 36 or fail X::OutOfRange.new(
             what => "base argument to base", :got($base), :range<2..36>);
 
+        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
+        my $whole = self.abs.floor;
+        my $fract = self.abs - $whole;
+
+        # fight floating point noise issues RT#126016
+        if $fract.Num == 1e0 { $whole++; $fract = 0 }
+
         my $prec;
         if $digits ~~ Whatever {
             $digits = Nil;
@@ -210,15 +217,17 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             }
         }
         else {
-            $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+            my $lim = 10**307;
+            if $!denominator < $lim {
+                $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+            }
+            else {
+                my $f = $!denominator;
+                my $exp2 = 0;
+                ++$exp2 while ($f div= $base) > $lim;
+                $prec =  $exp2 + $f.log($base).ceiling + 2;
+            }
         }
-
-        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
-        my $whole = self.abs.floor;
-        my $fract = self.abs - $whole;
-
-        # fight floating point noise issues RT#126016
-        if $fract.Num == 1e0 { $whole++; $fract = 0 }
 
         my $result = $sign ~ $whole.base($base);
         my @conversion := <0 1 2 3 4 5 6 7 8 9
@@ -236,16 +245,17 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
         # Round the final number, based on the remaining fractional part
         if 2*$fract >= 1 {
-            for @fract-digits-1 ... 0 -> $n {
+            for @fract-digits - 1 ... 0 -> $n {
                 last if ++@fract-digits[$n] < $base;
                 @fract-digits[$n] = 0;
                 $result = $sign ~ ($whole+1).base($base) if $n == 0;
             }
         }
 
-        @fract-digits
-            ?? $result ~ '.' ~ @conversion[@fract-digits].join
-            !! $result;
+        $result ~
+        (@fract-digits ??
+         $base <= 10   ?? '.' ~ @fract-digits.join !!
+         '.' ~ @conversion[@fract-digits].join     !! '')
     }
 
     method base-repeating($base = 10) {

@@ -22,6 +22,7 @@ my $slash  = $win ? '\\' : '/';
 # Try `use`ing it here so users know if they need to install this module
 # (not included with *every* Perl installation)
 use ExtUtils::Command;
+
 MAIN: {
     if (-r 'config.default') {
         unshift @ARGV, shellwords(slurp('config.default'));
@@ -314,11 +315,15 @@ MAIN: {
         $errors{moar}{'no gen-nqp'} = @errors && !defined $options{'gen-nqp'};
 
         # Strip rpath from ldflags so we can set it differently ourself.
-        $config{ldflags} = join(' ', $nqp_config{'moar::ldflags'}, $nqp_config{'moar::ldmiscflags'}, $nqp_config{'moar::ldoptiflags'}, $nqp_config{'moar::ldlibs'});
+        $config{ldflags} = $nqp_config{'moar::ldflags'};
         $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath'}\E ?//;
         $config{ldflags} =~ s/\Q$nqp_config{'moar::ldrpath_relocatable'}\E ?//;
         $config{ldflags} .= ' ' . ($options{'no-relocatable'} ? $nqp_config{'moar::ldrpath'} : $nqp_config{'moar::ldrpath_relocatable'});
-
+        
+        $config{ldlibs} = $nqp_config{'moar::ldlibs'};
+        
+        my @c_runner_libs;
+        
         if ($win) {
             if ($prefix . $slash . 'bin' ne $nqp_config{'moar::libdir'}) {
                 $config{'m_install'} = "\t" . '$(CP) ' . $nqp_config{'moar::libdir'} . $slash . $nqp_config{'moar::moar'} . ' $(PREFIX)' . $slash . 'bin';
@@ -327,7 +332,7 @@ MAIN: {
             if ($nqp_config{'moar::os'} eq 'mingw32') {
                 $config{'mingw_unicode'} = '-municode';
             }
-            $config{'c_runner_libs'} = '-lShlwapi';
+            push @c_runner_libs, sprintf($nqp_config{'moar::ldusr'}, 'Shlwapi');
         } else {
             $config{'m_cleanups'} = "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
             $config{'m_all'}      = '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
@@ -335,17 +340,13 @@ MAIN: {
                                   . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "lldb" "" "" ""' . "\n"
                                   . "\t" . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "valgrind" "" "" ""';
         }
+        $config{'c_runner_libs'} = join ' ', @c_runner_libs;
+        $config{'moar_lib'} = sprintf(($nqp_config{'moar::ldimp'} ? $nqp_config{'moar::ldimp'} : $nqp_config{'moar::ldusr'}), $nqp_config{'moar::name'});
 
         unless (@errors) {
             print "Using $config{'m_nqp'} (version $nqp_config{'nqp::version'} / MoarVM $nqp_config{'moar::version'}).\n";
 
             $config{'perl6_ops_dll'} = sprintf($nqp_config{'moar::dll'}, 'perl6_ops_moar');
-
-            # Add moar library to link command
-            # TODO: Get this from Moar somehow
-            $config{'moarimplib'} = $win || $^O eq 'darwin'
-                                  ? $nqp_config{'moar::libdir'} . '/' . $nqp_config{'moar::sharedlib'}
-                                  : '';
 
             fill_template_file('tools/build/Makefile-Moar.in', $MAKEFILE, %config, %nqp_config);
         }

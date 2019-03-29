@@ -31,8 +31,7 @@ my class Date does Dateish {
         nqp::bind($!month,     month);
         nqp::bind($!day,       day);
         nqp::bind(&!formatter, formatter);
-        nqp::bind($!daycount,
-          nqp::isconcrete($daycount) ?? $daycount !! nqp::null);
+        nqp::bind($!daycount,$daycount) if nqp::isconcrete($!daycount);
         self
     }
 

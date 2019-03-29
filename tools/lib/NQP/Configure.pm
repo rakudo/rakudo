@@ -1,3 +1,4 @@
+use v5.10.1;
 package NQP::Configure;
 use strict;
 use warnings;
@@ -13,7 +14,7 @@ our @EXPORT_OK = qw(sorry slurp system_or_die
                     fill_template_file fill_template_text
                     git_checkout
                     verify_install gen_moar
-                    github_url
+                    github_url repo_url
                     gen_nqp );
 
 our $exe = $^O eq 'MSWin32' ? '.exe' : '';
@@ -22,155 +23,6 @@ our $bat = $^O eq 'MSWin32' ? '.bat' : '';
 our @required_nqp_files = qw(
     @bindir@/nqp-p@exe@
 );
-
-sub sorry {
-    my ($ignore_errors, @msg) = @_;
-    my $message = join("\n", '', '===SORRY!===', @msg, "\n");
-    die $message
-        unless $ignore_errors;
-    print $message;
-}
-
-sub slurp {
-    my $filename = shift;
-    open my $fh, '<', $filename
-        or die "Unable to read $filename\n";
-    local $/ = undef;
-    my $text = <$fh>;
-    close $fh or die $!;
-    return $text;
-}
-
-
-sub system_or_die {
-    my @cmd = @_;
-    system( @cmd ) == 0
-        or die "Command failed (status $?): @cmd\n";
-}
-
-
-sub parse_revision {
-    my $rev = shift;
-    my $sep = qr/[_.]/;
-    my $rev_regex = qr/
-        (?<year> \d+)
-        $sep
-        (?<month> \d+)
-        (?:
-            $sep
-            (?<day> \d+)
-        )?
-        (?:
-            -
-            (?:
-                (?<revno> \d+) - g[a-f0-9]*
-
-                |
-
-                RC (?<rcno> \d+)
-            )
-        )?
-        $
-    /x;
-    if ($rev =~ $rev_regex) {
-        return ($+{year}, $+{month}, $+{day} // 0, $+{rcno} // 0, $+{revno} // 0);
-    } else {
-        die "Unrecognized revision specifier '$rev'\n";
-    }
-}
-
-sub cmp_rev {
-    my ($a, $b) = @_;
-    my @a = parse_revision($a);
-    my @b = parse_revision($b);
-    my $cmp = 0;
-    for (0..4) {
-        $cmp = $a[$_] <=> $b[$_] if (defined $a[$_] && defined $b[$_]);
-        last if $cmp;
-    }
-    $cmp;
-}
-
-
-sub read_config {
-    my @config_src = @_;
-    my %config = ();
-    local $_;
-    for my $file (@config_src) {
-        no warnings;
-        if (! -f $file) {
-            print "No pre-existing installed file found at $file\n";
-            next;
-        }
-        if (open my $CONFIG, '-|', "\"$file\" --show-config") {
-            while (<$CONFIG>) {
-                if (/^([^\s=]+)=(.*)/) { $config{$1} = $2 }
-            }
-            close($CONFIG);
-        }
-        last if %config;
-    }
-    return %config;
-}
-
-sub fill_template_file {
-    my $infile = shift;
-    my $outfile = shift;
-    my %config = @_;
-
-    my $OUT;
-    if (ref $outfile) {
-        $OUT = $outfile;
-    }
-    else {
-        print "\nCreating $outfile ...\n";
-        open($OUT, '>', $outfile)
-            or die "Unable to write $outfile\n";
-    }
-
-    my @infiles = ref($infile) ? @$infile : $infile;
-    for my $if (@infiles) {
-        my $text = slurp( $if );
-        print $OUT "\n# Generated from $if\n";
-        $text = fill_template_text($text, %config);
-        print $OUT $text;
-        print $OUT "\n\n# (end of section generated from $if)\n\n";
-    }
-    unless (ref $outfile) {
-        close($OUT) or die "Error while writing '$outfile': $!";
-    }
-}
-
-sub fill_template_text {
-    my $text = shift;
-    my %config = @_;
-
-    my $text_out = NQP::Configure::Macros->new( 
-                        config => \%config,
-                   )->expand( $text );
-
-    if ($text_out =~ /nqp::makefile/) {
-        if ($^O eq 'MSWin32') {
-            $text_out =~ s{/}{\\}g;
-            $text_out =~ s{\\\*}{\\\\*}g;
-            $text_out =~ s{(?:git|http):\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
-            $text_out =~ s/.*curl.*/do {my $t = $&; $t =~ s'%'%%'g; $t}/meg;
-        }
-        if ($config{'makefile-timing'}) {
-            $text_out =~
-                      s{ (?<!\\\n)        # not after line ending in '\'
-                        ^                # beginning of line
-                        (\t(?>@?[ \t]*)) # capture tab, optional @, and hspace
-                        (?!-)            # not before - (ignore error) lines
-                        (?!cd)           # not before cd lines
-                        (?!echo)         # not before echo lines
-                        (?=\S)           # must be before non-blank
-                      }
-                      {$1time\ }mgx;
-        }
-    }
-    $text_out;
-}
 
 
 sub git_checkout {
@@ -237,7 +89,9 @@ sub verify_install {
 
 sub gen_nqp {
     my $nqp_want = shift;
-    my %options  = @_;
+    my %params = @_;
+    my %options  = %{$params{options}};
+    my $config = $params{config};
 
     my $backends = $options{'backends'};
     my $nqp_bin  = $options{'with-nqp'};
@@ -275,10 +129,11 @@ sub gen_nqp {
     return %impls unless %need;
 
     if (defined $gen_nqp || defined $gen_moar) {
+        my $user = $options{'github-user'} // 'perl6';
         git_checkout(
-            github_url($git_protocol, 'perl6', 'nqp'),
+            repo_url('nqp', config => $config, action => 'pull', ),
             'nqp', $gen_nqp || $nqp_want,
-            github_url('ssh', 'perl6', 'nqp'),
+            repo_url('nqp', config => $config, action => 'push', ),
             $options{'git-depth'} ? "--depth=$options{'git-depth'}" : '',
             $options{'git-reference'} ? "--reference=$options{'git-reference'}/nqp" : '',
         );
@@ -320,7 +175,9 @@ sub gen_nqp {
 
 sub gen_moar {
     my $moar_want = shift;
-    my %options  = @_;
+    my %params = @_;
+    my %options  = %{$params{options}};
+    my $config = $params{config};
 
     my $prefix     = $options{'prefix'} || cwd()."/install";
     my $sdkroot    = $options{'sdkroot'} || '';
@@ -350,9 +207,9 @@ sub gen_moar {
     return unless defined $gen_moar;
 
     my $moar_repo = git_checkout(
-        github_url($git_protocol, 'MoarVM', 'MoarVM'),
+        repo_url('moar', config => $config, action => 'pull', ),
         'MoarVM', $gen_moar || $moar_want,
-        github_url('ssh', 'MoarVM', 'MoarVM'),
+        repo_url('moar', config => $config, action => 'push', ),
         $options{'git-depth'} ? "--depth=$options{'git-depth'}" : '',
         $options{'git-reference'} ? "--reference=$options{'git-reference'}/MoarVM" : '',
     );
@@ -373,20 +230,5 @@ sub gen_moar {
 
     return $moar_exe;
 }
-
-sub github_url {
-    my ($protocol, $user, $repo) = @_;
-    $protocol = lc $protocol;
-    if ($protocol eq 'https' || $protocol eq 'git') {
-        return sprintf '%s://github.com/%s/%s.git', $protocol, $user, $repo;
-    }
-    elsif ($protocol eq 'ssh') {
-        return sprintf 'git@github.com:%s/%s.git', $user, $repo;
-    }
-    else {
-        die "Unknown protocol '$protocol' (fine are: ssh, https, git)";
-    }
-}
-
 
 1;

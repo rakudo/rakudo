@@ -1,0 +1,25 @@
+# Template Makefile
+
+@include(@@nfp(Makefile-common-macros)@@)@
+
+LAUNCHER = @default_prefix@-runner-default
+
+all: @bprefixes_with(-all)@ $(LAUNCHER)
+
+install: @bprefixes_with(-install)@ $(LAUNCHER)-install
+
+clean: @bprefixes_with(-clean)@ $(LAUNCHER)-clean
+	$(RM_F) perl6@runner_suffix@
+
+test: @bprefixes_with(-test$(HARNESS_TYPE))@
+spectest: @bprefixes_with(-spectest$(HARNESS_TYPE))@
+coretest: @bprefixes_with(-coretest$(HARNESS_TYPE))@
+localtest: @bprefixes_with(-localtest$(HARNESS_TYPE))@
+stresstest: @bprefixes_with(-stresstest$(HARNESS_TYPE))@
+
+@include(Makefile-common-rules)@
+
+@include_with_backends(Makefile)@
+
+t/*/*.t t/*.t t/*/*/*.t: all
+        $(@uc(@default_prefix@)@_HARNESS5_WITH_FUDGE) --verbosity=1 $@

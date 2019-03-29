@@ -1,0 +1,2 @@
+
+@fixup(@include_capture(@js_nqp@ @nfp(tools/build/gen-cat.nqp)@)@)@

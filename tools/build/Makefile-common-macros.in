@@ -23,6 +23,6 @@ BOOTSTRAP_SOURCES = \
   src/Perl6/Metamodel/EXPORTHOW.nqp \
 
 COMMON_BOOTSTRAP_SOURCES = \
-	@common_bootstrap_sources@
+	@insert_filelist(common_bootstrap_sources)@
 
 R_SETTING_SRC = src/RESTRICTED.setting

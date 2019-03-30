@@ -195,11 +195,11 @@ S03-binding/hashes.t
 S03-binding/nested.t
 S03-binding/ro.t
 S03-binding/scalars.t
-S03-buf/read-int.t
-S03-buf/read-num.t
+S03-buf/read-int.t   # moar
+S03-buf/read-num.t   # moar
 S03-buf/read-write-bits.t
-S03-buf/write-int.t
-S03-buf/write-num.t
+S03-buf/write-int.t   # moar
+S03-buf/write-num.t   # moar
 S03-feeds/basic.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t

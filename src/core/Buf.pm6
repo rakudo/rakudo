@@ -386,15 +386,15 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     proto method subbuf(|) {*}
     multi method subbuf(Blob:D: Range:D $fromto) {
         nqp::if(
-          nqp::getattr_i($fromto,Range,'$!is-int'),
+          nqp::getattr_i(nqp::decont($fromto),Range,'$!is-int'),
           nqp::stmts(
             (my int $start = nqp::add_i(
-              nqp::unbox_i(nqp::getattr($fromto,Range,'$!min')),
-              nqp::getattr_i($fromto,Range,'$!excludes-min')
+              nqp::unbox_i(nqp::getattr(nqp::decont($fromto),Range,'$!min')),
+              nqp::getattr_i(nqp::decont($fromto),Range,'$!excludes-min')
             )),
             (my int $end = nqp::sub_i(
-              nqp::unbox_i(nqp::getattr($fromto,Range,'$!max')),
-              nqp::getattr_i($fromto,Range,'$!excludes-max')
+              nqp::unbox_i(nqp::getattr(nqp::decont($fromto),Range,'$!max')),
+              nqp::getattr_i(nqp::decont($fromto),Range,'$!excludes-max')
             )),
             subbuf-end(self, $start, $end, nqp::elems(self))
           ),

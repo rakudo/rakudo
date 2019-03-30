@@ -1,17 +1,20 @@
-## Please see file perltidy.ERR
 use v5.10.1;
 
 package NQP::Config::_Scoping;
 
 sub new {
-    my $class = shift;
-    my $cb    = shift;
-    my $self  = bless {}, $class;
-    $self->{cb} = $cb;
+    my $class  = shift;
+    my $cb     = shift;
+    my %params = @_;
+    my $self   = bless {}, $class;
+    $self->{cb}     = $cb;
+    $self->{params} = \%params;
+    return $self;
 }
 
 sub DESTROY {
-    $self->{cb}->();
+    my $self = shift;
+    $self->{cb}->( %{ $self->{params} } );
 }
 
 package NQP::Config;
@@ -23,6 +26,9 @@ use FindBin;
 use Data::Dumper;
 use NQP::Configure::Macros;
 use Cwd;
+use Carp;
+
+$SIG{__DIE__} = sub { confess @_ };
 
 use base qw<Exporter>;
 our @EXPORT_OK = qw<
@@ -33,12 +39,14 @@ sub init {
     my $self = shift;
 
     $self->{config} = {
-        perl          => $^X,
-        slash         => slash(),
-        shell         => $^O eq 'solaris' ? '' : "SHELL = " . $self->shell_cmd,
-        make          => $self->make_cmd,
-        base_dir      => $FindBin::Bin,
-        templates_dir => File::Spec->catdir( $FindBin::Bin, 'tools', 'build' ),
+        perl      => $^X,
+        slash     => slash(),
+        shell     => $^O eq 'solaris' ? '' : "SHELL = " . $self->shell_cmd,
+        make      => $self->make_cmd,
+        base_dir  => $FindBin::Bin,
+        build_dir => File::Spec->catdir( $FindBin::Bin, 'tools', 'build' ),
+        templates_dir =>
+          File::Spec->catdir( $FindBin::Bin, 'tools', 'templates' ),
 
         # Number of spaces to indent filelists in a makefile
         filelist_indent => 4,
@@ -56,6 +64,7 @@ sub init {
     };
     $self->{backends_order} = [qw<moar jvm js>];
     $self->{options}        = {};
+    $self->{contexts}       = [];
     $self->{repo_maps}      = {
         rakudo => [qw<rakudo rakudo>],
         nqp    => [qw<perl6 nqp>],
@@ -84,8 +93,8 @@ sub batch_file {
     my $self   = shift;
     my $source = shift;
     my ( $vol, $dir, $file ) = File::Spec->splitpath($source);
-    my $basename = basename( $file, ".$self->{config}{bat}" );
-    return File::Spec->catpath( $vol, $dir, "$basename$self->{config}{bat}" );
+    my $basename = basename( $file, "." . $self->cfg('bat') );
+    return File::Spec->catpath( $vol, $dir, "$basename" . $self->cfg('bat') );
 }
 
 sub make_cmd {
@@ -101,7 +110,7 @@ sub make_cmd {
     }
 
     if ( $self->is_win ) {
-        my $prefix    = $self->{config}{prefix};
+        my $prefix    = $self->cfg('prefix');
         my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
         my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;
         my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
@@ -173,6 +182,11 @@ sub abbr_to_backend {
 sub backend_abbr {
     my ( $self, $backend ) = @_;
     return $self->{backend_prefix}{ $self->validate_backend($backend) };
+}
+
+sub backend_config {
+    my ( $self, $backend ) = @_;
+    return $self->{impls}{$backend}{config};
 }
 
 sub known_abbrs {
@@ -269,7 +283,17 @@ sub configure_misc {
 
     # determine the version of NQP we want
     ( $config->{nqp_want} ) =
-      split( ' ', slurp( $self->template_file_path('NQP_REVISION') ) );
+      split( ' ',
+        slurp( $self->template_file_path( 'NQP_REVISION', required => 1, ) ) );
+
+    $config->{perl6_specs} = [
+        map { [ split ' ' ] }
+          grep { s/\s*#.*$//; length }
+          split(
+            /\n/s,
+            slurp( $self->template_file_path( 'PERL6_SPECS', required => 1, ) )
+          )
+    ];
 }
 
 sub configure_prefix {
@@ -525,11 +549,21 @@ sub configure_moar_backend {
         $config->{'m_all'} =
           '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
         $config->{'m_install'} = "\t"
-          . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-gdb-m "gdb" "" "" ""'
-          . "\n" . "\t"
-          . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-lldb-m "lldb" "" "" ""'
-          . "\n" . "\t"
-          . '$(M_RUN_PERL6) tools/build/create-moar-runner.p6 perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m "valgrind" "" "" ""';
+          . '$(M_RUN_PERL6) '
+          . nfp("tools/build/create-moar-runner.p6")
+          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+          . nfp("/bin/perl6-gdb-m")
+          . ' "gdb" "" "" ""' . "\n\t"
+          . '$(M_RUN_PERL6) '
+          . nfp("tools/build/create-moar-runner.p6")
+          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+          . nfp("/bin/perl6-lldb-m")
+          . ' "lldb" "" "" ""' . "\n\t"
+          . '$(M_RUN_PERL6) '
+          . nfp("tools/build/create-moar-runner.p6")
+          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+          . nfp("/bin/perl6-valgrind-m")
+          . ' "valgrind" "" "" ""';
         $config->{'c_runner_libs'} = '';
     }
 
@@ -623,10 +657,16 @@ sub is_executable {
     my ( $self, $file ) = @_;
     die "File parameter is missing in call to is_executable" if @_ < 2;
     for my $ext (qw<exe bat>) {
-        my $fname = $file . $self->{config}{$ext};
+        my $fname = $file . $self->cfg($ext);
         return $fname if -x $fname;
     }
     return 0;
+}
+
+# Returns all active language specification entries except for .c
+sub perl6_specs {
+    my $self = shift;
+    return grep { $_->[0] ne 'c' } @{ $self->cfg('perl6_specs') };
 }
 
 sub github_url {
@@ -650,7 +690,7 @@ sub repo_url {
     my %params   = @_;
     my $action   = $params{action} || 'pull';
     my $protocol = $params{protocol};
-    my $config   = $self->{config};
+    my $config   = $self->config;
 
     die "Unknown repository type '$repo'" unless $self->{repo_maps}{$repo};
     die "Bad action type '$action'" unless $action =~ /^(push|pull)$/;
@@ -677,26 +717,72 @@ sub repo_url {
     return $url;
 }
 
-sub template_file_path {
+sub include_path {
+    my $self = shift;
+
+    my @incs;
+    for my $ctx ( $self->contexts ) {
+        next unless $ctx->{including_file};
+        if (@incs) {
+            push @incs, "\tincluded from $ctx->{including_file}";
+        }
+        else {
+            push @incs, " in file $ctx->{including_file}";
+        }
+    }
+    return "" unless @incs;
+    return join( "\n", @incs );
+}
+
+sub find_file_path {
     my $self   = shift;
     my $src    = shift;
     my %params = @_;
-    my $config = $self->{config};
+    my $config = $self->config;
 
-    my ( $vol, $dirs, $file ) = File::Spec->splitpath($src);
-    return $src if $vol || $dirs;
-    for my $sfx ( "", ".in" ) {
-        next
-          if $sfx
-          && $src =~
-          /\Q$sfx\E$/;    # Don't append extension if it's already there.
-        my $tfile =
-          File::Spec->catfile( $config->{templates_dir}, $src . $sfx );
-        return $tfile if -e $tfile;
+    return $src if File::Spec->file_name_is_absolute($src);
+
+    my @subdirs;
+
+    push @subdirs, $params{subdir}       if $params{subdir};
+    push @subdirs, @{ $params{subdirs} } if $params{subdirs};
+    push @subdirs, "" unless $params{subdirs_only};
+
+    my $where = $params{where} || 'templates';
+    my $where_dir = $self->cfg( "${where}_dir", strict => 1 );
+    my @suffixes  = ("");
+    push @suffixes, $params{suffix}        if $params{suffix};
+    push @suffixes, @{ $params{suffixes} } if $params{suffixes};
+
+    for my $subdir (@subdirs) {
+        my $try_dir = File::Spec->catdir($where_dir, $subdir);
+        for my $sfx (@suffixes) {
+
+            # Don't append extension if it's already there.
+            next if $sfx && $src =~ /\Q$sfx\E$/;
+            my $tfile = File::Spec->catfile( $try_dir, $src . $sfx );
+            return $tfile if -e $tfile;
+        }
     }
-    die "Template $src not found in $config->{templates_dir}"
+    die "File '$src' not found in base directory $where_dir"
+      . $self->include_path
       if $params{required};
     return "";
+}
+
+sub template_file_path {
+    my $self = shift;
+    return $self->find_file_path( shift, suffix => ".in", @_ );
+}
+
+sub build_file_path {
+    my $self = shift;
+    return $self->find_file_path(
+        shift,
+        where    => 'build',
+        suffixes => [qw<.pl .nqp .p6>],
+        @_
+    );
 }
 
 sub fill_template_file {
@@ -715,7 +801,7 @@ sub fill_template_file {
 
     my @infiles = ref($infile) ? @$infile : $infile;
     for my $if (@infiles) {
-        my $ifpath = $self->template_file_path($if);
+        my $ifpath = $self->template_file_path( $if, required => 1, );
         my $text   = slurp($ifpath);
         print $OUT "\n# Generated from $ifpath\n";
         $text = $self->fill_template_text( $text, source => $ifpath );
@@ -736,7 +822,7 @@ sub fixup_makefile {
         $text =~ s{(?:git|http):\S+}{ do {my $t = $&; $t =~ s'\\'/'g; $t} }eg;
         $text =~ s/.*curl.*/do {my $t = $&; $t =~ s'%'%%'g; $t}/meg;
     }
-    if ( $self->{config}{makefile_timing} ) {
+    if ( $self->cfg('makefile_timing') ) {
         $text =~ s{ (?<!\\\n)        # not after line ending in '\'
                         ^                # beginning of line
                         (\t(?>@?[ \t]*)) # capture tab, optional @, and hspace
@@ -754,7 +840,7 @@ sub fill_template_text {
     my $self   = shift;
     my $text   = shift;
     my %params = @_;
-    my $config = $self->{config};
+    my $config = $self->config;
 
     my sub on_fail {
         my $msg = shift;
@@ -776,7 +862,7 @@ sub fill_template_text {
 
 sub reference_dir {
     my $self      = shift;
-    my $reference = $self->{config}{reference};
+    my $reference = $self->cfg('reference');
     for my $d (@_) {
         my $dir = File::Spec->catdir( $reference, $d );
         return $dir if -d $dir;
@@ -790,7 +876,7 @@ sub git_checkout {
     die "Unknown repository '$repo' in call to git_checkout"
       unless $self->{repo_maps}{$repo};
 
-    my $config  = $self->{config};
+    my $config  = $self->config;
     my $options = $self->{options};
     my $pwd     = cwd();
 
@@ -845,7 +931,7 @@ sub git_checkout {
 sub gen_nqp {
     my $self    = shift;
     my $options = $self->{options};
-    my $config  = $self->{config};
+    my $config  = $self->config;
 
     my $nqp_bin      = $options->{'with-nqp'};
     my $gen_nqp      = $options->{'gen-nqp'};
@@ -928,40 +1014,120 @@ sub gen_nqp {
     return;
 }
 
-# The return value is mandatory to be received and kept by the caller until it
-# considers the backend to be currently active. Mostly this is while current
-# scope is active.
-sub push_cur_backend {
-    my $self = shift;
-    my $b    = shift;
-
-    die "Can't push unsupported backend '$b'" unless $self->known_backend($b);
-
-    push @{ $self->{'.backend-stack'} }, $b;
-
-    my sub _restore {
-        pop @{ $self->{'.backend-stack'} };
-    }
-
-    my $s = NQP::Config::_Scoping->new( \&_restore );
-
-    return $s;
+sub _restore_ctx {
+    my %params = @_;
+    $params{obj}->pop_ctx;
 }
 
-sub cur_backend {
-    my $self = shift;
-    return ''
-      unless $self->{'.backend-stack'} && @{ $self->{'.backend-stack'} };
-    return $self->{'.backend-stack'}[-1];
+sub contexts {
+    my @c = reverse @{ $_[0]->{contexts} };
 }
 
-sub cfg_var {
+sub cur_ctx {
+    return {} unless @{ $_[0]->{contexts} };
+    $_[0]->{contexts}[-1];
+}
+
+sub push_ctx {
     my $self = shift;
-    my $var  = shift;
-    return $self->{config}{$var} if exists $self->{config}{$var};
-    if ( my $backend = $self->cur_backend ) {
-        return $self->{impls}{$backend}{config}{$var};
+    my $ctx  = shift;
+
+    die "Context must be a hash" unless ref($ctx) eq 'HASH';
+
+    warn "Context has 'config' key. Didn't you mean 'configs'?"
+      if exists $ctx->{config};
+
+    if ( $ctx->{configs} ) {
+        if ( ref( $ctx->{configs} ) ) {
+            my $is_valid = 1;
+            if ( ref( $ctx->{configs} ) eq 'ARRAY' ) {
+                for my $cfg ( @{ $ctx->{configs} } ) {
+                    if ( ref($cfg) ne 'HASH' ) {
+                        $is_valid = 0;
+                        last;
+                    }
+                }
+            }
+            else {
+                $is_valid = 0;
+            }
+            die "'configs' key of context must be a list of hashes"
+              unless $is_valid;
+        }
+        else {
+            $ctx->{configs} = [ $ctx->{configs} ];
+        }
     }
+
+    push @{ $self->{contexts} }, $ctx;
+
+    return NQP::Config::_Scoping->new( \&_restore_ctx, obj => $self );
+}
+
+sub pop_ctx {
+    my $self = shift;
+    return pop @{ $self->{contexts} };
+}
+
+sub make_spec_ctx {
+    my $self   = shift;
+    my %params = @_;
+
+    my @spec = @{ $params{spec} };
+
+    my %scfg = (
+        spec   => $spec[0],
+        ucspec => uc $spec[0],
+        lcspec => lc $spec[0],
+    );
+
+    my @configs = \%scfg;
+
+    push @configs, @{ $params{configs} } if $params{configs};
+
+    return {
+        configs => \@configs,
+        spec    => $spec[0],
+    };
+}
+
+# Searches for a config variable in contexts (from latest pushed upwards) and
+# then in the main config. If context contains more than one config hash in
+# configs key then they're searched forward, from the first to the last.
+sub cfg {
+    my $self   = shift;
+    my $var    = shift;
+    my %params = @_;
+
+    # Don't use config method for better performance.
+    for my $ctx ( $self->contexts ) {
+        my $configs = $ctx->{configs};
+        for my $config (@$configs) {
+            return $config->{$var} if exists $config->{$var};
+        }
+    }
+    die "Can't find configuration variable '$var'"
+      if $params{strict} && !exists $self->{config}{$var};
+    return $self->{config}{$var};
+}
+
+sub config {
+    my $self   = shift;
+    my %params = @_;
+
+    return $self->{config} if $params{no_ctx};
+
+    my %config = %{ $self->{config} };
+
+    for my $ctx ( @{ $self->{contexts} } ) {
+
+        # Reversing because the first must override the last.
+        for my $ctx_cfg ( reverse @{ $ctx->{configs} } ) {
+            @config{ keys %$ctx_cfg } = values %$ctx_cfg;
+        }
+    }
+
+    return \%config;
 }
 
 #########################################################
@@ -976,7 +1142,7 @@ sub slash {
 sub slurp {
     my $filename = shift;
     open my $fh, '<', $filename
-      or die "Unable to read $filename\n";
+      or die "Unable to read file '$filename'\n";
     local $/ = undef;
     my $text = <$fh>;
     close $fh or die $!;
@@ -1068,9 +1234,8 @@ sub read_config {
 sub _ckey_libdir {
     my ( $self, $val ) = @_;
     unless ( defined $val ) {
-        return File::Spec->catdir( $self->{config}{prefix}, 'share' );
+        return File::Spec->catdir( $self->cfg('prefix'), 'share' );
     }
-    say "libdir: $val";
     $val;
 }
 

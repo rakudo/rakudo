@@ -1,6 +1,6 @@
 # Template Makefile
 
-@include(@@nfp(Makefile-common-macros)@@)@
+@include(Makefile-common-macros)@
 
 LAUNCHER = @default_prefix@-runner-default
 

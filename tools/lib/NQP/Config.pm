@@ -487,7 +487,7 @@ sub configure_jvm_backend {
         );
         $config->{'nqp_classpath'} = $nqp_config->{'jvm::runtime.classpath'};
         $config->{'nqp::libdir'}   = $nqp_config->{'nqp::libdir'};
-        $config->{'j_runner'}      = batch_file('perl6-j');
+        $config->{'j_runner'}      = $self->batch_file('perl6-j');
     }
 }
 
@@ -730,7 +730,7 @@ sub include_path {
             push @incs, " in file $ctx->{including_file}";
         }
     }
-    return "" unless @incs;
+    push @incs, " in template " . $self->prop('template_file');
     return join( "\n", @incs );
 }
 
@@ -748,6 +748,9 @@ sub find_file_path {
     push @subdirs, @{ $params{subdirs} } if $params{subdirs};
     push @subdirs, "" unless $params{subdirs_only};
 
+    my $ctx_subdir = $self->cfg('ctx_subdir');
+    push @subdirs, $ctx_subdir if $ctx_subdir;
+
     my $where = $params{where} || 'templates';
     my $where_dir = $self->cfg( "${where}_dir", strict => 1 );
     my @suffixes  = ("");
@@ -755,7 +758,7 @@ sub find_file_path {
     push @suffixes, @{ $params{suffixes} } if $params{suffixes};
 
     for my $subdir (@subdirs) {
-        my $try_dir = File::Spec->catdir($where_dir, $subdir);
+        my $try_dir = File::Spec->catdir( $where_dir, $subdir );
         for my $sfx (@suffixes) {
 
             # Don't append extension if it's already there.
@@ -802,7 +805,8 @@ sub fill_template_file {
     my @infiles = ref($infile) ? @$infile : $infile;
     for my $if (@infiles) {
         my $ifpath = $self->template_file_path( $if, required => 1, );
-        my $text   = slurp($ifpath);
+        my $s    = $self->push_ctx( { template_file => $ifpath, } );
+        my $text = slurp($ifpath);
         print $OUT "\n# Generated from $ifpath\n";
         $text = $self->fill_template_text( $text, source => $ifpath );
         print $OUT $text;
@@ -1037,6 +1041,16 @@ sub push_ctx {
     warn "Context has 'config' key. Didn't you mean 'configs'?"
       if exists $ctx->{config};
 
+    my @c = caller(1);
+
+    $ctx->{".ctx"} = {
+        from => {
+            file => $c[1],
+            line => $c[2],
+            sub  => $c[3],
+        },
+    };
+
     if ( $ctx->{configs} ) {
         if ( ref( $ctx->{configs} ) ) {
             my $is_valid = 1;
@@ -1058,6 +1072,9 @@ sub push_ctx {
             $ctx->{configs} = [ $ctx->{configs} ];
         }
     }
+    else {
+        $ctx->{configs} = [];
+    }
 
     push @{ $self->{contexts} }, $ctx;
 
@@ -1067,28 +1084,6 @@ sub push_ctx {
 sub pop_ctx {
     my $self = shift;
     return pop @{ $self->{contexts} };
-}
-
-sub make_spec_ctx {
-    my $self   = shift;
-    my %params = @_;
-
-    my @spec = @{ $params{spec} };
-
-    my %scfg = (
-        spec   => $spec[0],
-        ucspec => uc $spec[0],
-        lcspec => lc $spec[0],
-    );
-
-    my @configs = \%scfg;
-
-    push @configs, @{ $params{configs} } if $params{configs};
-
-    return {
-        configs => \@configs,
-        spec    => $spec[0],
-    };
 }
 
 # Searches for a config variable in contexts (from latest pushed upwards) and
@@ -1106,9 +1101,41 @@ sub cfg {
             return $config->{$var} if exists $config->{$var};
         }
     }
+
     die "Can't find configuration variable '$var'"
       if $params{strict} && !exists $self->{config}{$var};
+
     return $self->{config}{$var};
+}
+
+# Same as cfg but looking for a property, i.e. a key on a context or config
+# object itself.
+sub prop {
+    my $self   = shift;
+    my $name   = shift;
+    my %params = @_;
+
+    for my $ctx ( $self->contexts ) {
+        return $ctx->{$name} if exists $ctx->{$name};
+    }
+
+    die "Can't find property '$name'"
+      if $params{strict} && !exists $self->{$name};
+
+    return $self->{$name};
+}
+
+# $config->in_ctx(prop_name => "prop value")
+sub in_ctx {
+    my $self   = shift;
+    my ($prop, $val)   = @_;
+    my %params = @_;
+
+    for my $ctx ( $self->contexts ) {
+        return $ctx if $ctx->{$prop} eq $val;
+    }
+
+    return 0;
 }
 
 sub config {

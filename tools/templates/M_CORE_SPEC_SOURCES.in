@@ -1,2 +1,0 @@
-M_CORE_@ucspec@_SOURCES = \
-    @insert_filelist(@nfp(@spec_subdir@/moar_core_sources)@)@

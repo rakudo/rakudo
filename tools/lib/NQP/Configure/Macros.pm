@@ -1,17 +1,19 @@
 #
 package NQP::Configure::Macros;
 use v5.10.1;
+use strict;
+use warnings;
 use Text::ParseWords;
 use File::Spec;
 use Data::Dumper;
 require NQP::Config;
 
 my %preexpand = map { $_ => 1 } qw<
-  include include_with_backends include_capture
+  include include_capture
   insert insert_capture insert_filelist
-  inclide_with_specs tmpl_with_specs
-  nfn sp_escape nl_escape fixup uc lc nfp
-  bprefixes_with expand
+  expand template script
+  sp_escape nl_escape fixup uc lc nfp
+
 >;
 
 sub new {
@@ -24,9 +26,9 @@ sub init {
     my $self   = shift;
     my %params = @_;
 
-    $self->{config_obj} = %params{config};
+    $self->{config_obj} = $params{config};
 
-    for $p (qw<on_fail>) {
+    for my $p (qw<on_fail>) {
         $self->{$p} = $params{$p} if $params{$p};
     }
 
@@ -48,7 +50,9 @@ sub execute {
     my $self   = shift;
     my $macro  = shift;
     my $param  = shift;
+    my $orig_param = $param;
     my %params = @_;
+    my $cfg    = $self->{config_obj};
 
     $self->fail("Macro name is missing in call to method execute()")
       unless $macro;
@@ -57,11 +61,28 @@ sub execute {
 
     $self->fail("Unknown macro $macro") unless $self->can($method);
 
+    my $s = $cfg->push_ctx(
+        {
+            current_macro => $macro,
+            configs       => [
+                {
+                    current_macro => $macro,
+                },
+            ],
+        }
+    );
+
     if ( !$params{no_preexapnd} && $preexpand{$macro} ) {
         $param = $self->expand($param);
     }
 
-    $self->$method($param);
+    my $out;
+    eval { $out = $self->$method($param); };
+    if ($@) {
+        my $msg = join "\n", map { "  $_" } split /\n/s, $@;
+        die "In macro $macro($orig_param):\n" . $msg;
+    }
+    return $out;
 }
 
 sub expand {
@@ -149,6 +170,12 @@ sub inc_comment {
     return "$bar\n# $comment #\n$bar\n";
 }
 
+sub cur_file {
+    my $self = shift;
+    my $cfg  = $self->{config_obj};
+    return $cfg->prop('including_file') || $cfg->prop('template_file');
+}
+
 sub is_including {
     my $self = shift;
     my $file = shift;
@@ -174,7 +201,7 @@ sub include {
     $params{required} //= 1;
 
     my %tmpl_params;
-    for $p (qw<subdir subdirs subdirs_only>) {
+    for my $p (qw<subdir subdirs subdirs_only>) {
         $tmpl_params{$p} = $params{$p} if $params{$p};
     }
 
@@ -188,11 +215,25 @@ sub include {
         $ctx->{including_file} = $file;
         $text .= $self->inc_comment("Included from $file")
           unless $params{as_is};
-        $text .= $self->expand( NQP::Config::slurp($file) );
+        $text .= $self->expand( NQP::Config::slurp($file) )
+          unless $params{no_expand};
         $text .= $self->inc_comment("End of section included from $file")
           unless $params{as_is};
     }
     return $text;
+}
+
+sub not_in_context {
+    my $self = shift;
+    my $cfg  = $self->{config_obj};
+    my ( $ctx_name, $ctx_prop ) = @_;
+    if ( $cfg->prop($ctx_prop) ) {
+        my $tip = "";
+        if ( $cfg->in_ctx(current_macro => 'include') ) {
+            $tip = " Perhaps you should use ctx_include macro instead of include?";
+        }
+        $self->fail("Re-entering $ctx_name context is not allowed.$tip");
+    }
 }
 
 sub specs_iterate {
@@ -200,48 +241,51 @@ sub specs_iterate {
     my $cb   = shift;
 
     my $cfg = $self->{config_obj};
+
+    $self->not_in_context( specs => 'spec' );
+
     for my $spec ( $cfg->perl6_specs ) {
-        my $spec_subdir = "6.$spec->[0]";
-        my %config      = ( spec_subdir => $spec_subdir, );
-        my $spec_ctx =
-          $cfg->make_spec_ctx( spec => $spec, configs => [ \%config ] );
+        my $spec_char   = $spec->[0];
+        my $spec_subdir = "6.$spec_char";
+        my %config      = (
+            ctx_subdir  => $spec_subdir,
+            spec_subdir => $spec_subdir,
+            spec        => $spec_char,
+            ucspec      => uc $spec_char,
+            lcspec      => lc $spec_char,
+        );
+        my $spec_ctx = {
+            spec    => $spec,
+            configs => [ \%config ],
+        };
         my $s = $cfg->push_ctx($spec_ctx);
         $cb->(@_);
     }
-    return $out;
 }
 
-sub include_with_specs {
-    my $self      = shift;
-    my $filenames = shift;
-    my %params    = @_;
-    my @filelist  = ref($filenames) ? @$filenames : shellwords($filenames);
+sub backends_iterate {
+    my $self = shift;
+    my $cfg  = $self->{config_obj};
 
-    my $cfg = $self->{config_obj};
-    my $out = "";
-    for my $spec ( $cfg->perl6_specs ) {
-        my $spec_subdir = "6.$spec->[0]";
-        my %config      = ( spec_subdir => $spec_subdir, );
-        my $spec_ctx =
-          $cfg->make_spec_ctx( spec => $spec, configs => [ \%config ] );
-        my $s = $cfg->push_ctx($spec_ctx);
-        for my $f (@filelist) {
-            my $tmpl_f;
-            if ( $params{no_subdir} ) {
-                $tmpl_f = $f;
-            }
-            else {
-                die "File path ("
-                  . $f
-                  . ") cannot be absolute when including for a specification"
-                  . $self->include_path
-                  if File::Spec->file_name_is_absolute($f);
-                my $tmpl_f = File::Spec->catfile( $spec_subdir, $f );
-            }
-            $out .= $self->include( $tmpl_f, %params );
-        }
+    $self->not_in_context( backends => 'backend' );
+
+    my $cb = shift;
+
+    for my $be ( $cfg->active_backends ) {
+        my %config = (
+            ctx_subdir     => $be,
+            backend_subdir => $be,
+            backend        => $be,
+            backend_abbr   => $cfg->backend_abbr($be),
+            backend_prefix => $cfg->backend_abbr($be),
+        );
+        my $be_ctx = {
+            backend => $be,
+            configs => [ \%config ],
+        };
+        my $s = $cfg->push_ctx($be_ctx);
+        $cb->(@_);
     }
-    return $out;
 }
 
 # include(file1 file2)
@@ -250,124 +294,107 @@ sub include_with_specs {
 # Multiple filenames are split by spaces. If file path contains a space in it it
 # must be quoted with \
 sub _m_include {
-    shift->include(@_);
+    shift->include(shift);
 }
 
 # insert(file1 file2)
 # Similar to include() but insert files as-is, no comments added.
 sub _m_insert {
-    shift->include( @_, as_is => 1 );
+    shift->include( shift, as_is => 1 );
 }
 
-# include_with_backends(file1 file2)
-# Appends backed suffix (-moar) for each active backend and tries to include
-# this template.
-sub _m_include_with_backends {
-    my $self     = shift;
-    my $cfg      = $self->{config_obj};
-    my @filelist = shellwords(shift);
-    my $out      = "";
-    for my $b ( $cfg->active_backends ) {
-        my $s = $cfg->push_ctx(
-            {
-                backend => $b,
-                configs => [ $cfg->backend_config($b) ],
-            }
-        );
-        for my $f (@filelist) {
-            my $b_inc = "$f-$b";
-            $out .= $self->include($b_inc);
-        }
-    }
-    return $out;
+# ctx_include(file1 file2)
+# Same as include but only looks in the current context subdir.
+sub _m_ctx_include {
+    shift->include( shift, subdirs_only => 1 );
 }
 
-# include_with_specs(file1 file2)
-# Includes templates from @templates_dir@/6.@spec@/fileN
-# File can have path to a subdir in the name but never be absolute path.
-sub _m_include_with_specs {
-    my $self      = shift;
-    my $filenames = shift;
-
-    my $out = "";
-    my sub _iws_iter {
-        $out .= $self->include(
-            $filenames,
-            subdir       => $self->{config_obj}->cfg('spec_subdir'),
-            subdirs_only => 1
-        );
-    }
-    $self->specs_iterate( \&_iws_iter );
-    return $out;
+# ctx_insert(file1 file2)
+# Same as insert but only looks in the current context subdir.
+sub _m_ctx_insert {
+    shift->include( shift, as_is => 1, subdirs_only => 1 );
 }
 
-# expand_with_specs(text)
-# Expands text within each language spec context. The text is not pre-expanded.
-sub _m_expand_with_specs {
+# backends_ctx(text)
+# Iterates over active backends and expands text in the context of each backend.
+sub _m_backends_ctx {
     my $self = shift;
     my $text = shift;
 
     my $out = "";
-    my sub _ews_iter {
+
+    my $cb = sub {
         $out .= $self->expand($text);
-    }
-    $self->specs_iterate( \&_ews_iter );
+    };
+
+    $self->backends_iterate($cb);
+
+    return $out;
+}
+
+# backends_ctx(text)
+# Iterates over active backends and expands text in the context of each backend.
+sub _m_specs_ctx {
+    my $self = shift;
+    my $text = shift;
+
+    my $out = "";
+
+    my $cb = sub {
+        $out .= $self->expand($text);
+    };
+
+    $self->specs_iterate($cb);
+
     return $out;
 }
 
 # expand(text)
 # Simply expands the text. Could be useful when:
-# @expand(@!nfp(@var1@/@macro(...)@)@)@
-# NOTE that input of expand() is pre-expanded first. So, use with extreme care!
+# @expand(@!nfp(@build_dir@/@macro(...)@)@)@
+# In this case under windows @!nfp()@ will result in @build_dir@\@macro(...)@
+# line.  @expand()@ will then finish the expansion. This is important because
+# @build_dir@ under Windows will already have backslashes in the path.
+# NOTE that the input of expand() is pre-expanded first. So, use with extreme
+# care!
 sub _m_expand {
     my $self = shift;
     my $text = shift;
-    my $out =  $self->expand($text);
+    my $out  = $self->expand($text);
 }
 
 # template(file1 file2)
 # Finds corresponding template file for file names in parameter. Templates are
-# been searched in templates_dir and possibly spec_subdir if in a spec context.
+# been searched in templates_dir and possibly ctx_subdir if under a context.
 sub _m_template {
-    my $self = shift;
+    my $self      = shift;
     my $filenames = shift;
     my @filenames = shellwords($filenames);
-    my $cfg = $self->{config_obj};
-    my $spec_subdir = $cfg->cfg('spec_subdir');
-    my %params = (required => 1);
-    $params{subdir} = $spec_subdir if $spec_subdir;
+    my $cfg       = $self->{config_obj};
     my @out;
+
     for my $src (@filenames) {
-        push @out, $cfg->template_file_path($src, %params);
+        push @out, $cfg->template_file_path( $src, required => 1 );
     }
 
     return join " ", @out;
 }
 
-# tmpl_with_specs(file1 file2)
-# Repedeatly includes templates just applying contexts for different specs.
-sub _m_tmpl_with_specs {
+# script(file1 file2)
+# Similar to the template above but looks in tools/build directory for files
+# with extensions .pl, .nqp, .p6.
+sub _m_script {
     my $self      = shift;
     my $filenames = shift;
+    my @filenames = shellwords($filenames);
+    my $cfg       = $self->{config_obj};
+    my @out;
 
-    my $out = "";
-    my sub _tws_iter {
-        $out .= $self->include(
-            $filenames,
-            subdir => $self->{config_obj}->cfg('spec_subdir'),
-            as_is  => 1,
-        );
+    for my $src (@filenames) {
+        push @out, $cfg->build_file_path( $src, required => 1 );
     }
-    $self->specs_iterate( \&_tws_iter );
-    return $out;
-}
 
-# insert_capture(command line)
-# Captures output of the command line and inserts it.
-sub _m_insert_capture {
-    my $self = shift;
-    my $cmd  = shift;
-    return `$cmd`;
+    return join( " ", @out );
 }
 
 # include_capture(command line)
@@ -380,6 +407,14 @@ sub _m_include_capture {
       . $self->inc_comment("Included from `$_[0]`")
       . $text
       . $self->inc_comment("End of section included from `$_[0]`");
+}
+
+# insert_capture(command line)
+# Captures output of the command line and inserts it.
+sub _m_insert_capture {
+    my $self = shift;
+    my $cmd  = shift;
+    return `$cmd`;
 }
 
 # fixup(makefile rules)
@@ -395,37 +430,16 @@ sub _m_fixup {
 # Inserts a list of files defined in file filename. File content is not
 # expanded.
 # All file names in the list will be indented by 4 spaces except for the first
-# one. 
+# one.
 sub _m_insert_filelist {
     my $self   = shift;
     my $cfg    = $self->{config_obj};
     my $indent = " " x ( $cfg->{config}{filelist_indent} || 4 );
     my $file   = $cfg->template_file_path( shift, required => 1 );
     my $text   = NQP::Config::slurp($file);
-    my @flist = map { NQP::Config::nfp($_) } grep { $_ } split /\s+/s, $text;
+    my @flist  = map { NQP::Config::nfp($_) } grep { $_ } split /\s+/s, $text;
     $text = join " \\\n$indent", @flist;
     return $text;
-}
-
-# bprefixes_with(suffix)
-# Will return space-separated list of active backend abbreviations with appended
-# suffix:
-#
-# @brefixes_with(-all)@
-#
-# will result in something like:
-#
-# m-all j-all js-all
-sub _m_bprefixes_with {
-    my $self = shift;
-    my $sfx  = shift;
-    my $cfg  = $self->{config_obj};
-
-    my @elems;
-    for my $pfx ( $cfg->active_abbrs ) {
-        push @elems, "$pfx$sfx";
-    }
-    return join " ", @elems;
 }
 
 # sp_escape(a string)
@@ -461,15 +475,15 @@ sub _m_unescape {
 # Normalizes a Unix-style file path for the current OS. Mostly for replacing
 # / with \ for Win*
 sub _m_nfp {
-    my $self = shift;
+    my $self  = shift;
     my @elems = split /(\s+)/s, shift;
-    my $out = "";
+    my $out   = "";
     while (@elems) {
-        my ($file, $ws) = (shift @elems, shift @elems);
-        if ($file) { # If text starts with spaces $file will be empty
+        my ( $file, $ws ) = ( shift @elems, shift @elems );
+        if ($file) {    # If text starts with spaces $file will be empty
             $file = NQP::Config::nfp($file);
         }
-        $out .= $file . $ws;
+        $out .= $file . ($ws // "");
     }
     return $out;
 }

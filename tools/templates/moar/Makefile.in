@@ -39,7 +39,8 @@ PERL6_C_MOAR   = blib/Perl6/Compiler.moarvm
 PERL6_M_MOAR   = blib/Perl6/Metamodel.moarvm
 PERL6_B_MOAR   = blib/Perl6/BOOTSTRAP.moarvm
 SETTING_MOAR   = CORE.setting.moarvm
-@tmpl_with_specs(SETTING_MOAR)@
+@specs_ctx(SETTING_@ucspec@_MOAR = CORE.@lcspec@.setting.moarvm
+)@
 R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 M_PERL6_OPS_DIR  = dynext
@@ -68,7 +69,10 @@ M_BOOTSTRAP_SOURCES = $(BOOTSTRAP_SOURCES) src/vm/moar/spesh-plugins.nqp
 # setting - basically anything that feels MOP-ish.
 M_CORE_SOURCES = \
 	@insert_filelist(moar_core_sources)@
-@tmpl_with_specs(M_CORE_SPEC_SOURCES)@
+@specs_ctx(
+M_CORE_@ucspec@_SOURCES = \
+    @insert_filelist(@nfp(moar_core_sources)@)@
+)@
 
 PERL6_DEBUG_MOAR = perl6-debug.moarvm
 M_BAT_DEBUG_RUNNER = perl6-debug-m@runner_suffix@
@@ -79,7 +83,7 @@ M_VALGRIND_RUNNER = perl6-valgrind-m@runner_suffix@
 M_CLEANUPS = \
   *.manifest \
   blib/Perl6/*.moarvm \
-  $(SETTING_MOAR) \@expand_with_specs(
+  $(SETTING_MOAR) \@specs_ctx(
   $(SETTING_@ucspec@_MOAR) \)@
   $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \
@@ -106,7 +110,7 @@ M_HARNESS6_WITH_FUDGE = $(M_HARNESS6) --fudge
 
 M_RUN_CLEAN_TARGET_FILES = $(M_RUN_PERL6) -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '/' ~ .IO.basename.Str) { say 'rm -f ' ~ .Str; .IO.unlink if .IO.e } }"
 
-m-all: check_nqp_version $(PERL6_MOAR) $(SETTING_MOAR) @expand_with_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) $(M_BAT_RUNNER) $(PERL6_DEBUG_MOAR) $(M_BAT_DEBUG_RUNNER) $(M_C_RUNNER) $(M_C_DEBUG_RUNNER) @m_all@
+m-all: check_nqp_version $(PERL6_MOAR) $(SETTING_MOAR) @specs_ctx($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) $(M_BAT_RUNNER) $(PERL6_DEBUG_MOAR) $(M_BAT_DEBUG_RUNNER) $(M_C_RUNNER) $(M_C_DEBUG_RUNNER) @m_all@
 
 check_nqp_version: tools/build/check-nqp-version.pl
 	$(PERL5) tools/build/check-nqp-version.pl $(M_NQP)
@@ -160,7 +164,7 @@ $(PERL6_C_MOAR): src/Perl6/Compiler.nqp $(PERL6_O_MOAR)
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_C_MOAR) \
 	    src/Perl6/Compiler.nqp
 
-$(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES) @expand_with_specs($(M_CORE_@ucspec@_SOURCES) )@
+$(PERL6_MOAR): src/main.nqp $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES) @specs_ctx($(M_CORE_@ucspec@_SOURCES) )@
 	$(PERL5) tools/build/gen-version.pl $(PREFIX) $(LIBDIR) > $(M_BUILD_DIR)/main-version.nqp
 	$(M_NQP) $(M_GEN_CAT) src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_MOAR) \
@@ -181,8 +185,12 @@ $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) $(M_BUILD_DIR)/CORE.setting
 
-@tmpl_with_specs(SETTING_SPEC_MOAR_target)@
+@specs_ctx($(SETTING_@ucspec@_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(SETTING_MOAR) $(M_CORE_@ucspec@_SOURCES)
+	$(M_NQP) $(M_GEN_CAT) -f @template(moar_core_sources)@ > $(M_BUILD_DIR)/CORE.@lcspec@.setting
+	@echo "The following step can take a long time, please be patient."
+	$(M_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_@ucspec@_MOAR) $(M_BUILD_DIR)/CORE.@lcspec@.setting
 
+)@
 $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC) $(SETTING_MOAR)
 	$(M_RUN_PERL6) --target=mbc --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 

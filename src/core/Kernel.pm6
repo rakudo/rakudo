@@ -9,7 +9,7 @@ class Kernel does Systemic {
     has Str $!arch;
     has Int $!bits;
 
-#?if moar
+#?if !jvm
     has $!uname;
     method !uname {
         $!uname ?? $!uname !! ($!uname := nqp::uname())
@@ -17,19 +17,19 @@ class Kernel does Systemic {
 #?endif
 
     method !uname-s {
-#?if moar
+#?if !jvm
         nqp::atpos_s(self!uname, nqp::const::UNAME_SYSNAME)
 #?endif
-#?if !moar
+#?if jvm
         try shell('uname -s', :out, :!err).out.slurp(:close).chomp;
 #?endif
     }
 
     method !uname-r {
-#?if moar
+#?if !jvm
         nqp::atpos_s(self!uname, nqp::const::UNAME_RELEASE)
 #?endif
-#?if !moar
+#?if jvm
         try shell('uname -r', :out, :!err).out.slurp(:close).chomp;
 #?endif
     }

@@ -2472,10 +2472,15 @@ class Perl6::World is HLL::World {
             unless $precomp {
                 $compiler_thunk();
             }
-            my $code_obj := nqp::getcodeobj(nqp::curcode());
-            unless nqp::isnull($code_obj) {
-                return $code_obj(|@pos, |%named);
+
+            unless nqp::getcomp('perl6').backend.name eq 'js' {
+                # Temporarly disabled for js untill we figure the bug out
+                my $code_obj := nqp::getcodeobj(nqp::curcode());
+                unless nqp::isnull($code_obj) {
+                    return $code_obj(|@pos, |%named);
+                }
             }
+
             $precomp(|@pos, |%named);
         });
         @compstuff[1] := $compiler_thunk;

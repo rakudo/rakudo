@@ -619,7 +619,7 @@ sub configure_from_options {
       )
     {
         ( my $ckey = $opt ) =~ s/-/_/g;
-        $self->{config}{$ckey} = $self->{options}->{$opt} || '';
+        $self->set_key( $ckey, $self->{options}->{$opt}, default => '', );
     }
     $self->{config}{stagestats} = '--stagestats'
       if $self->{options}{'makefile-timing'};
@@ -1086,6 +1086,17 @@ sub pop_ctx {
     return pop @{ $self->{contexts} };
 }
 
+sub set_key {
+    my $self = shift;
+    my ( $key, $val, %params ) = @_;
+    my $mname = "_ckey_$key";
+    if ( $self->can($mname) ) {
+        $val = $self->$mname($val);
+    }
+    $val //= $params{default};
+    return $self->{config}{$key} = $val;
+}
+
 # Searches for a config variable in contexts (from latest pushed upwards) and
 # then in the main config. If context contains more than one config hash in
 # configs key then they're searched forward, from the first to the last.
@@ -1127,8 +1138,8 @@ sub prop {
 
 # $config->in_ctx(prop_name => "prop value")
 sub in_ctx {
-    my $self   = shift;
-    my ($prop, $val)   = @_;
+    my $self = shift;
+    my ( $prop, $val ) = @_;
     my %params = @_;
 
     for my $ctx ( $self->contexts ) {
@@ -1282,11 +1293,7 @@ sub FETCH {
 sub STORE {
     my $self = shift;
     my ( $key, $val ) = @_;
-    my $mname = "_ckey_$key";
-    if ( $self->can($mname) ) {
-        $val = $self->$mname($val);
-    }
-    return $self->{config}{$key} = $val;
+    return $self->set_key( $key, $val );
 }
 
 sub DELETE {

@@ -11,7 +11,7 @@ require NQP::Config;
 my %preexpand = map { $_ => 1 } qw<
   include include_capture
   insert insert_capture insert_filelist
-  expand template script
+  expand template ctx_template script ctx_script
   sp_escape nl_escape fixup uc lc nfp
 
 >;
@@ -47,12 +47,12 @@ sub fail {
 }
 
 sub execute {
-    my $self   = shift;
-    my $macro  = shift;
-    my $param  = shift;
+    my $self       = shift;
+    my $macro      = shift;
+    my $param      = shift;
     my $orig_param = $param;
-    my %params = @_;
-    my $cfg    = $self->{config_obj};
+    my %params     = @_;
+    my $cfg        = $self->{config_obj};
 
     $self->fail("Macro name is missing in call to method execute()")
       unless $macro;
@@ -229,8 +229,9 @@ sub not_in_context {
     my ( $ctx_name, $ctx_prop ) = @_;
     if ( $cfg->prop($ctx_prop) ) {
         my $tip = "";
-        if ( $cfg->in_ctx(current_macro => 'include') ) {
-            $tip = " Perhaps you should use ctx_include macro instead of include?";
+        if ( $cfg->in_ctx( current_macro => 'include' ) ) {
+            $tip =
+              " Perhaps you should use ctx_include macro instead of include?";
         }
         $self->fail("Re-entering $ctx_name context is not allowed.$tip");
     }
@@ -281,11 +282,34 @@ sub backends_iterate {
         );
         my $be_ctx = {
             backend => $be,
-            configs => [ \%config ],
+            configs => [ $cfg->{impls}{$be}{config}, \%config ],
         };
         my $s = $cfg->push_ctx($be_ctx);
         $cb->(@_);
     }
+}
+
+sub find_filepath {
+    my $self      = shift;
+    my $filenames = shift;
+    my %params    = @_;
+    my @filenames = shellwords($filenames);
+    my $cfg       = $self->{config_obj};
+    my @out;
+
+    my $where = $params{where} // 'template';
+    delete $params{where};
+
+    for my $src (@filenames) {
+        if ( $where eq 'build' ) {
+            push @out, $cfg->build_file_path( $src, required => 1, %params );
+        }
+        else {
+            push @out, $cfg->template_file_path( $src, required => 1, %params );
+        }
+    }
+
+    return join " ", @out;
 }
 
 # include(file1 file2)
@@ -315,9 +339,9 @@ sub _m_ctx_insert {
     shift->include( shift, as_is => 1, subdirs_only => 1 );
 }
 
-# backends_ctx(text)
+# for_backends(text)
 # Iterates over active backends and expands text in the context of each backend.
-sub _m_backends_ctx {
+sub _m_for_backends {
     my $self = shift;
     my $text = shift;
 
@@ -332,9 +356,9 @@ sub _m_backends_ctx {
     return $out;
 }
 
-# backends_ctx(text)
+# for_specs(text)
 # Iterates over active backends and expands text in the context of each backend.
-sub _m_specs_ctx {
+sub _m_for_specs {
     my $self = shift;
     my $text = shift;
 
@@ -367,34 +391,34 @@ sub _m_expand {
 # Finds corresponding template file for file names in parameter. Templates are
 # been searched in templates_dir and possibly ctx_subdir if under a context.
 sub _m_template {
-    my $self      = shift;
-    my $filenames = shift;
-    my @filenames = shellwords($filenames);
-    my $cfg       = $self->{config_obj};
-    my @out;
+    my $self = shift;
+    return $self->find_filepath( shift, where => 'template', );
+}
 
-    for my $src (@filenames) {
-        push @out, $cfg->template_file_path( $src, required => 1 );
-    }
-
-    return join " ", @out;
+# ctx_template(file1 file2)
+# Similar to template but looks only in the current context subdir
+sub _m_ctx_template {
+    my $self = shift;
+    return $self->find_filepath(
+        shift,
+        where        => 'template',
+        subdirs_only => 1,
+    );
 }
 
 # script(file1 file2)
 # Similar to the template above but looks in tools/build directory for files
 # with extensions .pl, .nqp, .p6.
 sub _m_script {
-    my $self      = shift;
-    my $filenames = shift;
-    my @filenames = shellwords($filenames);
-    my $cfg       = $self->{config_obj};
-    my @out;
+    my $self = shift;
+    return $self->find_filepath( shift, where => 'build', );
+}
 
-    for my $src (@filenames) {
-        push @out, $cfg->build_file_path( $src, required => 1 );
-    }
-
-    return join( " ", @out );
+# ctx_script(file1 file2)
+# Similar to script but looks only in the current context subdir
+sub _m_ctx_script {
+    my $self = shift;
+    return $self->find_filepath( shift, where => 'build', subdirs_only => 1, );
 }
 
 # include_capture(command line)
@@ -483,7 +507,7 @@ sub _m_nfp {
         if ($file) {    # If text starts with spaces $file will be empty
             $file = NQP::Config::nfp($file);
         }
-        $out .= $file . ($ws // "");
+        $out .= $file . ( $ws // "" );
     }
     return $out;
 }

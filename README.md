@@ -139,7 +139,11 @@ Run all tests in one S* directory with a bash script. One example:
         make $f
     done
     echo "All tests in dir '$D' have been run."
-   
+
+That can be written as a one-liner:
+
+    for f in $(ls t/spec/S26-documentation/*t); do make "$f"; done
+    
 ## Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available with

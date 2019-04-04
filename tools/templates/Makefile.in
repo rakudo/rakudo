@@ -9,7 +9,8 @@ all:@for_backends( @backend_prefix@-all)@ $(LAUNCHER)
 install: @for_backends(@backend_prefix@-install )@ $(LAUNCHER)-install
 
 clean: @for_backends(@backend_prefix@-clean )@
-	$(RM_F) perl6@runner_suffix@
+	$(RM_F) perl6@runner_suffix@ rakudo.js.map
+	$(PERL5) -MFile::Find -MFile::Path=remove_tree -e 'my @d; find( sub { push @d, $$File::Find::name if $$_ eq ".precomp" and -d }, "@base_dir@" ); remove_tree(@d)'
 
 test: 		@for_backends(@backend_prefix@-test$(HARNESS_TYPE))@
 spectest: 	@for_backends(@backend_prefix@-spectest$(HARNESS_TYPE))@

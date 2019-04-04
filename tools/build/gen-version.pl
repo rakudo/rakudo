@@ -43,7 +43,7 @@ sub hll-config(\$config) {
     \$config<build-date>       := '$builddate';
     \$config<language-version> := '6.d';
     \$config<can-language-versions>
-        := nqp::list('6.c', '6.d', '6.d.PREVIEW');
+        := nqp::list('6.c', '6.d', '6.d.PREVIEW', '6.e', '6.e.PREVIEW');
     \$config<prefix>           := '$prefix';
     \$config<libdir>           := '$libdir';
     \$config<source-digest>    := '$source_digest';

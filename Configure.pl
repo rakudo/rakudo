@@ -14,13 +14,7 @@ use NQP::Config;
 
 $| = 1;
 
-my $cfg = tie my %config, 'NQP::Config';
-
-my $lang   = $config{lang} = 'Rakudo';
-my $lclang = lc $lang;
-my $uclang = uc $lang;
-my $win    = $^O eq 'MSWin32';
-my $slash  = File::Spec->catfile( '', '' );
+my $cfg = tie my %config, 'NQP::Config', lang => 'Rakudo';
 
 # We don't use ExtUtils::Command in Configure.pl, but it is used in the Makefile
 # Try `use`ing it here so users know if they need to install this module
@@ -31,7 +25,7 @@ MAIN: {
         unshift @ARGV, shellwords( slurp('config.default') );
     }
 
-    my $config_status = "${lclang}_config_status";
+    my $config_status = "$config{lclang}_config_status";
     $config{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
@@ -52,8 +46,6 @@ MAIN: {
         print_help();
         exit(1);
       };
-    my %options =
-      %{ $cfg->{options} };    # Temporary, until all options use is changed
 
     # Print help if it's requested
     if ( $cfg->opt('help') ) {
@@ -74,27 +66,7 @@ MAIN: {
     $cfg->configure_backends;
 
     # Save options in config.status
-    unlink('config.status');
-    if ( open( my $CONFIG_STATUS, '>', 'config.status' ) ) {
-        print $CONFIG_STATUS "$^X Configure.pl $config{$config_status} \$*\n";
-        close($CONFIG_STATUS);
-    }
-
-   # XXX These are to be replaced with including the files directly.
-   #for my $target (qw/common_bootstrap_sources
-   #                   js_core_sources js_core_d_sources
-   #                   moar_core_sources moar_core_d_sources moar_core_e_sources
-   #                   jvm_core_sources jvm_core_d_sources/) {
-   #    open my $FILELIST, '<', "tools/build/$target"
-   #        or die "Cannot read 'tools/build/$target': $!";
-   #    my @lines;
-   #    while (<$FILELIST>) {
-   #        chomp;
-   #        push @lines, "  $_\\\n";
-   #    }
-   #    close $FILELIST;
-   #    $config{$target} = join '', @lines;
-   #}
+    $cfg->save_config_status;
 
     $cfg->options->{'gen-nqp'} ||= 1 if $cfg->has_option('gen-moar');
     $cfg->gen_nqp;
@@ -120,12 +92,12 @@ MAIN: {
     if ( $cfg->opt('make-install') ) {
         system_or_die($make);
         system_or_die( $make, 'install' );
-        print "\n$lang has been built and installed.\n";
+        print "\n$config{lang} has been built and installed.\n";
     }
     else {
-        print "\nYou can now use '$make' to build $lang.\n";
+        print "\nYou can now use '$make' to build $config{lang}.\n";
         print "After that, '$make test' will run some tests and\n";
-        print "'$make install' will install $lang.\n";
+        print "'$make install' will install $config{lang}.\n";
     }
 
     exit 0;
@@ -134,30 +106,45 @@ MAIN: {
 #  Print some help text.
 sub print_help {
     print <<"END";
-Configure.pl - $lang Configure
+Configure.pl - $config{lang} Configure
 
 General Options:
     --help             Show this text
     --prefix=<path>    Install files in dir; also look for executables there
-    --libdir=<path>    Install architecture-specific files in dir; Perl6 modules included
+    --libdir=<path>    Install architecture-specific files in dir; Perl6 modules
+                       included
     --no-relocatable
-                       Create a perl6 with a fixed NQP and Perl6 home dir instead of dynamically identifying it
-                       (On AIX MoarVM is always built non-relocatable, since AIX misses a necessary mechanism.)
+                       Create a perl6 with a fixed NQP and Perl6 home dir
+                       instead of dynamically identifying it (On AIX MoarVM is
+                       always built non-relocatable, since AIX misses
+                       a necessary mechanism.)
     --sdkroot=<path>   When given, use for searching build tools here, e.g.
                        nqp, java, node etc.
     --sysroot=<path>   When given, use for searching runtime components here
     --backends=jvm,moar,js
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch]
-                       Download, build, and install a copy of NQP before writing the Makefile
+                       Download, build, and install a copy of NQP before writing
+                       the Makefile
     --gen-moar[=branch]
-                       Download, build, and install a copy of MoarVM to use before writing the Makefile
+                       Download, build, and install a copy of MoarVM to use
+                       before writing the Makefile
     --with-nqp=<path>
                        Provide path to already installed nqp
     --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'
                        Options to pass to MoarVM's Configure.pl
                        For example: --moar-option='--compiler=clang'
+    --github-user=<user>
+                       Fetch all repositories (rakudo, nqp, roast, MoarVM) from
+                       this github user. Note that the user must have all
+                       required repos forked from the originals.
+    --rakudo-repo=<url>
+    --nqp-repo=<url>
+    --moar-repo=<url>
+    --roast-repo=<url>
+                       User specified URL to fetch corresponding components
+                       from. The URL will also be used to setup git push.
     --git-protocol={ssh,https,git}
                        Protocol used for cloning git repos
     --git-depth=<number>

@@ -1,11 +1,74 @@
 #
-package NQP::Configure::Macros;
 use v5.10.1;
 use strict;
 use warnings;
+
+package NQP::Macros::_Err;
+use Scalar::Util qw<blessed>;
+use Carp qw<longmess>;
+
+our @CARP_NOT = qw<NQP::Macros::_Err>;
+
+sub new {
+    my $class = shift;
+    my ( $msg, %params ) = shift;
+    $params{callstack} //= longmess("");
+    my $self = bless {
+        err        => $msg,
+        callstack  => $params{callstack},
+        macrostack => [],
+    }, $class;
+    return $self;
+}
+
+sub throw {
+    my $self = shift;
+
+    unless ( blessed($self) ) {
+        if ( ref( $_[0] ) && UNIVERSAL::isa( $_[0], __PACKAGE__ ) ) {
+            $_[0]->throw;
+        }
+        $self = $self->new(@_);
+    }
+
+    die $self;
+}
+
+sub fpush {
+    my $self = shift;
+    my ( $macro, $file ) = @_;
+    push @{ $self->{macrostack} }, { macro => $macro, file => $file };
+}
+
+sub fpop {
+    my $self = shift;
+    pop @{ $self->{macrostack} };
+}
+
+sub message {
+    my $self = shift;
+    my $err  = $self->{err};
+    chomp $err;
+    my @msg   = $err;
+    my $level = 1;
+    my sub indent {
+        my $spcs = "  " x $level;
+        return map { $spcs . $_ } split /\n/s, shift;
+    }
+    while ( my $frame = $self->fpop ) {
+        push @msg, indent("in macro $frame->{macro} at $frame->{file}");
+        $level++;
+    }
+    push @msg, indent( $self->{callstack} );
+    return join( "\n", @msg );
+}
+
+package NQP::Macros;
 use Text::ParseWords;
 use File::Spec;
 use Data::Dumper;
+use Carp qw<longmess>;
+use IPC::Cmd qw<can_run run>;
 require NQP::Config;
 
 my %preexpand = map { $_ => 1 } qw<
@@ -35,15 +98,31 @@ sub init {
     return $self;
 }
 
+sub cfg { $_[0]->{config_obj} }
+
 sub fail {
     my $self = shift;
-    my $msg  = shift;
+    my $err  = shift;
+
+    my $msg;
+    if ( ref($err) && $err->isa('NQP::Macros::_Err') ) {
+        $msg = $err->message;
+    }
+    else {
+        $msg = $err;
+    }
 
     if ( ref( $self->{on_fail} ) eq 'CODE' ) {
         $self->{on_fail}->($msg);
     }
 
     die $msg;
+}
+
+sub throw {
+    my $self = shift;
+    my $msg  = shift;
+    NQP::Macros::_Err->throw( $msg, @_ );
 }
 
 sub execute {
@@ -53,17 +132,19 @@ sub execute {
     my $orig_param = $param;
     my %params     = @_;
     my $cfg        = $self->{config_obj};
+    my $file = $cfg->prop('including_file') || $cfg->prop('template_file');
 
-    $self->fail("Macro name is missing in call to method execute()")
+    $self->throw("Macro name is missing in call to method execute()")
       unless $macro;
 
     my $method = "_m_$macro";
 
-    $self->fail("Unknown macro $macro") unless $self->can($method);
+    $self->throw("Unknown macro $macro") unless $self->can($method);
 
     my $s = $cfg->push_ctx(
         {
             current_macro => $macro,
+            current_param => $orig_param,
             configs       => [
                 {
                     current_macro => $macro,
@@ -73,22 +154,38 @@ sub execute {
     );
 
     if ( !$params{no_preexapnd} && $preexpand{$macro} ) {
-        $param = $self->expand($param);
+        $param = $self->_expand($param);
     }
 
     my $out;
     eval { $out = $self->$method($param); };
     if ($@) {
-        my $msg = join "\n", map { "  $_" } split /\n/s, $@;
-        die "In macro $macro($orig_param):\n" . $msg;
+        if ( ref($@) eq 'NQP::Macros::_Err' ) {
+            $@->fpush( "$macro($orig_param)", $file || "" );
+            $@->throw;
+        }
+        else {
+            $self->throw( $@, callstack => longmess("") );
+        }
     }
     return $out;
 }
 
 sub expand {
     my $self = shift;
+    my $out;
+    eval { $out = $self->_expand(@_) };
+    if ($@) {
+        $self->fail($@);
+    }
+    return $out;
+}
+
+sub _expand {
+    my $self = shift;
     my $text = shift;
 
+    $self->throw("Can't expand undefined value") unless defined $text;
     return $text if index( $text, '@' ) < 0;
 
     my %params = @_;
@@ -99,7 +196,7 @@ sub expand {
     my $mobj = $self;
 
     if ( $params{isolate} ) {
-        $mobj = NQP::Configure::Macros->new( config => $cfg );
+        $mobj = NQP::Macros->new( config => $cfg );
     }
 
     my $text_out = "";
@@ -120,7 +217,7 @@ sub expand {
                                      (?2)
                                    | [^\)]
                                    | \) (?! \k<msym> )
-                                   | \z (?{ $self->fail( "Can't find closing \)$+{msym} for macro '$+{macro_func}'" ) })
+                                   | \z (?{ $self->throw( "Can't find closing \)$+{msym} for macro '$+{macro_func}' after $+{text}" ) })
                                  )*
                                )
                              \) 
@@ -139,7 +236,7 @@ sub expand {
         if ( $m{macro_var} ) {
             $chunk = $cfg->cfg( $m{macro_var} ) // '';
 
-            #$self->fail( "No configuration variable '$m{macro_var}' found" )
+            #$self->throw( "No configuration variable '$m{macro_var}' found" )
             #  unless defined $chunk;
         }
         elsif ( $m{macro_func} ) {
@@ -209,13 +306,13 @@ sub include {
         next unless $file;
         $file = $cfg->template_file_path( $file, required => 1, %tmpl_params );
         my $ctx = $cfg->cur_ctx;
-        $self->fail( "Circular dependency detected on including $file"
+        $self->throw( "Circular dependency detected on including $file"
               . $cfg->include_path )
           if $self->is_including;
         $ctx->{including_file} = $file;
         $text .= $self->inc_comment("Included from $file")
           unless $params{as_is};
-        $text .= $self->expand( NQP::Config::slurp($file) )
+        $text .= $self->_expand( NQP::Config::slurp($file) )
           unless $params{no_expand};
         $text .= $self->inc_comment("End of section included from $file")
           unless $params{as_is};
@@ -233,7 +330,7 @@ sub not_in_context {
             $tip =
               " Perhaps you should use ctx_include macro instead of include?";
         }
-        $self->fail("Re-entering $ctx_name context is not allowed.$tip");
+        $self->throw("Re-entering $ctx_name context is not allowed.$tip");
     }
 }
 
@@ -348,7 +445,7 @@ sub _m_for_backends {
     my $out = "";
 
     my $cb = sub {
-        $out .= $self->expand($text);
+        $out .= $self->_expand($text);
     };
 
     $self->backends_iterate($cb);
@@ -365,7 +462,7 @@ sub _m_for_specs {
     my $out = "";
 
     my $cb = sub {
-        $out .= $self->expand($text);
+        $out .= $self->_expand($text);
     };
 
     $self->specs_iterate($cb);
@@ -384,7 +481,7 @@ sub _m_for_specs {
 sub _m_expand {
     my $self = shift;
     my $text = shift;
-    my $out  = $self->expand($text);
+    my $out  = $self->_expand($text);
 }
 
 # template(file1 file2)
@@ -436,9 +533,15 @@ sub _m_include_capture {
 # insert_capture(command line)
 # Captures output of the command line and inserts it.
 sub _m_insert_capture {
-    my $self = shift;
-    my $cmd  = shift;
-    return `$cmd`;
+    my $self     = shift;
+    my $cfg      = $self->{config_obj};
+    my $cmd_line = shift;
+    my $cmd      = ( shellwords($cmd_line) )[0];
+    $self->throw("No executable '$cmd' found") unless can_run($cmd);
+    my $out;
+    my ( $ok, $err ) = run( command => $cmd_line, buffer => \$out );
+    $self->throw("Failed to execute '$cmd_line': $err\nCommand output:\n$out") unless $ok;
+    return $self->_expand($out);
 }
 
 # fixup(makefile rules)

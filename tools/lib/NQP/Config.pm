@@ -21,10 +21,13 @@ package NQP::Config;
 use strict;
 use warnings;
 use File::Spec;
+use File::Spec::Win32;
+use File::Spec::Unix;
 use File::Basename;
 use FindBin;
 use Data::Dumper;
-use NQP::Configure::Macros;
+use NQP::Macros;
+use IPC::Cmd qw<can_run>;
 use Cwd;
 use Carp;
 
@@ -36,7 +39,13 @@ our @EXPORT_OK = qw<
 >;
 
 sub init {
-    my $self = shift;
+    my $self   = shift;
+    my %params = @_;
+
+    for my $rp (qw<lang>) {
+        die "Missing required NQP::Config constructor parameter $rp"
+          unless defined $params{$rp};
+    }
 
     $self->{config} = {
         perl      => $^X,
@@ -50,6 +59,8 @@ sub init {
 
         # Number of spaces to indent filelists in a makefile
         filelist_indent => 4,
+        lang            => $params{lang},
+        lclang          => lc $params{lang},
     };
 
     @{ $self->{config} }{qw<exe bat cpsep>} =
@@ -68,11 +79,14 @@ sub init {
     $self->{repo_maps}      = {
         rakudo => [qw<rakudo rakudo>],
         nqp    => [qw<perl6 nqp>],
-        moar   => [qw<MoarVM MoarMV>],
+        moar   => [qw<MoarVM MoarVM>],
         roast  => [qw<perl6 roast>],
     };
 
     $self->{impls} = {};
+    for my $be ( @{ $self->{backends_order} } ) {
+        $self->backend_config( $be, {});
+    }
 
     return $self;
 }
@@ -102,7 +116,8 @@ sub make_cmd {
 
     my $make = 'make';
     if ( $self->is_solaris ) {
-        if ( -z `which gmake` ) {
+        $make = can_run('gmake');
+        unless ( $make ) {
             die
 "gmake is required to compile rakudo. Please install by 'pkg install gnu-make'";
         }
@@ -112,13 +127,14 @@ sub make_cmd {
     if ( $self->is_win ) {
         my $prefix    = $self->cfg('prefix');
         my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
-        my $has_cl    = `cl 2>&1` =~ /Microsoft Corporation/;
+        my $has_cl    = can_run('cl') && `cl 2>&1` =~ /Microsoft Corporation/;
         my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
         my $has_gcc   = 0 == system('gcc --version >NUL 2>&1');
         if (
-            -x "$prefix/bin/nqp-m.bat"
+            -x "$prefix\\bin\\nqp-m.bat"
             && ( $_ =
-                `$prefix/bin/nqp-m.bat -e "print(nqp::backendconfig()<make>)"` )
+                `$prefix\\bin\\nqp-m.bat -e "print(nqp::backendconfig()<make>)"`
+            )
           )
         {
             $make = $_;
@@ -185,7 +201,19 @@ sub backend_abbr {
 }
 
 sub backend_config {
-    my ( $self, $backend ) = @_;
+    my ( $self, $backend ) = (shift, shift);
+    if (@_) {
+        my %config;
+        if (@_ == 1 && ref($_[0]) eq 'HASH') {
+            %config = %{$_[0]};
+        } elsif (@_ % 2 == 0) {
+            %config = @_;
+        }
+        else {
+            die "Bad configuration hash passed in to backend_config";
+        }
+        @{$self->{impls}{$backend}{config}}{keys %config} = values %config;
+    }
     return $self->{impls}{$backend}{config};
 }
 
@@ -215,6 +243,62 @@ sub active_backend {
 sub active_abbrs {
     my $self = shift;
     return map { $self->backend_abbr($_) } @{ $self->{active_backends_order} };
+}
+
+# Takes a relative path
+sub base_path {
+    my $self     = shift;
+    my @rel_path = @_;
+
+    if ( @rel_path == 1 ) {
+        return $rel_path[0]
+          if File::Spec->file_name_is_absolute( $rel_path[0] );
+        @rel_path = File::Spec->splitdir( $rel_path[0] );
+    }
+
+    return File::Spec->catfile( $self->{config}{base_dir}, @rel_path );
+}
+
+sub configure_jars {
+    my $self    = shift;
+    my $config  = $self->{config};
+    my $options = $self->{options};
+    if ( $options->{'with-asm'} ) {
+        if ( $options->{'with-asm'} ne '-' ) {
+            $config->{'asm'} = $options->{'with-asm'};
+        }
+    }
+    else {
+        $config->{'asm'} = $self->base_path(qw<3rdparty asm asm-4.1.jar>);
+    }
+    if ( $options->{'with-asm-tree'} ) {
+        if ( $options->{'with-asm-tree'} ne '-' ) {
+            $config->{'asmtree'} = $options->{'with-asm-tree'};
+        }
+    }
+    else {
+        $config->{'asmtree'} =
+          $self->base_path(qw<3rdparty asm asm-tree-4.1.jar>);
+    }
+    if ( $options->{'with-jline'} ) {
+        if ( $options->{'with-jline'} ne '-' ) {
+            $config->{'jline'} = $options->{'with-jline'};
+        }
+    }
+    else {
+        $config->{'jline'} = $self->base_path("3rdparty/jline/jline-1.0.jar");
+    }
+    if ( $options->{'with-jna'} ) {
+        if ( $options->{'with-jna'} ne '-' ) {
+            $config->{'jna'} = $options->{'with-jna'};
+        }
+    }
+    else {
+        $config->{'jna'} = $self->base_path("3rdparty/jna/jna-4.0.0.jar");
+    }
+
+    $config->{asmfile}   = ( File::Spec->splitpath( $config->{asm} ) )[-1];
+    $config->{jlinefile} = ( File::Spec->splitpath( $config->{jline} ) )[-1];
 }
 
 sub configure_relocatability {
@@ -277,29 +361,23 @@ sub configure_commands {
     }
 }
 
+sub abstract {
+    my @c = caller(1);
+    die "Method $c[3] must be implemented by the language class";
+}
+
+sub configure_backends {
+    abstract;
+}
+
 sub configure_misc {
-    my $self   = shift;
-    my $config = $self->{config};
-
-    # determine the version of NQP we want
-    ( $config->{nqp_want} ) =
-      split( ' ',
-        slurp( $self->template_file_path( 'NQP_REVISION', required => 1, ) ) );
-
-    $config->{perl6_specs} = [
-        map { [ split ' ' ] }
-          grep { s/\s*#.*$//; length }
-          split(
-            /\n/s,
-            slurp( $self->template_file_path( 'PERL6_SPECS', required => 1, ) )
-          )
-    ];
+    abstract;
 }
 
 sub configure_prefix {
     my $self   = shift;
     my $config = $self->{config};
-    unless ( defined $config->{prefix} ) {
+    unless ( $config->{prefix} ) {
 
         # XXX This is only Unix-friendly way.
         my $default =
@@ -313,66 +391,12 @@ sub configure_prefix {
     $config->{prefix} = File::Spec->rel2abs( $config->{prefix} );
 }
 
-sub configure_backends {
-    my $self   = shift;
-    my $config = $self->{config};
-
-    my $prefix = $config->{prefix};
-
-    ### Consider what backends are to be built. ###
-    my $passed_backends = $self->opt('backends');
-    if ( my $nqp_bin = $self->opt('with-nqp') ) {
-        die "Could not find $nqp_bin" unless -e $nqp_bin;
-        my $nqp_backend =
-          qx{$nqp_bin -e 'print(nqp::getcomp("nqp").backend.name)'}
-          or die "Could not get backend information from $nqp_bin";
-        if ( defined $passed_backends && $nqp_backend ne $passed_backends ) {
-            die
-"Passed value to --backends ($passed_backends) is overwritten by the one infered by --with-nqp ($nqp_backend)";
-        }
-    }
-    if ( defined $passed_backends ) {
-        my @use_backends =
-          uc($passed_backends) eq 'ALL'
-          ? $self->known_backends
-          : split /,\s*/, $passed_backends;
-        for my $b ( map { lc } @use_backends ) {
-            if ( $b eq 'parrot' ) {
-                die "The Parrot backend has been suspended.\n"
-                  . "Please use Rakudo 2015.02 (which still supports parrot), or the MoarVM backend instead\n";
-            }
-            unless ( $self->known_backend($b) ) {
-                die "Unknown backend '$b'; Supported backends are: "
-                  . join( ", ", sort $self->known_backends ) . "\n";
-            }
-            $self->use_backend($b);
-        }
-        unless ( $self->active_backends ) {
-            die "--prefix given, but no valid backend?!\n";
-        }
-    }
-    else {
-        for my $a ( $self->known_abbrs ) {
-            if ( my $nqp_bin = $self->is_executable("$prefix/bin/nqp-$a") ) {
-                my $b = $self->abbr_to_backend($a);
-                print "Found $nqp_bin (backend $b)\n";
-                $self->use_backend($b);
-            }
-        }
-
-        $self->use_backend('moar') if $self->has_option('gen-moar');
-
-        unless ( $self->active_backends or $self->has_option('with-nqp') ) {
-            die
-"No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{js,j,m} executables\n\n"
-              . "Example to build for all backends (which will take a while):\n"
-              . "\tperl Configure.pl --backends=ALL --gen-moar\n\n"
-              . "Example to build for MoarVM only:\n"
-              . "\tperl Configure.pl --gen-moar\n\n"
-              . "Example to build for JVM only:\n"
-              . "\tperl Configure.pl --backends=jvm --gen-nqp\n\n";
-        }
-    }
+sub parse_backends {
+    my $self            = shift;
+    my $passed_backends = shift;
+    return uc($passed_backends) eq 'ALL'
+      ? $self->known_backends
+      : map { lc } split /,\s*/, $passed_backends;
 }
 
 sub backend_error {
@@ -401,213 +425,13 @@ sub no_gen_nqp {
 sub configure_active_backends {
     my $self = shift;
 
-    my @errors;
-
     for my $b ( $self->active_backends ) {
-        my $conf_meth = "configure_${b}_backend";
         $self->{backend_errors}{$b} = [];
-        if ( $self->can($conf_meth) ) {
-            $self->$conf_meth;
-        }
-
-        push @errors, $self->backend_errors($b);
+        my $method = "configure_${b}_backend";
+        $self->$method();
     }
 
-    if ( $self->no_gen_nqp ) {
-        my $config   = $self->{config};
-        my $nqp_want = $config->{nqp_want};
-        my $is_moar  = $self->active_backend('moar');
-        my @options_to_pass;
-
-        push @options_to_pass, "--gen-moar" if $is_moar;
-        push @options_to_pass, "--gen-nqp" unless @options_to_pass;
-        my $options_to_pass = join ' ', @options_to_pass;
-        my $want_executables =
-          $is_moar
-          ? ' and MoarVM'
-          : '';
-        my $s1 = @options_to_pass > 1 ? 's' : '';
-        my $s2 = $want_executables    ? 's' : '';
-
-        push @errors,
-          "\nTo automatically clone (git) and build a copy of NQP $nqp_want,",
-          "try re-running Configure.pl with the '$options_to_pass' option$s1.",
-          "Or, use '--prefix=' to explicitly specify the path where the NQP"
-          . $want_executables,
-          "executable$s2 can be found that are use to build $config->{lang}.";
-    }
-
-    $self->sorry(@errors) if @errors;
-}
-
-sub configure_jvm_backend {
-    my $self   = shift;
-    my $ijvm   = $self->{impls}{jvm};
-    my $config = $self->{config};
-
-    $config->{j_nqp} = $ijvm->{bin};
-
-    my $nqp_config;
-    if ( $ijvm->{ok} ) {
-        $nqp_config = $ijvm->{config};
-    }
-    elsif ( $ijvm->{config} ) {
-        $self->backend_error( jvm => "nqp-j is too old" );
-    }
-    else {
-        $self->backend_error(
-            jvm => "Unable to read configuration from NQP on the JVM" );
-    }
-    my $bin = $ijvm->{bin};
-
-    if (   !$self->backend_error('jvm')
-        && !defined $nqp_config->{'jvm::runtime.jars'} )
-    {
-        $self->backend_error( jvm =>
-              "jvm::runtime.jars value not available from $bin --show-config."
-        );
-    }
-
-    unless ( $self->backend_error('jvm') ) {
-        my $java_version = `java -version 2>&1`;
-        $java_version =
-          $java_version =~ /(?<v>[\d\._]+).+\n(?<n>\S+)/
-          ? "$+{'n'} $+{'v'}"
-          : 'no java version info available';
-
-        print
-"Using $bin (version $nqp_config->{'nqp::version'} / $java_version).\n";
-
-        $config->{'nqp_prefix'}   = $nqp_config->{'jvm::prefix'};
-        $config->{'nqp_jars'}     = $nqp_config->{'jvm::runtime.jars'};
-        $config->{'bld_nqp_jars'} = join(
-            $config->{'cpsep'},
-            map { $config->{'sysroot'} . $_ }
-              split( $config->{'cpsep'}, $nqp_config->{'jvm::runtime.jars'} )
-        );
-        $config->{'nqp_classpath'} = $nqp_config->{'jvm::runtime.classpath'};
-        $config->{'nqp::libdir'}   = $nqp_config->{'nqp::libdir'};
-        $config->{'j_runner'}      = $self->batch_file('perl6-j');
-    }
-}
-
-sub configure_moar_backend {
-    my $self   = shift;
-    my $imoar  = $self->{impls}{moar};
-    my $config = $self->{config};
-    my $slash  = $self->slash;
-
-    $config->{m_nqp} = $imoar->{bin};
-    my $nqp_config;
-    if ( $imoar->{ok} ) {
-        $nqp_config = $imoar->{config};
-    }
-    elsif ( $imoar->{config} ) {
-        $self->backend_error( moar => "The nqp-m binary is too old" );
-    }
-    else {
-        $self->backend_error(
-            moar => "Unable to read configuration from NQP on MoarVM" );
-    }
-
-    # Strip rpath from ldflags so we can set it differently ourself.
-    $config->{ldflags} = join( ' ',
-        $nqp_config->{'moar::ldflags'},
-        $nqp_config->{'moar::ldmiscflags'},
-        $nqp_config->{'moar::ldoptiflags'},
-        $nqp_config->{'moar::ldlibs'} );
-    $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath'}\E ?//;
-    $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
-    $config->{ldflags} .= ' '
-      . (
-          $config->{no_relocatable}
-        ? $nqp_config->{'moar::ldrpath'}
-        : $nqp_config->{'moar::ldrpath_relocatable'}
-      );
-    $config->{'mingw_unicode'} = '';
-
-    if ( $self->is_win ) {
-        if ( File::Spec->catdir( $config->{prefix}, 'bin' ) ne
-            $nqp_config->{'moar::libdir'} )
-        {
-            $config->{'m_install'} = "\t"
-              . '$(CP) '
-              . $nqp_config->{'moar::libdir'}
-              . $slash
-              . $nqp_config->{'moar::moar'}
-              . ' $(PREFIX)'
-              . $slash . 'bin';
-        }
-        if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
-            $config->{'mingw_unicode'} = '-municode';
-        }
-        $config->{'c_runner_libs'} = '-lShlwapi';
-    }
-    else {
-        $config->{'m_cleanups'} =
-"  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
-        $config->{'m_all'} =
-          '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
-        $config->{'m_install'} = "\t"
-          . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
-          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-gdb-m")
-          . ' "gdb" "" "" ""' . "\n\t"
-          . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
-          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-lldb-m")
-          . ' "lldb" "" "" ""' . "\n\t"
-          . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
-          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-valgrind-m")
-          . ' "valgrind" "" "" ""';
-        $config->{'c_runner_libs'} = '';
-    }
-
-    unless ( $self->backend_error('moar') ) {
-        print
-"Using $config->{'m_nqp'} (version $nqp_config->{'nqp::version'} / MoarVM $nqp_config->{'moar::version'}).\n";
-
-        $config->{'perl6_ops_dll'} =
-          sprintf( $nqp_config->{'moar::dll'}, 'perl6_ops_moar' );
-
-        # Add moar library to link command
-        # TODO: Get this from Moar somehow
-        $config->{'moarimplib'} =
-          $self->is_win || $^O eq 'darwin'
-          ? File::Spec->catfile( $nqp_config->{'moar::libdir'},
-            $nqp_config->{'moar::sharedlib'} )
-          : '';
-    }
-}
-
-sub configure_js_backend {
-    my $self   = shift;
-    my $ijs    = $self->{impls}{js};
-    my $config = $self->{config};
-    my $slash  = $self->slash;
-    my $nqp_config;
-    $config->{js_nqp} = $ijs->{bin};
-    $config->{'perl6_runtime'} =
-      File::Spec->rel2abs( nfp('src/vm/js/perl6-runtime') );
-    $config->{'perl6_lowlevel_libs'} =
-      File::Spec->rel2abs('node_modules') . $slash;
-    $config->{'perl6_js_runner'} =
-      batch_file( File::Spec->rel2abs('perl6-js') );
-
-    if ( $ijs->{ok} ) {
-        $nqp_config = $ijs->{config};
-    }
-    elsif ( $ijs->{config} ) {
-        $self->backend_errors( js => "The nqp-js binary is too old" );
-    }
-    else {
-        $self->backend_errors(
-            js => "Unable to read configuration from NQP on JS" );
-    }
+    $self->post_active_backends;
 }
 
 sub configure_from_options {
@@ -623,6 +447,23 @@ sub configure_from_options {
     }
     $self->{config}{stagestats} = '--stagestats'
       if $self->{options}{'makefile-timing'};
+}
+
+sub save_config_status {
+    my $self   = shift;
+    my $config = $self->{config};
+
+    # Save options in config.status
+    my $status_file = $self->base_path('config.status');
+    unlink($status_file);
+    if ( open( my $CONFIG_STATUS, '>', $status_file ) ) {
+        my $ckey = $config->{lclang} . "_config_status";
+        print $CONFIG_STATUS "$^X Configure.pl $config->{$ckey} \$*\n";
+        close($CONFIG_STATUS);
+    }
+    else {
+        warn "Can't write to $status_file: $!";
+    }
 }
 
 sub is_win {
@@ -690,7 +531,7 @@ sub repo_url {
     my %params   = @_;
     my $action   = $params{action} || 'pull';
     my $protocol = $params{protocol};
-    my $config   = $self->config;
+    my $config   = $self->{config};
 
     die "Unknown repository type '$repo'" unless $self->{repo_maps}{$repo};
     die "Bad action type '$action'" unless $action =~ /^(push|pull)$/;
@@ -730,7 +571,6 @@ sub include_path {
             push @incs, " in file $ctx->{including_file}";
         }
     }
-    push @incs, " in template " . $self->prop('template_file');
     return join( "\n", @incs );
 }
 
@@ -849,12 +689,11 @@ sub fill_template_text {
     my sub on_fail {
         my $msg = shift;
         my $src = $params{source} ? " in template $params{source}" : "";
-        die "$msg$src";
+        $self->sorry( "$msg$src" );
     }
 
     my $text_out =
-      NQP::Configure::Macros->new( config => $self, on_fail => \&on_fail )
-      ->expand($text);
+      NQP::Macros->new( config => $self, on_fail => \&on_fail )->expand($text);
 
     # XXX This is better be handled with makefile macros. Then the whole method
     # would be easily replaced with Macros->expand()
@@ -930,92 +769,6 @@ sub git_checkout {
     }
     chdir($pwd);
     $git_describe;
-}
-
-sub gen_nqp {
-    my $self    = shift;
-    my $options = $self->{options};
-    my $config  = $self->config;
-
-    my $nqp_bin      = $options->{'with-nqp'};
-    my $gen_nqp      = $options->{'gen-nqp'};
-    my $gen_moar     = $options->{'gen-moar'};
-    my $prefix       = $config->{'prefix'};
-    my $sdkroot      = $config->{'sdkroot'};
-    my $startdir     = $config->{'base_dir'};
-    my $bat          = $config->{bat};
-    my $nqp_want     = $config->{nqp_want};
-    my $git_protocol = $options->{'git-protocol'} // 'https';
-    my @moar_options = @{ $options->{'moar-option'} // [] };
-    my $impls        = $self->{impls};
-    my $pwd          = cwd;
-
-    my %need;
-
-    for my $b ( $self->active_backends ) {
-        my $postfix = $self->backend_abbr($b);
-        my $bin     = nfp($nqp_bin)
-          || (
-            $sdkroot
-            ? File::Spec->catfile( nfp($sdkroot), $prefix, 'bin',
-                "nqp-$postfix$bat" )
-            : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" )
-          );
-        $impls->{$b}{bin} = $bin;
-        my %c        = read_config($bin);
-        my $nqp_have = $c{'nqp::version'} || '';
-        $impls->{$b}{config} = \%c if %c;
-        my $nqp_ok = $nqp_have && 0 <= cmp_rev( $nqp_have, $nqp_want );
-
-        if ( $nqp_ok or $options->{'ignore-errors'} ) {
-            $impls->{$b}{ok} = 1;
-        }
-        else {
-            $need{$b} = 1;
-        }
-    }
-
-    return unless %need;
-
-    if ( defined $gen_nqp || defined $gen_moar ) {
-        my $user = $options->{'github-user'} // 'perl6';
-        $self->git_checkout( 'nqp', 'nqp', $gen_nqp || $nqp_want );
-    }
-
-    return unless defined($gen_nqp) || defined($gen_moar);
-
-    my $backends = join ",", $self->active_backends;
-    my @cmd      = (
-        $^X, 'Configure.pl', "--prefix=$prefix",
-        "--backends=$backends", "--make-install",
-        "--git-protocol=$git_protocol",
-    );
-
-    for my $opt (qw<git-depth git-reference github-user nqp-repo moar-repo>) {
-        push @cmd, "--$opt", $options->{$opt} if $options->{$opt};
-    }
-
-    if ( defined $gen_moar ) {
-        push @cmd, $gen_moar ? "--gen-moar=$gen_moar" : '--gen-moar';
-
-        if (@moar_options) {
-            push @cmd, map( sprintf( '--moar-option=%s', $_ ), @moar_options );
-        }
-    }
-
-    print "Building NQP ...\n";
-    chdir("$startdir/nqp");
-    print "@cmd\n";
-    system_or_die(@cmd);
-    chdir($pwd);
-
-    for my $k ( keys %need ) {
-        my %c = read_config( $impls->{$k}{bin} );
-        %c = ( %{ $impls->{$k}{config} || {} }, %c );
-        $impls->{$k}{config} = \%c;
-        $impls->{$k}{ok}     = 1;
-    }
-    return;
 }
 
 sub _restore_ctx {
@@ -1279,8 +1032,24 @@ sub _ckey_libdir {
 
 ### Tieing-related stuff
 sub TIEHASH {
-    my $class = shift;
-    my $self  = bless {}, $class;
+    my $class  = shift;
+    my %params = @_;
+    if ( $class eq __PACKAGE__ ) {
+        if ( $params{lang} ) {
+            $class .= "::$params{lang}";
+            eval "require $class";
+            if ($@) {
+                die "===SORRY!=== Can't create an instance of "
+                  . $class . ":\n"
+                  . $@;
+            }
+        }
+        else {
+            die "Can't create instance of class " . $class
+              . ", use a language sub-class instead";
+        }
+    }
+    my $self = bless {}, $class;
     return $self->init(@_);
 }
 

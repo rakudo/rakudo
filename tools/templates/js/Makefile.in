@@ -1,2 +1,2 @@
 
-@fixup(@include_capture(@js_nqp@ @nfp(tools/build/gen-cat.nqp)@)@)@
+@fixup(@include_capture(@js_nqp@ @nfp(tools/build/gen-js-makefile.nqp)@)@)@

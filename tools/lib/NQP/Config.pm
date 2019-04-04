@@ -740,6 +740,7 @@ sub git_checkout {
         push @args, "--depth=$options->{'git-depth'}"
           if $options->{'git-depth'};
         push @args, $pullurl, $dir;
+        print "Cloning from $pullurl\n";
         system_or_die(@args);
         chdir($dir);
 

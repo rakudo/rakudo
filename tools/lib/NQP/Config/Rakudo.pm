@@ -4,7 +4,7 @@ use warnings;
 
 package NQP::Config::Rakudo;
 use Cwd;
-use NQP::Config qw<slurp nfp read_config cmp_rev>;
+use NQP::Config qw<slurp nfp read_config cmp_rev system_or_die>;
 
 use base qw<NQP::Config>;
 
@@ -315,6 +315,7 @@ sub gen_nqp {
     my $config  = $self->config;
 
     my $nqp_bin      = $options->{'with-nqp'};
+    my $nqp_git_spec = $options->{'gen-nqp'};
     my $gen_nqp      = defined $options->{'gen-nqp'};
     my $gen_moar     = $options->{'gen-moar'};
     my $prefix       = $config->{'prefix'};
@@ -356,16 +357,15 @@ sub gen_nqp {
 
     if ( defined $gen_nqp || defined $gen_moar ) {
         my $user = $options->{'github-user'} // 'perl6';
-        $self->git_checkout( 'nqp', 'nqp', $gen_nqp || $nqp_want );
+        $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $nqp_want );
     }
 
     return unless defined($gen_nqp) || defined($gen_moar);
 
     my $backends = join ",", $self->active_backends;
     my @cmd      = (
-        $^X, 'Configure.pl', "--prefix=$prefix",
-        "--backends=$backends", "--make-install",
-        "--git-protocol=$git_protocol",
+        $^X, 'Configure.pl', "--prefix=$prefix", "--backends=$backends",
+        "--make-install", "--git-protocol=$git_protocol",
     );
 
     for my $opt (qw<git-depth git-reference github-user nqp-repo moar-repo>) {

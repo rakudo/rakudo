@@ -320,7 +320,7 @@ m-sometests: m-all
 m-install: m-all @script(create-moar-runner.p6)@ @script(install-core-dist.p6)@ $(SETTING_MOAR)
 	$(MKPATH) @nfp($(DESTDIR)$(PREFIX)/bin)@
 	$(MKPATH) @nfp($(DESTDIR)$(M_LIBPATH)/Perl6)@
-	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_LANG_OUTPUT) @nfp($(DESTDIR)/$(M_LIBPATH)/Perl6)@
+	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_LANG_OUTPUT) @nfp($(DESTDIR)$(M_LIBPATH)/Perl6)@
 	$(CP) $(M_PERL6_LANG_OUTPUT) @nfp($(DESTDIR)$(M_LIBPATH)/Perl6)@
 	$(MKPATH) @nfp($(DESTDIR)$(PERL6_HOME)/lib)@
 	$(MKPATH) @nfp($(DESTDIR)$(PERL6_HOME)/runtime)@

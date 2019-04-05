@@ -51,7 +51,6 @@ sub init {
         perl      => $^X,
         slash     => slash(),
         shell     => $^O eq 'solaris' ? '' : "SHELL = " . $self->shell_cmd,
-        make      => $self->make_cmd,
         base_dir  => $FindBin::Bin,
         build_dir => File::Spec->catdir( $FindBin::Bin, 'tools', 'build' ),
         templates_dir =>
@@ -85,7 +84,7 @@ sub init {
 
     $self->{impls} = {};
     for my $be ( @{ $self->{backends_order} } ) {
-        $self->backend_config( $be, {});
+        $self->backend_config( $be, {} );
     }
 
     return $self;
@@ -114,10 +113,12 @@ sub batch_file {
 sub make_cmd {
     my $self = shift;
 
+    my $config = $self->{config};
+
     my $make = 'make';
     if ( $self->is_solaris ) {
         $make = can_run('gmake');
-        unless ( $make ) {
+        unless ($make) {
             die
 "gmake is required to compile rakudo. Please install by 'pkg install gnu-make'";
         }
@@ -125,7 +126,7 @@ sub make_cmd {
     }
 
     if ( $self->is_win ) {
-        my $prefix    = $self->cfg('prefix');
+        my $prefix    = $config->{prefix};
         my $has_nmake = 0 == system('nmake /? >NUL 2>&1');
         my $has_cl    = can_run('cl') && `cl 2>&1` =~ /Microsoft Corporation/;
         my $has_gmake = 0 == system('gmake --version >NUL 2>&1');
@@ -201,18 +202,19 @@ sub backend_abbr {
 }
 
 sub backend_config {
-    my ( $self, $backend ) = (shift, shift);
+    my ( $self, $backend ) = ( shift, shift );
     if (@_) {
         my %config;
-        if (@_ == 1 && ref($_[0]) eq 'HASH') {
-            %config = %{$_[0]};
-        } elsif (@_ % 2 == 0) {
+        if ( @_ == 1 && ref( $_[0] ) eq 'HASH' ) {
+            %config = %{ $_[0] };
+        }
+        elsif ( @_ % 2 == 0 ) {
             %config = @_;
         }
         else {
             die "Bad configuration hash passed in to backend_config";
         }
-        @{$self->{impls}{$backend}{config}}{keys %config} = values %config;
+        @{ $self->{impls}{$backend}{config} }{ keys %config } = values %config;
     }
     return $self->{impls}{$backend}{config};
 }
@@ -342,6 +344,8 @@ sub configure_repo_urls {
 sub configure_commands {
     my $self   = shift;
     my $config = $self->{config};
+
+    $config->{make} = $self->make_cmd;
 
     if ( $self->isa_unix ) {
         $config->{mkpath} = 'mkdir -p --';
@@ -689,7 +693,7 @@ sub fill_template_text {
     my sub on_fail {
         my $msg = shift;
         my $src = $params{source} ? " in template $params{source}" : "";
-        $self->sorry( "$msg$src" );
+        $self->sorry("$msg$src");
     }
 
     my $text_out =

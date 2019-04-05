@@ -57,8 +57,8 @@ MAIN: {
 "===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";
     }
 
-    $cfg->configure_from_options;
     $cfg->configure_prefix;
+    $cfg->configure_from_options;
     $cfg->configure_relocatability;
     $cfg->configure_repo_urls;
     $cfg->configure_commands;

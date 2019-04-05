@@ -111,3 +111,4 @@ t/03-jvm/*.class
 rakudo.js
 /zef
 .DS_Store
+node_modules/*

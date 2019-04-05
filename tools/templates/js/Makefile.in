@@ -1,2 +1,4 @@
 
-@fixup(@include_capture(@js_nqp@ @nfp(tools/build/gen-js-makefile.nqp)@)@)@
+@include_capture(@js_nqp@ @nfp(tools/build/gen-js-makefile.nqp)@)@
+
+# vim: ft=make noexpandtab ts=4 sw=4

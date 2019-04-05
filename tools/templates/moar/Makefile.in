@@ -133,51 +133,51 @@ $(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC)
 $(PERL6_ML_MOAR): @nfp(src/Perl6/ModuleLoader.nqp)@ @nfp(src/vm/moar/ModuleLoaderVMConfig.nqp)@ @nfp(gen/nqp-version)@
 	$(M_NQP) $(M_GEN_CAT) @nfp(src/vm/moar/ModuleLoaderVMConfig.nqp)@ @nfp(src/Perl6/ModuleLoader.nqp)@ > @nfp($(M_BUILD_DIR)/ModuleLoader.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_ML_MOAR) \
-	    @nfp($(M_BUILD_DIR)/ModuleLoader.nqp)@
+		@nfp($(M_BUILD_DIR)/ModuleLoader.nqp)@
 
 $(PERL6_OPS_MOAR): @nfp(src/vm/moar/Perl6/Ops.nqp $(M_PERL6_OPS_DLL) gen/nqp-version)@
 	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) \
-	    @nfp(src/vm/moar/Perl6/Ops.nqp)@
+		@nfp(src/vm/moar/Perl6/Ops.nqp)@
 
 $(PERL6_W_MOAR): $(PERL6_ML_MOAR) $(PERL6_OPS_MOAR) $(PERL6_P_MOAR) @nfp(src/Perl6/World.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_W_MOAR) \
-	    @nfp(src/Perl6/World.nqp)@
+		@nfp(src/Perl6/World.nqp)@
 
 $(PERL6_P_MOAR): @nfp(src/Perl6/Pod.nqp gen/nqp-version)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_P_MOAR) \
-	    @nfp(src/Perl6/Pod.nqp)@
+		@nfp(src/Perl6/Pod.nqp)@
 
 $(PERL6_A_MOAR): @nfp(src/Perl6/Actions.nqp)@ $(PERL6_P_MOAR) $(PERL6_OPS_MOAR)
 	$(M_NQP) $(M_GEN_CAT) @nfp(src/Perl6/Actions.nqp \
                               src/Perl6/PodActions.nqp > $(M_BUILD_DIR)/Perl6-Actions.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_A_MOAR) \
-	    @nfp($(M_BUILD_DIR)/Perl6-Actions.nqp)@
+		@nfp($(M_BUILD_DIR)/Perl6-Actions.nqp)@
 
 $(PERL6_G_MOAR): @nfp(src/Perl6/Grammar.nqp)@ $(PERL6_W_MOAR) $(PERL6_A_MOAR) $(PERL6_P_MOAR)
 	$(M_NQP) $(M_GEN_CAT) @nfp(src/Perl6/Grammar.nqp \
                               src/Perl6/PodGrammar.nqp > $(M_BUILD_DIR)/Perl6-Grammar.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_G_MOAR) \
-	    @nfp($(M_BUILD_DIR)/Perl6-Grammar.nqp)@
+		@nfp($(M_BUILD_DIR)/Perl6-Grammar.nqp)@
 
 $(PERL6_O_MOAR): @nfp(src/Perl6/Optimizer.nqp)@ $(PERL6_OPS_MOAR)
 	$(M_NQP) $(M_GEN_CAT) @nfp(src/Perl6/Optimizer.nqp > $(M_BUILD_DIR)/Perl6-Optimizer.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_O_MOAR) \
-	    @nfp($(M_BUILD_DIR)/Perl6-Optimizer.nqp)@
+		@nfp($(M_BUILD_DIR)/Perl6-Optimizer.nqp)@
 
 $(PERL6_C_MOAR): @nfp(src/Perl6/Compiler.nqp)@ $(PERL6_O_MOAR)
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_C_MOAR) \
-	    @nfp(src/Perl6/Compiler.nqp)@
+		@nfp(src/Perl6/Compiler.nqp)@
 
 $(PERL6_MOAR): @nfp(src/main.nqp)@ $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES) @for_specs($(M_CORE_@ucspec@_SOURCES) )@
 	$(PERL5) @script(gen-version.pl)@ $(PREFIX) $(LIBDIR) > @nfp($(M_BUILD_DIR)/main-version.nqp)@
 	$(M_NQP) $(M_GEN_CAT) @nfp(src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_MOAR) \
-	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfp($(M_BUILD_DIR)/main.nqp)@
+		--vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfp($(M_BUILD_DIR)/main.nqp)@
 
 $(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
 	$(M_NQP) $(M_GEN_CAT) -f @template(common_bootstrap_sources)@ > @nfp($(M_BUILD_DIR)/Metamodel.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_M_MOAR) \
-	    @nfp($(M_BUILD_DIR)/Metamodel.nqp)@
+		@nfp($(M_BUILD_DIR)/Metamodel.nqp)@
 
 $(PERL6_B_MOAR): $(M_BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
 	$(M_NQP) $(M_GEN_CAT) $(M_BOOTSTRAP_SOURCES) > @nfp($(M_BUILD_DIR)/BOOTSTRAP.nqp)@
@@ -211,7 +211,7 @@ m-runner-default: $(M_BAT_RUNNER)
 $(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
 	$(M_NQP) $(M_GEN_CAT) @nfp(src/perl6-debug.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/perl6-debug.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_DEBUG_MOAR) \
-	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfp($(M_BUILD_DIR)/perl6-debug.nqp)@
+		--vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfp($(M_BUILD_DIR)/perl6-debug.nqp)@
 
 $(M_BAT_DEBUG_RUNNER): @script(create-moar-runner.p6)@ $(M_C_DEBUG_RUNNER) $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)
 	$(M_RUN_PERL6) @script(create-moar-runner.p6)@ moar "$(MOAR)" perl6-debug-m perl6-debug.moarvm . "" $(PERL6_HOME) $(NQP_HOME) --nqp-lib=blib $(M_LIBPATH) . blib
@@ -353,7 +353,7 @@ release: manifest
 	bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'
 	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
 	$(M_RUN_PERL6) -ne 'say "rakudo-$(VERSION)@slash@$$_"' MANIFEST | \
-	    tar -zcv --owner=0 --group=0 --numeric-owner -T - -f rakudo-$(VERSION).tar.gz
+		tar -zcv --owner=0 --group=0 --numeric-owner -T - -f rakudo-$(VERSION).tar.gz
 	rm rakudo-$(VERSION)
 
 

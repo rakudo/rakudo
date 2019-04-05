@@ -363,3 +363,5 @@ m-clean:
 	$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
 
 m-testclean:
+
+# vim: ft=make noexpandtab ts=4 sw=4

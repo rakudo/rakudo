@@ -18,3 +18,5 @@ realclean: clean
 	$(RM_RF) @nfp(lib/.precomp/ t/04-nativecall/.precomp/)@
 
 distclean: realclean
+
+# vim: ft=make noexpandtab ts=4 sw=4

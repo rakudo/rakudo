@@ -245,3 +245,5 @@ j-clean:
 	$(RM_RF) bin
 
 j-testclean:
+
+# vim: ft=make noexpandtab ts=4 sw=4

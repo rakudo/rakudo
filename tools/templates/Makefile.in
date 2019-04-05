@@ -12,10 +12,10 @@ clean: @for_backends(@backend_prefix@-clean )@
 	$(RM_F) perl6@runner_suffix@ rakudo.js.map
 	$(PERL5) -MFile::Find -MFile::Path=remove_tree -e 'my @d; find( sub { push @d, $$File::Find::name if $$_ eq ".precomp" and -d }, "@base_dir@" ); remove_tree(@d)'
 
-test: 		@for_backends(@backend_prefix@-test$(HARNESS_TYPE))@
-spectest: 	@for_backends(@backend_prefix@-spectest$(HARNESS_TYPE))@
-coretest: 	@for_backends(@backend_prefix@-coretest$(HARNESS_TYPE))@
-localtest: 	@for_backends(@backend_prefix@-localtest$(HARNESS_TYPE))@
+test:		@for_backends(@backend_prefix@-test$(HARNESS_TYPE))@
+spectest:	@for_backends(@backend_prefix@-spectest$(HARNESS_TYPE))@
+coretest:	@for_backends(@backend_prefix@-coretest$(HARNESS_TYPE))@
+localtest:	@for_backends(@backend_prefix@-localtest$(HARNESS_TYPE))@
 stresstest: @for_backends(@backend_prefix@-stresstest$(HARNESS_TYPE))@
 
 @include(Makefile-common-rules)@
@@ -23,6 +23,6 @@ stresstest: @for_backends(@backend_prefix@-stresstest$(HARNESS_TYPE))@
 @for_backends(@ctx_include(Makefile)@)@
 
 t/*/*.t t/*.t t/*/*/*.t: all
-        $(@uc(@default_prefix@)@_HARNESS5_WITH_FUDGE) --verbosity=1 $@
+	$(@uc(@default_prefix@)@_HARNESS5_WITH_FUDGE) --verbosity=1 $@
 
 # vim: ft=make noexpandtab ts=4 sw=4

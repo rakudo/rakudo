@@ -166,7 +166,7 @@ rule('check_nqp_version',
     '@script(check-nqp-version.pl)@',
      '$(PERL5) @script(check-nqp-version.pl)@ $(JS_NQP)');
 
-rule('js-install', 'j-all', '@echo "Installing the js backend is not yet implemented."');
+rule('js-install', 'js-all', '@echo "Installing the js backend is not yet implemented."');
 
 # Stub
 say("js-runner-default:");

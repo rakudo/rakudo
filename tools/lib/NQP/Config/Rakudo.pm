@@ -5,6 +5,7 @@ use warnings;
 package NQP::Config::Rakudo;
 use Cwd;
 use NQP::Config qw<slurp nfp read_config cmp_rev system_or_die>;
+use NQP::Macros;
 
 use base qw<NQP::Config>;
 
@@ -401,6 +402,55 @@ sub gen_nqp {
     }
     return;
 }
+
+package NQP::Macros::Rakudo;
+
+# --- Rakudo-specific macro methods.
+sub _specs_iterate {
+    my $self = shift;
+    my $cb   = shift;
+
+    my $cfg = $self->{config_obj};
+
+    $self->not_in_context( specs => 'spec' );
+
+    for my $spec ( $cfg->perl6_specs ) {
+        my $spec_char   = $spec->[0];
+        my $spec_subdir = "6.$spec_char";
+        my %config      = (
+            ctx_subdir  => $spec_subdir,
+            spec_subdir => $spec_subdir,
+            spec        => $spec_char,
+            ucspec      => uc $spec_char,
+            lcspec      => lc $spec_char,
+        );
+        my $spec_ctx = {
+            spec    => $spec,
+            configs => [ \%config ],
+        };
+        my $s = $cfg->push_ctx($spec_ctx);
+        $cb->(@_);
+    }
+}
+
+# for_specs(text)
+# Iterates over active backends and expands text in the context of each backend.
+sub _m_for_specs {
+    my $self = shift; 
+    my $text = shift;
+
+    my $out = "";
+
+    my $cb = sub {
+        $out .= $self->_expand($text);
+    };
+
+    _specs_iterate($self, $cb);
+
+    return $out;
+}
+
+NQP::Macros->register_macro('for_specs', \&_m_for_specs);
 
 1;
 

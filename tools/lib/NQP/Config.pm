@@ -381,6 +381,7 @@ sub configure_misc {
 sub configure_prefix {
     my $self   = shift;
     my $config = $self->{config};
+    $config->{prefix} //= $self->option('prefix');
     unless ( $config->{prefix} ) {
 
         # XXX This is only Unix-friendly way.

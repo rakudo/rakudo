@@ -411,7 +411,7 @@ sub find_filepath {
 
 # include(file1 file2)
 # Include a file. Parameter is expanded first, then the result is used a the
-# file name. File content is been expanded.
+# file name. File content is expanded.
 # Multiple filenames are split by spaces. If file path contains a space in it it
 # must be quoted with \
 sub _m_include {

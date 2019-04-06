@@ -210,7 +210,21 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             }
         }
         else {
-            $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+            # Limit log calculation to 10**307 or less.
+            # log coerces to Num. When larger than 10**307, it overflows and
+            # returns Inf.
+            my $lim = 10**307;
+            if $!denominator < $lim {
+                $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+            }
+            else {
+                # If the internal log method is modified to handle larger numbers,
+                # this branch can be modified/removed.
+                my $d = $!denominator;
+                my $exp = 0;
+                ++$exp while ($d div= $base) > $lim;
+                $prec = $exp + $d.log($base).ceiling + 2;
+            }
         }
 
         my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
@@ -236,16 +250,17 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
         # Round the final number, based on the remaining fractional part
         if 2*$fract >= 1 {
-            for @fract-digits-1 ... 0 -> $n {
+            for @fract-digits - 1 ... 0 -> $n {
                 last if ++@fract-digits[$n] < $base;
                 @fract-digits[$n] = 0;
                 $result = $sign ~ ($whole+1).base($base) if $n == 0;
             }
         }
 
-        @fract-digits
-            ?? $result ~ '.' ~ @conversion[@fract-digits].join
-            !! $result;
+        $result ~
+        (@fract-digits ??
+         $base <= 10   ?? '.' ~ @fract-digits.join !!
+         '.' ~ @conversion[@fract-digits].join     !! '')
     }
 
     method base-repeating($base = 10) {

@@ -1,0 +1,3 @@
+[submodule "3rdparty/nqp-configure"]
+	path = 3rdparty/nqp-configure
+	url = https://github.com/vrurg/nqp-configure.git

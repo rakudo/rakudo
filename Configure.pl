@@ -11,7 +11,7 @@ use Cwd;
 use Data::Dumper;
 
 BEGIN {
-    print "Updating nqp-configure submodule";
+    print "Updating nqp-configure submodule...\n";
     my $msg = qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
     if ($? >> 8 == 0) { print "OK\n" }
     else {
@@ -72,7 +72,7 @@ MAIN: {
     }
 
     $cfg->configure_from_options;
-    $cfg->configure_prefix;
+    $cfg->configure_refine_vars;
     $cfg->configure_relocatability;
     $cfg->configure_repo_urls;
     $cfg->configure_commands;

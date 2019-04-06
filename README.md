@@ -121,10 +121,10 @@ run the spectests.  For example:
 
     $ make t/spec/S12-traits/parameterized.t
 
-Run all tests in one S* directory with a bash script. One example:
+Run all tests in one S* directory with a sh script. One example:
 
     $ cat run-tests.sh
-    #!/bin/bash
+    #!/bin/sh
     
     # specify the desired directory:
     D='t/spec/S26-documentation'

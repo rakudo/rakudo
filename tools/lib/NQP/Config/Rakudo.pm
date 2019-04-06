@@ -309,16 +309,24 @@ sub post_active_backends {
     $self->sorry(@errors) if @errors;
 }
 
+# Returns true if jvm or moar backend check produced errors and no gen-nqp
+# specified
+sub no_gen_nqp {
+    my $self = shift;
+    return ( $self->backend_error('jvm') || $self->backend_error('moar') )
+      && !$self->{options}{'gen-nqp'};
+}
+
 sub gen_nqp {
     my $self    = shift;
     my $options = $self->{options};
-    my $config  = $self->config;
+    my $config  = $self->{config};
 
     my $nqp_bin      = $options->{'with-nqp'};
     my $nqp_git_spec = $options->{'gen-nqp'};
     my $gen_nqp      = defined $options->{'gen-nqp'};
     my $gen_moar     = $options->{'gen-moar'};
-    my $prefix       = $config->{'prefix'};
+    my $prefix       = $config->{prefix};
     my $sdkroot      = $config->{'sdkroot'};
     my $startdir     = $config->{'base_dir'};
     my $bat          = $config->{bat};

@@ -8,8 +8,22 @@ use Text::ParseWords;
 use Getopt::Long;
 use File::Spec;
 use Cwd;
-use lib 'tools/lib';
 use Data::Dumper;
+
+BEGIN {
+    print "Updating nqp-configure submodule";
+    my $msg = qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
+    if ($? >> 8 == 0) { print "OK\n" }
+    else {
+        if ($msg =~ /[']([^']+)[']\s+already exists and is not an empty/) {
+            print "\n===SORRY=== ERROR: Cannot update submodule because directory exists and is not empty.\n" .
+            ">>> Please delete the following folder and try again:\n$1\n\n";
+            exit 1;
+        }
+    }
+}
+
+use lib qw<tools/lib 3rdparty/nqp-configure/lib>;
 use NQP::Config;
 
 $| = 1;
@@ -57,8 +71,8 @@ MAIN: {
 "===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";
     }
 
-    $cfg->configure_prefix;
     $cfg->configure_from_options;
+    $cfg->configure_prefix;
     $cfg->configure_relocatability;
     $cfg->configure_repo_urls;
     $cfg->configure_commands;

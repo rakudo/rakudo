@@ -73,7 +73,7 @@ rreadlink() (
 DIR=$(dirname -- "$(rreadlink "$0")")
 EOS
 
-$preample_reloc .= "
+$preamble_reloc .= "
 : \${NQP_DIR:=\"\$DIR/../share/nqp\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${PERL6_DIR:=\"\$DIR/../share/perl6\"}

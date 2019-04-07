@@ -2112,9 +2112,12 @@ my class X::Str::Sprintf::Directives::Unsupported is Exception {
 my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.type;
     has str $.directive;
+    has str $.expected;
     has $.value;
     method message() {
-        "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
+        $.expected
+          ??  "Directive $.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
+          !! "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
     }
 }
 

@@ -833,7 +833,18 @@ public final class Binder {
                 return res;
             }
             else {
-                return param.get_attribute_boxed(tc, gcx.Parameter, "$!nominal_type", HINT_nominal_type);
+                param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
+                int paramFlags = (int)tc.native_i;
+                switch (paramFlags & SIG_ELEM_NATIVE_VALUE) {
+                    case SIG_ELEM_NATIVE_INT_VALUE:
+                        return createBox(tc, gcx, (long)0, CallSiteDescriptor.ARG_INT);
+                    case SIG_ELEM_NATIVE_NUM_VALUE:
+                        return createBox(tc, gcx, (double)0.0, CallSiteDescriptor.ARG_NUM);
+                    case SIG_ELEM_NATIVE_STR_VALUE:
+                        return createBox(tc, gcx, null, CallSiteDescriptor.ARG_STR);
+                    default:
+                        return param.get_attribute_boxed(tc, gcx.Parameter, "$!nominal_type", HINT_nominal_type);
+                }
             }
         }
     }

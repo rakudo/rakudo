@@ -2485,7 +2485,9 @@ class Perl6::Optimizer {
             QAST::Var.new(
               :name($it_var), :scope<local>, :decl<var>, :returns(int)
             ),
-            QAST::Op.new( :op<sub_i>, $start, QAST::IVal.new( :value($step)))
+            nqp::istype($start, QAST::IVal)
+                ?? QAST::IVal.new( :value($start.value - $step) )
+                !! QAST::Op.new( :op<sub_i>, $start, QAST::IVal.new( :value($step)))
           ),
 
 # my int $last := $end

@@ -1161,6 +1161,10 @@ class ContainerDescriptor {
         $ins
     }
 }
+class ContainerDescriptor::Untyped is ContainerDescriptor {
+    # Container descriptor for when the type is Mu; the type of this
+    # container descriptor is used as a marker
+}
 role ContainerDescriptor::Whence {
     has $!next-descriptor;
 
@@ -1611,7 +1615,8 @@ BEGIN {
                 my $type := $desc.of;
                 if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
                     nqp::bindattr($cont, Scalar, '$!value', $val);
-                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
+                           nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
                         $desc.assigned($cont);
                         nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
                     }
@@ -1633,7 +1638,8 @@ BEGIN {
         'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
             nqp::bindattr($cont, Scalar, '$!value', $val);
             my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
+                   nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
                 $desc.assigned($cont);
                 nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
             }
@@ -1687,7 +1693,7 @@ BEGIN {
     # Cache a single default Scalar container spec, to ensure we only get
     # one of them.
     Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
-        ContainerDescriptor.new(
+        ContainerDescriptor::Untyped.new(
             :of(Mu), :default(Any), :name('element')));
 
     # Set up various native reference types.

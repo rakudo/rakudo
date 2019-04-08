@@ -1715,7 +1715,10 @@ class Perl6::World is HLL::World {
 
     # Creates a new container descriptor and adds it to the SC.
     method create_container_descriptor($of, $name, $default = $of, $dynamic = is_dynamic($name)) {
-        my $cd_type := self.find_symbol(['ContainerDescriptor'], :setting-only);
+        my $cd_type_name := nqp::eqaddr($of, self.find_symbol(['Mu'], :setting-only))
+            ?? ['ContainerDescriptor', 'Untyped']
+            !! ['ContainerDescriptor'];
+        my $cd_type := self.find_symbol($cd_type_name, :setting-only);
         my $cd := $cd_type.new( :$of, :$name, :$default, :$dynamic );
         self.add_object_if_no_sc($cd);
         $cd

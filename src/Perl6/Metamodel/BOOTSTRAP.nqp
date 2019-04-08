@@ -3749,6 +3749,9 @@ nqp::sethllconfig('perl6', nqp::hash(
     'int64_pos_ref', Int64PosRef,
     'int64_multidim_ref', Int64MultidimRef,
 #?endif
+#?if moar
+    'max_inline_size', 384,
+#?endif
 ));
 
 # Tell parametric role groups how to create a dispatcher.

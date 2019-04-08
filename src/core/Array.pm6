@@ -547,7 +547,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           self!INDEX_OOR($pos),
-          nqp::if(
+          nqp::p6assign(nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
             nqp::ifnull(
               nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
@@ -591,7 +591,7 @@ my class Array { # declared in BOOTSTRAP
               $pos,
               nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
             )
-          ) = assignee
+          ), assignee)
         )
     }
 

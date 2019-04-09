@@ -398,14 +398,18 @@ say $code;
 
     # actual workhorse for sprintf()
     my $format-lock := Lock.new; # allow multiple threads to create formats
-    my %FORMATS;                 # where we keep our formats
+    my $FORMATS := nqp::hash;    # where we keep our formats
     method SPRINTF(Str:D $format, @args --> Str:D) {
         $format-lock.protect: {
-            if %FORMATS.AT-KEY($format) -> &process {
+            if nqp::atkey($FORMATS,$format) -> &process {
                 process(@args);
             }
             else {
-                %FORMATS.BIND-KEY($format,create-format($format))(@args)
+                nqp::deletekey(
+                  $FORMATS,
+                  nqp::iterkey_s(nqp::shift(nqp::iterator($FORMATS)))
+                ) if nqp::elems($FORMATS) == 100;
+                nqp::bindkey($FORMATS,$format,create-format($format))(@args)
             }
         }
     }

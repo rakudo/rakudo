@@ -3374,6 +3374,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 elsif $<initializer><sym> eq '=' {
+                    if $past.ann('init_removal') -> $remove {
+                        $remove();
+                    }
                     $past := assign_op($/, $past, $initast, :initialize);
                 }
                 elsif $<initializer><sym> eq '.=' {
@@ -3789,7 +3792,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Install the container.
             my $cont := $*W.install_lexical_container($BLOCK, $name, %cont_info, $descriptor,
-                :scope($*SCOPE), :package($package));
+                :scope($*SCOPE), :package($package), :init_removal($past));
 
             # Set scope and type on container, and if needed emit code to
             # reify a generic type or create a fresh container.

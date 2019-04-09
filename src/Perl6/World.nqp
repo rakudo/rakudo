@@ -1641,7 +1641,9 @@ class Perl6::World is HLL::World {
 
     # Installs a lexical symbol. Takes a QAST::Block object, name and
     # the type of container to install.
-    method install_lexical_container($block, str $name, %cont_info, $descriptor, :$scope, :$package, :$cont = self.build_container_and_add_to_sc(%cont_info, $descriptor)) {
+    method install_lexical_container($block, str $name, %cont_info, $descriptor,
+            :$scope, :$package, :$cont = self.build_container_and_add_to_sc(%cont_info, $descriptor),
+            :$init_removal) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         my $var;
@@ -1670,23 +1672,32 @@ class Perl6::World is HLL::World {
         my $prim := %cont_info<sigil> eq '$' && nqp::objprimspec($descriptor.of);
         if $prim {
             if $scope eq 'state' { nqp::die("Natively typed state variables not yet implemented") }
+            my $init;
             if $prim == 1 || $prim == 4 || $prim == 5 {
-                $block[0].push(QAST::Op.new( :op('bind'),
+                $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    QAST::IVal.new( :value(0) ) ))
+                    QAST::IVal.new( :value(0) ) );
             }
             elsif $prim == 2 {
-                $block[0].push(QAST::Op.new( :op('bind'),
+                $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
                     $*W.lang-ver-before('d')
                       ?? QAST::Op.new(:op<nan>)
                       !! QAST::NVal.new(:value(0e0))
-                ));
+                );
             }
             elsif $prim == 3 {
-                $block[0].push(QAST::Op.new( :op('bind'),
+                $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    QAST::SVal.new( :value('') ) ))
+                    QAST::SVal.new( :value('') ) );
+            }
+            $block[0].push($init);
+            if $init_removal {
+                $init_removal.annotate('init_removal', -> {
+                    $init.shift;
+                    $init.shift;
+                    $init.op('null');
+                });
             }
             return nqp::null();
         }

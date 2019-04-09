@@ -75,6 +75,9 @@ class Rakudo::Internals::Sprintf {
         token directive:sym<o> {
             '%' <idx>? <flags>* <size>? [ '.' <precision=.size> ]? <sym>
         }
+        token directive:sym<O> {
+            '%' <idx>? <flags>* <size>? [ '.' <precision=.size> ]? <sym>
+        }
         token directive:sym<s> {
             '%' <idx>? <flags>* <size>? [ '.' <precision=.size> ]? <sym>
         }
@@ -198,8 +201,13 @@ class Rakudo::Internals::Sprintf {
             make (~$<sym>, $value)
         }
 
-        # show numeric value in octal
+        # show numeric value in octal with Perl 6 roundtrippability
         method directive:sym<o>($/) {
+            handle-integer-numeric($/, 8, "0o")
+        }
+
+        # show numeric value in octal using Perl 5 semantics
+        method directive:sym<O>($/) {
             handle-integer-numeric($/, 8, "0")
         }
 

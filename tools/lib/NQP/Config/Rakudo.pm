@@ -87,7 +87,7 @@ sub configure_misc {
     ];
 
     $config->{set_nqp_lib} = 'NQP_LIB=blib ';
-    if ($self->is_win) {
+    if ( $self->is_win ) {
         $config->{set_nqp_lib} = "set $config->{set_nqp_lib}\n\t";
     }
 }
@@ -436,7 +436,7 @@ sub _specs_iterate {
 # for_specs(text)
 # Iterates over active backends and expands text in the context of each backend.
 sub _m_for_specs {
-    my $self = shift; 
+    my $self = shift;
     my $text = shift;
 
     my $out = "";
@@ -445,12 +445,12 @@ sub _m_for_specs {
         $out .= $self->_expand($text);
     };
 
-    _specs_iterate($self, $cb);
+    _specs_iterate( $self, $cb );
 
     return $out;
 }
 
-NQP::Macros->register_macro('for_specs', \&_m_for_specs);
+NQP::Macros->register_macro( 'for_specs', \&_m_for_specs );
 
 1;
 

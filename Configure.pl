@@ -28,15 +28,16 @@ qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet up
     }
 }
 
-use lib ("$FindBin::Bin/tools/lib", "$FindBin::Bin/3rdparty/nqp-configure/lib");
+use lib ( "$FindBin::Bin/tools/lib",
+    "$FindBin::Bin/3rdparty/nqp-configure/lib" );
 use NQP::Config;
 use NQP::Config::Rakudo;
 
 $| = 1;
 
-my $cfg = NQP::Config::Rakudo->new;
+my $cfg    = NQP::Config::Rakudo->new;
 my $config = $cfg->config( no_ctx => 1 );
-my $lang = $cfg->cfg('lang');
+my $lang   = $cfg->cfg('lang');
 
 # We don't use ExtUtils::Command in Configure.pl, but it is used in the Makefile
 # Try `use`ing it here so users know if they need to install this module

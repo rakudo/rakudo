@@ -278,7 +278,7 @@
         }
         sub NUMCPY(Mu \to, Mu \from) { NumCopy.new(to,from).sink-all }
 
-        method !RE-INITIALIZE(::?CLASS:D:) {
+        method !RE-INITIALIZE(::?CLASS:D: --> Nil) {
             nqp::bindattr(  # this is a yucky way to re-init, but it works
               self,List,'$!reified',
               nqp::getattr(self.new(:shape(self.shape)),List,'$!reified')

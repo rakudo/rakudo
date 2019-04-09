@@ -124,14 +124,17 @@ class Rakudo::Internals::Sprintf {
         sub has_zero($/)  { $<flags>.contains("0") }
 
         # helper sub for processing formats for integer values
-        sub handle-integer-numeric($/, Int:D $base, Str:D $hash) {
+        sub handle-integer-numeric($/, Int:D $base, Str:D $hash, Bool:D $lc) {
             # set up any prefixes
             my str $prefix = has_plus($/) ?? "+" !! "";
             $prefix = $prefix ~ $hash if has_hash($/);
 
-            # handle precision / zero filling
+            # set up value / lowercasing
             my int $size = +$<size>;
-            my str $value  = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Int.base($base)";
+            my str $value  = "\@args.AT-POS({$*DIRECTIVES++}).Int.base($base)";
+            $value = "$value.lc" if $lc;
+
+            # handle precision / zero filling
             if $<precision> -> $precision {
                 $value = "pad-zeroes-str($precision,$value)";
             }
@@ -154,12 +157,12 @@ class Rakudo::Internals::Sprintf {
 
         # show numeric value in binary
         method directive:sym<b>($/) {
-            handle-integer-numeric($/, 2, "0$<sym>")
+            handle-integer-numeric($/, 2, "0b", False)
         }
 
         # show character representation of codepoint value
         method directive:sym<c>($/) {
-            my str $value = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).chr";
+            my str $value = "\@args.AT-POS({$*DIRECTIVES++}).chr";
 
             # handle justification
             if +$<size> -> $size {
@@ -175,7 +178,7 @@ class Rakudo::Internals::Sprintf {
         method directive:sym<d>($/) {
 
             # handle precision / plus prefixing
-            my str $value = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Int.Str";
+            my str $value = "\@args.AT-POS({$*DIRECTIVES++}).Int.Str";
             if $<precision> -> $precision {
                 $value = has_plus($/)
                   ?? "prefix-plus(pad-zeroes-int($precision,$value))"
@@ -203,17 +206,17 @@ class Rakudo::Internals::Sprintf {
 
         # show numeric value in octal with Perl 6 roundtrippability
         method directive:sym<o>($/) {
-            handle-integer-numeric($/, 8, "0o")
+            handle-integer-numeric($/, 8, "0o", False)
         }
 
         # show numeric value in octal using Perl 5 semantics
         method directive:sym<O>($/) {
-            handle-integer-numeric($/, 8, "0")
+            handle-integer-numeric($/, 8, "0", False)
         }
 
         # show string
         method directive:sym<s>($/) {
-            my str $value = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Str";
+            my str $value = "\@args.AT-POS({$*DIRECTIVES++}).Str";
             
             # handle precision
             if $<precision> -> $precision {
@@ -234,7 +237,7 @@ class Rakudo::Internals::Sprintf {
         method directive:sym<u>($/) {
 
             # handle unsigned check
-            my str $value = "unsigned-int(\@args.AT-POS({$*DIRECTIVES_SEEN++}))";
+            my str $value = "unsigned-int(\@args.AT-POS({$*DIRECTIVES++}))";
             # handle zero padding / left / right justification
             if +$<size> -> $size {
                 if has_minus($/) {
@@ -253,7 +256,7 @@ class Rakudo::Internals::Sprintf {
 
         # show numeric value in octal
         method directive:sym<x>($/) {
-            handle-integer-numeric($/, 16, "0$<sym>")
+            handle-integer-numeric($/, 16, "0x", ~$<sym> eq 'x')
         }
     }
 
@@ -374,7 +377,7 @@ class Rakudo::Internals::Sprintf {
 
     # Create callable for given uncached format string
     sub create-format($format --> Callable:D) {
-        my $*DIRECTIVES_SEEN = 0;
+        my $*DIRECTIVES = 0;
         if Syntax.parse($format, actions => Actions) -> $parsed {
             my @directives;
             my @parts = $parsed<statement>.map: {

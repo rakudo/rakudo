@@ -93,9 +93,7 @@ class Rakudo::Internals::Sprintf {
 
         token literal { <-[%]>+ }
 
-        token idx {
-            $<param_index>=[\d+] '$'
-        }
+        token idx { [\d+] '$' }
 
         token flags { <[ +0#-]> }
 
@@ -109,13 +107,13 @@ class Rakudo::Internals::Sprintf {
         my $knowhow := nqp::knowhow().new_type(:repr("P6bigint"));
         my $zero    := nqp::box_i(0, $knowhow);
 
-        method statement($/){
+        method statement($/ --> Nil){
             make ($<directive> || $<escape> || $<literal>).made;
         }
 
-        method escape:sym<%>($/) { make '%' }
+        method escape:sym<%>($/ --> Nil) { make '%' }
 
-        method literal($/) { make $/.Str.perl }
+        method literal($/ --> Nil) { make $/.Str.perl }
 
         # helper sub to check if a flag is set
         sub has_hash($/)  { $<flags>.contains("#") }
@@ -123,18 +121,33 @@ class Rakudo::Internals::Sprintf {
         sub has_plus($/)  { $<flags>.contains("+") }
         sub has_zero($/)  { $<flags>.contains("0") }
 
+        # helper sub to determine the value for this directive
+        sub value($/ --> Str:D) {
+            my int $index = $<idx> ?? +($<idx>.chop) - 1 !! +@*DIRECTIVES;
+            X::Str::Sprintf::Directives::Unsupported.new(
+              directive => ~$<idx>,
+              sequence  => ~$/,
+            ).throw if $index < 0;
+
+            @*DIRECTIVES[$index] //= "'$<sym>'";
+            "\@args.AT-POS($index)"
+        }
+
         # helper sub for processing formats for integer values
-        sub handle-integer-numeric($/, Int:D $base, Str:D $hash, Bool:D $lc) {
+        sub handle-integer-numeric(
+          $/, Int:D $base, Str:D $hash, Bool:D $lc --> Nil
+        ) {
+
             # set up any prefixes
             my str $prefix = has_plus($/) ?? "+" !! "";
             $prefix = $prefix ~ $hash if has_hash($/);
 
-            # set up value / lowercasing
-            my int $size = +$<size>;
-            my str $value  = "\@args.AT-POS({$*DIRECTIVES++}).Int.base($base)";
+            # set up index / value / lowercasing
+            my str $value = value($/) ~ ".Int.base($base)";
             $value = "$value.lc" if $lc;
 
             # handle precision / zero filling
+            my int $size = +$<size>;
             if $<precision> -> $precision {
                 $value = "pad-zeroes-str($precision,$value)";
             }
@@ -152,33 +165,33 @@ class Rakudo::Internals::Sprintf {
                  !! "str-right-justified($size,$value)";
             }
 
-            make (~$<sym>, $value);
+            make $value;
         }
 
         # show numeric value in binary
-        method directive:sym<b>($/) {
+        method directive:sym<b>($/ --> Nil) {
             handle-integer-numeric($/, 2, "0b", False)
         }
 
         # show character representation of codepoint value
-        method directive:sym<c>($/) {
-            my str $value = "\@args.AT-POS({$*DIRECTIVES++}).chr";
+        method directive:sym<c>($/ --> Nil) {
 
             # handle justification
+            my str $value = value($/) ~ ".chr";
             if +$<size> -> $size {
                 $value = has_minus($/)
                   ?? "str-left-justified($size,$value)"
                   !! "str-right-justified($size,$value)";
             }
 
-            make (~$<sym>, $value)
+            make $value
         }
 
         # show decimal (integer) value
-        method directive:sym<d>($/) {
+        method directive:sym<d>($/ --> Nil) {
 
             # handle precision / plus prefixing
-            my str $value = "\@args.AT-POS({$*DIRECTIVES++}).Int.Str";
+            my str $value = value($/) ~ ".Int.Str";
             if $<precision> -> $precision {
                 $value = has_plus($/)
                   ?? "prefix-plus(pad-zeroes-int($precision,$value))"
@@ -201,24 +214,24 @@ class Rakudo::Internals::Sprintf {
                 }
             }
 
-            make (~$<sym>, $value)
+            make $value
         }
 
         # show numeric value in octal with Perl 6 roundtrippability
-        method directive:sym<o>($/) {
+        method directive:sym<o>($/ --> Nil) {
             handle-integer-numeric($/, 8, "0o", False)
         }
 
         # show numeric value in octal using Perl 5 semantics
-        method directive:sym<O>($/) {
+        method directive:sym<O>($/ --> Nil) {
             handle-integer-numeric($/, 8, "0", False)
         }
 
         # show string
-        method directive:sym<s>($/) {
-            my str $value = "\@args.AT-POS({$*DIRECTIVES++}).Str";
+        method directive:sym<s>($/ --> Nil) {
             
             # handle precision
+            my str $value = value($/) ~ ".Str";
             if $<precision> -> $precision {
                 $value = "$value\.substr(0,$precision)"
             }
@@ -230,14 +243,15 @@ class Rakudo::Internals::Sprintf {
                   !! "str-right-justified($size,$value)";
             }
 
-            make (~$<sym>, $value)
+            make $value
         }
 
         # show unsigned decimal (integer) value
-        method directive:sym<u>($/) {
+        method directive:sym<u>($/ --> Nil) {
 
             # handle unsigned check
-            my str $value = "unsigned-int(\@args.AT-POS({$*DIRECTIVES++}))";
+            my str $value = "unsigned-int({value($/)})";
+
             # handle zero padding / left / right justification
             if +$<size> -> $size {
                 if has_minus($/) {
@@ -251,11 +265,11 @@ class Rakudo::Internals::Sprintf {
                 }
             }
 
-            make (~$<sym>, $value)
+            make $value
         }
 
         # show numeric value in octal
-        method directive:sym<x>($/) {
+        method directive:sym<x>($/ --> Nil) {
             handle-integer-numeric($/, 16, "0x", ~$<sym> eq 'x')
         }
     }
@@ -377,30 +391,18 @@ class Rakudo::Internals::Sprintf {
 
     # Create callable for given uncached format string
     sub create-format($format --> Callable:D) {
-        my $*DIRECTIVES = 0;
+        my @*DIRECTIVES;
         if Syntax.parse($format, actions => Actions) -> $parsed {
-            my @directives;
-            my @parts = $parsed<statement>.map: {
-                my $made := .made;
-
-                # an actual directive
-                if $made.elems > 1 {
-                    @directives.push($made[0].perl);
-                    $made[1]
-                }
-
-                # just a string
-                else {
-                    $made
-                }
-            }
+            my @parts = $parsed<statement>.map: *.made;
 
             # at least one directive
             my $code = "-> \@args \{\n";
-            if @directives {
-                $code = @directives == 1
-                  ?? "$code  check-one-arg(\@args,@directives[0]);\n"
-                  !! "$code  check-args(\@args,(@directives.join(",")));\n";
+            if @*DIRECTIVES {
+                $code = @*DIRECTIVES == 1
+                  ?? "$code  check-one-arg(\@args,@*DIRECTIVES[0]);\n"
+                  !! "$code  check-args(\@args,(@*DIRECTIVES.map( {
+                         $_ // "''"
+                     } ).join(",")));\n";
                 $code = @parts == 1
                   ?? "$code  @parts[0]\n}"
                   !! "$code  (\n    @parts.join(",\n    ")\n  ).join\n}";

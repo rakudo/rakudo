@@ -88,7 +88,7 @@ sub configure_misc {
 
     $config->{set_nqp_lib} = 'NQP_LIB=blib ';
     if ($self->is_win) {
-        $config->{set_nqp_lib} = "\tset $config->{set_nqp_lib}\n";
+        $config->{set_nqp_lib} = "set $config->{set_nqp_lib}\n\t";
     }
 }
 

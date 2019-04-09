@@ -298,8 +298,81 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             ?? $!numerator
             !! self;
     }
-
-    multi method round(::?CLASS:D: --> Int:D) {
+    multi method round(::?CLASS:D: :$HALF-DOWN! --> Int:D) {
+        return Failure.new(
+          X::Numeric::DivideByZero.new(
+            :details('when calling .round on Rational')
+          )
+        ) unless $!denominator;
+        my ($numerator, $denominator) = (
+          nqp::sub_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+          nqp::mul_I($!denominator, 2, Int),
+        );
+        ceiling($numerator/$denominator);
+    }
+    multi method round(::?CLASS:D: :$HALF-EVEN! --> Int:D) {
+        return Failure.new(
+          X::Numeric::DivideByZero.new(
+            :details('when calling .round on Rational')
+          )
+        ) unless $!denominator;
+        if $!numerator mod $!denominator == $!denominator / 2 {
+          return floor(self) %% 2 ?? floor(self) !! ceiling(self);
+        }
+        self.round(:HALF-UP);
+    }
+    multi method round(::?CLASS:D: :$HALF-ODD! --> Int:D) {
+        return Failure.new(
+          X::Numeric::DivideByZero.new(
+            :details('when calling .round on Rational')
+          )
+        ) unless $!denominator;
+        if $!numerator mod $!denominator == $!denominator / 2 {
+          return floor(self) %% 2 ?? ceiling(self) !! floor(self);
+        }
+        self.round(:HALF-UP);
+    }
+    multi method round(::?CLASS:D: :$TO-ZERO! --> Int:D) {
+        return Failure.new(
+          X::Numeric::DivideByZero.new(
+            :details('when calling .round on Rational')
+          )
+        ) unless $!denominator;
+        my ($numerator, $denominator);
+        if $!numerator < 0 ^^ $!denominator < 0 { #it's a negative
+            ($numerator, $denominator) = (
+              nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+              nqp::mul_I($!denominator, 2, Int),
+            );
+            return floor($numerator/$denominator);
+        }
+        ($numerator, $denominator) = (
+          nqp::sub_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+          nqp::mul_I($!denominator, 2, Int),
+        );
+        return ceiling($numerator/$denominator);
+    }
+    multi method round(::?CLASS:D: :$FROM-ZERO! --> Int:D) {
+        return Failure.new(
+          X::Numeric::DivideByZero.new(
+            :details('when calling .round on Rational')
+          )
+        ) unless $!denominator;
+        my ($numerator, $denominator);
+        if ($!numerator < 0 && $!denominator < 0) || ($!numerator > 0 && $!denominator > 0) { #it's a negative
+            ($numerator, $denominator) = (
+              nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+              nqp::mul_I($!denominator, 2, Int),
+            );
+            return floor($numerator/$denominator);
+        }
+        ($numerator, $denominator) = (
+          nqp::sub_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+          nqp::mul_I($!denominator, 2, Int),
+        );
+        return ceiling($numerator/$denominator);
+    }
+    multi method round(::?CLASS:D: :$HALF-UP! --> Int:D) {
         $!denominator
           ?? nqp::div_I(
                nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
@@ -312,6 +385,10 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                )
              )
     }
+    multi method round(::?CLASS:D: --> Int:D) {
+        self.round(:HALF-UP);
+    }
+
 }
 
 # vim: ft=perl6 expandtab sw=4

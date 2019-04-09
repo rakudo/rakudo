@@ -22,7 +22,7 @@ stresstest: @for_backends(@backend_prefix@-stresstest$(HARNESS_TYPE))@
 
 @for_backends(@ctx_include(Makefile)@)@
 
-t/*/*.t t/*.t t/*/*/*.t: all
+@nfp(t/*/*.t t/*.t t/*/*/*.t)@: all
 	$(@uc(@default_prefix@)@_HARNESS5_WITH_FUDGE) --verbosity=1 $@
 
 # vim: ft=make noexpandtab ts=4 sw=4

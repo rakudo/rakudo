@@ -2,15 +2,15 @@
 
 .NOTPARALLEL:
 
-spectest_checkout : t/spec
-t/spec :
+spectest_checkout : @nfp(t/spec)@
+@nfp(t/spec)@:
 	git clone @roast_pull_url@ @nfp(t/spec)@
 	-cd @nfp(t/spec/)@ && git config remote.origin.pushurl @roast_push_url@
 
 spectest_update :
 	-cd @nfp(t/spec)@ && git pull --ff-only
 
-t/localtest.data:
+@nfp(t/localtest.data)@:
 	$(TEST_F) $@
 
 realclean: clean

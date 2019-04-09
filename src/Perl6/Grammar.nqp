@@ -2431,6 +2431,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || <onlystar>
         || <!before '{'> <possibly_subname=.deflongname> { if self.parse($<deflongname>.Str, :rule('typename')) { $/.panic("Did you mean to write \"my $<deflongname> sub $<possibly_subname>\" or put \"returns $<deflongname>\" before the block?"); } } <!>
         || <blockoid>
+           :my $stub := $*MAY_USE_RETURN && nqp::bindlexdyn('$*MAY_USE_RETURN', 1);
         ]
     }
 
@@ -2494,6 +2495,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [
             || <onlystar>
             || <blockoid>
+               :my $stub := $*MAY_USE_RETURN && nqp::bindlexdyn('$*MAY_USE_RETURN', 1);
             ]
         ] || <.malformed('method')>
     }

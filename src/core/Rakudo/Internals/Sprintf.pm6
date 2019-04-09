@@ -94,13 +94,7 @@ class Rakudo::Internals::Sprintf {
             $<param_index>=[\d+] '$'
         }
 
-        token flags {
-            | $<space> = ' '
-            | $<plus>  = '+'
-            | $<minus> = '-'
-            | $<zero>  = '0'
-            | $<hash>  = '#'
-        }
+        token flags { <[ +0#-]> }
 
         token size {
             \d* | $<star>='*'
@@ -121,27 +115,25 @@ class Rakudo::Internals::Sprintf {
         method literal($/) { make $/.Str.perl }
 
         # helper sub to check if a flag is set
-        sub has_flag($/, $key) {
-            with $<flags> -> $flags {
-                return True if .AT-KEY($key) for $flags.list;
-            }
-            False
-        }
+        sub has_hash($/)  { $<flags>.contains("#") }
+        sub has_minus($/) { $<flags>.contains("-") }
+        sub has_plus($/)  { $<flags>.contains("+") }
+        sub has_zero($/)  { $<flags>.contains("0") }
 
         # show numeric value in binary
         method directive:sym<b>($/) {
             my int $size = +$<size>;
 
             # set up any prefixes
-            my str $prefix = has_flag($/, 'plus') ?? "+" !! "";
-            $prefix = $prefix ~ "0$<sym>" if has_flag($/, 'hash');
+            my str $prefix = has_plus($/) ?? "+" !! "";
+            $prefix = $prefix ~ "0$<sym>" if has_hash($/);
 
             # handle precision / zero filling
             my str $value  = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Int.base(2)";
             if $<precision> -> $precision {
                 $value = "pad-zeroes-str($precision,$value)";
             }
-            elsif has_flag($/, 'zero') {
+            elsif has_zero($/) {
                 $value = "pad-zeroes-str({$size - $prefix.chars},$value)";
             }
 
@@ -149,7 +141,7 @@ class Rakudo::Internals::Sprintf {
             $value = "'$prefix' ~ $value" if $prefix;
 
             # handle left/right justification
-            if has_flag($/, 'minus') {
+            if has_minus($/) {
                 $value = "str-left-justified($size,$value)";
             }
             elsif $size {
@@ -180,19 +172,19 @@ class Rakudo::Internals::Sprintf {
             # handle precision / zero filling
             my str $value = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Int.Str";
             if $<precision> -> $precision {
-                $value = has_flag($/, 'plus')
+                $value = has_plus($/)
                   ?? "prefix-plus(pad-zeroes-int($precision,$value))"
                   !! "pad-zeroes-int($precision,$value)";
             }
-            elsif has_flag($/, 'plus') {
+            elsif has_plus($/) {
                 $value = "prefix-plus($value)";
             }
-            elsif has_flag($/, 'zero') {
+            elsif has_zero($/) {
                 $value = "pad-zeroes-int($size,$value)";
             }
 
             # handle left/right justification
-            if has_flag($/, 'minus') {
+            if has_minus($/) {
                 $value = "str-left-justified($size,$value)";
             }
             elsif $size {
@@ -213,7 +205,7 @@ class Rakudo::Internals::Sprintf {
             }
 
             # handle left/right justification
-            if has_flag($/, 'minus') {
+            if has_minus($/) {
                 $value = "str-left-justified($size,$value)";
             }
             elsif $size {
@@ -231,10 +223,10 @@ class Rakudo::Internals::Sprintf {
             # handle zero padding / left / right justification
             my int $size = +$<size>;
             if $size {
-                if has_flag($/, 'zero') {
+                if has_zero($/) {
                     $value = "pad-zeroes-int($size,$value)";
                 }
-                elsif has_flag($/, 'minus') {
+                elsif has_minus($/) {
                     $value = "str-left-justified($size,$value)";
                 }
                 else {

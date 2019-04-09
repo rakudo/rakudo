@@ -9,11 +9,6 @@ use NQP::Macros;
 
 use base qw<NQP::Config>;
 
-sub TIEHASH {
-    my $class = shift;
-    return $class->SUPER::TIEHASH( lang => 'Rakudo', @_ );
-}
-
 sub configure_backends {
     my $self   = shift;
     my $config = $self->{config};

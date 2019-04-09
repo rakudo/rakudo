@@ -8,7 +8,7 @@ use Text::ParseWords;
 use Getopt::Long;
 use File::Spec;
 use Cwd;
-use Data::Dumper;
+use FindBin;
 
 BEGIN {
     unless ( -e '3rdparty/nqp-configure/LICENSE' ) {
@@ -28,12 +28,15 @@ qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet up
     }
 }
 
-use lib qw<tools/lib 3rdparty/nqp-configure/lib>;
+use lib ("$FindBin::Bin/tools/lib", "$FindBin::Bin/3rdparty/nqp-configure/lib");
 use NQP::Config;
+use NQP::Config::Rakudo;
 
 $| = 1;
 
-my $cfg = tie my %config, 'NQP::Config', lang => 'Rakudo';
+my $cfg = NQP::Config::Rakudo->new;
+my $config = $cfg->config( no_ctx => 1 );
+my $lang = $cfg->cfg('lang');
 
 # We don't use ExtUtils::Command in Configure.pl, but it is used in the Makefile
 # Try `use`ing it here so users know if they need to install this module
@@ -44,8 +47,8 @@ MAIN: {
         unshift @ARGV, shellwords( slurp('config.default') );
     }
 
-    my $config_status = "$config{lclang}_config_status";
-    $config{$config_status} = join ' ', map { qq("$_") } @ARGV;
+    my $config_status = "$config->{lclang}_config_status";
+    $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
         $cfg->options,      'help!',
@@ -98,7 +101,8 @@ MAIN: {
 
     close $MAKEFILE or die "Cannot write 'Makefile': $!";
 
-    my $make = $config{make};
+    my $make = $cfg->cfg('make');
+
     unless ( $cfg->opt('no-clean') ) {
         no warnings;
         print "Cleaning up ...\n";
@@ -111,12 +115,12 @@ MAIN: {
     if ( $cfg->opt('make-install') ) {
         system_or_die($make);
         system_or_die( $make, 'install' );
-        print "\n$config{lang} has been built and installed.\n";
+        print "\n$lang has been built and installed.\n";
     }
     else {
-        print "\nYou can now use '$make' to build $config{lang}.\n";
+        print "\nYou can now use '$make' to build $lang.\n";
         print "After that, '$make test' will run some tests and\n";
-        print "'$make install' will install $config{lang}.\n";
+        print "'$make install' will install $lang.\n";
     }
 
     exit 0;
@@ -125,7 +129,7 @@ MAIN: {
 #  Print some help text.
 sub print_help {
     print <<"END";
-Configure.pl - $config{lang} Configure
+Configure.pl - $lang Configure
 
 General Options:
     --help             Show this text

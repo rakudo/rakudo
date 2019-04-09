@@ -141,11 +141,10 @@ class Rakudo::Internals::Sprintf {
             $value = "'$prefix' ~ $value" if $prefix;
 
             # handle left/right justification
-            if has_minus($/) {
-                $value = "str-left-justified($size,$value)";
-            }
-            elsif $size {
-                $value = "str-right-justified($size,$value)";
+            if $size {
+                $value = has_minus($/)
+                 ?? "str-left-justified($size,$value)"
+                 !! "str-right-justified($size,$value)";
             }
 
             make (~$<sym>, $value);
@@ -153,23 +152,22 @@ class Rakudo::Internals::Sprintf {
 
         # show character representation of codepoint value
         method directive:sym<c>($/) {
-            my int $size  = +$<size>;
             my str $value = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).chr";
-            make (
-              ~$<sym>,
-              $size > 0
-                ?? "str-right-justified($size,$value)"
-                !! $size < 0
-                  ?? "str-left-justified(-$size,$value)"
-                  !! $value
-            )
+
+            # handle justification
+            if +$<size> -> $size {
+                $value = has_minus($/)
+                  ?? "str-left-justified($size,$value)"
+                  !! "str-right-justified($size,$value)";
+            }
+
+            make (~$<sym>, $value)
         }
 
         # show decimal (integer) value
         method directive:sym<d>($/) {
-            my int $size = +$<size>;
 
-            # handle precision / zero filling
+            # handle precision / plus prefixing
             my str $value = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Int.Str";
             if $<precision> -> $precision {
                 $value = has_plus($/)
@@ -179,16 +177,18 @@ class Rakudo::Internals::Sprintf {
             elsif has_plus($/) {
                 $value = "prefix-plus($value)";
             }
-            elsif has_zero($/) {
-                $value = "pad-zeroes-int($size,$value)";
-            }
 
-            # handle left/right justification
-            if has_minus($/) {
-                $value = "str-left-justified($size,$value)";
-            }
-            elsif $size {
-                $value = "str-right-justified($size,$value)";
+            # handle left/right justification / zero padding
+            if +$<size> -> $size {
+                if has_minus($/) {
+                    $value = "str-left-justified($size,$value)";
+                }
+                elsif has_zero($/) {
+                    $value = "pad-zeroes-int($size,$value)";
+                }
+                else {
+                    $value = "str-right-justified($size,$value)";
+                }
             }
 
             make (~$<sym>, $value)
@@ -196,7 +196,6 @@ class Rakudo::Internals::Sprintf {
 
         # show string
         method directive:sym<s>($/) {
-            my int $size  = +$<size>;
             my str $value = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Str";
             
             # handle precision
@@ -205,11 +204,10 @@ class Rakudo::Internals::Sprintf {
             }
 
             # handle left/right justification
-            if has_minus($/) {
-                $value = "str-left-justified($size,$value)";
-            }
-            elsif $size {
-                $value = "str-right-justified($size,$value)";
+            if +$<size> -> $size {
+                $value = has_minus($/)
+                  ?? "str-left-justified($size,$value)"
+                  !! "str-right-justified($size,$value)";
             }
 
             make (~$<sym>, $value)
@@ -221,13 +219,12 @@ class Rakudo::Internals::Sprintf {
             # handle unsigned check
             my str $value = "unsigned-int(\@args.AT-POS({$*DIRECTIVES_SEEN++}))";
             # handle zero padding / left / right justification
-            my int $size = +$<size>;
-            if $size {
-                if has_zero($/) {
-                    $value = "pad-zeroes-int($size,$value)";
-                }
-                elsif has_minus($/) {
+            if +$<size> -> $size {
+                if has_minus($/) {
                     $value = "str-left-justified($size,$value)";
+                }
+                elsif has_zero($/) {
+                    $value = "pad-zeroes-int($size,$value)";
                 }
                 else {
                     $value = "str-right-justified($size,$value)";

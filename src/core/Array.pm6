@@ -524,8 +524,9 @@ my class Array { # declared in BOOTSTRAP
     # because this is a very hot path, we copied the code from the int candidate
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
         my \assignee_decont := nqp::decont(assignee);
-        nqp::isge_i($pos, 0) && nqp::isconcrete(nqp::getattr(self,List,'$!reified')) &&
-                  nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
+        nqp::bitand_i(
+                nqp::bitand_i(nqp::isge_i($pos, 0), nqp::isconcrete(nqp::getattr(self,List,'$!reified'))),
+                nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo'))))
             ?? self!ASSIGN_POS_FAST_PATH($pos, assignee_decont)
             !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
     }

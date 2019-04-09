@@ -120,16 +120,15 @@ class Rakudo::Internals::Sprintf {
         sub has_plus($/)  { $<flags>.contains("+") }
         sub has_zero($/)  { $<flags>.contains("0") }
 
-        # show numeric value in binary
-        method directive:sym<b>($/) {
-            my int $size = +$<size>;
-
+        # helper sub for processing formats for integer values
+        sub handle-integer-numeric($/, $base) {
             # set up any prefixes
             my str $prefix = has_plus($/) ?? "+" !! "";
             $prefix = $prefix ~ "0$<sym>" if has_hash($/);
 
             # handle precision / zero filling
-            my str $value  = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Int.base(2)";
+            my int $size = +$<size>;
+            my str $value  = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Int.base($base)";
             if $<precision> -> $precision {
                 $value = "pad-zeroes-str($precision,$value)";
             }
@@ -149,6 +148,9 @@ class Rakudo::Internals::Sprintf {
 
             make (~$<sym>, $value);
         }
+
+        # show numeric value in binary
+        method directive:sym<b>($/) { handle-integer-numeric($/, 2) }
 
         # show character representation of codepoint value
         method directive:sym<c>($/) {
@@ -194,6 +196,9 @@ class Rakudo::Internals::Sprintf {
             make (~$<sym>, $value)
         }
 
+        # show numeric value in octal
+        method directive:sym<o>($/) { handle-integer-numeric($/, 8) }
+
         # show string
         method directive:sym<s>($/) {
             my str $value = "\@args.AT-POS({$*DIRECTIVES_SEEN++}).Str";
@@ -233,6 +238,9 @@ class Rakudo::Internals::Sprintf {
 
             make (~$<sym>, $value)
         }
+
+        # show numeric value in octal
+        method directive:sym<x>($/) { handle-integer-numeric($/, 16) }
     }
 
     # RUNTIME number of arguments checker

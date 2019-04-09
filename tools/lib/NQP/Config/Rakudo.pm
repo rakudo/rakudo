@@ -85,6 +85,11 @@ sub configure_misc {
             slurp( $self->template_file_path( 'PERL6_SPECS', required => 1, ) )
           )
     ];
+
+    $config->{set_nqp_lib} = 'NQP_LIB=blib ';
+    if ($self->is_win) {
+        $config->{set_nqp_lib} = "\tset $config->{set_nqp_lib}\n";
+    }
 }
 
 sub configure_jvm_backend {

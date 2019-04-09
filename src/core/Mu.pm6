@@ -778,11 +778,14 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         $capture
     }
 
+    # Various of the following dispatch methods are not called in situations
+    # where the compiler can rewrite them into a cheaper form.
+
     # XXX TODO: Handle positional case.
     method dispatch:<var>(Mu \SELF: $var, |c) is raw {
-        # Note: many cases of this dispatch are rewritten in Perl6::Actions
-        # to directly call the stuff in $var, bypassing this method
-        $var(SELF, |c)
+        # We put a `return` here to make sure we do the right thing if $var
+        # happens to be &fail.
+        return $var(SELF, |c)
     }
 
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is raw {

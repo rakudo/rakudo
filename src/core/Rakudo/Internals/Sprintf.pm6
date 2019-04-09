@@ -250,7 +250,7 @@ class Rakudo::Internals::Sprintf {
         method directive:sym<u>($/ --> Nil) {
 
             # handle unsigned check
-            my str $value = "unsigned-int({value($/)})";
+            my str $value = "unsigned-int(" ~ value($/) ~ ")";
 
             # handle zero padding / left / right justification
             if +$<size> -> $size {

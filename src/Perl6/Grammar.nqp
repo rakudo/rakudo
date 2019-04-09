@@ -788,6 +788,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*SET_DEFAULT_LANG_VER := 1;
         :my %*SIG_INFO;                            # information about recent signature
         :my $*CAN_LOWER_TOPIC := 1;                # true if we optimize the $_ lexical away
+        :my $*MAY_USE_RETURN := 0;                 # true if the current routine may use return
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -2371,6 +2372,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $outer := $*W.cur_lexpad();
         :my $*BORG := {};
         :my $*FATAL := self.pragma('fatal');  # can also be set from inside statementlist
+        :my $*MAY_USE_RETURN := 0;
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -2445,6 +2447,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*SIG_INFO;
         :my $*BORG := {};
         :my $*FATAL := self.pragma('fatal');  # can also be set from inside statementlist
+        :my $*MAY_USE_RETURN := 0;
         {
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
@@ -3022,14 +3025,27 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [ <?after ','\h*<.[ . … ]>+> { self.worry("Comma found before apparent sequence operator; please remove comma (or put parens around the ... call, or use 'fail' instead of ...)") } ]?
         [ <?{ $*GOAL eq 'endargs' && !$*COMPILING_CORE_SETTING }> <?after <.:L + [\]]>\h*<[ . … ]>+> { self.worry("Apparent sequence operator parsed as stubbed function argument; please supply any missing argument to the function or the sequence (or parenthesize the ... call, or use 'fail' instead of ...)") } ]?
         <args>
+        { $*MAY_USE_RETURN := 1 }
     }
     token term:sym<???> { <sym> <args> }
     token term:sym<!!!> { <sym> <args> }
 
+    my %returnish := nqp::hash(
+        'return', 1,
+        'return-rw', 1,
+        'fail', 1,
+        'nextsame', 1,
+        'nextwith', 1,
+        'EVAL', 1,
+        'EVALFILE', 1);
+
     token term:sym<identifier> {
         :my $pos;
         <identifier> <!{ $*W.is_type([~$<identifier>]) }> [ <?before <.unsp>? '('> | \\ <?before '('> ]
-        { $pos := $/.pos }
+        {
+            $pos := $/.pos;
+            if %returnish{$<identifier>.Str} { $*MAY_USE_RETURN := 1 }
+        }
         <args(1)>
         {
             if !$<args><invocant> {
@@ -3065,12 +3081,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %colonpairs;
         :my $*longname;
         :my $pos;
-        :my $*IN_RETURN;
+        :my $*IN_RETURN := 0;
         :my $is_type := 0;
         {
             $*longname := $*W.dissect_longname($<longname>);
             $pos := $/.pos;
-            $*IN_RETURN := $<longname>.Str eq 'return';
+            if $<longname>.Str eq 'return' {
+                $*IN_RETURN := 1;
+                $*MAY_USE_RETURN := 1;
+            }
+            elsif %returnish{$<longname>.Str} || $*longname.contains_indirect_lookup() {
+                $*MAY_USE_RETURN := 1;
+            }
             $is_type := !$*longname.get_who && $*W.is_type($*longname.components());
         }
         [
@@ -3849,12 +3871,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token methodop {
         [
-        | <longname> { if $<longname> eq '::' { self.malformed("class-qualified postfix call") } }
-        | <?[$@&]> <variable> { self.check_variable($<variable>) }
+        | <longname> {
+                if $<longname> eq '::' { self.malformed("class-qualified postfix call") }
+                elsif %returnish{$<longname>.Str} { $*MAY_USE_RETURN := 1 }
+          }
+        | <?[$@&]> <variable> { self.check_variable($<variable>); $*MAY_USE_RETURN := 1 }
         | <?['"]>
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
+            { $*MAY_USE_RETURN := 1 }
         ] <.unsp>?
         :dba('method arguments')
         [

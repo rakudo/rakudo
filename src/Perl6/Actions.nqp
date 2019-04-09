@@ -3913,15 +3913,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $block.push(WANTED($<statementlist>.ast,'&def'));
                 $block.node($/);
             }
-            if is_clearly_returnless($block) {
+            if $*MAY_USE_RETURN {
+                $block[1] := wrap_return_handler($block[1]);
+            }
+            else {
                 $block[1] := QAST::Op.new(
                     :op(decontrv_op()),
                     QAST::WVal.new( :value($*DECLARAND) ),
                     $block[1]);
                 $block[1] := wrap_return_type_check($block[1], $*DECLARAND);
-            }
-            else {
-                $block[1] := wrap_return_handler($block[1]);
             }
         }
         $block.blocktype('declaration_static');
@@ -4348,15 +4348,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $past := WANTED($<blockoid>.ast,'method_def');
-            if is_clearly_returnless($past) {
+            if $*MAY_USE_RETURN {
+                $past[1] := wrap_return_handler($past[1]);
+            }
+            else {
                 $past[1] := QAST::Op.new(
                     :op(decontrv_op()),
                     QAST::WVal.new( :value($*DECLARAND) ),
                     $past[1]);
                 $past[1] := wrap_return_type_check($past[1], $*DECLARAND);
-            }
-            else {
-                $past[1] := wrap_return_handler($past[1]);
             }
         }
         $past.blocktype('declaration_static');
@@ -4659,54 +4659,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $*W.install_package_symbol($/, $package, '&' ~ $name, $code, 'method');
         }
-    }
-
-    sub is_clearly_returnless($block) {
-        sub returnless_past($past) {
-            return 0 unless
-                # It's a simple operation.
-                nqp::istype($past, QAST::Op)
-                    && $past.op ne 'callmethod' # May be .return or similar
-                    && nqp::getcomp('QAST').operations.is_inlinable('perl6', $past.op) ||
-                # A QAST::Stmt node
-                nqp::istype($past, QAST::Stmt) ||
-                # Just a variable lookup.
-                nqp::istype($past, QAST::Var) ||
-                # Just a QAST::Want
-                nqp::istype($past, QAST::Want) ||
-                # Just a primitive or world value.
-                nqp::istype($past, QAST::WVal) ||
-                nqp::istype($past, QAST::IVal) ||
-                nqp::istype($past, QAST::NVal) ||
-                nqp::istype($past, QAST::SVal);
-            for @($past) {
-                if nqp::istype($_, QAST::Node) {
-                    if !returnless_past($_) {
-                        return 0;
-                    }
-                }
-            }
-            1;
-        }
-
-        # Ensure second node is QAST::Stmts.
-        return 0 unless nqp::istype($block[1], QAST::Stmts);
-
-        # Ensure there's no nested blocks.
-        for @($block[0]) {
-            if nqp::istype($_, QAST::Block) { return 0; }
-            if nqp::istype($_, QAST::Stmts) {
-                for @($_) {
-                    if nqp::istype($_, QAST::Block) { return 0; }
-                }
-            }
-        }
-
-        # Check the block content.
-        for @($block[1]) {
-            return 0 unless returnless_past($_);
-        }
-        return 1;
     }
 
     sub is_yada($/) {

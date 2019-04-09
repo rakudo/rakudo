@@ -413,7 +413,9 @@ class Rakudo::Internals::Sprintf {
                 $code = "$code  check-no-arg(\@args);\n  @parts[0]\n}";
             }
 say $code;
-            EVAL $code
+            EVAL($code) but role is-hidden-from-backtrace {
+                method is-hidden-from-backtrace(--> True) { }
+            }
         }
         else {
             die "huh?"

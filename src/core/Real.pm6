@@ -38,30 +38,8 @@ my role Real does Numeric {
     method ceiling() { self.Bridge.ceiling }
 
     proto method round(|) {*}
-    multi method round(Real:D: :$HALF-UP!) {
-        (self + 1/2).floor; # Rat NYI here, so no .5
-    }
-    multi method round(Real:D: Bool:D :$HALF-DOWN!) {
-        (self - 1/2).ceiling;
-    }
-    multi method round(Real:D: :$HALF-EVEN!) {
-        (self - self.floor == 1/2
-                  ?? (self.floor %% 2 ?? self.floor !! self.ceiling)
-                  !! self.round(:HALF-UP));
-    }
-    multi method round(Real:D: :$HALF-ODD!) {
-        (self - self.floor == 1/2
-                  ?? (self.floor %% 2 ?? self.ceiling !! self.floor)
-                  !! self.round(:HALF-UP));
-    }
-    multi method round(Real:D: :$TO-ZERO!) {
-        (self + (self < 0 ?? 1/2 !! -1/2))."{self < 0 ?? 'floor' !! 'ceiling'}"();
-    }
-    multi method round(Real:D: :$FROM-ZERO!) {
-        (self + (self > 0 ?? 1/2 !! -1/2))."{self > 0 ?? 'floor' !! 'ceiling'}"();
-    }
     multi method round(Real:D:) {
-        self.round(:HALF-UP);
+        (self + 1/2).floor; # Rat NYI here, so no .5
     }
     multi method round(Real:D: Real() $scale) {
         (self / $scale + 1/2).floor * $scale;

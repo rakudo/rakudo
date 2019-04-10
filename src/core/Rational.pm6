@@ -354,7 +354,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             :details('when calling .round on Rational')
           )
         ) unless $!denominator;
-        my ($numerator, $denominator);
         if ($!numerator < 0 && $!denominator < 0) || ($!numerator > 0 && $!denominator > 0) {
             return floor(
               nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int).Int /

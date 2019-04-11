@@ -3642,7 +3642,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         my $check     := $matches[+$matches - 1];
         my str $str   := $check.Str;
         my $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
-        $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>'
+        $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>' || $last eq '»'
     }
 
     method EXPR(str $preclim = '') {

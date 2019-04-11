@@ -91,7 +91,7 @@ MAIN: {
     # Save options in config.status
     $cfg->save_config_status;
 
-    $cfg->options->{'gen-nqp'} ||= 1 if $cfg->has_option('gen-moar');
+    $cfg->options->{'gen-nqp'} ||= '' if $cfg->has_option('gen-moar');
     $cfg->gen_nqp;
     $cfg->configure_active_backends;
 

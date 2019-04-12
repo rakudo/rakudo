@@ -195,11 +195,11 @@ S03-binding/hashes.t
 S03-binding/nested.t
 S03-binding/ro.t
 S03-binding/scalars.t
-S03-buf/read-int.t
-S03-buf/read-num.t
+S03-buf/read-int.t   # moar
+S03-buf/read-num.t   # moar
 S03-buf/read-write-bits.t
-S03-buf/write-int.t
-S03-buf/write-num.t
+S03-buf/write-int.t   # moar
+S03-buf/write-num.t   # moar
 S03-feeds/basic.t
 S03-junctions/associative.t
 S03-junctions/autothreading.t
@@ -490,6 +490,7 @@ S06-macros/quasi-blocks.t
 S06-macros/unquoting.t
 S06-macros/opaque-ast.t
 S06-multi/by-trait.t
+S06-multi/compile-time.t
 S06-multi/lexical-multis.t
 S06-multi/positional-vs-named.t
 S06-multi/proto.t
@@ -568,7 +569,7 @@ S07-slip/slip.t
 S07-iterators/range-iterator.t
 S07-hyperrace/basics.t # moar
 S07-hyperrace/for.t
-S07-hyperrace/stress.t # stress
+S07-hyperrace/stress.t # moar stress
 S06-traits/slurpy-is-rw.t
 S09-autovivification/autoincrement.t
 S09-autovivification/autovivification.t
@@ -897,7 +898,7 @@ S17-supply/merge.t
 S17-supply/migrate.t
 S17-supply/min.t
 S17-supply/minmax.t
-S17-promise/nonblocking-await.t
+S17-promise/nonblocking-await.t # moar
 S17-supply/on-demand.t
 S17-supply/Promise.t
 S17-supply/produce.t
@@ -915,7 +916,7 @@ S17-supply/supplier-preserving.t
 S17-supply/syntax.t       # slow
 S17-supply/syntax-nonblocking-await.t
 S17-supply/tail.t
-S17-supply/throttle.t     # slow
+S17-supply/throttle.t     # moar slow
 S17-supply/unique.t       # slow
 S17-supply/wait.t         # slow
 S17-supply/words.t
@@ -1076,7 +1077,7 @@ S32-io/socket-recv-vs-read.t
 S32-io/slurp.t
 S32-io/spurt.t
 S32-io/tell.t
-S32-io/utf16.t
+S32-io/utf16.t    # moar
 S32-list/batch.t
 S32-list/categorize.t
 S32-list/categorize-list.t

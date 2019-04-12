@@ -840,20 +840,31 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     sub to-millis(Numeric() $value) {
-        nqp::if(
-          nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
-          $proposed,
+        nqp::unless(
+          nqp::isnanorinf($value.Num),
+          nqp::if(
+            nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
+            $proposed,
+            nqp::stmts(
+              warn("Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms"),
+              1
+            )
+          ),
           nqp::stmts(
-            warn("Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms"),
+            warn("Minimum timer resolution is 1ms; using that instead of {$value}ms"),
             1
           )
         )
     }
     sub to-millis-allow-zero(Numeric() $value) {
-        nqp::if(
-          nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
-          $proposed
-          # not true == 0 == what we need
+        nqp::unless(
+          nqp::isnanorinf($value.Num),
+          nqp::if(
+            nqp::isgt_i((my int $proposed = (1000 * $value).Int), 0),
+            $proposed,
+            # not true == 0 == what we need
+          ),
+          0
         )
     }
     sub wrap-catch(&code, &catch) {

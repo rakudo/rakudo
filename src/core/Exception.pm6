@@ -380,7 +380,7 @@ do {
             # REMOVE DEPRECATED CODE ON 201907
             Rakudo::Deprecations.DEPRECATED: "PERL6_EXCEPTIONS_HANDLER", Nil,
                 '2019.07', :file("N/A"), :line("N/A"),
-                :what<RAKUDO_EXCEPTIONS_HANDLER env var>;
+                :what("RAKUDO_EXCEPTIONS_HANDLER env var");
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
@@ -2112,9 +2112,12 @@ my class X::Str::Sprintf::Directives::Unsupported is Exception {
 my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.type;
     has str $.directive;
+    has str $.expected;
     has $.value;
     method message() {
-        "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
+        $.expected
+          ??  "Directive $.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
+          !! "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
     }
 }
 

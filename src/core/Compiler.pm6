@@ -3,10 +3,10 @@ class Compiler does Systemic {
     has Str $.release;
     has Str $!build-date;
     has Str $.codename;
-    my constant $id = nqp::sha1(
+    my constant $id = nqp::p6box_s(nqp::sha1(
         $*W.handle.Str
         ~ nqp::atkey(nqp::getcurhllsym('$COMPILER_CONFIG'), 'source-digest')
-    );
+    ));
 
     submethod BUILD (
       :$!name      = 'rakudo',
@@ -19,7 +19,9 @@ class Compiler does Systemic {
     ) {
 # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
-        $!id = nqp::p6box_s(nqp::ifnull(nqp::atkey($compiler,'id'),$id));
+        $!id = nqp::isnull(nqp::atkey($compiler,'id'))
+            ?? $id
+            !! nqp::p6box_s(nqp::atkey($compiler,'id'));
         # looks like: 2018.01-50-g8afd791c1
         $!version = $version
             // Version.new(nqp::atkey($compiler, 'version'));

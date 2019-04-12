@@ -362,27 +362,17 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
             }
             else {
                 # No whence, no Nil. Is it a nominal type? If yes, we can check
-                # it here. There are two interesting cases. One is if the type
-                # constraint is Mu. To avoid a huge guard set at megamorphic
-                # assignment sites, for this case we just guard $!of being Mu
-                # and the value not being Nil. For other cases, where there is
-                # a type constraint, we guard on the descriptor and the value,
-                # provided it typechecks OK.
+                # it here.
                 my $of := $desc.of;
                 unless $of.HOW.archetypes.nominal {
                     nqp::speshguardobj($desc);
                     return &assign-scalar-no-whence;
                 }
-                if nqp::eqaddr($of, Mu) {
+                if nqp::istype($value, $of) {
                     nqp::speshguardtype($desc, $desc.WHAT);
                     nqp::speshguardconcrete($desc);
                     my $of := nqp::speshguardgetattr($desc, ContainerDescriptor, '$!of');
                     nqp::speshguardobj($of);
-                    nqp::speshguardnotobj($value, Nil);
-                    return &assign-scalar-no-whence-no-typecheck;
-                }
-                elsif nqp::istype($value, $of) {
-                    nqp::speshguardobj($desc);
                     nqp::speshguardtype($value, $value.WHAT);
                     return &assign-scalar-no-whence-no-typecheck;
                 }
@@ -390,6 +380,18 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
                     # Will fail the type check and error always.
                     return &assign-scalar-no-whence;
                 }
+            }
+        }
+        elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) && nqp::isconcrete($desc) {
+            # Assignment to an untyped container descriptor; handle this
+            # more simply.
+            if nqp::eqaddr($value, Nil) {
+                # Nil case is NYI.
+            }
+            else {
+                nqp::speshguardtype($desc, $desc.WHAT);
+                nqp::speshguardnotobj($value, Nil);
+                return &assign-scalar-no-whence-no-typecheck;
             }
         }
         elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::BindArrayPos) {

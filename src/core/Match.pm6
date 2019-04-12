@@ -60,9 +60,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             # Walk the capture stack and populate the Match.
             my Mu $cs := nqp::getattr(self, Match, '$!cstack');
             if nqp::isnull($cs) || nqp::not_i(nqp::istrue($cs)) {}
-#?if !jvm
             elsif nqp::not_i(nqp::istrue($caplist)) {}
-#?endif
             elsif nqp::iseq_i($namecount, 1) && nqp::isgt_i(nqp::chars($onlyname), 0) && nqp::eqat($onlyname, '$!', 0) {
                 # If there's only one destination, avoid repeated hash lookups
                 my int $cselems = nqp::elems($cs);

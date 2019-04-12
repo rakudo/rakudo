@@ -851,7 +851,12 @@ implementation detail and has no serviceable parts inside"
     my int constant $initial-offset = 10;
     # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
+#?if !js
     my constant $dates = nqp::list_s(
+#?endif
+#?if js
+    my $dates := nqp::list_s(
+#?endif
         #BEGIN leap-second-dates
         '1972-06-30',
         '1972-12-31',
@@ -891,7 +896,12 @@ implementation detail and has no serviceable parts inside"
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
+#?if !js
     my constant $posixes = nqp::list_i(
+#?endif
+#?if js
+    my $posixes := nqp::list_i(
+#?endif
         #BEGIN leap-second-posix
           78796800,
           94694400,
@@ -922,7 +932,12 @@ implementation detail and has no serviceable parts inside"
         1483228800,
         #END leap-second-posix
     );
+#?if !js
     my int constant $elems = nqp::elems($dates);
+#?endif
+#?if js
+    my int $elems = nqp::elems($dates);
+#?endif
 
     method is-leap-second-date(\date) {
         nqp::hllbool(

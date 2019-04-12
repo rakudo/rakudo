@@ -59,17 +59,37 @@ multi sub MAIN("moar", $moar, $install-to is copy, $mbc, $p6-mbc-path, $toolchai
     chmod(0o755, $install-to) if $*DISTRO ne 'mswin32';
 }
 
-my $bash-prelude = q:to/EOS/;
-    #!/bin/bash
+my $sh-prelude = q:to/EOS/;
+    #!/bin/sh
 
-    # Sourced from https://stackoverflow.com/a/246128/1975049
-    SOURCE="${BASH_SOURCE[0]}"
-    while [ -h "$SOURCE" ]; do
-      DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null && pwd )"
-      SOURCE="$(readlink "$SOURCE")"
-      [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-    done
-    DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null && pwd )"
+    # Sourced from https://stackoverflow.com/a/29835459/1975049
+    rreadlink() (
+      target=$1 fname= targetDir= CDPATH=
+      { \unalias command; \unset -f command; } >/dev/null 2>&1
+      [ -n "$ZSH_VERSION" ] && options[POSIX_BUILTINS]=on
+      while :; do
+          [ -L "$target" ] || [ -e "$target" ] || { command printf '%s\n' "ERROR: '$target' does not exist." >&2; return 1; }
+          command cd "$(command dirname -- "$target")"
+          fname=$(command basename -- "$target")
+          [ "$fname" = '/' ] && fname=''
+          if [ -L "$fname" ]; then
+            target=$(command ls -l "$fname")
+            target=${target#* -> }
+            continue
+          fi
+          break
+      done
+      targetDir=$(command pwd -P)
+      if [ "$fname" = '.' ]; then
+        command printf '%s\n' "${targetDir%/}"
+      elif  [ "$fname" = '..' ]; then
+        command printf '%s\n' "$(command dirname -- "${targetDir}")"
+      else
+        command printf '%s\n' "${targetDir%/}/$fname"
+      fi
+    )
+
+    DIR=$(dirname -- "$(rreadlink "$0")")
     EOS
 
 sub get-moar-win-runner($moar, $libpaths, $p6-mbc-path, $mbc, $blib) {
@@ -78,7 +98,7 @@ sub get-moar-win-runner($moar, $libpaths, $p6-mbc-path, $mbc, $blib) {
 }
 
 sub get-perl6-runner($perl6, $env-vars) {
-    return sprintf(q:to/EOS/, $bash-prelude, $env-vars, $perl6);
+    return sprintf(q:to/EOS/, $sh-prelude, $env-vars, $perl6);
     %s
 
     %sexec $DIR/%s "$@"
@@ -112,9 +132,9 @@ sub get-debugger-text($toolchain) {
 }
 
 sub get-perl6-debug-runner($toolchain, $perl6, $env-vars) {
-    my $cmdline = $toolchain eq 'gdb'  ?? '%sgdb --quiet --ex=run --args %s "$@"'.sprintf($env-vars, $perl6)
-               !! $toolchain eq 'lldb' ?? '%slldb %s -- "$@"'.sprintf($env-vars, $perl6) !! die;
-    return sprintf(q:to/EOS/, $bash-prelude, $env-vars, $perl6, get-debugger-text($toolchain), $cmdline);
+    my $cmdline = $toolchain eq 'gdb'  ?? '%sgdb --quiet --ex=run --args $DIR/%s "$@"'.sprintf($env-vars, $perl6)
+               !! $toolchain eq 'lldb' ?? '%slldb $DIR/%s -- "$@"'.sprintf($env-vars, $perl6) !! die;
+    return sprintf(q:to/EOS/, $sh-prelude, $env-vars, $perl6, get-debugger-text($toolchain), $cmdline);
     %s
 
     %s$DIR/%s -e '%s'
@@ -149,7 +169,7 @@ my $valgrind-text = q:to/EOS/;
     EOS
 
 sub get-perl6-valgrind-runner($perl6, $env-vars) {
-    return sprintf(q:to/EOS/, $bash-prelude, $env-vars, $perl6, $valgrind-text, $env-vars, $perl6);
+    return sprintf(q:to/EOS/, $sh-prelude, $env-vars, $perl6, $valgrind-text, $env-vars, $perl6);
     %s
 
     %s$DIR/%s -e '%s'

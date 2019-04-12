@@ -222,23 +222,22 @@ class Rakudo::Internals::Sprintf {
 
             # handle precision / plus prefixing
             my int $precision = $<precision> ?? +$<precision> !! 6;
-            my str $value = "pad-zeroes-rat($precision,"
+            my str $value = "pad-zeroes-precision($precision,"
               ~ value($/)  # needs to be in outer scope
               ~ ".Numeric.round(10**-$precision).Str)";
 
+            $value = "prefix-plus($value)" if has_plus($/);
+
             # handle left/right justification / zero padding
             if +$<size> -> $size {
-                if has_zero($/) {
-                    $value = has_plus($/)
-                      ?? "prefix-plus(pad-zeroes-int($size - 1,$value))"
-                      !! "pad-zeroes-int($size,$value)";
+                if has_minus($/) {
+                    $value = "str-left-justified($size,$value)";
+                }
+                elsif has_zero($/) {
+                    $value = "pad-zeroes-int($size,$value)";
                 }
                 else {
-                    $value = has_minus($/)
-                      ?? "str-left-justified($size,$value)"
-                      !! has_plus($/)
-                        ?? "str-right-justified($size,prefix-plus($value))"
-                        !! "str-right-justified($size,$value)";
+                    $value = "str-right-justified($size,$value)";
                 }
             }
 
@@ -389,22 +388,23 @@ class Rakudo::Internals::Sprintf {
 
     # RUNTIME pad with zeroes as integer
     sub pad-zeroes-int(int $positions, Str:D $string --> Str:D) {
-        $string.starts-with("-")
-          ?? "-" ~ pad-zeroes-str($positions,$string.substr(1))
-          !!       pad-zeroes-str($positions,$string)
+        my str $prefix = $string.substr(0,1);
+        $prefix eq '-' || $prefix eq '+'
+          ?? $prefix ~ pad-zeroes-str($positions,$string.substr(1))
+          !!           pad-zeroes-str($positions,$string)
     }
 
     # RUNTIME pad with zeroes after decimal point
-    sub pad-zeroes-rat(int $positions, Str:D $string --> Str:D) {
+    sub pad-zeroes-precision(int $positions, Str:D $string --> Str:D) {
         with $string.index(".") {
             my int $digits = $string.chars - 1 - $_;
             $positions > $digits
-              ?? $string ~ " " x ($positions - $digits)
+              ?? $string ~ "0" x ($positions - $digits)
               !! $string
         }
         else {
             $positions
-              ?? $string ~ "." ~ " " x $positions
+              ?? $string ~ "." ~ "0" x $positions
               !! $string
         }
     }

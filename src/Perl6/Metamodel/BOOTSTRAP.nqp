@@ -1775,7 +1775,8 @@ BEGIN {
     }
 
     # Helper for creating an attribute that vivifies to a clone of some VM
-    # storage type; used for the storage slots of arrays and hashes.
+    # storage type (or, if it's a type object, is just initialized with that
+    # type object); used for the storage slots of arrays and hashes.
     sub storage_attr($name, $type, $package, $clonee, :$associative_delegate) {
         return Attribute.new( :$name, :$type, :$package, :auto_viv_primitive($clonee),
             :$associative_delegate );
@@ -3269,8 +3270,8 @@ BEGIN {
     #     has Mu $!reified;
     #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
+    List.HOW.add_attribute(List, storage_attr('$!reified', Mu, List, Mu));
+    List.HOW.add_attribute(List, storage_attr('$!todo', Mu, List, Mu));
     List.HOW.compose_repr(List);
 
     # class Slip is List {

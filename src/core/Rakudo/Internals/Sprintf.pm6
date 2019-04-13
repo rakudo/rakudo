@@ -217,6 +217,30 @@ class Rakudo::Internals::Sprintf {
             make $value
         }
 
+        # show floating point value, scientific notation
+        method directive:sym<e>($/ --> Nil) {
+
+            # handle precision / plus prefixing
+            my int $precision = $<precision> ?? +$<precision> !! 6;
+            my str $value = "scientify($precision," ~ value($/) ~ ")";
+
+            # handle left/right justification / zero padding
+            $value = "prefix-plus($value)" if has_plus($/);
+            if +$<size> -> $size {
+                if has_minus($/) {
+                    $value = "str-left-justified($size,$value)";
+                }
+                elsif has_zero($/) {
+                    $value = "pad-zeroes-int($size,$value)";
+                }
+                else {
+                    $value = "str-right-justified($size,$value)";
+                }
+            }
+
+            make $value
+        }
+
         # show floating point value
         method directive:sym<f>($/ --> Nil) {
 
@@ -415,6 +439,21 @@ class Rakudo::Internals::Sprintf {
         $chars < $positions
           ?? "0" x $positions - $chars ~ $string
           !! $string
+    }
+
+    # RUNTIME set up value for scientific notation
+    proto sub scientify(|) {*}
+    multi sub scientify(Int:D $positions, Str:D $value --> Str:D) {
+        scientify($positions, $value.Numeric)
+    }
+    multi sub scientify(Int:D $positions, Cool:D $value --> Str:D) {
+        my int $exponent = $value.abs.log(10).floor;
+        my int $abs-expo = $exponent.abs;
+        pad-zeroes-precision(
+          $positions,
+          ($value / 10 ** $exponent).round(10**-$positions).Str
+        ) ~ ($exponent < 0 ?? "e-" !! "e+")
+          ~ ($abs-expo < 10 ?? "0" ~ $abs-expo !! $abs-expo)
     }
 
     # RUNTIME string, left justified

@@ -290,8 +290,8 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         Capture.new( :list($capture.list), :%hash)
     }
 
-    # STDIN is coming from the keyboard and no args, so spike slurp/lines/words
-    if $*IN.t && !@*ARGS {
+    # there's a person doing this and no args, so spike slurp/lines/words
+    if $*IN.t && $*OUT.t && $*ERR.t && !@*ARGS {
         $*IN does role {
             sub from-stdin($doing --> Nil) {
                 note "$doing from your keyboard, which is usually only done when debugging.";

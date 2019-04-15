@@ -106,8 +106,9 @@ sub get-perl6-runner($perl6, $env-vars) {
 }
 
 sub get-moar-runner($moar, $libpath-line) {
-    return sprintf(q:to/EOS/, $moar, $libpath-line);
-    #!/bin/sh
+    return sprintf(q:to/EOS/, $sh-prelude, $moar, $libpath-line);
+    %s
+
     exec %s --execname="$0" %s "$@"
     EOS
 }
@@ -145,8 +146,9 @@ sub get-perl6-debug-runner($toolchain, $perl6, $env-vars) {
 sub get-moar-debug-runner($toolchain, $moar, $libpath-line) {
     my $cmdline = $toolchain eq 'gdb'  ?? 'gdb --quiet --ex=run --args %s --execname="$0" %s "$@"'.sprintf($moar, $libpath-line)
                !! $toolchain eq 'lldb' ?? 'lldb %s -- --execname="$0" %s "$@"'.sprintf($moar, $libpath-line) !! die;
-    return sprintf(q:to/EOS/, $moar, $libpath-line, get-debugger-text($toolchain), $cmdline);
-    #!/bin/sh
+    return sprintf(q:to/EOS/, $sh-prelude, $moar, $libpath-line, get-debugger-text($toolchain), $cmdline);
+    %s
+
     %s --execname="$0" %s -e '%s'
     %s
     EOS

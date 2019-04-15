@@ -8,6 +8,8 @@ my class Code does Callable { # declared in BOOTSTRAP
         $self.count ?? $self($topic) !! $self()
     }
 
+    proto method POSITIONS(|) {*}
+
     method arity(Code:D:) { nqp::getattr_i($!signature,Signature,'$!arity') }
 
     method count(Code:D:) { nqp::getattr($!signature,Signature,'$!count') }

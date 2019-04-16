@@ -565,8 +565,9 @@ INIT without $*SAMPLER {
 
 # Telemetry --------------------------------------------------------------------
 class Telemetry does Associative {
-    has $!sampler;
-    has $!samples;
+    has     $!sampler;
+    has     $!samples;
+    has Str $.message is rw;
 
     multi method new(Telemetry:) {
         my $self := nqp::create(self);
@@ -658,6 +659,7 @@ multi sub infix:<->(
     my $period := nqp::create(Telemetry::Period);
     nqp::bindattr($period,Telemetry,'$!sampler',
       nqp::getattr($a,Telemetry,'$!sampler'));
+    $period.message = $_ with $a.message;
 
     my \samples-a := nqp::getattr($a,Telemetry,'$!samples');
     my \samples-b := nqp::getattr($b,Telemetry,'$!samples');
@@ -698,8 +700,17 @@ multi sub infix:<->(
 
 # Making a Telemetry object procedurally ---------------------------------------
 proto sub snap(|) is export {*}
-multi sub snap(--> Nil)    { $snaps.push(Telemetry.new) }
-multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
+multi sub snap(--> Nil) {
+    $snaps.push(Telemetry.new);
+}
+multi sub snap(Str:D $message --> Nil) {
+    my \T := Telemetry.new;
+    T.message = $message;
+    $snaps.push(T);
+}
+multi sub snap(@s --> Nil) {
+    @s.push(Telemetry.new);
+}
 
 # Starting the snapper / changing the period size
 my int $snapper-running;
@@ -858,6 +869,10 @@ HEADER
         }
 
         sub push-period($period --> Nil) {
+            with $period.message -> $message {
+                my $line = "#-- $message ";
+                nqp::push_s($text,$line ~ "-" x 80 - $line.chars);
+            }
             nqp::push_s($text,
               @formats.map( -> @info {
                   @info[DISPLAY]($period{@info[NAME]})

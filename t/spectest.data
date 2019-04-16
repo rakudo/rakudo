@@ -1187,6 +1187,7 @@ S32-str/sprintf.t
 S32-str/sprintf-b.t
 S32-str/sprintf-c.t
 S32-str/sprintf-d.t
+S32-str/sprintf-o.t
 S32-str/starts-with.t
 S32-str/substr.t
 S32-str/substr-eq.t

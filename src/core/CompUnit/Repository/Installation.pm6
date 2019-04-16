@@ -9,7 +9,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp-stores;
     has $!precomp-store;
 
-    my $verbose := nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
+    my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo --> Nil) { }
 

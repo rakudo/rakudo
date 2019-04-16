@@ -320,7 +320,7 @@ public final class Binder {
             arg_o = createBox(tc, gcx, origArg, gotNative);
         }
         else {
-            /* We need to do an unboxing opeation. */
+            /* We need to do an unboxing operation. */
             SixModelObject decontValue = Ops.decont((SixModelObject)origArg, tc);
             StorageSpec spec = decontValue.st.REPR.get_storage_spec(tc, decontValue.st);
             switch (desiredNative) {
@@ -394,7 +394,7 @@ public final class Binder {
             if (!noNomTypeCheck) {
                 /* Is the nominal type generic and in need of instantiation? (This
                  * can happen in (::T, T) where we didn't learn about the type until
-                 * during the signature bind). */
+                 * during the signature bind.) */
                 nomType = param.get_attribute_boxed(tc, gcx.Parameter,
                     "$!nominal_type", HINT_nominal_type);
                 if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
@@ -995,7 +995,7 @@ public final class Binder {
 
                 /* Otherwise, a positional. */
                 else {
-                    /* Do we have a value?. */
+                    /* Do we have a value? */
                     if (curPosArg < numPosArgs) {
                         /* Easy - just bind that. */
                         bindFail = bindOneParam(tc, gcx, cf, param, args[curPosArg],

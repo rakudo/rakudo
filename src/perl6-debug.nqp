@@ -461,28 +461,30 @@ sub MAIN(*@ARGS) {
     my $sep    := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
 #?if jvm
     my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');
-    my $exec-dir := nqp::substr($execname, 0, nqp::rindex($execname, $sep));
+    my $install-dir := nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
 #?endif
 #?if moar
-    my $exec-dir := $config<osname> eq 'openbsd'
+    my $execname := nqp::execname();
+    my $install-dir := $config<osname> eq 'openbsd'
         ?? $config<prefix> ~ '/bin/perl6-m'
-        !! nqp::substr(nqp::execname(), 0, nqp::rindex(nqp::execname(), $sep));
+        !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
 #?endif
 #?if js
-    my $exec-dir := $config<osname> eq 'openbsd'
+    my $execname := nqp::execname();
+    my $install-dir := $config<osname> eq 'openbsd'
         ?? $config<prefix> ~ '/bin/perl6-js'
-        !! nqp::substr(nqp::execname(), 0, nqp::rindex(nqp::execname(), $sep));
+        !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
 #?endif
     my $perl6-home := $comp.config<static_perl6_home>
         // nqp::getenvhash()<PERL6_HOME>
-        // $exec-dir ~ '/../share/perl6';
+        // $install-dir ~ '/share/perl6';
     if nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep {
         $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
     }
 
     my $nqp-home := $comp.config<static_nqp_home>
         // nqp::getenvhash()<NQP_HOME>
-        // $exec-dir ~ '/../share/nqp';
+        // $install-dir ~ '/share/nqp';
     if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {
         $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
     }

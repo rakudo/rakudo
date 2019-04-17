@@ -1187,6 +1187,7 @@ S32-str/sprintf.t
 S32-str/sprintf-b.t
 S32-str/sprintf-c.t
 S32-str/sprintf-d.t
+S32-str/sprintf-f.t
 S32-str/sprintf-o.t
 S32-str/sprintf-s.t
 S32-str/sprintf-u.t

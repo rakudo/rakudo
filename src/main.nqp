@@ -2,14 +2,22 @@ use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
 
+my $config := nqp::backendconfig();
 # Determine Perl6 and NQP dirs.
-my $sep := nqp::backendconfig()<osname> eq 'MSWin32' ?? '\\' !! '/';
+my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
 #?if jvm
 my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');
 my $exec-dir := nqp::substr($execname, 0, nqp::rindex($execname, $sep));
 #?endif
-#?if !jvm
-my $exec-dir := nqp::substr(nqp::execname(), 0, nqp::rindex(nqp::execname(), $sep));
+#?if moar
+my $exec-dir := $config<osname> eq 'openbsd'
+    ?? $config<prefix> ~ '/bin/perl6-m'
+    !! nqp::substr(nqp::execname(), 0, nqp::rindex(nqp::execname(), $sep));
+#?endif
+#?if js
+my $exec-dir := $config<osname> eq 'openbsd'
+    ?? $config<prefix> ~ '/bin/perl6-js'
+    !! nqp::substr(nqp::execname(), 0, nqp::rindex(nqp::execname(), $sep))
 #?endif
 
 

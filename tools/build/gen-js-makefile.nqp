@@ -101,7 +101,7 @@ my $main-version := $build_dir ~ '/main-version.nqp';
 @produced.push($main-version);
 
 # TODO - generate a new version on changes
-rule($main-version, '', "\$(PERL5) \@script(gen-version.pl)@ > {nfp($main-version)}");
+rule($main-version, '', "\$(CONFIGURE) --expand main-version --out {nfp($main-version)}");
 
 my $main-nqp := combine(:sources("src/main.nqp $main-version"), :file<main.nqp>);
 

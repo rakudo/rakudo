@@ -4,6 +4,9 @@ use warnings;
 
 package NQP::Config::Rakudo;
 use Cwd;
+use POSIX qw<strftime>;
+use Digest::SHA;
+use File::Find;
 use NQP::Config qw<slurp nfp read_config cmp_rev system_or_die>;
 use NQP::Macros;
 
@@ -48,7 +51,7 @@ sub configure_backends {
         for my $a ( $self->known_abbrs ) {
             if ( my $nqp_bin = $self->is_executable("$prefix/bin/nqp-$a") ) {
                 my $b = $self->abbr_to_backend($a);
-                print "Found $nqp_bin (backend $b)\n";
+                $self->msg("Found $nqp_bin (backend $b)\n");
                 $self->use_backend($b);
             }
         }
@@ -77,8 +80,17 @@ sub configure_misc {
       split( ' ',
         slurp( $self->template_file_path( 'NQP_REVISION', required => 1, ) ) );
 
+    # Get specs from PERL6_SPECS template
+    my $spec_line = sub {
+        my @elems = split ' ', shift;
+        if ( $elems[0] =~ s/^\*// ) {
+            $config->{lang_spec} = $elems[0];
+        }
+        return \@elems;
+    };
+
     $config->{perl6_specs} = [
-        map { [ split ' ' ] }
+        map { $spec_line->($_) }
           grep { s/\s*#.*$//; length }
           split(
             /\n/s,
@@ -86,6 +98,28 @@ sub configure_misc {
           )
     ];
 
+    # Get version info from VERSION template and git.
+    my $VERSION = slurp( $self->template_file_path( 'VERSION', required => 1, ) );
+    chomp $VERSION;
+    @{$config}{qw<version release codename>} = split( ' ', $VERSION, 3 );
+
+    if ( -d File::Spec->catdir( $config->{base_dir}, '.git' )
+        && open( my $GIT, '-|', q|git describe --match "2*"| ) )
+    {
+        my $git_version = <$GIT>;    # may be empty if we didn't fetch any tags
+        $config->{version} = $git_version || "$config->{version}.0000.1";
+        chomp $config->{version};
+        close($GIT);
+    }
+
+    $config->{builddate} = strftime( '%Y-%m-%dT%H:%M:%SZ', gmtime );
+
+    my $sha = Digest::SHA->new;
+    find( sub { $sha->addfile($_) if /\.(nqp|pm6)\z/ }, "src" );
+    $sha->addfile('gen/nqp-version');
+    $config->{source_digest} = $sha->hexdigest;
+
+    # NQP_LIB
     $config->{set_nqp_lib} = 'NQP_LIB=blib ';
     if ( $self->is_win ) {
         $config->{set_nqp_lib} = "set $config->{set_nqp_lib}\n\t";
@@ -127,8 +161,9 @@ sub configure_jvm_backend {
           ? "$+{'n'} $+{'v'}"
           : 'no java version info available';
 
-        print
-"Using $bin (version $nqp_config->{'nqp::version'} / $java_version).\n";
+        $self->msg( "Using $bin"
+              . " (version $nqp_config->{'nqp::version'}"
+              . " / $java_version).\n" );
 
         $config->{'nqp_prefix'}   = $nqp_config->{'jvm::prefix'};
         $config->{'nqp_jars'}     = $nqp_config->{'jvm::runtime.jars'};
@@ -226,8 +261,9 @@ sub configure_moar_backend {
     );
 
     unless ( $self->backend_error('moar') ) {
-        print
-"Using $config->{'m_nqp'} (version $nqp_config->{'nqp::version'} / MoarVM $nqp_config->{'moar::version'}).\n";
+        $self->msg( "Using $config->{'m_nqp'}"
+              . " (version $nqp_config->{'nqp::version'}"
+              . " / MoarVM $nqp_config->{'moar::version'}).\n" );
 
         $config->{'perl6_ops_dll'} =
           sprintf( $nqp_config->{'moar::dll'}, 'perl6_ops_moar' );
@@ -272,6 +308,12 @@ sub configure_js_backend {
         js_build_dir => File::Spec->catdir( $config->{base_dir}, qw<gen js> ),
         js_blib => File::Spec->catdir( $config->{base_dir}, "node_modules" ),
     );
+}
+
+# Returns all active language specification entries except for .c
+sub perl6_specs {
+    my $self = shift;
+    return grep { $_->[0] ne 'c' } @{ $self->cfg('perl6_specs') };
 }
 
 sub post_active_backends {
@@ -389,9 +431,9 @@ sub gen_nqp {
         }
     }
 
-    print "Building NQP ...\n";
+    $self->msg("Building NQP ...\n");
     chdir("$startdir/nqp");
-    print "@cmd\n";
+    $self->msg("@cmd\n");
     system_or_die(@cmd);
     chdir($pwd);
 
@@ -404,11 +446,14 @@ sub gen_nqp {
 }
 
 package NQP::Macros::Rakudo;
+use strict;
+use warnings;
 
 # --- Rakudo-specific macro methods.
 sub _specs_iterate {
-    my $self = shift;
-    my $cb   = shift;
+    my $self   = shift;
+    my $cb     = shift;
+    my %params = @_;
 
     my $cfg = $self->{config_obj};
 
@@ -418,11 +463,12 @@ sub _specs_iterate {
         my $spec_char   = $spec->[0];
         my $spec_subdir = "6.$spec_char";
         my %config      = (
-            ctx_subdir  => $spec_subdir,
-            spec_subdir => $spec_subdir,
-            spec        => $spec_char,
-            ucspec      => uc $spec_char,
-            lcspec      => lc $spec_char,
+            ctx_subdir    => $spec_subdir,
+            spec_subdir   => $spec_subdir,
+            spec          => $spec_char,
+            spec_with_mod => $spec_char,
+            ucspec        => uc $spec_char,
+            lcspec        => lc $spec_char,
         );
         my $spec_ctx = {
             spec    => $spec,
@@ -430,14 +476,30 @@ sub _specs_iterate {
         };
         my $s = $cfg->push_ctx($spec_ctx);
         $cb->(@_);
+        if ( $params{with_mods} && @$spec > 1 ) {
+            for my $mod ( @$spec[ 1 .. $#$spec ] ) {
+                my %mod = (
+                    spec_mod      => $mod,
+                    spec_dot_mod  => ".$mod",
+                    spec_with_mod => "$spec_char.$mod",
+                );
+                my $mod_s = $cfg->push_ctx(
+                    {
+                        configs => [ \%mod ],
+                    }
+                );
+                $cb->(@_);
+            }
+        }
     }
 }
 
 # for_specs(text)
 # Iterates over active backends and expands text in the context of each backend.
 sub _m_for_specs {
-    my $self = shift;
-    my $text = shift;
+    my $self   = shift;
+    my $text   = shift;
+    my %params = @_;
 
     my $out = "";
 
@@ -445,12 +507,21 @@ sub _m_for_specs {
         $out .= $self->_expand($text);
     };
 
-    _specs_iterate( $self, $cb );
+    _specs_iterate( $self, $cb, %params );
 
     return $out;
 }
 
-NQP::Macros->register_macro( 'for_specs', \&_m_for_specs );
+# for_specmods(text)
+# Same as for_specs but iterates including spec modifications, i.e. 6.x.PREVIEW
+sub _m_for_specmods {
+    my $self = shift;
+    my $text = shift;
+    return _m_for_specs( $self, $text, with_mods => 1 );
+}
+
+NQP::Macros->register_macro( 'for_specs',    \&_m_for_specs );
+NQP::Macros->register_macro( 'for_specmods', \&_m_for_specmods );
 
 1;
 

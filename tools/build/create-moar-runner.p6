@@ -88,7 +88,8 @@ my $sh-prelude = q:to/EOS/;
       fi
     )
 
-    DIR=$(dirname -- "$(rreadlink "$0")")
+    EXEC=$(rreadlink "$0")
+    DIR=$(dirname -- "$EXEC")
     EOS
 
 sub get-moar-win-runner($moar, $libpath-line) {
@@ -111,7 +112,7 @@ sub get-moar-runner($moar, $libpath-line) {
     return sprintf(q:to/EOS/, $sh-prelude, $moar, $libpath-line);
     %s
 
-    exec %s --execname="$0" %s "$@"
+    exec %s --execname="$EXEC" %s "$@"
     EOS
 }
 
@@ -146,12 +147,12 @@ sub get-perl6-debug-runner($toolchain, $perl6, $env-vars) {
 }
 
 sub get-moar-debug-runner($toolchain, $moar, $libpath-line) {
-    my $cmdline = $toolchain eq 'gdb'  ?? 'gdb --quiet --ex=run --args %s --execname="$0" %s "$@"'.sprintf($moar, $libpath-line)
-               !! $toolchain eq 'lldb' ?? 'lldb %s -- --execname="$0" %s "$@"'.sprintf($moar, $libpath-line) !! die;
+    my $cmdline = $toolchain eq 'gdb'  ?? 'gdb --quiet --ex=run --args %s --execname="$EXEC" %s "$@"'.sprintf($moar, $libpath-line)
+               !! $toolchain eq 'lldb' ?? 'lldb %s -- --execname="$EXEC" %s "$@"'.sprintf($moar, $libpath-line) !! die;
     return sprintf(q:to/EOS/, $sh-prelude, $moar, $libpath-line, get-debugger-text($toolchain), $cmdline);
     %s
 
-    %s --execname="$0" %s -e '%s'
+    %s --execname="$EXEC" %s -e '%s'
     %s
     EOS
 }
@@ -182,10 +183,11 @@ sub get-perl6-valgrind-runner($perl6, $env-vars) {
 }
 
 sub get-moar-valgrind-runner($moar, $libpath-line) {
-    return sprintf(q:to/EOS/, $moar, $libpath-line, $valgrind-text, $moar, $libpath-line);
-    #!/bin/sh
-    %s --execname="$0" %s -e '%s'
-    valgrind ${MVM_VALGRIND_OPTS} %s --execname="$0" %s "$@"
+    return sprintf(q:to/EOS/, $sh-prelude, $moar, $libpath-line, $valgrind-text, $moar, $libpath-line);
+    %s
+
+    %s --execname="$EXEC" %s -e '%s'
+    valgrind ${MVM_VALGRIND_OPTS} %s --execname="$EXEC" %s "$@"
     EOS
 }
 

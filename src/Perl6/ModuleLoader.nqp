@@ -213,12 +213,22 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
 
+    # Transforms NULL.<release> into CORE.<previos-release>
+    method transform_setting_name ($setting_name) {
+        my $m := $setting_name ~~ /NULL '.' ( <[c..z]> )/;
+        if $m {
+            my $rev := ~nqp::atpos($m, 0);
+            $setting_name := 'CORE' ~ ($rev le 'd' ?? '' !! '.' ~ nqp::chr(nqp::ord($rev) - 1));
+        }
+        $setting_name
+    }
+
     method load_setting($setting_name) {
         my $setting;
 
         if $setting_name ne 'NULL' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
-            $setting_name := 'CORE' if $setting_name eq 'NULL.d';
+            $setting_name := self.transform_setting_name($setting_name);
             # Unless we already did so, locate and load the setting.
             unless nqp::defined(%settings_loaded{$setting_name}) {
                 DEBUG("Loading settings $setting_name") if $DEBUG;

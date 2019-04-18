@@ -168,7 +168,7 @@ $(PERL6_C_MOAR): @nfp(src/Perl6/Compiler.nqp)@ $(PERL6_O_MOAR)
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_C_MOAR) \
 		@nfp(src/Perl6/Compiler.nqp)@
 
-$(PERL6_MOAR): @nfp(src/main.nqp)@ $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES) @for_specs($(M_CORE_@ucspec@_SOURCES) )@
+$(PERL6_MOAR): @nfp(src/main.nqp)@ $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES)@for_specs( $(M_CORE_@ucspec@_SOURCES))@
 	$(CONFIGURE) --expand main-version --out @nfp($(M_BUILD_DIR)/main-version.nqp)@
 	$(M_NQP) $(M_GEN_CAT) @nfp(src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_MOAR) \
@@ -326,7 +326,7 @@ m-install: m-all @script(create-moar-runner.p6)@ @script(install-core-dist.p6)@ 
 	$(MKPATH) @nfp($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(M_RUN_CLEAN_TARGET_FILES) $(SETTING_MOAR) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfp($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(M_RUN_CLEAN_TARGET_FILES) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) @nfp($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) $(SETTING_MOAR) @for_specs($(SETTING_@ucspec@_MOAR))@ $(R_SETTING_MOAR) @nfp($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(CP) $(SETTING_MOAR) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfp($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) @nfp($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(MKPATH) @nfp($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
 	$(CP) $(M_PERL6_OPS_DLL) @nfp($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@

@@ -88,34 +88,17 @@ my class Parameter { # declared in BOOTSTRAP
         }
     }
 
-    multi method new(Parameter:U:
-       Str:D :$name           = "",
-       Int:D :$flags          = 0,
-      Bool:D :$named          = False,
-      Bool:D :$optional       = False,
-      Bool:D :$mandatory      = False,
-      Bool:D :$is-copy        = False,
-      Bool:D :$is-raw         = False,
-      Bool:D :$is-rw          = False,
-      Bool:D :$multi-invocant = True,
-    ) {
-        nqp::create(self)!SET-SELF(
-          $name, $flags, $named, $optional, $mandatory,
-          $is-copy, $is-raw, $is-rw, $multi-invocant, %_
-        )
-    }
-
-    method !SET-SELF(
-       Str:D $name      is copy,
-       Int:D $flags     is copy,
-      Bool:D $named     is copy,
-      Bool:D $optional  is copy,
-      Bool:D $mandatory is copy,
-      Bool:D $is-copy,
-      Bool:D $is-raw,
-      Bool:D $is-rw,
-      Bool:D $multi-invocant,
-             %args  # type / default / where / sub_signature captured through %_
+    submethod BUILD(
+       Str:D $name      is copy = "",
+       Int:D $flags     is copy = 0,
+      Bool:D $named     is copy = False,
+      Bool:D $optional  is copy = False,
+      Bool:D $mandatory is copy = False,
+      Bool:D $is-copy = False,
+      Bool:D $is-raw = False,
+      Bool:D $is-rw = False,
+      Bool:D $multi-invocant = True,
+             *%args  # type / default / where / sub_signature captured through %_
       ) {
 
         if $name {                                 # specified a name?

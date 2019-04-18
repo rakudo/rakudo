@@ -532,7 +532,7 @@ class Perl6::World is HLL::World {
     }
 
     method !check-for-PREVIEW ($ver-match, $rev, $default_rev, $rev_mod) {
-        $ver-match.PRECURSOR.worry('PREVIEW modificator is used with a production specification 6.' ~ $rev)
+        $ver-match.PRECURSOR.worry('PREVIEW modificator is used with released specification 6.' ~ $rev)
             if nqp::isle_s($rev, $default_rev) && nqp::iseq_s($rev_mod, 'PREVIEW');
 
         $ver-match.PRECURSOR.worry(

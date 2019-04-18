@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 9;
+plan 10;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -151,3 +151,8 @@ subtest 'Distribution::Resource can be stringified', {
     lives-ok { Distribution::Resource.Str  }, 'Can use .Str';
     lives-ok { Distribution::Resource.gist }, 'Can use .gist';
 }
+
+class ParameterChild is Parameter {
+    has $.foobar
+}
+is ParameterChild.new(foobar => 'Baz').foobar, 'Baz', 'Subclassing of Parameter works';

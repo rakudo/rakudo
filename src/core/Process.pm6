@@ -16,8 +16,10 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
       // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j'
 #?endif
 #?if moar
-      nqp::execname()
-      || ($*VM.config<prefix> ~ '/bin/'
+      # OpenBSD's security features prevent us from getting the path to our
+      # executable just given our PID by default.
+      (nqp::execname() unless $*VM.osname eq 'openbsd')
+      // ($*VM.config<prefix> ~ '/bin/'
         ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'))
 #?endif
 #?if js

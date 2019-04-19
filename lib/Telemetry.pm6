@@ -2,6 +2,8 @@
 
 use nqp;
 
+use Perl6::Compiler:from<NQP>;
+
 # the place where the default snaps are stored
 my $snaps := nqp::create(IterationBuffer);
 
@@ -707,6 +709,17 @@ multi sub snap(Str:D $message --> Nil) {
     my \T := Telemetry.new;
     T.message = $message;
     $snaps.push(T);
+}
+my $snapshot-idx = 1;
+multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
+    my $filename = "heapsnapshot$($*PID)-$($snapshot-idx++).mvmheap";
+    my \T1 := Telemetry.new;
+    T1.message = $message with $message;
+    $snaps.push(T1);
+    Perl6::Compiler.profiler-snapshot(kind => "heap", filename => $filename<>);
+    my \T2 := Telemetry.new;
+    T2.message = $filename;
+    $snaps.push(T2);
 }
 multi sub snap(@s --> Nil) {
     @s.push(Telemetry.new);

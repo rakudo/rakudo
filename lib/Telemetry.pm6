@@ -712,7 +712,22 @@ multi sub snap(Str:D $message --> Nil) {
 }
 my $snapshot-idx = 1;
 multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
-    my $filename = "heapsnapshot$($*PID)-$($snapshot-idx++).mvmheap";
+    my $filename =
+        $heap eqv True
+            ?? "heapsnapshot-$($*PID)-$($snapshot-idx++).mvmheap"
+            !! $heap ~~ Str:D
+                ?? $heap.IO.e
+                    ?? "$heap-$($*PID)-$($snapshot-idx++).mvmheap"
+                    !! $heap
+                !! $heap ~~ IO::Path:D
+                    ?? $heap.absolute
+                    !! $heap eqv False
+                        ?? do { $message eq "taking heap snapshot..."
+                                    ?? snap()
+                                    !! snap($message);
+                                return }
+                        !! die "heap argument to snap must be a Bool, Str, or IO::Path, not a $heap.WHAT()";
+
     my \T1 := Telemetry.new;
     T1.message = $message with $message;
     $snaps.push(T1);

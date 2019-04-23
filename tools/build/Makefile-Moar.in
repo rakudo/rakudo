@@ -197,7 +197,7 @@ $(R_SETTING_MOAR): $(PERL6_MOAR) $(SETTING_MOAR) $(R_SETTING_SRC) $(SETTING_MOAR
 
 $(M_BAT_RUNNER): tools/build/create-moar-runner.p6 $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_BAT_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-m perl6.moarvm . "" $(PERL6_HOME) $(NQP_HOME) --nqp-lib=blib $(M_LIBPATH) . blib
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-m ~SCRIPT_DIR~/perl6.moarvm "" --nqp-lib=~SCRIPT_DIR~/blib ~SCRIPT_DIR~ ~SCRIPT_DIR~/blib $(M_LIBPATH)
 	-$(CHMOD) 755 $(M_BAT_RUNNER)
 
 m-runner-default: $(M_BAT_RUNNER)
@@ -211,21 +211,21 @@ $(PERL6_DEBUG_MOAR): src/perl6-debug.nqp $(PERL6_MOAR)
 	    --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init $(M_BUILD_DIR)/perl6-debug.nqp
 
 $(M_BAT_DEBUG_RUNNER): tools/build/create-moar-runner.p6 $(M_C_DEBUG_RUNNER) $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-debug-m perl6-debug.moarvm . "" $(PERL6_HOME) $(NQP_HOME) --nqp-lib=blib $(M_LIBPATH) . blib
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-debug-m ~SCRIPT_DIR~/perl6-debug.moarvm "" --nqp-lib=~SCRIPT_DIR~/blib ~SCRIPT_DIR~ ~SCRIPT_DIR~/blib $(M_LIBPATH)
 
 $(M_GDB_RUNNER): tools/build/create-moar-runner.p6 $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_GDB_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-gdb-m perl6.moarvm . "gdb" $(PERL6_HOME) $(NQP_HOME) --nqp-lib=blib $(M_LIBPATH) . blib
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-gdb-m ~SCRIPT_DIR~/perl6.moarvm "gdb" --nqp-lib=~SCRIPT_DIR~/blib ~SCRIPT_DIR~ ~SCRIPT_DIR~/blib $(M_LIBPATH)
 	-$(CHMOD) 755 $(M_GDB_RUNNER)
 
 $(M_LLDB_RUNNER): tools/build/create-moar-runner.p6 $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_LLDB_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-lldb-m perl6.moarvm . "lldb" $(PERL6_HOME) $(NQP_HOME) --nqp-lib=blib $(M_LIBPATH) . blib
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-lldb-m ~SCRIPT_DIR~/perl6.moarvm "lldb" --nqp-lib=~SCRIPT_DIR~/blib ~SCRIPT_DIR~ ~SCRIPT_DIR~/blib $(M_LIBPATH)
 	-$(CHMOD) 755 $(M_LLDB_RUNNER)
 
 $(M_VALGRIND_RUNNER): tools/build/create-moar-runner.p6 $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) $(M_VALGRIND_RUNNER)
-	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-valgrind-m perl6.moarvm . "valgrind" $(PERL6_HOME) $(NQP_HOME) --nqp-lib=blib $(M_LIBPATH) . blib
+	$(M_RUN_PERL6) tools/build/create-moar-runner.p6 moar "$(MOAR)" perl6-valgrind-m ~SCRIPT_DIR~/perl6.moarvm "valgrind" --nqp-lib=~SCRIPT_DIR~/blib ~SCRIPT_DIR~ ~SCRIPT_DIR~/blib $(M_LIBPATH)
 	-$(CHMOD) 755 $(M_VALGRIND_RUNNER)
 
 $(M_C_RUNNER): src/vm/moar/runner/main.c

@@ -34,6 +34,7 @@ enum {
     UNKNOWN_FLAG = -1,
 
     FLAG_SUSPEND,
+    FLAG_FULL_CLEANUP,
     FLAG_TRACING,
 
     OPT_DEBUGPORT
@@ -154,6 +155,7 @@ int wmain(int argc, wchar_t *wargv[])
     char **argv = MVM_UnicodeToUTF8_argv(argc, wargv);
 #endif
 
+    int full_cleanup = 0;
     int argi         = 1;
     int flag;
     int new_argc     = 0;
@@ -168,6 +170,9 @@ int wmain(int argc, wchar_t *wargv[])
 
     for (; (flag = parse_flag(argv[argi])) != NOT_A_FLAG; ++argi) {
         switch (flag) {
+            case FLAG_FULL_CLEANUP:
+            full_cleanup = 1;
+            continue;
 
 #if MVM_TRACING
             case FLAG_TRACING:
@@ -342,7 +347,13 @@ int wmain(int argc, wchar_t *wargv[])
     }
 #endif
 
-    MVM_vm_exit(instance);
+    if (full_cleanup) {
+        MVM_vm_destroy_instance(instance);
+        return EXIT_SUCCESS;
+    }
+    else {
+        MVM_vm_exit(instance);
+    }
 
     free(lib_path[0]);
     free(lib_path[1]);

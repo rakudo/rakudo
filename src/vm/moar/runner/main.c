@@ -187,7 +187,7 @@ int wmain(int argc, wchar_t *wargv[])
 
             case OPT_DEBUGPORT: {
                 MVMint64 port;
-                char *portstr = argv[argi] + strlen("--debugport=") + 1;
+                char *portstr = argv[argi] + strlen("--debug-port=");
                 char *endptr;
                 port = strtoll(portstr, &endptr, 10);
                 if (*endptr != '\0') {

@@ -34,7 +34,6 @@ enum {
     UNKNOWN_FLAG = -1,
 
     FLAG_SUSPEND,
-    FLAG_DUMP,
     FLAG_TRACING,
 
     OPT_DEBUGPORT
@@ -42,7 +41,6 @@ enum {
 
 static const char *const FLAGS[] = {
     "--debug-suspend",
-    "--dump",
     "--full-cleanup",
     "--tracing",
 };
@@ -156,7 +154,6 @@ int wmain(int argc, wchar_t *wargv[])
     char **argv = MVM_UnicodeToUTF8_argv(argc, wargv);
 #endif
 
-    int dump         = 0;
     int argi         = 1;
     int flag;
     int new_argc     = 0;
@@ -171,9 +168,6 @@ int wmain(int argc, wchar_t *wargv[])
 
     for (; (flag = parse_flag(argv[argi])) != NOT_A_FLAG; ++argi) {
         switch (flag) {
-            case FLAG_DUMP:
-            dump = 1;
-            continue;
 
 #if MVM_TRACING
             case FLAG_TRACING:
@@ -339,8 +333,7 @@ int wmain(int argc, wchar_t *wargv[])
         }
     }
 
-    if (dump) MVM_vm_dump_file(instance, perl6_file);
-    else MVM_vm_run_file(instance, perl6_file);
+    MVM_vm_run_file(instance, perl6_file);
 
 #ifdef HAVE_TELEMEH
     if (getenv("MVM_TELEMETRY_LOG") && telemeh_inited) {

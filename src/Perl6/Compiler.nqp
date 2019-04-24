@@ -108,7 +108,6 @@ class Perl6::Compiler is HLL::Compiler {
   --profile-stage=stage
                        write profile information for the given compilation
                        stage to an HTML file
-  --dump               dump the bytecode to stdout instead of executing
   --full-cleanup       try to free all memory and exit cleanly
   --debug-port=port    listen for incoming debugger connections
   --debug-suspend      pause execution at the entry point
@@ -138,7 +137,6 @@ and, by default, also executes the compiled code.
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
   --doc=module         use Pod::To::[module] to render inline documentation
-
   --repl-mode=interactive|non-interactive
                        when running without "-e" or filename arguments,
                        a REPL is started. By default, if STDIN is a TTY,
@@ -149,7 +147,6 @@ and, by default, also executes the compiled code.
                        loaded). This option allows to bypass TTY detection and
                        force one of the REPL modes.
 $moar-options
-
 Note that only boolean single-letter options may be bundled.
 
 The following environment variables are respected:
@@ -157,9 +154,6 @@ The following environment variables are respected:
   PERL6LIB    Modify the module search path
   PERL6_HOME  Override the path of the Perl6 runtime files
   NQP_HOME    Override the path of the NQP runtime files
-
-
-
 
 ♥); # end of usage statement
 

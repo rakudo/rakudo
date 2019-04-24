@@ -30,7 +30,6 @@ compiled code.
   --profile            write profile information as HTML file (MoarVM)
   --profile-filename   provide a different filename (also allows .json)
   --doc=[module]       Use Pod::To::[module] to render inline documentation.
-  --dump               dump the bytecode to stdout instead of executing (MoarVM)
   --full-cleanup       try to free all memory and exit cleanly (MoarVM)
   --debug-port=port    listen for incoming debugger connections (MoarVM)
   --debug-suspend      pause execution at the entry point (MoarVM)

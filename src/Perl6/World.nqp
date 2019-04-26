@@ -3374,8 +3374,10 @@ class Perl6::World is HLL::World {
         method generate_buildplan_executor($/, $in_object, $in_build_plan) {
 
             # low level hash access
-            my $build_plan :=
-              nqp::getattr(nqp::decont($in_build_plan), $!List, '$!reified');
+            my $dc_build_plan := nqp::decont($in_build_plan);
+            my $build_plan := nqp::islist($dc_build_plan)
+                ?? $dc_build_plan
+                !! nqp::getattr($dc_build_plan, $!List, '$!reified');
 
             if nqp::elems($build_plan) -> $count {
 

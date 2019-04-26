@@ -40,7 +40,6 @@ sub hll-config(\$config) {
     \$config<version>          := '$version';
     \$config<release-number>   := '$release';
     \$config<codename>         := '$codename';
-    \$config<build-date>       := '$builddate';
     \$config<language-version> := '6.d';
     \$config<can-language-versions>
         := nqp::list('6.c', '6.d', '6.d.PREVIEW');

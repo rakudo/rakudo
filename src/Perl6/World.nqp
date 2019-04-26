@@ -2767,15 +2767,14 @@ class Perl6::World is HLL::World {
         my $cur_block := $past;
         while $cur_block {
             my %symbols := $cur_block.symtable();
-            for %symbols {
-                my str $name := $_.key;
+            for sorted_keys(%symbols) -> str $name {
                 # For now, EVALed code run during precomp will not get the
                 # outer lexical context's symbols as those may contain or
                 # reference unserializable objects leading to compilation
                 # failures. Needs a smarter approach as noted above.
                 unless self.is_nested() || %seen{$name} {
                     # Add symbol.
-                    my %sym   := $_.value;
+                    my %sym   := %symbols{$name};
                     my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
                         ?? self.force_value(%sym, $name, 0)
                         !! $mu;

@@ -141,7 +141,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         if $resources-dir.add($files{$file}).e
                         and not $.prefix.add($file).e; # bin/ is already included in the path
                 }
-                $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta);
+                $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
             }
         }
         $.prefix.add('version').spurt('2');
@@ -247,7 +247,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         %meta<files>    = %links;    # add our new name-path => content-id mapping
         %meta<provides> = %provides; # new meta data added to provides
         %!dist-metas{$dist-id} = %meta;
-        $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta);
+        $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
 
         # reset cached id so it's generated again on next access.
         # identity changes with every installation of a dist.

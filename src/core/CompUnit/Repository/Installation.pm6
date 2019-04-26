@@ -393,6 +393,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         ));
     }
     multi method candidates(CompUnit::DependencySpecification $spec) {
+        my $repo-version = self!repository-version;
+        self.upgrade-repository unless $repo-version == 3;
+
         return Empty unless $spec.from eq 'Perl6';
 
         # $lookup is a file system resource that acts as a fast meta data lookup for a given module short name.

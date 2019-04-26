@@ -1805,9 +1805,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.push(QAST::WVal.new(:value($ret))) if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil';
         if %*HANDLERS {
             $past := QAST::Op.new( :op('handle'), $past );
-            for %*HANDLERS {
-                $past.push($_.key);
-                $past.push($_.value);
+            my %handlers := %*HANDLERS;
+            for sorted_keys(%handlers) {
+                $past.push($_);
+                $past.push(%handlers{$_});
             }
         }
         $past

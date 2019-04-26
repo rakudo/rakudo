@@ -471,8 +471,9 @@ sub MAIN(*@ARGS) {
     my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
 #?if jvm
     my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');
+    my $rindex-pos := nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1);
     my $install-dir := $execname ne ''
-        ?? nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1))
+        ?? nqp::substr($execname, 0, nqp::rindex($execname, $sep, $rindex-pos < 0 ?? nqp::chars($execname) !! $rindex-pos))
         !! $comp.config<prefix>;
 #?endif
 #?if moar

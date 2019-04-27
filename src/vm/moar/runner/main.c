@@ -347,14 +347,6 @@ int wmain(int argc, wchar_t *wargv[])
     }
 #endif
 
-    if (full_cleanup) {
-        MVM_vm_destroy_instance(instance);
-        return EXIT_SUCCESS;
-    }
-    else {
-        MVM_vm_exit(instance);
-    }
-
     free(lib_path[0]);
     free(lib_path[1]);
     free(lib_path[2]);
@@ -363,4 +355,12 @@ int wmain(int argc, wchar_t *wargv[])
     free(dir_path);
     free(perl6_home);
     free(nqp_home);
+
+    if (full_cleanup) {
+        MVM_vm_destroy_instance(instance);
+        return EXIT_SUCCESS;
+    }
+    else {
+        MVM_vm_exit(instance);
+    }
 }

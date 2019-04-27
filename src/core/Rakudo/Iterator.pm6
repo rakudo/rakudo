@@ -2354,11 +2354,17 @@ class Rakudo::Iterator {
                 times <= 0,               # must be HLL comparison
                 Rakudo::Iterator.Empty,   # negative is just nothing
                 nqp::if(
-                  (nqp::istype(times,Int)
-                    && nqp::isbig_I(nqp::decont(times)))
-                    || times == Inf,
-                  iterator,               # big value = itself
-                  nqp::create(self)!SET-SELF(iterator,times)
+                  nqp::istype(times,Int),
+                  nqp::if(
+                    nqp::isbig_I(nqp::decont(times)),
+                    iterator,             # big value = itself
+                    nqp::create(self)!SET-SELF(iterator,times)
+                  ),
+                  nqp::if(
+                    times == Inf,         # big value = itself
+                    iterator,
+                    nqp::create(self)!SET-SELF(iterator,times.Int)
+                  )
                 )
               )
             )

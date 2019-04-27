@@ -260,7 +260,6 @@ class CompUnit::RepositoryRegistry {
         shift @*ARGS if $name;
         shift @*ARGS if $auth;
         shift @*ARGS if $ver;
-
         my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
         my @metas = @installations.map({ .files("bin/$script", :$name, :$auth, :$ver).head }).grep(*.defined);
         unless +@metas {
@@ -287,8 +286,12 @@ class CompUnit::RepositoryRegistry {
         }
 
         my $meta = @metas.sort(*.<ver>).reverse.head;
-        my $bin  = $meta<source>;
-        require "$bin";
+        $*REPO.need(CompUnit::DependencySpecification.new(
+            short-name      => "bin/$script",
+            version-matcher => $meta<ver>  // True,
+            api-matcher     => $meta<api>  // True,
+            auth-matcher    => $meta<auth> // True,
+        ));
     }
 
     method head() { # mostly usefull for access from NQP

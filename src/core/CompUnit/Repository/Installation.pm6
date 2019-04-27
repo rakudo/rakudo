@@ -222,12 +222,17 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     $.prefix.add("$withoutext$be").IO.chmod(0o755);
                 }
             }
+
             self!add-short-name($name-path, $dist, $id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
             my $content = $handle.open.slurp-rest(:bin,:close);
             $destination.spurt($content);
             $handle.close;
+            self!add-short-name($name-path, $dist, $id,
+              nqp::sha1(nqp::join("\n", nqp::split("\r\n",
+                $content.decode('iso-8859-1')))));
+
         }
 
         # resources/
@@ -263,8 +268,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my %done;
 
             my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
+
             for %provides.kv -> $source-name, $source-meta {
                 my $id = CompUnit::PrecompilationId.new-without-check($source-meta.values[0]<file>);
+                $precomp.store.delete($compiler-id, $id);
+            }
+
+            for %files.kv -> $source-name, $source-meta {
+                my $id = CompUnit::PrecompilationId.new-without-check(self!file-id($source-name, $dist-id));
                 $precomp.store.delete($compiler-id, $id);
             }
 
@@ -285,6 +296,26 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 );
                 %done{$id} = 1;
             }
+
+            for %files.kv -> $source-name, $source-meta {
+                next unless $source-name.starts-with('bin/');
+                my $id = self!file-id(~$source-name, $dist-id);
+                my $source = $resources-dir.add($id);
+                my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
+
+                if %done{$id} {
+                    note "(Already did $id)" if $verbose;
+                    next;
+                }
+                note("Precompiling $id ($source-name) from $source-file") if $verbose;
+                $precomp.precompile(
+                    $source,
+                    CompUnit::PrecompilationId.new-without-check($id),
+                    :source-name("$source-file ($source-name)"),
+                );
+                %done{$id} = 1;
+            }
+
             PROCESS::<$REPO> := $head;
         }
 

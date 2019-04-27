@@ -40,7 +40,7 @@ my $perl6jars = join( $cpsep,
 
 my $NQP_LIB = $blib ? ': ${NQP_LIB:="blib"}' : '';
 
-my $preamble_reloc = <<'EOS';
+my $preamble_unix = <<'EOS';
 #!/bin/sh
 
 # Sourced from https://stackoverflow.com/a/29835459/1975049
@@ -70,20 +70,20 @@ rreadlink() (
   fi
 )
 
-DIR=$(dirname -- "$(rreadlink "$0")")
+EXEC=$(rreadlink "$0")
+DIR=$(dirname -- "$EXEC")
+
 EOS
 
-$preamble_reloc .= "
-: \${NQP_DIR:=\"\$DIR/../share/nqp\"}
+
+my $preamble = $^O eq 'MSWin32' ? '@' :
+            $type eq 'install'
+? $preamble_unix . ": \${NQP_DIR:=\"\$DIR/../share/nqp\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${PERL6_DIR:=\"\$DIR/../share/perl6\"}
 : \${PERL6_JARS:=\"$perl6jars\"}
-exec ";
-
-my $preamble = $^O eq 'MSWin32' ? '@' :
-               $type eq 'install' ? $preamble_reloc :
-               "#!/bin/sh
-$NQP_LIB
+exec "
+: $preamble_unix . "$NQP_LIB
 : \${NQP_DIR:=\"$nqpdir\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${PERL6_DIR:=\"$perl6dir\"}
@@ -111,7 +111,7 @@ my $jopts = '-noverify -Xms100m'
           . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
           . ' -Dperl6.prefix=' . ($type eq 'install' && $^O ne 'MSWin32' ? '$DIR/..' : $prefix)
           . ' -Djna.library.path=' . $sharedir
-          . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');
+          . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$EXEC"');
 my $jdbopts = '-Xdebug -Xrunjdwp:transport=dt_socket,address=' 
             . ($^O eq 'MSWin32' ? '8000' : '${RAKUDO_JDB_PORT:=8000}') 
             . ',server=y,suspend=y';

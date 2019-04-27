@@ -1,5 +1,7 @@
 use lib <lib>;
 use CompUnit::Repository::Staging;
+use nqp;
+
 my %provides = 
     "Test"                          => "lib/Test.pm6",
     "NativeCall"                    => "lib/NativeCall.pm6",
@@ -42,7 +44,7 @@ $*REPO.install(
 my $core-dist = $*REPO.resolve(
     CompUnit::DependencySpecification.new(:short-name<CompUnit::Repository::Staging>)
 ).distribution;
-my $source-id = $core-dist.meta<provides><CompUnit::Repository::Staging>.values[0]<file>;
+my $source-id = nqp::sha1("CompUnit::Repository::Staging" ~ $core-dist.id);
 my $source = $*REPO.prefix.child('sources').child($source-id);
 my $source-file = $source.relative($*REPO.prefix);
 $*REPO.precomp-repository.precompile(

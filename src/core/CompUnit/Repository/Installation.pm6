@@ -11,13 +11,18 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
+    my sub file-id(Str $name, Str $dist-id) {
+        nqp::sha1($name ~ $dist-id)
+    }
+
     submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo --> Nil) { }
 
     my class InstalledDistribution is Distribution::Hash {
+        has $.dist-id;
         method content($address) {
-            my $entry = $.meta<provides>.values.first: { $_{$address}:exists };
+            my $entry = $.meta<provides>.antipairs.hash{$address};
             my $file = $entry
-                ?? $.prefix.add('sources').add($entry{$address}<file>)
+                ?? $.prefix.add('sources').add(file-id(~$entry, $!dist-id))
                 !! $.prefix.add('resources').add($.meta<files>{$address});
 
             $file.open(:r)
@@ -86,10 +91,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
     }
 
-    method !file-id(Str $name, Str $dist-id) {
-        nqp::sha1($name ~ $dist-id)
-    }
-
     method name(--> Str:D) {
         CompUnit::RepositoryRegistry.name-for-repository(self)
     }
@@ -144,8 +145,16 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
             }
         }
-        $.prefix.add('version').spurt('2');
-        $!version = 2;
+        if ($version < 3) {
+            for $dist-dir.dir -> $dist-file {
+                my %meta = Rakudo::Internals::JSON.from-json($dist-file.slurp);
+                %meta<provides> = %meta<provides>.map({ .key => .value.keys[0] }).hash;
+                $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta);
+            }
+        }
+
+        $.prefix.add('version').spurt('3');
+        $!version = 3;
     }
 
     method install(Distribution $distribution, Bool :$force) {
@@ -161,7 +170,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $lock.lock;
 
         my $version = self!repository-version;
-        self.upgrade-repository unless $version == 2;
+        self.upgrade-repository unless $version == 3;
 
         my $dist-id = $dist.id;
         my $dist-dir = self!dist-dir;
@@ -187,7 +196,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         # lib/ source files
         for $dist.meta<provides>.kv -> $name, $file is copy {
             # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
-            my $id          = self!file-id(~$name, $dist-id);
+            my $id          = file-id(~$name, $dist-id);
             my $destination = $sources-dir.add($id);
             my $handle      = $dist.content($file);
             my $content     = $handle.open(:bin).slurp(:close);
@@ -195,11 +204,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             self!add-short-name($name, $dist, $id,
               nqp::sha1(nqp::join("\n", nqp::split("\r\n",
                 $content.decode('iso-8859-1')))));
-            %provides{ $name } = ~$file => {
-                :file($id),
-                :time(try $file.IO.modified.Num),
-                :$!cver
-            };
             note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
             $destination.spurt($content);
         }
@@ -208,7 +212,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
             my $name        = $name-path.subst(/^bin\//, '');
-            my $id          = self!file-id(~$file, $dist-id);
+            my $id          = file-id(~$file, $dist-id);
             my $destination = $resources-dir.add($id); # wrappers are put in bin/; originals in resources/
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m', '-js' -> $be {
@@ -234,7 +238,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('resources/');
             # $name-path is 'resources/libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
-            my $id             = self!file-id(~$name-path, $dist-id) ~ '.' ~ $file.IO.extension;
+            my $id             = file-id(~$name-path, $dist-id) ~ '.' ~ $file.IO.extension;
             my $destination    = $resources-dir.add($id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
@@ -244,8 +248,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         my %meta = %($dist.meta);
-        %meta<files>    = %links;    # add our new name-path => content-id mapping
-        %meta<provides> = %provides; # new meta data added to provides
+        %meta<files> = %links; # add our new name-path => content-id mapping
         %!dist-metas{$dist-id} = %meta;
         $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
 
@@ -264,12 +267,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
             my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
             for %provides.kv -> $source-name, $source-meta {
-                my $id = CompUnit::PrecompilationId.new-without-check($source-meta.values[0]<file>);
+                my $id = CompUnit::PrecompilationId.new-without-check(file-id(~$source-name, $dist-id));
                 $precomp.store.delete($compiler-id, $id);
             }
 
             for %provides.kv -> $source-name, $source-meta {
-                my $id = $source-meta.values[0]<file>;
+                my $id = file-id(~$source-name, $dist-id);
                 my $source = $sources-dir.add($id);
                 my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
 
@@ -293,7 +296,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     method uninstall(Distribution $distribution) {
         my $repo-version = self!repository-version;
-        self.upgrade-repository unless $repo-version == 2;
+        self.upgrade-repository unless $repo-version == 3;
 
         # xxx: currently needs to be passed in a distribution object that
         # has meta<files> pointing at content-ids, so you cannot yet just
@@ -329,7 +332,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         # delete sources
-        unlink-if-exists( $sources-dir.add($_) ) for %provides.values.flatmap(*.values.map(*.<file>));
+        unlink-if-exists( $sources-dir.add($_) ) for %provides.keys.map({ file-id(~$_, $dist.id) });
 
         # delete the meta file
         unlink( $dist-dir.add($dist.id) )
@@ -390,6 +393,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         ));
     }
     multi method candidates(CompUnit::DependencySpecification $spec) {
+        my $repo-version = self!repository-version;
+        self.upgrade-repository unless $repo-version == 3;
+
         return Empty unless $spec.from eq 'Perl6';
 
         # $lookup is a file system resource that acts as a fast meta data lookup for a given module short name.
@@ -473,7 +479,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         # Parses dist info from json and populates $.meta with any new fields
         method !dist {
             unless $!installed-dist.defined {
-                $!installed-dist = InstalledDistribution.new($.read-dist()($!dist-id), :$.prefix);
+                $!installed-dist = InstalledDistribution.new($.read-dist()($!dist-id), :$!dist-id, :$.prefix);
 
                 # Keep fields of the meta data subset that do not exist in the full meta data
                 # (source, default values for versions, etc)
@@ -609,7 +615,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method distribution(Str $id --> Distribution) {
-        InstalledDistribution.new(self!read-dist($id), :prefix(self.prefix))
+        InstalledDistribution.new(self!read-dist($id), :dist-id($id), :prefix(self.prefix))
     }
 
     method installed(--> Iterable:D) {

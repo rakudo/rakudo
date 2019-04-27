@@ -15,8 +15,9 @@
 
 class Spesh {
     has @.parts;
-    has $.bails;
-    has $.time;
+    has $!bails;
+    has $!time;
+    has @!cuids;
 
     method bails() {
         $!bails //= [(+)] @.parts>>.bails;
@@ -24,11 +25,20 @@ class Spesh {
     method time() {
         $!time //= @.parts>>.time.sum;
     }
+    method cuids() {
+        @!cuids ?? @!cuids !! do {
+            for @.parts -> $part {
+                @!cuids[.cuid].push( $_ ) for $part.statistics;
+                @!cuids[.cuid].push( $_ ) for $part.actions;
+            }
+            @!cuids
+        }
+    }
 
     role Bails {
-        has $.bails;
+        has $!bails;
 
-        method bails() {
+        method bails(--> Bag:D) {
             $!bails //= $.text
               .comb( /:r bail ':' <-[ \n ]>* / )
               .map( *.words.tail )
@@ -38,18 +48,18 @@ class Spesh {
     }
 
     role Time {
-        method time() {
+        method time(--> Int:D) {
             $.text.match( / <after " "> \d+ <before us " "> /, :g ).sum // 0
         }
     }
 
     role Cuid-File-Line {
-        method cuid() {
+        method cuid(--> Int:D) {
             $.text.match(
               /:r <after 'cuid: ' > \d+ /
             ).Int
         }
-        method file-line() {
+        method file-line(--> Str:D) {
             $.text.match(
               /:r <after 'file: ' > <-[ ) ]>+ <before ')' > /
             ).Str
@@ -63,7 +73,7 @@ class Spesh {
     my class Updated does Time {
         has $.text;
 
-        method frames() {
+        method frames(--> Int:D) {
             $.text.match(
               /:r \d+ <before " frames" > /
             ).Int
@@ -73,12 +83,12 @@ class Spesh {
     my class Statistics does Time does Cuid-File-Line {
         has $.text;
 
-        method name() {
+        method name(--> Str:D) {
             $.text.match(
               /:r <after "Latest statistics for '" > <-[']>* <before "'" > /
             ).Str
         }
-        method total-hits() {
+        method total-hits(--> Int:D) {
             $.text.match(
               /:r <after "Total hits: " > \d+ /
             ).Int
@@ -88,12 +98,12 @@ class Spesh {
     my class Planning does Time {
         has $.text;
 
-        method specializations() {
+        method specializations(--> Int:D) {
             $.text.match(
               /:r \d+ <before " specialization(s)" > /
             ).Int
         }
-        method time() {
+        method time(--> Int:D) {
             $.text.match( /:r <after "planned in "> \d+ <before "us)"> /).Int
         }
     }
@@ -102,7 +112,7 @@ class Spesh {
     class Observation does Bails does Time does Cuid-File-Line {
         has $.text;
 
-        method name() {
+        method name(--> Str:D) {
             $.text.match(
               /:r <after "Observed type specialization of '" > <-[']>* <before "'" > /
             ).Str
@@ -112,7 +122,7 @@ class Spesh {
     class GuardTree does Bails does Time does Cuid-File-Line {
         has $.text;
 
-        method name() {
+        method name(--> Str:D) {
             $.text.match(
               /:r <after "Latest guard tree for '" > <-[']>* <before "'" > /
             ).Str
@@ -122,7 +132,7 @@ class Spesh {
     class Certainty does Bails does Time does Cuid-File-Line {
         has $.text;
 
-        method name() {
+        method name(--> Str:D) {
             $.text.match(
               /:r <after "Certain specialization of '" > <-[']>* <before "'" > /
             ).Str
@@ -132,28 +142,30 @@ class Spesh {
     class Specialization does Bails does Time does Cuid-File-Line {
         has $.text;
 
-        method time() {
+        method time(--> Int:D) {
             $.text.match(
               /:r <after 'Specialization took ' > \d+ <before 'us' > /
             ).Int
         }
-        method jitted() { $.text.contains('JIT was successful') }
-        method compilation-time() {
+        method jitted(--> Bool:D) {
+            $.text.contains('JIT was successful')
+        }
+        method compilation-time(--> Int:D) {
             $.text.match(
               /:r <after 'compilation took ' > \d+ <before 'us' > /
             ).Int
         }
-        method frame-size() {
+        method frame-size(--> Int:D) {
             $.text.match(
               /:r <after 'Frame size: ' > \d+ <before ' byte' > /
             ).Int
         }
-        method bytecode-size() {
+        method bytecode-size(--> Int:D) {
             $.text.match(
               /:r <after 'Bytecode size: ' > \d+ <before ' byte' > /
             ).Int
         }
-        method name() {
+        method name(--> Str:D) {
             $.text.match(
               /:r <after "Spesh of '" > <-[']>* <before "' " > /
             ).Str
@@ -172,7 +184,7 @@ class Spesh {
         method bails() {
             $!bails //= [(+)] @.actions>>.bails;
         }
-        method time() {
+        method time(--> Int:D) {
             $!time //=
                 $.received.time
               + $.updated.time
@@ -197,7 +209,7 @@ class Spesh {
     my constant start-Certainty      = "Certain specialization of";
     my constant start-Specialization = "Specialization of";
 
-    method new($filename) {
+    method new($filename --> Spesh:D) {
         my $handle = $filename.IO.open or die "Could not read $filename: $!";
 
         my $status = Received;
@@ -362,4 +374,6 @@ sub MAIN($filename where *.IO.e) {
     note "Done";
     say "Found $bails.elems() different ops getting bailed:";
     printf("%4d: %s\n", .value, .key) for $bails.sort( *.value );
+
+    say $spesh.cuids[1]>>.file-line.Bag;
 }

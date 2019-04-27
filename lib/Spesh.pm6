@@ -16,9 +16,148 @@
 class Spesh {
     has @.parts;
     has $.bails;
+    has $.time;
 
     method bails() {
         $!bails //= [(+)] @.parts>>.bails;
+    }
+    method time() {
+        $!time //= @.parts>>.time.sum;
+    }
+
+    role Bails {
+        has $.bails;
+
+        method bails() {
+            $!bails //= $.text
+              .comb( /:r bail ':' <-[ \n ]>* / )
+              .map( *.words.tail )
+              .map( { .starts-with( "(ins=" ) ?? .substr(5,*-1) !! $_ } )
+              .Bag
+        }
+    }
+
+    role Time {
+        method time() {
+            $.text.match( / <after " "> \d+ <before us " "> /, :g ).sum // 0
+        }
+    }
+
+    role Cuid-File-Line {
+        method cuid() {
+            $.text.match(
+              /:r <after 'cuid: ' > \d+ /
+            ).Int
+        }
+        method file-line() {
+            $.text.match(
+              /:r <after 'file: ' > <-[ ) ]>+ <before ')' > /
+            ).Str
+        }
+    }
+
+    my class Received does Time {
+        has $.text;
+    }
+
+    my class Updated does Time {
+        has $.text;
+
+        method frames() {
+            $.text.match(
+              /:r \d+ <before " frames" > /
+            ).Int
+        }
+    }
+
+    my class Statistics does Time does Cuid-File-Line {
+        has $.text;
+
+        method name() {
+            $.text.match(
+              /:r <after "Latest statistics for '" > <-[']>* <before "'" > /
+            ).Str
+        }
+        method total-hits() {
+            $.text.match(
+              /:r <after "Total hits: " > \d+ /
+            ).Int
+        }
+    }
+
+    my class Planning does Time {
+        has $.text;
+
+        method specializations() {
+            $.text.match(
+              /:r \d+ <before " specialization(s)" > /
+            ).Int
+        }
+        method time() {
+            $.text.match( /:r <after "planned in "> \d+ <before "us)"> /).Int
+        }
+    }
+
+    class Gathering { }  # just used for status
+    class Observation does Bails does Time does Cuid-File-Line {
+        has $.text;
+
+        method name() {
+            $.text.match(
+              /:r <after "Observed type specialization of '" > <-[']>* <before "'" > /
+            ).Str
+        }
+    }
+
+    class GuardTree does Bails does Time does Cuid-File-Line {
+        has $.text;
+
+        method name() {
+            $.text.match(
+              /:r <after "Latest guard tree for '" > <-[']>* <before "'" > /
+            ).Str
+        }
+    }
+
+    class Certainty does Bails does Time does Cuid-File-Line {
+        has $.text;
+
+        method name() {
+            $.text.match(
+              /:r <after "Certain specialization of '" > <-[']>* <before "'" > /
+            ).Str
+        }
+    }
+
+    class Specialization does Bails does Time does Cuid-File-Line {
+        has $.text;
+
+        method time() {
+            $.text.match(
+              /:r <after 'Specialization took ' > \d+ <before 'us' > /
+            ).Int
+        }
+        method jitted() { $.text.contains('JIT was successful') }
+        method compilation-time() {
+            $.text.match(
+              /:r <after 'compilation took ' > \d+ <before 'us' > /
+            ).Int
+        }
+        method frame-size() {
+            $.text.match(
+              /:r <after 'Frame size: ' > \d+ <before ' byte' > /
+            ).Int
+        }
+        method bytecode-size() {
+            $.text.match(
+              /:r <after 'Bytecode size: ' > \d+ <before ' byte' > /
+            ).Int
+        }
+        method name() {
+            $.text.match(
+              /:r <after "Spesh of '" > <-[']>* <before "' " > /
+            ).Str
+        }
     }
 
     class Part {
@@ -28,34 +167,25 @@ class Spesh {
         has $.planning;
         has @.actions;
         has $.bails;
+        has $.time;
 
         method bails() {
             $!bails //= [(+)] @.actions>>.bails;
         }
-    }
-
-    my class Received   { has $.text }
-    my class Updated    { has $.text }
-    my class Statistics { has $.text }
-    my class Planning   { has $.text }
-
-    role Bails {
-        has $.bails;
-
-        method bails() {
-            $!bails //= $.text
-              .comb( / bail ':' <-[ \n ]>* / )
-              .map( *.words.tail )
-              .map( { .starts-with( "(ins=" ) ?? .substr(5,*-1) !! $_ } )
-              .Bag;
+        method time() {
+            $!time //=
+                $.received.time
+              + $.updated.time
+              + @.statistics>>.time.sum
+              + $.planning.time
+              + @.actions>>.time.sum
         }
-    }
 
-    class Gathering { }  # just used for status
-    class Observation does Bails    { has $.text }
-    class GuardTree does Bails      { has $.text }
-    class Certainty does Bails      { has $.text }
-    class Specialization does Bails { has $.text }
+        method observations()    { @.actions.grep: Observation    }
+        method guardtrees()      { @.actions.grep: GuardTree      }
+        method certainties()     { @.actions.grep: Certainty      }
+        method specializations() { @.actions.grep: Specialization }
+    }
 
     my constant start-Received       = "Received Logs";
     my constant start-Updated        = "Statistics Updated";

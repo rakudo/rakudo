@@ -31,11 +31,11 @@ multi sub MAIN("perl6", $perl6, $install-to, $toolchain, $ld-lib-path, $perl6-ho
 multi sub MAIN("moar", $moar, $install-to is copy, $mbc, $toolchain, $blib is copy, *@libpaths) {
 
     $blib = ' ' ~ $blib if $blib;
-    my $libpaths = '--libpath="%s"'.sprintf: @libpaths.join('" --libpath="');
+    my $libpaths = '--libpath=%s'.sprintf: @libpaths.join(' --libpath=');
     my $libpath-line = "%s %s%s".sprintf: $libpaths, $mbc, $blib;
-    $libpath-line ~~ s:g/\~SCRIPT_DIR\~/\$DIR/ if $*DISTRO ne 'mswin32';
+    $libpath-line ~~ s:g/\~SCRIPT_DIR\~/"\$DIR"/ if $*DISTRO ne 'mswin32';
     $libpath-line ~~ s:g/\~SCRIPT_DIR\~/%DIR%/ if $*DISTRO eq 'mswin32';
-    
+
     $install-to ~= '.bat' if $*DISTRO eq 'mswin32';
 
     my $fh = open $install-to, :w;
@@ -190,4 +190,3 @@ sub get-moar-valgrind-runner($moar, $libpath-line) {
     valgrind ${MVM_VALGRIND_OPTS} %s --execname="$EXEC" %s "$@"
     EOS
 }
-

@@ -7,7 +7,7 @@ use Cwd;
 use POSIX qw<strftime>;
 use Digest::SHA;
 use File::Find;
-use NQP::Config qw<slurp nfp read_config cmp_rev system_or_die>;
+use NQP::Config qw<slurp read_config cmp_rev system_or_die>;
 use NQP::Macros;
 
 use base qw<NQP::Config>;
@@ -235,19 +235,19 @@ sub configure_moar_backend {
           '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
         $config->{'m_install'} = "\t"
           . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
+          . $self->nfp("tools/build/create-moar-runner.p6")
           . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-gdb-m")
+          . $self->nfp("/bin/perl6-gdb-m")
           . ' "gdb" "" "" ""' . "\n\t"
           . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
+          . $self->nfp("tools/build/create-moar-runner.p6")
           . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-lldb-m")
+          . $self->nfp("/bin/perl6-lldb-m")
           . ' "lldb" "" "" ""' . "\n\t"
           . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
+          . $self->nfp("tools/build/create-moar-runner.p6")
           . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-valgrind-m")
+          . $self->nfp("/bin/perl6-valgrind-m")
           . ' "valgrind" "" "" ""';
     }
     $config->{c_runner_libs} = join( " ", @c_runner_libs );
@@ -286,7 +286,7 @@ sub configure_js_backend {
     my $nqp_config;
     $config->{js_nqp} = $ijs->{bin};
     $config->{'perl6_runtime'} =
-      File::Spec->rel2abs( nfp('src/vm/js/perl6-runtime') );
+      File::Spec->rel2abs( $self->nfp('src/vm/js/perl6-runtime') );
     $config->{'perl6_lowlevel_libs'} =
       File::Spec->rel2abs('node_modules') . $slash;
     $config->{'perl6_js_runner'} =
@@ -383,11 +383,11 @@ sub gen_nqp {
 
     for my $b ( $self->active_backends ) {
         my $postfix = $self->backend_abbr($b);
-        my $bin     = nfp($nqp_bin)
+        my $bin     = $self->nfp($nqp_bin)
           || (
             $sdkroot
-            ? File::Spec->catfile( nfp($sdkroot), $prefix, 'bin',
-                "nqp-$postfix$bat" )
+            ? File::Spec->catfile( $self->nfp($sdkroot),
+                $prefix, 'bin', "nqp-$postfix$bat" )
             : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" )
           );
         $impls->{$b}{bin} = $bin;

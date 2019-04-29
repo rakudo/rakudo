@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Copyright (C) 2009 The Perl Foundation
+# Copyright (C) 2009-2019 The Perl Foundation
 
 use 5.10.1;
 use strict;
@@ -81,6 +81,7 @@ MAIN: {
 "===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";
     }
 
+    $cfg->configure_paths;
     $cfg->configure_from_options;
     $cfg->configure_refine_vars;
     $cfg->configure_relocatability;

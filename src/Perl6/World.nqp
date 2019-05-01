@@ -682,7 +682,7 @@ class Perl6::World is HLL::World {
         # Bootstrap
         if $setting_name eq 'NULL' {
             my $name   := "Perl6::BOOTSTRAP";
-            my $module := self.load_module_early($/, $name, {}, $*GLOBALish);
+            my $module := self.load_module_early($/, $name, $*GLOBALish);
             my $EXPORT := $module<EXPORT>.WHO;
             my @to_import := ['MANDATORY', 'DEFAULT'];
             for @to_import -> $tag {
@@ -1341,30 +1341,18 @@ class Perl6::World is HLL::World {
 
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
-    method load_module_early($/, $module_name, %opts, $cur_GLOBALish) {
+    method load_module_early($/, $module_name, $cur_GLOBALish) {
         my $RMD := self.RAKUDO_MODULE_DEBUG;
         $RMD("  Early loading '$module_name'") if $RMD;
 
         # Immediate loading.
         my $line   := self.current_line($/);
-        my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, %opts,
+        my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, {},
             $cur_GLOBALish, :$line);
 
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
             $RMD("  Pre-compiling '$module_name'") if $RMD;
-            my $opt_hash := QAST::Op.new( :op('hash') );
-            for %opts {
-                self.add_object_if_no_sc($_.value);
-                $opt_hash.push(QAST::SVal.new( :value($_.key) ));
-                my $Str := self.find_symbol(['Str'], :setting-only);
-                if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
-                    $opt_hash.push(QAST::SVal.new( :value($_.value) ));
-                }
-                else {
-                    $opt_hash.push(QAST::WVal.new( :value($_.value) ));
-                }
-            }
             self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
@@ -1372,7 +1360,7 @@ class Perl6::World is HLL::World {
                    QAST::Op.new( :op('getcurhllsym'),
                         QAST::SVal.new( :value('ModuleLoader') ) ),
                    QAST::SVal.new( :value($module_name) ),
-                   $opt_hash,
+                   QAST::Op.new( :op('hash') ),
                    QAST::IVal.new(:value($line), :named('line'))
                 ))));
         }

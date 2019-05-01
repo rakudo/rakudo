@@ -102,11 +102,11 @@ my class RoleToClassApplier {
         my @stubs;
 
         # Compose in any methods.
-        sub compose_method_table(%methods) {
-            for %methods {
-                my $name := $_.key;
+        sub compose_method_table(@methods) {
+            for @methods -> $method {
+                my str $name := $method.name;
                 my $yada := 0;
-                try { $yada := $_.value.yada }
+                try { $yada := $method.yada }
                 if $yada {
                     unless has_method($target, $name, 0)
                             || has_public_attribute($target, $name) {
@@ -122,13 +122,11 @@ my class RoleToClassApplier {
                     }
                 }
                 elsif !has_method($target, $name, 1) {
-                    $target.HOW.add_method($target, $name, $_.value);
+                    $target.HOW.add_method($target, $name, $method);
                 }
             }
         }
-        compose_method_table(nqp::hllize($to_compose_meta.method_table($to_compose)));
-        compose_method_table(nqp::hllize($to_compose_meta.submethod_table($to_compose)))
-            if nqp::can($to_compose_meta, 'submethod_table');
+        compose_method_table(nqp::hllize($to_compose_meta.methods($to_compose, :local(1))));
         if nqp::can($to_compose_meta, 'private_method_table') {
             for nqp::hllize($to_compose_meta.private_method_table($to_compose)) {
                 unless has_private_method($target, $_.key) {

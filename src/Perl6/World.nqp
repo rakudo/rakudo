@@ -2864,9 +2864,9 @@ class Perl6::World is HLL::World {
         my str $cache_key;
         if !$nocache {
             my str $namedkey := '';
-            for %named {
-                $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
-                    if nqp::defined($_.value);
+            for sorted_keys(%named) -> $key {
+                $namedkey := $namedkey ~ $key ~ ',' ~ %named{$key} ~ ';'
+                    if nqp::defined(%named{$key});
             }
             if $primitive eq 'bigint' {
                 $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);

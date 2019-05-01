@@ -176,14 +176,17 @@ class Perl6::Metamodel::ParametricRoleHOW
 
         # Go through methods and instantiate them; we always do this
         # unconditionally, since we need the clone anyway.
-        for nqp::hllize(self.method_table($obj)) {
-            $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
+        my %method_table := nqp::hllize(self.method_table($obj));
+        for sorted_keys(%method_table) -> $name {
+            $conc.HOW.add_method($conc, $name, %method_table{$name}.instantiate_generic($type_env))
         }
-        for nqp::hllize(self.submethod_table($obj)) {
-            $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
+        my %submethod_table := nqp::hllize(self.submethod_table($obj));
+        for sorted_keys(%submethod_table) -> $name {
+            $conc.HOW.add_method($conc, $name, %submethod_table{$name}.instantiate_generic($type_env))
         }
-        for nqp::hllize(self.private_method_table($obj)) {
-            $conc.HOW.add_private_method($conc, $_.key, $_.value.instantiate_generic($type_env));
+        my %private_method_table := nqp::hllize(self.private_method_table($obj));
+        for sorted_keys(%private_method_table) -> $name {
+            $conc.HOW.add_private_method($conc, $name, %private_method_table{$name}.instantiate_generic($type_env));
         }
         for self.multi_methods_to_incorporate($obj) {
             $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))

@@ -263,13 +263,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my %done;
 
             my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
-            for %provides.kv -> $source-name, $source-meta {
-                my $id = CompUnit::PrecompilationId.new-without-check($source-meta.values[0]<file>);
+            for %provides.sort {
+                my $id = CompUnit::PrecompilationId.new-without-check($_.value.values[0]<file>);
                 $precomp.store.delete($compiler-id, $id);
             }
 
-            for %provides.kv -> $source-name, $source-meta {
-                my $id = $source-meta.values[0]<file>;
+            for %provides.sort {
+                my $id = $_.value.values[0]<file>;
                 my $source = $sources-dir.add($id);
                 my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
 
@@ -277,11 +277,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     note "(Already did $id)" if $verbose;
                     next;
                 }
-                note("Precompiling $id ($source-name)") if $verbose;
+                note("Precompiling $id ($_.key())") if $verbose;
                 $precomp.precompile(
                     $source,
                     CompUnit::PrecompilationId.new-without-check($id),
-                    :source-name("$source-file ($source-name)"),
+                    :source-name("$source-file ($_.key())"),
                 );
                 %done{$id} = 1;
             }

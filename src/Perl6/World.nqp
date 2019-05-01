@@ -1426,12 +1426,13 @@ class Perl6::World is HLL::World {
         my %to_install;
         my @clash;
         my @clash_onlystar;
-        for %stash {
-            if $target.symbol($_.key) -> %sym {
+        for sorted_keys(%stash) -> $key {
+            my $value := %stash{$key};
+            if $target.symbol($key) -> %sym {
                 # There's already a symbol. However, we may be able to merge
                 # if both are multis and have onlystar dispatchers.
                 my $installed := %sym<value>;
-                my $foreign := $_.value;
+                my $foreign := $value;
                 if $installed =:= $foreign {
                     next;
                 }
@@ -1443,7 +1444,7 @@ class Perl6::World is HLL::World {
                         # Replace installed one with a derived one, to avoid any
                         # weird action at a distance.
                         $installed := self.derive_dispatcher($installed);
-                        self.install_lexical_symbol($target, $_.key, $installed, :clone(1));
+                        self.install_lexical_symbol($target, $key, $installed, :clone(1));
 
                         # Incorporate dispatchees of foreign proto, avoiding
                         # duplicates.
@@ -1458,19 +1459,19 @@ class Perl6::World is HLL::World {
                         }
                     }
                     else {
-                        nqp::push(@clash_onlystar, $_.key);
+                        nqp::push(@clash_onlystar, $key);
                     }
                 }
                 else {
-                    nqp::push(@clash, $_.key);
+                    nqp::push(@clash, $key);
                 }
             }
             else {
-                $target.symbol($_.key, :scope('lexical'), :value($_.value));
+                $target.symbol($key, :scope('lexical'), :value($value));
                 $target[0].push(QAST::Var.new(
-                    :scope('lexical'), :name($_.key), :decl('static'), :value($_.value)
+                    :scope('lexical'), :name($key), :decl('static'), :value($value)
                 ));
-                %to_install{$_.key} := $_.value;
+                %to_install{$key} := $value;
             }
         }
 
@@ -1490,14 +1491,14 @@ class Perl6::World is HLL::World {
 
         # Second pass: make sure installed things are in an SC and handle
         # categoricals.
-        for %to_install {
-            my $v := $_.value;
+        for sorted_keys(%to_install) -> $key {
+            my $v := %to_install{$key};
             self.add_object_if_no_sc($v);
-            my $categorical := match($_.key, /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/);
+            my $categorical := match($key, /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/);
             if $categorical {
                 $/.add_categorical(~$categorical[0], ~$categorical[1],
                     ~$categorical[0] ~ self.canonicalize_pair('sym',$categorical[1]),
-                    nqp::substr($_.key, 1), $v);
+                    nqp::substr($key, 1), $v);
             }
         }
     }

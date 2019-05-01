@@ -65,6 +65,7 @@ MAIN: {
         'rakudo-repo=s',    'nqp-repo=s',
         'moar-repo=s',      'roast-repo=s',
         'expand=s',         'out=s',
+        'set-var=s@',
       )
       or do {
         print_help();
@@ -166,7 +167,7 @@ General Options:
     --nqp-repo=<url>
     --moar-repo=<url>
     --roast-repo=<url>
-                       User specified URL to fetch corresponding components
+                       User-defined URL to fetch corresponding components
                        from. The URL will also be used to setup git push.
     --git-protocol={ssh,https,git}
                        Protocol used for cloning git repos
@@ -184,6 +185,9 @@ General Options:
                        generated. The result is send to stdout unless --out
                        specified.
     --out=<file>       Filename to send output of --expand into.
+    --set-var="config_variable=value"
+                       Sets a config_variable to "value". Can be used multiple
+                       times.
 
 Please note that the --gen-moar and --gen-nqp options are there for convenience
 only and will actually immediately - at Configure time - compile and install

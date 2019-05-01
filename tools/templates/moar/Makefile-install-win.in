@@ -1,0 +1,1 @@
+	$(CP) @nfpq($(LIBDIR)/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@

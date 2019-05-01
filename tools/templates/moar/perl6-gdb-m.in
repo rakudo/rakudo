@@ -1,0 +1,5 @@
+@insert(sh-prelude)@
+
+@insert(perl6-debug-notice)@
+
+gdb --quiet --ex=run --args @q(@MOAR)@) @insert(perl6-opts)@

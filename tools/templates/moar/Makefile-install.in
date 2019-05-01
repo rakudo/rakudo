@@ -1,0 +1,3 @@
+	$(M_RUN_PERL6) @q(@script(create-moar-runner.p6)@)@ perl6 @q($(M_RUNNER))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-gdb-m)@ "gdb" "" "" ""
+	$(M_RUN_PERL6) @q(@script(create-moar-runner.p6)@)@ perl6 @q($(M_RUNNER))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-lldb-m)@ "lldb" "" "" ""
+	$(M_RUN_PERL6) @q(@script(create-moar-runner.p6)@)@ perl6 @q($(M_RUNNER))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-valgrind-m)@ "valgrind" "" "" ""

@@ -128,9 +128,11 @@ my class RoleToClassApplier {
         }
         compose_method_table(nqp::hllize($to_compose_meta.methods($to_compose, :local(1))));
         if nqp::can($to_compose_meta, 'private_method_table') {
-            for nqp::hllize($to_compose_meta.private_method_table($to_compose)) {
-                unless has_private_method($target, $_.key) {
-                    $target.HOW.add_private_method($target, $_.key, $_.value);
+            my @private_methods := nqp::hllize($to_compose_meta.private_methods($to_compose));
+            for @private_methods -> $method {
+                my str $name := $method.name;
+                unless has_private_method($target, $name) {
+                    $target.HOW.add_private_method($target, $name, $method);
                 }
             }
         }

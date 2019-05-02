@@ -209,10 +209,7 @@ $(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
 @perl(
     for my $toolchain (qw<gdb lldb valgrind>) {
 		my $scope = $cfg->push_config( toolchain => $toolchain );
-		$out .= $macros->expand(<<'TMPL');
-@insert(Makefile-gen-runner)@
-
-TMPL
+		$out .= $macros->expand(<<'@insert(Makefile-gen-runner)@');
 	}
 )@
 $(M_BAT_RUNNER): @@configure_script@@ $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)
@@ -338,7 +335,7 @@ m-install: m-all @@script(install-core-dist.p6)@@ $(SETTING_MOAR)
 	@nfpq($(BASE_DIR)/$(M_BAT_RUNNER))@ @shquot(@script(install-core-dist.p6)@)@ @q($(DESTDIR)$(PERL6_HOME))@
 	$(CP) $(M_C_RUNNER) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_RUNNER))@
 	$(CP) $(M_C_DEBUG_RUNNER) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_DEBUG_RUNNER))@
-@insert(@m_install@)@
+@expand(@m_install@)@
 
 m-runner-default-install: m-install
 	$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-m@moar::exe@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6@moar::exe@)@

@@ -1,5 +1,0 @@
-$(M_@uc(@toolchain@)@_RUNNER): @@configure_script@@ $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)
-	$(RM_F) $(M_@uc(@toolchain@)@_RUNNER)
-	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-@toolchain@-m)@ --out @nfpq(@base_dir@/perl6-@toolchain@-m)@ --set-var=MOAR=$(MOAR) --set-var=ctx_subdir=@backend_subdir@
-	-$(CHMOD) 755 $(M_@uc(@toolchain@)@_RUNNER)
-

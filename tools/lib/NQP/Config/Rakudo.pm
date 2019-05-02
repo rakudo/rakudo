@@ -226,7 +226,7 @@ sub configure_moar_backend {
             #  . $nqp_config->{'moar::moar'}
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
-            $config->{m_install} = 'Makefile-install'; # We'll need .windows extension
+            $config->{m_install} = "\t" . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@) @nfpq($(DESTDIR)$(PREFIX)/bin)@>; 
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $config->{'mingw_unicode'} = '-municode';
@@ -254,7 +254,7 @@ sub configure_moar_backend {
           #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
           #  . $self->nfp("/bin/perl6-valgrind-m")
           #  . ' "valgrind" "" "" ""';
-          $config->{m_install} = 'Makefile-install';
+          $config->{m_install} = '@insert(Makefile-install)@';
     }
     $config->{c_runner_libs} = join( " ", @c_runner_libs );
     $config->{moar_lib}      = sprintf(

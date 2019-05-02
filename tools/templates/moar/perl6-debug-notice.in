@@ -1,4 +1,4 @@
-@q(@MOAR@)@ @insert(perl6-opts)@ -e @q(  
+"@expand(@MOAR@)@" @expand(@runner_opts@)@ -e @q(  
 say "=" x 96;
 
 say "This is Rakudo Perl 6 running in the @uc(@toolschain@)@ debugger, which often allows the user to generate useful back-\ntraces to debug or report issues in Rakudo, the MoarVM backend or the currently running code.\n";

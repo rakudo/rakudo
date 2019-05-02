@@ -1,1 +1,0 @@
---execname=$EXEC --libpath=$DIR --libpath=@nfp($DIR/blib)@ --libpath=@nfpq(@libdir@/nqp/lib)@ @nfp($DIR/@mbc@)@ --nqp-lib=@nfp($DIR/blib)@ "$@"

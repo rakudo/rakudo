@@ -95,7 +95,7 @@ M_VALGRIND_RUNNER = perl6-valgrind-m@runner_suffix@
 M_CLEANUPS = \
   *.manifest \
   @nfp(blib/Perl6/*.moarvm)@ \
-  $(SETTING_MOAR) \@for_specs(
+  $(SETTING_MOAR) \\@for_specs(
   $(SETTING_@ucspec@_MOAR) \)@
   $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \
@@ -207,24 +207,30 @@ $(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
 		--vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfpq($(M_BUILD_DIR)/perl6-debug.nqp)@
 
 @perl(
-    my $out = "";
     for my $toolchain (qw<gdb lldb valgrind>) {
-		my $scope = $cfg->push_config( toolchain => $toolchain, mbc => 'perl6.moarvm', );
+		my $scope = $cfg->push_config( toolchain => $toolchain );
 		$out .= $macros->expand(<<'TMPL');
 @insert(Makefile-gen-runner)@
 
 TMPL
 	}
-	return $out;
 )@
 $(M_BAT_RUNNER): @@configure_script@@ $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) @q($(M_BAT_RUNNER))@
-	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($(M_BAT_RUNNER))@ --set-var=MOAR=$(MOAR) --set-var=mbc=perl6.moarvm --set-var=ctx_subdir=@backend_subdir@
+	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($(M_BAT_RUNNER))@ \
+		--set-var=MOAR=$(MOAR) \
+		--set-var=mbc=perl6.moarvm \
+		--set-var=ctx_subdir=@backend_subdir@ \
+		--set-var=runner_opts=@insert(Makefile-runner_opts)@
 	-$(CHMOD) 755 $(M_BAT_RUNNER)
 
 $(M_BAT_DEBUG_RUNNER): @@configure_script@@ $(M_C_DEBUG_RUNNER) $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)
 	$(RM_F) @q($(M_BAT_DEBUG_RUNNER))@
-	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($(M_BAT_DEBUG_RUNNER))@ --set-var=MOAR=$(MOAR) --set-var=mbc=perl6-debug.moarvm --set-var=ctx_subdir=@backend_subdir@
+	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($(M_BAT_DEBUG_RUNNER))@ \
+		--set-var=MOAR=$(MOAR) \
+		--set-var=mbc=perl6-debug.moarvm \
+		--set-var=ctx_subdir=@backend_subdir@ \
+		--set-var=runner_opts=@insert(Makefile-runner_opts)@
 	-$(CHMOD) 755 $(M_BAT_DEBUG_RUNNER)
 
 $(M_C_RUNNER): @nfp(src/vm/moar/runner/main.c)@
@@ -313,7 +319,7 @@ m-localtest_loud: m-all spectest_checkout @nfp(t/localtest.data)@
 m-sometests: m-all
 	@$(M_HARNESS6_WITH_FUDGE) $(TESTFILES)
 
-m-install: m-all @@script(create-moar-runner.p6)@@ @@script(install-core-dist.p6)@@ $(SETTING_MOAR)
+m-install: m-all @@script(install-core-dist.p6)@@ $(SETTING_MOAR)
 	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
 	$(MKPATH) @nfpq($(DESTDIR)$(M_LIBPATH)/Perl6)@
 	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_LANG_OUTPUT) @nfpq($(DESTDIR)$(M_LIBPATH)/Perl6)@

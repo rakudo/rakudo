@@ -226,7 +226,7 @@ sub configure_moar_backend {
             #  . $nqp_config->{'moar::moar'}
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
-            $config->{m_install} = 'Makefile-install-win';
+            $config->{m_install} = 'Makefile-install'; # We'll need .windows extension
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $config->{'mingw_unicode'} = '-municode';

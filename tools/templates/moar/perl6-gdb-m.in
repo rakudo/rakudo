@@ -2,4 +2,4 @@
 
 @insert(perl6-debug-notice)@
 
-gdb --quiet --ex=run --args @q(@MOAR)@) @insert(perl6-opts)@
+gdb --quiet --ex=run --args "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"

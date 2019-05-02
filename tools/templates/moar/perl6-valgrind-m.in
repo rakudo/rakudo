@@ -1,6 +1,6 @@
 @insert(sh-prelude)@
 
-@q(@MOAR@)@ @insert(perl6-opts)@ -e @q(  
+"@expand(@MOAR@)@" @expand(@runner_opts@)@ -e @q(  
 say "=" x 96;
 
 say qq:to/END/;
@@ -15,5 +15,5 @@ say "running on $*DISTRO.gist() / $*KERNEL.gist()";
 say "-" x 96;
 )@
 
-valgrind ${MVM_VALGRIND_OPTS} @q(@MOAR)@) -- @insert(perl6-opts)@
+valgrind ${MVM_VALGRIND_OPTS} "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"
 

@@ -9,6 +9,6 @@ sub hll-config($config) {
         := nqp::list( '6.c'@for_specmods(, '6.@spec_with_mod@')@ );
     $config<prefix>           := '@prefix@';
     $config<libdir>           := '@libdir@';
-    $config<source-digest>    := '@source_digest@';
+    $config<source-digest>    := '@source_digest()@';
 }
 

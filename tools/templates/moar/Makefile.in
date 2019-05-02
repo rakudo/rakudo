@@ -209,7 +209,7 @@ $(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
 @perl(
     for my $toolchain (qw<gdb lldb valgrind>) {
 		my $scope = $cfg->push_config( toolchain => $toolchain );
-		$out .= $macros->expand(<<'@insert(Makefile-gen-runner)@');
+		$out .= $macros->expand('@insert(Makefile-gen-runner)@');
 	}
 )@
 $(M_BAT_RUNNER): @@configure_script@@ $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)

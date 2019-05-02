@@ -118,11 +118,6 @@ sub configure_misc {
 
     $config->{builddate} = strftime( '%Y-%m-%dT%H:%M:%SZ', gmtime );
 
-    my $sha = Digest::SHA->new;
-    find( sub { $sha->addfile($_) if /\.(nqp|pm6)\z/ }, "src" );
-    $sha->addfile('gen/nqp-version');
-    $config->{source_digest} = $sha->hexdigest;
-
     # NQP_LIB
     $config->{set_nqp_lib} = 'NQP_LIB=blib ';
     if ( $self->is_win ) {
@@ -226,7 +221,8 @@ sub configure_moar_backend {
             #  . $nqp_config->{'moar::moar'}
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
-            $config->{m_install} = "\t" . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@) @nfpq($(DESTDIR)$(PREFIX)/bin)@>; 
+            $config->{m_install} = "\t"
+              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@) @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $config->{'mingw_unicode'} = '-municode';
@@ -238,23 +234,24 @@ sub configure_moar_backend {
 "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
         $config->{'m_all'} =
           '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
-          #$config->{'m_install'} = "\t"
-          #  . '$(M_RUN_PERL6) '
-          #  . $self->nfp("tools/build/create-moar-runner.p6")
-          #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          #  . $self->nfp("/bin/perl6-gdb-m")
-          #  . ' "gdb" "" "" ""' . "\n\t"
-          #  . '$(M_RUN_PERL6) '
-          #  . $self->nfp("tools/build/create-moar-runner.p6")
-          #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          #  . $self->nfp("/bin/perl6-lldb-m")
-          #  . ' "lldb" "" "" ""' . "\n\t"
-          #  . '$(M_RUN_PERL6) '
-          #  . $self->nfp("tools/build/create-moar-runner.p6")
-          #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          #  . $self->nfp("/bin/perl6-valgrind-m")
-          #  . ' "valgrind" "" "" ""';
-          $config->{m_install} = '@insert(Makefile-install)@';
+
+        #$config->{'m_install'} = "\t"
+        #  . '$(M_RUN_PERL6) '
+        #  . $self->nfp("tools/build/create-moar-runner.p6")
+        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+        #  . $self->nfp("/bin/perl6-gdb-m")
+        #  . ' "gdb" "" "" ""' . "\n\t"
+        #  . '$(M_RUN_PERL6) '
+        #  . $self->nfp("tools/build/create-moar-runner.p6")
+        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+        #  . $self->nfp("/bin/perl6-lldb-m")
+        #  . ' "lldb" "" "" ""' . "\n\t"
+        #  . '$(M_RUN_PERL6) '
+        #  . $self->nfp("tools/build/create-moar-runner.p6")
+        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+        #  . $self->nfp("/bin/perl6-valgrind-m")
+        #  . ' "valgrind" "" "" ""';
+        $config->{m_install} = '@insert(Makefile-install)@';
     }
     $config->{c_runner_libs} = join( " ", @c_runner_libs );
     $config->{moar_lib}      = sprintf(
@@ -547,8 +544,22 @@ sub _m_for_specmods {
     return _m_for_specs( $self, $text, with_mods => 1 );
 }
 
-NQP::Macros->register_macro( 'for_specs',    \&_m_for_specs );
-NQP::Macros->register_macro( 'for_specmods', \&_m_for_specmods );
+sub _m_source_digest {
+    my $self = shift;
+    my $sha  = Digest::SHA->new;
+    find(
+        sub {
+            $sha->addfile($_) if /\.(nqp|pm6)\z/;
+        },
+        File::Spec->catdir( $self->cfg->cfg('base_dir'), "src" )
+    );
+    $sha->addfile('gen/nqp-version');
+    return $sha->hexdigest;
+}
+
+NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
+NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
+NQP::Macros->register_macro( 'source_digest', \&_m_for_specmods );
 
 1;
 

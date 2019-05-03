@@ -57,9 +57,9 @@ multi sub POSITIONS(
     # we can optimize `42..*` Ranges; as long as they're from core, unmodified
     my \is-pos-lazy = pos.is-lazy;
     my \pos-iter    = nqp::eqaddr(pos.WHAT,Range)
-        && nqp::eqaddr(pos.max,Inf)
+        && pos.max === Inf
         && nqp::isfalse(SELF.is-lazy)
-          ?? Range.new(pos.min, SELF.elems-1,
+          ?? Range.new(pos.min, SELF.elems,
               :excludes-min(pos.excludes-min),
               :excludes-max(pos.excludes-max)
           ).iterator

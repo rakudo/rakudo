@@ -1,4 +1,5 @@
 use Test;
+use NativeCall; # precompile dependencies
 
 my $store = CompUnit::PrecompilationStore::File.new(
     :prefix($*TMPDIR.child("rakudo-precomp" ~ (^2**128).pick.base(36)))

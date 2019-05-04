@@ -1,3 +1,4 @@
+use lib 'lib';
 use Test;
 use NativeCall; # precompile dependencies
 

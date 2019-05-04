@@ -7,7 +7,7 @@ use Cwd;
 use POSIX qw<strftime>;
 use Digest::SHA;
 use File::Find;
-use NQP::Config qw<slurp read_config cmp_rev system_or_die>;
+use NQP::Config qw<slurp read_config cmp_rev system_or_die run_or_die>;
 use IPC::Cmd qw<run>;
 use NQP::Macros;
 

@@ -15,9 +15,10 @@ my class RoleToRoleApplier {
         my %priv_meth_providers;
         for @roles {
             my $role := $_;
-            sub build_meth_info(@methods, %meth_info_to_use, @meth_names_to_use, %meth_providers_to_use) {
-                for @methods -> $meth {
-                    my $name := $meth.name;
+            sub build_meth_info(@methods, @meth_names, %meth_info_to_use, @meth_names_to_use, %meth_providers_to_use) {
+                my $meth_iterator := nqp::iterator(@methods);
+                for @meth_names -> $name {
+                    my $meth := nqp::shift($meth_iterator);
                     my @meth_list;
                     my @meth_providers;
                     if nqp::existskey(%meth_info_to_use, $name) {
@@ -44,9 +45,20 @@ my class RoleToRoleApplier {
                     }
                 }
             }
-            build_meth_info(nqp::hllize($_.HOW.methods($_, :local(1))), %meth_info, @meth_names, %meth_providers);
-            build_meth_info(nqp::hllize($_.HOW.private_methods($_)), %priv_meth_info, @priv_meth_names, %priv_meth_providers)
-                if nqp::can($_.HOW, 'private_methods');
+            build_meth_info(
+                nqp::hllize($_.HOW.method_order($_)),
+                nqp::hllize($_.HOW.method_names($_)),
+                %meth_info,
+                @meth_names,
+                %meth_providers
+            );
+            build_meth_info(
+                nqp::hllize($_.HOW.private_methods($_)),
+                nqp::hllize($_.HOW.private_method_names($_)),
+                %priv_meth_info,
+                @priv_meth_names,
+                %priv_meth_providers
+            ) if nqp::can($_.HOW, 'private_method_table');
         }
 
         # Also need methods of target.

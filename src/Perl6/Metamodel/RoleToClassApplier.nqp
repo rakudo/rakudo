@@ -102,9 +102,10 @@ my class RoleToClassApplier {
         my @stubs;
 
         # Compose in any methods.
-        sub compose_method_table(@methods) {
-            for @methods -> $method {
-                my str $name := $method.name;
+        sub compose_method_table(@methods, @method_names) {
+            my $method_iterator := nqp::iterator(@methods);
+            for @method_names -> str $name {
+                my $method := nqp::shift($method_iterator);
                 my $yada := 0;
                 try { $yada := $method.yada }
                 if $yada {
@@ -126,14 +127,21 @@ my class RoleToClassApplier {
                 }
             }
         }
-        compose_method_table(nqp::hllize($to_compose_meta.methods($to_compose, :local(1))));
+        my @methods      := $to_compose_meta.method_order($to_compose);
+        my @method_names := $to_compose_meta.method_names($to_compose);
+        compose_method_table(
+            nqp::hllize(@methods),
+            nqp::hllize(@method_names),
+        );
         if nqp::can($to_compose_meta, 'private_method_table') {
-            my @private_methods := nqp::hllize($to_compose_meta.private_methods($to_compose));
-            for @private_methods -> $method {
-                my str $name := $method.name;
+            my @private_methods      := nqp::hllize($to_compose_meta.private_methods($to_compose));
+            my @private_method_names := nqp::hllize($to_compose_meta.private_method_names($to_compose));
+            my $i := 0;
+            for @private_method_names -> str $name {
                 unless has_private_method($target, $name) {
-                    $target.HOW.add_private_method($target, $name, $method);
+                    $target.HOW.add_private_method($target, $name, @private_methods[$i]);
                 }
+                $i++;
             }
         }
 

@@ -1,6 +1,7 @@
 role Perl6::Metamodel::PrivateMethodContainer {
     has %!private_methods;
     has @!private_methods;
+    has @!private_method_names;
 
     # Adds a private method.
     method add_private_method($obj, $name, $code) {
@@ -10,6 +11,7 @@ role Perl6::Metamodel::PrivateMethodContainer {
         }
         %!private_methods{$name} := $code;
         nqp::push(@!private_methods, $code);
+        nqp::push(@!private_method_names, $name);
     }
 
     # Gets the table of private methods.
@@ -19,6 +21,10 @@ role Perl6::Metamodel::PrivateMethodContainer {
 
     method private_methods($obj) {
         @!private_methods
+    }
+
+    method private_method_names($obj) {
+        @!private_method_names
     }
 
     # Locates a private method, and hands back null if it doesn't exist.

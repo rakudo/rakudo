@@ -18,6 +18,8 @@ for ^2 -> $run {
     );
     @units.push: my $unit = $store.load-unit($compiler-id, $id);
     @checksums.push: $unit.checksum;
+    $unit.bytecode; # read in bytecode
+    $unit.close;
     $store.remove-from-cache($id);
     $store.delete-by-compiler($compiler-id);
 }

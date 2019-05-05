@@ -1,4 +1,8 @@
 use lib 'lib';
+BEGIN my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
+BEGIN my $id = CompUnit::PrecompilationId.new('000');
+BEGIN my $dest = $*REPO.precomp-store.destination($compiler-id, $id); # not really used
+END { $*REPO.precomp-store.unlock }
 use Test;
 use NativeCall; # precompile dependencies
 
@@ -8,8 +12,6 @@ my $store = CompUnit::PrecompilationStore::File.new(
 my $precompilation-repository = CompUnit::PrecompilationRepository::Default.new(:$store);
 my @checksums;
 my @units;
-my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
-my $id = CompUnit::PrecompilationId.new('000');
 for ^2 -> $run {
     $precompilation-repository.precompile(
         'lib/NativeCall.pm6'.IO,

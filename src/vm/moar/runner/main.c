@@ -79,8 +79,7 @@ static int parse_flag(const char *arg)
 int file_exists(const char *path)
 {
     FILE *file;
-    if ((file = fopen(path, "r")))
-    {
+    if ((file = fopen(path, "r"))) {
         fclose(file);
         return 1;
     }
@@ -90,7 +89,7 @@ int file_exists(const char *path)
 void platformify_path(char *path) {
 #ifdef _WIN32
     int i;
-    for(i = 0; path[i]; i++) {
+    for (i = 0; path[i]; i++) {
         if (path[i] == '/') {
             path[i] = '\\';
         }
@@ -98,11 +97,20 @@ void platformify_path(char *path) {
 #endif
 }
 
-int retrieve_home(char *out_home, char *rel_home, char *env_var, char *exec_dir_path, int exec_dir_path_size, char *check_file) {
-    char *check_file_path;
-    char *env_home = getenv(env_var);
-    int   home_size;
-    int   ret;
+int retrieve_home(
+          char   *out_home,
+    const char   *rel_home,
+    const size_t  rel_home_size,
+    const char   *env_var,
+          char   *exec_dir_path,
+          size_t  exec_dir_path_size,
+    const char   *check_file,
+    const size_t  check_file_size
+) {
+    char   *check_file_path;
+    char   *env_home         = getenv(env_var);
+    size_t  home_size        = exec_dir_path_size + rel_home_size;
+    int     ret;
 
     if (env_home) {
         strcpy(out_home, env_home);
@@ -118,14 +126,15 @@ int retrieve_home(char *out_home, char *rel_home, char *env_var, char *exec_dir_
     }
     else {
         memcpy(out_home, exec_dir_path, exec_dir_path_size);
-        strcpy(out_home + exec_dir_path_size, rel_home);
+        strncpy(out_home + exec_dir_path_size, rel_home, rel_home_size);
+        out_home[home_size + 1] = '\0';
         platformify_path(out_home + exec_dir_path_size);
-        home_size = strlen(out_home);
     }
 
-    check_file_path = (char*)malloc(home_size + 50);
+    check_file_path = (char*)malloc(home_size + check_file_size + 1);
     memcpy(check_file_path, out_home, home_size);
-    strncpy(check_file_path + home_size, check_file, 50);
+    strncpy(check_file_path + home_size, check_file, check_file_size);
+    check_file_path[home_size + check_file_size + 1] = '\0';
 
     ret = file_exists(check_file_path);
     free(check_file_path);
@@ -139,18 +148,31 @@ int wmain(int argc, wchar_t *wargv[])
 #endif
 {
     MVMInstance *instance;
-    int          res;
-    char        *perl6_home;
-    size_t       perl6_home_size;
-    char        *nqp_home;
-    size_t       nqp_home_size;
-    char        *perl6_file;
-    char        *exec_path;
-    size_t       exec_path_size;
-    char        *dir_path;
-    char        *dir_path_temp;
-    int          dir_path_size;
-    char        *lib_path[3];
+
+    char   *exec_path;
+    size_t  exec_path_size;
+    int     res;
+
+    char   *dir_path;
+    char   *dir_path_temp;
+    size_t  dir_path_size;
+
+          char   *nqp_home;
+          size_t  nqp_home_size;
+    const char    nqp_rel_path[14]    = "/../share/nqp";
+    const size_t  nqp_rel_path_size   = 13;
+    const char    nqp_check_path[28]  = "/lib/NQPCORE.setting.moarvm";
+    const size_t  nqp_check_path_size = 27;
+
+          char   *perl6_home;
+          size_t  perl6_home_size;
+    const char    perl6_rel_path[16]    = "/../share/perl6";
+    const size_t  perl6_rel_path_size   = 15;
+    const char    perl6_check_path[22]  = "/runtime/perl6.moarvm";
+    const size_t  perl6_check_path_size = 21;
+
+    char *lib_path[3];
+    char *perl6_file;
 
 #ifdef _WIN32
     char **argv = MVM_UnicodeToUTF8_argv(argc, wargv);
@@ -267,8 +289,9 @@ int wmain(int argc, wchar_t *wargv[])
 #ifdef STATIC_NQP_HOME
     nqp_home = STRINGIFY(STATIC_NQP_HOME);
 #else
-    nqp_home = (char*)malloc(dir_path_size + 50);
-    if (!retrieve_home(nqp_home, "/../share/nqp", "NQP_HOME", dir_path, dir_path_size, "/lib/NQPCORE.setting.moarvm")) {
+    nqp_home = (char*)malloc(dir_path_size + nqp_rel_path_size + 1);
+    if (!retrieve_home(nqp_home, nqp_rel_path, nqp_rel_path_size, "NQP_HOME",
+            dir_path, dir_path_size, nqp_check_path, nqp_check_path_size)) {
         fprintf(stderr, "ERROR: NQP_HOME is invalid: %s\n", nqp_home);
         return EXIT_FAILURE;
     }
@@ -278,8 +301,9 @@ int wmain(int argc, wchar_t *wargv[])
 #ifdef STATIC_PERL6_HOME
     perl6_home = STRINGIFY(STATIC_PERL6_HOME);
 #else
-    perl6_home = (char*)malloc(dir_path_size + 50);
-    if (!retrieve_home(perl6_home, "/../share/perl6", "PERL6_HOME", dir_path, dir_path_size, "/runtime/perl6.moarvm")) {
+    perl6_home = (char*)malloc(dir_path_size + perl6_rel_path_size + 1);
+    if (!retrieve_home(perl6_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
+            dir_path, dir_path_size, perl6_check_path, perl6_check_path_size)) {
         fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", perl6_home);
         return EXIT_FAILURE;
     }
@@ -320,7 +344,7 @@ int wmain(int argc, wchar_t *wargv[])
 
     /* Start up the VM. */
 
-    instance   = MVM_vm_create_instance();
+    instance = MVM_vm_create_instance();
 
     MVM_vm_set_clargs(instance, new_argc, argv);
     MVM_vm_set_prog_name(instance, perl6_file);
@@ -356,8 +380,10 @@ int wmain(int argc, wchar_t *wargv[])
     free(lib_path[2]);
     free(perl6_file);
     free(exec_path);
-#ifndef __OpenBSD__
-    /* dirname's return value is on the stack on OpenBSD, not the heap. */
+#ifdef _WIN32
+    /* dirname's return value is either on the stack or is the same pointer
+     * that was passed to it depending on the version of libc used, which leads
+     * to double frees. */
     free(dir_path);
 #endif
     free(dir_path_temp);

@@ -842,7 +842,7 @@ my class ThreadPoolScheduler does Scheduler {
     # Checks if the value given is Inf, -Inf, or NaN. If NaN, this throws.
     # if Inf, this returns Nil for ThreadPoolScheduler.cue to return an empty
     # Cancellation for. If -Inf, returns 0. Otherwise, returns the value.
-    sub validate-seconds(Numeric() $value) {
+    sub validate-seconds(Numeric() $value --> Seconds) {
         nqp::unless(
           nqp::istype($value, Num),
           $value,
@@ -854,7 +854,7 @@ my class ThreadPoolScheduler does Scheduler {
               0,
               nqp::if(
                 nqp::isnanorinf($value),
-                die("Cannot set NaN as a number of seconds"),
+                X::Scheduler::CueInNaNSeconds.new().throw(),
                 $value
               )
             )

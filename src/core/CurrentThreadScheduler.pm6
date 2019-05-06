@@ -25,7 +25,7 @@ my class CurrentThreadScheduler does Scheduler {
                     ($delay := 0),
                     nqp::if(
                         nqp::isnanorinf($delay),
-                        (die "Cannot set NaN as a number of seconds")
+                        X::Scheduler::CueInNaNSeconds.new().throw()
                     )
                 )
             )

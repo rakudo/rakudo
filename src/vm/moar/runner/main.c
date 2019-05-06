@@ -101,7 +101,9 @@ void platformify_path(char *path) {
 int retrieve_home(char *out_home, char *rel_home, char *env_var, char *exec_dir_path, int exec_dir_path_size, char *check_file) {
     char *check_file_path;
     char *env_home = getenv(env_var);
-    int home_size;
+    int   home_size;
+    int   ret;
+
     if (env_home) {
         strcpy(out_home, env_home);
         home_size = strlen(out_home);
@@ -123,13 +125,11 @@ int retrieve_home(char *out_home, char *rel_home, char *env_var, char *exec_dir_
 
     check_file_path = (char*)malloc(home_size + 50);
     memcpy(check_file_path, out_home, home_size);
-    strcpy(check_file_path + home_size, check_file);
-    if (!file_exists(check_file_path)) {
-        free(check_file_path);
-        return 0;
-    }
+    strncpy(check_file_path + home_size, check_file, 50);
+
+    ret = file_exists(check_file_path);
     free(check_file_path);
-    return 1;
+    return ret;
 }
 
 #ifndef _WIN32
@@ -148,6 +148,7 @@ int wmain(int argc, wchar_t *wargv[])
     char        *exec_path;
     size_t       exec_path_size;
     char        *dir_path;
+    char        *dir_path_temp;
     int          dir_path_size;
     char        *lib_path[3];
 
@@ -249,14 +250,17 @@ int wmain(int argc, wchar_t *wargv[])
     }
 
     /* The +1 is the trailing \0 terminating the string. */
-    dir_path = (char*)malloc(exec_path_size + 1);
-    memcpy(dir_path, exec_path, exec_path_size + 1);
+    dir_path_temp = (char*)malloc(exec_path_size + 1);
+    memcpy(dir_path_temp, exec_path, exec_path_size + 1);
 #ifdef _WIN32
-    PathRemoveFileSpecA(dir_path);
+    PathRemoveFileSpecA(dir_path_temp);
+    dir_path_size = strlen(dir_path_temp);
+    dir_path      = (char *)malloc(dir_path_size + 1);
+    memcpy(dir_path, dir_path_temp, dir_path_size + 1);
 #else
-    dir_path = dirname(dir_path);
-#endif
+    dir_path      = dirname(dir_path_temp);
     dir_path_size = strlen(dir_path);
+#endif
 
     /* Retrieve PERL6_HOME and NQP_HOME. */
 
@@ -352,9 +356,17 @@ int wmain(int argc, wchar_t *wargv[])
     free(lib_path[2]);
     free(perl6_file);
     free(exec_path);
+#ifndef __OpenBSD__
+    /* dirname's return value is on the stack on OpenBSD, not the heap. */
     free(dir_path);
+#endif
+    free(dir_path_temp);
+#ifndef STATIC_PERL6_HOME
     free(perl6_home);
+#endif
+#ifndef STATIC_NQP_HOME
     free(nqp_home);
+#endif
 
     if (full_cleanup) {
         MVM_vm_destroy_instance(instance);

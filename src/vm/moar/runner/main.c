@@ -121,16 +121,14 @@ int retrieve_home(
         }
     }
     else {
-        memcpy(out_home, exec_dir_path, exec_dir_path_size);
-        strncpy(out_home + exec_dir_path_size, rel_home, rel_home_size);
-        out_home[home_size + 1] = '\0';
+        strncpy(out_home, exec_dir_path, home_size);
+        strncat(out_home, rel_home, rel_home_size);
         platformify_path(out_home + exec_dir_path_size);
     }
 
     check_file_path = (char*)malloc(home_size + check_file_size + 1);
-    memcpy(check_file_path, out_home, home_size);
-    strncpy(check_file_path + home_size, check_file, check_file_size);
-    check_file_path[home_size + check_file_size + 1] = '\0';
+    strncpy(check_file_path, out_home, home_size + check_file_size);
+    strncat(check_file_path, check_file, check_file_size);
 
     ret = file_exists(check_file_path);
     free(check_file_path);

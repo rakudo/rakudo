@@ -5,6 +5,7 @@ role Perl6::Metamodel::MethodContainer {
 
     # The order that the methods were added in.
     has @!method_order;
+    has @!method_names;
 
     # Cache that expires when we add methods (primarily to support NFA stuff).
     # The hash here is readonly; we copy/replace in on addition, for thread
@@ -39,6 +40,7 @@ role Perl6::Metamodel::MethodContainer {
         nqp::setmethcacheauth($obj, 0);
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
+        @!method_names[+@!method_names] := $name;
     }
 
     # Gets the method hierarchy.
@@ -63,6 +65,14 @@ role Perl6::Metamodel::MethodContainer {
 
         # Return result list.
         @meths
+    }
+
+    method method_order($obj) {
+        @!method_order
+    }
+
+    method method_names($obj) {
+        @!method_names
     }
 
     # Get the method table. Only contains methods directly declared here,

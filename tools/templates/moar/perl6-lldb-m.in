@@ -2,5 +2,5 @@
 
 @insert(perl6-debug-notice)@
 
-lldb "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"
+lldb -o run "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"
 

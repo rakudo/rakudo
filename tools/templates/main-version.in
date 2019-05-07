@@ -3,7 +3,6 @@ sub hll-config($config) {
     $config<version>          := '@version@';
     $config<release-number>   := '@release@';
     $config<codename>         := '@codename@';
-    $config<build-date>       := '@builddate@';
     $config<language-version> := '6.@lang_spec@';
     $config<can-language-versions>
         := nqp::list( '6.c'@for_specmods(, '6.@spec_with_mod@')@ );

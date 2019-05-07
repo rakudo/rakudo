@@ -4,24 +4,19 @@
 #include <uv.h>
 #include <moar.h>
 
-#ifndef _WIN32
-#  include <libgen.h>
-#else
-#  include <shlwapi.h>
-#endif
-
-#ifndef _WIN32
-#  include "signal.h"
-#endif
-
-#ifndef _WIN32
-#  include <unistd.h>
-#else
+#ifdef _WIN32
+#  include <sys/types.h>
+#  include <sys/stat.h>
 #  include <process.h>
-#endif
-
-#if defined(_MSC_VER)
-#define strtoll _strtoi64
+#  include <shlwapi.h>
+#  if defined(_MSC_VER)
+#    define strtoll _strtoi64
+#  endif
+#else
+#  include <sys/stat.h>
+#  include <libgen.h>
+#  include <unistd.h>
+#  include "signal.h"
 #endif
 
 #define STRINGIFY1(x) #x
@@ -46,8 +41,7 @@ static const char *const FLAGS[] = {
     "--tracing",
 };
 
-static int cmp_flag(const void *key, const void *value)
-{
+static int cmp_flag(const void *key, const void *value) {
     return strcmp(key, *(char **)value);
 }
 
@@ -76,14 +70,16 @@ static int parse_flag(const char *arg)
         return UNKNOWN_FLAG;
 }
 
-int file_exists(const char *path)
-{
-    FILE *file;
-    if ((file = fopen(path, "r"))) {
-        fclose(file);
-        return 1;
-    }
-    return 0;
+int file_exists(const char *path) {
+#ifdef _WIN32
+    struct _stat sb;
+    return _stat(path, &sb) == 0;
+#else
+    struct stat *sb = malloc(sizeof(struct stat));
+    int res         = stat(path, sb) == 0;
+    free(sb);
+    return res;
+#endif
 }
 
 void platformify_path(char *path) {
@@ -277,7 +273,7 @@ int wmain(int argc, wchar_t *wargv[])
 #ifdef _WIN32
     PathRemoveFileSpecA(dir_path_temp);
     dir_path_size = strlen(dir_path_temp);
-    dir_path      = (char *)malloc(dir_path_size + 1);
+    dir_path      = (char*)malloc(dir_path_size + 1);
     memcpy(dir_path, dir_path_temp, dir_path_size + 1);
 #else
     dir_path      = dirname(dir_path_temp);

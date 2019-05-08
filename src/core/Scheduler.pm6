@@ -2,6 +2,12 @@
 # that schedulers must do, as well as a way to factor out some common "sugar"
 # and infrastructure.
 
+my class X::Scheduler::CueInNaNSeconds is Exception {
+    method message(--> Str) {
+        'Cannot pass NaN as a number of seconds to Scheduler.cue'
+    }
+}
+
 my role Scheduler {
     has &.uncaught_handler is rw;
 

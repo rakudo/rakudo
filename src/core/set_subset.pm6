@@ -128,6 +128,36 @@ multi sub infix:<<(<=)>>(Map:D \a, Map:D \b --> Bool:D) {
     )
 }
 
+multi sub infix:<<(<=)>>(Iterable:D \a, Map:D \b --> Bool:D) {
+    my \iterator := a.iterator;
+    my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage');
+
+    if nqp::eqaddr(b.keyof,Str(Any)) {
+        nqp::until(
+          nqp::eqaddr((my \string := iterator.pull-one),IterationEnd),
+          nqp::unless(
+            nqp::existskey(braw,my str $key = string.Str)
+              && nqp::istrue(nqp::atkey(braw,$key)),
+            (return False)
+          )
+        );
+        True
+    }
+    else {
+        nqp::until(
+          nqp::eqaddr((my \object := iterator.pull-one),IterationEnd),
+          nqp::unless(
+            nqp::existskey(braw,my str $key = object.WHICH)
+              && nqp::istrue(
+                   nqp::getattr(nqp::atkey(braw,$key),Pair,'$!value')
+                 ),
+            (return False)
+          )
+        );
+        True
+    }
+}
+
 multi sub infix:<<(<=)>>(Any \a, Mixy:D  \b --> Bool:D) { a.Mix (<=) b     }
 multi sub infix:<<(<=)>>(Any \a, Baggy:D \b --> Bool:D) { a.Bag (<=) b     }
 multi sub infix:<<(<=)>>(Any \a, Setty:D \b --> Bool:D) { a.Set (<=) b     }

@@ -8,11 +8,13 @@ my class IO::Socket::Async {
     has $!close-promise;
     has $!close-vow;
 
+    subset Port-Number of Int where { !defined($_) or $_ ~~ ^65536 };
+
     has Str $.peer-host;
-    has Int $.peer-port;
+    has Port-Number $.peer-port;
 
     has Str $.socket-host;
-    has Int $.socket-port;
+    has Port-Number $.socket-port;
 
     method new() {
         die "Cannot create an asynchronous socket directly; please use\n" ~
@@ -25,8 +27,8 @@ my class IO::Socket::Async {
     }
 
     method write(IO::Socket::Async:D: Blob $b, :$scheduler = $*SCHEDULER) {
-        my $p = Promise.new;
-        my $v = $p.vow;
+        my $p := Promise.new;
+        my $v := $p.vow;
         nqp::asyncwritebytes(
             $!VMIO,
             $scheduler.queue,
@@ -165,7 +167,7 @@ my class IO::Socket::Async {
         $!close-vow.keep(True);
     }
 
-    method connect(IO::Socket::Async:U: Str() $host, Int() $port,
+    method connect(IO::Socket::Async:U: Str() $host, Int() $port where Port-Number,
                    :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
@@ -195,6 +197,22 @@ my class IO::Socket::Async {
         $p
     }
 
+    class ListenSocket is Tap {
+        has Promise $!VMIO-tobe;
+        has Promise $.socket-host;
+        has Promise $.socket-port;
+
+        submethod TWEAK(Promise :$!VMIO-tobe, Promise :$!socket-host, Promise :$!socket-port) { }
+
+        method new(&on-close, Promise :$VMIO-tobe, Promise :$socket-host, Promise :$socket-port) {
+            self.bless(:&on-close, :$VMIO-tobe, :$socket-host, :$socket-port);
+        }
+
+        method native-descriptor(--> Int) {
+            nqp::filenofh(await $!VMIO-tobe)
+        }
+    }
+
     my class SocketListenerTappable does Tappable {
         has $!host;
         has $!port;
@@ -212,23 +230,32 @@ my class IO::Socket::Async {
             my $lock := Lock::Async.new;
             my $tap;
             my int $finished = 0;
+            my Promise $VMIO-tobe   .= new;
+            my Promise $socket-host .= new;
+            my Promise $socket-port .= new;
+            my $VMIO-vow = $VMIO-tobe.vow;
+            my $host-vow = $socket-host.vow;
+            my $port-vow = $socket-port.vow;
             $lock.protect: {
                 my $cancellation := nqp::asynclisten(
                     $!scheduler.queue(:hint-affinity),
-                    -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port,
-                       Mu \socket-host, Mu \socket-port {
+                    -> Mu \client-socket, Mu \err, Mu \peer-host, Mu \peer-port,
+                       Mu \server-socket, Mu \socket-host, Mu \socket-port {
                         $lock.protect: {
                             if $finished {
                                 # do nothing
                             }
                             elsif err {
-                                quit(X::AdHoc.new(payload => err));
+                                my $exc = X::AdHoc.new(payload => err);
+                                quit($exc);
+                                $host-vow.break($exc) unless $host-vow.promise;
+                                $port-vow.break($exc) unless $port-vow.promise;
                                 $finished = 1;
                             }
-                            else {
+                            elsif client-socket {
                                 my $client_socket := nqp::create(IO::Socket::Async);
                                 nqp::bindattr($client_socket, IO::Socket::Async,
-                                    '$!VMIO', socket);
+                                    '$!VMIO', client-socket);
                                 nqp::bindattr($client_socket, IO::Socket::Async,
                                     '$!enc', $!encoding.name);
                                 nqp::bindattr($client_socket, IO::Socket::Async,
@@ -244,19 +271,25 @@ my class IO::Socket::Async {
                                 setup-close($client_socket);
                                 emit($client_socket);
                             }
+                            elsif server-socket {
+                                $VMIO-vow.keep(server-socket);
+                                $host-vow.keep(~socket-host);
+                                $port-vow.keep(+socket-port);
+                            }
                         }
                     },
                     $!host, $!port, $!backlog, SocketCancellation);
-                $tap = Tap.new: {
+                $tap = ListenSocket.new: {
                     my $p = Promise.new;
                     my $v = $p.vow;
                     nqp::cancelnotify($cancellation, $!scheduler.queue, { $v.keep(True); });
                     $p
-                }
+                }, :$VMIO-tobe, :$socket-host, :$socket-port;
                 tap($tap);
                 CATCH {
                     default {
-                        tap($tap = Tap.new({ Nil })) unless $tap;
+                        tap($tap = ListenSocket.new({ Nil },
+                            :$VMIO-tobe, :$socket-host, :$socket-port)) unless $tap;
                         quit($_);
                     }
                 }
@@ -269,11 +302,15 @@ my class IO::Socket::Async {
         method serial(--> True) { }
     }
 
-    method listen(IO::Socket::Async:U: Str() $host, Int() $port, Int() $backlog = 128,
-                  :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
+    method listen(IO::Socket::Async:U: Str() $host, Int() $port where Port-Number,
+                  Int() $backlog = 128, :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $encoding = Encoding::Registry.find($enc);
         Supply.new: SocketListenerTappable.new:
             :$host, :$port, :$backlog, :$encoding, :$scheduler
+    }
+
+    method native-descriptor(--> Int) {
+        nqp::filenofh($!VMIO)
     }
 
     sub setup-close(\socket --> Nil) {
@@ -308,8 +345,8 @@ my class IO::Socket::Async {
         await $p
     }
 
-    method bind-udp(IO::Socket::Async:U: Str() $host, Int() $port, :$broadcast,
-                    :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
+    method bind-udp(IO::Socket::Async:U: Str() $host, Int() $port where Port-Number,
+                    :$broadcast, :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $encoding = Encoding::Registry.find($enc);
         nqp::asyncudp(
@@ -334,11 +371,13 @@ my class IO::Socket::Async {
         await $p
     }
 
-    method print-to(IO::Socket::Async:D: Str() $host, Int() $port, Str() $str, :$scheduler = $*SCHEDULER) {
+    method print-to(IO::Socket::Async:D: Str() $host, Int() $port where Port-Number,
+                    Str() $str, :$scheduler = $*SCHEDULER) {
         self.write-to($host, $port, $!encoder.encode-chars($str), :$scheduler)
     }
 
-    method write-to(IO::Socket::Async:D: Str() $host, Int() $port, Blob $b, :$scheduler = $*SCHEDULER) {
+    method write-to(IO::Socket::Async:D: Str() $host, Int() $port where Port-Number,
+                    Blob $b, :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
         my $v = $p.vow;
         nqp::asyncwritebytesto(

@@ -1,18 +1,18 @@
 my class RoleToClassApplier {
     sub has_method($target, $name, $local) {
         if $local {
-            my %mt := $target.HOW.method_table($target);
+            my %mt := nqp::hllize($target.HOW.method_table($target));
             return 1 if nqp::existskey(%mt, $name);
-            %mt := $target.HOW.submethod_table($target);
+            %mt := nqp::hllize($target.HOW.submethod_table($target));
             return nqp::existskey(%mt, $name);
         }
         else {
             for $target.HOW.mro($target) {
-                my %mt := $_.HOW.method_table($_);
+                my %mt := nqp::hllize($_.HOW.method_table($_));
                 if nqp::existskey(%mt, $name) {
                     return 1;
                 }
-                %mt := $_.HOW.submethod_table($_);
+                %mt := nqp::hllize($_.HOW.submethod_table($_));
                 if nqp::existskey(%mt, $name) {
                     return 1;
                 }
@@ -22,7 +22,7 @@ my class RoleToClassApplier {
     }
 
     sub has_private_method($target, $name) {
-        my %pmt := $target.HOW.private_method_table($target);
+        my %pmt := nqp::hllize($target.HOW.private_method_table($target));
         return nqp::existskey(%pmt, $name)
     }
 
@@ -99,42 +99,49 @@ my class RoleToClassApplier {
             }
         }
 
+        my @stubs;
+
         # Compose in any methods.
-        sub compose_method_table(%methods) {
-            for %methods {
-                my $name := $_.key;
+        sub compose_method_table(@methods, @method_names) {
+            my $method_iterator := nqp::iterator(@methods);
+            for @method_names -> str $name {
+                my $method := nqp::shift($method_iterator);
                 my $yada := 0;
-                try { $yada := $_.value.yada }
+                try { $yada := $method.yada }
                 if $yada {
                     unless has_method($target, $name, 0)
                             || has_public_attribute($target, $name) {
                         my @needed;
                         for @roles {
-                            for $_.HOW.method_table($_) -> $m {
+                            for nqp::hllize($_.HOW.method_table($_)) -> $m {
                                 if $m.key eq $name {
                                     nqp::push(@needed, $_.HOW.name($_));
                                 }
                             }
                         }
-                        nqp::die("Method '$name' must be implemented by " ~
-                                 $target.HOW.name($target) ~
-                                 " because it is required by roles: " ~
-                                 nqp::join(", ", @needed) ~ ".");
+                        nqp::push(@stubs, nqp::hash('name', $name, 'needed', @needed, 'target', $target));
                     }
                 }
                 elsif !has_method($target, $name, 1) {
-                    $target.HOW.add_method($target, $name, $_.value);
+                    $target.HOW.add_method($target, $name, $method);
                 }
             }
         }
-        compose_method_table($to_compose_meta.method_table($to_compose));
-        compose_method_table($to_compose_meta.submethod_table($to_compose))
-            if nqp::can($to_compose_meta, 'submethod_table');
+        my @methods      := $to_compose_meta.method_order($to_compose);
+        my @method_names := $to_compose_meta.method_names($to_compose);
+        compose_method_table(
+            nqp::hllize(@methods),
+            nqp::hllize(@method_names),
+        );
         if nqp::can($to_compose_meta, 'private_method_table') {
-            for $to_compose_meta.private_method_table($to_compose) {
-                unless has_private_method($target, $_.key) {
-                    $target.HOW.add_private_method($target, $_.key, $_.value);
+            my @private_methods      := nqp::hllize($to_compose_meta.private_methods($to_compose));
+            my @private_method_names := nqp::hllize($to_compose_meta.private_method_names($to_compose));
+            my $i := 0;
+            for @private_method_names -> str $name {
+                unless has_private_method($target, $name) {
+                    $target.HOW.add_private_method($target, $name, @private_methods[$i]);
                 }
+                $i++;
             }
         }
 
@@ -211,6 +218,6 @@ my class RoleToClassApplier {
             }
         }
 
-        1;
+        @stubs;
     }
 }

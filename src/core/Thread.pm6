@@ -136,7 +136,7 @@ my class Thread {
     }
 
     method is-initial-thread(--> Bool) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::iseq_i(
             nqp::threadid(
               nqp::if(nqp::isconcrete(self),$!vm_thread,nqp::currentthread)

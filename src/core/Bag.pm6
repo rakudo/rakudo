@@ -1,17 +1,31 @@
 my class Bag does Baggy {
-    has Int $!total;
-    has $!WHICH;
+    has ValueObjAt $!WHICH;
+    has Int        $!total;
+
+    method ^parameterize(Mu \base, Mu \type) {
+        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
+    }
 
 #--- introspection methods
-    multi method WHICH(Bag:D:)   {
+    multi method WHICH(Bag:D: --> ValueObjAt:D)   {
         nqp::if(
           nqp::attrinited(self,Bag,'$!WHICH'),
           $!WHICH,
-          $!WHICH := ValueObjAt.new('Bag!' ~ nqp::sha1(
-            nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
-              Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
-            ))
-          ))
+          $!WHICH := nqp::box_s(
+            nqp::concat(
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Bag),
+                'Bag|',
+                nqp::concat(nqp::unbox_s(self.^name), '|')
+              ),
+              nqp::sha1(
+                nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+                  Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+                ))
+              )
+            ),
+            ValueObjAt
+          )
         )
     }
     method total(Bag:D: --> Int:D) {
@@ -23,18 +37,22 @@ my class Bag does Baggy {
     }
 
 #--- interface methods
-    method STORE(*@pairs, :$initialize --> Bag:D) {
-        nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
-          nqp::if(
-            $initialize,
-            self.SET-SELF(
-              Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-                nqp::create(Rakudo::Internals::IterationSet), $iterator
-              )
-            ),
-            X::Assignment::RO.new(value => self).throw
+    multi method STORE(Bag:D: *@pairs, :$INITIALIZE! --> Bag:D) {
+        (my \iterator := @pairs.iterator).is-lazy
+          ?? Failure.new(
+               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
+             )
+          !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+               nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
+             ))
+    }
+    multi method STORE(Bag:D: \objects, \values, :$INITIALIZE! --> Bag:D) {
+        self.SET-SELF(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            values.iterator,
+            self.keyof
           )
         )
     }
@@ -71,13 +89,13 @@ my class Bag does Baggy {
           nqp::create(MixHash)
         )
     }
-    method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::clone(self),
-          bag()
-        )
-    }
+
+    multi method Setty(Bag:U:) { Set      }
+    multi method Setty(Bag:D:) { self.Set }
+    multi method Baggy(Bag:U:) { Bag      }
+    multi method Baggy(Bag:D:) { self     }
+    multi method Mixy (Bag:U:) { Mix      }
+    multi method Mixy (Bag:D:) { self.Mix }
 
 #--- illegal methods
     proto method classify-list(|) {

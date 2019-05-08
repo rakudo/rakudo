@@ -8,11 +8,28 @@ my class Signature { # declared in BOOTSTRAP
     #   has Num $!count;          # count
     #   has Code $!code;
 
+    multi method new(Signature:U:
+            :@params,
+         Mu :$returns,
+      Int:D :$arity = @params.elems,
+      Num:D :$count = $arity.Num
+    ) {
+        nqp::create(self)!SET-SELF(@params, $returns, $arity, $count)
+    }
+
+    method !SET-SELF(@params, Mu $returns, $arity, $count) {
+        nqp::bind(@!params,nqp::getattr(@params,List,'$!reified')),
+        $!returns := $returns;
+        $!arity    = $arity;
+        $!count   := $count;
+        self
+    }
+
     multi method ACCEPTS(Signature:D: Mu \topic) {
-        nqp::p6bool(try self.ACCEPTS: topic.Capture)
+        nqp::hllbool(nqp::istrue(try self.ACCEPTS: topic.Capture))
     }
     multi method ACCEPTS(Signature:D: Capture $topic) {
-        nqp::p6bool(nqp::p6isbindable(self, nqp::decont($topic)));
+        nqp::hllbool(nqp::p6isbindable(self, nqp::decont($topic)));
     }
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
         my $sclass = self.params.classify({.named});
@@ -90,8 +107,7 @@ my class Signature { # declared in BOOTSTRAP
             nqp::clone(@!params));
     }
 
-    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu,
-                     :&where = -> $ { 'where { ... }' } ) {
+    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu) {
         # Opening.
         my $text = $perl ?? ':(' !! '(';
 
@@ -107,9 +123,7 @@ my class Signature { # declared in BOOTSTRAP
 
             my $sep = '';
             for @params.kv -> $i, $param {
-                my $parmstr = $param.perl(:$elide-type, :&where);
-                return Nil without $parmstr;
-                $text ~= $sep ~ $parmstr;
+                $text ~= $sep ~ $_ with $param.perl(:$elide-type);
 
                 # Remove sigils from anon typed scalars, leaving type only
                 $text .= subst(/» ' $'$/,'') unless $perl;
@@ -145,6 +159,9 @@ multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
 
     # different container type
     return False unless a.WHAT =:= b.WHAT;
+
+    # different return
+    return False unless a.returns =:= b.returns;
 
     # arity or count mismatch
     return False if a.arity != b.arity || a.count != b.count;

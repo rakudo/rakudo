@@ -1,6 +1,8 @@
 my role QuantHash does Associative {
 
-    method SET-SELF(QuantHash:D: \elems) {
+    method keyof() { Mu }
+
+    method SET-SELF(QuantHash:D: \elems) {  # cannot be a private method
         nqp::stmts(
           nqp::if(
             nqp::elems(elems),
@@ -8,6 +10,12 @@ my role QuantHash does Associative {
           ),
           self
         )
+    }
+
+    # provide a proto for QuantHashes from here
+    proto method STORE(|) {*}
+    multi method STORE(QuantHash:D: |) {     # for immutable types
+        X::Assignment::RO.new(value => self).throw
     }
 
     method Int     ( --> Int:D)     { self.total.Int }
@@ -33,6 +41,13 @@ my role QuantHash does Associative {
     }
 
     multi method pairs(QuantHash:D:) { Seq.new(self.iterator) }
+
+    proto method Setty(|) {*}
+    proto method Baggy(|) {*}
+    proto method Mixy (|) {*}
+
+    method hash() { ... }
+    method Hash() { ... }
 }
 
 # vim: ft=perl6 expandtab sw=4

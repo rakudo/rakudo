@@ -2,7 +2,7 @@
 
 This is Rakudo Perl 6, a Perl 6 compiler for the MoarVM and JVM.
 
-Rakudo Perl 6 is Copyright © 2008-2018, The Perl Foundation. Rakudo Perl 6
+Rakudo Perl 6 is Copyright © 2008-2019, The Perl Foundation. Rakudo Perl 6
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 
@@ -25,7 +25,7 @@ twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-
 
 ## Building and Installing Rakudo
 
-[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
+[![Build Status](https://circleci.com/gh/rakudo/rakudo.svg?style=shield)](https://circleci.com/gh/rakudo/rakudo)[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
 
 See the INSTALL.txt file for detailed prerequisites and build and
 installation instructions.
@@ -86,7 +86,7 @@ download, build, and install a fresh NQP, run:
 If you get a `java.lang.OutOfMemoryError: Java heap space` error building
 rakudo on the JVM, you may need to modify your NQP runner to limit memory
 use. e.g. edit the nqp-j / nqp-j.bat executable (found wherever you installed to, or in the
-`install/bin` directory) to include `-Xms500m -Xmx2g` as options passed to java.
+`install/bin` directory) to include `-Xms500m -Xmx3g` as options passed to java.
 Alternatively, you can set `JAVA_OPTS` env var; e.g. 
 `export JAVA_OPTS="-Xmx51200000000"`
 
@@ -110,6 +110,40 @@ The format for the `--backends` flag is:
     $ perl Configure.pl --backends=moar,jvm
     $ perl Configure.pl --backends=ALL
 
+### Testing
+
+Run the full spectest:
+
+    $ make spectest   # <== takes a LONG time!!
+
+To run a single test, one must use `make` because of the tooling required to
+run the spectests.  For example:
+
+    $ make t/spec/S12-traits/parameterized.t
+
+Run all tests in one S* directory with a sh script. One example:
+
+    $ cat run-tests.sh
+    #!/bin/sh
+    
+    # specify the desired directory:
+    D='t/spec/S26-documentation'
+    
+    # collect the individual files
+    F=$(ls $D/*t)
+    
+    # and run them
+    for f in $F
+    do
+        echo "Testing file '$f'"
+        make $f
+    done
+    echo "All tests in dir '$D' have been run."
+
+That can be written as a one-liner:
+
+    for f in $(ls t/spec/S26-documentation/*t); do make "$f"; done
+    
 ## Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available with

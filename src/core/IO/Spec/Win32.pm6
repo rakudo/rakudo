@@ -33,7 +33,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         my str $str = nqp::unbox_s(path);
         my int $indexf = nqp::rindex($str,'/');
         my int $indexb = nqp::rindex($str,'\\');
-        nqp::p6bool($indexf == -1 && $indexb == -1)
+        nqp::hllbool($indexf == -1 && $indexb == -1)
           ?? path
           !! $indexf > $indexb
              ?? substr(path,nqp::box_i($indexf + 1,Int) )
@@ -79,7 +79,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
    }
 
     method is-absolute ($path) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
           || nqp::iseq_i($_, 47)                   # /^ ｢/｣ /
           || (nqp::eqat($path, ':', 1) # /^ <[A..Z a..z]> ':' [ ｢\｣ | ｢/｣ ] /

@@ -33,12 +33,13 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     my $anon_id := 1;
-    method new_type(:$name, :$ver, :$auth, :$repr, :$signatured, *%extra) {
+    method new_type(:$name, :$ver, :$auth, :$api, :$repr, :$signatured, *%extra) {
         my $metarole := self.new(:signatured($signatured), :specialize_lock(NQPLock.new));
         my $type := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
         $metarole.set_name($type, $name // "<anon|{$anon_id++}>");
         $metarole.set_ver($type, $ver) if $ver;
         $metarole.set_auth($type, $auth) if $auth;
+        $metarole.set_api($type, $api) if $api;
         $metarole.set_pun_repr($type, $repr) if $repr;
         if nqp::existskey(%extra, 'group') {
             $metarole.set_group($type, %extra<group>);
@@ -71,7 +72,9 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!in_group ?? $!group !! $obj
     }
 
-    method compose($obj, :$compiler_services) {
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         my @rtl;
         if $!in_group {
             @rtl.push($!group);
@@ -173,14 +176,16 @@ class Perl6::Metamodel::ParametricRoleHOW
 
         # Go through methods and instantiate them; we always do this
         # unconditionally, since we need the clone anyway.
-        for self.method_table($obj) {
-            $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
+        my @methods      := nqp::hllize(self.method_order($obj));
+        my @method_names := nqp::hllize(self.method_names($obj));
+        my $method_iterator := nqp::iterator(@methods);
+        for @method_names -> $name {
+            $conc.HOW.add_method($conc, $name, nqp::shift($method_iterator).instantiate_generic($type_env))
         }
-        for self.submethod_table($obj) {
-            $conc.HOW.add_method($conc, $_.key, $_.value.instantiate_generic($type_env))
-        }
-        for self.private_method_table($obj) {
-            $conc.HOW.add_private_method($conc, $_.key, $_.value.instantiate_generic($type_env));
+        my %private_methods := nqp::hllize(self.private_method_table($obj));
+        my @private_methods := nqp::hllize(self.private_method_names($obj));
+        for @private_methods -> $name {
+            $conc.HOW.add_private_method($conc, $name, %private_methods{$name}.instantiate_generic($type_env));
         }
         for self.multi_methods_to_incorporate($obj) {
             $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))
@@ -189,12 +194,14 @@ class Perl6::Metamodel::ParametricRoleHOW
         # Roles done by this role need fully specializing also; all
         # they'll be missing is the target class (e.g. our first arg).
         for self.roles_to_compose($obj) {
-            my $r := $_;
+            my $ins := my $r := $_;
             if $_.HOW.archetypes.generic {
-                $r := $r.HOW.instantiate_generic($r, $type_env);
-                $conc.HOW.add_to_role_typecheck_list($conc, $r);
+                $ins := $ins.HOW.instantiate_generic($ins, $type_env);
+                $conc.HOW.add_to_role_typecheck_list($conc, $ins);
             }
-            $conc.HOW.add_role($conc, $r.HOW.specialize($r, @pos_args[0]));
+            $ins := $ins.HOW.specialize($ins, @pos_args[0]);
+            $conc.HOW.add_role($conc, $ins);
+            $conc.HOW.add_concretization($conc, $r, $ins);
         }
 
         # Pass along any parents that have been added, resolving them in

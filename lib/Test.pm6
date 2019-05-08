@@ -62,6 +62,10 @@ our sub todo_output is rw {
     $todo_output
 }
 
+proto sub plan ($?, Cool :$skip-all) {*}
+
+my class X::SubtestsSkipped is Exception {}
+
 multi sub plan (Cool:D :skip-all($reason)!) {
     _init_io() unless $output;
     $output.say: $indents ~ "1..0 # Skipped: $reason";
@@ -79,7 +83,7 @@ multi sub plan (Cool:D :skip-all($reason)!) {
 
     $done_testing_has_been_run = 1;
     $num_of_tests_failed = $num_of_tests_planned = $num_of_tests_run = 0;
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, True);
+    X::SubtestsSkipped.new.throw
 }
 
 # "plan 'no_plan';" is now "plan *;"
@@ -276,7 +280,7 @@ sub bail-out ($desc?) is export {
 }
 
 multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    DEPRECATED('is-approx'); # Remove for 6.d release
+    Rakudo::Deprecations.DEPRECATED('is-approx'); # Remove for 6.d release
 
     $time_after = nqp::time_n;
     my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
@@ -412,7 +416,14 @@ multi sub subtest(&subtests, $desc = '') is export {
     $subtest_callable_type = &subtests.WHAT;
     $indents ~= "    ";
     $subtest_level++;
-    subtests();
+    {
+        subtests();
+        CATCH {
+            when X::SubtestsSkipped {
+                # Subtests all skipped
+            }
+        }
+    }
     $subtest_level--;
     done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
     my $status = $num_of_tests_failed == 0
@@ -423,14 +434,14 @@ multi sub subtest(&subtests, $desc = '') is export {
     proclaim($status,$desc) or ($die_on_fail and die-on-fail);
 }
 
-sub diag(Mu $message) is export {
+sub diag($message) is export {
     # Always send user-triggered diagnostics to STDERR. This prevents
     # cases of confusion of where diag() has to send its ouput when
     # we are in the middle of TODO tests
     _diag $message, :force-stderr;
 }
 
-sub _diag(Mu $message, :$force-stderr) {
+sub _diag($message, :$force-stderr) {
     _init_io() unless $output;
     my $is_todo = !$force-stderr
         && ($subtest_todo_reason || $num_of_tests_run <= $todo_upto_test_num);
@@ -599,7 +610,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             $code()
         } else {
             $msg = "'$code' died";
-            EVAL $code, context => CALLER::CALLER::CALLER::CALLER::;
+            EVAL $code, context => CALLER::CALLER::CALLER::CALLER::CALLER::;
         }
         flunk $msg;
         skip 'Code did not die, can not check exception', 1 + %matcher.elems;
@@ -716,7 +727,7 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
         # sub proclaim is not called directly, so 2 is minimum level
         my int $level = 2;
 
-        repeat until !$?FILE.ends-with($caller.file) {
+        repeat while $?FILE.ends-with($caller.file) {
             $caller = callframe($level++);
         }
 

@@ -8,6 +8,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::ArrayType
+    does Perl6::Metamodel::Concretization
 {
     # Any collisions to resolve.
     has @!collisions;
@@ -42,12 +43,13 @@ class Perl6::Metamodel::ConcreteRoleHOW
         method multi() { $!multi }
     }
 
-    method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr) {
+    method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr, :$api) {
         my $metarole := self.new(:roles(@roles));
         my $obj := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
         $metarole.set_name($obj, $name);
         $metarole.set_ver($obj, $ver) if $ver;
         $metarole.set_auth($obj, $auth) if $auth;
+        $metarole.set_api($obj, $api) if $api;
         $obj;
     }
 
@@ -57,7 +59,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
         );
     }
 
-    method compose($obj) {
+    method compose($the-obj) {
+        my $obj := nqp::decont($the-obj);
+
         RoleToRoleApplier.apply($obj, self.roles_to_compose($obj));
         for self.roles_to_compose($obj) {
             @!role_typecheck_list[+@!role_typecheck_list] := $_;

@@ -2,13 +2,12 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 13;
+plan 25;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
-    throws-like ｢^4 .map: {}｣, Exception,
-        :message{.contains: 'Cannot map a Range to a Hash.'}, 'hash';
-    throws-like ｢^4 .map: 42｣, X::Multi::NoMatch, 'Int';
+    throws-like ｢^4 .map: {}｣, X::Cannot::Map, 'Hash';
+    throws-like ｢^4 .map: 42｣, X::Cannot::Map, 'Int';
 
     sub foo ($x) { $x+2};
     is-deeply ^4 .map(&foo), (2, 3, 4, 5).Seq, 'subroutine';
@@ -59,12 +58,6 @@ subtest 'like/unlike failures give useful diagnostics' => {
     '`unlike` says it wanted no match, not just "expected"';
 }
 
-# https://github.com/rakudo/rakudo/issues/1644
-throws-like ｢Lock.protect: %()｣, X::Multi::NoMatch,
-    'Lock.protect with wrong args gives sane error';
-throws-like ｢Lock::Async.protect: %()｣, X::Multi::NoMatch,
-    'Lock::Async.protect with wrong args gives sane error';
-
 # https://github.com/rakudo/rakudo/issues/1699
 throws-like {
     with Proc::Async.new: :out, :!err, $*EXECUTABLE, '-e', '' {
@@ -106,5 +99,80 @@ throws-like ｢
     -> Supercalifragilisticexpialidocious {}($x)
 ｣, X::TypeCheck, :message{2 == +.comb: 'Supercalifragilisticexpialidocious'},
     'X::TypeCheck does not prematurely chop off the .perl';
+
+#RT #128646
+subtest '.polymod with zero divisor does not reference guts in error' => {
+    plan 4;
+    throws-like { 1.polymod: 0           }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Int';
+
+    throws-like { 1.Rat.polymod: 0       }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Real';
+
+    throws-like { 1.polymod: lazy 0,     }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Int (lazy)';
+
+    throws-like { 1.Rat.polymod: lazy 0, }, X::Numeric::DivideByZero,
+        gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Real (lazy)';
+}
+
+# RT 126220
+throws-like '++.++', X::Multi::NoMatch,
+    '++.++ construct does not throw LTA errors';
+
+# RT #128830
+throws-like 'while (0){}', X::Syntax::Missing,
+    message => /'whitespace' .* 'before curlies' .* 'hash subscript'/,
+'lack of whitespace in while (0){} suggests misparse as hash subscript';
+
+# RT #128803
+is-run '*...‘WAT’', :err{not .contains: 'SORRY'}, :out(''), :exitcode{.so},
+    'runtime time errors do not contain ==SORRY==';
+
+# RT #124219
+is-run ｢
+    grammar Bug { token term { a }; token TOP { <term> % \n } }
+    Bug.parse( 'a' );
+｣, :err(/'token TOP { <term>'/), :exitcode{.so},
+    '`quantifier with %` error includes the token it appears in';
+
+# RT #125181
+is-run 'sub rt125181 returns Str returns Int {}',
+    :err{ not $^o.contains: 'Unhandled exception' }, :exitcode{.so},
+'using two `returns` traits does not cry about unhandled CONTROl exceptions';
+
+{ # coverage; 2016-09-18
+    throws-like { 42.classify      }, Exception, '.classify()    on Any throws';
+    throws-like { 42.classify:   * }, Exception, '.classify(*)   on Any throws';
+    throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
+    throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
+}
+
+# https://github.com/rakudo/rakudo/issues/2110
+subtest 'numeric backslash errors do not get accompanied by confusing others' => {
+    plan 3;
+    my &err = {.contains: 'backslash sequence' & none 'quantifies nothing' }
+    is-run ｢"a" ~~ /(a)\1+$/｣, :&err, :exitcode, 'regex';
+    is-run ｢"\1"｣,             :&err, :exitcode, 'qouble quotes';
+    is-run ｢Q:qq:cc/\1/｣,      :&err, :exitcode, ':qq:cc quoter';
+}
+
+# RT #129838
+if $*DISTRO.is-win {
+    skip ｢is-run() routine doesn't quite work right on Windows: RT#132258｣;
+}
+else {
+    is-run "my \$x = q:to/END/;\ny\n END", :err{ not .contains('Actions.nqp') },
+        'heredoc trimming warnings do not reference guts';
+}
+
+# https://github.com/rakudo/rakudo/issues/1813
+cmp-ok X::OutOfRange.new(
+    :what<a range>, :got(0..3000), :range(1..3000)
+).message.chars, '<', 150, 'X::OutOfRange does not stringify given Ranges';
+
+# https://github.com/rakudo/rakudo/issues/2320
+is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
+'Use placeholder variables in a method should yield a useful error message';
 
 # vim: ft=perl6 expandtab sw=4

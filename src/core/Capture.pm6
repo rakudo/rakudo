@@ -15,8 +15,10 @@ my class Capture { # declared in BOOTSTRAP
             if nqp::attrinited(nqp::decont(%hash),Map,'$!storage')
     }
 
-    multi method WHICH (Capture:D:) {
-        my $WHICH = nqp::istype(self.WHAT,Capture) ?? 'Capture' !! self.^name;
+    multi method WHICH (Capture:D: --> ValueObjAt:D) {
+        my str $WHICH = nqp::istype(self.WHAT,Capture)
+          ?? 'Capture'
+          !! self.^name;
         if !nqp::isnull(@!list) && @!list {
             $WHICH ~= '|';
             for nqp::hllize(@!list) -> \elem {
@@ -28,14 +30,22 @@ my class Capture { # declared in BOOTSTRAP
             $WHICH ~= ( $_ ~ '(' ~ nqp::atkey(%!hash, nqp::unbox_s($_)).WHICH ~ ')' )
               for nqp::hllize(%!hash).keys.sort;
         }
-        $WHICH;
+        nqp::box_s($WHICH,ValueObjAt)
     }
 
     multi method AT-KEY(Capture:D: Str:D \key) is raw {
-        nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil)
+        nqp::if(
+          (nqp::isnull(%!hash) || !nqp::defined(%!hash)),
+          Nil,
+          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil)
+        )
     }
     multi method AT-KEY(Capture:D: \key) is raw {
-        nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil)
+        nqp::if(
+          (nqp::isnull(%!hash) || !nqp::defined(%!hash)),
+          Nil,
+          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil)
+        )
     }
 
     multi method AT-POS(Capture:D: int \pos) is raw {
@@ -61,10 +71,10 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method EXISTS-KEY(Capture:D: Str:D \key ) {
-        nqp::p6bool(nqp::existskey(%!hash, nqp::unbox_s(key)));
+        nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key)));
     }
     multi method EXISTS-KEY(Capture:D: \key ) {
-        nqp::p6bool(nqp::existskey(%!hash, nqp::unbox_s(key.Str)));
+        nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str)));
     }
 
     method list(Capture:D:) {
@@ -113,7 +123,7 @@ my class Capture { # declared in BOOTSTRAP
         }
     }
     multi method Bool(Capture:D:) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::elems(@!list) || nqp::elems(%!hash)
         )
     }
@@ -151,7 +161,7 @@ my class Capture { # declared in BOOTSTRAP
 }
 
 multi sub infix:<eqv>(Capture:D \a, Capture:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b)
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.Capture::list eqv b.Capture::list && a.Capture::hash eqv b.Capture::hash)

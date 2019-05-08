@@ -1,14 +1,16 @@
 my role Setty does QuantHash {
     has Rakudo::Internals::IterationSet $!elems; # key.WHICH => key
 
-    # helper sub to create Set from iterator, check for laziness
-    sub create-from-iterator(\type, \iterator --> Setty:D) {
+    method of() { Bool }
+
+    # private method to create Set from iterator, check for laziness
+    method !create-from-iterator(\type, \iterator --> Setty:D) {
         nqp::if(
           iterator.is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
           nqp::create(type).SET-SELF(
             Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet), iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )
@@ -18,7 +20,7 @@ my role Setty does QuantHash {
     multi method new(Setty: \value --> Setty:D) {
         nqp::if(
           nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value)),
-          create-from-iterator(self, value.iterator),
+          self!create-from-iterator(self, value.iterator),
           nqp::stmts(
             nqp::bindkey(
               (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
@@ -30,16 +32,16 @@ my role Setty does QuantHash {
         )
     }
     multi method new(Setty: **@args --> Setty:D) {
-        create-from-iterator(self, @args.iterator)
+        self!create-from-iterator(self, @args.iterator)
     }
 
     method new-from-pairs(*@pairs --> Setty:D) {
         nqp::if(
-          (my $iterator := @pairs.iterator).is-lazy,
+          (my \iterator := @pairs.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
           nqp::create(self).SET-SELF(
             Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet), $iterator
+              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
             )
           )
         )
@@ -57,61 +59,62 @@ my role Setty does QuantHash {
     method total(Setty:D: --> Int:D) {
         nqp::istrue($!elems) && nqp::elems($!elems)
     }
-    multi method antipairs(Setty:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-              nqp::if(
-                $!iter,
-                Pair.new(True,nqp::iterval(nqp::shift($!iter))),
-                IterationEnd
-              )
-            }
-        }.new($!elems))
+
+    my class AntiPairs does Rakudo::Iterator::Mappy {
+        method pull-one() {
+          nqp::if(
+            $!iter,
+            Pair.new(True,nqp::iterval(nqp::shift($!iter))),
+            IterationEnd
+          )
+        }
     }
+    multi method antipairs(Setty:D:) { Seq.new(AntiPairs.new($!elems)) }
     multi method minpairs(Setty:D:) { self.pairs }
     multi method maxpairs(Setty:D:) { self.pairs }
     multi method Bool(Setty:D: --> Bool:D) {
-        nqp::p6bool($!elems && nqp::elems($!elems))
+        nqp::hllbool($!elems ?? nqp::elems($!elems) !! 0)
     }
 
-    method HASHIFY(\type) {
+    method !HASHIFY(\type) {
         nqp::stmts(
-          (my $hash := Hash.^parameterize(type,Any).new),
-          (my $descriptor := nqp::getattr($hash,Hash,'$!descriptor')),
+          (my \hash := Hash.^parameterize(type,Any).new),
+          (my \descriptor := nqp::getattr(hash,Hash,'$!descriptor')),
           nqp::if(
             $!elems && nqp::elems($!elems),
             nqp::stmts(
-              (my $storage := nqp::clone($!elems)),
-              (my $iter := nqp::iterator($storage)),
+              (my \storage := nqp::clone($!elems)),
+              (my \iter := nqp::iterator(storage)),
               nqp::while(
-                $iter,
+                iter,
                 nqp::bindkey(
-                  $storage,
-                  nqp::iterkey_s(nqp::shift($iter)),
+                  storage,
+                  nqp::iterkey_s(nqp::shift(iter)),
                   Pair.new(
-                    nqp::iterval($iter),
-                    (nqp::p6scalarfromdesc($descriptor) = True)
+                    nqp::iterval(iter),
+                    (nqp::p6scalarfromdesc(descriptor) = True)
                   )
                 )
               ),
-              nqp::bindattr($hash,Map,'$!storage',$storage)
+              nqp::bindattr(hash,Map,'$!storage',storage)
             )
           ),
-          $hash
+          hash
         )
     }
-    multi method hash(Setty:D: --> Hash:D) { self.HASHIFY(Any) }
-    multi method Hash(Setty:D: --> Hash:D) { self.HASHIFY(Bool) }
+    multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
+    multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
 
     multi method ACCEPTS(Setty:U: \other) { other.^does(self) }
     multi method ACCEPTS(Setty:D: Setty:D \other) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::unless(
             nqp::eqaddr(self,other),
             nqp::if(                                # not same object
-              $!elems,
+              $!elems && nqp::elems($!elems),
               nqp::if(                              # something on left
-                (my $oraw := other.RAW-HASH),
+                nqp::isconcrete(my $oraw := other.RAW-HASH)
+                  && nqp::elems($oraw),
                 nqp::if(                            # something on both sides
                   nqp::iseq_i(nqp::elems($!elems),nqp::elems($oraw)),
                   nqp::stmts(                       # same size
@@ -162,14 +165,11 @@ my role Setty does QuantHash {
           nqp::eqaddr(self,set()),
           'set()',
           nqp::concat(
-            '(',
             nqp::concat(
-              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl)),
-              nqp::concat(
-                ').',
-                self.^name
-              )
-            )
+              nqp::concat(self.^name,'.new('),
+              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.perl))
+            ),
+            ')'
           )
         )
     }
@@ -185,17 +185,17 @@ my role Setty does QuantHash {
     multi method pick(Setty:D: Whatever $) {
         self.pick(Inf)
     }
-    multi method pick(Setty:D: $count) {
-        Seq.new(class :: does Rakudo::QuantHash::Pairs {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::elems($!picked),
-                  nqp::atkey($!elems,nqp::pop_s($!picked)),
-                  IterationEnd
-                )
-            }
-        }.new($!elems, $count))
+
+    my class PickN does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!picked),
+              nqp::atkey($!elems,nqp::pop_s($!picked)),
+              IterationEnd
+            )
+        }
     }
+    multi method pick(Setty:D: $count) { Seq.new(PickN.new($!elems,$count)) }
 
     proto method pickpairs(|) {*}
     multi method pickpairs(Setty:D:) { Pair.new(self.roll,True) }
@@ -205,16 +205,18 @@ my role Setty does QuantHash {
     multi method pickpairs(Setty:D: Whatever $) {
         self.pickpairs(Inf)
     }
-    multi method pickpairs(Setty:D: $count) {
-        Seq.new(class :: does Rakudo::QuantHash::Pairs {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::elems($!picked),
-                  Pair.new(nqp::atkey($!elems,nqp::pop_s($!picked)),True),
-                  IterationEnd
-                )
-            }
-        }.new($!elems, $count))
+
+    my class PickPairsN does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!picked),
+              Pair.new(nqp::atkey($!elems,nqp::pop_s($!picked)),True),
+              IterationEnd
+            )
+        }
+    }
+    multi method pickpairs(Setty:D: \count) {
+        Seq.new(PickPairsN.new($!elems,count))
     }
 
     proto method roll(|) {*}
@@ -264,7 +266,7 @@ my role Setty does QuantHash {
     }
 
     multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {
-        nqp::p6bool($!elems && nqp::existskey($!elems,k.WHICH))
+        nqp::hllbool($!elems ?? nqp::existskey($!elems,k.WHICH) !! 0)
     }
 
     multi method Bag(Setty:D:) {
@@ -302,7 +304,7 @@ my role Setty does QuantHash {
 }
 
 multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }

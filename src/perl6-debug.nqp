@@ -455,6 +455,7 @@ sub MAIN(*@ARGS) {
 
     # Create and configure compiler object.
     my $comp := Perl6::Debugger.new();
+
     $comp.language('perl6');
     $comp.parsegrammar(Perl6::HookGrammar);
     $comp.parseactions(Perl6::HookActions);
@@ -463,6 +464,51 @@ sub MAIN(*@ARGS) {
     hll-config($comp.config);
     my $COMPILER_CONFIG := $comp.config;
     nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
+
+
+    # Determine Perl6 and NQP dirs.
+    my $config := nqp::backendconfig();
+    my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
+#?if jvm
+    my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');
+    my $install-dir := $execname ne ''
+        ?? nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1))
+        !! $comp.config<prefix>;
+#?endif
+#?if moar
+    my $execname := nqp::execname();
+    my $install-dir := $config<osname> eq 'openbsd'
+        ?? $config<prefix> ~ '/bin/perl6-m'
+        !! $execname ne ''
+            ?? nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1))
+            !! $comp.config<prefix>;
+#?endif
+#?if js
+    my $execname := nqp::execname();
+    my $install-dir := $config<osname> eq 'openbsd'
+        ?? $config<prefix> ~ '/bin/perl6-js'
+        !! $execname ne ''
+            ?? nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1))
+            !! $comp.config<prefix>;
+#?endif
+
+    my $perl6-home := $comp.config<static_perl6_home>
+        // nqp::getenvhash()<PERL6_HOME>
+        // $install-dir ~ '/share/perl6';
+    if nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep {
+        $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
+    }
+
+    my $nqp-home := $comp.config<static_nqp_home>
+        // nqp::getenvhash()<NQP_HOME>
+        // $install-dir ~ '/share/nqp';
+    if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {
+        $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
+    }
+
+    nqp::bindhllsym('perl6', '$PERL6_HOME', $perl6-home);
+    nqp::bindhllsym('perl6', '$NQP_HOME', $nqp-home);
+
 
     # Add extra command line options.
     my @clo := $comp.commandline_options();

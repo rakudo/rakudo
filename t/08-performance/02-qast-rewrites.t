@@ -1,7 +1,7 @@
 use lib <t/packages>;
 use Test::Helpers::QAST;
 use Test;
-plan 5;
+plan 4;
 
 subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
     plan 8;
@@ -79,16 +79,33 @@ subtest '.dispatch:<.=> gets rewritten to simple ops' => {
     }
 }
 
-qast-is ｢for ^10 {}｣, -> \v {
-        not qast-contains-op   v, 'p6forstmt'
-    and not qast-contains-op   v, 'p6for'
-}, 'simple `for ^10 {}` case gets optimized entirely';
+subtest 'for {}' => {
+    my @fors = ｢for ^10 {}｣, ｢for 1..10 {}｣, ｢for 1..^10 {}｣, ｢for 1^..10 {}｣, ｢for 1^..^10 {}｣,
+        ｢for 1...10 {}｣, ｢for 1, 2...10 {}｣, ｢for 10...2 {}｣, ｢for 1,3...9 {}｣, ｢for 9,7...1 {}｣,
+        ｢for ^10 .reverse {}｣,;
+    plan @fors + 2;
 
-qast-is ｢for ^10 {}｣, :target<ast>, -> \v {
-    qast-contains-op v, 'p6forstmt'
-}, 'simple `for ^10 {}` case gets `p6forstmt` op to use';
+    for @fors {
+        qast-is $_, -> \v {
+                not qast-contains-op   v, 'p6forstmt'
+            and not qast-contains-op   v, 'p6for'
+        }, $_ ~ ' case gets optimized entirely';
+    }
 
-qast-is ｢for ^10 -> $, :$foo {}｣, :target<ast>, -> \v {
-            qast-contains-op   v, 'p6forstmt'
-    and not qast-contains-op   v, 'p6for'
-}, 'named arg does not accidentally get counted as a positional';
+    qast-is ｢for ^10 {}｣, :target<ast>, -> \v {
+        qast-contains-op v, 'p6forstmt'
+    }, 'simple `for ^10 {}` case gets `p6forstmt` op to use';
+
+    qast-is ｢for ^10 -> $, :$foo {}｣, :target<ast>, -> \v {
+                qast-contains-op   v, 'p6forstmt'
+        and not qast-contains-op   v, 'p6for'
+    }, 'named arg does not accidentally get counted as a positional';
+}
+
+# https://github.com/rakudo/rakudo/issues/1981
+subtest 'nested metaops get fully rewritten away from &METAOP sub calls' => {
+    plan 2;
+    qast-is ｢my $a; ($a //= 0) += 1｣, -> \v { not qast-contains-call v, /METAOP/ }, '(//=)+=';
+    qast-is ｢my $a; (((($a //= 0) += 1) //= 0) += 1)｣, -> \v { not qast-contains-call v, /METAOP/ },
+      '((((//=)+=) //=) +=)';
+}

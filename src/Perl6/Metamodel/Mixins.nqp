@@ -81,7 +81,7 @@ role Perl6::Metamodel::Mixins {
 
         # Create new type, derive it from ourself and then add
         # all the roles we're mixing it.
-        my $new_type := self.new_type(:name($new_name), :repr($obj.REPR));
+        my $new_type := self.new_type(:name($new_name), :repr($obj.REPR), :is_mixin);
         $new_type.HOW.set_is_mixin($new_type);
         $new_type.HOW.add_parent($new_type, $obj.WHAT);
         for @roles {
@@ -90,9 +90,9 @@ role Perl6::Metamodel::Mixins {
         $new_type.HOW.compose($new_type);
         $new_type.HOW.set_shortname($new_type, $new_shortname);
         $new_type.HOW.set_boolification_mode($new_type,
-            nqp::existskey($new_type.HOW.method_table($new_type), 'Bool')
+            nqp::existskey(nqp::hllize($new_type.HOW.method_table($new_type)), 'Bool')
             || nqp::can($new_type.HOW, 'submethod_table')
-                && nqp::existskey($new_type.HOW.submethod_table($new_type), 'Bool')
+                && nqp::existskey(nqp::hllize($new_type.HOW.submethod_table($new_type)), 'Bool')
                 ?? 0
                 !! self.get_boolification_mode($obj));
         $new_type.HOW.publish_boolification_spec($new_type);

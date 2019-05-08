@@ -25,11 +25,12 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     method !MATCH() {
-        my int $from = nqp::getattr_i(self, Match, '$!from');
-        my int $pos  = nqp::getattr_i(self, Match, '$!pos');
-        my Mu $list;
+        my Mu $list := Nil;
         my Mu $hash := nqp::hash();
-        if nqp::isge_i($pos, $from) {
+        if nqp::isge_i(
+          nqp::getattr_i(self,Match,'$!pos'),
+          nqp::getattr_i(self, Match, '$!from')
+        ) {
             # For captures with lists, initialize the lists.
             my $caplist := $NO_CAPS;
             my $rxsub   := nqp::getattr(self, Match, '$!regexsub');
@@ -45,31 +46,28 @@ my class Match is Capture is Cool does NQPMatchRole {
                         $namecount = nqp::add_i($namecount, 1);
                         if nqp::iterval(nqp::shift($iter)) >= 2 {
                             $name = nqp::iterkey_s($iter);
-                            $onlyname = $name if nqp::iseq_i($namecount, 1);
                             nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
                                 ?? nqp::bindpos(
                                         nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
-                                        nqp::fromstr_I($name, Int), [])
-                                !! nqp::bindkey($hash, $name, []);
+                                        nqp::fromstr_I($name, Int), nqp::create(Array))
+                                !! nqp::bindkey($hash, $name, nqp::create(Array));
                         }
                     }
+                    $onlyname = $name if nqp::iseq_i($namecount, 1);
                 }
             }
 
             # Walk the capture stack and populate the Match.
             my Mu $cs := nqp::getattr(self, Match, '$!cstack');
             if nqp::isnull($cs) || nqp::not_i(nqp::istrue($cs)) {}
-#?if !jvm
             elsif nqp::not_i(nqp::istrue($caplist)) {}
-#?endif
             elsif nqp::iseq_i($namecount, 1) && nqp::isgt_i(nqp::chars($onlyname), 0) && nqp::eqat($onlyname, '$!', 0) {
                 # If there's only one destination, avoid repeated hash lookups
                 my int $cselems = nqp::elems($cs);
                 my int $csi = -1;
-                my Mu $dest;
 
                 # numeric: <= ord("9") so positional capture
-                $dest := nqp::islt_i(nqp::ord($onlyname),58)
+                my Mu $dest := nqp::islt_i(nqp::ord($onlyname),58)
                   ?? nqp::atpos($list, $onlyname)
                   !! nqp::atkey($hash, $onlyname);
 
@@ -162,6 +160,12 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
+#?if js
+    my sub move_cursor($target, $pos) {
+       nqp::chars(nqp::substrnfg(nqp::substr($target, $pos), 0, 1)) || 1;
+    }
+#?endif
+
     method CURSOR_OVERLAP() {  # adapted from !cursor_more in nqp
         nqp::stmts(
           (my $new := nqp::create(self)),
@@ -183,7 +187,12 @@ my class Match is Capture is Cool does NQPMatchRole {
           nqp::bindattr_i($new,$?CLASS,'$!pos',
             nqp::if(
               nqp::isge_i($!from,$!pos),
+#?if !js
               nqp::add_i($!from,1),
+#?endif
+#?if js
+              nqp::add_i($!from, move_cursor(self.target, $!pos)),
+#?endif
               $!pos
             )
           ),
@@ -536,7 +545,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             $match = nqp::eqat($tgt, $topic_str, $pos);
         }
 
-#?if moar
+#?if !jvm
         # ignoremark+ignorecase
         elsif im == 3 {
             $match = nqp::eqaticim($tgt, $topic_str, $pos);
@@ -552,7 +561,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             $match = nqp::eqatic($tgt, $topic_str, $pos);
         }
 #?endif
-#?if !moar
+#?if jvm
 
 # This branch is required because neither the JVM nor the JS implementations
 # have the nqp::eqat* ops. However, nqp::ordbaseat just throws a NYI
@@ -708,8 +717,6 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     multi method INTERPOLATE_ASSERTION(Mu:D \var, int \im, int \monkey, $, $, \context) {
-        my \cur     = self.'!cursor_start_cur'();
-
         # We are in a regex assertion, the strings we get will be
         # treated as regex rules.
         my $rx     := MAKE_REGEX(var,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
@@ -718,9 +725,9 @@ my class Match is Capture is Cool does NQPMatchRole {
 
         match.Bool
           && nqp::isgt_i($len,-1)
-          && nqp::isle_i(nqp::add_i(nqp::getattr_i(cur, $?CLASS, '$!from'),$len),nqp::chars(cur.target))
+          && nqp::isle_i(nqp::add_i(nqp::getattr_i(self, $?CLASS, '$!pos'),$len),nqp::chars(self.target))
           ?? match
-          !! cur
+          !! self.'!cursor_start_fail'()
     }
 
     method CALL_SUBRULE($rule, |c) {
@@ -841,13 +848,13 @@ my class Match is Capture is Cool does NQPMatchRole {
         $new;
     }
 
-    multi method WHICH (Match:D:) {
+    multi method WHICH(Match:D: --> ObjAt:D) {
         self.Mu::WHICH # skip Capture's as Match is not a value type
     }
 
     proto method Bool(|) {*}
-    multi method Bool(Match:U:) { False }
-    multi method Bool(Match:D:) { nqp::p6bool($!pos >= $!from) }
+    multi method Bool(Match:U: --> False) { }
+    multi method Bool(Match:D:) { nqp::hllbool($!pos >= $!from) }
 
     multi method Numeric(Match:D:) {
         self.Str.Numeric
@@ -927,8 +934,7 @@ multi sub infix:<eqv>(Match:D \a, Match:D \b) {
 }
 
 
-proto sub make(Mu, *%) { $/ := nqp::getlexcaller('$/'); {*} }
-multi sub make(Mu \made) {
+sub make(Mu \made) {
     nqp::bindattr(nqp::decont(nqp::getlexcaller('$/')),Match,'$!made',made)
 }
 

@@ -1,8 +1,8 @@
 my class DateTime does Dateish {
-    has int $.hour;
-    has int $.minute;
+    has Int $.hour;
+    has Int $.minute;
     has     $.second;
-    has int $.timezone;  # UTC
+    has Int $.timezone;  # UTC
       # Not an optimization but a necessity to ensure that
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
       # DST-induced ambiguity could ruin our day.
@@ -24,7 +24,12 @@ my class DateTime does Dateish {
                   ($!timezone.abs/60%60).floor)
     }
 
+#?if moar
+    my constant $valid-units = nqp::hash(
+#?endif
+#?if !moar
     my $valid-units := nqp::hash(
+#?endif
       'second',  0,
       'seconds', 0,
       'minute',  0,
@@ -40,23 +45,34 @@ my class DateTime does Dateish {
       'year',    1,
       'years',   1,
     );
+
     method !VALID-UNIT($unit) {
         nqp::existskey($valid-units,$unit)
           ?? $unit
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
-    method !SET-SELF(\y,\mo,\d,\h,\mi,\s,\t,\f) {
-        $!year      = y;
-        $!month     = mo;
-        $!day       = d;
-        $!hour      = h;
-        $!minute    = mi;
-        $!second    = s;
-        $!timezone  = t;
-        &!formatter = f;
+    method !SET-SELF(
+        Int:D \year,
+        Int:D \month,
+        Int:D \day,
+        Int:D \hour,
+        Int:D \minute,
+              \second,
+        Int:D \timezone,
+              &formatter
+    --> DateTime:D) {
+        nqp::bind($!year,      year);  # R#2581
+        nqp::bind($!month,     month);
+        nqp::bind($!day,       day);
+        nqp::bind(&!formatter, &formatter);
+        $!hour      := hour;
+        $!minute    := minute;
+        $!second    := second;
+        $!timezone  := timezone;
         self
     }
+
     method !new-from-positional(DateTime:
       Int() $year,
       Int() $month,
@@ -67,14 +83,14 @@ my class DateTime does Dateish {
             %extra,
       :$timezone = 0,
       :&formatter,
-    ) {
+    --> DateTime:D) {
         1 <= $month <= 12
           || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self.DAYS-IN-MONTH($year,$month)
+        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
           || X::OutOfRange.new(
                :what<Day>,
                :got($day),
-               :range("1..{self.DAYS-IN-MONTH($year,$month)}")
+               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
              ).throw;
         0 <= $hour <= 23
           || X::OutOfRange.new(:what<Hour>,:got($hour),:range<0..23>).throw;
@@ -87,12 +103,13 @@ my class DateTime does Dateish {
                $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
           !! self.bless(
                :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:$timezone,:&formatter,|%extra);
+               :$hour,:$minute,:$second,:$timezone,:&formatter,|%extra
+             )!SET-DAYCOUNT;
 
         $second >= 60 ?? $dt!check-leap-second !! $dt
     }
 
-    method !check-leap-second {
+    method !check-leap-second(--> DateTime:D) {
         my $utc := $!timezone ?? self.utc !! self;
         X::OutOfRange.new(
           what  => 'Second',
@@ -114,7 +131,8 @@ my class DateTime does Dateish {
 
     proto method new(|) {*}
     multi method new(DateTime:
-      \y,\mo,\d,\h,\mi,\s,:$timezone = 0,:&formatter,*%_) {
+      \y,\mo,\d,\h,\mi,\s,:$timezone = 0,:&formatter,*%_
+    --> DateTime:D) {
         self!new-from-positional(y,mo,d,h,mi,s,%_,:$timezone,:&formatter)
     }
     multi method new(DateTime:
@@ -127,14 +145,18 @@ my class DateTime does Dateish {
       :$timezone = 0,
       :&formatter,
       *%_
-      ) {
+    --> DateTime:D) {
         self!new-from-positional(
           $year,$month,$day,$hour,$minute,$second,%_,:$timezone,:&formatter)
     }
-    multi method new(DateTime: Date:D :$date!, *%_) {
+    multi method new(DateTime:
+      Date:D :$date!, *%_
+    --> DateTime:D) {
         self.new(:year($date.year),:month($date.month),:day($date.day),|%_)
     }
-    multi method new(DateTime: Instant:D $i, :$timezone = 0, *%_) {
+    multi method new(DateTime:
+      Instant:D $i, :$timezone = 0, *%_
+    --> DateTime:D) {
         my ($p, $leap-second) = $i.to-posix;
         my $dt = self.new( floor($p - $leap-second).Int, |%_ );
         $dt.clone(
@@ -143,7 +165,7 @@ my class DateTime does Dateish {
     }
     multi method new(DateTime:
       Numeric:D $time is copy, :$timezone = 0, :&formatter, *%_
-    ) {
+    --> DateTime:D) {
         # Interpret $time as a POSIX time.
         my     $second = $time % 60; $time = $time.Int div 60;
         my int $minute = $time % 60; $time = $time     div 60;
@@ -161,7 +183,7 @@ my class DateTime does Dateish {
         my int $month = $m + 3 - 12 * ($m div 10);
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
-        my $dt = self === DateTime
+        my $dt = nqp::eqaddr(self.WHAT,DateTime)
           ?? ( %_ ?? die "Unexpected named parameter{"s" if %_ > 1} "
                     ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
                     ~ "trying to use the named parameter form of .new() but "
@@ -169,13 +191,14 @@ my class DateTime does Dateish {
                   !! nqp::create(self)!SET-SELF(
                     $year,$month,$day,$hour,$minute,$second,0,&formatter)
           ) !! self.bless(
-               :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_);
+                 :$year,:$month,:$day,
+                 :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_
+               )!SET-DAYCOUNT;
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(DateTime:
       Str:D $datetime, :$timezone is copy, :&formatter, *%_
-    ) {
+    --> DateTime:D) {
         X::Temporal::InvalidFormat.new(
           invalid-str => $datetime,
           target      => 'DateTime',
@@ -219,44 +242,47 @@ my class DateTime does Dateish {
         self.new(nqp::time_n(), :$timezone, :&formatter)
     }
 
-    method clone(*%_) {
-        my $h := nqp::getattr(%_,Map,'$!storage');
+    method clone(DateTime:D: *%_ --> DateTime:D) {
+        my \h := nqp::getattr(%_,Map,'$!storage');
         self!new-from-positional(
-          nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
-          nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
-          nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
-          nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
-          nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
-          nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
+          nqp::ifnull(nqp::atkey(h,'year'),  $!year),
+          nqp::ifnull(nqp::atkey(h,'month'), $!month),
+          nqp::ifnull(nqp::atkey(h,'day'),   $!day),
+          nqp::ifnull(nqp::atkey(h,'hour'),  $!hour),
+          nqp::ifnull(nqp::atkey(h,'minute'),$!minute),
+          nqp::ifnull(nqp::atkey(h,'second'),$!second),
           %_,
-          timezone => nqp::existskey($h,'timezone')
-            ?? nqp::atkey($h,'timezone')  !! $!timezone,
-          formatter => nqp::existskey($h,'formatter')
-            ?? nqp::atkey($h,'formatter') !! &!formatter,
-        )
-    }
-    method !clone-without-validating(*%_) { # A premature optimization.
-        return self.clone(|%_) unless self === DateTime;
-
-        my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::create(self)!SET-SELF(
-          nqp::existskey($h,'year')   ?? nqp::atkey($h,'year')   !! $!year,
-          nqp::existskey($h,'month')  ?? nqp::atkey($h,'month')  !! $!month,
-          nqp::existskey($h,'day')    ?? nqp::atkey($h,'day')    !! $!day,
-          nqp::existskey($h,'hour')   ?? nqp::atkey($h,'hour')   !! $!hour,
-          nqp::existskey($h,'minute') ?? nqp::atkey($h,'minute') !! $!minute,
-          nqp::existskey($h,'second') ?? nqp::atkey($h,'second') !! $!second,
-          nqp::existskey($h,'timezone')
-            ?? nqp::atkey($h,'timezone') !! $!timezone,
-          &!formatter,
+          timezone  => nqp::ifnull(nqp::atkey(h,'timezone'),$!timezone),
+          formatter => nqp::ifnull(nqp::atkey(h,'formatter'),&!formatter),
         )
     }
 
-    method Instant() {
+    # A premature optimization.
+    method !clone-without-validating(DateTime:D: *%_ --> DateTime:D) {
+        nqp::if(
+          nqp::eqaddr(self.WHAT,DateTime),
+          nqp::stmts(
+            (my \h := nqp::getattr(%_,Map,'$!storage')),
+            nqp::create(self)!SET-SELF(
+              nqp::ifnull(nqp::atkey(h,'year'),    $!year),
+              nqp::ifnull(nqp::atkey(h,'month'),   $!month),
+              nqp::ifnull(nqp::atkey(h,'day'),     $!day),
+              nqp::ifnull(nqp::atkey(h,'hour'),    $!hour),
+              nqp::ifnull(nqp::atkey(h,'minute'),  $!minute),
+              nqp::ifnull(nqp::atkey(h,'second'),  $!second),
+              nqp::ifnull(nqp::atkey(h,'timezone'),$!timezone),
+              &!formatter,
+            )
+          ),
+          self.clone(|%_)
+        )
+    }
+
+    method Instant(DateTime:D: --> Instant:D) {
         Instant.from-posix: self.posix + $!second % 1, $!second >= 60;
     }
 
-    method posix($ignore-timezone?) {
+    method posix(DateTime:D: $ignore-timezone? --> Int:D) {
         return self.utc.posix if $!timezone && !$ignore-timezone;
 
         # algorithm from Claus Tøndering
@@ -271,19 +297,30 @@ my class DateTime does Dateish {
           + self.whole-second
     }
 
-    method offset()            { $!timezone }
-    method offset-in-minutes() { $!timezone / 60 }
-    method offset-in-hours()   { $!timezone / 3600 }
+    method offset(DateTime:D:            --> Int:D) { $!timezone        }
+    method offset-in-minutes(DateTime:D: --> Rat:D) { $!timezone / 60   }
+    method offset-in-hours(DateTime:D:   --> Rat:D) { $!timezone / 3600 }
 
-    method hh-mm-ss()          { sprintf "%02d:%02d:%02d", $!hour,$!minute,$!second }
+    method hh-mm-ss(DateTime:D: --> Str:D) {
+        sprintf "%02d:%02d:%02d", $!hour,$!minute,$!second
+    }
 
-    method later(:$earlier, *%unit) {
-        my @pairs = %unit.pairs;
-        die "More than one time unit supplied" if @pairs > 1;
-        die "No time unit supplied"        unless @pairs;
+    method later(DateTime:D: :$earlier, *%unit --> DateTime:D) {
 
-        my $unit   = self!VALID-UNIT(@pairs.AT-POS(0).key);
-        my $amount = @pairs.AT-POS(0).value;
+        # basic sanity check
+        nqp::if(
+          nqp::eqaddr(
+            (my \later := (my \iterator := %unit.iterator).pull-one),
+            IterationEnd
+          ),
+          (die "No time unit supplied"),
+          nqp::unless(
+            nqp::eqaddr(iterator.pull-one,IterationEnd),
+            (die "More than one time unit supplied")
+          )
+        );
+        my $unit  := later.key;
+        my $amount = later.value;
         $amount = -$amount if $earlier;
 
         # work on instant (tai)
@@ -339,7 +376,7 @@ my class DateTime does Dateish {
         }
     }
 
-    method truncated-to(Cool $unit) {
+    method truncated-to(DateTime:D: Cool $unit --> DateTime:D) {
         my %parts;
         given self!VALID-UNIT($unit) {
             %parts<second> = self.whole-second;
@@ -354,9 +391,9 @@ my class DateTime does Dateish {
         }
         self!clone-without-validating(|%parts);
     }
-    method whole-second() { $!second.Int }
+    method whole-second(DateTime:D: --> Int:D) { $!second.Int }
 
-    method in-timezone($timezone) {
+    method in-timezone(DateTime:D: Int(Cool) $timezone --> DateTime:D) {
         return self if $timezone == $!timezone;
 
         my int $old-offset = self.offset;
@@ -378,15 +415,15 @@ my class DateTime does Dateish {
         self!clone-without-validating: :$timezone, |%parts;
     }
 
-    method utc()   { self.in-timezone(0) }
-    method local() { self.in-timezone($*TZ) }
+    method utc(  DateTime:D: --> DateTime:D) { self.in-timezone(0)    }
+    method local(DateTime:D: --> DateTime:D) { self.in-timezone($*TZ) }
 
     proto method Date() {*}
-    multi method Date(DateTime:D:) { Date.new($!year,$!month,$!day) }
-    multi method Date(DateTime:U:) { Date }
-    method DateTime() { self }
+    multi method Date(DateTime:D: --> Date:D) { Date.new($!year,$!month,$!day) }
+    multi method Date(DateTime:U: --> Date:U) { Date }
+    method DateTime(--> DateTime) { self }
 
-    multi method perl(DateTime:D:) {
+    multi method perl(DateTime:D: --> Str:D) {
         self.^name
           ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second"
           ~ (',' ~ :$!timezone.perl if $!timezone)
@@ -398,40 +435,40 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
     PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset
 }
 
-multi sub infix:«<»(DateTime:D \a, DateTime:D \b) {
+multi sub infix:«<»(DateTime:D \a, DateTime:D \b --> Bool:D) {
     a.Instant < b.Instant
 }
-multi sub infix:«>»(DateTime:D \a, DateTime:D \b) {
+multi sub infix:«>»(DateTime:D \a, DateTime:D \b --> Bool:D) {
     a.Instant > b.Instant
 }
-multi sub infix:«<=»(DateTime:D \a, DateTime:D \b) {
+multi sub infix:«<=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
     a.Instant <= b.Instant
 }
-multi sub infix:«>=»(DateTime:D \a, DateTime:D \b) {
+multi sub infix:«>=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
     a.Instant >= b.Instant
 }
-multi sub infix:«==»(DateTime:D \a, DateTime:D \b) {
+multi sub infix:«==»(DateTime:D \a, DateTime:D \b --> Bool:D) {
     a.Instant == b.Instant
 }
-multi sub infix:«!=»(DateTime:D \a, DateTime:D \b) {
+multi sub infix:«!=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
     a.Instant != b.Instant
 }
-multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
+multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b --> Order:D) {
     a.Instant <=> b.Instant
 }
-multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
+multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b --> Order:D) {
     a.Instant cmp b.Instant
 }
-multi sub infix:<->(DateTime:D \a, DateTime:D \b) {
+multi sub infix:<->(DateTime:D \a, DateTime:D \b --> Duration:D) {
     a.Instant - b.Instant
 }
-multi sub infix:<->(DateTime:D \a, Duration:D \b) {
+multi sub infix:<->(DateTime:D \a, Duration:D \b --> DateTime:D) {
     a.new(a.Instant - b).in-timezone(a.timezone)
 }
-multi sub infix:<+>(DateTime:D \a, Duration:D \b) {
+multi sub infix:<+>(DateTime:D \a, Duration:D \b --> DateTime:D) {
     a.new(a.Instant + b).in-timezone(a.timezone)
 }
-multi sub infix:<+>(Duration:D \a, DateTime:D \b) {
+multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
     b.new(b.Instant + a).in-timezone(b.timezone)
 }
 

@@ -4,13 +4,15 @@ my class X::Numeric::DivideByZero { ... }
 my class X::NYI::BigInt { ... }
 
 my class Int { ... }
-my subset UInt of Int where {not .defined or $_ >= 0};
+my subset UInt of Int where {
+    nqp::not_i(nqp::isconcrete($_)) || nqp::isge_I($_,0)
+}
 
 my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool
     #     has bigint $!value is box_target;
 
-    multi method WHICH(Int:D:) {
+    multi method WHICH(Int:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::if(
@@ -25,68 +27,76 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     proto method new(|) {*}
-    multi method new(      \value) { self.new: value.Int }
-    multi method new(int   \value) {
+    multi method new(      \value --> Int:D) { self.new: value.Int }
+    multi method new(int   \value --> Int:D) {
         # rebox the value, so we get rid of any potential mixins
         nqp::fromI_I(nqp::decont(value), self)
     }
-    multi method new(Int:D \value = 0) {
+    multi method new(Int:D \value = 0 --> Int:D) {
         # rebox the value, so we get rid of any potential mixins
         nqp::fromI_I(nqp::decont(value), self)
     }
 
-    multi method perl(Int:D:) {
+    multi method perl(Int:D: --> Str:D) {
         self.Str;
     }
-    multi method Bool(Int:D:) {
-        nqp::p6bool(nqp::bool_I(self));
+    multi method Bool(Int:D: --> Bool:D) {
+        nqp::hllbool(nqp::bool_I(self));
     }
 
     method Capture() { die X::Cannot::Capture.new: :what(self) }
 
-    method Int() { self }
+    method Int(--> Int) { self }
 
-    multi method Str(Int:D:) {
+    multi method Str(Int:D: --> Str:D) {
         nqp::p6box_s(nqp::tostr_I(self));
     }
 
-    method Num(Int:D:) {
+    method Num(Int:D: --> Num:D) {
         nqp::p6box_n(nqp::tonum_I(self));
     }
 
-    method Rat(Int:D: $?) {
-        Rat.new(self, 1);
+    method Rat(Int:D: $? --> Rat:D) {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',self),
+          Rat,'$!denominator',1
+        )
     }
-    method FatRat(Int:D: $?) {
-        FatRat.new(self, 1);
+    method FatRat(Int:D: $? --> FatRat:D) {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',self),
+          FatRat,'$!denominator',1
+        )
     }
 
-    method abs(Int:D:) {
+    method abs(Int:D: --> Int:D) {
         nqp::abs_I(self, Int)
     }
 
-    method Bridge(Int:D:) {
+    method Bridge(Int:D: --> Num:D) {
         nqp::p6box_n(nqp::tonum_I(self));
     }
 
-    method chr(Int:D:) {
+    method chr(Int:D: --> Str:D) {
         nqp::if(
           nqp::isbig_I(self),
-            die("chr codepoint %i (0x%X) is too large".sprintf(self, self)),
+            die("Error encoding UTF-8 string: could not encode codepoint %i (0x%X), codepoint out of bounds.".sprintf(self, self)),
           nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
         )
     }
 
-    method sqrt(Int:D:) { nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self))) }
+    method sqrt(Int:D: --> Num:D) {
+        nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self)))
+    }
 
     proto method base(|) {*}
-    multi method base(Int:D: Int:D $base) {
+    multi method base(Int:D: Int:D $base --> Str:D) {
         2 <= $base <= 36
           ?? nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
           !! Failure.new(X::OutOfRange.new(
                what => "base argument to base", :got($base), :range<2..36>))
     }
-    multi method base(Int:D: Int(Cool) $base, $digits?) {
+    multi method base(Int:D: Int(Cool) $base, $digits? --> Str:D) {
         2 <= $base <= 36
           ?? $digits && ! nqp::istype($digits, Whatever)
             ?? $digits < 0
@@ -102,7 +112,7 @@ my class Int does Real { # declared in BOOTSTRAP
 
     # If self is Int, we assume mods are Ints also.  (div fails otherwise.)
     # If do-not-want, user should cast invocant to proper domain.
-    method polymod(Int:D: +@mods) {
+    method polymod(Int:D: +@mods --> Seq:D) {
         fail X::OutOfRange.new(
           :what('invocant to polymod'), :got(self), :range<0..^Inf>
         ) if self < 0;
@@ -134,18 +144,20 @@ my class Int does Real { # declared in BOOTSTRAP
         }
     }
 
-    method expmod(Int:D: Int:D \base, Int:D \mod) {
+    method expmod(Int:D: Int:D \base, Int:D \mod --> Int:D) {
         nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }
-    method is-prime(--> Bool:D) { nqp::p6bool(nqp::isprime_I(self,100)) }
+    method is-prime(--> Bool:D) { nqp::hllbool(nqp::isprime_I(self,100)) }
 
-    method floor(Int:D:) { self }
-    method ceiling(Int:D:) { self }
+    method floor(Int:D: --> Int:D) { self }
+    method ceiling(Int:D: --> Int:D) { self }
     proto method round(|) {*}
-    multi method round(Int:D:) { self }
-    multi method round(Int:D: Real(Cool) $scale) { (self / $scale + 1/2).floor * $scale }
+    multi method round(Int:D: --> Int:D) { self }
+    multi method round(Int:D: Real(Cool) $scale --> Real:D) {
+        (self / $scale + 1/2).floor * $scale
+    }
 
-    method lsb(Int:D:) {
+    method lsb(Int:D: --> Int:D) {
         nqp::unless(
           self, # short-circuit `0`, as it doesn't have any bits set…
           Nil,  # … and the algo we'll use requires at least one that is.
@@ -165,7 +177,7 @@ my class Int does Real { # declared in BOOTSTRAP
             $lsb)) # we shifted enough to get to the first set bit
     }
 
-    method msb(Int:D:) {
+    method msb(Int:D: --> Int:D) {
         nqp::unless(
           self,
           Nil,
@@ -191,9 +203,9 @@ my class Int does Real { # declared in BOOTSTRAP
               $msb)))
     }
 
-    method narrow(Int:D:) { self }
+    method narrow(Int:D: --> Int:D) { self }
 
-    method Range(Int:U:) {
+    method Range(Int:U: --> Range:D) {
         given self {
             when int  { $?BITS == 64 ??  int64.Range !!  int32.Range }
             when uint { $?BITS == 64 ?? uint64.Range !! uint32.Range }
@@ -224,36 +236,73 @@ my class Int does Real { # declared in BOOTSTRAP
             }
         }
     }
+
+    my $nuprop := nqp::null;
+    my $deprop := nqp::null;
+    method unival(Int:D:) {
+        my str $de = nqp::getuniprop_str(
+          self,
+          nqp::ifnull(
+            $deprop,
+            $deprop := nqp::unipropcode("Numeric_Value_Denominator")
+          )
+        );
+        nqp::if(
+          nqp::chars($de),
+          nqp::if(                                    # some string to work with
+            nqp::iseq_s($de,"NaN"),
+            NaN,                                       # no value found
+            nqp::stmts(                                # value for denominator
+              (my str $nu = nqp::getuniprop_str(
+                self,
+                nqp::ifnull(
+                  $nuprop,
+                  $nuprop := nqp::unipropcode("Numeric_Value_Numerator")
+                )
+              )),
+              nqp::if(
+                nqp::iseq_s($de,"1"),
+                nqp::atpos(nqp::radix(10,$nu,0,0),0),   # just the numerator
+                Rat.new(                                # spotted a Rat
+                  nqp::atpos(nqp::radix(10,$nu,0,0),0),
+                  nqp::atpos(nqp::radix(10,$de,0,0),0)
+                )
+              )
+            )
+          ),
+          Nil                                          # no string, so no value
+        )
+    }
 }
 
-multi sub prefix:<++>(Int:D $a is rw) {
+multi sub prefix:<++>(Int:D $a is rw --> Int:D) {
     $a = nqp::add_I(nqp::decont($a), 1, Int);
 }
-multi sub prefix:<++>(int $a is rw) {
+multi sub prefix:<++>(int $a is rw --> int) {
     $a = nqp::add_i($a, 1);
 }
-multi sub prefix:<-->(Int:D $a is rw) {
+multi sub prefix:<-->(Int:D $a is rw --> Int:D) {
     $a = nqp::sub_I(nqp::decont($a), 1, Int);
 }
-multi sub prefix:<-->(int $a is rw) {
+multi sub prefix:<-->(int $a is rw --> int) {
     $a = nqp::sub_i($a, 1);
 }
-multi sub postfix:<++>(Int:D $a is rw) {
+multi sub postfix:<++>(Int:D $a is rw --> Int:D) {
     my \b := nqp::decont($a);
     $a = nqp::add_I(b, 1, Int);
     b
 }
-multi sub postfix:<++>(int $a is rw) {
+multi sub postfix:<++>(int $a is rw --> int) {
     my int $b = $a;
     $a = nqp::add_i($b, 1);
     $b
 }
-multi sub postfix:<-->(Int:D $a is rw) {
+multi sub postfix:<-->(Int:D $a is rw --> Int:D) {
     my \b := nqp::decont($a);
     $a = nqp::sub_I(b, 1, Int);
     b
 }
-multi sub postfix:<-->(int $a is rw) {
+multi sub postfix:<-->(int $a is rw --> int) {
     my int $b = $a;
     $a = nqp::sub_i($b, 1);
     $b
@@ -294,7 +343,16 @@ multi sub infix:<*>(int $a, int $b --> int) {
     nqp::mul_i($a, $b);
 }
 
-multi sub infix:<div>(Int:D \a, Int:D \b) {
+multi sub infix:<eqv>(Int:D $a, Int:D $b --> Bool:D) {
+    nqp::hllbool(  # need to check types as enums such as Bool wind up here
+      nqp::eqaddr($a.WHAT,$b.WHAT) && nqp::iseq_I($a,$b)
+    )
+}
+multi sub infix:<eqv>(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::iseq_i($a,$b))
+}
+
+multi sub infix:<div>(Int:D \a, Int:D \b --> Int:D) {
     b
       ?? nqp::div_I(nqp::decont(a), nqp::decont(b), Int)
       !! Failure.new(X::Numeric::DivideByZero.new(:using<div>, :numerator(a)))
@@ -327,7 +385,11 @@ multi sub infix:<%>(int $a, int $b --> int) {
     nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix RT #128318
 }
 
-multi sub infix:<**>(Int:D \a, Int:D \b) {
+multi sub infix:<%%>(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::iseq_i(nqp::mod_i($a, $b), 0))
+}
+
+multi sub infix:<**>(Int:D \a, Int:D \b --> Real:D) {
     my $power := nqp::pow_I(nqp::decont(a), nqp::decont(b >= 0 ?? b !! -b), Num, Int);
     # when a**b is too big nqp::pow_I returns Inf
     nqp::istype($power, Num)
@@ -357,118 +419,121 @@ multi sub infix:<gcd>(int $a, int $b --> int) {
     nqp::gcd_i($a, $b)
 }
 
-multi sub infix:<===>(Int:D \a, Int:D \b) {
-    nqp::p6bool(
-      nqp::eqaddr(a.WHAT,b.WHAT)
-      && nqp::iseq_I(nqp::decont(a), nqp::decont(b))
+multi sub infix:<===>(Int:D $a, Int:D $b --> Bool:D) {
+    nqp::hllbool(
+      nqp::eqaddr($a.WHAT,$b.WHAT)
+      && nqp::iseq_I($a, $b)
     )
 }
-multi sub infix:<===>(int $a, int $b) {
+multi sub infix:<===>(int $a, int $b --> Bool:D) {
     # hey, the optimizer is smart enough to figure that one out for us, no?
     $a == $b
 }
 
-multi sub infix:<==>(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::iseq_I(nqp::decont(a), nqp::decont(b)))
+multi sub infix:<==>(Int:D \a, Int:D \b --> Bool:D) {
+    nqp::hllbool(nqp::iseq_I(nqp::decont(a), nqp::decont(b)))
 }
-multi sub infix:<==>(int $a, int $b) {
-    nqp::p6bool(nqp::iseq_i($a, $b))
-}
-
-multi sub infix:<!=>(int $a, int $b) { nqp::p6bool(nqp::isne_i($a, $b)) }
-
-multi sub infix:«<»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::islt_I(nqp::decont(a), nqp::decont(b)))
-}
-multi sub infix:«<»(int $a, int $b) {
-    nqp::p6bool(nqp::islt_i($a, $b))
+multi sub infix:<==>(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::iseq_i($a, $b))
 }
 
-multi sub infix:«<=»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isle_I(nqp::decont(a), nqp::decont(b)))
+multi sub infix:<!=>(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isne_i($a, $b))
 }
-multi sub infix:«<=»(int $a, int $b) {
-    nqp::p6bool(nqp::isle_i($a, $b))
-}
-
-multi sub infix:«>»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isgt_I(nqp::decont(a), nqp::decont(b)))
-}
-multi sub infix:«>»(int $a, int $b) {
-    nqp::p6bool(nqp::isgt_i($a, $b))
+multi sub infix:<!=>(Int:D \a, Int:D \b --> Bool:D) {
+    nqp::hllbool(nqp::isne_I(nqp::decont(a), nqp::decont(b)))
 }
 
-multi sub infix:«>=»(Int:D \a, Int:D \b) {
-    nqp::p6bool(nqp::isge_I(nqp::decont(a), nqp::decont(b)))
+multi sub infix:«<»(Int:D \a, Int:D \b --> Bool:D) {
+    nqp::hllbool(nqp::islt_I(nqp::decont(a), nqp::decont(b)))
 }
-multi sub infix:«>=»(int $a, int $b) {
-    nqp::p6bool(nqp::isge_i($a, $b))
+multi sub infix:«<»(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::islt_i($a, $b))
 }
 
-multi sub infix:<+|>(Int:D \a, Int:D \b) {
+multi sub infix:«<=»(Int:D \a, Int:D \b --> Bool:D) {
+    nqp::hllbool(nqp::isle_I(nqp::decont(a), nqp::decont(b)))
+}
+multi sub infix:«<=»(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isle_i($a, $b))
+}
+
+multi sub infix:«>»(Int:D \a, Int:D \b --> Bool:D) {
+    nqp::hllbool(nqp::isgt_I(nqp::decont(a), nqp::decont(b)))
+}
+multi sub infix:«>»(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isgt_i($a, $b))
+}
+
+multi sub infix:«>=»(Int:D \a, Int:D \b --> Bool:D) {
+    nqp::hllbool(nqp::isge_I(nqp::decont(a), nqp::decont(b)))
+}
+multi sub infix:«>=»(int $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_i($a, $b))
+}
+
+multi sub infix:<+|>(Int:D \a, Int:D \b --> Int:D) {
     nqp::bitor_I(nqp::decont(a), nqp::decont(b), Int)
 }
-multi sub infix:<+|>(int $a, int $b) {
+multi sub infix:<+|>(int $a, int $b --> int) {
    nqp::bitor_i($a, $b)
 }
 
-multi sub infix:<+&>(Int:D \a, Int:D \b) {
+multi sub infix:<+&>(Int:D \a, Int:D \b --> Int:D) {
     nqp::bitand_I(nqp::decont(a), nqp::decont(b), Int)
 }
-multi sub infix:<+&>(int $a, int $b) {
+multi sub infix:<+&>(int $a, int $b --> int) {
    nqp::bitand_i($a, $b)
 }
 
-multi sub infix:<+^>(Int:D \a, Int:D \b) {
+multi sub infix:<+^>(Int:D \a, Int:D \b --> Int:D) {
     nqp::bitxor_I(nqp::decont(a), nqp::decont(b), Int)
 }
-multi sub infix:<+^>(int $a, int $b) {
+multi sub infix:<+^>(int $a, int $b --> int) {
    nqp::bitxor_i($a, $b);
 }
 
 multi sub infix:«+<»(Int:D \a, Int:D \b --> Int:D) {
     nqp::bitshiftl_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
-multi sub infix:«+<»(int $a, int $b) {
+multi sub infix:«+<»(int $a, int $b --> int) {
    nqp::bitshiftl_i($a, $b);
 }
 
 multi sub infix:«+>»(Int:D \a, Int:D \b --> Int:D) {
     nqp::bitshiftr_I(nqp::decont(a), nqp::unbox_i(b), Int)
 }
-multi sub infix:«+>»(int $a, int $b) {
+multi sub infix:«+>»(int $a, int $b --> int) {
    nqp::bitshiftr_i($a, $b)
 }
 
-multi sub prefix:<+^>(Int:D \a) {
+multi sub prefix:<+^>(Int:D \a --> Int:D) {
     nqp::bitneg_I(nqp::decont(a), Int);
 }
-multi sub prefix:<+^>(int $a) {
+multi sub prefix:<+^>(int $a --> int) {
    nqp::bitneg_i($a);
 }
 
 proto sub chr($, *%) is pure  {*}
-multi sub chr(Int:D  \x --> Str:D) { x.chr     }
-multi sub chr(Cool \x --> Str:D) { x.Int.chr }
-multi sub chr(int $x --> str) {
-    nqp::chr($x);
-}
+multi sub chr(Int:D  \x --> Str:D) { x.chr        }
+multi sub chr(Cool \x   --> Str:D) { x.Int.chr    }
+multi sub chr(int $x    --> str)   { nqp::chr($x) }
 
 proto sub is-prime($, *%) is pure {*}
-multi sub is-prime(\x) { x.is-prime }
+multi sub is-prime(\x --> Int:D) { x.is-prime }
 
 proto sub expmod($, $, $, *%) is pure  {*}
-multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod) {
+multi sub expmod(Int:D \base, Int:D \exp, Int:D \mod --> Int:D) {
     nqp::expmod_I(nqp::decont(base), nqp::decont(exp), nqp::decont(mod), Int);
 }
-multi sub expmod(\base, \exp, \mod) {
+multi sub expmod(\base, \exp, \mod --> Int:D) {
     nqp::expmod_I(nqp::decont(base.Int), nqp::decont(exp.Int), nqp::decont(mod.Int), Int);
 }
 
 proto sub lsb($, *%) {*}
-multi sub lsb(Int:D \i) { i.lsb }
+multi sub lsb(Int:D \i --> Int:D) { i.lsb }
 
 proto sub msb($, *%) {*}
-multi sub msb(Int:D \i) { i.msb }
+multi sub msb(Int:D \i --> Int:D) { i.msb }
 
 # vim: ft=perl6 expandtab sw=4

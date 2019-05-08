@@ -26,27 +26,92 @@ my class Attribute { # declared in BOOTSTRAP
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
 
+                if self.?DEPRECATED -> $alternative {
+                    my $what = "Method $meth_name (from $package.^name())";
+                    if self.rw {
+                        $meth := nqp::iseq_i($attr_type, 0)
+                            ??
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattr(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 1)
+                            ??
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 2)
+                            ??
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattrref_n(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
+                            }
+                        $meth.set_name($meth_name);
+                    }
+                    else { # DEPRECATED ro accessor
+                        $meth := nqp::iseq_i($attr_type, 0)
+                            ??
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattr(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 1)
+                            ??
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::p6box_i(
+                                    nqp::getattr_i(nqp::decont(fles), $dcpkg, $name)
+                                );
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 2)
+                            ??
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::p6box_n(
+                                    nqp::getattr_n(nqp::decont(fles), $dcpkg, $name)
+                                );
+                            }
+                            !!
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::p6box_s(
+                                    nqp::getattr_s(nqp::decont(fles), $dcpkg, $name)
+                                );
+                            }
+                        $meth.set_name($meth_name);
+                    }
+                }
                 # Get the compiler to generate us an accessor when possible.
-                if $compiler_services.DEFINITE {
+                elsif $compiler_services.DEFINITE {
                     $meth := $compiler_services.generate_accessor($meth_name,
                         $dcpkg, $name, $!type, self.rw ?? 1 !! 0);
                 }
 
                 # No compiler services available, so do it as a closure.
                 elsif self.rw {
-                    $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
+                    $meth := nqp::iseq_i($attr_type, 0)
                         ??
                         method (Mu:D \fles:) is raw {
                             nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
-                        nqp::p6bool(nqp::iseq_i($attr_type, 1))
+                        nqp::iseq_i($attr_type, 1)
                         ??
                         method (Mu:D \fles:) is raw {
                             nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
-                        nqp::p6bool(nqp::iseq_i($attr_type, 2))
+                        nqp::iseq_i($attr_type, 2)
                         ??
                         method (Mu:D \fles:) is raw {
                             nqp::getattrref_n(nqp::decont(fles), $dcpkg, $name)
@@ -56,15 +121,15 @@ my class Attribute { # declared in BOOTSTRAP
                             nqp::getattrref_s(nqp::decont(fles), $dcpkg, $name)
                         }
                     $meth.set_name($meth_name);
-                } else {
-                    # ro accessor
-                    $meth  := nqp::p6bool(nqp::iseq_i($attr_type, 0))
+                }
+                else { # ro accessor
+                    $meth := nqp::iseq_i($attr_type, 0)
                         ??
                         method (Mu:D \fles:) {
                             nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
-                        nqp::p6bool(nqp::iseq_i($attr_type, 1))
+                        nqp::iseq_i($attr_type, 1)
                         ??
                         method (Mu:D \fles:) {
                             nqp::p6box_i(
@@ -72,7 +137,7 @@ my class Attribute { # declared in BOOTSTRAP
                             );
                         }
                         !!
-                        nqp::p6bool(nqp::iseq_i($attr_type, 2))
+                        nqp::iseq_i($attr_type, 2)
                         ??
                         method (Mu:D \fles:) {
                             nqp::p6box_n(
@@ -99,46 +164,35 @@ my class Attribute { # declared in BOOTSTRAP
         # None by default.
     }
 
-    method get_value(Mu $obj) {
+    method get_value(Mu $obj) is raw {
         nqp::if(
-          nqp::iseq_i((my int $t = nqp::objprimspec($!type)),0),
-          nqp::getattr(nqp::decont($obj),$!package,$!name),
+          (my int $t = nqp::objprimspec($!type)),
           nqp::if(
             nqp::iseq_i($t,1),
-            nqp::p6box_i(nqp::getattr_i(nqp::decont($obj),$!package,$!name)),
+            nqp::getattr_i(nqp::decont($obj),$!package,$!name),
             nqp::if(
               nqp::iseq_i($t,2),
-              nqp::p6box_n(nqp::getattr_n(nqp::decont($obj),
-                $!package,$!name)),
-              nqp::if(
-                nqp::iseq_i($t,3),
-                nqp::p6box_s(nqp::getattr_s(nqp::decont($obj),
-                  $!package,$!name))
-              )
+              nqp::getattr_n(nqp::decont($obj),$!package,$!name),
+              nqp::getattr_s(nqp::decont($obj),$!package,$!name)  # assume 3
             )
-          )
+          ),
+          nqp::getattr(nqp::decont($obj),$!package,$!name)
         )
     }
 
-    method set_value(Mu $obj, Mu \value) {
+    method set_value(Mu $obj, Mu \value) is raw {
         nqp::if(
-          nqp::iseq_i((my int $t = nqp::objprimspec($!type)),0),
-          nqp::bindattr(nqp::decont($obj),$!package,$!name,value),
+          (my int $t = nqp::objprimspec($!type)),
           nqp::if(
             nqp::iseq_i($t,1),
-            nqp::p6box_i(nqp::bindattr_i(nqp::decont($obj),
-              $!package,$!name,value)),
+            nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value),
             nqp::if(
               nqp::iseq_i($t,2),
-              nqp::p6box_n(nqp::bindattr_n(nqp::decont($obj),
-                $!package,$!name,value)),
-              nqp::if(
-                nqp::iseq_i($t,3),
-                nqp::p6box_s(nqp::bindattr_s(nqp::decont($obj),
-                  $!package,$!name,value))
-              )
+              nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value),
+              nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value)
             )
-          )
+          ),
+          nqp::bindattr(nqp::decont($obj),$!package,$!name,value)
         )
     }
 
@@ -161,6 +215,24 @@ my class Attribute { # declared in BOOTSTRAP
 
     method set_why($why) {
         $!why := $why;
+    }
+}
+
+# does trait
+multi sub trait_mod:<does>(Attribute:D $a, Mu:U $role) {
+    if $role.HOW.archetypes.composable() {
+        nqp::getattr($a,Attribute,'$!auto_viv_container').VAR
+          does $role;
+    }
+    elsif $role.HOW.archetypes.composalizable() {
+        nqp::getattr($a,Attribute,'$!auto_viv_container').VAR
+          does $role.HOW.composalize($role);
+    }
+    else {
+        X::Composition::NotComposable.new(
+            target-name => 'an attribute',
+            composer    => $role,
+        ).throw;
     }
 }
 

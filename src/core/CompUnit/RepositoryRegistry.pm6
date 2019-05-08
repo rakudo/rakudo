@@ -7,6 +7,11 @@ class CompUnit::Repository::Perl5 { ... }
 
 #?if jvm
 class CompUnit::Repository::JavaRuntime { ... }
+class CompUnit::Repository::Java { ... }
+#?endif
+
+#?if js
+class CompUnit::Repository::FileSystemWithRecording { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
@@ -49,6 +54,7 @@ class CompUnit::RepositoryRegistry {
         my $raw-specs;
         # only look up environment once
         my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
+        my $sep := $*SPEC.dir-sep;
 
         # starting up for creating precomp
         my $precomp-specs = nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH')
@@ -77,15 +83,13 @@ class CompUnit::RepositoryRegistry {
             }
         }
 
-        my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
+        my str $prefix = nqp::existskey($ENV,'RAKUDO_PREFIX')
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
-          !! nqp::concat(
-               nqp::atkey(nqp::getcomp('perl6').config,'libdir'),
-               '/perl6'
-             );
+          !! nqp::getcurhllsym('$PERL6_HOME');
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
         my str $home;
+        my str $home-spec;
         try {
             if nqp::existskey($ENV,'HOME')
               ?? nqp::atkey($ENV,'HOME')
@@ -95,15 +99,15 @@ class CompUnit::RepositoryRegistry {
                    (nqp::existskey($ENV,'HOMEPATH')
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                  ) -> $home-path {
-                $home = "$home-path/.perl6";
-                my str $path = "inst#$home";
+                $home = "{$home-path}{$sep}.perl6";
+                $home-spec = "inst#$home";
             }
         }
 
         # set up custom libs
-        my str $site = "inst#$prefix/site";
-        my str $vendor = "inst#$prefix/vendor";
-        my str $perl = "inst#$prefix";
+        my str $site   = "inst#{$prefix}{$sep}site";
+        my str $vendor = "inst#{$prefix}{$sep}vendor";
+        my str $perl   = "inst#$prefix";
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=
@@ -147,9 +151,9 @@ class CompUnit::RepositoryRegistry {
                 CompUnit::Repository::Installation.new(:prefix("$prefix/site"), :$next-repo)
             )) unless nqp::existskey($unique, $site);
             nqp::bindkey($custom-lib, 'home', $next-repo := self!register-repository(
-                "inst#$home/.perl6",
+                $home-spec,
                 CompUnit::Repository::Installation.new(:prefix($home), :$next-repo)
-            )) if $home and not nqp::existskey($unique, $home);
+            )) if $home and not nqp::existskey($unique, $home-spec);
         }
 
         # convert repo-specs to repos
@@ -191,7 +195,7 @@ class CompUnit::RepositoryRegistry {
             }
         }
         unless nqp::existskey($custom-lib, 'home') {
-            my $repo := nqp::atkey($repos, $home);
+            my $repo := nqp::atkey($repos, $home-spec);
             if nqp::isnull($repo) {
                 nqp::deletekey($custom-lib, 'home');
             }
@@ -244,7 +248,7 @@ class CompUnit::RepositoryRegistry {
     }
 
     method file-for-spec(Str $spec) {
-        my @parts = $spec.split('#', 2);
+        my @parts is List = $spec.split('#', 2);
         if @parts.elems == 2 {
             my $repo = self.repository-for-name(@parts[0]);
             return $repo.source-file(@parts[1]) if $repo.can('source-file');
@@ -252,28 +256,28 @@ class CompUnit::RepositoryRegistry {
         Nil
     }
 
-    method run-script($script, :$dist-name, :$name is copy, :$auth, :$ver) {
+    method run-script($script, :$name, :$auth, :$ver, :$api) {
         shift @*ARGS if $name;
         shift @*ARGS if $auth;
         shift @*ARGS if $ver;
-        $name //= $dist-name;
+
         my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
-        my @binaries = @installations.map({ .script("bin/$script", :$name, :$auth, :$ver) }).grep(*.defined);
-        unless +@binaries {
-            @binaries = flat @installations.map: { .script("bin/$script", :$name) };
-            if +@binaries {
+        my @metas = @installations.map({ .files("bin/$script", :$name, :$auth, :$ver).head }).grep(*.defined);
+        unless +@metas {
+            @metas = flat @installations.map({ .files("bin/$script").Slip }).grep(*.defined);
+            if +@metas {
                 note "===SORRY!===\n"
                     ~ "No candidate found for '$script' that match your criteria.\n"
                     ~ "Did you perhaps mean one of these?";
                 my %caps = :name(['Distribution', 12]), :auth(['Author(ity)', 11]), :ver(['Version', 7]);
-                for @binaries -> $dist {
+                for @metas -> $meta {
                     for %caps.kv -> $caption, @opts {
-                        @opts[1] = max @opts[1], ($dist{$caption} // '').Str.chars
+                        @opts[1] = max @opts[1], ($meta{$caption} // '').Str.chars
                     }
                 }
                 note '  ' ~ %caps.values.map({ sprintf('%-*s', .[1], .[0]) }).join(' | ');
-                for @binaries -> $dist {
-                    note '  ' ~ %caps.kv.map( -> $k, $v { sprintf('%-*s', $v.[1], $dist{$k} // '') } ).join(' | ')
+                for @metas -> $meta {
+                    note '  ' ~ %caps.kv.map( -> $k, $v { sprintf('%-*s', $v.[1], $meta{$k} // '') } ).join(' | ')
                 }
             }
             else {
@@ -282,7 +286,8 @@ class CompUnit::RepositoryRegistry {
             exit 1;
         }
 
-        my $bin = @binaries[0];
+        my $meta = @metas.sort(*.<ver>).reverse.head;
+        my $bin  = $meta<source>;
         require "$bin";
     }
 
@@ -333,55 +338,58 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-    sub short-id2class(Str:D $short-id) {
-        state %short-id2class;
-        state $lock = Lock.new;
+#?if moar
+    my constant $short-id2class = nqp::hash(
+#?endif
+#?if !moar
+    my $short-id2class := nqp::hash(
+#?endif
+      'file',   CompUnit::Repository::FileSystem,
+      'inst',   CompUnit::Repository::Installation,
+      'ap',     CompUnit::Repository::AbsolutePath,
+      'nqp',    CompUnit::Repository::NQP,
+      'perl5',  CompUnit::Repository::Perl5,
+#?if jvm
+      'javart', CompUnit::Repository::JavaRuntime,
+      'java',   CompUnit::Repository::Java,
+#?endif
+#?if js
+      'filerecording', CompUnit::Repository::FileSystemWithRecording,
+#?endif
+    );
+    my $sid-lock := Lock.new;
 
+    sub short-id2class(Str:D $short-id) is rw {
         Proxy.new(
           FETCH => {
-              $lock.protect( {
-                  if %short-id2class.EXISTS-KEY($short-id) {
-                      %short-id2class.AT-KEY($short-id);
-                  }
-                  else {
-                      my $type = try ::($short-id);
-                      if $type !=== Any {
-                          if $type.?short-id -> $id {
-                              if %short-id2class.EXISTS-KEY($id) {
-                                  %short-id2class.AT-KEY($id);
-                              }
-                              else {
-                                  %short-id2class.BIND-KEY($id, $type);
-                              }
-                          }
-                          else {
-                              die "Class '$type.^name()' is not a CompUnit::Repository";
-                          }
-                      }
-                      else {
-                          Any
-                      }
-                  }
+              $sid-lock.protect( {
+                  nqp::ifnull(
+                    nqp::atkey($short-id2class,$short-id),
+                    nqp::if(
+                      nqp::istype((my \type := ::($short-id)),Failure),
+                      (type.defined || Any),  # no unhandled Failure warnings
+                      nqp::if(
+                        nqp::can(type,"short-id")
+                          && (my str $id = type.short-id),
+                        nqp::ifnull(
+                          nqp::atkey($short-id2class,$id),
+                          nqp::bindkey($short-id2class,$id,type)
+                        ),
+                        (die "Class '{type.^name}' is not a 'CompUnit::Repository'")
+                      )
+                    )
+                  )
               } );
           },
           STORE => -> $, $class {
-              my $type = ::($class);
-              die "Must load class '$class' first" if nqp::istype($type,Failure);
-              $lock.protect( { %short-id2class{$short-id} := $type } );
+              nqp::istype((my \type = ::($class)),Failure)
+                ?? (die "Must load class '$class' first")
+                !! $sid-lock.protect: {
+                       nqp::bindkey($short-id2class,$short-id,type)
+                   }
           },
         );
     }
-
-# prime the short-id -> class lookup
-    short-id2class('file')  = 'CompUnit::Repository::FileSystem';
-    short-id2class('inst')  = 'CompUnit::Repository::Installation';
-    short-id2class('ap')    = 'CompUnit::Repository::AbsolutePath';
-    short-id2class('nqp')   = 'CompUnit::Repository::NQP';
-    short-id2class('perl5') = 'CompUnit::Repository::Perl5';
-#?if jvm
-    short-id2class('javart')  = 'CompUnit::Repository::JavaRuntime';
-    short-id2class('java')  = 'CompUnit::Repository::Java';
-#?endif
 
     sub parse-include-specS(Str:D $specs) {
         my @found;

@@ -8,11 +8,14 @@ my class Code does Callable { # declared in BOOTSTRAP
         $self.count ?? $self($topic) !! $self()
     }
 
+    proto method POSITIONS(|) {*}
+
     method arity(Code:D:) { nqp::getattr_i($!signature,Signature,'$!arity') }
 
     method count(Code:D:) { nqp::getattr($!signature,Signature,'$!count') }
 
     method signature(Code:D:) { $!signature }
+    method cando(Capture:D $c) { $!signature.ACCEPTS($c) ?? (self,) !! () }
 
     proto method prec(|) {*}
     multi method prec() { my % }
@@ -95,6 +98,8 @@ my class Code does Callable { # declared in BOOTSTRAP
                 }
                 $perl = '' unless soft_indirect_name_lookup($type);
             }
+            $perl = $parm.coerce_type.^name ~ "($perl)"
+              unless nqp::eqaddr($parm.coerce_type,Mu);
             $perl ~= $parm.modifier if $perl ne '';
 
             my $name = $parm.name;
@@ -137,10 +142,10 @@ my class Code does Callable { # declared in BOOTSTRAP
             $sig = $sig.params[0].sub_signature;
         }
 
-        my @plist = (); # Positionals in the returned closure's signature
-        my @clist = (); # The positional args used to call the original code
-        my @tlist = (); # Positional params to verify binding primers against
-        my @alist = (); # Primers as positional arguments after processing
+        my @plist; # Positionals in the returned closure's signature
+        my @clist; # The positional args used to call the original code
+        my @tlist; # Positional params to verify binding primers against
+        my @alist; # Primers as positional arguments after processing
 
         # Find a name safe to use across slurpies, captures and sigilless
         my $safename = '_';

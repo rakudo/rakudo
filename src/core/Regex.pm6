@@ -4,9 +4,8 @@ my class Regex { # declared in BOOTSTRAP
     #     has Mu $!nfa;
     #     has %!alt_nfas;
     #     has str $!source;
-
-    # cache cursor initialization lookup
-    my $cursor-init := Match.^lookup("!cursor_init");
+    #     has Mu $!topic;
+    #     has Mu $!slash;
 
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Regex:D: Mu:U \a) {
@@ -16,14 +15,21 @@ my class Regex { # declared in BOOTSTRAP
     # use of Any on topic to force autothreading
     # so that all(@foo) ~~ Type works as expected
     multi method ACCEPTS(Regex:U: Any \topic) {
-        nqp::p6bool(nqp::istype(topic, self))
+        nqp::hllbool(nqp::istype(topic, self))
     }
+
+    # Create a braid and fail cursor that we can use with all the normal,
+    # "boring", regex matches that are on the Regex type. This saves them
+    # being created every single time.
+    my $cursor := Match.'!cursor_init'('');
+    my $braid := $cursor.braid;
+    my $fail_cursor := $cursor.'!cursor_start_cur'();
 
     multi method ACCEPTS(Regex:D \SELF: Any \topic) {
         nqp::decont(
           nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
           nqp::stmts(
-            (my \cursor := SELF.($cursor-init(Match, topic, :c(0)))),
+            (my \cursor := SELF.(Match.'!cursor_init'(topic, :c(0), :$braid, :$fail_cursor))),
             nqp::if(
               nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
               cursor.MATCH,
@@ -34,7 +40,8 @@ my class Regex { # declared in BOOTSTRAP
     }
 
 #?if !jvm
-    multi method ACCEPTS(Regex:D \SELF: Uni:D \uni) {  # RT #130458
+    multi method ACCEPTS(Regex:D \SELF: Uni:D \uni) {
+        $/ := nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/');
         self.ACCEPTS(uni.Str)
     }
 #?endif
@@ -61,7 +68,7 @@ my class Regex { # declared in BOOTSTRAP
                 (my $pulled := iter.pull-one),IterationEnd)
                 || nqp::isge_i(                            # valid match?
                      nqp::getattr_i(
-                       (my \cursor := SELF.($cursor-init(Match,$pulled,:0c))),
+                       (my \cursor := SELF.(Match.'!cursor_init'($pulled,:0c,:$braid,:$fail_cursor))),
                        Match,'$!pos'),
                    0),
               nqp::null
@@ -76,6 +83,15 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     multi method Bool(Regex:D:) {
+        my Mu \topic = $!topic;
+        nqp::istype_nd(topic, Rakudo::Internals::RegexBoolification6cMarker)
+            ?? self!Bool6c()
+            !! nqp::isconcrete(topic)
+                ?? ($!slash = topic.match(self)).Bool
+                !! False
+    }
+
+    method !Bool6c() {
         nqp::stmts(
           (my $ctx := nqp::ctx),
           nqp::until(
@@ -102,6 +118,12 @@ my class Regex { # declared in BOOTSTRAP
 
     multi method perl(Regex:D:) {
         nqp::ifnull($!source,'')
+    }
+
+    method clone(Mu :$topic is raw, Mu :$slash is raw --> Regex) {
+        nqp::p6bindattrinvres(
+            nqp::p6bindattrinvres(self.Method::clone, Regex, '$!topic', $topic),
+            Regex, '$!slash', $slash)
     }
 }
 

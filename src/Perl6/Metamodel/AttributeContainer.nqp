@@ -7,8 +7,13 @@ role Perl6::Metamodel::AttributeContainer {
     has $!attr_rw_by_default;
 
     # Adds an attribute.
-    method add_attribute($obj, $meta_attr) {
+    method add_attribute($obj, $attr) {
+        my $meta_attr := nqp::decont($attr);
         my $name := $meta_attr.name;
+        if nqp::isnull(%!attribute_lookup) {
+            @!attributes := nqp::list();
+            %!attribute_lookup := nqp::hash();
+        }
         if nqp::existskey(%!attribute_lookup, $name) {
             nqp::die("Package '" ~ self.name($obj) ~
                 "' already has an attribute named '$name'");
@@ -18,9 +23,11 @@ role Perl6::Metamodel::AttributeContainer {
     }
 
     # Composes all attributes.
-    method compose_attributes($obj, :$compiler_services) {
+    method compose_attributes($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         my %seen_with_accessor;
-        my %meths := self.method_table($obj);
+        my %meths := nqp::hllize(self.method_table($obj));
         my %orig_meths;
         for %meths {
             %orig_meths{$_.key} := 1;

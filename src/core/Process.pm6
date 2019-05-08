@@ -10,17 +10,24 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
-    PROCESS::<$EXECUTABLE> := (
+    PROCESS::<$EXECUTABLE> := IO::Path.new(:CWD(INIT nqp::cwd()),
 #?if jvm
       $*VM.properties<perl6.execname>
       // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j'
 #?endif
 #?if moar
-      nqp::execname()
-      || ($*VM.config<prefix> ~ '/bin/'
+      # OpenBSD's security features prevent us from getting the path to our
+      # executable just given our PID by default.
+      (nqp::execname() unless $*VM.osname eq 'openbsd')
+      // ($*VM.config<prefix> ~ '/bin/'
         ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.bat' !! 'perl6-m'))
 #?endif
-    ).IO;
+#?if js
+      nqp::execname()
+      // ($*VM.config<prefix> ~ '/bin/'
+        ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-js.bat' !! 'perl6-js'))
+#?endif
+    );
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE-NAME', {
@@ -32,7 +39,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM-NAME', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM', {
-    PROCESS::<$PROGRAM> := IO::Path.new($*PROGRAM-NAME);
+    PROCESS::<$PROGRAM> := IO::Path.new(:CWD(INIT nqp::cwd()), $*PROGRAM-NAME);
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*TMPDIR', {

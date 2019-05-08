@@ -148,6 +148,7 @@ src/core/ObjAt.pm6
 src/core/Version.pm6
 src/core/ForeignCode.pm6
 src/core/operators.pm6
+src/core/Hyper.pm6
 src/core/metaops.pm6
 src/core/precedence.pm6
 src/core/Deprecations.pm6
@@ -165,8 +166,6 @@ src/core/CurrentThreadScheduler.pm6
 src/core/Promise.pm6
 src/core/Channel.pm6
 src/core/Supply.pm6
-src/core/JVM/KeyReducer.pm6
-src/core/JVM/IOAsyncFile.pm6
 src/core/asyncops.pm6
 src/core/atomicops.pm6
 src/core/IO/Socket.pm6

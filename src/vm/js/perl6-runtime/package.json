@@ -1,0 +1,18 @@
+{
+  "name": "perl6-runtime",
+  "version": "0.28.0",
+  "description": "the runtime for the js backend for rakudo",
+  "bugs": {
+    "email": "pawelmurias@gmail.com"
+  },
+  "licenses": [
+    {
+      "type": "Artistic 2",
+      "url": "https://opensource.org/licenses/Artistic-2.0"
+    }
+  ],
+  "repository": "https://github.com/rakudo/rakudo/",
+  "main": "runtime.js",
+  "dependencies": {
+  }
+}

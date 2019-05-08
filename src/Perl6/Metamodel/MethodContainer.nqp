@@ -5,6 +5,7 @@ role Perl6::Metamodel::MethodContainer {
 
     # The order that the methods were added in.
     has @!method_order;
+    has @!method_names;
 
     # Cache that expires when we add methods (primarily to support NFA stuff).
     # The hash here is readonly; we copy/replace in on addition, for thread
@@ -39,6 +40,7 @@ role Perl6::Metamodel::MethodContainer {
         nqp::setmethcacheauth($obj, 0);
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
+        @!method_names[+@!method_names] := $name;
     }
 
     # Gets the method hierarchy.
@@ -52,17 +54,25 @@ role Perl6::Metamodel::MethodContainer {
         # If local flag was not passed, include those from parents.
         unless $local {
             for self.parents($obj, :all($all), :excl($excl)) {
-                for $_.HOW.method_table($_) {
-                    @meths.push(nqp::hllizefor($_.value, 'perl6'));
+                for nqp::hllize($_.HOW.method_table($_)) {
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
                 }
-                for $_.HOW.submethod_table($_) {
-                    @meths.push(nqp::hllizefor($_.value, 'perl6'));
+                for nqp::hllize($_.HOW.submethod_table($_)) {
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
                 }
             }
         }
 
         # Return result list.
         @meths
+    }
+
+    method method_order($obj) {
+        @!method_order
+    }
+
+    method method_names($obj) {
+        @!method_names
     }
 
     # Get the method table. Only contains methods directly declared here,
@@ -85,14 +95,14 @@ role Perl6::Metamodel::MethodContainer {
     # Looks up a method with the provided name, for introspection purposes.
     method lookup($obj, $name) {
         for self.mro($obj) {
-            my %meth := $_.HOW.method_table($obj);
+            my %meth := nqp::hllize($_.HOW.method_table($obj));
             if nqp::existskey(%meth, $name) {
-                return %meth{$name};
+                return nqp::decont(%meth{$name});
             }
             if nqp::can($_.HOW, 'submethod_table') {
-                my %submeth := $_.HOW.submethod_table($obj);
+                my %submeth := nqp::hllize($_.HOW.submethod_table($obj));
                 if nqp::existskey(%submeth, $name) {
-                    return %submeth{$name};
+                    return nqp::decont(%submeth{$name});
                 }
             }
         }

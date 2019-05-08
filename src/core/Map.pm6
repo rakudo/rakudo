@@ -4,348 +4,504 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # my class Map is Iterable is Cool
     #   has Mu $!storage;
 
-    multi method WHICH(Map:D:) {
-        (nqp::istype(self.WHAT,Map) ?? 'Map|' !! (self.^name ~ '|'))
-          ~ self.keys.sort.map( { $_.WHICH ~ '(' ~ self.AT-KEY($_) ~ ')' } )
+    multi method WHICH(Map:D: --> ValueObjAt:D) {
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Map),
+              'Map|',
+              nqp::concat(self.^name,'|')
+            ),
+            nqp::sha1(
+              nqp::join(
+                '|',
+                nqp::stmts(  # cannot use native str arrays early in setting
+                  (my \keys := nqp::list_s),
+                  (my \iter := nqp::iterator($!storage)),
+                  nqp::while(
+                    iter,
+                    nqp::push_s(keys,nqp::iterkey_s(nqp::shift(iter)))
+                  ),
+                  (my \sorted   := Rakudo::Sorting.MERGESORT-str(keys)),
+                  (my int $i     = -1),
+                  (my int $elems = nqp::elems(sorted)),
+                  (my \strings  := nqp::list_s),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::stmts(
+                      (my \key := nqp::atpos_s(sorted,$i)),
+                      nqp::push_s(strings,key),
+                      nqp::push_s(strings,nqp::atkey($!storage,key).WHICH)
+                    )
+                  ),
+                  strings
+                )
+              )
+            )
+          ),
+          ValueObjAt
+        )
     }
-    method new(*@args) {
-        @args
-          ?? nqp::create(self).STORE(@args)
-          !! nqp::create(self)
+
+    # Calling self.new for the arguments case ensures that the right
+    # descriptor will be added for typed hashes.
+    multi method new(Map:        --> Map:D) {
+        nqp::create(self)
+    }
+    multi method new(Map: *@args --> Map:D) {
+        self.new.STORE(@args, :INITIALIZE)
     }
 
     multi method Map(Map:) { self }
 
     multi method Hash(Map:U:) { Hash }
-    multi method Hash(Map:D:) {
-        if nqp::defined($!storage) && nqp::elems($!storage) {
-            my $hash       := nqp::create(Hash);
-            my $storage    := nqp::bindattr($hash,Map,'$!storage',nqp::hash);
-            my $descriptor := nqp::null;
-            my $iter       := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
+    multi method Hash(Map:D: --> Hash:D) {
+        if nqp::iterator($!storage) -> \iter {
+            my \hash       := nqp::create(Hash);
+            my \storage    := nqp::bindattr(hash,Map,'$!storage',nqp::hash);
+            my \descriptor := BEGIN nqp::getcurhllsym('default_cont_spec');
             nqp::while(
-              $iter,
-              nqp::bindkey($storage,nqp::iterkey_s(nqp::shift($iter)),
-                nqp::p6scalarfromdesc($descriptor) =
-                  nqp::decont(nqp::iterval($iter))
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::iterkey_s(nqp::shift(iter)),
+                nqp::p6scalarwithvalue(
+                  descriptor, nqp::decont(nqp::iterval(iter)))
               )
             );
-            $hash
+            hash
         }
         else {
             nqp::create(Hash)
         }
     }
 
-    multi method Bool(Map:D:) {
-        nqp::p6bool(nqp::defined($!storage) && nqp::elems($!storage));
+    multi method Bool(Map:D: --> Bool:D) {
+        nqp::hllbool(nqp::elems($!storage));
     }
-    method elems(Map:D:) {
-        nqp::p6box_i(nqp::defined($!storage) && nqp::elems($!storage));
+    method elems(Map:D: --> Int:D) {
+        nqp::p6box_i(nqp::elems($!storage));
     }
-    multi method Int(Map:D:)     { self.elems }
-    multi method Numeric(Map:D:) { self.elems }
-    multi method Str(Map:D:)     { self.sort.join("\n") }
+    multi method Int(Map:D:     --> Int:D) { self.elems }
+    multi method Numeric(Map:D: --> Int:D) { self.elems }
 
-    method IterationBuffer() {
+    multi method Str(Map:D: --> Str:D) { self.sort.join("\n") }
+
+    method IterationBuffer(--> IterationBuffer:D) {
         nqp::stmts(
-          (my $buffer := nqp::create(IterationBuffer)),
+          (my \buffer := nqp::create(IterationBuffer)),
           nqp::if(
-            nqp::defined($!storage) && nqp::elems($!storage),
+            nqp::elems($!storage),
             nqp::stmts(
-              (my $iterator := nqp::iterator($!storage)),
-              nqp::setelems($buffer,nqp::elems($!storage)),
+              (my \iterator := nqp::iterator($!storage)),
+              nqp::setelems(buffer,nqp::elems($!storage)),
               (my int $i = -1),
               nqp::while(
-                $iterator,
-                nqp::bindpos($buffer,($i = nqp::add_i($i,1)),
+                iterator,
+                nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
                   Pair.new(
-                    nqp::iterkey_s(nqp::shift($iterator)),
-                    nqp::iterval($iterator)
+                    nqp::iterkey_s(nqp::shift(iterator)),
+                    nqp::iterval(iterator)
                   )
                 )
               )
             )
           ),
-          $buffer
+          buffer
         )
     }
 
-    method List() {
-        nqp::p6bindattrinvres(
-          nqp::create(List),List,'$!reified',self.IterationBuffer)
-    }
+    method List(--> List:D) { self.IterationBuffer.List }
 
     multi method head(Map:D:) {
         nqp::if(
-          nqp::isconcrete($!storage) && nqp::elems($!storage),
+          nqp::elems($!storage),
           Pair.new(
             nqp::iterkey_s(
-              nqp::shift(my $iterator := nqp::iterator($!storage))
+              nqp::shift(my \iterator := nqp::iterator($!storage))
             ),
-            nqp::iterval($iterator)
+            nqp::iterval(iterator)
           ),
           Nil
         )
     }
 
-    multi method sort(Map:D:) {
-        Seq.new(
-          Rakudo::Iterator.ReifiedList(
-            Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-              nqp::p6bindattrinvres(
-                nqp::create(List),List,'$!reified',self.IterationBuffer
-              ),
-              { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
-            )
+    # Produce a native str array with all the keys
+    method !keys-as-str() {
+        my $keys := nqp::list_s;
+        nqp::if(
+          ($!storage && my \iter := nqp::iterator($!storage)),
+          nqp::while(
+            iter,
+            nqp::push_s($keys,nqp::iterkey_s(nqp::shift(iter)))
           )
+        );
+        $keys
+    }
+
+    # Iterator over a native string array holding the keys and producing
+    # Pairs.
+    my class Iterate-keys does Iterator {
+        has $!map;
+        has $!iter;
+        method new(Mu \map, Mu \keys) {
+            nqp::p6bindattrinvres(
+              nqp::p6bindattrinvres(
+                nqp::create(self),
+                self,
+                '$!map',nqp::getattr(map,Map,'$!storage')
+              ),
+              self,
+              '$!iter',
+              nqp::iterator(keys)
+            )
+        }
+        method pull-one() {
+            nqp::if(
+              $!iter,
+              nqp::stmts(
+                (my \key := nqp::shift($!iter)),
+                Pair.new(key,nqp::atkey($!map,key))
+              ),
+              IterationEnd
+            )
+        }
+        method push-all($target --> IterationEnd) {
+            my \map  := $!map;
+            my \iter := $!iter;
+            nqp::while(
+              iter,
+              nqp::stmts(
+                (my \key := nqp::shift(iter)),
+                $target.push(Pair.new(key,nqp::atkey(map,key)))
+              )
+            )
+        }
+    }
+
+    multi method sort(Map:D: --> Seq:D) {
+        Seq.new(
+          Iterate-keys.new(self,Rakudo::Sorting.MERGESORT-str(self!keys-as-str))
         )
     }
 
-    multi method ACCEPTS(Map:D: Any $topic) {
+    multi method ACCEPTS(Map:D: Any $topic --> Bool:D) {
         self.EXISTS-KEY($topic.any);
     }
 
-    multi method ACCEPTS(Map:D: Cool:D $topic) {
+    multi method ACCEPTS(Map:D: Cool:D $topic --> Bool:D) {
         self.EXISTS-KEY($topic);
     }
 
-    multi method ACCEPTS(Map:D: Positional $topic) {
+    multi method ACCEPTS(Map:D: Positional $topic --> Bool:D) {
         self.EXISTS-KEY($topic.any);
     }
 
-    multi method ACCEPTS(Map:D: Regex $topic) {
+    multi method ACCEPTS(Map:D: Regex $topic --> Bool:D) {
         so self.keys.any.match($topic);
     }
 
-    multi method ACCEPTS(Map:D: Map:D \m --> Bool) {
+    multi method ACCEPTS(Map:D: Map:D \m --> Bool:D) {
         try {self eqv m} // False;
     }
 
-    multi method EXISTS-KEY(Map:D: Str:D \key) {
-        nqp::p6bool(
-          nqp::defined($!storage) && nqp::existskey($!storage,key)
-        )
+    multi method EXISTS-KEY(Map:D: Str:D \key --> Bool:D) {
+        nqp::hllbool(nqp::existskey($!storage,key))
     }
-    multi method EXISTS-KEY(Map:D: \key) {
-        nqp::p6bool(
-          nqp::defined($!storage) && nqp::existskey($!storage,key.Str)
-        )
+    multi method EXISTS-KEY(Map:D: \key --> Bool:D) {
+        nqp::hllbool(nqp::existskey($!storage,key.Str))
     }
 
-    multi method gist(Map:D:) {
-        self.^name ~ '.new((' ~ self.sort.map({
-            state $i = 0;
-            ++$i == 101 ?? '...'
-                !! $i == 102 ?? last()
-                    !! .gist
-        }).join(', ') ~ '))'
+    multi method gist(Map:D: --> Str:D) {
+        self.^name
+          ~ '.new(('
+          ~ self.sort.head(100).map(*.gist).join(', ')
+          ~ (', ...' if self.elems > 100)
+          ~ '))'
     }
 
-    multi method perl(Map:D \SELF:) {
+    multi method perl(Map:D \SELF: --> Str:D) {
         my $p = self.^name ~ '.new((' ~ self.sort.map({.perl}).join(',') ~ '))';
         nqp::iscont(SELF) ?? '$(' ~ $p ~ ')' !! $p
     }
 
-    method iterator(Map:D:) {
-        class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                nqp::if(
-                  $!iter,
-                  nqp::stmts(
-                    nqp::shift($!iter),
-                    Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter))
-                  ),
-                  IterationEnd
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                     nqp::shift($!iter),
-                     $target.push(
-                       Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter)))
-                  )
-                )
-            }
-        }.new(self)
+    my class Iterate does Rakudo::Iterator::Mappy {
+        method pull-one() {
+            nqp::if(
+              $!iter,
+              nqp::stmts(
+                nqp::shift($!iter),
+                Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter))
+              ),
+              IterationEnd
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                 nqp::shift($!iter),
+                 target.push(
+                   Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter)))
+              )
+            )
+        }
     }
-    method list(Map:D:) { Seq.new(self.iterator) }
-    multi method pairs(Map:D:) { Seq.new(self.iterator) }
-    multi method keys(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-keys(self)) }
-    multi method values(Map:D:) { Seq.new(Rakudo::Iterator.Mappy-values(self)) }
+    method iterator(Map:D: --> Iterator:D) { Iterate.new(self) }
 
-    multi method kv(Map:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            has int $!on-value;
+    method list(Map:D: --> List:D) { self.List }
 
-            method pull-one() is raw {
-                nqp::if(
-                  $!on-value,
-                  nqp::stmts(
-                    ($!on-value = 0),
-                    nqp::iterval($!iter)
-                  ),
-                  nqp::if(
-                    $!iter,
-                    nqp::stmts(
-                      ($!on-value = 1),
-                      nqp::iterkey_s(nqp::shift($!iter))
-                    ),
-                    IterationEnd
-                  )
-                )
-            }
-            method skip-one() {
-                nqp::if(
-                  $!on-value,
-                  nqp::not_i($!on-value = 0), # skipped a value
-                  nqp::if(
-                    $!iter,                   # if false, we didn't skip
-                    nqp::stmts(               # skipped a key
-                      nqp::shift($!iter),
-                      ($!on-value = 1)
-                    )
-                  )
-                )
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(  # doesn't sink
-                  $!iter,
-                  nqp::stmts(
-                    $target.push(nqp::iterkey_s(nqp::shift($!iter))),
-                    $target.push(nqp::iterval($!iter))
-                  )
-                )
-            }
-        }.new(self))
+    multi method pairs(Map:D: --> Seq:D) {
+        Seq.new(self.iterator)
     }
-    multi method antipairs(Map:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                nqp::if(
-                  $!iter,
-                  nqp::stmts(
-                    nqp::shift($!iter),
-                    Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) )
-                  ),
-                  IterationEnd
-                );
-            }
-            method push-all($target --> IterationEnd) {
-                nqp::while(
-                  $!iter,
-                  nqp::stmts(  # doesn't sink
-                    nqp::shift($!iter),
-                    $target.push(
-                      Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) ))
-                  )
-                )
-            }
-        }.new(self))
+    multi method keys(Map:D: --> Seq:D) {
+        Seq.new(Rakudo::Iterator.Mappy-keys(self))
     }
-    multi method invert(Map:D:) {
+    multi method values(Map:D: --> Seq:D) {
+        Seq.new(Rakudo::Iterator.Mappy-values(self))
+    }
+
+    my class KV does Rakudo::Iterator::Mappy-kv-from-pairs {
+        method pull-one() is raw {
+            nqp::if(
+              $!on,
+              nqp::stmts(
+                ($!on= 0),
+                nqp::iterval($!iter)
+              ),
+              nqp::if(
+                $!iter,
+                nqp::stmts(
+                  ($!on= 1),
+                  nqp::iterkey_s(nqp::shift($!iter))
+                ),
+                IterationEnd
+              )
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::while(  # doesn't sink
+              $!iter,
+              nqp::stmts(
+                target.push(nqp::iterkey_s(nqp::shift($!iter))),
+                target.push(nqp::iterval($!iter))
+              )
+            )
+        }
+    }
+    multi method kv(Map:D: --> Seq:D) { Seq.new(KV.new(self)) }
+
+    my class AntiPairs does Rakudo::Iterator::Mappy {
+        method pull-one() {
+            nqp::if(
+              $!iter,
+              nqp::stmts(
+                nqp::shift($!iter),
+                Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) )
+              ),
+              IterationEnd
+            );
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                nqp::shift($!iter),
+                target.push(
+                  Pair.new( nqp::iterval($!iter), nqp::iterkey_s($!iter) ))
+              )
+            )
+        }
+    }
+    multi method antipairs(Map:D: --> Seq:D) { Seq.new(AntiPairs.new(self)) }
+
+    multi method invert(Map:D: --> Seq:D) {
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
     multi method AT-KEY(Map:D: Str:D \key) is raw {
-        nqp::defined($!storage)
-          ?? nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
-          !! Nil
+        nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
     }
     multi method AT-KEY(Map:D: \key) is raw {
-        nqp::defined($!storage)
-          ?? nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
-          !! Nil
+        nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
     }
 
-    method !STORE_MAP(\map --> Nil) {
+    multi method ASSIGN-KEY(Map:D: \key, Mu \value) {
+        die nqp::existskey($!storage,key.Str)
+          ?? "Cannot change key '{key}' in an immutable {self.^name}"
+          !! "Cannot add key '{key}' to an immutable {self.^name}"
+    }
+
+    # Directly copy from the other Map's internals: the only thing we need
+    # to do, is to decontainerize the values.
+    method !STORE_MAP_FROM_MAP(\map --> Nil) {
         nqp::if(
-          nqp::defined(my $other := nqp::getattr(map,Map,'$!storage')),
+          nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
-            (my $iter := nqp::iterator($other)),
+            (my \iter := nqp::iterator(other)),
             nqp::while(
-              $iter,
-              self.STORE_AT_KEY(
-                nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
+              iter,
+              nqp::bindkey(
+                $!storage,
+                nqp::iterkey_s(nqp::shift(iter)),
+                nqp::decont(nqp::iterval(iter))   # get rid of any containers
               )
             )
           )
         )
     }
 
-    method STORE(\to_store) {
-        my $temp := nqp::p6bindattrinvres(
-          nqp::clone(self),   # make sure we get a possible descriptor as well
-          Map,
-          '$!storage',
-          my $storage := nqp::hash
-        );
-        my $iter := to_store.iterator;
-        my Mu $x;
-        my Mu $y;
-
-        nqp::until(
-          nqp::eqaddr(($x := $iter.pull-one),IterationEnd),
-          nqp::if(
-            nqp::istype($x,Pair),
-            $temp.STORE_AT_KEY(
-              nqp::getattr(nqp::decont($x),Pair,'$!key'),
-              nqp::getattr(nqp::decont($x),Pair,'$!value')
-            ),
-            nqp::if(
-              (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
-              $temp!STORE_MAP($x),
-              nqp::if(
-                nqp::eqaddr(($y := $iter.pull-one),IterationEnd),
-                nqp::if(
-                  nqp::istype($x,Failure),
-                  $x.throw,
-                  X::Hash::Store::OddNumber.new(
-                    found => nqp::add_i(nqp::mul_i(nqp::elems($storage),2),1),
-                    last  => $x
-                  ).throw
-                ),
-                $temp.STORE_AT_KEY($x,$y)
+    # Directly copy from the Object Hash's internals, but pay respect to the
+    # fact that we're only interested in the values (which contain a Pair with
+    # the object key and a value that we need to decontainerize.
+    method !STORE_MAP_FROM_OBJECT_HASH(\map --> Nil) {
+        nqp::if(
+          nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
+          nqp::stmts(
+            (my \iter := nqp::iterator(other)),
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                $!storage,
+                nqp::getattr(
+                  (my \pair := nqp::iterval(nqp::shift(iter))),
+                  Pair, '$!key'
+                ).Str,
+                nqp::decont(nqp::getattr(pair,Pair,'$!value'))
               )
             )
           )
+        )
+    }
+
+    # Copy the contents of a Mappy thing that's not in a container.
+    method !STORE_MAP(\map --> Nil) {
+        nqp::if(
+          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
+          self!STORE_MAP_FROM_MAP(map),
+          self!STORE_MAP_FROM_OBJECT_HASH(map)
+        )
+    }
+
+    # Store the contents of an iterator into the Map
+    method !STORE_MAP_FROM_ITERATOR(\iter --> Map:D) is raw {
+        nqp::stmts(
+          nqp::until(
+            nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
+            nqp::if(
+              nqp::istype($x,Pair),
+              nqp::bindkey(
+                $!storage,
+                nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
+                nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
+              ),
+              nqp::if(
+                (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+                self!STORE_MAP($x),
+                nqp::if(
+                  nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
+                  nqp::if(
+                    nqp::istype($x,Failure),
+                    $x.throw,
+                    X::Hash::Store::OddNumber.new(
+                      found => self.elems * 2 + 1,
+                      last  => $x
+                    ).throw
+                  ),
+                  nqp::bindkey($!storage,$x.Str,nqp::decont($y))
+                )
+              )
+            )
+          ),
+          self
+        )
+    }
+
+    method !DECONTAINERIZE(--> Map:D) {
+        nqp::stmts(
+          (my \iter := nqp::iterator($!storage)),
+          nqp::while(
+            iter,
+            nqp::if(
+              nqp::iscont(nqp::iterval(nqp::shift(iter))),
+              nqp::bindkey(
+                $!storage,
+                nqp::iterkey_s(iter),
+                nqp::decont(nqp::iterval(iter))  # get rid of any containers
+              )
+            )
+          ),
+          self
+        )
+    }
+
+    proto method STORE(Map:D: |) {*}
+    multi method STORE(Map:D: Map:D \map, :$INITIALIZE! --> Map:D) {
+        nqp::if(
+          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
+          nqp::if(
+            nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
+            nqp::if(
+              nqp::eqaddr(map.WHAT,Map),
+              nqp::p6bindattrinvres(self,Map,'$!storage',other),
+              nqp::p6bindattrinvres(
+                self,Map,'$!storage',nqp::clone(other)
+              )!DECONTAINERIZE
+            ),
+            self                      # nothing to do
+          ),
+          nqp::p6bindattrinvres(
+            self, Map, '$!storage',
+            nqp::p6bindattrinvres(
+              nqp::create(self), Map, '$!storage', nqp::hash
+            )!STORE_MAP_FROM_OBJECT_HASH(map)
+          )
+        )
+    }
+    multi method STORE(Map:D: \to_store, :$INITIALIZE! --> Map:D) {
+        nqp::p6bindattrinvres(
+          self, Map, '$!storage',
+          nqp::getattr(
+            nqp::p6bindattrinvres(
+              nqp::create(self), Map, '$!storage', nqp::hash
+            )!STORE_MAP_FROM_ITERATOR(to_store.iterator),
+            Map, '$!storage'
+          )
+        )
+    }
+    multi method STORE(Map:D: \keys, \values, :$INITIALIZE! --> Map:D) {
+        my \iterkeys   := keys.iterator;
+        my \itervalues := values.iterator;
+        my \storage    := $!storage := nqp::hash;
+        nqp::until(
+          nqp::eqaddr((my \key := iterkeys.pull-one),IterationEnd),
+          nqp::bindkey(
+            storage,
+            nqp::if(nqp::istype(key,Str),key,key.Str),
+            nqp::decont(itervalues.pull-one)
+          )
         );
-
-        nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
+        self
     }
-
-    proto method STORE_AT_KEY(|) {*}
-    multi method STORE_AT_KEY(Str:D \key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key), nqp::decont(value))
-    }
-    multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
-        nqp::bindkey($!storage, nqp::unbox_s(key.Str), nqp::decont(value))
-    }
+    multi method STORE(Map:D: |) { X::Assignment::RO.new(value => self).throw }
 
     method Capture(Map:D:) {
-        nqp::defined($!storage)
-          ?? nqp::p6bindattrinvres(
-               nqp::create(Capture),Capture,'%!hash',$!storage)
-          !! nqp::create(Capture)
+        nqp::p6bindattrinvres(nqp::create(Capture),Capture,'%!hash',$!storage)
     }
 
     method FLATTENABLE_LIST() { nqp::list() }
     method FLATTENABLE_HASH() {
-        nqp::defined($!storage)
-          ?? $!storage
-          !! nqp::bindattr(self,Map,'$!storage',nqp::hash)
+        $!storage
     }
 
-    method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n") {
+    method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n" --> Str:D) {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
           ?? self.keys.fmt($format, $sep)
           !! self.pairs.fmt($format, $sep)
     }
 
     method hash() { self }
-    method clone(Map:D:) is raw { self }
+    method clone(Map:D: --> Map:D) is raw { self }
 
     multi method roll(Map:D:) {
         nqp::if(
@@ -353,12 +509,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::stmts(
             (my int $i =
               nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems($!storage))),1)),
-            (my $iter := nqp::iterator($!storage)),
+            (my \iter := nqp::iterator($!storage)),
             nqp::while(
-              nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+              nqp::shift(iter) && ($i = nqp::sub_i($i,1)),
               nqp::null
             ),
-            Pair.new(nqp::iterkey_s($iter),nqp::iterval($iter))
+            Pair.new(nqp::iterkey_s(iter),nqp::iterval(iter))
           ),
           Nil
         )
@@ -367,112 +523,114 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self.roll( $calculate(self.elems) )
     }
     multi method roll(Map:D: Whatever $) { self.roll(Inf) }
-    multi method roll(Map:D: $count) {
-        Seq.new(nqp::if(
-          $!storage && nqp::elems($!storage) && $count > 0,
-          class :: does Iterator {
-              has $!storage;
-              has $!keys;
-              has $!pairs;
-              has $!count;
+    my class RollN does Iterator {
+        has $!storage;
+        has $!keys;
+        has $!pairs;
+        has $!count;
 
-              method !SET-SELF(\hash,\count) {
-                  nqp::stmts(
-                    ($!storage := nqp::getattr(hash,Map,'$!storage')),
-                    ($!count = $count),
-                    (my int $i = nqp::elems($!storage)),
-                    (my $iter := nqp::iterator($!storage)),
-                    ($!keys := nqp::setelems(nqp::list_s,$i)),
-                    ($!pairs := nqp::setelems(nqp::list,$i)),
-                    nqp::while(
-                      nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-                      nqp::bindpos_s($!keys,$i,
-                        nqp::iterkey_s(nqp::shift($iter)))
-                    ),
-                    self
+        method !SET-SELF(\hash,\count) {
+            nqp::stmts(
+              ($!storage := nqp::getattr(hash,Map,'$!storage')),
+              ($!count = count),
+              (my int $i = nqp::elems($!storage)),
+              (my \iter := nqp::iterator($!storage)),
+              ($!keys := nqp::setelems(nqp::list_s,$i)),
+              ($!pairs := nqp::setelems(nqp::list,$i)),
+              nqp::while(
+                nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+                nqp::bindpos_s($!keys,$i,
+                  nqp::iterkey_s(nqp::shift(iter)))
+              ),
+              self
+            )
+        }
+        method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+        method pull-one() {
+            nqp::if(
+              $!count,
+              nqp::stmts(
+                --$!count,  # must be HLL to handle Inf
+                nqp::ifnull(
+                  nqp::atpos(
+                    $!pairs,
+                    (my int $i =
+                      nqp::floor_n(nqp::rand_n(nqp::elems($!keys))))
+                  ),
+                  nqp::bindpos($!pairs,$i,
+                    Pair.new(
+                      nqp::atpos_s($!keys,$i),
+                      nqp::atkey($!storage,nqp::atpos_s($!keys,$i))
+                    )
                   )
-              }
-              method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
-              method pull-one() {
-                  nqp::if(
-                    $!count,
-                    nqp::stmts(
-                      --$!count,  # must be HLL to handle Inf
-                      nqp::ifnull(
-                        nqp::atpos(
-                          $!pairs,
-                          (my int $i =
-                            nqp::floor_n(nqp::rand_n(nqp::elems($!keys))))
-                        ),
-                        nqp::bindpos($!pairs,$i,
-                          Pair.new(
-                            nqp::atpos_s($!keys,$i),
-                            nqp::atkey($!storage,nqp::atpos_s($!keys,$i))
-                          )
-                        )
-                      )
-                    ),
-                    IterationEnd
-                  )
-              }
-              method is-lazy() { $!count == Inf }
-          }.new(self,$count),
-          Rakudo::Iterator.Empty
-        ))
+                )
+              ),
+              IterationEnd
+            )
+        }
+        method is-lazy() { $!count == Inf }
+    }
+    multi method roll(Map:D: $count) {
+        Seq.new(
+          $!storage && nqp::elems($!storage) && $count > 0
+            ?? RollN.new(self,$count)
+            !! Rakudo::Iterator.Empty
+        )
     }
 
     multi method pick(Map:D:) { self.roll }
 
-    multi method Set(Map:D:)     {
+    multi method Set(Map:D: --> Set:D) {
         nqp::create(Set).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
     }
-    multi method SetHash(Map:D:)     {
+    multi method SetHash(Map:D: --> SetHash:D) {
         nqp::create(SetHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
     }
-    multi method Bag(Map:D:)     {
+    multi method Bag(Map:D: --> Bag:D) {
         nqp::create(Bag).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
     }
-    multi method BagHash(Map:D:)     {
+    multi method BagHash(Map:D: --> BagHash:D) {
         nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
     }
-    multi method Mix(Map:D:)     {
+    multi method Mix(Map:D: --> Mix:D)     {
         nqp::create(Mix).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
     }
-    multi method MixHash(Map:D:)     {
+    multi method MixHash(Map:D: --> MixHash:D)     {
         nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
     }
 }
 
-multi sub infix:<eqv>(Map:D \a, Map:D \b) {
+multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
 
     class NotEQV { }
 
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(a,b),
         nqp::if(                                 # not comparing with self
           nqp::eqaddr(a.WHAT,b.WHAT),
           nqp::if(                               # same types
-            (my $amap := nqp::getattr(nqp::decont(a),Map,'$!storage'))
-              && (my int $elems = nqp::elems($amap)),
+            (my \amap := nqp::getattr(nqp::decont(a),Map,'$!storage'))
+              && (my int $elems = nqp::elems(amap)),
             nqp::if(                             # elems on left
-              (my $bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
-                && nqp::iseq_i($elems,nqp::elems($bmap)),
+              (my \bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+                && nqp::iseq_i($elems,nqp::elems(bmap)),
               nqp::stmts(                        # same elems on right
-                (my $iter := nqp::iterator($amap)),
+                (my \iter := nqp::iterator(amap)),
                 nqp::while(
-                  $iter && infix:<eqv>(
-                    nqp::iterval(nqp::shift($iter)),
-                    nqp::ifnull(nqp::atkey($bmap,nqp::iterkey_s($iter)),NotEQV)
+                  iter && infix:<eqv>(
+                    nqp::iterval(nqp::shift(iter)),
+                    nqp::ifnull(nqp::atkey(bmap,nqp::iterkey_s(iter)),NotEQV)
                   ),
                   ($elems = nqp::sub_i($elems,1))
                 ),
                 nqp::not_i($elems)               # ok if none left
-              )
+              ),
+              0
             ),
             nqp::isfalse(                        # nothing on left
-              ($bmap := nqp::getattr(nqp::decont(b),Map,'$!storage'))
-                && nqp::elems($bmap)             # something on right: fail
+              (my \map := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+                && nqp::elems(map)               # something on right: fail
             )
           )
         )

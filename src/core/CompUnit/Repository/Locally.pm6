@@ -34,9 +34,11 @@ role CompUnit::Repository::Locally {
     method prefix { "{$!prefix}".IO }
 
     method id() {
-        my $name = self.path-spec;
-        $name ~= ',' ~ self.next-repo.id if self.next-repo;
-        return nqp::sha1($name);
+        nqp::sha1(
+          self.next-repo
+            ?? self.path-spec ~ ',' ~ self.next-repo.id
+            !! self.path-spec
+        )
     }
 
     # stubs

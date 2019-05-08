@@ -93,9 +93,9 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
         0
     }
 
-    method push-all($target) {
+    method push-all(\target) {
         loop {
-            $target.append($!current-items);
+            target.append($!current-items);
             $!current-items := $!batches.receive.items;
             self.batch-used();
 

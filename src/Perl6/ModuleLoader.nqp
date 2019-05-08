@@ -49,8 +49,14 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
             my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
-            my $include := nqp::getcomp('perl6').cli-options<nqp-lib>;
-            $file := ($include ?? $include ~ '/' !! nqp::getcomp('perl6').config<libdir> ~ '/nqp/lib/') ~ $file;
+
+            my @prefixes := self.search_path();
+            for @prefixes -> $prefix {
+                if nqp::stat("$prefix/$file", 0) {
+                    $file := "$prefix/$file";
+                    last;
+                }
+            }
 
             if nqp::existskey(%modules_loaded, $file) {
                 return nqp::ctxlexpad(%modules_loaded{$file});
@@ -67,7 +73,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
             return $UNIT;
         }
-
         if nqp::existskey(%language_module_loaders, %opts<from> // 'NQP') {
             # We expect that custom module loaders will accept a Stash, only
             # NQP expects a hash and therefor needs special handling.
@@ -106,37 +111,38 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         for stash_hash($target) {
             %known_symbols{$_.key} := 1;
         }
-        for stash_hash($source) {
-            my $sym := $_.key;
+        my %source := stash_hash($source);
+        for sorted_keys(%source) -> $sym {
+            my $value := %source{$sym};
             if !%known_symbols{$sym} {
-                ($target){$sym} := $_.value;
+                ($target){$sym} := $value;
             }
-            elsif nqp::decont(($target){$sym}) =:= nqp::decont($_.value) { # Stash entries are containerized
+            elsif nqp::decont(($target){$sym}) =:= nqp::decont($value) { # Stash entries are containerized
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
-                my $source_is_stub := is_stub($_.value.HOW);
+                my $source_is_stub := is_stub($value.HOW);
                 my $target_is_stub := is_stub(($target){$sym}.HOW);
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
-                    self.merge_globals(($target){$sym}.WHO, $_.value.WHO);
+                    self.merge_globals(($target){$sym}.WHO, $value.WHO);
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
-                    self.merge_globals(($target){$sym}.WHO, $_.value.WHO);
+                    self.merge_globals(($target){$sym}.WHO, $value.WHO);
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($_.value.WHO, ($target){$sym}.WHO);
-                    ($target){$sym} := $_.value;
+                    self.merge_globals($value.WHO, ($target){$sym}.WHO);
+                    ($target){$sym} := $value;
                 }
-                elsif nqp::eqat($_.key, '&', 0) {
+                elsif nqp::eqat($sym, '&', 0) {
                     # "Latest wins" semantics for functions
-                    ($target){$sym} := $_.value;
+                    ($target){$sym} := $value;
                 }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
@@ -151,8 +157,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         for $target.symtable {
             %known_symbols{$_.key} := $_.value<value>;
         }
-        for stash_hash($source) {
-            my $sym := $_.key;
+        my %source := stash_hash($source);
+        for sorted_keys(%source) -> $sym {
+            my $value := %source{$sym};
             my $outer := 0;
             if !nqp::existskey(%known_symbols, $sym) {
                 try {
@@ -161,43 +168,43 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 }
             }
             if !nqp::existskey(%known_symbols, $sym) {
-                $target.symbol($sym, :scope('lexical'), :value($_.value));
+                $target.symbol($sym, :scope('lexical'), :value($value));
                 $target[0].push(QAST::Var.new(
-                    :scope('lexical'), :name($sym), :decl('static'), :value($_.value)
+                    :scope('lexical'), :name($sym), :decl('static'), :value($value)
                 ));
-                $world.add_object_if_no_sc($_.value);
+                $world.add_object_if_no_sc($value);
             }
-            elsif nqp::decont(%known_symbols{$_.key}) =:= nqp::decont($_.value) { # Stash entries are containerized
+            elsif nqp::decont(%known_symbols{$sym}) =:= nqp::decont($value) { # Stash entries are containerized
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
-                my $existing := %known_symbols{$_.key};
-                my $source_is_stub := is_stub($_.value.HOW);
+                my $existing := %known_symbols{$sym};
+                my $source_is_stub := is_stub($value.HOW);
                 my $target_is_stub := is_stub($existing.HOW);
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
-                    self.merge_globals($existing.WHO, $_.value.WHO);
+                    self.merge_globals($existing.WHO, $value.WHO);
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
-                    self.merge_globals($existing.WHO, $_.value.WHO);
+                    self.merge_globals($existing.WHO, $value.WHO);
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($_.value.WHO, $existing.WHO);
-                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                    self.merge_globals($value.WHO, $existing.WHO);
+                    $target.symbol($sym, :scope('lexical'), :value($value));
                 }
-                elsif nqp::eqat($_.key, '&', 0) {
+                elsif nqp::eqat($sym, '&', 0) {
                     # "Latest wins" semantics for functions
-                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                    $target.symbol($sym, :scope('lexical'), :value($value));
                 }
                 elsif $outer {
                     # It's ok to overwrite non-stub symbols of outer lexical scopes
-                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                    $target.symbol($sym, :scope('lexical'), :value($value));
                 }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
@@ -210,6 +217,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         my $setting;
 
         if $setting_name ne 'NULL' {
+            # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
+            $setting_name := 'CORE' if $setting_name eq 'NULL.d';
             # Unless we already did so, locate and load the setting.
             unless nqp::defined(%settings_loaded{$setting_name}) {
                 DEBUG("Loading settings $setting_name") if $DEBUG;

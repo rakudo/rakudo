@@ -1,5 +1,3 @@
-class X::Assignment::RO { ... }
-
 my class Nil is Cool { # declared in BOOTSTRAP
     method new(*@ --> Nil)    { }
     multi method gist(Nil:)   { 'Nil' }
@@ -9,7 +7,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
 
     method AT-POS(| --> Nil) { }
     method AT-KEY(| --> Nil) { }
-#    method ACCEPTS(*@ --> Nil) { }  # XXX spec says Nil, but makes spectest hang
+#    method ACCEPTS(*@ --> Nil) { }  # XXX spec says Nil, but makes install fail
 
     method BIND-POS(|)   { die "Attempted to BIND-POS to {self.gist}." }
     method BIND-KEY(|)   { Failure.new(X::Bind.new(target => self.gist)) }

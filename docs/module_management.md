@@ -8,7 +8,7 @@ existing work, some problems have also been consistently avoided or punted
 on; robust pre-compilation management is one such issue. Everything here is
 subject to course corrections as implementation takes place, but it should
 hopefully set out a good direction to move in. Also, don't expect this to be
-a complete deign. It's as much as I had time to figure out before I vanish
+a complete design. It's as much as I had time to figure out before I vanish
 for a week on honeymoon, and I'm sharing it in its current state so that
 others can carry it forward. Thanks goes to lizmat++ for highly valuable
 input on an earlier private draft.
@@ -20,8 +20,7 @@ consideration:
 
 * A **compilation unit**, or **compunit** for short, is a piece of Perl 6 code
   that is analyzed and compiled as a single unit. Typically, this comes from a
-  source file on disk, but what's inside an EVAL also counts as a compilation
-  unit.
+  source file on disk, but what's inside an EVAL also counts as such.
 * **Compilation** is the process by which a compilation unit is parsed and
   analyzed, and turned into a set of objects representing its declarations
   ("meta-objects") and executable code representing its statements. Note that,
@@ -37,8 +36,7 @@ consideration:
   can be made use of. (There is nothing preventing a given source file serving
   as both a script and a module depending on how it is used.)
 * A **distribution** is a set of zero or more scripts and modules that are
-  distributed together, along with some meta-data and potentially with some
-  resources and tests.
+  released together, along with some meta-data and potentially resources and tests.
 
 This "usage" of modules by scripts and other modules is complex, and is the
 focus of much of this document. Some further terminology to enable precise
@@ -79,7 +77,7 @@ precompilation of a compilation unit can only be formed if all of its
 dependencies have already been precompiled (implying that at the point the
 precompilation of a module is completed, all of its transitive dependencies
 must have already been precompiled). Note this does not mean there is any
-need for the dependencies to be precompiled before precompilation of begins.
+need for the dependencies to be precompiled before precompilation of the current compunit begins.
 It is not only reasonable, but also desirable, for dependencies to be
 precompiled "on demand" and recursively as they are discovered. That is,
 you start precompiling at the "top" of a dependency graph and by the time
@@ -129,13 +127,13 @@ well as managing precompilation of modules.
 Repositories are structured as a linked list - that is, a repository may refer
 to another. A repository can always provide its unique identity, which must
 incorporate the identity of any repository it refers to. In normal startup, the
-`PROCESS::<$REPO>` symbol will be set a default repository that supports the
+`PROCESS::<$REPO>` symbol will be set to a default repository that supports the
 installation of distributions (a `CompUnit::Repository::Installation`). Any
 `-I` includes, or any paths in a `PERL6LIB` environment variable, will cause
 `PROCESS::<$REPO>` to instead point to a chain of repositories that ends with
 the default `CompUnit::Repository::Installation` that is normally there.
 
-A `use lib` installs a lexical `$?REPO` which takes precedence over that in
+A `use lib` installs a lexical `$*REPO` which takes precedence over that in
 `PROCESS`. Note that for Perl 6.christmas, we will only support the use of
 `use lib` in scripts, not in modules, as its interaction with precompilation
 is more complex than we have time to reasonably consider (and it's better to

@@ -22,16 +22,19 @@ class Perl6::Metamodel::NativeRefHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
 
-    method new_type(:$name = '<anon>', :$ver, :$auth) {
+    method new_type(:$name = '<anon>', :$ver, :$auth, :$api) {
         my $metaclass := self.new();
         my $obj := nqp::settypehll(nqp::newtype($metaclass, 'NativeRef'), 'perl6');
         $metaclass.set_name($obj, $name);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
+        $metaclass.set_api($obj, $api) if $api;
         self.add_stash($obj);
     }
 
-    method compose($obj, :$compiler_services) {
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         self.compose_repr($obj);
         self.compute_mro($obj);
         self.publish_method_cache($obj);

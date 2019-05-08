@@ -6,10 +6,16 @@ my class List { ... }
 my class Map { ... }
 my class Match { ... }
 my class Failure { ... }
+my class Rakudo::Deprecations { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
 my class Rakudo::Iterator { ... }
+#?if !js
 my class ThreadPoolScheduler { ... }
+#?endif
+#?if js
+my class JavaScriptScheduler { ... }
+#?endif
 my class Whatever { ... }
 my class WhateverCode { ... }
 my class X::Attribute::Required { ... }
@@ -22,6 +28,10 @@ my role Associative { ... }
 my role Callable { ... }
 my role Iterable { ... }
 my role PositionalBindFailover { ... }
+
+# Make Iterable available for the code-gen.
+BEGIN nqp::bindhllsym('perl6', 'Iterable', Iterable);
+nqp::bindhllsym('perl6', 'Iterable', Iterable);
 
 # Set up Empty, which is a Slip created with an empty IterationBuffer (which
 # we also stub here). This is needed in a bunch of simple constructs (like if
@@ -44,7 +54,13 @@ my constant $?NL = "\x0A";
 PROCESS::<%ENV> := Rakudo::Internals.createENV(0);
 
 # This thread pool scheduler will be the default one.
+#?if !js
 PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
+#?endif
+
+#?if js
+PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
+#?endif
 
 # vim: ft=perl6 expandtab sw=4
 

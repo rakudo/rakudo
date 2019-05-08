@@ -384,32 +384,40 @@ do {
             $*CTXSAVE := 0;
         }
 
-        method input-incomplete(Mu $value) {
-            $value.WHERE == $!need-more-input.WHERE
+        method input-incomplete(Mu $value --> Bool:D) {
+            nqp::hllbool(nqp::can($value, 'WHERE'))
+              and $value.WHERE == $!need-more-input.WHERE
         }
 
-        method input-toplevel-control(Mu $value) {
-            $value.WHERE == $!control-not-allowed.WHERE
+        method input-toplevel-control(Mu $value --> Bool:D) {
+            nqp::hllbool(nqp::can($value, 'WHERE'))
+              and $value.WHERE == $!control-not-allowed.WHERE
         }
 
         method repl-print(Mu $value --> Nil) {
-            say $value;
+            nqp::can($value, 'gist')
+              and say $value
+              or say "(low-level object `$value.^name()`)";
+
             CATCH {
                 default { say $_ }
             }
         }
 
         method history-file(--> Str:D) {
-            return $!history-file.absolute if $!history-file.defined;
+            without $!history-file {
+                $!history-file = $*ENV<RAKUDO_HIST>
+                  ?? $*ENV<RAKUDO_HIST>.IO
+                  !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
 
-            $!history-file = $*ENV<RAKUDO_HIST>
-                ?? $*ENV<RAKUDO_HIST>.IO
-                !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
-
-            without mkdir $!history-file.parent {
-                note "I ran into a problem trying to set up history: {.exception.message}";
-                note 'Sorry, but history will not be saved at the end of your session';
+                without mkdir $!history-file.parent {
+                    note "I ran into a problem trying to set up history: {.exception.message}";
+                    note 'Sorry, but history will not be saved at the end of your session';
+                }
             }
+
+            # make sure there is a history file
+            $!history-file.open(:a).close unless $!history-file.e;
 
             $!history-file.absolute
         }

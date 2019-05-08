@@ -24,11 +24,15 @@ BEGIN {
 }
 
 {
-    my $perl := BEGIN Perl.new;
+    # XXX TODO: https://github.com/rakudo/rakudo/issues/2433
+    # my $perl := BEGIN Perl.new;
     Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
-        PROCESS::<$PERL> := $perl;
+        PROCESS::<$PERL> := Perl.new;
     }
 }
+
+# temporary fix for R#2640
+BEGIN .^compose for Array,array,Bag,BagHash,Hash,Mix,MixHash,Set,SetHash;
 
 {YOU_ARE_HERE}
 

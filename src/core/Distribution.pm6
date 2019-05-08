@@ -1,19 +1,10 @@
 # API to obtain the data of any addressable content
-role Distribution { ... }
-
 role Distribution {
     # `meta` provides an API to the meta data in META6 spec (s22)
     #   -   A Distribution may be represented internally by some other
     #       spec (such as using the file system itself for prereqs), as
     #       long as it can also be represented as the META6 hash format
-    method meta(--> Hash:D) {
-        # Cannot just use ... here as that would break legacy code
-        my $class-name = ::?CLASS.^name;
-
-        die $class-name eq 'Distribution'
-            ?? 'Legacy Distribution object used in code expecting an object consuming the Distribution role'
-            !! "Method 'meta' must be implemented by $class-name because it is required by role Distribution"
-    }
+    method meta(--> Hash) { ... }
 
     # `content($content-id)` provides an API to the data itself
     #   -   Use `.meta` to determine the $address of a specific $content-id
@@ -22,79 +13,44 @@ role Distribution {
     #       a socket wants to handle this role currently it would have to wrap `open` or `.slurp-rest`
     #       to handle any protocol negotiation as well as probably saving the data to a tmpfile and
     #       return an IO::Handle to that
-    method content($content-id --> IO::Handle:D) {
-        # Cannot just use ... here as that would break legacy code
-        my $class-name = ::?CLASS.^name;
 
-        die $class-name eq 'Distribution'
-            ?? 'Legacy Distribution object used in code expecting an object consuming the Distribution role'
-            !! "Method 'content' must be implemented by $class-name because it is required by role Distribution"
-    }
-
-    # Backwards compatibility shim
-    submethod new(*%_) {
-        ::?CLASS.^name eq 'Distribution'
-            ?? class :: {
-                has $.name;
-                has $.auth;
-                has $.author;
-                has $.authority;
-                has $.api;
-                has $.ver;
-                has $.version;
-                has $.description;
-                has @.depends;
-                has %.provides;
-                has %.files;
-                has $.source-url;
-                method auth { $!auth // $!author // $!authority }
-                method ver  { $!ver // $!version }
-                method meta(--> Hash:D) {
-                    {
-                        :$!name,
-                        :$.auth,
-                        :$.ver,
-                        :$.api,
-                        :$!description,
-                        :@!depends,
-                        :%!provides,
-                        :%!files,
-                        :$!source-url,
-                    }
-                }
-                method Str() {
-                    return "{$.meta<name>}"
-                    ~ ":ver<{$.meta<ver>   // ''}>"
-                    ~ ":auth<{$.meta<auth> // ''}>"
-                    ~ ":api<{$.meta<api>   // ''}>";
-
-                }
-                method content($content-id --> IO::Handle:D) { }
-            }.new(|%_)
-            !! self.bless(|%_)
-    }
+    method content($content-id --> IO::Handle) { ... }
 }
 
 role Distribution::Locally does Distribution {
     has IO::Path $.prefix;
     method content($address) {
-        my $handle = IO::Handle.new: path => IO::Path.new($address, :CWD($!prefix // $*CWD));
+        my $path   = IO::Path.new($.meta<files>{$address} // $address, :CWD($!prefix.absolute // $*CWD.absolute));
+        my $handle = IO::Handle.new(:$path);
         $handle // $handle.throw;
     }
 }
 
 # A distribution passed to `CURI.install()` will get encapsulated in this
 # class, which normalizes the meta6 data and adds identifiers/content-id
-class CompUnit::Repository::Distribution {
-    has Distribution $!dist handles 'content';
+class CompUnit::Repository::Distribution does Distribution {
+    has Distribution $!dist handles <content prefix>;
     has $!meta;
-    submethod BUILD(:$!meta, :$!dist --> Nil) { }
-    method new(Distribution $dist) {
-        my $meta = $dist.meta.hash;
+    has $.repo;
+    has $.dist-id;
+    has $.repo-name;
+
+    submethod TWEAK(|) {
+        my $meta = $!dist.meta.hash;
         $meta<ver>  //= $meta<version>;
         $meta<auth> //= $meta<authority> // $meta<author>;
-        self.bless(:$dist, :$meta);
+        $!meta = $meta;
+
+        $!repo-name //= $!repo.name if ($!repo.?name // '') ne '';
+        $!repo = $!repo.path-spec if $!repo.defined && $!repo !~~ Str;
     }
+
+    submethod BUILD(:$!dist, :$!repo, :$!dist-id, :$!repo-name --> Nil) { }
+
+    method new(Distribution $dist, *%_) {
+        self.bless(:$dist, |%_)
+    }
+
     method meta { $!meta }
 
     method Str() {
@@ -102,11 +58,32 @@ class CompUnit::Repository::Distribution {
         ~ ":ver<{$.meta<ver>   // ''}>"
         ~ ":auth<{$.meta<auth> // ''}>"
         ~ ":api<{$.meta<api>   // ''}>";
-
     }
 
     method id() {
         return nqp::sha1(self.Str);
+    }
+
+    method from-precomp(CompUnit::Repository::Distribution:U: --> CompUnit::Repository::Distribution) {
+        if %*ENV<RAKUDO_PRECOMP_DIST> -> \dist {
+            my %data := Rakudo::Internals::JSON.from-json: dist;
+            my $repo := %data<repo-name>
+                ?? CompUnit::RepositoryRegistry.repository-for-name(%data<repo-name>)
+                !! CompUnit::RepositoryRegistry.repository-for-spec(%data<repo>);
+            my $dist := $repo.distribution(%data<dist-id>);
+            self.new($dist, :repo(%data<repo>), :repo-name(%data<repo-name>), :dist-id(%data<dist-id>));
+        }
+        else {
+            Nil
+        }
+    }
+
+    method serialize() {
+        Rakudo::Internals::JSON.to-json: {:$.repo, :$.repo-name, :$.dist-id}
+    }
+
+    method perl {
+        self.^name ~ ".new({$!dist.perl}, repo => {$!repo.perl}, repo-name => {$!repo-name.perl})";
     }
 }
 
@@ -115,15 +92,19 @@ class Distribution::Hash does Distribution::Locally {
     submethod BUILD(:$!meta, :$!prefix --> Nil) { }
     method new($hash, :$prefix) { self.bless(:meta($hash), :$prefix) }
     method meta { $!meta }
+    method perl {
+        self.^name ~ ".new({$!meta.perl}, prefix => {$!prefix.perl})";
+    }
 }
 
 class Distribution::Path does Distribution::Locally {
     has $!meta;
-    submethod BUILD(:$!meta, :$!prefix --> Nil) { }
-    method new(IO::Path $prefix, IO::Path :$meta-file is copy) {
-        $meta-file //= $prefix.add('META6.json');
-        die "No meta file located at {$meta-file.path}" unless $meta-file.e;
-        my $meta = Rakudo::Internals::JSON.from-json($meta-file.slurp);
+    has $!meta-file;
+    submethod BUILD(:$!meta, :$!prefix, :$!meta-file --> Nil) { }
+    method new(IO::Path $prefix, IO::Path :$meta-file = IO::Path) {
+        my $meta-path = $meta-file // $prefix.add('META6.json');
+        die "No meta file located at {$meta-path.path}" unless $meta-path.e;
+        my $meta = Rakudo::Internals::JSON.from-json($meta-path.slurp);
 
         # generate `files` (special directories) directly from the file system
         my %bins = Rakudo::Internals.DIR-RECURSE($prefix.add('bin').absolute).map(*.IO).map: -> $real-path {
@@ -144,11 +125,14 @@ class Distribution::Path does Distribution::Locally {
             $name-path.subst(:g, '\\', '/') => $real-path.relative($prefix).subst(:g, '\\', '/')
         }
 
-        $meta<files> = |%bins, |%resources;
+        $meta<files> = Hash.new(%bins, %resources);
 
-        self.bless(:$meta, :$prefix);
+        self.bless(:$meta, :$prefix, :$meta-file);
     }
     method meta { $!meta }
+    method perl {
+       self.^name ~ ".new({$!prefix.perl}, meta-file => {$!meta-file.perl})";
+    }
 }
 
 role CompUnit::Repository { ... }
@@ -174,13 +158,13 @@ class Distribution::Resource {
     }
 
     # delegate appropriate IO::Path methods to the resource IO::Path object
-    method Str(|c) {
+    multi method Str(::?CLASS:D: |c) {
         self.IO.Str(|c)
     }
-    method gist(|c) {
+    multi method gist(::?CLASS:D: |c) {
         self.IO.gist(|c)
     }
-    method perl(|c) {
+    multi method perl(::?CLASS:D: |c) {
         self.IO.perl(|c)
     }
     method absolute(|c) {

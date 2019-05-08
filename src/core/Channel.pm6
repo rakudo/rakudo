@@ -78,12 +78,14 @@ my class Channel does Awaitable {
             nqp::istype(msg, CHANNEL_CLOSE),
             nqp::stmts(
               $!closed_promise_vow.keep(Nil),
+              nqp::push($!queue, msg),
               Nil
             ),
             nqp::if(
               nqp::istype(msg, CHANNEL_FAIL),
               nqp::stmts(
                 $!closed_promise_vow.break(msg.error),
+                nqp::push($!queue, msg),
                 Nil
               ),
               msg
@@ -133,8 +135,17 @@ my class Channel does Awaitable {
             # it's important to do this after tapping the supply, or a
             # value sent between us draining it and doing the tap would
             # not result in a notification, and so we'd not emit it on
-            # the supply. This lost event can then cause a deadlock.
-            loop {
+            # the supply. This lost event can then cause a deadlock. We
+            # also limit ourselves to fetching up to the number of items
+            # currently in the channel before we started; any further
+            # ones will result in an async notification. If we don't, and
+            # the code we `emit` to itself synchronously adds things, then
+            # we can end up with the async notifications piling up becuase
+            # the `whenever` above never gets chance to run. Note that we
+            # may be competing over the items currently in the queue, so the
+            # `last if ...` check in this loop is still essential.
+            my int $initial-items = nqp::elems($!queue);
+            while $initial-items-- {
                 my Mu \got = self.poll;
                 last if nqp::eqaddr(got, Nil);
                 emit got;
@@ -148,33 +159,36 @@ my class Channel does Awaitable {
         }
     }
 
-    method iterator(Channel:D:) {
-        class :: does Iterator {
-            has $!queue;
-            has $!vow;
-            method new(\queue,\vow) { nqp::create(self).SET-SELF(queue,vow) }
-            method SET-SELF(\queue,\vow) { $!queue := queue; $!vow := vow; self }
-            method pull-one() {
-                nqp::if(
-                  nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
-                  nqp::stmts(
-                    nqp::push($!queue,msg),     # make sure other readers see it
-                    $!vow.keep(Nil),
-                    IterationEnd
-                  ),
-                  nqp::if(
-                    nqp::istype(msg,CHANNEL_FAIL),
-                    nqp::stmts(
-                      nqp::push($!queue,msg),   # make sure other readers see it
-                      $!vow.break(my $error := msg.error),
-                      $error.rethrow
-                    ),
-                    msg
-                  )
-                )
-            }
-        }.new($!queue,$!closed_promise_vow)
+    my class Iterate does Iterator {
+        has $!queue;
+        has $!vow;
+        method !SET-SELF(\queue,\vow) {
+            $!queue := queue;
+            $!vow := vow;
+            self
+        }
+        method new(\queue,\vow) { nqp::create(self)!SET-SELF(queue,vow) }
+        method pull-one() {
+            nqp::if(
+              nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
+              nqp::stmts(
+                nqp::push($!queue,msg),     # make sure other readers see it
+                $!vow.keep(Nil),
+                IterationEnd
+              ),
+              nqp::if(
+                nqp::istype(msg,CHANNEL_FAIL),
+                nqp::stmts(
+                  nqp::push($!queue,msg),   # make sure other readers see it
+                  $!vow.break(my $error := msg.error),
+                  $error.rethrow
+                ),
+                msg
+              )
+            )
+        }
     }
+    method iterator(Channel:D:) { Iterate.new($!queue,$!closed_promise_vow) }
 
     method list(Channel:D:) { self.Seq.list }
 

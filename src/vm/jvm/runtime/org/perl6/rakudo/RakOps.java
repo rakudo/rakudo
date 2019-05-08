@@ -55,7 +55,6 @@ public final class RakOps {
         public SixModelObject EMPTYHASH;
         public RakudoJavaInterop rakudoInterop;
         public SixModelObject JavaHOW;
-        public SixModelObject defaultContainerDescriptor;
         boolean initialized;
 
         public GlobalExt(ThreadContext tc) {}
@@ -71,9 +70,8 @@ public final class RakOps {
     private static final int HINT_SIG_RETURNS = 1;
     private static final int HINT_SIG_CODE = 4;
     public static final int HINT_CD_OF = 0;
-    public static final int HINT_CD_RW = 1;
-    public static final int HINT_CD_NAME = 2;
-    public static final int HINT_CD_DEFAULT = 3;
+    public static final int HINT_CD_NAME = 1;
+    public static final int HINT_CD_DEFAULT = 2;
 
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
@@ -133,21 +131,6 @@ public final class RakOps {
         gcx.True = conf.at_key_boxed(tc, "True");
         gcx.Associative = conf.at_key_boxed(tc, "Associative");
         gcx.JavaHOW = conf.at_key_boxed(tc, "Metamodel").st.WHO.at_key_boxed(tc, "JavaHOW");
-
-        SixModelObject defCD = gcx.ContainerDescriptor.st.REPR.allocate(tc,
-            gcx.ContainerDescriptor.st);
-        defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
-            "$!of", HINT_CD_OF, gcx.Mu);
-        tc.native_s = "<element>";
-        defCD.bind_attribute_native(tc, gcx.ContainerDescriptor,
-            "$!name", HINT_CD_NAME);
-        tc.native_i = 1;
-        defCD.bind_attribute_native(tc, gcx.ContainerDescriptor,
-            "$!rw", HINT_CD_RW);
-        defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
-            "$!default", HINT_CD_DEFAULT, gcx.Any);
-        gcx.defaultContainerDescriptor = defCD;
-
         return conf;
     }
 
@@ -352,92 +335,6 @@ public final class RakOps {
             }
         }
         return cont;
-    }
-
-    public static SixModelObject p6decontrv(SixModelObject routine, SixModelObject cont, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        if (cont != null) {
-            if (isRWScalar(tc, gcx, cont)) {
-                routine.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
-                if (tc.native_i == 0) {
-                    /* Recontainerize to RO. */
-                    SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-                    roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                        RakudoContainerSpec.HINT_value,
-                        cont.st.ContainerSpec.fetch(tc, cont));
-                    return roCont;
-                }
-            }
-            else if (cont instanceof NativeRefInstance) {
-                routine.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
-                if (tc.native_i == 0)
-                    return cont.st.ContainerSpec.fetch(tc, cont);
-            }
-        }
-        return cont;
-    }
-
-    public static SixModelObject p6scalarfromdesc(SixModelObject desc, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-
-        if ( Ops.isconcrete(desc, tc) == 0 )
-            desc = gcx.defaultContainerDescriptor;
-        SixModelObject defVal = desc.get_attribute_boxed(tc, gcx.ContainerDescriptor,
-            "$!default", HINT_CD_DEFAULT);
-
-        SixModelObject cont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
-            RakudoContainerSpec.HINT_descriptor, desc);
-        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", RakudoContainerSpec.HINT_value,
-            defVal);
-
-        return cont;
-    }
-
-    public static SixModelObject p6recont_ro(SixModelObject cont, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        if (isRWScalar(tc, gcx, cont)) {
-            SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-            roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                RakudoContainerSpec.HINT_value,
-                cont.st.ContainerSpec.fetch(tc, cont));
-            return roCont;
-        }
-        return cont;
-    }
-
-    private static boolean isRWScalar(ThreadContext tc, GlobalExt gcx, SixModelObject check) {
-        if (!(check instanceof TypeObject) && check.st.WHAT == gcx.Scalar) {
-            SixModelObject desc = check.get_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
-                RakudoContainerSpec.HINT_descriptor);
-            if (desc == null)
-                return false;
-            desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!rw", HINT_CD_RW);
-            return tc.native_i != 0;
-        }
-        return false;
-    }
-
-    public static SixModelObject p6var(SixModelObject cont, ThreadContext tc) {
-        if (cont != null && cont.st.ContainerSpec != null) {
-            GlobalExt gcx = key.getGC(tc);
-            SixModelObject wrapper = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-            wrapper.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                RakudoContainerSpec.HINT_value,
-                cont);
-            return wrapper;
-        }
-        else {
-            return cont;
-        }
-    }
-
-    public static SixModelObject p6reprname(SixModelObject obj, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        obj = Ops.decont(obj, tc);
-        SixModelObject name = gcx.Str.st.REPR.allocate(tc, gcx.Str.st);
-        name.set_str(tc, obj.st.REPR.name);
-        return name;
     }
 
     private static final CallSiteDescriptor rvThrower = new CallSiteDescriptor(

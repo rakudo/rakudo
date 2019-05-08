@@ -8,38 +8,41 @@
 
 proto sub infix:<(elem)>($, $, *% --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D $b --> Bool:D) {
-    nqp::p6bool(
-      (my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-        && nqp::elems($storage)
-        && nqp::if(
-             nqp::eqaddr($b.keyof,Str(Any)),
-             nqp::atkey($storage,$a),                     # normal hash
-             nqp::getattr(                                # object hash
-               nqp::ifnull(
-                 nqp::atkey($storage,$a.WHICH),
-                 BEGIN   # provide virtual value False    # did not exist
-                   nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
-               ),
-               Pair,
-              '$!value'
-             )
-           )
+    nqp::hllbool(
+        nqp::istrue(
+            nqp::elems(my \storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
+              && nqp::if(
+                   nqp::eqaddr($b.keyof,Str(Any)),
+                   nqp::atkey(storage,$a),                      # normal hash
+                   nqp::getattr(                                # object hash
+                     nqp::ifnull(
+                       nqp::atkey(storage,$a.WHICH),
+                       BEGIN   # provide virtual value False    # did not exist
+                         nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
+                     ),
+                     Pair,
+                    '$!value'
+                   )
+                 )
+        )
     )
 }
 multi sub infix:<(elem)>(Any $a, Map:D $b --> Bool:D) {
-    nqp::p6bool(
-      (my $storage := nqp::getattr(nqp::decont($b),Map,'$!storage'))
-        && nqp::elems($storage)                         # haz a haystack
-        && nqp::not_i(nqp::eqaddr($b.keyof,Str(Any)))   # is object hash
-        && nqp::getattr(
-             nqp::ifnull(
-               nqp::atkey($storage,$a.WHICH),           # exists
-               BEGIN   # provide virtual value False    # did not exist
-                 nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
-             ),
-             Pair,
-             '$!value'
-           )
+    nqp::hllbool(
+        nqp::istrue(
+            nqp::elems(                                       # haz a haystack
+              my \storage := nqp::getattr(nqp::decont($b),Map,'$!storage')
+            ) && nqp::not_i(nqp::eqaddr($b.keyof,Str(Any)))   # is object hash
+              && nqp::getattr(
+                   nqp::ifnull(
+                     nqp::atkey(storage,$a.WHICH),            # exists
+                     BEGIN   # provide virtual value False    # did not exist
+                       nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
+                   ),
+                   Pair,
+                   '$!value'
+                 )
+        )
     )
 }
 multi sub infix:<(elem)>(Int:D $a, Range:D $b --> Bool:D) {
@@ -55,9 +58,12 @@ multi sub infix:<(elem)>(Any $a, Iterator:D $b --> Bool:D) {
       nqp::stmts(
         (my str $needle = $a.WHICH),
         nqp::until(
-          nqp::eqaddr((my $pulled := $b.pull-one),IterationEnd),
+          nqp::eqaddr(
+            (my \pulled := nqp::decont($b.pull-one)),
+            IterationEnd
+          ),
           nqp::if(
-            nqp::iseq_s($needle,$pulled.WHICH),
+            nqp::iseq_s($needle,pulled.WHICH),
             return True
           )
         ),
@@ -66,8 +72,8 @@ multi sub infix:<(elem)>(Any $a, Iterator:D $b --> Bool:D) {
     )
 }
 multi sub infix:<(elem)>(Any $a, QuantHash:D $b --> Bool:D) {
-    nqp::p6bool(
-      (my $elems := $b.RAW-HASH) && nqp::existskey($elems,$a.WHICH)
+    nqp::hllbool(
+      (my \elems := $b.RAW-HASH) ?? nqp::existskey(elems,$a.WHICH) !! 0
     )
 }
 

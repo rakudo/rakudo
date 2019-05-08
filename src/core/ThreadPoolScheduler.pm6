@@ -26,6 +26,12 @@ my class ThreadPoolScheduler does Scheduler {
     # Infrastructure for non-blocking `await` for code running on the
     # scheduler.
     my constant THREAD_POOL_PROMPT = Mu.new;
+    my class ContinuationWrapper {
+        has $.cont;
+        method new(Mu \cont) {
+            nqp::p6bindattrinvres(nqp::create(self), ContinuationWrapper, '$!cont', cont)
+        }
+    }
     class ThreadPoolAwaiter does Awaiter {
         has $!queue;
 
@@ -34,7 +40,7 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         sub holding-locks() {
-            nqp::p6bool(nqp::threadlockcount(nqp::currentthread()))
+            nqp::hllbool(nqp::threadlockcount(nqp::currentthread()))
         }
 
         method await(Awaitable:D $a) {
@@ -57,7 +63,7 @@ my class ThreadPoolScheduler does Scheduler {
                     $handle.subscribe-awaiter(-> \success, \result {
                         $success := success;
                         $result := result;
-                        nqp::push($!queue, { nqp::continuationinvoke(c, nqp::null()) });
+                        nqp::push($!queue, ContinuationWrapper.new(c));
                         Nil
                     });
                 });
@@ -229,26 +235,31 @@ my class ThreadPoolScheduler does Scheduler {
 
         method !run-one(\task --> Nil) {
             $!working = 1;
-            nqp::continuationreset(THREAD_POOL_PROMPT, {
-                if nqp::istype(task, List) {
-                    my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
-                    $code(|task);
-                }
-                else {
-                    task.();
-                }
-                CONTROL {
-                    default {
-                        my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
-                        nqp::getcomp('perl6').handle-control($vm-ex);
+            if nqp::istype(task, ContinuationWrapper) {
+                nqp::continuationinvoke(task.cont, nqp::null());
+            }
+            else {
+                nqp::continuationreset(THREAD_POOL_PROMPT, {
+                    if nqp::istype(task, List) {
+                        my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
+                        $code(|task);
                     }
-                }
-                CATCH {
-                    default {
-                        $!scheduler.handle_uncaught($_)
+                    else {
+                        task.();
                     }
-                }
-            });
+                    CONTROL {
+                        default {
+                            my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                            nqp::getcomp('perl6').handle-control($vm-ex);
+                        }
+                    }
+                    CATCH {
+                        default {
+                            $!scheduler.handle_uncaught($_)
+                        }
+                    }
+                });
+            }
             $!working = 0;
 #?if moar
             ++⚛$!completed;
@@ -829,20 +840,31 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     sub to-millis(Numeric() $value) {
-        nqp::if(
-          nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
-          $proposed,
+        nqp::unless(
+          nqp::isnanorinf($value.Num),
+          nqp::if(
+            nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
+            $proposed,
+            nqp::stmts(
+              warn("Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms"),
+              1
+            )
+          ),
           nqp::stmts(
-            warn("Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms"),
+            warn("Minimum timer resolution is 1ms; using that instead of {$value}ms"),
             1
           )
         )
     }
     sub to-millis-allow-zero(Numeric() $value) {
-        nqp::if(
-          nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
-          $proposed
-          # not true == 0 == what we need
+        nqp::unless(
+          nqp::isnanorinf($value.Num),
+          nqp::if(
+            nqp::isgt_i((my int $proposed = (1000 * $value).Int), 0),
+            $proposed,
+            # not true == 0 == what we need
+          ),
+          0
         )
     }
     sub wrap-catch(&code, &catch) {
@@ -851,7 +873,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     my class TimerCancellation is repr('AsyncTask') { }
 
-    method CUE_DELAY_TIMES(&code, int $delay, int $times, %args) {
+    method !CUE_DELAY_TIMES(&code, int $delay, int $times, %args) {
         nqp::stmts(
           (my &run := nqp::if(                   # set up what we need to run
             nqp::isnull(my $catch :=
@@ -947,7 +969,7 @@ my class ThreadPoolScheduler does Scheduler {
             nqp::isconcrete(my $at := nqp::atkey($args,"at"))
               && nqp::isconcrete(my $in := nqp::atkey($args,"in")),
             die("Cannot specify :at and :in at the same time"),
-            self.CUE_DELAY_TIMES(
+            self!CUE_DELAY_TIMES(
               &code,
               to-millis(nqp::ifnull(
                 $in,
@@ -965,11 +987,11 @@ my class ThreadPoolScheduler does Scheduler {
             && nqp::isconcrete(
                  nqp::atkey(nqp::getattr(%_,Map,'$!storage'),"in")),
           die("Cannot specify :at and :in at the same time"),
-          self.CUE_DELAY_TIMES(&code, to-millis-allow-zero($at - now), 0, %_)
+          self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($at - now), 0, %_)
         )
     }
     multi method cue(&code, :$in!, *%_) {
-        self.CUE_DELAY_TIMES(&code, to-millis-allow-zero($in), 0, %_)
+        self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($in), 0, %_)
     }
     multi method cue(&code, :&catch! --> Nil) {
         nqp::push(self!general-queue, wrap-catch(&code, &catch))

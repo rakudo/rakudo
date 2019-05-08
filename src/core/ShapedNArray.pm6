@@ -1,6 +1,6 @@
 # this is actually part of the Array class
 
-    constant dim2role :=
+    my constant \dim2role =
       nqp::list(ShapedArray,Shaped1Array,Shaped2Array,Shaped3Array);
 
     sub set-shape(\base, \shape) is raw {

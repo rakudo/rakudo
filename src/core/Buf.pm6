@@ -1,3 +1,5 @@
+my class Kernel                 { ... }
+my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
@@ -5,10 +7,16 @@ my class X::Cannot::Empty       { ... }
 my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
 
+# externalize the endian indicators
+enum Endian (
+  NativeEndian => nqp::box_i(nqp::const::BINARY_ENDIAN_NATIVE,Int),
+  LittleEndian => nqp::box_i(nqp::const::BINARY_ENDIAN_LITTLE,Int),
+  BigEndian    => nqp::box_i(nqp::const::BINARY_ENDIAN_BIG,Int),
+);
+
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
-    X::NYI.new(
-      feature => "{$?CLASS.^name.comb(/^ \w+ /)}s with native {T.^name}"
-    ).throw unless nqp::istype(T,Int);
+    die "Can only parameterize with native int types, not '{T.^name}'."
+      unless nqp::objprimspec(T) == 1 || nqp::objprimspec(T) == 4 || nqp::objprimspec(T) == 5;
 
     # other then *8 not supported yet
     my int $bpe = try {
@@ -19,7 +27,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         (T.^nativesize / 8).Int
     } // 1;
 
-    multi method WHICH(Blob:D:) {
+    multi method WHICH(Blob:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::if(
@@ -41,11 +49,26 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::splice(nqp::create(self),@values,0,0)
     }
     multi method new(Blob: @values) {
-        @values.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<new>,:what(self.^name)))
-          !! self!push-list("initializ",nqp::create(self),@values)
+        nqp::create(self).STORE(@values, :INITIALIZE)
     }
-    multi method new(Blob: *@values) { self.new(@values) }
+    multi method new(Blob: *@values) {
+        nqp::create(self).STORE(@values, :INITIALIZE)
+    }
+
+    proto method STORE(Blob:D: |) {*}
+    multi method STORE(Blob:D: Iterable:D \iterable, :$INITIALIZE) {
+        $INITIALIZE
+          ?? iterable.is-lazy
+            ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+            !! self!push-list("initializ",self,iterable)
+          !! X::Assignment::RO.new(:value(self)).throw
+    }
+    multi method STORE(Blob:D: Any:D \non-iterable, :$INITIALIZE) {
+        X::Assignment::RO.new(:value(self)).throw unless $INITIALIZE;
+        my int $elems = non-iterable.elems;
+        nqp::push_i(self,non-iterable.AT-POS($_)) for ^$elems; 
+        self
+    }
 
     proto method allocate(|) {*}
     multi method allocate(Blob:U: Int:D $elements) {
@@ -76,12 +99,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method EXISTS-POS(Blob:D: int \pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
     }
     multi method EXISTS-POS(Blob:D: Int:D \pos) {
-        nqp::p6bool(
+        nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
     }
@@ -101,7 +124,156 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
 
-    multi method Bool(Blob:D:) { nqp::p6bool(nqp::elems(self)) }
+#?if moar
+    # for simplicity's sake, these are not multis
+    method read-int8(::?ROLE:D: int $offset, Endian $? --> int) is raw {
+        nqp::readint(self,$offset,
+          nqp::bitor_i(
+            nqp::const::BINARY_SIZE_8_BIT,
+            nqp::const::BINARY_ENDIAN_NATIVE
+          )
+        )
+    }
+    method read-int16(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> int
+    ) is raw {
+        nqp::readint(self,$offset,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian))
+    }
+    method read-int32(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> int
+    ) is raw {
+        nqp::readint(self,$offset,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
+    }
+    method read-int64(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> int
+    ) is raw {
+        nqp::readint(self,$offset,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
+    }
+    method read-int128(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> Int
+    ) is raw {
+        my \unsigned := self.read-uint128($offset,$endian);
+        unsigned >= 1 +< 127 ?? unsigned - 1 +< 128 !! unsigned
+    }
+
+    method read-uint8(::?ROLE:D: int $offset, Endian $? --> uint) is raw {
+        nqp::readuint(self,$offset,
+          nqp::bitor_i(
+            nqp::const::BINARY_SIZE_8_BIT,
+            nqp::const::BINARY_ENDIAN_NATIVE
+          )
+        )
+    }
+    method read-uint16(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> uint
+    ) is raw {
+        nqp::readuint(self,$offset,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian))
+    }
+    method read-uint32(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> uint
+    ) is raw {
+        nqp::readuint(self,$offset,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
+    }
+    method read-uint64(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> uint
+    ) is raw {
+        my \signed := nqp::readuint(self,$offset,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian));
+        signed < 0 ?? signed + 1 +< 64 !! signed
+
+    }
+    method read-uint128(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> uint
+    ) is raw {
+        my \first  := self.read-uint64($offset,     $endian);
+        my \second := self.read-uint64($offset + 8, $endian);
+        $endian == BigEndian
+          || ($endian == NativeEndian && Kernel.endian == BigEndian)
+          ?? first +< 64 +| second
+          !! second +< 64 +| first
+    }
+
+    method read-num32(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> num
+    ) is raw {
+        nqp::readnum(self,$offset,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
+    }
+    method read-num64(::?ROLE:D:
+      int $offset, Endian $endian = NativeEndian --> num
+    ) is raw {
+        nqp::readnum(self,$offset,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
+    }
+#?endif
+
+    method read-bits(::?ROLE:D \SELF: int $pos, Int:D $bits --> Int:D) {
+        my $result := SELF.read-ubits($pos, $bits);
+        $result > 1 +< ($bits - 1) - 1
+          ?? $result - 1 +< $bits
+          !! $result
+    }
+
+    method read-ubits(::?ROLE:D \SELF: int $pos, Int:D $bits --> UInt:D) {
+
+        # sanity checking
+        die "Can only read from position 0..{
+            nqp::elems(self) * 8 - 1
+        } in buffer{
+            " '" ~ SELF.VAR.name ~ "'" if nqp::iscont(SELF)
+        }, you tried: $pos"
+          if $pos < 0;
+
+        die "Can only read 1..{
+            nqp::elems(self) * 8 - $pos
+        } bits from position $pos in buffer{
+            " '" ~ SELF.VAR.name ~ "'" if nqp::iscont(SELF)
+        }, you tried: $bits"
+          if ($pos + $bits - 1) +> 3 >= nqp::elems(self);
+
+        # set up stuff to work with
+        my int $first-bit = $pos +& 7;             # 0 = left-aligned
+        my int $last-bit  = ($pos + $bits) +& 7;   # 0 = right-aligned
+        my int $first-byte = $pos +> 3;
+        my int $last-byte  = ($pos + $bits - 1) +> 3;
+
+# l=least significant byte, m=most significant byte
+# 00010010 00110100 01011100 01111000 10011010
+# ________ mmmmmmmm llllllll ________ ________   8,16 mmmmmmmm llllllll
+# ________ __mmmmmm llllllll ________ ________   8,16   mmmmmm llllllll
+# ________ mmmmmmll llllll__ ________ ________   8,16   mmmmmm llllllll
+# ________ __mmmmmm mmllllll ll______ ________  10,16 mmmmmmmm llllllll
+# ________ ________ ______ll lll_____ ________  21, 5             lllll
+# ________ ________ ________ __lllll_ ________  26, 5             lllll
+
+        nqp::if(
+          nqp::iseq_i($first-byte,$last-byte),
+          (my $result := nqp::atpos_i(self,$first-byte)),
+          nqp::stmts(
+            ($result  := 0),
+            (my int $i = $first-byte - 1),
+            nqp::while(
+              nqp::isle_i(++$i,$last-byte),
+              ($result :=
+                nqp::bitshiftl_I($result,8,Int) +| nqp::atpos_i(self,$i))
+            )
+          )
+        );
+
+        $last-bit
+          ?? ($result +> (8 - $last-bit)) # not right-aligned, so
+               +& (1 +< $bits - 1)         # shift and mask
+          !! $first-bit                   # right-aligned
+            ?? $result +& (1 +< $bits - 1) # but not left-aligned, so mask
+            !! $result                     # also left-aligned, already done
+    }
+
+    multi method Bool(Blob:D:) { nqp::hllbool(nqp::elems(self)) }
     method Capture(Blob:D:) { self.List.Capture }
 
     multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
@@ -116,10 +288,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
 
     proto method decode(|) {*}
-    multi method decode(Blob:D:) {
-        nqp::p6box_s(nqp::decode(self, 'utf8'))
+    multi method decode(Blob:D: $encoding = self.encoding // "utf-8") {
+        nqp::p6box_s(
+          nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding))
+        )
     }
-#?if moar
+#?if !jvm
     multi method decode(Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False) {
         nqp::p6box_s(
           nqp::decoderepconf(self,
@@ -134,7 +308,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             $strict ?? 0 !! 1))
     }
 #?endif
-#?if !moar
+#?if jvm
     multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
         nqp::p6box_s(
           nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
@@ -144,74 +318,136 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?endif
 
-    multi method list(Blob:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Blobby {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-                  nqp::atpos_i($!blob,$!i),
-                  IterationEnd
-                )
-            }
-        }.new(self)).cache
+    my class BlobAsList does Rakudo::Iterator::Blobby {
+        method pull-one() is raw {
+            nqp::if(
+              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
+              nqp::atpos_i($!blob,$!i),
+              IterationEnd
+            )
+        }
     }
+    multi method list(Blob:D:) { Seq.new(BlobAsList.new(self)).cache }
 
     multi method gist(Blob:D:) {
-        self.^name ~ ':0x<' ~ self.map( -> \el {
-            state $i = 0;
-            ++$i == 101 ?? '...'
-                !! $i == 102 ?? last()
-                    !! nqp::if(nqp::iseq_i( # el.fmt: '%02x'
-                        nqp::chars(my str $v = nqp::lc(el.base: 16)),1),
-                        nqp::concat('0',$v),$v)
-        }) ~ '>'
+        my int $todo = nqp::elems(self) min 100;
+        my $bytes := nqp::list_s;
+        for ^$todo -> int $i {
+            nqp::push_s(
+              $bytes,
+              nqp::if(
+                nqp::isle_i((my int $byte = nqp::atpos_i(self,$i)),15),
+                nqp::concat("0",nqp::base_I(nqp::box_i($byte,Int),16)),
+                nqp::base_I(nqp::box_i($byte,Int),16)
+              )
+            )
+        }
+        nqp::push_s($bytes,"...") if nqp::elems(self) > $todo;
+        self.^name ~ ':0x<' ~ nqp::join(" ",$bytes) ~ '>'
     }
     multi method perl(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';
     }
 
-    method subbuf(Blob:D: $from, $length?) {
-        nqp::stmts(
-          (my int $elems = nqp::elems(self)),
+    # Made this a sub instead of a private method so that the optimizer
+    # doesn't need to put in IntLexRef's for the native int parameters.
+    # Since we're not using any attributes, just self, that was an easy
+    # choice to make.
+    sub subbuf-end(\SELF, int $start, int $end, int $elems) {
+        nqp::if(
+          nqp::islt_i($start,0) || nqp::isgt_i($start,$elems),
+          Failure.new( X::OutOfRange.new(
+            what  => '"From argument to subbuf',
+            got   => $start,
+            range => "0.." ~ $elems
+          )),
           nqp::if(
-            $length.DEFINITE && $length < 0,
-            X::OutOfRange.new(
-              :what('Len element to subbuf'), :got($length), :range("0..$elems"),
-            ).fail,
-            nqp::stmts(
-              (my int $pos),
-              (my int $todo),
-              nqp::if(
-                nqp::istype($from,Range),
-                nqp::stmts(
-                  $from.int-bounds($pos, my int $max),
-                  ($todo = nqp::add_i(nqp::sub_i($max, $pos), 1))),
-                nqp::stmts(
-                  ($pos = nqp::istype($from, Callable) ?? $from($elems) !! $from.Int),
-                  ($todo = $length.DEFINITE ?? $length.Int min $elems - $pos !! $elems - $pos))),
-              nqp::if(
-                nqp::islt_i($pos, 0),
-                X::OutOfRange.new(
-                  :what('From argument to subbuf'), :got($from.gist), :range("0..$elems"),
-                  :comment("use *-{abs $pos} if you want to index relative to the end"),
-                ).fail,
-                nqp::if(
-                  nqp::isgt_i($pos, $elems),
-                  X::OutOfRange.new(
-                    :what('From argument to subbuf'), :got($from.gist), :range("0..$elems"),
-                  ).fail,
-                  nqp::if(
-                    nqp::isle_i($todo, 0),
-                    nqp::create(self), # we want zero elements; return empty Blob
-                    nqp::stmts(
-                      (my $subbuf := nqp::create(self)),
-                      nqp::setelems($subbuf, $todo),
-                      (my int $i = -1),
-                      --$pos,
-                      nqp::while(
-                        nqp::islt_i(++$i,$todo),
-                        nqp::bindpos_i($subbuf, $i, nqp::atpos_i(self, ++$pos))),
-                      $subbuf)))))))
+            nqp::isle_i(
+              (my int $last = nqp::if(nqp::isge_i($end,$elems),$elems-1,$end)),
+              $start - 1
+            ),                                # 0 elements to return
+            nqp::create(SELF),                # just create a new one
+            nqp::slice(SELF,$start,$last)     # do the actual slice
+          )
+        )
+    }
+    sub subbuf-length(\SELF, int $from, int $length, int $elems) {
+        nqp::if(
+          nqp::islt_i($length,0),
+          Failure.new( X::OutOfRange.new(
+            what  => 'Len element to subbuf',
+            got   => $length,
+            range => "0.." ~ $elems
+          )),
+          subbuf-end(SELF, $from, $from + $length - 1, $elems)
+        )
+    }
+
+    proto method subbuf(|) {*}
+    multi method subbuf(Blob:D: Range:D $fromto) {
+        nqp::if(
+          nqp::getattr_i(nqp::decont($fromto),Range,'$!is-int'),
+          nqp::stmts(
+            (my int $start = nqp::add_i(
+              nqp::unbox_i(nqp::getattr(nqp::decont($fromto),Range,'$!min')),
+              nqp::getattr_i(nqp::decont($fromto),Range,'$!excludes-min')
+            )),
+            (my int $end = nqp::sub_i(
+              nqp::unbox_i(nqp::getattr(nqp::decont($fromto),Range,'$!max')),
+              nqp::getattr_i(nqp::decont($fromto),Range,'$!excludes-max')
+            )),
+            subbuf-end(self, $start, $end, nqp::elems(self))
+          ),
+          Failure.new( X::AdHoc.new(
+            payload => "Must specify a Range with integer bounds to subbuf"
+          ))
+        )
+    }
+    multi method subbuf(Blob:D: Int:D $From) {
+        my int $elems = nqp::elems(self);
+        my int $from  = $From;
+        subbuf-end(self, $from, $elems, $elems)
+    }
+    multi method subbuf(Blob:D: &From) {
+        my int $elems = nqp::elems(self);
+        my int $from  = From(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $elems, $elems)
+    }
+    multi method subbuf(Blob:D: Int:D $From, Int:D $Length) {
+        my int $from   = $From;
+        my int $length = $Length;
+        subbuf-length(self, $from, $length, nqp::elems(self))
+    }
+    multi method subbuf(Blob:D: Int:D $From, &End) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = $From;
+        my int $end    = End(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $end, $elems)
+    }
+    multi method subbuf(Blob:D: &From, Int:D $Length) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = From(nqp::box_i($elems,Int));
+        my int $length = $Length;
+        subbuf-length(self, $from, $length, $elems)
+    }
+    multi method subbuf(Blob:D: &From, &End) {
+        my int $elems  = nqp::elems(self);
+        my int $from   = From(nqp::box_i($elems,Int));
+        my int $end    = End(nqp::box_i($elems,Int));
+        subbuf-end(self, $from, $end, $elems)
+    }
+    multi method subbuf(Blob:D: \from, Whatever) {
+        self.subbuf(from)
+    }
+    multi method subbuf(Blob:D: \from, Numeric \length) {
+        length == Inf ?? self.subbuf(from) !! self.subbuf(from,length.Int)
+    }
+    multi method subbuf(Blob:D: \from, Any:U) {
+        Rakudo::Deprecations.DEPRECATED(
+          "{self.^name}.subbuf({from}) or {self.^name}.subbuf({from},*)",
+          :what("{self.^name}.subbuf({from},Any)")
+        );
+        self.subbuf(from)
     }
 
     method reverse(Blob:D:) {
@@ -282,81 +518,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     proto method unpack(|) {*}
     multi method unpack(Blob:D: Str:D $template) {
-        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-            feature => "the 'unpack' method",
-            use     => "pack"
-        ).throw;
-        self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
+          ?? X::Experimental.new(
+               feature => "the 'unpack' method",
+               use     => "pack"
+             ).throw
+          !! self.unpack($template.comb(/<[a..zA..Z]>[\d+|'*']?/))
     }
     multi method unpack(Blob:D: @template) {
-        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-            feature => "the 'unpack' method",
-            use     => "pack"
-        ).throw;
-        my @bytes = self.list;
-        my @fields;
-        for @template -> $unit {
-            my $directive = substr($unit,0,1);
-            my $amount    = substr($unit,1);
-            my $pa = $amount eq ''  ?? 1            !!
-                     $amount eq '*' ?? @bytes.elems !! +$amount;
-
-            given $directive {
-                when 'a' | 'A' | 'Z' {
-                    @fields.push: @bytes.splice(0, $pa).map(&chr).join;
-                }
-                when 'H' {
-                    my str $hexstring = '';
-                    for ^$pa {
-                        my $byte = shift @bytes;
-                        $hexstring ~= ($byte +> 4).fmt('%x')
-                                    ~ ($byte % 16).fmt('%x');
-                    }
-                    @fields.push($hexstring);
-                }
-                when 'x' {
-                    splice @bytes, 0, $pa;
-                }
-                when 'C' {
-                    @fields.append: @bytes.splice(0, $pa);
-                }
-                when 'S' | 'v' {
-                    for ^$pa {
-                        last if @bytes.elems < 2;
-                        @fields.append: shift(@bytes)
-                                    + (shift(@bytes) +< 0x08);
-                    }
-                }
-                when 'L' | 'V' {
-                    for ^$pa {
-                        last if @bytes.elems < 4;
-                        @fields.append: shift(@bytes)
-                                    + (shift(@bytes) +< 0x08)
-                                    + (shift(@bytes) +< 0x10)
-                                    + (shift(@bytes) +< 0x18);
-                    }
-                }
-                when 'n' {
-                    for ^$pa {
-                        last if @bytes.elems < 2;
-                        @fields.append: (shift(@bytes) +< 0x08)
-                                    + shift(@bytes);
-                    }
-                }
-                when 'N' {
-                    for ^$pa {
-                        last if @bytes.elems < 4;
-                        @fields.append: (shift(@bytes) +< 0x18)
-                                    + (shift(@bytes) +< 0x10)
-                                    + (shift(@bytes) +< 0x08)
-                                    + shift(@bytes);
-                    }
-                }
-                X::Buf::Pack.new(:$directive).throw;
-            }
-        }
-
-        return |@fields;
+        nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
+          ?? X::Experimental.new(
+               feature => "the 'unpack' method",
+               use     => "pack"
+             ).throw
+          !! nqp::getlexcaller('EXPERIMENTAL-PACK')(self, @template)
     }
 
     # XXX: the pack.t spectest file seems to require this method
@@ -450,6 +625,29 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           expected  => T,
         ))
     }
+    multi method ACCEPTS(Blob:D: Blob:D \Other) {
+        nqp::hllbool(
+          nqp::unless(
+            nqp::eqaddr(self,my \other := nqp::decont(Other)),
+            nqp::if(
+              nqp::iseq_i(
+                (my int $elems = nqp::elems(self)),
+                nqp::elems(other)
+              ),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                    && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i(other,$i)
+                       ),
+                  nqp::null
+                ),
+                nqp::iseq_i($i,$elems)
+              )
+            )
+          )
+        )
+    }
 }
 
 constant blob8 = Blob[uint8];
@@ -458,37 +656,19 @@ constant blob32 = Blob[uint32];
 constant blob64 = Blob[uint64];
 
 my class utf8 does Blob[uint8] is repr('VMArray') {
-    multi method decode(utf8:D: $encoding) {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-8 buffer as if it were $encoding"
-            unless $enc eq 'utf8';
-        nqp::p6box_s(nqp::decode(self, 'utf8'))
-    }
-    method encoding() { 'utf-8' }
+    method encoding(--> "utf-8") { }
     multi method Str(utf8:D:) { self.decode }
     multi method Stringy(utf8:D:) { self.decode }
 }
 
 my class utf16 does Blob[uint16] is repr('VMArray') {
-    multi method decode(utf16:D: $encoding = 'utf-16') {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-16 buffer as if it were $encoding"
-            unless $enc eq 'utf16';
-        nqp::p6box_s(nqp::decode(self, 'utf16'))
-    }
-    method encoding() { 'utf-16' }
+    method encoding(--> "utf-16") { }
     multi method Str(utf16:D:) { self.decode }
     multi method Stringy(utf16:D:) { self.decode }
 }
 
 my class utf32 does Blob[uint32] is repr('VMArray') {
-    multi method decode(utf32:D: $encoding = 'utf-32') {
-        my $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding);
-        die "Can not decode a utf-32 buffer as if it were $encoding"
-            unless $enc eq 'utf32';
-        nqp::p6box_s(nqp::decode(self, 'utf32'))
-    }
-    method encoding() { 'utf-32' }
+    method encoding(--> "utf-32") { }
     multi method Str(utf32:D:) { self.decode }
     multi method Stringy(utf32:D:) { self.decode }
 }
@@ -523,6 +703,183 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::bindpos_i(self,$pos,assignee)
+    }
+
+    multi method STORE(Buf:D: Blob:D $blob) {
+        nqp::splice(nqp::setelems(self,0),$blob,0,0)
+    }
+    # The "is default" is needed to prevent runtime dispatch errors
+    multi method STORE(Buf:D: int @values) is default {
+        nqp::splice(nqp::setelems(self,0),@values,0,0)
+    }
+    multi method STORE(Buf:D: Iterable:D \iterable) {
+        iterable.is-lazy
+          ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+          !! self!push-list("initializ",nqp::setelems(self,0),iterable);
+    }
+    multi method STORE(Buf:D: Any:D \non-iterable) {
+        my int $elems = non-iterable.elems;
+        nqp::setelems(self,0);
+        nqp::push_i(self,non-iterable.AT-POS($_)) for ^$elems; 
+        self
+    }
+
+#?if moar
+    # for simplicity's sake, these are not multis
+    method write-int8(::?ROLE:D:
+      int $offset, int8 $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writeint(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_8_BIT,$endian))
+    }
+    method write-int16(::?ROLE:D:
+      int $offset, int16 $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writeint(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian))
+    }
+    method write-int32(::?ROLE:D:
+      int $offset, int32 $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writeint(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
+    }
+    method write-int64(::?ROLE:D:
+      int $offset, Int:D $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writeint(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
+    }
+    method write-int128(::?ROLE:D:
+      int $offset, Int:D $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        # These uints are intentional to keep the value within 64 bits
+        my uint $first  = ($value +> 64) +& (1 +< 64 - 1);
+        my uint $second = $value         +& (1 +< 64 - 1);
+        my $be = $endian == BigEndian
+          || ($endian == NativeEndian && Kernel.endian == BigEndian);
+
+        self.write-int64($offset,     $be ?? $first !! $second, $endian);
+        self.write-int64($offset + 8, $be ?? $second !! $first, $endian);
+    }
+    method write-uint8(::?ROLE:D:
+      int $offset, uint8 $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writeuint(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_8_BIT,$endian))
+    }
+    method write-uint16(::?ROLE:D:
+      int $offset, uint16 $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writeuint(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian))
+    }
+    method write-uint32(::?ROLE:D:
+      int $offset, uint32 $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writeuint(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
+    }
+    method write-uint64(::?ROLE:D:
+      int $offset, UInt:D $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writeuint(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
+    }
+    method write-uint128(::?ROLE:D:
+      int $offset, UInt:D $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        my \first  := $value +> 64;
+        my \second := $value +& ( 1 +< 64 - 1 );
+        my $be = $endian == BigEndian
+          || ($endian == NativeEndian && Kernel.endian == BigEndian);
+
+        self.write-uint64($offset,     $be ?? first !! second, $endian);
+        self.write-uint64($offset + 8, $be ?? second !! first, $endian);
+    }
+    method write-num32(::?ROLE:D:
+      int $offset, num32 $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writenum(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian))
+    }
+    method write-num64(::?ROLE:D:
+      int $offset, num64 $value, Endian $endian = NativeEndian --> Nil
+    ) is raw {
+        nqp::writenum(self,$offset,$value,
+          nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian))
+    }
+#?endif
+
+    method write-bits(
+      ::?ROLE:D \SELF: int $pos, Int:D $bits, Int:D \value
+    --> Nil) {
+        SELF.write-ubits($pos, $bits, value +& (1 +< $bits - 1))
+    }
+
+    method write-ubits(
+      ::?ROLE:D \SELF: int $pos, Int:D $bits, UInt:D \value
+    --> Nil) {
+
+        # sanity check
+        die "Can only write from position 0..*in buffer{
+            " '" ~ SELF.VAR.name ~ "'" if nqp::iscont(SELF)
+        }, you tried: $pos"
+          if $pos < 0;
+
+        # set up basic info
+        my int $first-bit = $pos +& 7;
+        my int $last-bit  = ($pos + $bits) +& 7;
+        my int $first-byte = $pos +> 3;
+        my int $last-byte  = ($pos + $bits - 1) +> 3;
+
+        my $value := value +& (1 +< $bits - 1);            # mask valid part
+        $value := $value +< (8 - $last-bit) if $last-bit;  # move into position
+
+        my int $lmask = nqp::sub_i(1 +< $first-bit,1) +< (8 - $first-bit)
+          if $first-bit;
+        my int $rmask = 1 +< nqp::sub_i(8 - $last-bit,1)
+          if $last-bit;
+
+        # all done in a single byte
+        if $first-byte == $last-byte {
+            nqp::bindpos_i(self,$first-byte,
+              $value +| (nqp::atpos_i(self,$first-byte) +& ($lmask +| $rmask))
+            );
+        }
+
+        # spread over multiple bytes
+        else {
+            my int $i = $last-byte;
+
+            # process last byte first if it is a partial
+            if $last-bit {
+                nqp::bindpos_i(self,$i,
+                  ($value +& 255) +| (nqp::atpos_i(self,$i) +& $rmask)
+                );
+                $value := $value +> 8;
+            }
+
+            # not a partial, so make sure we process last byte later
+            else {
+                ++$i;
+            }
+
+            # walk from right to left, exclude left-most is partial
+            my int $last = $first-byte + nqp::isgt_i($first-bit,0);
+            nqp::while(
+              nqp::isge_i(--$i,$last),
+              nqp::stmts(
+                nqp::bindpos_i(self,$i,($value +& 255)),
+                ($value := $value +> 8)
+              )
+            );
+
+            # process last byte if it was a partial
+            nqp::bindpos_i(self,$i,($value +& 255)
+              +| (nqp::atpos_i(self,$i) +& $lmask))
+              if $first-bit;
+        }
     }
 
     multi method list(Buf:D:) {
@@ -652,7 +1009,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         Proxy.new(
             FETCH   => sub ($) { $subbuf },
             STORE   => sub ($, Blob:D $new) {
-                nqp::splice(nqp::decont(self),nqp::decont($new),$from,$elems)
+                nqp::splice(self,nqp::decont($new),$from,$elems)
             }
         );
     }
@@ -663,98 +1020,6 @@ constant buf8  = Buf[uint8];
 constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
-
-proto sub pack($, |) {*}
-multi sub pack(Str $template, *@items) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-        feature => "the 'pack' function",
-        use     => "pack"
-    ).throw;
-    pack($template.comb(/<[a..zA..Z]>[\d+|'*']?/), @items)
-}
-
-multi sub pack(@template, *@items) {
-    nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK')) and X::Experimental.new(
-        feature => "the 'pack' function",
-        use     => "pack"
-    ).throw;
-    my @bytes;
-    for @template -> $unit {
-        my $directive = substr($unit,0,1);
-        my $amount    = substr($unit,1);
-
-        given $directive {
-            when 'A' {
-                my $ascii = shift @items // '';
-                my $data = $ascii.ords.cache;
-                if $amount eq '*' {
-                    $amount = $data.elems;
-                }
-                if $amount eq '' {
-                    $amount = 1;
-                }
-                for (@$data, 0x20 xx *).flat[^$amount] -> $byte {
-                    X::Buf::Pack::NonASCII.new(:char($byte.chr)).throw if $byte > 0x7f;
-                    @bytes.push: $byte;
-                }
-            }
-            when 'a' {
-                my $data = shift @items // Buf.new;
-                $data.=encode if nqp::istype($data,Str);
-                if $amount eq '*' {
-                    $amount = $data.elems;
-                }
-                if $amount eq '' {
-                    $amount = 1;
-                }
-                for (@$data, 0 xx *).flat[^$amount] -> $byte {
-                    @bytes.push: $byte;
-                }
-            }
-            when 'H' {
-                my $hexstring = shift @items // '';
-                if $hexstring.chars % 2 {
-                    $hexstring ~= '0';
-                }
-                @bytes.append: map { :16($_) }, $hexstring.comb(/../);
-            }
-            when 'x' {
-                if $amount eq '*' {
-                    $amount = 0;
-                }
-                elsif $amount eq '' {
-                    $amount = 1;
-                }
-                @bytes.append: 0x00 xx $amount;
-            }
-            when 'C' {
-                my $number = shift(@items);
-                @bytes.push: $number % 0x100;
-            }
-            when 'S' | 'v' {
-                my $number = shift(@items);
-                @bytes.append: ($number, $number +> 0x08) >>%>> 0x100;
-            }
-            when 'L' | 'V' {
-                my $number = shift(@items);
-                @bytes.append: ($number, $number +> 0x08,
-                              $number +> 0x10, $number +> 0x18) >>%>> 0x100;
-            }
-            when 'n' {
-                my $number = shift(@items);
-                @bytes.append: ($number +> 0x08, $number) >>%>> 0x100;
-            }
-            when 'N' {
-                my $number = shift(@items);
-                @bytes.append: ($number +> 0x18, $number +> 0x10,
-                              $number +> 0x08, $number) >>%>> 0x100;
-            }
-            X::Buf::Pack.new(:$directive).throw;
-        }
-    }
-
-    return Buf.new(@bytes);
-}
 
 multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
@@ -854,29 +1119,29 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
 }
 
 multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
-    nqp::p6bool(
+    nqp::hllbool(
       nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
     )
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
 multi sub infix:<eq> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::eqaddr(a,b) || a.SAME(b))
+    nqp::hllbool(nqp::eqaddr(a,b) || a.SAME(b))
 }
 multi sub infix:<ne> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
+    nqp::hllbool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
 }
 multi sub infix:<lt> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),-1))
+    nqp::hllbool(nqp::iseq_i(a.COMPARE(b),-1))
 }
 multi sub infix:<gt> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::iseq_i(a.COMPARE(b),1))
+    nqp::hllbool(nqp::iseq_i(a.COMPARE(b),1))
 }
 multi sub infix:<le> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::isne_i(a.COMPARE(b),1))
+    nqp::hllbool(nqp::isne_i(a.COMPARE(b),1))
 }
 multi sub infix:<ge> (Blob:D \a, Blob:D \b) {
-    nqp::p6bool(nqp::isne_i(a.COMPARE(b),-1))
+    nqp::hllbool(nqp::isne_i(a.COMPARE(b),-1))
 }
 
 proto sub subbuf-rw($, $?, $?, *%) {*}

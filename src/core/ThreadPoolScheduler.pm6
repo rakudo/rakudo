@@ -1008,13 +1008,12 @@ my class ThreadPoolScheduler does Scheduler {
             die("Cannot specify :at and :in at the same time"),
             nqp::stmts(
               nqp::if(
-                nqp::isconcrete($at),
-                nqp::unless(
-                  nqp::isconcrete($at := validate-seconds($at)),
-                  (return Cancellation.new(async_handles => []))
-                ),
-                nqp::unless(
-                  nqp::isconcrete($in := validate-seconds($in)),
+                nqp::isconcrete($at)
+                  && nqp::not_i(nqp::isconcrete($at := validate-seconds($at))),
+                (return Cancellation.new(async_handles => [])),
+                nqp::if(
+                  nqp::isconcrete($in)
+                    && nqp::not_i(nqp::isconcrete($in := validate-seconds($in))),
                   (return Cancellation.new(async_handles => []))
                 )
               ),

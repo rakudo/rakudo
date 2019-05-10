@@ -1,4 +1,5 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
+    has $!lock = Lock.new;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
     has %!loaded; # cache compunit lookup for self.need(...)
     has %!seen;   # cache distribution lookup for self!matching-dist(...)
@@ -10,8 +11,6 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp-store;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
-
-    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo --> Nil) { }
 
     my class InstalledDistribution is Distribution::Hash {
         method content($address) {

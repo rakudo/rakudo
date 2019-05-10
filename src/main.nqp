@@ -30,7 +30,7 @@ my $install-dir := $execname ne ''
 #?if moar
 my $execname := nqp::execname();
 my $install-dir := $config<osname> eq 'openbsd'
-    ?? $config<prefix> ~ '/bin/perl6-m'
+    ?? $comp.config<prefix>
     !! $execname ne ''
         ?? nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1))
         !! $comp.config<prefix>;
@@ -38,7 +38,7 @@ my $install-dir := $config<osname> eq 'openbsd'
 #?if js
 my $execname := nqp::execname();
 my $install-dir := $config<osname> eq 'openbsd'
-    ?? $config<prefix> ~ '/bin/perl6-js'
+    ?? $comp.config<prefix>
     !! $execname ne ''
         ?? nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1))
         !! $comp.config<prefix>;

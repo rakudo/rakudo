@@ -10,7 +10,7 @@ role CompUnit::Repository::Locally {
 
         my $abspath;
         if $prefix ~~ IO::Path {
-            $abspath := $prefix.abspath;
+            $abspath := $prefix.absolute;
         }
         else {
             $abspath := $*SPEC.rel2abs($prefix.Str);

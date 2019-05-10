@@ -6482,11 +6482,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Pair := $*W.find_symbol(['Pair']);
         my $ridx1 := 0;
         my $sidx1 := 1;
-        while ($ridx1 < +@qast) {
+        while $ridx1 < +@qast {
             my $ridx2 := 3;
             my $q := @qast[$ridx1];
             if nqp::istype($q, QAST::Op) && $q.op eq 'callmethod' && $q.name eq 'new' && nqp::istype($q[0], QAST::Var) && $q[0].name eq 'Pair' {
-                while ($ridx2 < +@(@qast[$ridx1])) {
+                while $ridx2 < +@(@qast[$ridx1]) {
                     my $clone := @(@qast[$ridx1])[$ridx2].shallow_clone;
                     nqp::splice(
                         @qast,
@@ -6636,7 +6636,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     migrate_colonpairs($/, @fan);
                     if (+@fan > 1) {
                         my $comma := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/));
-                        for (@fan) { $comma.push($_) }
+                        for @fan { $comma.push($_) }
                         if ($numsemis == 1) {
                             $past := QAST::Stmts.new( :node($/) );
                             $past.push($comma);
@@ -6791,7 +6791,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             migrate_colonpairs($/, @fan);
                             if (+@fan > 1) {
                                 $pp := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/));
-                                for (@fan) { $pp.push($_) }
+                                for @fan { $pp.push($_) }
                             }
                         }
                         else {
@@ -6885,7 +6885,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     migrate_colonpairs($/, @fan);
                     if (+@fan > 1) {
                         my $comma := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/));
-                        for (@fan) { $comma.push($_) }
+                        for @fan { $comma.push($_) }
                         if ($numsemis == 1) {
                             $past := QAST::Stmts.new( :node($/) );
                             $past.push($comma);

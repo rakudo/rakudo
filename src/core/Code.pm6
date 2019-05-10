@@ -82,7 +82,7 @@ my class Code does Callable { # declared in BOOTSTRAP
             $perl = '' if $elide_agg_cont;
             unless $type eq "Any" {
                 my int $FIRST = 1; # broken FIRST workaround
-                while ($type ~~ / (.*?) \[ (.*) \] $$/) {
+                while $type ~~ / (.*?) \[ (.*) \] $$/ {
 #                   FIRST {  # seems broken in setting
                     if $FIRST { # broken FIRST workaround
                         $perl = $elide_agg_cont
@@ -224,7 +224,7 @@ my class Code does Callable { # declared in BOOTSTRAP
         my $cidx = 0;
 
         # Even if we prime above the arity, do it anyway, for errors.
-        while ($idx < primers.list.elems) {
+        while $idx < primers.list.elems {
             given primers.list[$idx] {
                 when Whatever {
                     @clist.push($capwrap ~ '[' ~ ++$widx ~ ']');

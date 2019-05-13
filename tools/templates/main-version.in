@@ -1,0 +1,13 @@
+sub hll-config($config) {
+    $config<implementation>   := 'Rakudo';
+    $config<version>          := '@version@';
+    $config<release-number>   := '@release@';
+    $config<codename>         := '@codename@';
+    $config<language-version> := '6.@lang_spec@';
+    $config<can-language-versions>
+        := nqp::list( '6.c'@for_specmods(, '6.@spec_with_mod@')@ );
+    $config<prefix>           := '@prefix@';
+    $config<libdir>           := '@libdir@';
+    $config<source-digest>    := '@source_digest()@';
+}
+

@@ -1,0 +1,3 @@
+@insert(sh-prelude)@
+
+exec "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"

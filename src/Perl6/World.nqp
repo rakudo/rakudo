@@ -536,7 +536,7 @@ class Perl6::World is HLL::World {
             if nqp::isle_s($rev, $default_rev) && nqp::iseq_s($rev_mod, 'PREVIEW');
 
         $ver-match.PRECURSOR.worry(
-            'Language specification 6.' ~ $rev ~ ' is not released yet, PREVIEW modifiecor is expected'
+            'Language specification 6.' ~ $rev ~ ' is not released yet, PREVIEW modificator is expected'
         ) if nqp::isgt_s($rev, $default_rev) && nqp::isne_s($rev_mod, 'PREVIEW');
     }
 

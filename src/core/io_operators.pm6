@@ -197,9 +197,9 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     }
 
     # Activate the skeletons at runtime
-    PROCESS::<$IN>  = activate-handle(STDIN,  nqp::getstdin);
-    PROCESS::<$OUT> = activate-handle(STDOUT, nqp::getstdout);
-    PROCESS::<$ERR> = activate-handle(STDERR, nqp::getstderr);
+    PROCESS::<$IN>  := activate-handle(STDIN,  nqp::getstdin);
+    PROCESS::<$OUT> := activate-handle(STDOUT, nqp::getstdout);
+    PROCESS::<$ERR> := activate-handle(STDERR, nqp::getstderr);
 }
 
 proto sub chmod($, |) {*}

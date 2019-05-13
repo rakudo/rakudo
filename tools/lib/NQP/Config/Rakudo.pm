@@ -7,7 +7,8 @@ use Cwd;
 use POSIX qw<strftime>;
 use Digest::SHA;
 use File::Find;
-use NQP::Config qw<slurp nfp read_config cmp_rev system_or_die>;
+use NQP::Config qw<slurp read_config cmp_rev system_or_die run_or_die>;
+use IPC::Cmd qw<run>;
 use NQP::Macros;
 
 use base qw<NQP::Config>;
@@ -22,9 +23,12 @@ sub configure_backends {
     my $passed_backends = $self->opt('backends');
     if ( my $nqp_bin = $self->opt('with-nqp') ) {
         die "Could not find $nqp_bin" unless -e $nqp_bin;
-        my $nqp_backend =
-          qx{$nqp_bin -e 'print(nqp::getcomp("nqp").backend.name)'}
-          or die "Could not get backend information from $nqp_bin";
+        my $nqp_backend;
+        run(
+            command =>
+              [ $nqp_bin, '-e', q<'print(nqp::getcomp("nqp").backend.name)'> ],
+            buffer => \$nqp_backend
+        ) or die "Could not get backend information from '$nqp_bin'";
         if ( defined $passed_backends && $nqp_backend ne $passed_backends ) {
             die
 "Passed value to --backends ($passed_backends) is overwritten by the one infered by --with-nqp ($nqp_backend)";
@@ -114,11 +118,6 @@ sub configure_misc {
 
     $config->{builddate} = strftime( '%Y-%m-%dT%H:%M:%SZ', gmtime );
 
-    my $sha = Digest::SHA->new;
-    find( sub { $sha->addfile($_) if /\.(nqp|pm6)\z/ }, "src" );
-    $sha->addfile('gen/nqp-version');
-    $config->{source_digest} = $sha->hexdigest;
-
     # NQP_LIB
     $config->{set_nqp_lib} = 'NQP_LIB=blib ';
     if ( $self->is_win ) {
@@ -155,7 +154,7 @@ sub configure_jvm_backend {
     }
 
     unless ( $self->backend_error('jvm') ) {
-        my $java_version = `java -version 2>&1`;
+        my $java_version = run_or_die( [qw<java -version>] );
         $java_version =
           $java_version =~ /(?<v>[\d\._]+).+\n(?<n>\S+)/
           ? "$+{'n'} $+{'v'}"
@@ -215,13 +214,15 @@ sub configure_moar_backend {
         if ( File::Spec->catdir( $config->{prefix}, 'bin' ) ne
             $nqp_config->{'moar::libdir'} )
         {
-            $config->{'m_install'} = "\t"
-              . '$(CP) '
-              . $nqp_config->{'moar::libdir'}
-              . $slash
-              . $nqp_config->{'moar::moar'}
-              . ' $(PREFIX)'
-              . $slash . 'bin';
+            #$config->{'m_install'} = "\t"
+            #  . '$(CP) '
+            #  . $nqp_config->{'moar::libdir'}
+            #  . $slash
+            #  . $nqp_config->{'moar::moar'}
+            #  . ' $(PREFIX)'
+            #  . $slash . 'bin';
+            $config->{m_install} = "\t"
+              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@) @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $config->{'mingw_unicode'} = '-municode';
@@ -233,22 +234,24 @@ sub configure_moar_backend {
 "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
         $config->{'m_all'} =
           '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
-        $config->{'m_install'} = "\t"
-          . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
-          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-gdb-m")
-          . ' "gdb" "" "" ""' . "\n\t"
-          . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
-          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-lldb-m")
-          . ' "lldb" "" "" ""' . "\n\t"
-          . '$(M_RUN_PERL6) '
-          . nfp("tools/build/create-moar-runner.p6")
-          . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-          . nfp("/bin/perl6-valgrind-m")
-          . ' "valgrind" "" "" ""';
+
+        #$config->{'m_install'} = "\t"
+        #  . '$(M_RUN_PERL6) '
+        #  . $self->nfp("tools/build/create-moar-runner.p6")
+        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+        #  . $self->nfp("/bin/perl6-gdb-m")
+        #  . ' "gdb" "" "" ""' . "\n\t"
+        #  . '$(M_RUN_PERL6) '
+        #  . $self->nfp("tools/build/create-moar-runner.p6")
+        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+        #  . $self->nfp("/bin/perl6-lldb-m")
+        #  . ' "lldb" "" "" ""' . "\n\t"
+        #  . '$(M_RUN_PERL6) '
+        #  . $self->nfp("tools/build/create-moar-runner.p6")
+        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
+        #  . $self->nfp("/bin/perl6-valgrind-m")
+        #  . ' "valgrind" "" "" ""';
+        $config->{m_install} = '@insert(Makefile-install)@';
     }
     $config->{c_runner_libs} = join( " ", @c_runner_libs );
     $config->{moar_lib}      = sprintf(
@@ -286,7 +289,7 @@ sub configure_js_backend {
     my $nqp_config;
     $config->{js_nqp} = $ijs->{bin};
     $config->{'perl6_runtime'} =
-      File::Spec->rel2abs( nfp('src/vm/js/perl6-runtime') );
+      File::Spec->rel2abs( $self->nfp('src/vm/js/perl6-runtime') );
     $config->{'perl6_lowlevel_libs'} =
       File::Spec->rel2abs('node_modules') . $slash;
     $config->{'perl6_js_runner'} =
@@ -308,6 +311,26 @@ sub configure_js_backend {
         js_build_dir => File::Spec->catdir( $config->{base_dir}, qw<gen js> ),
         js_blib => File::Spec->catdir( $config->{base_dir}, "node_modules" ),
     );
+}
+
+# Command line options not to be included into configure_opts config variable.
+sub ignorable_opt {
+    my $self = shift;
+    my $opt  = shift;
+    return $opt =~ /^
+            (?:
+                gen-
+                | (?:
+                    help
+                    | no-clean
+                    | ignore-errors
+                    | make-install
+                    | expand
+                    | out
+                  ) 
+                  $
+            )
+        /x;
 }
 
 # Returns all active language specification entries except for .c
@@ -383,11 +406,12 @@ sub gen_nqp {
 
     for my $b ( $self->active_backends ) {
         my $postfix = $self->backend_abbr($b);
-        my $bin     = nfp($nqp_bin)
+        my $tpath   = File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" );
+        my $bin     = $self->nfp($nqp_bin)
           || (
             $sdkroot
-            ? File::Spec->catfile( nfp($sdkroot), $prefix, 'bin',
-                "nqp-$postfix$bat" )
+            ? File::Spec->catfile( $self->nfp($sdkroot),
+                $prefix, 'bin', "nqp-$postfix$bat" )
             : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" )
           );
         $impls->{$b}{bin} = $bin;
@@ -415,12 +439,12 @@ sub gen_nqp {
 
     my $backends = join ",", $self->active_backends;
     my @cmd      = (
-        $^X, 'Configure.pl', "--prefix=$prefix", "--backends=$backends",
+        $^X, 'Configure.pl', qq{--prefix=$prefix}, "--backends=$backends",
         "--make-install", "--git-protocol=$git_protocol",
     );
 
     for my $opt (qw<git-depth git-reference github-user nqp-repo moar-repo>) {
-        push @cmd, "--$opt", $options->{$opt} if $options->{$opt};
+        push @cmd, qq{--$opt=$options->{$opt}} if $options->{$opt};
     }
 
     if ( defined $gen_moar ) {
@@ -520,8 +544,22 @@ sub _m_for_specmods {
     return _m_for_specs( $self, $text, with_mods => 1 );
 }
 
-NQP::Macros->register_macro( 'for_specs',    \&_m_for_specs );
-NQP::Macros->register_macro( 'for_specmods', \&_m_for_specmods );
+sub _m_source_digest {
+    my $self = shift;
+    my $sha  = Digest::SHA->new;
+    find(
+        sub {
+            $sha->addfile($_) if /\.(nqp|pm6)\z/;
+        },
+        File::Spec->catdir( $self->cfg->cfg('base_dir'), "src" )
+    );
+    $sha->addfile('gen/nqp-version');
+    return $sha->hexdigest;
+}
+
+NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
+NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
+NQP::Macros->register_macro( 'source_digest', \&_m_for_specmods );
 
 1;
 

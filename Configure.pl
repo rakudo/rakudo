@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Copyright (C) 2009 The Perl Foundation
+# Copyright (C) 2009-2019 The Perl Foundation
 
 use 5.10.1;
 use strict;
@@ -30,7 +30,7 @@ qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet up
 
 use lib ( "$FindBin::Bin/tools/lib",
     "$FindBin::Bin/3rdparty/nqp-configure/lib" );
-use NQP::Config;
+use NQP::Config qw<system_or_die>;
 use NQP::Config::Rakudo;
 
 $| = 1;
@@ -65,6 +65,7 @@ MAIN: {
         'rakudo-repo=s',    'nqp-repo=s',
         'moar-repo=s',      'roast-repo=s',
         'expand=s',         'out=s',
+        'set-var=s@',
       )
       or do {
         print_help();
@@ -81,6 +82,7 @@ MAIN: {
 "===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";
     }
 
+    $cfg->configure_paths;
     $cfg->configure_from_options;
     $cfg->configure_refine_vars;
     $cfg->configure_relocatability;
@@ -165,7 +167,7 @@ General Options:
     --nqp-repo=<url>
     --moar-repo=<url>
     --roast-repo=<url>
-                       User specified URL to fetch corresponding components
+                       User-defined URL to fetch corresponding components
                        from. The URL will also be used to setup git push.
     --git-protocol={ssh,https,git}
                        Protocol used for cloning git repos
@@ -183,6 +185,9 @@ General Options:
                        generated. The result is send to stdout unless --out
                        specified.
     --out=<file>       Filename to send output of --expand into.
+    --set-var="config_variable=value"
+                       Sets a config_variable to "value". Can be used multiple
+                       times.
 
 Please note that the --gen-moar and --gen-nqp options are there for convenience
 only and will actually immediately - at Configure time - compile and install

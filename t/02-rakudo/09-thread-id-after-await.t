@@ -1,4 +1,4 @@
-use v6.d.PREVIEW;
+use v6.d;
 use Test;
 use nqp;
 

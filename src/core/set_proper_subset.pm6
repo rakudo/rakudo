@@ -7,14 +7,14 @@
 #   ⊅     is NOT a proper superset of
 
 proto sub infix:<<(<)>>($, $, *% --> Bool:D) is pure {*}
-multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
+multi sub infix:<<(<)>>(Setty:D \a, Setty:D \b --> Bool:D) {
     nqp::if(
-      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
       False,                    # X is never a true subset of itself
       nqp::if(
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        (my $braw := b.RAW-HASH) && nqp::elems($braw),
         nqp::if(
-          (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+          (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
               && (my $iter := nqp::iterator($araw)),
@@ -36,30 +36,31 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
       )
     )
 }
-multi sub infix:<<(<)>>(Setty:D $a, Mixy:D  $b --> Bool:D) { $a.Mix (<) $b }
-multi sub infix:<<(<)>>(Setty:D $a, Baggy:D $b --> Bool:D) { $a.Bag (<) $b }
-multi sub infix:<<(<)>>(Setty:D $a, Any     $b --> Bool:D) { $a (<) $b.Set }
+multi sub infix:<<(<)>>(Setty:D \a, Mixy:D  \b --> Bool:D) { a.Mix (<) b }
+multi sub infix:<<(<)>>(Setty:D \a, Baggy:D \b --> Bool:D) { a.Bag (<) b }
+multi sub infix:<<(<)>>(Setty:D \a, Any     \b --> Bool:D) { a (<) b.Set }
 
-multi sub infix:<<(<)>>(Mixy:D $a, Mixy:D  $b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-PROPER-SUBSET($a,$b)
+multi sub infix:<<(<)>>(Mixy:D \a, Mixy:D \b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-PROPER-SUBSET(a,b)
 }
-multi sub infix:<<(<)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-PROPER-SUBSET($a,$b)
+multi sub infix:<<(<)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-PROPER-SUBSET(a,b)
 }
-multi sub infix:<<(<)>>(Mixy:D $a, Any     $b --> Bool:D) { $a (<) $b.Mix }
-
-multi sub infix:<<(<)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-PROPER-SUBSET($a,$b)
+multi sub infix:<<(<)>>(Mixy:D \a, Any \b --> Bool:D) {
+    a (<) b.Mix
 }
-multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
+multi sub infix:<<(<)>>(Baggy:D \a, Mixy:D \b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-PROPER-SUBSET(a,b)
+}
+multi sub infix:<<(<)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
     nqp::if(
-      nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
       False,                    # never proper subset of self
 
       nqp::if(                  # different objects
-        (my \araw := $a.RAW-HASH) && (my \iter := nqp::iterator(araw)),
+        (my \araw := a.RAW-HASH) && (my \iter := nqp::iterator(araw)),
         nqp::if(                # elements on left
-          (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+          (my \braw := b.RAW-HASH) && nqp::elems(braw),
           nqp::if(              # elements on both sides
             nqp::isle_i(nqp::elems(araw),nqp::elems(braw)),
             nqp::stmts(         # equal number of elements on either side
@@ -95,20 +96,20 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
           False                 # keys on left, no keys on right
         ),
         nqp::hllbool(            # no keys on left
-          (my \raw := $b.RAW-HASH) ?? nqp::elems(raw) !! 0
+          (my \raw := b.RAW-HASH) ?? nqp::elems(raw) !! 0
         )
       )
     )
 }
-multi sub infix:<<(<)>>(Baggy:D $a, Any $b --> Bool:D) { $a (<) $b.Bag }
+multi sub infix:<<(<)>>(Baggy:D \a, Any \b --> Bool:D) { a (<) b.Bag }
 
-multi sub infix:<<(<)>>(Any $a, Mixy:D  $b --> Bool:D) { $a.Mix (<) $b     }
-multi sub infix:<<(<)>>(Any $a, Baggy:D $b --> Bool:D) { $a.Bag (<) $b     }
+multi sub infix:<<(<)>>(Any \a, Mixy:D  \b --> Bool:D) { a.Mix (<) b }
+multi sub infix:<<(<)>>(Any \a, Baggy:D \b --> Bool:D) { a.Bag (<) b }
 
-multi sub infix:<<(<)>>(Failure:D $a, Any $b) { $a.throw }
-multi sub infix:<<(<)>>(Any $a, Failure:D $b) { $b.throw }
-multi sub infix:<<(<)>>(Any $a, Any $b --> Bool:D) {
-    infix:<<(<)>>($a.Set, $b.Set)
+multi sub infix:<<(<)>>(Failure:D \a, Any $) { a.throw }
+multi sub infix:<<(<)>>(Any $, Failure:D \b) { b.throw }
+multi sub infix:<<(<)>>(Any \a, Any \b --> Bool:D) {
+    a.Set (<) b.Set
 }
 
 # U+2282 SUBSET OF
@@ -116,17 +117,17 @@ my constant &infix:<⊂> := &infix:<<(<)>>;
 
 # U+2284 NOT A SUBSET OF
 proto sub infix:<⊄>($, $, *%) is pure {*}
-multi sub infix:<⊄>($a, $b --> Bool:D) { not $a (<) $b }
+multi sub infix:<⊄>(\a, \b --> Bool:D) { not a (<) b }
 
 proto sub infix:<<(>)>>($, $, *%) is pure {*}
-multi sub infix:<<(>)>>($a, $b --> Bool:D) { $b (<) $a }
+multi sub infix:<<(>)>>(\a, \b --> Bool:D) { b (<) a }
 
 # U+2283 SUPERSET OF
 proto sub infix:<⊃>($, $, *%) is pure {*}
-multi sub infix:<⊃>($a, $b --> Bool:D) { $b (<) $a }
+multi sub infix:<⊃>(\a, \b --> Bool:D) { b (<) a }
 
 # U+2285 NOT A SUPERSET OF
 proto sub infix:<⊅>($, $, *%) is pure {*}
-multi sub infix:<⊅>($a, $b --> Bool:D) { not $b (<) $a }
+multi sub infix:<⊅>(\a, \b --> Bool:D) { not b (<) a }
 
 # vim: ft=perl6 expandtab sw=4

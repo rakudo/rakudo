@@ -15,7 +15,7 @@ spectest_update :
 
 realclean: clean
 	$(RM_F) Makefile config.status MANIFEST
-	$(RM_RF) @nfp(lib/.precomp/ t/04-nativecall/.precomp/)@
+	$(RM_RF) @nfpl(lib/.precomp/ t/04-nativecall/.precomp/)@
 
 distclean: realclean
 

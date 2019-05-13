@@ -1,4 +1,5 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
+    has $!lock = Lock.new;
     has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
     has %!loaded; # cache compunit lookup for self.need(...)
     has %!seen;   # cache distribution lookup for self!matching-dist(...)
@@ -10,8 +11,6 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp-store;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
-
-    submethod BUILD(:$!prefix, :$!lock, :$!WHICH, :$!next-repo --> Nil) { }
 
     my class InstalledDistribution is Distribution::Hash {
         method content($address) {
@@ -141,7 +140,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         if $resources-dir.add($files{$file}).e
                         and not $.prefix.add($file).e; # bin/ is already included in the path
                 }
-                $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta);
+                $dist-file.spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
             }
         }
         $.prefix.add('version').spurt('2');
@@ -247,7 +246,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         %meta<files>    = %links;    # add our new name-path => content-id mapping
         %meta<provides> = %provides; # new meta data added to provides
         %!dist-metas{$dist-id} = %meta;
-        $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta);
+        $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
 
         # reset cached id so it's generated again on next access.
         # identity changes with every installation of a dist.
@@ -263,13 +262,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my %done;
 
             my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
-            for %provides.kv -> $source-name, $source-meta {
-                my $id = CompUnit::PrecompilationId.new-without-check($source-meta.values[0]<file>);
+            for %provides.sort {
+                my $id = CompUnit::PrecompilationId.new-without-check($_.value.values[0]<file>);
                 $precomp.store.delete($compiler-id, $id);
             }
 
-            for %provides.kv -> $source-name, $source-meta {
-                my $id = $source-meta.values[0]<file>;
+            for %provides.sort {
+                my $id = $_.value.values[0]<file>;
                 my $source = $sources-dir.add($id);
                 my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
 
@@ -277,11 +276,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     note "(Already did $id)" if $verbose;
                     next;
                 }
-                note("Precompiling $id ($source-name)") if $verbose;
+                note("Precompiling $id ($_.key())") if $verbose;
                 $precomp.precompile(
                     $source,
                     CompUnit::PrecompilationId.new-without-check($id),
-                    :source-name("$source-file ($source-name)"),
+                    :source-name("$source-file ($_.key())"),
                 );
                 %done{$id} = 1;
             }

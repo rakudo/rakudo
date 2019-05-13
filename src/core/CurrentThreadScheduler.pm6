@@ -14,7 +14,23 @@ my class CurrentThreadScheduler does Scheduler {
         die "Cannot specify :every in {self.^name}"
           if $every;
 
-        my $delay = $at ?? $at - now !! $in;
+        my $delay := nqp::decont($at ?? $at - now !! $in);
+        nqp::if(
+            nqp::istype($delay, Num),
+            nqp::if(
+                nqp::iseq_n($delay, nqp::inf()),
+                (return class { method cancel() {} }),
+                nqp::if(
+                    nqp::iseq_n($delay, nqp::neginf()),
+                    ($delay := 0),
+                    nqp::if(
+                        nqp::isnanorinf($delay),
+                        X::Scheduler::CueInNaNSeconds.new().throw()
+                    )
+                )
+            )
+        );
+
         sleep $delay if $delay;
         &catch //=
           (self && self.uncaught_handler) // -> $ex { self.handle_uncaught($ex) };

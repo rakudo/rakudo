@@ -1482,7 +1482,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   ),
                   nqp::unless(
                     nqp::istype($n,Whatever) || $n == Inf,
-                    $iterator.skip-at-least(nqp::elems($!reified) - $n)
+                    $iterator.skip-at-least(nqp::elems($!reified) - $n.Int)
                   )
                 ),
                 $iterator

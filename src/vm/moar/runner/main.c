@@ -4,24 +4,19 @@
 #include <uv.h>
 #include <moar.h>
 
-#ifndef _WIN32
-#  include <libgen.h>
-#else
-#  include <shlwapi.h>
-#endif
-
-#ifndef _WIN32
-#  include "signal.h"
-#endif
-
-#ifndef _WIN32
-#  include <unistd.h>
-#else
+#ifdef _WIN32
+#  include <sys/types.h>
+#  include <sys/stat.h>
 #  include <process.h>
-#endif
-
-#if defined(_MSC_VER)
-#define strtoll _strtoi64
+#  include <shlwapi.h>
+#  if defined(_MSC_VER)
+#    define strtoll _strtoi64
+#  endif
+#else
+#  include <sys/stat.h>
+#  include <libgen.h>
+#  include <unistd.h>
+#  include "signal.h"
 #endif
 
 #define STRINGIFY1(x) #x
@@ -34,7 +29,7 @@ enum {
     UNKNOWN_FLAG = -1,
 
     FLAG_SUSPEND,
-    FLAG_DUMP,
+    FLAG_FULL_CLEANUP,
     FLAG_TRACING,
 
     OPT_DEBUGPORT
@@ -42,13 +37,11 @@ enum {
 
 static const char *const FLAGS[] = {
     "--debug-suspend",
-    "--dump",
     "--full-cleanup",
     "--tracing",
 };
 
-static int cmp_flag(const void *key, const void *value)
-{
+static int cmp_flag(const void *key, const void *value) {
     return strcmp(key, *(char **)value);
 }
 
@@ -77,21 +70,22 @@ static int parse_flag(const char *arg)
         return UNKNOWN_FLAG;
 }
 
-int file_exists(const char *path)
-{
-    FILE *file;
-    if ((file = fopen(path, "r")))
-    {
-        fclose(file);
-        return 1;
-    }
-    return 0;
+int file_exists(const char *path) {
+#ifdef _WIN32
+    struct _stat sb;
+    return _stat(path, &sb) == 0;
+#else
+    struct stat *sb = malloc(sizeof(struct stat));
+    int res         = stat(path, sb) == 0;
+    free(sb);
+    return res;
+#endif
 }
 
 void platformify_path(char *path) {
 #ifdef _WIN32
     int i;
-    for(i = 0; path[i]; i++) {
+    for (i = 0; path[i]; i++) {
         if (path[i] == '/') {
             path[i] = '\\';
         }
@@ -99,10 +93,21 @@ void platformify_path(char *path) {
 #endif
 }
 
-int retrieve_home(char *out_home, char *rel_home, char *env_var, char *exec_dir_path, int exec_dir_path_size, char *check_file) {
-    char *check_file_path;
-    char *env_home = getenv(env_var);
-    int home_size;
+int retrieve_home(
+          char   *out_home,
+    const char   *rel_home,
+    const size_t  rel_home_size,
+    const char   *env_var,
+          char   *exec_dir_path,
+          size_t  exec_dir_path_size,
+    const char   *check_file,
+    const size_t  check_file_size
+) {
+    char   *check_file_path;
+    char   *env_home         = getenv(env_var);
+    size_t  home_size        = exec_dir_path_size + rel_home_size;
+    int     ret;
+
     if (env_home) {
         strcpy(out_home, env_home);
         home_size = strlen(out_home);
@@ -116,21 +121,18 @@ int retrieve_home(char *out_home, char *rel_home, char *env_var, char *exec_dir_
         }
     }
     else {
-        memcpy(out_home, exec_dir_path, exec_dir_path_size);
-        strcpy(out_home + exec_dir_path_size, rel_home);
+        strncpy(out_home, exec_dir_path, home_size);
+        strncat(out_home, rel_home, rel_home_size);
         platformify_path(out_home + exec_dir_path_size);
-        home_size = strlen(out_home);
     }
 
-    check_file_path = (char*)malloc(home_size + 50);
-    memcpy(check_file_path, out_home, home_size);
-    strcpy(check_file_path + home_size, check_file);
-    if (!file_exists(check_file_path)) {
-        free(check_file_path);
-        return 0;
-    }
+    check_file_path = (char*)malloc(home_size + check_file_size + 1);
+    strncpy(check_file_path, out_home, home_size + check_file_size);
+    strncat(check_file_path, check_file, check_file_size);
+
+    ret = file_exists(check_file_path);
     free(check_file_path);
-    return 1;
+    return ret;
 }
 
 #ifndef _WIN32
@@ -140,23 +142,37 @@ int wmain(int argc, wchar_t *wargv[])
 #endif
 {
     MVMInstance *instance;
-    int          res;
-    char        *perl6_home;
-    size_t       perl6_home_size;
-    char        *nqp_home;
-    size_t       nqp_home_size;
-    char        *perl6_file;
-    char        *exec_path;
-    size_t       exec_path_size;
-    char        *dir_path;
-    int          dir_path_size;
-    char        *lib_path[3];
+
+    char   *exec_path;
+    size_t  exec_path_size;
+    int     res;
+
+    char   *dir_path;
+    char   *dir_path_temp;
+    size_t  dir_path_size;
+
+          char   *nqp_home;
+          size_t  nqp_home_size;
+    const char    nqp_rel_path[14]    = "/../share/nqp";
+    const size_t  nqp_rel_path_size   = 13;
+    const char    nqp_check_path[28]  = "/lib/NQPCORE.setting.moarvm";
+    const size_t  nqp_check_path_size = 27;
+
+          char   *perl6_home;
+          size_t  perl6_home_size;
+    const char    perl6_rel_path[16]    = "/../share/perl6";
+    const size_t  perl6_rel_path_size   = 15;
+    const char    perl6_check_path[22]  = "/runtime/perl6.moarvm";
+    const size_t  perl6_check_path_size = 21;
+
+    char *lib_path[3];
+    char *perl6_file;
 
 #ifdef _WIN32
     char **argv = MVM_UnicodeToUTF8_argv(argc, wargv);
 #endif
 
-    int dump         = 0;
+    int full_cleanup = 0;
     int argi         = 1;
     int flag;
     int new_argc     = 0;
@@ -171,8 +187,8 @@ int wmain(int argc, wchar_t *wargv[])
 
     for (; (flag = parse_flag(argv[argi])) != NOT_A_FLAG; ++argi) {
         switch (flag) {
-            case FLAG_DUMP:
-            dump = 1;
+            case FLAG_FULL_CLEANUP:
+            full_cleanup = 1;
             continue;
 
 #if MVM_TRACING
@@ -187,7 +203,7 @@ int wmain(int argc, wchar_t *wargv[])
 
             case OPT_DEBUGPORT: {
                 MVMint64 port;
-                char *portstr = argv[argi] + strlen("--debugport=") + 1;
+                char *portstr = argv[argi] + strlen("--debug-port=");
                 char *endptr;
                 port = strtoll(portstr, &endptr, 10);
                 if (*endptr != '\0') {
@@ -250,22 +266,26 @@ int wmain(int argc, wchar_t *wargv[])
     }
 
     /* The +1 is the trailing \0 terminating the string. */
-    dir_path = (char*)malloc(exec_path_size + 1);
-    memcpy(dir_path, exec_path, exec_path_size + 1);
+    dir_path_temp = (char*)malloc(exec_path_size + 1);
+    memcpy(dir_path_temp, exec_path, exec_path_size + 1);
 #ifdef _WIN32
-    PathRemoveFileSpecA(dir_path);
+    PathRemoveFileSpecA(dir_path_temp);
+    dir_path_size = strlen(dir_path_temp);
+    dir_path      = (char*)malloc(dir_path_size + 1);
+    memcpy(dir_path, dir_path_temp, dir_path_size + 1);
 #else
-    dir_path = dirname(dir_path);
-#endif
+    dir_path      = dirname(dir_path_temp);
     dir_path_size = strlen(dir_path);
+#endif
 
     /* Retrieve PERL6_HOME and NQP_HOME. */
 
 #ifdef STATIC_NQP_HOME
     nqp_home = STRINGIFY(STATIC_NQP_HOME);
 #else
-    nqp_home = (char*)malloc(dir_path_size + 50);
-    if (!retrieve_home(nqp_home, "/../share/nqp", "NQP_HOME", dir_path, dir_path_size, "/lib/NQPCORE.setting.moarvm")) {
+    nqp_home = (char*)malloc(dir_path_size + nqp_rel_path_size + 1);
+    if (!retrieve_home(nqp_home, nqp_rel_path, nqp_rel_path_size, "NQP_HOME",
+            dir_path, dir_path_size, nqp_check_path, nqp_check_path_size)) {
         fprintf(stderr, "ERROR: NQP_HOME is invalid: %s\n", nqp_home);
         return EXIT_FAILURE;
     }
@@ -275,8 +295,9 @@ int wmain(int argc, wchar_t *wargv[])
 #ifdef STATIC_PERL6_HOME
     perl6_home = STRINGIFY(STATIC_PERL6_HOME);
 #else
-    perl6_home = (char*)malloc(dir_path_size + 50);
-    if (!retrieve_home(perl6_home, "/../share/perl6", "PERL6_HOME", dir_path, dir_path_size, "/runtime/perl6.moarvm")) {
+    perl6_home = (char*)malloc(dir_path_size + perl6_rel_path_size + 1);
+    if (!retrieve_home(perl6_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
+            dir_path, dir_path_size, perl6_check_path, perl6_check_path_size)) {
         fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", perl6_home);
         return EXIT_FAILURE;
     }
@@ -317,7 +338,7 @@ int wmain(int argc, wchar_t *wargv[])
 
     /* Start up the VM. */
 
-    instance   = MVM_vm_create_instance();
+    instance = MVM_vm_create_instance();
 
     MVM_vm_set_clargs(instance, new_argc, argv);
     MVM_vm_set_prog_name(instance, perl6_file);
@@ -339,8 +360,7 @@ int wmain(int argc, wchar_t *wargv[])
         }
     }
 
-    if (dump) MVM_vm_dump_file(instance, perl6_file);
-    else MVM_vm_run_file(instance, perl6_file);
+    MVM_vm_run_file(instance, perl6_file);
 
 #ifdef HAVE_TELEMEH
     if (getenv("MVM_TELEMETRY_LOG") && telemeh_inited) {
@@ -349,14 +369,30 @@ int wmain(int argc, wchar_t *wargv[])
     }
 #endif
 
-    MVM_vm_exit(instance);
-
     free(lib_path[0]);
     free(lib_path[1]);
     free(lib_path[2]);
     free(perl6_file);
     free(exec_path);
+#ifdef _WIN32
+    /* dirname's return value is either on the stack or is the same pointer
+     * that was passed to it depending on the version of libc used, which leads
+     * to double frees. */
     free(dir_path);
+#endif
+    free(dir_path_temp);
+#ifndef STATIC_PERL6_HOME
     free(perl6_home);
+#endif
+#ifndef STATIC_NQP_HOME
     free(nqp_home);
+#endif
+
+    if (full_cleanup) {
+        MVM_vm_destroy_instance(instance);
+        return EXIT_SUCCESS;
+    }
+    else {
+        MVM_vm_exit(instance);
+    }
 }

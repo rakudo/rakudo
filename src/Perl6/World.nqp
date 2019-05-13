@@ -710,7 +710,7 @@ class Perl6::World is HLL::World {
         # Bootstrap
         if $setting_name eq 'NULL' {
             my $name   := "Perl6::BOOTSTRAP";
-            my $module := self.load_module_early($/, $name, {}, $*GLOBALish);
+            my $module := self.load_module_early($/, $name, $*GLOBALish);
             my $EXPORT := $module<EXPORT>.WHO;
             my @to_import := ['MANDATORY', 'DEFAULT'];
             for @to_import -> $tag {
@@ -1369,30 +1369,18 @@ class Perl6::World is HLL::World {
 
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
-    method load_module_early($/, $module_name, %opts, $cur_GLOBALish) {
+    method load_module_early($/, $module_name, $cur_GLOBALish) {
         my $RMD := self.RAKUDO_MODULE_DEBUG;
         $RMD("  Early loading '$module_name'") if $RMD;
 
         # Immediate loading.
         my $line   := self.current_line($/);
-        my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, %opts,
+        my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, {},
             $cur_GLOBALish, :$line);
 
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
             $RMD("  Pre-compiling '$module_name'") if $RMD;
-            my $opt_hash := QAST::Op.new( :op('hash') );
-            for %opts {
-                self.add_object_if_no_sc($_.value);
-                $opt_hash.push(QAST::SVal.new( :value($_.key) ));
-                my $Str := self.find_symbol(['Str'], :setting-only);
-                if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
-                    $opt_hash.push(QAST::SVal.new( :value($_.value) ));
-                }
-                else {
-                    $opt_hash.push(QAST::WVal.new( :value($_.value) ));
-                }
-            }
             self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
@@ -1400,7 +1388,7 @@ class Perl6::World is HLL::World {
                    QAST::Op.new( :op('getcurhllsym'),
                         QAST::SVal.new( :value('ModuleLoader') ) ),
                    QAST::SVal.new( :value($module_name) ),
-                   $opt_hash,
+                   QAST::Op.new( :op('hash') ),
                    QAST::IVal.new(:value($line), :named('line'))
                 ))));
         }
@@ -1466,12 +1454,13 @@ class Perl6::World is HLL::World {
         my %to_install;
         my @clash;
         my @clash_onlystar;
-        for %stash {
-            if $target.symbol($_.key) -> %sym {
+        for sorted_keys(%stash) -> $key {
+            my $value := %stash{$key};
+            if $target.symbol($key) -> %sym {
                 # There's already a symbol. However, we may be able to merge
                 # if both are multis and have onlystar dispatchers.
                 my $installed := %sym<value>;
-                my $foreign := $_.value;
+                my $foreign := $value;
                 if $installed =:= $foreign {
                     next;
                 }
@@ -1483,7 +1472,7 @@ class Perl6::World is HLL::World {
                         # Replace installed one with a derived one, to avoid any
                         # weird action at a distance.
                         $installed := self.derive_dispatcher($installed);
-                        self.install_lexical_symbol($target, $_.key, $installed, :clone(1));
+                        self.install_lexical_symbol($target, $key, $installed, :clone(1));
 
                         # Incorporate dispatchees of foreign proto, avoiding
                         # duplicates.
@@ -1498,19 +1487,19 @@ class Perl6::World is HLL::World {
                         }
                     }
                     else {
-                        nqp::push(@clash_onlystar, $_.key);
+                        nqp::push(@clash_onlystar, $key);
                     }
                 }
                 else {
-                    nqp::push(@clash, $_.key);
+                    nqp::push(@clash, $key);
                 }
             }
             else {
-                $target.symbol($_.key, :scope('lexical'), :value($_.value));
+                $target.symbol($key, :scope('lexical'), :value($value));
                 $target[0].push(QAST::Var.new(
-                    :scope('lexical'), :name($_.key), :decl('static'), :value($_.value)
+                    :scope('lexical'), :name($key), :decl('static'), :value($value)
                 ));
-                %to_install{$_.key} := $_.value;
+                %to_install{$key} := $value;
             }
         }
 
@@ -1530,14 +1519,14 @@ class Perl6::World is HLL::World {
 
         # Second pass: make sure installed things are in an SC and handle
         # categoricals.
-        for %to_install {
-            my $v := $_.value;
+        for sorted_keys(%to_install) -> $key {
+            my $v := %to_install{$key};
             self.add_object_if_no_sc($v);
-            my $categorical := match($_.key, /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/);
+            my $categorical := match($key, /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/);
             if $categorical {
                 $/.add_categorical(~$categorical[0], ~$categorical[1],
                     ~$categorical[0] ~ self.canonicalize_pair('sym',$categorical[1]),
-                    nqp::substr($_.key, 1), $v);
+                    nqp::substr($key, 1), $v);
             }
         }
     }
@@ -2795,15 +2784,14 @@ class Perl6::World is HLL::World {
         my $cur_block := $past;
         while $cur_block {
             my %symbols := $cur_block.symtable();
-            for %symbols {
-                my str $name := $_.key;
+            for sorted_keys(%symbols) -> str $name {
                 # For now, EVALed code run during precomp will not get the
                 # outer lexical context's symbols as those may contain or
                 # reference unserializable objects leading to compilation
                 # failures. Needs a smarter approach as noted above.
                 unless self.is_nested() || %seen{$name} {
                     # Add symbol.
-                    my %sym   := $_.value;
+                    my %sym   := %symbols{$name};
                     my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
                         ?? self.force_value(%sym, $name, 0)
                         !! $mu;
@@ -2904,9 +2892,9 @@ class Perl6::World is HLL::World {
         my str $cache_key;
         if !$nocache {
             my str $namedkey := '';
-            for %named {
-                $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
-                    if nqp::defined($_.value);
+            for sorted_keys(%named) -> $key {
+                $namedkey := $namedkey ~ $key ~ ',' ~ %named{$key} ~ ';'
+                    if nqp::defined(%named{$key});
             }
             if $primitive eq 'bigint' {
                 $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
@@ -3402,8 +3390,10 @@ class Perl6::World is HLL::World {
         method generate_buildplan_executor($/, $in_object, $in_build_plan) {
 
             # low level hash access
-            my $build_plan :=
-              nqp::getattr(nqp::decont($in_build_plan), $!List, '$!reified');
+            my $dc_build_plan := nqp::decont($in_build_plan);
+            my $build_plan := nqp::islist($dc_build_plan)
+                ?? $dc_build_plan
+                !! nqp::getattr($dc_build_plan, $!List, '$!reified');
 
             if nqp::elems($build_plan) -> $count {
 

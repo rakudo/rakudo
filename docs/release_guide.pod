@@ -18,15 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2019-04-20   Rakudo #131 (kawaii + Releasable)
-  2019-05-18   Rakudo #132
-  2019-06-15   Rakudo #133
-  2019-07-20   Rakudo #134
-  2019-08-17   Rakudo #135
-  2019-09-21   Rakudo #136
-  2019-10-19   Rakudo #137
-  2019-11-16   Rakudo #138
-  2019-12-21   Rakudo #139
+  2019-06-20   Rakudo #131 (kawaii + Releasable)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 

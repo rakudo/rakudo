@@ -45,6 +45,9 @@ my role QuantHash does Associative {
     proto method Setty(|) {*}
     proto method Baggy(|) {*}
     proto method Mixy (|) {*}
+
+    method hash() { ... }
+    method Hash() { ... }
 }
 
 # vim: ft=perl6 expandtab sw=4

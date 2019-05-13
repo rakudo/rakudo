@@ -1,7 +1,6 @@
 class Compiler does Systemic {
     has Str $.id;
     has Str $.release;
-    has Str $!build-date;
     has Str $.codename;
     my constant $id = nqp::p6box_s(nqp::sha1(
         $*W.handle.Str
@@ -13,7 +12,6 @@ class Compiler does Systemic {
       :$!auth      = 'The Perl Foundation',
       :$version,
       :$release,
-      :$build-date,
       :$codename
       --> Nil
     ) {
@@ -27,14 +25,8 @@ class Compiler does Systemic {
             // Version.new(nqp::atkey($compiler, 'version'));
         $!release =
           $release // nqp::p6box_s(nqp::atkey($compiler, 'release-number'));
-        $!build-date =
-          $build-date // nqp::p6box_s(nqp::atkey($compiler, 'build-date'));
         $!codename =
           $codename // nqp::p6box_s(nqp::atkey($compiler, 'codename'));
-    }
-
-    method build-date() {
-        DateTime.new($!build-date)
     }
 
     method verbose-config(:$say) {

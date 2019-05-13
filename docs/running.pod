@@ -30,6 +30,11 @@ compiled code.
   --profile            write profile information as HTML file (MoarVM)
   --profile-filename   provide a different filename (also allows .json)
   --doc=[module]       Use Pod::To::[module] to render inline documentation.
+  --full-cleanup       try to free all memory and exit cleanly (MoarVM)
+  --debug-port=port    listen for incoming debugger connections (MoarVM)
+  --debug-suspend      pause execution at the entry point (MoarVM)
+  --tracing            output a line to stderr on every interpreter instr (only
+                       if enabled in MoarVM)
 
 Note that only boolean single-letter options may be bundled.
 
@@ -138,6 +143,14 @@ C<IO::Spec::Cygwin> inherits this from C<IO::Spec::Unix>.
 
 C<IO::Spec::Win32.path> will read the first defined of either C<%PATH%> or C<%Path%> as a
 semicolon-delimited list.
+
+=item C<PERL6_HOME>
+
+Allows to override the Perl 6 installation path. Defaults to C<[perl6_executable_dir]/../share/perl6>.
+
+=item C<NQP_HOME>
+
+Allows to override the NQP installation path. Defaults to C<[perl6_executable_dir]/../share/nqp>.
 
 =back
 

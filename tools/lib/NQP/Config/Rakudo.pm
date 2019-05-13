@@ -327,6 +327,7 @@ sub ignorable_opt {
                     | make-install
                     | expand
                     | out
+                    | backends
                   ) 
                   $
             )

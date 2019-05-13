@@ -1,7 +1,7 @@
 # Copyright (C) 2015 The Perl Foundation
 
 PERL5   = @shquot(@perl@)@ -I@nfpq(@base_dir@/tools/lib)@ -I@nfpq(@base_dir@/3rdparty/nqp-configure/lib)@
-CONFIGURE = $(PERL5) @shquot(@configure_script@)@ @configure_opts@
+CONFIGURE = $(PERL5) @shquot(@configure_script@)@ @configure_opts()@
 MKPATH  = @mkpath@
 CHMOD   = @chmod@
 CP      = @cp@

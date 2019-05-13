@@ -213,7 +213,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
 
-    # Transforms NULL.<release> into CORE.<previos-release>
+    # Transforms NULL.<release> into CORE.<previous-release>
     method transform_setting_name ($setting_name) {
         my $m := $setting_name ~~ /NULL '.' ( <[c..z]> )/;
         if $m {

@@ -7144,16 +7144,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_feed($/) {
         # Assemble into list of AST of each step in the pipeline.
-        my @stages;
-        if $/<infix><sym> eq '==>' {
-            for @($/) { @stages.push($_); }
+        my $stages := nqp::list();
+        if $<infix><sym> eq '==>' {
+            for $/.list {
+                nqp::push($stages, $_);
+            }
         }
-        elsif $/<infix><sym> eq '<==' {
-            for @($/) { @stages.unshift($_); }
+        elsif $<infix><sym> eq '<==' {
+            for $/.list {
+                nqp::unshift($stages, $_);
+            }
         }
         else {
             $*W.throw($/, 'X::Comp::NYI',
-                feature => $/<infix> ~ " feed operator"
+                feature => $<infix> ~ " feed operator"
             );
         }
 
@@ -7161,10 +7165,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # that call each other. They'll return lazy things, which
         # will be passed in as var-arg parts to other things. The
         # first thing is just considered the result.
-        my $result := @stages.shift;
-        $result    := WANTED($result.ast, $/<infix><sym>);
-        for @stages {
-            my $stage := WANTED($_.ast, $/<infix><sym>);
+        my $result := nqp::shift($stages);
+        $result    := WANTED($result.ast, $<infix><sym>);
+        my $iter   := nqp::iterator($stages);
+        while $iter {
+            my $match := nqp::shift($iter);
+            my $stage := WANTED($match.ast, $<infix><sym>);
             # Wrap current result in a block, so it's thunked and can be
             # called at the right point.
             $result := QAST::Block.new( $result );
@@ -7189,12 +7195,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(
                             :op('callmethod'), :name('list'),
                             QAST::Op.new( :op('call'), $result )
-                        ),
+                        )
                     ),
                     QAST::Op.new(
-                        :op('callmethod'), :name('append'),
+                        :op('callmethod'), :name('STORE'),
                         $stage,
-                        QAST::Var.new( :scope('local'), :name($tmp) )
+                        QAST::Op.new(
+                            :op('call'), :name('&infix:<,>'),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('Slip'),
+                                $stage
+                            ),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('Slip'),
+                                QAST::Var.new( :scope('local'), :name($tmp) )
+                            )
+                        )
                     ),
                     QAST::Var.new( :scope('local'), :name($tmp) )
                 );
@@ -7208,7 +7224,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $error := "A feed may not sink values into a code object. Did you mean a call like '"
                             ~ nqp::substr($stage[0].name, 1) ~ "()' instead?";
                 }
-                $_.PRECURSOR.panic($error);
+                $match.PRECURSOR.panic($error);
             }
             $result := $stage;
         }

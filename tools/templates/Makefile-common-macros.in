@@ -16,7 +16,7 @@ PREFIX     = @nfp(@prefix@)@
 LIBDIR     = @nfp(@libdir@)@
 NQP_HOME   = $(LIBDIR)@nfp(/nqp)@
 PERL6_HOME = $(LIBDIR)@nfp(/perl6)@
-BASE_DIR   = @@base_dir@@
+BASE_DIR   = @base_dir@
 
 BOOTSTRAP_SOURCES = \
   @nfp(src/Perl6/Metamodel/BOOTSTRAP.nqp)@ \
@@ -25,12 +25,12 @@ BOOTSTRAP_SOURCES = \
 COMMON_BOOTSTRAP_SOURCES = \
     @insert_filelist(common_bootstrap_sources)@
 
-NQP_CONF_DIR = @@nfp($(BASE_DIR)/3rdparty/nqp-configure/lib)@@
+NQP_CONFIG_DIR = @nfp(3rdparty/nqp-configure/lib)@
 
 CONFIGURE_SOURCES = \
-	@nfp($(BASE_DIR)/Configure.pl)@ \
-	@nfp($(BASE_DIR)/tools/lib/NQP/Config/Rakudo.pm)@ \
-	@nfp($(NQP_CONF_DIR)/NQP/Config.pm)@ \
-	@nfp($(NQP_CONF_DIR)/NQP/Macros.pm)@ 
+	Configure.pl \
+	@nfp(tools/lib/NQP/Config/Rakudo.pm)@ \
+	@nfp($(NQP_CONFIG_DIR)/NQP/Config.pm)@ \
+	@nfp($(NQP_CONFIG_DIR)/NQP/Macros.pm)@ 
 
 R_SETTING_SRC = @nfp(src/RESTRICTED.setting)@

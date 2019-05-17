@@ -166,13 +166,13 @@ $(PERL6_C_MOAR): @nfp(src/Perl6/Compiler.nqp)@ $(PERL6_O_MOAR)
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_C_MOAR) \
 		@nfp(src/Perl6/Compiler.nqp)@
 
-@@nfp($(M_BUILD_DIR)/main-version.nqp)@@: @@template(main-version)@@ $(CONFIGURE_SOURCES) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES)@for_specs( $(M_CORE_@ucspec@_SOURCES))@
+@nfp($(M_BUILD_DIR)/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) $(M_METAMODEL_SOURCES) $(M_BOOTSTRAP_SOURCES) $(M_CORE_SOURCES)@for_specs( $(M_CORE_@ucspec@_SOURCES))@
 	$(CONFIGURE) --expand main-version --out @nfpq($(M_BUILD_DIR)/main-version.nqp)@
 
-@@nfp($(M_BUILD_DIR)/main.nqp)@@: @@nfp($(M_BUILD_DIR)/main-version.nqp)@@ @@nfp($(BASE_DIR)/src/main.nqp)@@
+@nfp($(M_BUILD_DIR)/main.nqp)@: @nfp($(M_BUILD_DIR)/main-version.nqp)@ @nfp(src/main.nqp)@
 	$(M_NQP) $(M_GEN_CAT) @nfpl(src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp)@
 
-$(PERL6_MOAR): @@nfp($(M_BUILD_DIR)/main.nqp)@@ $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR)
+$(PERL6_MOAR): @nfp($(M_BUILD_DIR)/main.nqp)@ $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR)
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_MOAR) \
 		--vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfpq($(M_BUILD_DIR)/main.nqp)@
 

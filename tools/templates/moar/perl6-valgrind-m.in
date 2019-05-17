@@ -15,5 +15,5 @@ say "running on $*DISTRO.gist() / $*KERNEL.gist()";
 say "-" x 96;
 )@
 
-valgrind ${MVM_VALGRIND_OPTS} "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"
+valgrind ${MVM_VALGRIND_OPTS} "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"
 

@@ -2783,10 +2783,7 @@ class Perl6::World is HLL::World {
         }
 
         # Compile it, set wrapper's static lexpad, then invoke the wrapper,
-        # which fixes up the lexicals. For the duration of this compilation,
-        # we force the block type to declaration just to make sure we really
-        # only compile it, not run it (can happen if we're asking to compile
-        # an immediate block).
+        # which fixes up the lexicals.
         my $compunit := QAST::CompUnit.new(
             :hll('perl6'),
             :sc(self.sc()),
@@ -2794,11 +2791,8 @@ class Perl6::World is HLL::World {
             $wrapper
         );
         my $comp := nqp::getcomp('perl6');
-        my $orig_blocktype := $past.blocktype;
-        $past.blocktype('declaration');
         my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1),
              :lineposcache($*LINEPOSCACHE));
-        $past.blocktype($orig_blocktype);
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
 

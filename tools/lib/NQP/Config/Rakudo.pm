@@ -201,7 +201,7 @@ sub configure_moar_backend {
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     $config->{ldflags} .= ' '
       . (
-          $config->{no_relocatable}
+          $self->{no_relocatable}
         ? $nqp_config->{'moar::ldrpath'}
         : $nqp_config->{'moar::ldrpath_relocatable'}
       );
@@ -312,27 +312,6 @@ sub configure_js_backend {
     );
 }
 
-# Command line options not to be included into configure_opts config variable.
-sub ignorable_opt {
-    my $self = shift;
-    my $opt  = shift;
-    return $opt =~ /^
-            (?:
-                gen-
-                | (?:
-                    help
-                    | no-clean
-                    | ignore-errors
-                    | make-install
-                    | expand
-                    | out
-                    | backends
-                  ) 
-                  $
-            )
-        /x;
-}
-
 # Returns all active language specification entries except for .c
 sub perl6_specs {
     my $self = shift;
@@ -437,15 +416,15 @@ sub gen_nqp {
 
     return unless defined($gen_nqp) || defined($gen_moar);
 
-    my $backends = join ",", $self->active_backends;
-    my @cmd      = (
-        $^X, 'Configure.pl', qq{--prefix=$prefix}, "--backends=$backends",
-        "--make-install", "--git-protocol=$git_protocol",
+    my @cmd = (
+        $^X, 'Configure.pl', qq{--prefix=$prefix}, "--make-install",
+        "--git-protocol=$git_protocol",
     );
 
-    for my $opt (qw<git-depth git-reference github-user nqp-repo moar-repo>) {
-        push @cmd, qq{--$opt=$options->{$opt}} if $options->{$opt};
-    }
+    push @cmd, $self->opts_for_configure(
+        qw<git-depth git-reference github-user nqp-repo moar-repo 
+           no-relocatable ignore-errors>
+    );
 
     if ( defined $gen_moar ) {
         push @cmd, $gen_moar ? "--gen-moar=$gen_moar" : '--gen-moar';

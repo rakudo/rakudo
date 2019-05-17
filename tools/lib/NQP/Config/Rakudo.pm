@@ -6,7 +6,6 @@ package NQP::Config::Rakudo;
 use Cwd;
 use POSIX qw<strftime>;
 use Digest::SHA;
-use File::Find;
 use NQP::Config qw<slurp read_config cmp_rev system_or_die run_or_die>;
 use IPC::Cmd qw<run>;
 use NQP::Macros;
@@ -473,6 +472,7 @@ sub gen_nqp {
 package NQP::Macros::Rakudo;
 use strict;
 use warnings;
+use File::Find;
 
 # --- Rakudo-specific macro methods.
 sub _specs_iterate {
@@ -560,7 +560,7 @@ sub _m_source_digest {
 
 NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
 NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
-NQP::Macros->register_macro( 'source_digest', \&_m_for_specmods );
+NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
 
 1;
 

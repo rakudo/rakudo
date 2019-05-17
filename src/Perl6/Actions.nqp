@@ -7142,14 +7142,68 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
+    sub make_feed_result($source, $target, $stages) {
+        my $RI          := $*W.find_symbol(['Rakudo', 'Internals']);
+        my $result-name := $target.unique('feed_tmp');
+        my $result      := nqp::if(
+            nqp::unbox_i($stages.elems),
+            QAST::Op.new(
+                :op('callmethod'), :name('EVALUATE-FEED'),
+                QAST::WVal.new( :value($RI) ),
+                $source,
+                QAST::WVal.new( :value($stages) )
+            ),
+            $source
+        );
+        $result := QAST::Block.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :scope('local'), :name($result-name), :decl('var') ),
+                $result
+            )
+        );
+
+        if nqp::eqaddr($source, $target) {
+            # There's no variable at the pointy end of the feed operator.
+            $result.push(QAST::Var.new( :scope('local'), :name($result-name) ));
+        } else {
+            # There's a variable at the pointy end of the feed operator;
+            # store/append/assign the result to it.
+            $result.push(
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new( :op('isconcrete'), $target ),
+                    # $target is an array, a hash, or a defined scalar.
+                    QAST::Op.new(
+                        :op('callmethod'), :name('STORE'),
+                        $target,
+                        QAST::Var.new( :scope('local'), :name($result-name) )
+                    ),
+                    # $target is an undefined scalar.
+                    QAST::Op.new(
+                        :op('assign'),
+                        $target,
+                        QAST::Var.new( :scope('local'), :name($result-name) )
+                    )
+                )
+            );
+        }
+
+        QAST::Op.new(
+            :op('locallifetime'),
+            QAST::Op.new( :op('call'), $result ),
+            $result-name
+        )
+    }
+
     sub make_feed($/) {
         # Assemble into list of AST of each step in the pipeline.
-        my @stages;
+        my @chunks;
         if $/<infix><sym> eq '==>' {
-            for @($/) { @stages.push($_); }
+            for $/.list { @chunks.push($_) }
         }
         elsif $/<infix><sym> eq '<==' {
-            for @($/) { @stages.unshift($_); }
+            for $/.list { @chunks.unshift($_) }
         }
         else {
             $*W.throw($/, 'X::Comp::NYI',
@@ -7157,48 +7211,38 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
 
-        # Check what's in each stage and make a chain of blocks
-        # that call each other. They'll return lazy things, which
-        # will be passed in as var-arg parts to other things. The
-        # first thing is just considered the result.
-        my $result := @stages.shift;
-        $result    := WANTED($result.ast, $/<infix><sym>);
-        for @stages {
-            my $stage := WANTED($_.ast, $/<infix><sym>);
-            # Wrap current result in a block, so it's thunked and can be
-            # called at the right point.
-            $result := QAST::Block.new( $result );
+        my     $Array   := $*W.find_symbol(['Array']);
+        my     @sources := [WANTED(@chunks.shift.ast, $/<infix><sym>)];
+        my     @stages  := [$Array.new];
+        my int $idx     := 0;
+        $*W.add_object(@stages[$idx]);
 
-            # Check what we have. XXX Real first step should be looking
-            # for @(*) since if we find that it overrides all other things.
-            # But that's todo...soon. :-)
+        my $target := nqp::if(
+            nqp::istype(@chunks[nqp::elems(@chunks) - 1].ast, QAST::Var),
+            WANTED(@chunks.pop.ast, $/<infix><sym>),
+            @sources[0]
+        );
+
+        for @chunks {
+            my $stage := WANTED($_.ast, $/<infix><sym>);
+
+            # TODO: @(*) support
             if nqp::istype($stage, QAST::Op) && $stage.op eq 'call' {
-                # It's a call. Stick a call to the current supplier in
-                # as its last argument.
-                $stage.push(QAST::Op.new( :op('call'), $result ));
+                my &op    := $*W.find_symbol([$stage.name]);
+                my @args;
+                for $stage.list {
+                    my $arg := $*W.compile_time_evaluate($/, $_);
+                    @args.push($arg);
+                }
+                @stages[$idx].push(-> NQPMu $input {
+                    nqp::call(&op, |@args, $input)
+                });
             }
             elsif nqp::istype($stage, QAST::Var) {
-                # It's a variable. We need code that gets the results, pushes
-                # them onto the variable and then returns them (since this
-                # could well be a tap.
-                my $tmp := QAST::Node.unique('feed_tmp');
-                $stage := QAST::Stmts.new(
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :scope('local'), :name($tmp), :decl('var') ),
-                        QAST::Op.new(
-                            :op('callmethod'), :name('list'),
-                            QAST::Op.new( :op('call'), $result )
-                        ),
-                    ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('append'),
-                        $stage,
-                        QAST::Var.new( :scope('local'), :name($tmp) )
-                    ),
-                    QAST::Var.new( :scope('local'), :name($tmp) )
-                );
-                $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
+                @sources.push(make_feed_result(@sources[$idx], $stage, @stages[$idx]));
+                @stages.push($Array.new);
+                $idx := nqp::add_i($idx, 1);
+                $*W.add_object(@stages[$idx]);
             }
             else {
                 my str $error := "Only routine calls or variables that can '.push' may appear on either side of feed operators.";
@@ -7210,11 +7254,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 $_.PRECURSOR.panic($error);
             }
-            $result := $stage;
         }
 
-        # WANTED($result,'make_feed');
-        $result
+        WANTED(make_feed_result(@sources[$idx], $target, @stages[$idx]), 'make_feed')
     }
 
     sub check_smartmatch($/,$pat) {

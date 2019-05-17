@@ -170,6 +170,7 @@ src/core/Promise.pm6
 src/core/Channel.pm6
 src/core/Supply.pm6
 src/core/asyncops.pm6
+src/core/feed.pm6
 src/core/IO/Socket.pm6
 src/core/IO/Socket/INET.pm6
 src/core/IO/Socket/Async.pm6

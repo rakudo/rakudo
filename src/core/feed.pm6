@@ -9,20 +9,18 @@
 # Perl6::Actions.
 
 augment class Rakudo::Internals {
-    method EVALUATE-FEED(Mu $source, @stages) {
-        my Channel $pipeline .= new;
-        $pipeline.send: nqp::decont($source);
+    my class Pipeline is repr('ConcBlockingQueue') {}
 
+    method EVALUATE-FEED(Mu $source is raw, *@stages) {
+        my Pipeline $pipeline := nqp::create(Pipeline);
+        nqp::push($pipeline, $source);
         await @stages.map(-> &stage {
             start {
-                my Mu $input  := $pipeline.receive;
-                my Mu $output := nqp::decont(nqp::call(&stage, $input));
-                $pipeline.send: $output;
+                my Mu $input  := nqp::shift($pipeline);
+                my Mu $output := &stage($input);
+                nqp::push($pipeline, $output);
             }
         });
-
-        my Mu $result := $pipeline.receive;
-        $pipeline.close;
-        $result
+        nqp::shift($pipeline)
     }
 }

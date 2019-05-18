@@ -7142,58 +7142,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    sub make_feed_result($source, $target, $stages) {
-        my $RI          := $*W.find_symbol(['Rakudo', 'Internals']);
-        my $result-name := $target.unique('feed_tmp');
-        my $result      := nqp::if(
-            nqp::unbox_i($stages.elems),
-            QAST::Op.new(
-                :op('callmethod'), :name('EVALUATE-FEED'),
-                QAST::WVal.new( :value($RI) ),
-                $source,
-                QAST::WVal.new( :value($stages) )
-            ),
-            $source
-        );
-        $result := QAST::Block.new(
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :scope('local'), :name($result-name), :decl('var') ),
-                $result
-            )
+    sub make_feed_result($source, $target, @stages) {
+        my $result := nqp::if(
+          nqp::elems(@stages),
+          # There are routines to be called; invoke
+          # Rakudo::Internals.EVALUATE-FEED to get the result.
+          QAST::Op.new(
+              :op('callmethod'), :name('EVALUATE-FEED'),
+              QAST::WVal.new( :value($*W.find_symbol(['Rakudo', 'Internals'], :setting-only)) ),
+              $source, |@stages
+          ),
+          # There are no routines to be run; the result is just the source.
+          $source
         );
 
-        if nqp::eqaddr($source, $target) {
-            # There's no variable at the pointy end of the feed operator.
-            $result.push(QAST::Var.new( :scope('local'), :name($result-name) ));
-        } else {
-            # There's a variable at the pointy end of the feed operator;
-            # store/append/assign the result to it.
-            $result.push(
-                QAST::Op.new(
-                    :op('if'),
-                    QAST::Op.new( :op('isconcrete'), $target ),
-                    # $target is an array, a hash, or a defined scalar.
-                    QAST::Op.new(
-                        :op('callmethod'), :name('STORE'),
-                        $target,
-                        QAST::Var.new( :scope('local'), :name($result-name) )
-                    ),
-                    # $target is an undefined scalar.
-                    QAST::Op.new(
-                        :op('assign'),
-                        $target,
-                        QAST::Var.new( :scope('local'), :name($result-name) )
-                    )
-                )
-            );
-        }
+        my $thunk := nqp::if(
+          nqp::eqaddr($source, $target),
+          # There's no variable at the pointy end of the feed operator. Just
+          # thunk the result.
+          QAST::Block.new( $result ),
+          # There's a variable at the pointy end of the feed operator;
+          # store the result in it and thunk it.
+          QAST::Block.new( QAST::Op.new( :op('p6store'), $target, $result ) )
+        );
 
-        QAST::Op.new(
-            :op('locallifetime'),
-            QAST::Op.new( :op('call'), $result ),
-            $result-name
-        )
+        QAST::Op.new( :op('call'), $thunk )
     }
 
     sub make_feed($/) {
@@ -7211,13 +7184,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             );
         }
 
-        my     $Array   := $*W.find_symbol(['Array']);
+        my     $Mu      := $*W.find_symbol(['Mu'], :setting-only);
         my     @sources := [WANTED(@chunks.shift.ast, $/<infix><sym>)];
-        my     @stages  := [$Array.new];
+        my     @stages  := [[]];
         my int $idx     := 0;
-        $*W.add_object(@stages[$idx]);
-
-        my $target := nqp::if(
+        my     $target  := nqp::if(
             nqp::istype(@chunks[nqp::elems(@chunks) - 1].ast, QAST::Var),
             WANTED(@chunks.pop.ast, $/<infix><sym>),
             @sources[0]
@@ -7227,22 +7198,46 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $stage := WANTED($_.ast, $/<infix><sym>);
 
             # TODO: @(*) support
-            if nqp::istype($stage, QAST::Op) && $stage.op eq 'call' {
-                my &op    := $*W.find_symbol([$stage.name]);
-                my @args;
-                for $stage.list {
-                    my $arg := $*W.compile_time_evaluate($/, $_);
-                    @args.push($arg);
+            if nqp::istype($stage, QAST::Op) {
+                if $stage.op eq 'call' {
+                    # Routine call.
+                    $stage.push(QAST::Var.new( :name('$input'), :scope('lexical') ));
+
+                    my $block := $*W.push_lexpad($/);
+                    $block.blocktype('declaration_static');
+                    $block[0].push(QAST::Var.new( :name('$input'), :scope('lexical'), :decl('var') ));
+                    $block.push($stage);
+                    $*W.pop_lexpad();
+                    ($*W.cur_lexpad())[0].push($block);
+
+                    my %param     := nqp::hash(
+                        'variable_name', '$input',
+                        'nominal_type', $Mu,
+                        'is_raw', 1
+                    );
+                    my $param_obj := $*W.create_parameter($/, %param);
+                    my $sig       := $*W.create_signature(nqp::hash('parameter_objects', [$param_obj]));
+                    add_signature_binding_code($block, $sig, [%param]);
+
+                    my $code := $*W.create_code_object($block, 'Block', $sig);
+                    @stages[$idx].push(block_closure(reference_to_code_object($code, $block)));
                 }
-                @stages[$idx].push(-> NQPMu $input {
-                    nqp::call(&op, |@args, $input)
-                });
+                elsif $stage.op eq 'ifnull' && nqp::istype($stage[0], QAST::Var) && nqp::eqat($stage[0].name, '&', 0) {
+                    my str $error := "A feed may not sink values into a code object. Did you mean a call like '"
+                                   ~ nqp::substr($stage[0].name, 1) ~ "()' instead?";
+                    $_.PRECURSOR.panic($error);
+                }
+                else {
+                    my str $error := "Only routine calls or variables may appear on either side of feed operators.";
+                    $_.PRECURSOR.panic($error);
+                }
             }
             elsif nqp::istype($stage, QAST::Var) {
+                # Evaluate the feed thus far.
                 @sources.push(make_feed_result(@sources[$idx], $stage, @stages[$idx]));
-                @stages.push($Array.new);
+                # Set up a new list of stages for the next feed evaluation.
+                @stages.push([]);
                 $idx := nqp::add_i($idx, 1);
-                $*W.add_object(@stages[$idx]);
             }
             else {
                 my str $error := "Only routine calls or variables that can '.push' may appear on either side of feed operators.";

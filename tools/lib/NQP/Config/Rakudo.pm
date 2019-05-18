@@ -421,10 +421,14 @@ sub gen_nqp {
         "--git-protocol=$git_protocol",
     );
 
-    push @cmd, $self->opts_for_configure(
-        qw<git-depth git-reference github-user nqp-repo moar-repo 
-           no-relocatable ignore-errors>
-    );
+    for my $opt (
+        qw<git-depth git-reference github-user nqp-repo moar-repo
+        no-relocatable ignore-errors>
+      )
+    {
+        my $opt_str = $self->make_option( $opt, no_quote => 1 );
+        push @cmd, $opt_str if $opt_str;
+    }
 
     if ( defined $gen_moar ) {
         push @cmd, $gen_moar ? "--gen-moar=$gen_moar" : '--gen-moar';

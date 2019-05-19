@@ -7142,27 +7142,34 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    sub make_feed_result($source, $target, @stages) {
-        my $result := nqp::if(
-          nqp::elems(@stages),
-          # There are routines to be called; invoke
-          # Rakudo::Internals.EVALUATE-FEED to get the result.
-          QAST::Op.new(
-              :op('callmethod'), :name('EVALUATE-FEED'),
-              QAST::WVal.new( :value($*W.find_symbol(['Rakudo', 'Internals'], :setting-only)) ),
-              $source, |@stages
-          ),
-          # There are no routines to be run; the result is just the source.
-          $source
-        );
+    sub make_feed_result($/, $source, $target, @stages) {
+        my $result;
+        if +@stages {
+            # There are routines to be called; invoke
+            # Rakudo::Internals.EVALUATE-FEED to get the result.
+            my $RI              := $*W.find_symbol(['Rakudo', 'Internals'], :setting-only);
+            my $compiled-source := $*W.compile_time_evaluate($/, $source);
+
+            my int $i := -1;
+            until ++$i == +@stages {
+                @stages[$i] := $*W.compile_time_evaluate($/, @stages[$i]);
+            }
+
+            $result := $RI.EVALUATE-FEED($compiled-source, |@stages);
+            $*W.add_object($result);
+            $result := QAST::WVal.new( :value($result) );
+        } else {
+            # There are no routines to be run; the result is just the source.
+            $result := $source;
+        }
 
         my $thunk := nqp::if(
           nqp::eqaddr($source, $target),
           # There's no variable at the pointy end of the feed operator. Just
-          # thunk the result.
+          # return the thunked result.
           QAST::Block.new( $result ),
           # There's a variable at the pointy end of the feed operator;
-          # store the result in it and thunk it.
+          # thunk storing the result in it.
           QAST::Block.new( QAST::Op.new( :op('p6store'), $target, $result ) )
         );
 
@@ -7234,7 +7241,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif nqp::istype($stage, QAST::Var) {
                 # Evaluate the feed thus far.
-                @sources.push(make_feed_result(@sources[$idx], $stage, @stages[$idx]));
+                @sources.push(make_feed_result($/, @sources[$idx], $stage, @stages[$idx]));
                 # Set up a new list of stages for the next feed evaluation.
                 @stages.push([]);
                 $idx := nqp::add_i($idx, 1);
@@ -7251,7 +7258,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
-        WANTED(make_feed_result(@sources[$idx], $target, @stages[$idx]), 'make_feed')
+        WANTED(make_feed_result($/, @sources[$idx], $target, @stages[$idx]), 'make_feed')
     }
 
     sub check_smartmatch($/,$pat) {

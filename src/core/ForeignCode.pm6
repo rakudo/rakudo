@@ -24,7 +24,14 @@ my class Rakudo::Internals::EvalIdSource {
         $lock.protect: { $count++ }
     }
 }
-proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, Str() :$filename = Str, *%n) {
+proto sub EVAL(
+  $code is copy where Blob|Cool|Callable,
+  Str()       :$lang = 'perl6',
+  PseudoStash :$context,
+  Str()       :$filename = Str,
+  Bool()      :$compile-only = False,
+  *%_
+) {
     die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
       if nqp::istype($code,Callable);
     # First look in compiler registry.
@@ -58,10 +65,17 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
         |(:optimize($_) with nqp::getcomp('perl6').cli-options<optimize>),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
 
-    $*W.add_additional_frames(mast_frames)
-        if $*W and $*W.is_precompilation_mode; # we are still compiling
-    nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
-    $compiled();
+    if $compile-only {
+        Nil
+    }
+    else {
+        $*W.add_additional_frames(mast_frames)
+          if $*W and $*W.is_precompilation_mode; # we are still compiling
+        nqp::forceouterctx(
+          nqp::getattr($compiled,ForeignCode,'$!do'),$eval_ctx
+        );
+        $compiled()
+    }
 }
 
 multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context, Str() :$filename = Str) {

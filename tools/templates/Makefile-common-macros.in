@@ -25,4 +25,12 @@ BOOTSTRAP_SOURCES = \
 COMMON_BOOTSTRAP_SOURCES = \
     @insert_filelist(common_bootstrap_sources)@
 
+NQP_CONFIG_DIR = @nfp(3rdparty/nqp-configure/lib)@
+
+CONFIGURE_SOURCES = \
+	Configure.pl \
+	@nfp(tools/lib/NQP/Config/Rakudo.pm)@ \
+	@nfp($(NQP_CONFIG_DIR)/NQP/Config.pm)@ \
+	@nfp($(NQP_CONFIG_DIR)/NQP/Macros.pm)@ 
+
 R_SETTING_SRC = @nfp(src/RESTRICTED.setting)@

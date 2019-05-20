@@ -6,7 +6,6 @@ package NQP::Config::Rakudo;
 use Cwd;
 use POSIX qw<strftime>;
 use Digest::SHA;
-use File::Find;
 use NQP::Config qw<slurp read_config cmp_rev system_or_die run_or_die>;
 use IPC::Cmd qw<run>;
 use NQP::Macros;
@@ -202,7 +201,7 @@ sub configure_moar_backend {
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     $config->{ldflags} .= ' '
       . (
-          $config->{no_relocatable}
+          $self->{no_relocatable}
         ? $nqp_config->{'moar::ldrpath'}
         : $nqp_config->{'moar::ldrpath_relocatable'}
       );
@@ -313,27 +312,6 @@ sub configure_js_backend {
     );
 }
 
-# Command line options not to be included into configure_opts config variable.
-sub ignorable_opt {
-    my $self = shift;
-    my $opt  = shift;
-    return $opt =~ /^
-            (?:
-                gen-
-                | (?:
-                    help
-                    | no-clean
-                    | ignore-errors
-                    | make-install
-                    | expand
-                    | out
-                    | backends
-                  ) 
-                  $
-            )
-        /x;
-}
-
 # Returns all active language specification entries except for .c
 sub perl6_specs {
     my $self = shift;
@@ -438,14 +416,18 @@ sub gen_nqp {
 
     return unless defined($gen_nqp) || defined($gen_moar);
 
-    my $backends = join ",", $self->active_backends;
-    my @cmd      = (
-        $^X, 'Configure.pl', qq{--prefix=$prefix}, "--backends=$backends",
-        "--make-install", "--git-protocol=$git_protocol",
+    my @cmd = (
+        $^X, 'Configure.pl', qq{--prefix=$prefix}, "--make-install",
+        "--git-protocol=$git_protocol",
     );
 
-    for my $opt (qw<git-depth git-reference github-user nqp-repo moar-repo>) {
-        push @cmd, qq{--$opt=$options->{$opt}} if $options->{$opt};
+    for my $opt (
+        qw<git-depth git-reference github-user nqp-repo moar-repo
+        no-relocatable ignore-errors>
+      )
+    {
+        my $opt_str = $self->make_option( $opt, no_quote => 1 );
+        push @cmd, $opt_str if $opt_str;
     }
 
     if ( defined $gen_moar ) {
@@ -473,6 +455,7 @@ sub gen_nqp {
 package NQP::Macros::Rakudo;
 use strict;
 use warnings;
+use File::Find;
 
 # --- Rakudo-specific macro methods.
 sub _specs_iterate {
@@ -560,7 +543,7 @@ sub _m_source_digest {
 
 NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
 NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
-NQP::Macros->register_macro( 'source_digest', \&_m_for_specmods );
+NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
 
 1;
 

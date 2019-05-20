@@ -1711,6 +1711,26 @@ implementation detail and has no serviceable parts inside"
         );
         nqp::iterator($keys)
     }
+
+    # Return an Inline::Perl5 interpreter if possible
+    my $P5;
+    method PERL5() {
+        $P5 //= do {
+            {
+                my $compunit := $*REPO.need(
+                  CompUnit::DependencySpecification.new(
+                    :short-name<Inline::Perl5>
+                  )
+                );
+                GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package);
+                CATCH {
+                    #X::Eval::NoSuchLang.new(:$lang).throw;
+                    .note;
+                }
+            }
+            ::("Inline::Perl5").default_perl5
+        }
+    }
 }
 
 # expose the number of bits a native int has

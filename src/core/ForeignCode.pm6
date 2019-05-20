@@ -85,26 +85,13 @@ multi sub EVAL(
   Str() :$filename = Str,
   Bool() :$check = False,
 ) {
-    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
-    my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
-    state $p5;
-    unless $p5 {
-        {
-            my $compunit := $*REPO.need(CompUnit::DependencySpecification.new(:short-name<Inline::Perl5>));
-            GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package);
-            CATCH {
-                #X::Eval::NoSuchLang.new(:$lang).throw;
-                note $_;
-            }
-        }
-        $p5 = ::("Inline::Perl5").default_perl5;
-    }
-
     if $check {
         X::NYI.new(feature => ":check on EVAL :from<Perl5>").throw;
     }
     else {
-        $p5.run: nqp::istype($code,Blob)
+        my $?FILES :=
+          $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+        Rakudo::Internals.PERL5.run: nqp::istype($code,Blob)
           ?? Blob.new($code).decode('utf8-c8')
           !! $code.Str
     }

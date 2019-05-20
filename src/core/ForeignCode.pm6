@@ -29,7 +29,7 @@ proto sub EVAL(
   Str()       :$lang = 'perl6',
   PseudoStash :$context,
   Str()       :$filename = Str,
-  Bool()      :$compile-only = False,
+  Bool()      :$check = False,
   *%_
 ) {
     die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
@@ -65,7 +65,7 @@ proto sub EVAL(
         |(:optimize($_) with nqp::getcomp('perl6').cli-options<optimize>),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
 
-    if $compile-only {
+    if $check {
         Nil
     }
     else {
@@ -78,7 +78,13 @@ proto sub EVAL(
     }
 }
 
-multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context, Str() :$filename = Str) {
+multi sub EVAL(
+  $code,
+  Str :$lang where { ($lang // '') eq 'Perl5' },
+  PseudoStash :$context,
+  Str() :$filename = Str,
+  Bool() :$check = False,
+) {
     my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
     my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     state $p5;
@@ -93,14 +99,20 @@ multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash
         }
         $p5 = ::("Inline::Perl5").default_perl5;
     }
-    $p5.run: nqp::istype($code,Blob)
-        ?? Blob.new($code).decode('utf8-c8')
-        !! $code.Str;
+
+    if $check {
+        X::NYI.new(feature => ":check on EVAL :from<Perl5>").throw;
+    }
+    else {
+        $p5.run: nqp::istype($code,Blob)
+          ?? Blob.new($code).decode('utf8-c8')
+          !! $code.Str
+    }
 }
 
 proto sub EVALFILE($, *%) {*}
-multi sub EVALFILE($filename, :$lang = 'perl6') {
-    EVAL slurp(:bin, $filename), :$lang, :context(CALLER::), :$filename;
+multi sub EVALFILE($filename, :$lang = 'perl6', Bool() :$check = False) {
+    EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
 }
 
 # vim: ft=perl6 expandtab sw=4

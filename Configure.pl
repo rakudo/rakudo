@@ -56,7 +56,7 @@ MAIN: {
         'prefix=s',         'libdir=s',
         'sysroot=s',        'sdkroot=s',
         'no-relocatable',   'backends=s',
-        'no-clean!',        'with-nqp=s',
+        'no-clean',         'with-nqp=s',
         'gen-nqp:s',        'gen-moar:s',
         'moar-option=s@',   'git-protocol=s',
         'ignore-errors',    'make-install!',

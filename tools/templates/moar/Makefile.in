@@ -333,12 +333,12 @@ m-install: m-all @@script(install-core-dist.p6)@@ $(SETTING_MOAR)
 	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
 	$(CP) $(M_PERL6_OPS_DLL) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
+	$(CP) $(M_C_RUNNER) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_RUNNER))@
+	$(CP) $(M_C_DEBUG_RUNNER) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_DEBUG_RUNNER))@
 	@nfpq($(BASE_DIR)/$(M_BAT_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @q($(DESTDIR)$(PERL6_HOME))@
 	@nfpq($(BASE_DIR)/$(M_BAT_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
 	@nfpq($(BASE_DIR)/$(M_BAT_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
 	@nfpq($(BASE_DIR)/$(M_BAT_RUNNER))@ @shquot(@script(install-core-dist.p6)@)@ @q($(DESTDIR)$(PERL6_HOME))@
-	$(CP) $(M_C_RUNNER) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_RUNNER))@
-	$(CP) $(M_C_DEBUG_RUNNER) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_DEBUG_RUNNER))@
 @expand(@m_install@)@
 
 m-runner-default-install: m-install

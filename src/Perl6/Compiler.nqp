@@ -3,8 +3,9 @@ use QRegex;
 use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
-    has $!language_version;
-    has $!can_language_versions;
+    has $!language_version;  # Default language version in form 6.c
+    has $!language_revisions; # Hash of language revision letters. See gen/<vm>/main-version.nqp
+    has $!can_language_versions; # List of valid language version
 
     method compilation-id() {
         my class IDHolder { }
@@ -32,6 +33,11 @@ class Perl6::Compiler is HLL::Compiler {
             $!can_language_versions
         ??  $!can_language_versions
         !! ($!can_language_versions := self.config<can-language-versions>)
+    }
+    method language_revisions() {
+           $!language_revisions
+        ?? $!language_revisions
+        !! ($!language_revisions := self.config<language-revisions>)
     }
 
     method command_eval(*@args, *%options) {

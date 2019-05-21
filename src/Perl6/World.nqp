@@ -531,13 +531,28 @@ class Perl6::World is HLL::World {
         ) == -1
     }
 
-    method !check-for-PREVIEW ($ver-match, $rev, $default_rev, $rev_mod) {
-        $ver-match.PRECURSOR.worry('PREVIEW modificator is used with released specification 6.' ~ $rev)
-            if nqp::isle_s($rev, $default_rev) && nqp::iseq_s($rev_mod, 'PREVIEW');
+    method !check-version-modifier($ver-match, $rev, $modifier, $comp) {
+        my %lang_rev := $comp.language_revisions;
 
-        $ver-match.PRECURSOR.worry(
-            'Language specification 6.' ~ $rev ~ ' is not released yet, PREVIEW modificator is expected'
-        ) if nqp::isgt_s($rev, $default_rev) && nqp::isne_s($rev_mod, 'PREVIEW');
+        unless nqp::existskey(%lang_rev, $rev) &&
+               (!$modifier || nqp::existskey(%lang_rev{$rev}<mods>, $modifier)) {
+            $ver-match.typed_panic: 'X::Language::Unsupported', version => ~$ver-match;
+        }
+
+        # See if requested revision is not supported without a modifier. Most likely it'll be PREVIEW modifier for
+        # unreleased revisions.
+        if nqp::existskey(%lang_rev{$rev}, 'require') {
+            if nqp::iseq_s(%lang_rev{$rev}<require>, $modifier) {
+                return;
+            }
+            $ver-match.typed_panic: 'X::Language::ModRequired',
+                                    version => ~$ver-match,
+                                    modifier => %lang_rev{$rev}<require>;
+        }
+
+        if %lang_rev{$rev}<mods>{$modifier}<deprecate> {
+            $ver-match.PRECURSOR.worry("$modifier modifier is deprecated for Perl 6.$rev");
+        }
     }
 
     method load-lang-ver($ver-match, $comp) {
@@ -549,12 +564,11 @@ class Perl6::World is HLL::World {
         my $default_rev := nqp::substr($comp.config<language-version>, 2, 1);
 
         # Do we have dot-splitted version string?
-        if (@vparts > 1) || ($version eq 'v6') {
+        if ((@vparts > 1) && nqp::iseq_s(@vparts[0], 'v6')) || ($version eq 'v6') {
             my $revision := @vparts[1] || $default_rev;
             my $lang_ver := '6.' ~ $revision;
 
-            self."!check-for-PREVIEW"($ver-match, $revision, $default_rev, @vparts[2] || '')
-                if ($revision eq 'c') || ($lang_ver eq $comp.config<language-version>);
+            self."!check-version-modifier"($ver-match, $revision, @vparts[2] || '', $comp);
 
             $comp.set_language_version: $lang_ver;
             # fast-path the common cases
@@ -577,7 +591,7 @@ class Perl6::World is HLL::World {
         my $rev := $vWant.parts.AT-POS(1);
         my str $rev_mod := $vWant.parts.elems > 2 ?? $vWant.parts.AT-POS(2) !! '';
 
-        self."!check-for-PREVIEW"($ver-match, $rev, $default_rev, $rev_mod);
+        self."!check-version-modifier"($ver-match, $rev, $rev_mod, $comp);
 
         for $comp.can_language_versions -> $can-ver {
             next unless $vWant.ACCEPTS: my $vCan := $Version.new: $can-ver;

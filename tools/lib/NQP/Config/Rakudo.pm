@@ -74,6 +74,62 @@ sub configure_backends {
     }
 }
 
+sub parse_lang_specs {
+    my $self = shift;
+
+    my $config = $self->{config};
+    my $tmpl   = 'PERL6_SPECS';
+    open my $sh, "<", $self->template_file_path( $tmpl, required => 1 )
+      or self->sorry("Can't open $tmpl: $!");
+
+    my @specs;    # Array to preserve the order or specs
+    my $ln        = 0;
+    my %flag_name = ( '-' => 'deprecate', '!' => 'require', );
+    my $fail      = sub {
+        $self->sorry( "$tmpl($ln): " . join( "", @_ ) );
+    };
+    for my $line (<$sh>) {
+        $ln++;
+        chomp $line;
+        $line =~ s/\h*#.*$//;    # Cut off comment
+        next unless $line;
+        if ( $line =~ s/^\h*(?<default>\*)?(?<letter>[c-z])\b// ) {
+            my $letter = $+{letter};
+            if ( $+{default} ) {
+                $fail->("duplicate default spec") if $config->{lang_spec};
+                $config->{lang_spec} = $letter;
+            }
+            my @def = ($letter);
+            push @specs, \@def;
+            my @mods;            # Array to preserve the order of modificators
+            while ($line) {
+                unless ( $line =~ s/^\h+// ) {
+                    $fail->("whitespace is missing");
+                }
+                next unless $line;
+                if ( $line =~ s/^(?<flags>[\!\-]+)?(?<mod>\w+)\b// ) {
+                    my ( $mod, $flag_str ) = @+{qw<mod flags>};
+                    $flag_str //= "";
+                    my %flags;
+                    %flags = map { $flag_name{$_} => 1 } split( "", $flag_str );
+                    push @mods, [ $mod, \%flags ];
+                }
+                else {
+                    $fail->("expected a modificator");
+                }
+            }
+            push @def, @mods;
+        }
+        else {
+            $fail->("expected a revision letter");
+        }
+    }
+
+    $self->{perl6_specs} = \@specs;
+
+    close $sh;
+}
+
 sub configure_misc {
     my $self   = shift;
     my $config = $self->{config};
@@ -83,23 +139,24 @@ sub configure_misc {
       split( ' ',
         slurp( $self->template_file_path( 'NQP_REVISION', required => 1, ) ) );
 
-    # Get specs from PERL6_SPECS template
-    my $spec_line = sub {
-        my @elems = split ' ', shift;
-        if ( $elems[0] =~ s/^\*// ) {
-            $config->{lang_spec} = $elems[0];
-        }
-        return \@elems;
-    };
+    $self->parse_lang_specs;
 
-    $config->{perl6_specs} = [
-        map { $spec_line->($_) }
-          grep { s/\s*#.*$//; length }
-          split(
-            /\n/s,
-            slurp( $self->template_file_path( 'PERL6_SPECS', required => 1, ) )
-          )
-    ];
+    #my $spec_line = sub {
+    #    my @elems = split ' ', shift;
+    #    if ( $elems[0] =~ s/^\*// ) {
+    #        $config->{lang_spec} = $elems[0];
+    #    }
+    #    return \@elems;
+    #};
+
+    #$self->{perl6_specs} = [
+    #    map { $spec_line->($_) }
+    #      grep { s/\s*#.*$//; length }
+    #      split(
+    #        /\n/s,
+    #        slurp( $self->template_file_path( 'PERL6_SPECS', required => 1, ) )
+    #      )
+    #];
 
     # Get version info from VERSION template and git.
     my $VERSION = slurp( $self->template_file_path( 'VERSION', required => 1, ) );
@@ -315,7 +372,7 @@ sub configure_js_backend {
 # Returns all active language specification entries except for .c
 sub perl6_specs {
     my $self = shift;
-    return grep { $_->[0] ne 'c' } @{ $self->cfg('perl6_specs') };
+    return grep { $_->[0] ne 'c' } @{ $self->{perl6_specs} };
 }
 
 sub post_active_backends {
@@ -487,9 +544,9 @@ sub _specs_iterate {
         if ( $params{with_mods} && @$spec > 1 ) {
             for my $mod ( @$spec[ 1 .. $#$spec ] ) {
                 my %mod = (
-                    spec_mod      => $mod,
-                    spec_dot_mod  => ".$mod",
-                    spec_with_mod => "$spec_char.$mod",
+                    spec_mod      => $mod->[0],
+                    spec_dot_mod  => ".$mod->[0]",
+                    spec_with_mod => "$spec_char.$mod->[0]",
                 );
                 my $mod_s = $cfg->push_ctx(
                     {

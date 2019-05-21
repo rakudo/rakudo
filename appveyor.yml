@@ -30,7 +30,7 @@ environment:
   matrix:
 #    - RAKUDO_OPTIONS: --backends=moar --gen-nqp        --gen-moar
 #    - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar
-    - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar=aad6fdc
+#    - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar=master
 #    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp
 #    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp=master
 
@@ -53,7 +53,8 @@ install:
 
 # Testing
 test_script:
-  - perl Configure.pl %RAKUDO_OPTIONS%
+  - git checkout 31e534c
+  - perl Configure.pl --gen-nqp --gen-moar=aad6fdc
   - SET TEST_JOBS=1
   - SET HARNESS_VERBOSE=1
   - nmake test

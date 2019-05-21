@@ -53,8 +53,8 @@ install:
 
 # Testing
 test_script:
-  - git checkout 2fe2f58
-  - perl Configure.pl --gen-nqp --gen-moar=aad6fdc
+  - git checkout 31e534c
+  - perl Configure.pl --gen-nqp --gen-moar=2fe2f58
   - SET TEST_JOBS=1
   - SET HARNESS_VERBOSE=1
   - nmake test

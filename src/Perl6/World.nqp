@@ -578,8 +578,7 @@ class Perl6::World is HLL::World {
                 return;
             }
 
-            # Does this makes any sense besides of speeding up loading assuming that the default language version would be
-            # the most used one?
+            # Speed up loading assuming that the default language version would be the most used one.
             if $lang_ver eq $comp.config<language-version> {
                 self.load_setting: $ver-match, 'CORE.' ~ $revision;
                 return;

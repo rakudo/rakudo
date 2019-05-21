@@ -53,7 +53,7 @@ install:
 
 # Testing
 test_script:
-  - git checkout 31e534c
+  - git checkout 2fe2f58
   - perl Configure.pl --gen-nqp --gen-moar=aad6fdc
   - SET TEST_JOBS=1
   - SET HARNESS_VERBOSE=1

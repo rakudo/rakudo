@@ -28,9 +28,9 @@ build: off
 # Build configurations
 environment:
   matrix:
-    - RAKUDO_OPTIONS: --backends=moar --gen-nqp        --gen-moar
-    - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar
-    - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar=master
+#    - RAKUDO_OPTIONS: --backends=moar --gen-nqp        --gen-moar
+#    - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar
+    - RAKUDO_OPTIONS: --backends=moar --gen-nqp=master --gen-moar=aad6fdc
 #    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp
 #    - RAKUDO_OPTIONS: --backends=jvm  --gen-nqp=master
 

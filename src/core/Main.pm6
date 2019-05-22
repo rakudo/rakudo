@@ -266,6 +266,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {
+        return False if $signature.params.first: *.capture;
         my @named-params = $signature.params.grep: *.named;
         return False if @named-params.first: *.slurpy;
 

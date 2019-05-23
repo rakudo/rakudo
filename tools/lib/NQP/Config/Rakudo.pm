@@ -421,6 +421,7 @@ sub gen_nqp {
         "--git-protocol=$git_protocol",
     );
 
+    # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
         qw<git-depth git-reference github-user nqp-repo moar-repo
         no-relocatable ignore-errors>
@@ -429,6 +430,8 @@ sub gen_nqp {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );
         push @cmd, $opt_str if $opt_str;
     }
+
+    push @cmd, "--backends=" . join( ",", $self->active_backends );
 
     if ( defined $gen_moar ) {
         push @cmd, $gen_moar ? "--gen-moar=$gen_moar" : '--gen-moar';

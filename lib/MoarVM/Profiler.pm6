@@ -230,3 +230,12 @@ sub profile(&code --> Profile:D) is export {
     code();
     Profile.new(nqp::mvmendprofile)
 }
+
+sub foo() { for ^100000 { my $a = 42 } }
+sub bar() { foo for ^3 }
+
+use Data::Dump::Tree;
+
+profile( { bar } );
+#my $p = profile( { bar } );
+#ddt $p.thread(1).all_allocations;

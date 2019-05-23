@@ -56,38 +56,36 @@ class Profile::Callee does OnHash[<
   jit_entries
   line
   name
+  osr
 >] {
 
-    method TWEAK(:@allocations --> Nil) {
+    method TWEAK(--> Nil) {
         self!mogrify-to-list(Profile::Allocation, 'allocations');
         self!mogrify-to-list(Profile::Callee,     'callees'    );
     }
 
-    method all-callees() {
-        |(|self.callees, |self.callees.map: *.all-callees)
+    method all_callees() {
+        |(|self.callees, |self.callees.map: *.all_callees)
     }
-}
-
-class Profile::CallGraph does OnHash[<
-  allocations
-  callees
-  entries
-  exclusive_time
-  file
-  first_entry_time
-  id
-  inclusive_time
-  line
-  name
->] {
-
-    method TWEAK(:@allocations, :@callees --> Nil) {
-        self!mogrify-to-list(Profile::Allocation, 'allocations');
-        self!mogrify-to-list(Profile::Callee,     'callees'    );
+    method all_allocations() {
+        |(|self.allocations, |self.callees.map: *.all_allocations)
     }
 
-    method all-callees() {
-        |(|self.callees, |self.callees.map: *.all-callees)
+    method nr_allocations(--> Int:D) {
+        self.allocations.map(*.count).sum
+          + self.callees.map(*.nr_allocations).sum
+    }
+    method nr_frames(--> Int:D) {
+        (self.entries // 0) + self.callees.map(*.nr_frames).sum
+    }
+    method nr_inlined(--> Int:D) {
+        (self.inlined_entries // 0) + self.callees.map(*.nr_inlined).sum
+    }
+    method nr_jitted(--> Int:D) {
+        (self.jit_entries // 0) + self.callees.map(*.nr_jitted).sum
+    }
+    method nr_osred(--> Int:D) {
+        (self.osr // 0) + self.callees.map(*.nr_osred).sum
     }
 }
 
@@ -111,12 +109,12 @@ class Profile::GC does OnHash[<
   time
 >] {
 
-    method TWEAK(:@deallocations --> Nil) {
+    method TWEAK(--> Nil) {
         self!mogrify-to-list(Profile::Deallocation, 'deallocs');
     }
 }
 
-class Profile::Object does OnHash[<
+class Profile::Type does OnHash[<
   managed_size
   repr
   type
@@ -135,7 +133,7 @@ class Profile::Object does OnHash[<
 }
 
 class Profile::Thread does OnHash[<
-  call_graph
+  callee
   gcs
   parent
   spesh_time
@@ -143,55 +141,73 @@ class Profile::Thread does OnHash[<
   total_time
 >] {
     has Int $.id;
-    has %.objects;  # set by Profile.new
+    has $.callee;
+    has %.types;  # set by Profile.new
 
     method TWEAK(--> Nil) {
-        $!id = %!hash.DELETE-KEY("thread");
-        self!mogrify-to-object(Profile::CallGraph, 'call_graph');
+        $!id := %!hash.DELETE-KEY("thread");
+        %!hash.ASSIGN-KEY('callee',%!hash.DELETE-KEY("call_graph"));
+
+        self!mogrify-to-object(Profile::Callee, 'callee');
         self!mogrify-to-list(Profile::GC, 'gcs');
     }
 
-    # object given ID
-    method object($id) { %!objects{$id} }
+    # type given ID
+    method type($id) { %!types{$id} }
 
-    method all-callees() { self.call_graph.all-callees }
+    method all_callees()     { self.callee.all_callees     }
+    method all_allocations() { self.callee.all_allocations }
 
-    method report(--> Str:D) {
-        "Thread $.id: $.total_time microsecs"
-    }
+    method nr_allocations(--> Int:D) { self.callee.nr_allocations }
+    method nr_frames(--> Int:D)      { self.callee.nr_frames      }
+    method nr_inlined(--> Int:D)     { self.callee.nr_inlined     }
+    method nr_jitted(--> Int:D)      { self.callee.nr_jitted      }
+    method nr_osred(--> Int:D)       { self.callee.nr_osred       }
 }
 
 class Profile {
-    has %.objects is required;
+    has %.types   is required;
     has %.threads is required;
 
     method !SET-SELF(@raw) {
-        %!objects = @raw[0].map: -> $object {
-            .id => $_ given Profile::Object.new($object)
+        %!types = @raw[0].map: -> $type {
+            .id => $_ given Profile::Type.new($type)
         }
         %!threads = @raw.skip.map: -> $thread {
             .id => $_ given Profile::Thread.new($thread)
         }
 
-        # let objects know about threads and vice-versa
-        nqp::bindattr(nqp::decont($_),Profile::Object,'%!threads',%!threads)
-          for %!objects.values;
-        nqp::bindattr(nqp::decont($_),Profile::Thread,'%!objects',%!objects)
+        # let types know about threads and vice-versa
+        nqp::bindattr(nqp::decont($_),Profile::Type,'%!threads',%!threads)
+          for %!types.values;
+        nqp::bindattr(nqp::decont($_),Profile::Thread,'%!types',%!types)
           for %!threads.values;
 
         self
     }
     method new(@raw) { self.CREATE!SET-SELF(@raw) }
 
-    # types of objects seen with their frequencies
-    method types() { %!objects.values.map(*.type).Bag }
-
-    # object/thread given an ID
-    method object($id) { %!objects{$id} }
+    # type/thread given an ID
+    method type($id)   { %!types{$id}   }
     method thread($id) { %!threads{$id} }
 
     method report(--> Str:D) {
-        self.threads.sort(*.key).map(*.value.report).join("\n")
+        (
+"  #   wallclock    objects     frames    inlined     jitted      OSRed",
+"----+-----------+----------+----------+----------+----------+----------",
+          |self.threads.sort(*.key).map( {
+              sprintf("%3d%12d%11d%11d%11d%11d%11d",
+                .id,
+                .total_time,
+                .nr_allocations,
+                .nr_frames,
+                .nr_inlined,
+                .nr_jitted,
+                .nr_osred,
+              ) given .value
+          } ),
+"----+-----------+----------+----------+----------+----------+----------",
+        ).join("\n")
     }
 
     method sink(--> Nil) {
@@ -200,11 +216,11 @@ class Profile {
 }
 
 # Raw subs, for cases where starting an extra scope would be troublesome
-sub profile-start(--> Nil) is export {
+sub profile_start(--> Nil) is export {
     nqp::mvmstartprofile({:instrumented})
 }
 
-sub profile-end(--> Profile:D) is export {
+sub profile_end(--> Profile:D) is export {
     Profile.new(nqp::mvmendprofile)
 }
 

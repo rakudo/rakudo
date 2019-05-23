@@ -163,6 +163,7 @@ class MoarVM::Profiler::Thread does OnHash[<
     method nr_inlined(--> Int:D)     { self.callee.nr_inlined     }
     method nr_jitted(--> Int:D)      { self.callee.nr_jitted      }
     method nr_osred(--> Int:D)       { self.callee.nr_osred       }
+    method nr_gcs(--> Int:D)         { +self.gcs                  }
 }
 
 class MoarVM::Profiler {
@@ -195,10 +196,10 @@ class MoarVM::Profiler {
 
     method report(--> Str:D) {
         (
-"  #   wallclock    objects     frames    inlined     jitted      OSRed",
-"----+-----------+----------+----------+----------+----------+----------",
+"  #   wallclock   objects    frames   inlined    jitted   OSR   GCs",
+"----+-----------+---------+---------+---------+---------+-----+-----",
           |self.threads.grep(*.value.nr_frames).sort(*.key).map( {
-              sprintf("%3d%12d%11d%11d%11d%11d%11d",
+              sprintf("%3d %11d %9d %9d %9d %9d %5d %5d",
                 .id,
                 .total_time,
                 .nr_allocations,
@@ -206,9 +207,10 @@ class MoarVM::Profiler {
                 .nr_inlined,
                 .nr_jitted,
                 .nr_osred,
+                .nr_gcs,
               ) given .value
           } ),
-"----+-----------+----------+----------+----------+----------+----------",
+"----+-----------+---------+---------+---------+---------+-----+-----",
         ).join("\n")
     }
 

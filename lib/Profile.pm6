@@ -40,22 +40,31 @@ role OnHash[@keys] {
 class Profile::Allocation does OnHash[<
   count
   id
+  jit
 >] { }
 
 class Profile::Callee does OnHash[<
   allocations
+  callees
   entries
   exclusive_time
   file
   first_entry_time
   id
   inclusive_time
+  inlined_entries
+  jit_entries
   line
   name
 >] {
 
     method TWEAK(:@allocations --> Nil) {
         self!mogrify-to-list(Profile::Allocation, 'allocations');
+        self!mogrify-to-list(Profile::Callee,     'callees'    );
+    }
+
+    method all-callees() {
+        |(|self.callees, |self.callees.map: *.all-callees)
     }
 }
 
@@ -75,6 +84,10 @@ class Profile::CallGraph does OnHash[<
     method TWEAK(:@allocations, :@callees --> Nil) {
         self!mogrify-to-list(Profile::Allocation, 'allocations');
         self!mogrify-to-list(Profile::Callee,     'callees'    );
+    }
+
+    method all-callees() {
+        |(|self.callees, |self.callees.map: *.all-callees)
     }
 }
 
@@ -103,22 +116,6 @@ class Profile::GC does OnHash[<
     }
 }
 
-class Profile::Thread does OnHash[<
-  call_graph
-  gcs
-  id
-  parent
-  spesh_time
-  start_time
-  total_time
->] {
-
-    method TWEAK(--> Nil) {
-        self!mogrify-to-object(Profile::CallGraph, 'call_graph');
-        self!mogrify-to-list(Profile::GC, 'gcs');
-    }
-}
-
 class Profile::Object does OnHash[<
   managed_size
   repr
@@ -126,24 +123,73 @@ class Profile::Object does OnHash[<
   has_unmanaged_data
 >] {
     has $.id;
+    has %.threads;  # set by Profile.new
 
-    method new( ($id,%hash) ) { self.bless( :$id, :%hash ) }
+    method new( ($id,%hash) ) { self.bless(:$id, :%hash) }
     method TWEAK() {
-        $_ = (try .^name) || "(no type name)" unless $_ ~~ Str
-          given %!hash<type>;
+        $_ = (try .^name) || "(" ~ nqp::objectid($_) ~ ")" given %!hash<type>;
     }
+
+    # thread given ID
+    method thread($id) { %!threads{$id} }
+}
+
+class Profile::Thread does OnHash[<
+  call_graph
+  gcs
+  parent
+  spesh_time
+  start_time
+  total_time
+>] {
+    has $.id;
+    has %.objects;  # set by Profile.new
+
+    method TWEAK(--> Nil) {
+        $!id := %!hash.DELETE-KEY("thread");
+        self!mogrify-to-object(Profile::CallGraph, 'call_graph');
+        self!mogrify-to-list(Profile::GC, 'gcs');
+    }
+
+    # object given ID
+    method object($id) { %!objects{$id} }
+
+    method all-callees() { self.call_graph.all-callees }
 }
 
 class Profile {
-    has @.objects is required;
-    has @.threads is required;
+    has %.objects is required;
+    has %.threads is required;
 
-    method new(@raw) {
-        self.bless(
-          objects => @raw[0].map(   { Profile::Object.new($_) } ).list,
-          threads => @raw.skip.map( { Profile::Thread.new($_) } ).list,
-        )
+    method !SET-SELF(@raw) {
+        %!objects = @raw[0].map: -> $object {
+            .id => $_ given Profile::Object.new($object)
+        }
+        %!threads = @raw.skip.map: -> $thread {
+            .id => $_ given Profile::Thread.new($thread)
+        }
+
+        # let objects know about threads and vice-versa
+        .threads = %!threads for %!objects.values;
+        .objects = %!objects for %!threads.values;
+# This doesn't work :-(
+#        for %!objects.values -> \object {
+#            nqp::bindattr(object,Profile::Object,'%!threads',%!threads);
+#        }
+#        for %!threads.values -> \thread {
+#            nqp::bindattr(thread,Profile::Thread,'%!objects',%!objects);
+#        }
+
+        self
     }
+    method new(@raw) { self.CREATE!SET-SELF(@raw) }
+
+    # types of objects seen with their frequencies
+    method types() { %!objects.values.map(*.type).Bag }
+
+    # object/thread given an ID
+    method object($id) { %!objects{$id} }
+    method thread($id) { %!threads{$id} }
 }
 
 # Raw subs, for cases where starting an extra scope would be troublesome

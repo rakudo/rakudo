@@ -170,15 +170,10 @@ class Profile {
         }
 
         # let objects know about threads and vice-versa
-        .threads = %!threads for %!objects.values;
-        .objects = %!objects for %!threads.values;
-# This doesn't work :-(
-#        for %!objects.values -> \object {
-#            nqp::bindattr(object,Profile::Object,'%!threads',%!threads);
-#        }
-#        for %!threads.values -> \thread {
-#            nqp::bindattr(thread,Profile::Thread,'%!objects',%!objects);
-#        }
+        nqp::bindattr(nqp::decont($_),Profile::Object,'%!threads',%!threads)
+          for %!objects.values;
+        nqp::bindattr(nqp::decont($_),Profile::Thread,'%!objects',%!objects)
+          for %!threads.values;
 
         self
     }

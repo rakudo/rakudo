@@ -183,6 +183,21 @@ int wmain(int argc, wchar_t *wargv[])
     MVMuint32 debugserverport = 0;
     int start_suspended = 0;
 
+    /* Retrieve the executable directory path. */
+
+    exec_path_size = 4096;
+    exec_path = (char*)malloc(exec_path_size);
+    res = MVM_exepath(exec_path, &exec_path_size);
+    while (res < 0 && exec_path_size < 4096*8) {
+        exec_path_size *= 2;
+        exec_path = (char*)realloc(exec_path, exec_path_size);
+        res = MVM_exepath(exec_path, &exec_path_size);
+    }
+    if (res < 0) {
+        fprintf(stderr, "ERROR: Could not retrieve executable path.\n");
+        return EXIT_FAILURE;
+    }
+
     /* Filter out VM arguments from the command line. */
 
     for (; (flag = parse_flag(argv[argi])) != NOT_A_FLAG; ++argi) {
@@ -249,21 +264,6 @@ int wmain(int argc, wchar_t *wargv[])
         }
     }
 #endif
-
-    /* Retrieve the executable directory path. */
-
-    exec_path_size = 4096;
-    exec_path = (char*)malloc(exec_path_size);
-    res = MVM_exepath(exec_path, &exec_path_size);
-    while (res < 0 && exec_path_size < 4096*8) {
-        exec_path_size *= 2;
-        exec_path = (char*)realloc(exec_path, exec_path_size);
-        res = MVM_exepath(exec_path, &exec_path_size);
-    }
-    if (res < 0) {
-        fprintf(stderr, "ERROR: Could not retrieve executable path.\n");
-        return EXIT_FAILURE;
-    }
 
     /* The +1 is the trailing \0 terminating the string. */
     dir_path_temp = (char*)malloc(exec_path_size + 1);

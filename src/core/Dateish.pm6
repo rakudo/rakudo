@@ -133,6 +133,9 @@ my role Dateish {
             self!ymd-from-daycount($new-dc,
               %parts<year>,%parts<month>,%parts<day>);
         }
+        elsif $unit eq 'day' | 'days' {
+            # no-op
+        }
         else { # $unit eq 'month' | 'months' | 'year' | 'years'
             %parts<day>   = 1;
             %parts<month> = 1 if $unit eq 'year' | 'years';

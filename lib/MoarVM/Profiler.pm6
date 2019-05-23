@@ -37,13 +37,13 @@ role OnHash[@keys] {
     }
 }
 
-class Profile::Allocation does OnHash[<
+class MoarVM::Profiler::Allocation does OnHash[<
   count
   id
   jit
 >] { }
 
-class Profile::Callee does OnHash[<
+class MoarVM::Profiler::Callee does OnHash[<
   allocations
   callees
   entries
@@ -60,8 +60,8 @@ class Profile::Callee does OnHash[<
 >] {
 
     method TWEAK(--> Nil) {
-        self!mogrify-to-list(Profile::Allocation, 'allocations');
-        self!mogrify-to-list(Profile::Callee,     'callees'    );
+        self!mogrify-to-list(MoarVM::Profiler::Allocation, 'allocations');
+        self!mogrify-to-list(MoarVM::Profiler::Callee,     'callees'    );
     }
 
     method all_callees() {
@@ -89,13 +89,13 @@ class Profile::Callee does OnHash[<
     }
 }
 
-class Profile::Deallocation does OnHash[<
+class MoarVM::Profiler::Deallocation does OnHash[<
   id
   nursery_fresh
   nursery_seen
 >] { }
 
-class Profile::GC does OnHash[<
+class MoarVM::Profiler::GC does OnHash[<
   cleared_bytes
   deallocs
   full
@@ -110,18 +110,18 @@ class Profile::GC does OnHash[<
 >] {
 
     method TWEAK(--> Nil) {
-        self!mogrify-to-list(Profile::Deallocation, 'deallocs');
+        self!mogrify-to-list(MoarVM::Profiler::Deallocation, 'deallocs');
     }
 }
 
-class Profile::Type does OnHash[<
+class MoarVM::Profiler::Type does OnHash[<
   managed_size
   repr
   type
   has_unmanaged_data
 >] {
     has Int $.id;
-    has %.threads;  # set by Profile.new
+    has %.threads;  # set by MoarVM::Profiler.new
 
     method new( ($id,%hash) ) { self.bless(:$id, :%hash) }
     method TWEAK() {
@@ -132,7 +132,7 @@ class Profile::Type does OnHash[<
     method thread($id) { %!threads{$id} }
 }
 
-class Profile::Thread does OnHash[<
+class MoarVM::Profiler::Thread does OnHash[<
   callee
   gcs
   parent
@@ -142,14 +142,14 @@ class Profile::Thread does OnHash[<
 >] {
     has Int $.id;
     has $.callee;
-    has %.types;  # set by Profile.new
+    has %.types;  # set by MoarVM::Profiler.new
 
     method TWEAK(--> Nil) {
         $!id := %!hash.DELETE-KEY("thread");
         %!hash.ASSIGN-KEY('callee',%!hash.DELETE-KEY("call_graph"));
 
-        self!mogrify-to-object(Profile::Callee, 'callee');
-        self!mogrify-to-list(Profile::GC, 'gcs');
+        self!mogrify-to-object(MoarVM::Profiler::Callee, 'callee');
+        self!mogrify-to-list(MoarVM::Profiler::GC, 'gcs');
     }
 
     # type given ID
@@ -165,23 +165,25 @@ class Profile::Thread does OnHash[<
     method nr_osred(--> Int:D)       { self.callee.nr_osred       }
 }
 
-class Profile {
+class MoarVM::Profiler {
     has %.types   is required;
     has %.threads is required;
 
     method !SET-SELF(@raw) {
         %!types = @raw[0].map: -> $type {
-            .id => $_ given Profile::Type.new($type)
+            .id => $_ given MoarVM::Profiler::Type.new($type)
         }
         %!threads = @raw.skip.map: -> $thread {
-            .id => $_ given Profile::Thread.new($thread)
+            .id => $_ given MoarVM::Profiler::Thread.new($thread)
         }
 
         # let types know about threads and vice-versa
-        nqp::bindattr(nqp::decont($_),Profile::Type,'%!threads',%!threads)
-          for %!types.values;
-        nqp::bindattr(nqp::decont($_),Profile::Thread,'%!types',%!types)
-          for %!threads.values;
+        nqp::bindattr(
+          nqp::decont($_),MoarVM::Profiler::Type,'%!threads',%!threads
+        ) for %!types.values;
+        nqp::bindattr(
+          nqp::decont($_),MoarVM::Profiler::Thread,'%!types',%!types
+        ) for %!threads.values;
 
         self
     }
@@ -220,22 +222,13 @@ sub profile_start(--> Nil) is export {
     nqp::mvmstartprofile({:instrumented})
 }
 
-sub profile_end(--> Profile:D) is export {
-    Profile.new(nqp::mvmendprofile)
+sub profile_end(--> MoarVM::Profiler:D) is export {
+    MoarVM::Profiler.new(nqp::mvmendprofile)
 }
 
 # HLL sub for profiling a piece of code and getting the info from that
-sub profile(&code --> Profile:D) is export {
+sub profile(&code --> MoarVM::Profiler:D) is export {
     nqp::mvmstartprofile({:instrumented});
     code();
-    Profile.new(nqp::mvmendprofile)
+    MoarVM::Profiler.new(nqp::mvmendprofile)
 }
-
-sub foo() { for ^100000 { my $a = 42 } }
-sub bar() { foo for ^3 }
-
-use Data::Dump::Tree;
-
-profile( { bar } );
-#my $p = profile( { bar } );
-#ddt $p.thread(1).all_allocations;

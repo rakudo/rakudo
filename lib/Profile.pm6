@@ -122,7 +122,7 @@ class Profile::Object does OnHash[<
   type
   has_unmanaged_data
 >] {
-    has $.id;
+    has Int $.id;
     has %.threads;  # set by Profile.new
 
     method new( ($id,%hash) ) { self.bless(:$id, :%hash) }
@@ -142,11 +142,11 @@ class Profile::Thread does OnHash[<
   start_time
   total_time
 >] {
-    has $.id;
+    has Int $.id;
     has %.objects;  # set by Profile.new
 
     method TWEAK(--> Nil) {
-        $!id := %!hash.DELETE-KEY("thread");
+        $!id = %!hash.DELETE-KEY("thread");
         self!mogrify-to-object(Profile::CallGraph, 'call_graph');
         self!mogrify-to-list(Profile::GC, 'gcs');
     }
@@ -155,6 +155,10 @@ class Profile::Thread does OnHash[<
     method object($id) { %!objects{$id} }
 
     method all-callees() { self.call_graph.all-callees }
+
+    method report(--> Str:D) {
+        "Thread $.id: $.total_time microsecs"
+    }
 }
 
 class Profile {
@@ -185,6 +189,14 @@ class Profile {
     # object/thread given an ID
     method object($id) { %!objects{$id} }
     method thread($id) { %!threads{$id} }
+
+    method report(--> Str:D) {
+        self.threads.sort(*.key).map(*.value.report).join("\n")
+    }
+
+    method sink(--> Nil) {
+        note self.report;
+    }
 }
 
 # Raw subs, for cases where starting an extra scope would be troublesome

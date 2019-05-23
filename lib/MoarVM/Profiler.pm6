@@ -10,12 +10,15 @@ use nqp;
 role OnHash[@keys] {
     has %.hash;
 
+    # this gets run at mixin time, before the class is composed
     for @keys -> $key {
         $?CLASS.^add_method($key, { .hash.AT-KEY($key) } )
     }
 
+    # don't want to use named parameters for something this simple
     method new(%hash) { self.bless(:%hash) }
 
+    # make sure we have an object, and not just a hash for a given key
     method !mogrify-to-object(\the-class, \key --> Nil) {
         if %!hash{key} -> $hash {
             %!hash{key} = the-class.new($hash) unless $hash ~~ the-class;
@@ -25,6 +28,7 @@ role OnHash[@keys] {
         }
     }
 
+    # make sure we have a list of objects, and not just an array of hashes
     method !mogrify-to-list(\the-class, \key --> Nil) {
         if %!hash{key} -> @list {
             %!hash{key} = @list.map( {
@@ -37,12 +41,14 @@ role OnHash[@keys] {
     }
 }
 
+# Information about objects of a certain type being allocated in a Callee.
 class MoarVM::Profiler::Allocation does OnHash[<
   count
   id
   jit
 >] { }
 
+# Information about a frame that has been called.
 class MoarVM::Profiler::Callee does OnHash[<
   allocations
   callees
@@ -89,12 +95,15 @@ class MoarVM::Profiler::Callee does OnHash[<
     }
 }
 
+# Information about a de-allocation as part of a garbage collection.
 class MoarVM::Profiler::Deallocation does OnHash[<
   id
   nursery_fresh
   nursery_seen
 >] { }
 
+
+# Information about a garbage collection.
 class MoarVM::Profiler::GC does OnHash[<
   cleared_bytes
   deallocs
@@ -114,6 +123,7 @@ class MoarVM::Profiler::GC does OnHash[<
     }
 }
 
+# Information about a type that have at least one object instantiated.
 class MoarVM::Profiler::Type does OnHash[<
   managed_size
   repr
@@ -132,6 +142,7 @@ class MoarVM::Profiler::Type does OnHash[<
     method thread($id) { %!threads{$id} }
 }
 
+# Information about a thread.
 class MoarVM::Profiler::Thread does OnHash[<
   callee
   gcs
@@ -166,9 +177,11 @@ class MoarVM::Profiler::Thread does OnHash[<
     method nr_gcs(--> Int:D)         { +self.gcs                  }
 }
 
+# Main object returned by profile() and friends.
 class MoarVM::Profiler {
     has %.types   is required;
     has %.threads is required;
+    has %.names;
 
     method !SET-SELF(@raw) {
         %!types = @raw[0].map: -> $type {
@@ -190,9 +203,16 @@ class MoarVM::Profiler {
     }
     method new(@raw) { self.CREATE!SET-SELF(@raw) }
 
+    method names() {
+        %!names
+          ?? %!names
+          !! %!names = %.types.map( { .type => $_ with .value } )
+    }
+
     # type/thread given an ID
-    method type($id)   { %!types{$id}   }
-    method thread($id) { %!threads{$id} }
+    method type_by_id($id)     { %!types{$id}   }
+    method type_by_name($name) { %.names{$name} }
+    method thread($id)         { %!threads{$id} }
 
     method report(--> Str:D) {
         (

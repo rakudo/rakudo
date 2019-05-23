@@ -22,6 +22,7 @@ my %allowed = (
   Q{::?PACKAGE},
   Q{EXPORT},
   Q{GLOBALish},
+  Q{&CORE-SETTING-REV},
 ).map: { $_ => 1 };
 
 my @unknown;

@@ -119,13 +119,28 @@ class Profile::Thread does OnHash[<
     }
 }
 
+class Profile::Object does OnHash[<
+  managed_size
+  repr
+  type
+  has_unmanaged_data
+>] {
+    has $.id;
+
+    method new( ($id,%hash) ) { self.bless( :$id, :%hash ) }
+    method TWEAK() {
+        $_ = (try .^name) || "(no type name)" unless $_ ~~ Str
+          given %!hash<type>;
+    }
+}
+
 class Profile {
-    has @.global  is required;
+    has @.objects is required;
     has @.threads is required;
 
     method new(@raw) {
         self.bless(
-          global  => @raw[0],
+          objects => @raw[0].map(   { Profile::Object.new($_) } ).list,
           threads => @raw.skip.map( { Profile::Thread.new($_) } ).list,
         )
     }

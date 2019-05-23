@@ -30,7 +30,7 @@ qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet up
 
 use lib ( "$FindBin::Bin/tools/lib",
     "$FindBin::Bin/3rdparty/nqp-configure/lib" );
-use NQP::Config qw<system_or_die>;
+use NQP::Config qw<system_or_die slurp>;
 use NQP::Config::Rakudo;
 
 $| = 1;

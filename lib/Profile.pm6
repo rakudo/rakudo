@@ -195,7 +195,7 @@ class Profile {
         (
 "  #   wallclock    objects     frames    inlined     jitted      OSRed",
 "----+-----------+----------+----------+----------+----------+----------",
-          |self.threads.sort(*.key).map( {
+          |self.threads.grep(*.value.nr_frames).sort(*.key).map( {
               sprintf("%3d%12d%11d%11d%11d%11d%11d",
                 .id,
                 .total_time,

@@ -17,22 +17,22 @@ role OnHash[@keys] {
     method new(%hash) { self.bless(:%hash) }
 
     method !mogrify-to-object(\the-class, \key --> Nil) {
-        with %!hash{key} {
-            $_ = the-class.new($_) unless $_ ~~ the-class;
+        if %!hash{key} -> $hash {
+            %!hash{key} = the-class.new($hash) unless $hash ~~ the-class;
         }
-        default {
-            $_ = the-class.new({});
+        else {
+            %!hash{key} = the-class.new({});
         }
     }
 
     method !mogrify-to-list(\the-class, \key --> Nil) {
-        with %!hash{key} {
-            $_ = @$_.map( {
-                 $_ ~~ the-class ?? $_ !! the-class.new($_)
+        if %!hash{key} -> @list {
+            %!hash{key} = @list.map( {
+                $_ ~~ the-class ?? $_ !! the-class.new($_)
             } ).list;
         }
-        default {
-            $_ = ()
+        else {
+            %!hash{key} = ()
         }
     }
 }
@@ -86,7 +86,7 @@ class Profile::Deallocation does OnHash[<
 
 class Profile::GC does OnHash[<
   cleared_bytes
-  deallocations
+  deallocs
   full
   gen2_roots
   promoted_bytes
@@ -99,7 +99,7 @@ class Profile::GC does OnHash[<
 >] {
 
     method TWEAK(:@deallocations --> Nil) {
-        self!mogrify-to-list(Profile::Deallocation, 'deallocations');
+        self!mogrify-to-list(Profile::Deallocation, 'deallocs');
     }
 }
 

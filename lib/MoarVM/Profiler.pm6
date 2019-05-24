@@ -190,7 +190,6 @@ class MoarVM::Profiler::Type does OnHash[<
 
 # Information about a thread.
 class MoarVM::Profiler::Thread does OnHash[<
-  callee
   gcs
   parent
   spesh_time
@@ -202,11 +201,12 @@ class MoarVM::Profiler::Thread does OnHash[<
     has %.types;  # set by MoarVM::Profiler.new
 
     method TWEAK(--> Nil) {
-        $!id := %!hash.DELETE-KEY("thread");
-        %!hash.BIND-KEY('callee',%!hash.DELETE-KEY("call_graph"));
+        self!mogrify-to-object(MoarVM::Profiler::Callee,'call_graph','caller');
+        self!mogrify-to-slip(MoarVM::Profiler::GC,'gcs','thread');
 
-        self!mogrify-to-object(MoarVM::Profiler::Callee, 'callee', 'caller');
-        self!mogrify-to-slip(MoarVM::Profiler::GC, 'gcs', 'thread');
+        # some corrections
+        $!id     := %!hash.DELETE-KEY("thread");
+        $!callee := %!hash.DELETE-KEY("call_graph");
     }
 
     # type given ID
@@ -216,18 +216,40 @@ class MoarVM::Profiler::Thread does OnHash[<
     method all_callees()     { self.callee, |self.callee.all_callees }
     method all_allocations() { self.callee.all_allocations }
 
-    method nr_allocations(--> Int:D) { self.callee.nr_allocations }
-    method nr_frames(--> Int:D)      { self.callee.nr_frames      }
-    method nr_inlined(--> Int:D)     { self.callee.nr_inlined     }
-    method nr_jitted(--> Int:D)      { self.callee.nr_jitted      }
-    method nr_osred(--> Int:D)       { self.callee.nr_osred       }
-    method nr_gcs(--> Int:D)         { +self.gcs                  }
+    method nr_allocations(--> Int:D) { self.callee.nr_allocations  }
+    method nr_frames(--> Int:D)      { self.callee.nr_frames       }
+    method nr_inlined(--> Int:D)     { self.callee.nr_inlined      }
+    method nr_jitted(--> Int:D)      { self.callee.nr_jitted       }
+    method nr_osred(--> Int:D)       { self.callee.nr_osred        }
+    method nr_gcs(--> Int:D)         { self.gcs.elems              }
+    method nr_full_gcs(--> Int:D)    { self.gcs.grep(*.full).elems }
 
     method callees_by_file(\matcher) {
         self.all_callees.grep({ matcher.ACCEPTS(.file) })
     }
     method allocations_by_file(\matcher) {
         self.callees_by_file(matcher).map: *.allocations
+    }
+
+    method gist() {
+        qq:to/GIST/.chop
+Thread #{$.id}{
+    " (from thread #$.parent)" if $.parent
+}:
+{
+    $.start_time ?? "Started at $.start_time microseconds and r" !! "R"
+}an for $.total_time microseconds{
+    " (of which $.spesh_time in spesh)" if $.spesh_time
+}.
+Did $.nr_gcs garbage collections{
+    " (of which $.nr_full_gcs full collections)" if $.nr_full_gcs
+}.
+Called $.nr_frames frames{
+    " (of which $.nr_inlined were inlined and $.nr_jitted jitted)"
+      if $.nr_inlined || $.nr_jitted
+}.
+Performed $.nr_osred On-Stack-Replacements.
+GIST
     }
 }
 
@@ -271,14 +293,21 @@ class MoarVM::Profiler {
     method all_callees()     { %!threads.values.map: |*.all_callees     }
     method all_allocations() { %!threads.values.map: |*.all_allocations }
 
+    method my_callees() {
+        self.callees_by_file(callframe(1).file)
+    }
     method callees_by_file(\matcher) {
         self.all_callees.grep({ matcher.ACCEPTS(.file) })
+    }
+
+    method my_allocations() {
+        self.allocations_by_file(callframe(1).file)
     }
     method allocations_by_file(\matcher) {
         self.callees_by_file(matcher).map: *.allocations
     }
 
-    method gist(--> Str:D) {
+    method report(--> Str:D) {
         (
 "  #   wallclock   objects    frames   inlined    jitted   OSR   GCs",
 "----+-----------+---------+---------+---------+---------+-----+-----",
@@ -296,6 +325,10 @@ class MoarVM::Profiler {
           } ),
 "----+-----------+---------+---------+---------+---------+-----+-----",
         ).join("\n")
+    }
+
+    method gist() {
+        self.threads.sort(*.key).map(*.value.gist).join("\n" ~ "-" x 80 ~ "\n")
     }
 
     method sink(--> Nil) { note self }

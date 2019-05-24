@@ -71,6 +71,14 @@ class MoarVM::Profiler::Allocation does OnHash[<
     
     method thread() { self.callee.thread }
     method name()   { self.thread.type_by_id($.id).name }
+    method file()   { self.callee.file }
+    method line()   { self.callee.line }
+
+    method gist() {
+        my $gist = "Allocated $.count objects of $.name";
+        $gist ~= " (JITted $.jit)" if $.jit;
+        $gist ~ "\n  at $.file line $.line"
+    }
 }
 
 # Information about a Callable that has been called at least once.
@@ -172,7 +180,7 @@ class MoarVM::Profiler::Type does OnHash[<
 
     method new( ($id,%hash) ) { self.bless(:$id, :%hash) }
     method TWEAK() {
-        $!name := (try .^name) || "(" ~ nqp::objectid($_) ~ ")")
+        $!name := (try .^name) || "(" ~ nqp::objectid($_) ~ ")"
           given %!hash<type>;
     }
 
@@ -214,6 +222,13 @@ class MoarVM::Profiler::Thread does OnHash[<
     method nr_jitted(--> Int:D)      { self.callee.nr_jitted      }
     method nr_osred(--> Int:D)       { self.callee.nr_osred       }
     method nr_gcs(--> Int:D)         { +self.gcs                  }
+
+    method callees_by_file(\matcher) {
+        self.all_callees.grep({ matcher.ACCEPTS(.file) })
+    }
+    method allocations_by_file(\matcher) {
+        self.callees_by_file(matcher).map: *.allocations
+    }
 }
 
 # Main object returned by profile() and friends.
@@ -255,6 +270,13 @@ class MoarVM::Profiler {
 
     method all_callees()     { %!threads.values.map: |*.all_callees     }
     method all_allocations() { %!threads.values.map: |*.all_allocations }
+
+    method callees_by_file(\matcher) {
+        self.all_callees.grep({ matcher.ACCEPTS(.file) })
+    }
+    method allocations_by_file(\matcher) {
+        self.callees_by_file(matcher).map: *.allocations
+    }
 
     method report(--> Str:D) {
         (

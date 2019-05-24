@@ -11,7 +11,8 @@ use Cwd;
 use FindBin;
 
 BEGIN {
-    unless ( -e '3rdparty/nqp-configure/LICENSE' ) {
+    my $force_update = !!grep { $_ eq '--submodule-update' } @ARGV;
+    if ( $force_update || !-e '3rdparty/nqp-configure/LICENSE' ) {
         print "Updating nqp-configure submodule...\n";
         my $msg =
 qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
@@ -52,20 +53,21 @@ MAIN: {
     $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
-        $cfg->options,      'help!',
-        'prefix=s',         'libdir=s',
-        'sysroot=s',        'sdkroot=s',
-        'no-relocatable',   'backends=s',
-        'no-clean',         'with-nqp=s',
-        'gen-nqp:s',        'gen-moar:s',
-        'moar-option=s@',   'git-protocol=s',
-        'ignore-errors',    'make-install!',
-        'makefile-timing!', 'git-depth=s',
-        'git-reference=s',  'github-user=s',
-        'rakudo-repo=s',    'nqp-repo=s',
-        'moar-repo=s',      'roast-repo=s',
-        'expand=s',         'out=s',
-        'set-var=s@',
+        $cfg->options,    'help!',
+        'prefix=s',       'libdir=s',
+        'sysroot=s',      'sdkroot=s',
+        'no-relocatable', 'backends=s',
+        'no-clean',       'with-nqp=s',
+        'with-moar=s',    'gen-nqp:s',
+        'gen-moar:s',     'moar-option=s@',
+        'git-protocol=s', 'ignore-errors',
+        'make-install!',  'makefile-timing!',
+        'git-depth=s',    'git-reference=s',
+        'github-user=s',  'rakudo-repo=s',
+        'nqp-repo=s',     'moar-repo=s',
+        'roast-repo=s',   'expand=s',
+        'out=s',          'set-var=s@',
+        'submodule-update',
       )
       or do {
         print_help();
@@ -96,6 +98,11 @@ MAIN: {
 
     $cfg->options->{'gen-nqp'} ||= '' if $cfg->has_option('gen-moar');
     $cfg->gen_nqp;
+
+    if ( defined $cfg->opt('submodule-update') ) {
+        exit(0);
+    }
+
     $cfg->configure_active_backends;
 
     $cfg->expand_template;

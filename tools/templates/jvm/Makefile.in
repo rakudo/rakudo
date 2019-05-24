@@ -54,10 +54,11 @@ J_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES) \
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
 J_CORE_SOURCES = \
-  @jvm_core_sources@
-
-J_CORE_D_SOURCES = \
-  @jvm_core_d_sources@
+	@insert_filelist(jvm_core_sources)@
+@for_specs(
+J_CORE_@ucspec@_SOURCES = \
+    @insert_filelist(rev_core_sources)@
+)@
 
 PERL6_DEBUG_JAR = perl6-debug.jar
 J_DEBUG_RUNNER = perl6-debug-j@runner_suffix@
@@ -147,15 +148,16 @@ $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
 	$(J_RUN_NQP_RR) --module-path=blib --target=jar --output=$(PERL6_B_JAR) @nfpq($(J_BUILD_DIR)/BOOTSTRAP.nqp)@
 
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
-	$(J_NQP) $(J_GEN_CAT) -f @shquot(@template(jvm_core_sources)@)@ > @nfpq($(J_BUILD_DIR)/CORE.setting)@
+	$(J_NQP) $(J_GEN_CAT) $(J_CORE_SOURCES) > @nfpq($(J_BUILD_DIR)/CORE.setting)@
 	@echo "The following step can take a long time, please be patient."
 	@set_nqp_lib@$(J_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.setting)@
 
-$(SETTING_D_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(SETTING_JAR) $(J_CORE_SOURCES)
-	$(J_NQP) $(J_GEN_CAT) $(J_CORE_D_SOURCES) > @nfpq($(J_BUILD_DIR)/CORE.d.setting)@
+@for_specs($(SETTING_@ucspec@_JAR): $(PERL6_JAR) $(PERL6_@ucspec@_JAR) $(SETTING_JAR) $(J_CORE_SOURCES)
+	$(J_NQP) $(J_GEN_CAT) $(J_CORE_@ucspec@_SOURCES) > @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
 	@echo "The following step can take a long time, please be patient."
-	@set_nqp_lib@$(J_RUN_PERL6) --setting=NULL.d --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_D_JAR) --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.d.setting)@
-
+	@set_nqp_lib@$(J_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_@ucspec@_JAR) --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
+	
+)@
 $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
 	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q($(NQP_PREFIX))@ --nqp-lib=blib @q($(NQP_JARS))@
 

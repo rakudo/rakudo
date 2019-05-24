@@ -164,15 +164,15 @@ class MoarVM::Profiler::Type does OnHash[<
   managed_size
   repr
   type
-  name
   has_unmanaged_data
 >] {
     has Int $.id;
+    has Str $.name;
     has %.threads;  # set by MoarVM::Profiler.new
 
     method new( ($id,%hash) ) { self.bless(:$id, :%hash) }
     method TWEAK() {
-        %!hash.BIND-KEY('name',(try .^name) || "(" ~ nqp::objectid($_) ~ ")")
+        $!name := (try .^name) || "(" ~ nqp::objectid($_) ~ ")")
           given %!hash<type>;
     }
 

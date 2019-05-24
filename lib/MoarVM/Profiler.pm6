@@ -278,7 +278,7 @@ class MoarVM::Profiler {
         self.callees_by_file(matcher).map: *.allocations
     }
 
-    method report(--> Str:D) {
+    method gist(--> Str:D) {
         (
 "  #   wallclock   objects    frames   inlined    jitted   OSR   GCs",
 "----+-----------+---------+---------+---------+---------+-----+-----",
@@ -298,9 +298,7 @@ class MoarVM::Profiler {
         ).join("\n")
     }
 
-    method sink(--> Nil) {
-        note self.report;
-    }
+    method sink(--> Nil) { note self }
 }
 
 # Raw subs, for cases where starting an extra scope would be troublesome
@@ -310,6 +308,12 @@ sub profile_start(--> Nil) is export {
 
 sub profile_end(--> MoarVM::Profiler:D) is export {
     MoarVM::Profiler.new(nqp::mvmendprofile)
+}
+
+sub profile_rest(--> Nil) is export {
+    nqp::mvmstartprofile({:instrumented});
+    my $end-profile = True;
+    END MoarVM::Profiler.new(nqp::mvmendprofile) if $end-profile;
 }
 
 # HLL sub for profiling a piece of code and getting the info from that

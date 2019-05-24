@@ -4,6 +4,8 @@
 # We need NQP here, duh!
 use nqp;
 
+class MoarVM::Profiler::Thread { ... }
+
 # Simple role that maps a set of given keys onto a hash, so that we need to
 # do the minimal amount of work to convert the data structure to a full-blown
 # object hierarchy.
@@ -19,39 +21,63 @@ role OnHash[@keys] {
     method new(%hash) { self.bless(:%hash) }
 
     # make sure we have an object, and not just a hash for a given key
-    method !mogrify-to-object(\the-class, \key --> Nil) {
+    method !mogrify-to-object(\the-class, \key, \link --> Nil) {
         if %!hash{key} -> $hash {
-            %!hash{key} = the-class.new($hash) unless $hash ~~ the-class;
+            unless $hash ~~ the-class {
+                my \object := the-class.new($hash);
+                %!hash.BIND-KEY(key,object);
+                object.hash.BIND-KEY(link,self);
+            }
         }
         else {
-            %!hash{key} = the-class.new({});
+            %!hash.BIND-KEY(key,the-class.new({}));
         }
     }
 
-    # make sure we have a list of objects, and not just an array of hashes
-    method !mogrify-to-list(\the-class, \key --> Nil) {
+    # make sure we have a Slip of objects, and not just an array of hashes
+    method !mogrify-to-slip(\the-class, \key, \link --> Nil) {
         if %!hash{key} -> @list {
-            %!hash{key} = @list.map( {
-                $_ ~~ the-class ?? $_ !! the-class.new($_)
-            } ).list;
+            %!hash.BIND-KEY(
+              key,
+              @list.map({
+                  if $_ ~~ the-class {
+                      $_
+                  }
+                  else {
+                      my \object := the-class.new($_);
+                      object.hash.BIND-KEY(link,self);
+                      object
+                  }
+              }).Slip
+            );
         }
         else {
-            %!hash{key} = ()
+            %!hash.BIND-KEY(key,Empty);
         }
     }
 }
 
 # Information about objects of a certain type being allocated in a Callee.
 class MoarVM::Profiler::Allocation does OnHash[<
+  callee
   count
   id
   jit
->] { }
+>] {
 
-# Information about a frame that has been called.
+    method TWEAK(--> Nil) {
+        %!hash.BIND-KEY('jit',0) unless %!hash<jit>;
+    }
+    
+    method thread() { self.callee.thread }
+    method name()   { self.thread.type_by_id($.id).name }
+}
+
+# Information about a Callable that has been called at least once.
 class MoarVM::Profiler::Callee does OnHash[<
   allocations
   callees
+  caller
   entries
   exclusive_time
   file
@@ -66,15 +92,17 @@ class MoarVM::Profiler::Callee does OnHash[<
 >] {
 
     method TWEAK(--> Nil) {
-        self!mogrify-to-list(MoarVM::Profiler::Allocation, 'allocations');
-        self!mogrify-to-list(MoarVM::Profiler::Callee,     'callees'    );
+        self!mogrify-to-slip(
+          MoarVM::Profiler::Allocation, 'allocations', 'callee');
+        self!mogrify-to-slip(
+          MoarVM::Profiler::Callee, 'callees', 'caller');
     }
 
     method all_callees() {
-        |(|self.callees, |self.callees.map: *.all_callees)
+        self.callees, |self.callees.map: |*.all_callees
     }
     method all_allocations() {
-        |(|self.allocations, |self.callees.map: *.all_allocations)
+        self.allocations, |self.callees.map: |*.all_allocations
     }
 
     method nr_allocations(--> Int:D) {
@@ -93,11 +121,18 @@ class MoarVM::Profiler::Callee does OnHash[<
     method nr_osred(--> Int:D) {
         (self.osr // 0) + self.callees.map(*.nr_osred).sum
     }
+
+    method thread() {
+        my $thread = self.caller;
+        $thread = $thread.caller until $thread ~~ MoarVM::Profiler::Thread;
+        $thread
+    }
 }
 
 # Information about a de-allocation as part of a garbage collection.
 class MoarVM::Profiler::Deallocation does OnHash[<
   id
+  gc
   nursery_fresh
   nursery_seen
 >] { }
@@ -115,11 +150,12 @@ class MoarVM::Profiler::GC does OnHash[<
   retained_bytes
   sequence
   start_time
+  thread
   time
 >] {
 
     method TWEAK(--> Nil) {
-        self!mogrify-to-list(MoarVM::Profiler::Deallocation, 'deallocs');
+        self!mogrify-to-slip(MoarVM::Profiler::Deallocation, 'deallocs', 'gc');
     }
 }
 
@@ -128,6 +164,7 @@ class MoarVM::Profiler::Type does OnHash[<
   managed_size
   repr
   type
+  name
   has_unmanaged_data
 >] {
     has Int $.id;
@@ -135,7 +172,8 @@ class MoarVM::Profiler::Type does OnHash[<
 
     method new( ($id,%hash) ) { self.bless(:$id, :%hash) }
     method TWEAK() {
-        $_ = (try .^name) || "(" ~ nqp::objectid($_) ~ ")" given %!hash<type>;
+        %!hash.BIND-KEY('name',(try .^name) || "(" ~ nqp::objectid($_) ~ ")")
+          given %!hash<type>;
     }
 
     # thread given ID
@@ -157,16 +195,17 @@ class MoarVM::Profiler::Thread does OnHash[<
 
     method TWEAK(--> Nil) {
         $!id := %!hash.DELETE-KEY("thread");
-        %!hash.ASSIGN-KEY('callee',%!hash.DELETE-KEY("call_graph"));
+        %!hash.BIND-KEY('callee',%!hash.DELETE-KEY("call_graph"));
 
-        self!mogrify-to-object(MoarVM::Profiler::Callee, 'callee');
-        self!mogrify-to-list(MoarVM::Profiler::GC, 'gcs');
+        self!mogrify-to-object(MoarVM::Profiler::Callee, 'callee', 'caller');
+        self!mogrify-to-slip(MoarVM::Profiler::GC, 'gcs', 'thread');
     }
 
     # type given ID
-    method type($id) { %!types{$id} }
+    method type_by_id($id)     { %!types{$id}   }
+    method type_by_name($name) { %.names{$name} }
 
-    method all_callees()     { self.callee.all_callees     }
+    method all_callees()     { self.callee, |self.callee.all_callees }
     method all_allocations() { self.callee.all_allocations }
 
     method nr_allocations(--> Int:D) { self.callee.nr_allocations }
@@ -213,6 +252,9 @@ class MoarVM::Profiler {
     method type_by_id($id)     { %!types{$id}   }
     method type_by_name($name) { %.names{$name} }
     method thread($id)         { %!threads{$id} }
+
+    method all_callees()     { %!threads.values.map: |*.all_callees     }
+    method all_allocations() { %!threads.values.map: |*.all_allocations }
 
     method report(--> Str:D) {
         (

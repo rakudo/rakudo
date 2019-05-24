@@ -80,7 +80,7 @@ M_BOOTSTRAP_SOURCES = $(BOOTSTRAP_SOURCES) @nfp(src/vm/moar/spesh-plugins.nqp)@
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
 M_CORE_SOURCES = \
-@insert_filelist(core_sources)@
+	@insert_filelist(core_sources)@
 @for_specs(
 M_CORE_@ucspec@_SOURCES = \
     @insert_filelist(rev_core_sources)@
@@ -108,7 +108,7 @@ M_CLEANUPS = \
   $(PERL6_DEBUG_MOAR) \
   $(M_BAT_DEBUG_RUNNER) \
   $(M_C_DEBUG_RUNNER) \
-  $(M_BUILD_DIR)@slash@*.* \
+  $(M_BUILD_DIR)@slash@* \
 @m_cleanups@
 
 HARNESS_TYPE = 5
@@ -187,7 +187,10 @@ $(PERL6_B_MOAR): $(M_BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
         --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfpq($(M_BUILD_DIR)/BOOTSTRAP.nqp)@
 
 $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
-	$(M_NQP) $(M_GEN_CAT) $(M_CORE_SOURCES) > @nfpq($(M_BUILD_DIR)/CORE.setting)@
+	$(CONFIGURE) --expand @shquot(@template(core_sources)@)@ \
+				 --out @nfpq($(M_BUILD_DIR)/core_sources)@ \
+				 --set-var=backend=@backend@
+	$(M_NQP) $(M_GEN_CAT) -f @nfpq($(M_BUILD_DIR)/core_sources)@ > @nfpq($(M_BUILD_DIR)/CORE.setting)@
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) @nfpq($(M_BUILD_DIR)/CORE.setting)@
 

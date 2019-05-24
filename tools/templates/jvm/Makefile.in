@@ -54,7 +54,7 @@ J_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES) \
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
 J_CORE_SOURCES = \
-	@insert_filelist(jvm_core_sources)@
+	@insert_filelist(core_sources)@
 @for_specs(
 J_CORE_@ucspec@_SOURCES = \
     @insert_filelist(rev_core_sources)@
@@ -132,7 +132,7 @@ $(PERL6_C_JAR): @nfp(src/Perl6/Compiler.nqp)@ $(PERL6_O_JAR)
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_C_JAR) \
 	    @nfp(src/Perl6/Compiler.nqp)@
 
-$(PERL6_JAR): @nfp(src/main.nqp)@ $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR) $(J_METAMODEL_SOURCES) $(BOOTSTRAP_SOURCES) $(J_CORE_SOURCES) $(J_CORE_D_SOURCES)
+$(PERL6_JAR): @nfp(src/main.nqp)@ $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR) $(J_METAMODEL_SOURCES) $(BOOTSTRAP_SOURCES) $(J_CORE_SOURCES)@for_specs( $(J_CORE_@ucspec@_SOURCES))@
 	$(CONFIGURE) --expand main-version --out @nfpq($(J_BUILD_DIR)/main-version.nqp)@
 	$(J_NQP) $(J_GEN_CAT) @nfp(src/main.nqp)@ @nfpq($(J_BUILD_DIR)/main-version.nqp)@ > @nfpq($(J_BUILD_DIR)/main.nqp)@
 	$(J_NQP) --module-path=blib --target=jar --javaclass=perl6 --output=$(PERL6_JAR) \
@@ -148,7 +148,10 @@ $(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
 	$(J_RUN_NQP_RR) --module-path=blib --target=jar --output=$(PERL6_B_JAR) @nfpq($(J_BUILD_DIR)/BOOTSTRAP.nqp)@
 
 $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
-	$(J_NQP) $(J_GEN_CAT) $(J_CORE_SOURCES) > @nfpq($(J_BUILD_DIR)/CORE.setting)@
+	$(CONFIGURE) --expand @shquot(@template(core_sources)@)@ \
+				 --out @nfpq($(J_BUILD_DIR)/core_sources)@ \
+				 --set-var=backend=@backend@
+	$(J_NQP) $(J_GEN_CAT) -f @nfpq($(J_BUILD_DIR)/core_sources)@ > @nfpq($(J_BUILD_DIR)/CORE.setting)@
 	@echo "The following step can take a long time, please be patient."
 	@set_nqp_lib@$(J_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.setting)@
 

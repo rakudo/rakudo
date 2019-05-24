@@ -25,7 +25,7 @@ sub configure_backends {
         my $nqp_backend;
         run(
             command =>
-              [ $nqp_bin, '-e', q<'print(nqp::getcomp("nqp").backend.name)'> ],
+              [ $nqp_bin, '-e', 'print(nqp::getcomp("nqp").backend.name)' ],
             buffer => \$nqp_backend
         ) or die "Could not get backend information from '$nqp_bin'";
         if ( defined $passed_backends && $nqp_backend ne $passed_backends ) {

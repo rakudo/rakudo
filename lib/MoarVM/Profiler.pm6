@@ -9,6 +9,8 @@ class MoarVM::Profiler::Thread { ... }
 
 # some helper subs
 sub infix:<%%%>(\a,\b --> Str:D) { sprintf "%.2f%%", (100 * a) / b }
+sub infix:<avg>(\a,\b --> Str:D) { sprintf "(avg. %.2f)", a / b }
+sub prefix:<§>(\a --> Str:D) { a == 1 ?? "" !! "s" }
 
 # Simple role that maps a set of given keys onto a hash, so that we need to
 # do the minimal amount of work to convert the data structure to a full-blown
@@ -117,9 +119,11 @@ class MoarVM::Profiler::Callee does OnHash[<
         self!mogrify-to-slip(
           MoarVM::Profiler::Callee, 'callees', 'caller');
 
+        %!hash<name>            //= "";
+        %!hash<entries>         //= 0;
         %!hash<inlined_entries> //= 0;
-        %!hash<jit_entries> //= 0;
-        %!hash<osr> //= 0;
+        %!hash<jit_entries>     //= 0;
+        %!hash<osr>             //= 0;
     }
 
     method all_callees() {
@@ -156,6 +160,13 @@ class MoarVM::Profiler::Callee does OnHash[<
         $!nr_osred //= self.osr + self.callees.map(*.nr_osred).sum
     }
 
+    method average_inclusive_time(--> Str:D) {
+        sprintf("%.2f",$.inclusive_time / $.nr_frames)
+    }
+    method average_exclusive_time(--> Str:D) {
+        sprintf("%.2f",$.exclusive_time / $.nr_frames)
+    }
+
     method thread() {
         my $thread = self.caller;
         $thread = $thread.caller until $thread ~~ MoarVM::Profiler::Thread;
@@ -163,22 +174,51 @@ class MoarVM::Profiler::Callee does OnHash[<
     }
 
     method gist(--> Str:D) {
-        my $gist = $.name ?? "Callee '$.name'" !! 'This callee';
-        $gist ~= " was called $_ time{ "s" if $_ != 1 }\n" given $.entries;
-        $gist ~= "  at $.file line {$.line}.\n";
-        $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} inlined ({ $_ %%% $.entries }).\n"
-          if $_ given $.inlined_entries;
-        $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} jitted ({ $_ %%% $.entries }).\n"
-          if $_ given $.jit_entries;
-        $gist ~= "First called at $.first_entry_time microsecs for $.inclusive_time / $.exclusive_time microsecs (in/exclusive).\n";
-        $gist ~= "Did $.nr_allocations allocations";
-        $gist ~= $.nr_allocations == $_
-          ?? ".\n"
-          !! " (of which $_ ({ $_ %%% $.nr_allocations }) { $_ == 1 ?? "was" !! "were"} done by the callee).\n"
-          given $.nr_exclusive_allocations;
-        $gist ~= "Had $_ On Stack Replacement{ "s" if $_ != 1 }.\n"
-          if $_ given $.osr;
-        $gist
+        if $.entries -> $entries {
+            my $gist = $.name ?? "'$.name'" !! 'Callee';
+            $gist ~= " was called $_ time{§$_}\n" given $entries;
+            $gist ~= "   at $.file line {$.line}\n";
+
+            $gist ~= $_ ~~ MoarVM::Profiler::Thread
+              ?? " from thread #" ~ .id ~ ".\n"
+              !! " from " ~ .file ~ " line " ~ .line ~ ".\n"
+              given self.caller;
+
+            $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} inlined ({ $_ %%% $entries }).\n"
+              if $_ given $.inlined_entries;
+            $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} jitted ({ $_ %%% $entries }).\n"
+              if $_ given $.jit_entries;
+
+            if $entries > 1 {
+                $gist ~= "First called at $.first_entry_time microsecs for $_ microsecs { $_ avg $entries }"
+                  given $.inclusive_time;
+            }
+            else {
+                $gist ~= "Called at $.first_entry_time microsecs for $.inclusive_time microsecs";
+            }
+
+            if $.callees {
+                $gist ~= "\n  of which $_ microsecs here { $_ avg $entries }.\n"
+                given $.exclusive_time;
+            }
+            else {
+                $gist ~= ".\n";
+            }
+
+            if $.nr_allocations -> $allocations {
+                $gist ~= "Did $_ allocation{§$_}" given $allocations;
+                $gist ~= $allocations == $_
+                  ?? ".\n"
+                  !! " (of which $_ ({ $_ %%% $allocations }) { $_ == 1 ?? "was" !! "were"} done here).\n"
+                  given $.nr_exclusive_allocations;
+            }
+            $gist ~= "Had $_ On Stack Replacement{§$_}.\n"
+              if $_ given $.osr;
+            $gist
+        }
+        else {
+            "Callee without information"
+        }
     }
 }
 
@@ -295,25 +335,31 @@ class MoarVM::Profiler::Thread does OnHash[<
     }
 
     method gist(--> Str:D) {
-        qq:to/GIST/
-Thread #{$.id}{
-    " (from thread #$.parent)" if $.parent
-}:
-{
-    $.start_time ?? "Started at $.start_time microseconds and r" !! "R"
-}an for $.total_time microseconds{
-    " (of which $.spesh_time in spesh)" if $.spesh_time
-}.
-Did $.nr_gcs garbage collections{
-    " (of which $.nr_full_gcs full collections)" if $.nr_full_gcs
-}.
-Called $.nr_frames frames{
-    " (of which $.nr_inlined were inlined and $.nr_jitted jitted)"
-      if $.nr_inlined || $.nr_jitted
-}.{
-    "\nPerformed $_ On Stack Replacement{ "s" if $_ != 1 }."
-      if $_ given $.nr_osred}
-GIST
+        my $gist = "Thread #{$.id}{ " (from thread #$.parent)" if $.parent}:\n";
+        $gist ~= $_ ?? "Started at $_ microseconds and r" !! "R"
+          given $.start_time;
+        $gist ~= "an for $.total_time microseconds";
+        $gist ~= $_ ?? " (of which $_ in spesh).\n" !! ".\n"
+          given $.spesh_time;
+        if $.nr_gcs -> $gcs {
+            $gist ~= "Did $gcs garbage collections";
+            $gist ~= $_ ?? " (of which $_ full collections).\n" !! ".\n"
+              given $.nr_full_gcs;
+        }
+        if $.nr_frames -> $frames {
+            $gist ~= "Called $frames frames.\n";
+            $gist ~= "$_ frames were inlined ({$_ %%% $frames}).\n"
+              given $.nr_inlined;
+            $gist ~= "$_ frames were jitted ({$_ %%% $frames}).\n"
+              given $.nr_jitted;
+            $gist ~= "$_ On Stack Replacement{§$_} were done.\n"
+              given $.nr_osred;
+        }
+        else {
+            $gist ~= "No profileable code was executed.";
+        }
+
+        $gist
     }
 }
 
@@ -397,6 +443,20 @@ class MoarVM::Profiler {
     method Str(--> Str:D) { self.gist }
 
     method sink(--> Nil) { note self }
+
+    method profile(&code --> MoarVM::Profiler:D) {
+        nqp::mvmstartprofile({:instrumented});
+        code();
+        MoarVM::Profiler.new(nqp::mvmendprofile)
+    }
+
+    method average(MoarVM::Profiler:U: *@profiles) {
+
+    }
+
+    method average_profile(&code, :$times = 5) {
+        self.WHAT.average( (^$times).map: self.profile(&code) )
+    }
 }
 
 # Raw subs, for cases where starting an extra scope would be troublesome
@@ -408,6 +468,7 @@ sub profile_end(--> MoarVM::Profiler:D) is export {
     MoarVM::Profiler.new(nqp::mvmendprofile)
 }
 
+# Profile the rest of the compilation unit
 sub profile_rest(--> Nil) is export {
     nqp::mvmstartprofile({:instrumented});
     my $end-profile = True;
@@ -416,7 +477,5 @@ sub profile_rest(--> Nil) is export {
 
 # HLL sub for profiling a piece of code and getting the info from that
 sub profile(&code --> MoarVM::Profiler:D) is export {
-    nqp::mvmstartprofile({:instrumented});
-    code();
-    MoarVM::Profiler.new(nqp::mvmendprofile)
+    MoarVM::Profiler.profile(&code)
 }

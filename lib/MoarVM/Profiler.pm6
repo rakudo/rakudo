@@ -4,7 +4,11 @@
 # We need NQP here, duh!
 use nqp;
 
+# stubs we need
 class MoarVM::Profiler::Thread { ... }
+
+# some helper subs
+sub infix:<%%%>(\a,\b --> Str:D) { sprintf "%.2f%%", (100 * a) / b }
 
 # Simple role that maps a set of given keys onto a hash, so that we need to
 # do the minimal amount of work to convert the data structure to a full-blown
@@ -55,6 +59,8 @@ role OnHash[@keys] {
             %!hash.BIND-KEY(key,Empty);
         }
     }
+
+    method Str(--> Str:D) { self.gist }
 }
 
 # Information about objects of a certain type being allocated in a Callee.
@@ -74,7 +80,7 @@ class MoarVM::Profiler::Allocation does OnHash[<
     method file()   { self.callee.file }
     method line()   { self.callee.line }
 
-    method gist() {
+    method gist(--> Str:D) {
         my $gist = "Allocated $.count objects of $.name";
         $gist ~= " (JITted $.jit)" if $.jit;
         $gist ~ "\n  at $.file line $.line"
@@ -98,12 +104,22 @@ class MoarVM::Profiler::Callee does OnHash[<
   name
   osr
 >] {
+    has $!nr_allocations;
+    has $!nr_exclusive_allocations;
+    has $!nr_frames;
+    has $!nr_inlined;
+    has $!nr_jitted;
+    has $!nr_osred;
 
     method TWEAK(--> Nil) {
         self!mogrify-to-slip(
           MoarVM::Profiler::Allocation, 'allocations', 'callee');
         self!mogrify-to-slip(
           MoarVM::Profiler::Callee, 'callees', 'caller');
+
+        %!hash<inlined_entries> //= 0;
+        %!hash<jit_entries> //= 0;
+        %!hash<osr> //= 0;
     }
 
     method all_callees() {
@@ -113,27 +129,56 @@ class MoarVM::Profiler::Callee does OnHash[<
         self.allocations, |self.callees.map: |*.all_allocations
     }
 
+    method nr_callees() {
+        self.callees.elems
+    }
+    method nr_exclusive_allocations(--> Int:D) {
+        $!nr_exclusive_allocations //=
+          self.allocations.map(*.count).sum
+    }
     method nr_allocations(--> Int:D) {
-        self.allocations.map(*.count).sum
-          + self.callees.map(*.nr_allocations).sum
+        $!nr_allocations //=
+          self.nr_exclusive_allocations + self.callees.map(*.nr_allocations).sum
     }
     method nr_frames(--> Int:D) {
-        (self.entries // 0) + self.callees.map(*.nr_frames).sum
+       $!nr_frames //=
+         self.entries + self.callees.map(*.nr_frames).sum
     }
     method nr_inlined(--> Int:D) {
-        (self.inlined_entries // 0) + self.callees.map(*.nr_inlined).sum
+        $!nr_inlined //=
+          self.inlined_entries + self.callees.map(*.nr_inlined).sum
     }
     method nr_jitted(--> Int:D) {
-        (self.jit_entries // 0) + self.callees.map(*.nr_jitted).sum
+        $!nr_jitted //=
+          self.jit_entries + self.callees.map(*.nr_jitted).sum
     }
     method nr_osred(--> Int:D) {
-        (self.osr // 0) + self.callees.map(*.nr_osred).sum
+        $!nr_osred //= self.osr + self.callees.map(*.nr_osred).sum
     }
 
     method thread() {
         my $thread = self.caller;
         $thread = $thread.caller until $thread ~~ MoarVM::Profiler::Thread;
         $thread
+    }
+
+    method gist(--> Str:D) {
+        my $gist = $.name ?? "Callee '$.name'" !! 'This callee';
+        $gist ~= " was called $_ time{ "s" if $_ != 1 }\n" given $.entries;
+        $gist ~= "  at $.file line {$.line}.\n";
+        $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} inlined ({ $_ %%% $.entries }).\n"
+          if $_ given $.inlined_entries;
+        $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} jitted ({ $_ %%% $.entries }).\n"
+          if $_ given $.jit_entries;
+        $gist ~= "First called at $.first_entry_time microsecs for $.inclusive_time / $.exclusive_time microsecs (in/exclusive).\n";
+        $gist ~= "Did $.nr_allocations allocations";
+        $gist ~= $.nr_allocations == $_
+          ?? ".\n"
+          !! " (of which $_ ({ $_ %%% $.nr_allocations }) { $_ == 1 ?? "was" !! "were"} done by the callee).\n"
+          given $.nr_exclusive_allocations;
+        $gist ~= "Had $_ On Stack Replacement{ "s" if $_ != 1 }.\n"
+          if $_ given $.osr;
+        $gist
     }
 }
 
@@ -143,7 +188,16 @@ class MoarVM::Profiler::Deallocation does OnHash[<
   gc
   nursery_fresh
   nursery_seen
->] { }
+>] {
+    has Str $.name;
+
+    method name(--> Str:D) {
+        $!name //= self.gc.thread.type_by_id($.id).name
+    }
+    method gist(--> Str:D) {
+        "De-allocation of $.name in garbage collection {$.gc.sequence}"
+    }
+}
 
 
 # Information about a garbage collection.
@@ -165,6 +219,10 @@ class MoarVM::Profiler::GC does OnHash[<
     method TWEAK(--> Nil) {
         self!mogrify-to-slip(MoarVM::Profiler::Deallocation, 'deallocs', 'gc');
     }
+
+    method gist(--> Str:D) {
+        "Garbage collection $.sequence cleared $.cleared_bytes bytes"
+    }
 }
 
 # Information about a type that have at least one object instantiated.
@@ -179,13 +237,18 @@ class MoarVM::Profiler::Type does OnHash[<
     has %.threads;  # set by MoarVM::Profiler.new
 
     method new( ($id,%hash) ) { self.bless(:$id, :%hash) }
-    method TWEAK() {
-        $!name := (try .^name) || "(" ~ nqp::objectid($_) ~ ")"
+
+    method name() {
+        $!name //= (try .^name) || "(" ~ nqp::objectid($_) ~ ")"
           given %!hash<type>;
     }
 
     # thread given ID
     method thread($id) { %!threads{$id} }
+
+    method gist(--> Str:D) {
+        "Type '$.name' of REPR '$.repr' ($.managed_size bytes)"
+    }
 }
 
 # Information about a thread.
@@ -231,8 +294,8 @@ class MoarVM::Profiler::Thread does OnHash[<
         self.callees_by_file(matcher).map: *.allocations
     }
 
-    method gist() {
-        qq:to/GIST/.chop
+    method gist(--> Str:D) {
+        qq:to/GIST/
 Thread #{$.id}{
     " (from thread #$.parent)" if $.parent
 }:
@@ -247,8 +310,9 @@ Did $.nr_gcs garbage collections{
 Called $.nr_frames frames{
     " (of which $.nr_inlined were inlined and $.nr_jitted jitted)"
       if $.nr_inlined || $.nr_jitted
-}.
-Performed $.nr_osred On-Stack-Replacements.
+}.{
+    "\nPerformed $_ On Stack Replacement{ "s" if $_ != 1 }."
+      if $_ given $.nr_osred}
 GIST
     }
 }
@@ -327,9 +391,10 @@ class MoarVM::Profiler {
         ).join("\n")
     }
 
-    method gist() {
-        self.threads.sort(*.key).map(*.value.gist).join("\n" ~ "-" x 80 ~ "\n")
+    method gist(--> Str:D) {
+        self.threads.sort(*.key).map(*.value.gist).join("-" x 80 ~ "\n")
     }
+    method Str(--> Str:D) { self.gist }
 
     method sink(--> Nil) { note self }
 }

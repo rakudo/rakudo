@@ -1,77 +1,139 @@
+## Please see file perltidy.ERR
+## Please see file perltidy.ERR
 use v5.10.1;
-use strict;
-use warnings;
 
 package NQP::Config::Rakudo;
+use strict;
+use warnings;
 use Cwd;
 use POSIX qw<strftime>;
 use Digest::SHA;
 use NQP::Config qw<slurp read_config cmp_rev system_or_die run_or_die>;
-use IPC::Cmd qw<run>;
+use IPC::Cmd qw<run can_run>;
 use NQP::Macros;
 
 use base qw<NQP::Config>;
 
-sub configure_backends {
-    my $self   = shift;
-    my $config = $self->{config};
+sub configure_nqp {
+    my $self = shift;
+    my $nqp_bin;
 
-    my $prefix = $config->{prefix};
+    my $have_dir_opts =
+      defined( $self->opt('prefix') || $self->opt('sysroot') );
 
-    ### Consider what backends are to be built. ###
-    my $passed_backends = $self->opt('backends');
-    if ( my $nqp_bin = $self->opt('with-nqp') ) {
-        die "Could not find $nqp_bin" unless -e $nqp_bin;
+    if ( $nqp_bin = $self->opt('with-nqp') ) {
+        $nqp_bin = can_run( $self->nfp($nqp_bin) );
+        $self->sorry( "Could not find nqp '" . $self->opt('with-nqp') . "' defined with --with-nqp" )
+          unless $nqp_bin;
+    }
+    elsif ( !$have_dir_opts ) {
+        $nqp_bin = can_run('nqp');
+    }
+
+    if ($nqp_bin) {
         my $nqp_backend;
         run(
             command =>
               [ $nqp_bin, '-e', 'print(nqp::getcomp("nqp").backend.name)' ],
             buffer => \$nqp_backend
-        ) or die "Could not get backend information from '$nqp_bin'";
+        ) or self->sorry("Could not get backend information from '$nqp_bin'");
+        $self->use_backend($nqp_backend);
+        $self->backend_config( $nqp_backend, nqp_bin => $nqp_bin );
+        my $passed_backends = $self->opt('backends');
         if ( defined $passed_backends && $nqp_backend ne $passed_backends ) {
-            die
-"Passed value to --backends ($passed_backends) is overwritten by the one infered by --with-nqp ($nqp_backend)";
+            $self->sorry(
+                "Passed value to --backends ($passed_backends) is overwritten ",
+                "by the one infered by --with-nqp ($nqp_backend)"
+            );
         }
+        $self->set( nqp_default => $nqp_bin );
     }
-    if ($passed_backends) {
-        my @use_backends = $self->parse_backends($passed_backends);
-        for my $b (@use_backends) {
-            if ( $b eq 'parrot' ) {
-                die "The Parrot backend has been suspended.\n"
-                  . "Please use Rakudo 2015.02 (which still supports parrot), or the MoarVM backend instead\n";
-            }
-            unless ( $self->known_backend($b) ) {
-                die "Unknown backend '$b'; Supported backends are: "
-                  . join( ", ", sort $self->known_backends ) . "\n";
-            }
-            $self->use_backend($b);
-        }
-        unless ( $self->active_backends ) {
-            die "--prefix given, but no valid backend?!\n";
-        }
-    }
-    else {
-        for my $a ( $self->known_abbrs ) {
-            if ( my $nqp_bin = $self->is_executable("$prefix/bin/nqp-$a") ) {
-                my $b = $self->abbr_to_backend($a);
-                $self->msg("Found $nqp_bin (backend $b)\n");
+}
+
+sub configure_backends {
+    my $self = shift;
+
+    my $prefix = $self->cfg('prefix');
+
+    #
+    unless ( $self->cfg('nqp_default') ) {
+        ### Consider what backends are to be built. ###
+        my $passed_backends = $self->opt('backends');
+        if ($passed_backends) {
+            my @use_backends = $self->parse_backends($passed_backends);
+            for my $b (@use_backends) {
+                if ( $b eq 'parrot' ) {
+                    $self->sorry(
+                        "The Parrot backend has been suspended.\n",
+                        "Please use Rakudo 2015.02 ",
+                        "(which still supports parrot), ",
+                        "or the MoarVM backend instead"
+                    );
+                }
+                unless ( $self->known_backend($b) ) {
+                    $self->sorry(
+                            "Unknown backend '$b'; Supported backends are: "
+                          . join( ", ", sort $self->known_backends )
+                          . "\n" );
+                }
                 $self->use_backend($b);
             }
+            unless ( $self->active_backends ) {
+                $self->sorry("--prefix given, but no valid backend?!");
+            }
         }
+        else {
+            if ($prefix) {
+                for my $a ( $self->known_abbrs ) {
+                    my $nqp_cmd = "nqp-$a";
+                    my $nqp_bin = $self->is_executable("$prefix/bin/$nqp_cmd");
+                    if ($nqp_bin) {
+                        my $b = $self->abbr_to_backend($a);
+                        $self->msg("Found $nqp_bin (backend $b)\n");
+                        $self->use_backend($b);
+                        $self->backend_config( $b, nqp_bin => $nqp_bin );
+                    }
+                }
+            }
 
-        $self->use_backend('moar') if $self->has_option('gen-moar');
+            $self->use_backend('moar') if $self->has_option('gen-moar');
 
-        unless ( $self->active_backends or $self->has_option('with-nqp') ) {
-            die
-"No suitable nqp executables found! Please specify some --backends, or a --prefix that contains nqp-{js,j,m} executables\n\n"
-              . "Example to build for all backends (which will take a while):\n"
-              . "\tperl Configure.pl --backends=ALL --gen-moar\n\n"
-              . "Example to build for MoarVM only:\n"
-              . "\tperl Configure.pl --gen-moar\n\n"
-              . "Example to build for JVM only:\n"
-              . "\tperl Configure.pl --backends=jvm --gen-nqp\n\n";
+            unless ( $self->active_backends or $self->has_option('with-nqp') ) {
+                $self->sorry(
+                    "No suitable nqp executables found! ",
+                    "Please specify some --backends, ",
+                    "or a --prefix that contains nqp-{js,j,m} executables\n\n",
+                    "Example to build for all backends ",
+                    "(which will take a while):\n",
+                    "\tperl Configure.pl --backends=ALL --gen-moar\n\n",
+                    "Example to build for MoarVM only:\n",
+                    "\tperl Configure.pl --gen-moar\n\n",
+                    "Example to build for JVM only:\n",
+                    "\tperl Configure.pl --backends=jvm --gen-nqp\n\n"
+                );
+            }
         }
     }
+}
+
+sub configure_refine_vars {
+    my $self = shift;
+
+    if ( !$self->cfg('prefix') && ( my $nqp_bin = $self->cfg('nqp_default') ) )
+    {
+        my ( $vol, $dir, undef ) = File::Spec->splitpath($nqp_bin);
+        my $nqp_prefix = File::Spec->catpath( $vol,
+            File::Spec->catdir( $dir, File::Spec->updir ) );
+        $self->set( prefix => $nqp_prefix );
+        $self->note(
+            "ATTENTION",
+            "No --prefix supplied, ",
+            "building and installing to $nqp_prefix\n",
+            "Based on found executable $nqp_bin"
+        );
+    }
+
+    $self->SUPER::configure_refine_vars(@_);
 }
 
 sub configure_misc {
@@ -312,6 +374,16 @@ sub configure_js_backend {
     );
 }
 
+sub opts_for_configure {
+    my $self = shift;
+    my @opts = $self->SUPER::opts_for_configure(@_);
+
+    my $nqp_bin = $self->cfg('nqp_bin');
+    push @opts, "--with-nqp=" . $self->cfg('nqp_bin') if $nqp_bin;
+
+    return wantarray ? @opts : join( " ", @opts );
+}
+
 # Returns all active language specification entries except for .c
 sub perl6_specs {
     my $self = shift;
@@ -367,7 +439,7 @@ sub gen_nqp {
     my $options = $self->{options};
     my $config  = $self->{config};
 
-    my $nqp_bin      = $options->{'with-nqp'};
+    #my $nqp_bin      = $options->{'with-nqp'};
     my $nqp_git_spec = $options->{'gen-nqp'};
     my $gen_nqp      = defined $options->{'gen-nqp'};
     my $gen_moar     = $options->{'gen-moar'};
@@ -384,9 +456,10 @@ sub gen_nqp {
     my %need;
 
     for my $b ( $self->active_backends ) {
+        my $bconfig = $self->backend_config($b);
         my $postfix = $self->backend_abbr($b);
         my $tpath   = File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" );
-        my $bin     = $self->nfp($nqp_bin)
+        my $bin     = $bconfig->{nqp_bin}
           || (
             $sdkroot
             ? File::Spec->catfile( $self->nfp($sdkroot),

@@ -25,7 +25,7 @@ sub configure_backends {
         my $nqp_backend;
         run(
             command =>
-              [ $nqp_bin, '-e', q<'print(nqp::getcomp("nqp").backend.name)'> ],
+              [ $nqp_bin, '-e', 'print(nqp::getcomp("nqp").backend.name)' ],
             buffer => \$nqp_backend
         ) or die "Could not get backend information from '$nqp_bin'";
         if ( defined $passed_backends && $nqp_backend ne $passed_backends ) {
@@ -424,7 +424,7 @@ sub gen_nqp {
     # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
         qw<git-depth git-reference github-user nqp-repo moar-repo
-        no-relocatable ignore-errors>
+        no-relocatable ignore-errors with-moar>
       )
     {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );

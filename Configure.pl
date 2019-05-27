@@ -11,12 +11,15 @@ use Cwd;
 use FindBin;
 
 BEGIN {
-    my $force_update = !!grep { $_ eq '--submodule-update' } @ARGV;
-    if ( $force_update || !-e '3rdparty/nqp-configure/LICENSE' ) {
+    my $set_config = ! qx{git config rakudo.initialized};
+    unless ( -e '3rdparty/nqp-configure/LICENSE' ) {
         print "Updating nqp-configure submodule...\n";
         my $msg =
 qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
-        if ( $? >> 8 == 0 ) { print "OK\n" }
+        if ( $? >> 8 == 0 ) {
+            say "OK";
+            $set_config = 1;
+        }
         else {
             if ( $msg =~ /[']([^']+)[']\s+already exists and is not an empty/ )
             {
@@ -26,6 +29,10 @@ qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet up
                 exit 1;
             }
         }
+    }
+    if ($set_config) {
+        system("git config submodule.recurse true");
+        system("git config rakudo.initialized 1");
     }
 }
 
@@ -53,21 +60,20 @@ MAIN: {
     $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
-        $cfg->options,    'help!',
-        'prefix=s',       'libdir=s',
-        'sysroot=s',      'sdkroot=s',
-        'no-relocatable', 'backends=s',
-        'no-clean',       'with-nqp=s',
-        'with-moar=s',    'gen-nqp:s',
-        'gen-moar:s',     'moar-option=s@',
-        'git-protocol=s', 'ignore-errors',
-        'make-install!',  'makefile-timing!',
-        'git-depth=s',    'git-reference=s',
-        'github-user=s',  'rakudo-repo=s',
-        'nqp-repo=s',     'moar-repo=s',
-        'roast-repo=s',   'expand=s',
-        'out=s',          'set-var=s@',
-        'submodule-update',
+        $cfg->options,      'help!',
+        'prefix=s',         'libdir=s',
+        'sysroot=s',        'sdkroot=s',
+        'no-relocatable',   'backends=s',
+        'no-clean',         'with-nqp=s',
+        'gen-nqp:s',        'gen-moar:s',
+        'moar-option=s@',   'git-protocol=s',
+        'ignore-errors',    'make-install!',
+        'makefile-timing!', 'git-depth=s',
+        'git-reference=s',  'github-user=s',
+        'rakudo-repo=s',    'nqp-repo=s',
+        'moar-repo=s',      'roast-repo=s',
+        'expand=s',         'out=s',
+        'set-var=s@',
       )
       or do {
         print_help();
@@ -86,23 +92,19 @@ MAIN: {
 
     $cfg->configure_paths;
     $cfg->configure_from_options;
-    $cfg->configure_refine_vars;
     $cfg->configure_relocatability;
     $cfg->configure_repo_urls;
     $cfg->configure_commands;
-    $cfg->configure_misc;
+    $cfg->configure_nqp;
+    $cfg->configure_refine_vars;
     $cfg->configure_backends;
+    $cfg->configure_misc;
 
     # Save options in config.status
     $cfg->save_config_status;
 
     $cfg->options->{'gen-nqp'} ||= '' if $cfg->has_option('gen-moar');
     $cfg->gen_nqp;
-
-    if ( defined $cfg->opt('submodule-update') ) {
-        exit(0);
-    }
-
     $cfg->configure_active_backends;
 
     $cfg->expand_template;

@@ -278,9 +278,9 @@ sub configure_moar_backend {
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     $config->{ldflags} .= ' '
       . (
-          $self->{no_relocatable}
-        ? $nqp_config->{'moar::ldrpath'}
-        : $nqp_config->{'moar::ldrpath_relocatable'}
+          $self->{relocatable}
+        ? $nqp_config->{'moar::ldrpath_relocatable'}
+        : $nqp_config->{'moar::ldrpath'}
       );
     $config->{ldlibs}          = $nqp_config->{'moar::ldlibs'};
     $config->{'mingw_unicode'} = '';

@@ -5,7 +5,7 @@ use v5.10.1;
 package NQP::Config::Rakudo;
 use strict;
 use warnings;
-use Cwd;
+use Cwd qw<abs_path cwd>;
 use POSIX qw<strftime>;
 use Digest::SHA;
 use NQP::Config qw<slurp read_config cmp_rev system_or_die run_or_die>;
@@ -22,15 +22,10 @@ sub configure_nqp {
       defined( $self->opt('prefix') || $self->opt('sysroot') );
 
     if ( $nqp_bin = $self->opt('with-nqp') ) {
-        $nqp_bin = can_run( $self->nfp($nqp_bin) );
-        $self->sorry( "Could not find nqp '" . $self->opt('with-nqp') . "' defined with --with-nqp" )
-          unless $nqp_bin;
-    }
-    elsif ( !$have_dir_opts ) {
-        $nqp_bin = can_run('nqp');
-    }
-
-    if ($nqp_bin) {
+        $self->sorry( "Could not find nqp '"
+              . $self->opt('with-nqp')
+              . "' defined with --with-nqp" )
+          unless -x $nqp_bin;
         my $nqp_backend;
         run(
             command =>
@@ -46,8 +41,14 @@ sub configure_nqp {
                 "by the one infered by --with-nqp ($nqp_backend)"
             );
         }
-        $self->set( nqp_default => $nqp_bin );
     }
+    elsif ( !$have_dir_opts ) {
+
+        # NQP from path would only be used to determine the implicit prefix.
+        $nqp_bin = can_run('nqp');
+    }
+
+    $self->set( nqp_default => $nqp_bin ) if $nqp_bin;
 }
 
 sub configure_backends {
@@ -55,8 +56,7 @@ sub configure_backends {
 
     my $prefix = $self->cfg('prefix');
 
-    #
-    unless ( $self->cfg('nqp_default') ) {
+    unless ( $self->active_backends ) {
         ### Consider what backends are to be built. ###
         my $passed_backends = $self->opt('backends');
         if ($passed_backends) {
@@ -119,18 +119,33 @@ sub configure_backends {
 sub configure_refine_vars {
     my $self = shift;
 
-    if ( !$self->cfg('prefix') && ( my $nqp_bin = $self->cfg('nqp_default') ) )
-    {
+    my $nqp_bin = $self->cfg('nqp_default');
+    if ($nqp_bin) {
         my ( $vol, $dir, undef ) = File::Spec->splitpath($nqp_bin);
         my $nqp_prefix = File::Spec->catpath( $vol,
             File::Spec->catdir( $dir, File::Spec->updir ) );
-        $self->set( prefix => $nqp_prefix );
-        $self->note(
-            "ATTENTION",
-            "No --prefix supplied, ",
-            "building and installing to $nqp_prefix\n",
-            "Based on found executable $nqp_bin"
-        );
+
+        my $prefix = $self->cfg('prefix');
+
+        if ( !$prefix ) {
+            $self->set( prefix => $nqp_prefix );
+            $self->note(
+                "ATTENTION",
+                "No --prefix supplied, ",
+                "building and installing to $nqp_prefix\n",
+                "Based on found executable $nqp_bin"
+            );
+        }
+        elsif ( abs_path($prefix) ne abs_path($nqp_prefix) ) {
+            $self->note(
+                'WARNING!',
+                "Installation directory '$prefix' is different from '",
+                abs_path($nqp_prefix),
+                "' where nqp is installed.\n",
+                "This may result in non-functional perl6 binary.\n",
+                "Make sure this is REALLY intended."
+            );
+        }
     }
 
     $self->SUPER::configure_refine_vars(@_);
@@ -475,6 +490,10 @@ sub gen_nqp {
         if ( $nqp_ok or $options->{'ignore-errors'} ) {
             $impls->{$b}{ok} = 1;
         }
+        elsif ( $self->opt('with-nqp') ) {
+            $self->sorry(
+                "$bin version $nqp_have is outdated, $nqp_want expected.");
+        }
         else {
             $need{$b} = 1;
         }
@@ -482,12 +501,12 @@ sub gen_nqp {
 
     return unless %need;
 
+    return unless defined($gen_nqp) || defined($gen_moar);
+
     if ( defined $gen_nqp || defined $gen_moar ) {
         my $user = $options->{'github-user'} // 'perl6';
         $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $nqp_want );
     }
-
-    return unless defined($gen_nqp) || defined($gen_moar);
 
     my @cmd = (
         $^X, 'Configure.pl', qq{--prefix=$prefix}, "--make-install",

@@ -85,8 +85,8 @@ class Perl6::Metamodel::CurriedRoleHOW
             $type_env := @result[1];
         }
         for $candidate.HOW.roles($candidate, :!transitive) -> $role {
-            if nqp::can($_.HOW, 'curried_role') && $_.HOW.archetypes.generic && $type_env {
-                $role := $_.HOW.instantiate_generic($_, $type_env);
+            if nqp::can($role.HOW, 'curried_role') && $role.HOW.archetypes.generic && $type_env {
+                $role := $role.HOW.instantiate_generic($role, $type_env);
             }
             self.add_role($obj, $role);
         }

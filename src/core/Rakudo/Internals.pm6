@@ -660,9 +660,6 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
-    method MAYBE-STR(Mu \thing) {
-        nqp::can(nqp::decont(thing), 'Str') ??  thing.Str !! thing.^name;
-    }
     method MAYBE-GIST(Mu \thing) {
         nqp::can(nqp::decont(thing), 'gist') ??  thing.gist !! thing.^name;
     }

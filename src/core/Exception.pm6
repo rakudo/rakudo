@@ -409,8 +409,8 @@ do {
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 $err.say($e.gist);
                 if $v and !$e.gist.ends-with($v.Str) {
-                   $err.say("Actually thrown at:");
-                   $err.say($v.Str);
+                    $err.say("Actually thrown at:");
+                    $err.say($v.Str);
                 }
             }
             elsif Rakudo::Internals.VERBATIM-EXCEPTION(0) {
@@ -1194,7 +1194,7 @@ my class X::Parameter::Default::TypeCheck does X::Comp {
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method message() {
-        "Default value '$.got.gist()' will never bind to a parameter of type $.expected.^name()"
+        "Default value '{Rakudo::Internals.MAYBE-GIST: $!got}' will never bind to a parameter of type {$!expected.^name}"
     }
 }
 

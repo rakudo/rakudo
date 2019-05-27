@@ -272,15 +272,36 @@ sub configure_moar_backend {
             moar => "Unable to read configuration from NQP on MoarVM" );
     }
 
+    # Relocatability is not supported on AIX.
+    $self->{options}->{"no-relocatable"} ||= !!( $^O =~ /^(?:aix|openbsd)$/ );
+    if ( $self->{options}->{"no-relocatable"} ) {
+        $config->{relocatable} = 0;
+        $config->{static_nqp_home} =
+          File::Spec->rel2abs(File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp' ));
+        $config->{static_perl6_home} =
+          File::Spec->rel2abs(File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ));
+        $config->{static_nqp_home_define} =
+          '-DSTATIC_NQP_HOME=' . $config->{static_nqp_home};
+        $config->{static_perl6_home_define} =
+          '-DSTATIC_PERL6_HOME=' . $config->{static_perl6_home};
+    }
+    else {
+        $config->{relocatable} = 1;
+        $config->{static_nqp_home}          = '';
+        $config->{static_perl6_home}        = '';
+        $config->{static_nqp_home_define}   = '';
+        $config->{static_perl6_home_define} = '';
+    }
+
     # Strip rpath from ldflags so we can set it differently ourself.
     $config->{ldflags} = $nqp_config->{'moar::ldflags'};
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath'}\E ?//;
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     $config->{ldflags} .= ' '
       . (
-          $self->{relocatable}
-        ? $nqp_config->{'moar::ldrpath_relocatable'}
-        : $nqp_config->{'moar::ldrpath'}
+          $self->{options}->{"no-relocatable"}
+        ? $nqp_config->{'moar::ldrpath'}
+        : $nqp_config->{'moar::ldrpath_relocatable'}
       );
     $config->{ldlibs}          = $nqp_config->{'moar::ldlibs'};
     $config->{'mingw_unicode'} = '';

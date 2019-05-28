@@ -28,7 +28,7 @@ my class Exception {
             my str $message = nqp::getmessage($!ex);
             $str = nqp::isnull_s($message) ?? '' !! nqp::p6box_s($message);
         }
-        $str ||= (try self.?message);
+        $str ||= (try self.message);
         $str = ~$str if defined $str;
         $str // "Something went wrong in {self.WHAT.gist}";
     }
@@ -38,7 +38,7 @@ my class Exception {
         if nqp::isconcrete($!ex) {
             my str $message = nqp::getmessage($!ex);
             $str = nqp::isnull_s($message)
-                ?? (try self.?message) // "Died with {self.^name}"
+                ?? (try self.message) // "Died with {self.^name}"
                 !! nqp::p6box_s($message);
             $str ~= "\n";
             try $str ~= self.backtrace
@@ -46,7 +46,7 @@ my class Exception {
               || '  (no backtrace available)';
         }
         else {
-            $str = (try self.?message) // "Unthrown {self.^name} with no message";
+            $str = (try self.message) // "Unthrown {self.^name} with no message";
         }
         $str;
     }
@@ -2632,7 +2632,7 @@ my class X::Multi::Ambiguous is Exception {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    try @bits.push(":$(.key)\($(.value.WHAT.?perl))");
+                    try @bits.push(":$(.key)\($(.value.WHAT.perl))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
             }
@@ -2692,7 +2692,7 @@ my class X::Multi::NoMatch is Exception {
                 else {
                     try @bits.push(":$(.key)\($($where
                         ?? Rakudo::Internals.SHORT-GIST: .value
-                        !! .value.WHAT.?perl
+                        !! .value.WHAT.perl
                     ))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }

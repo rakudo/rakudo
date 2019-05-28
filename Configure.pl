@@ -11,11 +11,15 @@ use Cwd;
 use FindBin;
 
 BEGIN {
+    my $set_config = ! qx{git config rakudo.initialized};
     unless ( -e '3rdparty/nqp-configure/LICENSE' ) {
         print "Updating nqp-configure submodule...\n";
         my $msg =
 qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
-        if ( $? >> 8 == 0 ) { print "OK\n" }
+        if ( $? >> 8 == 0 ) {
+            say "OK";
+            $set_config = 1;
+        }
         else {
             if ( $msg =~ /[']([^']+)[']\s+already exists and is not an empty/ )
             {
@@ -25,6 +29,10 @@ qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet up
                 exit 1;
             }
         }
+    }
+    if ($set_config) {
+        system("git config submodule.recurse true");
+        system("git config rakudo.initialized 1");
     }
 }
 
@@ -84,12 +92,13 @@ MAIN: {
 
     $cfg->configure_paths;
     $cfg->configure_from_options;
-    $cfg->configure_refine_vars;
     $cfg->configure_relocatability;
     $cfg->configure_repo_urls;
     $cfg->configure_commands;
-    $cfg->configure_misc;
+    $cfg->configure_nqp;
+    $cfg->configure_refine_vars;
     $cfg->configure_backends;
+    $cfg->configure_misc;
 
     # Save options in config.status
     $cfg->save_config_status;

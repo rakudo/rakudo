@@ -16,6 +16,7 @@ MOAR   = @nfpq(@moar::bindir@/moar@moar::exe@)@
 M_NQP  = @nfpq(@m_nqp@)@
 M_LIBDEFPATH = $(PREFIX)@nfp(/share/nqp/lib)@
 M_LIBPATH = $(LIBDIR)@nfp(/nqp/lib)@
+M_NQP_LIBDIR = @nqp::libdir@
 M_INCPATH = $(MOAR_PREFIX)@nfp(/include)@
 M_MOAR_INC_PATHS = \
   $(M_CCINC)@nfpq($(M_INCPATH))@ \
@@ -28,7 +29,7 @@ M_MOAR_INC_PATHS = \
   $(M_CCINC)@nfpq($(M_INCPATH)/libtommath)@ \
   $(M_CCINC)@nfpq($(M_INCPATH)/libuv)@
 
-M_RUN_PERL6 = $(MOAR) --libpath=blib --libpath=@q($(M_LIBPATH))@ perl6.moarvm --nqp-lib=blib
+M_RUN_PERL6 = $(MOAR) --libpath=@nfpq($(BASE_DIR)/blib)@ --libpath=@q($(M_NQP_LIBDIR))@ --libpath=@q($(M_LIBPATH))@ perl6.moarvm --nqp-lib=@nfpq($(BASE_DIR)/blib)@
 
 M_BAT    = @runner_suffix@
 M_BAT_RUNNER = perl6-m@runner_suffix@
@@ -80,10 +81,10 @@ M_BOOTSTRAP_SOURCES = $(BOOTSTRAP_SOURCES) @nfp(src/vm/moar/spesh-plugins.nqp)@
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
 M_CORE_SOURCES = \
-	@insert_filelist(moar_core_sources)@
+	@insert_filelist(core_sources)@
 @for_specs(
 M_CORE_@ucspec@_SOURCES = \
-    @insert_filelist(moar_core_sources)@
+    @insert_filelist(rev_core_sources)@
 )@
 
 PERL6_DEBUG_MOAR = perl6-debug.moarvm
@@ -108,7 +109,7 @@ M_CLEANUPS = \
   $(PERL6_DEBUG_MOAR) \
   $(M_BAT_DEBUG_RUNNER) \
   $(M_C_DEBUG_RUNNER) \
-  $(M_BUILD_DIR)@slash@*.* \
+  $(M_BUILD_DIR)@slash@* \
 @m_cleanups@
 
 HARNESS_TYPE = 5
@@ -187,12 +188,15 @@ $(PERL6_B_MOAR): $(M_BOOTSTRAP_SOURCES) $(PERL6_M_MOAR)
         --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfpq($(M_BUILD_DIR)/BOOTSTRAP.nqp)@
 
 $(SETTING_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(M_CORE_SOURCES)
-	$(M_NQP) $(M_GEN_CAT) -f @shquot(@template(moar_core_sources)@)@ > @nfpq($(M_BUILD_DIR)/CORE.setting)@
+	$(CONFIGURE) --expand @shquot(@template(core_sources)@)@ \
+				 --out @nfpq($(M_BUILD_DIR)/core_sources)@ \
+				 --set-var=backend=@backend@
+	$(M_NQP) $(M_GEN_CAT) -f @nfpq($(M_BUILD_DIR)/core_sources)@ > @nfpq($(M_BUILD_DIR)/CORE.setting)@
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_MOAR) @nfpq($(M_BUILD_DIR)/CORE.setting)@
 
 @for_specs($(SETTING_@ucspec@_MOAR): $(PERL6_MOAR) $(PERL6_B_MOAR) $(SETTING_MOAR) $(M_CORE_@ucspec@_SOURCES)
-	$(M_NQP) $(M_GEN_CAT) -f @shquot(@template(moar_core_sources)@)@ > @nfpq($(M_BUILD_DIR)/CORE.@lcspec@.setting)@
+	$(M_NQP) $(M_GEN_CAT) $(M_CORE_@ucspec@_SOURCES) > @nfpq($(M_BUILD_DIR)/CORE.@lcspec@.setting)@
 	@echo "The following step can take a long time, please be patient."
 	$(M_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_@ucspec@_MOAR) @nfpq($(M_BUILD_DIR)/CORE.@lcspec@.setting)@
 
@@ -222,6 +226,7 @@ $(M_BAT_RUNNER): @@configure_script@@ $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR
 		--set-var=MOAR=$(MOAR) \
 		--set-var=mbc=perl6.moarvm \
 		--set-var=ctx_subdir=@backend_subdir@ \
+		--set-var=nqp_libdir=@shquot(@nqp::libdir@)@ \
 		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@
 	-$(CHMOD) 755 $(M_BAT_RUNNER)
 
@@ -231,6 +236,7 @@ $(M_BAT_DEBUG_RUNNER): @@configure_script@@ $(M_C_DEBUG_RUNNER) $(PERL6_DEBUG_MO
 		--set-var=MOAR=$(MOAR) \
 		--set-var=mbc=perl6-debug.moarvm \
 		--set-var=ctx_subdir=@backend_subdir@ \
+		--set-var=nqp_libdir=@shquot(@nqp::libdir@)@ \
 		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@
 	-$(CHMOD) 755 $(M_BAT_DEBUG_RUNNER)
 

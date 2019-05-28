@@ -44,6 +44,7 @@ for $*IN.lines -> $line {
       postfix => $type.substr(0,1),
       type    => $type,
       Type    => $type.tclc,
+      nullval => $type eq 'str' ?? '""' !! $type eq 'num' ?? '0e0' !! '0'
     ;
 
     # spurt the role
@@ -118,8 +119,13 @@ for $*IN.lines -> $line {
             my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos_#postfix#(self, $i,
-                nqp::unbox_#postfix#(nqp::atpos(reified,$i)))
+              nqp::bindpos_#postfix#(self,$i,
+                nqp::if(
+                  nqp::isnull(nqp::atpos(reified,$i)),
+                  #nullval#,
+                  nqp::unbox_#postfix#(nqp::atpos(reified,$i))
+                )
+              )
             );
             self
         }

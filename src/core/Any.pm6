@@ -251,9 +251,9 @@ my class Any { # declared in BOOTSTRAP
     multi method EXISTS-POS(Any:D: \one, \two,\three --> Bool:D) is raw {
         nqp::if(
           nqp::istype((my $one := self.AT-POS(one)),Failure)
-            || nqp::istype((my $two := $one.AT-POS(one)),Failure),
+            || nqp::istype((my $two := $one.AT-POS(two)),Failure),
           False,
-          $two.EXISTS-POS(two)
+          $two.EXISTS-POS(three)
         )
     }
     multi method EXISTS-POS(Any:D: **@indices --> Bool:D) {

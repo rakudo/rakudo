@@ -2,67 +2,11 @@
 # nqp::mvmendprofile, when started with mvmstartprofile({:instrumented})
 
 # The nqp::mvmendprofile returns an nqp::list that needs to be nqp::hllize'd
-# before you can iterate over it in Perl 6.
-
-# The first element is an array of arrays with information about the types
-# that have been allocated.  At the moment of writing, this array appears to
-# have information about objects that were created, but for which there is no
-# allocation information.  It has the following structure:
-
-# 0                                  - array with type information
-# ├ 0 = 140415871842064               - unique ID for this type
-# └ 1                                 - hash with additional information
-#   ├ repr => P6opaque                  - name of the REPR of this type
-#   ├ type => Block                     - type object of type (aka, the .WHAT)
-#   ├ managed_size => 72                - size in bytes of instance
-#   └ has_unmanaged_data => 1           - is there additional data on heap?
-
-# The second element of the list returned by nqp::mvmendprofile, is a list of
-# hashes, one for each thread on which data has been collected.  It has the
-# following structure (times are in microseconds, sizes are in bytes):
-# 
-# 0                                 - hash with info of thread
-# ├ thread => 1                       - OS thread ID
-# ├ parent => 0                       - OS thread ID of parent thread
-# ├ spesh_time => 0                   - amount of time spent in spesh
-# ├ start_time => 0                   - when thread was started
-# └ total_time => 21004               - total time spent in thread
-# ├ call_graph                        - hash with first Callee info
-# │ ├ id => 140328666076608             - unique ID of this Callee
-# │ ├ first_entry_time => 0             - when Callee was first called
-# │ ├ inclusive_time => 2               - time spent here + all sub-Callees
-# │ ├ exclusive_time => 2               - time spent in this Callee
-# │ ├ entries => 97897                  - number of times Callee was called
-# │ ├ inlined_entries => 56757          - times called when inlined
-# │ ├ jit_entries => 6566               - times called when jitted
-# │ ├ osr => 1                          - times Callee was OSR'd
-# │ ├ name => foo                       - name of Callee (if available)
-# │ ├ file => gen/moar/BOOTSTRAP.nqp    - filename of Callee
-# │ ├ line => 2070                      - line of Callee in file
-# │ ├ allocations => (2)                - array with Allocations
-# │ │ ├ 0                                 - hash with Allocation info
-# │ │ │ ├ count => 100                      - number of allocations
-# │ │ │ ├ replaced => 1                     - scalar replacements stopping alloc
-# │ │ │ └ id => 140329083232016             - type ID
-# │ └ callees => (2)                    - array with Callees called here
-# └ gcs                               - array with Garbage Collections
-#   └ 0                                 - hash with GC info
-#     ├ sequence => 0                     - ordinal number of GC
-#     ├ start_time => 1964                - when GC was started
-#     ├ time => 7222                      - time spent doing GC
-#     ├ full => 0                         - whether or not a full GC
-#     ├ responsible => 1                  - thread ID that triggered this GC
-#     ├ promoted_bytes => 212960          - bytes promoted from the nuresery
-#     ├ promoted_bytes_unmanaged => 54781 - additional bytes promoted
-#     ├ retained_bytes => 76576           - bytes *not* promoted
-#     ├ cleared_bytes => 3228716          - bytes cleared from the nursery
-#     ├ gen2 => 18402                     -
-#     ├ gen2_roots => 18402               - gen2 allocs rooted in nursery
-#     ├ deallocs                          - array with Deallocations
-#       ├ 0                                 - hash with deallocation info
-#         ├ id => 140329080607960             - type ID being deallocated
-#         ├ nursery_seen => 10                - seen before in a GC
-#         └ nursery_fresh => 6                - *not* seen before in a GC
+# before you can iterate over it in Perl 6.  The documentation of this
+# structure can be found in the nqp repository, docs/ops.markdown (or on
+# github at:
+#
+#  https://github.com/perl6/nqp/blob/master/docs/ops.markdown#mvmendprofile
 
 # To reduce any additional memory pressure, the objects created by this class
 # are just shims around the arrays / hashes that have been returned.  This

@@ -386,6 +386,7 @@ class MoarVM::Profiler::Type does OnHash[<
         self.bless(:%hash)
     }
     method TWEAK(--> Nil) {
+        # link to originating profile
         %!hash.BIND-KEY("profile",$_) with $*PROFILE;
     }
 
@@ -449,8 +450,8 @@ class MoarVM::Profiler::Thread does OnHash[<
         self!mogrify-to-object(MoarVM::Profiler::Callee,'call_graph','caller');
         self!mogrify-to-slip(MoarVM::Profiler::GC,'gcs','thread');
 
-        # link back to the profiler if one available
-        %!hash<profile> = $_ with $*PROFILE;
+        # link to originating profile
+        %!hash.BIND-KEY("profile",$_) with $*PROFILE;
     }
 
     # additional accessor logic
@@ -596,7 +597,7 @@ class MoarVM::Profiler {
     }
     method Str(--> Str:D) { self.gist }
 
-    method sink(--> Nil) { self.note }
+    method sink(--> Nil) { self.note if %!threads_by_id }
 
     multi method profile(&code, :$times!) {
         my @profiles;

@@ -12,8 +12,9 @@ my %provides =
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm6",
     "Telemetry"                     => "lib/Telemetry.pm6",
     "snapper"                       => "lib/snapper.pm6",
-    "MoarVM::Profiler"              => "lib/MoarVM/Profiler.pm6",
 ;
+
+%provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.pm6" if $*VM.name eq 'moar';
 
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
     :prefix(@*ARGS[0]),

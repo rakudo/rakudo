@@ -16,15 +16,21 @@
 # big profile, will only cause addtional overhead in accessing those parts,
 # rather than using a lot of CPU and additional memory on the whole structure.
 
+# Make all class references a lot shorter
+
+unit module MoarVM::Profiler;
+
 # We need NQP here, duh!
 use nqp;
 
 # stubs we need
-class MoarVM::Profiler::Thread { ... }
+class Thread { ... }
 
 # some helper ops
 sub infix:<%%%>(\a,\b --> Str:D) { sprintf "%.2f%%", (100 * a) / b }
-sub infix:<avg>(\a,\b --> Str:D) { sprintf "(avg. %.2f)", a / b }
+sub infix:<avg>(\a,\b --> Str:D) {
+    b > 1 ?? sprintf( "(avg. %.2f)", a / b ) !! ""
+}
 sub prefix:<§>(\a --> Str:D) { a == 1 ?? "" !! "s" }
 
 # Simple role that maps a set of given keys onto a hash, so that we need to
@@ -82,7 +88,7 @@ role OnHash[@keys] {
 }
 
 # Information about objects of a certain type being allocated in a Callee.
-class MoarVM::Profiler::Allocation does OnHash[<
+class Allocation does OnHash[<
   callee
   count
   id
@@ -106,7 +112,7 @@ class MoarVM::Profiler::Allocation does OnHash[<
 }
 
 # Information about a Callable that has been called at least once.
-class MoarVM::Profiler::Callee does OnHash[<
+class Callee does OnHash[<
   allocations
   callees
   caller
@@ -131,9 +137,9 @@ class MoarVM::Profiler::Callee does OnHash[<
 
     method TWEAK(--> Nil) {
         self!mogrify-to-slip(
-          MoarVM::Profiler::Allocation, 'allocations', 'callee');
+          Allocation, 'allocations', 'callee');
         self!mogrify-to-slip(
-          MoarVM::Profiler::Callee, 'callees', 'caller');
+          Callee, 'callees', 'caller');
     }
 
     # additional accessor logic
@@ -198,7 +204,7 @@ class MoarVM::Profiler::Callee does OnHash[<
           do {
               my $thread = self.caller;
               $thread = $thread.caller
-                until $thread ~~ MoarVM::Profiler::Thread;
+                until $thread ~~ Thread;
               $thread
           }
         )
@@ -224,27 +230,51 @@ class MoarVM::Profiler::Callee does OnHash[<
             $gist ~= " was called $_ time{§$_}\n" given $entries;
             $gist ~= "   at $.file line {$.line}\n";
 
-            $gist ~= $_ ~~ MoarVM::Profiler::Thread
+            $gist ~= $_ ~~ Thread
               ?? " from thread #" ~ .id ~ ".\n"
               !! " from " ~ .file ~ " line " ~ .line ~ ".\n"
               given self.caller;
 
-            $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} inlined ({ $_ %%% $entries }).\n"
-              if $_ given $.inlined_entries;
-            $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} jitted ({ $_ %%% $entries }).\n"
-              if $_ given $.jit_entries;
+            if $.entries == 1 {
+                my @done;
+                @done.push("inlined") if $.inlined_entries;
+                @done.push("jitted") if $.jit_entries;
+                @done.push("had an On-Stack-Replacement") if $.osr;
+
+                if @done {
+                    my $last = @done.pop;
+                    $gist ~= @done
+                      ?? "Was {@done.join(', ')} and $last.\n"
+                      !! "Was $last.\n";
+                }
+                else {
+                    $gist ~= ".\n";
+                }
+            }
+            else {
+                if $.inlined_entries -> $_ {
+                    $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} inlined";
+                    $gist ~= $_ == 1 ?? ".\n" !! " ({ $_ %%% $entries }).\n";
+                }
+                if $.jit_entries -> $_ {
+                    $gist ~= "$_ call{ $_ == 1 ?? " was" !! "s were"} jitted";
+                    $gist ~= $_ == 1 ?? ".\n" !! " ({ $_ %%% $entries }).\n";
+                }
+            }
 
             if $entries > 1 {
-                $gist ~= "First called at $.first_entry_time microsecs for $_ microsecs { $_ avg $entries }"
+                $gist ~= "First called at $.first_entry_time microsecs and ran for $_ microsecs { $_ avg $entries }"
                   given $.inclusive_time;
             }
             else {
-                $gist ~= "Called at $.first_entry_time microsecs for $.inclusive_time microsecs";
+                $gist ~= "Called at $.first_entry_time microsecs and ran for $.inclusive_time microsecs";
             }
 
             if $.callees {
                 $gist ~= $entries
-                  ?? "\n  of which $_ microsecs here { $_ avg $entries }.\n"
+                  ?? $entries == 1
+                    ?? ".\n"
+                    !! "\n  of which $_ microsecs here { $_ avg $entries }.\n"
                   !! "\n  of which $_ microsecs here.\n"
                   given $.exclusive_time;
             }
@@ -260,7 +290,7 @@ class MoarVM::Profiler::Callee does OnHash[<
                   given $.nr_exclusive_allocations;
             }
             $gist ~= "Had $_ On Stack Replacement{§$_}.\n"
-              if $_ given $.osr;
+              if $_ && $.entries > 1 given $.osr;
             $gist
         }
         else {
@@ -270,7 +300,7 @@ class MoarVM::Profiler::Callee does OnHash[<
 }
 
 # Information about a de-allocation as part of a garbage collection.
-class MoarVM::Profiler::Deallocation does OnHash[<
+class Deallocation does OnHash[<
   id
   gc
   name
@@ -289,7 +319,7 @@ class MoarVM::Profiler::Deallocation does OnHash[<
 
 
 # Information about a garbage collection.
-class MoarVM::Profiler::GC does OnHash[<
+class GC does OnHash[<
   cleared_bytes
   deallocs
   full
@@ -305,7 +335,7 @@ class MoarVM::Profiler::GC does OnHash[<
 >] {
 
     method TWEAK(--> Nil) {
-        self!mogrify-to-slip(MoarVM::Profiler::Deallocation, 'deallocs', 'gc');
+        self!mogrify-to-slip(Deallocation, 'deallocs', 'gc');
     }
 
     method gist(--> Str:D) {
@@ -314,7 +344,7 @@ class MoarVM::Profiler::GC does OnHash[<
 }
 
 # Information about a type that have at least one object instantiated.
-class MoarVM::Profiler::Type does OnHash[<
+class Type does OnHash[<
   has_unmanaged_data
   id
   managed_size
@@ -378,7 +408,7 @@ class MoarVM::Profiler::Type does OnHash[<
 }
 
 # Information about a thread.
-class MoarVM::Profiler::Thread does OnHash[<
+class Thread does OnHash[<
   callee
   gcs
   id
@@ -391,8 +421,8 @@ class MoarVM::Profiler::Thread does OnHash[<
 >] {
 
     method TWEAK(--> Nil) {
-        self!mogrify-to-object(MoarVM::Profiler::Callee,'call_graph','caller');
-        self!mogrify-to-slip(MoarVM::Profiler::GC,'gcs','thread');
+        self!mogrify-to-object(Callee,'call_graph','caller');
+        self!mogrify-to-slip(GC,'gcs','thread');
 
         # link to originating profile
         %!hash.BIND-KEY("profile",$_) with $*PROFILE;
@@ -403,7 +433,7 @@ class MoarVM::Profiler::Thread does OnHash[<
         %!hash<id>
           // %!hash.BIND-KEY("id",%!hash.DELETE-KEY("thread"))
     }
-    method callee(--> MoarVM::Profiler::Callee:D) {
+    method callee(--> Callee:D) {
         %!hash<callee>
           // %!hash.BIND-KEY("callee",%!hash.DELETE-KEY("call_graph"))
     }
@@ -411,10 +441,10 @@ class MoarVM::Profiler::Thread does OnHash[<
     method types_by_name() { $.profile ?? $.profile.types_by_name !! {} }
 
     # type given ID / name
-    method type_by_id(Int:D $id --> MoarVM::Profiler::Type:D) {
+    method type_by_id(Int:D $id --> Type:D) {
         $.profile ?? $.profile.types_by_id{$id} !! Any
     }
-    method type_by_name(Str:D $name --> MoarVM::Profiler::Type:D) {
+    method type_by_name(Str:D $name --> Type:D) {
         $.profile ?? $.profile.types_by_name{$name} !! Any
     }
 
@@ -477,11 +507,11 @@ class MoarVM::Profiler {
     method !SET-SELF(@raw) {
         my $*PROFILE = self;
         %!types_by_id = @raw[0].map: -> $type {
-            .id => $_ given MoarVM::Profiler::Type.new($type)
+            .id => $_ given Type.new($type)
         }
 
         %!threads_by_id = @raw.skip.map: -> $thread {
-            .id => $_ given MoarVM::Profiler::Thread.new($thread)
+            .id => $_ given Thread.new($thread)
         }
 
         self
@@ -499,14 +529,21 @@ class MoarVM::Profiler {
     method type_by_name($name) { %.types_by_name{$name} }
     method thread_by_id($id)   { %!threads_by_id{$id} }
 
+    method all_callees() {
+        %!threads_by_id.values.map: |*.all_callees
+    }
+    method all_allocations() {
+        %!threads_by_id.values.map: |*.all_callees.map: |*.all_allocations
+    }
+
     method my_callees() {
         self.callees_by_file(callframe(1).file)
     }
     method callees_by_file(\matcher) {
-        self.callees.grep({ matcher.ACCEPTS(.file) })
+        self.all_callees.grep({ matcher.ACCEPTS(.file) })
     }
     method callees_by_name(\matcher) {
-        self.callees.grep({ matcher.ACCEPTS(.name) })
+        self.all_callees.grep({ matcher.ACCEPTS(.name) })
     }
 
     method my_allocations() {
@@ -564,7 +601,7 @@ class MoarVM::Profiler {
 #        # logic for adding a type not yet seen (by name)
 #        my $type_id = 0;
 #        method !new-type($source  --> Nil) {
-#            my $type := MoarVM::Profiler::Type.new(
+#            my $type := Type.new(
 #              (++$type_id, {
 #                managed_size       => $source.managed_size,
 #                repr               => $source.repr,
@@ -573,8 +610,8 @@ class MoarVM::Profiler {
 #              })
 #            );
 #
-#            nqp::bindattr($type,MoarVM::Profiler::Type,'$!name',$source.name);
-#            nqp::bindattr($type,MoarVM::Profiler::Type,'%!threads',%!threads);
+#            nqp::bindattr($type,Type,'$!name',$source.name);
+#            nqp::bindattr($type,Type,'%!threads',%!threads);
 #            %!types.BIND-KEY($type_id,     $type);
 #            %!names.BIND-KEY($source.name, $type);
 #        }

@@ -545,7 +545,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     proto method Str(|) {*}
     multi method Str(Mu:U \v:) {
-        my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.?name) // '';
+        my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.name) // '';
         $name   ~= ' ' if $name ne '';
         warn "Use of uninitialized value {$name}of type {self.^name} in string"
                 ~ " context.\nMethods .^name, .perl, .gist, or .say can be"
@@ -562,7 +562,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     proto method Stringy(|) {*}
     multi method Stringy(Mu:U \v:) {
-        my $*VAR_NAME = try v.VAR.?name;
+        my $*VAR_NAME = try v.VAR.name;
         self.Str
     }
     multi method Stringy(Mu:D $:) { self.Str }

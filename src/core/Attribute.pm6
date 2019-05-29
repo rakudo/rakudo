@@ -26,7 +26,8 @@ my class Attribute { # declared in BOOTSTRAP
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
 
-                if self.?DEPRECATED -> $alternative {
+                if nqp::can(self,"DEPRECATED")
+                  && self.DEPRECATED -> $alternative {
                     my $what = "Method $meth_name (from $package.^name())";
                     if self.rw {
                         $meth := nqp::iseq_i($attr_type, 0)

@@ -660,8 +660,11 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
+    method MAYBE-GIST(Mu \thing) {
+        nqp::can(nqp::decont(thing), 'gist') ??  thing.gist !! thing.^name;
+    }
     method SHORT-GIST(Mu \thing) {
-        my str $gist = nqp::can(thing, 'gist') ??  thing.gist !! thing.^name;
+        my str $gist = self.MAYBE-GIST(thing);
         nqp::if(
           nqp::isgt_i(nqp::chars($gist), 23),
           nqp::concat(nqp::substr($gist, 0, 20), '...'),

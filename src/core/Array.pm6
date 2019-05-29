@@ -375,7 +375,7 @@ my class Array { # declared in BOOTSTRAP
               ),
               List,
               '$!reified',
-              nqp::getattr(self,List,'$!reified')
+              nqp::clone(nqp::getattr(self,List,'$!reified'))
             ),
             nqp::create(Slip)
           )

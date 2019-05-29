@@ -41,7 +41,7 @@ class CompUnit::Repository::Distribution does Distribution {
         $meta<auth> //= $meta<authority> // $meta<author>;
         $!meta = $meta;
 
-        $!repo-name //= $!repo.name if ($!repo.?name // '') ne '';
+        $!repo-name //= $!repo.name if nqp::can($!repo,"name") && $!repo.name;
         $!repo = $!repo.path-spec if $!repo.defined && $!repo !~~ Str;
     }
 

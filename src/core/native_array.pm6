@@ -93,7 +93,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2018-12-29T21:00:36+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2019-05-27T14:46:22+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
@@ -165,8 +165,13 @@ my class array does Iterable {
             my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos_s(self, $i,
-                nqp::unbox_s(nqp::atpos(reified,$i)))
+              nqp::bindpos_s(self,$i,
+                nqp::if(
+                  nqp::isnull(nqp::atpos(reified,$i)),
+                  "",
+                  nqp::unbox_s(nqp::atpos(reified,$i))
+                )
+              )
             );
             self
         }
@@ -589,7 +594,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2018-12-29T21:00:36+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2019-05-27T14:46:22+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
@@ -661,8 +666,13 @@ my class array does Iterable {
             my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos_i(self, $i,
-                nqp::unbox_i(nqp::atpos(reified,$i)))
+              nqp::bindpos_i(self,$i,
+                nqp::if(
+                  nqp::isnull(nqp::atpos(reified,$i)),
+                  0,
+                  nqp::unbox_i(nqp::atpos(reified,$i))
+                )
+              )
             );
             self
         }
@@ -1137,7 +1147,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2018-12-29T21:00:36+01:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2019-05-27T14:46:22+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
@@ -1209,8 +1219,13 @@ my class array does Iterable {
             my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::bindpos_n(self, $i,
-                nqp::unbox_n(nqp::atpos(reified,$i)))
+              nqp::bindpos_n(self,$i,
+                nqp::if(
+                  nqp::isnull(nqp::atpos(reified,$i)),
+                  0e0,
+                  nqp::unbox_n(nqp::atpos(reified,$i))
+                )
+              )
             );
             self
         }

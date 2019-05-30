@@ -68,7 +68,7 @@ my class Rakudo::Internals::JSON {
 
         if $obj ~~ Exception {
            return $.to-json($obj.^name => Hash.new(
-              (message => $obj.?message),
+              (message => nqp::can($obj,"message") ?? $obj.message !! Nil),
               $obj.^attributes.grep(*.has_accessor).map: {
                   with .name.substr(2) -> $attr {
                       $attr => (

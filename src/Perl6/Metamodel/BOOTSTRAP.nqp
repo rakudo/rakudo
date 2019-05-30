@@ -1154,10 +1154,16 @@ class ContainerDescriptor {
         $!of.HOW.archetypes.generic
     }
 
+    method is_default_generic() {
+        $!default.HOW.archetypes.generic
+    }
+
     method instantiate_generic($type_environment) {
         my $ins_of := $!of.HOW.instantiate_generic($!of, $type_environment);
+        my $ins_default := self.is_default_generic ?? $!default.HOW.instantiate_generic($!default, $type_environment) !! $!default;
         my $ins := nqp::clone(self);
         nqp::bindattr($ins, $?CLASS, '$!of', $ins_of);
+        nqp::bindattr($ins, $?CLASS, '$!default', $ins_default);
         $ins
     }
 }

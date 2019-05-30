@@ -242,14 +242,37 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{pos.^name}' as an index";
     }
     multi method EXISTS-POS(Any:D: \one, \two --> Bool:D) is raw {
-        self.AT-POS(one).EXISTS-POS(two)
+        nqp::if(
+          nqp::istype((my $one := self.AT-POS(one)),Failure),
+          False,
+          $one.EXISTS-POS(two)
+        )
     }
     multi method EXISTS-POS(Any:D: \one, \two,\three --> Bool:D) is raw {
-        self.AT-POS(one).AT-POS(two).EXISTS-POS(three)
+        nqp::if(
+          nqp::istype((my $one := self.AT-POS(one)),Failure)
+            || nqp::istype((my $two := $one.AT-POS(two)),Failure),
+          False,
+          $two.EXISTS-POS(three)
+        )
     }
     multi method EXISTS-POS(Any:D: **@indices --> Bool:D) {
-        my $final := @indices.pop;
-        Rakudo::Internals.WALK-AT-POS(self,@indices).EXISTS-POS($final)
+        my $final    := @indices.pop;  # also reifies
+        my $target   := self;
+        my $indices  := nqp::getattr(@indices,List,'$!reified');
+        my int $elems = nqp::elems($indices);
+        my int $i     = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::if(
+            nqp::istype(
+              ($target := $target.AT-POS(nqp::atpos($indices,$i))),
+              Failure
+            ),
+            (return False)
+          )
+        );
+        $target.EXISTS-POS($final)
     }
 
     proto method AT-POS(|) is nodal {*}

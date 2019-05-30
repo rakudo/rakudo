@@ -140,7 +140,9 @@ sub samewith(|c) {
         my $caller := nqp::getcodeobj(nqp::ctxcode($ctx));
         if nqp::istype($caller, Routine) {
             if $caller.multi {
-                my $dispatcher := $caller.?dispatcher || die "Could not find dispatcher";
+                die "Could not find dispatcher"
+                  unless my $dispatcher := nqp::can($caller,"dispatcher")
+                                             && $caller.dispatcher;
                 return nqp::istype($caller, Method)
                   ?? $dispatcher(nqp::atkey($ctx, 'self') // $caller.package,|c)
                   !! $dispatcher(|c);

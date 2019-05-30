@@ -286,10 +286,12 @@ class Callee does OnHash[<
                 $gist ~= "Did $_ allocation{§$_}" given $allocations;
                 $gist ~= $allocations == $_
                   ?? ".\n"
-                  !! " (of which $_ ({ $_ %%% $allocations }) { $_ == 1 ?? "was" !! "were"} done here).\n"
+                  !! $_
+                    ?? " (of which $_ ({ $_ %%% $allocations }) { $_ == 1 ?? "was" !! "were"} done here).\n"
+                    !! " (of which none were done here).\n"
                   given $.nr_exclusive_allocations;
             }
-            $gist ~= "Had $_ On Stack Replacement{§$_}.\n"
+            $gist ~= "Had $_ On-Stack-Replacement{§$_}.\n"
               if $_ && $.entries > 1 given $.osr;
             $gist
         }
@@ -484,11 +486,12 @@ class Thread does OnHash[<
               given $.nr_inlined;
             $gist ~= "$_ frames were jitted ({$_ %%% $frames}).\n"
               given $.nr_jitted;
-            $gist ~= "$_ On Stack Replacement{§$_} were done.\n"
-              given $.nr_osred;
+            if $.nr_osred -> $_ {
+                $gist ~= "$_ On Stack Replacement{§$_} {$_ == 1 ?? "was" !! "were"} done.\n"
+            }
         }
         else {
-            $gist ~= "No profileable code was executed.";
+            $gist ~= "No profileable code was executed.\n";
         }
 
         $gist
@@ -574,7 +577,10 @@ class MoarVM::Profiler {
     }
 
     method gist(--> Str:D) {
-        self.threads_by_id.sort(*.key).map(*.value.gist).join("-" x 80 ~ "\n")
+        self.threads_by_id
+          .sort(*.key)
+          .map( { .value.gist if .value.nr_frames } )
+          .join("-" x 80 ~ "\n")
     }
     method Str(--> Str:D) { self.gist }
 

@@ -274,38 +274,38 @@ m-coretest5: m-all
 	$(M_HARNESS5) @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
 
 # Run the spectests that we know work.
-m-spectest5: m-testable @nfp(t/spectest.data)@
-	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@
+m-spectest5: m-testable $(SPECTEST_DATA)
+	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA)
 
 # Run the spectests that we know work after precompiling them.
-m-spectest5_precompile: m-testable @nfp(t/spectest.data)@
-	$(M_HARNESS5_WITH_FUDGE) --precompile --tests-from-file=@nfp(t/spectest.data)@
+m-spectest5_precompile: m-testable $(SPECTEST_DATA)
+	$(M_HARNESS5_WITH_FUDGE) --precompile --tests-from-file=$(SPECTEST_DATA)
 
 m-spectest_full5: m-testable
 	$(M_HARNESS5_WITH_FUDGE) @nfp(t/spec)@
 
-m-quicktest5: m-testable @nfp(t/spectest.data)@
-	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@ --quick
+m-quicktest5: m-testable $(SPECTEST_DATA)
+	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --quick
 
-m-stresstest5: m-testable @nfp(t/spectest.data)@
-	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@ --stress
+m-stresstest5: m-testable $(SPECTEST_DATA)
+	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --stress
 
 
 m-coretest6: m-all
 	$(M_HARNESS6) @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
 
 # Run the spectests that we know work.
-m-spectest6: m-testable @nfp(t/spectest.data)@
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@
+m-spectest6: m-testable $(SPECTEST_DATA)
+	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA)
 
 m-spectest_full6: m-testable
 	$(M_HARNESS6_WITH_FUDGE) @nfp(t/spec)@
 
-m-quicktest6: m-testable @nfp(t/spectest.data)@
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@ --quick
+m-quicktest6: m-testable $(SPECTEST_DATA)
+	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --quick
 
-m-stresstest6: m-testable @nfp(t/spectest.data)@
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@ --stress
+m-stresstest6: m-testable $(SPECTEST_DATA)
+	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --stress
 
 
 #spectest_smolder: rakudo_test_run.tar.gz

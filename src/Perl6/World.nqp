@@ -555,6 +555,8 @@ class Perl6::World is HLL::World {
         }
     }
 
+    # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
+    # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
         $*MAIN   := 'MAIN';
         $*STRICT := 1 if $*begin_compunit;

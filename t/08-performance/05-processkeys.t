@@ -5,6 +5,7 @@ plan 1;
 my %allowed = (
   Q{$AWAITER},
   Q{$CWD},
+  Q{$CORE-SETTING-REV},
   Q{$ERR},
   Q{$IN},
   Q{$OUT},

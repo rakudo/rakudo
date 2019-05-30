@@ -52,7 +52,7 @@ multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-prefix)!, :for(:$repo-name
         :name($repo-name),
     ).install($dist);
 
-    $_.unlink for <version repo.lock precomp/.lock>.map: {$repo-prefix.IO.child($_)};
+    $_.unlink for <repo.lock precomp/.lock>.map: {$repo-prefix.IO.child($_)};
 }
 
 multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-id) = 'site', Bool :$force) {

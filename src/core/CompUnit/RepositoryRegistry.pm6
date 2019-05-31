@@ -109,7 +109,7 @@ class CompUnit::RepositoryRegistry {
         # set up custom libs
         my str $site   = "inst#{$prefix}{$sep}site";
         my str $vendor = "inst#{$prefix}{$sep}vendor";
-        my str $perl   = "inst#$prefix";
+        my str $perl   = "inst#{$prefix}{$sep}core";
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=
@@ -142,7 +142,7 @@ class CompUnit::RepositoryRegistry {
         unless $precomp-specs {
             nqp::bindkey($custom-lib, 'perl', $next-repo := self!register-repository(
                 $perl,
-                CompUnit::Repository::Installation.new(:prefix($prefix), :$next-repo)
+                CompUnit::Repository::Installation.new(:prefix("$prefix/core"), :$next-repo)
             )) unless nqp::existskey($unique, $perl);
             nqp::bindkey($custom-lib, 'vendor', $next-repo := self!register-repository(
                 $vendor,

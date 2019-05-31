@@ -894,5 +894,6 @@ E: q@cono.org.ua
 N: Vadim Belman
 U: vrurg
 E: vrurg@cpan.org
+D: Build subsystem, various code changes
 
 =cut

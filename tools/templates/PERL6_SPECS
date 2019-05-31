@@ -5,5 +5,5 @@
 # - deprecated. Use of this modifier will result in a language warning.
 c
 # TEST and TESTDEPR modifiers are to be kept for roast.
-*d -PREVIEW TEST -TESTDEPR # TODO: It's about time to drop PREVIEW
+*d PREVIEW TEST -TESTDEPR # TODO: It's about time to drop PREVIEW
 e !PREVIEW 

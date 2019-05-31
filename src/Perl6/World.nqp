@@ -530,44 +530,87 @@ class Perl6::World is HLL::World {
           $want
         ) == -1
     }
+
+    method !check-version-modifier($ver-match, $rev, $modifier, $comp) {
+        my %lang_rev := $comp.language_revisions;
+
+        unless nqp::existskey(%lang_rev, $rev) &&
+               (!$modifier || nqp::existskey(%lang_rev{$rev}<mods>, $modifier)) {
+            $ver-match.typed_panic: 'X::Language::Unsupported', version => ~$ver-match;
+        }
+
+        # See if requested revision is not supported without a modifier. Most likely it'll be PREVIEW modifier for
+        # unreleased revisions.
+        if nqp::existskey(%lang_rev{$rev}, 'require') {
+            if nqp::iseq_s(%lang_rev{$rev}<require>, $modifier) {
+                return;
+            }
+            $ver-match.typed_panic: 'X::Language::ModRequired',
+                                    version => ~$ver-match,
+                                    modifier => %lang_rev{$rev}<require>;
+        }
+
+        if %lang_rev{$rev}<mods>{$modifier}<deprecate> {
+            $ver-match.PRECURSOR.worry("$modifier modifier is deprecated for Perl 6.$rev");
+        }
+    }
+
+    # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
+    # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
         $*MAIN   := 'MAIN';
         $*STRICT := 1 if $*begin_compunit;
 
         my str $version := ~$ver-match;
-        # fast-path the common cases
-        if $version eq 'v6.c' {
-            $comp.set_language_version: '6.c';
-            $*CAN_LOWER_TOPIC := 0;
-            # CORE.c is currently our lowest core, which we don't "load"
-            return;
-        }
+        my @vparts := nqp::split('.', $version);
+        my $default_rev := nqp::substr($comp.config<language-version>, 2, 1);
 
-        if $version eq 'v6' ?? nqp::substr($comp.language_version, 2, 1)
-        !! $version eq 'v6.d' ?? 'd'
-        !! $version eq 'v6.d.PREVIEW' ?? 'd'
-        !! '' -> $lang {
-            $comp.set_language_version:       '6.' ~ $lang;
-            self.load_setting: $ver-match, 'CORE.' ~ $lang;
-            return;
+        # Do we have dot-splitted version string?
+        if ((@vparts > 1) && nqp::iseq_s(@vparts[0], 'v6')) || ($version eq 'v6') {
+            my $revision := @vparts[1] || $default_rev;
+            my $lang_ver := '6.' ~ $revision;
+
+            self."!check-version-modifier"($ver-match, $revision, @vparts[2] || '', $comp);
+
+            $comp.set_language_version: $lang_ver;
+            # fast-path the common cases
+            if $revision eq 'c' {
+                $*CAN_LOWER_TOPIC := 0;
+                # CORE.c is currently our lowest core, which we don't "load"
+                return;
+            }
+
+            # Speed up loading assuming that the default language version would be the most used one.
+            if $lang_ver eq $comp.config<language-version> {
+                self.load_setting: $ver-match, 'CORE.' ~ $revision;
+                return;
+            }
         }
 
         my $Version := self.find_symbol: ['Version'];
         my $vWant   := $ver-match.ast.compile_time_value;
+        my $rev := $vWant.parts.AT-POS(1);
+        my str $rev_mod := $vWant.parts.elems > 2 ?? $vWant.parts.AT-POS(2) !! '';
+
+        self."!check-version-modifier"($ver-match, $rev, $rev_mod, $comp);
+
         for $comp.can_language_versions -> $can-ver {
             next unless $vWant.ACCEPTS: my $vCan := $Version.new: $can-ver;
 
-            my $lang := $vCan.parts.AT-POS: 1;
-            $comp.set_language_version:       '6.' ~ $lang;
-            $*CAN_LOWER_TOPIC := 0 if $lang eq 'c';
+            my $can_rev := $vCan.parts.AT-POS: 1;
+            $comp.set_language_version:       '6.' ~ $can_rev;
 
-            # CORE.c is currently our lowest core, which we don't "load"
-            self.load_setting: $ver-match, 'CORE.' ~ $lang
-                unless $lang eq 'c';
+            if $can_rev eq 'c' {
+                $*CAN_LOWER_TOPIC := 0;
+                # CORE.c is currently our lowest core, which we don't "load"
+            }
+            else {
+                self.load_setting: $ver-match, 'CORE.' ~ $can_rev
+            }
             return;
         }
 
-        $/.typed_panic: 'X::Language::Unsupported', :$version;
+        $ver-match.typed_panic: 'X::Language::Unsupported', :$version;
     }
 
     method RAKUDO_MODULE_DEBUG() {
@@ -842,7 +885,7 @@ class Perl6::World is HLL::World {
         # Do nothing for the NULL setting.
         if $setting_name ne 'NULL' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
-            $setting_name := 'CORE' if $setting_name eq 'NULL.d';
+            $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
             # Load it immediately, so the compile time info is available.
             # Once it's loaded, set it as the outer context of the code
             # being compiled.

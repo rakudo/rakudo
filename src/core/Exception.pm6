@@ -3020,6 +3020,13 @@ my class X::Language::TooLate is Exception {
         "Too late to switch language version. Must be used as the very first statement."
     }
 }
+my class X::Language::ModRequired is Exception {
+    has $.version;
+    has $.modifier;
+    method message() {
+        "Perl $.version requires $.modifier modifier"
+    }
+}
 
 my class X::Proc::Unsuccessful is Exception {
     has $.proc;

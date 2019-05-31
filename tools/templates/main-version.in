@@ -4,8 +4,37 @@ sub hll-config($config) {
     $config<release-number>   := '@release@';
     $config<codename>         := '@codename@';
     $config<language-version> := '6.@lang_spec@';
+    # Though language-revisions key provides more information
+    # can-language-versions is kept for speeding up
+    # Perl6::Compiler.can_langauge_versions method
     $config<can-language-versions>
         := nqp::list( '6.c'@for_specmods(, '6.@spec_with_mod@')@ );
+    $config<language-revisions> := nqp::hash( 
+        'c', nqp::hash(),
+@perl(
+    # This code is not re-usable, makes no sense to write a dedicated macro
+    for my $spec ( $cfg->perl6_specs ) {
+        my $letter = $spec->[0];
+        my $pfx = "        ";
+        $out .= "$pfx'$letter', nqp::hash(\n";
+        my $require = '';
+        my $mods = "";
+        for my $mod ( @$spec[1..$#$spec] ) {
+            $mods = "$pfx    'mods', nqp::hash(\n" unless $mods;
+            $mods .= "$pfx        '$mod->[0]', nqp::hash(\n";
+            if ( $mod->[1]{require} ) {
+                $require = "$pfx    'require', '$mod->[0]',\n";
+            }
+            for my $flag ( keys %{$mod->[1]} ) {
+                $mods .= "$pfx            '$flag',  " . ($mod->[1]{$flag} ? "1" : "0") . ",\n"
+            }
+            $mods .= "$pfx        ), # modificator $mod->[0]\n";
+        }
+        $mods .= "$pfx    ),\n";
+        $out .= "$require$mods$pfx), # revision $letter\n";
+    }
+)@
+    );
     $config<prefix>           := '@prefix@';
     $config<libdir>           := '@libdir@';
     $config<source-digest>    := '@source_digest()@';

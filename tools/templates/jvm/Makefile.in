@@ -188,20 +188,20 @@ j-coretest: j-all
 	$(J_HARNESS5) @nfpl(t/01-sanity t/02-rakudo t/03-jvm t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/10-qast)@
 
 # Run the spectests that we know work.
-j-spectest: j-testable @nfp(t/spectest.data)@
-	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@
+j-spectest: j-testable $(SPECTEST_DATA)
+	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA)
 
 j-spectest_full: j-testable
 	$(J_HARNESS5_WITH_FUDGE) @nfp(t/spec)@
 
-j-quicktest: j-testable @nfp(t/spectest.data)@
-	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@ --quick
+j-quicktest: j-testable $(SPECTEST_DATA)
+	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --quick
 
-j-stresstest: j-testable @nfp(t/spectest.data)@
-	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@ --stress
+j-stresstest: j-testable $(SPECTEST_DATA)
+	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --stress
 
-j-rakudo_test_run.tar.gz: j-testable @nfp(t/spectest.data)@
-	- $(J_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/spectest.data)@ --archive j-rakudo_test_run.tar.gz
+j-rakudo_test_run.tar.gz: j-testable $(SPECTEST_DATA)
+	- $(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --archive j-rakudo_test_run.tar.gz
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"

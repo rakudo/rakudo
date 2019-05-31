@@ -92,6 +92,7 @@ MAIN: {
 
     $cfg->configure_paths;
     $cfg->configure_from_options;
+    $cfg->configure_relocatability;
     $cfg->configure_repo_urls;
     $cfg->configure_commands;
     $cfg->configure_nqp;

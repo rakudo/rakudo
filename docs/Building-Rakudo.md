@@ -1,4 +1,4 @@
-# Things To Know About Rakudo BUILD
+# Things To Know About Rakudo Build
 
 ## SYNOPSIS
 

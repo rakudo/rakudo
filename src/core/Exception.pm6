@@ -3024,7 +3024,7 @@ my class X::Language::ModRequired is Exception {
     has $.version;
     has $.modifier;
     method message() {
-        "Perl $.version requires modifier $.modifier"
+        "Perl $.version requires $.modifier modifier"
     }
 }
 

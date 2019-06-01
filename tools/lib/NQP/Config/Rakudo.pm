@@ -136,14 +136,14 @@ sub configure_refine_vars {
                 "Based on found executable $nqp_bin"
             );
         }
-        elsif ( abs_path($prefix) ne abs_path($nqp_prefix) ) {
-            $self->note(
-                'WARNING!',
+        elsif ( $self->cfg('relocatable') && abs_path($prefix) ne abs_path($nqp_prefix) ) {
+            $self->sorry(
                 "Installation directory '$prefix' is different from '",
                 abs_path($nqp_prefix),
                 "' where nqp is installed.\n",
-                "This may result in non-functional perl6 binary.\n",
-                "Make sure this is REALLY intended."
+                "This does not work when creating a relocatable setup.\n",
+                "A relocatable installation needs to have MoarVM, NQP and\n",
+                "Rakudo all in the same prefix."
             );
         }
     }

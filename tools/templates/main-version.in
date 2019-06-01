@@ -10,7 +10,11 @@ sub hll-config($config) {
     $config<can-language-versions>
         := nqp::list( '6.c'@for_specmods(, '6.@spec_with_mod@')@ );
     $config<language-revisions> := nqp::hash( 
-        'c', nqp::hash(),
+        'c', nqp::hash(
+            # Have it here to avoid the need for additional condition 
+            # in World's check-verision-modifier() method
+            'mods', nqp::hash( ), 
+        ),
 @perl(
     # This code is not re-usable, makes no sense to write a dedicated macro
     for my $spec ( $cfg->perl6_specs ) {

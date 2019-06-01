@@ -212,6 +212,9 @@ my class Rakudo::Internals::JSON {
                 when Instant {
                     nqp::push_s(@out,qq/"{.DateTime}"/)
                 }
+                when Version {
+                    jsonify(.Str)
+                }
 
                 # also handle exceptions here
                 when Exception {

@@ -143,6 +143,9 @@ class Callee does OnHash[<
     }
 
     # additional accessor logic
+    method file(--> Str:D) {
+        %!hash<file> // %!hash.BIND-KEY("file",'')
+    }
     method name(--> Str:D) {
         %!hash<name> // %!hash.BIND-KEY("name",'')
     }
@@ -246,9 +249,6 @@ class Callee does OnHash[<
                     $gist ~= @done
                       ?? "Was {@done.join(', ')} and $last.\n"
                       !! "Was $last.\n";
-                }
-                else {
-                    $gist ~= ".\n";
                 }
             }
             else {

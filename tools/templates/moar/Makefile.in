@@ -14,9 +14,9 @@ MOAR_PREFIX = @nfp(@moar::prefix@)@
 # MOAR and M_NQP are only used in command lines, ok to quote
 MOAR   = @nfpq(@moar::bindir@/moar@moar::exe@)@
 M_NQP  = @nfpq(@m_nqp@)@
-M_LIBDIR = $(PERL6_HOME)@nfp(/lib)@
+M_LIBDIR = @nfp($(PERL6_HOME)/lib)@
 M_NQP_LIBDIR = @nqp::libdir@
-M_INCPATH = $(MOAR_PREFIX)@nfp(/include)@
+M_INCPATH = @nfp($(MOAR_PREFIX)/include)@
 M_MOAR_INC_PATHS = \
   $(M_CCINC)@nfpq($(M_INCPATH))@ \
   $(M_CCINC)@nfpq($(M_INCPATH)/moar)@ \

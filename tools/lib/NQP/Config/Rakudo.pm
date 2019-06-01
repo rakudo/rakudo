@@ -22,6 +22,8 @@ sub configure_nqp {
       defined( $self->opt('prefix') || $self->opt('sysroot') );
 
     if ( $nqp_bin = $self->opt('with-nqp') ) {
+        $nqp_bin = File::Spec->rel2abs( $self->nfp( $nqp_bin ) );
+
         $self->sorry( "Could not find nqp '"
               . $self->opt('with-nqp')
               . "' defined with --with-nqp" )
@@ -29,9 +31,9 @@ sub configure_nqp {
         my $nqp_backend;
         run(
             command =>
-              [ $nqp_bin, '-e', 'print(nqp::getcomp("nqp").backend.name)' ],
+              [ $nqp_bin, '-e', 'print(nqp::getcomp(\'nqp\').backend.name)' ],
             buffer => \$nqp_backend
-        ) or self->sorry("Could not get backend information from '$nqp_bin'");
+        ) or $self->sorry("Could not get backend information from '$nqp_bin'");
         $self->use_backend($nqp_backend);
         $self->backend_config( $nqp_backend, nqp_bin => $nqp_bin );
         my $passed_backends = $self->opt('backends');
@@ -315,7 +317,7 @@ sub configure_moar_backend {
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
             $config->{m_install} = "\t"
-              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@) @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
+              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $config->{'mingw_unicode'} = '-municode';

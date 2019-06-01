@@ -4,6 +4,23 @@ my class SetHash does Setty {
         Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
     }  
 
+    method set(\to-set --> Nil) {
+        nqp::bindattr(
+          self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
+        ) unless $!elems;
+        Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
+           $!elems, to-set.iterator, self.keyof
+        );
+    }
+
+    method unset(\to-unset --> Nil) {
+        my \iterator := to-unset.iterator;
+        nqp::until(
+          nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),
+          nqp::deletekey($!elems,pulled.WHICH)
+        ) if $!elems
+    }
+
 #--- selector methods
 
     multi method grab(SetHash:D:) {

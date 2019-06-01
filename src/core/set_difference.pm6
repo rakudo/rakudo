@@ -3,94 +3,94 @@
 #   ∖       set difference
 
 proto sub infix:<(-)>(|) is pure {*}
-multi sub infix:<(-)>()               { set()  }
-multi sub infix:<(-)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
-multi sub infix:<(-)>(SetHash:D $a)   { $a.Set }
-multi sub infix:<(-)>(BagHash:D $a)   { $a.Bag }
-multi sub infix:<(-)>(MixHash:D $a)   { $a.Mix }
-multi sub infix:<(-)>(Any $a)         { $a.Set } # also for Iterable/Map
+multi sub infix:<(-)>()               { set() }
+multi sub infix:<(-)>(QuantHash:D \a) { a     } # Set/Bag/Mix
+multi sub infix:<(-)>(SetHash:D \a)   { a.Set }
+multi sub infix:<(-)>(BagHash:D \a)   { a.Bag }
+multi sub infix:<(-)>(MixHash:D \a)   { a.Mix }
+multi sub infix:<(-)>(Any \a)         { a.Set } # also for Iterable/Map
 
-multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
+multi sub infix:<(-)>(Setty:D \a, Setty:D \b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw)
-        && (my $braw := $b.RAW-HASH) && nqp::elems($braw),
-      nqp::create($a.Setty).SET-SELF(             # both have elems
+      (my $araw := a.RAW-HASH) && nqp::elems($araw)
+        && (my $braw := b.RAW-HASH) && nqp::elems($braw),
+      nqp::create(a.Setty).SET-SELF(             # both have elems
         Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
       ),
-      $a                                     # no elems in $a or $b
+      a                                          # no elems in a or b
     )
 }
-multi sub infix:<(-)>(Setty:D $a, Map:D $b) {
+multi sub infix:<(-)>(Setty:D \a, Map:D \b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
-      nqp::create($a.Setty).SET-SELF(                     # elems in $a
+      (my \araw := a.RAW-HASH) && nqp::elems(araw),
+      nqp::create(a.Setty).SET-SELF(                      # elems in a
         nqp::if(
-          nqp::elems(my \braw := nqp::getattr(nqp::decont($b),Map,'$!storage')),
-          Rakudo::QuantHash.SUB-MAP-FROM-SET(araw, $b),   # both have elems
-          nqp::clone(araw)                                # no elems in $b
+          nqp::elems(my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage')),
+          Rakudo::QuantHash.SUB-MAP-FROM-SET(araw, b),    # both have elems
+          nqp::clone(araw)                                # no elems in b
         )
       ),
-      $a                                                  # no elems in $a
+      a                                                   # no elems in a
     )
 }
-multi sub infix:<(-)>(Setty:D $a, Iterable:D $b) {
+multi sub infix:<(-)>(Setty:D \a, Iterable:D \b) {
     nqp::if(
-      (my $iterator := $b.iterator).is-lazy,
+      (my $iterator := b.iterator).is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action('difference'),:what<set>)),
       nqp::if(
-        (my $raw := $a.RAW-HASH) && nqp::elems($raw),
-        nqp::create($a.Setty).SET-SELF(                   # elems in $b
+        (my $raw := a.RAW-HASH) && nqp::elems($raw),
+        nqp::create(a.Setty).SET-SELF(                    # elems in b
           Rakudo::QuantHash.SUB-PAIRS-FROM-SET($raw, $iterator)
         ),
-        $a                                                # no elems in $b
+        a                                                 # no elems in b
       )
     )
 }
-multi sub infix:<(-)>(Mixy:D $a, Mixy:D $b) {    # needed as tie-breaker
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b)
+multi sub infix:<(-)>(Mixy:D \a, Mixy:D \b) {    # needed as tie-breaker
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH(a, b)
 }
-multi sub infix:<(-)>(Mixy:D $a, QuantHash:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b)
+multi sub infix:<(-)>(Mixy:D \a, QuantHash:D \b) {
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH(a, b)
 }
-multi sub infix:<(-)>(QuantHash:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mixy, $b)
+multi sub infix:<(-)>(QuantHash:D \a, Mixy:D \b) {
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH(a.Mixy, b)
 }
-multi sub infix:<(-)>(Mixy:D $a, Map:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b.Set)
+multi sub infix:<(-)>(Mixy:D \a, Map:D \b) {
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH(a, b.Set)
 }
-multi sub infix:<(-)>(Mixy:D $a, Any:D $b) {     # also Iterable
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b.Set)
+multi sub infix:<(-)>(Mixy:D \a, Any:D \b) {     # also Iterable
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH(a, b.Set)
 }
-multi sub infix:<(-)>(Any:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mix, $b)
+multi sub infix:<(-)>(Any:D \a, Mixy:D \b) {
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH(a.Mix, b)
 }
-multi sub infix:<(-)>(Baggy:D $a, Mixy:D $b) {   # needed as tie-breaker
-    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a.Mixy, $b)
+multi sub infix:<(-)>(Baggy:D \a, Mixy:D \b) {   # needed as tie-breaker
+    Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH(a.Mixy, b)
 }
-multi sub infix:<(-)>(Baggy:D $a, Baggy:D $b) {  # needed as tie-breaker
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b)
+multi sub infix:<(-)>(Baggy:D \a, Baggy:D \b) {  # needed as tie-breaker
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH(a, b)
 }
-multi sub infix:<(-)>(Baggy:D $a, QuantHash:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b)
+multi sub infix:<(-)>(Baggy:D \a, QuantHash:D \b) {
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH(a, b)
 }
-multi sub infix:<(-)>(QuantHash:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Baggy, $b)
+multi sub infix:<(-)>(QuantHash:D \a, Baggy:D \b) {
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH(a.Baggy, b)
 }
-multi sub infix:<(-)>(Baggy:D $a, Map:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Bag)
+multi sub infix:<(-)>(Baggy:D \a, Map:D \b) {
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH(a, b.Bag)
 }
-multi sub infix:<(-)>(Baggy:D $a, Any:D $b) {    # also Iterable
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a, $b.Bag)
+multi sub infix:<(-)>(Baggy:D \a, Any:D \b) {    # also Iterable
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH(a, b.Bag)
 }
-multi sub infix:<(-)>(Any $a, Baggy:D $b) {
-    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH($a.Bag, $b)
+multi sub infix:<(-)>(Any \a, Baggy:D \b) {
+    Rakudo::QuantHash.DIFFERENCE-BAGGY-QUANTHASH(a.Bag, b)
 }
-multi sub infix:<(-)>(Any $a, Map:D $b)      { infix:<(-)>($a.Set, $b) }
-multi sub infix:<(-)>(Any $a, Iterable:D $b) { infix:<(-)>($a.Set, $b) }
+multi sub infix:<(-)>(Any \a, Map:D \b)      { infix:<(-)>(a.Set, b) }
+multi sub infix:<(-)>(Any \a, Iterable:D \b) { infix:<(-)>(a.Set, b) }
 
-multi sub infix:<(-)>(Any $, Failure:D $b) { $b.throw }
-multi sub infix:<(-)>(Failure:D $a, Any $) { $a.throw }
-multi sub infix:<(-)>(Any $a, Any $b) { infix:<(-)>($a.Set,$b.Set) }
+multi sub infix:<(-)>(Any $, Failure:D \b) { b.throw }
+multi sub infix:<(-)>(Failure:D \a, Any $) { a.throw }
+multi sub infix:<(-)>(Any \a, Any \b) { infix:<(-)>(a.Set,b.Set) }
 
 multi sub infix:<(-)>(**@p) {
 

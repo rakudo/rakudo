@@ -31,7 +31,9 @@ class CompUnit::RepositoryRegistry {
         return CompUnit::Repository::Unknown.new(:path-spec($spec), :short-name($short-id))
             if so $class && nqp::istype($class, Failure) or !nqp::istype($class, CompUnit::Repository);
 
-        my $abspath = $class.?absolutify($path) // $path;
+        my $abspath = nqp::can($class,"absolutify")
+          ?? $class.absolutify($path)
+          !! $path;
         my $id      = "$short-id#$abspath";
         %options<next-repo> = $next-repo if $next-repo;
         $lock.protect( {

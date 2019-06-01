@@ -1,4 +1,5 @@
 my class X::Hash::Store::OddNumber { ... }
+my class X::Cannot::Junction { ... }
 
 my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # my class Map is Iterable is Cool
@@ -390,10 +391,20 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
             nqp::if(
               nqp::istype($x,Pair),
-              nqp::bindkey(
-                $!storage,
-                nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
-                nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
+              nqp::if(
+                nqp::istype(
+                  (my \key := nqp::getattr(nqp::decont($x),Pair,'$!key')),
+                  Junction
+                ),
+                X::Cannot::Junction.new(
+                  junction => key.gist,
+                  for => 'as a key to initialize a Map'
+                ).throw,
+                nqp::bindkey(
+                  $!storage,
+                  key.Str,
+                  nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
+                )
               ),
               nqp::if(
                 (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),

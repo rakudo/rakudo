@@ -167,7 +167,7 @@ class Perl6::Metamodel::EnumHOW
     method set_composalizer($c) { $composalizer := $c }
     method composalize($obj) {
         unless $!roled {
-            $!role := $composalizer($obj, self.name($obj), %!values);
+            $!role := $composalizer($obj, self.name($obj), @!enum_value_list);
             $!roled := 1;
         }
         $!role

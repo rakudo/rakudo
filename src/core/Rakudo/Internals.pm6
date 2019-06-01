@@ -660,8 +660,11 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
+    method MAYBE-GIST(Mu \thing) {
+        nqp::can(nqp::decont(thing), 'gist') ??  thing.gist !! thing.^name;
+    }
     method SHORT-GIST(Mu \thing) {
-        my str $gist = nqp::can(thing, 'gist') ??  thing.gist !! thing.^name;
+        my str $gist = self.MAYBE-GIST(thing);
         nqp::if(
           nqp::isgt_i(nqp::chars($gist), 23),
           nqp::concat(nqp::substr($gist, 0, 20), '...'),
@@ -851,7 +854,12 @@ implementation detail and has no serviceable parts inside"
     my int constant $initial-offset = 10;
     # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
+#?if !js
     my constant $dates = nqp::list_s(
+#?endif
+#?if js
+    my $dates := nqp::list_s(
+#?endif
         #BEGIN leap-second-dates
         '1972-06-30',
         '1972-12-31',
@@ -891,7 +899,12 @@ implementation detail and has no serviceable parts inside"
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
+#?if !js
     my constant $posixes = nqp::list_i(
+#?endif
+#?if js
+    my $posixes := nqp::list_i(
+#?endif
         #BEGIN leap-second-posix
           78796800,
           94694400,
@@ -922,7 +935,12 @@ implementation detail and has no serviceable parts inside"
         1483228800,
         #END leap-second-posix
     );
+#?if !js
     my int constant $elems = nqp::elems($dates);
+#?endif
+#?if js
+    my int $elems = nqp::elems($dates);
+#?endif
 
     method is-leap-second-date(\date) {
         nqp::hllbool(
@@ -1695,6 +1713,26 @@ implementation detail and has no serviceable parts inside"
           nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
         );
         nqp::iterator($keys)
+    }
+
+    # Return an Inline::Perl5 interpreter if possible
+    my $P5;
+    method PERL5() {
+        $P5 //= do {
+            {
+                my $compunit := $*REPO.need(
+                  CompUnit::DependencySpecification.new(
+                    :short-name<Inline::Perl5>
+                  )
+                );
+                GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package);
+                CATCH {
+                    #X::Eval::NoSuchLang.new(:$lang).throw;
+                    .note;
+                }
+            }
+            ::("Inline::Perl5").default_perl5
+        }
     }
 }
 

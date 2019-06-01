@@ -135,8 +135,17 @@ my class Channel does Awaitable {
             # it's important to do this after tapping the supply, or a
             # value sent between us draining it and doing the tap would
             # not result in a notification, and so we'd not emit it on
-            # the supply. This lost event can then cause a deadlock.
-            loop {
+            # the supply. This lost event can then cause a deadlock. We
+            # also limit ourselves to fetching up to the number of items
+            # currently in the channel before we started; any further
+            # ones will result in an async notification. If we don't, and
+            # the code we `emit` to itself synchronously adds things, then
+            # we can end up with the async notifications piling up becuase
+            # the `whenever` above never gets chance to run. Note that we
+            # may be competing over the items currently in the queue, so the
+            # `last if ...` check in this loop is still essential.
+            my int $initial-items = nqp::elems($!queue);
+            while $initial-items-- {
                 my Mu \got = self.poll;
                 last if nqp::eqaddr(got, Nil);
                 emit got;

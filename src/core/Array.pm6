@@ -375,7 +375,7 @@ my class Array { # declared in BOOTSTRAP
               ),
               List,
               '$!reified',
-              nqp::getattr(self,List,'$!reified')
+              nqp::clone(nqp::getattr(self,List,'$!reified'))
             ),
             nqp::create(Slip)
           )
@@ -524,8 +524,9 @@ my class Array { # declared in BOOTSTRAP
     # because this is a very hot path, we copied the code from the int candidate
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
         my \assignee_decont := nqp::decont(assignee);
-        nqp::isge_i($pos, 0) && nqp::isconcrete(nqp::getattr(self,List,'$!reified')) &&
-                  nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
+        nqp::bitand_i(
+                nqp::bitand_i(nqp::isge_i($pos, 0), nqp::isconcrete(nqp::getattr(self,List,'$!reified'))),
+                nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo'))))
             ?? self!ASSIGN_POS_FAST_PATH($pos, assignee_decont)
             !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
     }
@@ -547,7 +548,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i($pos,0),
           self!INDEX_OOR($pos),
-          nqp::if(
+          nqp::p6assign(nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
             nqp::ifnull(
               nqp::atpos(nqp::getattr(self,List,'$!reified'),$pos),
@@ -591,7 +592,7 @@ my class Array { # declared in BOOTSTRAP
               $pos,
               nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
             )
-          ) = assignee
+          ), assignee)
         )
     }
 

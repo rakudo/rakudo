@@ -34,10 +34,18 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method AT-KEY(Capture:D: Str:D \key) is raw {
-        nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil)
+        nqp::if(
+          (nqp::isnull(%!hash) || !nqp::defined(%!hash)),
+          Nil,
+          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil)
+        )
     }
     multi method AT-KEY(Capture:D: \key) is raw {
-        nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil)
+        nqp::if(
+          (nqp::isnull(%!hash) || !nqp::defined(%!hash)),
+          Nil,
+          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil)
+        )
     }
 
     multi method AT-POS(Capture:D: int \pos) is raw {

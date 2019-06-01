@@ -40,27 +40,50 @@ my $perl6jars = join( $cpsep,
 
 my $NQP_LIB = $blib ? ': ${NQP_LIB:="blib"}' : '';
 
-my $preamble_reloc = "#!/bin/bash
+my $preamble_unix = <<'EOS';
+#!/bin/sh
 
-# Sourced from https://stackoverflow.com/a/246128/1975049
-SOURCE=\"\${BASH_SOURCE[0]}\"
-while [ -h \"\$SOURCE\" ]; do
-  DIR=\"\$( cd -P \"\$( dirname \"\$SOURCE\" )\" >/dev/null && pwd )\"
-  SOURCE=\"\$(readlink \"\$SOURCE\")\"
-  [[ \$SOURCE != /* ]] && SOURCE=\"\$DIR/\$SOURCE\"
-done
-DIR=\"\$( cd -P \"\$( dirname \"\$SOURCE\" )\" >/dev/null && pwd )\"
+# Sourced from https://stackoverflow.com/a/29835459/1975049
+rreadlink() (
+  target=$1 fname= targetDir= CDPATH=
+  { \unalias command; \unset -f command; } >/dev/null 2>&1
+  [ -n "$ZSH_VERSION" ] && options[POSIX_BUILTINS]=on
+  while :; do
+      [ -L "$target" ] || [ -e "$target" ] || { command printf '%s\n' "ERROR: '$target' does not exist." >&2; return 1; }
+      command cd "$(command dirname -- "$target")"
+      fname=$(command basename -- "$target")
+      [ "$fname" = '/' ] && fname=''
+      if [ -L "$fname" ]; then
+        target=$(command ls -l "$fname")
+        target=${target#* -> }
+        continue
+      fi
+      break
+  done
+  targetDir=$(command pwd -P)
+  if [ "$fname" = '.' ]; then
+    command printf '%s\n' "${targetDir%/}"
+  elif  [ "$fname" = '..' ]; then
+    command printf '%s\n' "$(command dirname -- "${targetDir}")"
+  else
+    command printf '%s\n' "${targetDir%/}/$fname"
+  fi
+)
 
-: \${NQP_DIR:=\"\$DIR/../share/nqp\"}
+EXEC=$(rreadlink "$0")
+DIR=$(dirname -- "$EXEC")
+
+EOS
+
+
+my $preamble = $^O eq 'MSWin32' ? '@' :
+            $type eq 'install'
+? $preamble_unix . ": \${NQP_DIR:=\"\$DIR/../share/nqp\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${PERL6_DIR:=\"\$DIR/../share/perl6\"}
 : \${PERL6_JARS:=\"$perl6jars\"}
-exec ";
-
-my $preamble = $^O eq 'MSWin32' ? '@' :
-               $type eq 'install' ? $preamble_reloc :
-               "#!/bin/sh
-$NQP_LIB
+exec "
+: $preamble_unix . "$NQP_LIB
 : \${NQP_DIR:=\"$nqpdir\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${PERL6_DIR:=\"$perl6dir\"}
@@ -88,7 +111,7 @@ my $jopts = '-noverify -Xms100m'
           . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
           . ' -Dperl6.prefix=' . ($type eq 'install' && $^O ne 'MSWin32' ? '$DIR/..' : $prefix)
           . ' -Djna.library.path=' . $sharedir
-          . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$0"');
+          . ($^O eq 'MSWin32' ? ' -Dperl6.execname="%~dpf0"' : ' -Dperl6.execname="$EXEC"');
 my $jdbopts = '-Xdebug -Xrunjdwp:transport=dt_socket,address=' 
             . ($^O eq 'MSWin32' ? '8000' : '${RAKUDO_JDB_PORT:=8000}') 
             . ',server=y,suspend=y';

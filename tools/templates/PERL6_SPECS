@@ -1,0 +1,9 @@
+# [*]version [modifier]
+# * defines the current spec
+# modifiers can be prefixed with the following flags:
+# ! required. Means that revision cannot be used without this modifier.
+# - deprecated. Use of this modifier will result in a language warning.
+c
+# TEST and TESTDEPR modifiers are to be kept for roast.
+*d PREVIEW TEST -TESTDEPR # TODO: It's about time to drop PREVIEW
+e !PREVIEW 

@@ -839,21 +839,59 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
 
-    sub to-millis(Numeric() $value) {
+    my subset Seconds where Numeric | Nil;
+
+    # Checks if the value given is Inf, -Inf, or NaN. If NaN, this throws.
+    # if Inf, this returns Nil for ThreadPoolScheduler.cue to return an empty
+    # Cancellation for. If -Inf, returns 0. Otherwise, returns the value.
+    sub validate-seconds(Numeric() $value --> Seconds) {
+        nqp::unless(
+          nqp::istype($value, Num),
+          $value,
+          nqp::if(
+            nqp::iseq_n($value,nqp::inf()),
+            Nil,
+            nqp::if(
+              nqp::iseq_n($value,nqp::neginf()),
+              0,
+              nqp::if(
+                nqp::isnanorinf($value),
+                X::Scheduler::CueInNaNSeconds.new().throw(),
+                $value
+              )
+            )
+          )
+        )
+    }
+    sub to-millis(Seconds $value --> int) {
         nqp::if(
-          nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
-          $proposed,
+          nqp::isconcrete($value),
+          nqp::if(
+            nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
+            $proposed,
+            nqp::stmts(
+              warn("Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms"),
+              1
+            )
+          ),
           nqp::stmts(
-            warn("Minimum timer resolution is 1ms; using that instead of {1000 * $value}ms"),
+            warn("Minimum timer resolution is 1ms; using that instead of Inf"),
             1
           )
         )
     }
-    sub to-millis-allow-zero(Numeric() $value) {
+    sub to-millis-allow-zero(Seconds $value --> int) {
         nqp::if(
-          nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
-          $proposed
-          # not true == 0 == what we need
+          nqp::isconcrete($value),
+          nqp::if(
+            nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
+            $proposed
+            # not true == 0 == what we need
+          ),
+          nqp::stmts(
+            warn("Minimum timer resolution is 0ms; using that instead of Inf"),
+            0
+          )
         )
     }
     sub wrap-catch(&code, &catch) {
@@ -909,42 +947,52 @@ my class ThreadPoolScheduler does Scheduler {
               && nqp::isconcrete(nqp::atkey($args,"in")),
             die("Cannot specify :at and :in at the same time"),
             nqp::stmts(
-              (my int $delay = to-millis-allow-zero(  # set up any delay
+              (my $interval := validate-seconds($every)), # ensure the interval given is sane
+              (my $delay-in-seconds := validate-seconds(  # ensure the delay or time given is sane
                 nqp::if(
                   nqp::isnull(my $at := nqp::atkey($args,"at")),
                   nqp::ifnull(nqp::atkey($args,"in"),0),
                   $at - now
                 )
-              )),
-              (my &run := nqp::if(                    # set up what should run
+              ));
+              nqp::unless(
+                nqp::isconcrete($delay-in-seconds),
+                (return Cancellation.new(async_handles => []))
+              ),
+              (my int $delay = to-millis-allow-zero($delay-in-seconds)),
+              (my &run := nqp::if(                         # set up what should run
                 nqp::isnull(my $catch := nqp::atkey($args,"catch")),
                 &code,
-                wrap-catch(&code, $catch) # wrap any catch handler around code
+                wrap-catch(&code, $catch)                  # wrap any catch handler around code
               )),
-              nqp::if(
-                nqp::isconcrete((my $stopper := nqp::if(
-                  nqp::isgt_i($times,1),
-                  nqp::stmts(                      # create our own stopper
-                    (my int $todo = nqp::add_i($times,1)),
+              nqp::stmts(
+                (my int $interval-is-nil = nqp::not_i(nqp::isconcrete($interval))),
+                (my $stopper := nqp::if(
+                  ($interval-is-nil || nqp::isgt_i($times,1)),
+                  nqp::stmts(                              # create our own stopper
+                    (my int $todo = nqp::add_i(nqp::if($interval-is-nil,1,$times),1)),
                     sub { nqp::not_i($todo = nqp::sub_i($todo,1)) }
                   ),
                   nqp::atkey($args,"stop")
-                ))),
-                nqp::stmts(                        # we have a stopper
-                  ($handle := nqp::timer(
-                    self!timer-queue,
-                    -> { nqp::if($stopper(),cancellation().cancel,run()) },
-                    $delay, to-millis($every), TimerCancellation
-                  )),
-                  cancellation()
-                ),
-                nqp::stmts(                        # no stopper
-                  ($handle := nqp::timer(
-                    self!timer-queue,
-                    &run,
-                    $delay, to-millis($every), TimerCancellation
-                  )),
-                  Cancellation.new(async_handles => [$handle])
+                )),
+                nqp::if(
+                  nqp::isconcrete($stopper),
+                  nqp::stmts(                              # we have a stopper
+                    ($handle := nqp::timer(
+                      self!timer-queue,
+                      -> { nqp::if($stopper(),cancellation().cancel,run()) },
+                      $delay, to-millis($interval), TimerCancellation
+                    )),
+                    (return cancellation())
+                  ),
+                  nqp::stmts(                              # we have no stopper
+                    ($handle := nqp::timer(
+                      self!timer-queue,
+                      &run,
+                      $delay, to-millis($interval), TimerCancellation
+                    )),
+                    (return cancellation())
+                  )
                 )
               )
             )
@@ -958,14 +1006,26 @@ my class ThreadPoolScheduler does Scheduler {
             nqp::isconcrete(my $at := nqp::atkey($args,"at"))
               && nqp::isconcrete(my $in := nqp::atkey($args,"in")),
             die("Cannot specify :at and :in at the same time"),
-            self!CUE_DELAY_TIMES(
-              &code,
-              to-millis(nqp::ifnull(
-                $in,
-                nqp::if(nqp::isnull($at), .001, $at - now)
-              )),
-              $times // 1,
-              %_
+            nqp::stmts(
+              nqp::if(
+                nqp::isconcrete($at)
+                  && nqp::not_i(nqp::isconcrete($at := validate-seconds($at))),
+                (return Cancellation.new(async_handles => [])),
+                nqp::if(
+                  nqp::isconcrete($in)
+                    && nqp::not_i(nqp::isconcrete($in := validate-seconds($in))),
+                  (return Cancellation.new(async_handles => []))
+                )
+              ),
+              self!CUE_DELAY_TIMES(
+                &code,
+                to-millis(nqp::ifnull(
+                  $in,
+                  nqp::if(nqp::isnull($at), .001, $at - now)
+                )),
+                $times,
+                %_
+              )
             )
           )
         )
@@ -976,11 +1036,19 @@ my class ThreadPoolScheduler does Scheduler {
             && nqp::isconcrete(
                  nqp::atkey(nqp::getattr(%_,Map,'$!storage'),"in")),
           die("Cannot specify :at and :in at the same time"),
-          self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($at - now), 0, %_)
+          nqp::if(
+            nqp::isconcrete(my $time := validate-seconds($at)),
+            (self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($time - now), 0, %_)),
+            (Cancellation.new(async_handles => []))
+          )
         )
     }
     multi method cue(&code, :$in!, *%_) {
-        self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($in), 0, %_)
+        nqp::if(
+          nqp::isconcrete(my $delay := validate-seconds($in)),
+          (self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($delay), 0, %_)),
+          (Cancellation.new(async_handles => []))
+        )
     }
     multi method cue(&code, :&catch! --> Nil) {
         nqp::push(self!general-queue, wrap-catch(&code, &catch))

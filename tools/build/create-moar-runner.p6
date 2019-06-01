@@ -28,21 +28,20 @@ multi sub MAIN("perl6", $perl6, $install-to, $toolchain, $ld-lib-path, $perl6-ho
     chmod(0o755, $install-to) if $*DISTRO ne 'mswin32';
 }
 
-multi sub MAIN("moar", $moar, $install-to is copy, $mbc, $p6-mbc-path, $toolchain, $perl6-home is copy, $nqp-home is copy, $blib is copy, *@libpaths) {
-    $perl6-home = "PERL6_HOME=$perl6-home" if $perl6-home;
-    $nqp-home = "NQP_HOME=$nqp-home" if $nqp-home;
-    my $env-vars = join(' ', $nqp-home, $perl6-home).trim;
+multi sub MAIN("moar", $moar, $install-to is copy, $mbc, $toolchain, $blib is copy, *@libpaths) {
 
     $blib = ' ' ~ $blib if $blib;
     my $libpaths = '--libpath="%s"'.sprintf: @libpaths.join('" --libpath="');
-    my $libpath-line = '%s %s/%s%s'.sprintf: $libpaths, $p6-mbc-path, $mbc, $blib;
+    my $libpath-line = "%s %s%s".sprintf: $libpaths, $mbc, $blib;
+    $libpath-line ~~ s:g/\~SCRIPT_DIR\~/\$DIR/ if $*DISTRO ne 'mswin32';
+    $libpath-line ~~ s:g/\~SCRIPT_DIR\~/%DIR%/ if $*DISTRO eq 'mswin32';
     
     $install-to ~= '.bat' if $*DISTRO eq 'mswin32';
 
     my $fh = open $install-to, :w;
 
     if $*DISTRO eq 'mswin32' {
-        $fh.print(get-moar-win-runner($moar, $libpaths, $p6-mbc-path, $mbc, $blib));
+        $fh.print(get-moar-win-runner($moar, $libpath-line));
     }
     elsif $toolchain eq any('gdb','lldb') {
         $fh.print(get-moar-debug-runner($toolchain, $moar, $libpath-line));
@@ -59,26 +58,50 @@ multi sub MAIN("moar", $moar, $install-to is copy, $mbc, $p6-mbc-path, $toolchai
     chmod(0o755, $install-to) if $*DISTRO ne 'mswin32';
 }
 
-my $bash-prelude = q:to/EOS/;
-    #!/bin/bash
+my $sh-prelude = q:to/EOS/;
+    #!/bin/sh
 
-    # Sourced from https://stackoverflow.com/a/246128/1975049
-    SOURCE="${BASH_SOURCE[0]}"
-    while [ -h "$SOURCE" ]; do
-      DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null && pwd )"
-      SOURCE="$(readlink "$SOURCE")"
-      [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-    done
-    DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null && pwd )"
+    # Sourced from https://stackoverflow.com/a/29835459/1975049
+    rreadlink() (
+      target=$1 fname= targetDir= CDPATH=
+      { \unalias command; \unset -f command; } >/dev/null 2>&1
+      [ -n "$ZSH_VERSION" ] && options[POSIX_BUILTINS]=on
+      while :; do
+          [ -L "$target" ] || [ -e "$target" ] || { command printf '%s\n' "ERROR: '$target' does not exist." >&2; return 1; }
+          command cd "$(command dirname -- "$target")"
+          fname=$(command basename -- "$target")
+          [ "$fname" = '/' ] && fname=''
+          if [ -L "$fname" ]; then
+            target=$(command ls -l "$fname")
+            target=${target#* -> }
+            continue
+          fi
+          break
+      done
+      targetDir=$(command pwd -P)
+      if [ "$fname" = '.' ]; then
+        command printf '%s\n' "${targetDir%/}"
+      elif  [ "$fname" = '..' ]; then
+        command printf '%s\n' "$(command dirname -- "${targetDir}")"
+      else
+        command printf '%s\n' "${targetDir%/}/$fname"
+      fi
+    )
+
+    EXEC=$(rreadlink "$0")
+    DIR=$(dirname -- "$EXEC")
     EOS
 
-sub get-moar-win-runner($moar, $libpaths, $p6-mbc-path, $mbc, $blib) {
-    return sprintf(qq[@ "%s" --execname="%%\~dpf0" %s %s\\%s%s %%*\n],
-            $moar, $libpaths, $p6-mbc-path, $mbc, $blib);
+sub get-moar-win-runner($moar, $libpath-line) {
+    return sprintf(q:to/EOS/, $moar, $libpath-line);
+    @ SET DIR=%%~dp0
+    @ SET DIR=%%DIR:~0,-1%%
+    @ "%s" --execname="%%~dpf0" %s %%*
+    EOS
 }
 
 sub get-perl6-runner($perl6, $env-vars) {
-    return sprintf(q:to/EOS/, $bash-prelude, $env-vars, $perl6);
+    return sprintf(q:to/EOS/, $sh-prelude, $env-vars, $perl6);
     %s
 
     %sexec $DIR/%s "$@"
@@ -86,9 +109,10 @@ sub get-perl6-runner($perl6, $env-vars) {
 }
 
 sub get-moar-runner($moar, $libpath-line) {
-    return sprintf(q:to/EOS/, $moar, $libpath-line);
-    #!/bin/sh
-    exec %s --execname="$0" %s "$@"
+    return sprintf(q:to/EOS/, $sh-prelude, $moar, $libpath-line);
+    %s
+
+    exec %s --execname="$EXEC" %s "$@"
     EOS
 }
 
@@ -112,9 +136,9 @@ sub get-debugger-text($toolchain) {
 }
 
 sub get-perl6-debug-runner($toolchain, $perl6, $env-vars) {
-    my $cmdline = $toolchain eq 'gdb'  ?? '%sgdb --quiet --ex=run --args %s "$@"'.sprintf($env-vars, $perl6)
-               !! $toolchain eq 'lldb' ?? '%slldb %s -- "$@"'.sprintf($env-vars, $perl6) !! die;
-    return sprintf(q:to/EOS/, $bash-prelude, $env-vars, $perl6, get-debugger-text($toolchain), $cmdline);
+    my $cmdline = $toolchain eq 'gdb'  ?? '%sgdb --quiet --ex=run --args $DIR/%s "$@"'.sprintf($env-vars, $perl6)
+               !! $toolchain eq 'lldb' ?? '%slldb -o run $DIR/%s -- "$@"'.sprintf($env-vars, $perl6) !! die;
+    return sprintf(q:to/EOS/, $sh-prelude, $env-vars, $perl6, get-debugger-text($toolchain), $cmdline);
     %s
 
     %s$DIR/%s -e '%s'
@@ -123,11 +147,12 @@ sub get-perl6-debug-runner($toolchain, $perl6, $env-vars) {
 }
 
 sub get-moar-debug-runner($toolchain, $moar, $libpath-line) {
-    my $cmdline = $toolchain eq 'gdb'  ?? 'gdb --quiet --ex=run --args %s --execname="$0" %s "$@"'.sprintf($moar, $libpath-line)
-               !! $toolchain eq 'lldb' ?? 'lldb %s -- --execname="$0" %s "$@"'.sprintf($moar, $libpath-line) !! die;
-    return sprintf(q:to/EOS/, $moar, $libpath-line, get-debugger-text($toolchain), $cmdline);
-    #!/bin/sh
-    %s --execname="$0" %s -e '%s'
+    my $cmdline = $toolchain eq 'gdb'  ?? 'gdb --quiet --ex=run --args %s --execname="$EXEC" %s "$@"'.sprintf($moar, $libpath-line)
+               !! $toolchain eq 'lldb' ?? 'lldb %s -- --execname="$EXEC" %s "$@"'.sprintf($moar, $libpath-line) !! die;
+    return sprintf(q:to/EOS/, $sh-prelude, $moar, $libpath-line, get-debugger-text($toolchain), $cmdline);
+    %s
+
+    %s --execname="$EXEC" %s -e '%s'
     %s
     EOS
 }
@@ -149,7 +174,7 @@ my $valgrind-text = q:to/EOS/;
     EOS
 
 sub get-perl6-valgrind-runner($perl6, $env-vars) {
-    return sprintf(q:to/EOS/, $bash-prelude, $env-vars, $perl6, $valgrind-text, $env-vars, $perl6);
+    return sprintf(q:to/EOS/, $sh-prelude, $env-vars, $perl6, $valgrind-text, $env-vars, $perl6);
     %s
 
     %s$DIR/%s -e '%s'
@@ -158,10 +183,11 @@ sub get-perl6-valgrind-runner($perl6, $env-vars) {
 }
 
 sub get-moar-valgrind-runner($moar, $libpath-line) {
-    return sprintf(q:to/EOS/, $moar, $libpath-line, $valgrind-text, $moar, $libpath-line);
-    #!/bin/sh
-    %s --execname="$0" %s -e '%s'
-    valgrind ${MVM_VALGRIND_OPTS} %s --execname="$0" %s "$@"
+    return sprintf(q:to/EOS/, $sh-prelude, $moar, $libpath-line, $valgrind-text, $moar, $libpath-line);
+    %s
+
+    %s --execname="$EXEC" %s -e '%s'
+    valgrind ${MVM_VALGRIND_OPTS} %s --execname="$EXEC" %s "$@"
     EOS
 }
 

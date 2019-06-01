@@ -25,8 +25,8 @@ module.exports.compile = function(source, options = {}) {
 
   passedArgs = ['perl6-js', '--output', tmpFile, '--target=js', source];
 
-  if (options.sourceMap) {
-    passedArgs.splice(1, 0, '--source-map');
+  if (!options.sourceMap) {
+    passedArgs.splice(1, 0, '--no-source-map');
   }
 
   if (Object.prototype.hasOwnProperty.call(nqp.op.getstdout(), '$$writefh')) {

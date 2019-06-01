@@ -405,16 +405,19 @@ do {
         }
 
         method history-file(--> Str:D) {
-            return $!history-file.absolute if $!history-file.defined;
+            without $!history-file {
+                $!history-file = $*ENV<RAKUDO_HIST>
+                  ?? $*ENV<RAKUDO_HIST>.IO
+                  !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
 
-            $!history-file = $*ENV<RAKUDO_HIST>
-                ?? $*ENV<RAKUDO_HIST>.IO
-                !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
-
-            without mkdir $!history-file.parent {
-                note "I ran into a problem trying to set up history: {.exception.message}";
-                note 'Sorry, but history will not be saved at the end of your session';
+                without mkdir $!history-file.parent {
+                    note "I ran into a problem trying to set up history: {.exception.message}";
+                    note 'Sorry, but history will not be saved at the end of your session';
+                }
             }
+
+            # make sure there is a history file
+            $!history-file.open(:a).close unless $!history-file.e;
 
             $!history-file.absolute
         }

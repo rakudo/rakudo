@@ -28,7 +28,7 @@ my class Exception {
             my str $message = nqp::getmessage($!ex);
             $str = nqp::isnull_s($message) ?? '' !! nqp::p6box_s($message);
         }
-        $str ||= (try self.?message);
+        $str ||= (try self.message);
         $str = ~$str if defined $str;
         $str // "Something went wrong in {self.WHAT.gist}";
     }
@@ -38,7 +38,7 @@ my class Exception {
         if nqp::isconcrete($!ex) {
             my str $message = nqp::getmessage($!ex);
             $str = nqp::isnull_s($message)
-                ?? (try self.?message) // "Died with {self.^name}"
+                ?? (try self.message) // "Died with {self.^name}"
                 !! nqp::p6box_s($message);
             $str ~= "\n";
             try $str ~= self.backtrace
@@ -46,7 +46,7 @@ my class Exception {
               || '  (no backtrace available)';
         }
         else {
-            $str = (try self.?message) // "Unthrown {self.^name} with no message";
+            $str = (try self.message) // "Unthrown {self.^name} with no message";
         }
         $str;
     }
@@ -380,7 +380,7 @@ do {
             # REMOVE DEPRECATED CODE ON 201907
             Rakudo::Deprecations.DEPRECATED: "PERL6_EXCEPTIONS_HANDLER", Nil,
                 '2019.07', :file("N/A"), :line("N/A"),
-                :what<RAKUDO_EXCEPTIONS_HANDLER env var>;
+                :what("RAKUDO_EXCEPTIONS_HANDLER env var");
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
@@ -409,8 +409,8 @@ do {
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 $err.say($e.gist);
                 if $v and !$e.gist.ends-with($v.Str) {
-                   $err.say("Actually thrown at:");
-                   $err.say($v.Str);
+                    $err.say("Actually thrown at:");
+                    $err.say($v.Str);
                 }
             }
             elsif Rakudo::Internals.VERBATIM-EXCEPTION(0) {
@@ -1194,7 +1194,7 @@ my class X::Parameter::Default::TypeCheck does X::Comp {
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method message() {
-        "Default value '$.got.gist()' will never bind to a parameter of type $.expected.^name()"
+        "Default value '{Rakudo::Internals.MAYBE-GIST: $!got}' will never bind to a parameter of type {$!expected.^name}"
     }
 }
 
@@ -2112,9 +2112,12 @@ my class X::Str::Sprintf::Directives::Unsupported is Exception {
 my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.type;
     has str $.directive;
+    has str $.expected;
     has $.value;
     method message() {
-        "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
+        $.expected
+          ??  "Directive $.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
+          !! "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
     }
 }
 
@@ -2146,6 +2149,14 @@ my class X::Sequence::Deduction is Exception {
     method message() {
         $!from ?? "Unable to deduce arithmetic or geometric sequence from $!from (or did you really mean '..'?)"
                !! 'Unable to deduce sequence for some unfathomable reason'
+    }
+}
+
+my class X::Cannot::Junction is Exception {
+    has $.junction;
+    has $.for;
+    method message() {
+        "Cannot use Junction '$.junction' $.for."
     }
 }
 
@@ -2621,7 +2632,7 @@ my class X::Multi::Ambiguous is Exception {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    try @bits.push(":$(.key)\($(.value.WHAT.?perl))");
+                    try @bits.push(":$(.key)\($(.value.WHAT.perl))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
             }
@@ -2681,7 +2692,7 @@ my class X::Multi::NoMatch is Exception {
                 else {
                     try @bits.push(":$(.key)\($($where
                         ?? Rakudo::Internals.SHORT-GIST: .value
-                        !! .value.WHAT.?perl
+                        !! .value.WHAT.perl
                     ))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
@@ -3007,6 +3018,13 @@ my class X::Language::Unsupported is Exception {
 my class X::Language::TooLate is Exception {
     method message() {
         "Too late to switch language version. Must be used as the very first statement."
+    }
+}
+my class X::Language::ModRequired is Exception {
+    has $.version;
+    has $.modifier;
+    method message() {
+        "Perl $.version requires $.modifier modifier"
     }
 }
 

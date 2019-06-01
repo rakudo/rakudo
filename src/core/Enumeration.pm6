@@ -102,12 +102,14 @@ sub ENUM_VALUES(*@args) {
     )
 }
 
-Metamodel::EnumHOW.set_composalizer(-> $type, $name, %enum_values {
+Metamodel::EnumHOW.set_composalizer(-> $type, $name, @enum_values {
     my Mu $r := Metamodel::ParametricRoleHOW.new_type(:name($name));
     $r.^add_attribute(Attribute.new(
         :name('$!' ~ $name), :type(nqp::decont($type)),
         :has_accessor(1), :package($r)));
-    for %enum_values.kv -> $key, $value {
+    for @enum_values {
+        my $key   = $_.key;
+        my $value = $_.value;
         my $meth = method () { self."$name"() == $value }
         $meth.set_name($key);
         $r.^add_method($key, $meth);

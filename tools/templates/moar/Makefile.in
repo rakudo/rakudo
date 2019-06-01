@@ -102,6 +102,7 @@ M_CLEANUPS = \
   rakudo_test_run.tar.gz \
   $(M_BAT_RUNNER) \
   $(M_C_RUNNER) \
+  main@moar::obj@ \
   $(M_PERL6_OPS_DLL) \
   $(M_PERL6_OPS_OBJ) \
   $(M_PERL6_CONT_OBJ) \

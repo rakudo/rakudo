@@ -138,7 +138,7 @@ sub configure_refine_vars {
                 "Based on found executable $nqp_bin"
             );
         }
-        elsif ( $self->cfg('relocatable') && abs_path($prefix) ne abs_path($nqp_prefix) ) {
+        elsif ( $self->cfg('relocatable') eq 'reloc' && abs_path($prefix) ne abs_path($nqp_prefix) ) {
             $self->sorry(
                 "Installation directory '$prefix' is different from '",
                 abs_path($nqp_prefix),
@@ -274,7 +274,7 @@ sub configure_moar_backend {
             moar => "Unable to read configuration from NQP on MoarVM" );
     }
 
-    if ( $config->{relocatable} ) {
+    if ( $config->{relocatable} eq 'reloc' ) {
         $config->{static_nqp_home}          = '';
         $config->{static_perl6_home}        = '';
         $config->{static_nqp_home_define}   = '';
@@ -297,7 +297,7 @@ sub configure_moar_backend {
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     $config->{ldflags} .= ' '
       . (
-          $config->{relocatable}
+          $config->{relocatable} eq 'reloc'
         ? $nqp_config->{'moar::ldrpath_relocatable'}
         : $nqp_config->{'moar::ldrpath'}
       );

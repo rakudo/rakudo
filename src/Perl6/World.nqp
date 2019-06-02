@@ -1985,9 +1985,9 @@ class Perl6::World is HLL::World {
     }
 
     method maybe-nominalize($v) {
-        # if $*W.lang-ver-before('e') {
-        #     return self.maybe-definite-how-base($v);
-        # }
+        if $*W.lang-ver-before('e') {
+            return self.maybe-definite-how-base($v);
+        }
         $v.HOW.archetypes.nominalizable ?? $v.HOW.nominalize($v) !! $v
     }
 

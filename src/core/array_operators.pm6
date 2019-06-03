@@ -50,16 +50,32 @@ proto sub shift($, *%) {*}
 multi sub shift(@a) { @a.shift }
 
 proto sub push($, |) {*}
-multi sub push(\a, |elems) { a.push: |elems }
+multi sub push(\a, |elems) {
+    nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
+      ?? die "Unexpected named argument '{elems.hash.head.key}' passed"
+      !! a.push: |elems
+}
 
 proto sub append($, |) {*}
-multi sub append(\a, |elems) { a.append: |elems }
+multi sub append(\a, |elems) {
+    nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
+      ?? die "Unexpected named argument '{elems.hash.head.key}' passed"
+      !! a.append: |elems
+}
 
 proto sub unshift($, |) {*}
-multi sub unshift(\a, |elems) { a.unshift: |elems }
+multi sub unshift(\a, |elems) {
+    nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
+      ?? die "Unexpected named argument '{elems.hash.head.key}' passed"
+      !! a.unshift: |elems
+}
 
 proto sub prepend($, |) {*}
-multi sub prepend(\a, |elems) { a.prepend: |elems }
+multi sub prepend(\a, |elems) {
+    nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
+      ?? die "Unexpected named argument '{elems.hash.head.key}' passed"
+      !! a.prepend: |elems
+}
 
 proto sub splice($, |) {*}
 multi sub splice(@arr, |c) { @arr.splice(|c) }

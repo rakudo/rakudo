@@ -61,96 +61,190 @@ my class Rakudo::Internals::JSON {
         $text;
     }
 
-    method to-json($obj is copy, Bool :$pretty = True, Int :$level = 0, Int :$spacing = 2, Bool :$sorted-keys = False) {
-        return $obj ?? 'true' !! 'false' if $obj ~~ Bool;
+    method to-json(
+      \obj,
+      Bool :$pretty        = True,
+      Int  :$level         = 0,
+      int  :$spacing       = 2,
+      Bool :$sorted-keys   = False,
+    ) {
 
-        return 'null' if not $obj.defined;
+        my str @out;
+        my str $spaces = ' ' x $spacing;
+        my str $comma  = ",\n" ~ $spaces x $level;
 
-        if $obj ~~ Exception {
-           return $.to-json($obj.^name => Hash.new(
-              (message => nqp::can($obj,"message") ?? $obj.message !! Nil),
-              $obj.^attributes.grep(*.has_accessor).map: {
-                  with .name.substr(2) -> $attr {
-                      $attr => (
-                        (.defined and not $_ ~~ Real|Positional|Associative)
-                          ?? .Str !! $_
-                      ) given $obj."$attr"()
-                  }
-              }
-            ), :$pretty, :$level, :$spacing, :$sorted-keys);
-        }
-        
-        # Handle allomorphs like IntStr.new(0, '') properly.
-        return $obj.Int.Str if $obj ~~ Int;
-        return $.to-json($obj.Rat, :$pretty, :$level, :$spacing, :$sorted-keys) if $obj ~~ RatStr;
+#-- helper subs from here, with visibility to the above lexicals
 
-        if $obj ~~ Rat {
-            my $result = $obj.Str;
-            unless $obj.contains(".") {
-                return $result ~ ".0";
+        sub pretty-positional(\positional --> Nil) {
+            $comma = nqp::concat($comma,$spaces);
+            nqp::push_s(@out,'[');
+            nqp::push_s(@out,nqp::substr($comma,1));
+
+            for positional.list {
+                jsonify($_);
+                nqp::push_s(@out,$comma);
             }
-            return $result;
+            nqp::pop_s(@out);  # lose last comma
+
+            $comma = nqp::substr($comma,0,nqp::sub_i(nqp::chars($comma),$spacing));
+            nqp::push_s(@out,nqp::substr($comma,1));
+            nqp::push_s(@out,']');
         }
 
-        if $obj ~~ Num {
-            # Allomorph support for NumStr, too.
-            $obj = $obj.Num;
-            if $obj === NaN || $obj === -Inf || $obj === Inf {
-                return $obj.Str;
-            } else {
-                my $result = $obj.Str;
-                unless $result.contains("e") {
-                    return $result ~ "e0";
+        sub pretty-associative(\associative --> Nil) {
+            $comma = nqp::concat($comma,$spaces);
+            nqp::push_s(@out,'{');
+            nqp::push_s(@out,nqp::substr($comma,1));
+            my \pairs := $sorted-keys
+              ?? associative.sort(*.key)
+              !! associative.list;
+
+            for pairs {
+                jsonify(.key);
+                nqp::push_s(@out,": ");
+                jsonify(.value);
+                nqp::push_s(@out,$comma);
+            }
+            nqp::pop_s(@out);  # lose last comma
+
+            $comma = nqp::substr($comma,0,nqp::sub_i(nqp::chars($comma),$spacing));
+            nqp::push_s(@out,nqp::substr($comma,1));
+            nqp::push_s(@out,'}');
+        }
+
+        sub unpretty-positional(\positional --> Nil) {
+            nqp::push_s(@out,'[');
+            my int $before = nqp::elems(@out);
+            for positional.list {
+                jsonify($_);
+                nqp::push_s(@out,",");
+            }
+            nqp::pop_s(@out) if nqp::elems(@out) > $before;  # lose last comma
+            nqp::push_s(@out,']');
+        }
+
+        sub unpretty-associative(\associative --> Nil) {
+            nqp::push_s(@out,'{');
+            my \pairs := $sorted-keys
+              ?? associative.sort(*.key)
+              !! associative.list;
+
+            my int $before = nqp::elems(@out);
+            for pairs {
+                jsonify(.key);
+                nqp::push_s(@out,": ");
+                jsonify(.value);
+                nqp::push_s(@out,$comma);
+            }
+            nqp::pop_s(@out) if nqp::elems(@out) > $before;  # lose last comma
+            nqp::push_s(@out,'}');
+        }
+
+        sub jsonify(\obj --> Nil) {
+
+            with obj {
+
+                # basic ones
+                when Bool {
+                    nqp::push_s(@out,obj ?? "true" !! "false");
                 }
-                return $result;
+                when IntStr {
+                    jsonify(.Int);
+                }
+                when RatStr {
+                    jsonify(.Rat);
+                }
+                when NumStr {
+                    jsonify(.Num);
+                }
+                when Str {
+                    nqp::push_s(@out,'"');
+                    nqp::push_s(@out,str-escape(obj));
+                    nqp::push_s(@out,'"');
+                }
+
+                # numeric ones
+                when Int {
+                    nqp::push_s(@out,.Str);
+                }
+                when Rat {
+                    nqp::push_s(@out,.contains(".") ?? $_ !! "$_.0")
+                      given .Str;
+                }
+                when FatRat {
+                    nqp::push_s(@out,.contains(".") ?? $_ !! "$_.0")
+                      given .Str;
+                }
+                when Num {
+                    if nqp::isnanorinf($_) {
+                        nqp::push_s(
+                          @out,
+                          $*JSON_NAN_INF_SUPPORT ?? obj.Str !! "null"
+                        );
+                    }
+                    else {
+                        nqp::push_s(@out,.contains("e") ?? $_ !! $_ ~ "e0")
+                          given .Str;
+                    }
+                }
+
+                # iterating ones
+                when Seq {
+                    jsonify(.cache);
+                }
+                when Positional {
+                    $pretty
+                      ?? pretty-positional($_)
+                      !! unpretty-positional($_);
+                }
+                when Associative {
+                    $pretty
+                      ?? pretty-associative($_)
+                      !! unpretty-associative($_);
+                }
+
+                # rarer ones
+                when Dateish {
+                    nqp::push_s(@out,qq/"$_"/);
+                }
+                when Instant {
+                    nqp::push_s(@out,qq/"{.DateTime}"/)
+                }
+                when Version {
+                    jsonify(.Str)
+                }
+
+                # also handle exceptions here
+                when Exception {
+                    jsonify(obj.^name => Hash.new(
+                      (message => nqp::can(obj,"message")
+                        ?? obj.message !! Nil
+                      ),
+                      obj.^attributes.grep(*.has_accessor).map: {
+                          with .name.substr(2) -> $attr {
+                              $attr => (
+                                (.defined and not $_ ~~ Real|Positional|Associative)
+                                  ?? .Str !! $_
+                              ) given obj."$attr"()
+                          }
+                      }
+                    ));
+                }
+
+                # huh, what?
+                default {
+                    jsonify( { 0 => 'null' } );
+                }
+            }
+            else {
+                nqp::push_s(@out,'null');
             }
         }
 
-        return "\"" ~ str-escape(~$obj) ~ "\"" if $obj ~~ Str|Version;
+#-- do the actual work
 
-        return “"$obj"” if $obj ~~ Dateish;
-        return “"{$obj.DateTime.Str}"” if $obj ~~ Instant;
-
-        if $obj ~~ Seq {
-            $obj = $obj.cache
-        }
-
-        my int  $lvl  = $level;
-        my Bool $arr  = $obj ~~ Positional;
-        my str  $out ~= $arr ?? '[' !! '{';
-        my $spacer   := sub {
-            $out ~= "\n" ~ (' ' x $lvl*$spacing) if $pretty;
-        };
-
-        $lvl++;
-        $spacer();
-        if $arr {
-            for @($obj) -> $i {
-              $out ~= $.to-json($i, :level($level+1), :$spacing, :$pretty, :$sorted-keys) ~ ',';
-              $spacer();
-            }
-        }
-        else {
-            my @keys = $obj.keys;
-
-            if ($sorted-keys) {
-                @keys = @keys.sort;
-            }
-
-            for @keys -> $key {
-                $out ~= "\"" ~
-                        ($key ~~ Str ?? str-escape($key) !! $key) ~
-                        "\": " ~
-                        $.to-json($obj{$key}, :level($level+1), :$spacing, :$pretty, :$sorted-keys) ~
-                        ',';
-                $spacer();
-            }
-        }
-        $out .=subst(/',' \s* $/, '');
-        $lvl--;
-        $spacer();
-        $out ~= $arr ?? ']' !! '}';
-        return $out;
+        jsonify(obj);
+        nqp::join("",@out)
     }
 
     my $ws := nqp::list_i;

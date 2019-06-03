@@ -176,26 +176,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method is-lazy() {
-            nqp::unless(
-              nqp::isconcrete($!current-iter) && $!current-iter.is-lazy,
-              nqp::if(
-                nqp::isconcrete($!future),
-                nqp::stmts( # Check $!future to determine if any element is lazy
-                  (my \iter := nqp::iterator($!future)),
-                  nqp::while(
-                    iter
-                      && nqp::can((my $cur := nqp::shift(iter)),'is-lazy')
-                      && nqp::isfalse($cur.is-lazy),
-                    nqp::null
-                  ),
-                  nqp::if(
-                    iter,
-                    True,          # did not did do all iterations, so lazy
-                    $cur.is-lazy   # check last one, could be non-lazy
-                  )
-                ),
-                False
-              )
+            nqp::if(
+              nqp::isconcrete($!current-iter),
+              $!current-iter.is-lazy,
+              False
             )
         }
     }
@@ -1144,16 +1128,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                )
     }
 
-    method reverse(List:D: --> Seq:D) is nodal {
-        nqp::if(
-          self.is-lazy,    # reifies
-          Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
-          Seq.new(nqp::if(
-            $!reified,
-            Rakudo::Iterator.ReifiedListReverse($!reified),
-            Rakudo::Iterator.Empty
-          ))
-        )
+    method reverse(List:D: --> List:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
+          !! $!reified
+            ?? nqp::stmts(
+                 (my \src := nqp::clone(nqp::getattr(self,List,'$!reified'))),
+                 (my \dst := nqp::create(src.WHAT)),
+                 nqp::while(
+                   nqp::elems(src),
+                   nqp::push(dst,nqp::pop(src))
+                 ),
+                 nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',dst)
+               )
+            !! nqp::create(self)
     }
 
     method rotate(List:D: Int(Cool) $rotate = 1) is nodal {
@@ -1697,8 +1685,8 @@ multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
 }
 
 proto sub reverse(|)   {*}
-multi sub reverse(@a --> Seq:D)  { @a.reverse }
-multi sub reverse(+@a --> Seq:D) { @a.reverse }
+multi sub reverse(@a)  { @a.reverse }
+multi sub reverse(+@a) { @a.reverse }
 
 proto sub rotate($, $?, *%) {*}
 multi sub rotate(@a)           { @a.rotate     }

@@ -63,7 +63,7 @@ MAIN: {
         $cfg->options,      'help!',
         'prefix=s',         'libdir=s',
         'sysroot=s',        'sdkroot=s',
-        'no-relocatable',   'backends=s',
+        'relocatable',   'backends=s',
         'no-clean',         'with-nqp=s',
         'gen-nqp:s',        'gen-moar:s',
         'moar-option=s@',   'git-protocol=s',
@@ -146,11 +146,11 @@ General Options:
     --prefix=<path>    Install files in dir; also look for executables there
     --libdir=<path>    Install architecture-specific files in dir; Perl6 modules
                        included
-    --no-relocatable
-                       Create a perl6 with a fixed NQP and Perl6 home dir
-                       instead of dynamically identifying it (On AIX MoarVM is
-                       always built non-relocatable, since AIX misses
-                       a necessary mechanism.)
+    --relocatable
+                       Dynamically locate NQP and Perl6 home dirs instead of
+                       statically compiling them in. (On AIX and OpenBSD Rakudo
+                       is always built non-relocatable, since both OSes miss a
+                       necessary mechanism.)
     --sdkroot=<path>   When given, use for searching build tools here, e.g.
                        nqp, java, node etc.
     --sysroot=<path>   When given, use for searching runtime components here

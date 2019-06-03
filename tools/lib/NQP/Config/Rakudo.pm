@@ -22,6 +22,8 @@ sub configure_nqp {
       defined( $self->opt('prefix') || $self->opt('sysroot') );
 
     if ( $nqp_bin = $self->opt('with-nqp') ) {
+        $nqp_bin = File::Spec->rel2abs( $self->nfp( $nqp_bin ) );
+
         $self->sorry( "Could not find nqp '"
               . $self->opt('with-nqp')
               . "' defined with --with-nqp" )
@@ -29,9 +31,9 @@ sub configure_nqp {
         my $nqp_backend;
         run(
             command =>
-              [ $nqp_bin, '-e', 'print(nqp::getcomp("nqp").backend.name)' ],
+              [ $nqp_bin, '-e', 'print(nqp::getcomp(\'nqp\').backend.name)' ],
             buffer => \$nqp_backend
-        ) or self->sorry("Could not get backend information from '$nqp_bin'");
+        ) or $self->sorry("Could not get backend information from '$nqp_bin'");
         $self->use_backend($nqp_backend);
         $self->backend_config( $nqp_backend, nqp_bin => $nqp_bin );
         my $passed_backends = $self->opt('backends');
@@ -136,14 +138,14 @@ sub configure_refine_vars {
                 "Based on found executable $nqp_bin"
             );
         }
-        elsif ( abs_path($prefix) ne abs_path($nqp_prefix) ) {
-            $self->note(
-                'WARNING!',
+        elsif ( $self->cfg('relocatable') eq 'reloc' && abs_path($prefix) ne abs_path($nqp_prefix) ) {
+            $self->sorry(
                 "Installation directory '$prefix' is different from '",
                 abs_path($nqp_prefix),
                 "' where nqp is installed.\n",
-                "This may result in non-functional perl6 binary.\n",
-                "Make sure this is REALLY intended."
+                "This does not work when creating a relocatable setup.\n",
+                "A relocatable installation needs to have MoarVM, NQP and\n",
+                "Rakudo all in the same prefix."
             );
         }
     }
@@ -329,15 +331,32 @@ sub configure_moar_backend {
             moar => "Unable to read configuration from NQP on MoarVM" );
     }
 
+    if ( $config->{relocatable} eq 'reloc' ) {
+        $config->{static_nqp_home}          = '';
+        $config->{static_perl6_home}        = '';
+        $config->{static_nqp_home_define}   = '';
+        $config->{static_perl6_home_define} = '';
+    }
+    else {
+        $config->{static_nqp_home} =
+          File::Spec->rel2abs(File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp' ));
+        $config->{static_perl6_home} =
+          File::Spec->rel2abs(File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ));
+        $config->{static_nqp_home_define} =
+          '-DSTATIC_NQP_HOME=' . $self->c_escape_string( $config->{static_nqp_home} );
+        $config->{static_perl6_home_define} =
+          '-DSTATIC_PERL6_HOME=' . $self->c_escape_string( $config->{static_perl6_home} );
+    }
+
     # Strip rpath from ldflags so we can set it differently ourself.
     $config->{ldflags} = $nqp_config->{'moar::ldflags'};
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath'}\E ?//;
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     $config->{ldflags} .= ' '
       . (
-          $self->{no_relocatable}
-        ? $nqp_config->{'moar::ldrpath'}
-        : $nqp_config->{'moar::ldrpath_relocatable'}
+          $config->{relocatable} eq 'reloc'
+        ? $nqp_config->{'moar::ldrpath_relocatable'}
+        : $nqp_config->{'moar::ldrpath'}
       );
     $config->{ldlibs}          = $nqp_config->{'moar::ldlibs'};
     $config->{'mingw_unicode'} = '';
@@ -355,7 +374,7 @@ sub configure_moar_backend {
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
             $config->{m_install} = "\t"
-              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@) @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
+              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $config->{'mingw_unicode'} = '-municode';
@@ -573,7 +592,7 @@ sub gen_nqp {
     # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
         qw<git-depth git-reference github-user nqp-repo moar-repo
-        no-relocatable ignore-errors with-moar>
+        relocatable ignore-errors with-moar>
       )
     {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );

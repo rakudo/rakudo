@@ -8,8 +8,7 @@ my class Block { # declared in BOOTSTRAP
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
     method add_phaser(Str:D \name, &block --> Nil) {
-        $!phasers := nqp::hash
-          unless nqp::attrinited(self,Block,'$!phasers');
+        $!phasers := nqp::hash if nqp::isnull($!phasers);
 
         my str $name = name;
         nqp::bindkey($!phasers,$name,nqp::create(PhasersList))
@@ -29,7 +28,7 @@ my class Block { # declared in BOOTSTRAP
 
     method fire_if_phasers(Str $name --> Nil) {
         nqp::if(
-          nqp::attrinited(self,Block,'$!phasers')
+          !nqp::isnull($!phasers)
             && nqp::existskey($!phasers,$name),
           nqp::stmts(
             (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
@@ -45,15 +44,15 @@ my class Block { # declared in BOOTSTRAP
         )
     }
 
-    method has-phasers() { nqp::hllbool(nqp::attrinited(self,Block,'$!phasers')) }
+    method has-phasers() { !nqp::isnull($!phasers) }
 
     method has-phaser(Str:D \name) {
-        nqp::hllbool(nqp::attrinited(self,Block,'$!phasers')
-          && nqp::existskey($!phasers,nqp::unbox_s(name)))
+        !nqp::isnull($!phasers)
+          && nqp::hllbool(nqp::existskey($!phasers,nqp::unbox_s(name)))
     }
 
     method phasers(Str:D $name) {
-        nqp::attrinited(self,Block,'$!phasers')
+        !nqp::isnull($!phasers)
           && nqp::existskey($!phasers,nqp::unbox_s($name))
           ?? nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
                nqp::atkey($!phasers,nqp::unbox_s($name)))

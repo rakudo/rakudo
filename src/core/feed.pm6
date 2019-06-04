@@ -9,31 +9,20 @@
 # Perl6::Actions (by &make_feed and &make_feed_result specifically).
 
 augment class Rakudo::Internals {
-    my class Pipeline is repr('ConcBlockingQueue') {}
-
     method EVALUATE-FEED(Mu $source is raw, *@stages) {
-        my Pipeline $pipeline := nqp::create(Pipeline);
-        nqp::push($pipeline, $source);
+        my Channel $pipeline .= new;
+        $pipeline.send: $source;
 
         await @stages.map(-> &stage {
             start {
-                my Mu $input  := nqp::shift($pipeline);
+                my Mu $input  := $pipeline.receive;
                 my Mu $output := &stage($input);
-
-                # If $input does Sequence and the current stage returns the
-                # same Sequence instance, its iterator will be consumed and an
-                # exception will be thrown on the call to the next stage. The
-                # solution to this is to push $output's cache to the pipeline
-                # rather than $output itself when this is the case.
-                nqp::if(
-                  nqp::istype($output, Sequence),
-                  ($output := $output.cache)
-                );
-
-                nqp::push($pipeline, $output);
+                $pipeline.send: $output;
             }
         });
 
-        nqp::shift($pipeline)
+        my Mu $result := $pipeline.receive;
+        $pipeline.close;
+        $result
     }
 }

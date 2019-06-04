@@ -1976,18 +1976,18 @@ class Perl6::World is HLL::World {
         %info
     }
 
-    method maybe-definite-how-base($v) {
-        # returns the value itself, unless it's a DefiniteHOW, in which case,
-        # it returns its base type. Behaviour available in 6.d and later only.
-        ! $*W.lang-ver-before('d') && nqp::eqaddr($v.HOW,
-            $*W.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
-        ) ?? $v.HOW.base_type: $v !! $v
-    }
+    # method maybe-definite-how-base($v) {
+    #     # returns the value itself, unless it's a DefiniteHOW, in which case,
+    #     # it returns its base type. Behaviour available in 6.d and later only.
+    #     !  $*W.lang-ver-before('d') && nqp::eqaddr($v.HOW,
+    #         $*W.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
+    #     ) ?? $v.HOW.base_type: $v !! $v
+    # }
 
     method maybe-nominalize($v) {
-        if $*W.lang-ver-before('e') {
-            return self.maybe-definite-how-base($v);
-        }
+        # if $*W.lang-ver-before('e') {
+        #     return self.maybe-definite-how-base($v);
+        # }
         $v.HOW.archetypes.nominalizable ?? $v.HOW.nominalize($v) !! $v
     }
 

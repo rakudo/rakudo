@@ -5163,8 +5163,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Mu := $W.find_symbol: ['Mu'];
         my $type := nqp::defined($*OFTYPE) ?? $*OFTYPE.ast !! $Mu;
         if $<initializer><sym> eq '.=' {
-            #my $init-type := $*W.maybe-definite-how-base: $type;
             my $init-type := $*W.maybe-nominalize: $type;
+            # my $init-type := $*W.maybe-definite-how-base: $type;
             $value_ast.unshift: QAST::WVal.new: :value($init-type);
             $value_ast.returns: $init-type;
         }

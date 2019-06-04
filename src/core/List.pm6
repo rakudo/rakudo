@@ -851,10 +851,27 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     multi method perl(List:D \SELF: --> Str:D) {
         SELF.perlseen('List', {
-            '$' x nqp::iscont(SELF) ~ '('
-            ~ (self.elems == 1 ?? self[0].perl ~ ',' !! self.map({.perl}).join(', '))
-            ~ ' ' x nqp::istrue(self.not && nqp::iscont(SELF)) # add space to avoid `$()`
-            ~ ')'
+            my $prefix := nqp::iscont(SELF) ?? '$(' !! '(';
+            if self.is-lazy {
+                my @elements = self.head(101);
+                if @elements > 100 {
+                    @elements.pop;
+                    $prefix ~ @elements.map({.perl}).join(', ') ~ '...).lazy';
+                }
+                else {
+                    $prefix ~ @elements.map({.perl}).join(', ') ~ ').lazy';
+                }
+            }
+            elsif self.elems -> $elems {
+                $prefix ~ (
+                  $elems == 1
+                    ?? self[0].perl ~ ',)'
+                    !! self.map( {.perl} ).join(', ') ~ ')'
+                )
+            }
+            else {
+                $prefix ~ (nqp::iscont(SELF) ?? ' )' !! ')')
+            }
         })
     }
 
@@ -1111,16 +1128,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                )
     }
 
-    method reverse(List:D: --> Seq:D) is nodal {
-        nqp::if(
-          self.is-lazy,    # reifies
-          Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
-          Seq.new(nqp::if(
-            $!reified,
-            Rakudo::Iterator.ReifiedListReverse($!reified),
-            Rakudo::Iterator.Empty
-          ))
-        )
+    method reverse(List:D: --> List:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
+          !! $!reified
+            ?? nqp::stmts(
+                 (my \src := nqp::clone(nqp::getattr(self,List,'$!reified'))),
+                 (my \dst := nqp::create(src.WHAT)),
+                 nqp::while(
+                   nqp::elems(src),
+                   nqp::push(dst,nqp::pop(src))
+                 ),
+                 nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',dst)
+               )
+            !! nqp::create(self)
     }
 
     method rotate(List:D: Int(Cool) $rotate = 1) is nodal {
@@ -1466,7 +1487,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   ),
                   nqp::unless(
                     nqp::istype($n,Whatever) || $n == Inf,
-                    $iterator.skip-at-least(nqp::elems($!reified) - $n)
+                    $iterator.skip-at-least(nqp::elems($!reified) - $n.Int)
                   )
                 ),
                 $iterator
@@ -1664,8 +1685,8 @@ multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
 }
 
 proto sub reverse(|)   {*}
-multi sub reverse(@a --> Seq:D)  { @a.reverse }
-multi sub reverse(+@a --> Seq:D) { @a.reverse }
+multi sub reverse(@a)  { @a.reverse }
+multi sub reverse(+@a) { @a.reverse }
 
 proto sub rotate($, $?, *%) {*}
 multi sub rotate(@a)           { @a.rotate     }

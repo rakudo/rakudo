@@ -1,6 +1,3 @@
-my class Rat     { ... }
-my class Complex { ... }
-
 BEGIN {
     # Workaround for regression in https://github.com/rakudo/rakudo/issues/1566
     # The actual bug is that Callable role gets mixed in into routines
@@ -19,87 +16,96 @@ my class Cool { # declared in BOOTSTRAP
 
     ## numeric methods
 
-    method abs(           --> Numeric:D) { self.Numeric.abs }
-    method conj(          --> Numeric:D) { self.Numeric.conj }
-    method sqrt(          --> Numeric:D) { self.Numeric.sqrt }
-    method sign(          --> Numeric:D) { self.Real.sign }
-    method rand(          --> Numeric:D) { self.Num.rand }
-    method sin(           --> Numeric:D) { self.Numeric.sin }
-    method asin(          --> Numeric:D) { self.Numeric.asin }
-    method cos(           --> Numeric:D) { self.Numeric.cos }
-    method acos(          --> Numeric:D) { self.Numeric.acos }
-    method tan(           --> Numeric:D) { self.Numeric.tan }
-    method atan(          --> Numeric:D) { self.Numeric.atan }
-    method atan2($y = 1e0 --> Numeric:D) { self.Numeric.atan2($y.Numeric) }
-    method sec(           --> Numeric:D) { self.Numeric.sec }
-    method asec(          --> Numeric:D) { self.Numeric.asec }
-    method cosec(         --> Numeric:D) { self.Numeric.cosec }
-    method acosec(        --> Numeric:D) { self.Numeric.acosec }
-    method cotan(         --> Numeric:D) { self.Numeric.cotan }
-    method acotan(        --> Numeric:D) { self.Numeric.acotan }
-    method sinh(          --> Numeric:D) { self.Numeric.sinh }
-    method asinh(         --> Numeric:D) { self.Numeric.asinh }
-    method cosh(          --> Numeric:D) { self.Numeric.cosh }
-    method acosh(         --> Numeric:D) { self.Numeric.acosh }
-    method tanh(          --> Numeric:D) { self.Numeric.tanh }
-    method atanh(         --> Numeric:D) { self.Numeric.atanh }
-    method sech(          --> Numeric:D) { self.Numeric.sech }
-    method asech(         --> Numeric:D) { self.Numeric.asech }
-    method cosech(        --> Numeric:D) { self.Numeric.cosech }
-    method acosech(       --> Numeric:D) { self.Numeric.acosech }
-    method cotanh(        --> Numeric:D) { self.Numeric.cotanh }
-    method acotanh(       --> Numeric:D) { self.Numeric.acotanh }
-    method cis(           --> Numeric:D) { self.Numeric.cis }
-
+    method abs()  { self.Numeric.abs }
+    method conj()  { self.Numeric.conj }
+    method sqrt()  { self.Numeric.sqrt }
+    method sign()  { self.Real.sign }
+    method rand() { self.Num.rand }
+    method sin()  { self.Numeric.sin }
+    method asin() { self.Numeric.asin }
+    method cos()  { self.Numeric.cos }
+    method acos() { self.Numeric.acos }
+    method tan()  { self.Numeric.tan }
+    method atan() { self.Numeric.atan }
+    method atan2($y = 1e0) { self.Numeric.atan2($y.Numeric) }
+    method sec()  { self.Numeric.sec }
+    method asec() { self.Numeric.asec }
+    method cosec()  { self.Numeric.cosec }
+    method acosec() { self.Numeric.acosec }
+    method cotan()  { self.Numeric.cotan }
+    method acotan() { self.Numeric.acotan }
+    method sinh()  { self.Numeric.sinh }
+    method asinh() { self.Numeric.asinh }
+    method cosh()  { self.Numeric.cosh }
+    method acosh() { self.Numeric.acosh }
+    method tanh()  { self.Numeric.tanh }
+    method atanh() { self.Numeric.atanh }
+    method sech()  { self.Numeric.sech }
+    method asech() { self.Numeric.asech }
+    method cosech()  { self.Numeric.cosech }
+    method acosech() { self.Numeric.acosech }
+    method cotanh()  { self.Numeric.cotanh }
+    method acotanh() { self.Numeric.acotanh }
+    method cis()     { self.Numeric.cis }
     method is-prime(--> Bool:D) { self.Real.is-prime }
 
     proto method log(|) {*}
-    multi method log(Cool:D: --> Numeric:D) {
-        self.Numeric.log
-    }
-    multi method log(Cool:D: $base --> Numeric:D) {
-        self.Numeric.log($base.Numeric)
-    }
+    multi method log(Cool:D: )      { self.Numeric.log          }
+    multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
 
     proto method exp(|) {*}
-    multi method exp(Cool:D: --> Numeric:D) {
-        self.Numeric.exp
-    }
-    multi method exp(Cool:D: $base --> Numeric:D) {
-        self.Numeric.exp($base.Numeric)
-    }
+    multi method exp(Cool:D: )      { self.Numeric.exp          }
+    multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }
 
     proto method round(|) {*}
-    multi method round(--> Numeric:D)       { self.Numeric.round        }
-    multi method round($base --> Numeric:D) { self.Numeric.round($base) }
+    multi method round()      { self.Numeric.round()      }
+    multi method round($base) { self.Numeric.round($base) }
 
-    method roots(Cool $n)            { self.Numeric.roots($n)           }
-    method log10( --> Numeric:D)     { self.Numeric.log10               }
-    method unpolar($n --> Numeric:D) { self.Numeric.unpolar($n.Numeric) }
+    method roots(Cool $n)   { self.Numeric.roots($n)    }
+    method log10()          { self.Numeric.log10        }
+    method unpolar($n)      { self.Numeric.unpolar($n.Numeric) }
 
-    method floor(--> Numeric:D)    { self.Numeric.floor    }
-    method ceiling(--> Numeric:D)  { self.Numeric.ceiling  }
-    method truncate(--> Numeric:D) { self.Numeric.truncate }
+    method floor()          { self.Numeric.floor        }
+    method ceiling()        { self.Numeric.ceiling      }
+    method truncate()       { self.Numeric.truncate     }
 
     ## string methods
 
-    method chars(--> Int:D) { self.Str.chars }
-    method codes(--> Int:D) { self.Str.codes }
+    method chars(--> Int:D) {
+        self.Str.chars
+    }
+    method codes() {
+        self.Str.codes
+    }
 
-    method fmt($format = '%s' --> Str:D) {
+    method fmt($format = '%s') {
         Rakudo::Internals.initialize-sprintf-handler;
         nqp::p6box_s(
             nqp::sprintf(nqp::unbox_s($format.Stringy), nqp::list(self))
         )
     }
 
-    method uc(  --> Str:D) { self.Str.uc   }
-    method lc(  --> Str:D) { self.Str.lc   }
-    method tc(  --> Str:D) { self.Str.tc   }
-    method fc(  --> Str:D) { self.Str.fc   }
-    method tclc(--> Str:D) { self.Str.tclc }
+    method uc() {
+        self.Str.uc
+    }
 
-    method wordcase(-->Str:D)   { self.Str.wordcase }
+    method lc() {
+        self.Str.lc
+    }
+
+    method tc() {
+        self.Str.tc
+    }
+
+    method fc() {
+        self.Str.fc
+    }
+
+    method tclc() {
+        self.Str.tclc
+    }
+
+    method wordcase()   { self.Str.wordcase }
 
     method uniname()        { uniname(self) }
     method uninames()       { uninames(self) }
@@ -112,14 +118,18 @@ my class Cool { # declared in BOOTSTRAP
     method uniprops(|c)     { uniprops(self, |c) }
     method unimatch(|c)     { unimatch(self, |c) }
 
-    method chomp(--> Str:D) { self.Str.chomp }
+    method chomp(Cool:D:) { self.Str.chomp }
 
-    proto method chop(|) {*}
-    multi method chop(Cool:D: --> Str:D) { self.Str.chop }
-    multi method chop(Cool:D: Int() $n --> Str:D) { self.Str.chop($n) }
+    proto method chop(|)                {*}
+    multi method chop(Cool:D:)          { self.Str.chop }
+    multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
 
-    method ord(--> Int:D) { self.Str.ord }
-    method chr(--> Str:D) { self.Int.chr; }
+    method ord(--> Int:D) {
+        self.Str.ord
+    }
+    method chr() {
+        self.Int.chr;
+    }
 
     proto method chrs(|) {*}
     multi method chrs(Cool:D:) { self.list.chrs }
@@ -127,45 +137,66 @@ my class Cool { # declared in BOOTSTRAP
     proto method ords(|) {*}
     multi method ords(Cool:D:) { self.Str.ords }
 
-    method flip(--> Str:D) {
+    method flip() {
         self.Str.flip
     }
-    method trans(|c --> Str:D) { self.Str.trans(|c) }
+    method trans(|c) { self.Str.trans(|c) }
 
-    method starts-with(Cool:D: |c --> Bool:D) { self.Str.starts-with(|c) }
-    method ends-with(  Cool:D: |c --> Bool:D) { self.Str.ends-with(|c)   }
-    method substr-eq(  Cool:D: |c --> Bool:D) { self.Str.substr-eq(|c)   }
-    method contains(   Cool:D: |c --> Bool:D) { self.Str.contains(|c)    }
+    method starts-with(Cool:D: |c) {
+        self.Str.starts-with(|c)
+    }
+
+    method ends-with(Cool:D: |c) {
+        self.Str.ends-with(|c)
+    }
 
     proto method substr(|) {*}
-    multi method substr(\from --> Str:D)         { self.Str.substr(from)       }
-    multi method substr(\from, \chars --> Str:D) { self.Str.substr(from,chars) }
+    multi method substr(\from)         { self.Str.substr(from)       }
+    multi method substr(\from, \chars) { self.Str.substr(from,chars) }
 
     proto method substr-rw(|) {*}
-    multi method substr-rw(Cool:D \SELF:) is rw {
+    multi method substr-rw(\SELF:) is rw {
         (SELF = self.Str).substr-rw
     }
-    multi method substr-rw(Cool:D \SELF: \from) is rw {
+    multi method substr-rw(\SELF: \from) is rw {
         (SELF = self.Str).substr-rw(from)
     }
-    multi method substr-rw(Cool:D \SELF: \from, \chars) is rw {
+    multi method substr-rw(\SELF: \from, \chars) is rw {
         (SELF = self.Str).substr-rw(from,chars)
     }
 
-    method indices(Cool: |c) { self.Str.indices(|c) }
-    method split(  Cool: |c) { self.Stringy.split(|c) }
+    method substr-eq(Cool:D: |c) {
+        self.Str.substr-eq(|c)
+    }
 
-    method index( Cool: |c --> Int:D) { self.Str.index(|c)  }
-    method rindex(Cool: |c --> Int:D) { self.Str.rindex(|c) }
+    method contains(Cool:D: |c) {
+        self.Str.contains(|c)
+    }
+
+    method indices(Cool:D: |c) {
+        self.Str.indices(|c)
+    }
+
+    method index(Cool:D: |c) {
+        self.Str.index(|c)
+    }
+
+    method rindex(Cool:D: |c) {
+        self.Str.rindex(|c)
+    }
+
+    method split(Cool: |c) {
+        self.Stringy.split(|c);
+    }
 
     method match(Cool:D: |c) {
         $/ := nqp::getlexcaller('$/');
         self.Stringy.match(|c)
     }
 
-    method comb( Cool: |c --> Seq:D) { self.Str.comb(|c)  }
-    method lines(Cool: |c --> Seq:D) { self.Str.lines(|c) }
-    method words(Cool: |c --> Seq:D) { self.Str.words(|c) }
+    method comb(|c) { self.Str.comb(|c) }
+    method lines(Cool:D: |c) { self.Str.lines(|c) }
+    method words(Cool:D: |c) { self.Str.words(|c) }
 
     method subst(|c) {
         $/ := nqp::getlexcaller('$/');
@@ -183,25 +214,23 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method IO(|) {*}
-    multi method IO(Cool:D: --> IO::Path:D) { IO::Path.new(self) }
-    multi method IO(Cool:U: --> IO::Path) { }
+    multi method IO(Cool:D:) { IO::Path.new(self) }
+    multi method IO(Cool:U:) { IO::Path }
 
-    method sprintf(*@args --> Str:D) { sprintf(self, @args) };
-    method printf (*@args --> Bool:D) {  printf(self, @args) };
-    method samecase(Cool:D: Cool $pattern --> Str:D) {
-        self.Stringy.samecase($pattern)
-    }
+    method sprintf(*@args) { sprintf(self, @args) };
+    method printf (*@args) {  printf(self, @args) };
+    method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
-    method path(--> IO::Path) { self.Stringy.IO }
-    method trim(         --> Str:D) { self.Stringy.trim          }
-    method trim-leading( --> Str:D) { self.Stringy.trim-leading  }
-    method trim-trailing(--> Str:D) { self.Stringy.trim-trailing }
+    method path() { self.Stringy.IO }
+    method trim         () { self.Stringy.trim          };
+    method trim-leading () { self.Stringy.trim-leading  };
+    method trim-trailing() { self.Stringy.trim-trailing };
 
     method EVAL(*%opts) {
         EVAL(self, context => CALLER::, |%opts);
     }
 
-    multi method Real(Cool: --> Real:D) {
+    multi method Real() {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),
             $numeric,
@@ -210,7 +239,7 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method Int(|) {*}
-    multi method Int(Cool: --> Int:D)  {
+    multi method Int()  {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),
             $numeric,
@@ -219,7 +248,7 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method UInt(|) {*}
-    multi method UInt(Cool: --> Int:D)  {  # UInt not a proper type yet
+    multi method UInt()  {
         my $got := self.Int;
         $got < 0
           ?? Failure.new(X::OutOfRange.new(
@@ -229,7 +258,7 @@ my class Cool { # declared in BOOTSTRAP
           !! $got
     }
 
-    method Num(--> Num:D)  {
+    method Num()  {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),
             $numeric,
@@ -237,7 +266,7 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    method Rat(--> Rat:D)  {
+    method Rat()  {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),
             $numeric,
@@ -245,7 +274,7 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    method FatRat(--> FatRat:D)  {
+    method FatRat()  {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),
             $numeric,
@@ -253,7 +282,7 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    method Complex(--> Complex:D)  {
+    method Complex()  {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),
             $numeric,
@@ -274,38 +303,30 @@ proto sub flip($, *%) {*}
 multi sub flip(Cool $s --> Str:D) { $s.flip }
 
 proto sub index($, $, $?, *%) {*}
-multi sub index(Cool $s, Cool $needle --> Int:D) {
-    $s.index($needle)
-}
-multi sub index(Cool $s, Cool $needle, Cool $pos --> Int:D) {
-    $s.index($needle,$pos)
-}
+multi sub index(Cool $s, Cool $needle)            { $s.index($needle)      }
+multi sub index(Cool $s, Cool $needle, Cool $pos) { $s.index($needle,$pos) }
 
 proto sub rindex($, $, $?, *%) {*}
-multi sub rindex(Cool $s, Cool $needle, Cool $pos --> Int:D) {
-    $s.rindex($needle, $pos)
-}
-multi sub rindex(Cool $s, Cool $needle --> Int:D) {
-    $s.rindex($needle)
-}
+multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) }
+multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) }
 
 proto sub lc($, *%) {*}
-multi sub lc(Cool $s --> Str:D) { $s.lc }
+multi sub lc(Cool $s) { $s.lc }
 
 proto sub ord($, *%) {*}
-multi sub ord(Cool $s --> Int:D) { $s.ord }
+multi sub ord(Cool $s) { $s.ord }
 
 proto sub uc($, *%) {*}
-multi sub uc(Cool $s --> Str:D) { $s.uc }
+multi sub uc(Cool $s) { $s.uc }
 
 proto sub tc($, *%) {*}
-multi sub tc(Cool $s --> Str:D) { $s.tc }
+multi sub tc(Cool $s) { $s.tc }
 
 proto sub fc($, *%) {*}
-multi sub fc(Cool $s --> Str:D) { $s.fc }
+multi sub fc(Cool $s) { $s.fc }
 
 proto sub tclc($, *%) {*}
-multi sub tclc(Cool $s --> Str:D) { $s.tclc }
+multi sub tclc(Cool $s) { $s.tclc }
 
 proto sub indices($, |) {*}
 multi sub indices(Cool $s, |c) { $s.indices(|c) }
@@ -314,22 +335,16 @@ proto sub ords($, *%) {*}
 multi sub ords(Cool:D $s) { $s.ords }
 
 proto sub comb($, $, $?, *%) {*}
-multi sub comb(Regex $matcher, Cool $input, $limit = * --> Seq:D) {
-    $input.comb($matcher, $limit)
-}
-multi sub comb(Str $matcher, Cool $input, $limit = * --> Seq:D) {
-    $input.comb($matcher, $limit)
-}
-multi sub comb(Int:D $size, Cool $input, $limit = * --> Seq:D) {
-    $input.comb($size, $limit)
-}
+multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
+multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
+multi sub comb(Int:D $size, Cool $input, $limit = *) { $input.comb($size, $limit) }
 
 proto sub wordcase($, *%) is pure {*}
-multi sub wordcase(Str:D $x --> Str:D) { $x.wordcase     }
-multi sub wordcase(Cool $x --> Str:D)  { $x.Str.wordcase }
+multi sub wordcase(Str:D $x) {$x.wordcase }
+multi sub wordcase(Cool $x)  {$x.Str.wordcase }
 
 proto sub sprintf($, |) {*}
-multi sub sprintf(Cool:D $format, *@args --> Str:D) {
+multi sub sprintf(Cool:D $format, *@args) {
     CATCH {
         when X::Cannot::Lazy {
             X::Cannot::Lazy.new(:action('(s)printf')).throw
@@ -351,28 +366,25 @@ multi sub sprintf(Cool:D $format, *@args --> Str:D) {
 }
 
 proto sub printf($, |) {*}
-multi sub printf(Cool:D $format, *@args --> Bool:D) {
-    print sprintf $format, @args
-}
+multi sub printf(Cool:D $format, *@args) { print sprintf $format, @args }
 
 proto sub samecase($, $, *%) {*}
-multi sub samecase(Cool:D $string, Cool:D $pattern --> Str:D) {
-    $string.samecase($pattern)
-}
+multi sub samecase(Cool:D $string, Cool:D $pattern) { $string.samecase($pattern) }
 
 proto sub split($, $, |) {*}
 multi sub split($pat, Cool:D $target, |c) { $target.split($pat, |c) }
 
 proto sub chars($, *%) is pure {*}
-multi sub chars(Cool $x  --> Int:D) { $x.Str.chars                 }
-multi sub chars(Str:D $x --> Int:D) { nqp::p6box_i(nqp::chars($x)) } #?js: NFG
-multi sub chars(str $x   --> int)   { nqp::chars($x)               } #?js: NFG
+multi sub chars(Cool $x)  { $x.Str.chars }
+
+multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) } #?js: NFG
+multi sub chars(str $x --> int) { nqp::chars($x) } #?js: NFG
 
 # These probably belong in a separate unicodey file
 
 proto sub uniname($, *%) {*}
-multi sub uniname(Str:D $str  --> Str:D) { $str ?? uniname($str.ord) !! Nil }
-multi sub uniname(Int:D $code --> Str:D) { nqp::getuniname($code) }
+multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
+multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
 proto sub uninames($, *%) {*}
 multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }

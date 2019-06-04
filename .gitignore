@@ -1,5 +1,5 @@
 /gen/*
-nqp/
+/nqp/
 repo/
 install/
 install-jvm/
@@ -61,8 +61,12 @@ perl6-debug-j.bat
 /perl6-lldb-m
 perl6-m
 perl6-m.bat
+perl6-mc
+perl6-mc.exe
 perl6-debug-m
 perl6-debug-m.bat
+perl6-debug-mc
+perl6-debug-mc.exe
 perl6-js
 perl6-js.bat
 t/localtest.data
@@ -107,3 +111,4 @@ t/03-jvm/*.class
 rakudo.js
 /zef
 .DS_Store
+node_modules/*

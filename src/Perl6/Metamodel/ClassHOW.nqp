@@ -40,9 +40,16 @@ class Perl6::Metamodel::ClassHOW
     }
 
     my $anon_id := 1;
-    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api) {
+    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api, :$is_mixin) {
         my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
+        my $new_type;
+        if $is_mixin {
+            $new_type := nqp::newmixintype($metaclass, $repr);
+        }
+        else {
+            $new_type := nqp::newtype($metaclass, $repr);
+        }
+        my $obj := nqp::settypehll($new_type, 'perl6');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
@@ -178,13 +185,11 @@ class Perl6::Metamodel::ClassHOW
             # Create BUILDPLAN.
             self.create_BUILDPLAN($obj);
 
-            # If the BUILDPLAN is not empty, we should attempt to auto-
-            # generate a BUILDALL method.  If the BUILDPLAN is empty, then
-            # the BUILDALL of the parent is already good enough.  We can
+            # Attempt to auto-generate a BUILDALL method. We can
             # only auto-generate a BUILDALL method if we have compiler
-            # services.  If we don't, then BUILDALL will fall back to the
+            # services. If we don't, then BUILDALL will fall back to the
             # one in Mu, which will iterate over the BUILDALLPLAN.
-            if self.BUILDPLAN($obj) && nqp::isconcrete($compiler_services) {
+            if nqp::isconcrete($compiler_services) {
 
                 # Class does not appear to have a BUILDALL yet
                 unless nqp::existskey(nqp::hllize($obj.HOW.submethod_table($obj)),'BUILDALL')

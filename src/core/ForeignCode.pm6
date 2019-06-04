@@ -24,7 +24,14 @@ my class Rakudo::Internals::EvalIdSource {
         $lock.protect: { $count++ }
     }
 }
-proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', PseudoStash :$context, *%n) {
+proto sub EVAL(
+  $code is copy where Blob|Cool|Callable,
+  Str()       :$lang = 'perl6',
+  PseudoStash :$context,
+  Str()       :$filename = Str,
+  Bool()      :$check = False,
+  *%_
+) {
     die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
       if nqp::istype($code,Callable);
     # First look in compiler registry.
@@ -43,7 +50,7 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
 
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+    my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     my \mast_frames := nqp::hash();
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
                   # currently compiling compilation unit
@@ -58,35 +65,41 @@ proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6', P
         |(:optimize($_) with nqp::getcomp('perl6').cli-options<optimize>),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
 
-    $*W.add_additional_frames(mast_frames)
-        if $*W and $*W.is_precompilation_mode; # we are still compiling
-    nqp::forceouterctx(nqp::getattr($compiled, ForeignCode, '$!do'), $eval_ctx);
-    $compiled();
+    if $check {
+        Nil
+    }
+    else {
+        $*W.add_additional_frames(mast_frames)
+          if $*W and $*W.is_precompilation_mode; # we are still compiling
+        nqp::forceouterctx(
+          nqp::getattr($compiled,ForeignCode,'$!do'),$eval_ctx
+        );
+        $compiled()
+    }
 }
 
-multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' }, PseudoStash :$context) {
-    my $eval_ctx := nqp::getattr(nqp::decont($context // CALLER::), PseudoStash, '$!ctx');
-    my $?FILES   := 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
-    state $p5;
-    unless $p5 {
-        {
-            my $compunit := $*REPO.need(CompUnit::DependencySpecification.new(:short-name<Inline::Perl5>));
-            GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package);
-            CATCH {
-                #X::Eval::NoSuchLang.new(:$lang).throw;
-                note $_;
-            }
-        }
-        $p5 = ::("Inline::Perl5").default_perl5;
+multi sub EVAL(
+  $code,
+  Str :$lang where { ($lang // '') eq 'Perl5' },
+  PseudoStash :$context,
+  Str() :$filename = Str,
+  Bool() :$check = False,
+) {
+    if $check {
+        X::NYI.new(feature => ":check on EVAL :from<Perl5>").throw;
     }
-    $p5.run: nqp::istype($code,Blob)
-        ?? Blob.new($code).decode('utf8-c8')
-        !! $code.Str;
+    else {
+        my $?FILES :=
+          $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+        Rakudo::Internals.PERL5.run: nqp::istype($code,Blob)
+          ?? Blob.new($code).decode('utf8-c8')
+          !! $code.Str
+    }
 }
 
 proto sub EVALFILE($, *%) {*}
-multi sub EVALFILE($filename, :$lang = 'perl6') {
-    EVAL slurp(:bin, $filename), :$lang, :context(CALLER::);
+multi sub EVALFILE($filename, :$lang = 'perl6', Bool() :$check = False) {
+    EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -1154,12 +1154,22 @@ class ContainerDescriptor {
         $!of.HOW.archetypes.generic
     }
 
+    method is_default_generic() {
+        $!default.HOW.archetypes.generic
+    }
+
     method instantiate_generic($type_environment) {
         my $ins_of := $!of.HOW.instantiate_generic($!of, $type_environment);
+        my $ins_default := self.is_default_generic ?? $!default.HOW.instantiate_generic($!default, $type_environment) !! $!default;
         my $ins := nqp::clone(self);
         nqp::bindattr($ins, $?CLASS, '$!of', $ins_of);
+        nqp::bindattr($ins, $?CLASS, '$!default', $ins_default);
         $ins
     }
+}
+class ContainerDescriptor::Untyped is ContainerDescriptor {
+    # Container descriptor for when the type is Mu; the type of this
+    # container descriptor is used as a marker
 }
 role ContainerDescriptor::Whence {
     has $!next-descriptor;
@@ -1212,7 +1222,7 @@ class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { 
+    method name() {
         'element at [' ~ $!one ~ ',' ~ $!two ~ ']'  # XXX name ?
     }
     method assigned($scalar) {
@@ -1611,7 +1621,8 @@ BEGIN {
                 my $type := $desc.of;
                 if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
                     nqp::bindattr($cont, Scalar, '$!value', $val);
-                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
+                           nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
                         $desc.assigned($cont);
                         nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
                     }
@@ -1633,7 +1644,8 @@ BEGIN {
         'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
             nqp::bindattr($cont, Scalar, '$!value', $val);
             my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
+                   nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
                 $desc.assigned($cont);
                 nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
             }
@@ -1687,7 +1699,7 @@ BEGIN {
     # Cache a single default Scalar container spec, to ensure we only get
     # one of them.
     Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
-        ContainerDescriptor.new(
+        ContainerDescriptor::Untyped.new(
             :of(Mu), :default(Any), :name('element')));
 
     # Set up various native reference types.
@@ -1769,7 +1781,8 @@ BEGIN {
     }
 
     # Helper for creating an attribute that vivifies to a clone of some VM
-    # storage type; used for the storage slots of arrays and hashes.
+    # storage type (or, if it's a type object, is just initialized with that
+    # type object); used for the storage slots of arrays and hashes.
     sub storage_attr($name, $type, $package, $clonee, :$associative_delegate) {
         return Attribute.new( :$name, :$type, :$package, :auto_viv_primitive($clonee),
             :$associative_delegate );
@@ -3263,8 +3276,8 @@ BEGIN {
     #     has Mu $!reified;
     #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
+    List.HOW.add_attribute(List, storage_attr('$!reified', Mu, List, Mu));
+    List.HOW.add_attribute(List, storage_attr('$!todo', Mu, List, Mu));
     List.HOW.compose_repr(List);
 
     # class Slip is List {
@@ -3748,6 +3761,9 @@ nqp::sethllconfig('perl6', nqp::hash(
     'int64_attr_ref', Int64AttrRef,
     'int64_pos_ref', Int64PosRef,
     'int64_multidim_ref', Int64MultidimRef,
+#?endif
+#?if moar
+    'max_inline_size', 384,
 #?endif
 ));
 

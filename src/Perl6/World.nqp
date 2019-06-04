@@ -530,44 +530,87 @@ class Perl6::World is HLL::World {
           $want
         ) == -1
     }
+
+    method !check-version-modifier($ver-match, $rev, $modifier, $comp) {
+        my %lang_rev := $comp.language_revisions;
+
+        unless nqp::existskey(%lang_rev, $rev) &&
+               (!$modifier || nqp::existskey(%lang_rev{$rev}<mods>, $modifier)) {
+            $ver-match.typed_panic: 'X::Language::Unsupported', version => ~$ver-match;
+        }
+
+        # See if requested revision is not supported without a modifier. Most likely it'll be PREVIEW modifier for
+        # unreleased revisions.
+        if nqp::existskey(%lang_rev{$rev}, 'require') {
+            if nqp::iseq_s(%lang_rev{$rev}<require>, $modifier) {
+                return;
+            }
+            $ver-match.typed_panic: 'X::Language::ModRequired',
+                                    version => ~$ver-match,
+                                    modifier => %lang_rev{$rev}<require>;
+        }
+
+        if %lang_rev{$rev}<mods>{$modifier}<deprecate> {
+            $ver-match.PRECURSOR.worry("$modifier modifier is deprecated for Perl 6.$rev");
+        }
+    }
+
+    # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
+    # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
         $*MAIN   := 'MAIN';
         $*STRICT := 1 if $*begin_compunit;
 
         my str $version := ~$ver-match;
-        # fast-path the common cases
-        if $version eq 'v6.c' {
-            $comp.set_language_version: '6.c';
-            $*CAN_LOWER_TOPIC := 0;
-            # CORE.c is currently our lowest core, which we don't "load"
-            return;
-        }
+        my @vparts := nqp::split('.', $version);
+        my $default_rev := nqp::substr($comp.config<language-version>, 2, 1);
 
-        if $version eq 'v6' ?? nqp::substr($comp.language_version, 2, 1)
-        !! $version eq 'v6.d' ?? 'd'
-        !! $version eq 'v6.d.PREVIEW' ?? 'd'
-        !! '' -> $lang {
-            $comp.set_language_version:       '6.' ~ $lang;
-            self.load_setting: $ver-match, 'CORE.' ~ $lang;
-            return;
+        # Do we have dot-splitted version string?
+        if ((@vparts > 1) && nqp::iseq_s(@vparts[0], 'v6')) || ($version eq 'v6') {
+            my $revision := @vparts[1] || $default_rev;
+            my $lang_ver := '6.' ~ $revision;
+
+            self."!check-version-modifier"($ver-match, $revision, @vparts[2] || '', $comp);
+
+            $comp.set_language_version: $lang_ver;
+            # fast-path the common cases
+            if $revision eq 'c' {
+                $*CAN_LOWER_TOPIC := 0;
+                # CORE.c is currently our lowest core, which we don't "load"
+                return;
+            }
+
+            # Speed up loading assuming that the default language version would be the most used one.
+            if $lang_ver eq $comp.config<language-version> {
+                self.load_setting: $ver-match, 'CORE.' ~ $revision;
+                return;
+            }
         }
 
         my $Version := self.find_symbol: ['Version'];
         my $vWant   := $ver-match.ast.compile_time_value;
+        my $rev := $vWant.parts.AT-POS(1);
+        my str $rev_mod := $vWant.parts.elems > 2 ?? $vWant.parts.AT-POS(2) !! '';
+
+        self."!check-version-modifier"($ver-match, $rev, $rev_mod, $comp);
+
         for $comp.can_language_versions -> $can-ver {
             next unless $vWant.ACCEPTS: my $vCan := $Version.new: $can-ver;
 
-            my $lang := $vCan.parts.AT-POS: 1;
-            $comp.set_language_version:       '6.' ~ $lang;
-            $*CAN_LOWER_TOPIC := 0 if $lang eq 'c';
+            my $can_rev := $vCan.parts.AT-POS: 1;
+            $comp.set_language_version:       '6.' ~ $can_rev;
 
-            # CORE.c is currently our lowest core, which we don't "load"
-            self.load_setting: $ver-match, 'CORE.' ~ $lang
-                unless $lang eq 'c';
+            if $can_rev eq 'c' {
+                $*CAN_LOWER_TOPIC := 0;
+                # CORE.c is currently our lowest core, which we don't "load"
+            }
+            else {
+                self.load_setting: $ver-match, 'CORE.' ~ $can_rev
+            }
             return;
         }
 
-        $/.typed_panic: 'X::Language::Unsupported', :$version;
+        $ver-match.typed_panic: 'X::Language::Unsupported', :$version;
     }
 
     method RAKUDO_MODULE_DEBUG() {
@@ -682,7 +725,7 @@ class Perl6::World is HLL::World {
         # Bootstrap
         if $setting_name eq 'NULL' {
             my $name   := "Perl6::BOOTSTRAP";
-            my $module := self.load_module_early($/, $name, {}, $*GLOBALish);
+            my $module := self.load_module_early($/, $name, $*GLOBALish);
             my $EXPORT := $module<EXPORT>.WHO;
             my @to_import := ['MANDATORY', 'DEFAULT'];
             for @to_import -> $tag {
@@ -842,7 +885,7 @@ class Perl6::World is HLL::World {
         # Do nothing for the NULL setting.
         if $setting_name ne 'NULL' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
-            $setting_name := 'CORE' if $setting_name eq 'NULL.d';
+            $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
             # Load it immediately, so the compile time info is available.
             # Once it's loaded, set it as the outer context of the code
             # being compiled.
@@ -1341,30 +1384,18 @@ class Perl6::World is HLL::World {
 
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
-    method load_module_early($/, $module_name, %opts, $cur_GLOBALish) {
+    method load_module_early($/, $module_name, $cur_GLOBALish) {
         my $RMD := self.RAKUDO_MODULE_DEBUG;
         $RMD("  Early loading '$module_name'") if $RMD;
 
         # Immediate loading.
         my $line   := self.current_line($/);
-        my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, %opts,
+        my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, {},
             $cur_GLOBALish, :$line);
 
         # During deserialization, ensure that we get this module loaded.
         if self.is_precompilation_mode() {
             $RMD("  Pre-compiling '$module_name'") if $RMD;
-            my $opt_hash := QAST::Op.new( :op('hash') );
-            for %opts {
-                self.add_object_if_no_sc($_.value);
-                $opt_hash.push(QAST::SVal.new( :value($_.key) ));
-                my $Str := self.find_symbol(['Str'], :setting-only);
-                if nqp::isstr($_.value) || nqp::istype($_.value, $Str) {
-                    $opt_hash.push(QAST::SVal.new( :value($_.value) ));
-                }
-                else {
-                    $opt_hash.push(QAST::WVal.new( :value($_.value) ));
-                }
-            }
             self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
@@ -1372,7 +1403,7 @@ class Perl6::World is HLL::World {
                    QAST::Op.new( :op('getcurhllsym'),
                         QAST::SVal.new( :value('ModuleLoader') ) ),
                    QAST::SVal.new( :value($module_name) ),
-                   $opt_hash,
+                   QAST::Op.new( :op('hash') ),
                    QAST::IVal.new(:value($line), :named('line'))
                 ))));
         }
@@ -1438,12 +1469,13 @@ class Perl6::World is HLL::World {
         my %to_install;
         my @clash;
         my @clash_onlystar;
-        for %stash {
-            if $target.symbol($_.key) -> %sym {
+        for sorted_keys(%stash) -> $key {
+            my $value := %stash{$key};
+            if $target.symbol($key) -> %sym {
                 # There's already a symbol. However, we may be able to merge
                 # if both are multis and have onlystar dispatchers.
                 my $installed := %sym<value>;
-                my $foreign := $_.value;
+                my $foreign := $value;
                 if $installed =:= $foreign {
                     next;
                 }
@@ -1455,7 +1487,7 @@ class Perl6::World is HLL::World {
                         # Replace installed one with a derived one, to avoid any
                         # weird action at a distance.
                         $installed := self.derive_dispatcher($installed);
-                        self.install_lexical_symbol($target, $_.key, $installed, :clone(1));
+                        self.install_lexical_symbol($target, $key, $installed, :clone(1));
 
                         # Incorporate dispatchees of foreign proto, avoiding
                         # duplicates.
@@ -1470,19 +1502,19 @@ class Perl6::World is HLL::World {
                         }
                     }
                     else {
-                        nqp::push(@clash_onlystar, $_.key);
+                        nqp::push(@clash_onlystar, $key);
                     }
                 }
                 else {
-                    nqp::push(@clash, $_.key);
+                    nqp::push(@clash, $key);
                 }
             }
             else {
-                $target.symbol($_.key, :scope('lexical'), :value($_.value));
+                $target.symbol($key, :scope('lexical'), :value($value));
                 $target[0].push(QAST::Var.new(
-                    :scope('lexical'), :name($_.key), :decl('static'), :value($_.value)
+                    :scope('lexical'), :name($key), :decl('static'), :value($value)
                 ));
-                %to_install{$_.key} := $_.value;
+                %to_install{$key} := $value;
             }
         }
 
@@ -1502,14 +1534,14 @@ class Perl6::World is HLL::World {
 
         # Second pass: make sure installed things are in an SC and handle
         # categoricals.
-        for %to_install {
-            my $v := $_.value;
+        for sorted_keys(%to_install) -> $key {
+            my $v := %to_install{$key};
             self.add_object_if_no_sc($v);
-            my $categorical := match($_.key, /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/);
+            my $categorical := match($key, /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/);
             if $categorical {
                 $/.add_categorical(~$categorical[0], ~$categorical[1],
                     ~$categorical[0] ~ self.canonicalize_pair('sym',$categorical[1]),
-                    nqp::substr($_.key, 1), $v);
+                    nqp::substr($key, 1), $v);
             }
         }
     }
@@ -1641,7 +1673,9 @@ class Perl6::World is HLL::World {
 
     # Installs a lexical symbol. Takes a QAST::Block object, name and
     # the type of container to install.
-    method install_lexical_container($block, str $name, %cont_info, $descriptor, :$scope, :$package, :$cont = self.build_container_and_add_to_sc(%cont_info, $descriptor)) {
+    method install_lexical_container($block, str $name, %cont_info, $descriptor,
+            :$scope, :$package, :$cont = self.build_container_and_add_to_sc(%cont_info, $descriptor),
+            :$init_removal) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         my $var;
@@ -1670,23 +1704,32 @@ class Perl6::World is HLL::World {
         my $prim := %cont_info<sigil> eq '$' && nqp::objprimspec($descriptor.of);
         if $prim {
             if $scope eq 'state' { nqp::die("Natively typed state variables not yet implemented") }
+            my $init;
             if $prim == 1 || $prim == 4 || $prim == 5 {
-                $block[0].push(QAST::Op.new( :op('bind'),
+                $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    QAST::IVal.new( :value(0) ) ))
+                    QAST::IVal.new( :value(0) ) );
             }
             elsif $prim == 2 {
-                $block[0].push(QAST::Op.new( :op('bind'),
+                $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
                     $*W.lang-ver-before('d')
                       ?? QAST::Op.new(:op<nan>)
                       !! QAST::NVal.new(:value(0e0))
-                ));
+                );
             }
             elsif $prim == 3 {
-                $block[0].push(QAST::Op.new( :op('bind'),
+                $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    QAST::SVal.new( :value('') ) ))
+                    QAST::SVal.new( :value('') ) );
+            }
+            $block[0].push($init);
+            if $init_removal {
+                $init_removal.annotate('init_removal', -> {
+                    $init.shift;
+                    $init.shift;
+                    $init.op('null');
+                });
             }
             return nqp::null();
         }
@@ -1715,7 +1758,10 @@ class Perl6::World is HLL::World {
 
     # Creates a new container descriptor and adds it to the SC.
     method create_container_descriptor($of, $name, $default = $of, $dynamic = is_dynamic($name)) {
-        my $cd_type := self.find_symbol(['ContainerDescriptor'], :setting-only);
+        my $cd_type_name := nqp::eqaddr($of, self.find_symbol(['Mu'], :setting-only))
+            ?? ['ContainerDescriptor', 'Untyped']
+            !! ['ContainerDescriptor'];
+        my $cd_type := self.find_symbol($cd_type_name, :setting-only);
         my $cd := $cd_type.new( :$of, :$name, :$default, :$dynamic );
         self.add_object_if_no_sc($cd);
         $cd
@@ -2472,6 +2518,15 @@ class Perl6::World is HLL::World {
             unless $precomp {
                 $compiler_thunk();
             }
+
+            unless nqp::getcomp('perl6').backend.name eq 'js' {
+                # Temporarly disabled for js untill we figure the bug out
+                my $code_obj := nqp::getcodeobj(nqp::curcode());
+                unless nqp::isnull($code_obj) {
+                    return $code_obj(|@pos, |%named);
+                }
+            }
+
             $precomp(|@pos, |%named);
         });
         @compstuff[1] := $compiler_thunk;
@@ -2511,6 +2566,7 @@ class Perl6::World is HLL::World {
                     self.context().add_cleanup_task(sub () {
                         nqp::bindattr($clone, $code_type, '@!compstuff', nqp::null());
                     });
+                    self.context().add_clone_for_cuid($clone, $cuid);
                     my $tmp := $fixups.unique('tmp_block_fixup');
                     $fixups.push(QAST::Stmt.new(
                         QAST::Op.new(
@@ -2743,15 +2799,14 @@ class Perl6::World is HLL::World {
         my $cur_block := $past;
         while $cur_block {
             my %symbols := $cur_block.symtable();
-            for %symbols {
-                my str $name := $_.key;
+            for sorted_keys(%symbols) -> str $name {
                 # For now, EVALed code run during precomp will not get the
                 # outer lexical context's symbols as those may contain or
                 # reference unserializable objects leading to compilation
                 # failures. Needs a smarter approach as noted above.
                 unless self.is_nested() || %seen{$name} {
                     # Add symbol.
-                    my %sym   := $_.value;
+                    my %sym   := %symbols{$name};
                     my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
                         ?? self.force_value(%sym, $name, 0)
                         !! $mu;
@@ -2852,9 +2907,9 @@ class Perl6::World is HLL::World {
         my str $cache_key;
         if !$nocache {
             my str $namedkey := '';
-            for %named {
-                $namedkey := $namedkey ~ $_.key ~ ',' ~ $_.value ~ ';'
-                    if nqp::defined($_.value);
+            for sorted_keys(%named) -> $key {
+                $namedkey := $namedkey ~ $key ~ ',' ~ %named{$key} ~ ';'
+                    if nqp::defined(%named{$key});
             }
             if $primitive eq 'bigint' {
                 $cache_key := "$type,bigint," ~ nqp::tostr_I(@value[0]);
@@ -3350,8 +3405,10 @@ class Perl6::World is HLL::World {
         method generate_buildplan_executor($/, $in_object, $in_build_plan) {
 
             # low level hash access
-            my $build_plan :=
-              nqp::getattr(nqp::decont($in_build_plan), $!List, '$!reified');
+            my $dc_build_plan := nqp::decont($in_build_plan);
+            my $build_plan := nqp::islist($dc_build_plan)
+                ?? $dc_build_plan
+                !! nqp::getattr($dc_build_plan, $!List, '$!reified');
 
             if nqp::elems($build_plan) -> $count {
 

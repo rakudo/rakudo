@@ -1,0 +1,28 @@
+# Template Makefile
+
+@include(Makefile-common-macros)@
+
+LAUNCHER = @default_prefix@-runner-default
+
+all:@for_backends( @backend_prefix@-all)@ $(LAUNCHER)
+
+install: @for_backends(@backend_prefix@-install )@ $(LAUNCHER)-install
+
+clean: @for_backends(@backend_prefix@-clean )@
+	$(RM_F) perl6@runner_suffix@ rakudo.js.map
+	$(PERL5) @shquot(@script(clean-precomps.pl)@)@ @shquot(@base_dir@)@
+
+test:		@for_backends(@backend_prefix@-test$(HARNESS_TYPE))@
+spectest:	@for_backends(@backend_prefix@-spectest$(HARNESS_TYPE))@
+coretest:	@for_backends(@backend_prefix@-coretest$(HARNESS_TYPE))@
+localtest:	@for_backends(@backend_prefix@-localtest$(HARNESS_TYPE))@
+stresstest: @for_backends(@backend_prefix@-stresstest$(HARNESS_TYPE))@
+
+@include(Makefile-common-rules)@
+
+@for_backends(@ctx_include(Makefile)@)@
+
+@nfp(t/*/*.t t/*.t t/*/*/*.t)@: all
+	$(@uc(@default_prefix@)@_HARNESS5_WITH_FUDGE) --verbosity=1 $@
+
+# vim: ft=make noexpandtab ts=4 sw=4

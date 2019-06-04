@@ -2,6 +2,8 @@
 
 use nqp;
 
+use Perl6::Compiler:from<NQP>;
+
 # the place where the default snaps are stored
 my $snaps := nqp::create(IterationBuffer);
 
@@ -565,8 +567,9 @@ INIT without $*SAMPLER {
 
 # Telemetry --------------------------------------------------------------------
 class Telemetry does Associative {
-    has $!sampler;
-    has $!samples;
+    has     $!sampler;
+    has     $!samples;
+    has Str $.message is rw;
 
     multi method new(Telemetry:) {
         my $self := nqp::create(self);
@@ -658,6 +661,7 @@ multi sub infix:<->(
     my $period := nqp::create(Telemetry::Period);
     nqp::bindattr($period,Telemetry,'$!sampler',
       nqp::getattr($a,Telemetry,'$!sampler'));
+    $period.message = $_ with $a.message;
 
     my \samples-a := nqp::getattr($a,Telemetry,'$!samples');
     my \samples-b := nqp::getattr($b,Telemetry,'$!samples');
@@ -698,8 +702,43 @@ multi sub infix:<->(
 
 # Making a Telemetry object procedurally ---------------------------------------
 proto sub snap(|) is export {*}
-multi sub snap(--> Nil)    { $snaps.push(Telemetry.new) }
-multi sub snap(@s --> Nil) { @s.push(Telemetry.new) }
+multi sub snap(--> Nil) {
+    $snaps.push(Telemetry.new);
+}
+multi sub snap(Str:D $message --> Nil) {
+    my \T := Telemetry.new;
+    T.message = $message;
+    $snaps.push(T);
+}
+my $snapshot-idx = 1;
+multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
+    my $filename =
+        $heap eqv True
+            ?? "heapsnapshot-$($*PID)-$($snapshot-idx++).mvmheap"
+            !! $heap ~~ Str:D
+                ?? $heap.IO.e
+                    ?? "$heap-$($*PID)-$($snapshot-idx++).mvmheap"
+                    !! $heap
+                !! $heap ~~ IO::Path:D
+                    ?? $heap.absolute
+                    !! $heap eqv False
+                        ?? do { $message eq "taking heap snapshot..."
+                                    ?? snap()
+                                    !! snap($message);
+                                return }
+                        !! die "heap argument to snap must be a Bool, Str, or IO::Path, not a $heap.WHAT()";
+
+    my \T1 := Telemetry.new;
+    T1.message = $message with $message;
+    $snaps.push(T1);
+    Perl6::Compiler.profiler-snapshot(kind => "heap", filename => $filename<>);
+    my \T2 := Telemetry.new;
+    T2.message = $filename;
+    $snaps.push(T2);
+}
+multi sub snap(@s --> Nil) {
+    @s.push(Telemetry.new);
+}
 
 # Starting the snapper / changing the period size
 my int $snapper-running;
@@ -858,6 +897,10 @@ HEADER
         }
 
         sub push-period($period --> Nil) {
+            with $period.message -> $message {
+                my $line = "#-- $message ";
+                nqp::push_s($text,$line ~ "-" x 80 - $line.chars);
+            }
             nqp::push_s($text,
               @formats.map( -> @info {
                   @info[DISPLAY]($period{@info[NAME]})

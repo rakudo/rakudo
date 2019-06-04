@@ -2,16 +2,16 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 9;
+plan 10;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
     ok  ｢use v6.c; BEGIN $*W.lang-ver-before: 'd'｣.EVAL, 'c is before d';
     nok ｢use v6.c; BEGIN $*W.lang-ver-before: 'c'｣.EVAL, 'c is not before d';
-    nok ｢use v6.d.PREVIEW; BEGIN $*W.lang-ver-before: 'd'｣.EVAL,
-        'd is not before d';
-    nok ｢use v6.d.PREVIEW; BEGIN $*W.lang-ver-before: 'c'｣.EVAL,
-        'd is not before c';
+    nok ｢use v6.e.PREVIEW; BEGIN $*W.lang-ver-before: 'e'｣.EVAL,
+        'e.PREVIEW is not before e';
+    nok ｢use v6.e.PREVIEW; BEGIN $*W.lang-ver-before: 'd'｣.EVAL,
+        'e is not before d';
     throws-like ｢BEGIN $*W.lang-ver-before: <6.d>｣, Exception,
         :self{.exception.message.contains: 'must be 1 char long'},
     'using wrong version format as argument throws';
@@ -151,3 +151,8 @@ subtest 'Distribution::Resource can be stringified', {
     lives-ok { Distribution::Resource.Str  }, 'Can use .Str';
     lives-ok { Distribution::Resource.gist }, 'Can use .gist';
 }
+
+class ParameterChild is Parameter {
+    has $.foobar
+}
+is ParameterChild.new(foobar => 'Baz').foobar, 'Baz', 'Subclassing of Parameter works';

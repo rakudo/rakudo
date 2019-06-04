@@ -66,7 +66,6 @@ my class DateTime does Dateish {
         nqp::bind($!month,     month);
         nqp::bind($!day,       day);
         nqp::bind(&!formatter, &formatter);
-        nqp::bind($!daycount,  nqp::null);
         $!hour      := hour;
         $!minute    := minute;
         $!second    := second;

@@ -181,7 +181,7 @@ static void p6stateinit(MVMThreadContext *tc, MVMuint8 *cur_op) {
 }
 
 /* First FIRST, use a flag in the object header. */
-#define RAKUDO_FIRST_FLAG 128
+#define RAKUDO_FIRST_FLAG 16384
 
 static MVMuint8 s_p6setfirstflag[] = {
     MVM_operand_obj | MVM_operand_write_reg,

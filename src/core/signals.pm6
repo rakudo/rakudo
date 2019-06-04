@@ -1,23 +1,15 @@
-my role Signally {
-    multi method CALL-ME(Int() $signum) {
-        return self unless $signum;
-        nextsame
-    }
+my role Signal::Signally {
+    multi method CALL-ME(Int() $signum) { $signum ?? (nextsame) !! self }
 }
-my enum Signal does Signally (
-    |nqp::stmts(
-        ( my $res  := nqp::list ),
-        ( my $iter := nqp::iterator(nqp::getsignals) ),
-        nqp::while(
-            $iter,
-            nqp::stmts(
-                ( my $p := nqp::p6bindattrinvres(nqp::create(Pair), Pair, '$!key', nqp::shift($iter)) ),
-                nqp::bindattr($p, Pair, '$!value', nqp::abs_i(nqp::shift($iter)) ),
-                nqp::push($res, $p),
-            ),
-        ),
+my enum Signal does Signal::Signally ( |do {
+        my $res  := nqp::list;
+        my $iter := nqp::iterator(nqp::getsignals);
+        nqp::push(
+          $res,
+          Pair.new(nqp::shift($iter), nqp::abs_i(nqp::shift($iter)))
+        ) while $iter;
         $res
-    )
+    }
 );
 
 proto sub signal($, |) {*}

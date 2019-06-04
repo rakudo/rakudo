@@ -107,8 +107,7 @@ my class Signature { # declared in BOOTSTRAP
             nqp::clone(@!params));
     }
 
-    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu,
-                     :&where = -> $ { 'where { ... }' } ) {
+    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu) {
         # Opening.
         my $text = $perl ?? ':(' !! '(';
 
@@ -124,9 +123,7 @@ my class Signature { # declared in BOOTSTRAP
 
             my $sep = '';
             for @params.kv -> $i, $param {
-                my $parmstr = $param.perl(:$elide-type, :&where);
-                return Nil without $parmstr;
-                $text ~= $sep ~ $parmstr;
+                $text ~= $sep ~ $_ with $param.perl(:$elide-type);
 
                 # Remove sigils from anon typed scalars, leaving type only
                 $text .= subst(/» ' $'$/,'') unless $perl;

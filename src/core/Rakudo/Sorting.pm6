@@ -275,8 +275,8 @@ my class Rakudo::Sorting {
           nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
             nqp::if(
               nqp::islt_i($n,2)
-                || nqp::iseq_i(
-                    mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),-1),
+                || nqp::isle_i(
+                    mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),0),
               $O,  # nothing to be done, we already have the result
               IB2(nqp::atpos($O,1),nqp::atpos($O,0))  # need to swap
             )

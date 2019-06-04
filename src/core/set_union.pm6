@@ -3,15 +3,15 @@
 #   ∪       union
 
 proto sub infix:<(|)>(|) is pure {*}
-multi sub infix:<(|)>()               { set()  }
-multi sub infix:<(|)>(QuantHash:D $a) { $a     } # Set/Bag/Mix
-multi sub infix:<(|)>(Any $a)         { $a.Set } # also for Iterable/Map
+multi sub infix:<(|)>()               { set() }
+multi sub infix:<(|)>(QuantHash:D \a) { a     } # Set/Bag/Mix
+multi sub infix:<(|)>(Any \a)         { a.Set } # also for Iterable/Map
 
-multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
+multi sub infix:<(|)>(Setty:D \a, Setty:D \b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      (my \araw := a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                    # first has elems
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        (my \braw := b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                               # second has elems
           (my \elems := nqp::clone(araw)),
           (my \iter := nqp::iterator(braw)),
@@ -23,27 +23,27 @@ multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
               nqp::iterval(iter)
             )
           ),
-          nqp::create($a.WHAT).SET-SELF(elems)    # make it a Set(Hash)
+          nqp::create(a.WHAT).SET-SELF(elems)     # make it a Set(Hash)
         ),
-        $a                                        # no second, so first
+        a                                         # no second, so first
       ),
       nqp::if(                                    # no first
-        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        (my \raw := b.RAW-HASH) && nqp::elems(raw),
         nqp::if(                                  # but second
-          nqp::istype($a,Set), $b.Set, $b.SetHash
+          nqp::istype(a,Set), b.Set, b.SetHash
         ),
-        $a                                        # both empty
+        a                                         # both empty
       )
     )
 }
-multi sub infix:<(|)>(Setty:D $a, Mixy:D  $b) { $a.Mixy  (|) $b }
-multi sub infix:<(|)>(Setty:D $a, Baggy:D $b) { $a.Baggy (|) $b }
+multi sub infix:<(|)>(Setty:D \a, Mixy:D  \b) { a.Mixy  (|) b }
+multi sub infix:<(|)>(Setty:D \a, Baggy:D \b) { a.Baggy (|) b }
 
-multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
+multi sub infix:<(|)>(Mixy:D \a, Mixy:D \b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      (my \araw := a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                    # first has elems
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        (my \braw := b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                               # second has elems
           (my \elems := nqp::clone(araw)),
           (my \iter := nqp::iterator(braw)),
@@ -64,29 +64,29 @@ multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
               nqp::bindkey(elems,key,nqp::atkey(braw,key))
             )
           ),
-          nqp::create($a.WHAT).SET-SELF(elems)   # make it a Mix(Hash)
+          nqp::create(a.WHAT).SET-SELF(elems)     # make it a Mix(Hash)
         ),
-        $a                                        # no second, so first
+        a                                         # no second, so first
       ),
       nqp::if(                                    # no first
-        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        (my \raw := b.RAW-HASH) && nqp::elems(raw),
         nqp::if(                                  # but second
-          nqp::istype($a,Mix), $b.Mix, $b.MixHash
+          nqp::istype(a,Mix), b.Mix, b.MixHash
         ),
-        $a                                        # both empty
+        a                                         # both empty
       )
     )
 }
 
-multi sub infix:<(|)>(Mixy:D $a, Baggy:D $b) { $a (|) $b.Mix }
-multi sub infix:<(|)>(Mixy:D $a, Setty:D $b) { $a (|) $b.Mix }
+multi sub infix:<(|)>(Mixy:D \a, Baggy:D \b) { a (|) b.Mix }
+multi sub infix:<(|)>(Mixy:D \a, Setty:D \b) { a (|) b.Mix }
 
-multi sub infix:<(|)>(Baggy:D $a, Mixy:D $b) { $a.Mixy (|) $b }
-multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
+multi sub infix:<(|)>(Baggy:D \a, Mixy:D \b) { a.Mixy (|) b }
+multi sub infix:<(|)>(Baggy:D \a, Baggy:D \b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      (my \araw := a.RAW-HASH) && nqp::elems(araw),
       nqp::if(                                    # first has elems
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        (my \braw := b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                               # second has elems
           (my \elems := nqp::clone(araw)),
           (my \iter := nqp::iterator(braw)),
@@ -109,34 +109,34 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
               nqp::bindkey(elems,key,nqp::atkey(braw,key))
             )
           ),
-          nqp::create($a.WHAT).SET-SELF(elems)   # make it a Bag
+          nqp::create(a.WHAT).SET-SELF(elems)     # make it a Bag
         ),
-        $a                                        # no second, so first
+        a                                         # no second, so first
       ),
       nqp::if(                                    # no first
-        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        (my \raw := b.RAW-HASH) && nqp::elems(raw),
         nqp::if(                                  # but second
-          nqp::istype($a,Bag), $b.Bag, $b.BagHash
+          nqp::istype(a,Bag), b.Bag, b.BagHash
         ),
-        $a                                        # both empty
+        a                                         # both empty
       )
     )
 }
-multi sub infix:<(|)>(Baggy:D $a, Setty:D $b) { $a (|) $b.Bag }
+multi sub infix:<(|)>(Baggy:D \a, Setty:D \b) { a (|) b.Bag }
 
-multi sub infix:<(|)>(Map:D $a, Map:D $b) {
+multi sub infix:<(|)>(Map:D \a, Map:D \b) {
     nqp::create(Set).SET-SELF(
       Rakudo::QuantHash.ADD-MAP-TO-SET(
-        Rakudo::QuantHash.COERCE-MAP-TO-SET($a),
-        $b
+        Rakudo::QuantHash.COERCE-MAP-TO-SET(a),
+        b
       )
     )
 }
 
-multi sub infix:<(|)>(Iterable:D $a, Iterable:D $b) {
+multi sub infix:<(|)>(Iterable:D \a, Iterable:D \b) {
     nqp::if(
-      (my $aiterator := $a.flat.iterator).is-lazy
-        || (my $biterator := $b.flat.iterator).is-lazy,
+      (my $aiterator := a.flat.iterator).is-lazy
+        || (my $biterator := b.flat.iterator).is-lazy,
       Failure.new(X::Cannot::Lazy.new(:action<union>,:what<set>)),
       nqp::create(Set).SET-SELF(
         Rakudo::QuantHash.ADD-PAIRS-TO-SET(
@@ -152,38 +152,24 @@ multi sub infix:<(|)>(Iterable:D $a, Iterable:D $b) {
     )
 }
 
-multi sub infix:<(|)>(Failure:D $a, Any $b) { $a.throw }
-multi sub infix:<(|)>(Any $a, Failure:D $b) { $b.throw }
-multi sub infix:<(|)>(Any $a, Any $b) {
-    nqp::if(
-      nqp::isconcrete($a),
-      nqp::if(
-        nqp::istype($a,Mixy),
-        infix:<(|)>($a, $b.Mix),
-        nqp::if(
-          nqp::istype($a,Baggy),
-          infix:<(|)>($a, $b.Bag),
-          nqp::if(
-            nqp::istype($a,Setty),
-            infix:<(|)>($a, $b.Set),
-            nqp::if(
-              nqp::isconcrete($b),
-              nqp::if(
-                nqp::istype($b,Mixy),
-                infix:<(|)>($a.Mix, $b),
-                nqp::if(
-                  nqp::istype($b,Baggy),
-                  infix:<(|)>($a.Bag, $b),
-                  infix:<(|)>($a.Set, $b.Set)
-                )
-              ),
-              infix:<(|)>($a, $b.Set)
-            )
-          )
-        )
-      ),
-      infix:<(|)>($a.Set, $b)
-    )
+multi sub infix:<(|)>(Failure:D \a, Any $) { a.throw }
+multi sub infix:<(|)>(Any $, Failure:D \b) { b.throw }
+multi sub infix:<(|)>(Any \a, Any \b) {
+    nqp::isconcrete(a)
+      ?? nqp::istype(a,Mixy)
+        ?? a (|) b.Mix
+        !! nqp::istype(a,Baggy)
+          ?? a (|) b.Bag
+          !! nqp::istype(a,Setty)
+            ?? a (|) b.Set
+            !! nqp::isconcrete(b)
+              ?? nqp::istype(b,Mixy)
+                ?? a.Mix (|) b
+                !! nqp::istype(b,Baggy)
+                  ?? a.Bag (|) b
+                  !! a.Set (|) b.Set
+              !! a (|) b.Set
+      !! a.Set (|) b
 }
 
 multi sub infix:<(|)>(**@p) {

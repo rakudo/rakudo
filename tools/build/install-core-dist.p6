@@ -14,6 +14,8 @@ my %provides =
     "snapper"                       => "lib/snapper.pm6",
 ;
 
+%provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.pm6" if $*VM.name eq 'moar';
+
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
     :prefix(@*ARGS[0]),
     :next-repo(

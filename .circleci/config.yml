@@ -1,0 +1,56 @@
+version: 2.1
+
+variables:
+  build-parameters: &build-parameters
+    parameters:
+      moar-rev:
+        type: string
+        default: ""
+      nqp-rev:
+        type: string
+        default: ""
+
+jobs:
+  test-linux:
+    machine: true
+    <<: *build-parameters
+    steps:
+      - build-rakudo:
+          nqp-rev: << parameters.nqp-rev >>
+          moar-rev: << parameters.moar-rev >>
+
+  test-macos:
+    macos:
+      xcode: "10.2.0"
+    <<: *build-parameters
+    steps:
+      - build-rakudo:
+          nqp-rev: << parameters.nqp-rev >>
+          moar-rev: << parameters.moar-rev >>
+
+commands:
+  build-rakudo:
+    description: "Build MoarVM, NQP, and Rakudo"
+    <<: *build-parameters
+    steps:
+      - checkout
+      - run:
+          name: Build and test rakudo
+          command: |
+            perl Configure.pl --gen-moar=<< parameters.moar-rev >> --gen-nqp=<< parameters.nqp-rev >>
+            make test
+            make install
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-linux
+      - test-linux:
+          nqp-rev: HEAD
+          moar-rev: HEAD
+
+      - test-macos
+      - test-macos:
+          nqp-rev: HEAD
+          moar-rev: HEAD

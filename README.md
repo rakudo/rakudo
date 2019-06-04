@@ -25,7 +25,7 @@ twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-
 
 ## Building and Installing Rakudo
 
-[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
+[![Build Status](https://circleci.com/gh/rakudo/rakudo.svg?style=shield)](https://circleci.com/gh/rakudo/rakudo)[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
 
 See the INSTALL.txt file for detailed prerequisites and build and
 installation instructions.
@@ -110,6 +110,40 @@ The format for the `--backends` flag is:
     $ perl Configure.pl --backends=moar,jvm
     $ perl Configure.pl --backends=ALL
 
+### Testing
+
+Run the full spectest:
+
+    $ make spectest   # <== takes a LONG time!!
+
+To run a single test, one must use `make` because of the tooling required to
+run the spectests.  For example:
+
+    $ make t/spec/S12-traits/parameterized.t
+
+Run all tests in one S* directory with a sh script. One example:
+
+    $ cat run-tests.sh
+    #!/bin/sh
+    
+    # specify the desired directory:
+    D='t/spec/S26-documentation'
+    
+    # collect the individual files
+    F=$(ls $D/*t)
+    
+    # and run them
+    for f in $F
+    do
+        echo "Testing file '$f'"
+        make $f
+    done
+    echo "All tests in dir '$D' have been run."
+
+That can be written as a one-liner:
+
+    for f in $(ls t/spec/S26-documentation/*t); do make "$f"; done
+    
 ## Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available with

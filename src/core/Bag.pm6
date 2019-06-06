@@ -9,7 +9,7 @@ my class Bag does Baggy {
 #--- introspection methods
     multi method WHICH(Bag:D: --> ValueObjAt:D)   {
         nqp::if(
-          nqp::attrinited(self,Bag,'$!WHICH'),
+          nqp::isconcrete(nqp::getattr(self,Bag,'$!WHICH')),
           $!WHICH,
           $!WHICH := nqp::box_s(
             nqp::concat(
@@ -30,7 +30,7 @@ my class Bag does Baggy {
     }
     method total(Bag:D: --> Int:D) {
         nqp::if(
-          nqp::attrinited(self,Bag,'$!total'),
+          nqp::isconcrete(nqp::getattr(self,Bag,'$!total')),
           $!total,
           $!total := Rakudo::QuantHash.BAG-TOTAL($!elems)
         )

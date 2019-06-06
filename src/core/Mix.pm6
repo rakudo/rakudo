@@ -34,7 +34,7 @@ my class Mix does Mixy {
 #--- introspection methods
     multi method WHICH(Mix:D: --> ValueObjAt:D)    {
         nqp::if(
-          nqp::attrinited(self,Mix,'$!WHICH'),
+          nqp::isconcrete(nqp::getattr(self,Mix,'$!WHICH')),
           $!WHICH,
           $!WHICH := nqp::box_s(
             nqp::concat(
@@ -55,14 +55,14 @@ my class Mix does Mixy {
     }
     method total(Mix:D: --> Real:D) {
         nqp::if(
-          nqp::attrinited(self,Mix,'$!total'),
+          nqp::isconcrete(nqp::getattr(self,Mix,'$!total')),
           $!total,
           $!total := Rakudo::QuantHash.MIX-TOTAL($!elems)
         )
     }
     method !total-positive(Mix:D: --> Real:D) {
         nqp::if(
-          nqp::attrinited(self,Mix,'$!total-positive'),
+          nqp::isconcrete(nqp::getattr(self,Mix,'$!total-positive')),
           $!total-positive,
           $!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems)
         )

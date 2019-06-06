@@ -29,6 +29,8 @@ role Perl6::Metamodel::REPRComposeProtocol {
                     # ...then an array of hashes per attribute...
                     my @attrs;
                     nqp::push(@type_info, @attrs);
+                    my $build := $type_obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
+                    my $has_build := !nqp::isnull($build) && nqp::isconcrete($build) ?? 1 !! 0;
                     for $type_obj.HOW.attributes(nqp::decont($type_obj), :local) -> $attr {
                         my %attr_info;
                         %attr_info<name> := $attr.name;
@@ -38,7 +40,26 @@ role Perl6::Metamodel::REPRComposeProtocol {
                             %attr_info<box_target> := 1;
                         }
                         if nqp::can($attr, 'auto_viv_container') {
-                            %attr_info<auto_viv_container> := $attr.auto_viv_container;
+                            # We only need lazy auto-viv of the container if we need to do
+                            # attrinited on it. In other cases, we're better off creating
+                            # it at object allocation time. The case we need to do the
+                            # attrinited is when the attribute has a default *and* we
+                            # have a BUILD submethod. Temporarily, we also force this
+                            # to happen when the REPR is not P6opaque.
+                            my $viv_value := $attr.auto_viv_container;
+#?if moar
+                            my $not_p6o := nqp::reprname($viv_value) ne 'P6opaque';
+                            if $not_p6o || $has_build &&
+                                    (nqp::can($attr, 'build') && $attr.build ||
+                                     nqp::can($attr, 'required') && $attr.required) {
+#?endif
+                                %attr_info<auto_viv_container> := $viv_value;
+#?if moar
+                            }
+                            else {
+                                %attr_info<setup_prototype> := $viv_value;
+                            }
+#?endif
                         }
                         if $attr.positional_delegate {
                             %attr_info<positional_delegate> := 1;

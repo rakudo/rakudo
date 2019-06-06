@@ -563,10 +563,14 @@ class Perl6::World is HLL::World {
 
         my str $version := ~$ver-match;
         my @vparts := nqp::split('.', $version);
+        my $vWhatever := nqp::isge_i(nqp::index($version, '*'), 0);
+        my $vPlus := nqp::isge_i(nqp::index($version, '+'), 0);
         my $default_rev := nqp::substr($comp.config<language-version>, 2, 1);
 
         # Do we have dot-splitted version string?
-        if ((@vparts > 1) && nqp::iseq_s(@vparts[0], 'v6')) || ($version eq 'v6') {
+        if !($vWhatever || $vPlus) &&
+            ( ((@vparts > 1) && nqp::iseq_s(@vparts[0], 'v6'))
+              || ($version eq 'v6') ) {
             my $revision := @vparts[1] || $default_rev;
             my $lang_ver := '6.' ~ $revision;
 
@@ -589,16 +593,33 @@ class Perl6::World is HLL::World {
 
         my $Version := self.find_symbol: ['Version'];
         my $vWant   := $ver-match.ast.compile_time_value;
-        my $rev := $vWant.parts.AT-POS(1);
-        my str $rev_mod := $vWant.parts.elems > 2 ?? $vWant.parts.AT-POS(2) !! '';
+        my $vWantElems := $vWant.parts.elems;
+        my %lang_rev := $comp.language_revisions;
+        unless $vWhatever || $vWant.plus {
+            # It makes no sense checking for modifier when something like v6.* or v6.c+ is wanted.
+            my $rev := $vWant.parts.AT-POS(1);
+            my str $rev_mod := $vWantElems > 2 ?? $vWant.parts.AT-POS(2) !! '';
+            self."!check-version-modifier"($ver-match, $rev, $rev_mod, $comp);
+        }
 
-        self."!check-version-modifier"($ver-match, $rev, $rev_mod, $comp);
+        my @can_ver_reversed;
+        for $comp.can_language_versions { nqp::unshift(@can_ver_reversed, $_) }
 
-        for $comp.can_language_versions -> $can-ver {
+        for @can_ver_reversed -> $can-ver {
+            # Skip if tried version doesn't match the wanted one
             next unless $vWant.ACCEPTS: my $vCan := $Version.new: $can-ver;
 
+            my $vCanElems := $vCan.parts.elems;
             my $can_rev := $vCan.parts.AT-POS: 1;
-            $comp.set_language_version:       '6.' ~ $can_rev;
+
+            # Skip if number of parts in wanted version is different. For example, 6.e.PREVIEW would be skipped for 6.*
+            # Skip if revision with a required modifier unless explicitly asked for
+            next if nqp::isne_i($vWantElems, $vCanElems)
+                    || (nqp::iseq_i($vWantElems, 2)
+                        && nqp::existskey(%lang_rev{$can_rev}, 'require'));
+
+            $comp.set_language_version: '6.' ~ $can_rev;
+            $comp.set_language_modifier: $vCan.parts.AT-POS: 2 if $vCanElems > 2;
 
             if $can_rev eq 'c' {
                 $*CAN_LOWER_TOPIC := 0;

@@ -4,6 +4,7 @@ use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
     has $!language_version;  # Default language version in form 6.c
+    has $!language_modifier; # Active language modifier; PREVIEW mostly.
     has $!language_revisions; # Hash of language revision letters. See gen/<vm>/main-version.nqp
     has $!can_language_versions; # List of valid language version
 
@@ -17,9 +18,13 @@ class Perl6::Compiler is HLL::Compiler {
     method language_name()    { 'Perl' }
     method reset_language_version() {
         $!language_version := NQPMu;
+        $!language_modifier := NQPMu;
     }
     method set_language_version($version) {
         $!language_version := $version;
+    }
+    method set_language_modifier($modifier) {
+        $!language_modifier := $modifier;
     }
     method language_version() {
         if nqp::defined($!language_version) {
@@ -28,6 +33,9 @@ class Perl6::Compiler is HLL::Compiler {
         else {
             $!language_version := self.config<language-version>
         }
+    }
+    method language_modifier() {
+        $!language_modifier
     }
     method    can_language_versions() {
             $!can_language_versions

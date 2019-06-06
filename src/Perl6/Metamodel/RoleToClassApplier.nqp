@@ -191,14 +191,17 @@ my class RoleToClassApplier {
             }
         }
 
-        # Compose in any role attributes.
+        # Compose in any role attributes. We prepend them, so role attributes are
+        # initialized before those in the class.
         my @attributes := $to_compose_meta.attributes($to_compose, :local(1));
-        for @attributes {
-            if has_attribute($target, $_.name) {
-                nqp::die("Attribute '" ~ $_.name ~ "' already exists in the class '" ~
+        my int $i := nqp::elems(@attributes);
+        while $i-- > 0 {
+            my $attr := @attributes[$i];
+            if has_attribute($target, $attr.name) {
+                nqp::die("Attribute '" ~ $attr.name ~ "' already exists in the class '" ~
                     $target.HOW.name($target) ~ "', but a role also wishes to compose it");
             }
-            $target.HOW.add_attribute($target, $_);
+            $target.HOW.add_attribute($target, $attr, :prepend);
         }
 
         # Compose in any parents.

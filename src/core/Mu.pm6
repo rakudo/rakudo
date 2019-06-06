@@ -143,6 +143,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         my $bp := nqp::findmethod(self.HOW,'BUILDALLPLAN')(self.HOW, self);
         my int $count = nqp::elems($bp);
         my int $i = -1;
+        my $build;
+        my $required-why;
 
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$count),
@@ -151,7 +153,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             nqp::istype((my $task := nqp::atpos($bp,$i)),Callable),
             nqp::if(                             # BUILD/TWEAK
               nqp::istype(
-                (my $build := nqp::if(
+                ($build := nqp::if(
                   nqp::elems($init),
                   $task(self,|%attrinit),
                   $task(self)
@@ -188,13 +190,56 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                         nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
                       )
                     )
+                  ),
+                  nqp::if(
+                    !nqp::isnull($required-why := nqp::atpos($task, 4)),
+                    X::Attribute::Required.new(
+                      name => nqp::atpos($task,2),
+                      why  => $required-why
+                    ).throw,
+                    nqp::if(
+                      nqp::isconcrete($build := nqp::atpos($task, 5)),
+                      nqp::if(
+                        nqp::iseq_i($code,1),
+                        nqp::bindattr_i(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2),
+                          nqp::if(
+                            nqp::istype($build,Block),
+                            ($build(self,0)),
+                            $build
+                          )
+                        ),
+                        nqp::if(
+                          nqp::iseq_i($code,2),
+                          nqp::bindattr_n(self,
+                            nqp::atpos($task,1),
+                            nqp::atpos($task,2),
+                            nqp::if(
+                              nqp::istype($build,Block),
+                              ($build(self,0e0)),
+                              $build
+                            )
+                          ),
+                          nqp::bindattr_s(self,
+                            nqp::atpos($task,1),
+                            nqp::atpos($task,2),
+                            nqp::if(
+                              nqp::istype($build,Block),
+                              ($build(self,'')),
+                              $build
+                            )
+                          )
+                        )
+                      )
+                    )
                   )
                 ),
 
                 nqp::if(
                   nqp::iseq_i($code,4),
                   nqp::unless(                   # 4
-                    nqp::attrinited(self,
+                    nqp::atpos($task, 4) || nqp::attrinited(self,
                       nqp::atpos($task,1),
                       nqp::atpos($task,2)
                     ),
@@ -215,7 +260,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                   nqp::if(
                     nqp::iseq_i($code,5),
                     nqp::if(                     # 5
-                      nqp::iseq_i(my $int = nqp::getattr_i(self,
+                      nqp::atpos($task, 4) || nqp::iseq_i(my $int = nqp::getattr_i(self,
                         nqp::atpos($task,1),
                         nqp::atpos($task,2)
                       ), 0),
@@ -233,7 +278,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                     nqp::if(
                       nqp::iseq_i($code,6),
                       nqp::if(                   # 6
-                        nqp::iseq_n(my num $num = nqp::getattr_n(self,
+                        nqp::atpos($task, 4) || nqp::iseq_n(my num $num = nqp::getattr_n(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2)
                         ), 0e0),
@@ -251,7 +296,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                       nqp::if(
                         nqp::iseq_i($code,7),
                         nqp::if(                 # 7
-                          nqp::isnull_s(my str $str = nqp::getattr_s(self,
+                          nqp::atpos($task, 4) || nqp::isnull_s(my str $str = nqp::getattr_s(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2)
                           )),
@@ -269,7 +314,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                       nqp::if(
                         nqp::iseq_i($code,8),
                         nqp::unless(             # 8
-                          nqp::attrinited(self,
+                          nqp::atpos($task, 4) || nqp::attrinited(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2)
                           ),
@@ -317,19 +362,43 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                     nqp::existskey($init,nqp::atpos($task,3)),
                     (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
                       = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                    nqp::if(
+                      !nqp::isnull($required-why := nqp::atpos($task, 4)),
+                      X::Attribute::Required.new(
+                        name => nqp::atpos($task,2),
+                        why  => $required-why
+                      ).throw,
+                      nqp::if(
+                        nqp::isconcrete($build := nqp::atpos($task, 5)),
+                        nqp::if(
+                          nqp::istype($build,Block),
+                          nqp::stmts(
+                            (my \attrb := nqp::getattr(self,
+                              nqp::atpos($task,1),
+                              nqp::atpos($task,2)
+                            )),
+                            (attrb = $build(self,attrb))
+                          ),
+                          nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2)) =
+                            $build
+                        )
+                      )
+                    )
                   )
                 )
               )
             );
             self
-        }
+    }
 
-        method BUILD_LEAST_DERIVED(%attrinit) {
-            my $init := nqp::getattr(%attrinit,Map,'$!storage');
-            # Get the build plan for just this class.
-            my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
-            my int $count = nqp::elems($bp);
-            my int $i     = -1;
+    method BUILD_LEAST_DERIVED(%attrinit) {
+        my $init := nqp::getattr(%attrinit,Map,'$!storage');
+        # Get the build plan for just this class.
+        my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
+        my int $count = nqp::elems($bp);
+        my int $i     = -1;
+        my $build;
+        my $required-why;
 
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$count),
@@ -338,7 +407,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             nqp::istype((my $task := nqp::atpos($bp,$i)),Callable),
             nqp::if(                             # BUILD/TWEAK
               nqp::istype(
-                (my $build := nqp::if(
+                ($build := nqp::if(
                   nqp::elems($init),
                   $task(self,|%attrinit),
                   $task(self)
@@ -375,13 +444,56 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                         nqp::decont(%attrinit.AT-KEY(nqp::atpos($task,3)))
                       )
                     )
+                  ),
+                  nqp::if(
+                    !nqp::isnull($required-why := nqp::atpos($task, 4)),
+                    X::Attribute::Required.new(
+                      name => nqp::atpos($task,2),
+                      why  => $required-why
+                    ).throw,
+                    nqp::if(
+                      nqp::isconcrete($build := nqp::atpos($task, 5)),
+                      nqp::if(
+                        nqp::iseq_i($code,1),
+                        nqp::bindattr_i(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2),
+                          nqp::if(
+                            nqp::istype($build,Block),
+                            ($build(self,0)),
+                            $build
+                          )
+                        ),
+                        nqp::if(
+                          nqp::iseq_i($code,2),
+                          nqp::bindattr_n(self,
+                            nqp::atpos($task,1),
+                            nqp::atpos($task,2),
+                            nqp::if(
+                              nqp::istype($build,Block),
+                              ($build(self,0e0)),
+                              $build
+                            )
+                          ),
+                          nqp::bindattr_s(self,
+                            nqp::atpos($task,1),
+                            nqp::atpos($task,2),
+                            nqp::if(
+                              nqp::istype($build,Block),
+                              ($build(self,'')),
+                              $build
+                            )
+                          )
+                        )
+                      )
+                    )
                   )
                 ),
 
                 nqp::if(
                   nqp::iseq_i($code,4),
                   nqp::unless(                   # 4
-                    nqp::attrinited(self,
+                    nqp::atpos($task, 4) || nqp::attrinited(self,
                       nqp::atpos($task,1),
                       nqp::atpos($task,2)
                     ),
@@ -402,7 +514,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                   nqp::if(
                     nqp::iseq_i($code,5),
                     nqp::if(                     # 5
-                      nqp::iseq_i(my $int = nqp::getattr_i(self,
+                      nqp::atpos($task, 4) || nqp::iseq_i(my $int = nqp::getattr_i(self,
                         nqp::atpos($task,1),
                         nqp::atpos($task,2)
                       ), 0),
@@ -420,7 +532,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                     nqp::if(
                       nqp::iseq_i($code,6),
                       nqp::if(                   # 6
-                        nqp::iseq_n(my num $num = nqp::getattr_n(self,
+                        nqp::atpos($task, 4) || nqp::iseq_n(my num $num = nqp::getattr_n(self,
                           nqp::atpos($task,1),
                           nqp::atpos($task,2)
                         ), 0e0),
@@ -438,7 +550,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                       nqp::if(
                         nqp::iseq_i($code,7),
                         nqp::if(                 # 7
-                          nqp::isnull_s(my str $str = nqp::getattr_s(self,
+                          nqp::atpos($task, 4) || nqp::isnull_s(my str $str = nqp::getattr_s(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2)
                           )),
@@ -456,7 +568,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                       nqp::if(
                         nqp::iseq_i($code,8),
                         nqp::unless(             # 8
-                          nqp::attrinited(self,
+                          nqp::atpos($task, 4) || nqp::attrinited(self,
                             nqp::atpos($task,1),
                             nqp::atpos($task,2)
                           ),
@@ -521,10 +633,32 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                                 die('Invalid ' ~ self.^name ~ ".BUILD_LEAST_DERIVED plan: $code"),
               )))))))))),
 
-              nqp::if(                           # 0
+              nqp::if(                       # 0
                 nqp::existskey($init,nqp::atpos($task,3)),
                 (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
                   = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                nqp::if(
+                  !nqp::isnull($required-why := nqp::atpos($task, 4)),
+                  X::Attribute::Required.new(
+                    name => nqp::atpos($task,2),
+                    why  => $required-why
+                  ).throw,
+                  nqp::if(
+                    nqp::isconcrete($build := nqp::atpos($task, 5)),
+                    nqp::if(
+                      nqp::istype($build,Block),
+                      nqp::stmts(
+                        (my \attrb := nqp::getattr(self,
+                          nqp::atpos($task,1),
+                          nqp::atpos($task,2)
+                        )),
+                        (attrb = $build(self,attrb))
+                      ),
+                      nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2)) =
+                        $build
+                    )
+                  )
+                )
               )
             )
           )

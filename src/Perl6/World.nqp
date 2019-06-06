@@ -3598,6 +3598,19 @@ class Perl6::World is HLL::World {
                                 );
                             }
 
+                            # 0 case where we had no value, so we might need to complain
+                            # about a missing required attribute or run a build.
+                            else {
+                                my $required := nqp::atpos($task, 4);
+                                my $build := nqp::atpos($task, 5);
+                                if !nqp::isnull($required) {
+                                    $if.push(self.'!required'(nqp::atpos($task, 2), $required));
+                                }
+                                elsif !nqp::isnull($build) {
+                                    $if.push(self.'!obj-attr-build'($self, $class, $attr, $build));
+                                }
+                            }
+
 # ),
                             $stmts.push($if);
                         }
@@ -3611,7 +3624,7 @@ class Perl6::World is HLL::World {
 # ),
                             my $tmp := QAST::Node.unique('buildall_tmp_');
                             $stmts.push(
-                              QAST::Op.new(:op<unless>,
+                              my $if := QAST::Op.new(:op<unless>,
                                 QAST::Op.new(:op<isnull>,
                                   QAST::Op.new(:op<bind>,
                                     QAST::Var.new(:decl<var>, :name($tmp), :scope<local>),
@@ -3626,69 +3639,45 @@ class Perl6::World is HLL::World {
                                 )
                               )
                             );
+
+                            my $required := nqp::atpos($task, 4);
+                            my $build := nqp::atpos($task, 5);
+                            if !nqp::isnull($required) {
+                                $if.push(self.'!required'(nqp::atpos($task, 2), $required));
+                            }
+                            elsif !nqp::isnull($build) {
+                                $if.push(self.'!native-attr-build'($self, $class, $attr,
+                                    $build, $code));
+                            }
                         }
 
                         # 4 = set opaque with default if not set yet
                         elsif $code == 4 {
-
-# nqp::unless(
-#   nqp::attrinited(self,Foo,'$!a'),
-                            my $unless := QAST::Op.new( :op<unless>,
-                                QAST::Op.new( :op<attrinited>,
-                                  $self, $class, $attr
-                                )
-                            );
-
-# nqp::getattr(self,Foo,'$!a')
-                            my $getattr := QAST::Op.new( :op<getattr>,
-                              $self, $class, $attr
-                            );
-
-                            my $initializer := nqp::istype(
-                              nqp::atpos($task,3),$!Block
-# $code(self,nqp::getattr(self,Foo,'$!a'))
-                            ) ?? QAST::Op.new( :op<call>,
-                                   QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                   $self, $getattr
-                                 )
-# $value
-                              !! QAST::WVal.new(:value(nqp::atpos($task,3)));
-
-                            my $sigil := nqp::substr(nqp::atpos($task,2),0,1);
-# nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')), :INITIALIZE)
-                            if $sigil eq '@' || $sigil eq '%' {
-                                $unless.push(
-                                  QAST::Op.new( :op<callmethod>, :name<STORE>,
-                                    $getattr, $initializer, QAST::WVal.new(
-                                      :value($!w.find_symbol(
-                                        ['Bool','True'], :setting-only
-                                      )),
-                                      :named('INITIALIZE')
-                                    )
-                                  )
+                            if nqp::atpos($task, 4) {
+                                $stmts.push(
+                                    self.'!obj-attr-build'($self, $class, $attr, nqp::atpos($task, 3))
                                 );
                             }
-
                             else {
-# (nqp::getattr(self,Foo,'$!a') = $code(self,nqp::getattr(self,Foo,'$!a')))
-                                $unless.push(
-                                  QAST::Op.new(
-                                    :op( $sigil eq '$' || $sigil eq '&'
-                                           ?? 'p6assign' !! 'p6store'
+# nqp::unless(
+#   nqp::attrinited(self,Foo,'$!a'),
+                                $stmts.push(QAST::Op.new( :op<unless>,
+                                    QAST::Op.new( :op<attrinited>,
+                                      $self, $class, $attr
                                     ),
-                                    $getattr, $initializer
-                                  )
-                                )
+                                    self.'!obj-attr-build'($self, $class, $attr, nqp::atpos($task, 3))
+                                ));
                             }
-
 # ),
-                            $stmts.push($unless);
-
-                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
                         # 5,6 = set native numeric with default if not set
                         elsif $code < 7 {
+                            if nqp::atpos($task, 4) {
+                                $stmts.push(self.'!native-attr-build'($self, $class, $attr,
+                                    nqp::atpos($task,3), $code - 4));
+                            }
+                            else {
 # nqp::if(
 #   nqp::iseq_x(
 #     nqp::getattr_x(self,Foo,'$!a'),
@@ -3697,36 +3686,21 @@ class Perl6::World is HLL::World {
 #   nqp::bindattr_x(self,Foo,'$!a',
 #     $initializer(self,nqp::getattr_x(self,Foo,'$!a')))
 # ),
-                            my $getattr := QAST::Op.new(
-                              :op('getattr' ~ @psp[$code - 4]),
-                              $self, $class, $attr
-                            );
-                            $stmts.push(
-                              QAST::Op.new( :op<if>,
-                                QAST::Op.new( :op('iseq' ~ @psp[$code - 4]),
-                                  $getattr,
-                                  @psd[$code - 4],
-                                ),
-                                QAST::Op.new( :op('bindattr' ~ @psp[$code - 4]),
-                                  $self, $class, $attr,
-                                  nqp::if(
-                                    nqp::istype(nqp::atpos($task,3),$!Block),
-                                    QAST::Op.new( :op<call>,
-                                      QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                      $self,
-                                      $getattr
+                                my $getattr := QAST::Op.new(
+                                  :op('getattr' ~ @psp[$code - 4]),
+                                  $self, $class, $attr
+                                );
+                                $stmts.push(
+                                  QAST::Op.new( :op<if>,
+                                    QAST::Op.new( :op('iseq' ~ @psp[$code - 4]),
+                                      $getattr,
+                                      @psd[$code - 4],
                                     ),
-                                    nqp::if(
-                                      nqp::iseq_i($code,5),
-                                      QAST::IVal.new(:value(nqp::atpos($task,3))),
-                                      QAST::NVal.new(:value(nqp::atpos($task,3)))
-                                    )
+                                    self.'!native-attr-build'($self, $class, $attr,
+                                        nqp::atpos($task,3), $code - 4)
                                   )
-                                )
-                              )
-                            );
-
-                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                                );
+                            }
                         }
 
                         # 7 = set native string with default if not set
@@ -3742,48 +3716,34 @@ class Perl6::World is HLL::World {
                             $stmts.push(
                               QAST::Op.new( :op<if>,
                                 QAST::Op.new( :op<isnull_s>, $getattr),
-                                QAST::Op.new( :op<bindattr_s>,
-                                  $self, $class, $attr,
-                                  nqp::if(
-                                    nqp::istype(nqp::atpos($task,3),$!Block),
-                                    QAST::Op.new( :op<call>,
-                                      QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                      $self,
-                                      $getattr
-                                    ),
-                                    QAST::SVal.new(:value(nqp::atpos($task,3)))
-                                  )
-                                )
+                                self.'!native-attr-build'($self, $class, $attr,
+                                    nqp::atpos($task,3), $code - 4)
                               )
                             );
-
-                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
-                        # 8 = bail if opaque not yet initialized
+                        # 8 = bail if opaque not yet initialized, or unconditionally
                         elsif $code == 8 {
-
+                            if nqp::atpos($task, 4) {
+# X::Attribute::Required.new(name => '$!a', why => (value)).throw
+                                $stmts.push(
+                                  self.'!required'(nqp::atpos($task, 2), nqp::atpos($task, 3))
+                                );
+                            }
+                            else {
 # nqp::unless(
 #   nqp::attrinited(self,Foo,'$!a'),
-#   X::Attribute::Required.new(name => '$!a', why => (value))
+#   X::Attribute::Required.new(name => '$!a', why => (value)).throw
 # ),
-                            $stmts.push(
-                              QAST::Op.new( :op<unless>,
-                                QAST::Op.new( :op<attrinited>,
-                                  $self, $class, $attr
-                                ),
-                                QAST::Op.new( :op<callmethod>, :name<throw>,
-                                  QAST::Op.new( :op<callmethod>, :name<new>,
-                                    QAST::WVal.new(
-                                      :value($!X-Attribute-Required)),
-                                    QAST::SVal.new( :named('name'),
-                                      :value(nqp::atpos($task,2))),
-                                    QAST::WVal.new( :named('why'),
-                                      :value(nqp::atpos($task,3)))
+                                $stmts.push(
+                                  QAST::Op.new( :op<unless>,
+                                    QAST::Op.new( :op<attrinited>,
+                                      $self, $class, $attr
+                                    ),
+                                    self.'!required'(nqp::atpos($task, 2), nqp::atpos($task, 3))
                                   )
-                                )
-                              )
-                            );
+                                );
+                            }
                         }
 
                         # 9 = run attribute container initializer
@@ -3930,6 +3890,81 @@ class Perl6::World is HLL::World {
                 $!empty_buildplan_method :=
                   $!w.create_code_object($block, 'Submethod', $sig)
             }
+        }
+
+        method !required($name, $why) {
+            QAST::Op.new( :op<callmethod>, :name<throw>,
+                QAST::Op.new( :op<callmethod>, :name<new>,
+                    QAST::WVal.new( :value($!X-Attribute-Required) ),
+                    QAST::SVal.new( :named('name'), :value($name) ),
+                    QAST::WVal.new( :named('why'), :value($why) )
+                )
+            )
+        }
+
+        method !obj-attr-build($self, $class, $attr, $build) {
+            $!w.add_object_if_no_sc($build);
+
+# nqp::getattr(self,Foo,'$!a')
+            my $getattr := QAST::Op.new( :op<getattr>,
+              $self, $class, $attr
+            );
+
+            my $initializer := nqp::istype(
+              $build,$!Block
+# $code(self,nqp::getattr(self,Foo,'$!a'))
+            ) ?? QAST::Op.new( :op<call>,
+                   QAST::WVal.new(:value($build)),
+                   $self, $getattr
+                 )
+# $value
+              !! QAST::WVal.new(:value($build));
+
+            my $sigil := nqp::substr($attr.value, 0, 1);
+# nqp::getattr(self,Foo,'$!a').STORE($code(self,nqp::getattr(self,Foo,'$!a')), :INITIALIZE)
+            if $sigil eq '@' || $sigil eq '%' {
+                QAST::Op.new( :op<callmethod>, :name<STORE>,
+                    $getattr, $initializer, QAST::WVal.new(
+                        :value($!w.find_symbol(['Bool','True'], :setting-only)),
+                        :named('INITIALIZE')
+                    )
+                )
+            }
+
+            else {
+# (nqp::getattr(self,Foo,'$!a') = $code(self,nqp::getattr(self,Foo,'$!a')))
+                QAST::Op.new(
+                    :op( $sigil eq '$' || $sigil eq '&' ?? 'p6assign' !! 'p6store' ),
+                    $getattr, $initializer
+                )
+            }
+        }
+        
+        method !native-attr-build($self, $class, $attr, $build, $primspec) {
+            $!w.add_object_if_no_sc($build);
+            my $getattr := QAST::Op.new(
+                :op('getattr' ~ @psp[$primspec]),
+                $self, $class, $attr
+            );
+            QAST::Op.new( :op('bindattr' ~ @psp[$primspec]),
+                $self, $class, $attr,
+                nqp::if(
+                    nqp::istype($build,$!Block),
+                    QAST::Op.new( :op<call>,
+                        QAST::WVal.new(:value($build)),
+                        $self, $getattr
+                    ),
+                    nqp::if(
+                        nqp::iseq_i($primspec,1),
+                        QAST::IVal.new(:value($build)),
+                        nqp::if(
+                            nqp::iseq_i($primspec,2),
+                            QAST::NVal.new(:value($build)),
+                            QAST::SVal.new(:value($build))
+                        )
+                    )
+                )
+            )
         }
     }
 

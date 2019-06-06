@@ -13,15 +13,20 @@ role Perl6::Metamodel::BUILDPLAN {
     # further parameters.  If it is an array, then the first element
     # of each array is an "op" # representing the task to perform:
     #   code = call as method (for BUILD or TWEAK)
-    #    0 class name attr_name = set attribute from init hash
-    #    1 class name attr_name = set a native int attribute from init hash
-    #    2 class name attr_name = set a native num attribute from init hash
-    #    3 class name attr_name = set a native str attribute from init hash
-    #    4 class attr_name code = call default value closure if needed
-    #    5 class attr_name code = call default value closure if needed, int attr
-    #    6 class attr_name code = call default value closure if needed, num attr
-    #    7 class attr_name code = call default value closure if needed, str attr
-    #    8 die if a required attribute is not present
+    #    0 class name attr_name required default = set attribute from init hash, otherwise if
+    #                                              required is non-null blow up, othrewise if default
+    #                                              is present then run it
+    #    1 class name attr_name = set a native int attribute from init hash (or do required/default)
+    #    2 class name attr_name = set a native num attribute from init hash (or do required/default)
+    #    3 class name attr_name = set a native str attribute from init hash (or do required/default)
+    #    4 class attr_name code unconditional = call default value closure; if unconditoinal is
+    #                                           set then always do it (private, no BUILD), or
+    #                                           check if it's unvivified (BUILD case)
+    #    5 class attr_name code unconditional = call default value closure, semantics as above
+    #    6 class attr_name code unconditional = call default value closure, semantics as above
+    #    7 class attr_name code unconditional = call default value closure, semantics as above
+    #    8 class attr_name why unconditional = die either unconditionally or if the attribute
+    #                                          has not been initialized
     #    9 class attr_name code = run attribute container initializer
     #   10 class attr_name = touch/vivify attribute if part of mixin
     #   11 same as 0, but init to nqp::list if value absent (nqp only)
@@ -73,52 +78,80 @@ role Perl6::Metamodel::BUILDPLAN {
         if !nqp::isnull($build) && $build {
             # We'll call the custom one.
             nqp::push(@plan,$build);
+
+            # We then need to apply any attribute required checks and defaults.
+            # These are triggered based on a check of if the attribute was
+            # touched by BUILD ("vivified").
+            for @attrs {
+                if nqp::can($_, 'required') && $_.required {
+                    nqp::push(@plan,[8, $obj, $_.name, $_.required, 0]);
+                    nqp::deletekey(%attrs_untouched, $_.name);
+                }
+                elsif nqp::can($_, 'build') {
+                    my $default := $_.build;
+                    my int $primspec := nqp::objprimspec($_.type);
+#?if js
+                    my int $is_oversized_int := $primspec == 4 || $primspec == 5;
+                    $primspec := $is_oversized_int ?? 0 !! $primspec;
+#?endif
+                    if nqp::isconcrete($default) {
+                        nqp::push(@plan,[
+                          4 + $primspec,
+                          $obj,
+                          $_.name,
+                          $default,
+                          0
+                        ]);
+                        nqp::deletekey(%attrs_untouched, $_.name);
+                    }
+                }
+            }
         }
         else {
             # No custom BUILD. Rather than having an actual BUILD
             # in Mu, we produce ops here per attribute that may
-            # need initializing.
+            # need initializing. If an attribute doesn't take a
+            # value from the initialization hash, then we check
+            # required or run build. If the attribute is private,
+            # then we unconditionally complain about a required
+            # attribute not being set (we could really catch this
+            # at compile time) or run the build.
             for @attrs {
                 my int $primspec := nqp::objprimspec($_.type);
 #?if js
                 my int $is_oversized_int := $primspec == 4 || $primspec == 5;
                 $primspec := $is_oversized_int ?? 0 !! $primspec;
 #?endif
+                my $required := nqp::can($_, 'required') && $_.required;
+                my $build := nqp::can($_, 'build') && nqp::isconcrete($_.build)
+                    ?? $_.build
+                    !! nqp::null();
 
                 if $_.has_accessor {
                     nqp::push(@plan,[
                       0 + $primspec,
                       $obj,
                       $_.name,
-                      nqp::substr($_.name, 2)
+                      nqp::substr($_.name, 2),
+                      $required || nqp::null(),
+                      $build
                     ]);
                 }
-            }
-        }
-
-        # Ensure that any required attributes are set
-        for @attrs {
-            if nqp::can($_, 'required') && $_.required {
-                nqp::push(@plan,[8, $obj, $_.name, $_.required]);
-                nqp::deletekey(%attrs_untouched, $_.name);
-            }
-        }
-
-        # Check if there's any default values to put in place.
-        for @attrs {
-            if nqp::can($_, 'build') {
-                my $default := $_.build;
-                my int $primspec := nqp::objprimspec($_.type);
-#?if js
-                my int $is_oversized_int := $primspec == 4 || $primspec == 5;
-                $primspec := $is_oversized_int ?? 0 !! $primspec;
-#?endif
-                if nqp::isconcrete($default) {
+                elsif $required {
+                    # Private attribute that is required, but without BUILD, will
+                    # always fail.
+                    nqp::push(@plan,[8, $obj, $_.name, $required, 1]);
+                    nqp::deletekey(%attrs_untouched, $_.name);
+                }
+                elsif nqp::isconcrete($build) {
+                    # Private attribute without BUILD will have its default run
+                    # unconditionally.
                     nqp::push(@plan,[
                       4 + $primspec,
                       $obj,
                       $_.name,
-                      $default
+                      $build,
+                      1
                     ]);
                     nqp::deletekey(%attrs_untouched, $_.name);
                 }

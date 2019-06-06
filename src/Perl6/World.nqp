@@ -593,12 +593,12 @@ class Perl6::World is HLL::World {
 
         my $Version := self.find_symbol: ['Version'];
         my $vWant   := $ver-match.ast.compile_time_value;
-        my $vWantElems := $vWant.parts.elems;
+        my $vWantParts := $vWant.parts;
         my %lang_rev := $comp.language_revisions;
         unless $vWhatever || $vWant.plus {
             # It makes no sense checking for modifier when something like v6.* or v6.c+ is wanted.
-            my $rev := $vWant.parts.AT-POS(1);
-            my str $rev_mod := $vWantElems > 2 ?? $vWant.parts.AT-POS(2) !! '';
+            my $rev := $vWantParts.AT-POS(1);
+            my str $rev_mod := $vWantParts.elems > 2 ?? $vWantParts.AT-POS(2) !! '';
             self."!check-version-modifier"($ver-match, $rev, $rev_mod, $comp);
         }
 
@@ -612,18 +612,15 @@ class Perl6::World is HLL::World {
             my $vCanElems := $vCan.parts.elems;
             my $can_rev := $vCan.parts.AT-POS: 1;
 
-            # Skip if number of parts in wanted version is different. For example, 6.e.PREVIEW would be skipped for 6.*
-            # Skip if revision with a required modifier unless explicitly asked for
-            next if nqp::isne_i($vWantElems, $vCanElems)
-                    || (nqp::iseq_i($vWantElems, 2)
-                        && nqp::existskey(%lang_rev{$can_rev}, 'require'));
+            # Skip if 2-part version tried now has a required modifier
+            next if nqp::iseq_i($vCanElems, 2) && nqp::existskey(%lang_rev{$can_rev}, 'require');
 
             $comp.set_language_version: '6.' ~ $can_rev;
             $comp.set_language_modifier: $vCan.parts.AT-POS: 2 if $vCanElems > 2;
 
             if $can_rev eq 'c' {
                 $*CAN_LOWER_TOPIC := 0;
-                # CORE.c is currently our lowest core, which we don't "load"
+                # CORE.c is our lowest core, which we don't "load"
             }
             else {
                 self.load_setting: $ver-match, 'CORE.' ~ $can_rev

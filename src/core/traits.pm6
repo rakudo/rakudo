@@ -298,7 +298,9 @@ multi sub trait_mod:<is>(Mu:U \type, :$export!) {
                         ~ "'$export.^name()' in trait 'is export'. Use a Pair "
                         ~ 'or a list of Pairs, with keys as tag names.'
     );
-    Rakudo::Internals.EXPORT_SYMBOL($exp_name, @tags, type);
+    # If a role is being exported export its respective group instead.
+    my \export_type := nqp::istype(type.HOW, Metamodel::ParametricRoleHOW) ?? type.^group !! type;
+    Rakudo::Internals.EXPORT_SYMBOL($exp_name, @tags, export_type);
     if nqp::istype(type.HOW, Metamodel::EnumHOW) {
         type.^set_export_callback( {
             for type.^enum_values.keys -> $value_name {

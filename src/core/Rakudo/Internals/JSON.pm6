@@ -14,51 +14,77 @@ my class JSONException is Exception {
 my class Rakudo::Internals::JSON {
 
     my multi sub to-surrogate-pair(Int $ord) {
-        my int $base = $ord - 0x10000;
-        my $top = $base +& 0b1_1111_1111_1100_0000_0000 +> 10;
-        my $bottom = $base +&            0b11_1111_1111;
-        "\\u" ~ (0xD800 + $top).base(16) ~ "\\u" ~ (0xDC00 + $bottom).base(16);
+        my int $base   = $ord - 0x10000;
+        my int $top    = $base +& 0b1_1111_1111_1100_0000_0000 +> 10;
+        my int $bottom = $base +&               0b11_1111_1111;
+        Q/\u/ ~ (0xD800 + $top).base(16) ~ Q/\u/ ~ (0xDC00 + $bottom).base(16);
     }
 
     my multi sub to-surrogate-pair(Str $input) {
         to-surrogate-pair(nqp::ordat($input, 0));
     }
 
-    my sub str-escape(str $text is copy) {
-        return $text unless $text ~~ /:m <[\x[5C] \x[22] \x[00]..\x[1F] \x[10000]..\x[10FFFF]]>/;
+    my $tab := nqp::list_i(92,116); # \t
+    my $lf  := nqp::list_i(92,110); # \n
+    my $cr  := nqp::list_i(92,114); # \r
+    my $qq  := nqp::list_i(92, 34); # \"
+    my $bs  := nqp::list_i(92, 92); # \\
 
-        $text .= subst(/ :m <[\\ "]> /,
-            -> $/ {
-                my str $str = $/.Str;
-                if $str eq "\\" {
-                    "\\\\"
-                } elsif nqp::ordat($str, 0) == 92 {
-                    "\\\\" ~ tear-off-combiners($str, 0)
-                } elsif $str eq "\"" {
-                    "\\\""
-                } else {
-                    "\\\"" ~ tear-off-combiners($str, 0)
-                }
-            }, :g);
-        $text .= subst(/ <[\x[10000]..\x[10FFFF]]> /,
-            -> $/ {
-                to-surrogate-pair($/.Str);
-            }, :g);
-        $text .= subst(/ :m <[\x[10000]..\x[10FFFF]]> /,
-            -> $/ {
-                to-surrogate-pair($/.Str) ~ tear-off-combiners($/.Str, 0);
-            }, :g);
-        for flat 0..8, 11, 12, 14..0x1f -> $ord {
-            my str $chr = chr($ord);
-            if $text.contains($chr) {
-                $text .= subst($chr, '\\u' ~ $ord.fmt("%04x"), :g);
-            }
-        }
-        $text = $text.subst("\r\n", '\\r\\n',:g)\
-                    .subst("\n", '\\n',     :g)\
-                    .subst("\r", '\\r',     :g)\
-                    .subst("\t", '\\t',     :g);
-        $text;
+    # Convert string to decomposed codepoints.  Run over that integer array
+    # and inject whatever is necessary, don't do anything if simple ascii.
+    # Then convert back to string and return that.
+    sub str-escape(\text) {
+        my $codes := text.NFD;
+        my int $i = -1;
+
+        nqp::while(
+          nqp::islt_i(++$i,nqp::elems($codes)),
+          nqp::if(
+            nqp::isle_i((my int $code = nqp::atpos_i($codes,$i)),92)
+              || nqp::isge_i($code,128),
+            nqp::if(                                       # not ascii
+              nqp::isle_i($code,31),
+              nqp::if(                                      # control
+                nqp::iseq_i($code,10),
+                nqp::splice($codes,$lf,$i++,1),              # \n
+                nqp::if(
+                  nqp::iseq_i($code,13),
+                  nqp::splice($codes,$cr,$i++,1),             # \r
+                  nqp::if(
+                    nqp::iseq_i($code,9),
+                    nqp::splice($codes,$tab,$i++,1),           # \t
+                    nqp::stmts(                                # other control
+                      nqp::splice($codes,$code.fmt(Q/\u%04x/).NFD,$i,1),
+                      ($i = nqp::add_i($i,5))
+                    )
+                  )
+                )
+              ),
+              nqp::if(                                      # not control
+                nqp::iseq_i($code,34),
+                nqp::splice($codes,$qq,$i++,1),              # "
+                nqp::if(
+                  nqp::iseq_i($code,92),
+                  nqp::splice($codes,$bs,$i++,1),             # \
+                  nqp::if(
+                    nqp::isge_i($code,0x10000),
+                    nqp::stmts(                                # surrogates
+                      nqp::splice(
+                        $codes,
+                        (my $surrogate := to-surrogate-pair($code.chr).NFD),
+                        $i,
+                        1
+                      ),
+                      ($i = nqp::sub_i(nqp::add_i($i,nqp::elems($surrogate)),1))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        nqp::strfromcodes($codes)
     }
 
     method to-json(
@@ -258,16 +284,12 @@ my class Rakudo::Internals::JSON {
           if $pos == nqp::chars($text);
     }
 
-    my sub tear-off-combiners(str $text, int $pos) {
-        my str $combinerstuff = nqp::substr($text, $pos, 1);
-        my @parts = $combinerstuff.NFD.list;
-        return @parts.skip(1).map({
-                if $^ord > 0x10000 {
-                    to-surrogate-pair($ord);
-                } else {
-                    $ord.chr()
-                }
-            }).join()
+    my sub tear-off-combiners(\text, \pos) {
+        text.substr(pos,1).NFD.skip.map( {
+             $^ord > 0x10000
+               ?? to-surrogate-pair($^ord)
+               !! $^ord.chr
+        } ).join
     }
 
     my Mu $hexdigits := nqp::hash(

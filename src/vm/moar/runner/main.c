@@ -109,16 +109,9 @@ int retrieve_home(
     int     ret;
 
     if (env_home) {
-        strcpy(out_home, env_home);
-        home_size = strlen(out_home);
-#ifdef _WIN32
-        if (*(out_home + home_size - 1) == '\\') {
-#else
-        if (*(out_home + home_size - 1) == '/') {
-#endif
-            *(out_home + home_size - 1) = '\0';
-            home_size--;
-        }
+        home_size = strlen(env_home);
+        strncpy(out_home, env_home, home_size - 1);
+        out_home[home_size - 1] = '\0';
     }
     else {
         strncpy(out_home, exec_dir_path, home_size);

@@ -69,7 +69,7 @@ my class Rakudo::Internals::JSON {
       Bool :$sorted-keys   = False,
     ) {
 
-        my str @out;
+        my $out := nqp::list_s;  # cannot use str @out because of JVM
         my str $spaces = ' ' x $spacing;
         my str $comma  = ",\n" ~ $spaces x $level;
 
@@ -77,67 +77,67 @@ my class Rakudo::Internals::JSON {
 
         sub pretty-positional(\positional --> Nil) {
             $comma = nqp::concat($comma,$spaces);
-            nqp::push_s(@out,'[');
-            nqp::push_s(@out,nqp::substr($comma,1));
+            nqp::push_s($out,'[');
+            nqp::push_s($out,nqp::substr($comma,1));
 
             for positional.list {
                 jsonify($_);
-                nqp::push_s(@out,$comma);
+                nqp::push_s($out,$comma);
             }
-            nqp::pop_s(@out);  # lose last comma
+            nqp::pop_s($out);  # lose last comma
 
             $comma = nqp::substr($comma,0,nqp::sub_i(nqp::chars($comma),$spacing));
-            nqp::push_s(@out,nqp::substr($comma,1));
-            nqp::push_s(@out,']');
+            nqp::push_s($out,nqp::substr($comma,1));
+            nqp::push_s($out,']');
         }
 
         sub pretty-associative(\associative --> Nil) {
             $comma = nqp::concat($comma,$spaces);
-            nqp::push_s(@out,'{');
-            nqp::push_s(@out,nqp::substr($comma,1));
+            nqp::push_s($out,'{');
+            nqp::push_s($out,nqp::substr($comma,1));
             my \pairs := $sorted-keys
               ?? associative.sort(*.key)
               !! associative.list;
 
             for pairs {
                 jsonify(.key);
-                nqp::push_s(@out,": ");
+                nqp::push_s($out,": ");
                 jsonify(.value);
-                nqp::push_s(@out,$comma);
+                nqp::push_s($out,$comma);
             }
-            nqp::pop_s(@out);  # lose last comma
+            nqp::pop_s($out);  # lose last comma
 
             $comma = nqp::substr($comma,0,nqp::sub_i(nqp::chars($comma),$spacing));
-            nqp::push_s(@out,nqp::substr($comma,1));
-            nqp::push_s(@out,'}');
+            nqp::push_s($out,nqp::substr($comma,1));
+            nqp::push_s($out,'}');
         }
 
         sub unpretty-positional(\positional --> Nil) {
-            nqp::push_s(@out,'[');
-            my int $before = nqp::elems(@out);
+            nqp::push_s($out,'[');
+            my int $before = nqp::elems($out);
             for positional.list {
                 jsonify($_);
-                nqp::push_s(@out,",");
+                nqp::push_s($out,",");
             }
-            nqp::pop_s(@out) if nqp::elems(@out) > $before;  # lose last comma
-            nqp::push_s(@out,']');
+            nqp::pop_s($out) if nqp::elems($out) > $before;  # lose last comma
+            nqp::push_s($out,']');
         }
 
         sub unpretty-associative(\associative --> Nil) {
-            nqp::push_s(@out,'{');
+            nqp::push_s($out,'{');
             my \pairs := $sorted-keys
               ?? associative.sort(*.key)
               !! associative.list;
 
-            my int $before = nqp::elems(@out);
+            my int $before = nqp::elems($out);
             for pairs {
                 jsonify(.key);
-                nqp::push_s(@out,": ");
+                nqp::push_s($out,": ");
                 jsonify(.value);
-                nqp::push_s(@out,$comma);
+                nqp::push_s($out,$comma);
             }
-            nqp::pop_s(@out) if nqp::elems(@out) > $before;  # lose last comma
-            nqp::push_s(@out,'}');
+            nqp::pop_s($out) if nqp::elems($out) > $before;  # lose last comma
+            nqp::push_s($out,'}');
         }
 
         sub jsonify(\obj --> Nil) {
@@ -146,7 +146,7 @@ my class Rakudo::Internals::JSON {
 
                 # basic ones
                 when Bool {
-                    nqp::push_s(@out,obj ?? "true" !! "false");
+                    nqp::push_s($out,obj ?? "true" !! "false");
                 }
                 when IntStr {
                     jsonify(.Int);
@@ -158,32 +158,32 @@ my class Rakudo::Internals::JSON {
                     jsonify(.Num);
                 }
                 when Str {
-                    nqp::push_s(@out,'"');
-                    nqp::push_s(@out,str-escape(obj));
-                    nqp::push_s(@out,'"');
+                    nqp::push_s($out,'"');
+                    nqp::push_s($out,str-escape(obj));
+                    nqp::push_s($out,'"');
                 }
 
                 # numeric ones
                 when Int {
-                    nqp::push_s(@out,.Str);
+                    nqp::push_s($out,.Str);
                 }
                 when Rat {
-                    nqp::push_s(@out,.contains(".") ?? $_ !! "$_.0")
+                    nqp::push_s($out,.contains(".") ?? $_ !! "$_.0")
                       given .Str;
                 }
                 when FatRat {
-                    nqp::push_s(@out,.contains(".") ?? $_ !! "$_.0")
+                    nqp::push_s($out,.contains(".") ?? $_ !! "$_.0")
                       given .Str;
                 }
                 when Num {
                     if nqp::isnanorinf($_) {
                         nqp::push_s(
-                          @out,
+                          $out,
                           $*JSON_NAN_INF_SUPPORT ?? obj.Str !! "null"
                         );
                     }
                     else {
-                        nqp::push_s(@out,.contains("e") ?? $_ !! $_ ~ "e0")
+                        nqp::push_s($out,.contains("e") ?? $_ !! $_ ~ "e0")
                           given .Str;
                     }
                 }
@@ -205,10 +205,10 @@ my class Rakudo::Internals::JSON {
 
                 # rarer ones
                 when Dateish {
-                    nqp::push_s(@out,qq/"$_"/);
+                    nqp::push_s($out,qq/"$_"/);
                 }
                 when Instant {
-                    nqp::push_s(@out,qq/"{.DateTime}"/)
+                    nqp::push_s($out,qq/"{.DateTime}"/)
                 }
                 when Version {
                     jsonify(.Str)
@@ -237,14 +237,14 @@ my class Rakudo::Internals::JSON {
                 }
             }
             else {
-                nqp::push_s(@out,'null');
+                nqp::push_s($out,'null');
             }
         }
 
 #-- do the actual work
 
         jsonify(obj);
-        nqp::join("",@out)
+        nqp::join("",$out)
     }
 
     my $ws := nqp::list_i;

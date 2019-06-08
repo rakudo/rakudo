@@ -288,8 +288,8 @@ my class Rakudo::Internals::JSON {
         my int $has_hexcodes;
         my int $has_treacherous;
         my str $startcombiner = "";
-        my Mu $treacherous;
-        my Mu $escape_counts := nqp::hash();
+        my Mu  $treacherous;
+        my Mu  $escape_counts := nqp::hash();
 
         unless nqp::eqat($text, '"', $startpos - 1) {
             $startcombiner = tear-off-combiners($text, $startpos - 1);
@@ -421,7 +421,7 @@ my class Rakudo::Internals::JSON {
 
         $pos = $pos - 1;
 
-        $raw;
+        $raw
     }
 
     my sub parse-numeric(str $text, int $pos is rw) {
@@ -462,54 +462,51 @@ my class Rakudo::Internals::JSON {
 
         if nqp::eqat($text, '}', $pos) {
             $pos = $pos + 1;
-            %();
-        } else {
-            my $thing;
-            loop {
-                $thing = Any;
+            return %result;
+        }
 
-                if $key.DEFINITE {
-                    $thing = parse-thing($text, $pos)
-                } else {
-                    nom-ws($text, $pos);
+        my $thing;
+        loop {
+            $thing := Any;
 
-                    if nqp::ordat($text, $pos) == 34 { # "
-                        $pos = $pos + 1;
-                        $thing = parse-string($text, $pos)
-                    } else {
-                        die "at end of string: expected a quoted string for an object key" if $pos == nqp::chars($text);
-                        die "at $pos: json requires object keys to be strings";
-                    }
-                }
+            if $key.DEFINITE {
+                $thing := parse-thing($text, $pos)
+            } else {
                 nom-ws($text, $pos);
 
-                #my str $partitioner = nqp::substr($text, $pos, 1);
-
-                if      nqp::eqat($text, ':', $pos) and   !($key.DEFINITE or      $value.DEFINITE) {
-                    $key = $thing;
-                } elsif nqp::eqat($text, ',', $pos) and     $key.DEFINITE and not $value.DEFINITE {
-                    $value = $thing;
-
-                    %result{$key} = $value;
-
-                    $key   = Any;
-                    $value = Any;
-                } elsif nqp::eqat($text, '}', $pos) and     $key.DEFINITE and not $value.DEFINITE {
-                    $value = $thing;
-
-                    %result{$key} = $value;
-                    $pos = $pos + 1;
-                    last;
+                if nqp::ordat($text, $pos) == 34 { # "
+                    $pos    = $pos + 1;
+                    $thing := parse-string($text, $pos)
                 } else {
-                    die "at end of string: unexpected end of object." if $pos == nqp::chars($text);
-                    die "unexpected { nqp::substr($text, $pos, 1) } in an object at $pos";
+                    die "at end of string: expected a quoted string for an object key" if $pos == nqp::chars($text);
+                    die "at $pos: json requires object keys to be strings";
                 }
+            }
+            nom-ws($text, $pos);
 
-                $pos = $pos + 1;
+            #my str $partitioner = nqp::substr($text, $pos, 1);
+
+            if      nqp::eqat($text, ':', $pos) and   !($key.DEFINITE or      $value.DEFINITE) {
+                $key := $thing;
+            } elsif nqp::eqat($text, ',', $pos) and     $key.DEFINITE and not $value.DEFINITE {
+                $value        := $thing;
+                %result{$key}  = $value;
+                $key          := Any;
+                $value        := Any;
+            } elsif nqp::eqat($text, '}', $pos) and     $key.DEFINITE and not $value.DEFINITE {
+                $value        := $thing;
+                %result{$key}  = $value;
+                $pos           = $pos + 1;
+                last;
+            } else {
+                die "at end of string: unexpected end of object." if $pos == nqp::chars($text);
+                die "unexpected { nqp::substr($text, $pos, 1) } in an object at $pos";
             }
 
-            %result;
+            $pos = $pos + 1;
         }
+
+        %result
     }
 
     my sub parse-array(str $text, int $pos is rw) {
@@ -519,28 +516,30 @@ my class Rakudo::Internals::JSON {
 
         if nqp::eqat($text, ']', $pos) {
             $pos = $pos + 1;
-            [];
-        } else {
-            my $thing;
-            my str $partitioner;
-            loop {
-                $thing = parse-thing($text, $pos);
-                nom-ws($text, $pos);
-
-                $partitioner = nqp::substr($text, $pos, 1);
-                $pos = $pos + 1;
-
-                if $partitioner eq ']' {
-                    @result.push: $thing;
-                    last;
-                } elsif $partitioner eq "," {
-                    @result.push: $thing;
-                } else {
-                    die "at $pos, unexpected $partitioner inside list of things in an array";
-                }
-            }
-            @result;
+            return @result;
         }
+
+        my     $thing;
+        my str $partitioner;
+
+        loop {
+            $thing := parse-thing($text, $pos);
+            nom-ws($text, $pos);
+
+            $partitioner = nqp::substr($text, $pos, 1);
+            $pos = $pos + 1;
+
+            if $partitioner eq ']' {
+                @result.push: $thing;
+                last;
+            } elsif $partitioner eq "," {
+                @result.push: $thing;
+            } else {
+                die "at $pos, unexpected $partitioner inside list of things in an array";
+            }
+        }
+
+        @result
     }
 
     my sub parse-thing(str $text, int $pos is rw) {
@@ -588,12 +587,10 @@ my class Rakudo::Internals::JSON {
     method from-json(Str() $text) {
         CATCH { when X::AdHoc { die JSONException.new(:text($_)) } }
 
-        my str $ntext = $text;
-        my int $length = $text.chars;
-
-        my int $pos = 0;
-
-        my $result = parse-thing($text, $pos);
+        my str $ntext   = $text;
+        my int $length  = $text.chars;
+        my int $pos     = 0;
+        my     $result := parse-thing($text, $pos);
 
         try nom-ws($text, $pos);
 
@@ -601,7 +598,7 @@ my class Rakudo::Internals::JSON {
             die "additional text after the end of the document: { substr($text, $pos).perl }";
         }
 
-        $result;
+        $result
     }
 }
 

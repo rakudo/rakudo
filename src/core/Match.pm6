@@ -1,5 +1,6 @@
 my class Match is Capture is Cool does NQPMatchRole {
     my Mu $EMPTY_LIST := nqp::list();
+    my Mu $EMPTY_HASH := nqp::hash();
     my Mu $NO_CAPS    := nqp::hash();
     my Mu $DID_MATCH  := nqp::create(NQPdidMATCH);
 
@@ -29,51 +30,47 @@ my class Match is Capture is Cool does NQPMatchRole {
           nqp::getattr_i(self,Match,'$!pos'),
           nqp::getattr_i(self, Match, '$!from'))
             ?? self!MATCH-PASS()
-            !! self!MATCH-FAIL()
+            !! self!MATCH-EMPTY()
     }
 
-    method !MATCH-FAIL() {
+    method !MATCH-EMPTY() {
         nqp::bindattr(self, Capture, '@!list', $EMPTY_LIST);
-        nqp::bindattr(self, Capture, '%!hash', nqp::hash());
+        nqp::bindattr(self, Capture, '%!hash', $EMPTY_HASH);
         nqp::bindattr(self, Match, '$!match', $DID_MATCH);
         self
     }
 
     method !MATCH-PASS() {
-        my Mu $list := Nil;
-        my Mu $hash := nqp::hash();
+        # Build captures if needed.
+        my $rxsub := nqp::getattr(self, Match, '$!regexsub');
+        nqp::isnull($rxsub) ||
+          nqp::isnull(my $cap-meth := nqp::tryfindmethod($rxsub, 'CAPS')) ||
+          nqp::isnull(my $caps := $cap-meth($rxsub)) || !$caps.has-captures()
+            ?? self!MATCH-EMPTY()
+            !! self!MATCH-CAPTURES();
 
-        # For captures with lists, initialize the lists.
-        my $caplist := $NO_CAPS;
-        my $rxsub   := nqp::getattr(self, Match, '$!regexsub');
-        my str $onlyname  = '';
-        my int $namecount = 0;
-
-        if nqp::not_i(nqp::isnull($rxsub)) {
-            $caplist := nqp::can($rxsub, 'CAPS') ?? nqp::findmethod($rxsub, 'CAPS')($rxsub) !! nqp::null();
-            if nqp::not_i(nqp::isnull($caplist)) && nqp::istrue($caplist) {
-                my $iter := nqp::iterator($caplist);
-                my str $name;
-                while $iter {
-                    $namecount = nqp::add_i($namecount, 1);
-                    if nqp::iterval(nqp::shift($iter)) >= 2 {
-                        $name = nqp::iterkey_s($iter);
-                        nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0)
-                            ?? nqp::bindpos(
-                                    nqp::if(nqp::isconcrete($list), $list, ($list := nqp::list())),
-                                    nqp::fromstr_I($name, Int), nqp::create(Array))
-                            !! nqp::bindkey($hash, $name, nqp::create(Array));
-                    }
-                }
-                $onlyname = $name if nqp::iseq_i($namecount, 1);
-            }
+        # Once we've produced the captures, and if we know we're finished and
+        # will never be backtracked into, we can release cstack and regexsub.
+        unless nqp::defined(nqp::getattr(self, Match, '$!bstack')) {
+            nqp::bindattr(self, Match, '$!cstack', nqp::null());
+            nqp::bindattr(self, Match, '$!regexsub', nqp::null());
         }
+
+        self
+    }
+
+    method !MATCH-CAPTURES() {
+        # Initialize capture lists.
+        my $rxsub := nqp::getattr(self, Match, '$!regexsub');
+        my $capdesc := nqp::findmethod($rxsub, 'CAPS')($rxsub);
+        my $list := nqp::findmethod($capdesc, 'prepare-list')($capdesc);
+        my $hash := nqp::findmethod($capdesc, 'prepare-hash')($capdesc);
+        my str $onlyname = $capdesc.onlyname();
 
         # Walk the capture stack and populate the Match.
         my Mu $cs := nqp::getattr(self, Match, '$!cstack');
         if nqp::isnull($cs) || nqp::not_i(nqp::istrue($cs)) {}
-        elsif nqp::not_i(nqp::istrue($caplist)) {}
-        elsif nqp::iseq_i($namecount, 1) && nqp::isgt_i(nqp::chars($onlyname), 0) && nqp::eqat($onlyname, '$!', 0) {
+        elsif nqp::isgt_i(nqp::chars($onlyname), 0) {
             # If there's only one destination, avoid repeated hash lookups
             my int $cselems = nqp::elems($cs);
             my int $csi = -1;
@@ -106,16 +103,14 @@ my class Match is Capture is Cool does NQPMatchRole {
                         nqp::bindattr_i(self, Match, $name, $submatch.from);
                     }
                     elsif nqp::islt_i(nqp::index($name, '='), 0) {
-                        my Mu $capval     := nqp::atkey($caplist, $name);
-                        my int $needs_list = nqp::isconcrete($capval) && $capval >= 2;
                         if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
-                            $list := nqp::list() unless nqp::isconcrete($list);
-                            $needs_list
-                                ?? nqp::atpos($list, nqp::fromstr_I($name, Int)).append($submatch)
-                                !! nqp::bindpos($list, nqp::fromstr_I($name, Int), $submatch);
+                            my $idx := nqp::fromstr_I($name, Int);
+                            nqp::istype(nqp::atpos($list, $idx), Array)
+                                ?? nqp::atpos($list, $idx).append($submatch)
+                                !! nqp::bindpos($list, $idx, $submatch);
                         }
                         else {
-                            $needs_list
+                            nqp::istype(nqp::atkey($hash, $name), Array)
                                 ?? nqp::atkey($hash, $name).append($submatch)
                                 !! nqp::bindkey($hash, $name, $submatch);
                         }
@@ -123,20 +118,16 @@ my class Match is Capture is Cool does NQPMatchRole {
                     else {
                         my $names := nqp::split('=', $name);
                         my $iter  := nqp::iterator($names);
-                        my Mu $capval;
-                        my int $needs_list;
                         while $iter {
-                            $name    = nqp::shift($iter);
-                            $capval := nqp::atkey($caplist, $name);
-                            $needs_list = nqp::isconcrete($capval) && $capval >= 2;
+                            $name = nqp::shift($iter);
                             if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
-                                $list := nqp::list() unless nqp::isconcrete($list);
-                                $needs_list
+                                my $idx := nqp::fromstr_I($name, Int);
+                                nqp::istype(nqp::atpos($list, $idx), Array)
                                     ?? nqp::atpos($list, nqp::fromstr_I($name, Int)).append($submatch)
                                     !! nqp::bindpos($list, nqp::fromstr_I($name, Int), $submatch);
                             }
                             else {
-                                $needs_list
+                                nqp::istype(nqp::atkey($hash, $name), Array)
                                     ?? nqp::atkey($hash, $name).append($submatch)
                                     !! nqp::bindkey($hash, $name, $submatch);
                             }
@@ -148,15 +139,6 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::bindattr(self, Capture, '@!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
         nqp::bindattr(self, Capture, '%!hash', $hash);
         nqp::bindattr(self, Match, '$!match', $DID_MATCH);
-
-        # Once we've produced the captures, and if we know we're finished and
-        # will never be backtracked into, we can release cstack and regexsub.
-        unless nqp::defined(nqp::getattr(self, Match, '$!bstack')) {
-            nqp::bindattr(self, Match, '$!cstack', nqp::null());
-            nqp::bindattr(self, Match, '$!regexsub', nqp::null());
-        }
-
-        self
     }
 
     method CURSOR_NEXT() {   # from !cursor_next in nqp

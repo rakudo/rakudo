@@ -99,12 +99,15 @@ my class Match is Capture is Cool does NQPMatchRole {
                 $name    = nqp::getattr_s($subcur, $?CLASS, '$!name');
                 if nqp::not_i(nqp::isnull_s($name)) && nqp::isgt_i(nqp::chars($name), 0) {
                     my Mu $submatch := $subcur.MATCH;
-                    if nqp::eqat($name, '$', 0) && (nqp::iseq_s($name, '$!from') || nqp::iseq_s($name, '$!to')) {
+                    my int $first = nqp::ord($name);
+                    if nqp::iseq_i($first, 36) && (nqp::iseq_s($name, '$!from') || nqp::iseq_s($name, '$!to')) {
                         nqp::bindattr_i(self, Match, $name, $submatch.from);
                     }
                     elsif nqp::islt_i(nqp::index($name, '='), 0) {
-                        if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
-                            my $idx := nqp::fromstr_I($name, Int);
+                        if nqp::islt_i($first, 58) && nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
+                            my $idx := nqp::iseq_i(nqp::chars($name), 1)
+                                ?? nqp::sub_i($first, 48)
+                                !! nqp::fromstr_I($name, Int);
                             nqp::istype(nqp::atpos($list, $idx), Array)
                                 ?? nqp::atpos($list, $idx).append($submatch)
                                 !! nqp::bindpos($list, $idx, $submatch);

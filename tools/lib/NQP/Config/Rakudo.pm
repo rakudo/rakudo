@@ -582,10 +582,10 @@ sub gen_nqp {
         my %c        = read_config($bin);
         my $nqp_have = $c{'nqp::version'} || '';
         $self->backend_config( $b, \%c ) if %c;
-        my $nqp_ver_ok = 0 <= cmp_rev( $nqp_have, $nqp_want );
+        my $nqp_ver_ok = $nqp_have ? (0 <= cmp_rev( $nqp_have, $nqp_want )) : 0;
         my $nqp_ok = $nqp_have && $nqp_ver_ok;
 
-        unless ( $nqp_ver_ok || $options->{'ignore-errors'} ) {
+        unless ( !$nqp_have || $nqp_ver_ok || $options->{'ignore-errors'} ) {
             $self->note( "WARNING",
                 "$bin version $nqp_have is outdated, $nqp_want expected.\n" );
         }
@@ -600,6 +600,8 @@ sub gen_nqp {
             $need{$b} = 1;
         }
     }
+
+    say "need?";
 
     return unless %need;
 

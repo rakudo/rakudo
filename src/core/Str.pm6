@@ -1479,7 +1479,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         return Seq.new(Rakudo::Iterator.Empty) if $limit <= 0;
 
         my \matches = $limit == Inf
-          ?? self.match($pat, :g)
+          ?? self!match-list($/, $pat($cursor-init(Match,self,:0c)),
+                CURSOR-GLOBAL, POST-MATCH)
           !! self.match($pat, :x(1..$limit-1));
 
         my str $str   = nqp::unbox_s(self);

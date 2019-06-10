@@ -22,7 +22,7 @@ sub configure_nqp {
       defined( $self->opt('prefix') || $self->opt('sysroot') );
 
     if ( $nqp_bin = $self->opt('with-nqp') ) {
-        $nqp_bin = File::Spec->rel2abs( $self->nfp( $nqp_bin ) );
+        $nqp_bin = File::Spec->rel2abs( $self->nfp($nqp_bin) );
 
         $self->sorry( "Could not find nqp '"
               . $self->opt('with-nqp')
@@ -33,7 +33,8 @@ sub configure_nqp {
             command =>
               [ $nqp_bin, '-e', 'print(nqp::getcomp(\'nqp\').backend.name)' ],
             buffer => \$nqp_backend
-        ) or $self->sorry("Could not get backend information from '$nqp_bin'");
+          )
+          or $self->sorry("Could not get backend information from '$nqp_bin'");
         $self->use_backend($nqp_backend);
         $self->backend_config( $nqp_backend, nqp_bin => $nqp_bin );
         my $passed_backends = $self->opt('backends');
@@ -138,7 +139,9 @@ sub configure_refine_vars {
                 "Based on found executable $nqp_bin"
             );
         }
-        elsif ( $self->cfg('relocatable') eq 'reloc' && abs_path($prefix) ne abs_path($nqp_prefix) ) {
+        elsif ( $self->cfg('relocatable') eq 'reloc'
+            && abs_path($prefix) ne abs_path($nqp_prefix) )
+        {
             $self->sorry(
                 "Installation directory '$prefix' is different from '",
                 abs_path($nqp_prefix),
@@ -339,13 +342,18 @@ sub configure_moar_backend {
     }
     else {
         $config->{static_nqp_home} =
-          File::Spec->rel2abs(File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp' ));
+          File::Spec->rel2abs(
+            File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp' )
+          );
         $config->{static_perl6_home} =
-          File::Spec->rel2abs(File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ));
+          File::Spec->rel2abs(
+            File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ) );
         $config->{static_nqp_home_define} =
-          '-DSTATIC_NQP_HOME=' . $self->c_escape_string( $config->{static_nqp_home} );
+          '-DSTATIC_NQP_HOME='
+          . $self->c_escape_string( $config->{static_nqp_home} );
         $config->{static_perl6_home_define} =
-          '-DSTATIC_PERL6_HOME=' . $self->c_escape_string( $config->{static_perl6_home} );
+          '-DSTATIC_PERL6_HOME='
+          . $self->c_escape_string( $config->{static_perl6_home} );
     }
 
     # Strip rpath from ldflags so we can set it differently ourself.
@@ -465,6 +473,19 @@ sub configure_js_backend {
     );
 }
 
+sub configure_active_backends {
+    my $self = shift;
+
+    my $impls = $self->{impls};
+    for my $k ( $self->active_backends ) {
+        my %c = read_config( $impls->{$k}{bin} );
+        $self->backend_config( $k, \%c );
+        $impls->{$k}{ok} = 1;
+    }
+
+    return $self->SUPER::configure_active_backends(@_);
+}
+
 sub opts_for_configure {
     my $self = shift;
     my @opts = $self->SUPER::opts_for_configure(@_);
@@ -532,7 +553,7 @@ sub gen_nqp {
 
     #my $nqp_bin      = $options->{'with-nqp'};
     my $nqp_git_spec = $options->{'gen-nqp'};
-    my $gen_nqp      = defined $options->{'gen-nqp'};
+    my $gen_nqp      = $options->{'gen-nqp'};
     my $gen_moar     = $options->{'gen-moar'};
     my $prefix       = $config->{prefix};
     my $sdkroot      = $config->{'sdkroot'};
@@ -561,14 +582,19 @@ sub gen_nqp {
         my %c        = read_config($bin);
         my $nqp_have = $c{'nqp::version'} || '';
         $self->backend_config( $b, \%c ) if %c;
-        my $nqp_ok = $nqp_have && 0 <= cmp_rev( $nqp_have, $nqp_want );
+        my $nqp_ver_ok = 0 <= cmp_rev( $nqp_have, $nqp_want );
+        my $nqp_ok = $nqp_have && $nqp_ver_ok;
+
+        unless ( $nqp_ver_ok || $options->{'ignore-errors'} ) {
+            $self->note( "WARNING",
+                "$bin version $nqp_have is outdated, $nqp_want expected.\n" );
+        }
 
         if ( $nqp_ok or $options->{'ignore-errors'} ) {
             $impls->{$b}{ok} = 1;
         }
         elsif ( $self->opt('with-nqp') ) {
-            $self->sorry(
-                "$bin version $nqp_have is outdated, $nqp_want expected.");
+            $self->sorry("$bin version cannot be used");
         }
         else {
             $need{$b} = 1;
@@ -615,11 +641,6 @@ sub gen_nqp {
     system_or_die(@cmd);
     chdir($pwd);
 
-    for my $k ( keys %need ) {
-        my %c = read_config( $impls->{$k}{bin} );
-        $self->backend_config( $k, \%c );
-        $impls->{$k}{ok} = 1;
-    }
     return;
 }
 

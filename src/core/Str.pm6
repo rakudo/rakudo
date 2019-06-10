@@ -1483,7 +1483,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self.match($pat, :x(1..$limit-1));
 
         my str $str   = nqp::unbox_s(self);
-        my int $elems = +matches;  # make sure all reified
+        my int $elems = matches.elems;  # make sure all reified
         return Seq.new(Rakudo::Iterator.OneValue(self)) unless $elems;
 
         my $matches  := nqp::getattr(matches,List,'$!reified');

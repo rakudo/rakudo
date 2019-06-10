@@ -24,6 +24,47 @@ my class Rakudo::Internals::JSON {
         to-surrogate-pair(nqp::ordat($input, 0));
     }
 
+#?if jvm
+    # Older version of str-escape, since the JVM backend does not have .NFD yet
+    my sub str-escape(str $text is copy) {
+        return $text unless $text ~~ /:m <[\x[5C] \x[22] \x[00]..\x[1F] \x[10000]..\x[10FFFF]]>/;
+
+        $text .= subst(/ :m <[\\ "]> /,
+            -> $/ {
+                my str $str = $/.Str;
+                if $str eq "\\" {
+                    "\\\\"
+                } elsif nqp::ordat($str, 0) == 92 {
+                    "\\\\" ~ tear-off-combiners($str, 0)
+                } elsif $str eq "\"" {
+                    "\\\""
+                } else {
+                    "\\\"" ~ tear-off-combiners($str, 0)
+                }
+            }, :g);
+        $text .= subst(/ <[\x[10000]..\x[10FFFF]]> /,
+            -> $/ {
+                to-surrogate-pair($/.Str);
+            }, :g);
+        $text .= subst(/ :m <[\x[10000]..\x[10FFFF]]> /,
+            -> $/ {
+                to-surrogate-pair($/.Str) ~ tear-off-combiners($/.Str, 0);
+            }, :g);
+        for flat 0..8, 11, 12, 14..0x1f -> $ord {
+            my str $chr = chr($ord);
+            if $text.contains($chr) {
+                $text .= subst($chr, '\\u' ~ $ord.fmt("%04x"), :g);
+            }
+        }
+        $text = $text.subst("\r\n", '\\r\\n',:g)\
+                    .subst("\n", '\\n',     :g)\
+                    .subst("\r", '\\r',     :g)\
+                    .subst("\t", '\\t',     :g);
+        $text;
+    }
+#?endif
+
+#?if !jvm
     my $tab := nqp::list_i(92,116); # \t
     my $lf  := nqp::list_i(92,110); # \n
     my $cr  := nqp::list_i(92,114); # \r
@@ -86,6 +127,7 @@ my class Rakudo::Internals::JSON {
 
         nqp::strfromcodes($codes)
     }
+#?endif
 
     method to-json(
       \obj,

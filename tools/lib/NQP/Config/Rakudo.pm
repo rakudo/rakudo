@@ -601,8 +601,6 @@ sub gen_nqp {
         }
     }
 
-    say "need?";
-
     return unless %need;
 
     return unless defined($gen_nqp) || defined($gen_moar);

@@ -3195,22 +3195,113 @@ BEGIN {
     Submethod.HOW.compose_repr(Submethod);
     Submethod.HOW.compose_invocation(Submethod);
 
+    # Capture store for SET_CAPS.
+    my class RegexCaptures {
+        # An integer array of positional capture counts.
+        has @!pos-capture-counts;
+
+        # A string array of named capture names and a matching integer array of
+        # capture counts.
+        has @!named-capture-names;
+        has @!named-capture-counts;
+
+        # Form this data structure from a capnames hash.
+        method from-capnames(%capnames) {
+            nqp::create(self).'!from-capnames'(%capnames)
+        }
+
+        method !from-capnames(%capnames) {
+            # Initialize.
+            @!pos-capture-counts := nqp::list_i();
+            @!named-capture-names := nqp::list_s();
+            @!named-capture-counts := nqp::list_i();
+
+            # Go over the captures and build up the data structure.
+            for %capnames {
+                my $name := nqp::iterkey_s($_);
+                if $name ne '' {
+                    my $count := nqp::iterval($_);
+                    if nqp::ord($name) != 36 && nqp::ord($name) < 58 {
+                        nqp::bindpos_i(@!pos-capture-counts, +$name, $count);
+                    }
+                    else {
+                        nqp::push_s(@!named-capture-names, $name);
+                        nqp::push_i(@!named-capture-counts, $count);
+                    }
+                }
+            }
+
+            self
+        }
+
+        # Are there any captures?
+        method has-captures() {
+            nqp::elems(@!named-capture-counts) || nqp::elems(@!pos-capture-counts)
+        }
+
+        # Build a list of positional captures, or return a shared empty list if
+        # there are none. This only populates the slots which need an array.
+        my $EMPTY-LIST := nqp::list();
+        my $EMPTY-HASH := nqp::list();
+        method prepare-list() {
+            my int $n := nqp::elems(@!pos-capture-counts);
+            if $n > 0 {
+                my $result := nqp::list();
+                my int $i := 0;
+                while $i < $n {
+                    nqp::bindpos($result, $i, nqp::create(Array))
+                        if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
+                    $i++;
+                }
+                $result
+            }
+            else {
+                $EMPTY-LIST
+            }
+        }
+
+        # Build a hash of named camptures, or return a shared empty hash if there
+        # are none. This only poplates the slots that need an array.
+        method prepare-hash() {
+            my int $n := nqp::elems(@!named-capture-counts);
+            if $n > 0 {
+                my $result := nqp::hash();
+                my int $i := 0;
+                while $i < $n {
+                    if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
+                        nqp::bindkey($result,
+                            nqp::atpos_s(@!named-capture-names, $i),
+                            nqp::create(Array));
+                    }
+                    $i++;
+                }
+                $result
+            }
+            else {
+                $EMPTY-HASH
+            }
+        }
+
+        # Get the name of the only capture, if there is only one.
+        method onlyname() { '' }
+    }
     # class Regex is Method {
-    #     has @!caps;
+    #     has $!caps;
     #     has Mu $!nfa;
     #     has @!alt_nfas;
     #     has str $!source;
     #     has $!topic;
     #     has $!slash;
     Regex.HOW.add_parent(Regex, Method);
-    Regex.HOW.add_attribute(Regex, scalar_attr('@!caps', List, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!topic', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!slash', Mu, Regex));
-    Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
-            nqp::bindattr(nqp::decont($self), Regex, '@!caps', $caps)
+    Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $capnames) {
+            nqp::bindattr(nqp::decont($self), Regex, '$!caps',
+                RegexCaptures.from-capnames($capnames))
         }));
     Regex.HOW.add_method(Regex, 'SET_NFA', nqp::getstaticcode(sub ($self, $nfa) {
             nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
@@ -3224,7 +3315,7 @@ BEGIN {
             nqp::bindkey(%alts, $name, $nfa);
         }));
     Regex.HOW.add_method(Regex, 'CAPS', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self), Regex, '@!caps')
+            nqp::getattr(nqp::decont($self), Regex, '$!caps')
         }));
     Regex.HOW.add_method(Regex, 'NFA', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self), Regex, '$!nfa')

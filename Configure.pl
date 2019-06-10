@@ -11,7 +11,7 @@ use Cwd;
 use FindBin;
 
 BEGIN {
-    my $set_config = ! qx{git config rakudo.initialized};
+    my $set_config = !qx{git config rakudo.initialized};
     unless ( -e '3rdparty/nqp-configure/LICENSE' ) {
         print "Updating nqp-configure submodule...\n";
         my $msg =
@@ -63,7 +63,7 @@ MAIN: {
         $cfg->options,      'help!',
         'prefix=s',         'libdir=s',
         'sysroot=s',        'sdkroot=s',
-        'relocatable',   'backends=s',
+        'relocatable',      'backends=s',
         'no-clean',         'with-nqp=s',
         'gen-nqp:s',        'gen-moar:s',
         'moar-option=s@',   'git-protocol=s',
@@ -86,8 +86,11 @@ MAIN: {
         exit(0);
     }
     if ( $cfg->opt('ignore-errors') ) {
-        print
-"===WARNING!===\nErrors are being ignored.\nIn the case of any errors the script may behave unexpectedly.\n";
+        $cfg->note(
+            "WARNING!",
+            "Errors are being ignored.\n",
+            "In the case of any errors the script may behave unexpectedly."
+        );
     }
 
     $cfg->configure_paths;

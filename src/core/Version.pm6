@@ -1,25 +1,27 @@
 class Version {
     has $!parts;
     has int $!plus;
+    has int $!whatever;
     has str $!string;
 
-    method !SET-SELF(\parts,\plus,\string) {
+    method !SET-SELF(\parts,\plus,\whatever,\string) {
         $!parts := nqp::getattr(parts,List,'$!reified');
         $!plus   = plus;
+        $!whatever = whatever;
         $!string = string;
         self
     }
 
     multi method new(Version:) {
         # "v" highlander
-        INIT nqp::create(Version)!SET-SELF(nqp::list,0,"")      # should be once
+        INIT nqp::create(Version)!SET-SELF(nqp::list,0,0,"")      # should be once
     }
     multi method new(Version: Whatever) {
         # "v*" highlander
-        INIT nqp::create(Version)!SET-SELF(nqp::list(*),-1,"*") # should be once
+        INIT nqp::create(Version)!SET-SELF(nqp::list(*),-1,1,"*") # should be once
     }
-    multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
-        nqp::create(self)!SET-SELF(@parts.eager,$plus,$string)
+    multi method new(Version: @parts, Str:D $string, Int() $plus = 0, Int() $whatever = 0) {
+        nqp::create(self)!SET-SELF(@parts.eager,$plus,$whatever,$string)
     }
 
     method !SLOW-NEW(str $s) {
@@ -30,6 +32,7 @@ class Version {
           (my int $pos),
           (my int $chars = nqp::chars($s)),
           (my int $mark),
+          (my int $whatever = 0),
           (my $strings := nqp::list_s),
           (my $parts   := nqp::list),
           nqp::while(
@@ -39,6 +42,7 @@ class Version {
               nqp::stmts( # Whatever portion
                 nqp::push_s($strings, '*'),
                 nqp::push($parts,      * ),
+                ($whatever = 1),
                 ($pos = nqp::add_i($pos, 1))),
               nqp::if(
                 nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
@@ -77,7 +81,7 @@ class Version {
             nqp::stmts(
               (my int $plus = nqp::eqat($s, '+',
                 nqp::sub_i(nqp::chars($s), 1))),
-              nqp::create(self)!SET-SELF($parts, $plus,
+              nqp::create(self)!SET-SELF($parts, $plus, $whatever,
                 nqp::concat(nqp::join('.', $strings), $plus ?? '+' !! '')))))
     }
     # highlander cache
@@ -85,15 +89,15 @@ class Version {
     multi method new(Version: Str() $s) {
         nqp::if(
           nqp::iseq_s($s, '6'), # highlanderize most common
-          ($v6 //= nqp::create(Version)!SET-SELF(nqp::list(6),0,"6")),
+          ($v6 //= nqp::create(Version)!SET-SELF(nqp::list(6),0,0,"6")),
           nqp::if(
             nqp::iseq_s($s, '6.c'),
-            ($v6c //= nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,"6.c")),
+            ($v6c //= nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,0,"6.c")),
             nqp::unless(
               self!SLOW-NEW($s),
               nqp::if(
                 nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
-                ($vplus //= nqp::create(Version)!SET-SELF(nqp::list,1,"")),
+                ($vplus //= nqp::create(Version)!SET-SELF(nqp::list,1,0,"")),
                 self.new))))
     }
 
@@ -152,6 +156,7 @@ class Version {
 
     method parts() { nqp::hllize($!parts) }
     method plus()  { nqp::hllbool($!plus) }
+    method whatever() { nqp::hllbool($!whatever) }
 }
 
 

@@ -342,6 +342,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Numeric(Str:D: --> Numeric:D) {
+        # Fast-path the integer case if there's no '.'.
+        unless self.contains('.') {
+            my \rr = nqp::radix_I(10, $!value, 0, 0b10, Int);
+            return nqp::atpos(rr, 0) if nqp::iseq_i(nqp::atpos(rr, 2), nqp::chars(self));
+        }
+
         # Handle special empty string
         self.trim eq ""
           ?? 0
@@ -1473,11 +1479,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         return Seq.new(Rakudo::Iterator.Empty) if $limit <= 0;
 
         my \matches = $limit == Inf
-          ?? self.match($pat, :g)
+          ?? self!match-list($/, $pat($cursor-init(Match,self,:0c)),
+                CURSOR-GLOBAL, POST-MATCH)
           !! self.match($pat, :x(1..$limit-1));
 
         my str $str   = nqp::unbox_s(self);
-        my int $elems = +matches;  # make sure all reified
+        my int $elems = matches.elems;  # make sure all reified
         return Seq.new(Rakudo::Iterator.OneValue(self)) unless $elems;
 
         my $matches  := nqp::getattr(matches,List,'$!reified');

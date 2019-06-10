@@ -5,7 +5,7 @@ sub hll-config($config) {
     $config<codename>         := '@codename@';
     $config<language-version> := '6.@lang_spec@';
     # Though language-revisions key provides more information
-    # can-language-versions is kept for speeding up
+    # can-language-versions is used for speeding up and ordering
     # Perl6::Compiler.can_langauge_versions method
     $config<can-language-versions>
         := nqp::list( '6.c'@for_specmods(, '6.@spec_with_mod@')@ );

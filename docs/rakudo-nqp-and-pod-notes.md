@@ -115,7 +115,7 @@ Complicating work with pod is that pod blocks can be nested, i.e., a
 pod block can have pod blocks as children, to any depth.  Necessarily
 that applies, in general, to *delimited blocks*. (Other block types
 may have single blocks as children, usually as one or two
-**Pod::Block::Paras**.)
+**Pod::Block::Para**s.)
 
 One consequence of this is that a pod block with children cannot be
 created until all its children have been created.  Another consequence

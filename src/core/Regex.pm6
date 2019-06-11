@@ -1,6 +1,6 @@
 my class Regex { # declared in BOOTSTRAP
     # class Regex is Method
-    #     has @!caps;
+    #     has $!caps;
     #     has Mu $!nfa;
     #     has %!alt_nfas;
     #     has str $!source;

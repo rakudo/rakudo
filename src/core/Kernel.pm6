@@ -57,7 +57,7 @@ class Kernel does Systemic {
         try shell("uname -p", :out, :!err).out.slurp(:close).chomp;
     }
 
-    submethod BUILD(:$!auth = "unknown" --> Nil) { }
+    submethod BUILD(:$!auth = 'unknown' --> Nil) { }
 
     method name {
         $!name //= do {
@@ -185,15 +185,29 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }
     multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }
 
-    method cpu-cores() is raw { nqp::cpucores }
+    method cpu-cores(--> Int) is raw {
+        nqp::cpucores()
+    }
 
-    method cpu-usage() is raw {
+    method cpu-usage(--> Int) is raw {
         my int @rusage;
         nqp::getrusage(@rusage);
         nqp::atpos_i(@rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
           + nqp::atpos_i(@rusage, nqp::const::RUSAGE_UTIME_MSEC)
           + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
           + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC)
+    }
+
+    method free-memory(--> Int) {
+        nqp::freemem()
+    }
+
+    my $total-mem := nqp::null();
+    method total-memory(--> Int) {
+        nqp::ifnull(
+          $total-mem,
+          nqp::bind($total-mem,nqp::p6box_i(nqp::totalmem()))
+        )
     }
 
     my $endian := nqp::null;

@@ -93,7 +93,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         self.update_role_typecheck_list($obj);
     }
 
-    method specialize($obj, *@pos_args, *%named_args) {
+    method select_candidate($obj, @pos_args, %named_args) {
         # Use multi-dispatcher to pick the body block of the best role.
         my $error;
         my $selected_body;
@@ -125,7 +125,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         if $selected =:= NQPMu {
             nqp::die("Internal error: could not resolve body block to role candidate");
         }
+        $selected
+    }
 
+    method specialize($obj, *@pos_args, *%named_args) {
+        my $selected := self.select_candidate($obj, @pos_args, %named_args);
         # Having picked the appropriate one, specialize it.
         $selected.HOW.specialize($selected, |@pos_args, |%named_args);
     }

@@ -23,7 +23,7 @@ class CompUnit::Repository::Spec {
                 self.new(
                     :$short-id,
                     :options(%($<option-name>>>.Str Z=> $<option-value>>>.Str)),
-                    :$path
+                    :$path,
                     :Str($short-id ~ $<options> ~ '#' ~ $path)
                 );
             }

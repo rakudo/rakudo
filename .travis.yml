@@ -9,19 +9,17 @@ sudo: false
 fast_finish: true
 
 install: "echo"
-dist: trusty
+dist: xenial
+
+jdk: openjdk11
 
 addons:
   apt:
     sources:
     # add PPAs with more up-to-date toolchains
     - ubuntu-toolchain-r-test
-    packages:
-    # install toolchains
-    - gcc-6
 
 script:
-    - if [[ $TRAVIS_OS_NAME != osx && $RAKUDO_OPTIONS =~ jvm ]]; then sudo -E apt-get install oracle-java8-installer; fi
     - perl Configure.pl $RAKUDO_OPTIONS --moar-option=--cc=$(command -v gcc-6 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "gcc"; else printf "gcc-6"; fi)
     - "make install"
     - (cd ~/build/rakudo/rakudo/ && prove -e ~/build/rakudo/rakudo/install/bin/perl6 -vlr t)

@@ -14,16 +14,18 @@ my class JSONException is Exception {
 my class Rakudo::Internals::JSON {
 
     my multi sub to-surrogate-pair(Int $ord) {
-        my int $base = $ord - 0x10000;
-        my $top = $base +& 0b1_1111_1111_1100_0000_0000 +> 10;
-        my $bottom = $base +&            0b11_1111_1111;
-        "\\u" ~ (0xD800 + $top).base(16) ~ "\\u" ~ (0xDC00 + $bottom).base(16);
+        my int $base   = $ord - 0x10000;
+        my int $top    = $base +& 0b1_1111_1111_1100_0000_0000 +> 10;
+        my int $bottom = $base +&               0b11_1111_1111;
+        Q/\u/ ~ (0xD800 + $top).base(16) ~ Q/\u/ ~ (0xDC00 + $bottom).base(16);
     }
 
     my multi sub to-surrogate-pair(Str $input) {
         to-surrogate-pair(nqp::ordat($input, 0));
     }
 
+#?if jvm
+    # Older version of str-escape, since the JVM backend does not have .NFD yet
     my sub str-escape(str $text is copy) {
         return $text unless $text ~~ /:m <[\x[5C] \x[22] \x[00]..\x[1F] \x[10000]..\x[10FFFF]]>/;
 
@@ -60,97 +62,257 @@ my class Rakudo::Internals::JSON {
                     .subst("\t", '\\t',     :g);
         $text;
     }
+#?endif
 
-    method to-json($obj is copy, Bool :$pretty = True, Int :$level = 0, Int :$spacing = 2, Bool :$sorted-keys = False) {
-        return $obj ?? 'true' !! 'false' if $obj ~~ Bool;
+#?if !jvm
+    my $tab := nqp::list_i(92,116); # \t
+    my $lf  := nqp::list_i(92,110); # \n
+    my $cr  := nqp::list_i(92,114); # \r
+    my $qq  := nqp::list_i(92, 34); # \"
+    my $bs  := nqp::list_i(92, 92); # \\
 
-        return 'null' if not $obj.defined;
+    # Convert string to decomposed codepoints.  Run over that integer array
+    # and inject whatever is necessary, don't do anything if simple ascii.
+    # Then convert back to string and return that.
+    sub str-escape(\text) {
+        my $codes := text.NFD;
+        my int $i = -1;
 
-        if $obj ~~ Exception {
-           return $.to-json($obj.^name => Hash.new(
-              (message => $obj.?message),
-              $obj.^attributes.grep(*.has_accessor).map: {
-                  with .name.substr(2) -> $attr {
-                      $attr => (
-                        (.defined and not $_ ~~ Real|Positional|Associative)
-                          ?? .Str !! $_
-                      ) given $obj."$attr"()
-                  }
-              }
-            ), :$pretty, :$level, :$spacing, :$sorted-keys);
-        }
-        
-        # Handle allomorphs like IntStr.new(0, '') properly.
-        return $obj.Int.Str if $obj ~~ Int;
-        return $.to-json($obj.Rat, :$pretty, :$level, :$spacing, :$sorted-keys) if $obj ~~ RatStr;
+        nqp::while(
+          nqp::islt_i(++$i,nqp::elems($codes)),
+          nqp::if(
+            nqp::isle_i((my int $code = nqp::atpos_i($codes,$i)),92)
+              || nqp::isge_i($code,128),
+            nqp::if(                                       # not ascii
+              nqp::isle_i($code,31),
+              nqp::if(                                      # control
+                nqp::iseq_i($code,10),
+                nqp::splice($codes,$lf,$i++,1),              # \n
+                nqp::if(
+                  nqp::iseq_i($code,13),
+                  nqp::splice($codes,$cr,$i++,1),             # \r
+                  nqp::if(
+                    nqp::iseq_i($code,9),
+                    nqp::splice($codes,$tab,$i++,1),           # \t
+                    nqp::stmts(                                # other control
+                      nqp::splice($codes,$code.fmt(Q/\u%04x/).NFD,$i,1),
+                      ($i = nqp::add_i($i,5))
+                    )
+                  )
+                )
+              ),
+              nqp::if(                                      # not control
+                nqp::iseq_i($code,34),
+                nqp::splice($codes,$qq,$i++,1),              # "
+                nqp::if(
+                  nqp::iseq_i($code,92),
+                  nqp::splice($codes,$bs,$i++,1),             # \
+                  nqp::if(
+                    nqp::isge_i($code,0x10000),
+                    nqp::stmts(                                # surrogates
+                      nqp::splice(
+                        $codes,
+                        (my $surrogate := to-surrogate-pair($code.chr).NFD),
+                        $i,
+                        1
+                      ),
+                      ($i = nqp::sub_i(nqp::add_i($i,nqp::elems($surrogate)),1))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
 
-        if $obj ~~ Rat {
-            my $result = $obj.Str;
-            unless $obj.contains(".") {
-                return $result ~ ".0";
+        nqp::strfromcodes($codes)
+    }
+#?endif
+
+    method to-json(
+      \obj,
+      Bool :$pretty        = True,
+      Int  :$level         = 0,
+      int  :$spacing       = 2,
+      Bool :$sorted-keys   = False,
+    ) {
+
+        my $out := nqp::list_s;  # cannot use str @out because of JVM
+        my str $spaces = ' ' x $spacing;
+        my str $comma  = ",\n" ~ $spaces x $level;
+
+#-- helper subs from here, with visibility to the above lexicals
+
+        sub pretty-positional(\positional --> Nil) {
+            $comma = nqp::concat($comma,$spaces);
+            nqp::push_s($out,'[');
+            nqp::push_s($out,nqp::substr($comma,1));
+
+            for positional.list {
+                jsonify($_);
+                nqp::push_s($out,$comma);
             }
-            return $result;
+            nqp::pop_s($out);  # lose last comma
+
+            $comma = nqp::substr($comma,0,nqp::sub_i(nqp::chars($comma),$spacing));
+            nqp::push_s($out,nqp::substr($comma,1));
+            nqp::push_s($out,']');
         }
 
-        if $obj ~~ Num {
-            # Allomorph support for NumStr, too.
-            $obj = $obj.Num;
-            if $obj === NaN || $obj === -Inf || $obj === Inf {
-                return $obj.Str;
-            } else {
-                my $result = $obj.Str;
-                unless $result.contains("e") {
-                    return $result ~ "e0";
+        sub pretty-associative(\associative --> Nil) {
+            $comma = nqp::concat($comma,$spaces);
+            nqp::push_s($out,'{');
+            nqp::push_s($out,nqp::substr($comma,1));
+            my \pairs := $sorted-keys
+              ?? associative.sort(*.key)
+              !! associative.list;
+
+            for pairs {
+                jsonify(.key);
+                nqp::push_s($out,": ");
+                jsonify(.value);
+                nqp::push_s($out,$comma);
+            }
+            nqp::pop_s($out);  # lose last comma
+
+            $comma = nqp::substr($comma,0,nqp::sub_i(nqp::chars($comma),$spacing));
+            nqp::push_s($out,nqp::substr($comma,1));
+            nqp::push_s($out,'}');
+        }
+
+        sub unpretty-positional(\positional --> Nil) {
+            nqp::push_s($out,'[');
+            my int $before = nqp::elems($out);
+            for positional.list {
+                jsonify($_);
+                nqp::push_s($out,",");
+            }
+            nqp::pop_s($out) if nqp::elems($out) > $before;  # lose last comma
+            nqp::push_s($out,']');
+        }
+
+        sub unpretty-associative(\associative --> Nil) {
+            nqp::push_s($out,'{');
+            my \pairs := $sorted-keys
+              ?? associative.sort(*.key)
+              !! associative.list;
+
+            my int $before = nqp::elems($out);
+            for pairs {
+                jsonify(.key);
+                nqp::push_s($out,": ");
+                jsonify(.value);
+                nqp::push_s($out,$comma);
+            }
+            nqp::pop_s($out) if nqp::elems($out) > $before;  # lose last comma
+            nqp::push_s($out,'}');
+        }
+
+        sub jsonify(\obj --> Nil) {
+
+            with obj {
+
+                # basic ones
+                when Bool {
+                    nqp::push_s($out,obj ?? "true" !! "false");
                 }
-                return $result;
+                when IntStr {
+                    jsonify(.Int);
+                }
+                when RatStr {
+                    jsonify(.Rat);
+                }
+                when NumStr {
+                    jsonify(.Num);
+                }
+                when Str {
+                    nqp::push_s($out,'"');
+                    nqp::push_s($out,str-escape(obj));
+                    nqp::push_s($out,'"');
+                }
+
+                # numeric ones
+                when Int {
+                    nqp::push_s($out,.Str);
+                }
+                when Rat {
+                    nqp::push_s($out,.contains(".") ?? $_ !! "$_.0")
+                      given .Str;
+                }
+                when FatRat {
+                    nqp::push_s($out,.contains(".") ?? $_ !! "$_.0")
+                      given .Str;
+                }
+                when Num {
+                    if nqp::isnanorinf($_) {
+                        nqp::push_s(
+                          $out,
+                          $*JSON_NAN_INF_SUPPORT ?? obj.Str !! "null"
+                        );
+                    }
+                    else {
+                        nqp::push_s($out,.contains("e") ?? $_ !! $_ ~ "e0")
+                          given .Str;
+                    }
+                }
+
+                # iterating ones
+                when Seq {
+                    jsonify(.cache);
+                }
+                when Positional {
+                    $pretty
+                      ?? pretty-positional($_)
+                      !! unpretty-positional($_);
+                }
+                when Associative {
+                    $pretty
+                      ?? pretty-associative($_)
+                      !! unpretty-associative($_);
+                }
+
+                # rarer ones
+                when Dateish {
+                    nqp::push_s($out,qq/"$_"/);
+                }
+                when Instant {
+                    nqp::push_s($out,qq/"{.DateTime}"/)
+                }
+                when Version {
+                    jsonify(.Str)
+                }
+
+                # also handle exceptions here
+                when Exception {
+                    jsonify(obj.^name => Hash.new(
+                      (message => nqp::can(obj,"message")
+                        ?? obj.message !! Nil
+                      ),
+                      obj.^attributes.grep(*.has_accessor).map: {
+                          with .name.substr(2) -> $attr {
+                              $attr => (
+                                (.defined and not $_ ~~ Real|Positional|Associative)
+                                  ?? .Str !! $_
+                              ) given obj."$attr"()
+                          }
+                      }
+                    ));
+                }
+
+                # huh, what?
+                default {
+                    jsonify( { 0 => 'null' } );
+                }
+            }
+            else {
+                nqp::push_s($out,'null');
             }
         }
 
-        return "\"" ~ str-escape(~$obj) ~ "\"" if $obj ~~ Str|Version;
+#-- do the actual work
 
-        return “"$obj"” if $obj ~~ Dateish;
-        return “"{$obj.DateTime.Str}"” if $obj ~~ Instant;
-
-        if $obj ~~ Seq {
-            $obj = $obj.cache
-        }
-
-        my int  $lvl  = $level;
-        my Bool $arr  = $obj ~~ Positional;
-        my str  $out ~= $arr ?? '[' !! '{';
-        my $spacer   := sub {
-            $out ~= "\n" ~ (' ' x $lvl*$spacing) if $pretty;
-        };
-
-        $lvl++;
-        $spacer();
-        if $arr {
-            for @($obj) -> $i {
-              $out ~= $.to-json($i, :level($level+1), :$spacing, :$pretty, :$sorted-keys) ~ ',';
-              $spacer();
-            }
-        }
-        else {
-            my @keys = $obj.keys;
-
-            if ($sorted-keys) {
-                @keys = @keys.sort;
-            }
-
-            for @keys -> $key {
-                $out ~= "\"" ~
-                        ($key ~~ Str ?? str-escape($key) !! $key) ~
-                        "\": " ~
-                        $.to-json($obj{$key}, :level($level+1), :$spacing, :$pretty, :$sorted-keys) ~
-                        ',';
-                $spacer();
-            }
-        }
-        $out .=subst(/',' \s* $/, '');
-        $lvl--;
-        $spacer();
-        $out ~= $arr ?? ']' !! '}';
-        return $out;
+        jsonify(obj);
+        nqp::join("",$out)
     }
 
     my $ws := nqp::list_i;
@@ -164,16 +326,12 @@ my class Rakudo::Internals::JSON {
           if $pos == nqp::chars($text);
     }
 
-    my sub tear-off-combiners(str $text, int $pos) {
-        my str $combinerstuff = nqp::substr($text, $pos, 1);
-        my @parts = $combinerstuff.NFD.list;
-        return @parts.skip(1).map({
-                if $^ord > 0x10000 {
-                    to-surrogate-pair($ord);
-                } else {
-                    $ord.chr()
-                }
-            }).join()
+    my sub tear-off-combiners(\text, \pos) {
+        text.substr(pos,1).NFD.skip.map( {
+             $^ord > 0x10000
+               ?? to-surrogate-pair($^ord)
+               !! $^ord.chr
+        } ).join
     }
 
     my Mu $hexdigits := nqp::hash(
@@ -194,8 +352,8 @@ my class Rakudo::Internals::JSON {
         my int $has_hexcodes;
         my int $has_treacherous;
         my str $startcombiner = "";
-        my Mu $treacherous;
-        my Mu $escape_counts := nqp::hash();
+        my Mu  $treacherous;
+        my Mu  $escape_counts := nqp::hash();
 
         unless nqp::eqat($text, '"', $startpos - 1) {
             $startcombiner = tear-off-combiners($text, $startpos - 1);
@@ -327,7 +485,7 @@ my class Rakudo::Internals::JSON {
 
         $pos = $pos - 1;
 
-        $raw;
+        $raw
     }
 
     my sub parse-numeric(str $text, int $pos is rw) {
@@ -368,54 +526,51 @@ my class Rakudo::Internals::JSON {
 
         if nqp::eqat($text, '}', $pos) {
             $pos = $pos + 1;
-            %();
-        } else {
-            my $thing;
-            loop {
-                $thing = Any;
+            return %result;
+        }
 
-                if $key.DEFINITE {
-                    $thing = parse-thing($text, $pos)
-                } else {
-                    nom-ws($text, $pos);
+        my $thing;
+        loop {
+            $thing := Any;
 
-                    if nqp::ordat($text, $pos) == 34 { # "
-                        $pos = $pos + 1;
-                        $thing = parse-string($text, $pos)
-                    } else {
-                        die "at end of string: expected a quoted string for an object key" if $pos == nqp::chars($text);
-                        die "at $pos: json requires object keys to be strings";
-                    }
-                }
+            if $key.DEFINITE {
+                $thing := parse-thing($text, $pos)
+            } else {
                 nom-ws($text, $pos);
 
-                #my str $partitioner = nqp::substr($text, $pos, 1);
-
-                if      nqp::eqat($text, ':', $pos) and   !($key.DEFINITE or      $value.DEFINITE) {
-                    $key = $thing;
-                } elsif nqp::eqat($text, ',', $pos) and     $key.DEFINITE and not $value.DEFINITE {
-                    $value = $thing;
-
-                    %result{$key} = $value;
-
-                    $key   = Any;
-                    $value = Any;
-                } elsif nqp::eqat($text, '}', $pos) and     $key.DEFINITE and not $value.DEFINITE {
-                    $value = $thing;
-
-                    %result{$key} = $value;
-                    $pos = $pos + 1;
-                    last;
+                if nqp::ordat($text, $pos) == 34 { # "
+                    $pos    = $pos + 1;
+                    $thing := parse-string($text, $pos)
                 } else {
-                    die "at end of string: unexpected end of object." if $pos == nqp::chars($text);
-                    die "unexpected { nqp::substr($text, $pos, 1) } in an object at $pos";
+                    die "at end of string: expected a quoted string for an object key" if $pos == nqp::chars($text);
+                    die "at $pos: json requires object keys to be strings";
                 }
+            }
+            nom-ws($text, $pos);
 
-                $pos = $pos + 1;
+            #my str $partitioner = nqp::substr($text, $pos, 1);
+
+            if      nqp::eqat($text, ':', $pos) and   !($key.DEFINITE or      $value.DEFINITE) {
+                $key := $thing;
+            } elsif nqp::eqat($text, ',', $pos) and     $key.DEFINITE and not $value.DEFINITE {
+                $value        := $thing;
+                %result{$key}  = $value;
+                $key          := Any;
+                $value        := Any;
+            } elsif nqp::eqat($text, '}', $pos) and     $key.DEFINITE and not $value.DEFINITE {
+                $value        := $thing;
+                %result{$key}  = $value;
+                $pos           = $pos + 1;
+                last;
+            } else {
+                die "at end of string: unexpected end of object." if $pos == nqp::chars($text);
+                die "unexpected { nqp::substr($text, $pos, 1) } in an object at $pos";
             }
 
-            %result;
+            $pos = $pos + 1;
         }
+
+        %result
     }
 
     my sub parse-array(str $text, int $pos is rw) {
@@ -425,28 +580,30 @@ my class Rakudo::Internals::JSON {
 
         if nqp::eqat($text, ']', $pos) {
             $pos = $pos + 1;
-            [];
-        } else {
-            my $thing;
-            my str $partitioner;
-            loop {
-                $thing = parse-thing($text, $pos);
-                nom-ws($text, $pos);
-
-                $partitioner = nqp::substr($text, $pos, 1);
-                $pos = $pos + 1;
-
-                if $partitioner eq ']' {
-                    @result.push: $thing;
-                    last;
-                } elsif $partitioner eq "," {
-                    @result.push: $thing;
-                } else {
-                    die "at $pos, unexpected $partitioner inside list of things in an array";
-                }
-            }
-            @result;
+            return @result;
         }
+
+        my     $thing;
+        my str $partitioner;
+
+        loop {
+            $thing := parse-thing($text, $pos);
+            nom-ws($text, $pos);
+
+            $partitioner = nqp::substr($text, $pos, 1);
+            $pos = $pos + 1;
+
+            if $partitioner eq ']' {
+                @result.push: $thing;
+                last;
+            } elsif $partitioner eq "," {
+                @result.push: $thing;
+            } else {
+                die "at $pos, unexpected $partitioner inside list of things in an array";
+            }
+        }
+
+        @result
     }
 
     my sub parse-thing(str $text, int $pos is rw) {
@@ -494,12 +651,10 @@ my class Rakudo::Internals::JSON {
     method from-json(Str() $text) {
         CATCH { when X::AdHoc { die JSONException.new(:text($_)) } }
 
-        my str $ntext = $text;
-        my int $length = $text.chars;
-
-        my int $pos = 0;
-
-        my $result = parse-thing($text, $pos);
+        my str $ntext   = $text;
+        my int $length  = $text.chars;
+        my int $pos     = 0;
+        my     $result := parse-thing($text, $pos);
 
         try nom-ws($text, $pos);
 
@@ -507,7 +662,7 @@ my class Rakudo::Internals::JSON {
             die "additional text after the end of the document: { substr($text, $pos).perl }";
         }
 
-        $result;
+        $result
     }
 }
 

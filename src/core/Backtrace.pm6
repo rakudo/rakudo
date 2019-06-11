@@ -3,8 +3,6 @@ my class Exception { ... }
 my class Backtrace { ... }
 my class CompUnit::RepositoryRegistry is repr('Uninstantiable') { ... }
 
-my $RAKUDO-VERBOSE-STACKFRAME;
-
 my class Backtrace::Frame {
     has Str $.file;
     has Int $.line;
@@ -36,7 +34,7 @@ my class Backtrace::Frame {
         $s ~= ' ' if $s.chars;
         my $text = "  in {$s}$.subname at {$.file} line $.line\n";
 
-        if $RAKUDO-VERBOSE-STACKFRAME -> $extra {
+        if Backtrace.RAKUDO_VERBOSE_STACKFRAME -> $extra {
             my $io = $!file.IO;
             if $io.e {
                 my @lines = $io.lines;
@@ -53,7 +51,11 @@ my class Backtrace::Frame {
     }
 
     method is-hidden(Backtrace::Frame:D:) {
-        ?$!code.?is-hidden-from-backtrace
+        nqp::if(
+          nqp::can($!code,"is-hidden-from-backtrace"),
+          $!code.is-hidden-from-backtrace,
+          False
+        )
     }
     method is-routine(Backtrace::Frame:D:) {
         nqp::hllbool(nqp::istype($!code,Routine))
@@ -75,9 +77,16 @@ my class Backtrace {
     has Mu $!frames;
     has Int $!bt-next;   # next bt index to vivify
 
+    my $RAKUDO_VERBOSE_STACKFRAME := nqp::null;
+    method RAKUDO_VERBOSE_STACKFRAME() {
+        nqp::ifnull(
+          $RAKUDO_VERBOSE_STACKFRAME,
+          $RAKUDO_VERBOSE_STACKFRAME :=
+            (%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0).Int
+        )
+    }
+
     method !SET-SELF($!bt,$!bt-next) {
-        once $RAKUDO-VERBOSE-STACKFRAME =
-          (%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0).Num;
         $!frames := nqp::list;
         self
     }
@@ -207,7 +216,8 @@ my class Backtrace {
         while self.AT-POS($idx++) -> $cand {
             next if $cand.is-hidden;          # hidden is never interesting
             next if $noproto                  # no proto's please
-              && $cand.code.?is_dispatcher;   #  if a dispatcher
+              && nqp::can($cand,"is_dispatcher")
+              && $cand.code.is_dispatcher;    #  if a dispatcher
             next if !$setting                 # no settings please
               && $cand.is-setting;            #  and in setting
 

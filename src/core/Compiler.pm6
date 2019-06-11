@@ -1,38 +1,32 @@
 class Compiler does Systemic {
     has Str $.id;
     has Str $.release;
-    has Str $!build-date;
     has Str $.codename;
-    my constant $id = nqp::sha1(
+    my constant $id = nqp::p6box_s(nqp::sha1(
         $*W.handle.Str
         ~ nqp::atkey(nqp::getcurhllsym('$COMPILER_CONFIG'), 'source-digest')
-    );
+    ));
 
     submethod BUILD (
       :$!name      = 'rakudo',
       :$!auth      = 'The Perl Foundation',
       :$version,
       :$release,
-      :$build-date,
       :$codename
       --> Nil
     ) {
 # XXX Various issues with this stuff on JVM
         my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
-        $!id = nqp::p6box_s(nqp::ifnull(nqp::atkey($compiler,'id'),$id));
+        $!id = nqp::isnull(nqp::atkey($compiler,'id'))
+            ?? $id
+            !! nqp::p6box_s(nqp::atkey($compiler,'id'));
         # looks like: 2018.01-50-g8afd791c1
         $!version = $version
             // Version.new(nqp::atkey($compiler, 'version'));
         $!release =
           $release // nqp::p6box_s(nqp::atkey($compiler, 'release-number'));
-        $!build-date =
-          $build-date // nqp::p6box_s(nqp::atkey($compiler, 'build-date'));
         $!codename =
           $codename // nqp::p6box_s(nqp::atkey($compiler, 'codename'));
-    }
-
-    method build-date() {
-        DateTime.new($!build-date)
     }
 
     method verbose-config(:$say) {

@@ -31,7 +31,9 @@ class CompUnit::RepositoryRegistry {
         return CompUnit::Repository::Unknown.new(:path-spec($spec), :short-name($short-id))
             if so $class && nqp::istype($class, Failure) or !nqp::istype($class, CompUnit::Repository);
 
-        my $abspath = $class.?absolutify($path) // $path;
+        my $abspath = nqp::can($class,"absolutify")
+          ?? $class.absolutify($path)
+          !! $path;
         my $id      = "$short-id#$abspath";
         %options<next-repo> = $next-repo if $next-repo;
         $lock.protect( {
@@ -83,12 +85,9 @@ class CompUnit::RepositoryRegistry {
             }
         }
 
-        my $prefix := nqp::existskey($ENV,'RAKUDO_PREFIX')
+        my str $prefix = nqp::existskey($ENV,'RAKUDO_PREFIX')
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
-          !! nqp::concat(
-               nqp::atkey(nqp::getcomp('perl6').config,'libdir'),
-               "{$sep}perl6"
-             );
+          !! nqp::getcurhllsym('$PERL6_HOME');
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
         my str $home;

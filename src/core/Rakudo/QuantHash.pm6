@@ -13,20 +13,17 @@ my class Rakudo::QuantHash {
         has $!iter;
         has $!on;
 
-        method !SET-SELF(\elems) {
-            nqp::stmts(
-              ($!elems := elems),
-              ($!iter  := nqp::iterator(elems)),
-              self
-            )
-        }
-        method new(\quanthash) {
+        method !SET-SELF(\quanthash) {
             nqp::if(
-              (my $elems := quanthash.RAW-HASH) && nqp::elems($elems),
-              nqp::create(self)!SET-SELF($elems),
+              ($!elems := quanthash.RAW-HASH) && nqp::elems($!elems),
+              nqp::stmts(
+                ($!iter := nqp::iterator($!elems)),
+                self
+              ),
               Rakudo::Iterator.Empty   # nothing to iterate
             )
         }
+        method new(\quanthash) { nqp::create(self)!SET-SELF(quanthash) }
         method skip-one() {
             nqp::if(
               $!on,

@@ -2354,11 +2354,17 @@ class Rakudo::Iterator {
                 times <= 0,               # must be HLL comparison
                 Rakudo::Iterator.Empty,   # negative is just nothing
                 nqp::if(
-                  (nqp::istype(times,Int)
-                    && nqp::isbig_I(nqp::decont(times)))
-                    || times == Inf,
-                  iterator,               # big value = itself
-                  nqp::create(self)!SET-SELF(iterator,times)
+                  nqp::istype(times,Int),
+                  nqp::if(
+                    nqp::isbig_I(nqp::decont(times)),
+                    iterator,             # big value = itself
+                    nqp::create(self)!SET-SELF(iterator,times)
+                  ),
+                  nqp::if(
+                    times == Inf,         # big value = itself
+                    iterator,
+                    nqp::create(self)!SET-SELF(iterator,times.Int)
+                  )
                 )
               )
             )
@@ -2704,7 +2710,7 @@ class Rakudo::Iterator {
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements that don't exist
     # before the end of the reified list.
-    my class ReifiedListIterator does Iterator {
+    my class ReifiedListIterator does PredictiveIterator {
         has $!reified;
         has int $!i;
 
@@ -2790,59 +2796,6 @@ class Rakudo::Iterator {
     method ReifiedList(\list) {
         ReifiedListIterator.new(list)
     }
-
-    # Return an iterator that produces values in reverse order for a
-    # List that has been completely reified already.  Returns an nqp::null
-    # for elements don't exist before the end of the reified list.
-    my class ReifiedListReverse does PredictiveIterator {
-        has $!reified;
-        has int $!i;
-
-        method !SET-SELF(\list) {
-            nqp::stmts(
-              ($!reified := nqp::if(
-                nqp::istype(list,List),
-                nqp::getattr(list,List,'$!reified'),
-                list)),
-              ($!i = nqp::elems($!reified)),
-              self
-            )
-        }
-        method new(\list) { nqp::create(self)!SET-SELF(list) }
-
-        method pull-one() is raw {
-            nqp::if(
-              $!i,
-              nqp::atpos($!reified,$!i = nqp::sub_i($!i,1)),
-              IterationEnd
-            )
-        }
-        method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              (my int $i = nqp::elems($!reified)),
-              nqp::while(  # doesn't sink
-                $i,
-                target.push(nqp::atpos($!reified,($i = nqp::sub_i($i,1))))
-              ),
-              ($!i = 0)
-            )
-        }
-        method skip-one() {
-            nqp::if(
-              $!i,
-              nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
-            )
-        }
-        method skip-at-least(int $toskip) {
-            nqp::unless(
-              nqp::isge_i(($!i = nqp::sub_i($!i,$toskip)),0),
-              ($!i = 0)
-            )
-        }
-        method count-only(--> Int:D) { nqp::p6box_i($!i) }
-        method sink-all(--> IterationEnd) { $!i = 0 }
-    }
-    method ReifiedListReverse(\list) { ReifiedListReverse.new(list) }
 
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,

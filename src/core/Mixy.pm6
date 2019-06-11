@@ -14,7 +14,7 @@ my role Mixy does Baggy  {
     }
 
     multi method pick(Mixy:D: $count?) {
-        Failure.new(".pick is not supported on a {self.^name}")
+        Failure.new(".pick is not supported on a {self.^name}, maybe use .roll instead?")
     }
 
     multi method roll(Mixy:D:) {

@@ -8,14 +8,56 @@ class Kernel does Systemic {
     has Str $!hardware;
     has Str $!arch;
     has Int $!bits;
-    has Bool $!has_uname;
 
-    method !uname($opt) {
-        $!has_uname //= "/bin/uname".IO.x || "/usr/bin/uname".IO.x;
-        $!has_uname ?? qqx/uname $opt/.chomp !! 'unknown';
+#?if !jvm
+    has $!uname;
+    method !uname {
+        $!uname ?? $!uname !! ($!uname := nqp::uname())
+    }
+#?endif
+
+    method !uname-s {
+#?if !jvm
+        nqp::atpos_s(self!uname, nqp::const::UNAME_SYSNAME)
+#?endif
+#?if jvm
+        try shell('uname -s', :out, :!err).out.slurp(:close).chomp;
+#?endif
     }
 
-    submethod BUILD(:$!auth = "unknown" --> Nil) { }
+    method !uname-r {
+#?if !jvm
+        nqp::atpos_s(self!uname, nqp::const::UNAME_RELEASE)
+#?endif
+#?if jvm
+        try shell('uname -r', :out, :!err).out.slurp(:close).chomp;
+#?endif
+    }
+
+    method !uname-v {
+#?if moar
+        nqp::atpos_s(self!uname, nqp::const::UNAME_VERSION)
+#?endif
+#?if !moar
+        try shell('uname -v', :out, :!err).out.slurp(:close).chomp;
+#?endif
+    }
+
+    method !uname-m {
+#?if moar
+        nqp::atpos_s(self!uname, nqp::const::UNAME_MACHINE)
+#?endif
+#?if !moar
+        try shell('uname -m', :out, :!err).out.slurp(:close).chomp;
+#?endif
+    }
+
+    method !uname-p {
+        # TODO: find a way to get this without shelling out
+        try shell("uname -p", :out, :!err).out.slurp(:close).chomp;
+    }
+
+    submethod BUILD(:$!auth = 'unknown' --> Nil) { }
 
     method name {
         $!name //= do {
@@ -27,71 +69,36 @@ class Kernel does Systemic {
                     'browser';
                 }
                 default {
-                    lc self!uname('-s');
+                    lc self!uname-s();
                 }
             }
         }
     }
 
     method version {
-        $!version //= Version.new( do {
-            given $*DISTRO.name {
-                when 'freebsd' {
-                    self!uname('-r'); # -K -U not introduced until 10.0
-                }
-                when 'macosx' {
-                    my $unamev = self!uname('-v');
-                    $unamev ~~ m/^Darwin \s+ Kernel \s+ Version \s+ (<[\d\.]>+)/
-                      ?? ~$0
-                      !! $unamev.chomp;
-                }
-                default {
-                    given $.name {
-                        when 'linux' {
-                            # somewhat counter-intuitively the '-r' is what
-                            # most people think of the kernel version
-                            self!uname('-r');
-                        }
-                        default {
-                            self!uname('-v');
-                        }
-                    }
-                }
-            }
-        } );
+        # it doesn't make sense to return a Version object here, but its currently enforced by roast
+        # TODO: remove Version checks from roast? and check ecosystem for fallout.
+        $!version //= Version.new(self!uname-v());
     }
 
     method release {
-        $!release //= do {
-            given $*DISTRO.name {
-                when any <openbsd netbsd dragonfly> { # needs adapting
-                    self!uname('-r');
-                }
-                default {
-                    self!uname('-v');
-                }
-            }
-        }
+        # somewhat counter-intuitively the UNAME_RELEASE is what
+        # most people think of the kernel version
+        $!release //= self!uname-r();
     }
 
     method hardware {
-        $!hardware //= do {
-            given $*DISTRO.name {
-                default {
-                    self!uname('-m');
-                }
-            }
-        }
+        $!hardware //= self!uname-m();
     }
 
     method arch {
         $!arch //= do {
             given $*DISTRO.name {
                 when 'raspbian' {
-                    self!uname('-m');
+                    self!uname-m();
                 }
                 default {
-                    self!uname('-p');
+                    self!uname-p();
                 }
             }
         }
@@ -178,15 +185,29 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }
     multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }
 
-    method cpu-cores() is raw { nqp::cpucores }
+    method cpu-cores(--> Int) is raw {
+        nqp::cpucores()
+    }
 
-    method cpu-usage() is raw {
+    method cpu-usage(--> Int) is raw {
         my int @rusage;
         nqp::getrusage(@rusage);
         nqp::atpos_i(@rusage, nqp::const::RUSAGE_UTIME_SEC) * 1000000
           + nqp::atpos_i(@rusage, nqp::const::RUSAGE_UTIME_MSEC)
           + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_SEC) * 1000000
           + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC)
+    }
+
+    method free-memory(--> Int) {
+        nqp::freemem()
+    }
+
+    my $total-mem := nqp::null();
+    method total-memory(--> Int) {
+        nqp::ifnull(
+          $total-mem,
+          nqp::bind($total-mem,nqp::p6box_i(nqp::totalmem()))
+        )
     }
 
     my $endian := nqp::null;

@@ -62,8 +62,11 @@ PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
 PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 #?endif
 
-# vim: ft=perl6 expandtab sw=4
-
 #?if jvm
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif
+
+# This dynamic is purely for testing support.
+PROCESS::<$CORE-SETTING-REV> := 'c';
+
+# vim: ft=perl6 expandtab sw=4

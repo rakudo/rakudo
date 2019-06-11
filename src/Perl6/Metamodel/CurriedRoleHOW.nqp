@@ -19,25 +19,34 @@ class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::RoleContainer
 {
     has $!curried_role;
     has @!pos_args;
     has %!named_args;
+    has @!role_typecheck_list;
+    has $!is_complete;
+    has $!archetypes;
 
     my $archetypes_g := Perl6::Metamodel::Archetypes.new( :composable(1), :inheritalizable(1), :parametric(1), :generic(1) );
     my $archetypes_ng := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
+    method !choose_archetype() {
+        for @!pos_args {
+            if $_.HOW.archetypes.generic {
+                return $archetypes_g;
+            }
+        }
+        for %!named_args {
+            if $_.value.HOW.archetypes.generic {
+                return $archetypes_g;
+            }
+        }
+        $archetypes_ng
+    }
     method archetypes() {
         if nqp::isconcrete(self) {
-            for @!pos_args {
-                if $_.HOW.archetypes.generic {
-                    return $archetypes_g;
-                }
-            }
-            for %!named_args {
-                if $_.value.HOW.archetypes.generic {
-                    return $archetypes_g;
-                }
-            }
+            $!archetypes := self.'!choose_archetype'() unless $!archetypes;
+            return $!archetypes;
         }
         $archetypes_ng
     }
@@ -60,7 +69,52 @@ class Perl6::Metamodel::CurriedRoleHOW
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),
             :named_args(%named_args), :name($name));
         my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
-        nqp::settypecheckmode($type, 2)
+        nqp::settypecheckmode($type, 2);
+    }
+
+    method parameterize_roles($obj) {
+        my @pos_args;
+        nqp::push(@pos_args, $obj);
+        for @!pos_args {
+            nqp::push(@pos_args, $_);
+        }
+        my $candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
+        my $type_env;
+        try {
+            my @result := $candidate.HOW.body_block($candidate)(|@pos_args, |%!named_args);
+            $type_env := @result[1];
+        }
+        for $candidate.HOW.roles($candidate, :!transitive) -> $role {
+            if nqp::can($role.HOW, 'curried_role') && $role.HOW.archetypes.generic && $type_env {
+                $role := $role.HOW.instantiate_generic($role, $type_env);
+            }
+            self.add_role($obj, $role);
+        }
+        self.update_role_typecheck_list($obj);
+    }
+
+    method update_role_typecheck_list($obj) {
+        my @rtl;
+        nqp::push(@rtl, $!curried_role);
+        # XXX Not sure if it makes sense adding roles from group into the type checking.
+        # for $!curried_role.HOW.role_typecheck_list($obj) {
+        #     nqp::push(@rtl, $_);
+        # }
+        for self.roles_to_compose($obj) {
+            nqp::push(@rtl, $_);
+            for $_.HOW.role_typecheck_list($_) {
+                nqp::push(@rtl, $_);
+            }
+        }
+        @!role_typecheck_list := @rtl;
+    }
+
+    method complete_parameterization($obj) {
+        unless $!is_complete {
+            self.parameterize_roles($obj);
+            self.update_role_typecheck_list($obj);
+            $!is_complete := 1;
+        }
     }
 
     method instantiate_generic($obj, $type_env) {
@@ -92,16 +146,51 @@ class Perl6::Metamodel::CurriedRoleHOW
         @!pos_args
     }
 
+    # method roles($obj, :$transitive = 1) {
+    #     $!curried_role.HOW.roles($obj, :$transitive)
+    # }
+
     method roles($obj, :$transitive = 1) {
-        $!curried_role.HOW.roles($obj, :$transitive)
+        self.complete_parameterization($obj);
+        if $transitive {
+            my @result;
+            for self.roles_to_compose($obj) {
+                @result.push($_);
+                for $_.HOW.roles($_, :transitive(1)) {
+                    @result.push($_)
+                }
+            }
+            @result
+        }
+        else {
+            self.roles_to_compose($obj)
+        }
     }
 
     method role_typecheck_list($obj) {
-        $!curried_role.HOW.role_typecheck_list($obj)
+        self.complete_parameterization($obj);
+        @!role_typecheck_list
     }
 
     method type_check($obj, $checkee) {
-        $!curried_role.HOW.type_check($!curried_role, $checkee)
+        my $decont := nqp::decont($checkee);
+        if $decont =:= $obj.WHAT {
+            return 1;
+        }
+        if $decont =:= $!curried_role {
+            return 1;
+        }
+        for self.pretending_to_be() {
+            if $decont =:= nqp::decont($_) {
+                return 1;
+            }
+        }
+        for @!role_typecheck_list {
+            if $decont =:= nqp::decont($_) {
+                return 1;
+            }
+        }
+        0
     }
 
     method accepts_type($obj, $checkee) {

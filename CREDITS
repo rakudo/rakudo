@@ -465,6 +465,11 @@ U: jdv79
 N: Kamil Kułaga
 E: teodozjan@users.noreply.github.com
 
+N: Kane Valentine
+U: kawaii
+E: kane@cute.im
+W: https://cute.im
+
 N: kboga
 E: kristofbogaerts@gmail.com
 
@@ -639,6 +644,10 @@ N: Patrick R. Michaud
 U: pmichaud
 D: Perl 6 (Rakudo Perl) lead developer, initial pumpking
 E: pmichaud@pobox.com
+
+N: Patrick Böker
+U: patzim
+E: patrickz@cpan.org
 
 N: Paul Cochrane
 U: paultcochrane
@@ -881,5 +890,10 @@ E: perl6@eaterofco.de
 N: Oleksii Varianyk
 U: cono
 E: q@cono.org.ua
+
+N: Vadim Belman
+U: vrurg
+E: vrurg@cpan.org
+D: Build subsystem, various code changes
 
 =cut

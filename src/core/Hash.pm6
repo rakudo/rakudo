@@ -46,6 +46,12 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method STORE_AT_KEY(|) {*}
+    multi method STORE_AT_KEY(Junction:D \key, Mu \x --> Nil) {
+        X::Cannot::Junction.new(
+          junction => key.gist,
+          for => 'as a key to initialize a Hash'
+        ).throw;
+    }
     multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
@@ -493,7 +499,14 @@ my class Hash { # declared in BOOTSTRAP
             )
         }
 
-        method STORE_AT_KEY(::?CLASS:D: TKey \key, Mu \value --> Nil) {
+        proto method STORE_AT_KEY(|) {*}
+        multi method STORE_AT_KEY(::?CLASS:D: Junction:D \key, Mu \x --> Nil) {
+            X::Cannot::Junction.new(
+              junction => key.gist,
+              for => 'as a key to initialize an object Hash'
+            ).throw;
+        }
+        multi method STORE_AT_KEY(::?CLASS:D: TKey \key, Mu \value --> Nil) {
             nqp::bindkey(
               nqp::getattr(self,Map,'$!storage'),
               nqp::unbox_s(key.WHICH),

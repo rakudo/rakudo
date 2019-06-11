@@ -1,5 +1,3 @@
-my %DEPRECATIONS; # where we keep our deprecation info
-
 class Deprecation {
     has str $.file;         # file of the code that is deprecated
     has str $.type;         # type of code (sub/method etc.) that is deprecated
@@ -9,6 +7,9 @@ class Deprecation {
     has %.callsites;        # places where called (file -> line -> count)
     has Version $.from;     # release version from which deprecated
     has Version $.removed;  # release version when will be removed
+
+    my %DEPRECATIONS; # where we keep our deprecation info
+    method DEPRECATIONS() is raw { %DEPRECATIONS }
 
     multi method WHICH (Deprecation:D: --> ValueObjAt:D) {
         my $which := nqp::list_s("Deprecation");
@@ -60,6 +61,8 @@ class Deprecation {
 }
 
 class Rakudo::Deprecations {
+
+    my %DEPRECATIONS := Deprecation.DEPRECATIONS;
 
     my $ver;
     method DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool :$lang-vers) {

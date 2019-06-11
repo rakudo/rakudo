@@ -88,34 +88,17 @@ my class Parameter { # declared in BOOTSTRAP
         }
     }
 
-    multi method new(Parameter:U:
-       Str:D :$name           = "",
-       Int:D :$flags          = 0,
-      Bool:D :$named          = False,
-      Bool:D :$optional       = False,
-      Bool:D :$mandatory      = False,
-      Bool:D :$is-copy        = False,
-      Bool:D :$is-raw         = False,
-      Bool:D :$is-rw          = False,
-      Bool:D :$multi-invocant = True,
-    ) {
-        nqp::create(self)!SET-SELF(
-          $name, $flags, $named, $optional, $mandatory,
-          $is-copy, $is-raw, $is-rw, $multi-invocant, %_
-        )
-    }
-
-    method !SET-SELF(
-       Str:D $name      is copy,
-       Int:D $flags     is copy,
-      Bool:D $named     is copy,
-      Bool:D $optional  is copy,
-      Bool:D $mandatory is copy,
-      Bool:D $is-copy,
-      Bool:D $is-raw,
-      Bool:D $is-rw,
-      Bool:D $multi-invocant,
-             %args  # type / default / where / sub_signature captured through %_
+    submethod BUILD(
+       Str:D $name      is copy = "",
+       Int:D $flags     is copy = 0,
+      Bool:D $named     is copy = False,
+      Bool:D $optional  is copy = False,
+      Bool:D $mandatory is copy = False,
+      Bool:D $is-copy = False,
+      Bool:D $is-raw = False,
+      Bool:D $is-rw = False,
+      Bool:D $multi-invocant = True,
+             *%args  # type / default / where / sub_signature captured through %_
       ) {
 
         if $name {                                 # specified a name?
@@ -535,7 +518,7 @@ my class Parameter { # declared in BOOTSTRAP
         True;
     }
 
-    multi method perl(Parameter:D: Mu:U :$elide-type = Any, :&where = -> $ { 'where { ... }' }) {
+    multi method perl(Parameter:D: Mu:U :$elide-type = Any) {
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
@@ -610,9 +593,18 @@ my class Parameter { # declared in BOOTSTRAP
             $rest ~= ' ' ~ $sig;
         }
         unless nqp::isnull(@!post_constraints) {
-            my $where = &where(self);
-            return Nil without $where;
-            $rest ~= " $where";
+            # it's a Cool constant
+            if !$rest
+              && $name eq '$'
+              && nqp::elems(@!post_constraints) == 1
+              && nqp::istype(
+                   (my \value := nqp::atpos(@!post_constraints,0)),
+                   Cool
+                 ) {
+                return value.perl;
+            }
+
+            $rest ~= ' where { ... }';
         }
         $rest ~= " = $!default_value.perl()" if $default;
         if $name or $rest {

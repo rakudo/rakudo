@@ -1,0 +1,4 @@
+@ SET DIR=%~dp0
+@ SET DIR=%DIR:~0,-1%
+@ SET EXEC=%~dpf0
+@ "@expand(@MOAR@)@" @expand(@runner_opts@)@ %*

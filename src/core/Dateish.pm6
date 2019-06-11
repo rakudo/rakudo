@@ -31,11 +31,8 @@ my role Dateish {
         sprintf 0 <= $!year <= 9999 ?? '%04d' !! '%+05d', $!year;
     }
 
-    # make sure $!daycount is nulled for subclasses
-    method !SET-DAYCOUNT() {
-        nqp::bind($!daycount,nqp::null) unless nqp::isconcrete($!daycount);
-        self
-    }
+    # noop for subclasses
+    method !SET-DAYCOUNT() { self }
 
     multi method new(Dateish:) {
         Failure.new(
@@ -50,7 +47,8 @@ my role Dateish {
     multi method gist(Dateish:D: --> Str:D) { self.Str }
 
     method daycount(--> Int:D) {
-        nqp::ifnull(
+        nqp::if(
+          nqp::isconcrete($!daycount),
           $!daycount,
           $!daycount := self!calculate-daycount
         )
@@ -134,6 +132,9 @@ my role Dateish {
             my $new-dc = self.daycount - self.day-of-week + 1;
             self!ymd-from-daycount($new-dc,
               %parts<year>,%parts<month>,%parts<day>);
+        }
+        elsif $unit eq 'day' | 'days' {
+            # no-op
         }
         else { # $unit eq 'month' | 'months' | 'year' | 'years'
             %parts<day>   = 1;

@@ -1,7 +1,8 @@
 my class WhateverCode is Code {
 
     # helper method for array slicing
-    method POSITIONS(WhateverCode:D $self: \list) {
+    multi method POSITIONS(WhateverCode:D: Failure:D \failure) { failure }
+    multi method POSITIONS(WhateverCode:D $self: \list) {
       my \signature := nqp::getattr($self,Code,'$!signature');
       my \count := nqp::getattr(signature,Signature,'$!count');
       nqp::if(

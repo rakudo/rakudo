@@ -650,6 +650,10 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
+    nqp::gethllsym('perl6','ModuleLoader').merge_globals(
+        $block.AT-KEY($stubname).WHO,
+        $GLOBALish,
+    ) if $stubname;
     # Merge GLOBAL from compunit.
     nqp::gethllsym('perl6','ModuleLoader').merge_globals(
         $block<%REQUIRE_SYMBOLS>,

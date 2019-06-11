@@ -1,3 +1,5 @@
+class X::Cannot::Map { ... }
+
 # Now that Iterable is defined, we add extra methods into Any for the list
 # operations. (They can't go into Any right away since we need Attribute to
 # define the various roles, and Attribute inherits from Any. We will do a
@@ -9,9 +11,29 @@ use MONKEY-TYPING;
 augment class Any {
 
     proto method map(|) is nodal {*}
-    multi method map(Hash \h) {
-        die "Cannot map a {self.^name} to a {h.^name}.
-Did you mean to add a stub (\{...\}) or did you mean to .classify?"
+    multi method map(Hash:D \hash) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "a {hash.^name}",
+          suggestion =>
+"Did you mean to add a stub (\{ ... \}) or did you mean to .classify?"
+        ).throw;
+    }
+    multi method map(Iterable:D \iterable) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "a {iterable.^name}",
+          suggestion => 
+"Did a * (Whatever) get absorbed by a comma, range, series, or list repetition?
+Consider using a block if any of these are necessary for your mapping code."
+        ).throw;
+    }
+    multi method map(|c) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "'{c.perl.substr(2).chop}'",
+          suggestion => "Did a * (Whatever) get absorbed by a list?"
+        ).throw;
     }
 
     multi method map(\SELF: &block;; :$label, :$item) {
@@ -1039,7 +1061,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
               Failure.new(X::Adverb.new(                # multiple adverbs ??
                 :$what,
                 :source(try { self.VAR.name } // self.WHAT.perl),
-                :nogo(%a.keys.grep: /k|v|p/)
+                :nogo(%a.keys.grep: /k|v|p/),
                 :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
             ),
             value                                       # no adverb
@@ -1114,7 +1136,7 @@ Did you mean to add a stub (\{...\}) or did you mean to .classify?"
             X::Adverb.new(
               :what<grep>,
               :source(try { self.VAR.name } // self.WHAT.perl),
-              :nogo(%_.keys.grep: /k|v|kv|p/)
+              :nogo(%_.keys.grep: /k|v|kv|p/),
               :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } )
             ).throw
         }

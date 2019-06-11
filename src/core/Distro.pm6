@@ -43,6 +43,7 @@ sub INITIALIZE-A-DISTRO-NOW() {
 #?endif
     my Str $release := "unknown";
     my Str $auth    := "unknown";
+    my Str $desc    := "unknown";
 
     # darwin specific info
     if $name eq 'darwin' {
@@ -64,24 +65,25 @@ sub INITIALIZE-A-DISTRO-NOW() {
     }
     elsif Rakudo::Internals.FILETEST-E('/etc/os-release') {
         $_ := '/etc/os-release'.IO.slurp.subst(:g, '"','');
-        $auth    := ~$0 if m/^^ HOME_URL   \= (\N*) /;
-        $name    := ~$0 if m/^^ ID         \= (\N*) /;
-        $version := ~$0 if m/^^ VERSION    \= (\N*) /;
-        $release := ~$0 if m/^^ VERSION_ID \= (\N*) /;
+        $auth    := ~$0 if m/^^ HOME_URL    \= (\N*) /;
+        $name    := ~$0 if m/^^ ID          \= (\N*) /;
+        $desc    := ~$0 if m/^^ PRETTY_NAME \= (\N*) /;
+        $version := ~$0 if m/^^ VERSION     \= (\N*) /;
+        $release := ~$0 if m/^^ VERSION_ID  \= (\N*) /;
     }
     elsif $name eq 'linux' {
         if try qx{lsb_release -a 2> /dev/null} ~~ m/
             Distributor \s+ ID\: \s+ (<[\w\ ]>+) \s+
-            Description\: \s+ (<[\w\ ]>+) \s+ (<[\d\.]>+) \s+
+            Description\: \s+ ((<[\w\ ]>+) \s+ (<[\w\.]>+)) \s+
             Release\: \s+ (<[\d\.]>+)
         / {
             $auth    := ~$0;
-            $name    := ~$1;
-            $version := ~$2;
-            $release := ~$3;
+            $desc    := ~$1;
+            $name    := ~$2;
+            $version := ~$3;
+            $release := ~$4;
         }
     }
-    my $desc := DateTime.now.Str;
     Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
 }
 

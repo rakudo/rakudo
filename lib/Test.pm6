@@ -62,6 +62,10 @@ our sub todo_output is rw {
     $todo_output
 }
 
+proto sub plan ($?, Cool :$skip-all) {*}
+
+my class X::SubtestsSkipped is Exception {}
+
 multi sub plan (Cool:D :skip-all($reason)!) {
     _init_io() unless $output;
     $output.say: $indents ~ "1..0 # Skipped: $reason";
@@ -79,7 +83,7 @@ multi sub plan (Cool:D :skip-all($reason)!) {
 
     $done_testing_has_been_run = 1;
     $num_of_tests_failed = $num_of_tests_planned = $num_of_tests_run = 0;
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, True);
+    X::SubtestsSkipped.new.throw
 }
 
 # "plan 'no_plan';" is now "plan *;"
@@ -412,7 +416,14 @@ multi sub subtest(&subtests, $desc = '') is export {
     $subtest_callable_type = &subtests.WHAT;
     $indents ~= "    ";
     $subtest_level++;
-    subtests();
+    {
+        subtests();
+        CATCH {
+            when X::SubtestsSkipped {
+                # Subtests all skipped
+            }
+        }
+    }
     $subtest_level--;
     done-testing() if nqp::iseq_i($done_testing_has_been_run,0);
     my $status = $num_of_tests_failed == 0
@@ -599,7 +610,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             $code()
         } else {
             $msg = "'$code' died";
-            EVAL $code, context => CALLER::CALLER::CALLER::CALLER::;
+            EVAL $code, context => CALLER::CALLER::CALLER::CALLER::CALLER::;
         }
         flunk $msg;
         skip 'Code did not die, can not check exception', 1 + %matcher.elems;

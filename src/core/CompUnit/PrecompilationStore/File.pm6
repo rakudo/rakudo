@@ -151,7 +151,12 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             LEAVE $!update-lock.unlock;
             die "unlock when we're not locked!" if $!lock-count == 0;
             $!lock-count-- if $!lock-count > 0;
-            $!lock && $!lock-count == 0 ?? $!lock.unlock !! True
+            if $!lock && $!lock-count == 0 {
+                $!lock.unlock;
+                $!lock.close;
+                $!lock = Nil;
+            }
+            True
         }
     }
 

@@ -131,7 +131,7 @@ my class BagHash does Baggy {
 
 #--- iterator methods
 
-    sub proxy(Mu \iter,Mu \storage) is raw {
+    sub proxy(str $key, Mu \elems) is raw {
         # We are only sure that the key exists when the Proxy
         # is made, but we cannot be sure of its existence when
         # either the FETCH or STORE block is executed.  So we
@@ -141,15 +141,14 @@ my class BagHash does Baggy {
         # except for tests for allocated storage and .WHICH
         # processing.
         nqp::stmts(
-          (my $which  := nqp::iterkey_s(iter)),
           # save object for potential recreation
-          (my $object := nqp::getattr(nqp::iterval(iter),Pair,'$!key')),
+          (my $pair := nqp::atkey(elems,$key)),
 
           Proxy.new(
             FETCH => {
                 nqp::if(
-                  nqp::existskey(storage,$which),
-                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value'),
+                  nqp::existskey(elems,$key),
+                  nqp::getattr(nqp::atkey(elems,$key),Pair,'$!value'),
                   0
                 )
             },
@@ -158,26 +157,27 @@ my class BagHash does Baggy {
                   nqp::istype($value,Failure),  # RT 128927
                   $value.throw,
                   nqp::if(
-                    nqp::existskey(storage,$which),
+                    nqp::existskey(elems,$key),
                     nqp::if(                    # existing element
                       nqp::isgt_i($value,0),
                       nqp::bindattr(            # value ok
-                        nqp::atkey(storage,$which),
+                        nqp::atkey(elems,$key),
                         Pair,
                         '$!value',
                         nqp::decont($value)
                       ),
                       nqp::stmts(               # goodbye!
-                        nqp::deletekey(storage,$which),
+                        nqp::deletekey(elems,$key),
                         0
                       )
                     ),
                     nqp::if(                    # where did it go?
                       nqp::isgt_i($value,0),
-                      nqp::bindkey(
-                        storage,
-                        $which,
-                        Pair.new($object,nqp::decont($value))
+                      nqp::bindattr(
+                        nqp::bindkey(elems,$key,$pair),
+                        Pair,
+                        '$!value',
+                        nqp::decont($value)
                       )
                     )
                   )
@@ -188,14 +188,19 @@ my class BagHash does Baggy {
     }
 
     my class Iterate does Rakudo::Iterator::Mappy {
+        method !SET-SELF(\elems) {
+            nqp::bind($!hash,elems);
+            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            self
+        }
         method pull-one() is raw {
             nqp::if(
               $!iter,
               nqp::p6bindattrinvres(
-                nqp::clone(nqp::iterval(nqp::shift($!iter))),
+                nqp::clone(nqp::atkey($!hash,(my $key := nqp::shift($!iter)))),
                 Pair,
                 '$!value',
-                proxy($!iter,$!hash)
+                proxy($key,$!hash)
               ),
               IterationEnd
             )
@@ -203,13 +208,57 @@ my class BagHash does Baggy {
         method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
               $!iter,
-              target.push(nqp::iterval(nqp::shift($!iter)))
+              target.push(nqp::atkey($!hash,nqp::shift($!iter)))
             )
         }
     }
     multi method iterator(BagHash:D:) { Iterate.new($!elems) }  # also .pairs
 
+    my class KV does Rakudo::Iterator::Mappy-kv-from-pairs {
+        method !SET-SELF(Mu \elems) {
+            nqp::bind($!hash,elems);
+            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            self
+        }
+        method pull-one() is raw {
+            nqp::if(
+              $!on,
+              nqp::stmts(
+                (my $proxy := proxy($!on,$!hash)),
+                ($!on = ""),
+                $proxy
+              ),
+              nqp::if(
+                $!iter,
+                nqp::getattr(
+                  nqp::atkey($!hash,($!on= nqp::shift($!iter))),Pair,'$!key'
+                ),
+                IterationEnd
+              )
+            )
+        }
+        method skip-one() {  # the one provided by the role interferes
+            nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                (my $pair := nqp::atkey($!hash,nqp::shift($!iter))),
+                target.push(nqp::getattr($pair,Pair,'$!key')),
+                target.push(nqp::getattr($pair,Pair,'$!value'))
+              )
+            )
+        }
+    }
+    multi method kv(BagHash:D:) { Seq.new(KV.new($!elems)) }
+
     my class Values does Rakudo::Iterator::Mappy {
+        method !SET-SELF(\elems) {
+            nqp::bind($!hash,elems);
+            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            self
+        }
         method pull-one() is raw {
             nqp::if(
               $!iter,
@@ -226,28 +275,6 @@ my class BagHash does Baggy {
         }
     }
     multi method values(BagHash:D:) { Seq.new(Values.new($!elems)) }
-
-    my class KV does Rakudo::Iterator::Mappy-kv-from-pairs {
-        method pull-one() is raw {
-            nqp::if(
-              $!on,
-              nqp::stmts(
-                ($!on = 0),
-                proxy($!iter,$!hash)
-              ),
-              nqp::if(
-                $!iter,
-                nqp::stmts(
-                  ($!on = 1),
-                  nqp::getattr(
-                    nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
-                ),
-                IterationEnd
-              )
-            )
-        }
-    }
-    multi method kv(BagHash:D:) { Seq.new(KV.new($!elems)) }
 
 #---- selection methods
     multi method grab(BagHash:D:) {

@@ -8,13 +8,14 @@ check-nqp-version.pl -- script to trigger a rebuild whenever nqp changes
 
 use strict;
 use warnings;
+use IPC::Cmd qw<run>;
 
 use constant NQP_VERSION_FILE => 'gen/nqp-version';
 
 my $nqp = shift;
 
-my @config = qx($nqp --show-config);
-foreach (@config) {
+my ($ok, $err, $config) = run( command => [$nqp, '--show-config' ]);
+foreach (@$config) {
     chomp;
     if (my ($digest) = /nqp::source-digest=(.*)/) {
         if (-e NQP_VERSION_FILE) {

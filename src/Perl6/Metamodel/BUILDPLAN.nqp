@@ -139,7 +139,7 @@ role Perl6::Metamodel::BUILDPLAN {
         }
 
         # Something in the buildplan of this class
-        if @plan {
+        if @plan || nqp::elems(self.parents($obj)) > 1 {
 
             # Install plan for this class.
             @!BUILDPLAN := @plan;

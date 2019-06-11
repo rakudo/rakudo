@@ -1154,12 +1154,22 @@ class ContainerDescriptor {
         $!of.HOW.archetypes.generic
     }
 
+    method is_default_generic() {
+        $!default.HOW.archetypes.generic
+    }
+
     method instantiate_generic($type_environment) {
         my $ins_of := $!of.HOW.instantiate_generic($!of, $type_environment);
+        my $ins_default := self.is_default_generic ?? $!default.HOW.instantiate_generic($!default, $type_environment) !! $!default;
         my $ins := nqp::clone(self);
         nqp::bindattr($ins, $?CLASS, '$!of', $ins_of);
+        nqp::bindattr($ins, $?CLASS, '$!default', $ins_default);
         $ins
     }
+}
+class ContainerDescriptor::Untyped is ContainerDescriptor {
+    # Container descriptor for when the type is Mu; the type of this
+    # container descriptor is used as a marker
 }
 role ContainerDescriptor::Whence {
     has $!next-descriptor;
@@ -1212,7 +1222,7 @@ class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { 
+    method name() {
         'element at [' ~ $!one ~ ',' ~ $!two ~ ']'  # XXX name ?
     }
     method assigned($scalar) {
@@ -1611,7 +1621,8 @@ BEGIN {
                 my $type := $desc.of;
                 if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
                     nqp::bindattr($cont, Scalar, '$!value', $val);
-                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
+                           nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
                         $desc.assigned($cont);
                         nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
                     }
@@ -1633,7 +1644,8 @@ BEGIN {
         'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
             nqp::bindattr($cont, Scalar, '$!value', $val);
             my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) {
+            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
+                   nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
                 $desc.assigned($cont);
                 nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
             }
@@ -1687,7 +1699,7 @@ BEGIN {
     # Cache a single default Scalar container spec, to ensure we only get
     # one of them.
     Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
-        ContainerDescriptor.new(
+        ContainerDescriptor::Untyped.new(
             :of(Mu), :default(Any), :name('element')));
 
     # Set up various native reference types.
@@ -1769,7 +1781,8 @@ BEGIN {
     }
 
     # Helper for creating an attribute that vivifies to a clone of some VM
-    # storage type; used for the storage slots of arrays and hashes.
+    # storage type (or, if it's a type object, is just initialized with that
+    # type object); used for the storage slots of arrays and hashes.
     sub storage_attr($name, $type, $package, $clonee, :$associative_delegate) {
         return Attribute.new( :$name, :$type, :$package, :auto_viv_primitive($clonee),
             :$associative_delegate );
@@ -3182,22 +3195,113 @@ BEGIN {
     Submethod.HOW.compose_repr(Submethod);
     Submethod.HOW.compose_invocation(Submethod);
 
+    # Capture store for SET_CAPS.
+    my class RegexCaptures {
+        # An integer array of positional capture counts.
+        has @!pos-capture-counts;
+
+        # A string array of named capture names and a matching integer array of
+        # capture counts.
+        has @!named-capture-names;
+        has @!named-capture-counts;
+
+        # Form this data structure from a capnames hash.
+        method from-capnames(%capnames) {
+            nqp::create(self).'!from-capnames'(%capnames)
+        }
+
+        method !from-capnames(%capnames) {
+            # Initialize.
+            @!pos-capture-counts := nqp::list_i();
+            @!named-capture-names := nqp::list_s();
+            @!named-capture-counts := nqp::list_i();
+
+            # Go over the captures and build up the data structure.
+            for %capnames {
+                my $name := nqp::iterkey_s($_);
+                if $name ne '' {
+                    my $count := nqp::iterval($_);
+                    if nqp::ord($name) != 36 && nqp::ord($name) < 58 {
+                        nqp::bindpos_i(@!pos-capture-counts, +$name, $count);
+                    }
+                    else {
+                        nqp::push_s(@!named-capture-names, $name);
+                        nqp::push_i(@!named-capture-counts, $count);
+                    }
+                }
+            }
+
+            self
+        }
+
+        # Are there any captures?
+        method has-captures() {
+            nqp::elems(@!named-capture-counts) || nqp::elems(@!pos-capture-counts)
+        }
+
+        # Build a list of positional captures, or return a shared empty list if
+        # there are none. This only populates the slots which need an array.
+        my $EMPTY-LIST := nqp::list();
+        my $EMPTY-HASH := nqp::list();
+        method prepare-list() {
+            my int $n := nqp::elems(@!pos-capture-counts);
+            if $n > 0 {
+                my $result := nqp::list();
+                my int $i := 0;
+                while $i < $n {
+                    nqp::bindpos($result, $i, nqp::create(Array))
+                        if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
+                    $i++;
+                }
+                $result
+            }
+            else {
+                $EMPTY-LIST
+            }
+        }
+
+        # Build a hash of named camptures, or return a shared empty hash if there
+        # are none. This only poplates the slots that need an array.
+        method prepare-hash() {
+            my int $n := nqp::elems(@!named-capture-counts);
+            if $n > 0 {
+                my $result := nqp::hash();
+                my int $i := 0;
+                while $i < $n {
+                    if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
+                        nqp::bindkey($result,
+                            nqp::atpos_s(@!named-capture-names, $i),
+                            nqp::create(Array));
+                    }
+                    $i++;
+                }
+                $result
+            }
+            else {
+                $EMPTY-HASH
+            }
+        }
+
+        # Get the name of the only capture, if there is only one.
+        method onlyname() { '' }
+    }
     # class Regex is Method {
-    #     has @!caps;
+    #     has $!caps;
     #     has Mu $!nfa;
     #     has @!alt_nfas;
     #     has str $!source;
     #     has $!topic;
     #     has $!slash;
     Regex.HOW.add_parent(Regex, Method);
-    Regex.HOW.add_attribute(Regex, scalar_attr('@!caps', List, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!topic', Mu, Regex));
     Regex.HOW.add_attribute(Regex, scalar_attr('$!slash', Mu, Regex));
-    Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $caps) {
-            nqp::bindattr(nqp::decont($self), Regex, '@!caps', $caps)
+    Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $capnames) {
+            nqp::bindattr(nqp::decont($self), Regex, '$!caps',
+                RegexCaptures.from-capnames($capnames))
         }));
     Regex.HOW.add_method(Regex, 'SET_NFA', nqp::getstaticcode(sub ($self, $nfa) {
             nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
@@ -3211,7 +3315,7 @@ BEGIN {
             nqp::bindkey(%alts, $name, $nfa);
         }));
     Regex.HOW.add_method(Regex, 'CAPS', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self), Regex, '@!caps')
+            nqp::getattr(nqp::decont($self), Regex, '$!caps')
         }));
     Regex.HOW.add_method(Regex, 'NFA', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self), Regex, '$!nfa')
@@ -3263,8 +3367,8 @@ BEGIN {
     #     has Mu $!reified;
     #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List));
-    List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List));
+    List.HOW.add_attribute(List, storage_attr('$!reified', Mu, List, Mu));
+    List.HOW.add_attribute(List, storage_attr('$!todo', Mu, List, Mu));
     List.HOW.compose_repr(List);
 
     # class Slip is List {
@@ -3748,6 +3852,9 @@ nqp::sethllconfig('perl6', nqp::hash(
     'int64_attr_ref', Int64AttrRef,
     'int64_pos_ref', Int64PosRef,
     'int64_multidim_ref', Int64MultidimRef,
+#?endif
+#?if moar
+    'max_inline_size', 384,
 #?endif
 ));
 

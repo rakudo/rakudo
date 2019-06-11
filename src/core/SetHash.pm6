@@ -76,7 +76,7 @@ my class SetHash does Setty {
 
 #--- iterator methods
 
-    sub proxy(Mu \iter,Mu \elems) is raw {
+    sub proxy(str $key, Mu \elems) is raw {
         # We are only sure that the key exists when the Proxy
         # is made, but we cannot be sure of its existence when
         # either the FETCH or STORE block is executed.  So we
@@ -87,18 +87,18 @@ my class SetHash does Setty {
         # processing.
         nqp::stmts(
           # save object for potential recreation
-          (my $object := nqp::iterval(iter)),
+          (my $object := nqp::atkey(elems,$key)),
 
           Proxy.new(
             FETCH => {
-                nqp::hllbool(nqp::existskey(elems,nqp::iterkey_s(iter)))
+                nqp::hllbool(nqp::existskey(elems,$key))
             },
             STORE => -> $, $value {
                 nqp::stmts(
                   nqp::if(
                     $value,
-                    nqp::bindkey(elems,nqp::iterkey_s(iter),$object),
-                    nqp::deletekey(elems,nqp::iterkey_s(iter))
+                    nqp::bindkey(elems,$key,$object),
+                    nqp::deletekey(elems,$key)
                   ),
                   $value.Bool
                 )
@@ -108,12 +108,17 @@ my class SetHash does Setty {
     }
 
     my class Iterate does Rakudo::Iterator::Mappy {
+        method !SET-SELF(\elems) {
+            nqp::bind($!hash,elems);
+            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            self
+        }
         method pull-one() {
           nqp::if(
             $!iter,
             Pair.new(
-              nqp::iterval(nqp::shift($!iter)),
-              proxy($!iter,$!hash)
+              nqp::atkey($!hash,(my $key := nqp::shift($!iter))),
+              proxy($key,$!hash)
             ),
             IterationEnd
           )
@@ -122,36 +127,47 @@ my class SetHash does Setty {
     method iterator(SetHash:D:) { Iterate.new($!elems) }
 
     my class KV does Rakudo::QuantHash::Quanty-kv {
+        method !SET-SELF(Mu \elems) {
+            nqp::bind($!elems,elems);
+            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            self
+        }
         method pull-one() is raw {
             nqp::if(
               $!on,
               nqp::stmts(
-                ($!on = 0),
-                proxy($!iter,$!elems)
+                (my $proxy := proxy($!on,$!elems)),
+                ($!on = ""),
+                $proxy
               ),
               nqp::if(
                 $!iter,
-                nqp::stmts(
-                  ($!on = 1),
-                  nqp::iterval(nqp::shift($!iter))
-                ),
+                nqp::atkey($!elems,$!on = nqp::shift($!iter)),
                 IterationEnd
               )
             )
+        }
+        method skip-one() {  # the one provided by the role interferes
+            nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
         }
         method push-all(\target --> IterationEnd) {
             nqp::while(
               $!iter,
               nqp::stmts(  # doesn't sink
-                target.push(nqp::iterval(nqp::shift($!iter))),
+                target.push(nqp::atkey($!elems,nqp::shift($!iter))),
                 target.push(True)
               )
             )
         }
     }
-    multi method kv(SetHash:D:) { Seq.new(KV.new(self)) }
+    multi method kv(SetHash:D:) { Seq.new(KV.new($!elems)) }
 
     my class Values does Rakudo::Iterator::Mappy {
+        method !SET-SELF(\elems) {
+            nqp::bind($!hash,elems);
+            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            self
+        }
         method pull-one() is rw {
           nqp::if(
             $!iter,

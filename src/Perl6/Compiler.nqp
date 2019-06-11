@@ -3,8 +3,10 @@ use QRegex;
 use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
-    has $!language_version;
-    has $!can_language_versions;
+    has $!language_version;  # Default language version in form 6.c
+    has $!language_modifier; # Active language modifier; PREVIEW mostly.
+    has $!language_revisions; # Hash of language revision letters. See gen/<vm>/main-version.nqp
+    has $!can_language_versions; # List of valid language version
 
     method compilation-id() {
         my class IDHolder { }
@@ -16,9 +18,13 @@ class Perl6::Compiler is HLL::Compiler {
     method language_name()    { 'Perl' }
     method reset_language_version() {
         $!language_version := NQPMu;
+        $!language_modifier := NQPMu;
     }
     method set_language_version($version) {
         $!language_version := $version;
+    }
+    method set_language_modifier($modifier) {
+        $!language_modifier := $modifier;
     }
     method language_version() {
         if nqp::defined($!language_version) {
@@ -28,10 +34,18 @@ class Perl6::Compiler is HLL::Compiler {
             $!language_version := self.config<language-version>
         }
     }
+    method language_modifier() {
+        $!language_modifier
+    }
     method    can_language_versions() {
             $!can_language_versions
         ??  $!can_language_versions
         !! ($!can_language_versions := self.config<can-language-versions>)
+    }
+    method language_revisions() {
+           $!language_revisions
+        ?? $!language_revisions
+        !! ($!language_revisions := self.config<language-revisions>)
     }
 
     method command_eval(*@args, *%options) {
@@ -86,7 +100,44 @@ class Perl6::Compiler is HLL::Compiler {
 
     method usage($name?, :$use-stderr = False) {
 	my $print-func := $use-stderr ?? &note !! &say; # RT #130760
-        $print-func(($name ?? $name !! "") ~ q♥ [switches] [--] [programfile] [arguments]
+    my $compiler := nqp::getcomp("perl6").backend.name;
+    my $moar-options := '';
+    if nqp::getcomp("perl6").backend.name eq 'moar' {
+        $moar-options := q♥  --profile[=name]     write profile information to a file
+                         Extension controls format:
+                           .json outputs in JSON
+                           .sql  outputs in SQL
+                           any other extension outputs in HTML
+  --profile-compile[=name]
+                       write compile-time profile information to a file
+                       Extension controls format:
+                         .json outputs in JSON
+                         .sql  outputs in SQL
+                         any other extension outputs in HTML
+  --profile-kind[=name]
+                       choose the type of profile to generate
+                         instrumented - performance measurements (default)
+                         heap - record heap snapshots after every garbage
+                         collector run
+  --profile-filename=name
+                       provide a different filename for profile.
+                       Extension controls format:
+                         .json outputs in JSON
+                         .sql  outputs in SQL
+                         any other extension outputs in HTML
+                       This option will go away in a future Rakudo release
+  --profile-stage=stage
+                       write profile information for the given compilation
+                       stage to a file. Use --profile-compile to set name
+                       and format
+  --full-cleanup       try to free all memory and exit cleanly
+  --debug-port=port    listen for incoming debugger connections
+  --debug-suspend      pause execution at the entry point
+  --tracing            output a line to stderr on every interpreter instr (only if
+                       enabled in MoarVM)
+♥;
+    }
+    $print-func(($name ?? $name !! "") ~ qq♥ [switches] [--] [programfile] [arguments]
 
 With no arguments, enters a REPL (see --repl-mode option).
 With a "[programfile]" or the "-e" option, compiles the given program
@@ -97,7 +148,7 @@ and, by default, also executes the compiled code.
   -e program           one line of program, strict is enabled by default
   -h, --help           display this help text
   -n                   run program once for each line of input
-  -p                   same as -n, but also print $_ at the end of lines
+  -p                   same as -n, but also print \$_ at the end of lines
   -I path              adds the path to the module search path
   -M module            loads the module prior to running the program
   --target=stage       specify compilation stage to emit
@@ -107,27 +158,7 @@ and, by default, also executes the compiled code.
   -V                   print configuration summary
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
-  --profile[=kind]     write profile information to an HTML file (MoarVM)
-                         instrumented - performance measurements (default)
-                         heap - record heap snapshots after every garbage
-                         collector run
-  --profile-compile[=kind]
-                       write compile-time profile information to an HTML
-                       file (MoarVM)
-                         instrumented - performance measurements (default)
-                         heap - record heap snapshots after every garbage
-                         collector run
-  --profile-filename=name
-                       provide a different filename for profile.
-                       Extension controls format:
-                         .json outputs in JSON
-                         .sql  outputs in SQL
-                         any other extension outputs in HTML
-  --profile-stage=stage
-                       write profile information for the given compilation
-                       stage to an HTML file (MoarVM)
   --doc=module         use Pod::To::[module] to render inline documentation
-
   --repl-mode=interactive|non-interactive
                        when running without "-e" or filename arguments,
                        a REPL is started. By default, if STDIN is a TTY,
@@ -137,12 +168,15 @@ and, by default, also executes the compiled code.
                        without any extra output (in fact, no REPL machinery is even
                        loaded). This option allows to bypass TTY detection and
                        force one of the REPL modes.
-
+$moar-options
 Note that only boolean single-letter options may be bundled.
 
-To modify the include path, you can set the PERL6LIB environment variable:
+The following environment variables are respected:
 
-PERL6LIB="lib" perl6 example.pl
+  PERL6LIB    Modify the module search path
+  PERL6_HOME  Override the path of the Perl6 runtime files
+  NQP_HOME    Override the path of the NQP runtime files
+
 ♥); # end of usage statement
 
         nqp::exit(0);

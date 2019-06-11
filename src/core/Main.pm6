@@ -125,27 +125,36 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
           ?? "-e '...'"
           !! strip_path_prefix($prog-name);
 
+        # return the Cool constant if the post_constraints of a Parameter is
+        # a single Cool constant, else Nil
+        sub cool_constant(Parameter:D $p) {
+            nqp::not_i(
+              nqp::isnull(
+                (my \post_constraints :=
+                  nqp::getattr($p,Parameter,'@!post_constraints'))
+              )
+            ) && nqp::elems(post_constraints) == 1
+              && nqp::istype((my \value := nqp::atpos(post_constraints,0)),Cool)
+              ?? value
+              !! Nil
+        }
+
         # Select candidates for which to create USAGE string
         sub usage-candidates($capture) {
-            my @candidates = &main.candidates;
-            my @positionals = $capture.list;
-
-            my @candos;
-            while @positionals && !@candos {
-
-                # Find candidates on which all these positionals match
-                @candos = @candidates.grep: -> $sub {
-                    my @params = $sub.signature.params;
-                    if @positionals <= @params {
-                        (^@positionals).first( -> int $i {
-                            !(@params[$i].constraints.ACCEPTS(@positionals[$i]))
-                        } ).defined.not
+            my @candidates = &main.candidates.grep: { !.?is-hidden-from-USAGE }
+            if $capture.list -> @positionals {
+                my $first := @positionals[0];
+                if @candidates.grep: -> $sub {
+                    if $sub.signature.params[0] -> $param {
+                        if cool_constant($param) -> $literal {
+                            $literal.ACCEPTS($first)
+                        }
                     }
+                } -> @candos {
+                    return @candos;
                 }
-                @positionals.pop;
             }
-            (@candos || @candidates)
-              .grep: { nqp::not_i(nqp::can($_,'is-hidden-from-USAGE')) }
+            @candidates
         }
 
         for usage-candidates(capture) -> $sub {
@@ -185,14 +194,22 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                         }
                     }
                     else {
-                        my @names  = $param.named_names.reverse;
-                        $argument  = @names.map({($^n.chars == 1 ?? '-' !! '--') ~ $^n}).join('|');
-                        if $param.type !=== Bool {
+                        my @names = $param.named_names.reverse;
+                        $argument = @names.map({
+                            (.chars == 1 ?? '-' !! '--') ~ $_
+                        }).join('|');
+
+                        my $type := $param.type;
+                        if $type ~~ Positional {
+                            $argument ~= "=<{ $constraints || "Any" }> ..."
+
+                        }
+                        elsif $type !=== Bool {
                             $argument ~= "=<{
-                                $constraints || $param.type.^name
+                                $constraints || $type.^name
                             }>";
-                            if Metamodel::EnumHOW.ACCEPTS($param.type.HOW) {
-                                my $options = $param.type.^enum_values.keys.sort.Str;
+                            if Metamodel::EnumHOW.ACCEPTS($type.HOW) {
+                                my $options = $type.^enum_values.keys.sort.Str;
                                 $argument ~= $options.chars > 50
                                   ?? ' (' ~ substr($options,0,50) ~ '...'
                                   !! " ($options)"
@@ -249,12 +266,43 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     }
 
     sub has-unexpected-named-arguments($signature, %named-arguments) {
+        return False if $signature.params.first: *.capture;
         my @named-params = $signature.params.grep: *.named;
         return False if @named-params.first: *.slurpy;
 
         my %accepts-argument is Set = @named-params.map( *.named_names.Slip );
         return True unless %accepts-argument{$_} for %named-arguments.keys;
         False
+    }
+
+    sub find-candidates($capture) {
+        &main
+          # Get a list of candidates that match according to the dispatcher
+          .cando($capture)
+          # Sort out all that would fail due to binding
+          .grep: { !has-unexpected-named-arguments(.signature, $capture.hash) }
+    }
+
+    # turn scalar values of nameds into 1 element arrays, return new capture
+    sub scalars-into-arrays($capture) {
+        my %hash = $capture.hash.map: {
+            nqp::istype(.value,Positional) ?? $_ !! Pair.new(.key,[.value])
+        }
+        Capture.new( :list($capture.list), :%hash)
+    }
+
+    # there's a person doing this and no args, so spike slurp/lines/words
+    if $*IN.t && $*OUT.t && $*ERR.t && !@*ARGS {
+        $*IN does role {
+            sub from-stdin($doing --> Nil) {
+                note "$doing from your keyboard, which is usually only done when debugging.";
+                note "Please provide input and press Ctrl-d when done, or press Ctrl-c to abort.";
+            }
+
+            method slurp() { from-stdin("Slurping text"); nextsame }
+            method lines() { from-stdin("Reading lines"); nextsame }
+            method words() { from-stdin("Reading words"); nextsame }
+        }
     }
 
     # set up other new style dynamic variables
@@ -265,14 +313,17 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     my $capture := args-to-capture(&main, @*ARGS);
 
     # Get a list of candidates that match according to the dispatcher
-    my @matching_candidates = &main.cando($capture);
-
-    # Sort out all that would fail due to binding
-    @matching_candidates .=
-      grep: { !has-unexpected-named-arguments(.signature, $capture.hash) };
+    my @candidates = find-candidates($capture);
+    if !@candidates {
+        my $alternate = scalars-into-arrays($capture);
+        if find-candidates($alternate) -> @alternates {
+            $capture   := $alternate;
+            @candidates = @alternates;
+        }
+    }
 
     # If there are still some candidates left, try to dispatch to MAIN
-    if @matching_candidates {
+    if @candidates {
         if $in-as-argsfiles {
             my $*ARGFILES := IO::ArgFiles.new: (my $in := $*IN),
                 :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),

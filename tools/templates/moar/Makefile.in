@@ -35,8 +35,17 @@ M_BAT_RUNNER = perl6-m@runner_suffix@
 
 M_RUNNER = perl6-m@moar::exe@
 M_DEBUG_RUNNER = perl6-debug-m@moar::exe@
-M_C_RUNNER = perl6-mc@moar::exe@
-M_C_DEBUG_RUNNER = perl6-debug-mc@moar::exe@
+M_DEFAULT_RUNNER = perl6@moar::exe@
+M_DEFAULT_DEBUG_RUNNER = perl6-debug@moar::exe@
+M_PERL6 = perl6@moar::exe@
+M_PERL6_DEBUG = perl6-debug@moar::exe@
+M_PERL6_M = perl6-m@moar::exe@
+M_PERL6_DEBUG_M = perl6-debug-m@moar::exe@
+M_INST_PERL6 = inst-perl6@moar::exe@
+M_INST_PERL6_DEBUG = inst-perl6-debug@moar::exe@
+M_INST_PERL6_M = inst-perl6-m@moar::exe@
+M_INST_PERL6_DEBUG_M = inst-perl6-debug-m@moar::exe@
+
 
 # files we create
 PERL6_MOAR     = perl6.moarvm
@@ -101,14 +110,16 @@ M_CLEANUPS = \
   $(PERL6_MOAR) \
   rakudo_test_run.tar.gz \
   $(M_BAT_RUNNER) \
-  $(M_C_RUNNER) \
+  $(M_INST_PERL6_M) \
+  $(M_INST_PERL6_DEBUG_M) \
+  $(M_INST_PERL6) \
+  $(M_INST_PERL6_DEBUG) \
   main@moar::obj@ \
   $(M_PERL6_OPS_DLL) \
   $(M_PERL6_OPS_OBJ) \
   $(M_PERL6_CONT_OBJ) \
   $(PERL6_DEBUG_MOAR) \
   $(M_BAT_DEBUG_RUNNER) \
-  $(M_C_DEBUG_RUNNER) \
   $(M_BUILD_DIR)@slash@* \
 @m_cleanups@
 
@@ -122,7 +133,7 @@ M_HARNESS6_WITH_FUDGE = $(M_HARNESS6) --fudge
 
 M_RUN_CLEAN_TARGET_FILES = $(M_RUN_PERL6) -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str; .IO.unlink if .IO.e } }"
 
-m-all: check_@backend_prefix@_nqp_version $(PERL6_MOAR) $(SETTING_MOAR) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) $(M_BAT_RUNNER) $(PERL6_DEBUG_MOAR) $(M_BAT_DEBUG_RUNNER) $(M_C_RUNNER) $(M_C_DEBUG_RUNNER) @m_all@
+m-all: check_@backend_prefix@_nqp_version $(PERL6_MOAR) $(SETTING_MOAR) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) $(M_BAT_RUNNER) $(PERL6_DEBUG_MOAR) $(M_BAT_DEBUG_RUNNER) $(M_INST_PERL6_M) $(M_INST_PERL6_DEBUG_M) $(M_INST_PERL6) $(M_INST_PERL6_DEBUG) @m_all@
 
 check_@backend_prefix@_nqp_version: @@script(check-nqp-version.pl)@@
 	$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ $(M_NQP)
@@ -221,38 +232,47 @@ $(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
 	}
 )@
 $(M_BAT_RUNNER): @@configure_script@@ @@template(@backend_subdir@/perl6-m)@@ $(PERL6_MOAR) $(SETTING_MOAR)
-	$(RM_F) @q($(M_BAT_RUNNER))@
-	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($(M_BAT_RUNNER))@ \
+	$(RM_F) @q($@)@
+	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($@)@ \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=mbc=perl6.moarvm \
 		--set-var=ctx_subdir=@backend_subdir@ \
 		--set-var=nqp_libdir=@shquot(@nqp::libdir@)@ \
 		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@ \
 		--set-var=nqp_prefix=@nqp::prefix@
-	-$(CHMOD) 755 $(M_BAT_RUNNER)
+	-$(CHMOD) 755 $@
 
 $(M_BAT_DEBUG_RUNNER): @@configure_script@@ @@template(@backend_subdir@/perl6-m)@@ $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)
-	$(RM_F) @q($(M_BAT_DEBUG_RUNNER))@
-	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($(M_BAT_DEBUG_RUNNER))@ \
+	$(RM_F) @q($@)@
+	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($@)@ \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=mbc=perl6-debug.moarvm \
 		--set-var=ctx_subdir=@backend_subdir@ \
 		--set-var=nqp_libdir=@shquot(@nqp::libdir@)@ \
 		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@ \
 		--set-var=nqp_prefix=@nqp::prefix@
-	-$(CHMOD) 755 $(M_BAT_DEBUG_RUNNER)
+	-$(CHMOD) 755 $@
 
-$(M_C_RUNNER): @nfp(src/vm/moar/runner/main.c)@
-	$(RM_F) $(M_C_RUNNER)
-# Using only the pkgconfig moar includes does not work, because moar.h assumes all the specific includes below.
-	$(M_CC) @moar::ccswitch@ @static_nqp_home_define@ @static_perl6_home_define@ $(M_CFLAGS) $(M_MOAR_INC_PATHS) @moar::ccout@main@moar::obj@ @nfp(src/vm/moar/runner/main.c)@
-	$(M_LD) @moar::ldout@$@ $(M_LDFLAGS) $(M_MINGW_UNICODE) main@moar::obj@ @moar::lddir@"@moar::libdir@" @c_runner_libs@ @moar_lib@
-
-$(M_C_DEBUG_RUNNER): @nfp(src/vm/moar/runner/main.c)@
-	$(RM_F) $(M_C_DEBUG_RUNNER)
-# Using only the pkgconfig moar includes does not work, because moar.h assumes all the specific includes below.
-	$(M_CC) @moar::ccswitch@ @static_nqp_home_define@ @static_perl6_home_define@ -DMOAR_PERL6_RUNNER_DEBUG $(M_CFLAGS) $(M_MOAR_INC_PATHS) @moar::ccout@main@moar::obj@ @nfp(src/vm/moar/runner/main.c)@
-	$(M_LD) @moar::ldout@$@ $(M_LDFLAGS) $(M_MINGW_UNICODE) main@moar::obj@ @moar::lddir@"@moar::libdir@" @c_runner_libs@ @moar_lib@
+@perl(
+    my %execs = (
+        '$(M_INST_PERL6)'         => '$(M_PERL6)',
+        '$(M_INST_PERL6_DEBUG)'   => '$(M_PERL6_DEBUG)',
+        '$(M_INST_PERL6_M)'       => '$(M_PERL6_M)',
+        '$(M_INST_PERL6_DEBUG_M)' => '$(M_PERL6_DEBUG_M)',
+    );
+    for my $build (keys %execs) {
+        my $installed = $execs{$build};
+        my %vars = (
+            exec_name => $build,
+        );
+        $vars{exec_path_define} =
+            '-DSTATIC_EXEC_PATH=' . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed ))
+            if $config{relocatable} eq 'nonreloc';
+        $vars{debug_flag} = '-DMOAR_PERL6_RUNNER_DEBUG' if $build =~ /DEBUG/;
+        my $scope = $cfg->push_config(%vars);
+        $out .= $macros->expand('@insert(Makefile-gen-c-runner)@');
+    }
+)@
 
 ##  testing targets
 m-test    : m-coretest$(HARNESS_TYPE)
@@ -341,8 +361,8 @@ m-install: m-all @@script(install-core-dist.p6)@@ $(SETTING_MOAR)
 	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
 	$(CP) $(M_PERL6_OPS_DLL) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	$(CP) $(M_C_RUNNER) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_RUNNER))@
-	$(CP) $(M_C_DEBUG_RUNNER) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_DEBUG_RUNNER))@
+	$(CP) $(M_INST_PERL6_M) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_M))@
+	$(CP) $(M_INST_PERL6_DEBUG_M) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG_M))@
 	@nfpq($(BASE_DIR)/$(M_BAT_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @q($(DESTDIR)$(PERL6_HOME))@
 	@nfpq($(BASE_DIR)/$(M_BAT_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
 	@nfpq($(BASE_DIR)/$(M_BAT_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
@@ -350,7 +370,8 @@ m-install: m-all @@script(install-core-dist.p6)@@ $(SETTING_MOAR)
 @clean_old_p6_libs@@expand(@m_install@)@
 
 m-runner-default-install: m-install
-	$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-m@moar::exe@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6@moar::exe@)@
+	$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6))@
+	$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG))@
 
 manifest:
 	echo MANIFEST >MANIFEST

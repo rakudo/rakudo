@@ -473,7 +473,7 @@ sub MAIN(*@ARGS) {
     my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');
 #?endif
 #?if !jvm
-    my $execname := $config<osname> eq 'openbsd' ?? '' !! nqp::execname();
+    my $execname := nqp::execname();
 #?endif
     my $install-dir := $execname eq ''
         ?? $comp.config<prefix>

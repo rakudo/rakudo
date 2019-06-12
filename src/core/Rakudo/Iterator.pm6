@@ -2612,7 +2612,7 @@ class Rakudo::Iterator {
     # Return an iterator for an Array that has been completely reified
     # already.  Returns a assignable container for elements don't exist
     # before the end of the reified array.
-    my class ReifiedArrayIterator does PredictiveIterator {
+    my class ReifiedArrayIterator does CachedIterator {
         has $!reified;
         has $!descriptor;
         has int $!i;
@@ -2701,6 +2701,9 @@ class Rakudo::Iterator {
                 - nqp::islt_i($!i,nqp::elems($!reified))
             )
         }
+        method cache(--> List:D) {
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!reified)
+        }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
     method ReifiedArray(\array, Mu \descriptor) {
@@ -2710,7 +2713,7 @@ class Rakudo::Iterator {
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements that don't exist
     # before the end of the reified list.
-    my class ReifiedListIterator does PredictiveIterator {
+    my class ReifiedListIterator does CachedIterator {
         has $!reified;
         has int $!i;
 
@@ -2790,6 +2793,9 @@ class Rakudo::Iterator {
                 - $!i
                 - nqp::islt_i($!i,nqp::elems($!reified))
             )
+        }
+        method cache(--> List:D) {
+            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!reified)
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }

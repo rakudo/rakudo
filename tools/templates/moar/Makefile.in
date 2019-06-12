@@ -220,24 +220,26 @@ $(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
 		$out .= $macros->expand('@insert(Makefile-gen-runner)@');
 	}
 )@
-$(M_BAT_RUNNER): @@configure_script@@ $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR)
+$(M_BAT_RUNNER): @@configure_script@@ @@template(@backend_subdir@/perl6-m)@@ $(PERL6_MOAR) $(SETTING_MOAR)
 	$(RM_F) @q($(M_BAT_RUNNER))@
 	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($(M_BAT_RUNNER))@ \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=mbc=perl6.moarvm \
 		--set-var=ctx_subdir=@backend_subdir@ \
 		--set-var=nqp_libdir=@shquot(@nqp::libdir@)@ \
-		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@
+		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@ \
+		--set-var=nqp_prefix=@nqp::prefix@
 	-$(CHMOD) 755 $(M_BAT_RUNNER)
 
-$(M_BAT_DEBUG_RUNNER): @@configure_script@@ $(M_C_DEBUG_RUNNER) $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)
+$(M_BAT_DEBUG_RUNNER): @@configure_script@@ @@template(@backend_subdir@/perl6-m)@@ $(PERL6_DEBUG_MOAR) $(SETTING_MOAR)
 	$(RM_F) @q($(M_BAT_DEBUG_RUNNER))@
 	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m)@ --out @q($(M_BAT_DEBUG_RUNNER))@ \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=mbc=perl6-debug.moarvm \
 		--set-var=ctx_subdir=@backend_subdir@ \
 		--set-var=nqp_libdir=@shquot(@nqp::libdir@)@ \
-		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@
+		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@ \
+		--set-var=nqp_prefix=@nqp::prefix@
 	-$(CHMOD) 755 $(M_BAT_DEBUG_RUNNER)
 
 $(M_C_RUNNER): @nfp(src/vm/moar/runner/main.c)@

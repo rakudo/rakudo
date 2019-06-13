@@ -1002,9 +1002,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*LINE_NO := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
         :my $*FATAL := self.pragma('fatal');  # can also be set inside statementlist
+        { $*DECLARATOR_DOCS := '' }
         {
-            $*DECLARATOR_DOCS := '';
-
             if $*PRECEDING_DECL_LINE < $*LINE_NO {
                 $*PRECEDING_DECL_LINE := $*LINE_NO;
                 $*PRECEDING_DECL := $*DECLARAND;
@@ -1059,7 +1058,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
             '{'
-            <!!{ $*VARIABLE := '' if $*VARIABLE; 1 }>
             <statementlist(1)>
             [<.cheat_heredoc> || '}']
             <?ENDSTMT>
@@ -1805,8 +1803,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
         | <sigil> [ $<twigil>=['.^'] <desigilname=desigilmetaname> | <twigil>? <desigilname> ]
-          [ <?{ !$*IN_DECL && $*VARIABLE && $*VARIABLE eq $<sigil> ~ $<twigil> ~ $<desigilname> }>
-            { self.typed_panic: 'X::Syntax::Variable::Initializer', name => $*VARIABLE } ]?
         | <special_variable>
         | <sigil> $<index>=[\d+]                              [<?{ $*IN_DECL }> <.typed_panic: "X::Syntax::Variable::Numeric">]?
         | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
@@ -2173,7 +2169,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token declarator {
         :my $*LEFTSIGIL := '';
-        :my $*VARIABLE := '';
         [
         # STD.pm6 uses <defterm> here, but we need different
         # action methods
@@ -2293,11 +2288,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token variable_declarator {
         :my $*IN_DECL := 'variable';
+        :my $var;
         :my $sigil;
         <variable>
         {
-            $*VARIABLE := $<variable>.ast.name;
-            $/.add_variable($*VARIABLE);
+            $var := $<variable>.ast.name;
+            $/.add_variable($var);
             $sigil := $<variable><sigil>.Str;
             $*IN_DECL := '';
         }

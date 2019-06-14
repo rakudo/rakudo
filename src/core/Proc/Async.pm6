@@ -275,10 +275,31 @@ my class Proc::Async {
         $promise;
     }
 
+#?if moar
+    method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
+        if cas($!started, False, True) == False {
+            self!start-common(:$scheduler, :$ENV, :$cwd);
+        }
+        else {
+            X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
+        }
+    }
+#?endif
+
+#?if !moar
+    has $!start-lock = Lock.new;
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
         X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
-        $!started = True;
+        $!start-lock.protect: {
+            X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
+            $!started = True;
 
+            self!start-common(:$scheduler, :$ENV, :$cwd);
+        }
+    }
+#?endif
+
+    method !start-common(:$scheduler, :$ENV, :$cwd) {
         my @blockers;
         if $!stdin-fd ~~ Promise {
             @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));

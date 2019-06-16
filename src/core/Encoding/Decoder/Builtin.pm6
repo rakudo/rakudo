@@ -46,7 +46,7 @@ my class Encoding::Decoder::Builtin is repr('Decoder') does Encoding::Decoder {
     }
 
     method is-empty() {
-        nqp::decoderempty(self)
+        nqp::hllbool(nqp::decoderempty(self))
     }
 
     method bytes-available() {

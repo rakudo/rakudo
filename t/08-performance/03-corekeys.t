@@ -68,6 +68,7 @@ my %allowed = (
   Q{&QX},
   Q{&REACT},
   Q{&REACT-ONE-WHENEVER},
+  Q{&REGISTER-ARGFILES-DYNAMIC},
   Q{&REQUIRE_IMPORT},
   Q{&RETURN-LIST},
   Q{&RUN-MAIN},

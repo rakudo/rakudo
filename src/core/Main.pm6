@@ -325,9 +325,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     # If there are still some candidates left, try to dispatch to MAIN
     if @candidates {
         if $in-as-argsfiles {
-            my $*ARGFILES := IO::ArgFiles.new: (my $in := $*IN),
-                :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),
-                :bin(nqp::hllbool(nqp::isfalse($in.encoding)));
+            REGISTER-ARGFILES-DYNAMIC;
             main(|$capture).sink;
         }
         else {

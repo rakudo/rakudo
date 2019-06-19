@@ -35,19 +35,19 @@ class Kernel does Systemic {
     }
 
     method !uname-v {
-#?if moar
+#?if !jvm
         nqp::atpos_s(self!uname, nqp::const::UNAME_VERSION)
 #?endif
-#?if !moar
+#?if jvm
         try shell('uname -v', :out, :!err).out.slurp(:close).chomp;
 #?endif
     }
 
     method !uname-m {
-#?if moar
+#?if !jvm
         nqp::atpos_s(self!uname, nqp::const::UNAME_MACHINE)
 #?endif
-#?if !moar
+#?if jvm
         try shell('uname -m', :out, :!err).out.slurp(:close).chomp;
 #?endif
     }
@@ -95,6 +95,9 @@ class Kernel does Systemic {
         $!arch //= do {
             given $*DISTRO.name {
                 when 'raspbian' {
+                    self!uname-m();
+                }
+                when 'browser' {
                     self!uname-m();
                 }
                 default {

@@ -110,6 +110,8 @@ MAIN: {
     $cfg->gen_nqp;
     $cfg->configure_active_backends;
 
+    $cfg->clean_old_p6_libs;
+
     $cfg->expand_template;
 
     unless ( $cfg->opt('expand') ) {

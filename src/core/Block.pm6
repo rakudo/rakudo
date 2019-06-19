@@ -45,11 +45,11 @@ my class Block { # declared in BOOTSTRAP
         )
     }
 
-    method has-phasers() { nqp::attrinited(self,Block,'$!phasers') }
+    method has-phasers() { nqp::hllbool(nqp::attrinited(self,Block,'$!phasers')) }
 
     method has-phaser(Str:D \name) {
-        nqp::attrinited(self,Block,'$!phasers')
-          && nqp::existskey($!phasers,nqp::unbox_s(name))
+        nqp::hllbool(nqp::attrinited(self,Block,'$!phasers')
+          && nqp::existskey($!phasers,nqp::unbox_s(name)))
     }
 
     method phasers(Str:D $name) {

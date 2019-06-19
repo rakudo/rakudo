@@ -1488,7 +1488,8 @@ class Perl6::World is HLL::World {
         my @clash;
         my @clash_onlystar;
         for sorted_keys(%stash) -> $key {
-            my $value := %stash{$key};
+            # Prevent exported scalars from deconting. All other symbols are to be unwrapped.
+            my $value := nqp::iseq_s(nqp::substr($key,0,1),'$') ?? %stash{$key} !! nqp::decont(%stash{$key});
             if $target.symbol($key) -> %sym {
                 # There's already a symbol. However, we may be able to merge
                 # if both are multis and have onlystar dispatchers.

@@ -90,7 +90,16 @@ my class Date does Dateish {
     multi method new(Date: Instant $i, :&formatter, *%_ --> Date:D) {
         self.new(DateTime.new($i),:&formatter,|%_)
     }
-    method new-from-daycount($daycount,:&formatter --> Date:D) {
+    proto method new-from-daycount($) {*}
+    multi method new-from-daycount($daycount,:&formatter --> Date:D) {
+        self!ymd-from-daycount($daycount, my $year, my $month, my $day);
+        nqp::eqaddr(self.WHAT,Date)
+          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
+          !! self.bless(
+               :$year,:$month,:$day,:&formatter,:$daycount
+             )!SET-DAYCOUNT
+    }
+    multi method new-from-daycount(Date:D: $daycount,:&formatter = &!formatter --> Date:D) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
@@ -222,17 +231,17 @@ my class Date does Dateish {
 multi sub infix:<+>(Date:D $d, Int:D $x --> Date:D) {
     nqp::eqaddr($d.WHAT,Date) && 0 < $d.day + $x <= 28
       ?? $d.new-from-diff($x)
-      !! Date.new-from-daycount($d.daycount + $x)
+      !! Date.new-from-daycount($d.daycount + $x, formatter => $d.formatter)
 }
 multi sub infix:<+>(Int:D $x, Date:D $d --> Date:D) {
     nqp::eqaddr($d.WHAT,Date) && 0 < $d.day + $x <= 28
       ?? $d.new-from-diff($x)
-      !! Date.new-from-daycount($d.daycount + $x)
+      !! Date.new-from-daycount($d.daycount + $x, formatter => $d.formatter)
 }
 multi sub infix:<->(Date:D $d, Int:D $x --> Date:D) {
     nqp::eqaddr($d.WHAT,Date) && 0 < $d.day - $x <= 28
       ?? $d.new-from-diff(-$x)
-      !! Date.new-from-daycount($d.daycount - $x)
+      !! Date.new-from-daycount($d.daycount - $x, formatter => $d.formatter)
 }
 multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
     $a.daycount - $b.daycount;

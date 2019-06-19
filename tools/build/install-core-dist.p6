@@ -22,16 +22,16 @@ PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
         # Make CompUnit::Repository::Staging available to precomp processes
         CompUnit::Repository::Installation.new(
             :prefix(@*ARGS[0]),
-            :next-repo(CompUnit::RepositoryRegistry.repository-for-name('perl')),
+            :next-repo(CompUnit::RepositoryRegistry.repository-for-name('core')),
         )
     ),
-    :name('perl'),
+    :name('core'),
 );
 $*REPO.install(
     Distribution::Hash.new(
         {
-            name     => "CORE",
-            auth     => "perl",
+            name     => 'CORE',
+            auth     => 'perl',
             ver      => $*PERL.version.Str,
             provides => %provides,
         },
@@ -50,7 +50,7 @@ my $source-file = $source.relative($*REPO.prefix);
 $*REPO.precomp-repository.precompile(
         $source,
         CompUnit::PrecompilationId.new($source-id),
-        :source-name("perl#$source-file (CompUnit::Repository::Staging)"),
+        :source-name("core#$source-file (CompUnit::Repository::Staging)"),
         :force,
     );
 

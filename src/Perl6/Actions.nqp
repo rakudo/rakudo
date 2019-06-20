@@ -2238,9 +2238,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my str $symbol := nqp::unbox_s($arg.Str());
                 $*W.throw($/, ['X', 'Redeclaration'], :$symbol)
                     if $lexpad.symbol($symbol);
-                declare_variable($/, $past,
-                        nqp::substr($symbol, 0, 1), '', nqp::substr($symbol, 1),
-                        []);
+                $*W.install_lexical_symbol(
+                    $lexpad,
+                    $symbol,
+                    $*W.find_symbol(['Metamodel', 'GenericHOW']).new_type(:name($symbol))
+                );
                 $require_past.push($*W.add_string_constant($symbol));
             }
         }

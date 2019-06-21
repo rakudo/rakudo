@@ -94,7 +94,7 @@ void platformify_path(char *path) {
 }
 
 int retrieve_home(
-          char   *out_home,
+          char  **out_home,
     const char   *rel_home,
     const size_t  rel_home_size,
     const char   *env_var,
@@ -104,30 +104,33 @@ int retrieve_home(
     const size_t  check_file_size
 ) {
     char   *check_file_path;
-    char   *env_home         = getenv(env_var);
-    size_t  home_size        = exec_dir_path_size + rel_home_size;
+    size_t  home_size;
     int     ret;
+    char   *env_home         = getenv(env_var);
 
     if (env_home) {
-        strcpy(out_home, env_home);
-        home_size = strlen(out_home);
+        home_size = strlen(env_home);
+        *out_home = (char*)malloc(home_size + 1);
+        strcpy(*out_home, env_home);
 #ifdef _WIN32
-        if (*(out_home + home_size - 1) == '\\') {
+        if (*(*out_home + home_size - 1) == '\\') {
 #else
-        if (*(out_home + home_size - 1) == '/') {
+        if (*(*out_home + home_size - 1) == '/') {
 #endif
-            *(out_home + home_size - 1) = '\0';
+            *(*out_home + home_size - 1) = '\0';
             home_size--;
         }
     }
     else {
-        strncpy(out_home, exec_dir_path, home_size);
-        strncat(out_home, rel_home, rel_home_size);
-        platformify_path(out_home + exec_dir_path_size);
+        home_size = exec_dir_path_size + rel_home_size;
+        *out_home = (char*)malloc(home_size + 1);
+        strncpy(*out_home, exec_dir_path, home_size);
+        strncat(*out_home, rel_home, rel_home_size);
+        platformify_path(*out_home + exec_dir_path_size);
     }
 
     check_file_path = (char*)malloc(home_size + check_file_size + 1);
-    strncpy(check_file_path, out_home, home_size + check_file_size);
+    strncpy(check_file_path, *out_home, home_size + check_file_size);
     strncat(check_file_path, check_file, check_file_size);
 
     ret = file_exists(check_file_path);
@@ -147,9 +150,9 @@ int wmain(int argc, wchar_t *wargv[])
     size_t  exec_path_size;
     int     res;
 
-    char   *dir_path;
-    char   *dir_path_temp;
-    size_t  dir_path_size;
+    char   *exec_dir_path;
+    char   *exec_dir_path_temp;
+    size_t  exec_dir_path_size;
 
           char   *nqp_home;
           size_t  nqp_home_size;
@@ -185,6 +188,10 @@ int wmain(int argc, wchar_t *wargv[])
 
     /* Retrieve the executable directory path. */
 
+#ifdef STATIC_EXEC_PATH
+    exec_path = STRINGIFY(STATIC_EXEC_PATH);
+    exec_path_size = strlen(exec_path);
+#else
     exec_path_size = 4096;
     exec_path = (char*)malloc(exec_path_size);
     res = MVM_exepath(exec_path, &exec_path_size);
@@ -197,6 +204,7 @@ int wmain(int argc, wchar_t *wargv[])
         fprintf(stderr, "ERROR: Could not retrieve executable path.\n");
         return EXIT_FAILURE;
     }
+#endif
 
     /* Filter out VM arguments from the command line. */
 
@@ -266,16 +274,16 @@ int wmain(int argc, wchar_t *wargv[])
 #endif
 
     /* The +1 is the trailing \0 terminating the string. */
-    dir_path_temp = (char*)malloc(exec_path_size + 1);
-    memcpy(dir_path_temp, exec_path, exec_path_size + 1);
+    exec_dir_path_temp = (char*)malloc(exec_path_size + 1);
+    memcpy(exec_dir_path_temp, exec_path, exec_path_size + 1);
 #ifdef _WIN32
-    PathRemoveFileSpecA(dir_path_temp);
-    dir_path_size = strlen(dir_path_temp);
-    dir_path      = (char*)malloc(dir_path_size + 1);
-    memcpy(dir_path, dir_path_temp, dir_path_size + 1);
+    PathRemoveFileSpecA(exec_dir_path_temp);
+    exec_dir_path_size = strlen(exec_dir_path_temp);
+    exec_dir_path      = (char*)malloc(exec_dir_path_size + 1);
+    memcpy(exec_dir_path, exec_dir_path_temp, exec_dir_path_size + 1);
 #else
-    dir_path      = dirname(dir_path_temp);
-    dir_path_size = strlen(dir_path);
+    exec_dir_path      = dirname(exec_dir_path_temp);
+    exec_dir_path_size = strlen(exec_dir_path);
 #endif
 
     /* Retrieve PERL6_HOME and NQP_HOME. */
@@ -283,9 +291,8 @@ int wmain(int argc, wchar_t *wargv[])
 #ifdef STATIC_NQP_HOME
     nqp_home = STRINGIFY(STATIC_NQP_HOME);
 #else
-    nqp_home = (char*)malloc(dir_path_size + nqp_rel_path_size + 1);
-    if (!retrieve_home(nqp_home, nqp_rel_path, nqp_rel_path_size, "NQP_HOME",
-            dir_path, dir_path_size, nqp_check_path, nqp_check_path_size)) {
+    if (!retrieve_home(&nqp_home, nqp_rel_path, nqp_rel_path_size, "NQP_HOME",
+            exec_dir_path, exec_dir_path_size, nqp_check_path, nqp_check_path_size)) {
         fprintf(stderr, "ERROR: NQP_HOME is invalid: %s\n", nqp_home);
         return EXIT_FAILURE;
     }
@@ -295,9 +302,8 @@ int wmain(int argc, wchar_t *wargv[])
 #ifdef STATIC_PERL6_HOME
     perl6_home = STRINGIFY(STATIC_PERL6_HOME);
 #else
-    perl6_home = (char*)malloc(dir_path_size + perl6_rel_path_size + 1);
-    if (!retrieve_home(perl6_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
-            dir_path, dir_path_size, perl6_check_path, perl6_check_path_size)) {
+    if (!retrieve_home(&perl6_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
+            exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
         fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", perl6_home);
         return EXIT_FAILURE;
     }
@@ -306,10 +312,10 @@ int wmain(int argc, wchar_t *wargv[])
 
     /* Put together the lib paths and perl6_file path. */
 
-    lib_path[0] = (char*)malloc(dir_path_size + 50);
-    lib_path[1] = (char*)malloc(dir_path_size + 50);
-    lib_path[2] = (char*)malloc(dir_path_size + 50);
-    perl6_file  = (char*)malloc(dir_path_size + 50);
+    lib_path[0] = (char*)malloc(nqp_home_size   + 50);
+    lib_path[1] = (char*)malloc(perl6_home_size + 50);
+    lib_path[2] = (char*)malloc(perl6_home_size + 50);
+    perl6_file  = (char*)malloc(perl6_home_size + 50);
 
     memcpy(lib_path[0], nqp_home,     nqp_home_size);
     memcpy(lib_path[1], perl6_home, perl6_home_size);
@@ -373,14 +379,16 @@ int wmain(int argc, wchar_t *wargv[])
     free(lib_path[1]);
     free(lib_path[2]);
     free(perl6_file);
+#ifndef STATIC_EXEC_PATH
     free(exec_path);
+#endif
 #ifdef _WIN32
     /* dirname's return value is either on the stack or is the same pointer
      * that was passed to it depending on the version of libc used, which leads
      * to double frees. */
-    free(dir_path);
+    free(exec_dir_path);
 #endif
-    free(dir_path_temp);
+    free(exec_dir_path_temp);
 #ifndef STATIC_PERL6_HOME
     free(perl6_home);
 #endif

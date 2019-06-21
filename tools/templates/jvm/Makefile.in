@@ -91,7 +91,7 @@ check_@backend_prefix@_nqp_version: @@script(check-nqp-version.pl)@@
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(MKPATH) bin
-	$(JAVAC) -source 1.9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
+	$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
 
 $(PERL6_ML_JAR): @nfpl(src/Perl6/ModuleLoader.nqp src/vm/jvm/ModuleLoaderVMConfig.nqp src/vm/jvm/Perl6/JavaModuleLoader.nqp gen/nqp-version)@

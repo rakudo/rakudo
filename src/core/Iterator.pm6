@@ -131,4 +131,12 @@ my role PredictiveIterator does Iterator {
     method bool-only(--> Bool:D) { self.count-only.Bool }
 }
 
+# The CachedIterator role is a refinement of the PredictiveIterator role for
+# those cases when all values have been generated already.  It prevents the
+# already generated values from being cached yet again for a Sequence.
+my role CachedIterator does PredictiveIterator {
+    # The "cache" method should return a List of the already generated values.
+    method cache(--> List:D) { ... }
+}
+
 # vim: ft=perl6 expandtab sw=4

@@ -169,7 +169,7 @@ my class Rakudo::Internals::JSON {
 
             for pairs {
                 jsonify(.key);
-                nqp::push_s($out,": ");
+                nqp::push_s($out,":");
                 jsonify(.value);
                 nqp::push_s($out,$comma);
             }

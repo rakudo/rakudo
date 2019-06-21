@@ -14,7 +14,6 @@ SYSROOT    = @nfp(@sysroot@)@
 SDKROOT    = @nfp(@sdkroot@)@
 PREFIX     = @nfp(@prefix@)@
 LIBDIR     = @nfp(@libdir@)@
-NQP_HOME   = $(LIBDIR)@nfp(/nqp)@
 PERL6_HOME = $(LIBDIR)@nfp(/perl6)@
 BASE_DIR   = @base_dir@
 

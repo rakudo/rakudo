@@ -19,7 +19,13 @@ my class Seq is Cool does Iterable does Sequence {
         nqp::if(
           nqp::isconcrete(my \iter = $!iter),
           nqp::stmts(
-            ($!iter := Iterator),
+            ($!iter := Iterator),                 # allow usage only once
+            nqp::if(
+              nqp::istype(iter,CachedIterator),
+              nqp::bindattr(                      # can set up cache now
+                self,::?CLASS,'$!list',nqp::decont(iter.cache)
+              )
+            ),
             iter
           ),
           nqp::if(

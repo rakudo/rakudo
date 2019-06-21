@@ -12,6 +12,7 @@ class CompUnit::Repository::Java { ... }
 
 #?if js
 class CompUnit::Repository::FileSystemWithRecording { ... }
+class CompUnit::Repository::NodeJs { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
@@ -109,7 +110,7 @@ class CompUnit::RepositoryRegistry {
         # set up custom libs
         my str $site   = "inst#{$prefix}{$sep}site";
         my str $vendor = "inst#{$prefix}{$sep}vendor";
-        my str $perl   = "inst#$prefix";
+        my str $core   = "inst#{$prefix}{$sep}core";
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=
@@ -140,10 +141,10 @@ class CompUnit::RepositoryRegistry {
         }
 
         unless $precomp-specs {
-            nqp::bindkey($custom-lib, 'perl', $next-repo := self!register-repository(
-                $perl,
-                CompUnit::Repository::Installation.new(:prefix($prefix), :$next-repo)
-            )) unless nqp::existskey($unique, $perl);
+            nqp::bindkey($custom-lib, 'core', $next-repo := self!register-repository(
+                $core,
+                CompUnit::Repository::Installation.new(:prefix("$prefix/core"), :$next-repo)
+            )) unless nqp::existskey($unique, $core);
             nqp::bindkey($custom-lib, 'vendor', $next-repo := self!register-repository(
                 $vendor,
                 CompUnit::Repository::Installation.new(:prefix("$prefix/vendor"), :$next-repo)
@@ -169,13 +170,13 @@ class CompUnit::RepositoryRegistry {
         }
 
         # register manually set custom-lib repos
-        unless nqp::existskey($custom-lib, 'perl') {
-            my $repo := nqp::atkey($repos, $perl);
+        unless nqp::existskey($custom-lib, 'core') {
+            my $repo := nqp::atkey($repos, $core);
             if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'perl');
+                nqp::deletekey($custom-lib, 'core');
             }
             else {
-                nqp::bindkey($custom-lib, 'perl', $repo);
+                nqp::bindkey($custom-lib, 'core', $repo);
             }
         }
         unless nqp::existskey($custom-lib, 'vendor') {
@@ -351,6 +352,9 @@ class CompUnit::RepositoryRegistry {
       'ap',     CompUnit::Repository::AbsolutePath,
       'nqp',    CompUnit::Repository::NQP,
       'perl5',  CompUnit::Repository::Perl5,
+#?if js
+      'nodejs', CompUnit::Repository::NodeJs,
+#?endif
 #?if jvm
       'javart', CompUnit::Repository::JavaRuntime,
       'java',   CompUnit::Repository::Java,

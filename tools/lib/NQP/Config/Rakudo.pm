@@ -496,6 +496,32 @@ sub opts_for_configure {
     return wantarray ? @opts : join( " ", @opts );
 }
 
+sub clean_old_p6_libs {
+    my $self = shift;
+    my $is_moar  = $self->active_backend('moar');
+    if ( $is_moar ) {
+        my $nqp_config = $self->{impls}{moar}->{config};
+        my $lib_dir = File::Spec->rel2abs(File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp', 'lib', 'Perl6' ));
+
+        return if !-d $lib_dir;
+
+        my @files = qw(Actions.moarvm BOOTSTRAP.moarvm Compiler.moarvm Grammar.moarvm Metamodel.moarvm ModuleLoader.moarvm Ops.moarvm Optimizer.moarvm Pod.moarvm World.moarvm);
+
+        my @notes;
+        for ( @files ) {
+            my $file = File::Spec->catdir( $lib_dir, $_ );
+            next unless -f $file;
+            push @notes, "Will remove: $file\n";
+            $self->{config}->{clean_old_p6_libs} .= "\t\$(RM_F) $file\n";
+        }
+        $self->note('NOTICE',
+            "Found stale files in $lib_dir.\n",
+            "These files were left by a previous install and cause breakage\n",
+            "in this Rakudo version. The files will be removed during install.\n",
+            "\n", @notes) if @notes;
+    }
+}
+
 # Returns all active language specification entries except for .c
 sub perl6_specs {
     my $self = shift;

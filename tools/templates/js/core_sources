@@ -207,6 +207,7 @@ src/core/CompUnit/Repository/NQP.pm6
 src/core/CompUnit/Repository/Perl5.pm6
 src/core/CompUnit/Repository/Unknown.pm6
 src/vm/js/CompUnit/Repository/FileSystemWithRecording.pm6
+src/vm/js/CompUnit/Repository/NodeJs.pm6
 src/core/Argfiles.pm6
 src/core/Process.pm6
 src/core/Slang.pm6

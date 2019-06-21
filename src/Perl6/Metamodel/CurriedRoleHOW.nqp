@@ -22,6 +22,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::RoleContainer
 {
     has $!curried_role;
+    has $!candidate;                # Will contain matching candidate from curried role group
     has @!pos_args;
     has %!named_args;
     has @!role_typecheck_list;
@@ -69,6 +70,7 @@ class Perl6::Metamodel::CurriedRoleHOW
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),
             :named_args(%named_args), :name($name));
         my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
+
         nqp::settypecheckmode($type, 2);
     }
 
@@ -78,17 +80,19 @@ class Perl6::Metamodel::CurriedRoleHOW
         for @!pos_args {
             nqp::push(@pos_args, $_);
         }
-        my $candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
-        my $type_env;
-        try {
-            my @result := $candidate.HOW.body_block($candidate)(|@pos_args, |%!named_args);
-            $type_env := @result[1];
-        }
-        for $candidate.HOW.roles($candidate, :!transitive) -> $role {
-            if nqp::can($role.HOW, 'curried_role') && $role.HOW.archetypes.generic && $type_env {
-                $role := $role.HOW.instantiate_generic($role, $type_env);
+        if nqp::istype($!curried_role.HOW, Perl6::Metamodel::ParametricRoleGroupHOW) {
+            $!candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
+            my $type_env;
+            try {
+                my @result := $!candidate.HOW.body_block($!candidate)(|@pos_args, |%!named_args);
+                $type_env := @result[1];
             }
-            self.add_role($obj, $role);
+            for $!candidate.HOW.roles($!candidate, :!transitive) -> $role {
+                if nqp::can($role.HOW, 'curried_role') && $role.HOW.archetypes.generic && $type_env {
+                    $role := $role.HOW.instantiate_generic($role, $type_env);
+                }
+                self.add_role($obj, $role);
+            }
         }
         self.update_role_typecheck_list($obj);
     }
@@ -111,9 +115,9 @@ class Perl6::Metamodel::CurriedRoleHOW
 
     method complete_parameterization($obj) {
         unless $!is_complete {
+            $!is_complete := 1;
             self.parameterize_roles($obj);
             self.update_role_typecheck_list($obj);
-            $!is_complete := 1;
         }
     }
 
@@ -185,8 +189,16 @@ class Perl6::Metamodel::CurriedRoleHOW
                 return 1;
             }
         }
+        self.complete_parameterization($obj) unless $!is_complete;
+        if !($!candidate =:= NQPMu) && $!candidate.HOW.type_check_parents($!candidate, $decont) {
+            return 1
+        }
         for @!role_typecheck_list {
-            if $decont =:= nqp::decont($_) {
+            my $dr := nqp::decont($_);
+            if $decont =:= $dr {
+                return 1;
+            }
+            if nqp::istype($dr, $decont) {
                 return 1;
             }
         }

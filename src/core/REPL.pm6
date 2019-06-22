@@ -303,8 +303,8 @@ do {
         method interactive_prompt() { '> ' }
 
         method repl-loop(*%adverbs) {
-
-            say "To exit type 'exit' or '^D'";
+            my $exit_char = ($*VM.osname eq 'win32') ?? '^Z' !! '^D';
+            say "To exit, type 'exit' or '$exit_char'.";
 
             my $prompt;
             my $code;
@@ -314,14 +314,22 @@ do {
             }
             reset;
 
+            my Bool $should_exit = False;
+
             REPL: loop {
                 my $newcode = self.repl-read(~$prompt);
 
                 my $initial_out_position = $*OUT.tell;
 
                 # An undef $newcode implies ^D or similar
-                if !$newcode.defined {
-                    last;
+                if $newcode.defined {
+                    $should_exit = False;
+                } else {
+                    last if $should_exit;
+                    $should_exit = True;
+                    say "Type '$exit_char' once more to exit.";
+                    reset;
+                    next;
                 }
 
                 $code = $code ~ $newcode ~ "\n";

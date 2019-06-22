@@ -1,8 +1,8 @@
 my class SetHash does Setty {
 
-    method ^parameterize(Mu \base, Mu \type) {
+    method ^parameterize(Mu \base, Mu \type) { 
         Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
-    }
+    }  
 
 #--- selector methods
 
@@ -203,13 +203,6 @@ my class SetHash does Setty {
     multi method Mixy (SetHash:D:) { self.MixHash }
 
 #--- interface methods
-    multi method STORE(SetHash:D: Setty:D \set --> SetHash:D) {
-        self.SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-                nqp::create(Rakudo::Internals::IterationSet),set.iterator,self.keyof
-            )
-        )
-    }
     multi method STORE(SetHash:D: *@pairs --> SetHash:D) {
         nqp::if(
           (my \iterator := @pairs.iterator).is-lazy,

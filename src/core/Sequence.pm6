@@ -29,7 +29,7 @@ my role PositionalBindFailover {
         )
     }
     multi method list(::?CLASS:D:) {
-        self.cache
+        List.from-iterator(self.iterator)
     }
 
     method iterator() { ... }

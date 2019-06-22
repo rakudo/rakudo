@@ -12,6 +12,7 @@ class CompUnit::Repository::Java { ... }
 
 #?if js
 class CompUnit::Repository::FileSystemWithRecording { ... }
+class CompUnit::Repository::NodeJs { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
@@ -351,6 +352,9 @@ class CompUnit::RepositoryRegistry {
       'ap',     CompUnit::Repository::AbsolutePath,
       'nqp',    CompUnit::Repository::NQP,
       'perl5',  CompUnit::Repository::Perl5,
+#?if js
+      'nodejs', CompUnit::Repository::NodeJs,
+#?endif
 #?if jvm
       'javart', CompUnit::Repository::JavaRuntime,
       'java',   CompUnit::Repository::Java,

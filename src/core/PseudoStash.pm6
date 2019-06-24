@@ -20,7 +20,7 @@ my class PseudoStash is Map {
         $obj
     }
 
-    multi method WHICH(PseudoStash:D --> ObjAt:D) { self.Mu::WHICH }
+    multi method WHICH(PseudoStash:D: --> ObjAt:D) { self.Mu::WHICH }
 
     my $pseudoers := nqp::hash(
         'MY', sub ($cur) {
@@ -252,7 +252,7 @@ my class PseudoStash is Map {
         )
     }
 
-    # for some reason we get a ambiguous dispatch error by making this a multi
+    # for some reason we get an ambiguous dispatch error by making this a multi
     method EXISTS-KEY(PseudoStash:D: Str() $key) {
         nqp::unless(
           nqp::existskey($pseudoers,$key),

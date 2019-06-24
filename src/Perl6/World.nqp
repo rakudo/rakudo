@@ -1068,7 +1068,7 @@ class Perl6::World is HLL::World {
                 my $Map := self.find_symbol(['Map'], :setting-only);
                 if nqp::istype($result, $Map) {
                     my $storage := $result.hash.FLATTENABLE_HASH();
-                    self.import($/, $storage, $package_source_name);
+                    self.import($/, $storage, $package_source_name, :need-decont(!($result =:= $Map)));
 #                    $/.check_LANG_oopsies("do_import");
                 }
                 else {
@@ -1478,7 +1478,7 @@ class Perl6::World is HLL::World {
     }
 
     # Imports symbols from the specified stash into the current lexical scope.
-    method import($/, %stash, $source_package_name) {
+    method import($/, %stash, $source_package_name, :$need-decont = 0) {
         # What follows is a two-pass thing for historical reasons.
         my $target := self.cur_lexpad();
 
@@ -1488,8 +1488,10 @@ class Perl6::World is HLL::World {
         my @clash;
         my @clash_onlystar;
         for sorted_keys(%stash) -> $key {
-            # Prevent exported scalars from deconting. All other symbols are to be unwrapped.
-            my $value := nqp::iseq_s(nqp::substr($key,0,1),'$') ?? %stash{$key} !! nqp::decont(%stash{$key});
+            my $value := %stash{$key};
+            if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
+                $value := nqp::decont($value);
+            }
             if $target.symbol($key) -> %sym {
                 # There's already a symbol. However, we may be able to merge
                 # if both are multis and have onlystar dispatchers.

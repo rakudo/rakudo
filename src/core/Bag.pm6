@@ -68,7 +68,7 @@ my class Bag does Baggy {
 
 #--- coercion methods
     multi method Bag(Bag:D:) { self }
-    multi method BagHash(Bag:D) {
+    multi method BagHash(Bag:D:) {
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
@@ -82,7 +82,7 @@ my class Bag does Baggy {
           mix()
         )
     }
-    multi method MixHash(Bag:D) {
+    multi method MixHash(Bag:D:) {
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),

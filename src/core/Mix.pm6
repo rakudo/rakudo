@@ -78,7 +78,7 @@ my class Mix does Mixy {
 
 #--- coercion methods
     multi method Mix(Mix:D:) { self }
-    multi method MixHash(Mix:D) {
+    multi method MixHash(Mix:D:) {
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),

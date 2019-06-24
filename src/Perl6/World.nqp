@@ -1068,7 +1068,7 @@ class Perl6::World is HLL::World {
                 my $Map := self.find_symbol(['Map'], :setting-only);
                 if nqp::istype($result, $Map) {
                     my $storage := $result.hash.FLATTENABLE_HASH();
-                    self.import($/, $storage, $package_source_name, :need-decont);
+                    self.import($/, $storage, $package_source_name, :need-decont(!($result =:= $Map)));
 #                    $/.check_LANG_oopsies("do_import");
                 }
                 else {

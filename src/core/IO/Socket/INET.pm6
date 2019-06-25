@@ -1,10 +1,11 @@
 my class IO::Socket::INET does IO::Socket {
     my module PIO {
-        constant PF_INET        = 1;
-        constant PF_INET6       = 2;
-        constant PF_LOCAL       = 3;
-        constant PF_UNIX        = 3;
-        constant PF_MAX         = 4;
+        constant PF_UNSPEC      = nqp::const::SOCKET_FAMILY_UNSPEC;
+        constant PF_INET        = nqp::const::SOCKET_FAMILY_INET;
+        constant PF_INET6       = nqp::const::SOCKET_FAMILY_INET6;
+        constant PF_LOCAL       = nqp::const::SOCKET_FAMILY_UNIX;
+        constant PF_UNIX        = nqp::const::SOCKET_FAMILY_UNIX;
+        constant PF_MAX         = nqp::const::SOCKET_FAMILY_UNIX + 1;
         constant SOCK_PACKET    = 0;
         constant SOCK_STREAM    = 1;
         constant SOCK_DGRAM     = 2;

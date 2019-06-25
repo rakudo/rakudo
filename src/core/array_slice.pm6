@@ -55,10 +55,15 @@ multi sub POSITIONS(
     }
 
     # we can optimize `42..*` Ranges; as long as they're from core, unmodified
-    my \is-pos-lazy = pos.is-lazy;
-    my \pos-iter    = nqp::eqaddr(pos.WHAT,Range)
-        && pos.max === Inf
-        && nqp::isfalse(SELF.is-lazy)
+    my \is-pos-lazy  = pos.is-lazy;
+    my \is-inf-range = nqp::eqaddr(pos.WHAT,Range) && pos.max === Inf;
+    if is-inf-range && pos.excludes-max {
+        warn "Excluding the upper limit in infinite range subscript { pos } "
+           ~ "has no effect. Use { pos.subst(/<after '..'> '^' .*/, '*-2') } "
+           ~ "to exclude the last item.";
+    }
+
+    my \pos-iter = is-inf-range && nqp::isfalse(SELF.is-lazy)
           ?? Range.new(pos.min, SELF.elems,
               :excludes-min(pos.excludes-min),
               :excludes-max(pos.excludes-max)

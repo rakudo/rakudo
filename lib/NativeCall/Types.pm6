@@ -6,16 +6,20 @@ sub nativecast($target-type, $source) {
         nqp::decont(map_return_type($target-type)), nqp::decont($source));
 }
 
-our native long     is Int is ctype("long")     is repr("P6int") { };
-our native longlong is Int is ctype("longlong") is repr("P6int") { };
+our native long      is Int is ctype("long")     is repr("P6int") { };
+our native longlong  is Int is ctype("longlong") is repr("P6int") { };
 our native ulong     is Int is ctype("long")     is unsigned is repr("P6int") { };
 our native ulonglong is Int is ctype("longlong") is unsigned is repr("P6int") { };
 our native size_t    is Int is ctype("size_t")   is unsigned is repr("P6int") { };
-our native ssize_t   is Int is ctype("size_t")               is repr("P6int") { };
-our native bool      is Int is ctype("bool")                 is repr("P6int") { };
-our class void                                  is repr('Uninstantiable') { };
+our native ssize_t   is Int is ctype("size_t")   is repr("P6int") { };
+our native bool      is Int is ctype("bool")     is repr("P6int") { };
+our native wchar_t   is Int is ctype("wchar_t")  is repr("P6int") { };
+our native wint_t    is Int is ctype("wint_t")   is repr("P6int") { };
+our native char16_t  is Int is ctype("char16_t") is unsigned is repr("P6int") { };
+our native char32_t  is Int is ctype("char32_t") is unsigned is repr("P6int") { };
+our class void                                   is repr('Uninstantiable') { };
 # Expose a Pointer class for working with raw pointers.
-our class Pointer                               is repr('CPointer') {
+our class Pointer                                is repr('CPointer') {
     method of() { void }
 
     multi method new() {

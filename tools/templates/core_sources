@@ -42,7 +42,7 @@ src/core/Bool.pm6
 src/core/Order.pm6
 src/core/Num.pm6
 src/core/Buf.pm6
-@if(backend==moar
+@if(backend!=jvm
 src/core/Uni.pm6
 src/core/Collation.pm6)@
 src/core/Encoding/Decoder.pm6
@@ -165,7 +165,10 @@ src/core/Awaitable.pm6
 src/core/Awaiter.pm6
 src/core/Scheduler.pm6
 src/core/Env.pm6
-src/core/ThreadPoolScheduler.pm6
+@if(backend!=js
+src/core/ThreadPoolScheduler.pm6)@
+@if(backend==js
+src/core/JavaScriptScheduler.pm6)@
 src/core/CurrentThreadScheduler.pm6
 src/core/Promise.pm6
 src/core/Channel.pm6
@@ -175,6 +178,8 @@ src/core/IO/Socket.pm6
 src/core/IO/Socket/INET.pm6
 src/core/IO/Socket/Async.pm6
 src/core/Proc.pm6
+@if(backend==js
+src/vm/js/FakeRun.pm6)@
 src/core/signals.pm6
 src/core/Proc/Async.pm6
 src/core/Systemic.pm6
@@ -209,10 +214,15 @@ src/core/CompUnit/Repository/Unknown.pm6
 @if(backend==jvm
 src/vm/jvm/CompUnit/Repository/Java.pm6
 src/vm/jvm/CompUnit/Repository/JavaRuntime.pm6)@
+@if(backend==js
+src/vm/js/CompUnit/Repository/FileSystemWithRecording.pm6
+src/vm/js/CompUnit/Repository/NodeJs.pm6)@
 src/core/Argfiles.pm6
 src/core/Process.pm6
 src/core/Slang.pm6
 src/core/Metamodel/Primitives.pm6
 src/core/REPL.pm6
+@if(backend==js
+src/core/WrappedJSObject.pm6)@
 src/core/Rakudo/Metaops.pm6
 src/core/core_epilogue.pm6

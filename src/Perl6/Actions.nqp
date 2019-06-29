@@ -6631,8 +6631,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             my $semi := 0;
             repeat until $semi >= $numsemis {
-                my $EXPR := $<semilist><statement>[$semi]<EXPR> //
-                    nqp::die("internal problem: parser did not give circumfix an EXPR");
+                my $EXPR := $<semilist><statement>[$semi]<EXPR> // last;
+#                    nqp::die("internal problem: parser did not give circumfix an () EXPR");
                 if $EXPR<colonpair> { # might start with a colonpair
                     my @fan := nqp::list($EXPR.ast);
                     migrate_colonpairs($/, @fan);
@@ -6880,8 +6880,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             my $semi := 0;
             repeat until $semi >= $numsemis {
-                my $EXPR := $<semilist><statement>[$semi]<EXPR> //
-                    nqp::die("internal problem: parser did not give circumfix an EXPR");
+                my $EXPR := $<semilist><statement>[$semi]<EXPR> // last;
+#                    nqp::die("internal problem: parser did not give circumfix an [] EXPR");
                 if $EXPR<colonpair> { # might start with a colonpair
                     my @fan := nqp::list($EXPR.ast);
                     migrate_colonpairs($/, @fan);

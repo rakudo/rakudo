@@ -32,7 +32,6 @@ my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArra
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 
-
 # Role for carrying extra calling convention information.
 my role NativeCallingConvention[$name] {
     method native_call_convention() { $name };
@@ -46,7 +45,6 @@ my role NativeCallEncoded[$name] {
 my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
-
 
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
@@ -156,8 +154,8 @@ my constant $type_map = nqp::hash(
   "ssize_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(ssize_t)),
   "wchar_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(wchar_t)),
   "wint_t",     nqp::atpos_s($signed_ints_by_size,nativesizeof(wint_t)),
-  "char16_t",   "ushort",
-  "char32_t",   "uint",
+  "char16_t",   nqp::atpos_s($signed_ints_by_size,nativesizeof(char16_t)),
+  "char32_t",   nqp::atpos_s($signed_ints_by_size,nativesizeof(char32_t)),
   "uint",       "ulong",
   "uint16",     "ushort",
   "uint32",     "uint",

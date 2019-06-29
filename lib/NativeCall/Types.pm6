@@ -13,8 +13,8 @@ our native ulonglong is Int is ctype("longlong") is unsigned is repr("P6int") { 
 our native size_t    is Int is ctype("size_t")   is unsigned is repr("P6int") { };
 our native ssize_t   is Int is ctype("size_t")   is repr("P6int") { };
 our native bool      is Int is ctype("bool")     is repr("P6int") { };
-our native wchar_t   is Int is ctype("wchar_t")  is repr("P6int") { };
-our native wint_t    is Int is ctype("wint_t")   is repr("P6int") { };
+our native wchar_t   is Int is ctype("wchar_t")  is unsigned(nqp::iswcharunsigned()) is repr("P6int") { };
+our native wint_t    is Int is ctype("wint_t")   is unsigned(nqp::iswintunsigned())  is repr("P6int") { };
 our native char16_t  is Int is ctype("char16_t") is unsigned is repr("P6int") { };
 our native char32_t  is Int is ctype("char32_t") is unsigned is repr("P6int") { };
 our class void                                   is repr('Uninstantiable') { };

@@ -713,8 +713,8 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
       return True if nqp::existskey($repr_map,T.REPR) && T.REPR ne 'CArray' | 'CPointer';
       return True if T.^name eq 'Str' | 'str' | 'Bool';
       return False if T.REPR eq 'P6opaque';
-      return False if T.^name eq 'int' | 'uint' || (T.HOW.^can('ctype') && !nqp::defined(T.^ctype)); #to disting int and int32 for example
-      return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' and T.^can('of');
+      return False if T.HOW.^can('ctype') && T.^ctype eq ''; # to disting int and int32 for example
+      return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' && T.^can('of');
       return True;
     }
     my $sig = $r.signature;

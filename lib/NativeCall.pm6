@@ -152,10 +152,10 @@ my constant $type_map = nqp::hash(
   "num64",      "double",
   "size_t",     nqp::atpos_s($signed_ints_by_size,nativesizeof(size_t)),
   "ssize_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(ssize_t)),
-  "wchar_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(wchar_t)),
-  "wint_t",     nqp::atpos_s($signed_ints_by_size,nativesizeof(wint_t)),
-  "char16_t",   nqp::atpos_s($signed_ints_by_size,nativesizeof(char16_t)),
-  "char32_t",   nqp::atpos_s($signed_ints_by_size,nativesizeof(char32_t)),
+  "wchar_t",    "wchar_t",
+  "wint_t",     "wint_t",
+  "char16_t",   "char16_t",
+  "char32_t",   "char32_t",
   "uint",       "ulong",
   "uint16",     "ushort",
   "uint32",     "uint",
@@ -713,7 +713,7 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
       return True if nqp::existskey($repr_map,T.REPR) && T.REPR ne 'CArray' | 'CPointer';
       return True if T.^name eq 'Str' | 'str' | 'Bool';
       return False if T.REPR eq 'P6opaque';
-      return False if T.HOW.^can("nativesize") && !nqp::defined(T.^nativesize); #to disting int and int32 for example
+      return False if T.^name eq 'int' | 'uint' || (T.HOW.^can('ctype') && !nqp::defined(T.^ctype)); #to disting int and int32 for example
       return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' and T.^can('of');
       return True;
     }

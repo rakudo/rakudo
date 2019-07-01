@@ -579,7 +579,7 @@ sub gen_nqp {
     my $prefix       = $config->{prefix};
     my $sdkroot      = $config->{'sdkroot'};
     my $startdir     = $config->{'base_dir'};
-    my $bat          = $config->{bat};
+    my $exe          = $config->{exe};
     my $nqp_want     = $config->{nqp_want};
     my $git_protocol = $options->{'git-protocol'} // 'https';
     my @moar_options = @{ $options->{'moar-option'} // [] };
@@ -591,13 +591,13 @@ sub gen_nqp {
     for my $b ( $self->active_backends ) {
         my $bconfig = $self->backend_config($b);
         my $postfix = $self->backend_abbr($b);
-        my $tpath   = File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" );
+        my $tpath   = File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$exe" );
         my $bin     = $bconfig->{nqp_bin}
           || (
             $sdkroot
             ? File::Spec->catfile( $self->nfp($sdkroot),
-                $prefix, 'bin', "nqp-$postfix$bat" )
-            : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$bat" )
+                $prefix, 'bin', "nqp-$postfix$exe" )
+            : File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$exe" )
           );
         $impls->{$b}{bin} = $bin;
         my %c        = read_config($bin);

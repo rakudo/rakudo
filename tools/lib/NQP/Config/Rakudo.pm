@@ -341,6 +341,7 @@ sub configure_moar_backend {
         $config->{static_perl6_home_define} = '';
     }
     else {
+        my $qchar = $config->{quote};
         $config->{static_nqp_home} =
           File::Spec->rel2abs(
             File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp' )
@@ -350,10 +351,10 @@ sub configure_moar_backend {
             File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ) );
         $config->{static_nqp_home_define} =
           '-DSTATIC_NQP_HOME='
-          . $self->c_escape_string( $config->{static_nqp_home} );
+          . $qchar . $self->c_escape_string( $config->{static_nqp_home} ) . $qchar;
         $config->{static_perl6_home_define} =
           '-DSTATIC_PERL6_HOME='
-          . $self->c_escape_string( $config->{static_perl6_home} );
+          . $qchar . $self->c_escape_string( $config->{static_perl6_home} ) . $qchar;
     }
 
     # Strip rpath from ldflags so we can set it differently ourself.

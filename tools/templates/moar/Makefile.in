@@ -234,9 +234,9 @@ $(M_BUILD_RUNNER): @@configure_script@@ $(PERL6_MOAR) $(SETTING_MOAR) @nfpq(@tem
 	$(RM_F) @q($(M_BUILD_RUNNER))@
 	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m-build.c)@ --out perl6-m.c \
 		--set-var=MOAR=$(MOAR) \
-		--set-var=base_dir=@base_dir@ \
-		--set-var=nqp_lib_dir=@nqp::libdir@ \
-		--set-var=exec_name=@nfp(@base_dir@/$(M_BUILD_RUNNER))@ \
+		--set-var=base_dir=@shquot(@nfp(@base_dir@)@)@ \
+		--set-var=nqp_lib_dir=@shquot(@nfp(@nqp::libdir@)@)@ \
+		--set-var=exec_name=@shquot(@nfp(@base_dir@/$(M_BUILD_RUNNER))@)@ \
 		--set-var=mbc=perl6.moarvm
 	$(M_CC) @moar::ccswitch@ $(M_CFLAGS) @moar::ccout@perl6-m@moar::obj@ perl6-m.c
 	$(M_LD) @moar::ldout@$@ perl6-m@moar::obj@
@@ -253,8 +253,9 @@ $(M_BUILD_RUNNER): @@configure_script@@ $(PERL6_MOAR) $(SETTING_MOAR) @nfpq(@tem
         my %vars = (
             exec_name => $build,
         );
+        my $qchar = $config{'quote'};
         $vars{exec_path_define} =
-            '-DSTATIC_EXEC_PATH=' . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed ))
+            '-DSTATIC_EXEC_PATH=' . $qchar . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed )) . $qchar
             if $config{relocatable} eq 'nonreloc';
         $vars{debug_flag} = '-DMOAR_PERL6_RUNNER_DEBUG' if $build =~ /DEBUG/;
         my $scope = $cfg->push_config(%vars);

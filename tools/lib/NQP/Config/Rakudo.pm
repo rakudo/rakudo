@@ -433,14 +433,6 @@ sub configure_moar_backend {
 
         $config->{'perl6_ops_dll'} =
           sprintf( $nqp_config->{'moar::dll'}, 'perl6_ops_moar' );
-
-        # Add moar library to link command
-        # TODO: Get this from Moar somehow
-        $config->{'moarimplib'} =
-          $self->is_win || $^O eq 'darwin'
-          ? File::Spec->catfile( $nqp_config->{'moar::libdir'},
-            $nqp_config->{'moar::sharedlib'} )
-          : '';
     }
 }
 

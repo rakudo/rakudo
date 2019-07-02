@@ -253,11 +253,14 @@ $(M_BUILD_RUNNER): @@configure_script@@ $(PERL6_MOAR) $(SETTING_MOAR) @nfpq(@tem
         my %vars = (
             exec_name => $build,
         );
+		my $obj = $build;
+		$obj =~ s/\.*$//;
         my $qchar = $config{'quote'};
         $vars{exec_path_define} =
             '-DSTATIC_EXEC_PATH=' . $qchar . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed )) . $qchar
             if $config{relocatable} eq 'nonreloc';
         $vars{debug_flag} = '-DMOAR_PERL6_RUNNER_DEBUG' if $build =~ /DEBUG/;
+        $vars{obj_file} = $obj;
         my $scope = $cfg->push_config(%vars);
         $out .= $macros->expand('@insert(Makefile-gen-c-runner)@');
     }

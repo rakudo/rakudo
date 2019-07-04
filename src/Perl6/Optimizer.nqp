@@ -2127,7 +2127,7 @@ class Perl6::Optimizer {
                 }
             }
             elsif $primspec == 2 { # native num
-                my $one := QAST::NVal.new: :value(1);
+                my $one := QAST::NVal.new: :value(1.0);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
                     return QAST::Op.new: :op<assign_n>, :$node, :$returns, $var,
@@ -3142,7 +3142,7 @@ class Perl6::Optimizer {
     # Looks through positional args for any lexicalref or attributeref, and
     # if we find them check if the expectation is for an non-rw argument.
     method simplify_refs($call, $sig) {
-        if $sig.arity == $sig.count {
+        if nqp::iseq_n($sig.arity, $sig.count) {
             my @args   := $call.list;
             my int $i  := $call.name eq '' ?? 1 !! 0;
             my int $n  := nqp::elems(@args);

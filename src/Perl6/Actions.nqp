@@ -8149,7 +8149,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $*W.add_numeric_constant($/, 'Num', nqp::inf);
         }
         else {
-            make $*W.add_numeric_constant($/, 'Num', +$/);
+            make $*W.add_numeric_constant($/, 'Num', nqp::numify($/));
         }
     }
 
@@ -8161,7 +8161,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method dec_number($/) {
         if $<escale> { # wants a Num
-            make $*W.add_numeric_constant: $/, 'Num', ~$/;
+            make $*W.add_numeric_constant: $/, 'Num', nqp::numify($/);
         } else { # wants a Rat
             my $Int := $*W.find_symbol(['Int']);
             my $parti;
@@ -8284,12 +8284,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $ast := $*W.add_constant: 'Complex', 'type_new', :nocache(1),
             $*W.add_constant('Num', 'num',
                 $<re><sign> eq '-' || $<re><sign> eq '−'
-                  ??  nqp::neg_n($<re><number>.ast.compile_time_value).Num
+                  ??  nqp::neg_n($<re><number>.ast.compile_time_value)
                   !!  $<re><number>.ast.compile_time_value.Num
             ).compile_time_value,
             $*W.add_constant('Num', 'num',
                 $<im><sign> eq '-' || $<im><sign> eq '−'
-                  ??  nqp::neg_n($<im><number>.ast.compile_time_value).Num
+                  ??  nqp::neg_n($<im><number>.ast.compile_time_value)
                   !!  $<im><number>.ast.compile_time_value.Num
             ).compile_time_value;
         $ast.node($/);
@@ -11132,7 +11132,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                    QAST::IVal.new( :value($*INTERPOLATION) ),
+                    QAST::IVal.new( :value($*INTERPOLATION ?? 1 !! 0) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
                     ),
@@ -11148,7 +11148,7 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
                     QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                    QAST::IVal.new( :value($*INTERPOLATION) ),
+                    QAST::IVal.new( :value($*INTERPOLATION ?? 1 !! 0) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
                     ),

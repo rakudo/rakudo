@@ -230,7 +230,7 @@ $(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
 	}
 )@
 
-$(M_BUILD_RUNNER): @@configure_script@@ $(PERL6_MOAR) $(SETTING_MOAR) @nfpq(@templates_dir@/@backend_subdir@/perl6-m-build.c.in)@ @nfpq(@templates_dir@/@backend_subdir@/perl6-m-build.c.windows)@
+$(M_BUILD_RUNNER): @@configure_script@@ $(PERL6_MOAR) $(SETTING_MOAR) @@nfp(@template(@backend_subdir@/perl6-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.windows)@)@@
 	$(RM_F) @q($(M_BUILD_RUNNER))@
 	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m-build.c)@ --out perl6-m.c \
 		--set-var=MOAR=$(MOAR) \

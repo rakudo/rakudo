@@ -106,11 +106,14 @@ M_CLEANUPS = \
   $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \
   rakudo_test_run.tar.gz \
+  inst-perl6-m@moar::obj@ \
+  inst-perl6-debug-m@moar::obj@ \
+  inst-perl6@moar::obj@ \
+  inst-perl6-debug@moar::obj@ \
   $(M_INST_PERL6_M) \
   $(M_INST_PERL6_DEBUG_M) \
   $(M_INST_PERL6) \
   $(M_INST_PERL6_DEBUG) \
-  main@moar::obj@ \
   $(M_PERL6_OPS_DLL) \
   $(M_PERL6_OPS_OBJ) \
   $(M_PERL6_CONT_OBJ) \

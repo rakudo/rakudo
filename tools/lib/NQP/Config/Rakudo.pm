@@ -335,42 +335,41 @@ sub configure_moar_backend {
     }
 
     if ( $config->{relocatable} eq 'reloc' ) {
-        $config->{static_nqp_home}          = '';
-        $config->{static_perl6_home}        = '';
-        $config->{static_nqp_home_define}   = '';
-        $config->{static_perl6_home_define} = '';
+        $nqp_config->{static_nqp_home}          = '';
+        $nqp_config->{static_perl6_home}        = '';
+        $nqp_config->{static_nqp_home_define}   = '';
+        $nqp_config->{static_perl6_home_define} = '';
     }
     else {
         my $qchar = $config->{quote};
-        $config->{static_nqp_home} =
+        $nqp_config->{static_nqp_home} =
           File::Spec->rel2abs(
             File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp' )
           );
-        $config->{static_perl6_home} =
+        $nqp_config->{static_perl6_home} =
           File::Spec->rel2abs(
             File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ) );
-        $config->{static_nqp_home_define} =
+        $nqp_config->{static_nqp_home_define} =
           '-DSTATIC_NQP_HOME='
-          . $qchar . $self->c_escape_string( $config->{static_nqp_home} ) . $qchar;
-        $config->{static_perl6_home_define} =
+          . $qchar . $self->c_escape_string( $nqp_config->{static_nqp_home} ) . $qchar;
+        $nqp_config->{static_perl6_home_define} =
           '-DSTATIC_PERL6_HOME='
-          . $qchar . $self->c_escape_string( $config->{static_perl6_home} ) . $qchar;
+          . $qchar . $self->c_escape_string( $nqp_config->{static_perl6_home} ) . $qchar;
     }
 
     # Strip rpath from ldflags so we can set it differently ourself.
-    $config->{ldflags} = $nqp_config->{'moar::ldflags'};
-    $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath'}\E ?//;
-    $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
+    $nqp_config->{ldflags} = $nqp_config->{'moar::ldflags'};
+    $nqp_config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath'}\E ?//;
+    $nqp_config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     if ( $config->{prefix} ne '/usr' ) {
-        $config->{ldflags} .= ' '
+        $nqp_config->{ldflags} .= ' '
           . (
               $config->{relocatable} eq 'reloc'
             ? $nqp_config->{'moar::ldrpath_relocatable'}
             : $nqp_config->{'moar::ldrpath'}
           );
     }
-    $config->{ldlibs}          = $nqp_config->{'moar::ldlibs'};
-    $config->{'mingw_unicode'} = '';
+    $nqp_config->{mingw_unicode} = '';
 
     my @c_runner_libs;
     if ( $self->is_win ) {
@@ -388,14 +387,14 @@ sub configure_moar_backend {
               . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
-            $config->{'mingw_unicode'} = '-municode';
+            $nqp_config->{mingw_unicode} = '-municode';
         }
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
     }
     else {
-        $config->{'m_cleanups'} =
+        $nqp_config->{m_cleanups} =
 "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
-        $config->{'m_all'} =
+        $nqp_config->{m_all} =
           '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
 
         #$config->{'m_install'} = "\t"
@@ -414,10 +413,10 @@ sub configure_moar_backend {
         #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
         #  . $self->nfp("/bin/perl6-valgrind-m")
         #  . ' "valgrind" "" "" ""';
-        $config->{m_install} = '@insert(Makefile-install)@';
+        $nqp_config->{m_install} = '@insert(Makefile-install)@';
     }
-    $config->{c_runner_libs} = join( " ", @c_runner_libs );
-    $config->{moar_lib}      = sprintf(
+    $nqp_config->{c_runner_libs} = join( " ", @c_runner_libs );
+    $nqp_config->{moar_lib}      = sprintf(
         (
               $nqp_config->{'moar::ldimp'}
             ? $nqp_config->{'moar::ldimp'}
@@ -427,11 +426,11 @@ sub configure_moar_backend {
     );
 
     unless ( $self->backend_error('moar') ) {
-        $self->msg( "Using $config->{'m_nqp'}"
+        $self->msg( "Using $config->{m_nqp}"
               . " (version $nqp_config->{'nqp::version'}"
               . " / MoarVM $nqp_config->{'moar::version'}).\n" );
 
-        $config->{'perl6_ops_dll'} =
+        $nqp_config->{perl6_ops_dll} =
           sprintf( $nqp_config->{'moar::dll'}, 'perl6_ops_moar' );
     }
 }

@@ -3051,7 +3051,7 @@ class Perl6::World is HLL::World {
             QAST::SVal.new( :value($r) )
         }
         elsif nqp::isint($r) {
-            QAST::IVal.new( :value($r) )
+            QAST::IVal.new( :value(nqp::isconcrete($r) ?? $r !! 0) )
         }
         else {
             self.add_object_if_no_sc($r);

@@ -1288,9 +1288,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.add_phasers_handling_code($*DECLARAND, $*UNIT);
         }
 
-        # Checks.
-        $*W.assert_stubs_defined($/);
-        $*W.sort_protos();
+        $*W.prep_comp_unit($/);
 
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
@@ -1456,9 +1454,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method unitstart($/) {
+        note("--> SET_BLOCK_OUTER_CTX from unitstart") if nqp::getenvhash<RAKUDO_DEBUG>;
         # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
         # to set dynamic outer lexical context and namespace details
         # for the compilation unit.
+        self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
+    }
+
+    method lang-version($/) {
+        note("--> SET_BLOCK_OUTER_CTX from lang-version") if nqp::getenvhash<RAKUDO_DEBUG>;
         self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
     }
 
@@ -6613,7 +6617,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<value>($/) { make $<value>.ast; }
 
-    sub handle-list-semis($/, $past) {
+    method circumfix:sym<( )>($/) {
+        my $Pair := $*W.find_symbol(['Pair']);
+        my $past := $<semilist>.ast;
+
         if !+$past.list {
             $past := QAST::Stmts.new( :node($/) );
             $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
@@ -6621,27 +6628,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Look for any chained adverb pairs and relocate them.
         # Try to reuse existing QAST where possible.
         elsif $*FAKE_INFIX_FOUND {
-            my @EXPR;
-            my $semis := $<semilist><statement>;
-            my $numsemis := +$semis;
-
-            my $i := -1;
-            while ++$i < $numsemis {
-                my $EXPR := $semis[$i]<EXPR>;
-                if nqp::defined($EXPR) {
-                    @EXPR.push($EXPR);
-                }
-            }
-            $numsemis := +@EXPR;
-
+            my $numsemis := +$<semilist><statement>;
             if $numsemis > 1 {
                 $past := QAST::Stmts.new( :node($/) );
                 $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
             }
-
-            my $semi := -1;
-            while ++$semi < $numsemis {
-                my $EXPR := @EXPR[$semi];
+            my $semi := 0;
+            repeat until $semi >= $numsemis {
+                my $EXPR := $<semilist><statement>[$semi]<EXPR> //
+                    nqp::die("internal problem: parser did not give circumfix an EXPR");
                 if $EXPR<colonpair> { # might start with a colonpair
                     my @fan := nqp::list($EXPR.ast);
                     migrate_colonpairs($/, @fan);
@@ -6666,23 +6661,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $past[0].push($EXPR.ast);
                     }
                 }
+                $semi++;
             }
             $past := wanted($past, 'circumfix()/pair');
         }
-        $past
-    }
-
-    method circumfix:sym<( )>($/) {
-        make handle-list-semis($/, $<semilist>.ast)
-    }
-
-    method circumfix:sym<[ ]>($/) {
-        make QAST::Op.new(
-          :op('call'),
-          :name('&circumfix:<[ ]>'),
-          handle-list-semis($/, $<semilist>.ast),
-          :node($/)
-        )
+        make $past;
     }
 
     method circumfix:sym<STATEMENT_LIST( )>($/) {
@@ -6880,6 +6863,59 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $i++;
         }
+    }
+
+    method circumfix:sym<[ ]>($/) {
+
+        my $Pair := $*W.find_symbol(['Pair']);
+        my $past := $<semilist>.ast;
+
+        if !+$past.list {
+            $past := QAST::Stmts.new( :node($/) );
+            $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
+        }
+        # Look for any chained adverb pairs and relocate them.
+        # Try to reuse existing QAST where possible.
+        elsif $*FAKE_INFIX_FOUND {
+            my $numsemis := +$<semilist><statement>;
+            if $numsemis > 1 {
+                $past := QAST::Stmts.new( :node($/) );
+                $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
+            }
+            my $semi := 0;
+            repeat until $semi >= $numsemis {
+                my $EXPR := $<semilist><statement>[$semi]<EXPR> //
+                    nqp::die("internal problem: parser did not give circumfix an EXPR");
+                if $EXPR<colonpair> { # might start with a colonpair
+                    my @fan := nqp::list($EXPR.ast);
+                    migrate_colonpairs($/, @fan);
+                    if (+@fan > 1) {
+                        my $comma := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/));
+                        for @fan { $comma.push($_) }
+                        if ($numsemis == 1) {
+                            $past := QAST::Stmts.new( :node($/) );
+                            $past.push($comma);
+                        }
+                        else {
+                            $past[0].push($comma);
+                        }
+                    }
+                    elsif ($numsemis > 1) {
+                        $past[0].push($EXPR.ast);
+                    }
+                }
+                else {
+                    migrate_colonpairs($/, $EXPR.ast.list);
+                    if ($numsemis > 1) {
+                        $past[0].push($EXPR.ast);
+                    }
+                }
+                $semi++;
+            }
+            $past := wanted($past, 'circumfix[]/pair');
+        }
+
+        make QAST::Op.new( :op('call'), :name('&circumfix:<[ ]>'), $past, :node($/) );
     }
 
     ## Expressions

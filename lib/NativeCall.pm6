@@ -59,7 +59,13 @@ sub string_encoding_to_nci_type(\encoding) {
         ?? "asciistr"
         !! nqp::iseq_s($enc,"utf16")
           ?? "utf16str"
-          !! die "Unknown string encoding for native call: $enc"
+          !! nqp::iseq_s($enc, 'wide')
+            ?? "widestr"
+            !! nqp::iseq_s($enc, 'u16')
+              ?? "u16str"
+              !! nqp::iseq_s($enc, 'u32')
+                ?? "u32str"
+                !! die "Unknown string encoding for native call: $enc"
 }
 
 # Builds a hash of type information for the specified parameter.
@@ -631,6 +637,24 @@ multi trait_mod:<is>(Parameter $p, :$encoded!) is export(:DEFAULT, :traits) {
 }
 multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded[$encoded];
+}
+multi trait_mod:<is>(Parameter $p, :$wide!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['wide'];
+}
+multi trait_mod:<is>(Routine $p, :$wide!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['wide'];
+}
+multi trait_mod:<is>(Parameter $p, :$u16!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['u16'];
+}
+multi trait_mod:<is>(Routine $p, :$u16!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['u16'];
+}
+multi trait_mod:<is>(Parameter $p, :$u32!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['u32'];
+}
+multi trait_mod:<is>(Routine $p, :$u32!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['u32'];
 }
 
 multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {

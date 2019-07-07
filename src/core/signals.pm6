@@ -12,7 +12,7 @@ my enum Signal does Signal::Signally ( |do {
     }
 );
 
-proto sub signal($, |) {*}
+proto sub signal(|) {*}
 multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
     if @signals.grep( { !nqp::istype($_,Signal) } ) -> @invalid {
         die "Found invalid signals: @invalid.join(', ')"

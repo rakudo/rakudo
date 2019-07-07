@@ -3,8 +3,14 @@ role Perl6::Metamodel::REPRComposeProtocol {
 
     method compose_repr($obj) {
         unless $!composed_repr {
+            # Is it a character type?
+            if nqp::can(self, 'is_char_type') && self.is_char_type($obj) {
+                nqp::composetype(nqp::decont($obj), nqp::hash('string',
+                    nqp::hash('type', self.char_type($obj), 'length', 0)));
+            }
+
             # Is it an array type?
-            if nqp::can(self, 'is_array_type') && self.is_array_type($obj) {
+            elsif nqp::can(self, 'is_array_type') && self.is_array_type($obj) {
                 if self.attributes($obj) {
                     nqp::die("Cannot have attributes on an array representation");
                 }

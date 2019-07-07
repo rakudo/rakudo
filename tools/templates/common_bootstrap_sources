@@ -29,6 +29,7 @@ src/Perl6/Metamodel/BUILDPLAN.nqp
 src/Perl6/Metamodel/REPRComposeProtocol.nqp
 src/Perl6/Metamodel/InvocationProtocol.nqp
 src/Perl6/Metamodel/RolePunning.nqp
+src/Perl6/Metamodel/CharType.nqp
 src/Perl6/Metamodel/ArrayType.nqp
 src/Perl6/Metamodel/RoleToRoleApplier.nqp
 src/Perl6/Metamodel/Concretization.nqp

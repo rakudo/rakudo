@@ -13,6 +13,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
+    does Perl6::Metamodel::CharType
     does Perl6::Metamodel::ArrayType
 {
     has $!composed;

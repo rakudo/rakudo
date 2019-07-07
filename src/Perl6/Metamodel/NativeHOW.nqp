@@ -70,40 +70,40 @@ class Perl6::Metamodel::NativeHOW
         my str $reprname := nqp::reprname($obj);
         if $reprname eq 'P6int' {
             if $ctype eq 'char' {
-                $!ctype := nqp::const::C_TYPE_CHAR;
+                $!ctype := nqp::const::P6INT_C_TYPE_CHAR;
             }
             elsif $ctype eq 'short' {
-                $!ctype := nqp::const::C_TYPE_SHORT;
+                $!ctype := nqp::const::P6INT_C_TYPE_SHORT;
             }
             elsif $ctype eq 'int' {
-                $!ctype := nqp::const::C_TYPE_INT;
+                $!ctype := nqp::const::P6INT_C_TYPE_INT;
             }
             elsif $ctype eq 'long' {
-                $!ctype := nqp::const::C_TYPE_LONG;
+                $!ctype := nqp::const::P6INT_C_TYPE_LONG;
             }
             elsif $ctype eq 'longlong' {
-                $!ctype := nqp::const::C_TYPE_LONGLONG;
+                $!ctype := nqp::const::P6INT_C_TYPE_LONGLONG;
             }
             elsif $ctype eq 'bool' {
-                $!ctype := nqp::const::C_TYPE_BOOL;
+                $!ctype := nqp::const::P6INT_C_TYPE_BOOL;
             }
             elsif $ctype eq 'size_t' {
-                $!ctype := nqp::const::C_TYPE_SIZE_T;
+                $!ctype := nqp::const::P6INT_C_TYPE_SIZE_T;
             }
             elsif $ctype eq 'atomic' {
-                $!ctype := nqp::const::C_TYPE_ATOMIC_INT;
+                $!ctype := nqp::const::P6INT_C_TYPE_ATOMIC_INT;
             }
             elsif $ctype eq 'wchar_t' {
-                $!ctype := nqp::const::C_TYPE_WCHAR_T;
+                $!ctype := nqp::const::P6INT_C_TYPE_WCHAR_T;
             }
             elsif $ctype eq 'wint_t' {
-                $!ctype := nqp::const::C_TYPE_WINT_T;
+                $!ctype := nqp::const::P6INT_C_TYPE_WINT_T;
             }
             elsif $ctype eq 'char16_t' {
-                $!ctype := nqp::const::C_TYPE_CHAR16_T;
+                $!ctype := nqp::const::P6INT_C_TYPE_CHAR16_T;
             }
             elsif $ctype eq 'char32_t' {
-                $!ctype := nqp::const::C_TYPE_CHAR32_T;
+                $!ctype := nqp::const::P6INT_C_TYPE_CHAR32_T;
             }
             else {
                 nqp::die("Unhandled C type '$ctype'");
@@ -111,13 +111,13 @@ class Perl6::Metamodel::NativeHOW
         }
         elsif $reprname eq 'P6num' {
             if $ctype eq 'float' {
-                $!ctype := nqp::const::C_TYPE_FLOAT;
+                $!ctype := nqp::const::P6NUM_C_TYPE_FLOAT;
             }
             elsif $ctype eq 'double' {
-                $!ctype := nqp::const::C_TYPE_DOUBLE;
+                $!ctype := nqp::const::P6NUM_C_TYPE_DOUBLE;
             }
             elsif $ctype eq 'longdouble' {
-                $!ctype := nqp::const::C_TYPE_LONGDOUBLE;
+                $!ctype := nqp::const::P6NUM_C_TYPE_LONGDOUBLE;
             }
             else {
                 nqp::die("Unhandled C type '$ctype'");
@@ -131,40 +131,40 @@ class Perl6::Metamodel::NativeHOW
     method ctype($obj) {
         my str $reprname := nqp::reprname($obj);
         if $reprname eq 'P6int' {
-            if $!ctype == nqp::const::C_TYPE_CHAR {
+            if $!ctype == nqp::const::P6INT_C_TYPE_CHAR {
                 'char'
             }
-            elsif $!ctype == nqp::const::C_TYPE_SHORT {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_SHORT {
                 'short'
             }
-            elsif $!ctype == nqp::const::C_TYPE_INT {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_INT {
                 'int'
             }
-            elsif $!ctype == nqp::const::C_TYPE_LONG {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_LONG {
                 'long'
             }
-            elsif $!ctype == nqp::const::C_TYPE_LONGLONG {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_LONGLONG {
                 'longlong'
             }
-            elsif $!ctype == nqp::const::C_TYPE_BOOL {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_BOOL {
                 'bool'
             }
-            elsif $!ctype == nqp::const::C_TYPE_SIZE_T {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_SIZE_T {
                 'size_t'
             }
-            elsif $!ctype == nqp::const::C_TYPE_ATOMIC_INT {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_ATOMIC_INT {
                 'atomic'
             }
-            elsif $!ctype == nqp::const::C_TYPE_WCHAR_T {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_WCHAR_T {
                 'wchar_t'
             }
-            elsif $!ctype == nqp::const::C_TYPE_WINT_T {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_WINT_T {
                 'wint_t'
             }
-            elsif $!ctype == nqp::const::C_TYPE_CHAR16_T {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_CHAR16_T {
                 'char16_t'
             }
-            elsif $!ctype == nqp::const::C_TYPE_CHAR32_T {
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_CHAR32_T {
                 'char32_t'
             }
             else {
@@ -172,13 +172,13 @@ class Perl6::Metamodel::NativeHOW
             }
         }
         elsif $reprname eq 'P6num' {
-            if $!ctype == nqp::const::C_TYPE_FLOAT {
+            if $!ctype == nqp::const::P6NUM_C_TYPE_FLOAT {
                 'float'
             }
-            elsif $!ctype == nqp::const::C_TYPE_DOUBLE {
+            elsif $!ctype == nqp::const::P6NUM_C_TYPE_DOUBLE {
                 'double'
             }
-            elsif $!ctype == nqp::const::C_TYPE_LONGDOUBLE {
+            elsif $!ctype == nqp::const::P6NUM_C_TYPE_LONGDOUBLE {
                 'longdouble'
             }
             else {

@@ -13,11 +13,10 @@ my enum Signal does Signal::Signally ( |do {
 );
 
 proto sub signal($, |) {*}
-multi sub signal(Signal $signal, *@signals, :$scheduler = $*SCHEDULER) {
-    if @signals.grep( { !nqp::istype($_,Signal) } ).list -> @invalid {
-        die "Found invalid signals: {@invalid.join(', ')}"
+multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
+    if @signals.grep( { !nqp::istype($_,Signal) } ) -> @invalid {
+        die "Found invalid signals: @invalid.join(', ')"
     }
-    @signals.unshift: $signal;
 
     # 0: Signal not supported by host, Negative: Signal not supported by backend
     my &do-warning = -> $desc, $name, @sigs {

@@ -1587,7 +1587,7 @@ class Perl6::Optimizer {
         # a hllbool if there's already an integer result behind it. For if/unless,
         # we can only do that when we have the `else` branch, since otherwise we
         # might return the no-longer-Bool value from the conditional.
-        elsif (+@($op) == 3 && ($optype eq 'if' || $optype eq 'unless'))
+        elsif ((+@($op) == 3 || $!void_context) && ($optype eq 'if' || $optype eq 'unless'))
         || $optype eq 'while' || $optype eq 'until' {
             my $update := $op;
             my $target := $op[0];
@@ -1600,8 +1600,9 @@ class Perl6::Optimizer {
                     $update[0] := $target[0];
                 }
             }
-            elsif nqp::istype($target,QAST::Var) && $target.scope eq 'lexicalref' && nqp::objprimspec($target.returns) == 1 {
+            elsif nqp::istype($target,QAST::Var) && ($target.scope eq 'lexicalref' || $target.scope eq 'attributeref' || $target.scope eq "localref") && nqp::objprimspec($target.returns) == 1 {
                 # turn $i into $i != 0
+                $target.scope($target.scope eq 'lexicalref' ?? 'lexical' !! $target.scope eq 'attributeref' ?? 'attribute' !! 'local');
                 $update[0] := QAST::Op.new( :op('isne_i'), :returns($target.returns), $target, QAST::IVal.new( :value(0) ));
             }
         }

@@ -19,11 +19,11 @@ multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
     }
 
     # 0: Signal not supported by host, Negative: Signal not supported by backend
-    my &do-warning = -> $desc, $name, @sigs {
-        warn "The following signals are not supported on this $desc ({$name}): "
-             ~ "{@sigs.join(', ')}"
-    };
-    my %vm-sigs = nqp::getsignals();
+    sub unsupported($desc, $name, @sigs --> Nil) {
+        warn "The following signals are not supported on this $desc ($name): @sigs.join(', ')";
+    }
+
+    my %vm-sigs := Rakudo::Internals.VM-SIGNALS;
     my ( @valid, @host-unsupported, @vm-unsupported );
     for @signals.unique {
         $_  ??  0 < %vm-sigs{$_}
@@ -31,8 +31,8 @@ multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
                 !! @vm-unsupported.push($_)
             !! @host-unsupported.push($_)
     }
-    if @host-unsupported -> @s { do-warning 'system',  $*KERNEL.name, @s }
-    if @vm-unsupported   -> @s { do-warning 'backend', $*VM\   .name, @s }
+    if @host-unsupported -> @s { unsupported 'system',  $*KERNEL.name, @s }
+    if @vm-unsupported   -> @s { unsupported 'backend', $*VM\   .name, @s }
 
     my class SignalCancellation is repr('AsyncTask') { }
     Supply.merge( @valid.map(-> $signal {

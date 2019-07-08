@@ -99,7 +99,7 @@ my class PseudoStash is Map {
         },
         'DYNAMIC', sub ($cur) {
             my $stash := nqp::clone($cur);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC);
             $stash.pseudo-package('DYNAMIC');
         },
         'CALLERS', sub ($cur) {

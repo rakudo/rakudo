@@ -226,7 +226,7 @@ my class PseudoStash is Map {
         );
         note("AT-KEY RETURNS: ", (nqp::isnull($val) ?? "Failure" !! $val.^name), " // mode: ", $!mode.fmt('%x')) if %*ENV<RAKUDO_DEBUG>;
         nqp::isnull($val)
-            ?? Failure.new(X::NoSuchSymbol.new(symbol => $!package.^name ~ '::' ~ $key))
+            ?? Failure.new(X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>'))
             !! $val
     }
 
@@ -249,7 +249,7 @@ my class PseudoStash is Map {
           ),
           nqp::ifnull(
               $target,
-              X::NoSuchSymbol.new(symbol => $!package.^name ~ '::' ~ $key).throw
+              X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>').throw
           )
         )
     }
@@ -388,11 +388,12 @@ my class PseudoStash is Map {
                             # We have candidate if the chain is not dynamic; or if container under the symbol is
                             # dynamic.
                             ($sym := nqp::iterkey_s($!iter)),
-                            (note("   -> $sym is the current symbol") if %*ENV<RAKUDO_DEBUG>),
+                            (note("    -> $sym is the current symbol") if %*ENV<RAKUDO_DEBUG>),
                             ($got-one := !nqp::atkey($!seen,$sym) && (
-                                            !nqp::bitand_i(nqp::getattr($!stash,PseudoStash,'$!mode'),DYNAMIC_CHAIN) ||
+                                            !nqp::bitand_i(nqp::getattr($!stash,PseudoStash,'$!mode'),REQUIRE_DYNAMIC) ||
                                             (try { nqp::iterval($!iter).VAR.dynamic })
-                                        ))
+                                        )),
+                            (note("    -> accepted? ", $got-one ?? "YES" !! "NO") if %*ENV<RAKUDO_DEBUG>)
                         )
                     )
                 )
@@ -426,7 +427,10 @@ my class PseudoStash is Map {
         method pull-one() is raw {
             nqp::if(
                 self.next-one,
-                nqp::iterval($!iter),
+                nqp::stmts(
+                    (note("VALUE FOR ", nqp::iterkey_s($!iter)) if %*ENV<RAKUDO_DEBUG>),
+                    nqp::iterval($!iter),
+                ),
                 IterationEnd
             )
         }

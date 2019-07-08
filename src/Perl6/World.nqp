@@ -97,37 +97,37 @@ sub levenshtein($a, $b) {
         my $achar := nqp::substr($a, $apos, 1);
         my $bchar := nqp::substr($b, $bpos, 1);
 
-        my $cost := changecost($achar, $bchar);
+        my num $cost := changecost($achar, $bchar);
 
         # hyphens and underscores cost half when adding/deleting.
-        my $addcost := 1;
+        my num $addcost := 1;
         $addcost := 0.5 if $bchar eq "-" || $bchar eq "_";
 
-        my $delcost := 1;
+        my num $delcost := 1;
         $delcost := 0.5 if $achar eq "-" || $achar eq "_";
 
-        my $ca := levenshtein_impl($apos+1, $bpos,   $estimate+$delcost) + $delcost; # what if we remove the current letter from A?
-        my $cb := levenshtein_impl($apos,   $bpos+1, $estimate+$addcost) + $addcost; # what if we add the current letter from B?
-        my $cc := levenshtein_impl($apos+1, $bpos+1, $estimate+$cost) + $cost; # what if we change/keep the current letter?
+        my num $ca := nqp::add_n(levenshtein_impl($apos+1, $bpos,   nqp::add_n($estimate, $delcost)), $delcost); # what if we remove the current letter from A?
+        my num $cb := nqp::add_n(levenshtein_impl($apos,   $bpos+1, nqp::add_n($estimate, $addcost)), $addcost); # what if we add the current letter from B?
+        my num $cc := nqp::add_n(levenshtein_impl($apos+1, $bpos+1, nqp::add_n($estimate, $cost)), $cost); # what if we change/keep the current letter?
 
         # the result is the shortest of the three sub-tasks
-        my $distance;
-        $distance := $ca if $ca <= $cb && $ca <= $cc;
-        $distance := $cb if $cb <= $ca && $cb <= $cc;
-        $distance := $cc if $cc <= $ca && $cc <= $cb;
+        my num $distance;
+        $distance := $ca if nqp::isle_n($ca, $cb) && nqp::isle_n($ca, $cc);
+        $distance := $cb if nqp::isle_n($cb, $ca) && nqp::isle_n($cb, $cc);
+        $distance := $cc if nqp::isle_n($cc, $ca) && nqp::isle_n($cc, $cb);
 
         # switching two letters costs only 1 instead of 2.
         if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
            nqp::eqat($a, $bchar, $apos + 1) && nqp::eqat($b, $achar, $bpos + 1) {
-            my $cd := levenshtein_impl($apos+2, $bpos+2, $estimate+1) + 1;
-            $distance := $cd if $cd < $distance;
+            my num $cd := nqp::add_n(levenshtein_impl($apos+2, $bpos+2, nqp::add_n($estimate, 1)), 1);
+            $distance := $cd if nqp::islt_n($cd, $distance);
         }
 
         %memo{$key} := $distance;
         return $distance;
     }
 
-    my $result := levenshtein_impl(0, 0, 0);
+    my num $result := levenshtein_impl(0, 0, 0);
     return $result;
 }
 
@@ -142,13 +142,13 @@ sub make_levenshtein_evaluator($orig_name, @candidates) {
         my $parlen := nqp::chars($orig_name);
         my $lendiff := nqp::chars($name) - $parlen;
         $lendiff := -$lendiff if $lendiff < 0;
-        return 1 if $lendiff >= $parlen * 0.3;
+        return 1 if nqp::isge_n($lendiff, nqp::mul_n($parlen, 0.3));
 
-        my $dist := levenshtein($orig_name, $name) / $parlen;
+        my num $dist := nqp::div_n(levenshtein($orig_name, $name), $parlen);
         my $target := -1;
-        $target := @candidates[0] if $dist <= 0.1;
-        $target := @candidates[1] if 0.1 < $dist && $dist <= 0.2;
-        $target := @candidates[2] if 0.2 < $dist && $dist <= 0.35;
+        $target := @candidates[0] if nqp::isle_n($dist, 0.1);
+        $target := @candidates[1] if nqp::islt_n(0.1, $dist) && nqp::isle_n($dist, 0.2);
+        $target := @candidates[2] if nqp::islt_n(0.2, $dist) && nqp::isle_n($dist, 0.35);
         if $target != -1 {
             my $name-str := nqp::box_s($name, $Str-obj);
             nqp::push($target, $name-str);
@@ -3101,7 +3101,7 @@ class Perl6::World is HLL::World {
             QAST::SVal.new( :value($r) )
         }
         elsif nqp::isint($r) {
-            QAST::IVal.new( :value($r) )
+            QAST::IVal.new( :value(nqp::isconcrete($r) ?? $r !! 0) )
         }
         else {
             self.add_object_if_no_sc($r);

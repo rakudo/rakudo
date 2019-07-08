@@ -1606,7 +1606,7 @@ class Perl6::Optimizer {
         # a hllbool if there's already an integer result behind it. For if/unless,
         # we can only do that when we have the `else` branch, since otherwise we
         # might return the no-longer-Bool value from the conditional.
-        elsif (+@($op) == 3 && ($optype eq 'if' || $optype eq 'unless'))
+        elsif ((+@($op) == 3 || $!void_context) && ($optype eq 'if' || $optype eq 'unless'))
         || $optype eq 'while' || $optype eq 'until' {
             my $update := $op;
             my $target := $op[0];
@@ -1619,8 +1619,9 @@ class Perl6::Optimizer {
                     $update[0] := $target[0];
                 }
             }
-            elsif nqp::istype($target,QAST::Var) && $target.scope eq 'lexicalref' && nqp::objprimspec($target.returns) == 1 {
+            elsif nqp::istype($target,QAST::Var) && ($target.scope eq 'lexicalref' || $target.scope eq 'attributeref' || $target.scope eq "localref") && nqp::objprimspec($target.returns) == 1 {
                 # turn $i into $i != 0
+                $target.scope($target.scope eq 'lexicalref' ?? 'lexical' !! $target.scope eq 'attributeref' ?? 'attribute' !! 'local');
                 $update[0] := QAST::Op.new( :op('isne_i'), :returns($target.returns), $target, QAST::IVal.new( :value(0) ));
             }
         }
@@ -2146,7 +2147,7 @@ class Perl6::Optimizer {
                 }
             }
             elsif $primspec == 2 { # native num
-                my $one := QAST::NVal.new: :value(1);
+                my $one := QAST::NVal.new: :value(1.0);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
                     return QAST::Op.new: :op<assign_n>, :$node, :$returns, $var,
@@ -3161,7 +3162,7 @@ class Perl6::Optimizer {
     # Looks through positional args for any lexicalref or attributeref, and
     # if we find them check if the expectation is for an non-rw argument.
     method simplify_refs($call, $sig) {
-        if $sig.arity == $sig.count {
+        if nqp::iseq_n($sig.arity, $sig.count) {
             my @args   := $call.list;
             my int $i  := $call.name eq '' ?? 1 !! 0;
             my int $n  := nqp::elems(@args);

@@ -1734,6 +1734,9 @@ implementation detail and has no serviceable parts inside"
             ::("Inline::Perl5").default_perl5
         }
     }
+
+    my %vm-sigs;
+    method VM-SIGNALS() { %vm-sigs ?? %vm-sigs !! %vm-sigs = nqp::getsignals }
 }
 
 # expose the number of bits a native int has

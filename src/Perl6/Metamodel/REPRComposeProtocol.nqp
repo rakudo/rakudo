@@ -9,7 +9,7 @@ role Perl6::Metamodel::REPRComposeProtocol {
                   nqp::decont($obj),
                   nqp::hash(
                     'string',
-                    nqp::hash('type', self.raw_char_type($obj), 'length', 0),
+                    nqp::hash('chartype', self.raw_char_type($obj), 'length', 0),
                   )
                 )
             }
@@ -42,8 +42,9 @@ role Perl6::Metamodel::REPRComposeProtocol {
                     nqp::push(@type_info, @attrs);
                     for $type_obj.HOW.attributes(nqp::decont($type_obj), :local) -> $attr {
                         my %attr_info;
-                        %attr_info<name> := $attr.name;
-                        %attr_info<type> := $attr.type;
+                        %attr_info<name>   := $attr.name;
+                        %attr_info<type>   := $attr.type;
+                        %attr_info<string> := nqp::hash('chartype', $attr.char_type, 'length', 0);
                         if $attr.box_target {
                             # Merely having the key serves as a "yes".
                             %attr_info<box_target> := 1;

@@ -641,19 +641,10 @@ multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
 multi trait_mod:<is>(Parameter $p, :$wide!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded['wide'];
 }
-multi trait_mod:<is>(Routine $p, :$wide!) is export(:DEFAULT, :traits) {
-    $p does NativeCallEncoded['wide'];
-}
 multi trait_mod:<is>(Parameter $p, :$u16!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded['u16'];
 }
-multi trait_mod:<is>(Routine $p, :$u16!) is export(:DEFAULT, :traits) {
-    $p does NativeCallEncoded['u16'];
-}
 multi trait_mod:<is>(Parameter $p, :$u32!) is export(:DEFAULT, :traits) {
-    $p does NativeCallEncoded['u32'];
-}
-multi trait_mod:<is>(Routine $p, :$u32!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded['u32'];
 }
 
@@ -670,6 +661,15 @@ multi trait_mod:<is>(Mu:U $type, :$u16!)  is export(:DEFAULT, :traits) {
 }
 multi trait_mod:<is>(Mu:U $type, :$u32!)  is export(:DEFAULT, :traits) {
     $type.^set_char_type('char32_t');
+}
+multi trait_mod:<is>(Attribute:D $attr, :$wide!) is export(:DEFAULT, :traits) {
+    $attr.set_char_type(nqp::const::P6STR_C_TYPE_WCHAR_T);
+}
+multi trait_mod:<is>(Attribute:D $attr, :$u16!) is export(:DEFAULT, :traits) {
+    $attr.set_char_type(nqp::const::P6STR_C_TYPE_CHAR16_T);
+}
+multi trait_mod:<is>(Attribute:D $attr, :$u32!) is export(:DEFAULT, :traits) {
+    $attr.set_char_type(nqp::const::P6STR_C_TYPE_CHAR32_T);
 }
 
 # CStr's native character type isn't set since its char_type is char by

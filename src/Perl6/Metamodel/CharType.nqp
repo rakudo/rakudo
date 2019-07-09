@@ -9,6 +9,10 @@ role Perl6::Metamodel::CharType {
         $!is_char_type ?? 1 !! 0
     }
 
+    method raw_char_type($obj) {
+        $!char_type
+    }
+
     method char_type($obj) {
         if $!char_type == nqp::const::P6STR_C_TYPE_CHAR {
             'char'

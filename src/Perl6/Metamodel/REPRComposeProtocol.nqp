@@ -5,8 +5,13 @@ role Perl6::Metamodel::REPRComposeProtocol {
         unless $!composed_repr {
             # Is it a character type?
             if nqp::can(self, 'is_char_type') && self.is_char_type($obj) {
-                nqp::composetype(nqp::decont($obj), nqp::hash('string',
-                    nqp::hash('type', self.char_type($obj), 'length', 0)));
+                nqp::composetype(
+                  nqp::decont($obj),
+                  nqp::hash(
+                    'string',
+                    nqp::hash('type', self.raw_char_type($obj), 'length', 0),
+                  )
+                )
             }
 
             # Is it an array type?

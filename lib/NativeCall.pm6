@@ -661,15 +661,69 @@ multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
     $p does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
 }
 
-role ExplicitlyManagedString {
-    has $.cstr is rw;
+# Native string character type traits.
+multi trait_mod:<is>(Mu:U $type, :$wide!) is export(:DEFAULT, :traits) {
+    $type.^set_char_type('wchar_t');
+}
+multi trait_mod:<is>(Mu:U $type, :$u16!)  is export(:DEFAULT, :traits) {
+    $type.^set_char_type('char16_t');
+}
+multi trait_mod:<is>(Mu:U $type, :$u32!)  is export(:DEFAULT, :traits) {
+    $type.^set_char_type('char32_t');
 }
 
-multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
+# CStr's native character type isn't set since its char_type is char by
+# default.
+class CStr is repr('CStr') {
+    # Once encodings are supported properly with the CStr REPR, set the
+    # encoding on the class' metamodel while parameterizing.
+    method ^parameterize(Mu:U \C, Str $encoding) {
+        C
+    }
+}
+
+# These don't support encodings because wide strings, u16strings, and
+# u32strings already have their own encoding and can use no other.
+class WideStr is repr('CStr') is wide { }
+class U16Str  is repr('CStr') is u16  { }
+class U32Str  is repr('CStr') is u32  { }
+
+role ExplicitlyManagedString[$encoding, $native-type] {
+    method encoding(--> Str)     { $encoding    }
+    method native-type(--> Mu:U) { $native-type }
+}
+
+multi explicitly-manage(Str $str, :$encoding = 'utf8', :$type = 'c' --> Str) is export(:DEFAULT,
 :utils) {
-    $x does ExplicitlyManagedString;
-    my $class = class CStr is repr('CStr') { method encoding() { $encoding; } };
-    $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont($class));
+    my Mu:U $class;
+    my Mu:U $native-type;
+    given $type {
+        when 'c'    {
+            $class       := CStr[$encoding];
+            # XXX: this can be uint8 on certain systems but we have no way to
+            # tell! There needs to be a native char type.
+            $native-type := int8;
+        }
+        when 'wide' {
+            $class       := WideStr;
+            $native-type := wchar_t;
+        }
+        when 'u16'  {
+            $class       := U16Str;
+            $native-type := char16_t;
+        }
+        when 'u32'  {
+            $class       := U32Str;
+            $native-type := char32_t;
+        }
+        default     {
+            die "Unsupported explicitly managed string type: $type";
+        }
+    }
+
+    nqp::box_s(nqp::unbox_s(nqp::decont($str)), $class);
+    $str does ExplicitlyManagedString[$encoding, $native-type];
+    $str
 }
 
 role CPPConst {

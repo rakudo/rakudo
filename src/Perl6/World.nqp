@@ -305,7 +305,6 @@ class Perl6::World is HLL::World {
         }
 
         method push_SETTING($s) {
-            note("+ PUSHING SETTING: ", nqp::what($s).HOW.name(nqp::what($s))) if nqp::getenvhash<RAKUDO_DEBUG>;
             @!SETTINGS[+@!SETTINGS] := $s;
         }
 
@@ -576,8 +575,6 @@ class Perl6::World is HLL::World {
         $*MAIN   := 'MAIN';
         $*STRICT := 1 if $*begin_compunit;
 
-        note("load-lang-ver") if nqp::getenvhash<RAKUDO_DEBUG>;
-
         my str $version := ~$ver-match;
         my @vparts := nqp::split('.', $version);
         my $vWhatever := nqp::isge_i(nqp::index($version, '*'), 0);
@@ -674,14 +671,12 @@ class Perl6::World is HLL::World {
         # our setting. Otherwise, load one.
         my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
         if $have_outer {
-            note("We have outer ctx") if nqp::getenvhash<RAKUDO_DEBUG>;
             $setting_name := '';
             $*UNIT.annotate('IN_DECL', 'eval');
             $in_eval := 1;
         }
         else {
             $setting_name := %*COMPILING<%?OPTIONS><setting> // 'CORE';
-            note("? SETTING: ", $setting_name) if nqp::getenvhash<RAKUDO_DEBUG>;
             if nqp::eqat($setting_name, 'NULL', 0) {
                 $*COMPILING_CORE_SETTING := 1;
                 $*SET_DEFAULT_LANG_VER := 0;
@@ -920,7 +915,6 @@ class Perl6::World is HLL::World {
     }
 
     method prep_comp_unit ($/) {
-        note("!!! Preparing comp unit") if nqp::getenvhash<RAKUDO_DEBUG>;
         self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
         # Checks.
         self.assert_stubs_defined($/);
@@ -930,18 +924,14 @@ class Perl6::World is HLL::World {
     # Loads a setting.
     method load_setting($/, $setting_name) {
         # Do nothing for the NULL setting.
-        note("> LOADING SETTING ", $setting_name) if nqp::getenvhash<RAKUDO_DEBUG>;
         if $setting_name ne 'NULL' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
-            note("> TRANSFORMED SETTING NAME: ", $setting_name) if nqp::getenvhash<RAKUDO_DEBUG>;
             # Load it immediately, so the compile time info is available.
             # Once it's loaded, set it as the outer context of the code
             # being compiled unless being loaded as another core dependency.
             my $setting := %*COMPILING<%?OPTIONS><outer_ctx> :=
                             Perl6::ModuleLoader.load_setting($setting_name);
-
-            note("> LOADED: " ~ nqp::what($setting).HOW.name(nqp::what($setting)), " compunit? ", nqp::iscompunit($setting), ", contains ", nqp::elems($setting), " symbols") if nqp::getenvhash<RAKUDO_DEBUG>;
 
             # Add a fixup and deserialization task also.
             my $fixup := QAST::Stmt.new(
@@ -962,20 +952,6 @@ class Perl6::World is HLL::World {
             $!setting_fixup_task := $fixup;
             # self.add_load_dependency_task(:deserialize_ast($fixup), :fixup_ast($fixup));
 
-            # if nqp::getenvhash<RAKUDO_DEBUG> {
-            #     my $any := nqp::iscompunit($*UNIT_OUTER);
-            #     my $cobj := nqp::ctxcode($setting);
-            #     my %cloc := nqp::getcodelocation($cobj);
-            #     note("> IS COMP UNIT: ", $any, " or ", nqp::iscompunit($setting), " // ",
-            #             " code object: ", $cobj.HOW.name($cobj), " // ", (nqp::defined($cobj) ?? "defined" !! "*undef*"),
-            #             " code file: ", %cloc<file>
-            #     );
-            #
-            #     for %cloc {
-            #         my $v := nqp::iterval($_);
-            #         note("> CODE LOCATION: ", nqp::iterkey_s($_), " => ", $v.HOW.name($v));
-            #     }
-            # }
             self.context().push_SETTING($*UNIT_OUTER);
 
             return nqp::ctxlexpad($setting);
@@ -4818,14 +4794,6 @@ class Perl6::World is HLL::World {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
-        note("Looking for ", nqp::join('::', @name), " in setting only? ", $setting-only) if nqp::getenvhash<RAKUDO_DEBUG>;
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            my @c := self.context.SETTINGS;
-            for @c -> $cctx {
-                note("CORE has ", nqp::elems($cctx.symtable), " elems");
-            }
-        }
-
         # GLOBAL is current view of global.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
             return $*GLOBALish;
@@ -4841,12 +4809,9 @@ class Perl6::World is HLL::World {
         # If it's a single-part name, look through the lexical
         # scopes and try the current package.
 
-        note(" . Symbols at UNIT_OUTER ", nqp::elems($*UNIT_OUTER.symtable)) if nqp::getenvhash<RAKUDO_DEBUG>;
-
         if +@name == 1 {
             my str $final_name := ~@name[0];
             if $*WANTEDOUTERBLOCK {
-                note(" . in WANTEDOUTERBLOCK") if nqp::getenvhash<RAKUDO_DEBUG>;
                 my $scope := $*WANTEDOUTERBLOCK;
                 while $scope {
                     my %sym := $scope.symbol($final_name);
@@ -4861,13 +4826,11 @@ class Perl6::World is HLL::World {
                 }
             }
             else {
-                note(" . not in WANTEDOUTERBLOCK") if nqp::getenvhash<RAKUDO_DEBUG>;
                 my int $i := $start_scope;
                 while $i > 0 {
                     $i := $i - 1;
                     my %sym := @BLOCKS[$i].symbol($final_name);
                     if +%sym {
-                        note("found $final_name") if nqp::getenvhash<RAKUDO_DEBUG>;
                         my $value := self.force_value(%sym, $final_name, 1);
                         if $upgrade_to_global {
                             ($*GLOBALish.WHO){$final_name} := $value;
@@ -4893,7 +4856,6 @@ class Perl6::World is HLL::World {
             my int $found := 0;
             while $i > 0 {
                 $i := $i - 1;
-                note("Looking in block #$i") if nqp::getenvhash<RAKUDO_DEBUG>;
                 my %sym := @BLOCKS[$i].symbol($first);
                 if +%sym {
                     $result := self.force_value(%sym, $first, 1);

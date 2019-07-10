@@ -1454,7 +1454,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method unitstart($/) {
-        note("--> SET_BLOCK_OUTER_CTX from unitstart") if nqp::getenvhash<RAKUDO_DEBUG>;
         # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
         # to set dynamic outer lexical context and namespace details
         # for the compilation unit.
@@ -1462,7 +1461,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method lang-version($/) {
-        note("--> SET_BLOCK_OUTER_CTX from lang-version") if nqp::getenvhash<RAKUDO_DEBUG>;
         self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
     }
 

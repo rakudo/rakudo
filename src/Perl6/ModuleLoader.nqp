@@ -248,7 +248,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 DEBUG("Loading settings $setting_name") if $DEBUG;
                 # Find it.
                 my $path := self.find_setting($setting_name);
-                DEBUG("Found settings $setting_name") if $DEBUG;
 
                 # Load it.
                 my $*CTXSAVE := self;
@@ -257,7 +256,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 nqp::scwbdisable();
                 DEBUG("Loading bytecode from $path") if $DEBUG;
                 nqp::loadbytecode($path);
-                DEBUG("Loaded bytecode from $path") if $DEBUG;
                 nqp::scwbenable();
                 nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
                 unless nqp::defined($*MAIN_CTX) {

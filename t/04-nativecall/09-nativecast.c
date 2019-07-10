@@ -72,3 +72,13 @@ DLLEXPORT char * ReturnNullString()
 {
     return NULL;
 }
+
+DLLEXPORT wchar_t * ReturnWideString()
+{
+    return L"epic cuteness";
+}
+
+DLLEXPORT wchar_t * ReturnNullWideString()
+{
+    return NULL;
+}

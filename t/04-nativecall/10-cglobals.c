@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
@@ -27,3 +28,9 @@ char * GlobalString = "epic cuteness";
 
 DLLEXPORT char * GlobalNullString;
 char * GlobalNullString = NULL;
+
+DLLEXPORT wchar_t * GlobalWideString;
+wchar_t * GlobalWideString = L"epic cuteness";
+
+DLLEXPORT wchar_t * GlobalNullWideString;
+wchar_t * GlobalNullWideString = NULL;

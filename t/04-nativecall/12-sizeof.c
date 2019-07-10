@@ -14,6 +14,8 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
+#include <wchar.h>
 
 typedef struct {
     char  foo1;
@@ -87,20 +89,24 @@ struct foo8 {
     char c;
 };
 
-DLLEXPORT int SizeofFoo() { return sizeof(Foo); }
-DLLEXPORT int SizeofBar() { return sizeof(Bar); }
-DLLEXPORT int SizeofBaz() { return sizeof(Baz); }
-DLLEXPORT int SizeofBuz() { return sizeof(Buz); }
-DLLEXPORT int SizeofInt() { return sizeof(int); }
-DLLEXPORT int SizeofLng() { return sizeof(long); }
-DLLEXPORT int SizeofPtr() { return sizeof(void *); }
-DLLEXPORT int SizeofBool() { return sizeof(bool); }
-DLLEXPORT int SizeofSizeT() { return sizeof(size_t); }
-DLLEXPORT int SizeofFoo1() { return sizeof(struct foo1); }
-DLLEXPORT int SizeofFoo2() { return sizeof(struct foo2); }
-DLLEXPORT int SizeofFoo3() { return sizeof(struct foo3); }
-DLLEXPORT int SizeofFoo4() { return sizeof(struct foo4); }
-DLLEXPORT int SizeofFoo5() { return sizeof(struct foo5); }
-DLLEXPORT int SizeofFoo6() { return sizeof(struct foo6); }
-DLLEXPORT int SizeofFoo7() { return sizeof(struct foo7); }
-DLLEXPORT int SizeofFoo8() { return sizeof(struct foo8); }
+DLLEXPORT size_t SizeofFoo()     { return sizeof(Foo);            }
+DLLEXPORT size_t SizeofBar()     { return sizeof(Bar);            }
+DLLEXPORT size_t SizeofBaz()     { return sizeof(Baz);            }
+DLLEXPORT size_t SizeofBuz()     { return sizeof(Buz);            }
+DLLEXPORT size_t SizeofInt()     { return sizeof(int);            }
+DLLEXPORT size_t SizeofLng()     { return sizeof(long);           }
+DLLEXPORT size_t SizeofPtr()     { return sizeof(void *);         }
+DLLEXPORT size_t SizeofBool()    { return sizeof(bool);           }
+DLLEXPORT size_t SizeofSizeT()   { return sizeof(size_t);         }
+DLLEXPORT size_t SizeofFoo1()    { return sizeof(struct foo1);    }
+DLLEXPORT size_t SizeofFoo2()    { return sizeof(struct foo2);    }
+DLLEXPORT size_t SizeofFoo3()    { return sizeof(struct foo3);    }
+DLLEXPORT size_t SizeofFoo4()    { return sizeof(struct foo4);    }
+DLLEXPORT size_t SizeofFoo5()    { return sizeof(struct foo5);    }
+DLLEXPORT size_t SizeofFoo6()    { return sizeof(struct foo6);    }
+DLLEXPORT size_t SizeofFoo7()    { return sizeof(struct foo7);    }
+DLLEXPORT size_t SizeofFoo8()    { return sizeof(struct foo8);    }
+DLLEXPORT size_t SizeofWCharT()  { return sizeof(wchar_t);        }
+DLLEXPORT size_t SizeofWIntT()   { return sizeof(wint_t);         }
+DLLEXPORT size_t SizeofChar16T() { return sizeof(uint_least16_t); }
+DLLEXPORT size_t SizeofChar32T() { return sizeof(uint_least32_t); }

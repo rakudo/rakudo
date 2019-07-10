@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan(11);
+plan 15;
 
 compile_test_lib('03-simple-returns');
 
@@ -28,7 +28,7 @@ sub ReturnString() returns Str is native('./03-simple-returns') { * }
 is ReturnString(), "epic cuteness", 'returning string works';
 
 sub ReturnNullString returns Str is native('./03-simple-returns') { * }
-nok ReturnNullString().defined, 'returning null string pointer';
+nok ReturnNullString().defined, 'returning null string pointer works';
 
 sub ReturnInt64() returns int64 is native('./03-simple-returns') { * }
 is ReturnInt64(), 0xFFFFFFFFFF, 'returning int64 works';
@@ -41,3 +41,20 @@ is ReturnUint16(), 0xFFFE, 'returning uint16 works';
 
 sub ReturnUint32() returns uint32 is native('./03-simple-returns') { * }
 is ReturnUint32(), 0xFFFFFFFE, 'returning uint32 works';
+
+if $*VM.name eq 'moar' {
+    sub ReturnWCharT() returns wchar_t is native('./03-simple-returns') { * }
+    is ReturnWCharT(), 42, 'returning wchar_t works';
+
+    sub ReturnWIntT() returns wint_t is native('./03-simple-returns') { * }
+    is ReturnWIntT(), 42, 'returning wint_t works';
+
+    sub ReturnWideString() returns Str is wide is native('./03-simple-returns') { * }
+    is ReturnWideString(), 'epic cuteness', 'returning wide string works';
+
+    sub ReturnNullWideString() returns Str is wide is native('./03-simple-returns') { * }
+    nok ReturnNullWideString().defined, 'returning null wide string pointer works'
+}
+else {
+    skip 'Wide string support NYI on this backend', 4;
+}

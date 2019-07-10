@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 34;
+plan 37;
 
 compile_test_lib('06-struct');
 
@@ -105,6 +105,16 @@ class InlinedArrayInStruct is repr('CStruct') {
     has int32 $.c is rw;
 }
 
+class WideStringStruct is repr('CStruct') {
+    has Str $.first  is wide;
+    has Str $.second is wide;
+
+    submethod TWEAK {
+        $!first  := 'Lorem';
+        $!second := 'ipsum';
+    }
+}
+
 sub ReturnAStruct()            returns MyStruct2 is native('./06-struct') { * }
 sub TakeAStruct(MyStruct $arg) returns int32     is native('./06-struct') { * }
 sub TakeAStructWithNullCArray(MyStruct $arg) returns int32 is native('./06-struct') { * }
@@ -121,6 +131,9 @@ sub ReturnAStructIntStruct() returns StructIntStruct is native('./06-struct') { 
 
 sub TakeAInlinedArrayInStruct(InlinedArrayInStruct $s) returns int32 is native('./06-struct') { * };
 sub ReturnAInlinedArrayInStruct() returns InlinedArrayInStruct is native('./06-struct') { * };
+
+sub ReturnAWideStringStruct()                    returns WideStringStruct is native('./06-struct') { * }
+sub TakeAWideStringStruct(WideStringStruct $arg) returns int32            is native('./06-struct') { * }
 
 # Perl-side tests:
 my MyStruct $obj .= new;
@@ -204,5 +217,19 @@ is $iais2.b[0], 222, 'Can inline fixed sizes array (3)';
 is $iais2.b[1], 333, 'Can inline fixed sizes array (4)';
 is $iais2.b[2], 444, 'Can inline fixed sizes array (5)';
 is $iais2.c,    555, 'Can inline fixed sizes array (6)';
+
+if $*VM.name eq 'moar' {
+    my WideStringStruct $wstrstr = ReturnAWideStringStruct();
+    is $wstrstr.first,  'OMG!',     'first wide string in struct';
+    is $wstrstr.second, 'Strings!', 'second wide string in struct';
+
+    my WideStringStruct $wstrstr2 .= new;
+    #$wstrstr2.first  := "Lorem";
+    #$wstrstr2.second := "ipsum";
+    is TakeAWideStringStruct($wstrstr2), 33, 'C-side strict values in struct';
+}
+else {
+    skip 'Wide string support NYI on this backend', 3;
+}
 
 # vim:ft=perl6

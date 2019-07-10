@@ -635,17 +635,26 @@ multi trait_mod:<is>(Routine $r, :$nativeconv!) is export(:DEFAULT, :traits) {
 multi trait_mod:<is>(Parameter $p, :$encoded!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded[$encoded];
 }
-multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
-    $p does NativeCallEncoded[$encoded];
+multi trait_mod:<is>(Routine $r, :$encoded!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded[$encoded];
 }
 multi trait_mod:<is>(Parameter $p, :$wide!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded['wide'];
 }
+multi trait_mod:<is>(Routine $r, :$wide!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded['wide'];
+}
 multi trait_mod:<is>(Parameter $p, :$u16!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded['u16'];
 }
+multi trait_mod:<is>(Routine $r, :$u16!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded['u16'];
+}
 multi trait_mod:<is>(Parameter $p, :$u32!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded['u32'];
+}
+multi trait_mod:<is>(Routine $r, :$u32!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded['u32'];
 }
 
 multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
@@ -654,13 +663,13 @@ multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
 
 # Native string character type traits.
 multi trait_mod:<is>(Mu:U $type, :$wide!) is export(:DEFAULT, :traits) {
-    $type.^set_char_type('wchar_t');
+    $type.^set_char_type(nqp::const::P6STR_C_TYPE_WCHAR_T);
 }
 multi trait_mod:<is>(Mu:U $type, :$u16!)  is export(:DEFAULT, :traits) {
-    $type.^set_char_type('char16_t');
+    $type.^set_char_type(nqp::const::P6STR_C_TYPE_CHAR16_T);
 }
 multi trait_mod:<is>(Mu:U $type, :$u32!)  is export(:DEFAULT, :traits) {
-    $type.^set_char_type('char32_t');
+    $type.^set_char_type(nqp::const::P6STR_C_TYPE_CHAR32_T);
 }
 multi trait_mod:<is>(Attribute:D $attr, :$wide!) is export(:DEFAULT, :traits) {
     $attr.set_char_type(nqp::const::P6STR_C_TYPE_WCHAR_T);
@@ -700,7 +709,7 @@ multi explicitly-manage(Str $str, :$encoding = 'utf8', :$type = 'c' --> Str) is 
     given $type {
         when 'c'    {
             $class       := CStr[$encoding];
-            # XXX: this can be uint8 on certain systems but we have no way to
+            # XXX: this can be uint8 on certain platforms but we have no way to
             # tell! There needs to be a native char type.
             $native-type := int8;
         }

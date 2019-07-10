@@ -698,11 +698,12 @@ class U16Str  is repr('CStr') is u16  { }
 class U32Str  is repr('CStr') is u32  { }
 
 role ExplicitlyManagedString[$encoding, $native-type] {
+    has $.native-string is rw;
     method encoding(--> Str)     { $encoding    }
     method native-type(--> Mu:U) { $native-type }
 }
 
-multi explicitly-manage(Str $str, :$encoding = 'utf8', :$type = 'c' --> Str) is export(:DEFAULT,
+multi explicitly-manage(Str $str, :$encoding = 'utf8', :$type = 'c') is export(:DEFAULT,
 :utils) {
     my Mu:U $class;
     my Mu:U $native-type;
@@ -730,9 +731,8 @@ multi explicitly-manage(Str $str, :$encoding = 'utf8', :$type = 'c' --> Str) is 
         }
     }
 
-    nqp::box_s(nqp::unbox_s(nqp::decont($str)), $class);
     $str does ExplicitlyManagedString[$encoding, $native-type];
-    $str
+    $str.native-string = nqp::box_s(nqp::unbox_s(nqp::decont($str)), $class);
 }
 
 role CPPConst {

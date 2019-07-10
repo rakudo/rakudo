@@ -32,7 +32,7 @@ sub SetString(Str) returns int32 is native('./02-simple-args') { * }
 sub CheckString()  returns int32 is native('./02-simple-args') { * }
 my $str = 'ok 7 - checked previously passed string';
 explicitly-manage($str);
-SetString($str);
+SetString($str.native-string);
 is CheckString(), 7, 'checked previously passed string';
 
 # Make sure wrapped subs work

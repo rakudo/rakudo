@@ -500,6 +500,7 @@ class Rakudo::Iterator {
               target.push(Pair.new(pulled,+($key = nqp::add_i($key,1))))
             )
         }
+        method is-lazy() { $!iter.is-lazy }
     }
     method AntiPair(\iterator) { AntiPair.new(iterator) }
 
@@ -2037,6 +2038,7 @@ class Rakudo::Iterator {
               )
             )
         }
+        method is-lazy() { $!iter.is-lazy }
     }
     method KeyValue(\iterator) { KeyValue.new(iterator) }
 
@@ -2504,6 +2506,7 @@ class Rakudo::Iterator {
               target.push(Pair.new(($key = nqp::add_i($key,1)),$pulled))
             )
         }
+        method is-lazy() { $!iter.is-lazy }
     }
     method Pair(\iterator) { PairIterator.new(iterator) }
 

@@ -43,8 +43,8 @@ class Perl6::Metamodel::NativeHOW
             $info<integer>           := nqp::hash();
             $info<float>             := nqp::hash();
             if nqp::isconcrete($!ctype) {
-                $info<integer><type> := $!ctype;
-                $info<float><type>   := $!ctype;
+                $info<integer><nativetype> := $!ctype;
+                $info<float><nativetype>   := $!ctype;
             }
             if nqp::objprimspec($!nativesize) {
                 $info<integer><bits> := $!nativesize;
@@ -55,7 +55,7 @@ class Perl6::Metamodel::NativeHOW
                 $info<float><bits>   := nqp::unbox_i($!nativesize);
             }
             if $!unsigned {
-                $info<integer><unsigned> := 1;
+                $info<integer><unsigned> := $!unsigned;
             }
             nqp::composetype($obj, $info);
         }

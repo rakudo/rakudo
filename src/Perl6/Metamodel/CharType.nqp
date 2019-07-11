@@ -18,4 +18,3 @@ role Perl6::Metamodel::CharType {
         $!has_char_type := 1;
     }
 }
-

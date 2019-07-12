@@ -6,12 +6,15 @@ plan 10;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
+    skip "use v6.X is currently unsupported by EVAL", 4;
+    if False {
     ok  ｢use v6.c; BEGIN $*W.lang-ver-before: 'd'｣.EVAL, 'c is before d';
     nok ｢use v6.c; BEGIN $*W.lang-ver-before: 'c'｣.EVAL, 'c is not before d';
     nok ｢use v6.e.PREVIEW; BEGIN $*W.lang-ver-before: 'e'｣.EVAL,
         'e.PREVIEW is not before e';
     nok ｢use v6.e.PREVIEW; BEGIN $*W.lang-ver-before: 'd'｣.EVAL,
         'e is not before d';
+    }
     throws-like ｢BEGIN $*W.lang-ver-before: <6.d>｣, Exception,
         :self{.exception.message.contains: 'must be 1 char long'},
     'using wrong version format as argument throws';

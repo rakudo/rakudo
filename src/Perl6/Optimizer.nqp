@@ -27,7 +27,7 @@ my class Symbols {
     # Some interesting scopes.
     has $!GLOBALish;
     has $!UNIT;
-    # has $!SETTING;
+    has @!CORES;
 
     # Cached setting lookups.
     has %!SETTING_CACHE;
@@ -56,6 +56,7 @@ my class Symbols {
     }
     method BUILD($compunit) {
         @!block_stack   := [$compunit[0]];
+        @!CORES         := [];
         $!GLOBALish     := $compunit.ann('GLOBALish');
         $!UNIT          := $compunit.ann('UNIT');
         %!SETTING_CACHE := {};
@@ -267,47 +268,31 @@ my class Symbols {
         return 0;
     }
 
-    # method find_in_setting($symbol) {
-    #     if !nqp::defined($!SETTING) {
-    #         my int $i := +@!block_stack;
-    #         while $i > 0 && !nqp::defined($!SETTING) {
-    #             $i := $i - 1;
-    #             my $block := @!block_stack[$i];
-    #             my %sym := $block.symbol("!CORE_MARKER");
-    #             if +%sym {
-    #                 $!SETTING := $block;
-    #             }
-    #         }
-    #         if !nqp::defined($!SETTING) {
-    #             nqp::die("Optimizer couldn't find CORE while looking for $symbol.");
-    #         }
-    #     } else {
-    #         if nqp::existskey(%!SETTING_CACHE, $symbol) {
-    #             return %!SETTING_CACHE{$symbol};
-    #         }
-    #     }
-    #     my %sym := $!SETTING.symbol($symbol);
-    #     if +%sym {
-    #         return %!SETTING_CACHE{$symbol} := self.force_value(%sym, $symbol, 1);
-    #     }
-    #     nqp::die("Optimizer couldn't find $symbol in SETTING.");
-    # }
-
     method find_in_setting($symbol) {
-        if nqp::existskey(%!SETTING_CACHE, $symbol) {
-            return %!SETTING_CACHE{$symbol};
+        if !nqp::elems(@!CORES) {
+            my int $i := +@!block_stack;
+            while $i > 0 {
+                $i := $i - 1;
+                my $block := @!block_stack[$i];
+                my %sym := $block.symbol("!CORE_MARKER");
+                if +%sym {
+                    nqp::push(@!CORES, $block);
+                }
+            }
+            if !nqp::elems(@!CORES) {
+                nqp::die("Optimizer couldn't find CORE while looking for $symbol.");
+            }
+        } else {
+            if nqp::existskey(%!SETTING_CACHE, $symbol) {
+                return %!SETTING_CACHE{$symbol};
+            }
         }
-        my @settings := $*W.context().SETTINGS();
-        unless +@settings {
-            nqp::die("Optimizer couldn't find CORE while looking for $symbol.");
-        }
-        my int $i := +@settings;
-        while $i > 0 {
-            my $setting := @settings[--$i];
-            my %sym := $setting.symbol($symbol);
+        for @!CORES -> $core {
+            my %sym := $core.symbol($symbol);
             if +%sym {
                 return %!SETTING_CACHE{$symbol} := self.force_value(%sym, $symbol, 1);
             }
+
         }
         nqp::die("Optimizer couldn't find $symbol in SETTING.");
     }

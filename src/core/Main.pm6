@@ -295,8 +295,10 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     if $*IN.t && $*OUT.t && $*ERR.t && !@*ARGS {
         $*IN does role {
             sub from-stdin($doing --> Nil) {
-                note "$doing from your keyboard, which is usually only done when debugging.";
-                note "Please provide input and press Ctrl-d when done, or press Ctrl-c to abort.";
+                unless $*OUT.tell || $*ERR.tell {
+                    note "$doing from your keyboard, which is usually only done when debugging.";
+                    note "Please provide input and press Ctrl-d when done, or press Ctrl-c to abort.";
+                  }
             }
 
             method slurp() { from-stdin("Slurping text"); nextsame }

@@ -15,7 +15,7 @@ end of this document.
 =head2 Planned future releases
 
 Note that we are trying very hard to ensure there are no backward
-compatibility issues post Christmas. As such, we may end up delaying
+compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
   2019-09-21   Rakudo #132 (AlexDaniel + kawaii + Releasable)
@@ -114,7 +114,7 @@ To spot more regressions, it’s a good idea to test the ecosystem and see
 if there are any modules that were working correctly (e.g. passing their
 tests) on the previous release but no longer work on HEAD. One of the
 tools to do that is
-L<Toaster|https://github.com/zoffixznet/perl6-Toaster>.
+L<Blin|https://github.com/perl6/Blin>.
 
 Generally, any kind of breakage in modules is unwanted, but there are
 exceptions. Submit Pull Requests to anything that is affected and file
@@ -280,7 +280,7 @@ was frozen.
 
 Continue adjusting things until make stresstest passes as expected.
 Often this means fixing a bug, fudging a test, or (temporarily?)
-commenting out a test file in t/spectest.data .  Use your best
+commenting out a test file in C<t/spectest.data>.  Use your best
 judgment or ask others if uncertain what to do here.
 
 =item 14.
@@ -318,7 +318,7 @@ L<create one first|https://fedoraproject.org/wiki/Creating_GPG_Keys>. Should
 that prove impossible, you can omit the C<-s> from the command line.
 
 Be sure to upload your public key to your GitHub account, so that GitHub
-displays I<Verified> button next to the tag. You can do that by running
+displays the I<Verified> button next to the tag. You can do that by running
 C<< gpg --armor --export <email> >> and adding the output as the
 I<New GPG Key> at the bottom of the
 L<< settings -> keys page|https://github.com/settings/keys >>
@@ -345,6 +345,11 @@ masak, tadzik, moritz, [Coke], lizmat, timotimo,
 
 =item 19.
 
+Build binary packages by following the steps in C<docs/release_guide_binary.md>.
+for Linux 64bit and Windows 64bit.
+
+=item 20.
+
 To avoid public confusion with Rakudo Star releases, we now publish
 compiler release announcements ONLY to perl6-compiler@perl.org.
 (We may restart widespread announcements of compiler releases
@@ -354,11 +359,11 @@ announcement for both.)
 Don’t send out any announcements until the files are actually available
 per step 14 above.
 
-=item 20.
+=item 21.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 21.
+=item 22.
 
 You’re done!  Celebrate with the appropriate amount of fun.
 
@@ -497,6 +502,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2018-09-02   Rakudo #125 "2018.08"           (AlexDaniel + Releasable)
   2018-09-23   Rakudo #126 "2018.09"           (AlexDaniel + Releasable)
   2018-10-28   Rakudo #127 "2018.10"           (AlexDaniel + Releasable)
+
   2018-11-29   Rakudo #128 "2018.11"           (AlexDaniel + Releasable) # v6.d
   2018-12-21   Rakudo #129 "2018.12"           (AlexDaniel + Releasable)
   2019-03-07   Rakudo #130 "2019.03"           (AlexDaniel + Releasable)

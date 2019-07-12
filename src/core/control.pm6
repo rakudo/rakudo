@@ -167,7 +167,7 @@ sub done(--> Nil) {
 
 proto sub die(|) {*};
 multi sub die(--> Nil) {
-    my $stash  := CALLER::;
+    my $stash  := CALLER::LEXICAL::;
     my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Died";
     $payload ~~ Exception
       ?? $payload.throw

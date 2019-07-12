@@ -10,7 +10,7 @@ This directory contains only the Rakudo Perl 6 compiler itself; it
 does not contain any of the modules, documentation, or other items
 that would normally come with a full Perl 6 distribution.  If you're
 after more than just the bare compiler, please download [the latest
-Rakudo Star package](http://rakudo.org/downloads/star).
+Rakudo Star package](https://perl6.org/downloads/).
 
 Note that different backends implement slightly different sets of
 features. For a high-level overview of implemented and missing features,

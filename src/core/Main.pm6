@@ -291,20 +291,6 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         Capture.new( :list($capture.list), :%hash)
     }
 
-    # there's a person doing this and no args, so spike slurp/lines/words
-    if $*IN.t && $*OUT.t && $*ERR.t && !@*ARGS {
-        $*IN does role {
-            sub from-stdin($doing --> Nil) {
-                note "$doing from your keyboard, which is usually only done when debugging.";
-                note "Please provide input and press Ctrl-d when done, or press Ctrl-c to abort.";
-            }
-
-            method slurp() { from-stdin("Slurping text"); nextsame }
-            method lines() { from-stdin("Reading lines"); nextsame }
-            method words() { from-stdin("Reading words"); nextsame }
-        }
-    }
-
     # set up other new style dynamic variables
     my &*ARGS-TO-CAPTURE := &default-args-to-capture;
     my &*GENERATE-USAGE  := &default-generate-usage;

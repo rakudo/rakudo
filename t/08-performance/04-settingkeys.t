@@ -3,7 +3,6 @@ plan 1;
 
 # output of "perl6 -e '.say for SETTING::.keys.sort.map: { qq:!c/  Q{$_},/ }'"
 my %allowed = (
-  Q{!UNIT_MARKER},
   Q{!CORE_MARKER},
   Q{Int},
   Q{&CORE-SETTING-REV},

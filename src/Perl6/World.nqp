@@ -193,8 +193,6 @@ class Perl6::World is HLL::World {
         # The outermost block is at the bottom, the latest block is on top.
         has @!PADS_AND_THUNKS;
 
-        has @!SETTINGS;
-
         # The stack of code objects; phasers get attached to the top one.
         has @!CODES;
 
@@ -237,7 +235,6 @@ class Perl6::World is HLL::World {
 
         method BUILD(:$handle, :$description) {
             @!PADS := [];
-            @!SETTINGS := [];
             @!PADS_AND_THUNKS := [];
             @!CODES := [];
             @!stub_check := [];
@@ -253,10 +250,6 @@ class Perl6::World is HLL::World {
 
         method blocks() {
             @!PADS
-        }
-
-        method SETTINGS() {
-            @!SETTINGS
         }
 
         method create_block($/) {
@@ -302,10 +295,6 @@ class Perl6::World is HLL::World {
         # Pops a thunk off the stack
         method pop_thunk() {
             @!PADS_AND_THUNKS.pop();
-        }
-
-        method push_SETTING($s) {
-            @!SETTINGS[+@!SETTINGS] := $s;
         }
 
         # Gets the top block or thunk.
@@ -685,7 +674,6 @@ class Perl6::World is HLL::World {
             if nqp::eqat($setting_name, 'NULL', 0) {
                 $*COMPILING_CORE_SETTING := 1;
                 $*SET_DEFAULT_LANG_VER := 0;
-                self.context.push_SETTING($*UNIT);
             }
             self.load_setting($/,$setting_name);
             $*UNIT.annotate('IN_DECL', 'mainline');
@@ -964,8 +952,6 @@ class Perl6::World is HLL::World {
             );
             $!setting_fixup_task := $fixup;
             # self.add_load_dependency_task(:deserialize_ast($fixup), :fixup_ast($fixup));
-
-            self.context().push_SETTING($*UNIT_OUTER);
 
             return nqp::ctxlexpad($setting);
         }

@@ -170,7 +170,7 @@ For questions about MoarVM, you can join #moarvm on freenode.
 
 ## Reporting bugs
 
-See https://rakudo.org/bugs
+See https://github.com/rakudo/rakudo/issues
 
 ## Submitting patches
 

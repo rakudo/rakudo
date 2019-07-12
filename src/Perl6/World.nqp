@@ -572,6 +572,11 @@ class Perl6::World is HLL::World {
     # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
     # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
+        if $*INSIDE-EVAL {
+            # XXX This is desirable behavior. But it breaks some code. Just ignore version change for now.
+            #$ver-match.typed_panic: 'X::Language::TooLate';
+            return
+        }
         $*MAIN   := 'MAIN';
         $*STRICT := 1 if $*begin_compunit;
 
@@ -798,6 +803,12 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method add_unit_marker($/, $name) {
+        my $marker := self.pkg_create_mo($/, $/.how('package'), :$name);
+        $marker.HOW.compose($marker);
+        self.install_lexical_symbol($*UNIT, $name, $marker);
+    }
+
     method mop_up_and_check($/) {
 
         # Install POD-related variables.
@@ -813,9 +824,8 @@ class Perl6::World is HLL::World {
         my $name := $*COMPILING_CORE_SETTING
           ?? '!CORE_MARKER'
           !! '!UNIT_MARKER';
-        my $marker := self.pkg_create_mo($/, $/.how('package'), :$name);
-        $marker.HOW.compose($marker);
-        self.install_lexical_symbol($*UNIT, $name, $marker);
+        self.add_unit_marker($/, $name);
+        self.add_unit_marker($/, '!EVAL_MARKER') if $*INSIDE-EVAL;
 
         # CHECK time.
         self.CHECK();
@@ -924,6 +934,9 @@ class Perl6::World is HLL::World {
     # Loads a setting.
     method load_setting($/, $setting_name) {
         # Do nothing for the NULL setting.
+        if $*INSIDE-EVAL {
+            return
+        }
         if $setting_name ne 'NULL' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);

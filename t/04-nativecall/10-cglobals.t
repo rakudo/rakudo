@@ -31,12 +31,10 @@ my $GlobalNullString := cglobal('./10-cglobals', 'GlobalNullString', str);
 nok $GlobalNullString.defined, 'global null string pointer';
 
 if $*VM.name eq 'moar' {
-    class wstr is repr('P6str') is Str is wide { }
-
-    my $GlobalWideString := cglobal('./10-cglobals', 'GlobalWideString', wstr);
+    my $GlobalWideString := cglobal('./10-cglobals', 'GlobalWideString', WideStr);
     is $GlobalWideString, 'epic cuteness', 'global wide string works';
 
-    my $GlobalNullWideString := cglobal('./10-cglobals', 'GlobalNullWideString', wstr);
+    my $GlobalNullWideString := cglobal('./10-cglobals', 'GlobalNullWideString', WideStr);
     nok $GlobalNullWideString.defined, 'global null wide string pointer';
 }
 else {

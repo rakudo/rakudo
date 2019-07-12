@@ -41,13 +41,11 @@ sub ReturnNullString returns Pointer is native('./09-nativecast') { * }
 nok nativecast(str, ReturnNullString()).defined, 'casting null pointer to str';
 
 if $*VM.name eq 'moar' {
-    class wstr is repr('P6str') is Str is wide { }
-
     sub ReturnWideString() returns Pointer is native('./09-nativecast') { * }
-    is nativecast(wstr, ReturnWideString()), 'epic cuteness', 'casting to str is wide works';
+    is nativecast(WideStr, ReturnWideString()), 'epic cuteness', 'casting to wide string works';
 
     sub ReturnNullWideString returns Pointer is native('./09-nativecast') { * }
-    nok nativecast(wstr, ReturnNullWideString()).defined, 'casting null pointer to str is wide';
+    nok nativecast(WideStr, ReturnNullWideString()).defined, 'casting null pointer to wide string';
 }
 else {
     skip 'Wide string support NYI on this backend', 2;

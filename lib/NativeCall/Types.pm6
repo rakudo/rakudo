@@ -17,7 +17,13 @@ our native wchar_t   is Int is ctype("wchar_t")  is unsigned(nqp::iswcharunsigne
 our native wint_t    is Int is ctype("wint_t")   is unsigned(nqp::iswintunsigned())  is repr("P6int") { };
 our native char16_t  is Int is ctype("char16_t") is unsigned is repr("P6int") { };
 our native char32_t  is Int is ctype("char32_t") is unsigned is repr("P6int") { };
-our class void                                   is repr('Uninstantiable') { };
+
+our class WideStr is Str is wide is repr('P6str') { };
+our class U16Str  is Str is u16  is repr('P6str') { };
+our class U32Str  is Str is u32  is repr('P6str') { };
+
+our class void is repr('Uninstantiable') { };
+
 # Expose a Pointer class for working with raw pointers.
 our class Pointer                                is repr('CPointer') {
     method of() { void }

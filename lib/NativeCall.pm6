@@ -31,6 +31,9 @@ my constant void          is export(:types, :DEFAULT) = NativeCall::Types::void;
 my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArray;
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
+my constant WideStr       is export(:types, :DEFAULT) = NativeCall::Types::WideStr;
+my constant U16Str        is export(:types, :DEFAULT) = NativeCall::Types::U16Str;
+my constant U32Str        is export(:types, :DEFAULT) = NativeCall::Types::U32Str;
 
 # Role for carrying extra calling convention information.
 my role NativeCallingConvention[$name] {
@@ -661,69 +664,46 @@ multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
     $p does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
 }
 
-# Native string character type traits.
-multi trait_mod:<is>(Mu:U $type, :$wide!) is export(:DEFAULT, :traits) {
-    $type.^set_char_type(nqp::const::P6STR_C_TYPE_WCHAR_T);
-}
-multi trait_mod:<is>(Mu:U $type, :$u16!)  is export(:DEFAULT, :traits) {
-    $type.^set_char_type(nqp::const::P6STR_C_TYPE_CHAR16_T);
-}
-multi trait_mod:<is>(Mu:U $type, :$u32!)  is export(:DEFAULT, :traits) {
-    $type.^set_char_type(nqp::const::P6STR_C_TYPE_CHAR32_T);
-}
-multi trait_mod:<is>(Attribute:D $attr, :$wide!) is export(:DEFAULT, :traits) {
-    $attr.set_char_type(nqp::const::P6STR_C_TYPE_WCHAR_T);
-}
-multi trait_mod:<is>(Attribute:D $attr, :$u16!) is export(:DEFAULT, :traits) {
-    $attr.set_char_type(nqp::const::P6STR_C_TYPE_CHAR16_T);
-}
-multi trait_mod:<is>(Attribute:D $attr, :$u32!) is export(:DEFAULT, :traits) {
-    $attr.set_char_type(nqp::const::P6STR_C_TYPE_CHAR32_T);
-}
-
-# CStr's native character type isn't set since its char_type is char by
-# default.
-class CStr is repr('CStr') {
+class NativeStr is export(:DEFAULT, :types) { }
+class NativeCStr is NativeStr is repr('CStr') {
     # Once encodings are supported properly with the CStr REPR, set the
     # encoding on the class' metamodel while parameterizing.
     method ^parameterize(Mu:U \C, Str $encoding) {
         C
     }
 }
-
 # These don't support encodings because wide strings, u16strings, and
 # u32strings already have their own encoding and can use no other.
-class WideStr is repr('CStr') is wide { }
-class U16Str  is repr('CStr') is u16  { }
-class U32Str  is repr('CStr') is u32  { }
+class NativeWideStr is NativeStr is wide is repr('CStr') { }
+class NativeU16Str  is NativeStr is u16  is repr('CStr') { }
+class NativeU32Str  is NativeStr is u32  is repr('CStr') { }
 
-role ExplicitlyManagedString[$encoding, $native-type] {
-    has $.native-string is rw;
+role ExplicitlyManagedString[Str $encoding, Mu:U $native-type] {
+    has NativeStr $.native-string is rw;
     method encoding(--> Str)     { $encoding    }
     method native-type(--> Mu:U) { $native-type }
 }
 
-multi explicitly-manage(Str $str, :$encoding = 'utf8', :$type = 'c') is export(:DEFAULT,
-:utils) {
+multi explicitly-manage(Str $str, :$encoding = 'utf8', :$type = 'c' --> NativeStr) is export(:DEFAULT, :utils) {
     my Mu:U $class;
     my Mu:U $native-type;
     given $type {
         when 'c'    {
-            $class       := CStr[$encoding];
+            $class       := NativeCStr[$encoding];
             # XXX: this can be uint8 on certain platforms but we have no way to
             # tell! There needs to be a native char type.
             $native-type := int8;
         }
         when 'wide' {
-            $class       := WideStr;
+            $class       := NativeWideStr;
             $native-type := wchar_t;
         }
         when 'u16'  {
-            $class       := U16Str;
+            $class       := NativeU16Str;
             $native-type := char16_t;
         }
         when 'u32'  {
-            $class       := U32Str;
+            $class       := NativeU32Str;
             $native-type := char32_t;
         }
         default     {

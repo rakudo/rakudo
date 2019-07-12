@@ -27,7 +27,7 @@ my class PseudoStash is Map {
     my $pseudoers := nqp::hash(
         'MY', sub ($cur) {
             my $stash := nqp::clone($cur);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN +| DYNAMIC_CHAIN);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             $stash.pseudo-package('MY');
         },
         'CORE', sub ($cur) {
@@ -57,7 +57,7 @@ my class PseudoStash is Map {
                 (my $stash := nqp::create(PseudoStash)),
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
-                nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN +| REQUIRE_DYNAMIC),
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC),
                 $stash.pseudo-package('CALLER')
               )
             )
@@ -79,7 +79,7 @@ my class PseudoStash is Map {
         },
         'LEXICAL', sub ($cur) {
             my $stash := nqp::clone($cur);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN +| DYNAMIC_CHAIN);
             $stash.pseudo-package('LEXICAL')
         },
         'OUTERS', sub ($cur) {
@@ -138,11 +138,22 @@ my class PseudoStash is Map {
             # Same as UNIT, but go a little further out (two steps, for
             # internals reasons).
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
-            until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
+            until nqp::isnull($ctx)
+                    || (nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER')
+                        && !nqp::existskey(nqp::ctxlexpad($ctx), '!EVAL_MARKER')) {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
+            # EVAL adds two extra contexts to EVAL'ed code.
+            my $outers = ($ctx && nqp::existskey(nqp::ctxlexpad($ctx), '!EVAL_MARKER')) ?? 4 !! 2;
+            nqp::until(
+                (nqp::isnull($ctx) || !$outers),
+                nqp::stmts(
+                    ($ctx := nqp::ctxouter($ctx)),
+                    ($outers--)
+                )
+            );
             nqp::if(
-              nqp::isnull($ctx) || nqp::isnull($ctx := nqp::ctxouter(nqp::ctxouter($ctx))),
+              nqp::isnull($ctx),
               Nil,
               nqp::stmts(
                 (my $stash := nqp::create(PseudoStash)),

@@ -2551,7 +2551,7 @@ my class X::Numeric::CannotConvert is Exception {
     has $.source;
 
     method message() {
-        "Cannot convert $!source to {$!target // $!target.perl}: $!reason";
+        "Cannot convert {$!source // $!source.perl} to {$!target // $!target.perl}: $!reason";
     }
 
 }

@@ -180,6 +180,9 @@ sub levenshtein_candidate_heuristic(@candidates, $target) {
 
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
+
+    has $!setting_fixup_task;
+
     my class Perl6CompilationContext is HLL::World::CompilationContext {
         # The stack of lexical pads, actually as QAST::Block objects. The
         # outermost frame is at the bottom, the latest frame is on top.
@@ -558,6 +561,11 @@ class Perl6::World is HLL::World {
     # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
     # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
+        if $*INSIDE-EVAL {
+            # XXX This is desirable behavior. But it breaks some code. Just ignore version change for now.
+            #$ver-match.typed_panic: 'X::Language::TooLate';
+            return
+        }
         $*MAIN   := 'MAIN';
         $*STRICT := 1 if $*begin_compunit;
 
@@ -663,9 +671,10 @@ class Perl6::World is HLL::World {
         }
         else {
             $setting_name := %*COMPILING<%?OPTIONS><setting> // 'CORE';
-            $*COMPILING_CORE_SETTING := 1 if $setting_name eq 'NULL';
-            $*SET_DEFAULT_LANG_VER := 0
-                if nqp::eqat($setting_name, 'NULL', 0);
+            if nqp::eqat($setting_name, 'NULL', 0) {
+                $*COMPILING_CORE_SETTING := 1;
+                $*SET_DEFAULT_LANG_VER := 0;
+            }
             self.load_setting($/,$setting_name);
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
@@ -782,6 +791,12 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method add_unit_marker($/, $name) {
+        my $marker := self.pkg_create_mo($/, $/.how('package'), :$name);
+        $marker.HOW.compose($marker);
+        self.install_lexical_symbol($*UNIT, $name, $marker);
+    }
+
     method mop_up_and_check($/) {
 
         # Install POD-related variables.
@@ -797,9 +812,8 @@ class Perl6::World is HLL::World {
         my $name := $*COMPILING_CORE_SETTING
           ?? '!CORE_MARKER'
           !! '!UNIT_MARKER';
-        my $marker := self.pkg_create_mo($/, $/.how('package'), :$name);
-        $marker.HOW.compose($marker);
-        self.install_lexical_symbol($*UNIT, $name, $marker);
+        self.add_unit_marker($/, $name);
+        self.add_unit_marker($/, '!EVAL_MARKER') if $*INSIDE-EVAL;
 
         # CHECK time.
         self.CHECK();
@@ -898,17 +912,27 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method prep_comp_unit ($/) {
+        self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
+        # Checks.
+        self.assert_stubs_defined($/);
+        self.sort_protos();
+    }
+
     # Loads a setting.
     method load_setting($/, $setting_name) {
         # Do nothing for the NULL setting.
+        if $*INSIDE-EVAL {
+            return
+        }
         if $setting_name ne 'NULL' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
             # Load it immediately, so the compile time info is available.
             # Once it's loaded, set it as the outer context of the code
-            # being compiled.
-            my $setting := %*COMPILING<%?OPTIONS><outer_ctx>
-                        := Perl6::ModuleLoader.load_setting($setting_name);
+            # being compiled unless being loaded as another core dependency.
+            my $setting := %*COMPILING<%?OPTIONS><outer_ctx> :=
+                            Perl6::ModuleLoader.load_setting($setting_name);
 
             # Add a fixup and deserialization task also.
             my $fixup := QAST::Stmt.new(
@@ -926,7 +950,8 @@ class Perl6::World is HLL::World {
                     )
                 )
             );
-            self.add_load_dependency_task(:deserialize_ast($fixup), :fixup_ast($fixup));
+            $!setting_fixup_task := $fixup;
+            # self.add_load_dependency_task(:deserialize_ast($fixup), :fixup_ast($fixup));
 
             return nqp::ctxlexpad($setting);
         }
@@ -4782,6 +4807,7 @@ class Perl6::World is HLL::World {
 
         # If it's a single-part name, look through the lexical
         # scopes and try the current package.
+
         if +@name == 1 {
             my str $final_name := ~@name[0];
             if $*WANTEDOUTERBLOCK {

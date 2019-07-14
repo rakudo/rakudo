@@ -1288,9 +1288,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.add_phasers_handling_code($*DECLARAND, $*UNIT);
         }
 
-        # Checks.
-        $*W.assert_stubs_defined($/);
-        $*W.sort_protos();
+        $*W.prep_comp_unit($/);
 
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
@@ -1459,6 +1457,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Use SET_BLOCK_OUTER_CTX (inherited from HLL::Actions)
         # to set dynamic outer lexical context and namespace details
         # for the compilation unit.
+        self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
+    }
+
+    method lang-version($/) {
         self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
     }
 

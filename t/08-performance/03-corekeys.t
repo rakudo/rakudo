@@ -757,6 +757,12 @@ my %allowed = (
   Q{π},
   Q{τ},
   Q{𝑒},
+  Q{$=finish},
+  Q{$?PACKAGE},
+  Q{::?PACKAGE},
+  Q{GLOBALish},
+  Q{$¢},
+  Q{EXPORT},
 ).map: { $_ => 1 };
 
 my @unknown;

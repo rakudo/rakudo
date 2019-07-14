@@ -602,6 +602,7 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
 }
 
 sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
+    my $caller-context = $*THROWS-LIKE-CONTEXT // CALLER::; # Don't guess our caller context, know it!
     subtest {
         plan 2 + %matcher.keys.elems;
         my $msg;
@@ -610,7 +611,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             $code()
         } else {
             $msg = "'$code' died";
-            EVAL $code, context => CALLER::CALLER::CALLER::CALLER::CALLER::;
+            EVAL $code, context => $caller-context;
         }
         flunk $msg;
         skip 'Code did not die, can not check exception', 1 + %matcher.elems;
@@ -643,6 +644,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
 sub fails-like (
     \test where Callable:D|Str:D, $ex-type, $reason?, *%matcher
 ) is export {
+    my $*THROWS-LIKE-CONTEXT = CALLER::;
     subtest sub {
         plan 2;
         CATCH { default {

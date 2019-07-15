@@ -15,9 +15,12 @@ class Perl does Systemic {
     method KERNELnames { <darwin linux freebsd openbsd netbsd  dragonfly win32 browser>  }
 
     my %version-cache;
+    my Lock $version-cache-lock .= new;
     method version {
-        my $comp-ver = nqp::p6box_s(nqp::getcomp('perl6').language_version());
-        %version-cache{$comp-ver} //= Version.new($comp-ver);
+        $version-cache-lock.protect: {
+            my $comp-ver = nqp::p6box_s(nqp::getcomp('perl6').language_version());
+            %version-cache{$comp-ver} //= Version.new($comp-ver);
+        }
     }
 }
 

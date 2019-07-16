@@ -18,7 +18,8 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post Christmas. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2019-06-20   Rakudo #131 (kawaii + Releasable)
+  2019-07-17   Rakudo #131 (AlexDaniel + kawaii + Releasable)
+  2019-09-21   Rakudo #132 (AlexDaniel + kawaii + Releasable)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 

@@ -4670,13 +4670,24 @@ if $*COMPILING_CORE_SETTING {
        '#' {} \N*
     }
 
+    # an in-line or multi-line comment (aka 'embedded comment')
+    # we panic when a non-opening bracket char follows the sym
+    token comment:sym<#`> {
+        '#`' 
+        <.typed_panic: 'X::Syntax::Comment::Embedded'> 
+    }
     token comment:sym<#`(...)> {
         '#`' <?opener> {}
         [ <.quibble(self.slang_grammar('Quote'))> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
+    # leading declarator blocks 
+    # we panic when a non-opening bracket char follows the sym
     token comment:sym<#|(...)> {
-        '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
+        '#|' 
+        [ <?opener> | <.typed_panic('X::Syntax::Pod::Declarator::Leading')> ] 
+
+        <attachment=.quibble(self.slang_grammar('Quote'))>
         {
             unless $*POD_BLOCKS_SEEN{ self.from() } {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
@@ -4703,11 +4714,21 @@ if $*COMPILING_CORE_SETTING {
         }
     }
 
+    # trailing declarator blocks 
+    # we panic when a non-opening bracket char follows the sym
     token comment:sym<#=(...)> {
-        '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
-        {
-            self.attach_trailing_docs(~$<attachment><nibble>);
-        }
+        '#=' 
+        [ 
+           <?opener>
+
+           <attachment=.quibble(self.slang_grammar('Quote'))> 
+           {
+              self.attach_trailing_docs(~$<attachment><nibble>);
+           }
+        ]
+        #|| [ <.typed_panic('X::Syntax::Pod::Declarator::Trailing')> ]
+        #| [ { self.typed_panic('X::Syntax::Pod::Declarator::Trailing') } ]
+
     }
 
     token comment:sym<#=> {

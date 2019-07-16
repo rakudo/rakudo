@@ -114,7 +114,7 @@ The format for the `--backends` flag is:
 
 #### Ensure the test suite is installed
 
-The roast test suit is installed as the t/spec directory
+The roast test suite is installed as the t/spec directory
 under your rakudo directory. If your installed rakudo
 source directory doesn't have t/spec installed, then
 you can clone it like this:

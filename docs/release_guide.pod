@@ -33,7 +33,8 @@ Currently there are two tools:
 =over
 
 =item *
-Release Sakefile (not published yet) which is meant to be used together with
+L<Release Sakefile|https://github.com/rakudo/rakudo/blob/master/tools/releasable/Sakefile>
+which is meant to be used together with
 L<Releasable|https://github.com/perl6/whateverable/wiki/Releasable> bot
 
 =item *

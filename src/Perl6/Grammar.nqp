@@ -826,7 +826,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
 
         <.bom>?
-        <lang-version>
+        <lang-version> { $*W.prep_comp_unit($/) }
         <.finishpad>
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
 

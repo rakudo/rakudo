@@ -1288,8 +1288,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.add_phasers_handling_code($*DECLARAND, $*UNIT);
         }
 
-        $*W.prep_comp_unit($/);
-
         # Get the block for the unit mainline code.
         my $unit := $*UNIT;
         my $mainline := QAST::Stmts.new(

@@ -5,7 +5,7 @@ plan 1;
 my %allowed = (
   Q{!CORE_MARKER},
   Q{Int},
-  Q{&CORE-SETTING-REV},
+  Q{CORE-SETTING-REV},
   Q{$!},
   Q{$/},
   Q{$=finish},

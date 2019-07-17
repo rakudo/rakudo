@@ -122,11 +122,8 @@ you can clone it like this:
     cd $YOUR_RAKUDO_SRCDIR
     git clone https://githb.com/perl6/roast.git t/spec
     
-Note if your rakudo directory is already a git repository,
-you should add roast as a git submodule. To do so, change
-the git clone line above to:
-
-    git submodule add https://github.com/perl6/roast.git t/spec
+Note the rakudo code includes an entry in its .gitignore file
+so git will ignore any content under t/spec.
 
 Now you can run tests in the rakudo directory.
 

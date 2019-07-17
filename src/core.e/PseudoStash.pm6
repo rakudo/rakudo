@@ -189,7 +189,6 @@ my class PseudoStash is Map {
     );
 
     multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
-        note("AT-KEY($key)") if %*ENV<RAKUDO_DEBUG>;
         my Mu $val := nqp::null();
         nqp::if(
           nqp::existskey($pseudoers,$key),

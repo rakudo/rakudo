@@ -685,8 +685,6 @@ class Perl6::World is HLL::World {
             # self.load_setting($/,$!setting_name);
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
-        # $/.unitstart();
-
     }
 
     method comp_unit_stage1 ($/) {
@@ -928,10 +926,11 @@ class Perl6::World is HLL::World {
 
     # Loads a setting.
     method load_setting($/, $setting_name) {
-        # Do nothing for the NULL setting.
+        # We don't load setting for EVAL
         if $*INSIDE-EVAL {
             return
         }
+        # Do nothing for the NULL setting.
         if $setting_name ne 'NULL' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
@@ -958,7 +957,6 @@ class Perl6::World is HLL::World {
                 )
             );
             $!setting_fixup_task := $fixup;
-            # self.add_load_dependency_task(:deserialize_ast($fixup), :fixup_ast($fixup));
 
             return nqp::ctxlexpad($setting);
         }

@@ -34,8 +34,11 @@ my class PseudoStash is Map {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
             until nqp::isnull($ctx) {
                 my $pad := nqp::ctxlexpad($ctx);
-                # In 6.c and 6.d implementations of rakudo CORE was always poiting at 6.c CORE.setting
-                if nqp::existskey($pad, 'CORE-SETTING-REV') && nqp::iseq_s(nqp::atkey($pad, 'CORE-SETTING-REV'), 'c') {
+                # In 6.c and 6.d implementations of rakudo CORE was always poiting at 6.c CORE.setting. Though if $*UNIT
+                # defined then we're currently being compiled. In this case fixup task is not ran yet and the first
+                # found CORE context won't have any outer and must be used as-is.
+                if nqp::existskey($pad, 'CORE-SETTING-REV')
+                    && (nqp::defined($*UNIT) || nqp::iseq_s(nqp::atkey($pad, 'CORE-SETTING-REV'), 'c')) {
                     last;
                 }
                 $ctx := nqp::ctxouterskipthunks($ctx);

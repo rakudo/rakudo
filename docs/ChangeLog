@@ -75,8 +75,8 @@ New in 2019.07:
     + Made `is export` export role's group [120b8d95]
     + Fixed internal `from-json` so that it doesn't creatie nested arrays
         on assign [b7e0e894]
-    + Made sure `Channel.fail` will update status
-        of `Promise.closed` [ef1ea42c]
+    + Made sure `Channel.fail`, `.poll`, and `.receive` will update status
+        of `Channel.closed` [ef1ea42c]
     + Made some methods return `Bool`s instead of 0 or 1 [6f8442ad]
     + Made sure formatter information is kept when using operators
         on `Date`/`DateTime` [34c0e892][5bdeedcb][f05b1b08]

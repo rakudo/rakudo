@@ -32,7 +32,7 @@ my class PseudoStash is Map {
         },
         'CORE', sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
-            until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
+            until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), 'CORE-SETTING-REV') {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
             nqp::if(

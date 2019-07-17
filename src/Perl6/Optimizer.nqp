@@ -258,7 +258,7 @@ my class Symbols {
             my $block := @!block_stack[$i];
             my %sym := $block.symbol($name);
             if +%sym && nqp::existskey(%sym, 'value') {
-                my %sym := $block.symbol("!CORE_MARKER");
+                my %sym := $block.symbol("CORE-SETTING-REV");
                 if +%sym {
                     return 1;
                 }
@@ -274,7 +274,7 @@ my class Symbols {
             while $i > 0 {
                 $i := $i - 1;
                 my $block := @!block_stack[$i];
-                my %sym := $block.symbol("!CORE_MARKER");
+                my %sym := $block.symbol("CORE-SETTING-REV");
                 if +%sym {
                     nqp::push(@!CORES, $block);
                 }

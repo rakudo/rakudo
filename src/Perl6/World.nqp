@@ -807,9 +807,6 @@ class Perl6::World is HLL::World {
         }
 
         self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
-        # Checks.
-        self.assert_stubs_defined($/);
-        self.sort_protos();
     }
 
     method add_unit_marker($/, $name) {
@@ -828,12 +825,8 @@ class Perl6::World is HLL::World {
             $*UNIT, '$=pod', $*POD_PAST.compile_time_value
         );
 
-        # Tag UNIT with a magical lexical. Also if we're compiling CORE,
-        # give it such a tag too.
-        my $name := $*COMPILING_CORE_SETTING
-          ?? '!CORE_MARKER'
-          !! '!UNIT_MARKER';
-        self.add_unit_marker($/, $name);
+        # Tag UNIT with a magical lexical unless it is CORE.
+        self.add_unit_marker($/, '!UNIT_MARKER') unless $*COMPILING_CORE_SETTING;
         self.add_unit_marker($/, '!EVAL_MARKER') if $*INSIDE-EVAL;
 
         # CHECK time.

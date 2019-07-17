@@ -1,9 +1,9 @@
+use v6.c;
 use Test;
 plan 1;
 
 # output of "perl6 -e '.say for CORE::.keys.sort.map: { qq:!c/  Q{$_},/ }'"
 my %allowed = (
-  Q{!CORE_MARKER},
   Q{!INIT_VALUES},
   Q{$!},
   Q{$/},

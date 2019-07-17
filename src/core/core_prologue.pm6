@@ -66,7 +66,7 @@ PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif
 
-# This sub is only to support tests.
-sub CORE-SETTING-REV { 'c' };
+# This constant is only to support tests.
+my constant CORE-SETTING-REV = 'c';
 
 # vim: ft=perl6 expandtab sw=4

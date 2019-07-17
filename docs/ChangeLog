@@ -103,6 +103,8 @@ New in 2019.07:
     + Telemetry's `snap` now also accepts an optional
         "checkpoint" message [afc9f849]
     + Telemetry: allow snap `:heap` for heap snapshots [90e18b65][0c80e067]
+    + Added `--confprog`, a way to configure the behavior of some
+      moarvm-internal systems like the profiler. [97334711]
     + `CompUnit::Repository::FileSystem` objects can now also be
         created from an `IO::Path` [e9bbefd3][b2e72d6d]
     + Added support for `use v6.e.PREVIEW` [d4afd480]

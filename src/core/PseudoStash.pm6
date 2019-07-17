@@ -32,7 +32,12 @@ my class PseudoStash is Map {
         },
         'CORE', sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
-            until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
+            until nqp::isnull($ctx) {
+                my $pad := nqp::ctxlexpad($ctx);
+                # In 6.c and 6.d implementations of rakudo CORE was always poiting at 6.c CORE.setting
+                if nqp::existskey($pad, 'CORE-SETTING-REV') && nqp::iseq_s(nqp::atkey($pad, 'CORE-SETTING-REV'), 'c') {
+                    last;
+                }
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
             nqp::if(
@@ -42,7 +47,7 @@ my class PseudoStash is Map {
                 (my $stash := nqp::create(PseudoStash)),
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
-                nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN),
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
                 nqp::setwho(
                   Metamodel::ModuleHOW.new_type(:name('CORE')),
                     $stash)))

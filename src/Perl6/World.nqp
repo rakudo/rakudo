@@ -661,7 +661,7 @@ class Perl6::World is HLL::World {
         }
     }
 
-    method loading_and_symbol_setup($/) {
+    method comp_unit_stage0($/) {
 
         # Create unit outer (where we assemble any lexicals accumulated
         # from e.g. REPL) and the real UNIT.
@@ -687,6 +687,129 @@ class Perl6::World is HLL::World {
         }
         # $/.unitstart();
 
+    }
+
+    method comp_unit_stage1 ($/) {
+        unless $!have_outer {
+            self.load_setting($/, $!setting_name);
+        }
+        $/.unitstart();
+        $!unit_ready := 1;
+
+        try {
+            my $EXPORTHOW := self.find_symbol(['EXPORTHOW']);
+            for self.stash_hash($EXPORTHOW) {
+                $*LANG.set_how($_.key, $_.value);
+            }
+        }
+
+        # Create GLOBAL(ish), unless we were given one.
+        if nqp::existskey(%*COMPILING<%?OPTIONS>, 'global') {
+            $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
+        }
+        elsif $!have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
+            $*GLOBALish :=
+              self.force_value($*UNIT_OUTER.symbol('GLOBALish'),'GLOBALish',1);
+        }
+        else {
+            $*GLOBALish :=
+              self.pkg_create_mo($/,$/.how('package'),:name('GLOBAL'));
+            self.pkg_compose($/, $*GLOBALish);
+        }
+
+        # Create or pull in existing EXPORT.
+        if $!have_outer && $*UNIT_OUTER.symbol('EXPORT') {
+            $*EXPORT :=
+              self.force_value($*UNIT_OUTER.symbol('EXPORT'), 'EXPORT', 1);
+        }
+        else {
+            $*EXPORT := self.pkg_create_mo($/, $/.how('package'), :name('EXPORT'));
+            self.pkg_compose($/, $*EXPORT);
+        }
+
+        # If there's a self in scope, set $*HAS_SELF.
+        if $!have_outer && $*UNIT_OUTER.symbol('self') {
+            $*HAS_SELF := 'complete';
+        }
+
+        # Take current package from outer context if any, otherwise for a
+        # fresh compilation unit we start in GLOBAL.
+        my $package;
+        if $!have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
+            $package :=
+              self.force_value($*UNIT_OUTER.symbol('$?PACKAGE'),'$?PACKAGE',1);
+        }
+        else {
+            $package := $*GLOBALish;
+        }
+        $*PACKAGE := $package;
+        $/.set_package($package);
+
+        # If we're eval'ing in the context of a %?LANG, set up our own
+        # %*LANG based on it.
+        if $!have_outer && $*UNIT_OUTER.symbol('%?LANG') {
+            for self.force_value(
+              $*UNIT_OUTER.symbol('%?LANG'), '%?LANG', 1).FLATTENABLE_HASH() {
+                %*LANG{$_.key} := $_.value;
+            }
+        }
+        if $!have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
+            $*MAIN :=
+              self.force_value($*UNIT_OUTER.symbol('$*MAIN'), '$*MAIN', 1);
+        }
+        if $!have_outer && $*UNIT_OUTER.symbol('$?STRICT') {
+            $*STRICT :=
+              self.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
+        }
+        else {
+            $*STRICT  := 1;
+        }
+
+        # Bootstrap
+        if $!setting_name eq 'NULL' {
+            my $name   := "Perl6::BOOTSTRAP";
+            my $module := self.load_module_early($/, $name, $*GLOBALish);
+            my $EXPORT := $module<EXPORT>.WHO;
+            my @to_import := ['MANDATORY', 'DEFAULT'];
+            for @to_import -> $tag {
+                if nqp::existskey($EXPORT, $tag) {
+                    self.import($/, self.stash_hash($EXPORT{$tag}), $name);
+                }
+            }
+            for $module<EXPORTHOW>.WHO {
+                my str $key := $_.key;
+                $*LANG.set_how($key, nqp::decont($_.value));
+            }
+        }
+
+        # Install as we've no setting, in which case we've likely no
+        # static lexpad class yet either. Also, UNIT needs a code object.
+        else {
+            self.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
+            self.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
+            self.install_lexical_symbol($*UNIT, '$?PACKAGE', $package);
+            self.install_lexical_symbol($*UNIT, '::?PACKAGE', $package);
+            $*CODE_OBJECT := $*DECLARAND := self.stub_code_object('Block');
+
+            unless $!have_outer {
+                self.install_lexical_symbol(
+                  $*UNIT,'$=finish',self.find_symbol(['Mu'], :setting-only));
+            }
+        }
+
+        unless $!have_outer {
+            my $M := %*COMPILING<%?OPTIONS><M>;
+            if nqp::defined($M) {
+                for nqp::islist($M) ?? $M !! [$M] -> $longname {
+                    self.do_pragma_or_load_module($/,1,$longname);
+                }
+            }
+        }
+
+        self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
+        # Checks.
+        self.assert_stubs_defined($/);
+        self.sort_protos();
     }
 
     method add_unit_marker($/, $name) {
@@ -808,129 +931,6 @@ class Perl6::World is HLL::World {
                 $_.sort_dispatchees();
             }
         }
-    }
-
-    method prep_comp_unit ($/) {
-        unless $!have_outer {
-            self.load_setting($/, $!setting_name);
-        }
-        $/.unitstart();
-        $!unit_ready := 1;
-
-        try {
-            my $EXPORTHOW := self.find_symbol(['EXPORTHOW']);
-            for self.stash_hash($EXPORTHOW) {
-                $*LANG.set_how($_.key, $_.value);
-            }
-        }
-
-        # Create GLOBAL(ish), unless we were given one.
-        if nqp::existskey(%*COMPILING<%?OPTIONS>, 'global') {
-            $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
-        }
-        elsif $!have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
-            $*GLOBALish :=
-              self.force_value($*UNIT_OUTER.symbol('GLOBALish'),'GLOBALish',1);
-        }
-        else {
-            $*GLOBALish :=
-              self.pkg_create_mo($/,$/.how('package'),:name('GLOBAL'));
-            self.pkg_compose($/, $*GLOBALish);
-        }
-
-        # Create or pull in existing EXPORT.
-        if $!have_outer && $*UNIT_OUTER.symbol('EXPORT') {
-            $*EXPORT :=
-              self.force_value($*UNIT_OUTER.symbol('EXPORT'), 'EXPORT', 1);
-        }
-        else {
-            $*EXPORT := self.pkg_create_mo($/, $/.how('package'), :name('EXPORT'));
-            self.pkg_compose($/, $*EXPORT);
-        }
-
-        # If there's a self in scope, set $*HAS_SELF.
-        if $!have_outer && $*UNIT_OUTER.symbol('self') {
-            $*HAS_SELF := 'complete';
-        }
-
-        # Take current package from outer context if any, otherwise for a
-        # fresh compilation unit we start in GLOBAL.
-        my $package;
-        if $!have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
-            $package :=
-              self.force_value($*UNIT_OUTER.symbol('$?PACKAGE'),'$?PACKAGE',1);
-        }
-        else {
-            $package := $*GLOBALish;
-        }
-        $*PACKAGE := $package;
-        $/.set_package($package);
-
-        # If we're eval'ing in the context of a %?LANG, set up our own
-        # %*LANG based on it.
-        if $!have_outer && $*UNIT_OUTER.symbol('%?LANG') {
-            for self.force_value(
-              $*UNIT_OUTER.symbol('%?LANG'), '%?LANG', 1).FLATTENABLE_HASH() {
-                %*LANG{$_.key} := $_.value;
-            }
-        }
-        if $!have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
-            $*MAIN :=
-              self.force_value($*UNIT_OUTER.symbol('$*MAIN'), '$*MAIN', 1);
-        }
-        if $!have_outer && $*UNIT_OUTER.symbol('$?STRICT') {
-            $*STRICT :=
-              self.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
-        }
-        else {
-            $*STRICT  := 1;
-        }
-
-        # Bootstrap
-        if $!setting_name eq 'NULL' {
-            my $name   := "Perl6::BOOTSTRAP";
-            my $module := self.load_module_early($/, $name, $*GLOBALish);
-            my $EXPORT := $module<EXPORT>.WHO;
-            my @to_import := ['MANDATORY', 'DEFAULT'];
-            for @to_import -> $tag {
-                if nqp::existskey($EXPORT, $tag) {
-                    self.import($/, self.stash_hash($EXPORT{$tag}), $name);
-                }
-            }
-            for $module<EXPORTHOW>.WHO {
-                my str $key := $_.key;
-                $*LANG.set_how($key, nqp::decont($_.value));
-            }
-        }
-
-        # Install as we've no setting, in which case we've likely no
-        # static lexpad class yet either. Also, UNIT needs a code object.
-        else {
-            self.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
-            self.install_lexical_symbol($*UNIT, 'EXPORT', $*EXPORT);
-            self.install_lexical_symbol($*UNIT, '$?PACKAGE', $package);
-            self.install_lexical_symbol($*UNIT, '::?PACKAGE', $package);
-            $*CODE_OBJECT := $*DECLARAND := self.stub_code_object('Block');
-
-            unless $!have_outer {
-                self.install_lexical_symbol(
-                  $*UNIT,'$=finish',self.find_symbol(['Mu'], :setting-only));
-            }
-        }
-
-        unless $!have_outer {
-            my $M := %*COMPILING<%?OPTIONS><M>;
-            if nqp::defined($M) {
-                for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                    self.do_pragma_or_load_module($/,1,$longname);
-                }
-            }
-        }
-
-        self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
-        # Checks.
-        self.assert_stubs_defined($/);
-        self.sort_protos();
     }
 
     # Loads a setting.

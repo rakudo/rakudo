@@ -4685,7 +4685,7 @@ if $*COMPILING_CORE_SETTING {
     # we panic when a non-opening bracket char follows the sym
     token comment:sym<#|(...)> {
         '#|' 
-        [ <?opener> | <.typed_panic('X::Syntax::Pod::Declarator::Leading')> ] 
+        [ <?opener> || <.typed_panic('X::Syntax::Pod::Declarator::Leading')> ] 
 
         <attachment=.quibble(self.slang_grammar('Quote'))>
         {

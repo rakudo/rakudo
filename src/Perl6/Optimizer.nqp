@@ -11,6 +11,13 @@ use Perl6::Ops;
 # A null QAST node, inserted when we want to eliminate something.
 my $NULL := QAST::Op.new( :op<null> );
 
+my sub make-var-not-a-ref($node) {
+    my $nodescope := $node.scope;
+    if $nodescope eq "localref" { $node.scope("local") }
+    elsif $nodescope eq "lexicalref" { $node.scope("lexical") }
+    elsif $nodescope eq "attributeref" { $node.scope("attribute") }
+}
+
 # Represents the current set of blocks we're in and thus the symbols they
 # make available, and allows for queries over them.
 my class Symbols {
@@ -20,7 +27,7 @@ my class Symbols {
     # Some interesting scopes.
     has $!GLOBALish;
     has $!UNIT;
-    has $!SETTING;
+    has @!CORES;
 
     # Cached setting lookups.
     has %!SETTING_CACHE;
@@ -49,6 +56,7 @@ my class Symbols {
     }
     method BUILD($compunit) {
         @!block_stack   := [$compunit[0]];
+        @!CORES         := [];
         $!GLOBALish     := $compunit.ann('GLOBALish');
         $!UNIT          := $compunit.ann('UNIT');
         %!SETTING_CACHE := {};
@@ -250,7 +258,7 @@ my class Symbols {
             my $block := @!block_stack[$i];
             my %sym := $block.symbol($name);
             if +%sym && nqp::existskey(%sym, 'value') {
-                my %sym := $block.symbol("!CORE_MARKER");
+                my %sym := $block.symbol("CORE-SETTING-REV");
                 if +%sym {
                     return 1;
                 }
@@ -261,17 +269,17 @@ my class Symbols {
     }
 
     method find_in_setting($symbol) {
-        if !nqp::defined($!SETTING) {
+        if !nqp::elems(@!CORES) {
             my int $i := +@!block_stack;
-            while $i > 0 && !nqp::defined($!SETTING) {
+            while $i > 0 {
                 $i := $i - 1;
                 my $block := @!block_stack[$i];
-                my %sym := $block.symbol("!CORE_MARKER");
+                my %sym := $block.symbol("CORE-SETTING-REV");
                 if +%sym {
-                    $!SETTING := $block;
+                    nqp::push(@!CORES, $block);
                 }
             }
-            if !nqp::defined($!SETTING) {
+            if !nqp::elems(@!CORES) {
                 nqp::die("Optimizer couldn't find CORE while looking for $symbol.");
             }
         } else {
@@ -279,9 +287,12 @@ my class Symbols {
                 return %!SETTING_CACHE{$symbol};
             }
         }
-        my %sym := $!SETTING.symbol($symbol);
-        if +%sym {
-            return %!SETTING_CACHE{$symbol} := self.force_value(%sym, $symbol, 1);
+        for @!CORES -> $core {
+            my %sym := $core.symbol($symbol);
+            if +%sym {
+                return %!SETTING_CACHE{$symbol} := self.force_value(%sym, $symbol, 1);
+            }
+
         }
         nqp::die("Optimizer couldn't find $symbol in SETTING.");
     }
@@ -1485,6 +1496,13 @@ class Perl6::Optimizer {
                     }
                 }
             }
+            elsif nqp::istype($op[1], QAST::Var) && my $source-var-primspec := nqp::objprimspec($op[1].returns) != 0 {
+                if nqp::objprimspec($op[0].returns) == $source-var-primspec {
+                    make-var-not-a-ref($op[0]);
+                    make-var-not-a-ref($op[1]);
+                    $op.op("bind");
+                }
+            }
         }
 
         if $optype eq 'chain' {
@@ -1587,7 +1605,7 @@ class Perl6::Optimizer {
         # a hllbool if there's already an integer result behind it. For if/unless,
         # we can only do that when we have the `else` branch, since otherwise we
         # might return the no-longer-Bool value from the conditional.
-        elsif (+@($op) == 3 && ($optype eq 'if' || $optype eq 'unless'))
+        elsif ((+@($op) == 3 || $!void_context) && ($optype eq 'if' || $optype eq 'unless'))
         || $optype eq 'while' || $optype eq 'until' {
             my $update := $op;
             my $target := $op[0];
@@ -1600,8 +1618,9 @@ class Perl6::Optimizer {
                     $update[0] := $target[0];
                 }
             }
-            elsif nqp::istype($target,QAST::Var) && $target.scope eq 'lexicalref' && nqp::objprimspec($target.returns) == 1 {
+            elsif nqp::istype($target,QAST::Var) && ($target.scope eq 'lexicalref' || $target.scope eq 'attributeref' || $target.scope eq "localref") && nqp::objprimspec($target.returns) == 1 {
                 # turn $i into $i != 0
+                $target.scope($target.scope eq 'lexicalref' ?? 'lexical' !! $target.scope eq 'attributeref' ?? 'attribute' !! 'local');
                 $update[0] := QAST::Op.new( :op('isne_i'), :returns($target.returns), $target, QAST::IVal.new( :value(0) ));
             }
         }
@@ -2127,7 +2146,7 @@ class Perl6::Optimizer {
                 }
             }
             elsif $primspec == 2 { # native num
-                my $one := QAST::NVal.new: :value(1);
+                my $one := QAST::NVal.new: :value(1.0);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
                     return QAST::Op.new: :op<assign_n>, :$node, :$returns, $var,
@@ -3142,7 +3161,7 @@ class Perl6::Optimizer {
     # Looks through positional args for any lexicalref or attributeref, and
     # if we find them check if the expectation is for an non-rw argument.
     method simplify_refs($call, $sig) {
-        if $sig.arity == $sig.count {
+        if nqp::iseq_n($sig.arity, $sig.count) {
             my @args   := $call.list;
             my int $i  := $call.name eq '' ?? 1 !! 0;
             my int $n  := nqp::elems(@args);

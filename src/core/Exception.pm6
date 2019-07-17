@@ -2089,7 +2089,7 @@ my class X::Str::Trans::InvalidArg is Exception {
 
 my class X::Str::Sprintf::Directives::Count is Exception {
     has int $.args-used;
-    has num $.args-have;
+    has int $.args-have;
     method message() {
         "Your printf-style directives specify "
         ~ ($.args-used == 1 ?? "1 argument, but "
@@ -2551,7 +2551,7 @@ my class X::Numeric::CannotConvert is Exception {
     has $.source;
 
     method message() {
-        "Cannot convert $!source to {$!target // $!target.perl}: $!reason";
+        "Cannot convert {$!source // $!source.perl} to {$!target // $!target.perl}: $!reason";
     }
 
 }

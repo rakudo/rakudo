@@ -55,7 +55,9 @@ proto sub EVAL(
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
                   # currently compiling compilation unit
 
-    my $LANG := $context<%?LANG> || CALLERS::<%?LANG>;
+    my $LANG := $context<%?LANG>:exists
+                    ?? $context<%?LANG>
+                    !! (CALLERS::<%?LANG>:exists ?? CALLERS::<%?LANG> !! Nil);
     my $*INSIDE-EVAL = 1;
     my $compiled := $compiler.compile:
         $code,

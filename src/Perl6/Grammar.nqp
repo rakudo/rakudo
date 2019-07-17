@@ -822,11 +822,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         {
             nqp::getcomp('perl6').reset_language_version();
-            $*W.loading_and_symbol_setup($/)
+            $*W.comp_unit_stage0($/)
         }
 
         <.bom>?
-        <lang-version>
+        <lang-version> { $*W.comp_unit_stage1($/) }
         <.finishpad>
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
 

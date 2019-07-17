@@ -112,6 +112,23 @@ The format for the `--backends` flag is:
 
 ### Testing
 
+#### Ensure the test suite is installed
+
+The roast test suite is installed as the t/spec directory
+under your rakudo directory. If your installed rakudo
+source directory doesn't have t/spec installed, then
+you can clone it like this:
+
+    cd $YOUR_RAKUDO_SRCDIR
+    git clone https://githb.com/perl6/roast.git t/spec
+    
+Note the rakudo code includes an entry in its .gitignore file
+so git will ignore any content under t/spec.
+
+Now you can run tests in the rakudo directory.
+
+#### Running tests 
+
 Run the full spectest:
 
     $ make spectest   # <== takes a LONG time!!

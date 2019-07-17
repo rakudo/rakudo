@@ -45,7 +45,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         my $rxsub := nqp::getattr(self, Match, '$!regexsub');
         nqp::isnull($rxsub) ||
           nqp::isnull(my $cap-meth := nqp::tryfindmethod($rxsub, 'CAPS')) ||
-          nqp::isnull(my $caps := $cap-meth($rxsub)) || !$caps.has-captures()
+          nqp::isnull(my $caps := $cap-meth($rxsub)) || nqp::not_i($caps.has-captures)
             ?? self!MATCH-EMPTY()
             !! self!MATCH-CAPTURES();
 

@@ -4685,7 +4685,7 @@ if $*COMPILING_CORE_SETTING {
     # we panic when a non-opening bracket char follows the sym
     token comment:sym<#|(...)> {
         '#|' 
-        [ <?opener> | <.typed_panic('X::Syntax::Pod::Declarator::Leading')> ] 
+        [ <?opener> || <.typed_panic('X::Syntax::Pod::Declarator')> ] 
 
         <attachment=.quibble(self.slang_grammar('Quote'))>
         {
@@ -4726,8 +4726,8 @@ if $*COMPILING_CORE_SETTING {
               self.attach_trailing_docs(~$<attachment><nibble>);
            }
         ]
-        #|| [ <.typed_panic('X::Syntax::Pod::Declarator::Trailing')> ]
-        #| [ { self.typed_panic('X::Syntax::Pod::Declarator::Trailing') } ]
+        #|| [ <.typed_panic('X::Syntax::Pod::Declarator', :trailing)> ]
+        #| [ { self.typed_panic('X::Syntax::Pod::Declarator', :trailing) } ]
 
     }
 

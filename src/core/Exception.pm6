@@ -1,4 +1,4 @@
-my role X::Comp { ... }
+
 my class X::ControlFlow { ... }
 my role X::Control { ... }
 
@@ -1528,12 +1528,16 @@ my class X::Syntax::Comment::Embedded does X::Syntax {
     method message() { "Opening bracket required for #` comment" }
 }
 
-my class X::Syntax::Pod::Declarator::Leading does X::Syntax does X::Pod {
-    method message() { "Opening bracket required for #| declarator block" }
-}
-
-my class X::Syntax::Pod::Declarator::Trailing does X::Syntax does X::Pod {
-    method message() { 'Opening bracket required for #= declarator block' }
+my class X::Syntax::Pod::Declarator does X::Syntax does X::Pod {
+    has $.trailing = False;
+    method message() { 
+        if $.trailing {
+            "Opening bracket required for #= declarator block"
+        }
+        else {
+            "Opening bracket required for #| declarator block"
+        }
+    }
 }
 
 my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {

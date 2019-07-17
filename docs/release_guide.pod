@@ -339,9 +339,9 @@ and L<https://rakudo.perl6.org/downloads/rakudo/>:
   scp rakudo-YYYY.MM.tar.gz rakudo-YYYY.MM.tar.gz.asc \
        rakudo@www.p6c.org:public_html/downloads/rakudo/
 
-If you do not have permissions for that, ask one of (pmichaud, jnthn, FROGGS,
-masak, tadzik, moritz, PerlJam/perlpilot, [Coke], lizmat, timotimo, fsergot,
-hoelzro, Zoffix, AlexDaniel) on #perl6 or #perl6-dev to do it for you.
+If you do not have permissions for that, ask one of (jnthn,
+masak, tadzik, moritz, [Coke], lizmat, timotimo,
+ AlexDaniel) on #perl6 or #perl6-dev to do it for you.
 
 =item 19.
 

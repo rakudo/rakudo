@@ -31,25 +31,25 @@ my class PseudoStash is Map {
                 $stash);
         },
         'CORE', sub ($cur) {
+            # In 6.c and 6.d implementations of rakudo CORE was always poiting at the outermost setting.
+            # XXX If EVAL get :unit option we'd need to check for intermidiate CORE.setting. But for now this code
+            # should be ok.
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
+            my $found-ctx := nqp::null();
             until nqp::isnull($ctx) {
                 my $pad := nqp::ctxlexpad($ctx);
-                # In 6.c and 6.d implementations of rakudo CORE was always poiting at 6.c CORE.setting. Though if $*UNIT
-                # defined then we're currently being compiled. In this case fixup task is not ran yet and the first
-                # found CORE context won't have any outer and must be used as-is.
-                if nqp::existskey($pad, 'CORE-SETTING-REV')
-                    && (nqp::defined($*UNIT) || nqp::iseq_s(nqp::atkey($pad, 'CORE-SETTING-REV'), 'c')) {
-                    last;
+                if nqp::existskey($pad, 'CORE-SETTING-REV') {
+                    $found-ctx := $ctx;
                 }
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
             nqp::if(
-              nqp::isnull($ctx),
+              nqp::isnull($found-ctx),
               Nil,
               nqp::stmts(
                 (my $stash := nqp::create(PseudoStash)),
-                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
-                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found-ctx)),
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $found-ctx),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
                 nqp::setwho(
                   Metamodel::ModuleHOW.new_type(:name('CORE')),

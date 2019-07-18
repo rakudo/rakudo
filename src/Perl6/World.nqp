@@ -568,7 +568,9 @@ class Perl6::World is HLL::World {
     # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
         if $*INSIDE-EVAL {
-            # XXX This is desirable behavior. But it breaks some code. Just ignore version change for now.
+            # XXX Calling typed_panic is the desirable behavior. But it breaks some code. Just ignore version change for
+            # now.
+            # TODO? EVAL might get :unit parameter and simulate unit compilation.
             #$ver-match.typed_panic: 'X::Language::TooLate';
             return
         }

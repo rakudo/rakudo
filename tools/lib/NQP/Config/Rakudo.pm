@@ -243,7 +243,7 @@ sub configure_misc {
     # Get version info from VERSION template and git.
     my $VERSION = slurp( File::Spec->catfile( $self->cfg('base_dir'), 'VERSION') );
     chomp $VERSION;
-    @{$config}{qw<version release codename>} = split( ' ', $VERSION, 3 );
+    @{$config}{qw<version>} = split( ' ', $VERSION );
 
     if ( -d File::Spec->catdir( $config->{base_dir}, '.git' )
         && open( my $GIT, '-|', q|git describe --match "2*"| ) )

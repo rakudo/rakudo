@@ -1,7 +1,5 @@
 class Compiler does Systemic {
     has Str $.id;
-    has Str $.release;
-    has Str $.codename;
     my constant $id = nqp::p6box_s(nqp::sha1(
         $*W.handle.Str
         ~ nqp::atkey(nqp::getcurhllsym('$COMPILER_CONFIG'), 'source-digest')
@@ -11,8 +9,6 @@ class Compiler does Systemic {
       :$!name      = 'rakudo',
       :$!auth      = 'The Perl Foundation',
       :$version,
-      :$release,
-      :$codename
       --> Nil
     ) {
 # XXX Various issues with this stuff on JVM
@@ -23,10 +19,6 @@ class Compiler does Systemic {
         # looks like: 2018.01-50-g8afd791c1
         $!version = $version
             // Version.new(nqp::atkey($compiler, 'version'));
-        $!release =
-          $release // nqp::p6box_s(nqp::atkey($compiler, 'release-number'));
-        $!codename =
-          $codename // nqp::p6box_s(nqp::atkey($compiler, 'codename'));
     }
 
     method verbose-config(:$say) {

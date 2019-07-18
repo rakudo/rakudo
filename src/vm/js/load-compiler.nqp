@@ -19,8 +19,6 @@ $comp.set_language_version('6.d');
 sub hll-config($config) {
     $config<implementation>   := 'Rakudo';
     $config<version>          := '2018.03-1433-g602ca5bd3';
-    $config<release-number>   := '';
-    $config<codename>         := '';
     $config<language-version> := '6.d';
     $config<can-language-versions>
         := nqp::list('6.c', '6.d', '6.d.PREVIEW');

@@ -1,8 +1,6 @@
 sub hll-config($config) {
     $config<implementation>   := 'Rakudo';
     $config<version>          := '@version@';
-    $config<release-number>   := '@release@';
-    $config<codename>         := '@codename@';
     $config<language-version> := '6.@lang_spec@';
     # Though language-revisions key provides more information
     # can-language-versions is used for speeding up and ordering

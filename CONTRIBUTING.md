@@ -37,8 +37,7 @@ IRC channel mentioned above.
 
 If you want to contribute large amounts of code, please follow the
 [Contributor License Agreement
-process](http://www.perlfoundation.org/contributor_license_agreement) from the
-Perl Foundation.
+process](https://www.perlfoundation.org/contributor-license-agreement.html) from the Perl Foundation.
 
 For small contributions, you agree to place your code under the terms of the
 license of the code that Rakudo is under.

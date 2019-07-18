@@ -360,12 +360,14 @@ sub configure_moar_backend {
     $config->{ldflags} = $nqp_config->{'moar::ldflags'};
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath'}\E ?//;
     $config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
-    $config->{ldflags} .= ' '
-      . (
-          $config->{relocatable} eq 'reloc'
-        ? $nqp_config->{'moar::ldrpath_relocatable'}
-        : $nqp_config->{'moar::ldrpath'}
-      );
+    if ( $config->{prefix} ne '/usr' ) {
+        $config->{ldflags} .= ' '
+          . (
+              $config->{relocatable} eq 'reloc'
+            ? $nqp_config->{'moar::ldrpath_relocatable'}
+            : $nqp_config->{'moar::ldrpath'}
+          );
+    }
     $config->{ldlibs}          = $nqp_config->{'moar::ldlibs'};
     $config->{'mingw_unicode'} = '';
 

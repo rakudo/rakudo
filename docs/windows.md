@@ -1,4 +1,4 @@
-# Building on windows
+# Building on Windows
 
 ## VM
 
@@ -8,7 +8,7 @@ Get virtual box for your platform here:
 
     https://www.virtualbox.org/wiki/Downloads
 
-Get a windows 10 evaluation copy from here:
+Get a Windows 10 evaluation copy from here:
 
     https://developer.microsoft.com/en-us/windows/downloads/virtual-machines
 
@@ -26,7 +26,7 @@ Install Strawberry Perl from:
 
 Run the VS installer; modify the existing install, and select "Desktop
 Development with C++"; This will make the command line tools available
-in the "Developer Command Prompt for VS 2017"
+in the "Developer Command Prompt for VS 20XX"
 
 ### Git
 

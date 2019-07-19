@@ -66,8 +66,9 @@ perl6.rc
 /rakudo.js
 /perl6-js
 /perl6-js.bat
+/perl6-m.c
 /perl6-m
-/perl6-m.bat
+/perl6-m.exe
 /perl6-debug-m
 /perl6-debug-m.bat
 /perl6-gdb-m
@@ -85,8 +86,6 @@ t/localtest.data
 t/spec
 t/packages/tap-harness6
 /panda
-perl6.c
-perl6.o
 MANIFEST
 commits.png
 docs/test_summary.times

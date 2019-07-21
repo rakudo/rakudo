@@ -83,6 +83,9 @@ multi sub dir(IO()       $path, |c) { $path.dir(|c) }
 proto sub open($, |) {*}
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
 
+proto sub fdopen($, |) {*}
+multi sub fdopen(Int:D $fd, |c) { IO::Handle.new(:$fd).open(|c) }
+
 proto sub lines($?, |) {*}
 multi sub lines($what = $*ARGFILES, |c) { $what.lines(|c) }
 
@@ -171,10 +174,11 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
             nqp::create(IO::Special),IO::Special,'$!what',$what
           )
         );
-        nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
-        nqp::getattr($handle,IO::Handle,'$!nl-in')    = NL-IN;
-        nqp::getattr($handle,IO::Handle,'$!nl-out')   = NL-OUT;
-        nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
+        nqp::bindattr_i($handle,IO::Handle,'$!fd',-1);
+        nqp::getattr($handle,IO::Handle,'$!chomp')      = True;
+        nqp::getattr($handle,IO::Handle,'$!nl-in')      = NL-IN;
+        nqp::getattr($handle,IO::Handle,'$!nl-out')     = NL-OUT;
+        nqp::getattr($handle,IO::Handle,'$!encoding')   = ENCODING;
         $handle
     }
 

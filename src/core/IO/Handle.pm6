@@ -2,6 +2,7 @@ my class IO::Path { ... }
 my class Proc { ... }
 
 my class IO::Handle {
+    has int $!fd;
     has $.path;
     has $!PIO;
     has $.chomp is rw = Bool::True;
@@ -12,11 +13,14 @@ my class IO::Handle {
     has Encoding::Encoder $!encoder;
     has int $!out-buffer;
 
-    submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
+    submethod TWEAK(:$encoding, :$bin, IO() :$path = Nil, Int:D :$fd = -1 --> Nil) {
+        nqp::bindattr(self, IO::Handle, '$!path', nqp::decont($path));
+        nqp::bindattr_i(self, IO::Handle, '$!fd', nqp::decont_i($fd));
         nqp::if(
           $bin,
           nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
-          $!encoding = $encoding || 'utf8')
+          ($!encoding = $encoding || 'utf8')
+        );
     }
 
 #?if moar
@@ -70,7 +74,6 @@ my class IO::Handle {
       Str:D :$nl-out is copy = $!nl-out,
       :$out-buffer is copy,
     ) {
-
         nqp::if(
           $bin,
           nqp::stmts(
@@ -93,7 +96,7 @@ my class IO::Handle {
                                                                              'ro')))))))));
 
         nqp::if(
-          nqp::iseq_s($!path.Str, '-'),
+          nqp::isconcrete($!path) && nqp::iseq_s($!path.Str, '-'),
           nqp::if(
             nqp::iseq_s($mode, 'ro'),
             nqp::if(
@@ -122,51 +125,54 @@ my class IO::Handle {
                     :bin(nqp::isfalse(nqp::isconcrete($enc))))),
               die("Cannot open standard stream in mode '$mode'"))));
 
-        if nqp::istype($!path, IO::Special) {
-            my $what := $!path.what;
-            if $what eq '<STDIN>' {
-                $!PIO := nqp::getstdin();
-            }
-            elsif $what eq '<STDOUT>' {
-                $!PIO := nqp::getstdout();
-            }
-            elsif $what eq '<STDERR>' {
-                $!PIO := nqp::getstderr();
+        fail X::IO::Directory.new(:$!path, :$!fd, :trying<open>)
+            if $!path.defined
+            ?? $!path.d
+            !! nqp::fstat($!fd, nqp::const::STAT_ISDIR);
+
+        my Bool $bom;
+        if nqp::isconcrete($!path) {
+            if nqp::istype($!path, IO::Special) {
+                my $what := $!path.what;
+                if $what eq '<STDIN>' {
+                    $!PIO := nqp::getstdin();
+                }
+                elsif $what eq '<STDOUT>' {
+                    $!PIO := nqp::getstdout();
+                }
+                elsif $what eq '<STDERR>' {
+                    $!PIO := nqp::getstderr();
+                }
+                else {
+                    die "Don't know how to open '$what' especially";
+                }
+                $bom = False;
             }
             else {
-                die "Don't know how to open '$_' especially";
-            }
-            $!chomp = $chomp;
-            $!nl-out = $nl-out;
-            if nqp::isconcrete($enc) {
-                my $encoding = Encoding::Registry.find($enc);
-                $!decoder := $encoding.decoder(:translate-nl);
-                $!decoder.set-line-separators(($!nl-in = $nl-in).list);
-                $!encoder := $encoding.encoder(:translate-nl);
-                $!encoding = $encoding.name;
-            }
-            self!set-out-buffer-size($out-buffer);
-            return self;
-        }
-
-        fail X::IO::Directory.new(:$!path, :trying<open>) if $!path.d;
-
-        {
-            CATCH { .fail }
-            $!PIO := nqp::open(
-              $!path.absolute,
-              nqp::concat(
-                nqp::if(nqp::iseq_s($mode, 'ro'), 'r',
-                nqp::if(nqp::iseq_s($mode, 'wo'), '-',
-                nqp::if(nqp::iseq_s($mode, 'rw'), '+',
-                  die "Unknown mode '$mode'"))),
-                nqp::concat(nqp::if($create,      'c', ''),
-                nqp::concat(nqp::if($append,      'a', ''),
-                nqp::concat(nqp::if($truncate,    't', ''),
-                            nqp::if($exclusive,   'x', ''))))));
+                CATCH { .fail }
+                $!PIO := nqp::open(
+                  $!path.absolute,
+                  nqp::concat(
+                    nqp::if(nqp::iseq_s($mode, 'ro'), 'r',
+                    nqp::if(nqp::iseq_s($mode, 'wo'), '-',
+                    nqp::if(nqp::iseq_s($mode, 'rw'), '+',
+                      die "Unknown mode '$mode'"))),
+                    nqp::concat(nqp::if($create,      'c', ''),
+                    nqp::concat(nqp::if($append,      'a', ''),
+                    nqp::concat(nqp::if($truncate,    't', ''),
+                                nqp::if($exclusive,   'x', ''))))));
+                $bom = True;
 #?if moar
-            self!remember-to-close;
+                self!remember-to-close;
 #?endif
+            }
+        }
+        elsif nqp::not_i(nqp::iseq_i($!fd, -1)) {
+            $!PIO := nqp::fdopen($!fd);
+            $bom = nqp::hllbool(nqp::fstat($!fd, nqp::const::STAT_ISREG));
+        }
+        else {
+            die "Attempted to open a file without any path or file descriptor given";
         }
 
         $!chomp = $chomp;
@@ -178,17 +184,20 @@ my class IO::Handle {
             $!encoder := $encoding.encoder(:translate-nl);
             $!encoding = $encoding.name;
 
-            # Add a byte order mark to the start of the file for utf16
-            nqp::if(nqp::iseq_s($!encoding, 'utf16'), (
-                if $create && !$exclusive && (!$append || $append && $!path.s == 0) {
-                  self.write: Buf[uint16].new(0xFEFF);
-                })
-            );
+            # Add a byte order mark to the start of the file for utf16.
+            if $bom && nqp::iseq_s($!encoding, 'utf16') {
+                if $create && !$exclusive && (!$append || $append && nqp::if(
+                  nqp::isconcrete($!path),
+                  $!path.s,
+                  nqp::fstat($!fd, nqp::const::STAT_FILESIZE)
+                ) == 0) {
+                    self.WRITE: Blob[uint16].new: 0xFEFF;
+                }
+            }
         }
         self!set-out-buffer-size($out-buffer);
 
-
-        self;
+        self
     }
 
     method out-buffer is rw {
@@ -760,14 +769,16 @@ my class IO::Handle {
         self.print($data);
     }
 
-    method path(IO::Handle:D:)      { $!path.IO }
-    method IO(IO::Handle:D:)        { $!path.IO }
+    method path(IO::Handle:D:)      { $!path.defined ?? $!path.IO !! IO::Path }
+    method IO(IO::Handle:D:)        { $!path.defined ?? $!path.IO !! IO::Path }
 
     # use $.path, so IO::Pipe picks it up
-    multi method Str(IO::Handle:D:) { $.path.Str }
+    multi method Str(IO::Handle:D:) { $!path.defined ?? $.path.Str !! '' }
 
     multi method gist(IO::Handle:D:) {
-        "{self.^name}<$!path.gist()>({self.opened ?? 'opened' !! 'closed'})"
+        $!path.defined
+            ?? "{self.^name}<$!path.gist()>({self.opened ?? 'opened' !! 'closed'})"
+            !! "{self.^name}<fd $!fd>({self.opened ?? 'opened' !! 'closed'})"
     }
 
     method flush(IO::Handle:D: --> True) {
@@ -831,7 +842,7 @@ my class IO::Handle {
         # implicitly via DESTROY, since you can't get them back again.
         nqp::if(
           nqp::defined($!PIO)
-            && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
+            && nqp::isgt_i((my int $fileno = nqp::isconcrete($!path) ?? nqp::filenofh($!PIO) !! $!fd), 2),
           nqp::stmts(
             nqp::closefh($!PIO),  # don't bother checking for errors
 #?if !moar
@@ -847,7 +858,11 @@ my class IO::Handle {
 
     method native-descriptor(IO::Handle:D:) {
         nqp::defined($!PIO) or die 'File handle not open, so cannot get native descriptor';
-        nqp::filenofh($!PIO)
+        nqp::if(
+          nqp::isconcrete($!path) && nqp::iseq_i($!fd, -1),
+          nqp::bindattr_i(self, IO::Handle, '$!fd', nqp::filenofh($!PIO)),
+          nqp::getattr_i(self, IO::Handle, '$!fd')
+        );
     }
 }
 

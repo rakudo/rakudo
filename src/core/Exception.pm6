@@ -560,12 +560,14 @@ my class X::IO::Null does X::IO {
 
 my class X::IO::Directory does X::IO {
     has $.path;
+    has $.fd;
     has $.trying;
     has $.use;
     method message () {
-        my $x = "'$.path' is a directory, cannot do '.$.trying' on a directory";
-        if $.use { $x ~= ", try '{$.use}()' instead" }
-        $x;
+        my $x = $!path.defined ?? "'$!path'" !! "The file '$!fd' points to";
+        $x ~= " is a directory, cannot do '.$!trying' on a directory";
+        $x ~= ", try '{$.use}()' instead" if $!use;
+        $x
     }
 }
 

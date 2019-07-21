@@ -1038,6 +1038,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token block($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
         :my $*CODE_OBJECT := $*DECLARAND;
+        :my $*SIG_OBJ;
+        :my %*SIG_INFO;
         :dba('scoped block')
         :my $borg := $*BORG;
         :my $has_mystery := $*MYSTERY ?? 1 !! 0;

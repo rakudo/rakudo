@@ -1676,7 +1676,7 @@ implementation detail and has no serviceable parts inside"
     # that has been locally installed.  Called by METAOP_ASSIGN.  Please add
     # any other core ops that seem to be necessary.
     sub INSTALL-CORE-METAOPS() {
-        $METAOP_ASSIGN := nqp::create(Rakudo::Internals::IterationSet);
+        my $metaop_assign := nqp::create(Rakudo::Internals::IterationSet);
         for (
           &[+], -> Mu \a, Mu \b { a = a.DEFINITE ?? a + b !! +b },
           &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! Failure.new("No zero-arg meaning for infix:<%>")},
@@ -1685,9 +1685,9 @@ implementation detail and has no serviceable parts inside"
           &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! ~b },
         ) -> \op, \metaop {
             metaop.set_name(op.name ~ ' + {assigning}');
-            nqp::bindkey($METAOP_ASSIGN,nqp::objectid(op),metaop);
+            nqp::bindkey($metaop_assign, nqp::objectid(op), metaop);
         }
-        $METAOP_ASSIGN
+        $METAOP_ASSIGN := $metaop_assign;
     }
 
     # handle parameterization by just adding a "keyof" method

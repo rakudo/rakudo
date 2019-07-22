@@ -2,6 +2,10 @@ my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash
     #     has str $!longname;
 
+    method STORE_AT_KEY(|c) {
+        self.BIND-KEY(|c)
+    }
+
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::if(

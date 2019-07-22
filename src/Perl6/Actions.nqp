@@ -6677,7 +6677,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method circumfix:sym<( )>($/) {
-        make handle-list-semis($/, $<semilist>.ast)
+        my $past := handle-list-semis($/, $<semilist>.ast);
+        if $/<stasher> {
+            my $Stash := $*W.find_symbol: ['Stash'], :setting-only;
+            $past := QAST::Op.new:
+                        :op<callmethod>,
+                        :name<new>,
+                        :node($/),
+                        :returns($Stash),
+                        QAST::WVal.new(:value($Stash)),
+                        $past;
+        }
+        make $past
     }
 
     method circumfix:sym<[ ]>($/) {

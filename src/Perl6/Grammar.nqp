@@ -3570,7 +3570,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token circumfix:sym<( )> {
         :my $*FAKE_INFIX_FOUND := 0;
         :dba('parenthesized expression')
-        '(' ~ ')' <semilist>
+        [ '(' ~ ')' <semilist> ] [ $<stasher>='::' ]?
     }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
     token circumfix:sym<ang> {

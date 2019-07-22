@@ -1098,9 +1098,11 @@ class Perl6::World is HLL::World {
             if nqp::defined(&EXPORT) {
                 my $result := &EXPORT(|@positional_imports);
                 my $Map := self.find_symbol(['Map'], :setting-only);
+                my $Stash := self.find_symbol(['Stash'], :setting-only);
                 if nqp::istype($result, $Map) {
                     my $storage := $result.hash.FLATTENABLE_HASH();
-                    self.import($/, $storage, $package_source_name, :need-decont(!(nqp::what($result) =:= $Map)));
+                    my $need-decont := ! ((nqp::what($result) =:= $Map) || (nqp::what($result) =:= $Stash));
+                    self.import($/, $storage, $package_source_name, :$need-decont);
 #                    $/.check_LANG_oopsies("do_import");
                 }
                 else {

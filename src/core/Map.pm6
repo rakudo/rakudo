@@ -326,10 +326,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
     }
 
-    multi method ASSIGN-KEY(Map:D: \key, Mu \value) {
-        die nqp::existskey($!storage,key.Str)
-          ?? "Cannot change key '{key}' in an immutable {self.^name}"
-          !! "Cannot add key '{key}' to an immutable {self.^name}"
+    multi method ASSIGN-KEY(Map:D: \key, Mu \new) {
+        nqp::isnull(my \old := nqp::atkey($!storage,key.Str))
+          ?? "Cannot add key '{key}' to an immutable {self.^name}"
+          !! nqp::iscont(old)
+            ?? (old = new)
+            !! "Cannot change key '{key}' in an immutable {self.^name}"
     }
 
     # Directly copy from the other Map's internals: the only thing we need
@@ -393,7 +395,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               nqp::bindkey(
                 $!storage,
                 nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
-                nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
+                nqp::getattr(nqp::decont($x),Pair,'$!value')
               ),
               nqp::if(
                 (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
@@ -408,26 +410,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                       last  => $x
                     ).throw
                   ),
-                  nqp::bindkey($!storage,$x.Str,nqp::decont($y))
+                  nqp::bindkey($!storage,$x.Str,$y)
                 )
-              )
-            )
-          ),
-          self
-        )
-    }
-
-    method !DECONTAINERIZE(--> Map:D) {
-        nqp::stmts(
-          (my \iter := nqp::iterator($!storage)),
-          nqp::while(
-            iter,
-            nqp::if(
-              nqp::iscont(nqp::iterval(nqp::shift(iter))),
-              nqp::bindkey(
-                $!storage,
-                nqp::iterkey_s(iter),
-                nqp::decont(nqp::iterval(iter))  # get rid of any containers
               )
             )
           ),
@@ -446,7 +430,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               nqp::p6bindattrinvres(self,Map,'$!storage',other),
               nqp::p6bindattrinvres(
                 self,Map,'$!storage',nqp::clone(other)
-              )!DECONTAINERIZE
+              )
             ),
             self                      # nothing to do
           ),
@@ -478,7 +462,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           nqp::bindkey(
             storage,
             nqp::if(nqp::istype(key,Str),key,key.Str),
-            nqp::decont(itervalues.pull-one)
+            itervalues.pull-one
           )
         );
         self

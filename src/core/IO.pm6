@@ -31,7 +31,7 @@ my role IO {
         )
     }
     multi method slurp(IO:D: :$enc, :$bin) {
-        Failure.new: X::IO::RegularFileRequired.new: :from(self), :trying<slurp>
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<slurp>
     }
 
     proto method spurt(IO:D: :$data, :$enc, :$append, :$createonly) {
@@ -43,7 +43,7 @@ my role IO {
         )
     }
     multi method spurt(IO:D: :$data, :$enc, :$append, :$createonly) {
-        Failure.new: X::IO::RegularFileRequired.new: :from(self), :trying<spurt>
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<spurt>
     }
 
     method lines(IO:D: :$chomp, :$enc, :$nl-in, |c) {
@@ -139,20 +139,20 @@ my role IO {
 
     proto method open(IO:D: |c --> IO::Handle) {*}
     multi method open(IO:D: |c --> IO::Handle) {
-        Failure.new: X::IO::RegularFileRequired.new: :from(self), :trying<open>
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<open>
     }
 
 #?if moar
     proto method watch(IO:D: --> IO::Notification) {*}
     multi method watch(IO:D: --> IO::Notification) {
-        Failure.new: X::IO::RegularFileRequired.new: :from(self), :trying<watch>
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<watch>
     }
 #?endif
 
     proto method rename(IO:D: IO() $to, :$createonly --> Bool) {
         nqp::unless(
           nqp::istype(nqp::decont($to), IO::Path),
-          fail X::IO::PathRequired.new: :from(self), :$to, :trying<rename>
+          fail X::IO::NotAPath.new: :from(self), :$to, :trying<rename>
         );
 
         nqp::if(
@@ -167,7 +167,7 @@ my role IO {
         } }
     }
     multi method rename(IO:D: IO() $to --> Bool) {
-        Failure.new: X::IO::RegularFileRequired.new: :from(self), :$to, :trying<rename>
+        Failure.new: X::IO::NotAFile.new: :from(self), :$to, :trying<rename>
     }
 
     proto method copy(IO:D: IO() $to, :$createonly --> Bool) {
@@ -183,12 +183,12 @@ my role IO {
         } }
     }
     multi method copy(IO:D: IO() $to, :$createonly --> Bool) {...}
-        Failure.new: X::IO::RegularFileRequired.new: :from(self), :$to, :trying<copy>
+        Failure.new: X::IO::NotAFile.new: :from(self), :$to, :trying<copy>
     }
 
     proto method move(IO:D: IO() $to --> Bool) {*}
     multi method move(IO:D: IO() $to --> Bool) {
-        Failure.new: X::IO::RegularFileRequired.new: :from(self), :$to, :trying<move>
+        Failure.new: X::IO::NotAFile.new: :from(self), :$to, :trying<move>
     }
 
     proto method chmod(IO:D: Int() $mode --> Bool) {
@@ -199,7 +199,7 @@ my role IO {
         } }
     }
     multi method chmod(IO:D: Int() $mode --> Bool) {
-        Failure.new: X::IO::RegularFileRequired.new: :from(self), :trying<chmod>
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<chmod>
     }
 
 #   proto method chown(IO:D: Str() $user --> Bool) {
@@ -210,7 +210,7 @@ my role IO {
 #       } }
 #   }
 #   multi method chown(IO:D: Str() --> Bool) {
-#       Failure.new: X::IO::RegularFileRequired.new: :from(self), :trying<chown>
+#       Failure.new: X::IO::NotAFile.new: :from(self), :trying<chown>
 #   }
 
     # Symlink methods
@@ -219,40 +219,40 @@ my role IO {
         return {*};
 
         CATCH { default {
-            fail X::IO::Unlink.new: :at(self), :os-error(.Str);
+            fail X::IO::Unlink.new: :target(self), :os-error(.Str);
         } }
     }
     multi method unlink(IO:D: --> Bool) {
-        Failure.new: X::IO::PathRequired.new: :from(self), :trying<unlink>
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<unlink>
     }
 
     proto method symlink(IO:D: IO() $to --> Bool) {
         return {*};
 
         CATCH { default {
-            fail X::IO::Symlink.new: :from(self), :$to, :os-error(.Str);
+            fail X::IO::Symlink.new: :target($to), :os-error(.Str);
         } }
     }
     multi method symlink(IO:D: IO() $to --> Bool) {
-        Failure.new: X::IO::PathRequired.new: :from(self), :$to, :trying<symlink>
+        Failure.new: X::IO::NotAPath.new: :$target, :trying<symlink>
     }
 
     proto method link(IO:D: IO() $to --> Bool) {
         return {*};
 
         CATCH { default {
-            fail X::IO::Link.new: :from(self), :$to, :os-error(.Str);
+            fail X::IO::Link.new: :target($to), :os-error(.Str);
         } }
     }
     multi method link(IO:D: IO() $to --> Bool) {
-        Failure.new: X::IO::PathRequired.new: :from(self), :$to, :trying<link>
+        Failure.new: X::IO::NotAPath.new: :from(self), :$to, :trying<link>
     }
 
     # Directory methods
 
     proto method chdir(IO:D: | --> IO) {*}
-    multi method chdir(IO:D: $to?, | --> IO) {
-        Failure.new: X::IO::PathRequired.new: :from(self), :$to, :trying<chdir>
+    multi method chdir(IO:D: $to, | --> IO) {
+        Failure.new: X::IO::NotAPath.new: :from(self), :$to, :trying<chdir>
     }
 
     proto method mkdir(IO:D: Int() --> IO) {
@@ -262,8 +262,8 @@ my role IO {
             fail X::IO::Mkdir.new: :at(self), :$mode, :os-error(.Str);
         } }
     }
-    multi method mkdir(IO:D: Int() --> IO) {
-        Failure.new: X::IO::PathRequired.new: :from(self), :trying<mkdir>
+    multi method mkdir(IO:D: Int() $to --> IO) {
+        Failure.new: X::IO::NotAPath.new: :from(self), :$to, :trying<mkdir>
     }
 
     proto method rmdir(IO:D: --> IO) {
@@ -274,7 +274,7 @@ my role IO {
         } }
     }
     multi method rmdir(IO:D: --> IO) {
-        Failure.new: X::IO::PathRequired.new: :from(self), :trying<rmdir>
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<rmdir>
     }
 
     proto method dir(IO:D: Mu :$test) {
@@ -285,7 +285,7 @@ my role IO {
         } }
     }
     multi method dir(IO:D: Mu :$test) {
-        Failure.new: X::IO::PathRequired.new: :from(self), :trying<dir>
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<dir>
     }
 }
 

@@ -537,18 +537,35 @@ my class X::IO::Move does X::IO {
 }
 
 my class X::IO::DoesNotExist does X::IO {
-    has $.path;
+    has $.at;
     has $.trying;
+    
+    method new(:$path, :$at = $path, :$trying, *%named) {
+        self.bless: :$at, :$trying, |%named
+    }
+
+    method path() { $.at }
+
     method message() {
-        "Failed to find '$.path' while trying to do '.$.trying'"
+        "Failed to find '$.at' while trying to do '.$.trying'"
     }
 }
 
 my class X::IO::NotAFile does X::IO {
-    has $.path;
+    has $.from;
+    has $.to;
     has $.trying;
+
+    method new(:$path, :$from = $path, :$to, :$trying, *%named) {
+        self.bless: :$from, :$to, :$trying, |%named
+    }
+
+    method path() { $.from }
+
     method message() {
-        "'$.path' is not a regular file while trying to do '.$.trying'"
+        $.to.defined
+            ?? "'$.to' is not a regular file while trying to do '.$.trying' using '$.from'"
+            !! "'$.from' is not a regular file while trying to do '.$.trying'"
     }
 }
 
@@ -559,11 +576,18 @@ my class X::IO::Null does X::IO {
 }
 
 my class X::IO::Directory does X::IO {
-    has $.path;
+    has $.at;
     has $.fd;
     has $.trying;
     has $.use;
-    method message () {
+
+    method new(:$path, :$at = $path, :$fd, :$trying, :$use, *%named) {
+        self.bless: :$at, :$fd, :$trying, :$use, |%named
+    }
+
+    method path() { $.at }
+
+    method message() {
         my $x = $!path.defined ?? "'$!path'" !! "The file '$!fd' points to";
         $x ~= " is a directory, cannot do '.$!trying' on a directory";
         $x ~= ", try '{$.use}()' instead" if $!use;
@@ -588,24 +612,45 @@ my class X::IO::Link does X::IO {
 }
 
 my class X::IO::Mkdir does X::IO {
-    has $.path;
+    has $.at;
     has $.mode;
+
+    method new(:$path, :$at = $path, :$mode, *%named) {
+        self.bless: :$at, :$mode, |%named
+    }
+
+    method path() { $.at }
+
     method message() {
-        "Failed to create directory '$.path' with mode '0o{$.mode.fmt("%03o")}': $.os-error"
+        "Failed to create directory '$.at' with mode '0o{$.mode.fmt("%03o")}': $.os-error"
     }
 }
 
 my class X::IO::Chdir does X::IO {
-    has $.path;
+    has $.at;
+
+    method new(:$path, :$at = $path, *%named) {
+        self.bless: :$at, |%named
+    }
+
+    method path() { $.at }
+
     method message() {
         "Failed to change the working directory to '$.path': $.os-error"
     }
 }
 
 my class X::IO::Dir does X::IO {
-    has $.path;
+    has $.at;
+
+    method new(:$path, :$at = $path, *%named) {
+        self.bless: :$at, |%named
+    }
+
+    method path() { $.at }
+
     method message() {
-        "Failed to get the directory contents of '$.path': $.os-error"
+        "Failed to get the directory contents of '$.at': $.os-error"
     }
 }
 
@@ -635,24 +680,45 @@ my class X::IO::Resolve does X::IO {
 }
 
 my class X::IO::Rmdir does X::IO {
-    has $.path;
+    has $.at;
+
+    method new(:$path, :$at = $path, *%named) {
+        self.bless: :$at, |%named
+    }
+
+    method path() { $.at }
+
     method message() {
-        "Failed to remove the directory '$.path': $.os-error"
+        "Failed to remove the directory '$.at': $.os-error"
     }
 }
 
 my class X::IO::Unlink does X::IO {
-    has $.path;
+    has $.at;
+
+    method new(:$path, :$at = $path, *%named) {
+        self.bless: :$at, |%named
+    }
+
+    method path() { $.at }
+
     method message() {
-        "Failed to remove the file '$.path': $.os-error"
+        "Failed to remove the file '$.at': $.os-error"
     }
 }
 
 my class X::IO::Chmod does X::IO {
-    has $.path;
+    has $.at;
     has $.mode;
+
+    method new(:$path, :$at = $path, :$mode, *%named) {
+        self.bless: :$at, :$mode, |%named
+    }
+
+    method path() { $.at }
+
     method message() {
-        "Failed to set the mode of '$.path' to '0o{$.mode.fmt("%03o")}': $.os-error"
+        "Failed to set the mode of '$.at' to '0o{$.mode.fmt("%03o")}': $.os-error"
     }
 }
 
@@ -663,6 +729,17 @@ my class X::IO::BinaryAndEncoding does X::IO {
 my class X::IO::BinaryMode does X::IO {
     has $.trying;
     method message { "Cannot do '$.trying' on a handle in binary mode" }
+}
+
+my class X::IO::NotAPath does X::IO {
+    has $.from;
+    has $.to;
+    has $.trying;
+    method message() {
+        $.to.defined
+            ?? "'$.to' is not a path while trying to do '.$.trying' using '.$.from'"
+            !! "'$.from' is not a path while trying to do '.$.trying'"
+    }
 }
 
 my role X::Comp is Exception {

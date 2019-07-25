@@ -81,10 +81,7 @@ multi sub dir(IO::Path:D $path, |c) { $path.dir(|c) }
 multi sub dir(IO()       $path, |c) { $path.dir(|c) }
 
 proto sub open($, |) {*}
-multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
-
-proto sub fdopen($, |) {*}
-multi sub fdopen(Int:D $fd, |c) { IO::Handle.new(:$fd).open(|c) }
+multi sub open(IO() $file, |c) { IO::Handle.new(:$file).open(|c) }
 
 proto sub lines($?, |) {*}
 multi sub lines($what = $*ARGFILES, |c) { $what.lines(|c) }
@@ -170,11 +167,10 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
 
     my sub setup-handle(str $what) {
         my $handle := nqp::p6bindattrinvres(
-          nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
+          nqp::create(IO::Handle),IO::Handle,'$!file',nqp::p6bindattrinvres(
             nqp::create(IO::Special),IO::Special,'$!what',$what
           )
         );
-        nqp::bindattr_i($handle,IO::Handle,'$!fd',-1);
         nqp::getattr($handle,IO::Handle,'$!chomp')      = True;
         nqp::getattr($handle,IO::Handle,'$!nl-in')      = NL-IN;
         nqp::getattr($handle,IO::Handle,'$!nl-out')     = NL-OUT;

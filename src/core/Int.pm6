@@ -1,7 +1,8 @@
-my class Rat { ... }
+my class Rat                      { ... }
+my class IO::NativeDescriptor     { ... }
 my class X::Cannot::Capture       { ... }
 my class X::Numeric::DivideByZero { ... }
-my class X::NYI::BigInt { ... }
+my class X::NYI::BigInt           { ... }
 
 my class Int { ... }
 my subset UInt of Int where {
@@ -16,9 +17,9 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::box_s(
           nqp::concat(
             nqp::if(
-              nqp::eqaddr(self.WHAT,Int),
+              nqp::eqaddr(self.WHAT, Int),
               'Int|',
-              nqp::concat(nqp::unbox_s(self.^name), '|')
+              nqp::concat(self.^name, '|')
             ),
             nqp::tostr_I(self)
           ),
@@ -46,7 +47,9 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method Capture() { die X::Cannot::Capture.new: :what(self) }
 
-    method IO(Int:D: --> IO::NativeDescriptor) { IO::NativeDescriptor.new: self }
+    method IO(Int:D: --> IO::NativeDescriptor:D) {
+        IO::NativeDescriptor.new: self
+    }
 
     method Int(--> Int) { self }
 

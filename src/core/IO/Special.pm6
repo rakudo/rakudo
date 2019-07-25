@@ -1,6 +1,4 @@
-my class Instant { ... }
-
-class IO::Special does IO {
+my class IO::Special does IO {
     has Str $.what;
 
     multi method WHICH(IO::Special:D: --> ValueObjAt) {
@@ -9,25 +7,25 @@ class IO::Special does IO {
             nqp::if(
               nqp::eqaddr(self.WHAT, IO::Special),
               'IO::Special|',
-              nqp::concat(nqp::unbox_s(self.^name), '|')
+              nqp::concat(self.^name, '|')
             ),
-            $!what
+            nqp::unbox_s($!what)
           ),
           ValueObjAt
         )
     }
 
-    method new(Str:D \what) {
+    method new(IO::Special: Str:D \what) {
         nqp::p6bindattrinvres(nqp::create(self),self,'$!what',what)
     }
 
-    multi method Str (IO::Special:D: --> Str) {
-        $!what
-    }
-    multi method gist(IO::Special:D: --> Str) {
+    method IO(IO::Special:D: --> IO::Special:D) { self }
+
+    multi method Str (IO::Special:D: --> Str:D) { $!what }
+    multi method gist(IO::Special:D: --> Str:D) {
         nqp::p6box_s(nqp::concat(nqp::decont_s($!what), '.IO'))
     }
-    multi method perl(IO::Special:D: --> Str) {
+    multi method perl(IO::Special:D: --> Str:D) {
         nqp::p6box_s(
           nqp::concat(
             nqp::concat(nqp::unbox_s(self.^name), '.new('),
@@ -39,7 +37,7 @@ class IO::Special does IO {
     multi method e       (IO::Special:D: --> True)    {         }
     multi method d       (IO::Special:D: --> False)   {         }
     multi method f       (IO::Special:D: --> False)   {         }
-    multi method s       (IO::Special:D:--> 0)        {         }
+    multi method s       (IO::Special:D: --> 0)       {         }
     multi method l       (IO::Special:D: --> False)   {         }
     multi method r       (IO::Special:D: --> Bool)    {
         $!what eq '<STDIN>'

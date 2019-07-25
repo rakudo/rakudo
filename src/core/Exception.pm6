@@ -576,17 +576,10 @@ my class X::IO::Null does X::IO {
 }
 
 my class X::IO::Directory does X::IO {
-    has $.at;
+    has $.path;
     has $.fd;
     has $.trying;
     has $.use;
-
-    method new(:$path, :$at = $path, :$fd, :$trying, :$use, *%named) {
-        self.bless: :$at, :$fd, :$trying, :$use, |%named
-    }
-
-    method path() { $.at }
-
     method message() {
         my $x = $!path.defined ?? "'$!path'" !! "The file '$!fd' points to";
         $x ~= " is a directory, cannot do '.$!trying' on a directory";

@@ -1,27 +1,34 @@
-# IO is done by classes representing a file in some way (as a file descriptor,
-# as a path, etc.).
+# IO is done by classes describing files in some way (apart from IO::Handle,
+# which uses any other class describing files internally).
+
+my class Instant { ... }
+
+my class IO::Path         { ... }
+my class IO::Special      { ... }
+# IO::NativeDescriptor is stubbed in src/core/Int.pm6.
+my class IO::Notification { ... }
+
+# XXX FIXME: stubbing *anything* in IO makes MoarVM throw with this error
+# during compilation: "Cannot invoke this object (REPR: Null; VMNull)".
 
 my role IO {
-    multi method IO(IO: --> IO) { self }
-
     # Stringification methods
-    # These *must* be overridden by whatever class is doing this role.
 
-    multi method Str (::?CLASS:D: --> Str) {...}
-    multi method gist(::?CLASS:D: --> Str) {...}
-    multi method perl(::?CLASS:D: --> Str) {...}
+    # multi method Str (IO:D: --> Str:D) { ... }
+    # multi method gist(IO:D: --> Str:D) { ... }
+    # multi method perl(IO:D: --> Str:D) { ... }
 
     # File I/O methods
 
-    proto method slurp(IO:D: :$enc, :$bin) {
+    proto method slurp(IO:D: :$enc, :$bin, |) {
         # We use an IO::Handle in binary mode, and then decode the string
         # all in one go, which avoids the overhead of setting up streaming
         # decoding.
         nqp::if(
-          nqp::istype((my IO::Handle $handle := {*}, Failure),
+          nqp::istype((my $handle := {*}), Failure),
           $handle,
           nqp::stmts(
-            (my Blob $blob := $handle.slurp: :close),
+            (my $blob := $handle.slurp: :close),
             nqp::if(
               $bin,
               $blob,
@@ -34,15 +41,15 @@ my role IO {
         Failure.new: X::IO::NotAFile.new: :from(self), :trying<slurp>
     }
 
-    proto method spurt(IO:D: :$data, :$enc, :$append, :$createonly) {
-        my IO::Handle $fh       := {*};
+    proto method spurt(IO:D: $data, :$enc, :$append, :$createonly, |) {
+        my $handle := {*};
         nqp::if(
-          nqp::istype($fh, Failure),
-          $fh,
-          $fh.spurt: $data, :close
+          nqp::istype($handle, Failure),
+          $handle,
+          $handle.spurt: $data, :close
         )
     }
-    multi method spurt(IO:D: :$data, :$enc, :$append, :$createonly) {
+    multi method spurt(IO:D: $data, :$enc, :$append, :$createonly, |) {
         Failure.new: X::IO::NotAFile.new: :from(self), :trying<spurt>
     }
 
@@ -60,80 +67,81 @@ my role IO {
     }
 
     # Stat methods
-    # These *must* be overridden by whatever class is doing this role.
+    # These *must* be implemented by whatever class is doing this role.
 
     proto method e(IO:D: --> Bool) {*}
-    multi method e(IO:D: --> Bool) {...}
+    # multi method e(IO:D: --> Bool) { ... }
 
     proto method d(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<d>
     }
-    multi method d(IO:D: --> Bool) {...}
+    # multi method d(IO:D: --> Bool) { ... }
 
     proto method f(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<d>
     }
-    multi method f(IO:D: --> Bool) {...}
+    # multi method f(IO:D: --> Bool) { ... }
 
     proto method s(IO:D: --> Int) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<s>
     }
-    multi method s(IO:D: --> Int) {...}
+    # multi method s(IO:D: --> Int) { ... }
 
     proto method l(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<l>
     }
-    multi method l(IO:D: --> Bool) {...}
+    # multi method l(IO:D: --> Bool) { ... }
 
     proto method z(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<z>
     }
-    multi method z(IO:D: --> Bool) {...}
+    # multi method z(IO:D: --> Bool) { ... }
 
     proto method r(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<r>
     }
-    multi method r(IO:D: --> Bool) {...}
+    # multi method r(IO:D: --> Bool) { ... }
 
     proto method w(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<w>
     }
-    multi method w(IO:D: --> Bool) {...}
+    # multi method w(IO:D: --> Bool) { ... }
 
     proto method x(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<x>
     }
-    multi method x(IO:D: --> Bool) {...}
+    # multi method x(IO:D: --> Bool) { ... }
 
     proto method rw(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<rw>
     }
-    multi method rw(IO:D: --> Bool) {...}
+    # multi method rw(IO:D: --> Bool) { ... }
 
     proto method rwx(IO:D: --> Bool) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<rwx>
     }
-    multi method rwx(IO:D: --> Bool) {...}
+    # multi method rwx(IO:D: --> Bool) { ... }
 
     proto method modified(IO:D: --> Instant) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<modified>
     }
-    multi method modified(IO:D: --> Instant) {...}
+    # multi method modified(IO:D: --> Instant) { ... }
 
     proto method accessed(IO:D: --> Instant) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<accessed>
     }
-    multi method accessed(IO:D: --> Instant) {...}
+    # multi method accessed(IO:D: --> Instant) { ... }
 
     proto method changed(IO:D: --> Instant) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<changed>
     }
-    multi method changed(IO:D: --> Instant) {...}
+    # multi method changed(IO:D: --> Instant) { ... }
 
     proto method mode(IO:D: --> IntStr) {
         self.e ?? {*} !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<mode>
     }
-    multi method mode(IO:D: --> IntStr) {...}
+    # multi method mode(IO:D: --> IntStr) { ... }
+
 
     # Regular file methods (i.e. files that aren't special)
 
@@ -143,13 +151,13 @@ my role IO {
     }
 
 #?if moar
-    proto method watch(IO:D: --> IO::Notification) {*}
-    multi method watch(IO:D: --> IO::Notification) {
+    proto method watch(IO:D: | --> IO::Notification) {*}
+    multi method watch(IO:D: | --> IO::Notification) {
         Failure.new: X::IO::NotAFile.new: :from(self), :trying<watch>
     }
 #?endif
 
-    proto method rename(IO:D: IO() $to, :$createonly --> Bool) {
+    proto method rename(IO:D: IO() $to, :$createonly, | --> Bool) {
         nqp::unless(
           nqp::istype(nqp::decont($to), IO::Path),
           fail X::IO::NotAPath.new: :from(self), :$to, :trying<rename>
@@ -157,7 +165,10 @@ my role IO {
 
         nqp::if(
           $createonly && $to.e,
-          fail X::IO::Rename.new: :from(self), :to($to.absolute), :os-error(':createonly specified and destination exists')
+          fail X::IO::Rename.new:
+              :from(self.?absolute // self),
+              :to($to.absolute),
+              :os-error(':createonly specified and destination exists')
         );
 
         return {*};
@@ -166,14 +177,22 @@ my role IO {
             fail X::IO::Rename.new: :from(self), :$to, :os-error(.Str);
         } }
     }
-    multi method rename(IO:D: IO() $to --> Bool) {
-        Failure.new: X::IO::NotAFile.new: :from(self), :$to, :trying<rename>
+    multi method rename(IO:D: IO() $to, :$createonly, | --> Bool) {
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<rename>
     }
 
-    proto method copy(IO:D: IO() $to, :$createonly --> Bool) {
+    proto method copy(IO:D: IO() $to, :$createonly, | --> Bool) {
+        nqp::unless(
+          nqp::istype(nqp::decont($to), IO::Path),
+          fail X::IO::NotAPath.new: :from(self), :$to, :trying<copy>
+        );
+
         nqp::if(
           $createonly && $to.e,
-          fail X::IO::Copy.new: :from(self), :$to, :os-error(':createonly specified and destination exists')
+          fail X::IO::Copy.new:
+              :from(self.?absolute // self),
+              :to($to.absolute),
+              :os-error(':createonly specified and destination exists')
         );
 
         return {*};
@@ -182,109 +201,108 @@ my role IO {
             fail X::IO::Copy.new: :from(self), :$to, :os-error(.Str);
         } }
     }
-    multi method copy(IO:D: IO() $to, :$createonly --> Bool) {...}
-        Failure.new: X::IO::NotAFile.new: :from(self), :$to, :trying<copy>
+    multi method copy(IO:D: IO() $to, :$createonly, | --> Bool) {
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<copy>
     }
 
-    proto method move(IO:D: IO() $to --> Bool) {*}
-    multi method move(IO:D: IO() $to --> Bool) {
-        Failure.new: X::IO::NotAFile.new: :from(self), :$to, :trying<move>
+    proto method move(IO:D: | --> Bool) {*}
+    multi method move(IO:D: | --> Bool) {
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<move>
     }
 
-    proto method chmod(IO:D: Int() $mode --> Bool) {
+    proto method chmod(IO:D: Int() $mode, | --> Bool) {
         return {*};
 
         CATCH { default {
             fail X::IO::Chmod.new: :from(self), :$mode, :os-error(.Str);
         } }
     }
-    multi method chmod(IO:D: Int() $mode --> Bool) {
+    multi method chmod(IO:D: Int() $mode, | --> Bool) {
         Failure.new: X::IO::NotAFile.new: :from(self), :trying<chmod>
     }
 
-#   proto method chown(IO:D: Str() $user --> Bool) {
-#       {*}
-#
-#       CATCH { default {
-#           fail X::IO::Chown.new: :from(self), :$user, :os-error(.Str);
-#       } }
-#   }
-#   multi method chown(IO:D: Str() --> Bool) {
-#       Failure.new: X::IO::NotAFile.new: :from(self), :trying<chown>
-#   }
+    # File link methods
 
-    # Symlink methods
-
-    proto method unlink(IO:D: --> Bool) {
+    proto method unlink(IO:D: | --> Bool) {
         return {*};
 
         CATCH { default {
             fail X::IO::Unlink.new: :target(self), :os-error(.Str);
         } }
     }
-    multi method unlink(IO:D: --> Bool) {
+    multi method unlink(IO:D: | --> Bool) {
         Failure.new: X::IO::NotAPath.new: :from(self), :trying<unlink>
     }
 
-    proto method symlink(IO:D: IO() $to --> Bool) {
+    proto method symlink(IO:D: IO() $to, | --> Bool) {
+        nqp::unless(
+          nqp::istype(nqp::decont($to), IO::Path),
+          X::IO::NotAPath.new: :from(self), :$to, :trying<link>
+        );
+
         return {*};
 
         CATCH { default {
             fail X::IO::Symlink.new: :target($to), :os-error(.Str);
         } }
     }
-    multi method symlink(IO:D: IO() $to --> Bool) {
-        Failure.new: X::IO::NotAPath.new: :$target, :trying<symlink>
+    multi method symlink(IO:D: IO() $to, | --> Bool) {
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<symlink>
     }
 
-    proto method link(IO:D: IO() $to --> Bool) {
+    proto method link(IO:D: IO() $to, | --> Bool) {
+        nqp::unless(
+          nqp::istype(nqp::decont($to), IO::Path),
+          X::IO::NotAPath.new: :from(self), :$to, :trying<link>
+        );
+
         return {*};
 
         CATCH { default {
             fail X::IO::Link.new: :target($to), :os-error(.Str);
         } }
     }
-    multi method link(IO:D: IO() $to --> Bool) {
-        Failure.new: X::IO::NotAPath.new: :from(self), :$to, :trying<link>
+    multi method link(IO:D: IO() $to, | --> Bool) {
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<link>
     }
 
     # Directory methods
 
     proto method chdir(IO:D: | --> IO) {*}
-    multi method chdir(IO:D: $to, | --> IO) {
-        Failure.new: X::IO::NotAPath.new: :from(self), :$to, :trying<chdir>
+    multi method chdir(IO:D: | --> IO) {
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<chdir>
     }
 
-    proto method mkdir(IO:D: Int() --> IO) {
+    proto method mkdir(IO:D: Int() $mode = 0o777, | --> IO) {
         return {*};
 
         CATCH { default {
-            fail X::IO::Mkdir.new: :at(self), :$mode, :os-error(.Str);
+            fail X::IO::Mkdir.new: :path(self), :$mode, :os-error(.Str);
         } }
     }
-    multi method mkdir(IO:D: Int() $to --> IO) {
-        Failure.new: X::IO::NotAPath.new: :from(self), :$to, :trying<mkdir>
+    multi method mkdir(IO:D: Int() $mode = 0o777, | --> IO) {
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<mkdir>
     }
 
-    proto method rmdir(IO:D: --> IO) {
+    proto method rmdir(IO:D: | --> IO) {
         return {*};
 
         CATCH { default {
-            fail X::IO::Rmdir.new: :at(self), :os-error(.Str);
+            fail X::IO::Rmdir.new: :path(self), :os-error(.Str);
         } }
     }
-    multi method rmdir(IO:D: --> IO) {
+    multi method rmdir(IO:D: | --> IO) {
         Failure.new: X::IO::NotAPath.new: :from(self), :trying<rmdir>
     }
 
-    proto method dir(IO:D: Mu :$test) {
+    proto method dir(IO:D: Mu :$test, |) {
         return {*};
 
         CATCH { default {
-            fail X::IO::Dir.new: :at(self), :os-error(.Str);
+            fail X::IO::Dir.new: :path(self), :os-error(.Str);
         } }
     }
-    multi method dir(IO:D: Mu :$test) {
+    multi method dir(IO:D: Mu :$test, |) {
         Failure.new: X::IO::NotAPath.new: :from(self), :trying<dir>
     }
 }

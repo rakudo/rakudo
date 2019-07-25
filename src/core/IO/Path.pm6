@@ -2,12 +2,21 @@ my class IO::Path is Cool does IO {
     has IO::Spec $.SPEC;
     has Str      $.CWD;
     has Str      $.path;
-    has Bool $!is-absolute;
-    has Str  $!abspath;
-    has %!parts;
+    has Bool     $!is-absolute;
+    has Str      $!abspath;
+    has          %!parts;
 
-    multi method ACCEPTS(IO::Path:D: Cool:D \other) {
-        nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
+    multi method ACCEPTS(IO::Path:D: Cool:D \other --> Bool:D) {
+        nqp::stmts(
+          (my IO $io := other.IO),
+          nqp::if(
+            nqp::istype($io, IO::Path),
+            nqp::hllbool(nqp::iseq_s(nqp::unbox_s($.absolute), nqp::unbox_s($io.absolute))),
+            # Getting the native descriptors of paths requires opening files,
+            # so let's just return False instead.
+            False
+          )
+        )
     }
 
     submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
@@ -76,7 +85,6 @@ my class IO::Path is Cool does IO {
     method volume(IO::Path:D:)   { %.parts<volume>   }
     method dirname(IO::Path:D:)  { %.parts<dirname>  }
     method basename(IO::Path:D:) { %.parts<basename> }
-
 
     my sub EXTENSION-MK-EXTENSION (
         str $name, $no-ext, int $part-min, int $part-max = $part-min
@@ -175,13 +183,15 @@ my class IO::Path is Cool does IO {
 
     method Numeric(IO::Path:D:) { self.basename.Numeric }
 
-    multi method Str (IO::Path:D:) { $!path }
-    multi method gist(IO::Path:D:) {
+    multi method IO(IO::Path:D: --> IO::Path:D) { self }
+
+    multi method Str (IO::Path:D: --> Str:D) { $!path }
+    multi method gist(IO::Path:D: --> Str:D) {
         $!is-absolute
           ?? qq|"$.absolute".IO|
           !! qq|"$.path".IO|
     }
-    multi method perl(IO::Path:D:) {
+    multi method perl(IO::Path:D: --> Str:D) {
         self.^name ~ ".new({$.path.perl}, {:$!SPEC.perl}, {:$!CWD.perl})"
     }
 
@@ -373,27 +383,60 @@ my class IO::Path is Cool does IO {
         self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
     }
 
-    multi method open   (IO::Path:D: |c --> IO::Handle)    {
-        IO::Handle.new(:path(self)).open(|c)
+    multi method open   (IO::Path:D: |c --> IO::Handle)               {
+        IO::Handle.new(:file(self)).open(|c)
     }
 #?if moar
-    multi method watch  (IO::Path:D: --> IO::Notification) {
+    multi method watch  (IO::Path:D: --> IO::Notification)            {
         IO::Notification.watch-path($.absolute);
     }
 #?endif
-    multi method chdir  (IO::Path:D: Str() $path, :$test!) {
+    multi method rename (IO::Path:D: IO() $to, :$createonly --> True) {
+        nqp::rename($.absolute, nqp::unbox_s($to.absolute));
+    }
+    multi method copy   (IO::Path:D: IO() $to, :$createonly --> True) {
+        # XXX TODO: maybe move the sameness check to the nqp OP/VM
+        nqp::if(
+            nqp::iseq_s(
+                (my $from-abs :=   $.absolute),
+                (my $to-abs   := $to.absolute)),
+            X::IO::Copy.new(:from($from-abs), :to($to-abs),
+                :os-error('source and target are the same')).fail,
+            nqp::copy($from-abs, $to-abs));
+    }
+    multi method move   (IO::Path:D: |c --> True)                     {
+        self.copy(|c) orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
+        self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
+    }
+    multi method chmod  (IO::Path:D: Int() $mode --> True)            {
+        nqp::chmod($.absolute, nqp::unbox_i($mode))
+    }
+
+    multi method unlink (IO::Path:D: --> True)          {
+        nqp::unlink($.absolute);
+    }
+    multi method symlink(IO::Path:D: IO() $to --> True) {
+        nqp::symlink($.absolute, $to.absolute);
+    }
+    multi method link   (IO::Path:D: IO() $to --> True) {
+        nqp::link($.absolute, $to.absolute);
+    }
+
+    multi method chdir  (IO::Path:D: Str() $path, :$test!)           {
         Rakudo::Deprecations.DEPRECATED(
             :what<:$test argument>,
             'individual named parameters (e.g. :r, :w, :x)',
             "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
         );
-        self.chdir: $path, |$test.words.map(* => True).Hash;
+        self.chdir: $path, |$test.words.map(* => True).Hash
     }
-    multi method chdir  (IO::Path:D: IO() $path, |c)       {
+    multi method chdir  (IO::Path:D: IO() $path, |c --> IO::Path)    {
         self.chdir: $path.absolute, |c
     }
     multi method chdir  (
-        IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
+        IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x --> IO::Path
     ) {
         unless $!SPEC.is-absolute($path) {
             my ($volume,$dirs) = $!SPEC.splitpath(self.absolute, :nofile);
@@ -434,48 +477,15 @@ my class IO::Path is Cool does IO {
             $dir
         )
     }
-    multi method rename (IO::Path:D: IO() $to, :$createonly --> True) {
-        nqp::rename($.absolute, nqp::unbox_s($to.absolute));
-    }
-    multi method copy   (IO::Path:D: IO() $to, :$createonly --> True) {
-        # XXX TODO: maybe move the sameness check to the nqp OP/VM
-        nqp::if(
-            nqp::iseq_s(
-                (my $from-abs :=   $.absolute),
-                (my $to-abs   := $to.absolute)),
-            X::IO::Copy.new(:from($from-abs), :to($to-abs),
-                :os-error('source and target are the same')).fail,
-            nqp::copy($from-abs, $to-abs));
-    }
-    multi method move   (IO::Path:D: |c --> True)                   {
-        self.copy: |c orelse fail X::IO::Move.new: :from(.exception.from),
-            :to(.exception.to), :os-error(.exception.os-error);
-        self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
-            :to(.exception.to), :os-error(.exception.os-error);
-    }
-    multi method chmod  (IO::Path:D: Int() $mode --> True)          {
-        nqp::chmod($.absolute, nqp::unbox_i($mode))
-    }
-
-    multi method unlink (IO::Path:D: --> True)          {
-        nqp::unlink($.absolute);
-    }
-    multi method symlink(IO::Path:D: IO() $to --> True) {
-        nqp::symlink($.absolute, $to.absolute);
-    }
-    multi method link   (IO::Path:D: IO() $to --> True) {
-        nqp::link($.absolute, $name.absolute);
-    }
-
     multi method mkdir(IO::Path:D: Int() $mode = 0o777 --> IO::Path) {
         nqp::mkdir($.absolute, $mode);
         self
     }
-    multi method rmdir(IO::Path:D: --> IO::Path) {
+    multi method rmdir(IO::Path:D: --> IO::Path)                     {
         nqp::rmdir($.absolute);
         self
     }
-    multi method dir(IO::Path:D: Mu :$test = $*SPEC.curupdir) {
+    multi method dir(IO::Path:D: Mu :$test = $*SPEC.curupdir)        {
         my str $dir-sep  = $!SPEC.dir-sep;
         my int $absolute = $.is-absolute;
 
@@ -527,8 +537,8 @@ my class IO::Path is Cool does IO {
         }
     }
 
-    multi method slurp(IO::Path:D: :$enc, :$bin --> IO::Handle) {
-        IO::Handle.new(:path(self)).open(:bin)
+    multi method slurp(IO::Path:D: :$enc, :$bin --> IO::Handle)                         {
+        IO::Handle.new(:file(self)).open(:bin)
     }
     multi method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly --> IO::Handle) {
         self.open:
@@ -550,7 +560,7 @@ my class IO::Path is Cool does IO {
     multi method f       (IO::Path:D: --> Bool)    {
         ?Rakudo::Internals.FILETEST-F: $!abspath
     }
-    multi method s       (IO::Path:D: --> Int)    {
+    multi method s       (IO::Path:D: --> Int)     {
         nqp::p6box_i(Rakudo::Internals.FILETEST-S: $!abspath)
     }
     multi method l       (IO::Path:D: --> Bool)    {
@@ -595,25 +605,25 @@ my class IO::Path is Cool does IO {
 
 my class IO::Path::Cygwin is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Cygwin) ) }
-    multi method perl(::?CLASS:D:) {
+    multi method perl(::?CLASS:D: --> Str:D) {
         self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
     }
 }
 my class IO::Path::QNX is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::QNX) ) }
-    multi method perl(::?CLASS:D:) {
+    multi method perl(::?CLASS:D: --> Str:D) {
         self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
     }
 }
 my class IO::Path::Unix is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Unix) ) }
-    multi method perl(::?CLASS:D:) {
+    multi method perl(::?CLASS:D: --> Str:D) {
         self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
     }
 }
 my class IO::Path::Win32 is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Win32) ) }
-    multi method perl(::?CLASS:D:) {
+    multi method perl(::?CLASS:D: --> Str:D) {
         self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
     }
 }

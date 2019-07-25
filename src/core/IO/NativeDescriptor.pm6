@@ -8,7 +8,7 @@ my class IO::NativeDescriptor is Int does IO {
             nqp::if(
               nqp::eqaddr(self.WHAT, IO::NativeDescriptor),
               'IO::NativeDescriptor|',
-              nqp::concat(nqp::unbox_s(self.^name), '|')
+              nqp::concat(self.^name, '|')
             ),
             nqp::coerce_is(nqp::unbox_i(self))
           ),
@@ -19,26 +19,28 @@ my class IO::NativeDescriptor is Int does IO {
     multi method ACCEPTS(IO::NativeDescriptor:D: int \other --> Bool:D)   {
         nqp::hllbool(nqp::iseq_i(nqp::unbox_i(self), other))
     }
-    multi method ACCEPTS(IO::NativeDescriptor:D: Int() \other --> Bool:D) {
+    multi method ACCEPTS(IO::NativeDescriptor:D: Int:D \other --> Bool:D) {
         nqp::hllbool(nqp::iseq_i(nqp::unbox_i(self), nqp::unbox_i(other)))
     }
 
-    proto method new(|) {*}
-    multi method new(int $fd)   {
+    proto method new(IO::NativeDescriptor: |)         {*}
+    multi method new(IO::NativeDescriptor: int $fd)   {
         nqp::box_i($fd, IO::NativeDescriptor)
     }
-    multi method new(Int() $fd) {
+    multi method new(IO::NativeDescriptor: Int() $fd) {
         nqp::box_i(nqp::decont_i($fd), IO::NativeDescriptor)
     }
 
-    method Int(IO::NativeDescriptor:D: --> Int) {
+    method Int(IO::NativeDescriptor:D: --> Int:D) {
         nqp::p6box_i(nqp::unbox_i(self))
     }
 
-    multi method Str (IO::NativeDescriptor:D: --> Str) {
+    method IO(IO::NativeDescriptor:D: --> IO::NativeDescriptor:D) { self }
+
+    multi method Str (IO::NativeDescriptor:D: --> Str:D) {
         nqp::p6box_s(nqp::coerce_is(nqp::unbox_i(self)))
     }
-    multi method gist(IO::NativeDescriptor:D: --> Str) {
+    multi method gist(IO::NativeDescriptor:D: --> Str:D) {
         nqp::p6box_s(
           nqp::concat(
             nqp::coerce_is(nqp::unbox_i(self)),
@@ -46,19 +48,21 @@ my class IO::NativeDescriptor is Int does IO {
           )
         )
     }
-    multi method perl(IO::NativeDescriptor:D: --> Str) {
+    multi method perl(IO::NativeDescriptor:D: --> Str:D) {
         nqp::p6box_s(
           nqp::concat(
-            nqp::concat(nqp::unbox_s(self.^name), '.new('),
+            nqp::concat(self.^name, '.new('),
             nqp::concat(nqp::coerce_is(nqp::unbox_i(self)), ')')
           )
         )
     }
 
-    multi method slurp(IO::NativeDescriptor:D: :$enc, :$bin --> IO::Handle)                         {
-        IO::Handle.new(:fd(self)).open(:$enc, :$bin)
+    multi method slurp(IO::NativeDescriptor:D: :$enc, :$bin --> IO::Handle:D) {
+        IO::Handle.new(:file(self)).open(:$enc, :$bin)
     }
-    multi method spurt(IO::NativeDescriptor:D: $data, :$enc, :$append, :$createonly --> IO::Handle) {
+    multi method spurt(IO::NativeDescriptor:D:
+        $data, :$enc, :$append, :$createonly --> IO::Handle:D
+    ) {
         self.open:
             :$enc,                   :bin(nqp::istype($data, Blob)),
             :mode<wo>,               :create,
@@ -121,7 +125,7 @@ my class IO::NativeDescriptor is Int does IO {
     }
 
     multi method open  (IO::NativeDescriptor:D: |c --> IO::Handle)               {
-        IO::Handle.new(:fd(self)).open(|c)
+        IO::Handle.new(:file(self)).open(|c)
     }
 #?if moar
     multi method watch (IO::NativeDescriptor:D: --> IO::Notification)            {

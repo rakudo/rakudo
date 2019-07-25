@@ -206,15 +206,6 @@ my class IO::Path is Cool does IO {
         );
     }
 
-    multi method IO { self }
-    method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }
-
-#?if moar
-    method watch(IO::Path:D:) {
-        IO::Notification.watch-path($.absolute);
-    }
-#?endif
-
     proto method absolute(|) {*}
     multi method absolute (IO::Path:D:) {
         $!abspath //= $!SPEC.rel2abs($!path,$!CWD)
@@ -382,8 +373,15 @@ my class IO::Path is Cool does IO {
         self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
     }
 
-    proto method chdir(|) {*}
-    multi method chdir(IO::Path:D: Str() $path, :$test!) {
+    multi method open   (IO::Path:D: |c --> IO::Handle)    {
+        IO::Handle.new(:path(self)).open(|c)
+    }
+#?if moar
+    multi method watch  (IO::Path:D: --> IO::Notification) {
+        IO::Notification.watch-path($.absolute);
+    }
+#?endif
+    multi method chdir  (IO::Path:D: Str() $path, :$test!) {
         Rakudo::Deprecations.DEPRECATED(
             :what<:$test argument>,
             'individual named parameters (e.g. :r, :w, :x)',
@@ -391,10 +389,10 @@ my class IO::Path is Cool does IO {
         );
         self.chdir: $path, |$test.words.map(* => True).Hash;
     }
-    multi method chdir(IO::Path:D: IO $path, |c) {
+    multi method chdir  (IO::Path:D: IO() $path, |c)       {
         self.chdir: $path.absolute, |c
     }
-    multi method chdir(
+    multi method chdir  (
         IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
     ) {
         unless $!SPEC.is-absolute($path) {
@@ -436,26 +434,10 @@ my class IO::Path is Cool does IO {
             $dir
         )
     }
-
-    method rename(IO::Path:D: IO() $to, :$createonly --> True) {
-        $createonly and $to.e and fail X::IO::Rename.new:
-            :from($.absolute),
-            :to($to.absolute),
-            :os-error(':createonly specified and destination exists');
-
+    multi method rename (IO::Path:D: IO() $to, :$createonly --> True) {
         nqp::rename($.absolute, nqp::unbox_s($to.absolute));
-        CATCH { default {
-            fail X::IO::Rename.new:
-                :from($!abspath), :to($to.absolute), :os-error(.Str);
-        }}
     }
-
-    method copy(IO::Path:D: IO() $to, :$createonly --> True) {
-        $createonly and $to.e and fail X::IO::Copy.new:
-            :from($.absolute),
-            :to($to.absolute),
-            :os-error(':createonly specified and destination exists');
-
+    multi method copy   (IO::Path:D: IO() $to, :$createonly --> True) {
         # XXX TODO: maybe move the sameness check to the nqp OP/VM
         nqp::if(
             nqp::iseq_s(
@@ -464,71 +446,36 @@ my class IO::Path is Cool does IO {
             X::IO::Copy.new(:from($from-abs), :to($to-abs),
                 :os-error('source and target are the same')).fail,
             nqp::copy($from-abs, $to-abs));
-
-        CATCH { default {
-            fail X::IO::Copy.new:
-                :from($!abspath), :to($to.absolute), :os-error(.Str)
-        }}
     }
-
-    method move(IO::Path:D: |c --> True) {
-        self.copy(|c) orelse fail X::IO::Move.new: :from(.exception.from),
+    multi method move   (IO::Path:D: |c --> True)                   {
+        self.copy: |c orelse fail X::IO::Move.new: :from(.exception.from),
             :to(.exception.to), :os-error(.exception.os-error);
         self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
             :to(.exception.to), :os-error(.exception.os-error);
     }
-
-    method chmod(IO::Path:D: Int() $mode --> True) {
-        nqp::chmod($.absolute, nqp::unbox_i($mode));
-        CATCH { default {
-            fail X::IO::Chmod.new(
-              :path($!abspath), :$mode, :os-error(.Str) );
-        }}
+    multi method chmod  (IO::Path:D: Int() $mode --> True)          {
+        nqp::chmod($.absolute, nqp::unbox_i($mode))
     }
-    method unlink(IO::Path:D: --> True) {
+
+    multi method unlink (IO::Path:D: --> True)          {
         nqp::unlink($.absolute);
-        CATCH { default {
-            fail X::IO::Unlink.new( :path($!abspath), os-error => .Str );
-        }}
     }
-
-    method symlink(IO::Path:D: IO() $name --> True) {
-        nqp::symlink($.absolute, nqp::unbox_s($name.absolute));
-        CATCH { default {
-            fail X::IO::Symlink.new:
-                :target($!abspath), :name($name.absolute), :os-error(.Str);
-        }}
+    multi method symlink(IO::Path:D: IO() $to --> True) {
+        nqp::symlink($.absolute, $to.absolute);
     }
-
-    method link(IO::Path:D: IO() $name --> True) {
+    multi method link   (IO::Path:D: IO() $to --> True) {
         nqp::link($.absolute, $name.absolute);
-        CATCH { default {
-            fail X::IO::Link.new:
-                :target($!abspath), :name($name.absolute), :os-error(.Str);
-        }}
     }
 
-    method mkdir(IO::Path:D: Int() $mode = 0o777) {
+    multi method mkdir(IO::Path:D: Int() $mode = 0o777 --> IO::Path) {
         nqp::mkdir($.absolute, $mode);
-        CATCH { default {
-            fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
-        }}
         self
     }
-
-    method rmdir(IO::Path:D: --> True) {
+    multi method rmdir(IO::Path:D: --> IO::Path) {
         nqp::rmdir($.absolute);
-        CATCH { default {
-            fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
-        }}
+        self
     }
-
-    proto method dir(|) {*} # make it possible to augment with multies from modulespace
     multi method dir(IO::Path:D: Mu :$test = $*SPEC.curupdir) {
-        CATCH { default {
-            X::IO::Dir.new(:path($.absolute), :os-error(.Str)).throw
-        } }
-
         my str $dir-sep  = $!SPEC.dir-sep;
         my int $absolute = $.is-absolute;
 
@@ -580,142 +527,69 @@ my class IO::Path is Cool does IO {
         }
     }
 
-    proto method slurp() {*}
-    multi method slurp(IO::Path:D: :$enc, :$bin) {
-        # We use an IO::Handle in binary mode, and then decode the string
-        # all in one go, which avoids the overhead of setting up streaming
-        # decoding.
-        nqp::if(
-            nqp::istype((my $handle := IO::Handle.new(:path(self)).open(:bin)), Failure),
-            $handle,
-            nqp::stmts(
-                (my $blob := $handle.slurp(:close)),
-                nqp::if($bin, $blob, nqp::join("\n",
-                  nqp::split("\r\n", $blob.decode: $enc || 'utf-8')))
-            ))
+    multi method slurp(IO::Path:D: :$enc, :$bin --> IO::Handle) {
+        IO::Handle.new(:path(self)).open(:bin)
     }
-
-    method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly) {
-        my $fh := self.open:
+    multi method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly --> IO::Handle) {
+        my int $truncate = nqp::if(
+            nqp::isfalse(nqp::decont($append)),
+            nqp::isfalse(nqp::decont($createonly))
+        );
+        self.open:
             :$enc,     :bin(nqp::istype($data, Blob)),
             :mode<wo>, :create, :exclusive($createonly),
-            :$append,  :truncate(
-                nqp::if(nqp::isfalse($append), nqp::isfalse($createonly))
-            );
-        nqp::if( nqp::istype($fh, Failure), $fh, $fh.spurt($data, :close) )
+            :$append,  :$truncate
     }
 
-    # XXX TODO: when we get definedness-based defaults in core, use them in
-    # IO::Handle.open and get rid of duplication of default values here
-    method lines(IO::Path:D:
-        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
-    ) {
-        self.open(:$chomp, :$enc, :$nl-in).lines: |c, :close
+    multi method e       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-E: $.absolute # must be $.absolute
     }
-    method comb(IO::Path:D:
-        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
-    ) {
-        self.open(:$chomp, :$enc, :$nl-in).comb:  |c, :close
+    multi method d       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-D: $!abspath
     }
-    method split(IO::Path:D:
-        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
-    ) {
-        self.open(:$chomp, :$enc, :$nl-in).split: |c, :close
+    multi method f       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-F: $!abspath
     }
-    method words(IO::Path:D:
-        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
-    ) {
-        self.open(:$chomp, :$enc, :$nl-in).words: |c, :close
+    multi method s       (IO::Path:D: --> Int)    {
+        nqp::p6box_i(Rakudo::Internals.FILETEST-S: $!abspath)
     }
-
-    method e(IO::Path:D: --> Bool:D) {
-        ?Rakudo::Internals.FILETEST-E($.absolute) # must be $.absolute
-    }
-    method d(IO::Path:D: --> Bool:D) {
-        $.e
-          ?? ?Rakudo::Internals.FILETEST-D($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<d>))
-    }
-
-    method f(IO::Path:D: --> Bool:D) {
-        $.e
-          ?? ?Rakudo::Internals.FILETEST-F($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<f>))
-    }
-
-    method s(IO::Path:D: --> Int:D) {
-        $.e
-          ?? Rakudo::Internals.FILETEST-S($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<s>))
-    }
-
-    method l(IO::Path:D: --> Bool:D) {
+    multi method l       (IO::Path:D: --> Bool)    {
         ?Rakudo::Internals.FILETEST-LE($.absolute)
           ?? ?Rakudo::Internals.FILETEST-L($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<l>))
+          !! Failure.new: X::IO::DoesNotExist.new: :at($!abspath), :trying<l>
     }
-
-    method r(IO::Path:D: --> Bool:D) {
-        $.e
-          ?? ?Rakudo::Internals.FILETEST-R($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<r>))
+    multi method z       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-Z: $!abspath
     }
-
-    method w(IO::Path:D: --> Bool:D) {
-        $.e
-          ?? ?Rakudo::Internals.FILETEST-W($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<w>))
+    multi method r       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-R: $!abspath
     }
-
-    method rw(IO::Path:D: --> Bool:D) {
-        $.e
-          ?? ?Rakudo::Internals.FILETEST-RW($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rw>))
+    multi method w       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-W: $!abspath
     }
-
-    method x(IO::Path:D: --> Bool:D) {
-        $.e
-          ?? ?Rakudo::Internals.FILETEST-X($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<x>))
+    multi method x       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-X: $!abspath
     }
-
-    method rwx(IO::Path:D: --> Bool:D) {
-        $.e
-          ?? ?Rakudo::Internals.FILETEST-RWX($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<rwx>))
+    multi method rw      (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-RW: $!abspath
     }
-
-    method z(IO::Path:D: --> Bool:D) {
-        $.e
-          ?? ?Rakudo::Internals.FILETEST-Z($!abspath)
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<z>))
+    multi method rwx     (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-RWX: $!abspath
     }
-
-    method modified(IO::Path:D: --> Instant:D) {
-        $.e
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!abspath))
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<modified>))
+    multi method modified(IO::Path:D: --> Instant) {
+        Instant.from-posix: Rakudo::Internals.FILETEST-MODIFIED: $!abspath
     }
-
-    method accessed(IO::Path:D: --> Instant:D) {
-        $.e
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!abspath))
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<accessed>))
+    multi method accessed(IO::Path:D: --> Instant) {
+        Instant.from-posix: Rakudo::Internals.FILETEST-ACCESSED: $!abspath
     }
-
-    method changed(IO::Path:D: --> Instant:D) {
-        $.e
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<changed>))
+    multi method changed (IO::Path:D: --> Instant) {
+        Instant.from-posix: Rakudo::Internals.FILETEST-CHANGED: $!abspath
     }
-
-    method mode(IO::Path:D: --> IntStr:D) {
-        $.e
-          ?? nqp::stmts(
-              (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
-              IntStr.new($mode, sprintf('%04o', $mode))
-            )
-          !! Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:trying<mode>))
+    multi method mode    (IO::Path:D: --> IntStr)  {
+        nqp::stmts(
+          (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
+          IntStr.new($mode, sprintf('%04o', $mode))
+        )
     }
 }
 

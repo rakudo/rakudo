@@ -111,8 +111,8 @@ my role IO::Socket {
         $!PIO := nqp::null;
     }
 
-    method native-descriptor(::?CLASS:D:) {
-        nqp::filenofh($!PIO)
+    method native-descriptor(::?CLASS:D: --> IO::FileDescriptor) {
+        IO::FileDescriptor.new: nqp::filenofh($!PIO)
     }
 }
 

@@ -46,6 +46,8 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method Capture() { die X::Cannot::Capture.new: :what(self) }
 
+    method IO(Int:D: --> IO::FileDesc) { IO::FileDesc.new: self }
+
     method Int(--> Int) { self }
 
     multi method Str(Int:D: --> Str:D) {

@@ -1,5 +1,6 @@
-my class IO::Path { ... }
-my class Proc { ... }
+my class IO::Path           { ... }
+my class IO::NativeDescriptor { ... }
+my class Proc               { ... }
 
 my class IO::Handle {
     has int $!fd;
@@ -856,9 +857,9 @@ my class IO::Handle {
         )
     }
 
-    method native-descriptor(IO::Handle:D: --> IO::FileDescriptor) {
+    method native-descriptor(IO::Handle:D: --> IO::NativeDescriptor) {
         nqp::defined($!PIO) or die 'File handle not open, so cannot get native descriptor';
-        IO::FileDescriptor.new: nqp::if(
+        IO::NativeDescriptor.new: nqp::if(
           nqp::isconcrete($!path) && nqp::iseq_i($!fd, -1),
           nqp::bindattr_i(self, IO::Handle, '$!fd', nqp::filenofh($!PIO)),
           nqp::getattr_i(self, IO::Handle, '$!fd')

@@ -113,6 +113,7 @@ src/core/IO/Special.pm6
 src/core/IO/Handle.pm6
 src/core/IO/Pipe.pm6
 src/core/IO/Path.pm6
+src/core/IO/NativeDescriptor.pm6
 src/core/io_operators.pm6
 src/core/IO/CatHandle.pm6
 src/core/IO/ArgFiles.pm6

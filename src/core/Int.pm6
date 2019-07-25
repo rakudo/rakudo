@@ -46,7 +46,7 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method Capture() { die X::Cannot::Capture.new: :what(self) }
 
-    method IO(Int:D: --> IO::FileDesc) { IO::FileDesc.new: self }
+    method IO(Int:D: --> IO::NativeDescriptor) { IO::NativeDescriptor.new: self }
 
     method Int(--> Int) { self }
 

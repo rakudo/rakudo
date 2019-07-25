@@ -531,14 +531,14 @@ my class IO::Path is Cool does IO {
         IO::Handle.new(:path(self)).open(:bin)
     }
     multi method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly --> IO::Handle) {
-        my int $truncate = nqp::if(
-            nqp::isfalse(nqp::decont($append)),
-            nqp::isfalse(nqp::decont($createonly))
-        );
         self.open:
-            :$enc,     :bin(nqp::istype($data, Blob)),
-            :mode<wo>, :create, :exclusive($createonly),
-            :$append,  :$truncate
+            :$enc,                   :bin(nqp::istype($data, Blob)),
+            :mode<wo>,               :create,
+            :exclusive($createonly), :$append,
+            :truncate(nqp::if(
+                nqp::isfalse(nqp::decont($append)),
+                nqp::isfalse(nqp::decont($createonly))
+            ))
     }
 
     multi method e       (IO::Path:D: --> Bool)    {

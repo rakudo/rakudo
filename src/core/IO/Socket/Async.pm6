@@ -208,8 +208,8 @@ my class IO::Socket::Async {
             self.bless(:&on-close, :$VMIO-tobe, :$socket-host, :$socket-port);
         }
 
-        method native-descriptor(--> IO::FileDescriptor) {
-            IO::FileDescriptor.new: nqp::filenofh(await $!VMIO-tobe)
+        method native-descriptor(--> IO::NativeDescriptor) {
+            IO::NativeDescriptor.new: nqp::filenofh(await $!VMIO-tobe)
         }
     }
 
@@ -309,8 +309,8 @@ my class IO::Socket::Async {
             :$host, :$port, :$backlog, :$encoding, :$scheduler
     }
 
-    method native-descriptor(--> IO::FileDescriptor) {
-        IO::FileDescriptor.new: nqp::filenofh($!VMIO)
+    method native-descriptor(--> IO::NativeDescriptor) {
+        IO::NativeDescriptor.new: nqp::filenofh($!VMIO)
     }
 
     sub setup-close(\socket --> Nil) {

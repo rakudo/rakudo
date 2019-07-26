@@ -230,6 +230,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         if not $force and $io.e and $io.s {
             $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
+            with %*COMPILING<%?OPTIONS><stagestats> {
+                note "\n    load    $path.relative()";
+                $*ERR.flush;
+            }
             self.store.unlock;
             return True;
         }
@@ -263,7 +267,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         #note "running PrecompRepo.precompile";
         #note "is stagestats set? { +%*COMPILING<%?OPTIONS><stagestats> } { ~%*COMPILING<%?OPTIONS><stagestats> }";
         with %*COMPILING<%?OPTIONS><stagestats> {
-            note "\nprecomp $path.relative()";
+            note "\n    precomp $path.relative()";
             $*ERR.flush;
         }
         react {
@@ -290,6 +294,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             with %*COMPILING<%?OPTIONS><stagestats> {
                 whenever $proc.stderr.lines {
                     note("    $_");
+                    $*ERR.flush;
                 }
             }
             whenever $proc.start(ENV => %env) {

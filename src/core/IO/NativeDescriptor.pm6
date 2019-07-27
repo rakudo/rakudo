@@ -57,69 +57,67 @@ my class IO::NativeDescriptor is Int does IO {
         )
     }
 
-    multi method slurp(IO::NativeDescriptor:D: :$enc, :$bin --> IO::Handle:D) {
-        IO::Handle.new(:file(self)).open(:$enc, :$bin)
-    }
-    multi method spurt(IO::NativeDescriptor:D:
-        $data, :$enc, :$append, :$createonly --> IO::Handle:D
-    ) {
-        self.open:
-            :$enc,                   :bin(nqp::istype($data, Blob)),
-            :mode<wo>,               :create,
-            :exclusive($createonly), :$append,
-            :truncate(nqp::if(
-                nqp::isfalse(nqp::decont($append)),
-                nqp::isfalse(nqp::decont($createonly))
-            ));
-    }
-
     multi method e       (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-E: self
     }
     multi method d       (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-D: self
     }
     multi method f       (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-F: self
     }
     multi method s       (IO::NativeDescriptor:D: --> Int)     {
+        # TODO: refactor RI to actually make this work.
         nqp::p6box_i(Rakudo::Internals.FILETEST-S: self)
     }
     multi method l       (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-LE(self)
             ?? ?Rakudo::Internals.FILETEST-L(self)
             !! Failure.new: X::IO::DoesNotExist.new: :at(self), :trying<l>
     }
     multi method z       (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-Z: self
     }
     multi method r       (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-R: self
     }
     multi method w       (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-W: self
     }
     multi method x       (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-X: self
     }
     multi method rw      (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-RW: self
     }
     multi method rwx     (IO::NativeDescriptor:D: --> Bool)    {
+        # TODO: refactor RI to actually make this work.
         ?Rakudo::Internals.FILETEST-RWX: self
     }
     multi method modified(IO::NativeDescriptor:D: --> Instant) {
+        # TODO: refactor RI to actually make this work.
         Instant.from-posix: Rakudo::Internals.FILETEST-MODIFIED: self
     }
     multi method accessed(IO::NativeDescriptor:D: --> Instant) {
+        # TODO: refactor RI to actually make this work.
         Instant.from-posix: Rakudo::Internals.FILETEST-ACCESSED: self
     }
     multi method changed (IO::NativeDescriptor:D: --> Instant) {
+        # TODO: refactor RI to actually make this work.
         Instant.from-posix: Rakudo::Internals.FILETEST-CHANGED: self
     }
     multi method mode    (IO::NativeDescriptor:D: --> IntStr)  {
         nqp::stmts(
-          (my int $mode = Rakudo::Internals.FILETEST-MODE: self),
+          (my int $mode = nqp::fstat(nqp::unbox_i(self), nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
           IntStr.new: $mode, sprintf '%04o', $mode
         )
     }
@@ -134,22 +132,6 @@ my class IO::NativeDescriptor is Int does IO {
         Failure.new: X::NYI.new: :feature<watchfd>
     }
 #?endif
-    multi method rename(IO::NativeDescriptor:D: IO() $to, :$createonly --> Bool) {
-        # TODO: implement nqp::renamefd
-        # nqp::hllbool(nqp::renamefd(nqp::unbox_i(self), nqp::unbox_s($to.Str)))
-        Failure.new: X::NYI.new: :feature<renamefd>
-    }
-    multi method copy  (IO::NativeDescriptor:D: IO() $to, $createonly --> Bool)  {
-        # TODO: implement nqp::copyfd
-        # nqp::hllbool(nqp::copyfd(nqp::unbox_i(self), nqp::unbox_s($to.Str)))
-        Failure.new: X::NYI.new: :feature<copyfd>
-    }
-    multi method move  (IO::NativeDescriptor:D: |c --> True)                     {
-        self.copy(|c) orelse fail X::IO::Move.new: :from(.exception.from),
-            :to(.exception.to), :os-error(.exception.os-error);
-        self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
-            :to(.exception.to), :os-error(.exception.os-error);
-    }
     multi method chmod (IO::NativeDescriptor:D: Int() $mode --> Bool)            {
         # TODO: implement nqp::chmodfd
         # nqp::hllbool(nqp::chmodfd(nqp::unbox_i(self), nqp::decont_i($mode)))

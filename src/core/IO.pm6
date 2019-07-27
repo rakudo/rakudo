@@ -13,6 +13,7 @@ my class IO::Notification { ... }
 
 my role IO {
     # Stringification methods
+    # These *must* be implemented by whatever class is doing this role.
 
     # multi method Str (IO:D: --> Str:D) { ... }
     # multi method gist(IO:D: --> Str:D) { ... }
@@ -20,12 +21,12 @@ my role IO {
 
     # File I/O methods
 
-    proto method slurp(IO:D: :$enc, :$bin, |) {
+    method slurp(IO:D: :$enc, :$bin) {
         # We use an IO::Handle in binary mode, and then decode the string
         # all in one go, which avoids the overhead of setting up streaming
         # decoding.
         nqp::if(
-          nqp::istype((my $handle := {*}), Failure),
+          nqp::istype((my $handle := IO::Handle.new(:file(self)).open(:bin)), Failure),
           $handle,
           nqp::stmts(
             (my $blob := $handle.slurp: :close),
@@ -37,32 +38,40 @@ my role IO {
           )
         )
     }
-    multi method slurp(IO:D: :$enc, :$bin) {
-        Failure.new: X::IO::NotAFile.new: :from(self), :trying<slurp>
-    }
+    method spurt(IO:D: $data, :$enc, :$append, :$createonly) {
+        my $handle := self.open:
+            :$enc,     :bin(nqp::istype(nqp::decont($data), Blob)),
+            :mode<wo>, :create,
+            :$append,  :exclusive($createonly),
+            :truncate(nqp::if(
+                nqp::isfalse(nqp::decont($append)),
+                nqp::isfalse(nqp::decont($createonly))
+            ));
 
-    proto method spurt(IO:D: $data, :$enc, :$append, :$createonly, |) {
-        my $handle := {*};
         nqp::if(
           nqp::istype($handle, Failure),
           $handle,
           $handle.spurt: $data, :close
         )
     }
-    multi method spurt(IO:D: $data, :$enc, :$append, :$createonly, |) {
-        Failure.new: X::IO::NotAFile.new: :from(self), :trying<spurt>
-    }
-
-    method lines(IO:D: :$chomp, :$enc, :$nl-in, |c) {
+    method lines(
+        IO:D: :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
         self.open(:$chomp, :$enc, :$nl-in).lines(|c, :close)
     }
-    method comb (IO:D: :$chomp, :$enc, :$nl-in, |c) {
+    method comb (
+        IO:D: :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
         self.open(:$chomp, :$enc, :$nl-in).comb(|c, :close)
     }
-    method split(IO:D: :$chomp, :$enc, :$nl-in, |c) {
+    method split(
+        IO:D: :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
         self.open(:$chomp, :$enc, :$nl-in).split(|c, :close)
     }
-    method words(IO:D: :$chomp, :$enc, :$nl-in, |c) {
+    method words(
+        IO:D: :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
         self.open(:$chomp, :$enc, :$nl-in).words(|c, :close)
     }
 
@@ -142,7 +151,6 @@ my role IO {
     }
     # multi method mode(IO:D: --> IntStr) { ... }
 
-
     # Regular file methods (i.e. files that aren't special)
 
     proto method open(IO:D: |c --> IO::Handle) {*}
@@ -156,6 +164,17 @@ my role IO {
         Failure.new: X::IO::NotAFile.new: :from(self), :trying<watch>
     }
 #?endif
+
+    proto method chmod(IO:D: Int() $mode, | --> Bool) {
+        return {*};
+
+        CATCH { default {
+            fail X::IO::Chmod.new: :from(self), :$mode, :os-error(.Str);
+        } }
+    }
+    multi method chmod(IO:D: Int() $mode, | --> Bool) {
+        Failure.new: X::IO::NotAFile.new: :from(self), :trying<chmod>
+    }
 
     proto method rename(IO:D: IO() $to, :$createonly, | --> Bool) {
         nqp::unless(
@@ -178,7 +197,7 @@ my role IO {
         } }
     }
     multi method rename(IO:D: IO() $to, :$createonly, | --> Bool) {
-        Failure.new: X::IO::NotAFile.new: :from(self), :trying<rename>
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<rename>
     }
 
     proto method copy(IO:D: IO() $to, :$createonly, | --> Bool) {
@@ -202,23 +221,12 @@ my role IO {
         } }
     }
     multi method copy(IO:D: IO() $to, :$createonly, | --> Bool) {
-        Failure.new: X::IO::NotAFile.new: :from(self), :trying<copy>
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<copy>
     }
 
     proto method move(IO:D: | --> Bool) {*}
     multi method move(IO:D: | --> Bool) {
-        Failure.new: X::IO::NotAFile.new: :from(self), :trying<move>
-    }
-
-    proto method chmod(IO:D: Int() $mode, | --> Bool) {
-        return {*};
-
-        CATCH { default {
-            fail X::IO::Chmod.new: :from(self), :$mode, :os-error(.Str);
-        } }
-    }
-    multi method chmod(IO:D: Int() $mode, | --> Bool) {
-        Failure.new: X::IO::NotAFile.new: :from(self), :trying<chmod>
+        Failure.new: X::IO::NotAPath.new: :from(self), :trying<move>
     }
 
     # File link methods
@@ -299,7 +307,7 @@ my role IO {
         return {*};
 
         CATCH { default {
-            fail X::IO::Dir.new: :path(self), :os-error(.Str);
+            die X::IO::Dir.new: :path(self), :os-error(.Str);
         } }
     }
     multi method dir(IO:D: Mu :$test, |) {

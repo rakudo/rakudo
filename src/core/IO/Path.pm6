@@ -383,14 +383,68 @@ my class IO::Path is Cool does IO {
         self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
     }
 
+    multi method e       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-E: $.absolute # must be $.absolute
+    }
+    multi method d       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-D: $!abspath
+    }
+    multi method f       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-F: $!abspath
+    }
+    multi method s       (IO::Path:D: --> Int)     {
+        nqp::p6box_i(Rakudo::Internals.FILETEST-S: $!abspath)
+    }
+    multi method l       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-LE($.absolute)
+          ?? ?Rakudo::Internals.FILETEST-L($!abspath)
+          !! Failure.new: X::IO::DoesNotExist.new: :at($!abspath), :trying<l>
+    }
+    multi method z       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-Z: $!abspath
+    }
+    multi method r       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-R: $!abspath
+    }
+    multi method w       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-W: $!abspath
+    }
+    multi method x       (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-X: $!abspath
+    }
+    multi method rw      (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-RW: $!abspath
+    }
+    multi method rwx     (IO::Path:D: --> Bool)    {
+        ?Rakudo::Internals.FILETEST-RWX: $!abspath
+    }
+    multi method modified(IO::Path:D: --> Instant) {
+        Instant.from-posix: Rakudo::Internals.FILETEST-MODIFIED: $!abspath
+    }
+    multi method accessed(IO::Path:D: --> Instant) {
+        Instant.from-posix: Rakudo::Internals.FILETEST-ACCESSED: $!abspath
+    }
+    multi method changed (IO::Path:D: --> Instant) {
+        Instant.from-posix: Rakudo::Internals.FILETEST-CHANGED: $!abspath
+    }
+    multi method mode    (IO::Path:D: --> IntStr)  {
+        nqp::stmts(
+          (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
+          IntStr.new: $mode, sprintf '%04o', $mode
+        )
+    }
+
     multi method open   (IO::Path:D: |c --> IO::Handle)               {
         IO::Handle.new(:file(self)).open(|c)
     }
 #?if moar
     multi method watch  (IO::Path:D: --> IO::Notification)            {
-        IO::Notification.watch-path($.absolute);
+        IO::Notification.watch-path: $.absolute
     }
 #?endif
+    multi method chmod  (IO::Path:D: Int() $mode --> True)            {
+        nqp::chmod($.absolute, nqp::unbox_i($mode))
+    }
     multi method rename (IO::Path:D: IO() $to, :$createonly --> True) {
         nqp::rename($.absolute, nqp::unbox_s($to.absolute));
     }
@@ -409,9 +463,6 @@ my class IO::Path is Cool does IO {
             :to(.exception.to), :os-error(.exception.os-error);
         self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
             :to(.exception.to), :os-error(.exception.os-error);
-    }
-    multi method chmod  (IO::Path:D: Int() $mode --> True)            {
-        nqp::chmod($.absolute, nqp::unbox_i($mode))
     }
 
     multi method unlink (IO::Path:D: --> True)          {
@@ -535,71 +586,6 @@ my class IO::Path is Cool does IO {
             nqp::closedir($dirh);
           }
         }
-    }
-
-    multi method slurp(IO::Path:D: :$enc, :$bin --> IO::Handle)                         {
-        IO::Handle.new(:file(self)).open(:bin)
-    }
-    multi method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly --> IO::Handle) {
-        self.open:
-            :$enc,                   :bin(nqp::istype($data, Blob)),
-            :mode<wo>,               :create,
-            :exclusive($createonly), :$append,
-            :truncate(nqp::if(
-                nqp::isfalse(nqp::decont($append)),
-                nqp::isfalse(nqp::decont($createonly))
-            ))
-    }
-
-    multi method e       (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-E: $.absolute # must be $.absolute
-    }
-    multi method d       (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-D: $!abspath
-    }
-    multi method f       (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-F: $!abspath
-    }
-    multi method s       (IO::Path:D: --> Int)     {
-        nqp::p6box_i(Rakudo::Internals.FILETEST-S: $!abspath)
-    }
-    multi method l       (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-LE($.absolute)
-          ?? ?Rakudo::Internals.FILETEST-L($!abspath)
-          !! Failure.new: X::IO::DoesNotExist.new: :at($!abspath), :trying<l>
-    }
-    multi method z       (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-Z: $!abspath
-    }
-    multi method r       (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-R: $!abspath
-    }
-    multi method w       (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-W: $!abspath
-    }
-    multi method x       (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-X: $!abspath
-    }
-    multi method rw      (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-RW: $!abspath
-    }
-    multi method rwx     (IO::Path:D: --> Bool)    {
-        ?Rakudo::Internals.FILETEST-RWX: $!abspath
-    }
-    multi method modified(IO::Path:D: --> Instant) {
-        Instant.from-posix: Rakudo::Internals.FILETEST-MODIFIED: $!abspath
-    }
-    multi method accessed(IO::Path:D: --> Instant) {
-        Instant.from-posix: Rakudo::Internals.FILETEST-ACCESSED: $!abspath
-    }
-    multi method changed (IO::Path:D: --> Instant) {
-        Instant.from-posix: Rakudo::Internals.FILETEST-CHANGED: $!abspath
-    }
-    multi method mode    (IO::Path:D: --> IntStr)  {
-        nqp::stmts(
-          (my int $mode = nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE) +& 0o7777),
-          IntStr.new($mode, sprintf('%04o', $mode))
-        )
     }
 }
 

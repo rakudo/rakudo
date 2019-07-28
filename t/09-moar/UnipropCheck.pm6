@@ -27,7 +27,7 @@ use nqp;
 sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$answer-column is copy) is export {
     note "File: $file-name" if $*DEBUG;
     $answer-column = 1 if !defined $answer-column;
-    $folder = $*CWD.child("t/3rdparty/Unicode/11.0.0") if !$folder;
+    $folder = $*CWD.child("t/3rdparty/Unicode/12.1.0") if !$folder;
     %LOSE-NUM{$file-name}{$uniprop} = 0 if %LOSE-NUM{$file-name}{$uniprop}:!exists;
     %WIN-NUM{$file-name}{$uniprop}  = 0 if %WIN-NUM{$file-name}{$uniprop}:!exists;
     my IO::Path:D $file = $folder.child: $file-name;

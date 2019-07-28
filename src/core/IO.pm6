@@ -187,11 +187,6 @@ my role IO {
     }
 
     proto method rename(IO:D: IO() $to, :$createonly, | --> Bool) {
-        nqp::unless(
-          nqp::istype(nqp::decont($to), IO::Path),
-          fail X::IO::NotAPath.new: :from(self), :$to, :trying<rename>
-        );
-
         nqp::if(
           $createonly && $to.e,
           fail X::IO::Rename.new:
@@ -211,11 +206,6 @@ my role IO {
     }
 
     proto method copy(IO:D: IO() $to, :$createonly, | --> Bool) {
-        nqp::unless(
-          nqp::istype(nqp::decont($to), IO::Path),
-          fail X::IO::NotAPath.new: :from(self), :$to, :trying<copy>
-        );
-
         nqp::if(
           $createonly && $to.e,
           fail X::IO::Copy.new:
@@ -253,11 +243,6 @@ my role IO {
     }
 
     proto method symlink(IO:D: IO() $to, | --> Bool) {
-        nqp::unless(
-          nqp::istype(nqp::decont($to), IO::Path),
-          X::IO::NotAPath.new: :from(self), :$to, :trying<link>
-        );
-
         return {*};
 
         CATCH { default {
@@ -269,11 +254,6 @@ my role IO {
     }
 
     proto method link(IO:D: IO() $to, | --> Bool) {
-        nqp::unless(
-          nqp::istype(nqp::decont($to), IO::Path),
-          X::IO::NotAPath.new: :from(self), :$to, :trying<link>
-        );
-
         return {*};
 
         CATCH { default {

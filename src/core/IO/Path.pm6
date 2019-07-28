@@ -462,10 +462,18 @@ my class IO::Path is Cool does IO {
         nqp::chmod($.absolute, nqp::unbox_i($mode))
     }
     multi method rename (IO::Path:D: IO() $to, :$createonly --> True) {
+        nqp::unless(
+          nqp::istype(nqp::decont($to), IO::Path),
+          fail X::IO::NotAPath.new: :from(self), :$to, :trying<rename>
+        );
         nqp::rename($.absolute, nqp::unbox_s($to.absolute));
     }
     multi method copy   (IO::Path:D: IO() $to, :$createonly --> True) {
         # XXX TODO: maybe move the sameness check to the nqp OP/VM
+        nqp::unless(
+          nqp::istype(nqp::decont($to), IO::Path),
+          fail X::IO::NotAPath.new: :from(self), :$to, :trying<copy>
+        );
         nqp::if(
             nqp::iseq_s(
                 (my $from-abs :=   $.absolute),
@@ -485,9 +493,17 @@ my class IO::Path is Cool does IO {
         nqp::unlink($.absolute);
     }
     multi method symlink(IO::Path:D: IO() $to --> True) {
+        nqp::unless(
+          nqp::istype(nqp::decont($to), IO::Path),
+          X::IO::NotAPath.new: :from(self), :$to, :trying<symlink>
+        );
         nqp::symlink($.absolute, $to.absolute);
     }
     multi method link   (IO::Path:D: IO() $to --> True) {
+        nqp::unless(
+          nqp::istype(nqp::decont($to), IO::Path),
+          X::IO::NotAPath.new: :from(self), :$to, :trying<link>
+        );
         nqp::link($.absolute, $to.absolute);
     }
 

@@ -1,3 +1,9 @@
+New in 2019.07.1:
+  + Build system:
+    + Fixed issues when installing into `/usr` [f41db044]
+    + Fixed unnecessary use of `git` in release tarballs [540926bf][e18b4f3b]
+    + Fixed intermittent failures in one of the performance tests [bd29d3f6]
+
 New in 2019.07:
   + SPECIAL NOTES:
     + Upcoming releases after this one will have a different changelog format

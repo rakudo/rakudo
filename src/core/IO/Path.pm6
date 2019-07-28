@@ -434,6 +434,22 @@ my class IO::Path is Cool does IO {
         )
     }
 
+    multi method open-native(IO::Path:D:
+        :$mode, :$create, :$append, :$truncate, :$exclusive --> Mu
+    ) {
+        nqp::open(
+          $.absolute,
+          nqp::concat(
+            nqp::if(nqp::iseq_s($mode, 'ro'), 'r',
+            nqp::if(nqp::iseq_s($mode, 'wo'), '-',
+            nqp::if(nqp::iseq_s($mode, 'rw'), '+',
+              die "Unknown mode '$mode'"))),
+            nqp::concat(nqp::if($create,      'c', ''),
+            nqp::concat(nqp::if($append,      'a', ''),
+            nqp::concat(nqp::if($truncate,    't', ''),
+                        nqp::if($exclusive,   'x', ''))))))
+    }
+
     multi method open   (IO::Path:D: |c --> IO::Handle)               {
         IO::Handle.new(:file(self)).open(|c)
     }

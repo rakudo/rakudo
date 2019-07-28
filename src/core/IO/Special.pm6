@@ -52,6 +52,19 @@ my class IO::Special does IO {
     multi method accessed(IO::Special:D: --> Instant) { Instant }
     multi method changed (IO::Special:D: --> Instant) { Instant }
     multi method mode    (IO::Special:D: --> IntStr)  { IntStr  }
+
+    multi method open-native(IO::Special:D:
+        :$mode, :$create, :$append, :$truncate, :$exclusive --> Mu
+    ) {
+        given $!what {
+            when '<STDIN>'  { nqp::getstdin()  }
+            when '<STDOUT>' { nqp::getstdout() }
+            when '<STDERR>' { nqp::getstderr() }
+            default         {
+                die "Don't know how to open '$!what' especially";
+            }
+        }
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

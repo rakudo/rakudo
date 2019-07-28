@@ -122,19 +122,24 @@ my class IO::NativeDescriptor is Int does IO {
         )
     }
 
-    multi method open  (IO::NativeDescriptor:D: |c --> IO::Handle)               {
+    multi method open-native(IO::NativeDescriptor:D:
+        :$mode, :$create, :$append, :$truncate, :$exclusive --> Mu
+    ) {
+        nqp::fdopen(nqp::unbox_i(self))
+    }
+    multi method open  (IO::NativeDescriptor:D: |c --> IO::Handle)    {
         IO::Handle.new(:file(self)).open(|c)
     }
 #?if moar
-    multi method watch (IO::NativeDescriptor:D: --> IO::Notification)            {
-        # TODO: implement nqp::watchfd
+    multi method watch (IO::NativeDescriptor:D: --> IO::Notification) {
+        # TODO: implement nqp::fdwatch
         # IO::Notification.watch-file: self
         Failure.new: X::NYI.new: :feature<watchfd>
     }
 #?endif
-    multi method chmod (IO::NativeDescriptor:D: Int() $mode --> Bool)            {
-        # TODO: implement nqp::chmodfd
-        # nqp::hllbool(nqp::chmodfd(nqp::unbox_i(self), nqp::decont_i($mode)))
+    multi method chmod (IO::NativeDescriptor:D: Int() $mode --> Bool) {
+        # TODO: implement nqp::fdchmod
+        # nqp::hllbool(nqp::fdchmod(nqp::unbox_i(self), nqp::decont_i($mode)))
         Failure.new: X::NYI.new: :feature<chmodfd>
     }
 }

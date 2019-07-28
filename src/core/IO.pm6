@@ -6,6 +6,7 @@ my class Instant { ... }
 my class IO::Path         { ... }
 my class IO::Special      { ... }
 # IO::NativeDescriptor is stubbed in src/core/Int.pm6.
+# IO::Handle is stubbed in src/core/Rakudo/Internals.pm6.
 my class IO::Notification { ... }
 
 # XXX FIXME: stubbing *anything* in IO makes MoarVM throw with this error
@@ -15,9 +16,9 @@ my role IO {
     # Stringification methods
     # These *must* be implemented by whatever class is doing this role.
 
-    # multi method Str (IO:D: --> Str:D) { ... }
-    # multi method gist(IO:D: --> Str:D) { ... }
-    # multi method perl(IO:D: --> Str:D) { ... }
+    # multi method Str (::?CLASS:D: --> Str:D) { ... }
+    # multi method gist(::?CLASS:D: --> Str:D) { ... }
+    # multi method perl(::?CLASS:D: --> Str:D) { ... }
 
     # File I/O methods
 
@@ -152,6 +153,15 @@ my role IO {
     # multi method mode(IO:D: --> IntStr) { ... }
 
     # Regular file methods (i.e. files that aren't special)
+
+    # This method *must* be implemented by whatever class is doing this role.
+    # The return value must be a native file handle.
+    proto method open-native(IO:D:
+        :$mode, :$create, :$append, :$truncate, :$exclusive --> Mu
+    ) {*}
+    # multi method open-native(::?CLASS:D:
+    #     :$mode, :$create, :$append, :$truncate, :$exclusive --> Mu
+    # ) { ... }
 
     proto method open(IO:D: |c --> IO::Handle) {*}
     multi method open(IO:D: |c --> IO::Handle) {

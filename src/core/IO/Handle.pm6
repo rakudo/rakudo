@@ -124,50 +124,15 @@ my class IO::Handle {
 
         fail X::IO::Directory.new(:$.path, :trying<open>) if $!file.d;
 
-        my Bool $bom;
-        if nqp::istype($!file, IO::Path) {
+        {
+            $!PIO := $!file.open-native: :$mode, :$create, :$append, :$truncate, :$exclusive;
             CATCH { .fail }
-            $!PIO := nqp::open(
-              $!file.absolute,
-              nqp::concat(
-                nqp::if(nqp::iseq_s($mode, 'ro'), 'r',
-                nqp::if(nqp::iseq_s($mode, 'wo'), '-',
-                nqp::if(nqp::iseq_s($mode, 'rw'), '+',
-                  die "Unknown mode '$mode'"))),
-                nqp::concat(nqp::if($create,      'c', ''),
-                nqp::concat(nqp::if($append,      'a', ''),
-                nqp::concat(nqp::if($truncate,    't', ''),
-                            nqp::if($exclusive,   'x', ''))))));
-            $bom = True;
+        }
+
+        my Bool $file-not-special = $!file.f || $!file.d || $!file.l;
 #?if moar
-            self!remember-to-close;
+        self!remember-to-close if $file-not-special;
 #?endif
-        }
-        elsif nqp::istype($!file, IO::Special) {
-            my $what := $!file.what;
-            if $what eq '<STDIN>' {
-                $!PIO := nqp::getstdin();
-            }
-            elsif $what eq '<STDOUT>' {
-                $!PIO := nqp::getstdout();
-            }
-            elsif $what eq '<STDERR>' {
-                $!PIO := nqp::getstderr();
-            }
-            else {
-                die "Don't know how to open '$what' especially";
-            }
-            $bom = False;
-        }
-        elsif nqp::istype($!file, IO::NativeDescriptor) {
-            $!PIO := nqp::fdopen(nqp::unbox_i($!file));
-            $bom   = $!file.f;
-        }
-        else {
-            # XXX TODO: abstract this entire if out of IO::Handle.open and
-            # implement it in IO so custom IO classes can be used.
-            die "The type of file given to '.open' is unsupported: '$!file'."
-        }
 
         $!chomp = $chomp;
         $!nl-out = $nl-out;
@@ -178,8 +143,9 @@ my class IO::Handle {
             $!encoder := $encoding.encoder(:translate-nl);
             $!encoding = $encoding.name;
 
-            # Add a byte order mark to the start of the file for utf16.
-            if $bom && nqp::iseq_s($!encoding, 'utf16') {
+            # Add a byte order mark to the start of the file for utf16 if the
+            # file given isn't special.
+            if $file-not-special && nqp::iseq_s($!encoding, 'utf16') {
                 if $create && !$exclusive && (!$append || $append && $!file.s == 0) {
                     self.WRITE: Blob[uint16].new: 0xFEFF;
                 }

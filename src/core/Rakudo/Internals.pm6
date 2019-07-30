@@ -321,6 +321,8 @@ my class Rakudo::Internals {
       # ShiftJIS
       'windows-932',     'windows-932',
       'windows932',      'windows-932',
+      # GB2312
+      'gb2312',          'gb2312',
     );
     method NORMALIZE_ENCODING(Str:D \encoding) {
         nqp::ifnull(

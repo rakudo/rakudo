@@ -10,7 +10,7 @@ Windows
 - `nmake install`
 - `nmake test`
 - In `C:\rakudo` do `git clone https://github.com/ugexe/zef.git` and `cd zef` and `C:\rakudo\install\bin\perl6.exe -I. bin\zef install .`
-- Copy all files in the `Windows` folder into the `install` folder.
+- Copy all files in the `tools\build\binary-release\Windows` folder into the `install` folder.
 - Rename the `install` folder to `rakudo-20XX.XX`.
 - Create a `.zip` archive. Name it `rakudo-20XX.XX-windows-64bit.zip`.
 - Copy the `.zip` archive out of the Windows VM using the Virtual Box `File Manager` (*Machine -> File Manager...*)
@@ -42,7 +42,7 @@ As of 2019-07-08 CentOS 6 (using glibc 2.12) is a good pick.
     cd zef
     /rakudo-2019.03.1/install/bin/perl6 -I. bin/zef install .
     cd /rakudo-2019.03.1
-    cp -r tools/releasable/release-files/Linux/* install
+    cp -r tools/build/binary-release/Linux/* install
     mv install rakudo-2019.03.1
     tar -czf /rakudo-2019.03.1-linux-64bit.tar.gz rakudo-2019.03.1
 

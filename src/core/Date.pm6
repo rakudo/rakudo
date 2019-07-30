@@ -91,7 +91,7 @@ my class Date does Dateish {
         self.new(DateTime.new($i),:&formatter,|%_)
     }
     proto method new-from-daycount($) {*}
-    multi method new-from-daycount($daycount,:&formatter --> Date:D) {
+    multi method new-from-daycount(Date:U: $daycount,:&formatter --> Date:D) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)

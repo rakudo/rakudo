@@ -1,7 +1,7 @@
 Windows
 =======
 
-- Create a fresh Windows 10 VM as described in [the Windows guide](docs/windows.md) if you don't have an up to date Windows 10 available (the download is 20GB and turns unusable after ~ 2 months).
+- Create a fresh Windows 10 VM as described in [the Windows guide](windows.md) if you don't have an up to date Windows 10 available (the download is 20GB and turns unusable after ~ 2 months).
 - Install Git, Perl 5, and the C/C+ development tools as described in that guide.
 - Download the [latest release](http://rakudo.org/files/rakudo) and extract it to `C:\rakudo`. The path will end up in the finished build, so if you don't want some other path to end up persisted in the build in some buildsystem variable put it in `C:\rakudo`.
 - Open the 'Developer Command Prompt for VS 20XX'.

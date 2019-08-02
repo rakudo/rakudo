@@ -160,13 +160,15 @@ my class Date does Dateish {
             # exception, we just clip to the last of the month
             self.new($year,$month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$month)
-              !! $!day);
+              !! $!day,
+              :&!formatter)
         }
         else { # year
             my Int $year = $!year + $amount;
             self.new($year,$!month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$!month)
-              !! $!day);
+              !! $!day,
+              :&!formatter)
         }
     }
 

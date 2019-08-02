@@ -213,7 +213,18 @@ Sets the "pre" flag on the current frame.
 * p6sort(Mu @data, Mu &comparator)
 
 ## p6stateinit
-* p6stateinit()
+* p6stateinit(str $sym)
+
+Looks up the given symbol to determine if the associated variable (within this closure instance) has been assigned a value by the HLL. If so, we do not want to assign again.
+
+## p6stateinitbulk
+* p6stateinitbulk(list_s $symlist)
+
+Given a list of symbols, determine if the associated variables (within this closure instance) have been assigned a value by the HLL. Used to perform the state-initialization check on multiple variables at once (like in the case of a destructuring assignment).
+
+```perl6
+state ($a, $b, $c) = 1, 2, 3;
+```
 
 ## p6staticouter
 * p6staticouter(Mu $coderef)

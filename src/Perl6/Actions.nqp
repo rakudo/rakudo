@@ -2488,7 +2488,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
           :op('decont'),
           QAST::Op.new(
             :op('if'),
-            QAST::Op.new( :op('p6stateinit') ),
+            QAST::Op.new( :op('p6stateinit'), QAST::SVal.new( :value($sym) )),
             QAST::Op.new(
               :op('p6store'),
               WANTED(QAST::Var.new(:name($sym), :scope('lexical')),'once'),
@@ -3402,9 +3402,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
 
                     $past := QAST::Op.new( :op('if'),
-                        QAST::Op.new( :op('p6stateinit') ),
-                        $past,
-                        $orig_past);
+                        QAST::Op.new( :op('p6stateinit'),
+                            QAST::SVal.new( :value($orig_past.name) )),
+                        $past, $orig_past
+                    );
                     $past.nosink(1);
                 }
             }
@@ -3507,9 +3508,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     );
                 }
                 if $*SCOPE eq 'state' {
+                    my $syms := QAST::Op.new(:op<list_s>);
+                    my $i    := 0;
+                    while $i < nqp::elems($orig_list) {
+                        $syms.push(QAST::SVal.new( :value($orig_list[$i++].name) ));
+                    }
+
                     $list := QAST::Op.new( :op('if'),
-                        QAST::Op.new( :op('p6stateinit') ),
-                        $list, $orig_list);
+                        QAST::Op.new( :op('p6stateinitbulk'), $syms), $list, $orig_list
+                    );
                 }
             }
             elsif @nosigil {
@@ -3817,7 +3824,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 elsif %cont_info<build_ast> {
                     if $*SCOPE eq 'state' {
                         $past := QAST::Op.new( :op('if'),
-                            QAST::Op.new( :op('p6stateinit') ),
+                            QAST::Op.new( :op('p6stateinit'), QAST::SVal.new( :value($past.name) )),
                             QAST::Op.new( :op('bind'), $past, %cont_info<build_ast> ),
                             $past);
                     }

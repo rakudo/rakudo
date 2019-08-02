@@ -2,6 +2,7 @@ package org.perl6.rakudo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Calendar;
 import java.util.Comparator;
 import org.perl6.nqp.runtime.*;
@@ -498,8 +499,37 @@ public final class RakOps {
         return indices;
     }
 
-    public static long p6stateinit(ThreadContext tc) {
-        return tc.curFrame.stateInit ? 1 : 0;
+    private static long processStateInit(String sym, CodeRef cr) {
+        // Find num of lexical, so that we can mark it as HLL inited
+        int     idx       = cr.staticInfo.oTryGetLexicalIdx(sym);
+        boolean doHllInit = !cr.oLexStateIsHllInit.get(idx);
+
+        cr.oLexStateIsHllInit.set(idx);
+        return (long)(doHllInit ? 1 : 0);
+    }
+    public static long p6stateinit(String sym, ThreadContext tc) {
+        CodeRef cr = tc.curFrame.codeRef;
+        if (cr.oLexState != null) {
+            return processStateInit(sym, cr);
+        }
+        return 0;
+    }
+    public static long p6stateinitbulk(SixModelObject arr, ThreadContext tc) {
+        CodeRef cr = tc.curFrame.codeRef;
+        if (cr.oLexState != null) {
+            long elems = arr.elems(tc);
+            long res   = 1;
+            for (long i = 0; i < elems; i++) {
+                arr.at_pos_native(tc, i);
+                String sym = tc.native_s;
+
+                long initVal = processStateInit(sym, cr);
+                res &= initVal;
+                if ( res == 0 ) break;
+            }
+            return res;
+        }
+        return 0;
     }
 
     public static SixModelObject p6setfirstflag(SixModelObject codeObj, ThreadContext tc) {

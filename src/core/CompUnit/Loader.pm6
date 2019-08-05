@@ -34,7 +34,8 @@ class CompUnit::Loader is repr('Uninstantiable') {
     multi method load-precompilation-file(IO::Path $path --> CompUnit::Handle:D) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
-        my %*COMPILING := nqp::hash();
+        # '%?OPTIONS' is expected by some code; mainly by the World object
+        my %*COMPILING := nqp::hash('%?OPTIONS', nqp::hash());
         nqp::loadbytecode($path.Str);
         $handle
     }
@@ -42,7 +43,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
     multi method load-precompilation-file(IO::Handle $file --> CompUnit::Handle:D) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
-        my %*COMPILING := nqp::hash();
+        my %*COMPILING := nqp::hash('%?OPTIONS', nqp::hash());
 #?if !jvm
         # Switch file handle to binary mode before passing it off to the VM,
         # so we don't lose things hanging around in the decoder.
@@ -57,7 +58,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
     method load-precompilation(Blob:D $bytes --> CompUnit::Handle:D) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
-        my %*COMPILING := nqp::hash();
+        my %*COMPILING := nqp::hash('%?OPTIONS', nqp::hash());
         nqp::loadbytecodebuffer($bytes);
         $handle
     }

@@ -242,7 +242,7 @@ $(M_BUILD_RUNNER): @@configure_script@@ $(PERL6_MOAR) $(SETTING_MOAR) @@nfp(@tem
 		--set-var=exec_name=@shquot(@nfp(@base_dir@/$(M_BUILD_RUNNER))@)@ \
 		--set-var=mbc=perl6.moarvm
 	$(M_CC) @moar::ccswitch@ $(M_CFLAGS) @moar::ccout@perl6-m@moar::obj@ perl6-m.c
-	$(M_LD) @moar::ldout@$@ $(M_LDFLAGS) perl6-m@moar::obj@
+	$(M_LD) @moar::ldout@$@ $(M_LDFLAGS) $(M_MINGW_UNICODE) perl6-m@moar::obj@
 
 @perl(
     my %execs = (

@@ -839,12 +839,10 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
 
-    my subset Seconds where Numeric | Nil;
-
     # Checks if the value given is Inf, -Inf, or NaN. If NaN, this throws.
     # if Inf, this returns Nil for ThreadPoolScheduler.cue to return an empty
     # Cancellation for. If -Inf, returns 0. Otherwise, returns the value.
-    sub validate-seconds(Numeric() $value --> Seconds) {
+    sub validate-seconds(Numeric() $value --> Numeric) {
         nqp::unless(
           nqp::istype($value, Num),
           $value,
@@ -863,9 +861,13 @@ my class ThreadPoolScheduler does Scheduler {
           )
         )
     }
-    sub to-millis(Seconds $value --> int) {
-        nqp::if(
-          nqp::isconcrete($value),
+    sub to-millis(Numeric $value --> int) {
+        nqp::unless(
+          nqp::isconcrete(nqp::decont($value)),
+          nqp::stmts(
+            warn("Minimum timer resolution is 1ms; using that instead of Inf"),
+            1
+          ),
           nqp::if(
             nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
             $proposed,
@@ -874,23 +876,19 @@ my class ThreadPoolScheduler does Scheduler {
               1
             )
           ),
-          nqp::stmts(
-            warn("Minimum timer resolution is 1ms; using that instead of Inf"),
-            1
-          )
         )
     }
-    sub to-millis-allow-zero(Seconds $value --> int) {
-        nqp::if(
-          nqp::isconcrete($value),
+    sub to-millis-allow-zero(Numeric $value --> int) {
+        nqp::unless(
+          nqp::isconcrete(nqp::decont($value)),
+          nqp::stmts(
+            warn("Minimum timer resolution is 0ms; using that instead of Inf"),
+            0
+          ),
           nqp::if(
             nqp::isgt_i((my int $proposed = (1000 * $value).Int),0),
             $proposed
             # not true == 0 == what we need
-          ),
-          nqp::stmts(
-            warn("Minimum timer resolution is 0ms; using that instead of Inf"),
-            0
           )
         )
     }
@@ -975,6 +973,14 @@ my class ThreadPoolScheduler does Scheduler {
                   ),
                   nqp::atkey($args,"stop")
                 )),
+                nqp::if(
+                  $interval-is-nil,
+                  nqp::stmts(
+                    (warn "Inf was passed via :every; running the given block only once, immediately"),
+                    run(),
+                    (return Cancellation.new(async_handles => []))
+                  )
+                ),
                 nqp::if(
                   nqp::isconcrete($stopper),
                   nqp::stmts(                              # we have a stopper

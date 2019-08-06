@@ -683,8 +683,12 @@ class Perl6::World is HLL::World {
             if nqp::eqat($!setting_name, 'NULL', 0) {
                 $*COMPILING_CORE_SETTING := 1;
                 $*SET_DEFAULT_LANG_VER := 0;
+                my $lang_ver := nqp::iseq_s($!setting_name, 'NULL')
+                                    ?? '6.c'
+                                    !! '6.' ~ nqp::substr($!setting_name, 5, 1);
+                nqp::getcomp('perl6').set_language_version: $lang_ver;
+
             }
-            # self.load_setting($/,$!setting_name);
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
     }

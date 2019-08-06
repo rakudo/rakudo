@@ -15,6 +15,8 @@ my class X::Str::Sprintf::Directives::Count { ... }
 my class X::Str::Sprintf::Directives::Unsupported { ... }
 my class X::TypeCheck { ... }
 
+# Marker symbol for 6.c-mode regex boolification.
+my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
@@ -39,9 +41,6 @@ my class Rakudo::Internals {
     class LoweredAwayLexical {
         method dynamic() { False }
     }
-
-    # Marker symbol for 6.c-mode regex boolification.
-    class RegexBoolification6cMarker { }
 
     # rotate nqp list to another given list without using push/pop
     method RotateListToList(\from,\n,\to) {

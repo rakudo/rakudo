@@ -173,7 +173,6 @@ my class PseudoStash is Map {
             my $pkg := nqp::getlexrel(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
                 '$?PACKAGE');
-            die "GLOBAL can have no client package" if $pkg.^name eq "GLOBAL";
             my Mu $ctx := nqp::ctxcallerskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             while nqp::getlexrel($ctx, '$?PACKAGE') === $pkg {

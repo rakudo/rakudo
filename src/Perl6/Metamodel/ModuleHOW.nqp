@@ -22,7 +22,7 @@ class Perl6::Metamodel::ModuleHOW
         my $metaclass := self.new();
         my $obj := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'perl6');
         $metaclass.set_name($obj, $name);
-        $metaclass.set_ver($obj, $ver) if $ver;
+        $metaclass.set_ver($obj, $ver);
         $metaclass.set_auth($obj, $auth) if $auth;
         $metaclass.set_api($obj, $api) if $api;
         self.add_stash($obj);

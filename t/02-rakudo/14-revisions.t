@@ -2,7 +2,7 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-plan 2;
+plan 3;
 
 subtest "CORE.setting Revision", {
     plan 3;
@@ -19,6 +19,13 @@ subtest "Modifiers", {
     is-run q[use v6.d.TEST; print CORE-SETTING-REV], "v6.d.TEST loads CORE.d.setting", :out<d>;
     is-run q[use v6.d.TESTDEPR; print CORE-SETTING-REV], "Deprecated modifier generates a warning", :out<d>, :err(rx:s/TESTDEPR modifier is deprecated for Perl 6'.'d/);
     is-run q[use v6.d.NOMOD; print CORE-SETTING-REV], "Deprecated modifier generates a warning", :exitcode(1), :err(rx:s/No compiler available for Perl v6'.'d'.'NOMOD/);
+}
+
+subtest "Class Version", {
+    plan 3;
+    is-run qq[use v6.c; print PseudoStash.^ver], "6.c class version", :exitcode(0), :out<6.c>;
+    is-run qq[use v6.d; print PseudoStash.^ver], "6.c class version on 6.d compiler", :exitcode(0), :out<6.c>;
+    is-run qq[use v6.e.PREVIEW; print PseudoStash.^ver], "6.e class version", :exitcode(0), :out<6.e>;
 }
 
 done-testing;

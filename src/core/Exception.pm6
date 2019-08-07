@@ -2603,6 +2603,11 @@ my class X::NoSuchSymbol is Exception {
     method message { "No such symbol '$.symbol'" }
 }
 
+my class X::NoCoreRevision is Exception {
+    has $.lang-rev;
+    method message { "No CORE for language version 6.$!lang-rev" }
+}
+
 my class X::Item is Exception {
     has $.aggregate;
     has $.index;

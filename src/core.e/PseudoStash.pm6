@@ -213,7 +213,7 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $found),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
-                $stash.pseudo-package($key)
+                $stash.pseudo-package('CORE::' ~ $key)
             )
         )
     }

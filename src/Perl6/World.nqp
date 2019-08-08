@@ -4798,9 +4798,24 @@ class Perl6::World is HLL::World {
     }
 
     method find_symbol_in_setting(@name) {
-        my str $fullname := nqp::join("::", @name);
-        my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
+        my $no-outers := 0; # If 'true' then don't look in the outer contexts
+        my $setting_name := $!setting_name;
+
+        if nqp::iseq_s(@name[0], 'CORE') {          # Looking in CORE:: namespace
+            nqp::shift(@name := nqp::clone(@name));
+            my $rev := nqp::lc(@name[0]);
+            # If a supported language revision requested
+            if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('perl6').language_revisions,$rev) {
+                $no-outers := 1; # you don't see other COREs!
+                nqp::shift(@name);
+                $setting_name := 'CORE' ~ (nqp::iseq_s($rev, 'c') ?? '' !! ".$rev");
+            }
+        }
+
+        $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
         my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+
+        my str $fullname := nqp::join("::", @name);
         my $components := +@name;
 
         while $ctx {
@@ -4823,7 +4838,7 @@ class Perl6::World is HLL::World {
                     }
                 }
             }
-            $ctx := nqp::ctxouter($ctx);
+            $ctx := $no-outers ?? nqp::null() !! nqp::ctxouter($ctx);
         }
         nqp::die("Cannot find symbol $fullname in $setting_name");
     }
@@ -4836,6 +4851,11 @@ class Perl6::World is HLL::World {
         unless +@name { nqp::die("Cannot look up empty name"); }
 
         unless $!unit_ready {
+            return self.find_symbol_in_setting(@name);
+        }
+
+        # Support for compile-time CORE:: namespace
+        if +@name > 1 && nqp::iseq_s(@name[0], 'CORE') {
             return self.find_symbol_in_setting(@name);
         }
 

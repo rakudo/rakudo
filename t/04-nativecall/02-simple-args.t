@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 14;
+plan 16;
 
 compile_test_lib('02-simple-args');
 
@@ -32,7 +32,7 @@ sub SetString(Str) returns int32 is native('./02-simple-args') { * }
 sub CheckString()  returns int32 is native('./02-simple-args') { * }
 my $str = 'ok 7 - checked previously passed string';
 explicitly-manage($str);
-SetString($str);
+SetString($str.native-string);
 is CheckString(), 7, 'checked previously passed string';
 
 # Make sure wrapped subs work
@@ -66,9 +66,19 @@ skip("Cannot test TakeUint16(0xFFFE) with clang without -O0");
 
 is TakeUint32(0xFFFFFFFE), 12, 'passed uint32 0xFFFFFFFE';
 
-sub TakeSizeT(size_t) returns int32 is native('./02-simple-args') { * }
-is TakeSizeT(42),     13, 'passed size_t 42';
-sub TakeSSizeT(ssize_t --> int32) is native('./02-simple-args') { * }
-is TakeSSizeT(-42),   14, 'passed ssize_t -42';
+sub TakeSizeT(size_t)   returns int32 is native('./02-simple-args') { * }
+is TakeSizeT(42),   13, 'passed size_t 42';
+sub TakeSSizeT(ssize_t) returns int32 is native('./02-simple-args') { * }
+is TakeSSizeT(-42), 14, 'passed ssize_t -42';
+
+if $*VM.name eq 'moar' {
+    sub TakeWCharT(wchar_t) returns int32 is native('./02-simple-args') { * }
+    is TakeWCharT(42), 15, 'passed wchar_t 42';
+    sub TakeWIntT(wint_t)   returns int32 is native('./02-simple-args') { * }
+    is TakeWIntT(42),  16, 'passed wint_t 42';
+}
+else {
+    skip 'Wide string support NYI on this backend', 2;
+}
 
 # vim:ft=perl6

@@ -3,8 +3,19 @@ role Perl6::Metamodel::REPRComposeProtocol {
 
     method compose_repr($obj) {
         unless $!composed_repr {
+            # Is it a character type?
+            if nqp::can(self, 'has_char_type') && self.has_char_type($obj) {
+                nqp::composetype(
+                  nqp::decont($obj),
+                  nqp::hash(
+                    'string',
+                    nqp::hash('nativetype', self.char_type($obj)),
+                  )
+                )
+            }
+
             # Is it an array type?
-            if nqp::can(self, 'is_array_type') && self.is_array_type($obj) {
+            elsif nqp::can(self, 'is_array_type') && self.is_array_type($obj) {
                 if self.attributes($obj) {
                     nqp::die("Cannot have attributes on an array representation");
                 }
@@ -31,8 +42,9 @@ role Perl6::Metamodel::REPRComposeProtocol {
                     nqp::push(@type_info, @attrs);
                     for $type_obj.HOW.attributes(nqp::decont($type_obj), :local) -> $attr {
                         my %attr_info;
-                        %attr_info<name> := $attr.name;
-                        %attr_info<type> := $attr.type;
+                        %attr_info<name>   := $attr.name;
+                        %attr_info<type>   := $attr.type;
+                        %attr_info<string> := nqp::hash('nativetype', $attr.char_type);
                         if $attr.box_target {
                             # Merely having the key serves as a "yes".
                             %attr_info<box_target> := 1;

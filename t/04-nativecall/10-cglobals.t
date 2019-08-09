@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan(7);
+plan 9;
 
 compile_test_lib('10-cglobals');
 
@@ -29,3 +29,14 @@ is $GlobalString, "epic cuteness", 'global string works';
 
 my $GlobalNullString := cglobal('./10-cglobals', 'GlobalNullString', str);
 nok $GlobalNullString.defined, 'global null string pointer';
+
+if $*VM.name eq 'moar' {
+    my $GlobalWideString := cglobal('./10-cglobals', 'GlobalWideString', WideStr);
+    is $GlobalWideString, 'epic cuteness', 'global wide string works';
+
+    my $GlobalNullWideString := cglobal('./10-cglobals', 'GlobalNullWideString', WideStr);
+    nok $GlobalNullWideString.defined, 'global null wide string pointer';
+}
+else {
+    skip 'Wide string support NYI on this backend', 2;
+}

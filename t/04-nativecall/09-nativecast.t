@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan(9);
+plan 11;
 
 compile_test_lib('09-nativecast');
 
@@ -39,3 +39,14 @@ is nativecast(str, ReturnString()), "epic cuteness", 'casting to str works';
 
 sub ReturnNullString returns Pointer is native('./09-nativecast') { * }
 nok nativecast(str, ReturnNullString()).defined, 'casting null pointer to str';
+
+if $*VM.name eq 'moar' {
+    sub ReturnWideString() returns Pointer is native('./09-nativecast') { * }
+    is nativecast(WideStr, ReturnWideString()), 'epic cuteness', 'casting to wide string works';
+
+    sub ReturnNullWideString returns Pointer is native('./09-nativecast') { * }
+    nok nativecast(WideStr, ReturnNullWideString()).defined, 'casting null pointer to wide string';
+}
+else {
+    skip 'Wide string support NYI on this backend', 2;
+}

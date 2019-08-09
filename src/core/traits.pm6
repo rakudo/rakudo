@@ -61,6 +61,15 @@ multi sub trait_mod:<is>(Mu:U $type, :$unsigned!) {
 multi sub trait_mod:<is>(Mu:U $type, :$hidden!) {
     $type.^set_hidden;
 }
+multi sub trait_mod:<is>(Mu:U $type, :$wide!) {
+    $type.^set_char_type(nqp::const::P6STR_C_TYPE_WCHAR_T);
+}
+multi sub trait_mod:<is>(Mu:U $type, :$u16!)  {
+    $type.^set_char_type(nqp::const::P6STR_C_TYPE_CHAR16_T);
+}
+multi sub trait_mod:<is>(Mu:U $type, :$u32!)  {
+    $type.^set_char_type(nqp::const::P6STR_C_TYPE_CHAR32_T);
+}
 multi sub trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
     $type.^set_array_type($array_type);
 }
@@ -112,6 +121,15 @@ multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
     $attr.container_descriptor.set_default(nqp::decont($default));
     $attr.container = nqp::decont($default) if nqp::iscont($attr.container);
 }
+multi sub trait_mod:<is>(Attribute:D $attr, :$wide!) {
+    $attr.set_char_type(nqp::const::P6STR_C_TYPE_WCHAR_T);
+}
+multi sub trait_mod:<is>(Attribute:D $attr, :$u16!) {
+    $attr.set_char_type(nqp::const::P6STR_C_TYPE_CHAR16_T);
+}
+multi sub trait_mod:<is>(Attribute:D $attr, :$u32!) {
+    $attr.set_char_type(nqp::const::P6STR_C_TYPE_CHAR32_T);
+}
 multi sub trait_mod:<is>(Attribute:D $attr, :$box_target!) {
     $attr.set_box_target();
 }
@@ -125,7 +143,6 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
 multi sub trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
     Rakudo::Internals.SET_LEADING_DOCS($attr, $leading_docs);
 }
-
 multi sub trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
     Rakudo::Internals.SET_TRAILING_DOCS($attr, $trailing_docs);
 }

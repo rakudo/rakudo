@@ -23,11 +23,17 @@ my constant ulonglong     is export(:types, :DEFAULT) = NativeCall::Types::ulong
 my constant bool          is export(:types, :DEFAULT) = NativeCall::Types::bool;
 my constant size_t        is export(:types, :DEFAULT) = NativeCall::Types::size_t;
 my constant ssize_t       is export(:types, :DEFAULT) = NativeCall::Types::ssize_t;
+my constant wchar_t       is export(:types, :DEFAULT) = NativeCall::Types::wchar_t;
+my constant wint_t        is export(:types, :DEFAULT) = NativeCall::Types::wint_t;
+my constant char16_t      is export(:types, :DEFAULT) = NativeCall::Types::char16_t;
+my constant char32_t      is export(:types, :DEFAULT) = NativeCall::Types::char32_t;
 my constant void          is export(:types, :DEFAULT) = NativeCall::Types::void;
 my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArray;
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
-
+my constant WideStr       is export(:types, :DEFAULT) = NativeCall::Types::WideStr;
+my constant U16Str        is export(:types, :DEFAULT) = NativeCall::Types::U16Str;
+my constant U32Str        is export(:types, :DEFAULT) = NativeCall::Types::U32Str;
 
 # Role for carrying extra calling convention information.
 my role NativeCallingConvention[$name] {
@@ -43,7 +49,6 @@ my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
 
-
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
 my class native_callsite is repr('NativeCall') { }
@@ -57,7 +62,13 @@ sub string_encoding_to_nci_type(\encoding) {
         ?? "asciistr"
         !! nqp::iseq_s($enc,"utf16")
           ?? "utf16str"
-          !! die "Unknown string encoding for native call: $enc"
+          !! nqp::iseq_s($enc, 'wide')
+            ?? "widestr"
+            !! nqp::iseq_s($enc, 'u16')
+              ?? "u16str"
+              !! nqp::iseq_s($enc, 'u32')
+                ?? "u32str"
+                !! die "Unknown string encoding for native call: $enc"
 }
 
 # Builds a hash of type information for the specified parameter.
@@ -150,6 +161,10 @@ my constant $type_map = nqp::hash(
   "num64",      "double",
   "size_t",     nqp::atpos_s($signed_ints_by_size,nativesizeof(size_t)),
   "ssize_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(ssize_t)),
+  "wchar_t",    "wchar_t",
+  "wint_t",     "wint_t",
+  "char16_t",   "char16_t",
+  "char32_t",   "char32_t",
   "uint",       "ulong",
   "uint16",     "ushort",
   "uint32",     "uint",
@@ -623,23 +638,81 @@ multi trait_mod:<is>(Routine $r, :$nativeconv!) is export(:DEFAULT, :traits) {
 multi trait_mod:<is>(Parameter $p, :$encoded!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded[$encoded];
 }
-multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
-    $p does NativeCallEncoded[$encoded];
+multi trait_mod:<is>(Routine $r, :$encoded!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded[$encoded];
+}
+multi trait_mod:<is>(Parameter $p, :$wide!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['wide'];
+}
+multi trait_mod:<is>(Routine $r, :$wide!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded['wide'];
+}
+multi trait_mod:<is>(Parameter $p, :$u16!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['u16'];
+}
+multi trait_mod:<is>(Routine $r, :$u16!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded['u16'];
+}
+multi trait_mod:<is>(Parameter $p, :$u32!) is export(:DEFAULT, :traits) {
+    $p does NativeCallEncoded['u32'];
+}
+multi trait_mod:<is>(Routine $r, :$u32!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded['u32'];
 }
 
 multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
     $p does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
 }
 
-role ExplicitlyManagedString {
-    has $.cstr is rw;
+class NativeStr is export(:DEFAULT, :types) { }
+class NativeCStr is NativeStr is repr('CStr') {
+    # Once encodings are supported properly with the CStr REPR, set the
+    # encoding on the class' metamodel while parameterizing.
+    method ^parameterize(Mu:U \C, Str $encoding) {
+        C
+    }
+}
+# These don't support encodings because wide strings, u16strings, and
+# u32strings already have their own encoding and can use no other.
+class NativeWideStr is NativeStr is wide is repr('CStr') { }
+class NativeU16Str  is NativeStr is u16  is repr('CStr') { }
+class NativeU32Str  is NativeStr is u32  is repr('CStr') { }
+
+role ExplicitlyManagedString[Str $encoding, Mu:U $native-type] {
+    has NativeStr $.native-string is rw;
+    method encoding(--> Str)     { $encoding    }
+    method native-type(--> Mu:U) { $native-type }
 }
 
-multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
-:utils) {
-    $x does ExplicitlyManagedString;
-    my $class = class CStr is repr('CStr') { method encoding() { $encoding; } };
-    $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont($class));
+multi explicitly-manage(Str $str, :$encoding = 'utf8', :$type = 'c' --> NativeStr) is export(:DEFAULT, :utils) {
+    my Mu:U $class;
+    my Mu:U $native-type;
+    given $type {
+        when 'c'    {
+            $class       := NativeCStr[$encoding];
+            # XXX: this can be uint8 on certain platforms but we have no way to
+            # tell! There needs to be a native char type.
+            $native-type := int8;
+        }
+        when 'wide' {
+            $class       := NativeWideStr;
+            $native-type := wchar_t;
+        }
+        when 'u16'  {
+            $class       := NativeU16Str;
+            $native-type := char16_t;
+        }
+        when 'u32'  {
+            $class       := NativeU32Str;
+            $native-type := char32_t;
+        }
+        default     {
+            die "Unsupported explicitly managed string type: $type";
+        }
+    }
+
+    $str does ExplicitlyManagedString[$encoding, $native-type];
+    $str.native-string = nqp::box_s(nqp::unbox_s(nqp::decont($str)), $class);
 }
 
 role CPPConst {
@@ -707,8 +780,8 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
       return True if nqp::existskey($repr_map,T.REPR) && T.REPR ne 'CArray' | 'CPointer';
       return True if T.^name eq 'Str' | 'str' | 'Bool';
       return False if T.REPR eq 'P6opaque';
-      return False if T.HOW.^can("nativesize") && !nqp::defined(T.^nativesize); #to disting int and int32 for example
-      return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' and T.^can('of');
+      return False if T.HOW.^can('ctype') && T.^ctype eq ''; # to disting int and int32 for example
+      return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' && T.^can('of');
       return True;
     }
     my $sig = $r.signature;

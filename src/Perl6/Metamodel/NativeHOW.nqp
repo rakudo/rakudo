@@ -9,6 +9,7 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::MROBasedTypeChecking
 {
     has $!nativesize;
+    has int $!ctype;
     has int $!unsigned;
     has $!composed;
 
@@ -37,20 +38,24 @@ class Perl6::Metamodel::NativeHOW
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);
-        if !$!composed && ($!nativesize || $!unsigned) {
+        if !$!composed && ($!ctype || $!nativesize || $!unsigned) {
             my $info := nqp::hash();
-            $info<integer> := nqp::hash();
-            $info<integer><unsigned> := 1 if $!unsigned;
-            $info<float> := nqp::hash();
+            $info<integer>           := nqp::hash();
+            $info<float>             := nqp::hash();
+            if nqp::isconcrete($!ctype) {
+                $info<integer><nativetype> := $!ctype;
+                $info<float><nativetype>   := $!ctype;
+            }
             if nqp::objprimspec($!nativesize) {
                 $info<integer><bits> := $!nativesize;
                 $info<float><bits>   := $!nativesize;
             }
-            else {
-                if $!nativesize {
-                    $info<integer><bits> := nqp::unbox_i($!nativesize);
-                    $info<float><bits>   := nqp::unbox_i($!nativesize);
-                }
+            elsif $!nativesize {
+                $info<integer><bits> := nqp::unbox_i($!nativesize);
+                $info<float><bits>   := nqp::unbox_i($!nativesize);
+            }
+            if $!unsigned {
+                $info<integer><unsigned> := $!unsigned;
             }
             nqp::composetype($obj, $info);
         }
@@ -62,41 +67,126 @@ class Perl6::Metamodel::NativeHOW
     }
 
     method set_ctype($obj, $ctype) {
-        if $ctype eq 'char' {
-            $!nativesize := nqp::const::C_TYPE_CHAR;
+        my str $reprname := nqp::reprname($obj);
+        if $reprname eq 'P6int' {
+            if $ctype eq 'char' {
+                $!ctype := nqp::const::P6INT_C_TYPE_CHAR;
+            }
+            elsif $ctype eq 'short' {
+                $!ctype := nqp::const::P6INT_C_TYPE_SHORT;
+            }
+            elsif $ctype eq 'int' {
+                $!ctype := nqp::const::P6INT_C_TYPE_INT;
+            }
+            elsif $ctype eq 'long' {
+                $!ctype := nqp::const::P6INT_C_TYPE_LONG;
+            }
+            elsif $ctype eq 'longlong' {
+                $!ctype := nqp::const::P6INT_C_TYPE_LONGLONG;
+            }
+            elsif $ctype eq 'bool' {
+                $!ctype := nqp::const::P6INT_C_TYPE_BOOL;
+            }
+            elsif $ctype eq 'size_t' {
+                $!ctype := nqp::const::P6INT_C_TYPE_SIZE_T;
+            }
+            elsif $ctype eq 'atomic' {
+                $!ctype := nqp::const::P6INT_C_TYPE_ATOMIC_INT;
+            }
+            elsif $ctype eq 'wchar_t' {
+                $!ctype := nqp::const::P6INT_C_TYPE_WCHAR_T;
+            }
+            elsif $ctype eq 'wint_t' {
+                $!ctype := nqp::const::P6INT_C_TYPE_WINT_T;
+            }
+            elsif $ctype eq 'char16_t' {
+                $!ctype := nqp::const::P6INT_C_TYPE_CHAR16_T;
+            }
+            elsif $ctype eq 'char32_t' {
+                $!ctype := nqp::const::P6INT_C_TYPE_CHAR32_T;
+            }
+            else {
+                nqp::die("Unhandled C type '$ctype'");
+            }
         }
-        elsif $ctype eq 'short' {
-            $!nativesize := nqp::const::C_TYPE_SHORT;
-        }
-        elsif $ctype eq 'int' {
-            $!nativesize := nqp::const::C_TYPE_INT;
-        }
-        elsif $ctype eq 'long' {
-            $!nativesize := nqp::const::C_TYPE_LONG;
-        }
-        elsif $ctype eq 'longlong' {
-            $!nativesize := nqp::const::C_TYPE_LONGLONG;
-        }
-        elsif $ctype eq 'float' {
-            $!nativesize := nqp::const::C_TYPE_FLOAT;
-        }
-        elsif $ctype eq 'double' {
-            $!nativesize := nqp::const::C_TYPE_DOUBLE;
-        }
-        elsif $ctype eq 'longdouble' {
-            $!nativesize := nqp::const::C_TYPE_LONGDOUBLE;
-        }
-        elsif $ctype eq 'bool' {
-            $!nativesize := nqp::const::C_TYPE_BOOL;
-        }
-        elsif $ctype eq 'size_t' {
-            $!nativesize := nqp::const::C_TYPE_SIZE_T;
-        }
-        elsif $ctype eq 'atomic' {
-            $!nativesize := nqp::const::C_TYPE_ATOMIC_INT;
+        elsif $reprname eq 'P6num' {
+            if $ctype eq 'float' {
+                $!ctype := nqp::const::P6NUM_C_TYPE_FLOAT;
+            }
+            elsif $ctype eq 'double' {
+                $!ctype := nqp::const::P6NUM_C_TYPE_DOUBLE;
+            }
+            elsif $ctype eq 'longdouble' {
+                $!ctype := nqp::const::P6NUM_C_TYPE_LONGDOUBLE;
+            }
+            else {
+                nqp::die("Unhandled C type '$ctype'");
+            }
         }
         else {
             nqp::die("Unhandled C type '$ctype'")
+        }
+    }
+
+    method ctype($obj) {
+        my str $reprname := nqp::reprname($obj);
+        if $reprname eq 'P6int' {
+            if $!ctype == nqp::const::P6INT_C_TYPE_CHAR {
+                'char'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_SHORT {
+                'short'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_INT {
+                'int'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_LONG {
+                'long'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_LONGLONG {
+                'longlong'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_BOOL {
+                'bool'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_SIZE_T {
+                'size_t'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_ATOMIC_INT {
+                'atomic'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_WCHAR_T {
+                'wchar_t'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_WINT_T {
+                'wint_t'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_CHAR16_T {
+                'char16_t'
+            }
+            elsif $!ctype == nqp::const::P6INT_C_TYPE_CHAR32_T {
+                'char32_t'
+            }
+            else {
+                ''
+            }
+        }
+        elsif $reprname eq 'P6num' {
+            if $!ctype == nqp::const::P6NUM_C_TYPE_FLOAT {
+                'float'
+            }
+            elsif $!ctype == nqp::const::P6NUM_C_TYPE_DOUBLE {
+                'double'
+            }
+            elsif $!ctype == nqp::const::P6NUM_C_TYPE_LONGDOUBLE {
+                'longdouble'
+            }
+            else {
+                ''
+            }
+        }
+        else {
+            ''
         }
     }
 

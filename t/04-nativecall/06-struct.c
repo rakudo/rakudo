@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
@@ -42,6 +43,11 @@ typedef struct {
     int b[3];
     int c;
 } InlinedArrayInStruct;
+
+typedef struct {
+    wchar_t *first;
+    wchar_t *second;
+} WideStringStruct;
 
 DLLEXPORT MyStruct *ReturnAStruct()
 {
@@ -148,4 +154,17 @@ DLLEXPORT InlinedArrayInStruct *ReturnAInlinedArrayInStruct() {
     iais->c    = 555;
 
     return iais;
+}
+
+DLLEXPORT WideStringStruct *ReturnAWideStringStruct() {
+    WideStringStruct *obj = malloc(sizeof(WideStringStruct));
+    obj->first  = L"OMG!";
+    obj->second = L"Strings!";
+    return obj;
+}
+
+DLLEXPORT int TakeAWideStringStruct(WideStringStruct *obj) {
+    if (wcscmp(obj->first,  L"Lorem")) return 1;
+    if (wcscmp(obj->second, L"ipsum")) return 2;
+    return 33;
 }

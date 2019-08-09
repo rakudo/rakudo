@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
@@ -62,4 +63,24 @@ DLLEXPORT unsigned short ReturnUint16()
 DLLEXPORT unsigned int ReturnUint32()
 {
     return 0xFFFFFFFE;
+}
+
+DLLEXPORT wchar_t ReturnWCharT()
+{
+    return 42;
+}
+
+DLLEXPORT wint_t ReturnWIntT()
+{
+    return 42;
+}
+
+DLLEXPORT wchar_t *ReturnWideString()
+{
+    return L"epic cuteness";
+}
+
+DLLEXPORT wchar_t *ReturnNullWideString()
+{
+    return NULL;
 }

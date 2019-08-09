@@ -208,6 +208,5 @@ An alternative is to use a third-party program such as [rlwrap](http://utopia.kn
 
 ## AUTHOR
 
-Jonathan Worthington is the current pumpking for Rakudo Perl 6.
 See CREDITS for the many people that have contributed
 to the development of the Rakudo compiler.

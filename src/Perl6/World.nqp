@@ -567,7 +567,7 @@ class Perl6::World is HLL::World {
     # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
     # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
-        if $*INSIDE-EVAL {
+        if $*INSIDE-EVAL && $!have_outer {
             # XXX Calling typed_panic is the desirable behavior. But it breaks some code. Just ignore version change for
             # now.
             # TODO? EVAL might get :unit parameter and simulate unit compilation.
@@ -698,7 +698,6 @@ class Perl6::World is HLL::World {
             self.load_setting($/, $!setting_name);
         }
         $/.unitstart();
-        $!unit_ready := 1;
 
         try {
             my $EXPORTHOW := self.find_symbol(['EXPORTHOW']);
@@ -809,6 +808,8 @@ class Perl6::World is HLL::World {
                 }
             }
         }
+
+        $!unit_ready := 1;
 
         self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
     }
@@ -933,7 +934,7 @@ class Perl6::World is HLL::World {
     # Loads a setting.
     method load_setting($/, $setting_name) {
         # We don't load setting for EVAL
-        if $*INSIDE-EVAL {
+        if $*INSIDE-EVAL && $!have_outer {
             return
         }
         # Do nothing for the NULL setting.

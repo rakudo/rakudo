@@ -58,7 +58,7 @@ proto sub EVAL(
     my $LANG := $context<%?LANG>:exists
                     ?? $context<%?LANG>
                     !! (CALLERS::<%?LANG>:exists ?? CALLERS::<%?LANG> !! Nil);
-    my $*INSIDE-EVAL = 1;
+    my $*INSIDE-EVAL := 1;
     my $compiled := $compiler.compile:
         $code,
         :outer_ctx($eval_ctx),

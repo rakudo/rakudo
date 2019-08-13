@@ -93,7 +93,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2019-05-27T14:46:22+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
@@ -224,13 +224,13 @@ my class array does Iterable {
         method pop(strarray:D: --> str) {
             nqp::elems(self)
               ?? nqp::pop_s(self)
-              !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
         }
 
         method shift(strarray:D: --> str) {
             nqp::elems(self)
               ?? nqp::shift_s(self)
-              !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
         }
 
         multi method unshift(strarray:D: str $value --> strarray:D) {
@@ -594,7 +594,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2019-05-27T14:46:22+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
@@ -725,13 +725,13 @@ my class array does Iterable {
         method pop(intarray:D: --> int) {
             nqp::elems(self)
               ?? nqp::pop_i(self)
-              !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
         }
 
         method shift(intarray:D: --> int) {
             nqp::elems(self)
               ?? nqp::shift_i(self)
-              !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
         }
 
         multi method unshift(intarray:D: int $value --> intarray:D) {
@@ -1147,7 +1147,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2019-05-27T14:46:22+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.p6
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
@@ -1278,13 +1278,13 @@ my class array does Iterable {
         method pop(numarray:D: --> num) {
             nqp::elems(self)
               ?? nqp::pop_n(self)
-              !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
         }
 
         method shift(numarray:D: --> num) {
             nqp::elems(self)
               ?? nqp::shift_n(self)
-              !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
         }
 
         multi method unshift(numarray:D: num $value --> numarray:D) {

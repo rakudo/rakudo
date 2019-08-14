@@ -70,20 +70,35 @@ sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) is raw {
     )
 }
 
+# Initialize the $*PRECISION dynamic var so that it can be used
+{
+    PROCESS::<$PRECISION> = Num;
+}
+
 # ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot
 # ever get a non-normalized Rational, if we start with a normalized Rational.
 # For such cases, we can use this routine, to bypass normalization step,
 # which would be useless.  Also used when normalization *was* needed.
 proto sub CREATE_RATIONAL_FROM_INTS(|) {*}
 multi sub CREATE_RATIONAL_FROM_INTS(Int:D \nu, Int:D \de, \t1, \t2) is raw {
-    nqp::if(
-      nqp::islt_I(de,UINT64_UPPER),         # do we need to downgrade to float?
-      nqp::p6bindattrinvres(                # no, we need to keep a Rat
-        nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',nu),
-        Rat,'$!denominator',de
-      ),
-      nqp::p6box_n(nqp::div_In(nu,de))      # downgrade to float
-    )
+    nqp::islt_I(de,UINT64_UPPER)                          # downgrade to float?
+      ?? nqp::p6bindattrinvres(                            # no, keep as Rat
+           nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',nu),
+           Rat,'$!denominator',de
+         )
+      !! nqp::eqaddr(                                      # downgrade to Num?
+           (my $precision := nqp::decont($*PRECISION)),Num
+         )
+        ?? nqp::p6box_n(nqp::div_In(nu,de))                 # yes, downgrade
+        !! nqp::eqaddr($precision,FatRat)                   # keep precision?
+          ?? CREATE_RATIONAL_FROM_INTS(nu,de,FatRat,FatRat)  # yes, make FatRat
+          !! nqp::eqaddr($precision,Exception)               # no downgrade?
+            ?? X::AdHoc.new(                                  # not allowed to
+                 payload => 'Not allowed to downgrade to Num'
+               ).throw
+            !! X::AdHoc.new(                                  # huh?
+                 payload => "Unexpected value $*PRECISION.perl() for \$*PRECISION"
+               ).throw
 }
 
 # already a FatRat, so keep that

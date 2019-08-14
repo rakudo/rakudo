@@ -253,8 +253,9 @@ my class IO::Handle {
     }
 
     method get(IO::Handle:D:) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<get>);
-        $!decoder.consume-line-chars(:$!chomp) // self!get-line-slow-path()
+        $!decoder
+          ?? $!decoder.consume-line-chars(:$!chomp) // self!get-line-slow-path()
+          !! X::IO::BinaryMode.new(:trying<get>).throw
     }
 
     method !get-line-slow-path() {
@@ -278,29 +279,33 @@ my class IO::Handle {
     }
 
     method getc(IO::Handle:D:) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<getc>);
-        $!decoder.consume-exactly-chars(1) || (self!readchars-slow-path(1) || Nil)
+        $!decoder
+          ?? $!decoder.consume-exactly-chars(1) || (self!readchars-slow-path(1) || Nil)
+          !! X::IO::BinaryMode.new(:trying<getc>).throw
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type
     method comb (IO::Handle:D: :$close, |c) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<comb>);
-        self.slurp(:$close).comb: |c
+        $!decoder
+          ?? self.slurp(:$close).comb( |c )
+          !! X::IO::BinaryMode.new(:trying<comb>).throw
     }
     method split(IO::Handle:D: :$close, |c) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<split>);
-        self.slurp(:$close).split: |c
+        $!decoder
+          ?? self.slurp(:$close).split( |c )
+          !! X::IO::BinaryMode.new(:trying<split>).throw
     }
 
     proto method words (|) {*}
     multi method words(IO::Handle:D \SELF: $limit, :$close) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<words>);
-        nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.words(:$close)
-          !! $close
-            ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
-                self.words.iterator, $limit.Int, {SELF.close}))
-            !! self.words.head($limit.Int)
+        $!decoder
+          ?? nqp::istype($limit,Whatever) || $limit == Inf
+            ?? self.words(:$close)
+            !! $close
+              ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
+                  self.words.iterator, $limit.Int, {SELF.close}))
+              !! self.words.head($limit.Int)
+          !! X::IO::BinaryMode.new(:trying<words>).throw
     }
 
     my class Words does Iterator {
@@ -531,8 +536,9 @@ my class IO::Handle {
     }
 
     method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<readchars>);
-        $!decoder.consume-exactly-chars($chars) // self!readchars-slow-path($chars)
+        $!decoder
+          ?? $!decoder.consume-exactly-chars($chars) // self!readchars-slow-path($chars)
+          !! X::IO::BinaryMode.new(:trying<readchars>).throw
     }
 
     method !readchars-slow-path($chars) {
@@ -651,8 +657,9 @@ my class IO::Handle {
 
     proto method print(|) {*}
     multi method print(IO::Handle:D: Str:D \x --> True) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<print>);
-        self.WRITE($!encoder.encode-chars(x));
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars(x))
+          !! X::IO::BinaryMode.new(:trying<print>).throw
     }
     multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.print(@list.join);
@@ -661,9 +668,10 @@ my class IO::Handle {
 
     proto method put(|) {*}
     multi method put(IO::Handle:D: Str:D \x --> True) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<put>);
-        self.WRITE($!encoder.encode-chars(
-            nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out))))
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars(
+               nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out))))
+          !! X::IO::BinaryMode.new(:trying<put>).throw
     }
     multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
         self.put(@list.join);
@@ -671,17 +679,19 @@ my class IO::Handle {
     multi method put(Junction:D \j) { j.THREAD: {self.put: $_} }
 
     multi method say(IO::Handle:D: Str:D $x --> True) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<say>);
-        self.WRITE($!encoder.encode-chars(
-            nqp::concat(nqp::unbox_s($x), nqp::unbox_s($!nl-out))));
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars(
+               nqp::concat(nqp::unbox_s($x), nqp::unbox_s($!nl-out))))
+          !! X::IO::BinaryMode.new(:trying<say>).throw
     }
     multi method say(IO::Handle:D: \x --> True) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<say>);
-        self.WRITE($!encoder.encode-chars(
-            nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out))))
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars(
+               nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out))))
+          !! X::IO::BinaryMode.new(:trying<say>).throw
     }
     multi method say(IO::Handle:D: |) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<say>);
+        $!decoder or X::IO::BinaryMode.new(:trying<say>).throw;
         my Mu $args := nqp::p6argvmarray();
         nqp::shift($args);
         my str $conc = '';
@@ -690,8 +700,9 @@ my class IO::Handle {
     }
 
     method print-nl(IO::Handle:D: --> True) {
-        $!decoder or die X::IO::BinaryMode.new(:trying<print-nl>);
-        self.WRITE($!encoder.encode-chars($!nl-out));
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars($!nl-out))
+          !! X::IO::BinaryMode.new(:trying<print-nl>).throw
     }
 
     proto method slurp-rest(|) {*}
@@ -712,7 +723,7 @@ my class IO::Handle {
         # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
         # Testing of it in roast master has been removed and only kept in 6.c
         # If you're changing this code for whatever reason, test with 6.c-errata
-        $!decoder or die X::IO::BinaryMode.new(:trying<slurp-rest>);
+        $!decoder or X::IO::BinaryMode.new(:trying<slurp-rest>).throw;
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
         self!slurp-all-chars()

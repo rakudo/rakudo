@@ -10,7 +10,7 @@ my class IO::Pipe is IO::Handle {
     method TWEAK(:$!on-close!, :$enc, :$bin, :$!on-read, :$!on-write,
                  :$!on-native-descriptor --> Nil) {
         if $bin {
-            die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
+            X::IO::BinaryAndEncoding.new.throw if nqp::isconcrete($enc)
         }
         else {
             my $encoding = Encoding::Registry.find($enc || 'utf-8');

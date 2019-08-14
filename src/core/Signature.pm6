@@ -92,7 +92,7 @@ my class Signature { # declared in BOOTSTRAP
         True;
     }
 
-    method Capture() { die X::Cannot::Capture.new: :what(self) }
+    method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
 
     method arity() {
         $!arity

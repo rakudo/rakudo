@@ -1140,7 +1140,7 @@ my class array does Iterable {
                 ),
                 self
               ),
-              (die "Can only initialize an int array with an int Range")
+              X::AdHoc.new( payload => "Can only initialize an int array with an int Range" ).throw
             )
         }
     }

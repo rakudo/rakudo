@@ -97,37 +97,37 @@ sub levenshtein($a, $b) {
         my $achar := nqp::substr($a, $apos, 1);
         my $bchar := nqp::substr($b, $bpos, 1);
 
-        my $cost := changecost($achar, $bchar);
+        my num $cost := changecost($achar, $bchar);
 
         # hyphens and underscores cost half when adding/deleting.
-        my $addcost := 1;
+        my num $addcost := 1;
         $addcost := 0.5 if $bchar eq "-" || $bchar eq "_";
 
-        my $delcost := 1;
+        my num $delcost := 1;
         $delcost := 0.5 if $achar eq "-" || $achar eq "_";
 
-        my $ca := levenshtein_impl($apos+1, $bpos,   $estimate+$delcost) + $delcost; # what if we remove the current letter from A?
-        my $cb := levenshtein_impl($apos,   $bpos+1, $estimate+$addcost) + $addcost; # what if we add the current letter from B?
-        my $cc := levenshtein_impl($apos+1, $bpos+1, $estimate+$cost) + $cost; # what if we change/keep the current letter?
+        my num $ca := nqp::add_n(levenshtein_impl($apos+1, $bpos,   nqp::add_n($estimate, $delcost)), $delcost); # what if we remove the current letter from A?
+        my num $cb := nqp::add_n(levenshtein_impl($apos,   $bpos+1, nqp::add_n($estimate, $addcost)), $addcost); # what if we add the current letter from B?
+        my num $cc := nqp::add_n(levenshtein_impl($apos+1, $bpos+1, nqp::add_n($estimate, $cost)), $cost); # what if we change/keep the current letter?
 
         # the result is the shortest of the three sub-tasks
-        my $distance;
-        $distance := $ca if $ca <= $cb && $ca <= $cc;
-        $distance := $cb if $cb <= $ca && $cb <= $cc;
-        $distance := $cc if $cc <= $ca && $cc <= $cb;
+        my num $distance;
+        $distance := $ca if nqp::isle_n($ca, $cb) && nqp::isle_n($ca, $cc);
+        $distance := $cb if nqp::isle_n($cb, $ca) && nqp::isle_n($cb, $cc);
+        $distance := $cc if nqp::isle_n($cc, $ca) && nqp::isle_n($cc, $cb);
 
         # switching two letters costs only 1 instead of 2.
         if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
            nqp::eqat($a, $bchar, $apos + 1) && nqp::eqat($b, $achar, $bpos + 1) {
-            my $cd := levenshtein_impl($apos+2, $bpos+2, $estimate+1) + 1;
-            $distance := $cd if $cd < $distance;
+            my num $cd := nqp::add_n(levenshtein_impl($apos+2, $bpos+2, nqp::add_n($estimate, 1)), 1);
+            $distance := $cd if nqp::islt_n($cd, $distance);
         }
 
         %memo{$key} := $distance;
         return $distance;
     }
 
-    my $result := levenshtein_impl(0, 0, 0);
+    my num $result := levenshtein_impl(0, 0, 0);
     return $result;
 }
 
@@ -142,13 +142,13 @@ sub make_levenshtein_evaluator($orig_name, @candidates) {
         my $parlen := nqp::chars($orig_name);
         my $lendiff := nqp::chars($name) - $parlen;
         $lendiff := -$lendiff if $lendiff < 0;
-        return 1 if $lendiff >= $parlen * 0.3;
+        return 1 if nqp::isge_n($lendiff, nqp::mul_n($parlen, 0.3));
 
-        my $dist := levenshtein($orig_name, $name) / $parlen;
+        my num $dist := nqp::div_n(levenshtein($orig_name, $name), $parlen);
         my $target := -1;
-        $target := @candidates[0] if $dist <= 0.1;
-        $target := @candidates[1] if 0.1 < $dist && $dist <= 0.2;
-        $target := @candidates[2] if 0.2 < $dist && $dist <= 0.35;
+        $target := @candidates[0] if nqp::isle_n($dist, 0.1);
+        $target := @candidates[1] if nqp::islt_n(0.1, $dist) && nqp::isle_n($dist, 0.2);
+        $target := @candidates[2] if nqp::islt_n(0.2, $dist) && nqp::isle_n($dist, 0.35);
         if $target != -1 {
             my $name-str := nqp::box_s($name, $Str-obj);
             nqp::push($target, $name-str);
@@ -180,6 +180,7 @@ sub levenshtein_candidate_heuristic(@candidates, $target) {
 
 # This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
 class Perl6::World is HLL::World {
+
     my class Perl6CompilationContext is HLL::World::CompilationContext {
         # The stack of lexical pads, actually as QAST::Block objects. The
         # outermost frame is at the bottom, the latest frame is on top.
@@ -511,10 +512,18 @@ class Perl6::World is HLL::World {
 
     has %!quote_lang_cache;
 
+    # To temporarily keep fixup task QAST.
+    has $!setting_fixup_task;
+
+    has int $!unit_ready;
+    has int $!have_outer;
+    has $!setting_name;
+
     method BUILD(*%adv) {
         %!code_object_fixup_list := {};
         $!record_precompilation_dependencies := 1;
         %!quote_lang_cache := {};
+        $!unit_ready := 0;
     }
 
     method create_nested() {
@@ -558,6 +567,13 @@ class Perl6::World is HLL::World {
     # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
     # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
+        if $*INSIDE-EVAL && $!have_outer {
+            # XXX Calling typed_panic is the desirable behavior. But it breaks some code. Just ignore version change for
+            # now.
+            # TODO? EVAL might get :unit parameter and simulate unit compilation.
+            #$ver-match.typed_panic: 'X::Language::TooLate';
+            return
+        }
         $*MAIN   := 'MAIN';
         $*STRICT := 1 if $*begin_compunit;
 
@@ -581,12 +597,14 @@ class Perl6::World is HLL::World {
             if $revision eq 'c' {
                 $*CAN_LOWER_TOPIC := 0;
                 # CORE.c is currently our lowest core, which we don't "load"
+                $!setting_name := 'CORE';
                 return;
             }
 
             # Speed up loading assuming that the default language version would be the most used one.
             if $lang_ver eq $comp.config<language-version> {
-                self.load_setting: $ver-match, 'CORE.' ~ $revision;
+                $!setting_name := 'CORE.' ~ $revision;
+                # self.load_setting: $ver-match, 'CORE.' ~ $revision;
                 return;
             }
         }
@@ -623,7 +641,8 @@ class Perl6::World is HLL::World {
                 # CORE.c is our lowest core, which we don't "load"
             }
             else {
-                self.load_setting: $ver-match, 'CORE.' ~ $can_rev
+                $!setting_name := 'CORE.' ~ $can_rev;
+                # self.load_setting: $ver-match, 'CORE.' ~ $can_rev;
             }
             return;
         }
@@ -644,30 +663,39 @@ class Perl6::World is HLL::World {
         }
     }
 
-    method loading_and_symbol_setup($/) {
-        my $setting_name;
+    method comp_unit_stage0($/) {
 
         # Create unit outer (where we assemble any lexicals accumulated
         # from e.g. REPL) and the real UNIT.
         $*UNIT_OUTER := self.push_lexpad($/);
         $*UNIT       := self.push_lexpad($/);
-        my $in_eval  := 0;
 
         # If we already have a specified outer context, then that's
         # our setting. Otherwise, load one.
-        my $have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
-        if $have_outer {
-            $setting_name := '';
+        $!have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
+        my $default_setting_name := 'CORE.' ~ nqp::substr(nqp::getcomp('perl6').language_version, 2, 1);
+        if $!have_outer {
+            $!setting_name := $default_setting_name;
             $*UNIT.annotate('IN_DECL', 'eval');
-            $in_eval := 1;
         }
         else {
-            $setting_name := %*COMPILING<%?OPTIONS><setting> // 'CORE';
-            $*COMPILING_CORE_SETTING := 1 if $setting_name eq 'NULL';
-            $*SET_DEFAULT_LANG_VER := 0
-                if nqp::eqat($setting_name, 'NULL', 0);
-            self.load_setting($/,$setting_name);
+            $!setting_name := %*COMPILING<%?OPTIONS><setting> // $default_setting_name;
+            if nqp::eqat($!setting_name, 'NULL', 0) {
+                $*COMPILING_CORE_SETTING := 1;
+                $*SET_DEFAULT_LANG_VER := 0;
+                my $lang_ver := nqp::iseq_s($!setting_name, 'NULL')
+                                    ?? '6.c'
+                                    !! '6.' ~ nqp::substr($!setting_name, 5, 1);
+                nqp::getcomp('perl6').set_language_version: $lang_ver;
+
+            }
             $*UNIT.annotate('IN_DECL', 'mainline');
+        }
+    }
+
+    method comp_unit_stage1 ($/) {
+        unless $!have_outer {
+            self.load_setting($/, $!setting_name);
         }
         $/.unitstart();
 
@@ -682,7 +710,7 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%*COMPILING<%?OPTIONS>, 'global') {
             $*GLOBALish := %*COMPILING<%?OPTIONS><global>;
         }
-        elsif $have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
+        elsif $!have_outer && $*UNIT_OUTER.symbol('GLOBALish') {
             $*GLOBALish :=
               self.force_value($*UNIT_OUTER.symbol('GLOBALish'),'GLOBALish',1);
         }
@@ -693,7 +721,7 @@ class Perl6::World is HLL::World {
         }
 
         # Create or pull in existing EXPORT.
-        if $have_outer && $*UNIT_OUTER.symbol('EXPORT') {
+        if $!have_outer && $*UNIT_OUTER.symbol('EXPORT') {
             $*EXPORT :=
               self.force_value($*UNIT_OUTER.symbol('EXPORT'), 'EXPORT', 1);
         }
@@ -703,14 +731,14 @@ class Perl6::World is HLL::World {
         }
 
         # If there's a self in scope, set $*HAS_SELF.
-        if $have_outer && $*UNIT_OUTER.symbol('self') {
+        if $!have_outer && $*UNIT_OUTER.symbol('self') {
             $*HAS_SELF := 'complete';
         }
 
         # Take current package from outer context if any, otherwise for a
         # fresh compilation unit we start in GLOBAL.
         my $package;
-        if $have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
+        if $!have_outer && $*UNIT_OUTER.symbol('$?PACKAGE') {
             $package :=
               self.force_value($*UNIT_OUTER.symbol('$?PACKAGE'),'$?PACKAGE',1);
         }
@@ -722,17 +750,17 @@ class Perl6::World is HLL::World {
 
         # If we're eval'ing in the context of a %?LANG, set up our own
         # %*LANG based on it.
-        if $have_outer && $*UNIT_OUTER.symbol('%?LANG') {
+        if $!have_outer && $*UNIT_OUTER.symbol('%?LANG') {
             for self.force_value(
               $*UNIT_OUTER.symbol('%?LANG'), '%?LANG', 1).FLATTENABLE_HASH() {
                 %*LANG{$_.key} := $_.value;
             }
         }
-        if $have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
+        if $!have_outer && $*UNIT_OUTER.symbol('$*MAIN') {
             $*MAIN :=
               self.force_value($*UNIT_OUTER.symbol('$*MAIN'), '$*MAIN', 1);
         }
-        if $have_outer && $*UNIT_OUTER.symbol('$?STRICT') {
+        if $!have_outer && $*UNIT_OUTER.symbol('$?STRICT') {
             $*STRICT :=
               self.force_value($*UNIT_OUTER.symbol('$*STRICT'), '$*STRICT', 1);
         }
@@ -741,7 +769,7 @@ class Perl6::World is HLL::World {
         }
 
         # Bootstrap
-        if $setting_name eq 'NULL' {
+        if $!setting_name eq 'NULL' {
             my $name   := "Perl6::BOOTSTRAP";
             my $module := self.load_module_early($/, $name, $*GLOBALish);
             my $EXPORT := $module<EXPORT>.WHO;
@@ -766,13 +794,13 @@ class Perl6::World is HLL::World {
             self.install_lexical_symbol($*UNIT, '::?PACKAGE', $package);
             $*CODE_OBJECT := $*DECLARAND := self.stub_code_object('Block');
 
-            unless $in_eval {
+            unless $!have_outer {
                 self.install_lexical_symbol(
                   $*UNIT,'$=finish',self.find_symbol(['Mu'], :setting-only));
             }
         }
 
-        unless $in_eval {
+        unless $!have_outer {
             my $M := %*COMPILING<%?OPTIONS><M>;
             if nqp::defined($M) {
                 for nqp::islist($M) ?? $M !! [$M] -> $longname {
@@ -780,6 +808,16 @@ class Perl6::World is HLL::World {
                 }
             }
         }
+
+        $!unit_ready := 1;
+
+        self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
+    }
+
+    method add_unit_marker($/, $name) {
+        my $marker := self.pkg_create_mo($/, $/.how('package'), :$name);
+        $marker.HOW.compose($marker);
+        self.install_lexical_symbol($*UNIT, $name, $marker);
     }
 
     method mop_up_and_check($/) {
@@ -792,14 +830,9 @@ class Perl6::World is HLL::World {
             $*UNIT, '$=pod', $*POD_PAST.compile_time_value
         );
 
-        # Tag UNIT with a magical lexical. Also if we're compiling CORE,
-        # give it such a tag too.
-        my $name := $*COMPILING_CORE_SETTING
-          ?? '!CORE_MARKER'
-          !! '!UNIT_MARKER';
-        my $marker := self.pkg_create_mo($/, $/.how('package'), :$name);
-        $marker.HOW.compose($marker);
-        self.install_lexical_symbol($*UNIT, $name, $marker);
+        # Tag UNIT with a magical lexical unless it is CORE.
+        self.add_unit_marker($/, '!UNIT_MARKER') unless $*COMPILING_CORE_SETTING;
+        self.add_unit_marker($/, '!EVAL_MARKER') if $*INSIDE-EVAL;
 
         # CHECK time.
         self.CHECK();
@@ -900,15 +933,19 @@ class Perl6::World is HLL::World {
 
     # Loads a setting.
     method load_setting($/, $setting_name) {
+        # We don't load setting for EVAL
+        if $*INSIDE-EVAL && $!have_outer {
+            return
+        }
         # Do nothing for the NULL setting.
         if $setting_name ne 'NULL' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
             # Load it immediately, so the compile time info is available.
             # Once it's loaded, set it as the outer context of the code
-            # being compiled.
-            my $setting := %*COMPILING<%?OPTIONS><outer_ctx>
-                        := Perl6::ModuleLoader.load_setting($setting_name);
+            # being compiled unless being loaded as another core dependency.
+            my $setting := %*COMPILING<%?OPTIONS><outer_ctx> :=
+                            Perl6::ModuleLoader.load_setting($setting_name);
 
             # Add a fixup and deserialization task also.
             my $fixup := QAST::Stmt.new(
@@ -926,7 +963,7 @@ class Perl6::World is HLL::World {
                     )
                 )
             );
-            self.add_load_dependency_task(:deserialize_ast($fixup), :fixup_ast($fixup));
+            $!setting_fixup_task := $fixup;
 
             return nqp::ctxlexpad($setting);
         }
@@ -1068,7 +1105,7 @@ class Perl6::World is HLL::World {
                 my $Map := self.find_symbol(['Map'], :setting-only);
                 if nqp::istype($result, $Map) {
                     my $storage := $result.hash.FLATTENABLE_HASH();
-                    self.import($/, $storage, $package_source_name);
+                    self.import($/, $storage, $package_source_name, :need-decont(!(nqp::what($result) =:= $Map)));
 #                    $/.check_LANG_oopsies("do_import");
                 }
                 else {
@@ -1478,7 +1515,7 @@ class Perl6::World is HLL::World {
     }
 
     # Imports symbols from the specified stash into the current lexical scope.
-    method import($/, %stash, $source_package_name) {
+    method import($/, %stash, $source_package_name, :$need-decont = 0) {
         # What follows is a two-pass thing for historical reasons.
         my $target := self.cur_lexpad();
 
@@ -1489,6 +1526,9 @@ class Perl6::World is HLL::World {
         my @clash_onlystar;
         for sorted_keys(%stash) -> $key {
             my $value := %stash{$key};
+            if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
+                $value := nqp::decont($value);
+            }
             if $target.symbol($key) -> %sym {
                 # There's already a symbol. However, we may be able to merge
                 # if both are multis and have onlystar dispatchers.
@@ -3056,7 +3096,7 @@ class Perl6::World is HLL::World {
             QAST::SVal.new( :value($r) )
         }
         elsif nqp::isint($r) {
-            QAST::IVal.new( :value($r) )
+            QAST::IVal.new( :value(nqp::isconcrete($r) ?? $r !! 0) )
         }
         else {
             self.add_object_if_no_sc($r);
@@ -4766,12 +4806,47 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method find_symbol_in_setting(@name) {
+        my str $fullname := nqp::join("::", @name);
+        my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
+        my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+        my $components := +@name;
+
+        while $ctx {
+            my $pad := nqp::ctxlexpad($ctx);
+            if nqp::existskey($pad, @name[0]) {
+                my $val := nqp::atkey($pad, @name[0]);
+                if $components == 1 {
+                    return $val;
+                }
+                my $i := 1;
+                while $i < $components {
+                    if nqp::existskey($val.WHO, @name[$i]) {
+                        $val := ($val.WHO){@name[$i++]};
+                        if $i == $components {
+                            return $val;
+                        }
+                    }
+                    else {
+                        last;
+                    }
+                }
+            }
+            $ctx := nqp::ctxouter($ctx);
+        }
+        nqp::die("Cannot find symbol $fullname in $setting_name");
+    }
+
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
     method find_symbol(@name, :$setting-only, :$upgrade_to_global, :$cur-package) {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
+
+        unless $!unit_ready {
+            return self.find_symbol_in_setting(@name);
+        }
 
         # GLOBAL is current view of global.
         if +@name == 1 && @name[0] eq 'GLOBAL' {
@@ -4787,6 +4862,7 @@ class Perl6::World is HLL::World {
 
         # If it's a single-part name, look through the lexical
         # scopes and try the current package.
+
         if +@name == 1 {
             my str $final_name := ~@name[0];
             if $*WANTEDOUTERBLOCK {
@@ -5392,6 +5468,8 @@ class Perl6::World is HLL::World {
         }
         if $found_xcbt {
             my $xcbt := $x_comp_bt.new(exception => $p6ex, :$use-case);
+            note("BEGIN TIME EXCEPTION IS AT ", self.current_file, " at ", self.current_line($/));
+            note("EXCEPTION: ", $p6ex.message);
             $xcbt.SET_FILE_LINE(
                 nqp::box_s(self.current_file,self.find_symbol(['Str'], :setting-only)),
                 nqp::box_i(self.current_line($/),self.find_symbol(['Int'], :setting-only)),

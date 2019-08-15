@@ -52,7 +52,7 @@ class Perl6::Metamodel::ClassHOW
         my $obj := nqp::settypehll($new_type, 'perl6');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
-        $metaclass.set_ver($obj, $ver) if $ver;
+        $metaclass.set_ver($obj, $ver);
         $metaclass.set_auth($obj, $auth) if $auth;
         $metaclass.set_api($obj, $api) if $api;
         $metaclass.setup_mixin_cache($obj);

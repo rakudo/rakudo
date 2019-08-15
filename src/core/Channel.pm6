@@ -51,8 +51,9 @@ my class Channel does Awaitable {
     }
 
     method receive(Channel:D:) {
+        my \msg := nqp::shift($!queue);
         nqp::if(
-          nqp::istype((my \msg := nqp::shift($!queue)),CHANNEL_CLOSE),
+          nqp::istype(msg,CHANNEL_CLOSE),
           nqp::stmts(
             nqp::push($!queue, msg),    # make sure other readers see it
             $!closed_promise_vow.keep(Nil),
@@ -65,7 +66,10 @@ my class Channel does Awaitable {
               $!closed_promise_vow.break(my $error := msg.error),
               $error.rethrow
             ),
-            msg
+            nqp::stmts(
+              self!peek(),              # trigger promise if closed
+              msg
+            )
           )
         )
     }
@@ -88,7 +92,10 @@ my class Channel does Awaitable {
                 nqp::push($!queue, msg),
                 Nil
               ),
-              msg
+              nqp::stmts(
+                self!peek(),              # trigger promise if closed
+                msg
+              )
             )
           )
         )
@@ -123,7 +130,7 @@ my class Channel does Awaitable {
                     if $!closed_promise {
                         $!closed_promise.status == Kept
                             ?? done()
-                            !! die $!closed_promise.cause
+                            !! X::AdHoc.new( payload => $!closed_promise.cause ).throw
                     }
                 }
                 else {
@@ -154,7 +161,7 @@ my class Channel does Awaitable {
             if $!closed_promise {
                 $!closed_promise.status == Kept
                     ?? done()
-                    !! die $!closed_promise.cause
+                    !! X::AdHoc.new( payload => $!closed_promise.cause ).throw
             }
         }
     }
@@ -285,12 +292,12 @@ my class Channel does Awaitable {
         $!closed = 1;
         $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);
         nqp::push($!queue, CHANNEL_FAIL.new(:$error));
+        self!peek();
         $!async-notify.emit(True);
         Nil
     }
 
     method closed() {
-        self!peek();
         $!closed_promise
     }
 }

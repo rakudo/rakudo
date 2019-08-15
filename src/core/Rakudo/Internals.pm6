@@ -15,6 +15,8 @@ my class X::Str::Sprintf::Directives::Count { ... }
 my class X::Str::Sprintf::Directives::Unsupported { ... }
 my class X::TypeCheck { ... }
 
+# Marker symbol for 6.c-mode regex boolification.
+my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
@@ -39,9 +41,6 @@ my class Rakudo::Internals {
     class LoweredAwayLexical {
         method dynamic() { False }
     }
-
-    # Marker symbol for 6.c-mode regex boolification.
-    class RegexBoolification6cMarker { }
 
     # rotate nqp list to another given list without using push/pop
     method RotateListToList(\from,\n,\to) {
@@ -321,6 +320,8 @@ my class Rakudo::Internals {
       # ShiftJIS
       'windows-932',     'windows-932',
       'windows932',      'windows-932',
+      # GB2312
+      'gb2312',          'gb2312',
     );
     method NORMALIZE_ENCODING(Str:D \encoding) {
         nqp::ifnull(
@@ -492,11 +493,9 @@ implementation detail and has no serviceable parts inside"
 
         proto method STORE(::?CLASS:D: |) {*}
         multi method STORE(::?CLASS:D: Slip:D \slip) {
-            nqp::if(
-              nqp::eqaddr(slip,Empty),
-              (die "Cannot Empty a shaped array as its size is fixed"),
-              self.STORE(slip.List)
-            )
+            nqp::eqaddr(slip,Empty)
+              ?? X::AdHoc.new( payload => "Cannot Empty a shaped array as its size is fixed").throw
+              !! self.STORE(slip.List)
         }
 
         # illegal unless overridden for 1dimmed case
@@ -1676,7 +1675,7 @@ implementation detail and has no serviceable parts inside"
     # that has been locally installed.  Called by METAOP_ASSIGN.  Please add
     # any other core ops that seem to be necessary.
     sub INSTALL-CORE-METAOPS() {
-        $METAOP_ASSIGN := nqp::create(Rakudo::Internals::IterationSet);
+        my $metaop_assign := nqp::create(Rakudo::Internals::IterationSet);
         for (
           &[+], -> Mu \a, Mu \b { a = a.DEFINITE ?? a + b !! +b },
           &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! Failure.new("No zero-arg meaning for infix:<%>")},
@@ -1685,9 +1684,9 @@ implementation detail and has no serviceable parts inside"
           &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! ~b },
         ) -> \op, \metaop {
             metaop.set_name(op.name ~ ' + {assigning}');
-            nqp::bindkey($METAOP_ASSIGN,nqp::objectid(op),metaop);
+            nqp::bindkey($metaop_assign, nqp::objectid(op), metaop);
         }
-        $METAOP_ASSIGN
+        $METAOP_ASSIGN := $metaop_assign;
     }
 
     # handle parameterization by just adding a "keyof" method
@@ -1734,6 +1733,9 @@ implementation detail and has no serviceable parts inside"
             ::("Inline::Perl5").default_perl5
         }
     }
+
+    my %vm-sigs;
+    method VM-SIGNALS() { %vm-sigs ?? %vm-sigs !! %vm-sigs = nqp::getsignals }
 }
 
 # expose the number of bits a native int has

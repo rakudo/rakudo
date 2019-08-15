@@ -21,6 +21,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     has @!candidates;
     has $!selector;
     has @!role_typecheck_list;
+    has @!nonsignatured;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes() {
@@ -89,6 +90,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
 
     method add_possibility($obj, $possible) {
         @!candidates[+@!candidates] := $possible;
+        nqp::push(@!nonsignatured, nqp::decont($possible)) unless $possible.HOW.signatured($possible);
         $!selector.add_dispatchee($possible.HOW.body_block($possible));
         self.update_role_typecheck_list($obj);
     }
@@ -135,11 +137,8 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method update_role_typecheck_list($obj) {
-        for @!candidates {
-            if !$_.HOW.signatured($_) {
-                @!role_typecheck_list := $_.HOW.role_typecheck_list($_);
-            }
-        }
+        my $ns := self.'!get_nonsignatured_candidate'($obj);
+        @!role_typecheck_list := $ns.HOW.role_typecheck_list($ns) unless nqp::isnull($ns);
     }
 
     method role_typecheck_list($obj) {
@@ -161,6 +160,8 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
                 return 1;
             }
         }
+        my $ns := self.'!get_nonsignatured_candidate'($obj);
+        return $ns.HOW.type_check_parents($ns, $decont) unless nqp::isnull($ns);
         0;
     }
 
@@ -197,6 +198,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method !get_default_candidate($obj) {
-        @!candidates[0]
+        self.'!get_nonsignatured_candidate'($obj) || @!candidates[0]
+    }
+
+    method !get_nonsignatured_candidate($obj) {
+        return nqp::null unless +@!nonsignatured;
+        @!nonsignatured[0]
     }
 }

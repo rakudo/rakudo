@@ -34,6 +34,15 @@ sub rule($target, $source, *@actions) {
     $target;
 }
 
+say("JS_CORE_SOURCES = @insert_filelist(core_sources)@
+@for_specs(
+JS_CORE_@ucspec@_SOURCES = \\
+    @insert_filelist(rev_core_sources)@
+)@");
+say("
+JS_BUILD_DIR = @nfp(js/moar)@
+");
+
 constant('JS_BLIB', '@js_blib@');
 constant('JS_BUILD_DIR', '@js_build_dir@');
 constant('JS_NQP', '@js_nqp@');
@@ -120,17 +129,19 @@ rule($Metamodel-combined, '$(COMMON_BOOTSTRAP_SOURCES)',
 my $Bootstrap-combined := combine(:sources('$(BOOTSTRAP_SOURCES)'), :file<Perl6-BOOTSTRAP.nqp>);
 
 my $CORE-combined := $build_dir ~ "/CORE.setting";
-rule($CORE-combined, '@js_core_sources@',
+rule($CORE-combined, '$(JS_CORE_SOURCES)',
     '@echo "The following step can take a very long time, please be patient."',
-    "\$(JS_NQP) \@script(gen-cat.nqp)@ js  -f \@ctx_template(core_sources)@ > {nfp($CORE-combined)}"
-
+    '$(CONFIGURE) --expand @shquot(@template(core_sources)@)@ \\',
+    '--out @nfpq($(JS_BUILD_DIR)/core_sources)@ \\',
+    '--set-var=backend=@backend@',
+    "\$(JS_NQP) \@script(gen-cat.nqp)\@ js -f \@nfpq(\$(JS_BUILD_DIR)/core_sources)\@ > {nfp($CORE-combined)}"
 );
 
 say('@for_specs(');
 my $CORE-spec-combined := $build_dir ~ "/CORE.@lcspec@.setting";
-rule($CORE-spec-combined, '@ctx_template(js_core_sources)@',
+rule($CORE-spec-combined, '$(JS_CORE_@ucspec@_SOURCES)',
     '@echo "The following step can take a very long time, please be patient."',
-    "\$(JS_NQP) \@script(gen-cat.nqp)@ js  -f \@ctx_template(js_core_sources)@ > {nfp($CORE-spec-combined)}"
+    "\$(JS_NQP) \@script(gen-cat.nqp)@ js \$(JS_CORE_\@ucspec\@_SOURCES) > {nfp($CORE-spec-combined)}"
 );
 say("\n)@");
 

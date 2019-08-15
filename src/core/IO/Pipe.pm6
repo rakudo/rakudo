@@ -10,7 +10,7 @@ my class IO::Pipe is IO::Handle {
     method TWEAK(:$!on-close!, :$enc, :$bin, :$!on-read, :$!on-write,
                  :$!on-native-descriptor --> Nil) {
         if $bin {
-            die X::IO::BinaryAndEncoding.new if nqp::isconcrete($enc);
+            X::IO::BinaryAndEncoding.new.throw if nqp::isconcrete($enc)
         }
         else {
             my $encoding = Encoding::Registry.find($enc || 'utf-8');
@@ -36,7 +36,7 @@ my class IO::Pipe is IO::Handle {
             }
         }
         else {
-            die "This pipe was opened for writing, not reading"
+            X::AdHoc.new( payload => "This pipe was opened for writing, not reading" ).throw
         }
     }
 
@@ -47,7 +47,7 @@ my class IO::Pipe is IO::Handle {
     method WRITE($data) {
         $!on-write
             ?? $!on-write($data)
-            !! die "This pipe was opened for reading, not writing"
+            !! X::AdHoc.new( payload => "This pipe was opened for reading, not writing").throw
     }
 
     method flush(IO::Handle:D: --> True) { #`(No buffering) }

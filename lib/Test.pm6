@@ -602,6 +602,7 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
 }
 
 sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
+    my $caller-context = $*THROWS-LIKE-CONTEXT // CALLER::; # Don't guess our caller context, know it!
     subtest {
         plan 2 + %matcher.keys.elems;
         my $msg;
@@ -610,7 +611,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             $code()
         } else {
             $msg = "'$code' died";
-            EVAL $code, context => CALLER::CALLER::CALLER::CALLER::CALLER::;
+            EVAL $code, context => $caller-context;
         }
         flunk $msg;
         skip 'Code did not die, can not check exception', 1 + %matcher.elems;
@@ -643,6 +644,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
 sub fails-like (
     \test where Callable:D|Str:D, $ex-type, $reason?, *%matcher
 ) is export {
+    my $*THROWS-LIKE-CONTEXT = CALLER::;
     subtest sub {
         plan 2;
         CATCH { default {
@@ -754,12 +756,12 @@ sub done-testing() is export {
     }
 
     # Wrong quantity of tests
-    _diag("Looks like you planned $num_of_tests_planned test"
+    _diag("You planned $num_of_tests_planned test"
         ~ ($num_of_tests_planned == 1 ?? '' !! 's')
         ~ ", but ran $num_of_tests_run"
     ) if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run);
 
-    _diag("Looks like you failed $num_of_tests_failed test"
+    _diag("You failed $num_of_tests_failed test"
         ~ ($num_of_tests_failed == 1 ?? '' !! 's')
         ~ " of $num_of_tests_run"
     ) if $num_of_tests_failed && ! $subtest_todo_reason;

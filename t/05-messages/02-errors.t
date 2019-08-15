@@ -211,52 +211,47 @@ throws-like ｢Set.new(1..300)<42> = 42｣,
 subtest 'cannot use Int type object as an operand' => {
     plan 14;
 
-    CONTROL {
-        when CX::Warn {
-            die $_
-        }
-    }
     throws-like ｢(1/1)+Int｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'A Rational instance cannot be added by an Int type object';
     throws-like ｢Int+(1/1)｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'An Int type object cannot be added by a Rational instance';
     throws-like ｢(1/1)-Int｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'A Rational instance cannot be subtracted by an Int type object';
     throws-like ｢Int-(1/1)｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'An Int type object cannot be subtracted by a Rational instance';
     throws-like ｢(1/1)*Int｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'A Rational instance cannot be multiplied by an Int type object';
     throws-like ｢Int*(1/1)｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'An Int type object cannot be multiplied by a Rational instance';
     throws-like ｢(1/1)/Int｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'A Rational instance cannot be divided by an Int type object';
     throws-like ｢Int/(1/1)｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'An Int type object cannot be divided by a Rational instance';
     throws-like ｢Int/Int｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'An Int type object cannot be divided by an Int type object';
     throws-like ｢Int/1｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'An Int type object cannot be divided by an Int instance';
     throws-like ｢1/Int｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'An Int instance cannot be divided by an Int type object';
     throws-like ｢(1/1)%Int｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'A Rational instance modulo an Int type object is incalculable';
     throws-like ｢Int%(1/1)｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'An Int type object modulo a Rational instance is incalculable';
     throws-like ｢(1/1)**Int｣,
-        CX::Warn,
+        X::Parameter::InvalidConcreteness,
         'A Rational instance cannot be powered by an Int type object';
 }
 

@@ -3242,7 +3242,7 @@ BEGIN {
         # Build a list of positional captures, or return a shared empty list if
         # there are none. This only populates the slots which need an array.
         my $EMPTY-LIST := nqp::list();
-        my $EMPTY-HASH := nqp::list();
+        my $EMPTY-HASH := nqp::hash();
         method prepare-list() {
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
@@ -3256,7 +3256,13 @@ BEGIN {
                 $result
             }
             else {
+#?if js
+                # HACK js backend bug workaround
+                nqp::list()
+#?endif
+#?if !js
                 $EMPTY-LIST
+#?endif
             }
         }
 
@@ -3278,7 +3284,13 @@ BEGIN {
                 $result
             }
             else {
+#?if js
+                # HACK js backend bug workaround
+                nqp::hash()
+#?endif
+#?if !js
                 $EMPTY-HASH
+#?endif
             }
         }
 

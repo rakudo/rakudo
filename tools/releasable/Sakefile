@@ -243,7 +243,7 @@ task ‘rakudo-canary-upload’, {
 ########## NQP ##########
 
 task ‘nqp-bump-moar’, sub ($?) { # Step ❶ (nqp release guide)
-    if $version-moar eq trim-trailing slurp “$NQP-PATH/tools/build/MOAR_REVISION” {
+    if $version-moar eq trim-trailing slurp “$NQP-PATH/tools/templates/MOAR_REVISION” {
         note “MoarVM version is already bumped to $version-moar”;
         return
     }
@@ -261,9 +261,9 @@ task ‘nqp-bump-moar’, sub ($?) { # Step ❶ (nqp release guide)
         die “Incorrect VERSION file on $version-moar tag ($actual-version-moar)”
     }
 
-    spurt “$NQP-PATH/tools/build/MOAR_REVISION”, “$version-moar\n”;
+    spurt “$NQP-PATH/tools/templates/MOAR_REVISION”, “$version-moar\n”;
     run <git commit -m>, “[release] Bump MoarVM revision to $version-moar”,
-        ‘--’, ‘tools/build/MOAR_REVISION’, :cwd($NQP-PATH);
+        ‘--’, ‘tools/templates/MOAR_REVISION’, :cwd($NQP-PATH);
     # TODO ensure signing
     True
 }
@@ -406,7 +406,7 @@ task ‘rakudo-nqp’, { # Step ❼ (rakudo release guide)
 }
 
 task ‘rakudo-bump-nqp’, sub ($?) { # Step ❽ (rakudo release guide)
-    if $version-nqp eq trim-trailing slurp “$RAKUDO-PATH/tools/build/NQP_REVISION” {
+    if $version-nqp eq trim-trailing slurp “$RAKUDO-PATH/tools/templates/NQP_REVISION” {
         note “NQP version is already bumped to $version-nqp”;
         return
     }
@@ -423,9 +423,9 @@ task ‘rakudo-bump-nqp’, sub ($?) { # Step ❽ (rakudo release guide)
         die “Incorrect VERSION file on $version-nqp tag ($actual-version-nqp)”
     }
 
-    spurt “$RAKUDO-PATH/tools/build/NQP_REVISION”, “$version-nqp\n”;
+    spurt “$RAKUDO-PATH/tools/templates/NQP_REVISION”, “$version-nqp\n”;
     run <git commit -m>, “[release] Bump NQP revision to $version-nqp”,
-        ‘--’, ‘tools/build/NQP_REVISION’, :cwd($RAKUDO-PATH);
+        ‘--’, ‘tools/templates/NQP_REVISION’, :cwd($RAKUDO-PATH);
     # TODO ensure signing
     True
 }

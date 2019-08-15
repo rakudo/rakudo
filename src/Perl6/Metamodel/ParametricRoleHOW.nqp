@@ -37,7 +37,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         my $metarole := self.new(:signatured($signatured), :specialize_lock(NQPLock.new));
         my $type := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
         $metarole.set_name($type, $name // "<anon|{$anon_id++}>");
-        $metarole.set_ver($type, $ver) if $ver;
+        $metarole.set_ver($type, $ver);
         $metarole.set_auth($type, $auth) if $auth;
         $metarole.set_api($type, $api) if $api;
         $metarole.set_pun_repr($type, $repr) if $repr;
@@ -114,6 +114,16 @@ class Perl6::Metamodel::ParametricRoleHOW
         @!role_typecheck_list
     }
 
+    # $checkee must always be decont'ed
+    method type_check_parents($obj, $checkee) {
+        for self.parents($obj, :local) -> $parent {
+            if nqp::istype($checkee, $parent) {
+                return 1;
+            }
+        }
+        0
+    }
+
     method type_check($obj, $checkee) {
         my $decont := nqp::decont($checkee);
         if $decont =:= $obj.WHAT {
@@ -128,11 +138,11 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         for self.roles_to_compose($obj) {
-            if nqp::istype($checkee, $_) {
+            if nqp::istype($decont, $_) {
                 return 1;
             }
         }
-        0
+        self.type_check_parents($obj, $decont);
     }
 
     method specialize($obj, *@pos_args, *%named_args) {

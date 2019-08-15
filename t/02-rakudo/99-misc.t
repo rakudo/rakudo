@@ -6,12 +6,10 @@ plan 10;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
-    ok  ｢use v6.c; BEGIN $*W.lang-ver-before: 'd'｣.EVAL, 'c is before d';
-    nok ｢use v6.c; BEGIN $*W.lang-ver-before: 'c'｣.EVAL, 'c is not before d';
-    nok ｢use v6.e.PREVIEW; BEGIN $*W.lang-ver-before: 'e'｣.EVAL,
-        'e.PREVIEW is not before e';
-    nok ｢use v6.e.PREVIEW; BEGIN $*W.lang-ver-before: 'd'｣.EVAL,
-        'e is not before d';
+    is-run ｢use v6.c; BEGIN print ?$*W.lang-ver-before: 'd'｣, 'c is before d', :out<True>;
+    is-run ｢use v6.c; BEGIN print ?$*W.lang-ver-before: 'c'｣, 'c is not before d', :out<False>;
+    is-run ｢use v6.e.PREVIEW; BEGIN print ?$*W.lang-ver-before: 'e'｣, 'e.PREVIEW is not before e', :out<False>;
+    is-run ｢use v6.e.PREVIEW; BEGIN print ?$*W.lang-ver-before: 'd'｣, 'e is not before d', :out<False>;
     throws-like ｢BEGIN $*W.lang-ver-before: <6.d>｣, Exception,
         :self{.exception.message.contains: 'must be 1 char long'},
     'using wrong version format as argument throws';

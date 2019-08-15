@@ -114,12 +114,12 @@ our class CArray is repr('CArray') is array_type(Pointer) {
 
         multi method allocate(::?CLASS:U \type: int $elems) {
             my $arr := nqp::create(type);
-            nqp::bindpos_i($arr, $_, nqp::create(Int)) for ^$elems;
+            nqp::bindpos_i($arr, $elems - 1, 0);
             $arr;
         }
         multi method allocate(::?CLASS:U \type: Int:D $elems) {
             my $arr := nqp::create(type);
-            nqp::bindpos_i($arr, $_, nqp::create(Int)) for ^$elems;
+            nqp::bindpos_i($arr, $elems - 1, 0);
             $arr;
         }
     }
@@ -146,12 +146,12 @@ our class CArray is repr('CArray') is array_type(Pointer) {
 
         multi method allocate(::?CLASS:U \type: int $elems) {
             my $arr := nqp::create(type);
-            nqp::bindpos_n($arr, $_, nqp::create(Num)) for ^$elems;
+            nqp::bindpos_n($arr, $elems - 1, 0e0);
             $arr;
         }
         multi method allocate(::?CLASS:U \type: Int:D $elems) {
             my $arr := nqp::create(type);
-            nqp::bindpos_n($arr, $_, nqp::create(Num)) for ^$elems;
+            nqp::bindpos_n($arr, $elems - 1, 0e0);
             $arr;
         }
     }

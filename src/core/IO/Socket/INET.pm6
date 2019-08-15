@@ -1,11 +1,5 @@
 my class IO::Socket::INET does IO::Socket {
     my module PIO {
-        constant PF_UNSPEC      = nqp::const::SOCKET_FAMILY_UNSPEC;
-        constant PF_INET        = nqp::const::SOCKET_FAMILY_INET;
-        constant PF_INET6       = nqp::const::SOCKET_FAMILY_INET6;
-        constant PF_LOCAL       = nqp::const::SOCKET_FAMILY_UNIX;
-        constant PF_UNIX        = nqp::const::SOCKET_FAMILY_UNIX;
-        constant PF_MAX         = nqp::const::SOCKET_FAMILY_UNIX + 1;
         constant SOCK_PACKET    = 0;
         constant SOCK_STREAM    = 1;
         constant SOCK_DGRAM     = 2;
@@ -25,13 +19,13 @@ my class IO::Socket::INET does IO::Socket {
     has Int  $.localport;
     has Int  $.backlog;
     has Bool $.listening;
-    has      $.family     = PIO::PF_INET;
+    has      $.family     = nqp::const::SOCKET_FAMILY_INET;
     has      $.proto      = PIO::PROTO_TCP;
     has      $.type       = PIO::SOCK_STREAM;
 
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
         if ($host) {
-            my ($split-host, $split-port) = $family == PIO::PF_INET6
+            my ($split-host, $split-port) = $family == nqp::const::SOCKET_FAMILY_INET6
                 ?? v6-split($host)
                 !! v4-split($host);
 
@@ -62,9 +56,9 @@ my class IO::Socket::INET does IO::Socket {
         Str    :$localhost is copy,
         Int    :$localport is copy,
         Int    :$family where {
-                $family == PIO::PF_INET
-             || $family == PIO::PF_INET6
-        } = PIO::PF_INET,
+                $family == nqp::const::SOCKET_FAMILY_INET
+             || $family == nqp::const::SOCKET_FAMILY_INET6
+        } = nqp::const::SOCKET_FAMILY_INET,
                *%rest,
         --> IO::Socket::INET:D) {
 
@@ -87,9 +81,9 @@ my class IO::Socket::INET does IO::Socket {
         Str:D :$host! is copy,
         Int   :$port is copy,
         Int   :$family where {
-               $family == PIO::PF_INET
-            || $family == PIO::PF_INET6
-        } = PIO::PF_INET,
+               $family == nqp::const::SOCKET_FAMILY_INET
+            || $family == nqp::const::SOCKET_FAMILY_INET6
+        } = nqp::const::SOCKET_FAMILY_INET,
               *%rest,
         --> IO::Socket::INET:D) {
 

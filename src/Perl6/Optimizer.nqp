@@ -11,13 +11,6 @@ use Perl6::Ops;
 # A null QAST node, inserted when we want to eliminate something.
 my $NULL := QAST::Op.new( :op<null> );
 
-my sub make-var-not-a-ref($node) {
-    my $nodescope := $node.scope;
-    if $nodescope eq "localref" { $node.scope("local") }
-    elsif $nodescope eq "lexicalref" { $node.scope("lexical") }
-    elsif $nodescope eq "attributeref" { $node.scope("attribute") }
-}
-
 # Represents the current set of blocks we're in and thus the symbols they
 # make available, and allows for queries over them.
 my class Symbols {
@@ -1494,13 +1487,6 @@ class Perl6::Optimizer {
                                 :valuetype<Complex>
                             );
                     }
-                }
-            }
-            elsif nqp::istype($op[1], QAST::Var) && my $source-var-primspec := nqp::objprimspec($op[1].returns) != 0 {
-                if nqp::objprimspec($op[0].returns) == $source-var-primspec {
-                    make-var-not-a-ref($op[0]);
-                    make-var-not-a-ref($op[1]);
-                    $op.op("bind");
                 }
             }
         }

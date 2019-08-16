@@ -493,11 +493,9 @@ implementation detail and has no serviceable parts inside"
 
         proto method STORE(::?CLASS:D: |) {*}
         multi method STORE(::?CLASS:D: Slip:D \slip) {
-            nqp::if(
-              nqp::eqaddr(slip,Empty),
-              (die "Cannot Empty a shaped array as its size is fixed"),
-              self.STORE(slip.List)
-            )
+            nqp::eqaddr(slip,Empty)
+              ?? X::AdHoc.new( payload => "Cannot Empty a shaped array as its size is fixed").throw
+              !! self.STORE(slip.List)
         }
 
         # illegal unless overridden for 1dimmed case

@@ -9,11 +9,11 @@ enum SeekType (
   :SeekFromEnd(2),
 );
 enum ProtocolFamily (
-  :PF_LOCAL(0),
-  :PF_UNIX(1),
-  :PF_INET(2),
-  :PF_INET6(3),
-  :PF_MAX(4),
+  :PF_INET(nqp::p6box_i(nqp::const::SOCKET_FAMILY_INET)),
+  :PF_INET6(nqp::p6box_i(nqp::const::SOCKET_FAMILY_INET6)),
+  :PF_LOCAL(nqp::p6box_i(nqp::const::SOCKET_FAMILY_UNIX)),
+  :PF_UNIX(nqp::p6box_i(nqp::const::SOCKET_FAMILY_UNIX)),
+  :PF_MAX(nqp::p6box_i(nqp::const::SOCKET_FAMILY_UNIX + 1)),
 );
 enum SocketType (
   :SOCK_PACKET(0),

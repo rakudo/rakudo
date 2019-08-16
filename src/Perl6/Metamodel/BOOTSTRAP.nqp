@@ -3256,7 +3256,13 @@ BEGIN {
                 $result
             }
             else {
+#?if js
+                # HACK js backend bug workaround
+                nqp::list()
+#?endif
+#?if !js
                 $EMPTY-LIST
+#?endif
             }
         }
 
@@ -3278,7 +3284,13 @@ BEGIN {
                 $result
             }
             else {
+#?if js
+                # HACK js backend bug workaround
+                nqp::hash()
+#?endif
+#?if !js
                 $EMPTY-HASH
+#?endif
             }
         }
 

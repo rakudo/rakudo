@@ -36,7 +36,7 @@ my role QuantHash does Associative {
 
     multi method AT-KEY(QuantHash:U \SELF: $key) is raw {
         nqp::istype(self, Set) || nqp::istype(self, Bag) || nqp::istype(self, Mix)
-          ?? die "Cannot auto-vivify an immutable {SELF.^name}"
+          ?? X::AdHoc.new(payload => "Cannot auto-vivify an immutable {SELF.^name}").throw
           !! (SELF = self.new).AT-KEY($key)
     }
 

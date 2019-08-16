@@ -389,7 +389,7 @@ class CompUnit::RepositoryRegistry {
           },
           STORE => -> $, $class {
               nqp::istype((my \type = ::($class)),Failure)
-                ?? (die "Must load class '$class' first")
+                ?? X::AdHoc.new( payload => "Must load class '$class' first" ).throw
                 !! $sid-lock.protect: {
                        nqp::bindkey($short-id2class,$short-id,type)
                    }

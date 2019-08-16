@@ -40,7 +40,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method Bool(Str:D: --> Bool:D) {
         nqp::hllbool(nqp::chars($!value));
     }
-    method Capture() { die X::Cannot::Capture.new: :what(self) }
+    method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
 
     multi method Str(Str:D: --> Str:D)     { self }
     multi method Stringy(Str:D: --> Str:D) { self }

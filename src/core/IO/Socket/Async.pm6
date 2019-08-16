@@ -50,12 +50,14 @@ my class IO::Socket::Async {
         has int $.port;
 
         method decode(|c) {
-            die "Cannot decode a datagram with Str data" if $!data ~~ Str;
-            return self.clone(data => $!data.decode(|c));
+            $!data ~~ Str
+              ?? X::AdHoc.new( payload => "Cannot decode a datagram with Str data").throw
+              !! self.clone(data => $!data.decode(|c))
         }
         method encode(|c) {
-            die "Cannot encode a datagram with Blob data" if $!data ~~ Blob;
-            return self.clone(data => $!data.encode(|c));
+            $!data ~~ Blob
+              ?? X::AdHoc.new( payload => "Cannot encode a datagram with Blob data" ).throw
+              !! self.clone(data => $!data.encode(|c))
         }
     }
 

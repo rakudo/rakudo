@@ -119,7 +119,7 @@ my class Lock::Async {
                 }
             }
             else {
-                die X::Lock::Async::NotLocked.new;
+                X::Lock::Async::NotLocked.new.throw
             }
         }
 #?endif

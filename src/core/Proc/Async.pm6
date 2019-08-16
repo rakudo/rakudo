@@ -171,87 +171,94 @@ my class Proc::Async {
 
     proto method stdout(|) {*}
     multi method stdout(Proc::Async:D: :$bin!) {
-        die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
-        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
-            if $!stdout-fd;
-        $bin
-            ?? self!pipe('stdout', $!stdout_supply, $!stdout_type, Bytes, $!stdout_descriptor_vow, 1)
-            !! self.stdout(|%_)
+        $!merge_supply
+          ?? X::Proc::Async::SupplyOrStd.new.throw
+          !! $!stdout-fd
+            ?? X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply')).throw
+            !! $bin
+              ?? self!pipe('stdout', $!stdout_supply, $!stdout_type, Bytes, $!stdout_descriptor_vow, 1)
+              !! self.stdout(|%_)
     }
     multi method stdout(Proc::Async:D: :$enc, :$translate-nl) {
-        die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
-        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
-            if $!stdout-fd;
-        self!wrap-decoder:
-            self!pipe('stdout', $!stdout_supply, $!stdout_type, Chars, Nil, 1),
-            $enc, $!stdout_descriptor_vow, 1, :$translate-nl
+        $!merge_supply
+          ?? X::Proc::Async::SupplyOrStd.new.throw
+          !! $!stdout-fd
+            ?? X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply')).throw
+            !! self!wrap-decoder:
+              self!pipe('stdout',$!stdout_supply,$!stdout_type,Chars,Nil,1),
+              $enc, $!stdout_descriptor_vow, 1, :$translate-nl
     }
 
     proto method stderr(|) {*}
     multi method stderr(Proc::Async:D: :$bin!) {
-        die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
-        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
-            if $!stderr-fd;
-        $bin
-            ?? self!pipe('stderr', $!stderr_supply, $!stderr_type, Bytes, $!stderr_descriptor_vow, 2)
-            !! self.stderr(|%_)
+        $!merge_supply
+          ?? X::Proc::Async::SupplyOrStd.new.throw
+          !! $!stderr-fd
+            ?? X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply')).throw
+            !! $bin
+              ?? self!pipe('stderr', $!stderr_supply, $!stderr_type, Bytes, $!stderr_descriptor_vow, 2)
+              !! self.stderr(|%_)
     }
     multi method stderr(Proc::Async:D: :$enc, :$translate-nl) {
-        die X::Proc::Async::SupplyOrStd.new if $!merge_supply;
-        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
-            if $!stderr-fd;
-        self!wrap-decoder:
-            self!pipe('stderr', $!stderr_supply, $!stderr_type, Chars, Nil, 2),
-            $enc, $!stderr_descriptor_vow, 2, :$translate-nl
+        $!merge_supply
+          ?? X::Proc::Async::SupplyOrStd.new.throw
+          !! $!stderr-fd
+            ?? X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply')).throw
+            !! self!wrap-decoder:
+              self!pipe('stderr',$!stderr_supply,$!stderr_type,Chars,Nil,2),
+              $enc, $!stderr_descriptor_vow, 2, :$translate-nl
     }
 
     proto method Supply(|) {*}
     multi method Supply(Proc::Async:D: :$bin!) {
-        die X::Proc::Async::SupplyOrStd.new if $!stdout_supply || $!stderr_supply;
-        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply'))
-            if $!stdout-fd;
-        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply'))
-            if $!stderr-fd;
-        $bin
-            ?? self!pipe('merge', $!merge_supply, $!merge_type, Bytes, Nil, 0)
-            !! self.Supply(|%_)
+        $!stdout_supply || $!stderr_supply
+          ?? X::Proc::Async::SupplyOrStd.new.throw
+          !! $!stdout-fd
+            ?? X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply')).throw
+            !! $!stderr-fd
+              ?? X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply')).throw
+              !! $bin
+                ?? self!pipe('merge',$!merge_supply,$!merge_type,Bytes,Nil,0)
+                !! self.Supply(|%_)
     }
     multi method Supply(Proc::Async:D: :$enc, :$translate-nl) {
-        die X::Proc::Async::SupplyOrStd.new if $!stdout_supply || $!stderr_supply;
-        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply'))
-            if $!stdout-fd;
-        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply'))
-            if $!stderr-fd;
-        self!wrap-decoder:
-            self!pipe('merge', $!merge_supply, $!merge_type, Chars, Nil, 0),
-            $enc, Nil, 0, :$translate-nl
+        $!stdout_supply || $!stderr_supply
+          ?? X::Proc::Async::SupplyOrStd.new.throw
+          !! $!stdout-fd
+            ?? X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply')).throw
+            !! $!stderr-fd
+              ?? X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply')).throw
+              !! self!wrap-decoder:
+                self!pipe('merge',$!merge_supply,$!merge_type,Chars,Nil,0),
+                $enc, Nil, 0, :$translate-nl
     }
 
     proto method bind-stdin($) {*}
     multi method bind-stdin(IO::Handle:D $handle --> Nil) {
-        die X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')) if $!w;
+        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw if $!w;
         $!stdin-fd := $handle.native-descriptor;
         @!close-after-exit.push($handle) if $handle ~~ IO::Pipe;
     }
     multi method bind-stdin(Proc::Async::Pipe:D $pipe --> Nil) {
-        die X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')) if $!w;
-        $!stdin-fd := $pipe.native-descriptor;
+        $!w
+          ?? X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
+          !! ($!stdin-fd := $pipe.native-descriptor);
     }
 
     method bind-stdout(IO::Handle:D $handle --> Nil) {
-        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply'))
-            if $!stdout_supply;
-        die X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply'))
-            if $!merge_supply;
-        $!stdout-fd := $handle.native-descriptor;
+        $!stdout_supply
+          ?? X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the stdout Supply')).throw
+          !! $!merge_supply
+            ?? X::Proc::Async::BindOrUse.new(:handle<stdout>, :use('get the output Supply')).throw
+            !! ($!stdout-fd := $handle.native-descriptor);
     }
 
     method bind-stderr(IO::Handle:D $handle --> Nil) {
-        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply'))
-            if $!stderr_supply;
-        die X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply'))
-            if $!merge_supply;
-        $!stderr-fd := $handle.native-descriptor;
+        $!stderr_supply
+          ?? X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the stderr Supply')).throw
+          !! $!merge_supply
+            ?? X::Proc::Async::BindOrUse.new(:handle<stderr>, :use('get the output Supply')).throw
+            !! ($!stderr-fd := $handle.native-descriptor);
     }
 
     method ready(--> Promise) {

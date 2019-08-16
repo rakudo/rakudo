@@ -2,8 +2,7 @@ my class CompUnit::Repository::NodeJs does CompUnit::Repository does CompUnit::R
     method need(
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-    )
-        returns CompUnit:D
+        --> CompUnit:D)
     {
 
         if $spec.from eq 'node.js' {

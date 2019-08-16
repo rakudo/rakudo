@@ -3567,11 +3567,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub check_default_value_type($/, $descriptor, $bind_constraint, $what) {
         my $matches;
         my $maybe := 0;
-        note("TRY check_default_value_type") if nqp::getenvhash<RAKUDO_DEBUG>;
         try {
             $matches := nqp::istype($descriptor.default, $bind_constraint);
             CATCH {
-                note("IN CATCH") if nqp::getenvhash<RAKUDO_DEBUG>;
                 $maybe := 1;
                 my $pl := nqp::getpayload($_);
                 if nqp::istype($pl, $*W.find_symbol(['Exception'])) {
@@ -3583,7 +3581,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         unless $matches {
-            note("NO MATCH $maybe") if nqp::getenvhash<RAKUDO_DEBUG>;
             $/.typed_sorry('X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
                 :$maybe,

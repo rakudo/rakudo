@@ -460,10 +460,10 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) {
                 }
             }
             elsif $badseq {
-                die X::Sequence::Deduction.new(:from($badseq));
+                X::Sequence::Deduction.new(:from($badseq)).throw;
             }
             else {
-                die X::Sequence::Deduction.new;
+                X::Sequence::Deduction.new.throw;
             }
         }
     });
@@ -611,6 +611,7 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
     my $block := CALLER::.EXISTS-KEY('%REQUIRE_SYMBOLS')
         ?? CALLER::MY::
         !! CALLER::OUTER::;
+    my $merge-globals-target := $block;
 
     my $targetWHO;
     my $sourceWHO;
@@ -634,6 +635,7 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
             }
             $targetWHO.merge-symbols($sourceWHO);
         }
+        $merge-globals-target := $top-existing-pkg;
     } elsif $stubname {
         $targetWHO := $block.AT-KEY($stubname).WHO;
         $sourceWHO := $GLOBALish.AT-KEY($stubname).WHO;
@@ -651,7 +653,7 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
     nqp::gethllsym('perl6','ModuleLoader').merge_globals(
-        $block.AT-KEY($stubname).WHO,
+        $merge-globals-target.AT-KEY($stubname).WHO,
         $GLOBALish,
     ) if $stubname;
     # Merge GLOBAL from compunit.

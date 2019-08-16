@@ -9,15 +9,15 @@ my class Failure is Nil {
 #?endif
 
     method !SET-SELF($!exception) {
-        $!backtrace = $!exception.backtrace || Backtrace.new(5);
+        $!backtrace = $!exception.backtrace || Backtrace.new(3);
         $!exception.reset-backtrace;
         self
     }
 
     multi method new(Failure:D:) { self!throw }
     multi method new(Failure:U:) {
-        my $stash := CALLER::;
-        my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
+        my $stash := CALLER::LEXICAL::;
+        my $payload = ($stash<$!>:exists && $stash<$!>.DEFINITE) ?? $stash<$!> !! "Failed";
         nqp::create(self)!SET-SELF(
           $payload ~~ Exception ?? $payload !! X::AdHoc.new(:$payload)
         )
@@ -120,8 +120,8 @@ my class Failure is Nil {
 
 proto sub fail(|) {*};
 multi sub fail(--> Nil) {
-    my $stash := CALLER::;
-    my $payload = $stash<$!>.DEFINITE ?? $stash<$!> !! "Failed";
+    my $stash := CALLER::LEXICAL::;
+    my $payload = ($stash<$!>:exists && $stash<$!>.DEFINITE) ?? $stash<$!> !! "Failed";
 
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload !! X::AdHoc.new(:$payload));

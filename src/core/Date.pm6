@@ -91,7 +91,7 @@ my class Date does Dateish {
         self.new(DateTime.new($i),:&formatter,|%_)
     }
     proto method new-from-daycount($) {*}
-    multi method new-from-daycount($daycount,:&formatter --> Date:D) {
+    multi method new-from-daycount(Date:U: $daycount,:&formatter --> Date:D) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
@@ -160,13 +160,15 @@ my class Date does Dateish {
             # exception, we just clip to the last of the month
             self.new($year,$month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$month)
-              !! $!day);
+              !! $!day,
+              :&!formatter)
         }
         else { # year
             my Int $year = $!year + $amount;
             self.new($year,$!month,$!day > 28
               ?? $!day min self!DAYS-IN-MONTH($year,$!month)
-              !! $!day);
+              !! $!day,
+              :&!formatter)
         }
     }
 

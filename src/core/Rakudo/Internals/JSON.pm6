@@ -169,7 +169,7 @@ my class Rakudo::Internals::JSON {
 
             for pairs {
                 jsonify(.key);
-                nqp::push_s($out,":");
+                nqp::push_s($out,": ");
                 jsonify(.value);
                 nqp::push_s($out,$comma);
             }
@@ -200,9 +200,9 @@ my class Rakudo::Internals::JSON {
             my int $before = nqp::elems($out);
             for pairs {
                 jsonify(.key);
-                nqp::push_s($out,": ");
+                nqp::push_s($out,":");
                 jsonify(.value);
-                nqp::push_s($out,$comma);
+                nqp::push_s($out,",");
             }
             nqp::pop_s($out) if nqp::elems($out) > $before;  # lose last comma
             nqp::push_s($out,'}');

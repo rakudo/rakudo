@@ -230,6 +230,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         if not $force and $io.e and $io.s {
             $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
+            with %*COMPILING<%?OPTIONS><stagestats> {
+                note "\n    load    $path.relative()";
+                $*ERR.flush;
+            }
             self.store.unlock;
             return True;
         }
@@ -260,6 +264,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $out = '';
         my $err = '';
         my $status;
+        #note "running PrecompRepo.precompile";
+        #note "is stagestats set? { +%*COMPILING<%?OPTIONS><stagestats> } { ~%*COMPILING<%?OPTIONS><stagestats> }";
+        with %*COMPILING<%?OPTIONS><stagestats> {
+            note "\n    precomp $path.relative()";
+            $*ERR.flush;
+        }
         react {
             my $proc = Proc::Async.new(
                 $perl6,
@@ -269,6 +279,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
                 "--output=$bc",
                 "--source-name=$source-name",
+                |("--stagestats" with %*COMPILING<%?OPTIONS><stagestats>),
                 $path
             );
 
@@ -278,6 +289,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             unless $RMD {
                 whenever $proc.stderr {
                     $err ~= $_
+                }
+            }
+            with %*COMPILING<%?OPTIONS><stagestats> {
+                whenever $proc.stderr.lines {
+                    note("    $_");
+                    $*ERR.flush;
                 }
             }
             whenever $proc.start(ENV => %env) {
@@ -293,7 +310,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             die $RMD ?? @result !! $err;
         }
 
-        if not $RMD and $err -> $warnings {
+        if not $RMD and not %*COMPILING<%?OPTIONS><stagestats>:exists and $err -> $warnings {
             $*ERR.print($warnings);
         }
         unless $bc.e {

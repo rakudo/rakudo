@@ -72,7 +72,7 @@ my class Set does Setty {
     multi method grab(Set:D: $count?) {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
-    multi method grabpairs(Set:D $count?) {
+    multi method grabpairs(Set:D: $count?) {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 

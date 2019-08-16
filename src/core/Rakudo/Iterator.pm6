@@ -500,6 +500,7 @@ class Rakudo::Iterator {
               target.push(Pair.new(pulled,+($key = nqp::add_i($key,1))))
             )
         }
+        method is-lazy() { $!iter.is-lazy }
     }
     method AntiPair(\iterator) { AntiPair.new(iterator) }
 
@@ -2037,6 +2038,7 @@ class Rakudo::Iterator {
               )
             )
         }
+        method is-lazy() { $!iter.is-lazy }
     }
     method KeyValue(\iterator) { KeyValue.new(iterator) }
 
@@ -2504,6 +2506,7 @@ class Rakudo::Iterator {
               target.push(Pair.new(($key = nqp::add_i($key,1)),$pulled))
             )
         }
+        method is-lazy() { $!iter.is-lazy }
     }
     method Pair(\iterator) { PairIterator.new(iterator) }
 
@@ -2612,7 +2615,7 @@ class Rakudo::Iterator {
     # Return an iterator for an Array that has been completely reified
     # already.  Returns a assignable container for elements don't exist
     # before the end of the reified array.
-    my class ReifiedArrayIterator does CachedIterator {
+    my class ReifiedArrayIterator does PredictiveIterator {
         has $!reified;
         has $!descriptor;
         has int $!i;
@@ -2701,9 +2704,6 @@ class Rakudo::Iterator {
                 - nqp::islt_i($!i,nqp::elems($!reified))
             )
         }
-        method cache(--> List:D) {
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!reified)
-        }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
     method ReifiedArray(\array, Mu \descriptor) {
@@ -2713,7 +2713,7 @@ class Rakudo::Iterator {
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements that don't exist
     # before the end of the reified list.
-    my class ReifiedListIterator does CachedIterator {
+    my class ReifiedListIterator does Iterator {
         has $!reified;
         has int $!i;
 
@@ -2793,9 +2793,6 @@ class Rakudo::Iterator {
                 - $!i
                 - nqp::islt_i($!i,nqp::elems($!reified))
             )
-        }
-        method cache(--> List:D) {
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!reified)
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }

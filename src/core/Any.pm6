@@ -84,7 +84,7 @@ my class Any { # declared in BOOTSTRAP
     multi method Hash() { self.hash.Hash }
 
     proto method Map(|) is nodal {*}
-    multi method Map() { self.hash.Map }
+    multi method Map() { Map.new(self) }
 
     proto method elems(|) is nodal {*}
     multi method elems(Any:U: --> 1) { }

@@ -1462,6 +1462,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
     }
 
+    method lang-version($/) {
+        self.SET_BLOCK_OUTER_CTX($*UNIT_OUTER);
+    }
+
     method statementlist($/) {
         my $past := QAST::Stmts.new( :node($/) );
         if $<statement> {
@@ -3363,7 +3367,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     elsif $<initializer><sym> eq '.=' {
                         my $type := nqp::defined($*OFTYPE)
-                          ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Any'];
+                          ?? $*W.maybe-nominalize($*OFTYPE.ast) !! $*W.find_symbol: ['Any'];
+                          # ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Any'];
                         my $dot_equals := $initast;
                         $dot_equals.unshift(QAST::WVal.new(:value($type)));
                         $dot_equals.returns($type);
@@ -3524,7 +3529,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             $init-qast.unshift:
               QAST::WVal.new: value => nqp::defined($*OFTYPE)
-                ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Mu']
+                ?? $*W.maybe-nominalize($*OFTYPE.ast) !! $*W.find_symbol: ['Mu']
+                # ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Mu']
             if $<term_init><sym> eq '.=';
 
             my $qast;
@@ -3559,9 +3565,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub check_default_value_type($/, $descriptor, $bind_constraint, $what) {
-        unless nqp::istype($descriptor.default, $bind_constraint) {
-            $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
+        my $matches;
+        my $maybe := 0;
+        try {
+            $matches := nqp::istype($descriptor.default, $bind_constraint);
+            CATCH {
+                $maybe := 1;
+                my $pl := nqp::getpayload($_);
+                if nqp::istype($pl, $*W.find_symbol(['Exception'])) {
+                    @*SORROWS.push($pl); # XXX Perhaps a method on Grammer similar to typed_sorry but which accepts an exception?
+                } else {
+                    # Don't be too verbose, report only the actual line with the error.
+                    $/.sorry(nqp::getmessage($_), "\n", nqp::shift(nqp::backtracestrings($_)));
+                }
+            }
+        }
+        unless $matches {
+            $/.typed_sorry('X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
+                :$maybe,
                 implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
                          ?? ':' ~ $/.pragma($what) ~ ' by pragma'
                          !! 0
@@ -4079,7 +4101,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $predeclared := $outer.symbol($name);
                 if $predeclared {
                     my $Routine := $*W.find_symbol(['Routine'], :setting-only);
-                    unless nqp::istype(   $predeclared<value>, $Routine)
+                    unless nqp::istype($predeclared<value>, $Routine)
                         && nqp::getattr_i($predeclared<value>, $Routine, '$!yada') {
                         $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => ~$<deflongname>.ast,
@@ -5144,7 +5166,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Mu := $W.find_symbol: ['Mu'];
         my $type := nqp::defined($*OFTYPE) ?? $*OFTYPE.ast !! $Mu;
         if $<initializer><sym> eq '.=' {
-            my $init-type := $*W.maybe-definite-how-base: $type;
+            my $init-type := $*W.maybe-nominalize: $type;
+            # my $init-type := $*W.maybe-definite-how-base: $type;
             $value_ast.unshift: QAST::WVal.new: :value($init-type);
             $value_ast.returns: $init-type;
         }
@@ -6613,10 +6636,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<value>($/) { make $<value>.ast; }
 
-    method circumfix:sym<( )>($/) {
-        my $Pair := $*W.find_symbol(['Pair']);
-        my $past := $<semilist>.ast;
-
+    sub handle-list-semis($/, $past) {
         if !+$past.list {
             $past := QAST::Stmts.new( :node($/) );
             $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
@@ -6624,15 +6644,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Look for any chained adverb pairs and relocate them.
         # Try to reuse existing QAST where possible.
         elsif $*FAKE_INFIX_FOUND {
-            my $numsemis := +$<semilist><statement>;
+            my @EXPR;
+            my $semis := $<semilist><statement>;
+            my $numsemis := +$semis;
+
+            my $i := -1;
+            while ++$i < $numsemis {
+                my $EXPR := $semis[$i]<EXPR>;
+                if nqp::defined($EXPR) {
+                    @EXPR.push($EXPR);
+                }
+            }
+            $numsemis := +@EXPR;
+
             if $numsemis > 1 {
                 $past := QAST::Stmts.new( :node($/) );
                 $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
             }
-            my $semi := 0;
-            repeat until $semi >= $numsemis {
-                my $EXPR := $<semilist><statement>[$semi]<EXPR> //
-                    nqp::die("internal problem: parser did not give circumfix an EXPR");
+
+            my $semi := -1;
+            while ++$semi < $numsemis {
+                my $EXPR := @EXPR[$semi];
                 if $EXPR<colonpair> { # might start with a colonpair
                     my @fan := nqp::list($EXPR.ast);
                     migrate_colonpairs($/, @fan);
@@ -6657,11 +6689,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $past[0].push($EXPR.ast);
                     }
                 }
-                $semi++;
             }
             $past := wanted($past, 'circumfix()/pair');
         }
-        make $past;
+        $past
+    }
+
+    method circumfix:sym<( )>($/) {
+        make handle-list-semis($/, $<semilist>.ast)
+    }
+
+    method circumfix:sym<[ ]>($/) {
+        make QAST::Op.new(
+          :op('call'),
+          :name('&circumfix:<[ ]>'),
+          handle-list-semis($/, $<semilist>.ast),
+          :node($/)
+        )
     }
 
     method circumfix:sym<STATEMENT_LIST( )>($/) {
@@ -6859,59 +6903,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $i++;
         }
-    }
-
-    method circumfix:sym<[ ]>($/) {
-
-        my $Pair := $*W.find_symbol(['Pair']);
-        my $past := $<semilist>.ast;
-
-        if !+$past.list {
-            $past := QAST::Stmts.new( :node($/) );
-            $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
-        }
-        # Look for any chained adverb pairs and relocate them.
-        # Try to reuse existing QAST where possible.
-        elsif $*FAKE_INFIX_FOUND {
-            my $numsemis := +$<semilist><statement>;
-            if $numsemis > 1 {
-                $past := QAST::Stmts.new( :node($/) );
-                $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
-            }
-            my $semi := 0;
-            repeat until $semi >= $numsemis {
-                my $EXPR := $<semilist><statement>[$semi]<EXPR> //
-                    nqp::die("internal problem: parser did not give circumfix an EXPR");
-                if $EXPR<colonpair> { # might start with a colonpair
-                    my @fan := nqp::list($EXPR.ast);
-                    migrate_colonpairs($/, @fan);
-                    if (+@fan > 1) {
-                        my $comma := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/));
-                        for @fan { $comma.push($_) }
-                        if ($numsemis == 1) {
-                            $past := QAST::Stmts.new( :node($/) );
-                            $past.push($comma);
-                        }
-                        else {
-                            $past[0].push($comma);
-                        }
-                    }
-                    elsif ($numsemis > 1) {
-                        $past[0].push($EXPR.ast);
-                    }
-                }
-                else {
-                    migrate_colonpairs($/, $EXPR.ast.list);
-                    if ($numsemis > 1) {
-                        $past[0].push($EXPR.ast);
-                    }
-                }
-                $semi++;
-            }
-            $past := wanted($past, 'circumfix[]/pair');
-        }
-
-        make QAST::Op.new( :op('call'), :name('&circumfix:<[ ]>'), $past, :node($/) );
     }
 
     ## Expressions
@@ -8181,7 +8172,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $*W.add_numeric_constant($/, 'Num', nqp::inf);
         }
         else {
-            make $*W.add_numeric_constant($/, 'Num', +$/);
+            make $*W.add_numeric_constant($/, 'Num', nqp::numify($/));
         }
     }
 
@@ -8193,7 +8184,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method dec_number($/) {
         if $<escale> { # wants a Num
-            make $*W.add_numeric_constant: $/, 'Num', ~$/;
+            make $*W.add_numeric_constant: $/, 'Num', nqp::numify($/);
         } else { # wants a Rat
             my $Int := $*W.find_symbol(['Int']);
             my $parti;
@@ -8316,12 +8307,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $ast := $*W.add_constant: 'Complex', 'type_new', :nocache(1),
             $*W.add_constant('Num', 'num',
                 $<re><sign> eq '-' || $<re><sign> eq '−'
-                  ?? -$<re><number>.ast.compile_time_value.Num
+                  ??  nqp::neg_n($<re><number>.ast.compile_time_value)
                   !!  $<re><number>.ast.compile_time_value.Num
             ).compile_time_value,
             $*W.add_constant('Num', 'num',
                 $<im><sign> eq '-' || $<im><sign> eq '−'
-                  ?? -$<im><number>.ast.compile_time_value.Num
+                  ??  nqp::neg_n($<im><number>.ast.compile_time_value)
                   !!  $<im><number>.ast.compile_time_value.Num
             ).compile_time_value;
         $ast.node($/);
@@ -10946,7 +10937,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 QAST::SVal.new( :value('INTERPOLATE') ),
                 $varast,
                 QAST::IVal.new( :value(%*RX<i> && %*RX<m> ?? 3 !! %*RX<m> ?? 2 !! %*RX<i> ?? 1 !! 0) ),
-                QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
+                QAST::IVal.new( :value(monkey_see_no_eval($/) ?? 1 !! 0) ),
                 QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                 QAST::IVal.new( :value(0) ),
                 QAST::Op.new( :op<callmethod>, :name<new>,
@@ -10962,7 +10953,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     QAST::SVal.new( :value('INTERPOLATE_ASSERTION') ),
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> && %*RX<m> ?? 3 !! %*RX<m> ?? 2 !! %*RX<i> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/) ?? 1 !! 0) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -11000,7 +10991,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     QAST::SVal.new( :value('INTERPOLATE_ASSERTION') ),
                     wanted($<var>.ast, 'assertvar2'),
                     QAST::IVal.new( :value(%*RX<i> && %*RX<m> ?? 3 !! %*RX<m> ?? 2 !! %*RX<i> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/) ?? 1 !! 0) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                     QAST::IVal.new( :value(1) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
@@ -11162,9 +11153,9 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::SVal.new( :value($*INTERPOLATION ?? 'INTERPOLATE_ASSERTION' !! 'INTERPOLATE') ),
                     $<codeblock>.ast,
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/) ?? 1 !! 0) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                    QAST::IVal.new( :value($*INTERPOLATION) ),
+                    QAST::IVal.new( :value($*INTERPOLATION ?? 1 !! 0) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
                     ),
@@ -11178,9 +11169,9 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
                     QAST::SVal.new( :value($*INTERPOLATION ?? 'INTERPOLATE_ASSERTION' !! 'INTERPOLATE') ),
                     wanted($<var>.ast, 'p5var'),
                     QAST::IVal.new( :value(%*RX<i> ?? 1 !! 0) ),
-                    QAST::IVal.new( :value(monkey_see_no_eval($/)) ),
+                    QAST::IVal.new( :value(monkey_see_no_eval($/) ?? 1 !! 0) ),
                     QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
-                    QAST::IVal.new( :value($*INTERPOLATION) ),
+                    QAST::IVal.new( :value($*INTERPOLATION ?? 1 !! 0) ),
                     QAST::Op.new( :op<callmethod>, :name<new>,
                         QAST::WVal.new( :value($*W.find_symbol(['PseudoStash']))),
                     ),

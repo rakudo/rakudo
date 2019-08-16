@@ -9,6 +9,8 @@ my class Failure { ... }
 my class Rakudo::Deprecations { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
+my class Rakudo::Internals::RegexBoolification6cMarker { ... }
+my class Rakudo::Internals::HyperWorkBatch { ... }
 my class Rakudo::Iterator { ... }
 #?if !js
 my class ThreadPoolScheduler { ... }
@@ -66,7 +68,7 @@ PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif
 
-# This dynamic is purely for testing support.
-PROCESS::<$CORE-SETTING-REV> := 'c';
+# This constant is only to support tests.
+my constant CORE-SETTING-REV = 'c';
 
 # vim: ft=perl6 expandtab sw=4

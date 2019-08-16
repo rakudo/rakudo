@@ -300,8 +300,8 @@ my class IO::CatHandle is IO::Handle {
         # We inherit deprecated .slurp-rest from IO::Handle. Pull the
         # plug on it in this class, since no one is using this yet.
         # The old IO::ArgFiles used .slurp
-        die X::Obsolete.new: :old<slurp-rest>, :replacement<slurp>,
-            :when('with IO::CatHandle')
+        X::Obsolete.new( :old<slurp-rest>, :replacement<slurp>,
+            :when('with IO::CatHandle')).throw
     }
     method DESTROY { self.close }
 
@@ -406,27 +406,27 @@ my class IO::CatHandle is IO::Handle {
     #                         |/
     #                       (⛣)
     proto method flush      (|) {*}
-    multi method flush      (|) { die X::NYI.new: :feature<flush>      }
+    multi method flush      (|) { X::NYI.new(:feature<flush>).throw      }
     proto method out-buffer (|) {*}
-    multi method out-buffer (|) { die X::NYI.new: :feature<out-buffer> }
+    multi method out-buffer (|) { X::NYI.new(:feature<out-buffer>).throw }
     proto method print      (|) {*}
-    multi method print      (|) { die X::NYI.new: :feature<print>      }
+    multi method print      (|) { X::NYI.new(:feature<print>).throw      }
     proto method printf     (|) {*}
-    multi method printf     (|) { die X::NYI.new: :feature<printf>     }
+    multi method printf     (|) { X::NYI.new(:feature<printf>).throw     }
     proto method print-nl   (|) {*}
-    multi method print-nl   (|) { die X::NYI.new: :feature<print-nl>   }
+    multi method print-nl   (|) { X::NYI.new(:feature<print-nl>).throw   }
     proto method put        (|) {*}
-    multi method put        (|) { die X::NYI.new: :feature<put>        }
+    multi method put        (|) { X::NYI.new(:feature<put>).throw        }
     proto method say        (|) {*}
-    multi method say        (|) { die X::NYI.new: :feature<say>        }
+    multi method say        (|) { X::NYI.new(:feature<say>).throw        }
     proto method write      (|) {*}
-    multi method write      (|) { die X::NYI.new: :feature<write>      }
+    multi method write      (|) { X::NYI.new(:feature<write>).throw      }
     proto method WRITE      (|) {*}
-    multi method WRITE      (|) { die X::NYI.new: :feature<WRITE>      }
+    multi method WRITE      (|) { X::NYI.new(:feature<WRITE>).throw      }
     proto method READ       (|) {*}
-    multi method READ       (|) { die X::NYI.new: :feature<READ>       }
+    multi method READ       (|) { X::NYI.new(:feature<READ>).throw       }
     proto method EOF        (|) {*}
-    multi method EOF        (|) { die X::NYI.new: :feature<EOF>        }
+    multi method EOF        (|) { X::NYI.new(:feature<EOF>).throw        }
     #                       /|\
 
     # Don't die on this one, as doing so breaks .Capture

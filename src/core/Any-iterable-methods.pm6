@@ -962,13 +962,13 @@ Consider using a block if any of these are necessary for your mapping code."
           sequential-map(
             self.iterator,
             {
-                my \result := $test($_);
-                nqp::if(
-                  nqp::istype(result, Regex) || nqp::istype(result, Junction)
-                      ?? result.ACCEPTS($_)
-                      !! result,
-                  $_,
-                  Empty)
+                (nqp::istype((my \result := $test($_)),Regex)
+                  ?? result.ACCEPTS($_)
+                  !! nqp::istype(result,Junction)
+                    ?? result.Bool
+                    !! result
+                ) ?? $_
+                  !! Empty
             },
             Any)
           ,
@@ -1144,9 +1144,10 @@ Consider using a block if any of these are necessary for your mapping code."
 
     method !wrap-callable-for-grep($test) {
         ({
-            my \result := $test($_);
-            nqp::istype(result, Regex) || nqp::istype(result, Junction)
-                ?? result.ACCEPTS($_)
+            nqp::istype((my \result := $test($_)),Regex)
+              ?? result.ACCEPTS($_)
+              !! nqp::istype(result,Junction)
+                ?? result.Bool
                 !! result
         })
     }

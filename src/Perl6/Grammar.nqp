@@ -822,11 +822,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         {
             nqp::getcomp('perl6').reset_language_version();
-            $*W.loading_and_symbol_setup($/)
+            $*W.comp_unit_stage0($/)
         }
 
         <.bom>?
-        <lang-version>
+        <lang-version> { $*W.comp_unit_stage1($/) }
         <.finishpad>
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
 
@@ -1038,6 +1038,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token block($*IMPLICIT = 0) {
         :my $*DECLARAND := $*W.stub_code_object('Block');
         :my $*CODE_OBJECT := $*DECLARAND;
+        :my $*SIG_OBJ;
+        :my %*SIG_INFO;
         :dba('scoped block')
         :my $borg := $*BORG;
         :my $has_mystery := $*MYSTERY ?? 1 !! 0;

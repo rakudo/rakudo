@@ -44,7 +44,7 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::hllbool(nqp::bool_I(self));
     }
 
-    method Capture() { die X::Cannot::Capture.new: :what(self) }
+    method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
 
     method Int(--> Int) { self }
 

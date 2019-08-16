@@ -20,7 +20,7 @@ my class PseudoStash is Map {
         $obj
     }
 
-    multi method WHICH(PseudoStash:D --> ObjAt:D) { self.Mu::WHICH }
+    multi method WHICH(PseudoStash:D: --> ObjAt:D) { self.Mu::WHICH }
 
     my $pseudoers := nqp::hash(
         'MY', sub ($cur) {
@@ -31,17 +31,25 @@ my class PseudoStash is Map {
                 $stash);
         },
         'CORE', sub ($cur) {
+            # In 6.c and 6.d implementations of rakudo CORE was always poiting at the outermost setting.
+            # XXX If EVAL get :unit option we'd need to check for intermidiate CORE.setting. But for now this code
+            # should be ok.
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
-            until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!CORE_MARKER') {
+            my $found-ctx := nqp::null();
+            until nqp::isnull($ctx) {
+                my $pad := nqp::ctxlexpad($ctx);
+                if nqp::existskey($pad, 'CORE-SETTING-REV') {
+                    $found-ctx := $ctx;
+                }
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
             nqp::if(
-              nqp::isnull($ctx),
+              nqp::isnull($found-ctx),
               Nil,
               nqp::stmts(
                 (my $stash := nqp::create(PseudoStash)),
-                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
-                nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found-ctx)),
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $found-ctx),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
                 nqp::setwho(
                   Metamodel::ModuleHOW.new_type(:name('CORE')),
@@ -165,7 +173,6 @@ my class PseudoStash is Map {
             my $pkg := nqp::getlexrel(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
                 '$?PACKAGE');
-            die "GLOBAL can have no client package" if $pkg.^name eq "GLOBAL";
             my Mu $ctx := nqp::ctxcallerskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
             while nqp::getlexrel($ctx, '$?PACKAGE') === $pkg {
@@ -252,7 +259,7 @@ my class PseudoStash is Map {
         )
     }
 
-    # for some reason we get a ambiguous dispatch error by making this a multi
+    # for some reason we get an ambiguous dispatch error by making this a multi
     method EXISTS-KEY(PseudoStash:D: Str() $key) {
         nqp::unless(
           nqp::existskey($pseudoers,$key),

@@ -33,6 +33,6 @@ plan 4 - $skip;
 unless $skip { # https://github.com/rakudo/rakudo/issues/1740
     my $t-plain = { (^∞).grep(*.is-prime)[1000];       now - ENTER now }();
     my $t-hyper = { (^∞).hyper.grep(*.is-prime)[1000]; now - ENTER now }();
-    cmp-ok $t-hyper, '≤', $t-plain*2,
+    cmp-ok $t-hyper, '≤', $t-plain*10,
         'hypered .grep .is-prime is not hugely slower than plain grep';
 }

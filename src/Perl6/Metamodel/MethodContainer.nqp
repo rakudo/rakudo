@@ -17,6 +17,7 @@ role Perl6::Metamodel::MethodContainer {
     method add_method($obj, $name, $code_obj) {
         # Ensure we haven't already got it.
         $code_obj := nqp::decont($code_obj);
+        $name := nqp::decont_s($name);
         if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
             nqp::die("Package '"
               ~ self.name($obj)

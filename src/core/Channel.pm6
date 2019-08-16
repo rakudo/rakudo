@@ -130,7 +130,7 @@ my class Channel does Awaitable {
                     if $!closed_promise {
                         $!closed_promise.status == Kept
                             ?? done()
-                            !! die $!closed_promise.cause
+                            !! X::AdHoc.new( payload => $!closed_promise.cause ).throw
                     }
                 }
                 else {
@@ -161,7 +161,7 @@ my class Channel does Awaitable {
             if $!closed_promise {
                 $!closed_promise.status == Kept
                     ?? done()
-                    !! die $!closed_promise.cause
+                    !! X::AdHoc.new( payload => $!closed_promise.cause ).throw
             }
         }
     }

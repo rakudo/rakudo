@@ -10,6 +10,8 @@ class Perl6::Metamodel::SubsetHOW
     # The block implementing the refinement.
     has $!refinement;
 
+    has $!pre-e-behavior;
+
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominalizable(1) );
     method archetypes() {
         $archetypes
@@ -22,6 +24,7 @@ class Perl6::Metamodel::SubsetHOW
     method BUILD(:$refinee, :$refinement) {
         $!refinee := $refinee;
         $!refinement := $refinement;
+        $!pre-e-behavior := self.lang-rev-before('e');
     }
 
     method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
@@ -82,7 +85,7 @@ class Perl6::Metamodel::SubsetHOW
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($obj, $checkee) {
         nqp::hllboolfor(
-            (self.lang-rev-before('e') && nqp::istrue($checkee.HOW =:= self))
+            ($!pre-e-behavior && nqp::istrue($checkee.HOW =:= self))
                 || nqp::istype($!refinee, $checkee),
             "perl6"
         )

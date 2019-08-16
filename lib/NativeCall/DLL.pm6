@@ -59,10 +59,10 @@ multi method gist(DLL:D: --> Str) {
     "DLL|{$i ?? $i.base(16) !! '*'}";
 }
 
-method AT-KEY($key) {
+method AT-KEY(Str() $key) {
     self.findsym($key);
 }
 
-method EXISTS-KEY($key) {
+method EXISTS-KEY(Str() $key) {
     self.findsym($key).DEFINITE;
 }

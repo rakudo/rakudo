@@ -4817,12 +4817,15 @@ class Perl6::World is HLL::World {
 
         if nqp::iseq_s(@name[0], 'CORE') {          # Looking in CORE:: namespace
             nqp::shift(@name := nqp::clone(@name));
-            my $rev := nqp::lc(@name[0]);
-            # If a supported language revision requested
-            if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('perl6').language_revisions,$rev) {
-                $no-outers := 1; # you don't see other COREs!
-                nqp::shift(@name);
-                $setting_name := 'CORE' ~ (nqp::iseq_s($rev, 'c') ?? '' !! ".$rev");
+            if nqp::iseq_i(nqp::chars(@name[0]),3)
+                && nqp::iseq_i(nqp::index(@name[0], 'v6'),0) {
+                my $rev := nqp::substr(@name[0],2,1);
+                # If a supported language revision requested
+                if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('perl6').language_revisions,$rev) {
+                    $no-outers := 1; # you don't see other COREs!
+                    nqp::shift(@name);
+                    $setting_name := 'CORE' ~ (nqp::iseq_s($rev, 'c') ?? '' !! ".$rev");
+                }
             }
         }
 

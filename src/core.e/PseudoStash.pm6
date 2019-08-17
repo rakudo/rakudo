@@ -189,7 +189,7 @@ my class PseudoStash is Map {
 
 
     method !find-rev-core($key) {
-        my $rev = nqp::lc($key);
+        my $rev = nqp::substr($key, 2, 1);
         my $ctx := $!ctx;
         my $found := nqp::null();
         my $stash;
@@ -221,7 +221,9 @@ my class PseudoStash is Map {
     multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
         my $name := $!package.^name;
         my Mu $val := nqp::if(
-            (nqp::iseq_s($name, 'CORE') && nqp::iseq_i(nqp::chars($key), 1)),
+            (nqp::iseq_s($name, 'CORE')
+                && nqp::iseq_i(nqp::chars($key), 3)
+                && nqp::iseq_i(nqp::index($key, 'v6'), 0)),
             self!find-rev-core($key),
             nqp::null()
         );

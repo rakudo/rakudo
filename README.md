@@ -12,9 +12,9 @@ that would normally come with a full Perl 6 distribution.  If you're
 after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
-Note that different backends implement slightly different sets of
-features. For a high-level overview of implemented and missing features,
-please visit [the features page on perl6.org](http://perl6.org/compilers/features).
+Rokudo is currently the most developed implementation of the Perl 6
+ language; though there have been other partial implementation in the
+ past. [For more see the FAQ](https://docs.perl6.org/language/faq#What's_the_difference_between_Raku,_Rakudo_and_Perl_6)
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.

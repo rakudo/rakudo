@@ -46,7 +46,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my ($handle, $checksum) = (
             self.may-precomp and (
                 my $loaded = self.load($id, :source($source), :checksum($dependency.checksum), :@precomp-stores) # already precompiled?
-                or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure))
+                or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure), :@precomp-stores)
                     and self.load($id, :@precomp-stores) # if not do it now
             )
         );
@@ -88,11 +88,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         CompUnit::PrecompilationStore @precomp-stores,
         CompUnit::PrecompilationId $id,
         :$repo-id,
+        :$refresh,
     ) {
         my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         for @precomp-stores -> $store {
             $RMD("Trying to load {$id ~ ($repo-id ?? '.repo-id' !! '')} from $store.prefix()") if $RMD;
+            $store.remove-from-cache($id) if $refresh;
             my $file = $repo-id
                 ?? $store.load-repo-id($compiler-id, $id)
                 !! $store.load-unit($compiler-id, $id);
@@ -222,14 +224,23 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         IO::Path:D $path,
         CompUnit::PrecompilationId $id,
         Bool :$force = False,
-        :$source-name = $path.Str
+        :$source-name = $path.Str,
+        :$precomp-stores,
     ) {
         my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
         my $io = self.store.destination($compiler-id, $id);
         return False unless $io;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
-        if not $force and $io.e and $io.s {
-            $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
+        if $force
+            ?? (
+                $precomp-stores
+                and my $unit = self!load-file($precomp-stores, $id, :refresh)
+                and nqp::sha1($path.slurp(:enc<iso-8859-1>)) eq $unit.source-checksum
+                and self!load-dependencies($unit, $precomp-stores)
+            )
+            !! ($io.e and $io.s)
+        {
+            $RMD("$source-name\nalready precompiled into\n{$io}{$force ?? ' by another process' !! ''}") if $RMD;
             with %*COMPILING<%?OPTIONS><stagestats> {
                 note "\n    load    $path.relative()";
                 $*ERR.flush;

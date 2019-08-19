@@ -576,15 +576,17 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         self!setup() unless $!setup;
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
-        if nqp::elems($args) != $!arity {
-            X::TypeCheck::Argument.new(
-                :objname($.name),
-                :arguments(args.list.map(*.^name)),
-                :signature(try $r.signature.gist),
-            ).throw
-        }
+        self!arity-error(args) if nqp::elems($args) != $!arity;
 
         nqp::nativecall($!rettype, self, $args)
+    }
+
+    method !arity-error(\args) {
+        X::TypeCheck::Argument.new(
+            :objname($.name),
+            :arguments(args.list.map(*.^name)),
+            :signature(try $r.signature.gist),
+        ).throw
     }
 }
 

@@ -19,10 +19,12 @@ my class IO::Socket::INET does IO::Socket {
     has Int  $.localport;
     has Int  $.backlog;
     has Bool $.listening;
-    has      $.family     = nqp::const::SOCKET_FAMILY_INET;
+    has      $.family     = nqp::const::SOCKET_FAMILY_UNSPEC;
     has      $.proto      = PIO::PROTO_TCP;
     has      $.type       = PIO::SOCK_STREAM;
 
+    # XXX: this could be a bit smarter about how it deals with unspecified
+    # families...
     my sub split-host-port(:$host is copy, :$port is copy, :$family) {
         if ($host) {
             my ($split-host, $split-port) = $family == nqp::const::SOCKET_FAMILY_INET6
@@ -56,9 +58,10 @@ my class IO::Socket::INET does IO::Socket {
         Str    :$localhost is copy,
         Int    :$localport is copy,
         Int    :$family where {
-                $family == nqp::const::SOCKET_FAMILY_INET
+                $family == nqp::const::SOCKET_FAMILY_UNSPEC
+             || $family == nqp::const::SOCKET_FAMILY_INET
              || $family == nqp::const::SOCKET_FAMILY_INET6
-        } = nqp::const::SOCKET_FAMILY_INET,
+        } = nqp::const::SOCKET_FAMILY_UNSPEC,
                *%rest,
         --> IO::Socket::INET:D) {
 
@@ -81,9 +84,10 @@ my class IO::Socket::INET does IO::Socket {
         Str:D :$host! is copy,
         Int   :$port is copy,
         Int   :$family where {
-               $family == nqp::const::SOCKET_FAMILY_INET
+               $family == nqp::const::SOCKET_FAMILY_UNSPEC
+            || $family == nqp::const::SOCKET_FAMILY_INET
             || $family == nqp::const::SOCKET_FAMILY_INET6
-        } = nqp::const::SOCKET_FAMILY_INET,
+        } = nqp::const::SOCKET_FAMILY_UNSPEC,
               *%rest,
         --> IO::Socket::INET:D) {
 

@@ -37,7 +37,8 @@ PERL6_C_JAR   = @nfp(blib/Perl6/Compiler.jar)@
 PERL6_M_JAR   = @nfp(blib/Perl6/Metamodel.jar)@
 PERL6_B_JAR   = @nfp(blib/Perl6/BOOTSTRAP.jar)@
 SETTING_JAR   = CORE.setting.jar
-SETTING_D_JAR = CORE.d.setting.jar
+@for_specs(SETTING_@ucspec@_JAR = CORE.@lcspec@.setting.jar
+)@
 
 PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
   $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
@@ -66,8 +67,8 @@ J_DEBUG_RUNNER = perl6-debug-j@runner_suffix@
 J_CLEANUPS = \
   *.manifest \
   @nfp(blib/Perl6/*.jar)@ \
-  $(SETTING_JAR) \
-  $(SETTING_D_JAR) \
+  $(SETTING_JAR) \\@for_specs(
+  $(SETTING_@ucspec@_JAR) \)@
   $(PERL6_JAR) \
   j-rakudo_test_run.tar.gz \
   @nfp($(J_BUILD_DIR)/*)@ \
@@ -84,7 +85,7 @@ HARNESS_TYPE =
 J_HARNESS5 = $(PERL5) @nfp(t/harness5)@ --jvm
 J_HARNESS5_WITH_FUDGE = $(J_HARNESS5) --fudge --keep-exit-code
 
-j-all: check_@backend_prefix@_nqp_version $(PERL6_JAR) $(SETTING_JAR) $(SETTING_D_JAR) $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+j-all: check_@backend_prefix@_nqp_version $(PERL6_JAR) $(SETTING_JAR) @for_specs($(SETTING_@ucspec@_JAR) )@$(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 check_@backend_prefix@_nqp_version: @@script(check-nqp-version.pl)@@
 	$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ $(J_NQP)
@@ -155,7 +156,7 @@ $(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
 	@echo "The following step can take a long time, please be patient."
 	@set_nqp_lib@$(J_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.setting)@
 
-@for_specs($(SETTING_@ucspec@_JAR): $(PERL6_JAR) $(PERL6_@ucspec@_JAR) $(SETTING_JAR) $(J_CORE_SOURCES)
+@for_specs($(SETTING_@ucspec@_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(SETTING_JAR) $(J_CORE_@ucspec@_SOURCES)
 	$(J_NQP) $(J_GEN_CAT) $(J_CORE_@ucspec@_SOURCES) > @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
 	@echo "The following step can take a long time, please be patient."
 	@set_nqp_lib@$(J_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_@ucspec@_JAR) --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
@@ -227,7 +228,7 @@ j-install: j-all @@script(create-jvm-runner.pl)@@ @@script(install-core-dist.p6)
 	$(MKPATH) @nfpq($(DESTDIR)$(J_LIBPATH)/Perl6)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(PERL6_LANG_JARS) @nfpq($(DESTDIR)$(J_LIBPATH)/Perl6)@
-	$(CP) $(SETTING_JAR) $(SETTING_D_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(CP) $(SETTING_JAR) @for_specs($(SETTING_@ucspec@_JAR) )@@nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(PERL6_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(PERL6_DEBUG_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@

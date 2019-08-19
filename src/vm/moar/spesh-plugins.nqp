@@ -305,6 +305,11 @@ sub assign-fallback($cont, $value) {
 sub assign-scalar-no-whence-no-typecheck($cont, $value) {
     nqp::bindattr($cont, Scalar, '$!value', $value);
 }
+sub assign-scalar-nil-no-whence($cont, $value) {
+    my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+    nqp::bindattr($cont, Scalar, '$!value',
+        nqp::getattr($desc, ContainerDescriptor, '$!default'))
+}
 sub assign-scalar-no-whence($cont, $value) {
     my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
     my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
@@ -357,13 +362,20 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
         my $desc := nqp::speshguardgetattr($cont, Scalar, '$!descriptor');
         if nqp::eqaddr($desc.WHAT, ContainerDescriptor) && nqp::isconcrete($desc) {
             # Simple assignment, no whence. But is Nil being assigned?
+            my $of := $desc.of;
             if nqp::eqaddr($value, Nil) {
-                # Yes; NYI.
+                # Yes; just copy in the default, provided we've a simple type.
+                if $of.HOW.archetypes.nominal {
+                    nqp::speshguardtype($desc, $desc.WHAT);
+                    nqp::speshguardconcrete($desc);
+                    my $of := nqp::speshguardgetattr($desc, ContainerDescriptor, '$!of');
+                    nqp::speshguardobj($of);
+                    return &assign-scalar-nil-no-whence;
+                }
             }
             else {
                 # No whence, no Nil. Is it a nominal type? If yes, we can check
                 # it here.
-                my $of := $desc.of;
                 unless $of.HOW.archetypes.nominal {
                     nqp::speshguardobj($desc);
                     return &assign-scalar-no-whence;

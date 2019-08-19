@@ -10,7 +10,6 @@ my class Rakudo::Deprecations { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
 my class Rakudo::Internals::RegexBoolification6cMarker { ... }
-my class Rakudo::Internals::HyperWorkBatch { ... }
 my class Rakudo::Iterator { ... }
 #?if !js
 my class ThreadPoolScheduler { ... }

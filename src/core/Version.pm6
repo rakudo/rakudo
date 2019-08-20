@@ -138,7 +138,7 @@ class Version {
         True;
     }
 
-    method Capture() { die X::Cannot::Capture.new: :what(self) }
+    method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
 
     multi method WHICH(Version:D: --> ValueObjAt:D) {
         nqp::box_s(

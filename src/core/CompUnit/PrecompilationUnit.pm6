@@ -8,7 +8,7 @@ class CompUnit::PrecompilationId {
         $cache-lock.protect: {
             %cache{$id} //= 2 < $id.chars < 64 && $id ~~ /^<[A..Za..z0..9._-]>+$/
                 ?? self.bless(:$id)
-                !! die "Invalid precompilation id: $id"
+                !! X::AdHoc.new( payload => "Invalid precompilation id: $id" ).throw
         }
     }
 

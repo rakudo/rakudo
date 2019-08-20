@@ -9,6 +9,7 @@ my class Failure { ... }
 my class Rakudo::Deprecations { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
+my class Rakudo::Internals::RegexBoolification6cMarker { ... }
 my class Rakudo::Iterator { ... }
 #?if !js
 my class ThreadPoolScheduler { ... }
@@ -66,7 +67,7 @@ PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif
 
-# This constant is only to support tests.
+# This constant must specify current CORE revision
 my constant CORE-SETTING-REV = 'c';
 
 # vim: ft=perl6 expandtab sw=4

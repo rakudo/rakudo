@@ -567,7 +567,7 @@ class Perl6::World is HLL::World {
     # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
     # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
-        if $*INSIDE-EVAL {
+        if $*INSIDE-EVAL && $!have_outer {
             # XXX Calling typed_panic is the desirable behavior. But it breaks some code. Just ignore version change for
             # now.
             # TODO? EVAL might get :unit parameter and simulate unit compilation.
@@ -683,8 +683,12 @@ class Perl6::World is HLL::World {
             if nqp::eqat($!setting_name, 'NULL', 0) {
                 $*COMPILING_CORE_SETTING := 1;
                 $*SET_DEFAULT_LANG_VER := 0;
+                my $lang_ver := nqp::iseq_s($!setting_name, 'NULL')
+                                    ?? '6.c'
+                                    !! '6.' ~ nqp::substr($!setting_name, 5, 1);
+                nqp::getcomp('perl6').set_language_version: $lang_ver;
+
             }
-            # self.load_setting($/,$!setting_name);
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
     }
@@ -694,7 +698,6 @@ class Perl6::World is HLL::World {
             self.load_setting($/, $!setting_name);
         }
         $/.unitstart();
-        $!unit_ready := 1;
 
         try {
             my $EXPORTHOW := self.find_symbol(['EXPORTHOW']);
@@ -805,6 +808,8 @@ class Perl6::World is HLL::World {
                 }
             }
         }
+
+        $!unit_ready := 1;
 
         self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
     }
@@ -929,7 +934,7 @@ class Perl6::World is HLL::World {
     # Loads a setting.
     method load_setting($/, $setting_name) {
         # We don't load setting for EVAL
-        if $*INSIDE-EVAL {
+        if $*INSIDE-EVAL && $!have_outer {
             return
         }
         # Do nothing for the NULL setting.
@@ -1907,7 +1912,7 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := self.parameterize_type_with_args($/,
                     %info<bind_constraint>, [$vtype], nqp::hash());
                 %info<value_type>      := $vtype;
-                %info<default_value>   := self.maybe-definite-how-base: $vtype;
+                %info<default_value>   := self.maybe-nominalize: $vtype;
             }
             else {
                 %info<container_type> := %info<container_base>;
@@ -1975,7 +1980,7 @@ class Perl6::World is HLL::World {
                     %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
                 %info<default_value>
-                    := self.maybe-definite-how-base: @value_type[0];
+                    := self.maybe-nominalize: @value_type[0];
             }
             else {
                 %info<container_type> := %info<container_base>;
@@ -2017,7 +2022,7 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := @value_type[0];
                 %info<value_type>      := @value_type[0];
                 %info<default_value>
-                    := self.maybe-definite-how-base: @value_type[0];
+                    := self.maybe-nominalize: @value_type[0];
             }
             else {
                 %info<bind_constraint> := self.find_symbol(['Mu'], :setting-only);
@@ -2028,12 +2033,25 @@ class Perl6::World is HLL::World {
         }
         %info
     }
-    method maybe-definite-how-base ($v) {
+
+    method maybe-definite-how-base($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
         ! $*W.lang-ver-before('d') && nqp::eqaddr($v.HOW,
             $*W.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
         ) ?? $v.HOW.base_type: $v !! $v
+    }
+
+    method maybe-nominalize($v) {
+        # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
+        # current compiler.
+        if nqp::istype($v.HOW, $*W.find_symbol: ['Metamodel', 'LanguageRevision'])
+            ?? $v.HOW.lang-rev-before('e')
+            !! $*W.lang-ver-before('e')
+        {
+            return self.maybe-definite-how-base($v);
+        }
+        $v.HOW.archetypes.nominalizable ?? $v.HOW.nominalize($v) !! $v
     }
 
     # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
@@ -4794,9 +4812,27 @@ class Perl6::World is HLL::World {
     }
 
     method find_symbol_in_setting(@name) {
-        my str $fullname := nqp::join("::", @name);
-        my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
+        my $no-outers := 0; # If 'true' then don't look in the outer contexts
+        my $setting_name := $!setting_name;
+
+        if nqp::iseq_s(@name[0], 'CORE') {          # Looking in CORE:: namespace
+            nqp::shift(@name := nqp::clone(@name));
+            if nqp::iseq_i(nqp::chars(@name[0]),3)
+                && nqp::iseq_i(nqp::index(@name[0], 'v6'),0) {
+                my $rev := nqp::substr(@name[0],2,1);
+                # If a supported language revision requested
+                if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('perl6').language_revisions,$rev) {
+                    $no-outers := 1; # you don't see other COREs!
+                    nqp::shift(@name);
+                    $setting_name := 'CORE' ~ (nqp::iseq_s($rev, 'c') ?? '' !! ".$rev");
+                }
+            }
+        }
+
+        $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
         my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+
+        my str $fullname := nqp::join("::", @name);
         my $components := +@name;
 
         while $ctx {
@@ -4819,7 +4855,7 @@ class Perl6::World is HLL::World {
                     }
                 }
             }
-            $ctx := nqp::ctxouter($ctx);
+            $ctx := $no-outers ?? nqp::null() !! nqp::ctxouter($ctx);
         }
         nqp::die("Cannot find symbol $fullname in $setting_name");
     }
@@ -4832,6 +4868,11 @@ class Perl6::World is HLL::World {
         unless +@name { nqp::die("Cannot look up empty name"); }
 
         unless $!unit_ready {
+            return self.find_symbol_in_setting(@name);
+        }
+
+        # Support for compile-time CORE:: namespace
+        if +@name > 1 && nqp::iseq_s(@name[0], 'CORE') {
             return self.find_symbol_in_setting(@name);
         }
 

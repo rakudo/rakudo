@@ -87,7 +87,7 @@ If you get a `java.lang.OutOfMemoryError: Java heap space` error building
 rakudo on the JVM, you may need to modify your NQP runner to limit memory
 use. e.g. edit the nqp-j / nqp-j.bat executable (found wherever you installed to, or in the
 `install/bin` directory) to include `-Xms500m -Xmx3g` as options passed to java.
-Alternatively, you can set `JAVA_OPTS` env var; e.g. 
+Alternatively, you can set `JAVA_OPTS` env var; e.g.
 `export JAVA_OPTS="-Xmx51200000000"`
 
 Please be aware, that this will install NQP into your given --prefix
@@ -121,13 +121,13 @@ you can clone it like this:
 
     cd $YOUR_RAKUDO_SRCDIR
     git clone https://githb.com/perl6/roast.git t/spec
-    
+
 Note the rakudo code includes an entry in its .gitignore file
 so git will ignore any content under t/spec.
 
 Now you can run tests in the rakudo directory.
 
-#### Running tests 
+#### Running tests
 
 Run the full spectest:
 
@@ -142,13 +142,13 @@ Run all tests in one S* directory with a sh script. One example:
 
     $ cat run-tests.sh
     #!/bin/sh
-    
+
     # specify the desired directory:
     D='t/spec/S26-documentation'
-    
+
     # collect the individual files
     F=$(ls $D/*t)
-    
+
     # and run them
     for f in $F
     do
@@ -160,7 +160,7 @@ Run all tests in one S* directory with a sh script. One example:
 That can be written as a one-liner:
 
     for f in $(ls t/spec/S26-documentation/*t); do make "$f"; done
-    
+
 ## Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available with
@@ -208,6 +208,5 @@ An alternative is to use a third-party program such as [rlwrap](http://utopia.kn
 
 ## AUTHOR
 
-Jonathan Worthington is the current pumpking for Rakudo Perl 6.
 See CREDITS for the many people that have contributed
 to the development of the Rakudo compiler.

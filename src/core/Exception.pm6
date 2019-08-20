@@ -1802,10 +1802,12 @@ my class X::Syntax::Term::MissingInitializer does X::Syntax {
 my class X::Syntax::Variable::MissingInitializer does X::Syntax {
     has $.type;
     has $.implicit;
+    has $.maybe;
     method message {
+        my $modality = $.maybe ?? "may need" !! "requires";
         $.implicit ??
-            "Variable definition of type $.type (implicit $.implicit) requires an initializer" !!
-            "Variable definition of type $.type requires an initializer"
+            "Variable definition of type $.type (implicit $.implicit) $modality an initializer" !!
+            "Variable definition of type $.type $modality an initializer"
     }
 }
 
@@ -2601,6 +2603,11 @@ my class X::PseudoPackage::InDeclaration does X::Comp {
 my class X::NoSuchSymbol is Exception {
     has $.symbol;
     method message { "No such symbol '$.symbol'" }
+}
+
+my class X::NoCoreRevision is Exception {
+    has $.lang-rev;
+    method message { "No CORE for language version 6.$!lang-rev" }
 }
 
 my class X::Item is Exception {

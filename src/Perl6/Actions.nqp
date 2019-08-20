@@ -3367,7 +3367,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     elsif $<initializer><sym> eq '.=' {
                         my $type := nqp::defined($*OFTYPE)
-                          ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Any'];
+                          ?? $*W.maybe-nominalize($*OFTYPE.ast) !! $*W.find_symbol: ['Any'];
+                          # ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Any'];
                         my $dot_equals := $initast;
                         $dot_equals.unshift(QAST::WVal.new(:value($type)));
                         $dot_equals.returns($type);
@@ -3528,7 +3529,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             $init-qast.unshift:
               QAST::WVal.new: value => nqp::defined($*OFTYPE)
-                ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Mu']
+                ?? $*W.maybe-nominalize($*OFTYPE.ast) !! $*W.find_symbol: ['Mu']
+                # ?? $*W.maybe-definite-how-base($*OFTYPE.ast) !! $*W.find_symbol: ['Mu']
             if $<term_init><sym> eq '.=';
 
             my $qast;
@@ -3563,9 +3565,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub check_default_value_type($/, $descriptor, $bind_constraint, $what) {
-        unless nqp::istype($descriptor.default, $bind_constraint) {
-            $*W.throw($/, 'X::Syntax::Variable::MissingInitializer',
+        my $matches;
+        my $maybe := 0;
+        try {
+            $matches := nqp::istype($descriptor.default, $bind_constraint);
+            CATCH {
+                $maybe := 1;
+                my $pl := nqp::getpayload($_);
+                if nqp::istype($pl, $*W.find_symbol(['Exception'])) {
+                    @*SORROWS.push($pl); # XXX Perhaps a method on Grammer similar to typed_sorry but which accepts an exception?
+                } else {
+                    # Don't be too verbose, report only the actual line with the error.
+                    $/.sorry(nqp::getmessage($_), "\n", nqp::shift(nqp::backtracestrings($_)));
+                }
+            }
+        }
+        unless $matches {
+            $/.typed_sorry('X::Syntax::Variable::MissingInitializer',
                 type => nqp::how($bind_constraint).name($bind_constraint),
+                :$maybe,
                 implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
                          ?? ':' ~ $/.pragma($what) ~ ' by pragma'
                          !! 0
@@ -4083,7 +4101,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $predeclared := $outer.symbol($name);
                 if $predeclared {
                     my $Routine := $*W.find_symbol(['Routine'], :setting-only);
-                    unless nqp::istype(   $predeclared<value>, $Routine)
+                    unless nqp::istype($predeclared<value>, $Routine)
                         && nqp::getattr_i($predeclared<value>, $Routine, '$!yada') {
                         $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => ~$<deflongname>.ast,
@@ -5148,7 +5166,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Mu := $W.find_symbol: ['Mu'];
         my $type := nqp::defined($*OFTYPE) ?? $*OFTYPE.ast !! $Mu;
         if $<initializer><sym> eq '.=' {
-            my $init-type := $*W.maybe-definite-how-base: $type;
+            my $init-type := $*W.maybe-nominalize: $type;
+            # my $init-type := $*W.maybe-definite-how-base: $type;
             $value_ast.unshift: QAST::WVal.new: :value($init-type);
             $value_ast.returns: $init-type;
         }

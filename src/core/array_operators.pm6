@@ -52,28 +52,28 @@ multi sub shift(@a) { @a.shift }
 proto sub push($, |) {*}
 multi sub push(\a, |elems) {
     nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
-      ?? die "Unexpected named argument '{elems.hash.head.key}' passed"
+      ?? X::AdHoc.new( payload => "Unexpected named argument '{elems.hash.head.key}' passed" ).throw
       !! a.push: |elems
 }
 
 proto sub append($, |) {*}
 multi sub append(\a, |elems) {
     nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
-      ?? die "Unexpected named argument '{elems.hash.head.key}' passed"
+      ?? X::AdHoc.new( payload => "Unexpected named argument '{elems.hash.head.key}' passed" ).throw
       !! a.append: |elems
 }
 
 proto sub unshift($, |) {*}
 multi sub unshift(\a, |elems) {
     nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
-      ?? die "Unexpected named argument '{elems.hash.head.key}' passed"
+      ?? X::AdHoc.new( payload => "Unexpected named argument '{elems.hash.head.key}' passed" ).throw
       !! a.unshift: |elems
 }
 
 proto sub prepend($, |) {*}
 multi sub prepend(\a, |elems) {
     nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
-      ?? die "Unexpected named argument '{elems.hash.head.key}' passed"
+      ?? X::AdHoc.new( payload => "Unexpected named argument '{elems.hash.head.key}' passed" ).throw
       !! a.prepend: |elems
 }
 

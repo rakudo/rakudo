@@ -178,13 +178,13 @@ for $*IN.lines -> $line {
         method pop(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::pop_#postfix#(self)
-              !! die X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
         }
 
         method shift(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::shift_#postfix#(self)
-              !! die X::Cannot::Empty.new(:action<shift>, :what(self.^name));
+              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
         }
 
         multi method unshift(#type#array:D: #type# $value --> #type#array:D) {

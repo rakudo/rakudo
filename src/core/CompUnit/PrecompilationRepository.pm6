@@ -46,7 +46,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my ($handle, $checksum) = (
             self.may-precomp and (
                 my $loaded = self.load($id, :source($source), :checksum($dependency.checksum), :@precomp-stores) # already precompiled?
-                or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure))
+                or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure), :@precomp-stores)
                     and self.load($id, :@precomp-stores) # if not do it now
             )
         );
@@ -88,11 +88,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         CompUnit::PrecompilationStore @precomp-stores,
         CompUnit::PrecompilationId $id,
         :$repo-id,
+        :$refresh,
     ) {
         my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
         my $RMD = $*RAKUDO_MODULE_DEBUG;
         for @precomp-stores -> $store {
             $RMD("Trying to load {$id ~ ($repo-id ?? '.repo-id' !! '')} from $store.prefix()") if $RMD;
+            $store.remove-from-cache($id) if $refresh;
             my $file = $repo-id
                 ?? $store.load-repo-id($compiler-id, $id)
                 !! $store.load-unit($compiler-id, $id);
@@ -222,14 +224,27 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         IO::Path:D $path,
         CompUnit::PrecompilationId $id,
         Bool :$force = False,
-        :$source-name = $path.Str
+        :$source-name = $path.Str,
+        :$precomp-stores,
     ) {
         my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
         my $io = self.store.destination($compiler-id, $id);
         return False unless $io;
         my $RMD = $*RAKUDO_MODULE_DEBUG;
-        if not $force and $io.e and $io.s {
-            $RMD("$source-name\nalready precompiled into\n$io") if $RMD;
+        if $force
+            ?? (
+                $precomp-stores
+                and my $unit = self!load-file($precomp-stores, $id, :refresh)
+                and nqp::sha1($path.slurp(:enc<iso-8859-1>)) eq $unit.source-checksum
+                and self!load-dependencies($unit, $precomp-stores)
+            )
+            !! ($io.e and $io.s)
+        {
+            $RMD("$source-name\nalready precompiled into\n{$io}{$force ?? ' by another process' !! ''}") if $RMD;
+            with %*COMPILING<%?OPTIONS><stagestats> {
+                note "\n    load    $path.relative()";
+                $*ERR.flush;
+            }
             self.store.unlock;
             return True;
         }
@@ -260,6 +275,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $out = '';
         my $err = '';
         my $status;
+        #note "running PrecompRepo.precompile";
+        #note "is stagestats set? { +%*COMPILING<%?OPTIONS><stagestats> } { ~%*COMPILING<%?OPTIONS><stagestats> }";
+        with %*COMPILING<%?OPTIONS><stagestats> {
+            note "\n    precomp $path.relative()";
+            $*ERR.flush;
+        }
         react {
             my $proc = Proc::Async.new(
                 $perl6,
@@ -269,6 +290,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
                 "--output=$bc",
                 "--source-name=$source-name",
+                |("--stagestats" with %*COMPILING<%?OPTIONS><stagestats>),
                 $path
             );
 
@@ -278,6 +300,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             unless $RMD {
                 whenever $proc.stderr {
                     $err ~= $_
+                }
+            }
+            with %*COMPILING<%?OPTIONS><stagestats> {
+                whenever $proc.stderr.lines {
+                    note("    $_");
+                    $*ERR.flush;
                 }
             }
             whenever $proc.start(ENV => %env) {
@@ -293,7 +321,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             die $RMD ?? @result !! $err;
         }
 
-        if not $RMD and $err -> $warnings {
+        if not $RMD and not %*COMPILING<%?OPTIONS><stagestats>:exists and $err -> $warnings {
             $*ERR.print($warnings);
         }
         unless $bc.e {

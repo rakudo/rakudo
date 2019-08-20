@@ -95,6 +95,5 @@ details, see the full text of the license in the file LICENSE.
 
 ## AUTHOR
 
-Jonathan Worthington is the current pumpking for Rakudo Perl 6.
 See CREDITS for the many people that have contributed
 to the development of the Rakudo compiler.

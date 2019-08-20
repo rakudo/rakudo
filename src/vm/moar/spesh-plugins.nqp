@@ -366,6 +366,7 @@ nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
             if nqp::eqaddr($value, Nil) {
                 # Yes; just copy in the default, provided we've a simple type.
                 if $of.HOW.archetypes.nominal {
+                    nqp::speshguardtype($value, $value.WHAT);
                     nqp::speshguardtype($desc, $desc.WHAT);
                     nqp::speshguardconcrete($desc);
                     my $of := nqp::speshguardgetattr($desc, ContainerDescriptor, '$!of');

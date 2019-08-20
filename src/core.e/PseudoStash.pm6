@@ -359,7 +359,7 @@ my class PseudoStash is Map {
                 nqp::stmts(
                     (my $ctx := nqp::decont(@ctx-info[0])),
                     nqp::if(
-                        nqp::existskey($ctx,nqp::unbox_s($key)),
+                        (nqp::isconcrete($ctx) && nqp::existskey($ctx,nqp::unbox_s($key))),
                         nqp::if(    # Skip if non-dynamic symbol is found in a DYNAMIC_CHAIN
                             ((@ctx-info[1] != DYNAMIC_CHAIN)
                               || nqp::atkey($ctx,nqp::unbox_s($key)).VAR.dynamic),
@@ -456,7 +456,10 @@ my class PseudoStash is Map {
                             (my @ctx-info = $!ctx-walker.next-ctx),
                             ($!ctx := nqp::decont(@ctx-info[0])),
                             ($!ctx-mode = @ctx-info[1]),
-                            ($!iter := nqp::iterator(nqp::ctxlexpad($!ctx)))
+                            nqp::if(
+                                nqp::isconcrete($!ctx),
+                                ($!iter := nqp::iterator(nqp::ctxlexpad($!ctx)))
+                            )
                         )
                     )
                 )
@@ -480,7 +483,7 @@ my class PseudoStash is Map {
                             ($sym := nqp::iterkey_s($!iter)),
                             # The symbol has to be dynamic if pseudo-package is marked as requiring dynamics or if
                             # we'recurrently iterating over the dynamic chain.
-                            ($got-one := !nqp::atkey($!seen,$sym) && (
+                            ($got-one := !nqp::defined(nqp::atkey($!seen,$sym)) && (
                                             ! (
                                                 nqp::bitand_i($!stash-mode, REQUIRE_DYNAMIC)
                                                 || $!ctx-mode == DYNAMIC_CHAIN

@@ -43,7 +43,7 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN),
-                $stash.pseudo-package('CORE')
+                $stash.pseudo-package('CORE'),
               )
             )
         },
@@ -187,10 +187,48 @@ my class PseudoStash is Map {
         }
     );
 
-    multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
-        my Mu $val := nqp::null();
+
+    method !find-rev-core($key) {
+        my $rev = nqp::substr($key, 2, 1);
+        my $ctx := $!ctx;
+        my $found := nqp::null();
+        my $stash;
+        nqp::while(
+            $ctx && !$found,
+            nqp::stmts(
+                (my $lexpad := nqp::ctxlexpad($ctx)),
+                nqp::if(
+                    nqp::existskey($lexpad, 'CORE-SETTING-REV')
+                    && nqp::iseq_s($rev, nqp::atkey($lexpad, 'CORE-SETTING-REV')),
+                    ($found := $ctx),
+                    ($ctx := nqp::ctxouterskipthunks($ctx))
+                ),
+            )
+        );
         nqp::if(
-          nqp::existskey($pseudoers,$key),
+            nqp::isnull($found),
+            Failure.new(X::NoCoreRevision.new(lang-rev => $rev)),
+            nqp::stmts(
+                ($stash := nqp::create(PseudoStash)),
+                nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found)),
+                nqp::bindattr($stash, PseudoStash, '$!ctx', $found),
+                nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
+                $stash.pseudo-package('CORE::' ~ $key)
+            )
+        )
+    }
+
+    multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
+        my $name := $!package.^name;
+        my Mu $val := nqp::if(
+            (nqp::iseq_s($name, 'CORE')
+                && nqp::iseq_i(nqp::chars($key), 3)
+                && nqp::iseq_i(nqp::index($key, 'v6'), 0)),
+            self!find-rev-core($key),
+            nqp::null()
+        );
+        nqp::if(
+          nqp::isnull($val) && nqp::existskey($pseudoers,$key),
           ($val := nqp::atkey($pseudoers,$key)(self)),
           nqp::stmts(
             nqp::if(          # PRECISE_SCOPE is exclusive

@@ -26,8 +26,8 @@ my $RT_VOID := -1;
 my $ALOAD_1     := JAST::Instruction.new( :op('aload_1') );
 
 # Register a de-sugar from one QAST tree to another.
-sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
-    nqp::getcomp('QAST').operations.add_hll_op('perl6', $name, :$inlinable, -> $qastcomp, $op {
+sub register_op_desugar($name, $desugar, :$inlinable = 1, :$compiler = 'perl6') is export {
+    nqp::getcomp('QAST').operations.add_hll_op($compiler, $name, :$inlinable, -> $qastcomp, $op {
         $qastcomp.as_jast($desugar($op));
     });
 }

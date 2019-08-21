@@ -1,7 +1,7 @@
 my $ops := nqp::getcomp('QAST').operations;
 
-sub register_op_desugar($op, $desugar) is export {
-    nqp::getcomp('QAST').operations.add_op(:hll<perl6>, $op, sub ($comp, $node, :$want) {
+sub register_op_desugar($op, $desugar, :$compiler = 'perl6') is export {
+    nqp::getcomp('QAST').operations.add_op(:hll($compiler), $op, sub ($comp, $node, :$want) {
         $comp.as_js($desugar($node), :$want);
     });
 }

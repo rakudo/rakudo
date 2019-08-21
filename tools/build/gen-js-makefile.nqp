@@ -91,7 +91,10 @@ my $ModuleLoader-nqp := combine(:sources("src/vm/js/ModuleLoaderVMConfig.nqp src
 
 
 my $Perl6-ModuleLoader := nqp($ModuleLoader-nqp, "$blib/Perl6-ModuleLoader.js");
-my $Perl6-Ops := nqp('src/vm/js/Perl6/Ops.nqp', "$blib/Perl6-Ops.js");
+
+my $Ops-nqp := combine(:sources('src/vm/js/Perl6/Ops.nqp src/Perl6/Ops.nqp'), :file<Perl6-Ops.nqp>);
+my $Perl6-Ops := nqp($Ops-nqp, "$blib/Perl6-Ops.js");
+
 my $Perl6-Pod := nqp('src/Perl6/Pod.nqp', "$blib/Perl6-Pod.js");
 my $Perl6-World := nqp('src/Perl6/World.nqp', "$blib/Perl6-World.js", :deps([$Perl6-Ops, $Perl6-Pod, $Perl6-ModuleLoader]));
 

@@ -152,9 +152,9 @@ $(PERL6_ML_MOAR): @nfp(src/Perl6/ModuleLoader.nqp)@ @nfp(src/vm/moar/ModuleLoade
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_ML_MOAR) \
 		@nfpq($(M_BUILD_DIR)/ModuleLoader.nqp)@
 
-$(PERL6_OPS_MOAR): @nfp(src/vm/moar/Perl6/Ops.nqp)@ $(M_PERL6_OPS_DLL) @nfp(gen/nqp-version)@
-	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) \
-		@nfp(src/vm/moar/Perl6/Ops.nqp)@
+$(PERL6_OPS_MOAR): @nfp(src/vm/moar/Perl6/Ops.nqp src/Perl6/Ops.nqp)@ $(M_PERL6_OPS_DLL) @nfp(gen/nqp-version)@
+	$(M_NQP) $(M_GEN_CAT) @nfpl(src/vm/moar/Perl6/Ops.nqp src/Perl6/Ops.nqp)@ > @nfpq($(M_BUILD_DIR)/Perl6-Ops.nqp)@
+	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) @nfpq($(M_BUILD_DIR)/Perl6-Ops.nqp)@
 
 $(PERL6_W_MOAR): $(PERL6_ML_MOAR) $(PERL6_OPS_MOAR) $(PERL6_P_MOAR) @nfp(src/Perl6/World.nqp)@
 	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_W_MOAR) \

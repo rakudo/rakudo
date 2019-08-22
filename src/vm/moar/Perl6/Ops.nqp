@@ -72,8 +72,8 @@ MAST::ExtOpRegistry.register_extop('p6invokeunder',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 
 # Register a de-sugar from one QAST tree to another.
-sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
-    nqp::getcomp('QAST').operations.add_hll_op('perl6', $name, :$inlinable, -> $qastcomp, $op {
+sub register_op_desugar($name, $desugar, :$inlinable = 1, :$compiler = 'perl6') is export {
+    nqp::getcomp('QAST').operations.add_hll_op($compiler, $name, :$inlinable, -> $qastcomp, $op {
         $qastcomp.as_mast($desugar($op));
     });
 }

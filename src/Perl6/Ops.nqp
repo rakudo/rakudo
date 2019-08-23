@@ -186,3 +186,125 @@ _register_op_with_nqp('p6clientcorever', -> $qast {
         )
     )
 });
+
+_register_op_with_nqp( 'p6getlexclient', -> $qast {
+        my $ctx := QAST::Node.unique('$ctx');
+        my $PseudoStash := QAST::Node.unique('$PseudoStash');
+        my $Map := QAST::Node.unique('$Map');
+        my $stash := QAST::Node.unique('$stash');
+        QAST::Op.new(
+            :op<if>,
+            QAST::Op.new(
+                :op<isconcrete>,
+                QAST::VarWithFallback.new(
+                    :name<$*OPTIMIZER-SYMBOLS>,
+                    :fallback(
+                        QAST::WVal.new( :value(Mu) )
+                    ),
+                    :scope<contextual>
+                )
+            ),
+            QAST::Op.new(
+                :op<callmethod>,
+                QAST::Var.new( :name<$*OPTIMIZER-SYMBOLS>, :scope<contextual> ),
+                QAST::SVal.new( :value<find_symbol> ),
+                QAST::Op.new(
+                    :op<split>,
+                    QAST::SVal.new( :value<::> ),
+                    $qast[0]
+                )
+            ),
+            QAST::Op.new(
+                :op<if>,
+                QAST::Op.new(
+                    :op<isconcrete>,
+                    QAST::VarWithFallback.new(
+                        :name<$*W>,
+                        :fallback(
+                            QAST::Op.new( :op<null> )
+                            # QAST::WVal.new( :value(NQPMu) )
+                        ),
+                        :scope<contextual>
+                    )
+                ),
+                QAST::Op.new(
+                    :op<callmethod>,
+                    QAST::Var.new( :name<$*W>, :scope<contextual> ),
+                    QAST::SVal.new( :value<find_symbol> ),
+                    QAST::Op.new(
+                        :op<split>,
+                        QAST::SVal.new( :value<::> ),
+                        $qast[0]
+                    )
+                ),
+                QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($ctx), :scope<local>, :decl<var> ),
+                        QAST::Op.new( :op<p6clientctx> ),
+                    ),
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($PseudoStash), :scope<local>, :decl<var> ),
+                        QAST::Op.new(
+                            :op<getlexrel>,
+                            QAST::Var.new( :name($ctx), :scope<local> ),
+                            QAST::SVal.new( :value<PseudoStash> )
+                        ),
+                    ),
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($Map), :scope<local>, :decl<var> ),
+                        QAST::Op.new(
+                            :op<getlexrel>,
+                            QAST::Var.new( :name($ctx), :scope<local> ),
+                            QAST::SVal.new( :value<Map> )
+                        ),
+                    ),
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($stash), :scope<local>, :decl<var> ),
+                        QAST::Op.new(
+                            :op<create>,
+                            QAST::Var.new( :name($PseudoStash), :scope<local> ),
+                        )
+                    ),
+                    QAST::Op.new(
+                        :op<bindattr>,
+                        QAST::Var.new( :name($stash), :scope<local> ),
+                        QAST::Var.new( :name($Map), :scope<local> ),
+                        QAST::SVal.new( :value<$!storage> ),
+                        QAST::Op.new(
+                            :op<ctxlexpad>,
+                            QAST::Var.new( :name($ctx), :scope<local> ),
+                        ),
+                    ),
+                    QAST::Op.new(
+                        :op<bindattr>,
+                        QAST::Var.new( :name($stash), :scope<local> ),
+                        QAST::Var.new( :name($PseudoStash), :scope<local> ),
+                        QAST::SVal.new( :value<$!ctx> ),
+                        QAST::Var.new( :name($ctx), :scope<local> ),
+                    ),
+                    QAST::Op.new(
+                        :op<bindattr_i>,
+                        QAST::Var.new( :name($stash), :scope<local> ),
+                        QAST::Var.new( :name($PseudoStash), :scope<local> ),
+                        QAST::SVal.new( :value<$!mode> ),
+                        QAST::IVal.new( :value(1) ) # PseudoStash::STATIC_CHAIN constant value
+                    ),
+                    QAST::Op.new(
+                        :op<call>,
+                        QAST::Op.new(
+                            :op<getlexrel>,
+                            QAST::Var.new( :name($ctx), :scope<local> ),
+                            QAST::SVal.new( :value<&INDIRECT_NAME_LOOKUP> )
+                        ),
+                        QAST::Var.new( :name($stash), :scope<local> ),
+                        $qast[0]
+                    )
+                ),
+            ),
+        )
+    }
+);

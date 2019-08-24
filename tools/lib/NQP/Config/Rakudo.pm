@@ -519,7 +519,7 @@ sub clean_old_p6_libs {
 # Returns all active language specification entries except for .c
 sub perl6_specs {
     my $self = shift;
-    return grep { $_->[0] ne 'c' } @{ $self->{perl6_specs} };
+    return @{ $self->{perl6_specs} };
 }
 
 sub post_active_backends {

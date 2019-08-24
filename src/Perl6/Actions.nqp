@@ -1886,7 +1886,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # isn't already declared.
         my $BLOCK := $*W.cur_lexpad();
         my $type := $BLOCK.ann('IN_DECL');
-        if $type eq 'mainline' && %*COMPILING<%?OPTIONS><setting> eq 'NULL' {
+        if $type eq 'mainline' && %*COMPILING<%?OPTIONS><setting> eq 'NULL.c' {
             # Don't do anything in the case where we are in the mainline of
             # the setting; we don't have any symbols (Scalar, etc.) yet.
             return 1;

@@ -1,4 +1,5 @@
-use QRegex;
+
+
 use NQPP6QRegex;
 use NQPP5QRegex;
 use Perl6::Actions;
@@ -4672,13 +4673,44 @@ if $*COMPILING_CORE_SETTING {
        '#' {} \N*
     }
 
+    #==========================================================
+    # an in-line or multi-line comment (aka 'embedded comment')
+    #==========================================================
+    # examples of valid ones:
+    #   if #`(    ) 1 { say "true" } # in-line
+    #   multiline:
+    #   #`(
+    #      some
+    #      comment
+    #     )
+    #==========================================================
+
+    # we panic when a non-opening bracket char follows the sym
+    token comment:sym<#`> {
+        '#`'
+        <.typed_panic: 'X::Syntax::Comment::Embedded'>
+    }
     token comment:sym<#`(...)> {
         '#`' <?opener> {}
         [ <.quibble(self.slang_grammar('Quote'))> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
     }
 
+    #==========================
+    # leading declarator blocks
+    #==========================
+    # examples of valid ones:
+    #   #| single line
+    #   #|(
+    #      multi-
+    #      line
+    #     )
+    #==========================
+
+    # a multi-line leading declarator block:
+    # we panic when a non-opening bracket char follows the sym
     token comment:sym<#|(...)> {
-        '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
+        '#|' [ <?opener> || <.typed_panic('X::Syntax::Pod::DeclaratorLeading')> ]
+        <attachment=.quibble(self.slang_grammar('Quote'))>
         {
             unless $*POD_BLOCKS_SEEN{ self.from() } {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
@@ -4691,6 +4723,7 @@ if $*COMPILING_CORE_SETTING {
         }
     }
 
+    # a single-line leading declarator block:
     token comment:sym<#|> {
         '#|' \h+ $<attachment>=[\N*]
         {
@@ -4705,6 +4738,24 @@ if $*COMPILING_CORE_SETTING {
         }
     }
 
+    #===========================
+    # trailing declarator blocks
+    #===========================
+    # examples of valid ones:
+    #   #= single line
+    #   #=(
+    #      multi-
+    #      line
+    #     )
+    #===========================
+
+    # a multi-line trailing declarator block:
+    # we would like to panic when a non-opening bracket char follows the sym
+    # TODO find a way to panic with a suitable exception class.
+    #      I believe it may have to be done inside the:
+    #        quibble(self.slang_grammar('Quote'))
+    #      chunk since no variations of the following seem to work:
+    #        [ <?opener> || <.typed_panic('X::Syntax::Pod::DeclaratorTrailing')> ]
     token comment:sym<#=(...)> {
         '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
         {
@@ -4712,6 +4763,7 @@ if $*COMPILING_CORE_SETTING {
         }
     }
 
+    # a single-line trailing declarator block:
     token comment:sym<#=> {
         '#=' \h+ $<attachment>=[\N*]
         {

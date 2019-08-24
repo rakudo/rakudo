@@ -215,7 +215,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                   nqp::if(
                     nqp::iseq_i($code,5),
                     nqp::if(                     # 5
-                      nqp::iseq_i(my $int = nqp::getattr_i(self,
+                      nqp::iseq_i(my int $int = nqp::getattr_i(self,
                         nqp::atpos($task,1),
                         nqp::atpos($task,2)
                       ), 0),
@@ -402,7 +402,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                   nqp::if(
                     nqp::iseq_i($code,5),
                     nqp::if(                     # 5
-                      nqp::iseq_i(my $int = nqp::getattr_i(self,
+                      nqp::iseq_i(my int $int = nqp::getattr_i(self,
                         nqp::atpos($task,1),
                         nqp::atpos($task,2)
                       ), 0),

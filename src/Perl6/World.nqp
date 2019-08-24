@@ -4819,7 +4819,7 @@ class Perl6::World is HLL::World {
                 if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('perl6').language_revisions,$rev) {
                     $no-outers := 1; # you don't see other COREs!
                     nqp::shift(@name);
-                    $setting_name := 'CORE' ~ (nqp::iseq_s($rev, 'c') ?? '' !! ".$rev");
+                    $setting_name := 'CORE' ~ '.' ~ $rev;
                 }
             }
         }

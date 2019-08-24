@@ -41,7 +41,6 @@ my class Grammar is Match {
 
         my @locprepost := self.locprepost();
         # Build and throw exception object.
-        use NQPHLL:from<NQP>;
         %opts<line>            = HLL::Compiler.lineof(self.orig, self.pos, :cache(1));
         # only set <pos> if it's not already set:
         %opts<pos>             //= self.pos;

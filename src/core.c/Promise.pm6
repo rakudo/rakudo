@@ -15,6 +15,12 @@ my class X::Promise::Vowed is Exception {
     has $.promise;
     method message() { "Access denied to keep/break this Promise; already vowed" }
 }
+my class X::Promise::IllegalTransition is Exception {
+    has $.promise;
+    method message() {
+        "Illegal attempt to keep/break this Promise (status: $!promise.status())";
+    }
+}
 my role X::Promise::Broken {
     has $.result-backtrace;
     multi method gist(::?CLASS:D:) {
@@ -96,6 +102,9 @@ my class Promise does Awaitable {
 
     method !keep(Mu \result --> Nil) {
         $!lock.protect({
+            X::Promise::IllegalTransition.new(promise => self).throw
+             if $!status != Planned;
+
             $!result := result;
             $!status := Kept;
             self!schedule_thens();
@@ -125,6 +134,9 @@ my class Promise does Awaitable {
 
     method !break(\result --> Nil) {
         $!lock.protect({
+            X::Promise::IllegalTransition.new(promise => self).throw
+             if $!status != Planned;
+
             $!result := nqp::istype(result, Exception)
                 ?? result
                 !! X::AdHoc.new(payload => result);

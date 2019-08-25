@@ -1,5 +1,4 @@
-
-
+use QRegex;
 use NQPP6QRegex;
 use NQPP5QRegex;
 use Perl6::Actions;

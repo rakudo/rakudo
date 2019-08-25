@@ -23,6 +23,7 @@ my class Encoding::Registry {
           nqp::list('windows-1252', 'windows1252'),
           nqp::list('windows-932',  'windows932'),
           nqp::list('gb2312',  'gb2312'),
+          nqp::list('gb18030', 'gb18030'),
         );
         my int $i = -1;
         my int $elems = nqp::elems($encodings);

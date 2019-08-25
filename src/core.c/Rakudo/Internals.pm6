@@ -322,6 +322,8 @@ my class Rakudo::Internals {
       'windows932',      'windows-932',
       # GB2312
       'gb2312',          'gb2312',
+      # GB18030
+      'gb18030',         'gb18030',
     );
     method NORMALIZE_ENCODING(Str:D \encoding) {
         nqp::ifnull(

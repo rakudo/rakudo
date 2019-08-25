@@ -124,6 +124,10 @@ my class Backtrace {
         nqp::create(self)!SET-SELF($bt,$offset)
     }
 
+    method depth() {
+        return $!bt.elems;
+    }
+
     method AT-POS($pos) {
         return nqp::atpos($!frames,$pos) if nqp::existspos($!frames,$pos);
 

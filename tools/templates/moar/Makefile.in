@@ -104,7 +104,8 @@ M_VALGRIND_RUNNER = perl6-valgrind-m@runner_suffix@
 
 M_CLEANUPS = \
   *.manifest \
-  @nfp(blib/Perl6/*.moarvm)@ \\@for_specs(
+  @nfp(blib/Perl6/*.moarvm)@
+  @nfp(blib/Perl6/BOOTSTRAP/*.moarvm)@ \\@for_specs(
   $(SETTING_@ucspec@_MOAR) \)@
   $(R_SETTING_MOAR) \
   $(PERL6_MOAR) \

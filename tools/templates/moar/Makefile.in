@@ -68,10 +68,12 @@ M_PERL6_CONT_OBJ = @nfp($(M_PERL6_OPS_DIR)/container@moar::obj@)@
 M_PERL6_OPS_SRC  = @nfp(src/vm/moar/ops/perl6_ops.c)@
 M_PERL6_CONT_SRC = @nfp(src/vm/moar/ops/container.c)@
 
-M_PERL6_LANG_OUTPUT = \
+M_PERL6_PRECOMPS = \
     $(PERL6_ML_MOAR) $(PERL6_W_MOAR) $(PERL6_G_MOAR) $(PERL6_OPS_MOAR) \
     $(PERL6_A_MOAR) $(PERL6_O_MOAR) $(PERL6_P_MOAR) $(PERL6_C_MOAR) \
-    $(PERL6_M_MOAR)@for_specs( $(PERL6_BOOTSTRAP_@ucspec@_MOAR))@
+    $(PERL6_M_MOAR)
+
+M_PERL6_BOOTSTRAP_PRECOMPS = @for_specs( $(PERL6_BOOTSTRAP_@ucspec@_MOAR))@
 
 M_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES)
 
@@ -342,8 +344,11 @@ m-sometests: m-all
 m-install: m-all @@script(install-core-dist.p6)@@@for_specs( $(SETTING_@ucspec@_MOAR))@
 	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
 	$(MKPATH) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
-	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_LANG_OUTPUT) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
-	$(CP) $(M_PERL6_LANG_OUTPUT) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
+	$(MKPATH) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
+	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
+	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_BOOTSTRAP_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
+	$(CP) $(M_PERL6_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
+	$(CP) $(M_PERL6_BOOTSTRAP_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/lib)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(M_RUN_CLEAN_TARGET_FILES) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@

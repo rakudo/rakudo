@@ -160,7 +160,7 @@ my class Promise does Awaitable {
     }
 
     multi method Bool(Promise:D:) {
-        so $!status == Broken || $!status == Kept
+        $!status != Planned
     }
 
     method cause(Promise:D:) {

@@ -52,7 +52,7 @@ my class Grammar is Match {
     }
 
     method SETFAIL($failed, :$filename) {
-        return Nil unless self.defined && nqp::isge_s(CLIENT::LEXICAL::<CORE-SETTING-REV>, 'e');
+        return Nil unless self.defined;
         self.'!cursor_pos'($failed.pos);
         self.typed_exception(X::Syntax::Confused, filename => ($filename // "<anon>"))
     }

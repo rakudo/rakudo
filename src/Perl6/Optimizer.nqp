@@ -1077,6 +1077,7 @@ class Perl6::Optimizer {
         $!can_lower_topic         := $past.ann('CAN_LOWER_TOPIC');
         $!debug                   := nqp::getenvhash<RAKUDO_OPTIMIZER_DEBUG>;
         my $*DYNAMICALLY_COMPILED := 0;
+        my $*OPTIMIZER-SYMBOLS    := $!symbols;
         my $*W                    := $past.ann('W');
 
         # Work out optimization level.

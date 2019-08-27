@@ -43,12 +43,12 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
         DEBUG("going to load $module_name") if $DEBUG;
-        if $module_name eq 'Perl6::BOOTSTRAP' {
+        if nqp::eqat($module_name, 'Perl6::BOOTSTRAP::v6', 0) {
             my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), NQPMu);
             my %*COMPILING := {};
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
-            my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
+            my $file := nqp::join('/', nqp::split('::', $module_name)) ~ self.file-extension;
 
             my @prefixes := self.search_path();
             for @prefixes -> $prefix {
@@ -215,10 +215,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     # Transforms NULL.<release> into CORE.<previous-release>
     method previous_setting_name ($setting_name, :$base = 'CORE') {
-        my $m := $setting_name ~~ /$base '.' ( <[c..z]> )/;
+        my $m := $setting_name ~~ /$base '.' ( <[d..z]> )/;
         if $m {
             my $rev := ~nqp::atpos($m, 0);
-            $setting_name := 'CORE' ~ ($rev le 'd' ?? '' !! '.' ~ nqp::chr(nqp::ord($rev) - 1));
+            $setting_name := 'CORE' ~ '.' ~ nqp::chr(nqp::ord($rev) - 1);
         }
         $setting_name
     }
@@ -230,7 +230,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     method load_setting($setting_name) {
         my $setting;
 
-        if $setting_name ne 'NULL' {
+        if $setting_name ne 'NULL.c' {
             DEBUG("Requested for settings $setting_name") if $DEBUG;
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := self.transform_setting_name($setting_name);
@@ -238,7 +238,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             # First, pre-load previous setting.
             my $prev_setting_name := self.previous_setting_name($setting_name);
             my $prev_setting;
-            # Don't do this for .c which is just CORE.
+            # Don't do this for .c for which $setting_name doesn't change
             unless nqp::iseq_s($prev_setting_name, $setting_name) {
                 $prev_setting := self.load_setting($prev_setting_name);
             }

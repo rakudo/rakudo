@@ -3608,7 +3608,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<List>       := List;
     EXPORT::DEFAULT.WHO<Slip>       := Slip;
     EXPORT::DEFAULT.WHO<Array>      := Array;
-    EXPORT::DEFAULT.WHO<Map>    := Map;
+    EXPORT::DEFAULT.WHO<Map>        := Map;
     EXPORT::DEFAULT.WHO<Hash>       := Hash;
     EXPORT::DEFAULT.WHO<Capture>    := Capture;
     EXPORT::DEFAULT.WHO<ObjAt>      := ObjAt;

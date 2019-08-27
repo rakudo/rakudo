@@ -783,6 +783,7 @@ my @allowed =
         Q{$_},
         Q{$¢},
         Q{CORE-SETTING-REV},
+        Q{Grammar},
         Q{PseudoStash},
     );
 

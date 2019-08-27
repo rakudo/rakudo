@@ -1,3 +1,4 @@
 src/Perl6/bootstrap.c/BOOTSTRAP.nqp
 src/Perl6/bootstrap.c/EXPORTHOW.nqp
-src/vm/moar/spesh-plugins.nqp
+@if(backend!=jvm
+src/vm/moar/spesh-plugins.nqp)@

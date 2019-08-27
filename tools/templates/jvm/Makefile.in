@@ -35,16 +35,23 @@ PERL6_O_JAR   = @nfp(blib/Perl6/Optimizer.jar)@
 PERL6_P_JAR   = @nfp(blib/Perl6/Pod.jar)@
 PERL6_C_JAR   = @nfp(blib/Perl6/Compiler.jar)@
 PERL6_M_JAR   = @nfp(blib/Perl6/Metamodel.jar)@
-PERL6_B_JAR   = @nfp(blib/Perl6/BOOTSTRAP.jar)@
-SETTING_JAR   = CORE.setting.jar
-@for_specs(SETTING_@ucspec@_JAR = CORE.@lcspec@.setting.jar
+@for_specs(PERL6_BOOTSTRAP_@ucspec@_JAR = @nfp(blib/Perl6/BOOTSTRAP/v6@lcspec@.jar)@
+SETTING_@ucspec@_JAR = CORE.@lcspec@.setting.jar
 )@
+SETTING_JAR   = CORE.setting.jar
 
 PERL6_LANG_JARS = $(PERL6_ML_JAR) $(PERL6_W_JAR) $(PERL6_G_JAR) $(PERL6_OPS_JAR) $(PERL6_A_JAR) \
-  $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR) $(PERL6_B_JAR)
+  $(PERL6_O_JAR) $(PERL6_P_JAR) $(PERL6_C_JAR) $(PERL6_M_JAR)
+
+PERL6_BOOTSTRAP_JARS =@for_specs( $(PERL6_BOOTSTRAP_@ucspec@_JAR))@
 
 J_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES) \
   @nfp(src/vm/jvm/Perl6/Metamodel/JavaHOW.nqp)@ \
+
+@for_specs(
+J_BOOTSTRAP_@ucspec@_SOURCES = \
+		@insert_filelist(bootstrap_sources)@
+)@
 
 # The ordering here is important for bootstrapping reasons. In general:
 # * traits almost certainly have to come first
@@ -54,12 +61,12 @@ J_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES) \
 # Note that you only really have to worry especially about things that
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
-J_CORE_SOURCES = \
-	@insert_filelist(core_sources)@
 @for_specs(
 J_CORE_@ucspec@_SOURCES = \
-    @insert_filelist(rev_core_sources)@
+    @insert_filelist(core_sources)@
 )@
+
+J_CORE_ALL_SOURCES =@for_specs( $(J_CORE_@ucspec@_SOURCES))@
 
 PERL6_DEBUG_JAR = perl6-debug.jar
 J_DEBUG_RUNNER = perl6-debug-j@runner_suffix@
@@ -67,7 +74,7 @@ J_DEBUG_RUNNER = perl6-debug-j@runner_suffix@
 J_CLEANUPS = \
   *.manifest \
   @nfp(blib/Perl6/*.jar)@ \
-  $(SETTING_JAR) \\@for_specs(
+  @nfp(blib/Perl6/BOOTSTRAP/*.jar)@ \\@for_specs(
   $(SETTING_@ucspec@_JAR) \)@
   $(PERL6_JAR) \
   j-rakudo_test_run.tar.gz \
@@ -85,7 +92,7 @@ HARNESS_TYPE =
 J_HARNESS5 = $(PERL5) @nfp(t/harness5)@ --jvm
 J_HARNESS5_WITH_FUDGE = $(J_HARNESS5) --fudge --keep-exit-code
 
-j-all: check_@backend_prefix@_nqp_version $(PERL6_JAR) $(SETTING_JAR) @for_specs($(SETTING_@ucspec@_JAR) )@$(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
+j-all: check_@backend_prefix@_nqp_version $(PERL6_JAR)@for_specs( $(SETTING_@ucspec@_JAR))@ $(J_RUNNER) eval-client.pl  $(PERL6_DEBUG_JAR) $(J_DEBUG_RUNNER)
 
 check_@backend_prefix@_nqp_version: @@script(check-nqp-version.pl)@@
 	$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ $(J_NQP)
@@ -133,7 +140,7 @@ $(PERL6_C_JAR): @nfp(src/Perl6/Compiler.nqp)@ $(PERL6_O_JAR)
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_C_JAR) \
 	    @nfp(src/Perl6/Compiler.nqp)@
 
-$(PERL6_JAR): @nfp(src/main.nqp)@ $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR) $(J_METAMODEL_SOURCES) $(BOOTSTRAP_SOURCES) $(J_CORE_SOURCES)@for_specs( $(J_CORE_@ucspec@_SOURCES))@
+$(PERL6_JAR): @nfp(src/main.nqp)@ $(RUNTIME_JAR) $(PERL6_G_JAR) $(PERL6_A_JAR) $(PERL6_C_JAR) $(PERL6_P_JAR) $(J_METAMODEL_SOURCES) $(J_CORE_SOURCES)@for_specs( $(J_BOOTSTRAP_@ucspec@_SOURCES) $(J_CORE_@ucspec@_SOURCES))@
 	$(CONFIGURE) --expand main-version --out @nfpq($(J_BUILD_DIR)/main-version.nqp)@
 	$(J_NQP) $(J_GEN_CAT) @nfp(src/main.nqp)@ @nfpq($(J_BUILD_DIR)/main-version.nqp)@ > @nfpq($(J_BUILD_DIR)/main.nqp)@
 	$(J_NQP) --module-path=blib --target=jar --javaclass=perl6 --output=$(PERL6_JAR) \
@@ -144,23 +151,17 @@ $(PERL6_M_JAR): $(J_METAMODEL_SOURCES) $(PERL6_OPS_JAR)
 	$(J_NQP) --module-path=blib --target=jar --output=$(PERL6_M_JAR) \
 	    @nfpq($(J_BUILD_DIR)/Metamodel.nqp)@
 
-$(PERL6_B_JAR): $(BOOTSTRAP_SOURCES) $(PERL6_M_JAR)
-	$(J_NQP) $(J_GEN_CAT) $(BOOTSTRAP_SOURCES) > @nfpq($(J_BUILD_DIR)/BOOTSTRAP.nqp)@
-	$(J_RUN_NQP_RR) --module-path=blib --target=jar --output=$(PERL6_B_JAR) @nfpq($(J_BUILD_DIR)/BOOTSTRAP.nqp)@
+@for_specs($(PERL6_BOOTSTRAP_@ucspec@_JAR): $(J_BOOTSTRAP_@ucspec@_SOURCES) $(PERL6_M_JAR)
+	$(J_NQP) $(J_GEN_CAT) $(J_BOOTSTRAP_@ucspec@_SOURCES) > @nfpq($(J_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
+	$(J_RUN_NQP_RR) --module-path=blib --target=jar --output=$(PERL6_BOOTSTRAP_@ucspec@_JAR) @nfpq($(J_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
 
-$(SETTING_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(J_CORE_SOURCES)
-	$(CONFIGURE) --expand @shquot(@template(core_sources)@)@ \
-				 --out @nfpq($(J_BUILD_DIR)/core_sources)@ \
+$(SETTING_@ucspec@_JAR): $(PERL6_JAR) $(PERL6_BOOTSTRAP_@ucspec@_JAR) $(J_CORE_ALL_SOURCES)
+	$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
+				 --out @nfpq($(J_BUILD_DIR)/core_sources.@lcspec@)@ \
 				 --set-var=backend=@backend@
-	$(J_NQP) $(J_GEN_CAT) -f @nfpq($(J_BUILD_DIR)/core_sources)@ > @nfpq($(J_BUILD_DIR)/CORE.setting)@
-	@echo "The following step can take a long time, please be patient."
-	@set_nqp_lib@$(J_RUN_PERL6) --setting=NULL --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_JAR) --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.setting)@
-
-@for_specs($(SETTING_@ucspec@_JAR): $(PERL6_JAR) $(PERL6_B_JAR) $(SETTING_JAR) $(J_CORE_@ucspec@_SOURCES)
-	$(J_NQP) $(J_GEN_CAT) $(J_CORE_@ucspec@_SOURCES) > @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
+	$(J_NQP) $(J_GEN_CAT) -f @nfpq($(J_BUILD_DIR)/core_sources.@lcspec@)@ > @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
 	@echo "The following step can take a long time, please be patient."
 	@set_nqp_lib@$(J_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=jar --stagestats --output=$(SETTING_@ucspec@_JAR) --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
-	
 )@
 $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
 	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q($(NQP_PREFIX))@ --nqp-lib=blib @q($(NQP_JARS))@
@@ -226,9 +227,11 @@ sometests: j-all
 j-install: j-all @@script(create-jvm-runner.pl)@@ @@script(install-core-dist.p6)@@
 	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
 	$(MKPATH) @nfpq($(DESTDIR)$(J_LIBPATH)/Perl6)@
+	$(MKPATH) @nfpq($(DESTDIR)$(J_LIBPATH)/Perl6/BOOTSTRAP)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(PERL6_LANG_JARS) @nfpq($(DESTDIR)$(J_LIBPATH)/Perl6)@
-	$(CP) $(SETTING_JAR) @for_specs($(SETTING_@ucspec@_JAR) )@@nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(CP) $(PERL6_BOOTSTRAP_JARS) @nfpq($(DESTDIR)$(J_LIBPATH)/Perl6/BOOTSTRAP)@
+	$(CP) @for_specs($(SETTING_@ucspec@_JAR) )@@nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(PERL6_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(PERL6_DEBUG_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@

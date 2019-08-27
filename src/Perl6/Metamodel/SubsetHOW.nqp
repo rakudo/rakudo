@@ -31,9 +31,7 @@ class Perl6::Metamodel::SubsetHOW
         my $metasubset := self.new(:refinee($refinee), :refinement($refinement));
         my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'perl6');
         $metasubset.set_name($type, $name);
-        # TODO This only works at compile time. To support run-time creation of subsets we need to find caller's CORE.
-        # Will be possible when nqp::p6callerrevision() is implemented.
-        $metasubset.set_language_version($metasubset, nqp::getcomp('perl6').language_version);
+        $metasubset.set_language_version($metasubset);
         nqp::settypecheckmode($type, 2);
         self.add_stash($type)
     }

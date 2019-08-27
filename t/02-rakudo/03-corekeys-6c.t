@@ -1,9 +1,11 @@
 use v6.c;
+use lib 't/packages';
 use Test;
+use Test::Helpers;
 plan 1;
 
 # output of "perl6 -e '.say for CORE::.keys.sort.map: { qq:!c/  Q{$_},/ }'"
-my %allowed = (
+my @expected = (
   Q{!INIT_VALUES},
   Q{$!},
   Q{$/},
@@ -13,7 +15,6 @@ my %allowed = (
   Q{$?NL},
   Q{$?TABSTOP},
   Q{$_},
-  Q{%DEPRECATIONS},
   Q{&CLONE-HASH-DECONTAINERIZED},
   Q{&CLONE-LIST-DECONTAINERIZED},
   Q{&CMP-SLOW},
@@ -500,7 +501,6 @@ my %allowed = (
   Q{Broken},
   Q{Buf},
   Q{CX},
-  Q{CachedIterator},
   Q{CallFrame},
   Q{Callable},
   Q{Cancellation},
@@ -757,15 +757,6 @@ my %allowed = (
   Q{π},
   Q{τ},
   Q{𝑒},
-  Q{$=finish},
-  Q{$?PACKAGE},
-  Q{::?PACKAGE},
-  Q{GLOBALish},
-  Q{$¢},
-  Q{EXPORT},
-).map: { $_ => 1 };
+);
 
-my @unknown;
-@unknown.push($_) unless %allowed{$_}:exists for CORE::.keys;
-diag "Found {+@unknown} unexpected entries: { @unknown.sort }" unless
-ok @unknown == 0, "No unexpected entries in CORE::";
+has-symbols CORE::, @expected, "Symbols in 6.c CORE::";

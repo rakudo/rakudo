@@ -1,0 +1,104 @@
+
+
+# GEN_CAT is only used in command lines, can be pre-quoted
+@bpv(GEN_CAT)@ = @shquot(@script(gen-cat.nqp)@)@ @backend@
+
+@bpv(BUILD_DIR)@ = @nfp(gen/@backend@)@
+@bpv(BLIB_DIR)@ = @nfp(blib/Perl6)@
+@bpv(NQP_LIBDIR)@ = @nqp::libdir@
+@bpv(SET_NQP_LIB)@ = @set_nqp_lib@
+
+# files we create
+@bsv(PERL6)@ = perl6.@bext@
+@bsv(PERL6_ML)@  = @nfp(@bpm(BLIB_DIR)@/ModuleLoader.@bext@)@
+@bsv(PERL6_W)@   = @nfp(@bpm(BLIB_DIR)@/World.@bext@)@
+@bsv(PERL6_G)@   = @nfp(@bpm(BLIB_DIR)@/Grammar.@bext@)@
+@bsv(PERL6_OPS)@ = @nfp(@bpm(BLIB_DIR)@/Ops.@bext@)@
+@bsv(PERL6_A)@   = @nfp(@bpm(BLIB_DIR)@/Actions.@bext@)@
+@bsv(PERL6_O)@   = @nfp(@bpm(BLIB_DIR)@/Optimizer.@bext@)@
+@bsv(PERL6_P)@   = @nfp(@bpm(BLIB_DIR)@/Pod.@bext@)@
+@bsv(PERL6_C)@   = @nfp(@bpm(BLIB_DIR)@/Compiler.@bext@)@
+@bsv(PERL6_M)@   = @nfp(@bpm(BLIB_DIR)@/Metamodel.@bext@)@
+@for_specs(@bsv(PERL6_BOOTSTRAP)@   = @nfp(blib/Perl6/BOOTSTRAP/v6@lcspec@.@bext@)@
+@bsv(SETTING_@ucspec@)@ = CORE.@lcspec@.setting.@bext@
+)@
+
+@bsv(PERL6_ML_SRC)@ = @nfp(src/vm/@backend@/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp)@ @bpm(ML_EXTRA)@
+@bsv(PERL6_OPS_SRC)@ = @nfp(src/vm/@backend@/Perl6/Ops.nqp src/Perl6/Ops.nqp)@
+
+@bsv(METAMODEL_ALL_SOURCES)@ = $(COMMON_METAMODEL_SOURCES) \
+						@bsm(METAMODEL_SOURCES)@
+
+@for_specs(
+@bpv(BOOTSTRAP_@ucspec@_SOURCES)@ = \
+		@insert_filelist(bootstrap_sources)@
+)@
+
+# The ordering in core_sources is important for bootstrapping reasons.
+# In general:
+# * traits almost certainly have to come first
+# * stubs have to come after traits since they use them
+# * Attribute needs to come before anything that uses an attribute
+# We break various other circularities in Perl6::Metamodel::BOOTSTRAP.
+# Note that you only really have to worry especially about things that
+# the compiler will instantiate/call methods on while compiling the
+# setting - basically anything that feels MOP-ish.
+@for_specs(
+@bpv(CORE_@ucspec@_SOURCES)@ = \
+    @insert_filelist(core_sources)@
+)@
+@bpv(CORE_ALL_SOURCES)@ =@for_specs( @bpm(CORE_@ucspec@_SOURCES)@)@
+
+@for_specs(@bsv(PERL6_BOOTSTRAP)@ = @nfp(blib/Perl6/BOOTSTRAP/v6@lcspec@.@bext@)@
+@bsv(SETTING)@ = CORE.@lcspec@.setting.@bext@
+)@
+
+@bpv(PERL6_PRECOMPS)@ = \
+    @bsm(PERL6_ML)@ @bsm(PERL6_W)@ @bsm(PERL6_G)@ @bsm(PERL6_OPS)@ \
+    @bsm(PERL6_A)@ @bsm(PERL6_O)@ @bsm(PERL6_P)@ @bsm(PERL6_C)@ \
+    @bsm(PERL6_M)@
+
+@bpv(PERL6_BOOTSTRAP_PRECOMPS)@ =@for_specs( @bsm(PERL6_BOOTSTRAP)@)@
+
+@bpv(DEBUG_RUNNER)@ = perl6-debug-@backend_abbr@@bpm(RUNNER_SUFFIX)@
+@bpv(RUNNER)@       = perl6-@backend_abbr@@bpm(RUNNER_SUFFIX)@
+
+@bsv(PERL6_DEBUG)@ = perl6-debug.@bext@
+
+@bpv(CLEANUPS_ALL)@ = \
+  *.manifest \
+  @nfp(blib/Perl6/*.@bext@)@ \
+  @nfp(blib/Perl6/BOOTSTRAP/*.@bext@)@ \\@for_specs(
+  @bsm(SETTING_@ucspec@)@ \)@
+  @bsm(PERL6)@ \
+  @backend_prefix@-rakudo_test_run.tar.gz \
+  @nfp(@bpm(BUILD_DIR)@/*)@ \
+  @bsm(PERL6_DEBUG)@ \
+  @bpm(DEBUG_RUNNER)@ \
+  @bpm(RUNNER)@ \_DLL
+  @bpm(CLEANUPS)@
+
+@bpv(HARNESS5)@ = $(PERL5) @nfp(t/harness5)@ --@backend@
+@bpv(HARNESS5_WITH_FUDGE)@ = @bpm(HARNESS5)@ --fudge --keep-exit-code
+
+# --- Pattern rules ---
+@nfp(@bpm(BUILD_DIR)@/%.nqp)@:
+	@bpm(NQP)@ @bpm(GEN_CAT)@ $? > $@
+
+@nfp(@bpm(BLIB_DIR)@/%.@bext@)@ : @nfp(@bpm(BUILD_DIR)@/%.nqp)@
+	@echo BUILDING $@
+	@bpm(NQP)@ --module-path=blib --target=@btarget@ --output=$@ $<
+
+@backend_prefix@-all: check_@backend_prefix@_nqp_version @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(PERL6_DEBUG)@ @bpm(ALL_TARGETS)@) 
+
+check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
+	$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ @bpm(NQP)@
+
+@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@: @bsm(PERL6_ML_SRC)@
+
+@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@: @bsm(PERL6_OPS_SRC)@
+
+@bsm(PERL6_ML)@: @nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@ @nfp(gen/nqp-version)@
+
+@bsm(PERL6_OPS)@: @nfp(@bpm(BUILD_DIR)@/Ops.nqp)@ @bpm(PERL6_OPS_EXTRA)@ @nfp(gen/nqp-version)@
+

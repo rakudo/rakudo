@@ -3635,7 +3635,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :dba('term')
         [
         ||  [
-            | <prefixish>+ [ <.arg_flat_nok> <term> || {} <.panic("Prefix " ~ $<prefixish>[-1].Str ~ " requires an argument, but no valid term found")> ]
+            | <prefixish>+ 
+              [ <.arg_flat_nok> <term> 
+                || 
+                {} 
+                   <.panic("Prefix " ~ $<prefixish>[-1].Str 
+                                     ~ " requires an argument, but no valid term found"
+                                     ~ ".\nDid you mean "
+                                     ~ $<prefixish>[-1].Str 
+                                     ~ " to be an opening bracket for a declarator block?"
+                          )> 
+              ]
             | <.arg_flat_nok> <term>
             ]
         || <!{ $*QSIGIL }> <?before <infixish> {
@@ -4673,25 +4683,59 @@ if $*COMPILING_CORE_SETTING {
     }
 
     #==========================================================
-    # an in-line or multi-line comment (aka 'embedded comment')
+    # Embedded comments and declarator blocks
+    #==========================================================
+    # These comment-like objects can be like ordinary one-line
+    # comments if, and only if, their beginning two-character
+    # starting points are followed by a space.  Examples:
+    #
+    # embedded:
+    #   #` some comment
+    # leading declarator block:
+    #   #| some comment
+    # trailing declarator block:
+    #   #= some comment
+    #
+    # If any character other than a space follows the first
+    # two, it must be a valid opening bracketing character,
+    # otherwise an exception is thrown.
+    # 
+    # Note that declarator blocks retain their special handling
+    # even in the one-line format.
+    #==========================================================
+
+    #==========================================================
+    # An in-line or multi-line comment (aka 'embedded comment')
     #==========================================================
     # examples of valid ones:
-    #   if #`(    ) 1 { say "true" } # in-line
-    #   multiline:
-    #   #`(
-    #      some
-    #      comment
+    #   in-line:
+    #     my $a = #`(    ) 3;
+    #   multi-line:
+    #     my $a = #`(
+    #       some comment
+    #     ) 3;
+    #     #`(
+    #       some comment
     #     )
+    #   this is an ordinary trailing one-line comment:
+    #     my $a = #` some comment
+    #     3;
+    #     
     #==========================================================
+
+    #```````````
+    #|||||||||||||
+
 
     # we panic when a non-opening bracket char follows the sym
     token comment:sym<#`> {
-        '#`'
+        '#`' <!after \s> <!opener>
         <.typed_panic: 'X::Syntax::Comment::Embedded'>
     }
     token comment:sym<#`(...)> {
-        '#`' <?opener> {}
-        [ <.quibble(self.slang_grammar('Quote'))> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
+        '#`' <?opener> 
+        #[ <.quibble(self.slang_grammar('Quote'))> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
+        <.quibble(self.slang_grammar('Quote'))>
     }
 
     #==========================
@@ -4715,8 +4759,10 @@ if $*COMPILING_CORE_SETTING {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 if $*DECLARATOR_DOCS eq '' {
                     $*DECLARATOR_DOCS := $<attachment><nibble>;
-                } else {
-                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment><nibble>));
+                } 
+                else {
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, 
+                         nqp::concat("\n", $<attachment><nibble>));
                 }
             }
         }
@@ -4730,8 +4776,10 @@ if $*COMPILING_CORE_SETTING {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 if $*DECLARATOR_DOCS eq '' {
                     $*DECLARATOR_DOCS := $<attachment>;
-                } else {
-                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, nqp::concat("\n", $<attachment>));
+                } 
+                else {
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, 
+                        nqp::concat("\n", $<attachment>));
                 }
             }
         }

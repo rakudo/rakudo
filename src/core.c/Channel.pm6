@@ -103,11 +103,11 @@ my class Channel does Awaitable {
             Nil
         } else {
             if nqp::istype(msg, CHANNEL_CLOSE) {
-                $!closed_promise_vow.keep(Nil);
+                try $!closed_promise_vow.keep(Nil);
                 Nil
             }
             elsif nqp::istype(msg, CHANNEL_FAIL) {
-                $!closed_promise_vow.break(msg.error);
+                try $!closed_promise_vow.break(msg.error);
                 Nil
             }
             else {

@@ -33,7 +33,7 @@ my $install-dir := $execname eq ''
 
 my $perl6-home := $comp.config<static_perl6_home>
     // nqp::getenvhash()<PERL6_HOME>
-    // $install-dir ~ '/share/perl6';
+    // $comp.config<libdir> ~ '/perl6';
 if nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep {
     $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
 }

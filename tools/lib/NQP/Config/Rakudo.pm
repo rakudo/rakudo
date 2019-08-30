@@ -348,7 +348,7 @@ sub configure_moar_backend {
           );
         $nqp_config->{static_perl6_home} =
           File::Spec->rel2abs(
-            File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ) );
+            File::Spec->catdir( $config->{libdir}, 'perl6' ) );
         $nqp_config->{static_nqp_home_define} =
           '-DSTATIC_NQP_HOME='
           . $qchar . $self->c_escape_string( $nqp_config->{static_nqp_home} ) . $qchar;

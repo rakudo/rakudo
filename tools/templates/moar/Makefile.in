@@ -18,7 +18,7 @@ M_LIBDIR = @nfp($(PERL6_HOME)/lib)@
 M_NQP_LIBDIR = @nqp::libdir@
 M_INCPATH = @nfp($(MOAR_PREFIX)/include)@
 M_MOAR_INC_PATHS = \
-  @cincludes@ \
+  @moar::cincludes@ \
   $(M_CCINC)@nfpq($(M_INCPATH))@ \
   $(M_CCINC)@nfpq($(M_INCPATH)/moar)@ \
   $(M_CCINC)@nfpq($(M_INCPATH)/libatomic_ops)@ \

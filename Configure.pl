@@ -62,8 +62,8 @@ MAIN: {
     $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
-        $cfg->options,      'help!',
-        'prefix=s',         'libdir=s',
+        $cfg->options,
+        'help!',            'prefix=s',
         'perl6-home=s',     'nqp-home=s',
         'sysroot=s',        'sdkroot=s',
         'relocatable',      'backends=s',
@@ -152,8 +152,6 @@ Configure.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=<path>    Install files in dir; also look for executables there
-    --libdir=<path>    Install architecture-specific files in dir; Perl6 modules
-                       included
     --nqp-home=dir     Directory to install NQP files to
     --perl6-home=dir   Directory to install Perl 6 files to
     --relocatable

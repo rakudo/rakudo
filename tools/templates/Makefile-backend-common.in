@@ -193,13 +193,14 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @backend_prefix@-install:: @backend_prefix@-all @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
+	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME))@
+	$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@)@
 	$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-@if(backend==moar	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/lib)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
+@if(backend==moar	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
 	@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
 	@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@

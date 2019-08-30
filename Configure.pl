@@ -64,6 +64,7 @@ MAIN: {
     GetOptions(
         $cfg->options,      'help!',
         'prefix=s',         'libdir=s',
+        'perl6-home=s',     'nqp-home=s',
         'sysroot=s',        'sdkroot=s',
         'relocatable',      'backends=s',
         'no-clean',         'with-nqp=s',
@@ -153,6 +154,8 @@ General Options:
     --prefix=<path>    Install files in dir; also look for executables there
     --libdir=<path>    Install architecture-specific files in dir; Perl6 modules
                        included
+    --nqp-home=dir     Directory to install NQP files to
+    --perl6-home=dir   Directory to install Perl 6 files to
     --relocatable
                        Dynamically locate NQP and Perl6 home dirs instead of
                        statically compiling them in. (On AIX and OpenBSD Rakudo

@@ -44,14 +44,14 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	@noecho@$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
 
 $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q($(NQP_PREFIX))@ --nqp-lib=blib @q($(NQP_JARS))@
+	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q($(NQP_HOME))@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
 
 j-runner-default: j-all
 	$(CP) $(J_RUNNER) perl6$(J_BAT)
 	$(CHMOD) 755 perl6$(J_BAT)
 
 @bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(PERL6_DEBUG)@
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q($(NQP_PREFIX))@ --nqp-lib=blib @q($(NQP_JARS))@
+	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q($(NQP_HOME))@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
 
 eval-client.pl:
 	$(CP) @nfpq($(SDKROOT)$(NQP_PREFIX)/bin/eval-client.pl)@ .
@@ -79,7 +79,7 @@ sometests: j-all
 	@$(J_HARNESS5_WITH_FUDGE) $(TESTFILES)
 
 j-runner-default-install: j-install
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
+	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_HOME))@ @q($(PERL6_HOME))@ "" @q($(NQP_JARS))@
 	$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
 	$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
 

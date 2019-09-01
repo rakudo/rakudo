@@ -3922,8 +3922,8 @@ Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
 Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
 
 # Register default parent types.
-Perl6::Metamodel::ClassHOW.set_default_parent_type(Any, :setting-only);
-Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar, :setting-only);
+Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
+Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
 # Put PROCESS in place, and ensure it's never repossessed.
 nqp::neverrepossess(PROCESS.WHO);

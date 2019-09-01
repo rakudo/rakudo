@@ -28,9 +28,9 @@ my class Grammar is Match {
                   ),
                   $match := ($cursor := $cursor.'!cursor_next'()).MATCH
                 ),
-                $match || Nil,
+                $match || Nil
               ),
-              Nil,
+              Nil
             )
           )
         )

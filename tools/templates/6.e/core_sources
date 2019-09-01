@@ -1,3 +1,4 @@
 src/core.e/core_prologue.pm6
 src/core.e/PseudoStash.pm6
 src/core.e/Grammar.pm6
+src/core.e/EXPORTHOW.pm6

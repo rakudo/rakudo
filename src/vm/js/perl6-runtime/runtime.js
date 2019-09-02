@@ -355,6 +355,10 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
       return this.$$getattr(Scalar, '$!value');
     });
 
+    this.STable.addInternalMethod('$$decont_s', function(ctx) {
+      return this.$$getattr(Scalar, '$!value').$$getStr();
+    });
+
     this.STable.addInternalMethod('$$getInt', function(ctx) {
       return this.$$getattr(Scalar, '$!value').$$getInt();
     });

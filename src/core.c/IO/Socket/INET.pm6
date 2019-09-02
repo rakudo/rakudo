@@ -13,25 +13,24 @@ my class IO::Socket::INET does IO::Socket {
         constant MAX_PORT       = 65_535; # RFC 793: TCP/UDP port limit
     }
 
-    has Str  $.host;
-    has Int  $.port;
-    has Str  $.localhost;
-    has Int  $.localport;
-    has Int  $.backlog;
-    has Bool $.listening;
-    has      $.family     = nqp::const::SOCKET_FAMILY_UNSPEC;
-    has      $.proto      = PIO::PROTO_TCP;
-    has      $.type       = PIO::SOCK_STREAM;
+    has Str              $.host;
+    has Int              $.port;
+    has Str              $.localhost;
+    has Int              $.localport;
+    has Int              $.backlog;
+    has Bool             $.listening;
+    has ProtocolFamily:D $.family     = PF_UNSPEC;
+    has                  $.proto      = PIO::PROTO_TCP;
+    has                  $.type       = PIO::SOCK_STREAM;
+
+    my subset Family of Int where PF_UNSPEC | PF_INET | PF_INET6;
 
     # XXX: this could be a bit smarter about how it deals with unspecified
     # families...
-    my sub split-host-port(:$host is copy, :$port is copy, :$family) {
+    my sub split-host-port(Str :$host is copy, Int :$port is copy, Family :$family) {
         if ($host) {
-            my ($split-host, $split-port) = $family == nqp::const::SOCKET_FAMILY_INET6
-                ?? v6-split($host)
-                !! v4-split($host);
-
-            if $split-port {
+            my ($split-host, $split-port) = ($family == PF_INET6) ?? v6-split($host) !! v4-split($host);
+            if $split-port.defined {
                 $host = $split-host.Str;
                 $port //= $split-port.Int
             }
@@ -43,67 +42,67 @@ my class IO::Socket::INET does IO::Socket {
         return ($host, $port);
     }
 
-    my sub v4-split($uri) {
+    my sub v4-split(Str $uri) {
         return $uri.split(':', 2);
     }
 
-    my sub v6-split($uri) {
+    my sub v6-split(Str $uri) {
         my ($host, $port) = ($uri ~~ /^'[' (.+) ']' \: (\d+)$/)[0,1];
         return $host ?? ($host, $port) !! $uri;
     }
 
     # Create new socket that listens on $localhost:$localport
     multi method new(
-        Bool   :$listen! where .so,
+        Bool   :$listen!   where .so,
         Str    :$localhost is copy,
         Int    :$localport is copy,
-        Int    :$family where {
-                $family == nqp::const::SOCKET_FAMILY_UNSPEC
-             || $family == nqp::const::SOCKET_FAMILY_INET
-             || $family == nqp::const::SOCKET_FAMILY_INET6
-        } = nqp::const::SOCKET_FAMILY_UNSPEC,
-               *%rest,
-        --> IO::Socket::INET:D) {
+        Family :$family    is copy = PF_UNSPEC,
+               *%rest
+        --> IO::Socket::INET:D
+    ) {
+        my $result := split-host-port :host($localhost), :port($localport), :$family;
+        if $result {
+            ($localhost, $localport) = $result;
+        } else {
+            fail $result;
+        }
 
-        ($localhost, $localport) = (
-            split-host-port :host($localhost), :port($localport), :$family
-        orelse fail $_);
+        $result := ProtocolFamily($family);
+        if $result.defined {
+            $family = $result;
+        } else {
+            my Str @valid-families = ProtocolFamily.enums.keys;
+            fail X::IO::InvalidSocketFamily.new: :$family, :@valid-families;
+        }
 
-        #TODO: Learn what protocols map to which socket types and then determine which is needed.
-        self.bless(
-            :$localhost,
-            :$localport,
-            :$family,
-            :listening($listen),
-            |%rest,
-        )!initialize()
+        my Bool $listening = $listen;
+        self.bless(:$localhost, :$localport, :$family, :$listening, |%rest)!initialize()
     }
 
     # Open new connection to socket on $host:$port
     multi method new(
-        Str:D :$host! is copy,
-        Int   :$port is copy,
-        Int   :$family where {
-               $family == nqp::const::SOCKET_FAMILY_UNSPEC
-            || $family == nqp::const::SOCKET_FAMILY_INET
-            || $family == nqp::const::SOCKET_FAMILY_INET6
-        } = nqp::const::SOCKET_FAMILY_UNSPEC,
-              *%rest,
-        --> IO::Socket::INET:D) {
+        Str    :$host!  is copy,
+        Int    :$port   is copy,
+        Family :$family is copy = PF_UNSPEC,
+               *%rest
+        --> IO::Socket::INET:D
+    ) {
+        my $result := split-host-port :$host, :$port, :$family;
+        if $result {
+            ($host, $port) = $result;
+        } else {
+            fail $result;
+        }
 
-        ($host, $port) = split-host-port(
-            :$host,
-            :$port,
-            :$family,
-        );
+        $result := ProtocolFamily($family);
+        if $result.defined {
+            $family = $result;
+        } else {
+            my Str @valid-families = ProtocolFamily.enums.keys;
+            fail X::IO::InvalidSocketFamily.new: :$family, :@valid-families;
+        }
 
-        # TODO: Learn what protocols map to which socket types and then determine which is needed.
-        self.bless(
-            :$host,
-            :$port,
-            :$family,
-            |%rest,
-        )!initialize()
+        self.bless(:$host, :$port, :$family, |%rest)!initialize()
     }
 
     # Fail if no valid parameters are passed
@@ -120,7 +119,7 @@ my class IO::Socket::INET does IO::Socket {
         # which is derived from the protocol, is SOCK_STREAM then connect() is called.
         if $!listening || $!localhost || $!localport {
             nqp::bindsock($PIO, nqp::unbox_s($!localhost || "0.0.0.0"),
-                                 nqp::unbox_i($!localport || 0), nqp::unbox_i($!family),
+                                 nqp::unbox_i($!localport || 0), nqp::unbox_i($!family.value),
                                  nqp::unbox_i($!backlog || 128));
         }
 
@@ -130,7 +129,7 @@ my class IO::Socket::INET does IO::Socket {
 #?endif
         }
         elsif $!type == PIO::SOCK_STREAM {
-            nqp::connect($PIO, nqp::unbox_s($!host), nqp::unbox_i($!port), nqp::unbox_i($!family));
+            nqp::connect($PIO, nqp::unbox_s($!host), nqp::unbox_i($!port), nqp::unbox_i($!family.value));
         }
 
         nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);

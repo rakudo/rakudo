@@ -663,6 +663,15 @@ my class X::IO::BinaryMode does X::IO {
     method message { "Cannot do '$.trying' on a handle in binary mode" }
 }
 
+my class X::IO::InvalidSocketFamily does X::IO {
+    has $.family;
+    has @.valid-families;
+    method message(--> Str:D) {
+        my Str $valid-families = @!valid-families.join: ', ';
+        "Cannot create a socket with family '$!family'. Valid families: $valid-families"
+    }
+}
+
 my role X::Comp is Exception {
     has $.filename;
     has $.pos;

@@ -1,3 +1,7 @@
+# This constant must specify current CORE revision.
+# Must preceede class declarations to allow correct recording of their respective language version.
+my constant CORE-SETTING-REV = 'c';
+
 # Stub a few things the compiler wants to have really early on.
 my class Pair { ... }   # must be first for some reason
 my class Block { ... }
@@ -66,8 +70,5 @@ PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 #?if jvm
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif
-
-# This constant must specify current CORE revision
-my constant CORE-SETTING-REV = 'c';
 
 # vim: ft=perl6 expandtab sw=4

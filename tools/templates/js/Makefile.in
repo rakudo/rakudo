@@ -15,14 +15,14 @@ JS_FLAGS = --nqp-runtime $(JS_RUNTIME) --perl6-runtime @perl6_runtime@ --libpath
 
 # files we create
 
-#PERL6_ML_MOAR  = @nfp(blib/Perl6/ModuleLoader.moarvm)@
-#PERL6_W_MOAR   = @nfp(blib/Perl6/World.moarvm)@
-#PERL6_G_MOAR   = @nfp(blib/Perl6/Grammar.moarvm)@
-#PERL6_OPS_MOAR = @nfp(blib/Perl6/Ops.moarvm)@
-#PERL6_A_MOAR   = @nfp(blib/Perl6/Actions.moarvm)@
-#PERL6_O_MOAR   = @nfp(blib/Perl6/Optimizer.moarvm)@
-#PERL6_P_MOAR   = @nfp(blib/Perl6/Pod.moarvm)@
-#PERL6_C_MOAR   = @nfp(blib/Perl6/Compiler.moarvm)@
+PERL6_ML_JS  = @nfp($(JS_BLIB)/Perl6/ModuleLoader.js)@
+PERL6_W_JS   = @nfp($(JS_BLIB)/Perl6/World.js)@
+PERL6_G_JS   = @nfp($(JS_BLIB)/Perl6/Grammar.js)@
+PERL6_OPS_JS = @nfp($(JS_BLIB)/Perl6/Ops.js)@
+PERL6_A_JS   = @nfp($(JS_BLIB)/Perl6/Actions.js)@
+PERL6_O_JS   = @nfp($(JS_BLIB)/Perl6/Optimizer.js)@
+PERL6_P_JS   = @nfp($(JS_BLIB)/Perl6/Pod.js)@
+PERL6_C_JS   = @nfp($(JS_BLIB)/Perl6/Compiler.js)@
 PERL6_M_JS   = @nfp($(JS_BLIB)/Perl6-Metamodel.js)@
 
 @for_specs(PERL6_BOOTSTRAP_@ucspec@_JS   = @nfp($(JS_BLIB)/Perl6/BOOTSTRAP/v6@lcspec@.js)@
@@ -37,59 +37,59 @@ JS_BOOTSTRAP_@ucspec@_SOURCES = \
 @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@: @nfp(src/vm/js/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp)@
 	$(JS_NQP) @script(gen-cat.nqp)@ js @nfp(src/vm/js/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp)@ > @nfpq($(JS_BUILD_DIR)/ModuleLoader.nqp)@
 
-@nfp($(JS_BLIB)/Perl6-ModuleLoader.js)@: @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@
+$(PERL6_ML_JS): @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-ModuleLoader.js)@ @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_ML_JS) @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@
 
 @nfp($(JS_BUILD_DIR)/Perl6-Ops.nqp)@: @nfp(src/vm/js/Perl6/Ops.nqp src/Perl6/Ops.nqp)@
 	$(JS_NQP) @script(gen-cat.nqp)@ js @nfp(src/vm/js/Perl6/Ops.nqp src/Perl6/Ops.nqp)@ > @nfpq($(JS_BUILD_DIR)/Perl6-Ops.nqp)@
 
-@nfp($(JS_BLIB)/Perl6-Ops.js)@: @nfp($(JS_BUILD_DIR)/Perl6-Ops.nqp)@
+$(PERL6_OPS_JS): @nfp($(JS_BUILD_DIR)/Perl6-Ops.nqp)@
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-Ops.js)@ @nfp($(JS_BUILD_DIR)/Perl6-Ops.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_OPS_JS) @nfp($(JS_BUILD_DIR)/Perl6-Ops.nqp)@
 
 
-@nfp($(JS_BLIB)/Perl6-Pod.js)@: @nfp(src/Perl6/Pod.nqp)@
+$(PERL6_P_JS): @nfp(src/Perl6/Pod.nqp)@
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-Pod.js)@ @nfp(src/Perl6/Pod.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_P_JS) @nfp(src/Perl6/Pod.nqp)@
 
-@nfp($(JS_BLIB)/Perl6-World.js)@: @nfp(src/Perl6/World.nqp $(JS_BLIB)/Perl6-Ops.js $(JS_BLIB)/Perl6-Pod.js $(JS_BLIB)/Perl6-ModuleLoader.js)@
+$(PERL6_W_JS): @nfp(src/Perl6/World.nqp)@ $(PERL6_OPS_JS) $(PERL6_P_JS) $(PERL6_ML_JS)
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-World.js)@ @nfp(src/Perl6/World.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_W_JS) @nfp(src/Perl6/World.nqp)@
 
 @nfp($(JS_BUILD_DIR)/Perl6-Actions.nqp)@: @nfp(src/Perl6/Actions.nqp)@
 	$(JS_NQP) @script(gen-cat.nqp)@ js @nfp(src/Perl6/Actions.nqp)@ > @nfpq($(JS_BUILD_DIR)/Perl6-Actions.nqp)@
 
-@nfp($(JS_BLIB)/Perl6-Actions.js)@: @nfp($(JS_BUILD_DIR)/Perl6-Actions.nqp $(JS_BLIB)/Perl6-Ops.js $(JS_BLIB)/Perl6-World.js)@
+$(PERL6_A_JS): @nfp($(JS_BUILD_DIR)/Perl6-Actions.nqp)@ $(PERL6_OPS_JS) $(PERL6_W_JS)
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-Actions.js)@ @nfp($(JS_BUILD_DIR)/Perl6-Actions.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_A_JS) @nfp($(JS_BUILD_DIR)/Perl6-Actions.nqp)@
 
-@nfp($(JS_BLIB)/Perl6-Grammar.js)@: @nfp(src/Perl6/Grammar.nqp $(JS_BLIB)/Perl6-World.js $(JS_BLIB)/Perl6-Actions.js $(JS_BLIB)/Perl6-Pod.js)@
+$(PERL6_G_JS): @nfp(src/Perl6/Grammar.nqp)@ $(PERL6_W_JS) $(PERL6_A_JS) $(PERL6_P_JS)
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-Grammar.js)@ @nfp(src/Perl6/Grammar.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_G_JS) @nfp(src/Perl6/Grammar.nqp)@
 
 @nfp($(JS_BUILD_DIR)/Perl6-Optimizer.nqp)@: @nfp(src/Perl6/Optimizer.nqp)@
 	$(JS_NQP) @script(gen-cat.nqp)@ js @nfp(src/Perl6/Optimizer.nqp)@ > @nfpq($(JS_BUILD_DIR)/Perl6-Optimizer.nqp)@
 
-@nfp($(JS_BLIB)/Perl6-Optimizer.js)@: @nfp($(JS_BUILD_DIR)/Perl6-Optimizer.nqp $(JS_BLIB)/Perl6-Ops.js)@
+$(PERL6_O_JS): @nfp($(JS_BUILD_DIR)/Perl6-Optimizer.nqp)@ $(PERL6_OPS_JS)
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-Optimizer.js)@ @nfp($(JS_BUILD_DIR)/Perl6-Optimizer.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_O_JS) @nfp($(JS_BUILD_DIR)/Perl6-Optimizer.nqp)@
 
-@nfp($(JS_BLIB)/Perl6-Compiler.js)@: @nfp(src/Perl6/Compiler.nqp $(JS_BLIB)/Perl6-Optimizer.js)@
+$(PERL6_C_JS): @nfp(src/Perl6/Compiler.nqp)@ $(PERL6_O_JS)
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-Compiler.js)@ @nfp(src/Perl6/Compiler.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_C_JS) @nfp(src/Perl6/Compiler.nqp)@
 
 @nfp($(JS_BUILD_DIR)/main-version.nqp)@:
 	$(CONFIGURE) --expand main-version --out @nfp($(JS_BUILD_DIR)/main-version.nqp)@
 
-@nfp($(JS_BUILD_DIR)/main.nqp)@: @nfp(src/main.nqp $(JS_BUILD_DIR)/main-version.nqp)@
+@nfp($(JS_BUILD_DIR)/main.nqp)@: @nfp(src/main.nqp)@ @nfp($(JS_BUILD_DIR)/main-version.nqp)@
 	$(MKPATH) $(JS_BUILD_DIR)
 	$(JS_NQP) @script(gen-cat.nqp)@ js @nfp(src/main.nqp $(JS_BUILD_DIR)/main-version.nqp)@ > @nfp($(JS_BUILD_DIR)/main.nqp)@
 
-rakudo.js: @nfp($(JS_BUILD_DIR)/main.nqp $(JS_BLIB)/Perl6-Grammar.js $(JS_BLIB)/Perl6-Actions.js $(JS_BLIB)/Perl6-Compiler.js $(JS_BLIB)/Perl6-Pod.js)@
+rakudo.js: @nfp($(JS_BUILD_DIR)/main.nqp)@ $(PERL6_G_JS) $(PERL6_A_JS) $(PERL6_C_JS) $(PERL6_P_JS)
 	$(JS_NQP) $(JS_FLAGS) --execname $(JS_RUNNER) --substagestats --stagestats --target=js --source-map --shebang --output=rakudo.js @nfp($(JS_BUILD_DIR)/main.nqp)@
 
-@nfp($(JS_BLIB)/load-compiler.js)@: @nfp(src/vm/js/load-compiler.nqp $(JS_BLIB)/Perl6-Grammar.js $(JS_BLIB)/Perl6-Actions.js $(JS_BLIB)/Perl6-Compiler.js $(JS_BLIB)/Perl6-Pod.js)@
+@nfp($(JS_BLIB)/load-compiler.js)@: @nfp(src/vm/js/load-compiler.nqp)@ $(PERL6_G_JS) $(PERL6_A_JS) $(PERL6_C_JS) $(PERL6_P_JS)
 	$(MKPATH) $(JS_BLIB)
 	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/load-compiler.js)@ @nfp(src/vm/js/load-compiler.nqp)@
 
@@ -115,16 +115,16 @@ $(SETTING_@ucspec@_JS): $(PERL6_MOAR) $(PERL6_BOOTSTRAP_@ucspec@_JS) $(JS_CORE_A
 )@
 
 
-@nfp($(JS_BLIB)/Perl6-Metamodel.js)@: @nfp($(JS_BUILD_DIR)/Metamodel.nqp $(JS_BLIB)/Perl6-Ops.js)@
+$(PERL6_M_JS): @nfp($(JS_BUILD_DIR)/Metamodel.nqp)@ $(PERL6_OPS_JS)
 	$(MKPATH) $(JS_BLIB)
-	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/Perl6-Metamodel.js)@ @nfp($(JS_BUILD_DIR)/Metamodel.nqp)@
+	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=$(PERL6_M_JS) @nfp($(JS_BUILD_DIR)/Metamodel.nqp)@
 
 
 
-js-all: check_nqp_version @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@ $(JS_BLIB)/Perl6-Grammar.js $(JS_BLIB)/Perl6-Actions.js $(JS_BLIB)/Perl6-Compiler.js $(JS_BLIB)/Perl6-Pod.js rakudo.js @for_specs($(JS_BLIB)/CORE.@lcspec@.setting.js )@ $(JS_RUNNER) $(JS_BLIB)/load-compiler.js
+js-all: check_nqp_version @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@ $(PERL6_G_JS) $(PERL6_A_JS) $(PERL6_C_JS) $(PERL6_P_JS) rakudo.js @for_specs($(JS_BLIB)/CORE.@lcspec@.setting.js )@ $(JS_RUNNER) $(JS_BLIB)/load-compiler.js
 #TODO cleanup BOOTSTRAP
 js-clean:
-	$(RM_F) @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@ rakudo.js $(JS_BLIB)/CORE.setting.js $(JS_BUILD_DIR)/CORE.setting $(JS_BUILD_DIR)/ModuleLoader.nqp $(JS_BLIB)/Perl6-ModuleLoader.js $(JS_BUILD_DIR)/Perl6-Ops.nqp $(JS_BLIB)/Perl6-Ops.js $(JS_BLIB)/Perl6-Pod.js $(JS_BLIB)/Perl6-World.js $(JS_BUILD_DIR)/Perl6-Actions.nqp $(JS_BLIB)/Perl6-Actions.js $(JS_BLIB)/Perl6-Grammar.js $(JS_BUILD_DIR)/Perl6-Optimizer.nqp $(JS_BLIB)/Perl6-Optimizer.js $(JS_BLIB)/Perl6-Compiler.js $(JS_BUILD_DIR)/main-version.nqp $(JS_BUILD_DIR)/main.nqp rakudo.js $(JS_BLIB)/load-compiler.js $(JS_BUILD_DIR)/Metamodel.nqp  $(JS_BLIB)/Perl6-Metamodel.js
+	$(RM_F) @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@ rakudo.js $(JS_BLIB)/CORE.setting.js $(JS_BUILD_DIR)/CORE.setting $(JS_BUILD_DIR)/ModuleLoader.nqp $(PERL6_ML_JS) $(JS_BUILD_DIR)/Perl6-Ops.nqp $(PERL6_OPS_JS) $(PERL6_P_JS) $(PERL6_W_JS) $(JS_BUILD_DIR)/Perl6-Actions.nqp $(PERL6_A_JS) $(PERL6_G_JS) $(JS_BUILD_DIR)/Perl6-Optimizer.nqp $(PERL6_O_JS) $(PERL6_C_JS) $(JS_BUILD_DIR)/main-version.nqp $(JS_BUILD_DIR)/main.nqp rakudo.js $(JS_BLIB)/load-compiler.js $(JS_BUILD_DIR)/Metamodel.nqp  $(PERL6_M_JS)
 js-lint:
 	gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@
 js-testable: js-all spectest_checkout spectest_update

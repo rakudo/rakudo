@@ -9,20 +9,20 @@ NQP_PREFIX  = @nqp_prefix@
 
 @bpv(RUNNER_SUFFX)@ = @runner_suffix@
 
+@bpv(DEBUG_RUNNER)@ = perl6-debug-@backend_abbr@@bpm(RUNNER_SUFFIX)@
+
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
 
 RUNTIME_JAVAS = @nfp(src/vm/jvm/runtime/org/perl6/rakudo/*.java)@
 RUNTIME_JAR = rakudo-runtime.jar
 
-@include(Makefile-backend-common)@
-
 @bpv(BAT)@    = @runner_suffix@
 
 # This is addition to J_ALL_METAMODEL_SOURCES
 @bsv(METAMODEL_SOURCES)@ = @nfp(src/vm/jvm/Perl6/Metamodel/JavaHOW.nqp)@
 
-@bpv(ALL_TARGETS)@ = eval-client.pl
+@bpv(ALL_TARGETS)@ = eval-client.pl @bpm(DEBUG_RUNNER)@
 
 @bpv(CLEANUPS)@ = \
   $(RUNTIME_JAR) \
@@ -31,66 +31,36 @@ RUNTIME_JAR = rakudo-runtime.jar
   eval-client.pl
 
 @bpv(ML_EXTRA)@ = @nfp(src/vm/jvm/Perl6/JavaModuleLoader.nqp)@
+@bpv(PERL6_DEPS_EXTRA)@ = $(RUNTIME_JAR)
+
+@bpv(COMPILER_OPTS_EXTRA)@ = --javaclass=perl6
 
 @bpv(HARNESS_TYPE)@ = 5
 
+@include(Makefile-backend-common)@
+
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
-	$(MKPATH) bin
-	$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
-	$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
+	@echo "+++ Generating\t$@"
+	@noecho@$(MKPATH) bin
+	@noecho@$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
+	@noecho@$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
 
-@bsm(PERL6_W)@: @bsm(PERL6_ML)@ @bsm(PERL6_OPS)@ @bsm(PERL6_P)@ @nfp(src/Perl6/World.nqp)@
-	$(J_NQP) --module-path=blib --target=jar --output=@bsm(PERL6_W)@ \
-	    @nfp(src/Perl6/World.nqp)@
+#@bsm(PERL6)@: @nfp(src/main.nqp)@ $(RUNTIME_JAR) @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ $(J_METAMODEL_SOURCES) $(J_CORE_SOURCES)@for_specs( $(J_BOOTSTRAP_@ucspec@_SOURCES) $(J_CORE_@ucspec@_SOURCES))@
+#	$(J_NQP) --module-path=blib --target=jar --javaclass=perl6 --output=@bsm(PERL6)@ \
+#	    @nfpq($(J_BUILD_DIR)/main.nqp)@
 
-@bsm(PERL6_P)@: @nfpl(src/Perl6/Pod.nqp gen/nqp-version)@
-	$(J_NQP) --module-path=blib --target=jar --output=@bsm(PERL6_P)@ \
-	    @nfp(src/Perl6/Pod.nqp)@
-
-@bsm(PERL6_A)@: @nfp(src/Perl6/Actions.nqp)@ @bsm(PERL6_P)@ @bsm(PERL6_OPS)@
-	$(J_NQP) $(J_GEN_CAT) @nfpl(src/Perl6/Actions.nqp \
-                              src/Perl6/PodActions.nqp)@ > @nfpq($(J_BUILD_DIR)/Perl6-Actions.nqp)@
-	$(J_NQP) --module-path=blib --target=jar --output=@bsm(PERL6_A)@ \
-	    @nfpq($(J_BUILD_DIR)/Perl6-Actions.nqp)@
-
-@bsm(PERL6_G)@: @nfp(src/Perl6/Grammar.nqp)@ @bsm(PERL6_W)@ @bsm(PERL6_A)@ @bsm(PERL6_P)@
-	$(J_NQP) $(J_GEN_CAT) @nfpl(src/Perl6/Grammar.nqp \
-                              src/Perl6/PodGrammar.nqp)@ > @nfpq($(J_BUILD_DIR)/Perl6-Grammar.nqp)@
-	$(J_NQP) --module-path=blib --target=jar --output=@bsm(PERL6_G)@ \
-	    @nfpq($(J_BUILD_DIR)/Perl6-Grammar.nqp)@
-
-@bsm(PERL6_O)@: @nfp(src/Perl6/Optimizer.nqp)@ @bsm(PERL6_OPS)@
-	$(J_NQP) $(J_GEN_CAT) @nfp(src/Perl6/Optimizer.nqp)@ > @nfpq($(J_BUILD_DIR)/Perl6-Optimizer.nqp)@
-	$(J_NQP) --module-path=blib --target=jar --output=@bsm(PERL6_O)@ \
-	    @nfpq($(J_BUILD_DIR)/Perl6-Optimizer.nqp)@
-
-@bsm(PERL6_C)@: @nfp(src/Perl6/Compiler.nqp)@ @bsm(PERL6_O)@
-	$(J_NQP) --module-path=blib --target=jar --output=@bsm(PERL6_C)@ \
-	    @nfp(src/Perl6/Compiler.nqp)@
-
-@bsm(PERL6)@: @nfp(src/main.nqp)@ $(RUNTIME_JAR) @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ $(J_METAMODEL_SOURCES) $(J_CORE_SOURCES)@for_specs( $(J_BOOTSTRAP_@ucspec@_SOURCES) $(J_CORE_@ucspec@_SOURCES))@
-	$(CONFIGURE) --expand main-version --out @nfpq($(J_BUILD_DIR)/main-version.nqp)@
-	$(J_NQP) $(J_GEN_CAT) @nfp(src/main.nqp)@ @nfpq($(J_BUILD_DIR)/main-version.nqp)@ > @nfpq($(J_BUILD_DIR)/main.nqp)@
-	$(J_NQP) --module-path=blib --target=jar --javaclass=perl6 --output=@bsm(PERL6)@ \
-	    @nfpq($(J_BUILD_DIR)/main.nqp)@
-
-@bsm(PERL6_M)@: $(J_METAMODEL_SOURCES) @bsm(PERL6_OPS)@
-	$(J_NQP) $(J_GEN_CAT) $(J_METAMODEL_SOURCES) > @nfpq($(J_BUILD_DIR)/Metamodel.nqp)@
-	$(J_NQP) --module-path=blib --target=jar --output=@bsm(PERL6_M)@ \
-	    @nfpq($(J_BUILD_DIR)/Metamodel.nqp)@
-
-@for_specs(@bsm(PERL6_BOOTSTRAP_@ucspec@)@: $(J_BOOTSTRAP_@ucspec@_SOURCES) @bsm(PERL6_M)@
-	$(J_NQP) $(J_GEN_CAT) $(J_BOOTSTRAP_@ucspec@_SOURCES) > @nfpq($(J_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
-	$(J_RUN_NQP_RR) --module-path=blib --target=jar --output=@bsm(PERL6_BOOTSTRAP_@ucspec@)@ @nfpq($(J_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
-
-@bsm(SETTING_@ucspec@)@: @bsm(PERL6)@ @bsm(PERL6_BOOTSTRAP_@ucspec@)@ $(J_CORE_ALL_SOURCES)
-	$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
-				 --out @nfpq($(J_BUILD_DIR)/core_sources.@lcspec@)@ \
-				 --set-var=backend=@backend@
-	$(J_NQP) $(J_GEN_CAT) -f @nfpq($(J_BUILD_DIR)/core_sources.@lcspec@)@ > @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
-	@echo "The following step can take a long time, please be patient."
-	$(J_SET_NQP_LIB)$(J_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=jar --stagestats --output=@bsm(SETTING_@ucspec@)@ --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
-)@
+#@for_specs(@bsm(PERL6_BOOTSTRAP_@ucspec@)@: $(J_BOOTSTRAP_@ucspec@_SOURCES) @bsm(PERL6_M)@
+#	$(J_NQP) $(J_GEN_CAT) $(J_BOOTSTRAP_@ucspec@_SOURCES) > @nfpq($(J_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
+#	$(J_RUN_NQP_RR) --module-path=blib --target=jar --output=@bsm(PERL6_BOOTSTRAP_@ucspec@)@ @nfpq($(J_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
+#
+#@bsm(SETTING_@ucspec@)@: @bsm(PERL6)@ @bsm(PERL6_BOOTSTRAP_@ucspec@)@ $(J_CORE_ALL_SOURCES)
+#	$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
+#				 --out @nfpq($(J_BUILD_DIR)/core_sources.@lcspec@)@ \
+#				 --set-var=backend=@backend@
+#	$(J_NQP) $(J_GEN_CAT) -f @nfpq($(J_BUILD_DIR)/core_sources.@lcspec@)@ > @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
+#	@echo "The following step can take a long time, please be patient."
+#	$(J_SET_NQP_LIB)$(J_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=jar --stagestats --output=@bsm(SETTING_@ucspec@)@ --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
+#)@
 $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
 	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q($(NQP_PREFIX))@ --nqp-lib=blib @q($(NQP_JARS))@
 
@@ -103,41 +73,20 @@ j-runner-default: j-all
 	$(J_NQP) --module-path=blib --target=jar --javaclass=perl6-debug --output=@bsm(PERL6_DEBUG)@ \
 	    @nfpq($(J_BUILD_DIR)/perl6-debug.nqp)@
 
-$(J_DEBUG_RUNNER): @@script(create-jvm-runner.pl)@@ @bsm(PERL6_DEBUG)@
+@bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(PERL6_DEBUG)@
 	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q($(NQP_PREFIX))@ --nqp-lib=blib @q($(NQP_JARS))@
 
 eval-client.pl:
 	$(CP) @nfpq($(SDKROOT)$(NQP_PREFIX)/bin/eval-client.pl)@ .
 
 ##  testing targets
-j-test    : j-coretest
-
-j-fulltest: j-coretest j-stresstest
-
-j-coretest: j-all
-	$(J_HARNESS5) @nfpl(t/01-sanity t/02-rakudo t/03-jvm t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/10-qast)@
 
 # Run the spectests that we know work.
-j-spectest: j-testable $(SPECTEST_DATA)
-	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA)
-
-j-spectest_full: j-testable
-	$(J_HARNESS5_WITH_FUDGE) @nfp(t/spec)@
-
-j-quicktest: j-testable $(SPECTEST_DATA)
-	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --quick
-
-j-stresstest: j-testable $(SPECTEST_DATA)
-	$(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --stress
-
 j-rakudo_test_run.tar.gz: j-testable $(SPECTEST_DATA)
 	- $(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --archive j-rakudo_test_run.tar.gz
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
-
-j-testable : j-all spectest_checkout spectest_update
-
 
 # Run the tests in t/localtest.data
 j-localtest: j-all spectest_checkout @nfp(t/localtest.data)@

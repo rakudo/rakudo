@@ -17,7 +17,6 @@ MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 
 R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
-@bpv(LIBDIR)@ = @nfp($(PERL6_HOME)/lib)@
 @bpv(INCPATH)@ = @nfp($(MOAR_PREFIX)/include)@
 @bpv(MOAR_INC_PATHS)@ = \
 	@moar::cincludes@ \
@@ -78,7 +77,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(NQP_FLAGS_EXTRA)@ = --vmlibs=@bpm(PERL6_OPS_DLL)@=Rakudo_ops_init
 
-@bpv(HARNESS_TYPE)@ = $(HARNESS_TYPE)
+@bpv(HARNESS_TYPE)@ := $(HARNESS_TYPE)
 
 @bpv(HARNESS6)@ = @nfp(./@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
 @bpv(HARNESS6_WITH_FUDGE)@ = @bpm(HARNESS6)@ --fudge
@@ -97,11 +96,6 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	@bpm(RUN_PERL6)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
 m-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
-
-#@bsm(PERL6_DEBUG)@: @nfp(src/perl6-debug.nqp)@ @bsm(PERL6)@
-#	$(M_NQP) $(M_GEN_CAT) @nfpl(src/perl6-debug.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/perl6-debug.nqp)@
-#	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_DEBUG_MOAR) \
-#		--vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfpq($(M_BUILD_DIR)/perl6-debug.nqp)@
 
 @perl(
     for my $toolchain (qw<gdb lldb valgrind>) {
@@ -156,60 +150,36 @@ m-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 m-test6   : m-coretest6
 
 m-coretest6: m-all
-	$(M_HARNESS6) @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
+	@bpm(HARNESS6)@ @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
 
 # Run the spectests that we know work.
 m-spectest6: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA)
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA)
 
 m-spectest_full6: m-testable
-	$(M_HARNESS6_WITH_FUDGE) @nfp(t/spec)@
+	@bpm(HARNESS6_WITH_FUDGE)@ @nfp(t/spec)@
 
 m-quicktest6: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --quick
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --quick
 
 m-stresstest6: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --stress
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --stress
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 # Run the tests in t/localtest.data
 m-localtest: m-all spectest_checkout @nfp(t/localtest.data)@
-	@$(M_HARNESS6_WITH_FUDGE) --tests-from-file=@nfp(t/localtest.data)@
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@
 
 # Run the tests in t/localtest.data with a higher verbosity
 m-localtest_loud: m-all spectest_checkout @nfp(t/localtest.data)@
-	@$(M_HARNESS6_WITH_FUDGE) --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
 m-sometests: m-all
-	@$(M_HARNESS6_WITH_FUDGE) $(TESTFILES)
-
-m-install: m-all @@script(install-core-dist.p6)@@@for_specs( $(SETTING_@ucspec@_MOAR))@
-	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
-	$(MKPATH) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
-	$(MKPATH) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
-	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
-	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_BOOTSTRAP_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
-	$(CP) $(M_PERL6_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
-	$(CP) $(M_PERL6_BOOTSTRAP_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/lib)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(M_RUN_CLEAN_TARGET_FILES) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(M_RUN_CLEAN_TARGET_FILES) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	$(CP) $(M_PERL6_OPS_DLL) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	$(CP) $(M_INST_PERL6_M) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_M))@
-	$(CP) $(M_INST_PERL6_DEBUG_M) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG_M))@
-	@nfpq($(BASE_DIR)/$(M_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
-	@nfpq($(BASE_DIR)/$(M_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
-	@nfpq($(BASE_DIR)/$(M_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
-	@nfpq($(BASE_DIR)/$(M_RUNNER))@ @shquot(@script(install-core-dist.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
-@clean_old_p6_libs@@expand(@m_install@)@
+	@bpm(HARNESS6_WITH_FUDGE)@ $(TESTFILES)
 
 m-runner-default-install: m-install
 	$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6))@

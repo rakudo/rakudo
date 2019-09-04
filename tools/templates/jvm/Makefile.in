@@ -45,22 +45,6 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	@noecho@$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	@noecho@$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
 
-#@bsm(PERL6)@: @nfp(src/main.nqp)@ $(RUNTIME_JAR) @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ $(J_METAMODEL_SOURCES) $(J_CORE_SOURCES)@for_specs( $(J_BOOTSTRAP_@ucspec@_SOURCES) $(J_CORE_@ucspec@_SOURCES))@
-#	$(J_NQP) --module-path=blib --target=jar --javaclass=perl6 --output=@bsm(PERL6)@ \
-#	    @nfpq($(J_BUILD_DIR)/main.nqp)@
-
-#@for_specs(@bsm(PERL6_BOOTSTRAP_@ucspec@)@: $(J_BOOTSTRAP_@ucspec@_SOURCES) @bsm(PERL6_M)@
-#	$(J_NQP) $(J_GEN_CAT) $(J_BOOTSTRAP_@ucspec@_SOURCES) > @nfpq($(J_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
-#	$(J_RUN_NQP_RR) --module-path=blib --target=jar --output=@bsm(PERL6_BOOTSTRAP_@ucspec@)@ @nfpq($(J_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
-#
-#@bsm(SETTING_@ucspec@)@: @bsm(PERL6)@ @bsm(PERL6_BOOTSTRAP_@ucspec@)@ $(J_CORE_ALL_SOURCES)
-#	$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
-#				 --out @nfpq($(J_BUILD_DIR)/core_sources.@lcspec@)@ \
-#				 --set-var=backend=@backend@
-#	$(J_NQP) $(J_GEN_CAT) -f @nfpq($(J_BUILD_DIR)/core_sources.@lcspec@)@ > @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
-#	@echo "The following step can take a long time, please be patient."
-#	$(J_SET_NQP_LIB)$(J_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=jar --stagestats --output=@bsm(SETTING_@ucspec@)@ --nqp-lib=blib @nfpq($(J_BUILD_DIR)/CORE.@lcspec@.setting)@
-#)@
 $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
 	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q($(NQP_PREFIX))@ --nqp-lib=blib @q($(NQP_JARS))@
 
@@ -101,26 +85,6 @@ j-localtest_loud: j-all spectest_checkout @nfp(t/localtest.data)@
 sometests: j-all
 	@$(J_HARNESS5_WITH_FUDGE) $(TESTFILES)
 
-j-install: j-all @@script(create-jvm-runner.pl)@@ @@script(install-core-dist.p6)@@
-	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
-	$(MKPATH) @nfpq($(DESTDIR)$(J_NQP_LIBDIR)/Perl6)@
-	$(MKPATH) @nfpq($(DESTDIR)$(J_NQP_LIBDIR)/Perl6/BOOTSTRAP)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) $(J_PERl6_PRECOMPS) @nfpq($(DESTDIR)$(J_NQP_LIBDIR)/Perl6)@
-	$(CP) $(J_PERL6_BOOSTRAP_PRECOMPS) @nfpq($(DESTDIR)$(J_NQP_LIBDIR)/Perl6/BOOTSTRAP)@
-	$(CP) @for_specs(@bsm(SETTING_@ucspec@)@ )@@nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) @bsm(PERL6)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	@nfpq($(BASE_DIR)/$(J_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @shquot($(DESTDIR)$(PERL6_HOME))@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
-	@nfpq($(BASE_DIR)/$(J_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
-	@nfpq($(BASE_DIR)/$(J_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
-	@nfpq($(BASE_DIR)/$(J_RUNNER))@ @shquot(@script(install-core-dist.p6)@)@ @shquot($(DESTDIR)$(PERL6_HOME))@
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
-
 j-runner-default-install: j-install
 	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
 	$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
@@ -128,7 +92,7 @@ j-runner-default-install: j-install
 
 ##  cleaning
 j-clean:
-	$(RM_F) $(J_CLEANUPS_ALL)
+	$(RM_F) @bpm(CLEANUPS_ALL)@
 	$(RM_RF) bin
 
 j-testclean:

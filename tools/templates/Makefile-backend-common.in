@@ -4,9 +4,11 @@
 @bpv(GEN_CAT)@ = @shquot(@script(gen-cat.nqp)@)@ @backend@
 
 @bpv(BUILD_DIR)@ = @nfp(gen/@backend@)@
-@bpv(BLIB_DIR)@ = @nfp(blib/Perl6)@
+@bpv(BLIB_DIR)@ ?= @nfp(blib/Perl6)@
 @bpv(NQP_LIBDIR)@ = @nqp::libdir@
 @bpv(SET_NQP_LIB)@ = @set_nqp_lib@
+@bpv(NQP_RR)@ ?= @bpm(NQP)@
+@bpv(NQP_FLAGS)@ ?= --module-path=blib
 
 # files we create
 @bsv(PERL6)@ = perl6.@bext@
@@ -92,15 +94,17 @@
 
 @nfp(@bpm(BLIB_DIR)@/BOOTSTRAP/v6%.@bext@)@ : @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6%.nqp)@
 	@echo "+++ Compiling\t$@" 
-	@noecho@@bpm(NQP_RR)@ --module-path=blib --target=@btarget@ --output=$@ @bpm(COMPILER_OPTS_EXTRA)@ $<
+	@noecho@@bpm(NQP_RR)@ @bpm(NQP_FLAGS)@ --target=@btarget@ --output=$@ @bpm(NQP_FLAGS_EXTRA)@ $<
 
 @nfp(@bpm(BLIB_DIR)@/%.@bext@)@ : @nfp(@bpm(BUILD_DIR)@/%.nqp)@
 	@echo "+++ Compiling\t$@" 
-	@noecho@@bpm(NQP)@ --module-path=blib --target=@btarget@ --output=$@ $<
+	@noecho@@bpm(NQP)@ @bpm(NQP_FLAGS)@ --target=@btarget@ --output=$@ $<
 
 @nfp(./%.@bext@)@: @nfp(@bpm(BUILD_DIR)@/%.nqp)@
 	@echo "+++ Compiling\t$@"
-	@noecho@@bpm(NQP_RR)@ --module-path=blib --target=@btarget@ --output=$@ @bpm(COMPILER_OPTS_EXTRA)@ $<
+	@noecho@@bpm(NQP_RR)@ @bpm(NQP_FLAGS)@ --target=@btarget@ --output=$@ @bpm(NQP_FLAGS_EXTRA)@ $<
+
+# --- Utility targets ---
 
 @backend_prefix@-all: check_@backend_prefix@_nqp_version @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(PERL6_DEBUG)@ @bpm(ALL_TARGETS)@
 
@@ -108,37 +112,39 @@
 
 @backend_prefix@-test5: @backend_prefix@-coretest5
 
-@backend_prefix@fulltest: @backend_prefix@coretest @backend_prefix@stresstest
+@backend_prefix@-fulltest: @backend_prefix@coretest @backend_prefix@stresstest
 
-@backend_prefix@coretest: @backend_prefix@all @backend_prefix@coretest@bpm(HARNESS_TYPE)@
+@backend_prefix@-coretest: @backend_prefix@all @backend_prefix@coretest@bpm(HARNESS_TYPE)@
 
-@backend_prefix@spectest: @backend_prefix@spectest@bpm(HARNESS_TYPE)@
+@backend_prefix@-spectest: @backend_prefix@spectest@bpm(HARNESS_TYPE)@
 
-@backend_prefix@quicktest: @backend_prefix@quicktest@bpm(HARNESS_TYPE)@
+@backend_prefix@-quicktest: @backend_prefix@quicktest@bpm(HARNESS_TYPE)@
 
-@backend_prefix@stresstest: @backend_prefix@stresstest@bpm(HARNESS_TYPE)@
+@backend_prefix@-stresstest: @backend_prefix@stresstest@bpm(HARNESS_TYPE)@
 
 @backend_prefix@coretest5: @backend_prefix@all
 	@bpm(HARNESS5)@ @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
 
 # Run the spectests that we know work.
-@backend_prefix@spectest5: @backend_prefix@testable $(SPECTEST_DATA)
+@backend_prefix@spectest5: @backend_prefix@-testable $(SPECTEST_DATA)
 	@bpm(HARNESS5_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA)
 
 # Run the spectests that we know work after precompiling them.
-@backend_prefix@spectest5_precompile: @backend_prefix@testable $(SPECTEST_DATA)
+@backend_prefix@spectest5_precompile: @backend_prefix@-testable $(SPECTEST_DATA)
 	@bpm(HARNESS5_WITH_FUDGE)@ --precompile --tests-from-file=$(SPECTEST_DATA)
 
-@backend_prefix@spectest_full5: @backend_prefix@testable
+@backend_prefix@spectest_full5: @backend_prefix@-testable
 	@bpm(HARNESS5_WITH_FUDGE)@ @nfp(t/spec)@
 
-@backend_prefix@quicktest5: @backend_prefix@testable $(SPECTEST_DATA)
+@backend_prefix@quicktest5: @backend_prefix@-testable $(SPECTEST_DATA)
 	@bpm(HARNESS5_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --quick
 
-@backend_prefix@stresstest5: @backend_prefix@testable $(SPECTEST_DATA)
+@backend_prefix@stresstest5: @backend_prefix@-testable $(SPECTEST_DATA)
 	@bpm(HARNESS5_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --stress
 
-@backend_prefix@testable : @backend_prefix@all spectest_checkout spectest_update
+@backend_prefix@-testable : @backend_prefix@all spectest_checkout spectest_update
+
+# --- Main rules ---
 
 check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 	@echo "+++ Checking for @backend@ NQP version"

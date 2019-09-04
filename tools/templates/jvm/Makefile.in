@@ -33,7 +33,7 @@ RUNTIME_JAR = rakudo-runtime.jar
 @bpv(ML_EXTRA)@ = @nfp(src/vm/jvm/Perl6/JavaModuleLoader.nqp)@
 @bpv(PERL6_DEPS_EXTRA)@ = $(RUNTIME_JAR)
 
-@bpv(COMPILER_OPTS_EXTRA)@ = --javaclass=perl6
+@bpv(NQP_FLAGS_EXTRA)@ = --javaclass=perl6
 
 @bpv(HARNESS_TYPE)@ = 5
 

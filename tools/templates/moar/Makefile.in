@@ -76,7 +76,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(PERL6_OPS_EXTRA)@ = @bpm(PERL6_OPS_DLL)@
 
-@bpv(COMPILER_OPTS_EXTRA)@ = --vmlibs=@bpm(PERL6_OPS_DLL)@=Rakudo_ops_init
+@bpv(NQP_FLAGS_EXTRA)@ = --vmlibs=@bpm(PERL6_OPS_DLL)@=Rakudo_ops_init
 
 @bpv(HARNESS_TYPE)@ = $(HARNESS_TYPE)
 
@@ -233,7 +233,7 @@ release: manifest
 
 ##  cleaning
 m-clean:
-	$(RM_F) $(M_CLEANUPS_ALL)
+	$(RM_F) @bpm(CLEANUPS_ALL)@
 	$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
 
 m-testclean:

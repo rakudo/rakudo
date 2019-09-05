@@ -213,7 +213,7 @@ my class Proc {
     }
     multi method Bool(Proc:D:) {
         self!wait-for-finish;
-        $!exitcode == 0
+        $!exitcode == 0 && $!signal == 0
     }
     method exitcode {
         self!wait-for-finish;
@@ -222,7 +222,7 @@ my class Proc {
 
     method sink(--> Nil) {
         self!wait-for-finish;
-        X::Proc::Unsuccessful.new(:proc(self)).throw if $!exitcode > 0;
+        X::Proc::Unsuccessful.new(:proc(self)).throw if $!exitcode > 0 || $!signal > 0;
     }
 }
 

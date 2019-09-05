@@ -3038,7 +3038,7 @@ my class X::Language::ModRequired is Exception {
 my class X::Proc::Unsuccessful is Exception {
     has $.proc;
     method message() {
-        "The spawned command '{$.proc.command[0]}' exited unsuccessfully (exit code: $.proc.exitcode())"
+        "The spawned command '{$.proc.command[0]}' exited unsuccessfully (exit code: $.proc.exitcode(), signal: $.proc.signal())"
     }
 }
 

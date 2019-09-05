@@ -219,6 +219,10 @@ my class Proc {
         self!wait-for-finish;
         $!exitcode
     }
+    method signal {
+        self!wait-for-finish;
+        $!signal
+    }
 
     method sink(--> Nil) {
         self!wait-for-finish;

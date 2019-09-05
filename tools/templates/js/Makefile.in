@@ -14,6 +14,17 @@
 	perl6.js \
 	@bpm(BLIB_DIR)@/load-compiler.js
 
+# Have this target before including Makefile-backend-common to prevent the
+# default js-install from executing.
+js-install:: js-all
+	@echo "Installing the js backend is not yet implemented."
+	@exit 1
+
+js-all::
+	@echo '+++ Preparing build environment'
+	@noecho@$(MKPATH) @nfp(@base_dir@/node_modules)@
+	@noecho@$(MKPATH) @nfp(@base_dir@/node_modules/Perl6)@
+
 @include(Makefile-backend-common)@
 
 # files we create
@@ -62,9 +73,6 @@ js-lint:
 
 js-spectest: js-testable
 	$(PERL5) t/harness5 --fudge --js --keep-exit-code --tests-from-file=@nfp(t/spectest.js.data)@
-
-js-install: js-all
-	@echo "Installing the js backend is not yet implemented."
 
 js-runner-default:
 

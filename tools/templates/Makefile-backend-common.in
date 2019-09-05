@@ -107,7 +107,7 @@
 
 # --- Utility targets ---
 
-@backend_prefix@-all: check_@backend_prefix@_nqp_version @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(PERL6_DEBUG)@ @bpm(ALL_TARGETS)@
+@backend_prefix@-all:: check_@backend_prefix@_nqp_version @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(PERL6_DEBUG)@ @bpm(ALL_TARGETS)@
 
 @backend_prefix@-test: @backend_prefix@-coretest
 
@@ -198,7 +198,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 )@
 
-@backend_prefix@-install: @backend_prefix@-all @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
+@backend_prefix@-install:: @backend_prefix@-all @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
 	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
 	$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@

@@ -756,10 +756,11 @@ sub _m_source_digest {
 sub _m_gencat {
     my $self = shift;
     my $text = shift;
+    my $all_prereq = $self->cfg->cfg('make_all_prereq');
     return $self->expand(<<TPL);
 $text
 \t\@echo "+++ Generating\t\$\@"
-\t\@noecho\@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ \$^ > \$\@
+\t\@noecho\@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ $all_prereq > \$\@
 TPL
 }
 

@@ -8,7 +8,6 @@
 @bpv(BLIB_DIR)@ = @nfp(blib/Perl6)@
 @make_pp_pfx@endif
 @bpv(NQP_LIBDIR)@ = @nqp::libdir@
-@bpv(SET_NQP_LIB)@ = @set_nqp_lib@
 @make_pp_pfx@ifndef @bpv(NQP_RR)@
 @bpv(NQP_RR)@ = @bpm(NQP)@
 @make_pp_pfx@endif
@@ -179,7 +178,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 			 --set-var=backend=@backend@
 	@noecho@@bpm(NQP)@ @bpm(GEN_CAT)@ -f @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ > @nfpq(@bpm(BUILD_DIR)@/CORE.@lcspec@.setting)@
 	@echo @shquot(The following step can take a long time, please be patient.)@
-	@noecho@@bpm(SET_NQP_LIB)@ @bpm(RUN_PERL6)@ --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=@btarget@ --stagestats --output=@bsm(SETTING_@ucspec@)@ @nfpq(@bpm(BUILD_DIR)@/CORE.@lcspec@.setting)@
+	@noecho@@set_nqp_lib@@bpm(RUN_PERL6)@ --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=@btarget@ --stagestats --output=@bsm(SETTING_@ucspec@)@ @nfpq(@bpm(BUILD_DIR)@/CORE.@lcspec@.setting)@
 
 )@
 

@@ -1,5 +1,3 @@
-## Please see file perltidy.ERR
-## Please see file perltidy.ERR
 use v5.10.1;
 
 package NQP::Config::Rakudo;
@@ -241,7 +239,7 @@ sub configure_misc {
     #];
 
     # Get version info from VERSION template and git.
-    my $VERSION = slurp( File::Spec->catfile( $self->cfg('base_dir'), 'VERSION') );
+    my $VERSION = slurp( File::Spec->catfile( $self->cfg('base_dir'), 'VERSION' ) );
     chomp $VERSION;
     @{$config}{qw<version release codename>} = split( ' ', $VERSION, 3 );
 
@@ -350,17 +348,22 @@ sub configure_moar_backend {
           File::Spec->rel2abs(
             File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ) );
         $nqp_config->{static_nqp_home_define} =
-          '-DSTATIC_NQP_HOME='
-          . $qchar . $self->c_escape_string( $nqp_config->{static_nqp_home} ) . $qchar;
+            '-DSTATIC_NQP_HOME='
+          . $qchar
+          . $self->c_escape_string( $nqp_config->{static_nqp_home} )
+          . $qchar;
         $nqp_config->{static_perl6_home_define} =
-          '-DSTATIC_PERL6_HOME='
-          . $qchar . $self->c_escape_string( $nqp_config->{static_perl6_home} ) . $qchar;
+            '-DSTATIC_PERL6_HOME='
+          . $qchar
+          . $self->c_escape_string( $nqp_config->{static_perl6_home} )
+          . $qchar;
     }
 
     # Strip rpath from ldflags so we can set it differently ourself.
     $nqp_config->{ldflags} = $nqp_config->{'moar::ldflags'};
     $nqp_config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath'}\E ?//;
-    $nqp_config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
+    $nqp_config->{ldflags} =~
+      s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     if ( $config->{prefix} ne '/usr' ) {
         $nqp_config->{ldflags} .= ' '
           . (
@@ -491,28 +494,37 @@ sub opts_for_configure {
 }
 
 sub clean_old_p6_libs {
-    my $self = shift;
-    my $is_moar  = $self->active_backend('moar');
-    if ( $is_moar ) {
+    my $self    = shift;
+    my $is_moar = $self->active_backend('moar');
+    if ($is_moar) {
         my $nqp_config = $self->{impls}{moar}->{config};
-        my $lib_dir = File::Spec->rel2abs(File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp', 'lib', 'Perl6' ));
+        my $lib_dir    = File::Spec->rel2abs(
+            File::Spec->catdir(
+                $nqp_config->{'nqp::prefix'},
+                'share', 'nqp', 'lib', 'Perl6'
+            )
+        );
 
         return if !-d $lib_dir;
 
-        my @files = qw(Actions.moarvm BOOTSTRAP.moarvm Compiler.moarvm Grammar.moarvm Metamodel.moarvm ModuleLoader.moarvm Ops.moarvm Optimizer.moarvm Pod.moarvm World.moarvm);
+        my @files =
+          qw(Actions.moarvm BOOTSTRAP.moarvm Compiler.moarvm Grammar.moarvm Metamodel.moarvm ModuleLoader.moarvm Ops.moarvm Optimizer.moarvm Pod.moarvm World.moarvm);
 
         my @notes;
-        for ( @files ) {
+        for (@files) {
             my $file = File::Spec->catdir( $lib_dir, $_ );
             next unless -f $file;
             push @notes, "Will remove: $file\n";
             $self->{config}->{clean_old_p6_libs} .= "\t\$(RM_F) $file\n";
         }
-        $self->note('NOTICE',
+        $self->note(
+            'NOTICE',
             "Found stale files in $lib_dir.\n",
             "These files were left by a previous install and cause breakage\n",
-            "in this Rakudo version. The files will be removed during install.\n",
-            "\n", @notes) if @notes;
+"in this Rakudo version. The files will be removed during install.\n",
+            "\n",
+            @notes
+        ) if @notes;
     }
 }
 
@@ -602,7 +614,8 @@ sub gen_nqp {
         my %c        = read_config($bin);
         my $nqp_have = $c{'nqp::version'} || '';
         $self->backend_config( $b, \%c ) if %c;
-        my $nqp_ver_ok = $nqp_have ? (0 <= cmp_rev( $nqp_have, $nqp_want )) : 0;
+        my $nqp_ver_ok =
+          $nqp_have ? ( 0 <= cmp_rev( $nqp_have, $nqp_want ) ) : 0;
         my $nqp_ok = $nqp_have && $nqp_ver_ok;
 
         unless ( !$nqp_have || $nqp_ver_ok || $options->{'ignore-errors'} ) {
@@ -754,34 +767,34 @@ sub _m_source_digest {
 }
 
 sub _m_gencat {
-    my $self = shift;
-    my $text = shift;
+    my $self       = shift;
+    my $text       = shift;
     my $all_prereq = $self->cfg->cfg('make_all_prereq');
     return $self->expand(<<TPL);
 $text
-\t\@echo "+++ Generating\t\$\@"
+\t\@echo \@shquot(+++ Generating\t\$\@)@
 \t\@noecho\@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ $all_prereq > \$\@
 TPL
 }
 
 sub _m_comp {
-    my $self = shift;
-    my $text = shift;
+    my $self         = shift;
+    my $text         = shift;
     my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
-\t\@echo "+++ Compiling\t\$@" 
+\t\@echo \@shquot(+++ Compiling\t\$@)@
 \t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ $first_prereq
 TPL
 }
 
 sub _m_comp_rr {
-    my $self = shift;
-    my $text = shift;
+    my $self         = shift;
+    my $text         = shift;
     my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
-\t\@echo "+++ Compiling\t\$@" 
+\t\@echo @shquot(+++ Compiling\t\$@)@
 \t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ $first_prereq
 TPL
 }

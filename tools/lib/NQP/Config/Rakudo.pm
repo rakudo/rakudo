@@ -753,9 +753,42 @@ sub _m_source_digest {
     return $sha->hexdigest;
 }
 
+sub _m_gencat {
+    my $self = shift;
+    my $text = shift;
+    return $self->expand(<<TPL);
+$text
+\t\@echo "+++ Generating\t\$\@"
+\t\@noecho\@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ \$^ > \$\@
+TPL
+}
+
+sub _m_comp {
+    my $self = shift;
+    my $text = shift;
+    return $self->expand(<<TPL);
+$text
+\t\@echo "+++ Compiling\t\$@" 
+\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \$<
+TPL
+}
+
+sub _m_comp_rr {
+    my $self = shift;
+    my $text = shift;
+    return $self->expand(<<TPL);
+$text
+\t\@echo "+++ Compiling\t\$@" 
+\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \$<
+TPL
+}
+
 NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
 NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
 NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
+NQP::Macros->register_macro( 'gencat',        \&_m_gencat );
+NQP::Macros->register_macro( 'comp',          \&_m_comp );
+NQP::Macros->register_macro( 'comp_rr',       \&_m_comp_rr );
 
 1;
 

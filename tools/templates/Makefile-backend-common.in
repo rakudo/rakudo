@@ -84,27 +84,6 @@
 @bpv(HARNESS5)@ = $(PERL5) @nfp(t/harness5)@ --@backend@
 @bpv(HARNESS5_WITH_FUDGE)@ = @bpm(HARNESS5)@ --fudge --keep-exit-code
 
-# --- Pattern rules ---
-
-# Auto-generate gen/<backend>/<combined>.nqp from sources.
-@nfp(@bpm(BUILD_DIR)@/%.nqp)@:
-	@echo "+++ Generating\t$@"
-	@noecho@@bpm(NQP)@ @bpm(GEN_CAT)@ $^ > $@
-
-# Auto-generate pre-compiled bytecode from source in gen/<backend>/<source>.nqp
-
-@nfp(@bpm(BLIB_DIR)@/BOOTSTRAP/v6%.@bext@)@ : @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6%.nqp)@
-	@echo "+++ Compiling\t$@" 
-	@noecho@@bpm(NQP_RR)@ @bpm(NQP_FLAGS)@ --target=@btarget@ --output=$@ @bpm(NQP_FLAGS_EXTRA)@ $<
-
-@nfp(@bpm(BLIB_DIR)@/%.@bext@)@ : @nfp(@bpm(BUILD_DIR)@/%.nqp)@
-	@echo "+++ Compiling\t$@" 
-	@noecho@@bpm(NQP)@ @bpm(NQP_FLAGS)@ --target=@btarget@ --output=$@ $<
-
-@nfp(./%.@bext@)@: @nfp(@bpm(BUILD_DIR)@/%.nqp)@
-	@echo "+++ Compiling\t$@"
-	@noecho@@bpm(NQP_RR)@ @bpm(NQP_FLAGS)@ --target=@btarget@ --output=$@ @bpm(NQP_FLAGS_EXTRA)@ $<
-
 # --- Utility targets ---
 
 @backend_prefix@-all:: check_@backend_prefix@_nqp_version @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(PERL6_DEBUG)@ @bpm(ALL_TARGETS)@
@@ -152,43 +131,43 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 	@noecho@$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ @bpm(NQP)@
 
 # gen-cat sources into gen/<backend>
-@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@:   		@bsm(PERL6_A_SRC)@
-@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@:   	@nfp(src/Perl6/Compiler.nqp)@
-@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@:   		@bsm(PERL6_G_SRC)@
-@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@: 		@bsm(METAMODEL_ALL_SOURCES)@
-@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@: 	@bsm(PERL6_ML_SRC)@
-@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@:   			@bsm(PERL6_OPS_SRC)@
-@nfp(@bpm(BUILD_DIR)@/Optimizer.nqp)@:   	@nfp(src/Perl6/Optimizer.nqp)@
-@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@:   			@nfp(src/Perl6/Pod.nqp)@
-@nfp(@bpm(BUILD_DIR)@/World.nqp)@: 			@nfp(src/Perl6/World.nqp)@
-@nfp(@bpm(BUILD_DIR)@/perl6.nqp)@:			@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@ @nfp(src/main.nqp)@
-@nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@:	@nfp(src/perl6-debug.nqp)@ @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@:   		@bsm(PERL6_A_SRC)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@:   	@nfp(src/Perl6/Compiler.nqp)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@:   		@bsm(PERL6_G_SRC)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@: 		@bsm(METAMODEL_ALL_SOURCES)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@: 	@bsm(PERL6_ML_SRC)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@:   			@bsm(PERL6_OPS_SRC)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/Optimizer.nqp)@:   	@nfp(src/Perl6/Optimizer.nqp)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@:   			@nfp(src/Perl6/Pod.nqp)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/World.nqp)@: 			@nfp(src/Perl6/World.nqp)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/perl6.nqp)@:			@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@ @nfp(src/main.nqp)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@:	@nfp(src/perl6-debug.nqp)@ @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@)@
 
 # Generate precompilations
-@bsm(PERL6_A)@: 	@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@ @bsm(PERL6_P)@ @bsm(PERL6_OPS)@
-@bsm(PERL6_C)@: 	@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@ @bsm(PERL6_O)@
-@bsm(PERL6_G)@: 	@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@ @bsm(PERL6_W)@ @bsm(PERL6_A)@ @bsm(PERL6_P)@
-@bsm(PERL6_M)@: 	@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@ @bsm(PERL6_OPS)@
-@bsm(PERL6_ML)@: 	@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@ @nfp(gen/nqp-version)@
-@bsm(PERL6_OPS)@:	@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@ @bpm(PERL6_OPS_EXTRA)@ @nfp(gen/nqp-version)@
-@bsm(PERL6_O)@:		@nfp(@bpm(BUILD_DIR)@/Optimizer.nqp)@ @bsm(PERL6_OPS)@
-@bsm(PERL6_P)@: 	@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@ @nfp(gen/nqp-version)@
-@bsm(PERL6_W)@: 	@nfp(@bpm(BUILD_DIR)@/World.nqp)@ @bsm(PERL6_ML)@ @bsm(PERL6_OPS)@ @bsm(PERL6_P)@
+@comp(@bsm(PERL6_A)@: 	@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@ @bsm(PERL6_P)@ @bsm(PERL6_OPS)@)@
+@comp(@bsm(PERL6_C)@: 	@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@ @bsm(PERL6_O)@)@
+@comp(@bsm(PERL6_G)@: 	@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@ @bsm(PERL6_W)@ @bsm(PERL6_A)@ @bsm(PERL6_P)@)@
+@comp(@bsm(PERL6_M)@: 	@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@ @bsm(PERL6_OPS)@)@
+@comp(@bsm(PERL6_ML)@: 	@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@ @nfp(gen/nqp-version)@)@
+@comp(@bsm(PERL6_OPS)@:	@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@ @bpm(PERL6_OPS_EXTRA)@ @nfp(gen/nqp-version)@)@
+@comp(@bsm(PERL6_O)@:		@nfp(@bpm(BUILD_DIR)@/Optimizer.nqp)@ @bsm(PERL6_OPS)@)@
+@comp(@bsm(PERL6_P)@: 	@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@ @nfp(gen/nqp-version)@)@
+@comp(@bsm(PERL6_W)@: 	@nfp(@bpm(BUILD_DIR)@/World.nqp)@ @bsm(PERL6_ML)@ @bsm(PERL6_OPS)@ @bsm(PERL6_P)@)@
 
 @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bsm(METAMODEL_ALL_SOURCES)@@for_specs( @bpm(BOOTSTRAP_@ucspec_SOURCES)@ @bpm(CORE_@ucspec@_SOURCES)@)@
-	@echo "+++ Expanding\t$@"
+	@echo "+++ Expanding	$@"
 	@noecho@$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@
 
-@bsm(PERL6)@: @nfp(@bpm(BUILD_DIR)@/perl6.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ @bpm(PERL6_DEPS_EXTRA)@
+@comp_rr(@bsm(PERL6)@: @nfp(@bpm(BUILD_DIR)@/perl6.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ @bpm(PERL6_DEPS_EXTRA)@)@
 
-@bsm(PERL6_DEBUG)@: @nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@ @bsm(PERL6)@
+@comp_rr(@bsm(PERL6_DEBUG)@: @nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@ @bsm(PERL6)@)@
 
-@for_specs(@nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@: @bpm(BOOTSTRAP_@ucspec@_SOURCES)@
+@for_specs(@gencat(@nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@: @bpm(BOOTSTRAP_@ucspec@_SOURCES)@)@
 
-@bsm(PERL6_BOOTSTRAP_@ucspec@)@: @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@ @bsm(PERL6_M)@
+@comp_rr(@bsm(PERL6_BOOTSTRAP_@ucspec@)@: @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@ @bsm(PERL6_M)@)@
 
 @bsm(SETTING_@ucspec@)@: @bsm(PERL6)@ @bsm(PERL6_BOOTSTRAP_@ucspec@)@ @bpm(CORE_ALL_SOURCES)@
-	@echo "+++ Compiling\t$@"
+	@echo "+++ Compiling	$@"
 	@noecho@$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
 			 --out @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ \
 			 --set-var=backend=@backend@

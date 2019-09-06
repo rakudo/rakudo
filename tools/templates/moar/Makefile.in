@@ -77,7 +77,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(NQP_FLAGS_EXTRA)@ = --vmlibs=@bpm(PERL6_OPS_DLL)@=Rakudo_ops_init
 
-@bpv(HARNESS_TYPE)@ := $(HARNESS_TYPE)
+@bpv(HARNESS_TYPE)@ = $(HARNESS_TYPE)
 
 @bpv(HARNESS6)@ = @nfp(./@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
 @bpv(HARNESS6_WITH_FUDGE)@ = @bpm(HARNESS6)@ --fudge

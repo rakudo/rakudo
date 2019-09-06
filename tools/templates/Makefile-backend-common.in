@@ -4,11 +4,17 @@
 @bpv(GEN_CAT)@ = @shquot(@script(gen-cat.nqp)@)@ @backend@
 
 @bpv(BUILD_DIR)@ = @nfp(gen/@backend@)@
-@bpv(BLIB_DIR)@ ?= @nfp(blib/Perl6)@
+@make_pp_pfx@ifndef @bpv(BLIB_DIR)@
+@bpv(BLIB_DIR)@ = @nfp(blib/Perl6)@
+@make_pp_pfx@endif
 @bpv(NQP_LIBDIR)@ = @nqp::libdir@
 @bpv(SET_NQP_LIB)@ = @set_nqp_lib@
-@bpv(NQP_RR)@ ?= @bpm(NQP)@
-@bpv(NQP_FLAGS)@ ?= --module-path=blib
+@make_pp_pfx@ifndef @bpv(NQP_RR)@
+@bpv(NQP_RR)@ = @bpm(NQP)@
+@make_pp_pfx@endif
+@make_pp_pfx@ifndef @bpv(NQP_FLAGS)@
+@bpv(NQP_FLAGS)@ = --module-path=blib
+@make_pp_pfx@endif
 @bpv(LIBDIR)@ = @nfp($(PERL6_HOME)/lib)@
 
 # files we create

@@ -13,7 +13,7 @@ MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 @bpv(NQP_RR)@    = @bpm(NQP)@
 @bpv(RUN_PERL6)@ = $(MOAR) --libpath=@nfpq($(BASE_DIR)/blib)@ --libpath=@q(@bpm(NQP_LIBDIR)@)@ perl6.moarvm --nqp-lib=@nfpq($(BASE_DIR)/blib)@
 
-@bpv(RUNNER_SUFFX)@ = @moar::exe@
+@bpv(RUNNER_SUFFIX)@ = @moar::exe@
 
 R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
@@ -30,7 +30,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libtommath)@ \
 	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libuv)@
 
-@bpv(RUNNER)@ = perl6-m@moar::exe@
+#@bpv(RUNNER)@ = perl6-m@moar::exe@
 @bpv(PERL6)@ = perl6@moar::exe@
 @bpv(PERL6_DEBUG)@ = perl6-debug@moar::exe@
 @bpv(PERL6_M)@ = perl6-m@moar::exe@

@@ -7,8 +7,6 @@ NQP_PREFIX  = @nqp_prefix@
 @bpv(NQP_RR)@    = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
 @bpv(RUN_PERL6)@ = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ perl6
 
-@bpv(RUNNER_SUFFX)@ = @runner_suffix@
-
 @bpv(DEBUG_RUNNER)@ = perl6-debug-@backend_abbr@@bpm(RUNNER_SUFFIX)@
 
 NQP_JARS = @nqp_jars@

@@ -14,6 +14,9 @@
 @make_pp_pfx@ifndef @bpv(NQP_FLAGS)@
 @bpv(NQP_FLAGS)@ = --module-path=blib
 @make_pp_pfx@endif
+@make_pp_pfx@ifndef @bpv(RUNNER_SUFFIX)@
+@bpv(RUNNER_SUFFIX)@ = @runner_suffix@
+@make_pp_pfx@endif
 @bpv(LIBDIR)@ = @nfp($(PERL6_HOME)/lib)@
 
 # files we create

@@ -766,20 +766,22 @@ TPL
 sub _m_comp {
     my $self = shift;
     my $text = shift;
+    my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
 \t\@echo "+++ Compiling\t\$@" 
-\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \$<
+\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ $first_prereq
 TPL
 }
 
 sub _m_comp_rr {
     my $self = shift;
     my $text = shift;
+    my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
 \t\@echo "+++ Compiling\t\$@" 
-\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \$<
+\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ $first_prereq
 TPL
 }
 

@@ -794,7 +794,7 @@ sub _m_comp_rr {
     my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
-\t\@echo @shquot(+++ Compiling\t\$@)@
+\t\@echo \@shquot(+++ Compiling\t\$@)@
 \t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ $first_prereq
 TPL
 }

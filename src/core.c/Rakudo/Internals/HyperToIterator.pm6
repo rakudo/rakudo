@@ -60,10 +60,8 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
                 when X::Channel::ReceiveOnClosed {
                     return IterationEnd;
                 }
-                default {
-                    ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
-                      unless nqp::istype($_, X::HyperRace::Died);
-                }
+                ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                  unless nqp::istype($_, X::HyperRace::Died);
             }
         }
         nqp::shift($!current-items)
@@ -84,10 +82,8 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
                 when X::Channel::ReceiveOnClosed {
                     return 0;
                 }
-                default {
-                    ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
-                      unless nqp::istype($_, X::HyperRace::Died);
-                }
+                ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                  unless nqp::istype($_, X::HyperRace::Died);
             }
         }
         0
@@ -103,10 +99,8 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
                 when X::Channel::ReceiveOnClosed {
                     return IterationEnd;
                 }
-                default {
-                    ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
-                      unless nqp::istype($_, X::HyperRace::Died);
-                }
+                ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
+                  unless nqp::istype($_, X::HyperRace::Died);
             }
         }
     }

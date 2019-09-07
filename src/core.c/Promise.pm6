@@ -15,6 +15,12 @@ my class X::Promise::Vowed is Exception {
     has $.promise;
     method message() { "Access denied to keep/break this Promise; already vowed" }
 }
+my class X::Promise::Resolved is Exception {
+    has $.promise;
+    method message() {
+        "Cannot keep/break a Promise more than once (status: $!promise.status())";
+    }
+}
 my role X::Promise::Broken {
     has $.result-backtrace;
     multi method gist(::?CLASS:D:) {
@@ -96,6 +102,9 @@ my class Promise does Awaitable {
 
     method !keep(Mu \result --> Nil) {
         $!lock.protect({
+            X::Promise::Resolved.new(promise => self).throw
+             if $!status != Planned;
+
             $!result := result;
             $!status := Kept;
             self!schedule_thens();
@@ -125,6 +134,9 @@ my class Promise does Awaitable {
 
     method !break(\result --> Nil) {
         $!lock.protect({
+            X::Promise::Resolved.new(promise => self).throw
+             if $!status != Planned;
+
             $!result := nqp::istype(result, Exception)
                 ?? result
                 !! X::AdHoc.new(payload => result);

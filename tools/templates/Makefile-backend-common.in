@@ -135,7 +135,7 @@
 # --- Main rules ---
 
 check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
-	@echo @shquot(+++ Checking for @backend@ NQP version)@
+	@echo(+++ Checking for @backend@ NQP version)@
 	@noecho@$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ @bpm(NQP)@
 
 # gen-cat sources into gen/<backend>
@@ -163,7 +163,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 @comp(@bsm(PERL6_W)@: 	@nfp(@bpm(BUILD_DIR)@/World.nqp)@ @bsm(PERL6_ML)@ @bsm(PERL6_OPS)@ @bsm(PERL6_P)@)@
 
 @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bsm(METAMODEL_ALL_SOURCES)@@for_specs( @bpm(BOOTSTRAP_@ucspec_SOURCES)@ @bpm(CORE_@ucspec@_SOURCES)@)@
-	@echo @shquot(+++ Expanding	$@)@
+	@echo(+++ Expanding	$@)@
 	@noecho@$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@
 
 @comp_rr(@bsm(PERL6)@: @nfp(@bpm(BUILD_DIR)@/perl6.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ @bpm(PERL6_DEPS_EXTRA)@)@
@@ -175,12 +175,12 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 @comp_rr(@bsm(PERL6_BOOTSTRAP_@ucspec@)@: @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@ @bsm(PERL6_M)@)@
 
 @bsm(SETTING_@ucspec@)@: @bsm(PERL6)@ @bsm(PERL6_BOOTSTRAP_@ucspec@)@ @bpm(CORE_ALL_SOURCES)@
-	@echo @shquot(+++ Compiling	$@)@
+	@echo(+++ Compiling	$@)@
 	@noecho@$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
 			 --out @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ \
 			 --set-var=backend=@backend@
 	@noecho@@bpm(NQP)@ @bpm(GEN_CAT)@ -f @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ > @nfpq(@bpm(BUILD_DIR)@/CORE.@lcspec@.setting)@
-	@echo @shquot(The following step can take a long time, please be patient.)@
+	@echo(The following step can take a long time, please be patient.)@
 	@noecho@@bpm(RUN_PERL6)@ --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=@btarget@ --stagestats --output=@bsm(SETTING_@ucspec@)@ @nfpq(@bpm(BUILD_DIR)@/CORE.@lcspec@.setting)@
 
 )@

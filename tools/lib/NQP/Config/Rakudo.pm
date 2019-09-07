@@ -772,7 +772,7 @@ sub _m_gencat {
     my $all_prereq = $self->cfg->cfg('make_all_prereq');
     return $self->expand(<<TPL);
 $text
-\t\@echo \@shquot(+++ Generating\t\$\@)@
+\t\@echo(+++ Generating\t\$\@)@
 \t\@noecho\@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ $all_prereq > \$\@
 TPL
 }
@@ -783,7 +783,7 @@ sub _m_comp {
     my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
-\t\@echo \@shquot(+++ Compiling\t\$@)@
+\t\@echo(+++ Compiling\t\$@)@
 \t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ $first_prereq
 TPL
 }
@@ -794,7 +794,7 @@ sub _m_comp_rr {
     my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
-\t\@echo \@shquot(+++ Compiling\t\$@)@
+\t\@echo(+++ Compiling\t\$@)@
 \t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ $first_prereq
 TPL
 }

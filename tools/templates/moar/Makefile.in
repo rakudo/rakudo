@@ -93,7 +93,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 	@noecho@@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(PERL6_OPS_DLL)@ @bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_CONT_OBJ)@ @moar_lib@
 
 $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING_SRC)
-	@bpm(RUN_PERL6)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
+	@noecho@@bpm(RUN_PERL6)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
 m-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 
@@ -186,19 +186,21 @@ m-runner-default-install: m-install
 	$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG))@
 
 manifest:
-	echo MANIFEST >MANIFEST
-	git ls-files | $(PERL5) -ne '/^\./ || print' >>MANIFEST
-	cd @nfp(t/spec)@ && git clean -xdf
-	find @nfp(t/spec)@ -type f | grep -v '\.git' >>MANIFEST
-	sort -u -o MANIFEST MANIFEST
+	@echo(+++ Creating	MANIFEST)@
+	@noecho@echo MANIFEST >MANIFEST
+	@nowcho@git ls-files | $(PERL5) -ne '/^\./ || print' >>MANIFEST
+	@nowcho@cd @nfp(t/spec)@ && git clean -xdf
+	@nowcho@find @nfp(t/spec)@ -type f | grep -v '\.git' >>MANIFEST
+	@nowcho@sort -u -o MANIFEST MANIFEST
 
 release: manifest
-	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
-	bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'
-	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
-	$(M_RUN_PERL6) -ne 'say "rakudo-$(VERSION)@slash@$$_"' MANIFEST | \
+	@noecho@[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
+	@echo(+++ Releasing $(VERSION))@
+	@noecho@bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'
+	@noecho@[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
+	@noecho@@bpm(RUN_PERL6)@ -ne 'say "rakudo-$(VERSION)@slash@$$_"' MANIFEST | \
 		tar -zcv --owner=0 --group=0 --numeric-owner -T - -f rakudo-$(VERSION).tar.gz
-	rm rakudo-$(VERSION)
+	@noecho@rm rakudo-$(VERSION)
 
 
 ##  cleaning

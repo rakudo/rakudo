@@ -23,6 +23,7 @@ Makefile
 *.lib
 *.jar
 *.moarvm
+*.js.map
 lib/Test.pir
 lib/Pod/To/Text.pir
 lib/lib.pir

@@ -447,8 +447,6 @@ sub configure_js_backend {
     $config->{js_nqp} = $ijs->{bin};
     $config->{'perl6_runtime'} =
       File::Spec->rel2abs( $self->nfp('src/vm/js/perl6-runtime') );
-    $config->{'perl6_lowlevel_libs'} =
-      File::Spec->rel2abs('node_modules') . $slash;
     $config->{'perl6_js_runner'} =
       $self->batch_file( File::Spec->rel2abs('perl6-js') );
 

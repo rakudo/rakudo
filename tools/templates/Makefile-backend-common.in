@@ -4,8 +4,11 @@
 @bpv(GEN_CAT)@ = @shquot(@script(gen-cat.nqp)@)@ @backend@
 
 @bpv(BUILD_DIR)@ = @nfp(gen/@backend@)@
-@make_pp_pfx@ifndef @bpv(BLIB_DIR)@
-@bpv(BLIB_DIR)@ = @nfp(blib/Perl6)@
+@make_pp_pfx@ifndef @bpv(BLIB)@
+@bpv(BLIB)@ = @nfp(blib)@
+@make_pp_pfx@endif
+@make_pp_pfx@ifndef @bpv(BLIB_PERL6)@
+@bpv(BLIB_PERL6)@ = @nfp(blib/Perl6)@
 @make_pp_pfx@endif
 @bpv(NQP_LIBDIR)@ = @nqp::libdir@
 @make_pp_pfx@ifndef @bpv(NQP_RR)@
@@ -21,15 +24,15 @@
 
 # files we create
 @bsv(PERL6)@ = perl6.@bext@
-@bsv(PERL6_ML)@  = @nfp(@bpm(BLIB_DIR)@/ModuleLoader.@bext@)@
-@bsv(PERL6_W)@   = @nfp(@bpm(BLIB_DIR)@/World.@bext@)@
-@bsv(PERL6_G)@   = @nfp(@bpm(BLIB_DIR)@/Grammar.@bext@)@
-@bsv(PERL6_OPS)@ = @nfp(@bpm(BLIB_DIR)@/Ops.@bext@)@
-@bsv(PERL6_A)@   = @nfp(@bpm(BLIB_DIR)@/Actions.@bext@)@
-@bsv(PERL6_O)@   = @nfp(@bpm(BLIB_DIR)@/Optimizer.@bext@)@
-@bsv(PERL6_P)@   = @nfp(@bpm(BLIB_DIR)@/Pod.@bext@)@
-@bsv(PERL6_C)@   = @nfp(@bpm(BLIB_DIR)@/Compiler.@bext@)@
-@bsv(PERL6_M)@   = @nfp(@bpm(BLIB_DIR)@/Metamodel.@bext@)@
+@bsv(PERL6_ML)@  = @nfp(@bpm(BLIB_PERL6)@/ModuleLoader.@bext@)@
+@bsv(PERL6_W)@   = @nfp(@bpm(BLIB_PERL6)@/World.@bext@)@
+@bsv(PERL6_G)@   = @nfp(@bpm(BLIB_PERL6)@/Grammar.@bext@)@
+@bsv(PERL6_OPS)@ = @nfp(@bpm(BLIB_PERL6)@/Ops.@bext@)@
+@bsv(PERL6_A)@   = @nfp(@bpm(BLIB_PERL6)@/Actions.@bext@)@
+@bsv(PERL6_O)@   = @nfp(@bpm(BLIB_PERL6)@/Optimizer.@bext@)@
+@bsv(PERL6_P)@   = @nfp(@bpm(BLIB_PERL6)@/Pod.@bext@)@
+@bsv(PERL6_C)@   = @nfp(@bpm(BLIB_PERL6)@/Compiler.@bext@)@
+@bsv(PERL6_M)@   = @nfp(@bpm(BLIB_PERL6)@/Metamodel.@bext@)@
 @for_specs(@bsv(PERL6_BOOTSTRAP_@ucspec@)@   = @nfp(blib/Perl6/BOOTSTRAP/v6@lcspec@.@bext@)@
 @bsv(SETTING_@ucspec@)@ = CORE.@lcspec@.setting.@bext@
 )@

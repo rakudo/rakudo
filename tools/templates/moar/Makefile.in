@@ -1,230 +1,101 @@
-M_CC      = @moar::cc@
-M_LD      = @moar::ld@
-M_CCINC   = @moar::ccinc@
-M_CFLAGS  = @moar::cflags@
-M_LDFLAGS = @ldflags@
-M_LDLIBS  = @moar::ldlibs@
-M_MINGW_UNICODE = @mingw_unicode@
 
-M_GEN_CAT = @shquot(@script(gen-cat.nqp)@)@ moar
-
-M_BUILD_DIR = @nfp(gen/moar)@
+@bpv(CC)@      = @moar::cc@
+@bpv(LD)@      = @moar::ld@
+@bpv(CCINC)@   = @moar::ccinc@
+@bpv(CFLAGS)@  = @moar::cflags@
+@bpv(LDFLAGS)@ = @ldflags@
+@bpv(LDLIBS)@  = @moar::ldlibs@
+@bpv(MINGW_UNICODE)@ = @mingw_unicode@
 
 MOAR_PREFIX = @nfp(@moar::prefix@)@
-# MOAR and M_NQP are only used in command lines, ok to quote
-MOAR   = @nfpq(@moar::bindir@/moar@moar::exe@)@
-M_NQP  = @nfpq(@m_nqp@)@
-M_LIBDIR = @nfp($(PERL6_HOME)/lib)@
-M_NQP_LIBDIR = @nqp::libdir@
-M_INCPATH = @nfp($(MOAR_PREFIX)/include)@
-M_MOAR_INC_PATHS = \
-  @moar::cincludes@ \
-  $(M_CCINC)@nfpq($(M_INCPATH))@ \
-  $(M_CCINC)@nfpq($(M_INCPATH)/moar)@ \
-  $(M_CCINC)@nfpq($(M_INCPATH)/libatomic_ops)@ \
-  $(M_CCINC)@nfpq($(M_INCPATH)/dyncall)@ \
-  $(M_CCINC)@nfpq($(M_INCPATH)/moar)@ \
-  $(M_CCINC)@nfpq($(M_INCPATH)/sha1)@ \
-  $(M_CCINC)@nfpq($(M_INCPATH)/tinymt)@ \
-  $(M_CCINC)@nfpq($(M_INCPATH)/libtommath)@ \
-  $(M_CCINC)@nfpq($(M_INCPATH)/libuv)@
+MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
+@bpv(NQP)@       = @nfpq(@m_nqp@)@
+@bpv(NQP_RR)@    = @bpm(NQP)@
+@bpv(RUN_PERL6)@ = $(MOAR) --libpath=@nfpq($(BASE_DIR)/blib)@ --libpath=@q(@bpm(NQP_LIBDIR)@)@ perl6.moarvm --nqp-lib=@nfpq($(BASE_DIR)/blib)@
 
-M_RUN_PERL6 = $(MOAR) --libpath=@nfpq($(BASE_DIR)/blib)@ --libpath=@q($(M_NQP_LIBDIR))@ perl6.moarvm --nqp-lib=@nfpq($(BASE_DIR)/blib)@
+@bpv(RUNNER_SUFFIX)@ = @moar::exe@
 
-M_BUILD_RUNNER = perl6-m@moar::exe@
-M_RUNNER = perl6-m@moar::exe@
-M_DEBUG_RUNNER = perl6-debug-m@moar::exe@
-M_DEFAULT_RUNNER = perl6@moar::exe@
-M_DEFAULT_DEBUG_RUNNER = perl6-debug@moar::exe@
-M_PERL6 = perl6@moar::exe@
-M_PERL6_DEBUG = perl6-debug@moar::exe@
-M_PERL6_M = perl6-m@moar::exe@
-M_PERL6_DEBUG_M = perl6-debug-m@moar::exe@
-M_INST_PERL6 = inst-perl6@moar::exe@
-M_INST_PERL6_DEBUG = inst-perl6-debug@moar::exe@
-M_INST_PERL6_M = inst-perl6-m@moar::exe@
-M_INST_PERL6_DEBUG_M = inst-perl6-debug-m@moar::exe@
-
-
-# files we create
-PERL6_MOAR     = perl6.moarvm
-PERL6_ML_MOAR  = @nfp(blib/Perl6/ModuleLoader.moarvm)@
-PERL6_W_MOAR   = @nfp(blib/Perl6/World.moarvm)@
-PERL6_G_MOAR   = @nfp(blib/Perl6/Grammar.moarvm)@
-PERL6_OPS_MOAR = @nfp(blib/Perl6/Ops.moarvm)@
-PERL6_A_MOAR   = @nfp(blib/Perl6/Actions.moarvm)@
-PERL6_O_MOAR   = @nfp(blib/Perl6/Optimizer.moarvm)@
-PERL6_P_MOAR   = @nfp(blib/Perl6/Pod.moarvm)@
-PERL6_C_MOAR   = @nfp(blib/Perl6/Compiler.moarvm)@
-PERL6_M_MOAR   = @nfp(blib/Perl6/Metamodel.moarvm)@
-@for_specs(PERL6_BOOTSTRAP_@ucspec@_MOAR   = @nfp(blib/Perl6/BOOTSTRAP/v6@lcspec@.moarvm)@
-SETTING_@ucspec@_MOAR = CORE.@lcspec@.setting.moarvm
-)@
 R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
-M_PERL6_OPS_DIR  = dynext
-M_PERL6_OPS_DLL  = $(M_PERL6_OPS_DIR)@nfp(/@perl6_ops_dll@)@
-M_PERL6_OPS_OBJ  = @nfp($(M_PERL6_OPS_DIR)/perl6_ops@moar::obj@)@
-M_PERL6_CONT_OBJ = @nfp($(M_PERL6_OPS_DIR)/container@moar::obj@)@
-M_PERL6_OPS_SRC  = @nfp(src/vm/moar/ops/perl6_ops.c)@
-M_PERL6_CONT_SRC = @nfp(src/vm/moar/ops/container.c)@
+@bpv(INCPATH)@ = @nfp($(MOAR_PREFIX)/include)@
+@bpv(MOAR_INC_PATHS)@ = \
+	@moar::cincludes@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@)@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/moar)@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libatomic_ops)@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/dyncall)@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/moar)@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/sha1)@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/tinymt)@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libtommath)@ \
+	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libuv)@
 
-M_PERL6_PRECOMPS = \
-    $(PERL6_ML_MOAR) $(PERL6_W_MOAR) $(PERL6_G_MOAR) $(PERL6_OPS_MOAR) \
-    $(PERL6_A_MOAR) $(PERL6_O_MOAR) $(PERL6_P_MOAR) $(PERL6_C_MOAR) \
-    $(PERL6_M_MOAR)
+#@bpv(RUNNER)@ = perl6-m@moar::exe@
+@bpv(PERL6)@ = perl6@moar::exe@
+@bpv(PERL6_DEBUG)@ = perl6-debug@moar::exe@
+@bpv(PERL6_M)@ = perl6-m@moar::exe@
+@bpv(PERL6_DEBUG_M)@ = perl6-debug-m@moar::exe@
+@bpv(INST_PERL6)@ = inst-perl6@moar::exe@
+@bpv(INST_PERL6_DEBUG)@ = inst-perl6-debug@moar::exe@
+@bpv(INST_PERL6_M)@ = inst-perl6-m@moar::exe@
+@bpv(INST_PERL6_DEBUG_M)@ = inst-perl6-debug-m@moar::exe@
 
-M_PERL6_BOOTSTRAP_PRECOMPS = @for_specs( $(PERL6_BOOTSTRAP_@ucspec@_MOAR))@
+@bpv(PERL6_OPS_DIR)@  = dynext
+@bpv(PERL6_OPS_DLL)@  = @bpm(PERL6_OPS_DIR)@@nfp(/@perl6_ops_dll@)@
+@bpv(PERL6_OPS_OBJ)@  = @nfp(@bpm(PERL6_OPS_DIR)@/perl6_ops@moar::obj@)@
+@bpv(PERL6_CONT_OBJ)@ = @nfp(@bpm(PERL6_OPS_DIR)@/container@moar::obj@)@
+@bpv(PERL6_OPS_DLL_SRC)@  = @nfp(src/vm/moar/ops/perl6_ops.c)@
+@bpv(PERL6_CONT_SRC)@ = @nfp(src/vm/moar/ops/container.c)@
 
-M_METAMODEL_SOURCES = $(COMMON_BOOTSTRAP_SOURCES)
+@bpv(GDB_RUNNER)@ = perl6-gdb-m@runner_suffix@
+@bpv(LLDB_RUNNER)@ = perl6-lldb-m@runner_suffix@
+@bpv(VALGRIND_RUNNER)@ = perl6-valgrind-m@runner_suffix@
 
-@for_specs(
-M_BOOTSTRAP_@ucspec@_SOURCES = \
-		@insert_filelist(bootstrap_sources)@
-)@
+@bpv(ALL_TARGETS)@ = $(R_SETTING_MOAR) @bpm(INST_PERL6_M)@ @bpm(INST_PERL6_DEBUG_M)@ @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@ @m_all@
 
-# The ordering in core_sources is important for bootstrapping reasons.
-# In general:
-# * traits almost certainly have to come first
-# * stubs have to come after traits since they use them
-# * Attribute needs to come before anything that uses an attribute
-# We break various other circularities in Perl6::Metamodel::BOOTSTRAP.
-# Note that you only really have to worry especially about things that
-# the compiler will instantiate/call methods on while compiling the
-# setting - basically anything that feels MOP-ish.
-@for_specs(
-M_CORE_@ucspec@_SOURCES = \
-    @insert_filelist(core_sources)@
-)@
-M_CORE_ALL_SOURCES =@for_specs( $(M_CORE_@ucspec@_SOURCES))@
-
-PERL6_DEBUG_MOAR = perl6-debug.moarvm
-M_GDB_RUNNER = perl6-gdb-m@runner_suffix@
-M_LLDB_RUNNER = perl6-lldb-m@runner_suffix@
-M_VALGRIND_RUNNER = perl6-valgrind-m@runner_suffix@
-
-M_CLEANUPS = \
-  *.manifest \
-  @nfp(blib/Perl6/*.moarvm)@ \
-  @nfp(blib/Perl6/BOOTSTRAP/*.moarvm)@ \\@for_specs(
-  $(SETTING_@ucspec@_MOAR) \)@
+@bpv(CLEANUPS)@ = \
   $(R_SETTING_MOAR) \
-  $(PERL6_MOAR) \
-  rakudo_test_run.tar.gz \
   inst-perl6-m@moar::obj@ \
   inst-perl6-debug-m@moar::obj@ \
   inst-perl6@moar::obj@ \
   inst-perl6-debug@moar::obj@ \
-  $(M_INST_PERL6_M) \
-  $(M_INST_PERL6_DEBUG_M) \
-  $(M_INST_PERL6) \
-  $(M_INST_PERL6_DEBUG) \
-  $(M_PERL6_OPS_DLL) \
-  $(M_PERL6_OPS_OBJ) \
-  $(M_PERL6_CONT_OBJ) \
-  $(PERL6_DEBUG_MOAR) \
-  $(M_BUILD_DIR)@slash@* \
+  @bpm(INST_PERL6_M)@ \
+  @bpm(INST_PERL6_DEBUG_M)@ \
+  @bpm(INST_PERL6)@ \
+  @bpm(INST_PERL6_DEBUG)@ \
+  @bpm(PERL6_OPS_DLL)@ \
+  @bpm(PERL6_OPS_OBJ)@ \
+  @bpm(PERL6_CONT_OBJ)@ \
   perl6-m.c \
   perl6-m@moar::obj@ \
-  $(M_BUILD_RUNNER) \
   perl6.c \
   perl6@moar::obj@ \
   perl6@moar::exe@ \
 @m_cleanups@
 
-HARNESS_TYPE = 5
+@bpv(PERL6_OPS_EXTRA)@ = @bpm(PERL6_OPS_DLL)@
 
-M_HARNESS5 = $(PERL5) @nfp(t/harness5)@
-M_HARNESS5_WITH_FUDGE = $(M_HARNESS5) --fudge --moar --keep-exit-code
+@bpv(NQP_FLAGS_EXTRA)@ = --vmlibs=@bpm(PERL6_OPS_DLL)@=Rakudo_ops_init
 
-M_HARNESS6 = .@slash@$(M_BUILD_RUNNER) -Ilib @nfp(t/harness6)@
-M_HARNESS6_WITH_FUDGE = $(M_HARNESS6) --fudge
+@bpv(HARNESS_TYPE)@ = $(HARNESS_TYPE)
 
-M_RUN_CLEAN_TARGET_FILES = $(M_RUN_PERL6) -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str; .IO.unlink if .IO.e } }"
+@bpv(HARNESS6)@ = @nfp(./@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
+@bpv(HARNESS6_WITH_FUDGE)@ = @bpm(HARNESS6)@ --fudge
 
-m-all: check_@backend_prefix@_nqp_version $(PERL6_MOAR) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) $(M_BUILD_RUNNER) $(PERL6_DEBUG_MOAR) $(M_INST_PERL6_M) $(M_INST_PERL6_DEBUG_M) $(M_INST_PERL6) $(M_INST_PERL6_DEBUG) @m_all@
+@bpv(RUN_CLEAN_TARGET_FILES)@ = @bpm(RUN_PERL6)@ -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str; .IO.unlink if .IO.e } }"
 
-check_@backend_prefix@_nqp_version: @@script(check-nqp-version.pl)@@
-	$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ $(M_NQP)
+@include(Makefile-backend-common)@
 
-$(M_PERL6_OPS_DLL): $(M_PERL6_OPS_SRC) $(M_PERL6_CONT_SRC)
-	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) $(M_MOAR_INC_PATHS) @moar::ccout@$(M_PERL6_OPS_OBJ) $(M_PERL6_OPS_SRC)
-	$(M_CC) @moar::ccswitch@ @moar::ccshared@ $(M_CFLAGS) $(M_MOAR_INC_PATHS) @moar::ccout@$(M_PERL6_CONT_OBJ) $(M_PERL6_CONT_SRC)
-	$(M_LD) @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ $(M_LDFLAGS) $(M_LDLIBS) @moar::ldout@$(M_PERL6_OPS_DLL) $(M_PERL6_OPS_OBJ) $(M_PERL6_CONT_OBJ) @moar_lib@
+@bpm(PERL6_OPS_DLL)@: @bpm(PERL6_OP_DLLS_SRC)@ @bpm(PERL6_CONT_SRC)@
+	@echo "+++ Compiling\t$@"
+	@noecho@@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_OPS_DLL_SRC)@
+	@noecho@@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_CONT_OBJ)@ @bpm(PERL6_CONT_SRC)@
+	@noecho@@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(PERL6_OPS_DLL)@ @bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_CONT_OBJ)@ @moar_lib@
 
-$(PERL6_ML_MOAR): @nfp(src/Perl6/ModuleLoader.nqp)@ @nfp(src/vm/moar/ModuleLoaderVMConfig.nqp)@ @nfp(gen/nqp-version)@
-	$(M_NQP) $(M_GEN_CAT) @nfp(src/vm/moar/ModuleLoaderVMConfig.nqp)@ @nfp(src/Perl6/ModuleLoader.nqp)@ > @nfpq($(M_BUILD_DIR)/ModuleLoader.nqp)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_ML_MOAR) \
-		@nfpq($(M_BUILD_DIR)/ModuleLoader.nqp)@
+$(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING_SRC)
+	@noecho@@bpm(RUN_PERL6)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
-$(PERL6_OPS_MOAR): @nfp(src/vm/moar/Perl6/Ops.nqp src/Perl6/Ops.nqp)@ $(M_PERL6_OPS_DLL) @nfp(gen/nqp-version)@
-	$(M_NQP) $(M_GEN_CAT) @nfpl(src/vm/moar/Perl6/Ops.nqp src/Perl6/Ops.nqp)@ > @nfpq($(M_BUILD_DIR)/Perl6-Ops.nqp)@
-	$(M_NQP) --target=mbc --output=$(PERL6_OPS_MOAR) @nfpq($(M_BUILD_DIR)/Perl6-Ops.nqp)@
-
-$(PERL6_W_MOAR): $(PERL6_ML_MOAR) $(PERL6_OPS_MOAR) $(PERL6_P_MOAR) @nfp(src/Perl6/World.nqp)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_W_MOAR) \
-		@nfp(src/Perl6/World.nqp)@
-
-$(PERL6_P_MOAR): @nfpl(src/Perl6/Pod.nqp gen/nqp-version)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_P_MOAR) \
-		@nfp(src/Perl6/Pod.nqp)@
-
-$(PERL6_A_MOAR): @nfp(src/Perl6/Actions.nqp)@ $(PERL6_P_MOAR) $(PERL6_OPS_MOAR)
-	$(M_NQP) $(M_GEN_CAT) @nfpl(src/Perl6/Actions.nqp src/Perl6/PodActions.nqp)@ > @nfpq($(M_BUILD_DIR)/Perl6-Actions.nqp)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_A_MOAR) @nfpq($(M_BUILD_DIR)/Perl6-Actions.nqp)@
-
-$(PERL6_G_MOAR): @nfp(src/Perl6/Grammar.nqp)@ $(PERL6_W_MOAR) $(PERL6_A_MOAR) $(PERL6_P_MOAR)
-	$(M_NQP) $(M_GEN_CAT) @nfpl(src/Perl6/Grammar.nqp src/Perl6/PodGrammar.nqp)@ > @nfpq($(M_BUILD_DIR)/Perl6-Grammar.nqp)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_G_MOAR) \
-		@nfpq($(M_BUILD_DIR)/Perl6-Grammar.nqp)@
-
-$(PERL6_O_MOAR): @nfp(src/Perl6/Optimizer.nqp)@ $(PERL6_OPS_MOAR)
-	$(M_NQP) $(M_GEN_CAT) @nfpl(src/Perl6/Optimizer.nqp > $(M_BUILD_DIR)/Perl6-Optimizer.nqp)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_O_MOAR) \
-		@nfpq($(M_BUILD_DIR)/Perl6-Optimizer.nqp)@
-
-$(PERL6_C_MOAR): @nfp(src/Perl6/Compiler.nqp)@ $(PERL6_O_MOAR)
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_C_MOAR) \
-		@nfp(src/Perl6/Compiler.nqp)@
-
-@nfp($(M_BUILD_DIR)/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) $(M_METAMODEL_SOURCES)@for_specs( $(M_BOOTSTRAP_@ucspec_SOURCES) $(M_CORE_@ucspec@_SOURCES))@
-	$(CONFIGURE) --expand main-version --out @nfpq($(M_BUILD_DIR)/main-version.nqp)@
-
-@nfp($(M_BUILD_DIR)/main.nqp)@: @nfp($(M_BUILD_DIR)/main-version.nqp)@ @nfp(src/main.nqp)@
-	$(M_NQP) $(M_GEN_CAT) @nfpl(src/main.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/main.nqp)@
-
-$(PERL6_MOAR): @nfp($(M_BUILD_DIR)/main.nqp)@ $(PERL6_G_MOAR) $(PERL6_A_MOAR) $(PERL6_C_MOAR) $(PERL6_P_MOAR)
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_MOAR) \
-		--vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfpq($(M_BUILD_DIR)/main.nqp)@
-
-$(PERL6_M_MOAR): $(M_METAMODEL_SOURCES) $(PERL6_OPS_MOAR)
-	$(M_NQP) $(M_GEN_CAT) -f @shquot(@template(common_bootstrap_sources)@)@ > @nfpq($(M_BUILD_DIR)/Metamodel.nqp)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_M_MOAR) \
-		@nfpq($(M_BUILD_DIR)/Metamodel.nqp)@
-
-@for_specs($(PERL6_BOOTSTRAP_@ucspec@_MOAR): $(M_BOOTSTRAP_@ucspec@_SOURCES) $(PERL6_M_MOAR)
-	$(M_NQP) $(M_GEN_CAT) $(M_BOOTSTRAP_@ucspec@_SOURCES) > @nfpq($(M_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_BOOTSTRAP_@ucspec@_MOAR) \
-        --vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfpq($(M_BUILD_DIR)/Perl6-BOOTSTRAP.@lcspec@.nqp)@
-
-$(SETTING_@ucspec@_MOAR): $(PERL6_MOAR) $(PERL6_BOOTSTRAP_@ucspec@_MOAR) $(M_CORE_ALL_SOURCES)
-	$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
-			 --out @nfpq($(M_BUILD_DIR)/core_sources.@lcspec@)@ \
-			 --set-var=backend=@backend@
-	$(M_NQP) $(M_GEN_CAT) -f @nfpq($(M_BUILD_DIR)/core_sources.@lcspec@)@ > @nfpq($(M_BUILD_DIR)/CORE.@lcspec@.setting)@
-	@echo "The following step can take a long time, please be patient."
-	$(M_RUN_PERL6) --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=mbc --stagestats --output=$(SETTING_@ucspec@_MOAR) @nfpq($(M_BUILD_DIR)/CORE.@lcspec@.setting)@
-
-)@
-$(R_SETTING_MOAR): $(PERL6_MOAR)@for_specs( $(SETTING_@ucspec@_MOAR))@ $(R_SETTING_SRC)
-	$(M_RUN_PERL6) --target=mbc --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
-
-m-runner-default: $(M_INST_PERL6) $(M_INST_PERL6_DEBUG)
-
-$(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
-	$(M_NQP) $(M_GEN_CAT) @nfpl(src/perl6-debug.nqp $(M_BUILD_DIR)/main-version.nqp > $(M_BUILD_DIR)/perl6-debug.nqp)@
-	$(M_NQP) --module-path=blib --target=mbc --output=$(PERL6_DEBUG_MOAR) \
-		--vmlibs=$(M_PERL6_OPS_DLL)=Rakudo_ops_init @nfpq($(M_BUILD_DIR)/perl6-debug.nqp)@
+m-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 
 @perl(
     for my $toolchain (qw<gdb lldb valgrind>) {
@@ -233,31 +104,34 @@ $(PERL6_DEBUG_MOAR): @nfp(src/perl6-debug.nqp)@ $(PERL6_MOAR)
 	}
 )@
 
-$(M_BUILD_RUNNER): @@configure_script@@ $(PERL6_MOAR)@for_specs( $(SETTING_@ucspec@_MOAR))@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.windows)@)@@
-	$(RM_F) @q($(M_BUILD_RUNNER))@
-	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m-build.c)@ --out perl6-m.c \
+@bpm(RUNNER)@: @@configure_script@@ @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.windows)@)@@
+	@echo "+++ Generating\t$@"
+	@noecho@$(RM_F) @q(@bpm(RUNNER)@)@
+	@noecho@$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m-build.c)@ --out perl6-m.c \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=base_dir=@shquot(@nfp(@base_dir@)@)@ \
 		--set-var=nqp_lib_dir=@shquot(@nfp(@nqp::libdir@)@)@ \
-		--set-var=exec_name=@shquot(@nfp(@base_dir@/$(M_BUILD_RUNNER))@)@ \
+		--set-var=exec_name=@shquot(@nfp(@base_dir@/$(M_RUNNER))@)@ \
 		--set-var=mbc=perl6.moarvm
-	$(M_CC) @moar::ccswitch@ $(M_CFLAGS) @moar::ccout@perl6-m@moar::obj@ perl6-m.c
-	$(M_LD) @moar::ldout@$@ $(M_LDFLAGS) $(M_MINGW_UNICODE) perl6-m@moar::obj@
+	@noecho@@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@perl6-m@moar::obj@ perl6-m.c
+	@noecho@@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ perl6-m@moar::obj@
 
 @perl(
+	# Use keys and values as macros to conform with possible future changes to
+	# variable name standards.
     my %execs = (
-        '$(M_INST_PERL6)'         => '$(M_PERL6)',
-        '$(M_INST_PERL6_DEBUG)'   => '$(M_PERL6_DEBUG)',
-        '$(M_INST_PERL6_M)'       => '$(M_PERL6_M)',
-        '$(M_INST_PERL6_DEBUG_M)' => '$(M_PERL6_DEBUG_M)',
+        '@bpm(INST_PERL6)@'         => '@bpm(PERL6)@',
+        '@bpm(INST_PERL6_DEBUG)@'   => '@bpm(PERL6_DEBUG)@',
+        '@bpm(INST_PERL6_M)@'       => '@bpm(PERL6_M)@',
+        '@bpm(INST_PERL6_DEBUG_M)@' => '@bpm(PERL6_DEBUG_M)@',
     );
     for my $build (keys %execs) {
-        my $installed = $execs{$build};
+        my $installed = $macros->expand($execs{$build});
+		$build = $macros->expand($build);
         my %vars = (
             exec_name => $build,
         );
 		my $obj = $build;
-		$obj =~ s/\.*$//;
         my $qchar = $config{'quote'};
         $vars{exec_path_define} =
             '-DSTATIC_EXEC_PATH=' . $qchar . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed )) . $qchar
@@ -270,126 +144,68 @@ $(M_BUILD_RUNNER): @@configure_script@@ $(PERL6_MOAR)@for_specs( $(SETTING_@ucsp
 )@
 
 ##  testing targets
-m-test    : m-coretest$(HARNESS_TYPE)
 
-m-test5   : m-coretest5
-
+# No sense in moving this into Makefile-backend-common.in because moar backend
+# is the only one supporting harness6
 m-test6   : m-coretest6
 
-m-fulltest: m-coretest m-stresstest
-
-
-m-coretest: m-coretest$(HARNESS_TYPE)
-
-m-spectest: m-spectest$(HARNESS_TYPE)
-
-m-quicktest: m-quicktest$(HARNESS_TYPE)
-
-m-stresstest: m-stresstest$(HARNESS_TYPE)
-
-m-coretest5: m-all
-	$(M_HARNESS5) @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
-
-# Run the spectests that we know work.
-m-spectest5: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA)
-
-# Run the spectests that we know work after precompiling them.
-m-spectest5_precompile: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS5_WITH_FUDGE) --precompile --tests-from-file=$(SPECTEST_DATA)
-
-m-spectest_full5: m-testable
-	$(M_HARNESS5_WITH_FUDGE) @nfp(t/spec)@
-
-m-quicktest5: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --quick
-
-m-stresstest5: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --stress
-
-
 m-coretest6: m-all
-	$(M_HARNESS6) @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
+	@bpm(HARNESS6)@ @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
 
 # Run the spectests that we know work.
 m-spectest6: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA)
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA)
 
 m-spectest_full6: m-testable
-	$(M_HARNESS6_WITH_FUDGE) @nfp(t/spec)@
+	@bpm(HARNESS6_WITH_FUDGE)@ @nfp(t/spec)@
 
 m-quicktest6: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --quick
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --quick
 
 m-stresstest6: m-testable $(SPECTEST_DATA)
-	$(M_HARNESS6_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --stress
-
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --stress
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
-m-testable : m-all spectest_checkout spectest_update
-
 # Run the tests in t/localtest.data
 m-localtest: m-all spectest_checkout @nfp(t/localtest.data)@
-	@$(M_HARNESS6_WITH_FUDGE) --tests-from-file=@nfp(t/localtest.data)@
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@
 
 # Run the tests in t/localtest.data with a higher verbosity
 m-localtest_loud: m-all spectest_checkout @nfp(t/localtest.data)@
-	@$(M_HARNESS6_WITH_FUDGE) --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
+	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
 m-sometests: m-all
-	@$(M_HARNESS6_WITH_FUDGE) $(TESTFILES)
-
-m-install: m-all @@script(install-core-dist.p6)@@@for_specs( $(SETTING_@ucspec@_MOAR))@
-	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
-	$(MKPATH) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
-	$(MKPATH) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
-	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
-	$(M_RUN_CLEAN_TARGET_FILES) $(M_PERL6_BOOTSTRAP_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
-	$(CP) $(M_PERL6_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6)@
-	$(CP) $(M_PERL6_BOOTSTRAP_PRECOMPS) @nfpq($(DESTDIR)$(M_LIBDIR)/Perl6/BOOTSTRAP)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/lib)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(M_RUN_CLEAN_TARGET_FILES) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(M_RUN_CLEAN_TARGET_FILES) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) $(PERL6_MOAR) $(PERL6_DEBUG_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	$(CP) $(M_PERL6_OPS_DLL) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	$(CP) $(M_INST_PERL6_M) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_M))@
-	$(CP) $(M_INST_PERL6_DEBUG_M) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG_M))@
-	@nfpq($(BASE_DIR)/$(M_BUILD_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
-	@nfpq($(BASE_DIR)/$(M_BUILD_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
-	@nfpq($(BASE_DIR)/$(M_BUILD_RUNNER))@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
-	@nfpq($(BASE_DIR)/$(M_BUILD_RUNNER))@ @shquot(@script(install-core-dist.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
-@clean_old_p6_libs@@expand(@m_install@)@
+	@bpm(HARNESS6_WITH_FUDGE)@ $(TESTFILES)
 
 m-runner-default-install: m-install
 	$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6))@
 	$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG))@
 
 manifest:
-	echo MANIFEST >MANIFEST
-	git ls-files | $(PERL5) -ne '/^\./ || print' >>MANIFEST
-	cd @nfp(t/spec)@ && git clean -xdf
-	find @nfp(t/spec)@ -type f | grep -v '\.git' >>MANIFEST
-	sort -u -o MANIFEST MANIFEST
+	@echo(+++ Creating	MANIFEST)@
+	@noecho@echo MANIFEST >MANIFEST
+	@nowcho@git ls-files | $(PERL5) -ne '/^\./ || print' >>MANIFEST
+	@nowcho@cd @nfp(t/spec)@ && git clean -xdf
+	@nowcho@find @nfp(t/spec)@ -type f | grep -v '\.git' >>MANIFEST
+	@nowcho@sort -u -o MANIFEST MANIFEST
 
 release: manifest
-	[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
-	bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'
-	[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
-	$(M_RUN_PERL6) -ne 'say "rakudo-$(VERSION)@slash@$$_"' MANIFEST | \
+	@noecho@[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
+	@echo(+++ Releasing $(VERSION))@
+	@noecho@bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'
+	@noecho@[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
+	@noecho@@bpm(RUN_PERL6)@ -ne 'say "rakudo-$(VERSION)@slash@$$_"' MANIFEST | \
 		tar -zcv --owner=0 --group=0 --numeric-owner -T - -f rakudo-$(VERSION).tar.gz
-	rm rakudo-$(VERSION)
+	@noecho@rm rakudo-$(VERSION)
 
 
 ##  cleaning
 m-clean:
-	$(RM_F) $(M_CLEANUPS)
+	$(RM_F) @bpm(CLEANUPS_ALL)@
 	$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
 
 m-testclean:

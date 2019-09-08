@@ -75,7 +75,7 @@ MAIN: {
         'rakudo-repo=s',    'nqp-repo=s',
         'moar-repo=s',      'roast-repo=s',
         'expand=s',         'out=s',
-        'set-var=s@',
+        'set-var=s@',       'silent-build!'
       )
       or do {
         print_help();
@@ -204,6 +204,7 @@ General Options:
     --set-var="config_variable=value"
                        Sets a config_variable to "value". Can be used multiple
                        times.
+   --no-silent-build   Don't echo commands in Makefile target receipt.
 
 Please note that the --gen-moar and --gen-nqp options are there for convenience
 only and will actually immediately - at Configure time - compile and install

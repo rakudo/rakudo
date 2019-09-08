@@ -21,8 +21,8 @@ BOOTSTRAP_SOURCES = \
   @nfp(src/Perl6/Metamodel/BOOTSTRAP.nqp)@ \
   @nfp(src/Perl6/Metamodel/EXPORTHOW.nqp)@ \
 
-COMMON_BOOTSTRAP_SOURCES = \
-    @insert_filelist(common_bootstrap_sources)@
+COMMON_METAMODEL_SOURCES = \
+    @insert_filelist(common_metamodel_sources)@
 
 NQP_CONFIG_DIR = @nfp(3rdparty/nqp-configure/lib)@
 
@@ -35,3 +35,5 @@ CONFIGURE_SOURCES = \
 R_SETTING_SRC = @nfp(src/RESTRICTED.setting)@
 
 SPECTEST_DATA = @nfp(t/spec/spectest.data)@
+
+HARNESS_TYPE = 5

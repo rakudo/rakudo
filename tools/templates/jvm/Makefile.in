@@ -50,11 +50,6 @@ j-runner-default: j-all
 	$(CP) $(J_RUNNER) perl6$(J_BAT)
 	$(CHMOD) 755 perl6$(J_BAT)
 
-@bsm(PERL6_DEBUG)@: @nfp(src/perl6-debug.nqp)@ @bsm(PERL6)@
-	$(J_NQP) $(J_GEN_CAT) @nfp(src/perl6-debug.nqp)@ @nfpq($(J_BUILD_DIR)/main-version.nqp)@ > @nfpq($(J_BUILD_DIR)/perl6-debug.nqp)@
-	$(J_NQP) --module-path=blib --target=jar --javaclass=perl6-debug --output=@bsm(PERL6_DEBUG)@ \
-	    @nfpq($(J_BUILD_DIR)/perl6-debug.nqp)@
-
 @bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(PERL6_DEBUG)@
 	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q($(NQP_PREFIX))@ --nqp-lib=blib @q($(NQP_JARS))@
 

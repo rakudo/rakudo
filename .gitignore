@@ -66,6 +66,8 @@ perl6.rc
 /perl6-eval-server.bat
 /eval-client.pl
 /perl6.js
+/rakudo.js
+/perl6-debug.js
 /perl6-js
 /perl6-js.bat
 /perl6-m.c

@@ -14,7 +14,7 @@ my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
 
 my $install_to = "perl6-js$bat";
 open my $fh, ">", $install_to or die "open: $!";
-print $fh $preamble, "node rakudo.js -Ilib --source-map", $postamble, "\n" or die "print: $!";
+print $fh $preamble, "node perl6.js -Ilib --source-map", $postamble, "\n" or die "print: $!";
 close $fh or die "close: $!";
 
 chmod 0755, $install_to if $^O ne 'MSWin32';

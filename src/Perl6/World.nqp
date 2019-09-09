@@ -5491,8 +5491,6 @@ class Perl6::World is HLL::World {
         }
         if $found_xcbt {
             my $xcbt := $x_comp_bt.new(exception => $p6ex, :$use-case);
-            note("BEGIN TIME EXCEPTION IS AT ", self.current_file, " at ", self.current_line($/));
-            note("EXCEPTION: ", $p6ex.message);
             $xcbt.SET_FILE_LINE(
                 nqp::box_s(self.current_file,self.find_symbol(['Str'], :setting-only)),
                 nqp::box_i(self.current_line($/),self.find_symbol(['Int'], :setting-only)),

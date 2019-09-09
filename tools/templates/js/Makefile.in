@@ -5,9 +5,13 @@
 @bpv(NQP_FLAGS)@ = @bpm(NQP_BASE_FLAGS)@ --substagestats --stagestats --source-map
 @bpv(NQP_FLAGS_EXTRA)@ = --execname @bpm(RUNNER)@ --shebang
 @bpv(RUN_PERL6)@ = node --max-old-space-size=8192 perl6.js @bpm(NQP_BASE_FLAGS)@ --source-map
+@bpv(ALL_TARGETS)@ = rakudo.@bext@
 
 @bpv(CLEANUPS)@ = \
-	perl6.js \
+	@bsm(PERL6)@ \
+	rakudo.@bext@ \
+	@nfp(@base_dir@/*.js.map)@ \
+	@nfp(@bpm(BLIB)@/*.js.map)@ \
 	@bpm(BLIB_PERL6)@/load-compiler.js \
 	@bpm(BLIB_PERL6)@/*.js.map \
 	@bpm(BLIB_PERL6)@/BOOTSTRAP/*.js.map
@@ -22,25 +26,18 @@ js-install:: js-all
 
 # files we create
 
-#rakudo.js: @nfp(@bpm(BUILD_DIR)@/perl6.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@
-#	@echo '+++ Composing\t$@'
-#	@noecho@@bpm(NQP)@ @bpm(BASE_FLAGS)@ --execname $(JS_RUNNER) --substagestats --stagestats --target=js --source-map --shebang --output=rakudo.js @nfp($(JS_BUILD_DIR)/main.nqp)@
-
 @nfp(@bpm(BUILD_DIR)@/load-compiler.nqp)@: @nfp(src/vm/js/load-compiler.nqp)@
 @nfp(@bpm(BLIB_PERL6)@/load-compiler.js)@:   @nfp(@bpm(BUILD_DIR)@/load-compiler.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@
 
-#@nfp($(JS_BLIB)/load-compiler.js)@: @nfp(src/vm/js/load-compiler.nqp)@ $(PERL6_G_JS) $(PERL6_A_JS) $(PERL6_C_JS) $(PERL6_P_JS)
-#	$(MKPATH) $(JS_BLIB)
-#	$(JS_NQP) $(JS_FLAGS)  --substagestats --stagestats --target=js --source-map  --output=@nfp($(JS_BLIB)/load-compiler.js)@ @nfp(src/vm/js/load-compiler.nqp)@
-
-$(JS_RUNNER):
+@bpm(RUNNER)@:
 	$(PERL5) @script(create-js-runner.pl)@
 
-#js-all: check_nqp_version @nfp($(JS_BUILD_DIR)/ModuleLoader.nqp)@ $(PERL6_G_JS) $(PERL6_A_JS) $(PERL6_C_JS) $(PERL6_P_JS) rakudo.js @for_specs($(JS_BLIB)/CORE.@lcspec@.setting.js )@ $(JS_RUNNER) $(JS_BLIB)/load-compiler.js
+rakudo.@bext@: @bsm(PERL6)@
+	@noecho@$(CP) @bsm(PERL6)@ $@
+
 #TODO cleanup BOOTSTRAP
 js-clean:
 	$(RM_F) @bpm(CLEANUPS_ALL)@
-	#$(RM_F) @nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@ perl6.js BLIB)/CORE.setting.js $(JS_BUILD_DIR)/CORE.setting $(JS_BUILD_DIR)/ModuleLoader.nqp $(PERL6_ML_JS) $(JS_BUILD_DIR)/Perl6-Ops.nqp $(PERL6_OPS_JS) $(PERL6_P_JS) $(PERL6_W_JS) $(JS_BUILD_DIR)/Perl6-Actions.nqp $(PERL6_A_JS) $(PERL6_G_JS) $(JS_BUILD_DIR)/Perl6-Optimizer.nqp $(PERL6_O_JS) $(PERL6_C_JS) $(JS_BUILD_DIR)/main-version.nqp $(JS_BUILD_DIR)/main.nqp rakudo.js $(JS_BLIB)/load-compiler.js $(JS_BUILD_DIR)/Metamodel.nqp  $(PERL6_M_JS)
 
 js-lint:
 	gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@

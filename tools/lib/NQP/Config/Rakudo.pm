@@ -509,17 +509,29 @@ sub clean_old_p6_libs {
           qw(Actions.moarvm BOOTSTRAP.moarvm Compiler.moarvm Grammar.moarvm Metamodel.moarvm ModuleLoader.moarvm Ops.moarvm Optimizer.moarvm Pod.moarvm World.moarvm);
 
         my @notes;
+        my @clean_rules;
         for (@files) {
             my $file = File::Spec->catdir( $lib_dir, $_ );
             next unless -f $file;
-            push @notes, "Will remove: $file\n";
-            $self->{config}->{clean_old_p6_libs} .= "\t\$(RM_F) $file\n";
+            push @notes,       "Will remove: $file\n";
+            push @clean_rules, "\t\$(RM_F) $file";
         }
+        my $pp_pfx = $self->cfg('make_pp_pfx');
+
+        # Don't try removing if DESTDIR is defined for the running make. It is
+        # likely that a rakudo package is being built in a working environment.
+        $self->{config}->{clean_old_p6_libs} =
+          @clean_rules
+          ? ( "${pp_pfx}ifndef DESTDIR\n"
+              . join( "\n", @clean_rules )
+              . "\n${pp_pfx}endif\n" )
+          : "";
         $self->note(
             'NOTICE',
             "Found stale files in $lib_dir.\n",
             "These files were left by a previous install and cause breakage\n",
-"in this Rakudo version. The files will be removed during install.\n",
+            "in this Rakudo version. The installtion will try to remove them\n",
+            "if possible.\n",
             "\n",
             @notes
         ) if @notes;

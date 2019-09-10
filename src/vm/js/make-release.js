@@ -14,15 +14,19 @@ if (process.argv.length !== 7) {
   process.exit();
 }
 
-try {
-  fs.mkdirSync(releaseDir);
-} catch (e) {
-  if (e.code !== 'EEXIST') throw e;
+function mkdirIfMissing(dir) {
+  try {
+    fs.mkdirSync(dir);
+  } catch (e) {
+    if (e.code !== 'EEXIST') throw e;
+  }
 }
 
-const precompiledPerl6 = path.join(rakudoPath, 'node_modules');
+mkdirIfMissing(releaseDir);
+mkdirIfMissing(path.join(releaseDir, 'Perl6'));
+mkdirIfMissing(path.join(releaseDir, 'Perl6', 'BOOTSTRAP'));
 
-function prepare(oldPath, newPath) {
+function prepare(oldPath, newPath, keepLibpath) {
   console.log('generating', newPath);
   let contents = fs.readFileSync(oldPath, 'utf8');
 
@@ -32,7 +36,7 @@ function prepare(oldPath, newPath) {
 
   contents = contents.replace('body(require("' + runtime + '"), true)', 'body(require("nqp-runtime"), true)');
 
-  contents = contents.replace('nqp.libpath(["' + path.join(rakudoPath, "node_modules/") + '","' + path.join(nqpInstallPath, "share/nqp/lib/nqp-js-on-js/") + '"]);', 'nqp.libpath([{module: module, prefix:\'.\/\'}, {module: module, prefix:\'nqp-js-on-js/\'}]);\n');
+  contents = contents.replace('nqp.libpath(["' + path.join(rakudoPath, "blib") + '","' + path.join(nqpInstallPath, "share/nqp/lib/nqp-js-on-js") + '"]);', keepLibpath ? 'nqp.libpath([{module: module, prefix:\'.\/\'}, {module: module, prefix:\'nqp-js-on-js/\'}]);\n' : '');
 
   contents = contents.replace('nqp.extraRuntime(\'perl6\', "' + path.join(rakudoPath, "src/vm/js/perl6-runtime") + '")', 'nqp.extraRuntime(\'perl6\', module);');
 
@@ -41,22 +45,29 @@ function prepare(oldPath, newPath) {
   fs.writeFileSync(newPath, contents);
 }
 
-for (const file of fs.readdirSync(precompiledPerl6)) {
-  if (/\.js$/.test(file)) {
-    const oldPath = path.join(precompiledPerl6, file);
-    const newPath = path.join(releaseDir, file);
-    prepare(oldPath, newPath);
-  } else if (/\.map$/.test(file)) {
-    const oldPath = path.join(precompiledPerl6, file);
-    const newPath = path.join(releaseDir, file);
-    fs.copyFileSync(oldPath, newPath);
-  } else {
-    console.log('skipping', file);
+function copyOver(from, to) {
+  for (const file of fs.readdirSync(from)) {
+    if (/\.js$/.test(file)) {
+      const oldPath = path.join(from, file);
+      const newPath = path.join(to, file);
+      prepare(oldPath, newPath, false);
+    } else if (/\.map$/.test(file)) {
+      const oldPath = path.join(from, file);
+      const newPath = path.join(to, file);
+      fs.copyFileSync(oldPath, newPath);
+    } else {
+      console.log('skipping', file);
+    }
   }
 }
 
-fs.copyFileSync('rakudo.js.map', path.join(releaseDir, 'rakudo.js.map'));
-prepare('rakudo.js', path.join(releaseDir, 'rakudo.js'));
+copyOver(path.join(rakudoPath, 'blib'), releaseDir);
+copyOver(path.join(path.join(rakudoPath, 'blib'), 'Perl6'), path.join(releaseDir, 'Perl6'));
+copyOver(path.join(path.join(rakudoPath, 'blib'), 'Perl6', 'BOOTSTRAP'), path.join(releaseDir, 'Perl6', 'BOOTSTRAP'));
+
+
+fs.copyFileSync('perl6.js.map', path.join(releaseDir, 'perl6.js.map'));
+prepare('perl6.js', path.join(releaseDir, 'perl6.js'), true);
 
 fs.copyFileSync('src/vm/js/rakudo-library.js', path.join(releaseDir, 'rakudo-library.js'));
 
@@ -65,10 +76,10 @@ fs.writeFileSync(path.join(releaseDir, 'package.json'), JSON.stringify({
   "version": version,
   "name": "rakudo",
   "bin": {
-    "perl6-js": "rakudo.js"
+    "perl6-js": "perl6.js"
   },
   "files": [
-    "*.js", "*.js.map"
+    "**/*.js", "**/*.js.map"
   ],
   "licenses": [
     {

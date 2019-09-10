@@ -5,11 +5,9 @@
 @bpv(NQP_FLAGS)@ = @bpm(NQP_BASE_FLAGS)@ --substagestats --stagestats --source-map
 @bpv(NQP_FLAGS_EXTRA)@ = --execname @bpm(RUNNER)@ --shebang
 @bpv(RUN_PERL6)@ = node --max-old-space-size=8192 perl6.js @bpm(NQP_BASE_FLAGS)@ --source-map
-@bpv(ALL_TARGETS)@ = rakudo.@bext@
 
 @bpv(CLEANUPS)@ = \
 	@bsm(PERL6)@ \
-	rakudo.@bext@ \
 	@nfp(@base_dir@/*.js.map)@ \
 	@nfp(@bpm(BLIB)@/*.js.map)@ \
 	@bpm(BLIB_PERL6)@/load-compiler.js \
@@ -32,9 +30,6 @@
 @bpm(RUNNER)@:
 	@echo(+++ Creating JS runner)@
 	@noehcho@$(PERL5) @script(create-js-runner.pl)@
-
-rakudo.@bext@: @bsm(PERL6)@
-	@noecho@$(CP) @bsm(PERL6)@ $@
 
 #TODO cleanup BOOTSTRAP
 @backend_prefix@-clean:

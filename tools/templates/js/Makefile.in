@@ -31,7 +31,6 @@
 	@echo(+++ Creating JS runner)@
 	@noehcho@$(PERL5) @script(create-js-runner.pl)@
 
-#TODO cleanup BOOTSTRAP
 @backend_prefix@-clean:
 	@echo(+++ Cleaning up @uc(@backend@)@)@
 	@noecho@$(RM_F) @bpm(CLEANUPS_ALL)@

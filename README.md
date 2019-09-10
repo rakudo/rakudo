@@ -13,8 +13,10 @@ after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
 Rakudo is currently the most developed implementation of the Perl 6
- language; though there have been other partial implementation in the
- past. [For more see the FAQ](https://docs.perl6.org/language/faq#What's_the_difference_between_Raku,_Rakudo_and_Perl_6)
+ language; though there have been other partial implementations in the
+ past. [See the compilers page on the website for more](https://perl6.org/compilers/).
+
+Rakudo has multiple backends: MoarVM and JVM. Note that each backend has a slightly different set of features.
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.

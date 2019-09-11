@@ -80,7 +80,8 @@
   *.manifest \
   @nfp(blib/Perl6/*.@bext@)@ \
   @nfp(blib/Perl6/BOOTSTRAP/*.@bext@)@ \\@for_specs(
-  @bsm(SETTING_@ucspec@)@ \)@
+  @bsm(SETTING_@ucspec@)@ \
+  CORE.@lcspec@.setting.@bext@ \)@
   @bsm(PERL6)@ \
   @backend_prefix@-rakudo_test_run.tar.gz \
   @nfp(@bpm(BUILD_DIR)@/*.nqp)@ \

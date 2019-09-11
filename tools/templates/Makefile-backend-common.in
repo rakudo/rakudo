@@ -63,7 +63,6 @@
 @bpv(CORE_@ucspec@_SOURCES)@ = \
     @insert_filelist(core_sources)@
 )@
-@bpv(CORE_ALL_SOURCES)@ =@for_specs( @bpm(CORE_@ucspec@_SOURCES)@)@
 
 @bpv(PERL6_PRECOMPS)@ = \
     @bsm(PERL6_ML)@ @bsm(PERL6_W)@ @bsm(PERL6_G)@ @bsm(PERL6_OPS)@ \
@@ -169,7 +168,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 @comp(@bsm(PERL6_P)@: 	@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@ @nfp(gen/nqp-version)@)@
 @comp(@bsm(PERL6_W)@: 	@nfp(@bpm(BUILD_DIR)@/World.nqp)@ @bsm(PERL6_ML)@ @bsm(PERL6_OPS)@ @bsm(PERL6_P)@)@
 
-@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bsm(METAMODEL_ALL_SOURCES)@@for_specs( @bpm(BOOTSTRAP_@ucspec_SOURCES)@ @bpm(CORE_@ucspec@_SOURCES)@)@
+@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bsm(METAMODEL_ALL_SOURCES)@@for_specs( @bpm(BOOTSTRAP_@ucspec@_SOURCES)@ @bpm(CORE_@ucspec@_SOURCES)@)@
 	@echo(+++ Expanding	$@)@
 	@noecho@$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@
 
@@ -181,7 +180,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @comp_rr(@bsm(PERL6_BOOTSTRAP_@ucspec@)@: @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@ @bsm(PERL6_M)@)@
 
-@bsm(SETTING_@ucspec@)@: @bsm(PERL6)@ @bsm(PERL6_BOOTSTRAP_@ucspec@)@ @bpm(CORE_ALL_SOURCES)@
+@bsm(SETTING_@ucspec@)@: @bsm(PERL6)@ @bsm(PERL6_BOOTSTRAP_@ucspec@)@ @bpm(CORE_@ucspec@_SOURCES)@
 	@echo(+++ Compiling	$@)@
 	@noecho@$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
 			 --out @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ \

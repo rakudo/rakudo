@@ -16,7 +16,7 @@ my class Junction { # declared in BOOTSTRAP
             nqp::stmts(
               ($!storage := nqp::if(
                 nqp::isconcrete(
-                  $_ := nqp::getattr(values.eager.list,List,'$!reified')),
+                  $_ := nqp::getattr(values.map({nqp::decont($_)}).eager.list,List,'$!reified')),
                 $_,
                 nqp::create(IterationBuffer))),
               self

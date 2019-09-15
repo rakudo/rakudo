@@ -1248,69 +1248,71 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method join(List:D: Str(Cool) $separator = '') is nodal {
-        nqp::stmts(
-          nqp::if(
-            nqp::isconcrete($!todo),
-            nqp::stmts(                          # need to reify first
-              $!todo.reify-until-lazy,
+        self.gistseen(self.^name, {
+            nqp::stmts(
               nqp::if(
-                $!todo.fully-reified,
-                ($!todo := nqp::null),           # all reified
-                (my int $infinite = 1)           # still stuff left to do
-              )
-            )
-          ),
-          nqp::if(
-            nqp::isconcrete($!reified)
-              && (my int $elems = nqp::elems($!reified)),
-            nqp::stmts(                          # something to join
-              (my $strings := nqp::list_s),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::stmts(                      # something left to check
-                  (my $tmp := nqp::ifnull(
-                    nqp::atpos($!reified,$i),
-                    nqp::if(
-                      nqp::isconcrete(my $default),
-                      $default,                  # seen before
-                      ($default := nqp::if(      # first time we see null
-                        nqp::can(self,'default'),
-                        self.default.Str,
-                        ''
-                      ))
-                    )
-                  )),
+                nqp::isconcrete($!todo),
+                nqp::stmts(                          # need to reify first
+                  $!todo.reify-until-lazy,
                   nqp::if(
-                    nqp::isconcrete($tmp),
-                    nqp::if(                     # not a type object
-                      nqp::istype($tmp,Junction),
-                      (return self!JUNCTIONIZE(  # follow Junction path
-                        $separator, $strings, $i, $elems, $tmp
-                      )),
-                      nqp::push_s(               # no special action needed
-                        $strings,
-                        nqp::if(
-                          nqp::istype($tmp,Str),
-                          $tmp,
-                          nqp::if(
-                            nqp::can($tmp,'Str'),
-                            $tmp.Str,
-                            nqp::box_s($tmp,Str)
-                          )
-                        )
-                      )
-                    ),
-                    nqp::push_s($strings,$tmp.Str)   # type object
+                    $!todo.fully-reified,
+                    ($!todo := nqp::null),           # all reified
+                    (my int $infinite = 1)           # still stuff left to do
                   )
                 )
               ),
-              nqp::if($infinite,nqp::push_s($strings,'...')),
-              nqp::p6box_s(nqp::join($separator,$strings))  # done
-            ),
-            nqp::if($infinite,'...','')          # nothing to join
-          )
-        )
+              nqp::if(
+                nqp::isconcrete($!reified)
+                  && (my int $elems = nqp::elems($!reified)),
+                nqp::stmts(                          # something to join
+                  (my $strings := nqp::list_s),
+                  (my int $i = -1),
+                  nqp::while(
+                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::stmts(                      # something left to check
+                      (my $tmp := nqp::ifnull(
+                        nqp::atpos($!reified,$i),
+                        nqp::if(
+                          nqp::isconcrete(my $default),
+                          $default,                  # seen before
+                          ($default := nqp::if(      # first time we see null
+                            nqp::can(self,'default'),
+                            self.default.Str,
+                            ''
+                          ))
+                        )
+                      )),
+                      nqp::if(
+                        nqp::isconcrete($tmp),
+                        nqp::if(                     # not a type object
+                          nqp::istype($tmp,Junction),
+                          (return self!JUNCTIONIZE(  # follow Junction path
+                            $separator, $strings, $i, $elems, $tmp
+                          )),
+                          nqp::push_s(               # no special action needed
+                            $strings,
+                            nqp::if(
+                              nqp::istype($tmp,Str),
+                              $tmp,
+                              nqp::if(
+                                nqp::can($tmp,'Str'),
+                                $tmp.Str,
+                                nqp::box_s($tmp,Str)
+                              )
+                            )
+                          )
+                        ),
+                        nqp::push_s($strings,$tmp.Str)   # type object
+                      )
+                    )
+                  ),
+                  nqp::if($infinite,nqp::push_s($strings,'...')),
+                  nqp::p6box_s(nqp::join($separator,$strings))  # done
+                ),
+                nqp::if($infinite,'...','')          # nothing to join
+              )
+            )
+        })
     }
 
     # When we find a Junction in the list, start handling the rest

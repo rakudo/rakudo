@@ -1,5 +1,5 @@
 @exec_name@: @nfp(src/vm/moar/runner/main.c)@
-	@echo "+++ Compiling\t$@"
+	@echo(+++ Compiling	$@)@
 	@noecho@$(RM_F) $@
 # Using only the pkgconfig moar includes does not work, because moar.h assumes all the specific includes below.
 	@noecho@@bpm(CC)@ @moar::ccswitch@ @exec_path_define@ @static_nqp_home_define@ @static_perl6_home_define@ @debug_flag@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@obj_file@@moar::obj@ @nfp(src/vm/moar/runner/main.c)@

@@ -38,7 +38,7 @@ RUNTIME_JAR = rakudo-runtime.jar
 @include(Makefile-backend-common)@
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
-	@echo "+++ Generating\t$@"
+	@echo(+++ Generating	$@)@
 	@noecho@$(MKPATH) bin
 	@noecho@$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	@noecho@$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .

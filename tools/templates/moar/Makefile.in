@@ -87,7 +87,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @include(Makefile-backend-common)@
 
 @bpm(PERL6_OPS_DLL)@: @bpm(PERL6_OP_DLLS_SRC)@ @bpm(PERL6_CONT_SRC)@
-	@echo "+++ Compiling\t$@"
+	@echo(+++ Compiling	$@)@
 	@noecho@@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_OPS_DLL_SRC)@
 	@noecho@@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_CONT_OBJ)@ @bpm(PERL6_CONT_SRC)@
 	@noecho@@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(PERL6_OPS_DLL)@ @bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_CONT_OBJ)@ @moar_lib@
@@ -105,7 +105,7 @@ m-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 )@
 
 @bpm(RUNNER)@: @@configure_script@@ @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.windows)@)@@
-	@echo "+++ Generating\t$@"
+	@echo(+++ Generating	$@)@
 	@noecho@$(RM_F) @q(@bpm(RUNNER)@)@
 	@noecho@$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m-build.c)@ --out perl6-m.c \
 		--set-var=MOAR=$(MOAR) \

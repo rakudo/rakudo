@@ -17,7 +17,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::create(Map), Map, '$!storage',
             nqp::getattr(self,Map,'$!storage')
           ),
-          nqp::create(Map).STORE(self, :INITIALIZE)
+          nqp::create(Map).STORE(self, :INITIALIZE, :DECONT)
         )
     }
     method clone(Hash:D:) is raw {

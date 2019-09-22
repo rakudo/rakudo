@@ -62,7 +62,7 @@ MAIN: {
     $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
-        %{$cfg->options},
+        $cfg->options,
         'help!',            'prefix=s',
         'perl6-home=s',     'nqp-home=s',
         'sysroot=s',        'sdkroot=s',
@@ -76,7 +76,7 @@ MAIN: {
         'rakudo-repo=s',    'nqp-repo=s',
         'moar-repo=s',      'roast-repo=s',
         'expand=s',         'out=s',
-        'set-var=s@',
+        'set-var=s@',       'silent-build!'
       )
       or do {
         print_help();

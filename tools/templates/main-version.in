@@ -34,7 +34,8 @@ sub hll-config($config) {
 )@
     );
     $config<prefix>           := '@prefix@';
-    $config<libdir>           := '@libdir@';
+    $config<nqp-home>         := '@nqp_home@';
+    $config<perl6-home>       := '@perl6_home@';
     $config<source-digest>    := '@source_digest()@';
 }
 

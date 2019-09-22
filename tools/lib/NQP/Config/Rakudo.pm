@@ -120,6 +120,7 @@ sub configure_backends {
 sub configure_refine_vars {
     my $self = shift;
 
+    my $config = $self->{config};
     my $nqp_bin = $self->cfg('nqp_default');
     if ($nqp_bin) {
         my ( $vol, $dir, undef ) = File::Spec->splitpath($nqp_bin);
@@ -152,6 +153,13 @@ sub configure_refine_vars {
     }
 
     $self->SUPER::configure_refine_vars(@_);
+
+    $config->{perl6_home} = $self->nfp(
+        File::Spec->rel2abs(
+          $config->{perl6_home} ||
+          File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
+        )
+    );
 }
 
 sub parse_lang_specs {
@@ -340,13 +348,8 @@ sub configure_moar_backend {
     }
     else {
         my $qchar = $config->{quote};
-        $nqp_config->{static_nqp_home} =
-          File::Spec->rel2abs(
-            File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp' )
-          );
-        $nqp_config->{static_perl6_home} =
-          File::Spec->rel2abs(
-            File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ) );
+        $nqp_config->{static_nqp_home}   = $nqp_config->{'nqp::nqp_home'};
+        $nqp_config->{static_perl6_home} = $config->{perl6_home};
         $nqp_config->{static_nqp_home_define} =
             '-DSTATIC_NQP_HOME='
           . $qchar
@@ -661,7 +664,7 @@ sub gen_nqp {
     # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
         qw<git-depth git-reference github-user nqp-repo moar-repo
-        relocatable ignore-errors with-moar>
+        nqp-home relocatable ignore-errors with-moar>
       )
     {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );

@@ -661,7 +661,7 @@ sub gen_nqp {
     # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
         qw<git-depth git-reference github-user nqp-repo moar-repo
-        relocatable ignore-errors with-moar>
+        relocatable ignore-errors with-moar silent-build>
       )
     {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );

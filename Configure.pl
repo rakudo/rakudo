@@ -62,7 +62,6 @@ MAIN: {
     $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
-        $cfg->options,
         'help!',            'prefix=s',
         'perl6-home=s',     'nqp-home=s',
         'sysroot=s',        'sdkroot=s',

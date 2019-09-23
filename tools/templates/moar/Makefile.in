@@ -82,7 +82,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(HARNESS6)@ = @nfp(./@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
 @bpv(HARNESS6_WITH_FUDGE)@ = @bpm(HARNESS6)@ --fudge
 
-@bpv(RUN_CLEAN_TARGET_FILES)@ = @bpm(RUN_PERL6)@ -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str; .IO.unlink if .IO.e } }"
+@bpv(RUN_CLEAN_TARGET_FILES)@ = @bpm(RUN_PERL6)@ -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str unless '@noecho@' eq '@'; .IO.unlink if .IO.e } }"
 
 @include(Makefile-backend-common)@
 
@@ -95,7 +95,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING_SRC)
 	@noecho@@bpm(RUN_PERL6)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
-m-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
+@backend_prefix@-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 
 @perl(
     for my $toolchain (qw<gdb lldb valgrind>) {
@@ -147,43 +147,64 @@ m-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 
 # No sense in moving this into Makefile-backend-common.in because moar backend
 # is the only one supporting harness6
-m-test6   : m-coretest6
+@backend_prefix@-test6   : @backend_prefix@-coretest6
 
-m-coretest6: m-all
+@backend_prefix@-coretest6: @backend_prefix@-all
 	@bpm(HARNESS6)@ @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
 
 # Run the spectests that we know work.
-m-spectest6: m-testable $(SPECTEST_DATA)
+@backend_prefix@-spectest6: @backend_prefix@-testable $(SPECTEST_DATA)
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA)
 
-m-spectest_full6: m-testable
+@backend_prefix@-spectest_full6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ @nfp(t/spec)@
 
-m-quicktest6: m-testable $(SPECTEST_DATA)
+@backend_prefix@-quicktest6: @backend_prefix@-testable $(SPECTEST_DATA)
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --quick
 
-m-stresstest6: m-testable $(SPECTEST_DATA)
+@backend_prefix@-stresstest6: @backend_prefix@-testable $(SPECTEST_DATA)
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --stress
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 # Run the tests in t/localtest.data
-m-localtest: m-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@
 
 # Run the tests in t/localtest.data with a higher verbosity
-m-localtest_loud: m-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest_loud: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
-m-sometests: m-all
+@backend_prefix@-sometests: @backend_prefix@-all
 	@bpm(HARNESS6_WITH_FUDGE)@ $(TESTFILES)
 
-m-runner-default-install: m-install
-	$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6))@
-	$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG))@
+@backend_prefix@-install-dirs::
+	@noecho@$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
+
+@backend_prefix@-install-pre::
+	@echo(+++ Removing old files)@
+	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
+	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
+	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
+
+@backend_prefix@-install-main:: @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
+	@noecho@$(CP) @bpm(PERL6_OPS_DLL)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
+	@noecho@$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
+	@noecho@$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_M)@)@
+	@noecho@$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG_M)@)@
+@expand(@m_install@)@ 
+
+@backend_prefix@-install-post::
+@clean_old_p6_libs@
+
+@backend_prefix@-runner-default-install: @backend_prefix@-install
+	@echo(+++ Installing @uc(@backend@)@ launchers)@
+	@noecho@$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6))@
+	@noecho@$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG))@
 
 manifest:
 	@echo(+++ Creating	MANIFEST)@
@@ -204,10 +225,11 @@ release: manifest
 
 
 ##  cleaning
-m-clean:
-	$(RM_F) @bpm(CLEANUPS_ALL)@
-	$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
+@backend_prefix@-clean:
+	@echo(+++ Cleaning up @uc(@backend@)@)@
+	@noecho@$(RM_F) @bpm(CLEANUPS_ALL)@
+	@noecho@$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
 
-m-testclean:
+@backend_prefix@-testclean:
 
 # vim: ft=make noexpandtab ts=4 sw=4

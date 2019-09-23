@@ -36,3 +36,5 @@ R_SETTING_SRC = @nfp(src/RESTRICTED.setting)@
 SPECTEST_DATA = @nfp(t/spec/spectest.data)@
 
 HARNESS_TYPE = 5
+
+# vim: ft=make noexpandtab ts=4 sw=4

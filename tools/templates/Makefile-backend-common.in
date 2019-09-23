@@ -20,7 +20,8 @@
 @make_pp_pfx@ifndef @bpv(RUNNER_SUFFIX)@
 @bpv(RUNNER_SUFFIX)@ = @runner_suffix@
 @make_pp_pfx@endif
-@bpv(LIBDIR)@ = @nfp($(PERL6_HOME)/lib)@
+@bpv(LIBDIR)@	= @nfp($(PERL6_HOME)/lib)@
+@bpv(NQP_HOME)@	= @nfp(@nqp::nqp_home@)@
 
 # files we create
 @bsv(PERL6)@ = perl6.@bext@
@@ -158,27 +159,28 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 @gencat(@nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@:	@nfp(src/perl6-debug.nqp)@ @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@)@
 
 # Generate precompilations
-@comp(@bsm(PERL6_A)@: 	@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@ @bsm(PERL6_P)@ @bsm(PERL6_OPS)@)@
-@comp(@bsm(PERL6_C)@: 	@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@ @bsm(PERL6_O)@)@
-@comp(@bsm(PERL6_G)@: 	@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@ @bsm(PERL6_W)@ @bsm(PERL6_A)@ @bsm(PERL6_P)@)@
-@comp(@bsm(PERL6_M)@: 	@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@ @bsm(PERL6_OPS)@)@
-@comp(@bsm(PERL6_ML)@: 	@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@ @nfp(gen/nqp-version)@)@
-@comp(@bsm(PERL6_OPS)@:	@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@ @bpm(PERL6_OPS_EXTRA)@ @nfp(gen/nqp-version)@)@
-@comp(@bsm(PERL6_O)@:		@nfp(@bpm(BUILD_DIR)@/Optimizer.nqp)@ @bsm(PERL6_OPS)@)@
-@comp(@bsm(PERL6_P)@: 	@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@ @nfp(gen/nqp-version)@)@
-@comp(@bsm(PERL6_W)@: 	@nfp(@bpm(BUILD_DIR)@/World.nqp)@ @bsm(PERL6_ML)@ @bsm(PERL6_OPS)@ @bsm(PERL6_P)@)@
+@comp(@bsm(PERL6_A)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@)@ @bsm(PERL6_P)@ @bsm(PERL6_OPS)@)@
+@comp(@bsm(PERL6_C)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@)@ @bsm(PERL6_O)@)@
+@comp(@bsm(PERL6_G)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@)@ @bsm(PERL6_W)@ @bsm(PERL6_A)@ @bsm(PERL6_P)@)@
+@comp(@bsm(PERL6_M)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@)@ @bsm(PERL6_OPS)@)@
+@comp(@bsm(PERL6_ML)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@)@ @nfp(gen/nqp-version)@)@
+@comp(@bsm(PERL6_OPS)@:	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@)@ @bpm(PERL6_OPS_EXTRA)@ @nfp(gen/nqp-version)@)@
+@comp(@bsm(PERL6_O)@:	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Optimizer.nqp)@)@ @bsm(PERL6_OPS)@)@
+@comp(@bsm(PERL6_P)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@)@ @nfp(gen/nqp-version)@)@
+@comp(@bsm(PERL6_W)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/World.nqp)@)@ @bsm(PERL6_ML)@ @bsm(PERL6_OPS)@ @bsm(PERL6_P)@)@
 
 @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bsm(METAMODEL_ALL_SOURCES)@@for_specs( @bpm(BOOTSTRAP_@ucspec@_SOURCES)@ @bpm(CORE_@ucspec@_SOURCES)@)@
 	@echo(+++ Expanding	$@)@
-	@noecho@$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@
+	@noecho@$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@ \
+		--set-var=nqp_home=@bpm(NQP_HOME)@
 
-@comp_rr(@bsm(PERL6)@: @nfp(@bpm(BUILD_DIR)@/perl6.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ @bpm(PERL6_DEPS_EXTRA)@)@
+@comp_rr(@bsm(PERL6)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/perl6.nqp)@)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ @bpm(PERL6_DEPS_EXTRA)@)@
 
-@comp_rr(@bsm(PERL6_DEBUG)@: @nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@ @bsm(PERL6)@)@
+@comp_rr(@bsm(PERL6_DEBUG)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@)@ @bsm(PERL6)@)@
 
 @for_specs(@gencat(@nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@: @bpm(BOOTSTRAP_@ucspec@_SOURCES)@)@
 
-@comp_rr(@bsm(PERL6_BOOTSTRAP_@ucspec@)@: @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@ @bsm(PERL6_M)@)@
+@comp_rr(@bsm(PERL6_BOOTSTRAP_@ucspec@)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@)@ @bsm(PERL6_M)@)@
 
 @bsm(SETTING_@ucspec@)@: @bsm(PERL6)@ @bsm(PERL6_BOOTSTRAP_@ucspec@)@ @bpm(CORE_@ucspec@_SOURCES)@
 	@echo(+++ Compiling	$@)@
@@ -191,35 +193,33 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 )@
 
-@backend_prefix@-install:: @backend_prefix@-all @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME))@
-	$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@)@
-	$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
-	$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
-	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-@if(backend==moar	$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
-	@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
-	$(CP) @bpm(PERL6_OPS_DLL)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
-	$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_M)@)@
-	$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG_M)@)@
-)@@if(backend==jvm	$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-)@	$(CP) @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
-	$(CP) @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	$(CP) @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(CP) @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
-	@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
-	@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
-	@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(install-core-dist.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
-@if(backend==moar @clean_old_p6_libs@@expand(@m_install@)@ 
-)@@if(backend==jvm	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
-)@
+@backend_prefix@-install-dirs::
+	@echo(+++ Creating installation directories)@
+	@noecho@$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
+	@noecho@$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME))@
+	@noecho@$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@)@
+	@noecho@$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
+	@noecho@$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
+	@noecho@$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
+	@noecho@$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
+	@noecho@$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+
+@backend_prefix@-install-pre:: @backend_prefix@-install-dirs
+
+@backend_prefix@-install-main:: @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
+	@echo(+++ Installing files)@
+	@noecho@$(CP) @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
+	@noecho@$(CP) @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
+	@noecho@$(CP) @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	@noecho@$(CP) @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+
+@backend_prefix@-install-post::
+	@echo(+++ Preparing installation)@
+	@noecho@@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
+	@noecho@@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
+	@noecho@@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
+	@noecho@@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(install-core-dist.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
+
+@backend_prefix@-install:: @backend_prefix@-all @backend_prefix@-install-pre @backend_prefix@-install-main @backend_prefix@-install-post
+	@echo(+++ @uc(@backend@)@ BACKEND INSTALLED)@
 

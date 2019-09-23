@@ -66,11 +66,11 @@ MAIN: {
         'help!',            'prefix=s',
         'perl6-home=s',     'nqp-home=s',
         'sysroot=s',        'sdkroot=s',
-        'relocatable',      'backends=s',
+        'relocatable!',     'backends=s',
         'no-clean',         'with-nqp=s',
         'gen-nqp:s',        'gen-moar:s',
         'moar-option=s@',   'git-protocol=s',
-        'ignore-errors',    'make-install!',
+        'ignore-errors!',   'make-install!',
         'makefile-timing!', 'git-depth=s',
         'git-reference=s',  'github-user=s',
         'rakudo-repo=s',    'nqp-repo=s',
@@ -120,7 +120,7 @@ MAIN: {
     unless ( $cfg->opt('expand') ) {
         my $make = $cfg->cfg('make');
 
-        unless ( $cfg->opt('no-clean') ) {
+        if ( $cfg->opt('clean') ) {
             no warnings;
             print "Cleaning up ...\n";
             if ( open my $CLEAN, '-|', "$make clean" ) {

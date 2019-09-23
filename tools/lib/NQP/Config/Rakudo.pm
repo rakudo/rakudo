@@ -120,7 +120,7 @@ sub configure_backends {
 sub configure_refine_vars {
     my $self = shift;
 
-    my $config = $self->{config};
+    my $config  = $self->{config};
     my $nqp_bin = $self->cfg('nqp_default');
     if ($nqp_bin) {
         my ( $vol, $dir, undef ) = File::Spec->splitpath($nqp_bin);
@@ -156,8 +156,8 @@ sub configure_refine_vars {
 
     $config->{perl6_home} = $self->nfp(
         File::Spec->rel2abs(
-          $config->{perl6_home} ||
-          File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
+            $config->{perl6_home}
+              || File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
         )
     );
 }
@@ -390,7 +390,7 @@ sub configure_moar_backend {
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
             $config->{m_install} = "\t"
-              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
+              . q<@noecho@$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $nqp_config->{mingw_unicode} = '-municode';
@@ -517,9 +517,13 @@ sub clean_old_p6_libs {
             my $file = File::Spec->catdir( $lib_dir, $_ );
             next unless -f $file;
             push @notes,       "Will remove: $file\n";
-            push @clean_rules, "\t\$(RM_F) $file";
+            push @clean_rules, "\t\@noecho\@\$(RM_F) $file";
         }
         my $pp_pfx = $self->cfg('make_pp_pfx');
+        if (@clean_rules) {
+            unshift @clean_rules,
+              "\@echo(+++ Cleaning up outdated MOAR files)\@\n";
+        }
 
         # Don't try removing if DESTDIR is defined for the running make. It is
         # likely that a rakudo package is being built in a working environment.
@@ -664,7 +668,7 @@ sub gen_nqp {
     # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
         qw<git-depth git-reference github-user nqp-repo moar-repo
-        nqp-home relocatable ignore-errors with-moar>
+        nqp-home relocatable ignore-errors with-moar silent-build>
       )
     {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );
@@ -793,22 +797,20 @@ TPL
 sub _m_comp {
     my $self         = shift;
     my $text         = shift;
-    my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
-\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ $first_prereq
+\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@prereqs\@
 TPL
 }
 
 sub _m_comp_rr {
     my $self         = shift;
     my $text         = shift;
-    my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
-\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ $first_prereq
+\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \@prereqs\@
 TPL
 }
 
@@ -816,8 +818,8 @@ NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
 NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
 NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
 NQP::Macros->register_macro( 'gencat',        \&_m_gencat );
-NQP::Macros->register_macro( 'comp',          \&_m_comp );
-NQP::Macros->register_macro( 'comp_rr',       \&_m_comp_rr );
+NQP::Macros->register_macro( 'comp',          \&_m_comp, in_receipe => 1, );
+NQP::Macros->register_macro( 'comp_rr',       \&_m_comp_rr, in_receipe => 1, );
 
 1;
 

@@ -20,7 +20,8 @@
 @make_pp_pfx@ifndef @bpv(RUNNER_SUFFIX)@
 @bpv(RUNNER_SUFFIX)@ = @runner_suffix@
 @make_pp_pfx@endif
-@bpv(LIBDIR)@ = @nfp($(PERL6_HOME)/lib)@
+@bpv(LIBDIR)@	= @nfp($(PERL6_HOME)/lib)@
+@bpv(NQP_HOME)@	= @nfp(@nqp::nqp_home@)@
 
 # files we create
 @bsv(PERL6)@ = perl6.@bext@
@@ -170,7 +171,8 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bsm(METAMODEL_ALL_SOURCES)@@for_specs( @bpm(BOOTSTRAP_@ucspec@_SOURCES)@ @bpm(CORE_@ucspec@_SOURCES)@)@
 	@echo(+++ Expanding	$@)@
-	@noecho@$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@
+	@noecho@$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@ \
+		--set-var=nqp_home=@bpm(NQP_HOME)@
 
 @comp_rr(@bsm(PERL6)@: @nfp(@bpm(BUILD_DIR)@/perl6.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@ @bpm(PERL6_DEPS_EXTRA)@)@
 

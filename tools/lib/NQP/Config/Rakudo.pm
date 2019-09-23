@@ -797,22 +797,20 @@ TPL
 sub _m_comp {
     my $self         = shift;
     my $text         = shift;
-    my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
-\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ $first_prereq
+\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@prereqs\@
 TPL
 }
 
 sub _m_comp_rr {
     my $self         = shift;
     my $text         = shift;
-    my $first_prereq = $self->cfg->cfg('make_first_prereq');
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
-\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ $first_prereq
+\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \@prereqs\@
 TPL
 }
 
@@ -820,8 +818,8 @@ NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
 NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
 NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
 NQP::Macros->register_macro( 'gencat',        \&_m_gencat );
-NQP::Macros->register_macro( 'comp',          \&_m_comp );
-NQP::Macros->register_macro( 'comp_rr',       \&_m_comp_rr );
+NQP::Macros->register_macro( 'comp',          \&_m_comp, in_receipe => 1, );
+NQP::Macros->register_macro( 'comp_rr',       \&_m_comp_rr, in_receipe => 1, );
 
 1;
 

@@ -18,9 +18,9 @@
 
 # Have this target before including Makefile-backend-common to prevent the
 # default js-install from executing.
-js-install:: js-all
-	@echo "Installing the js backend is not yet implemented."
-	@exit 1
+@backend_prefix@-install:: @backend_prefix@-all
+	@echo(!!! Installing the js backend is not yet implemented.)@
+	@noecho@exit 1
 
 @include(Makefile-backend-common)@
 
@@ -30,23 +30,26 @@ js-install:: js-all
 @nfp(@bpm(BLIB_PERL6)@/load-compiler.js)@:   @nfp(@bpm(BUILD_DIR)@/load-compiler.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@
 
 @bpm(RUNNER)@:
-	$(PERL5) @script(create-js-runner.pl)@
+	@echo(+++ Creating JS runner)@
+	@noehcho@$(PERL5) @script(create-js-runner.pl)@
 
 rakudo.@bext@: @bsm(PERL6)@
 	@noecho@$(CP) @bsm(PERL6)@ $@
 
 #TODO cleanup BOOTSTRAP
-js-clean:
-	$(RM_F) @bpm(CLEANUPS_ALL)@
+@backend_prefix@-clean:
+	@echo(+++ Cleaning up @uc(@backend@)@)@
+	@noecho@$(RM_F) @bpm(CLEANUPS_ALL)@
 
-js-lint:
-	gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@
+@backend_prefix@-lint:
+	@echo(+++ Linting @uc(@backend@)@ runtime)@
+	@noecho@gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@
 
 #js-testable: js-all spectest_checkout spectest_update
 
-js-spectest: js-testable
+@backend_prefix@-spectest5: @backend_prefix@-testable
 	$(PERL5) t/harness5 --fudge --js --keep-exit-code --tests-from-file=@nfp(t/spectest.js.data)@
 
-js-runner-default:
+@backend_prefix@-runner-default:
 
 # vim: ft=make noexpandtab ts=4 sw=4

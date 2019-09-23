@@ -120,7 +120,7 @@ sub configure_backends {
 sub configure_refine_vars {
     my $self = shift;
 
-    my $config = $self->{config};
+    my $config  = $self->{config};
     my $nqp_bin = $self->cfg('nqp_default');
     if ($nqp_bin) {
         my ( $vol, $dir, undef ) = File::Spec->splitpath($nqp_bin);
@@ -156,8 +156,8 @@ sub configure_refine_vars {
 
     $config->{perl6_home} = $self->nfp(
         File::Spec->rel2abs(
-          $config->{perl6_home} ||
-          File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
+            $config->{perl6_home}
+              || File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
         )
     );
 }
@@ -390,7 +390,7 @@ sub configure_moar_backend {
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
             $config->{m_install} = "\t"
-              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
+              . q<@noecho@$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $nqp_config->{mingw_unicode} = '-municode';
@@ -517,9 +517,13 @@ sub clean_old_p6_libs {
             my $file = File::Spec->catdir( $lib_dir, $_ );
             next unless -f $file;
             push @notes,       "Will remove: $file\n";
-            push @clean_rules, "\t\$(RM_F) $file";
+            push @clean_rules, "\t\@noecho\@\$(RM_F) $file";
         }
         my $pp_pfx = $self->cfg('make_pp_pfx');
+        if (@clean_rules) {
+            unshift @clean_rules,
+              "\@echo(+++ Cleaning up outdated MOAR files)\@\n";
+        }
 
         # Don't try removing if DESTDIR is defined for the running make. It is
         # likely that a rakudo package is being built in a working environment.

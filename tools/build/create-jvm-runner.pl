@@ -96,7 +96,7 @@ sub install {
         ? File::Spec->catfile($destdir, $bindir, "$name$bat")
         : File::Spec->catfile($bindir, "$name$bat");
 
-    print "Creating '$install_to'\n";
+    #print "Creating '$install_to'\n";
     open my $fh, ">", $install_to or die "open: $!";
     print $fh $preamble, $command, $postamble, "\n" or die "print: $!";
     close $fh or die "close: $!";

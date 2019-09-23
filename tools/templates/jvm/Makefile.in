@@ -44,50 +44,61 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	@noecho@$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
 
 $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q($(NQP_HOME))@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
+	@echo(+++ Setting up	$@)@
+	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q(@bpm(NQP_HOME)@)@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
 
-j-runner-default: j-all
-	$(CP) $(J_RUNNER) perl6$(J_BAT)
-	$(CHMOD) 755 perl6$(J_BAT)
+@backend_prefix@-runner-default: @backend_prefix@-all
+	@echo(+++ Setting up @uc(@backend@)@ runner)@
+	@noecho@$(CP) $(J_RUNNER) perl6$(J_BAT)
+	@noecho@$(CHMOD) 755 perl6$(J_BAT)
 
 @bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(PERL6_DEBUG)@
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q($(NQP_HOME))@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
+	@echo(+++ Setting up	$@)@
+	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q(@bpm(NQP_HOME)@)@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
 
 eval-client.pl:
-	$(CP) @nfpq($(SDKROOT)$(NQP_PREFIX)/bin/eval-client.pl)@ .
+	@echo(+++ Setting up	$@)@
+	@noecho@$(CP) @nfpq($(SDKROOT)$(NQP_PREFIX)/bin/eval-client.pl)@ .
 
 ##  testing targets
 
 # Run the spectests that we know work.
-j-rakudo_test_run.tar.gz: j-testable $(SPECTEST_DATA)
-	- $(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --archive j-rakudo_test_run.tar.gz
+@backend_prefix@-rakudo_test_run.tar.gz: @backend_prefix@-testable $(SPECTEST_DATA)
+	- $(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --archive @backend_prefix@-rakudo_test_run.tar.gz
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 # Run the tests in t/localtest.data
-j-localtest: j-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
 	@$(J_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/localtest.data)@
 
 # Run the tests in t/localtest.data with a higher verbosity
-j-localtest_loud: j-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest_loud: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
 	@$(J_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
 
 # Run many tests of your choice.
 # make sometests TESTFILES=t/foo/bar
-sometests: j-all
+sometests: @backend_prefix@-all
 	@$(J_HARNESS5_WITH_FUDGE) $(TESTFILES)
 
-j-runner-default-install: j-install
-	$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_HOME))@ @q($(PERL6_HOME))@ "" @q($(NQP_JARS))@
-	$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
-	$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
+@backend_prefix@-runner-default-install: @backend_prefix@-install
+	@echo(+++ Installing @uc(@backend@)@ launcher)@
+	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_HOME))@ @q($(PERL6_HOME))@ "" @q($(NQP_JARS))@
+	@noecho@$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
+	@noecho@$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
+
+@backend_prefix@-install-main:: @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
+	@noecho@$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
+	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
 
 ##  cleaning
-j-clean:
-	$(RM_F) @bpm(CLEANUPS_ALL)@
-	$(RM_RF) bin
+@backend_prefix@-clean:
+	@echo(+++ Cleaning up @uc(@backend@)@)@
+	@noecho@$(RM_F) @bpm(CLEANUPS_ALL)@
+	@noecho@$(RM_RF) bin
 
-j-testclean:
+@backend_prefix@-testclean:
 
 # vim: ft=make noexpandtab ts=4 sw=4

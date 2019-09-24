@@ -21,6 +21,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
+    does Perl6::Metamodel::ContainerSpecProtocol
     does Perl6::Metamodel::Finalization
     does Perl6::Metamodel::Concretization
 {
@@ -220,6 +221,7 @@ class Perl6::Metamodel::ClassHOW
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
+        self.publish_container_spec($obj);
 
         # Compose the meta-methods.
         self.compose_meta_methods($obj);

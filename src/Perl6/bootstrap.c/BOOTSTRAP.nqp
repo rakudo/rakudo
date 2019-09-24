@@ -1759,6 +1759,7 @@ BEGIN {
         'store', $PROXY_STORE
     ));
     Proxy.HOW.compose(Proxy);
+    Proxy.HOW.compose_repr(Proxy);
 
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6
     # Attribute instance, complete with container descriptor and optional

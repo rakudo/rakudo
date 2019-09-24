@@ -1749,7 +1749,7 @@ BEGIN {
         nqp::getattr($cont, Proxy, '&!STORE')($var, $val)
     })));
     Proxy.HOW.add_method(Proxy, 'new', nqp::getstaticcode(sub ($type, :$FETCH!, :$STORE!) {
-        my $cont := nqp::create($type);
+        my $cont := nqp::create(nqp::decont($type));
         nqp::bindattr($cont, Proxy, '&!FETCH', $FETCH);
         nqp::bindattr($cont, Proxy, '&!STORE', $STORE);
         $cont

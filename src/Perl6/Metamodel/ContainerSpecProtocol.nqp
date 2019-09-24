@@ -22,8 +22,7 @@ role Perl6::Metamodel::ContainerSpecProtocol {
                 if nqp::can($class.HOW, 'get_container_spec') {
                     my $code_pair := $class.HOW.get_container_spec($class);
                     if $code_pair {
-                        $!code_pair := $code_pair;
-                        nqp::setcontspec($obj, 'code_pair', $!code_pair);
+                        nqp::setcontspec($obj, 'code_pair', $code_pair);
                         $obj.HOW.compose_repr($obj);
                         last;
                     }

@@ -1749,16 +1749,16 @@ BEGIN {
         nqp::getattr($cont, Proxy, '&!STORE')($var, $val)
     })));
     Proxy.HOW.add_method(Proxy, 'new', nqp::getstaticcode(sub ($type, :$FETCH!, :$STORE!) {
-        my $cont := nqp::create(Proxy);
+        my $cont := nqp::create(nqp::decont($type));
         nqp::bindattr($cont, Proxy, '&!FETCH', $FETCH);
         nqp::bindattr($cont, Proxy, '&!STORE', $STORE);
         $cont
     }));
-    Proxy.HOW.compose(Proxy);
-    nqp::setcontspec(Proxy, 'code_pair', nqp::hash(
+    Proxy.HOW.set_container_spec(Proxy, nqp::hash(
         'fetch', $PROXY_FETCH,
         'store', $PROXY_STORE
     ));
+    Proxy.HOW.compose(Proxy);
     Proxy.HOW.compose_repr(Proxy);
 
     # Helper for creating a scalar attribute. Sets it up as a real Perl 6

@@ -142,12 +142,20 @@ my class Cool { # declared in BOOTSTRAP
     }
     method trans(|c) { self.Str.trans(|c) }
 
-    method starts-with(Cool:D: |c) {
-        self.Str.starts-with(|c)
-    }
+    proto method starts-with(|) {*}
+    multi method starts-with(Cool:D: Cool:D $needle --> Bool:D) {
+        nqp::hllbool(nqp::eqat(self.Str, $needle.Str, 0))
+    }   
+    multi method starts-with(Cool:D: Str:D $needle --> Bool:D) {
+        nqp::hllbool(nqp::eqat(self.Str, $needle, 0)) 
+    }   
 
-    method ends-with(Cool:D: |c) {
-        self.Str.ends-with(|c)
+    proto method ends-with(|) {*}
+    multi method ends-with(Cool:D: Cool:D $suffix --> Bool:D) {
+        self.Str.ends-with: $suffix.Str
+    }
+    multi method ends-with(Cool:D: Str:D $suffix --> Bool:D) {
+        self.Str.ends-with: $suffix
     }
 
     proto method substr(|) {*}

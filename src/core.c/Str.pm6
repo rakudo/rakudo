@@ -136,25 +136,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::p6box_s(nqp::substr($!value,0,$chars))
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
-    proto method starts-with(|) {*}
     multi method starts-with(Str:D: Cool:D $needle --> Bool:D) {
-        self.starts-with: $needle.Str
+        nqp::hllbool(nqp::eqat(self, $needle.Str, 0))
     }
     multi method starts-with(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::eqat(self, $needle, 0))
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
-    proto method ends-with(|) {*}
     multi method ends-with(Str:D: Cool:D $suffix --> Bool:D) {
         self.ends-with: $suffix.Str
     }
     multi method ends-with(Str:D: Str:D $suffix --> Bool:D) {
-        my \value := nqp::getattr($suffix,Str,'$!value');
         nqp::hllbool(
           nqp::eqat(
-            $!value,value,nqp::sub_i(nqp::chars($!value),nqp::chars(value))
+            $!value,$suffix,nqp::sub_i(nqp::chars($!value),nqp::chars($suffix))
           )
         )
     }

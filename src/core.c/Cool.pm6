@@ -187,8 +187,24 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.substr-eq($needle, $pos)
     }   
 
-    method contains(Cool:D: |c) {
-        self.Str.contains(|c)
+    proto method contains(|) {*}
+    multi method contains(Cool:D: Cool:D $needle --> Bool:D) {
+        nqp::hllbool(nqp::isne_i(nqp::index(self.Str,$needle.Str,0),-1))
+    }   
+    multi method contains(Cool:D: Str:D $needle --> Bool:D) {
+        nqp::hllbool(nqp::isne_i(nqp::index(self.Str,$needle,0),-1))
+    }   
+    multi method contains(Cool:D: Cool:D $needle, Int:D $pos --> Bool:D) {
+        self.Str.contains($needle.Str, $pos)
+    }   
+    multi method contains(Cool:D: Str:D $needle, Int:D $pos --> Bool:D) {
+        self.Str.contains($needle, $pos)
+    }   
+    multi method contains(Cool:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
+        self.Str.contains($needle.Str, $pos.Int)
+    }
+    multi method contains(Cool:D: Str:D $needle, Cool:D $pos --> Bool:D) {
+        self.Str.contains($needle, $pos.Int)
     }
 
     method indices(Cool:D: |c) {

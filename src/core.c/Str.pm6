@@ -177,27 +177,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
-    proto method contains(|) {*}
     multi method contains(Str:D: Cool:D $needle --> Bool:D) {
-        self.contains: $needle.Str
+        nqp::hllbool(nqp::isne_i(nqp::index($!value,$needle.Str,0),-1))
     }
     multi method contains(Str:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::isne_i(
-          nqp::index($!value,nqp::getattr($needle,Str,'$!value'),0),-1
-        ))
+        nqp::hllbool(nqp::isne_i(nqp::index($!value,$needle,0),-1))
     }
-    multi method contains(Str:D: Cool:D $needle, Int(Cool:D) $pos --> Bool:D) {
-        self.contains: $needle.Str, $pos
+    multi method contains(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
+        nqp::hllbool(
+          nqp::if(
+            (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
+            nqp::isne_i(nqp::index($!value,$needle.Str,$pos),-1)
+          )
+        )
     }
     multi method contains(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::if(
             (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
-            nqp::isne_i(
-              nqp::index($!value,nqp::getattr($needle,Str,'$!value'),$pos),-1)
+            nqp::isne_i(nqp::index($!value,$needle,$pos),-1)
           )
         )
+    }
+    multi method contains(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
+        self.contains($needle.Str, $pos.Int)
+    }
+    multi method contains(Str:D: Str:D $needle, Cool:D $pos --> Bool:D) {
+        self.contains($needle, $pos.Int)
     }
 
     # TODO Use coercer in 1 candidate when RT131014

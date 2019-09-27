@@ -313,7 +313,7 @@ my class Backtrace {
         Nil;
     }
     multi method list(Backtrace:D:) {
-        self.AT-POS(100);  # will stop when done, do we need more than 100???
+        self.AT-POS(1_000_000);  # will stop when no more frames to be found
         nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $!frames)
     }
 

@@ -31,7 +31,7 @@ class Perl6::Metamodel::SubsetHOW
         my $metasubset := self.new(:refinee($refinee), :refinement($refinement));
         my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'perl6');
         $metasubset.set_name($type, $name);
-        $metasubset.set_language_version($metasubset);
+        $metasubset.set_language_version($metasubset, :force);
         nqp::settypecheckmode($type, 2);
         self.add_stash($type)
     }

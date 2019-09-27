@@ -173,9 +173,19 @@ my class Cool { # declared in BOOTSTRAP
         (SELF = self.Str).substr-rw(from,chars)
     }
 
-    method substr-eq(Cool:D: |c) {
-        self.Str.substr-eq(|c)
-    }
+    proto method substr-eq(|) {*}
+    multi method substr-eq(Cool:D: Cool:D $needle --> Bool:D) {
+        nqp::hllbool(nqp::eqat(self.Str,$needle.Str,0))
+    }   
+    multi method substr-eq(Cool:D: Str:D $needle --> Bool:D) {
+        nqp::hllbool(nqp::eqat(self.Str,$needle,0))
+    }   
+    multi method substr-eq(Cool:D: Cool:D $needle, Int:D $pos --> Bool:D) {
+        self.Str.substr-eq($needle.Str, $pos)
+    }   
+    multi method substr-eq(Cool:D: Str:D $needle, Int:D $pos --> Bool:D) {
+        self.Str.substr-eq($needle, $pos)
+    }   
 
     method contains(Cool:D: |c) {
         self.Str.contains(|c)

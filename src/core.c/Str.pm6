@@ -154,22 +154,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
-    proto method substr-eq(|) {*}
     multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
-        self.substr-eq: $needle.Str
+        nqp::hllbool(nqp::eqat($!value,$needle.Str,0))
     }
     multi method substr-eq(Str:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),0))
+        nqp::hllbool(nqp::eqat($!value,$needle,0))
     }
     multi method substr-eq(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
-        self.substr-eq: $needle.Str, $pos.Int
+        nqp::hllbool(
+          nqp::if(
+            nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value)),
+            nqp::eqat($!value,$needle.Str,$pos)
+          )
+        )
     }
     multi method substr-eq(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::if(
-            (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
-            nqp::eqat($!value,nqp::getattr($needle,Str,'$!value'),$pos)
+            nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value)),
+            nqp::eqat($!value,$needle,$pos)
           )
         )
     }

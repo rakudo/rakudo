@@ -326,7 +326,7 @@ my class IO::CatHandle is IO::Handle {
 
     proto method encoding(|) {*}
     multi method encoding(::?CLASS:D:) { $!encoding || Nil }
-    multi method encoding(::?CLASS:D: $enc is copy) {
+    multi method encoding(::?CLASS:D: $enc) {
         $!encoding = nqp::if(
           nqp::defined($!active-handle),
           $!active-handle.encoding($enc),

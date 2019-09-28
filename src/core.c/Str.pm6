@@ -475,7 +475,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method comb(Str:D: Int:D $size is copy, $limit = * --> Seq:D) {
+    multi method comb(Str:D: Int:D $size, $limit = * --> Seq:D) {
         $size <= 1 && (nqp::istype($limit,Whatever) || $limit == Inf)
           ?? self.comb
           !! Seq.new(CombN.new(self,$size,$limit))

@@ -205,7 +205,7 @@ my class RoleToClassApplier {
         if nqp::can($to_compose_meta, 'parents') {
             my @parents := $to_compose_meta.parents($to_compose, :local(1));
             for @parents {
-                $target.HOW.add_parent($target, $_);
+                $target.HOW.add_parent($target, $_, :hides($to_compose_meta.hides_parent($to_compose, $_)));
             }
         }
 

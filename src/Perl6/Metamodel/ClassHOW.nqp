@@ -29,6 +29,7 @@ class Perl6::Metamodel::ClassHOW
     has @!role_typecheck_list;
     has @!fallbacks;
     has $!composed;
+    has $!pun_source; # If class is coming from a pun then this is the source role
 
     my $archetypes := Perl6::Metamodel::Archetypes.new(
         :nominal(1), :inheritable(1), :augmentable(1) );
@@ -111,6 +112,11 @@ class Perl6::Metamodel::ClassHOW
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 my $ins := $r.HOW.specialize($r, $obj);
                 @ins_roles.push($ins);
+                # If class is a puned role then transfer hidden flag from the source
+                if $!pun_source =:= $r {
+                    my @ins_roles := $ins.HOW.roles($ins, :transitive(0));
+                    self.set_hidden($obj) if @ins_roles[0].HOW.hidden(@ins_roles[0]);
+                }
                 self.add_concretization($obj, $r, $ins);
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
@@ -298,5 +304,9 @@ class Perl6::Metamodel::ClassHOW
     # Does the type have any fallbacks?
     method has_fallbacks($obj) {
         return nqp::istype($obj, $junction_type) || +@!fallbacks;
+    }
+
+    method set_pun_source($obj, $role) {
+        $!pun_source := nqp::decont($role);
     }
 }

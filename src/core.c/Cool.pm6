@@ -270,7 +270,35 @@ my class Cool { # declared in BOOTSTRAP
         self.Stringy.match(|c)
     }
 
-    method comb(|c) { self.Str.comb(|c) }
+    proto method comb(|) {*}
+    multi method comb(Cool:D: --> Seq:D) {
+        self.Str.comb
+    }
+    multi method comb(Cool:D: Cool:D $size, $limit = * --> Seq:D) {
+        self.Str.comb($size.Int, $limit)
+    }
+    multi method comb(Cool:D: Int:D $size, $limit = * --> Seq:D) {
+        self.Str.comb($size, $limit)
+    }
+    multi method comb(Cool:D: Cool:D $pat --> Seq:D) {
+        self.Str.comb($pat.Str)
+    }
+    multi method comb(Cool:D: Str:D $pat --> Seq:D) {
+        self.Str.comb($pat)
+    }
+    multi method comb(Cool:D: Cool:D $pat, $limit --> Seq:D) {
+        self.Str.comb($pat.Str, $limit)
+    }
+    multi method comb(Cool:D: Str:D $pat, $limit --> Seq:D) {
+        self.Str.comb($pat, $limit)
+    }
+    multi method comb(Cool:D: Regex:D $pattern, :$match --> Seq:D) {
+        self.Str.comb($pattern, :$match)
+    }
+    multi method comb(Cool:D: Regex:D $pattern, $limit, :$match --> Seq:D) {
+        self.Str.comb($pattern, $limit, :$match)
+    }
+
     method lines(Cool:D: |c) { self.Str.lines(|c) }
     method words(Cool:D: |c) { self.Str.words(|c) }
 

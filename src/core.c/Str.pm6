@@ -379,8 +379,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
-    proto method comb(|) {*}
-
     my class CombAll does PredictiveIterator {
         has str $!str;
         has int $!chars;
@@ -502,7 +500,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
     }
-    multi method comb(Str:D: Str $pat --> Seq:D) {
+    multi method comb(Str:D: Str:D $pat --> Seq:D) {
         $pat
           ?? Seq.new(CombPat.new(self,$pat))
           !! self.comb
@@ -534,7 +532,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
     }
-    multi method comb(Str:D: Str $pat, $limit --> Seq:D) {
+    multi method comb(Str:D: Str:D $pat, $limit --> Seq:D) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.comb($pat)
           !! $pat

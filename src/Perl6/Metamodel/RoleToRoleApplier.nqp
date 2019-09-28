@@ -217,13 +217,12 @@ my class RoleToRoleApplier {
         }
 
         # Now do the other bits.
-        for @roles {
-            my $how := $_.HOW;
+        for @roles -> $r {
+            my $how := $r.HOW;
 
             # Compose is any attributes, unless there's a conflict.
-            my @attributes := $how.attributes($_, :local(1));
-            for @attributes {
-                my $add_attr := $_;
+            my @attributes := $how.attributes($r, :local(1));
+            for @attributes -> $add_attr {
                 my $skip := 0;
                 my @cur_attrs := $target.HOW.attributes($target, :local(1));
                 for @cur_attrs {
@@ -243,9 +242,9 @@ my class RoleToRoleApplier {
 
             # Any parents can also just be copied over.
             if nqp::can($how, 'parents') {
-                my @parents := $how.parents($_, :local(1));
-                for @parents {
-                    $target.HOW.add_parent($target, $_);
+                my @parents := $how.parents($r, :local(1));
+                for @parents -> $p {
+                    $target.HOW.add_parent($target, $p, :hides($how.hides_parent($r, $p)));
                 }
             }
         }

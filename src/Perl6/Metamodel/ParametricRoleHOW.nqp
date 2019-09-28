@@ -221,7 +221,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             if $_.HOW.archetypes.generic {
                 $p := $p.HOW.instantiate_generic($p, $type_env);
             }
-            $conc.HOW.add_parent($conc, $p);
+            $conc.HOW.add_parent($conc, $p, :hides(self.hides_parent($obj, $_)));
         }
 
         # Resolve any array type being passed along (only really used in the

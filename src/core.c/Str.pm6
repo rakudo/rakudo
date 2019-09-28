@@ -302,17 +302,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
-    proto method rindex(|) {*}
     multi method rindex(Str:D: Cool:D $needle --> Int:D) {
-        self.rindex: $needle.Str
+        nqp::if(
+          nqp::islt_i((my int $i = nqp::rindex($!value,$needle.Str)),0),
+          Nil,
+          nqp::p6box_i($i)
+        )
     }
     multi method rindex(Str:D: Str:D $needle --> Int:D) {
         nqp::if(
-          nqp::islt_i((my int $i =
-            nqp::rindex($!value,nqp::getattr($needle,Str,'$!value'))),
-            0
-          ),
+          nqp::islt_i((my int $i = nqp::rindex($!value,$needle)),0),
           Nil,
           nqp::p6box_i($i)
         )
@@ -320,24 +319,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method rindex(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
         self.rindex: $needle.Str, $pos.Int
     }
-    multi method rindex(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
+    multi method rindex(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
         nqp::if(
           nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
-          self!RINDEX-OOR($pos),
+          RINDEX-OOR(self,$pos),
           nqp::if(
-            nqp::islt_i((my int $i = nqp::rindex(
-              $!value,nqp::getattr($needle,Str,'$!value'),$pos
-            )),0),
+            nqp::islt_i((my int $i = nqp::rindex($!value,$needle.Str,$pos)),0),
             Nil,
             nqp::p6box_i($i)
           )
         )
     }
-    method !RINDEX-OOR($pos) {
+    multi method rindex(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
+        nqp::if(
+          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
+          RINDEX-OOR(self,$pos),
+          nqp::if(
+            nqp::islt_i((my int $i = nqp::rindex($!value,$needle,$pos)),0),
+            Nil,
+            nqp::p6box_i($i)
+          )
+        )
+    }
+    sub RINDEX-OOR($string,$pos) {
         Failure.new(X::OutOfRange.new(
           :what("Position in rindex"),
           :got($pos),
-          :range("0..{self.chars}")
+          :range("0..$string.chars()")
         ))
     }
 

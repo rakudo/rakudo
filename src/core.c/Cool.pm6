@@ -236,8 +236,29 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.index: $needle, $pos
     }   
 
-    method rindex(Cool:D: |c) {
-        self.Str.rindex(|c)
+    proto method rindex(|) {*}
+    multi method rindex(Cool:D: Cool:D $needle --> Int:D) {
+        nqp::if(
+          nqp::islt_i((my int $i = nqp::rindex(self.Str,$needle.Str)),0),
+          Nil,
+          nqp::p6box_i($i)
+        )
+    }
+    multi method rindex(Cool:D: Str:D $needle --> Int:D) {
+        nqp::if(
+          nqp::islt_i((my int $i = nqp::rindex(self.Str,$needle)),0),
+          Nil,
+          nqp::p6box_i($i)
+        )
+    }
+    multi method rindex(Cool:D: Cool:D $needle, Cool:D $pos --> Int:D) {
+        self.rindex: $needle.Str, $pos.Int
+    }
+    multi method rindex(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
+        self.Str.rindex: $needle.Str, $pos
+    }
+    multi method rindex(Cool:D: Str:D $needle, Int:D $pos --> Int:D) {
+        self.Str.rindex: $needle, $pos
     }
 
     method split(Cool: |c) {

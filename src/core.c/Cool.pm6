@@ -211,9 +211,30 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.indices(|c)
     }
 
-    method index(Cool:D: |c) {
-        self.Str.index(|c)
+    proto method index(|) {*}
+    multi method index(Cool:D: Cool:D $needle --> Int:D) {
+        nqp::if(
+          nqp::islt_i((my int $i = nqp::index(self.Str,$needle.Str)),0),
+          Nil,
+          nqp::p6box_i($i)
+        )
     }
+    multi method index(Cool:D: Str:D $needle --> Int:D) {
+        nqp::if(
+          nqp::islt_i((my int $i = nqp::index(self.Str,$needle)),0),
+          Nil,
+          nqp::p6box_i($i)
+        )
+    }
+    multi method index(Cool:D: Cool:D $needle, Cool:D $pos --> Int:D) {
+        self.Str.index: $needle.Str, $pos.Int
+    }   
+    multi method index(Cool:D: Cool:D $needle, Int:D $pos --> Int:D) {
+        self.Str.index: $needle.Str, $pos
+    }   
+    multi method index(Cool:D: Str:D $needle, Int:D $pos --> Int:D) {
+        self.Str.index: $needle, $pos
+    }   
 
     method rindex(Cool:D: |c) {
         self.Str.rindex(|c)

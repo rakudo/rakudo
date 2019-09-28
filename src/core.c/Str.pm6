@@ -255,17 +255,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
-    proto method index(|) {*}
     multi method index(Str:D: Cool:D $needle --> Int:D) {
-        self.index: $needle.Str
+        nqp::if(
+          nqp::islt_i((my int $i = nqp::index($!value,$needle.Str)),0),
+          Nil,
+          nqp::p6box_i($i)
+        )
     }
     multi method index(Str:D: Str:D $needle --> Int:D) {
         nqp::if(
-          nqp::islt_i((my int $i =
-            nqp::index($!value,nqp::getattr($needle,Str,'$!value'))),
-            0
-          ),
+          nqp::islt_i((my int $i = nqp::index($!value,$needle)),0),
           Nil,
           nqp::p6box_i($i)
         )
@@ -273,24 +272,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method index(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
         self.index: $needle.Str, $pos.Int
     }
-    multi method index(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
+    multi method index(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
         nqp::if(
           nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
-          self!INDEX-OOR($pos),
+          INDEX-OOR(self,$pos),
           nqp::if(
-            nqp::islt_i((my int $i = nqp::index(
-              $!value,nqp::getattr($needle,Str,'$!value'),$pos
-            )),0),
+            nqp::islt_i((my int $i = nqp::index($!value,$needle.Str,$pos)),0),
             Nil,
             nqp::p6box_i($i)
           )
         )
     }
-    method !INDEX-OOR($pos) {
+    multi method index(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
+        nqp::if(
+          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
+          INDEX-OOR(self,$pos),
+          nqp::if(
+            nqp::islt_i((my int $i = nqp::index($!value,$needle,$pos)),0),
+            Nil,
+            nqp::p6box_i($i)
+          )
+        )
+    }
+    sub INDEX-OOR($string, $pos) {
         Failure.new(X::OutOfRange.new(
           :what("Position in index"),
           :got($pos),
-          :range("0..{self.chars}")
+          :range("0..$string.chars()")
         ))
     }
 

@@ -1,4 +1,4 @@
-# This role is for metaclasses with languare-revision dependent behavior.
+# This role is for metaclasses with language-revision dependent behavior.
 role Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Versioning
 {

@@ -3,7 +3,7 @@ my $currier := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Versioning
+    does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
@@ -74,6 +74,8 @@ class Perl6::Metamodel::ParametricRoleHOW
 
     method compose($the-obj, :$compiler_services) {
         my $obj := nqp::decont($the-obj);
+
+        self.set_language_version($obj);
 
         my @rtl;
         if $!in_group {
@@ -176,6 +178,8 @@ class Perl6::Metamodel::ParametricRoleHOW
     method specialize_with($obj, $type_env, @pos_args) {
         # Create a concrete role.
         my $conc := $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
+
+        $conc.HOW.set_language_revision($conc, $obj.HOW.language-revision($obj));
 
         # Go through attributes, reifying as needed and adding to
         # the concrete role.

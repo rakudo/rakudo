@@ -31,6 +31,21 @@ role Perl6::Metamodel::LanguageRevision
         $!lang_rev := nqp::substr($ver, 2, 1);
     }
 
+    method set_language_revision($obj, $rev, :$force = 0) {
+        if nqp::isconcrete($rev) {
+            if nqp::chars($rev) != 1
+                || nqp::islt_s($rev, 'c')
+                || nqp::isgt_s($rev, 'z')
+            {
+                nqp::die("Language revision must be a char between 'c' and 'z'");
+            }
+            self.set_language_version($obj, "6.$rev", :$force)
+        }
+        else {
+            nqp::die("Language revision must be a concrete string");
+        }
+    }
+
     method lang-rev-before($rev) {
         nqp::iseq_i(nqp::chars($rev), 1)
             || nqp::die("Language revision must be a single letter, got `$rev`.");

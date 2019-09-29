@@ -180,6 +180,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         my $conc := $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
 
         $conc.HOW.set_language_revision($conc, $obj.HOW.language-revision($obj));
+        $conc.HOW.set_hidden($conc) if $obj.HOW.hidden($obj);
 
         # Go through attributes, reifying as needed and adding to
         # the concrete role.

@@ -20,6 +20,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::RoleContainer
+    does Perl6::Metamodel::LanguageRevision
 {
     has $!curried_role;
     has $!candidate;                # Will contain matching candidate from curried role group
@@ -82,6 +83,9 @@ class Perl6::Metamodel::CurriedRoleHOW
         }
         if nqp::istype($!curried_role.HOW, Perl6::Metamodel::ParametricRoleGroupHOW) {
             $!candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
+
+            self.set_language_revision($obj, $!candidate.HOW.language-revision($!candidate));
+
             my $type_env;
             try {
                 my @result := $!candidate.HOW.body_block($!candidate)(|@pos_args, |%!named_args);

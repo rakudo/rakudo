@@ -5,6 +5,7 @@
 class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::MethodContainer
@@ -101,6 +102,8 @@ class Perl6::Metamodel::EnumHOW
     method compose($the-obj, :$compiler_services) {
         my $obj := nqp::decont($the-obj);
 
+        self.set_language_version($obj);
+
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
@@ -110,7 +113,10 @@ class Perl6::Metamodel::EnumHOW
             while @roles_to_compose {
                 my $r := @roles_to_compose.pop();
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
-                @ins_roles.push($r.HOW.specialize($r, $obj))
+                my $ins := $r.HOW.specialize($r, $obj);
+                self.check-type-compat($obj, $ins, ['e'])
+                    if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
+                @ins_roles.push($ins);
             }
             RoleToClassApplier.apply($obj, @ins_roles);
 

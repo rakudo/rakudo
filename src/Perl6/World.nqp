@@ -2053,7 +2053,7 @@ class Perl6::World is HLL::World {
         # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
         # current compiler.
         if nqp::istype($v.HOW, $*W.find_symbol: ['Metamodel', 'LanguageRevision'])
-            ?? $v.HOW.lang-rev-before('e')
+            ?? $v.HOW.lang-rev-before($v, 'e')
             !! $*W.lang-ver-before('e')
         {
             return self.maybe-definite-how-base($v);

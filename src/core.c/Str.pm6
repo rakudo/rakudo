@@ -2216,7 +2216,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
     }
 
-    proto method words(|) {*}
     multi method words(Str:D: $limit --> Seq:D) {
         nqp::istype($limit,Whatever) || $limit == Inf
           ?? self.words

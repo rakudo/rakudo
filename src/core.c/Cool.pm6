@@ -314,7 +314,9 @@ my class Cool { # declared in BOOTSTRAP
     multi method lines(Cool:D: :$count! ) { self.Str.lines(:$count) }
     multi method lines(Cool:D: $limit )   { self.Str.lines($limit)  }
 
-    method words(Cool:D: |c) { self.Str.words(|c) }
+    proto method words(|) {*}
+    multi method words(Cool:D:)         { self.Str.words         }
+    multi method words(Cool:D: $limit ) { self.Str.words($limit) }
 
     method subst(|c) {
         $/ := nqp::getlexcaller('$/');

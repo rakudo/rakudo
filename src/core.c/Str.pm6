@@ -1334,7 +1334,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 #?endif
 
-    proto method lines(|) {*}
     multi method lines(Str:D: :$count! --> Int:D) {
         # we should probably deprecate this feature
         $count ?? self.lines.elems !! self.lines;

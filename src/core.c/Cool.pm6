@@ -309,7 +309,11 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.comb($pattern, $limit, :$match)
     }
 
-    method lines(Cool:D: |c) { self.Str.lines(|c) }
+    proto method lines(|) {*}
+    multi method lines(Cool:D:)           { self.Str.lines          }
+    multi method lines(Cool:D: :$count! ) { self.Str.lines(:$count) }
+    multi method lines(Cool:D: $limit )   { self.Str.lines($limit)  }
+
     method words(Cool:D: |c) { self.Str.words(|c) }
 
     method subst(|c) {

@@ -533,7 +533,7 @@ class Perl6::World is HLL::World {
 
     method lang-ver-before(str $want) {
         nqp::chars($want) == 1 || nqp::die(
-          'Version to $*W.lang_ver_before'
+          'Version to $*W.lang-ver-before'
             ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
         nqp::cmp_s(
           nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),

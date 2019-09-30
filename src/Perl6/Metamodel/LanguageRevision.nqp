@@ -46,10 +46,31 @@ role Perl6::Metamodel::LanguageRevision
         }
     }
 
-    method lang-rev-before($rev) {
+    method lang-rev-before($obj, $rev) {
         nqp::iseq_i(nqp::chars($rev), 1)
             || nqp::die("Language revision must be a single letter, got `$rev`.");
         nqp::iseq_i(nqp::cmp_s($!lang_rev, $rev), -1)
+    }
+
+    # Check if we're compatible with type object $type. I.e. it doesn't come from language version newer than we're
+    # compatible with. For example, 6.c/d classes cannot consume 6.d roles.
+    # Because there could be more than one such boundary in the future they can be passed as an array.
+    method check-type-compat($obj, $type, @revs) {
+        unless nqp::isnull(self.incompat-revisions($obj, $!lang_rev, $type.HOW.language-revision($type), @revs)) {
+            nqp::die("Type object " ~ $obj.HOW.name($obj) ~ " of v6." ~ $!lang_rev
+                    ~ " is not compatible with " ~ $type.HOW.name($type)
+                    ~ " of v6." ~ $type.HOW.language-revision($type));
+        }
+    }
+
+    method incompat-revisions($obj, $rev-a, $rev-b, @revs) {
+        for @revs -> $rev {
+            if nqp::islt_i(nqp::cmp_s($rev-a, $rev), 0)
+               && nqp::isge_i(nqp::cmp_s($rev-b, $rev), 0) {
+                return $rev;
+            }
+        }
+        nqp::null()
     }
 
     method language-revision($obj) {

@@ -206,10 +206,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.contains($needle, $pos.Int)
     }
 
-    # TODO Use coercer in 1 candidate when RT131014
-    proto method indices(|) {*}
-    multi method indices(Str:D: Cool:D $needle, *%pars) {
-        self.indices: $needle.Str, |%pars
+    multi method indices(Str:D: Cool:D $needle, :$overlap) {
+        self.indices: $needle.Str, :$overlap
     }
     multi method indices(Str:D: Str:D $needle, :$overlap) {
         nqp::stmts(
@@ -225,11 +223,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ($pos = nqp::add_i($i,$add))
             )
           ),
-          $indices.List
+          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
         )
     }
-    multi method indices(Str:D: Cool:D $needle, Cool:D $start, *%pars) {
-        self.indices: $needle.Str, $start.Int, |%pars
+    multi method indices(Str:D: Cool:D $needle, Cool:D $start, :$overlap) {
+        self.indices: $needle.Str, $start.Int, :$overlap
     }
     multi method indices(Str:D: Str:D $needle, Int:D $start, :$overlap) {
         nqp::stmts(
@@ -249,7 +247,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   ($pos = nqp::add_i($i,$add))
                 )
               ),
-              $indices.List
+              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
             )
           )
         )

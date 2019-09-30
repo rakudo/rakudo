@@ -207,8 +207,18 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.contains($needle, $pos.Int)
     }
 
-    method indices(Cool:D: |c) {
-        self.Str.indices(|c)
+    proto method indices(|) {*}
+    multi method indices(Cool:D: Cool:D $needle, :$overlap) {
+        self.Str.indices: $needle.Str, :$overlap
+    }   
+    multi method indices(Cool:D: Str:D $needle, :$overlap) {
+        self.Str.indices: $needle, :$overlap
+    }   
+    multi method indices(Cool:D: Cool:D $needle, Cool:D $start, :$overlap) {
+        self.Str.indices: $needle.Str, $start.Int, :$overlap
+    }   
+    multi method indices(Cool:D: Str:D $needle, Int:D $start, :$overlap) {
+        self.Str.indices: $needle, $start, :$overlap
     }
 
     proto method index(|) {*}

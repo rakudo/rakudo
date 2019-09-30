@@ -24,7 +24,7 @@ class Perl6::Metamodel::SubsetHOW
     method BUILD(:$refinee, :$refinement) {
         $!refinee := $refinee;
         $!refinement := $refinement;
-        $!pre-e-behavior := self.lang-rev-before('e');
+        $!pre-e-behavior := self.lang-rev-before(self, 'e');
     }
 
     method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {

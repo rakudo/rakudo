@@ -111,6 +111,9 @@ class Perl6::Metamodel::ClassHOW
                 @!roles[+@!roles] := $r;
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 my $ins := $r.HOW.specialize($r, $obj);
+                # Significant change of behavior on d/e revisions boundary; pre-6.e classes cannot consume 6.e roles.
+                self.check-type-compat($obj, $ins, ['e'])
+                    if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
                 # If class is a puned role then transfer hidden flag from the source
                 if $!pun_source =:= $r {

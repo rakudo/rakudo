@@ -97,6 +97,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
                     @trans.push($_);
                 }
             }
+            @trans
         }
         else {
             @!roles

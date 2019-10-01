@@ -4046,7 +4046,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $<ws> ne ''
                 ?? $¢.obs('. to concatenate strings', '~')
                 !! $pre ~~ /^\s$/
-                    ?? $¢.malformed('postfix call (only alphabetic methods may be detached)')
+                    ?? $¢.malformed('postfix call (only basic method calls that exclusively use a dot can be detached)')
                     !! $¢.malformed('postfix call')
             }
         ]?

@@ -2,7 +2,7 @@ use Test;
 
 BEGIN unless $*VM ~~ "js" { plan 0; skip-rest "js only test"; done-testing; exit 0; };
 
-plan 15;
+plan 22;
 
 is EVAL(:lang<JavaScript>, 'return 123'), 123, 'getting a number from js';
 is EVAL(:lang<JavaScript>, 'return "simple string"'), "simple string", 'getting a string from js';
@@ -88,3 +88,49 @@ lives-ok {
   return new Foo();
   END
 }, 'can sink a wrapped js object that does not have a sink method';
+
+my $wrapped-constructor = EVAL(:lang<JavaScript>, q:to/END/);
+  class Foo {
+    constructor(value) {
+      this.value = value;
+    }
+
+    getValue() {
+      return this.value;
+    }
+
+    static new(arg) {
+      return 'js land new[' + arg + ']';
+    }
+
+    item(arg) {
+      return 'js land item[' + arg + ']';
+    }
+
+    sink(arg) {
+      return 'js land sink[' + arg + ']';
+    }
+
+    Bool(arg) {
+      return 'js land Bool[' + arg + ']';
+    }
+
+    defined(arg) {
+      return 'js land defined[' + arg + ']';
+    }
+  }
+  return Foo;
+END
+
+my $instance = $wrapped-constructor.new('Passed Value');
+
+is($instance.getValue, 'Passed Value', 'can use .new to create js objects');
+
+is($wrapped-constructor.new(:INTERNAL, 'foo'), 'js land new[foo]', ':INTERNAL with new');
+
+ok($instance.item === $instance, 'item');
+
+is($instance.item(:INTERNAL, 'foo'), 'js land item[foo]', ':INTERNAL with item');
+is($instance.sink(:INTERNAL, 'foo'), 'js land sink[foo]', ':INTERNAL with sink');
+is($instance.Bool(:INTERNAL, 'foo'), 'js land Bool[foo]', ':INTERNAL with Bool');
+is($instance.defined(:INTERNAL, 'foo'), 'js land defined[foo]', ':INTERNAL with defined');

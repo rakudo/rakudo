@@ -635,7 +635,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my ($red,$clear) = Rakudo::Internals.error-rcgye;
 
         note "$red==={$clear}WARNING!$red===$clear
-The distribution $name does not seem to have a \"provides\" section in its META6.json file,
+The distribution $name does not seem to have a \"provides\" section in its META.info file,
 and so the packages will not be installed in the correct location.
 Please ask the author to add a \"provides\" section, mapping every exposed namespace to a
 file location in the distribution.

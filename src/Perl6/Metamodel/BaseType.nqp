@@ -15,11 +15,11 @@ role Perl6::Metamodel::BaseType {
     }
 
     # Our MRO is just that of base type.
-    method mro($obj, :$roles = 0) {
+    method mro($obj, :$roles = 0, :$unhidden = 0) {
         unless @!mro {
             @!mro := nqp::list();
             @!mro[0] := $obj;
-            for $!base_type.HOW.mro($!base_type, :$roles) {
+            for $!base_type.HOW.mro($!base_type, :$roles, :$unhidden) {
                 @!mro.push($_);
             }
         }

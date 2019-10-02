@@ -2,7 +2,7 @@ use Test;
 
 BEGIN unless $*VM ~~ "js" { plan 0; skip-rest "js only test"; done-testing; exit 0; };
 
-plan 22;
+plan 33;
 
 is EVAL(:lang<JavaScript>, 'return 123'), 123, 'getting a number from js';
 is EVAL(:lang<JavaScript>, 'return "simple string"'), "simple string", 'getting a string from js';
@@ -134,3 +134,35 @@ is($instance.item(:INTERNAL, 'foo'), 'js land item[foo]', ':INTERNAL with item')
 is($instance.sink(:INTERNAL, 'foo'), 'js land sink[foo]', ':INTERNAL with sink');
 is($instance.Bool(:INTERNAL, 'foo'), 'js land Bool[foo]', ':INTERNAL with Bool');
 is($instance.defined(:INTERNAL, 'foo'), 'js land defined[foo]', ':INTERNAL with defined');
+
+my $check = EVAL(:lang<JavaScript>, q:to/END/);
+  class TestArgs {
+      isNull(arg) {
+        return arg === null;
+      }
+
+      typeof(arg) {
+        return typeof arg;
+      }
+
+      toString(arg) {
+        return arg.toString();
+      }
+  }
+
+  return new TestArgs();
+END
+
+is($check.typeof('Hello World'), 'string', 'right typeof of Str when passing to js');
+is($check.typeof(123e0), 'number', 'right typeof of Num when passing to js');
+is($check.typeof(True), 'boolean', 'right typeof of True when passing to js');
+is($check.typeof(False), 'boolean', 'right typeof of False when passing to js');
+is($check.typeof(123), 'bigint', 'right typeof of Int when passing to js');
+
+is($check.toString('Hello World'), 'Hello World', 'right value of Str when passing to js');
+is($check.toString(123e0), '123', 'right value of Num when passing to js');
+is($check.toString(True), 'true', 'right value of True when passing to js');
+is($check.toString(False), 'false', 'right value of False when passing to js');
+is($check.toString(123), '123', 'right value of Int when passing to js');
+
+ok($check.isNull(Mu), 'Mu gets turned into null');

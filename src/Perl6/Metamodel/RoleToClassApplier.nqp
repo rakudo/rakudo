@@ -101,6 +101,9 @@ my class RoleToClassApplier {
 
         my @stubs;
 
+        # Starting with v6.e submethods must not be composed in from roles.
+        my $with_submethods := $target.HOW.lang-rev-before($target, 'e');
+
         # Compose in any methods.
         sub compose_method_table(@methods, @method_names) {
             my $method_iterator := nqp::iterator(@methods);
@@ -122,7 +125,10 @@ my class RoleToClassApplier {
                         nqp::push(@stubs, nqp::hash('name', $name, 'needed', @needed, 'target', $target));
                     }
                 }
-                elsif !has_method($target, $name, 1) {
+                elsif !has_method($target, $name, 1)
+                        && ($with_submethods
+                            || !nqp::istype($method, Perl6::Metamodel::Configuration.submethod_type))
+                {
                     $target.HOW.add_method($target, $name, $method);
                 }
             }

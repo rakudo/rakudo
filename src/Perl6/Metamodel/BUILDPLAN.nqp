@@ -68,6 +68,20 @@ role Perl6::Metamodel::BUILDPLAN {
             }
         }
 
+        my @ins_roles;
+        unless self.lang-rev-before($obj, 'e') {
+            @ins_roles := self.ins_roles($obj, :with-submethods-only);
+            # TODO The following block is basically used further down this method and in Metamodel::Finalization. Could
+            # be replaced with a method which would return ready to execute list of (sub)methods.
+            my $i := +@ins_roles;
+            while $i-- > 0 {
+                my $submeth := nqp::atkey(@ins_roles[$i].HOW.submethod_table(@ins_roles[$i]), 'BUILD');
+                if !nqp::isnull($submeth) {
+                    nqp::push(@plan, $submeth);
+                }
+            }
+        }
+
         # Does it have its own BUILD?
         my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
         if !nqp::isnull($build) && $build {
@@ -132,6 +146,17 @@ role Perl6::Metamodel::BUILDPLAN {
             }
         }
 
+
+        unless self.lang-rev-before($obj, 'e') {
+            my $i := +@ins_roles;
+            while $i-- > 0 {
+                my $submeth := nqp::atkey(@ins_roles[$i].HOW.submethod_table(@ins_roles[$i]), 'TWEAK');
+                if !nqp::isnull($submeth) {
+                    nqp::push(@plan, $submeth);
+                }
+            }
+        }
+
         # Does it have a TWEAK?
         my $TWEAK := $obj.HOW.find_method($obj, 'TWEAK', :no_fallback(1));
         if !nqp::isnull($TWEAK) && $TWEAK {
@@ -181,6 +206,24 @@ role Perl6::Metamodel::BUILDPLAN {
               ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
               !! @EMPTY
         }
+    }
+
+    method ins_roles($obj, :$with-submethods-only = 0) {
+        my @ins_roles;
+        my @target_roles := self.roles($obj, :local);
+        # @target_roles := self.c3_merge(nqp::clone(@target_roles));
+        my $i := +@target_roles;
+        while $i-- > 0 {
+            my $conc := self.concretization($obj, @target_roles[$i], :local);
+            my @croles := $conc.HOW.roles($conc, :!transitive);
+            my $j := +@croles;
+            while $j-- > 0 {
+                my $cr := @croles[$j];
+                next if $with-submethods-only && !nqp::can($cr.HOW, 'submethod_table');
+                @ins_roles.push($cr);
+            }
+        }
+        @ins_roles
     }
 
     method BUILDPLAN($obj) {

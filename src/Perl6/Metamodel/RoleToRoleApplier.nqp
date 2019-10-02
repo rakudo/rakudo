@@ -13,12 +13,16 @@ my class RoleToRoleApplier {
         my %priv_meth_info;
         my @priv_meth_names;
         my %priv_meth_providers;
+        my $with_submethods := $target.HOW.lang-rev-before($target, 'e');
+        my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
         for @roles {
             my $role := $_;
             sub build_meth_info(@methods, @meth_names, %meth_info_to_use, @meth_names_to_use, %meth_providers_to_use) {
                 my $meth_iterator := nqp::iterator(@methods);
                 for @meth_names -> $name {
                     my $meth := nqp::shift($meth_iterator);
+                    # Don't apply submethods for v6.e targets.
+                    next unless $with_submethods || !nqp::istype($meth, $submethod_type);
                     my @meth_list;
                     my @meth_providers;
                     if nqp::existskey(%meth_info_to_use, $name) {
@@ -226,7 +230,7 @@ my class RoleToRoleApplier {
                 my $skip := 0;
                 my @cur_attrs := $target.HOW.attributes($target, :local(1));
                 for @cur_attrs {
-                    if $_ =:= $add_attr {
+                    if nqp::decont($_) =:= nqp::decont($add_attr) {
                         $skip := 1;
                     }
                     else {

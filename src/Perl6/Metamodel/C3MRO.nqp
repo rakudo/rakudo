@@ -1,11 +1,6 @@
 role Perl6::Metamodel::C3MRO {
     # Storage of the MRO.
     has %!mro;
-    # has @!mro;
-    has $!nest;
-
-    # The MRO minus anything that is hidden.
-    # has @!mro_unhidden;
 
     # Computes C3 MRO.
     method compute_mro($class) {

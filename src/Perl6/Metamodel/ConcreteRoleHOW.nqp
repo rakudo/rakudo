@@ -131,7 +131,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
         nqp::settypecache($obj, @types)
     }
 
-    method mro($obj) {
+    method mro($obj, :$roles = 0, :$unhidden = 0) {
         [$obj]
     }
 }

@@ -111,7 +111,7 @@ class Perl6::Metamodel::ClassHOW
                 @!roles[+@!roles] := $r;
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 my $ins := $r.HOW.specialize($r, $obj);
-                # If class is a puned role then transfer hidden flag from the source
+                # If class is a result of pun then transfer hidden flag from the source role
                 if $!pun_source =:= $r {
                     self.set_hidden($obj) if $ins.HOW.hidden($ins);
                     self.set_language_revision($obj, $ins.HOW.language-revision($ins), :force);

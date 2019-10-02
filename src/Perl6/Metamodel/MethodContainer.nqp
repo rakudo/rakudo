@@ -112,6 +112,31 @@ role Perl6::Metamodel::MethodContainer {
         nqp::null()
     }
 
+    # Returns a list of method/submethod objects from MRO hierarchy.
+    # The list elements are three-element arrays: [$type-object, $found, $method-object] where $found == 1 if method
+    # exists on the $type-object.
+    # :method-type: 0 - any, 1 - methods only, 2 - submethods only
+    method method_list($obj, $name, :$roles = 0, :$unhidden = 0, :$method-type = 0) {
+        my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
+        my @mro := self.mro($obj, :$roles, :$unhidden);
+        my @result;
+        for @mro {
+            my @conc_res := self.concretization_lookup($obj, $_, :local, :transitive);
+            my $type_obj := @conc_res[0] ?? @conc_res[1] !! $_;
+            my $found := 0;
+            my $method;
+            if nqp::can($type_obj.HOW, 'method_table') {
+                $method := $type_obj.HOW.method_table($type_obj){$name};
+                if !nqp::isconcrete($method) && nqp::can($type_obj.HOW, 'submethod_table') {
+                    $method := $type_obj.HOW.submethod_table($type_obj){$name};
+                }
+                $found := nqp::isconcrete(nqp::decont($method));
+            }
+            @result.push([$type_obj, $found, $method]);
+        }
+        @result
+    }
+
     # Caches or updates a cached value.
     method cache($obj, str $key, $value_generator) {
         my %orig_cache := %!cache;

@@ -1,6 +1,6 @@
 # Dependencies
 
-Install node 10.16.0 or 12.3.1 from https://nodejs.org
+Install node 10.16.0 or 12.11.1 from https://nodejs.org
 
 # Getting started with node.js rakudo.js
 

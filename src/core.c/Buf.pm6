@@ -726,35 +726,39 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
 #?if moar
     # for simplicity's sake, these are not multis
-    method write-int8(::?ROLE:D:
+    method write-int8(::?ROLE:
       int $offset, int8 $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writeint(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writeint($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_8_BIT,$endian));
-        self
+        $self
     }
-    method write-int16(::?ROLE:D:
+    method write-int16(::?ROLE:
       int $offset, int16 $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writeint(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writeint($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian));
-        self
+        $self
     }
-    method write-int32(::?ROLE:D:
+    method write-int32(::?ROLE:
       int $offset, int32 $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writeint(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writeint($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian));
-        self
+        $self
     }
-    method write-int64(::?ROLE:D:
+    method write-int64(::?ROLE:
       int $offset, Int:D $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writeint(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writeint($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian));
-        self
+        $self
     }
-    method write-int128(::?ROLE:D:
+    method write-int128(::?ROLE:
       int $offset, Int:D $value, Endian $endian = NativeEndian
     ) is raw {
         # These uints are intentional to keep the value within 64 bits
@@ -763,39 +767,44 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         my $be = $endian == BigEndian
           || ($endian == NativeEndian && Kernel.endian == BigEndian);
 
-        self.write-int64($offset,     $be ?? $first !! $second, $endian);
-        self.write-int64($offset + 8, $be ?? $second !! $first, $endian);
-        self
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        $self.write-int64($offset,     $be ?? $first !! $second, $endian);
+        $self.write-int64($offset + 8, $be ?? $second !! $first, $endian);
+        $self
     }
-    method write-uint8(::?ROLE:D:
+    method write-uint8(::?ROLE:
       int $offset, uint8 $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writeuint(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writeuint($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_8_BIT,$endian));
-        self
+        $self
     }
-    method write-uint16(::?ROLE:D:
+    method write-uint16(::?ROLE:
       int $offset, uint16 $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writeuint(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writeuint($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_16_BIT,$endian));
-        self
+        $self
     }
-    method write-uint32(::?ROLE:D:
+    method write-uint32(::?ROLE:
       int $offset, uint32 $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writeuint(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writeuint($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian));
-        self
+        $self
     }
-    method write-uint64(::?ROLE:D:
+    method write-uint64(::?ROLE:
       int $offset, UInt:D $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writeuint(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writeuint($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian));
-        self
+        $self
     }
-    method write-uint128(::?ROLE:D:
+    method write-uint128(::?ROLE:
       int $offset, UInt:D $value, Endian $endian = NativeEndian
     ) is raw {
         my \first  := $value +> 64;
@@ -803,41 +812,48 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         my $be = $endian == BigEndian
           || ($endian == NativeEndian && Kernel.endian == BigEndian);
 
-        self.write-uint64($offset,     $be ?? first !! second, $endian);
-        self.write-uint64($offset + 8, $be ?? second !! first, $endian);
-        self
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        $self.write-uint64($offset,     $be ?? first !! second, $endian);
+        $self.write-uint64($offset + 8, $be ?? second !! first, $endian);
+        $self
     }
-    method write-num32(::?ROLE:D:
+    method write-num32(::?ROLE:
       int $offset, num32 $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writenum(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writenum($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_32_BIT,$endian));
-        self
+        $self
     }
-    method write-num64(::?ROLE:D:
+    method write-num64(::?ROLE:
       int $offset, num64 $value, Endian $endian = NativeEndian
     ) is raw {
-        nqp::writenum(self,$offset,$value,
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+        nqp::writenum($self,$offset,$value,
           nqp::bitor_i(nqp::const::BINARY_SIZE_64_BIT,$endian));
-        self
+        $self
     }
 #?endif
 
-    method write-bits(
-      ::?ROLE:D \SELF: int $pos, Int:D $bits, Int:D \value
+    sub POS-OOR(\SELF, int $pos --> Nil) is hidden-from-backtrace {
+        die "Can only write from position 0..* in buffer{
+            " '" ~ SELF.VAR.name ~ "'" if nqp::iscont(SELF)
+        }, you tried: $pos"
+    }
+
+    method write-bits(::?ROLE \SELF:
+      int $pos, Int:D $bits, Int:D \value
     ) is raw {
         SELF.write-ubits($pos, $bits, value +& (1 +< $bits - 1))
     }
 
-    method write-ubits(
-      ::?ROLE:D \SELF: int $pos, Int:D $bits, UInt:D \value
+    method write-ubits(::?ROLE \SELF:
+      int $pos, Int:D $bits, UInt:D \value
     ) is raw {
 
         # sanity check
-        die "Can only write from position 0..*in buffer{
-            " '" ~ SELF.VAR.name ~ "'" if nqp::iscont(SELF)
-        }, you tried: $pos"
-          if $pos < 0;
+        POS-OOR(SELF, $pos) if $pos < 0;
+        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
 
         # set up basic info
         my int $first-bit = $pos +& 7;
@@ -855,7 +871,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
         # all done in a single byte
         if $first-byte == $last-byte {
-            nqp::bindpos_i(self,$first-byte,
+            nqp::bindpos_i($self,$first-byte,
               $value +| (nqp::atpos_i(self,$first-byte) +& ($lmask +| $rmask))
             );
         }
@@ -866,7 +882,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
             # process last byte first if it is a partial
             if $last-bit {
-                nqp::bindpos_i(self,$i,
+                nqp::bindpos_i($self,$i,
                   ($value +& 255) +| (nqp::atpos_i(self,$i) +& $rmask)
                 );
                 $value := $value +> 8;
@@ -882,18 +898,18 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
             nqp::while(
               nqp::isge_i(--$i,$last),
               nqp::stmts(
-                nqp::bindpos_i(self,$i,($value +& 255)),
+                nqp::bindpos_i($self,$i,($value +& 255)),
                 ($value := $value +> 8)
               )
             );
 
             # process last byte if it was a partial
-            nqp::bindpos_i(self,$i,($value +& 255)
-              +| (nqp::atpos_i(self,$i) +& $lmask))
+            nqp::bindpos_i($self,$i,($value +& 255)
+              +| (nqp::atpos_i($self,$i) +& $lmask))
               if $first-bit;
         }
 
-        self
+        $self
     }
 
     multi method list(Buf:D:) {

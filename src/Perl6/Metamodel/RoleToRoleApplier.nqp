@@ -230,7 +230,9 @@ my class RoleToRoleApplier {
                 my $skip := 0;
                 my @cur_attrs := $target.HOW.attributes($target, :local(1));
                 for @cur_attrs {
-                    if nqp::decont($_) =:= nqp::decont($add_attr) {
+                    if nqp::decont($_.original) =:= nqp::decont($add_attr.original)
+                        && nqp::decont($_.type) =:= nqp::decont($add_attr.type)
+                    {
                         $skip := 1;
                     }
                     else {

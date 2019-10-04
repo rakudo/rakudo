@@ -9,6 +9,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::ArrayType
     does Perl6::Metamodel::Concretization
+    does Perl6::Metamodel::C3MRO
 {
     # Any collisions to resolve.
     has @!collisions;
@@ -88,16 +89,22 @@ class Perl6::Metamodel::ConcreteRoleHOW
         @!collisions
     }
 
+    method !trans_roles($obj) {
+        my @trans;
+        for @!roles {
+            @trans.push($_);
+            for $_.HOW.'!trans_roles'($_) {
+                @trans.push($_);
+            }
+        }
+        @trans
+    }
+
     method roles($obj, :$transitive = 1) {
         if $transitive {
-            my @trans;
-            for @!roles {
-                @trans.push($_);
-                for $_.HOW.roles($_) {
-                    @trans.push($_);
-                }
-            }
-            @trans
+            # Roles might be duplicated in the list. c3_merge transforms it into simmilar to what .mro(:roles) would
+            # return. Additionally, it allows not to do duplicate processing of repeating roles by RoleToRoleApplier.
+            self.c3_merge([self.'!trans_roles'($obj)])
         }
         else {
             @!roles

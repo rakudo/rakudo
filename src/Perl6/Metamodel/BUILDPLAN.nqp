@@ -203,9 +203,9 @@ role Perl6::Metamodel::BUILDPLAN {
     method ins_roles($obj, :$with-submethods-only = 0) {
         my @ins_roles;
         my @target_roles := self.c3_merge([self.roles($obj, :local)]);
-        # @target_roles := self.c3_merge(nqp::clone(@target_roles));
         for @target_roles {
-            my $conc := self.concretization($obj, $_, :local);
+            my @res := self.concretization_lookup($obj, $_, :local, :transitive);
+            my $conc := @res[0] ?? @res[1] !! $_;
             my @croles := $conc.HOW.roles($conc, :!transitive);
             for @croles -> $cr {
                 next if $with-submethods-only && !nqp::can($cr.HOW, 'submethod_table');

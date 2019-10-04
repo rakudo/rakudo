@@ -125,6 +125,6 @@
     }
 }
 
-#========== closed down the Array class started in src/core/Array.pm6  ==========
+#========== closed down the Array class started in src/core.c/Array.pm6  =======
 
 # vim: ft=perl6 expandtab sw=4

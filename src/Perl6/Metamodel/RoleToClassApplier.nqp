@@ -26,21 +26,6 @@ my class RoleToClassApplier {
         return nqp::existskey(%pmt, $name)
     }
 
-    sub has_attribute($target, $name) {
-        my @attributes := $target.HOW.attributes($target, :local(1));
-        for @attributes {
-            if $_.name eq $name { return 1; }
-        }
-        return 0;
-    }
-    sub has_public_attribute($target, $name) {
-        my @attributes := $target.HOW.attributes($target, :local(1));
-        for @attributes {
-            return 1 if nqp::eqat($_.name, $name, 2) && $_.has_accessor;
-        }
-        return 0;
-    }
-
     method apply($target, @roles) {
         # If we have many things to compose, then get them into a single helper
         # role first.
@@ -113,7 +98,7 @@ my class RoleToClassApplier {
                 try { $yada := $method.yada }
                 if $yada {
                     unless has_method($target, $name, 0)
-                            || has_public_attribute($target, $name) {
+                            || $target.HOW.has_public_attribute($target, $name) {
                         my @needed;
                         for @roles {
                             for nqp::hllize($_.HOW.method_table($_)) -> $m {
@@ -200,7 +185,7 @@ my class RoleToClassApplier {
         # Compose in any role attributes.
         my @attributes := $to_compose_meta.attributes($to_compose, :local(1));
         for @attributes {
-            if has_attribute($target, $_.name) {
+            if $target.HOW.has_attribute($target, $_.name) {
                 nqp::die("Attribute '" ~ $_.name ~ "' already exists in the class '" ~
                     $target.HOW.name($target) ~ "', but a role also wishes to compose it");
             }

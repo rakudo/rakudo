@@ -872,7 +872,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         # all done in a single byte
         if $first-byte == $last-byte {
             nqp::bindpos_i($self,$first-byte,
-              $value +| (nqp::atpos_i(self,$first-byte) +& ($lmask +| $rmask))
+              $value +| (nqp::atpos_i($self,$first-byte) +& ($lmask +| $rmask))
             );
         }
 
@@ -883,7 +883,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
             # process last byte first if it is a partial
             if $last-bit {
                 nqp::bindpos_i($self,$i,
-                  ($value +& 255) +| (nqp::atpos_i(self,$i) +& $rmask)
+                  ($value +& 255) +| (nqp::atpos_i($self,$i) +& $rmask)
                 );
                 $value := $value +> 8;
             }

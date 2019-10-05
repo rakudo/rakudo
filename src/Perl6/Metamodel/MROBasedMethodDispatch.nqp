@@ -27,7 +27,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     method find_method_qualified($obj, $qtype, $name) {
         if $qtype.HOW.archetypes.parametric && nqp::can(self, 'concretization') {
             # Resolve it via the concrete form of this parametric. Look deep for a candidate.
-            my $conc := self.concretization($obj, $qtype, :local(0), :transitive(1));
+            my $conc := self.concretization($obj, $qtype, :local(0), :transitive(1), :relaxed(1));
             nqp::hllize($conc.HOW.method_table($conc)){$name}
         }
         else {

@@ -825,30 +825,49 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             Nil
     }
 
-    method dispatch:<.+>(Mu \SELF: $name, |c) {
-        my @result := SELF.dispatch:<.*>($name, |c);
-        if @result.elems == 0 {
+    method !batch-call(Mu \SELF: \name, Capture:D \c, :$throw = False, :$reverse = False) {
+        my @mro := SELF.^mro(:roles);
+        my $results := nqp::create(IterationBuffer);
+        my int $mro_high = $reverse ?? 0 !! @mro.elems - 1;
+        my int $i = @mro.elems;
+        while nqp::isge_i(--$i, 0) {
+            my int $idx = nqp::abs_i($mro_high - $i);
+            my $obj := @mro[$idx];
+            note(".> Object at MRO pos $idx is ", $obj.^name, " of ", $obj.HOW.^name) if %*ENV<RAKUDO_DEBUG>;
+            # $obj := SELF.^concretization($obj, :local) if $obj.HOW.archetypes.composable;
+            note(".< Object at MRO pos $idx is ", $obj.^name, " of ", $obj.HOW.^name) if %*ENV<RAKUDO_DEBUG>;
+            my $meth = ($obj.^method_table){name} unless $obj.HOW.archetypes.composable;
+            $meth = ($obj.^submethod_table){name} if !$meth;
+            nqp::push($results,$meth(SELF, |c))    if $meth;
+        }
+        if $throw && $results.elems == 0 {
             X::Method::NotFound.new(
               invocant => SELF,
-              method   => $name,
+              method   => name,
               typename => SELF.^name,
             ).throw;
         }
-        @result
+        $results.List
+    }
+
+    method dispatch:<.+>(Mu \SELF: \name, |c) {
+        SELF!batch-call(name, c, :throw);
+    }
+
+    method dispatch:<.->(Mu \SELF: \name, |c) {
+        SELF!batch-call(name, c, :throw, :reverse)
     }
 
     method dispatch:<.*>(Mu \SELF: \name, |c) {
-        my @mro = SELF.^mro;
-        my int $mro_count = @mro.elems;
-        my $results := nqp::create(IterationBuffer);
-        my int $i = -1;
-        while nqp::islt_i(++$i,$mro_count) {
-            my $obj = @mro[$i];
-            my $meth = ($obj.^method_table){name};
-            $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
-            nqp::push($results,$meth(SELF, |c))    if $meth;
-        }
-        $results.List
+        SELF!batch-call(name, c)
+    }
+
+    method dispatch:<.?+>(Mu \SELF: \name, |c) {
+        SELF!batch-call(name, c)
+    }
+
+    method dispatch:<.?->(Mu \SELF: \name, |c) {
+        SELF!batch-call(name, c, :reverse)
     }
 
     method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {

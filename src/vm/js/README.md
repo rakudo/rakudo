@@ -22,7 +22,7 @@ npm install --save chalk
 
 To use node.js modules you need to specify where they should be looked for.
 
-```use lib 'nodejs#/your/path/to/node/modules'``` is a good way to do that.
+```use lib 'nodejs#/your/path/to/node_modules'``` is a good way to do that.
 
 ```
 use lib 'nodejs#' ~ $*PROGRAM.parent.add('node_modules').absolute;

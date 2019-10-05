@@ -17,11 +17,8 @@ role Perl6::Metamodel::C3MRO {
         my @immediate_parents := $class.HOW.parents($class, :local);
         my @immediate_roles;
 
-        if nqp::can($class.HOW, 'roles') {
-            for $class.HOW.roles($class, :local, :transitive) {
-                my @conc_res := $class.HOW.concretization_lookup($class, $_, :local, :transitive);
-                nqp::push(@immediate_roles, @conc_res[0] ?? @conc_res[1] !! $_);
-            }
+        if nqp::can($class.HOW, 'concretizations') {
+            @immediate_roles := $class.HOW.concretizations($class, :local, :transitive);
         }
 
         # Provided we have immediate parents...

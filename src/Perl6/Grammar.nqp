@@ -3880,7 +3880,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token dotty:sym<.*> {
-        $<sym>=['.' [ <[+*?=]> | '^' '!'? ]] <dottyop>
+        $<sym>=['.' [ <[+\-*?=]> | '^' '!'? | '?' <[+\-]> ]] <dottyop>
         <O(|%methodcall)>
     }
 

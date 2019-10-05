@@ -21,13 +21,17 @@ npm install --save chalk
 ```
 
 To use node.js modules you need to specify where they should be looked for.
-use lib 'nodejs#/your/path/to/node/modules' is a good way to do that
+
+```use lib 'nodejs#/your/path/to/node/modules'``` is a good way to do that.
 
 ```
 use lib 'nodejs#' ~ $*PROGRAM.parent.add('node_modules').absolute;
 use chalk:from<node.js>;
 say("Hello {chalk.blue("Blue")} World");
 ```
+
+Keep in mind that if you load a node.js module during precompilation it gets
+*reloaded* at runtime, so it's internal state gets lost.
 
 # Interoperability with JS
 
@@ -54,7 +58,6 @@ Primitive JS data types are converted rather then wrapped
 | undefined    | Mu    |
 | BigInt       | Int   |
 | Number       | Num   |
-| -------------|-------|
 
 A Perl 6 Mu when passed to JS land ends up as null
 
@@ -71,14 +74,23 @@ In order to enable using wrapped objects in Perl 6 land wrapped objects
 offer some methods that Perl 6 expects.
 
 * sink
+
   Does nothing.
+
 * defined
+
   Always returns True  
+
 * Bool
+
   Always returns True  
+
 * item
+
   Returns the object it is called on
+
 * new
+
   Uses the JavaScript new operator to create an new instance
 
   ```perl6
@@ -91,5 +103,6 @@ offer some methods that Perl 6 expects.
 If the wrapped object has method of that same name you can use an :INTERNAL modifier to access it.
 
 ```$obj.new(:INTERNAL, 123)``` 
+| -------------|-------|
 
 This will call a js new method rather then doing ``new $obj(123)```

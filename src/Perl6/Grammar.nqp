@@ -566,7 +566,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token identifier {
-        <.ident> [ <.apostrophe> <.ident> ]*
+        <.ident> [ [ <.apostrophe> | <[₀₁₂₃₄₅₆₇₈₉]>+ ] <.ident> ]* <[₀₁₂₃₄₅₆₇₈₉]>*
     }
 
     token name {

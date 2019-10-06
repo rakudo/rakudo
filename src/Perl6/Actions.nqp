@@ -8507,6 +8507,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method quote:sym<crnr>($/) { make $<nibble>.ast; }
     method quote:sym<question>($/){ make $<nibble>.ast; }
     method quote:sym<exclamation>($/){ make $<nibble>.ast; }
+    method quote:sym<dash>($/){ make $<nibble>.ast; }
     method quote:sym<qq>($/)   { make $<quibble>.ast; }
     method quote:sym<q>($/)    { make $<quibble>.ast; }
     method quote:sym<Q>($/)    { make $<quibble>.ast; }

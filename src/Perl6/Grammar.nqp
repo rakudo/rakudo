@@ -3408,6 +3408,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote_lang(self.slang_grammar('Quote'), '｢', '｣'))> }
     token quote:sym<question> { :dba('question mark quotes') '¿' ~ '?' <nibble(self.quote_lang(self.slang_grammar('Quote'), '¿', '?', ['qq']))> }
     token quote:sym<exclamation> { :dba('exclamation mark quotes') '¡' ~ '!' <nibble(self.quote_lang(self.slang_grammar('Quote'), '¡', '!', ['qq']))> }
+    token quote:sym<dash> { :dba('dash mark quotes') '—' ~ '—' <nibble(self.quote_lang(self.slang_grammar('Quote'), '—', '—', ['qq']))> }
     token quote:sym<q> {
         :my $qm;
         'q'
@@ -5300,7 +5301,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
     role ww {
         token escape:sym<'> {
-            <?[ ' " ‘ ‚ ’ “ „ ” ｢ ¿ ¡ ]> <quote=.LANG('MAIN','quote')>
+            <?[ ' " ‘ ‚ ’ “ „ ” ｢ ¿ ¡ — ]> <quote=.LANG('MAIN','quote')>
         }
         token escape:sym<colonpair> {
             <?[:]> <!RESTRICTED> <colonpair=.LANG('MAIN','colonpair')>
@@ -5604,7 +5605,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPacka
         <.SIGOK>
     }
 
-    token metachar:sym<'> { <?[ ' " ‘ ‚ ’ “ „ ” ｢ ¿ ¡ ]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
+    token metachar:sym<'> { <?[ ' " ‘ ‚ ’ “ „ ” ｢ ¿ ¡ — ]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
 
     token metachar:sym<{}> { \\<[xo]>'{' <.obsbrace> }
 

@@ -35,10 +35,11 @@ role Perl6::Metamodel::Concretization {
     }
 
     method concretization_lookup($obj, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
-        $ptype := nqp::decont($ptype);
-        my $id := ~nqp::objectid($ptype);
         self.'!rebuild_table'() if nqp::elems(%!conc_table) < nqp::elems(@!concretizations);
-        return [0] unless $local || $transitive || nqp::elems(%!conc_table);
+        return [0] unless !$local || $transitive || nqp::elems(%!conc_table);
+        $ptype := nqp::decont($ptype);
+        return [0] if $obj.HOW.is_composed($obj) && !nqp::istype($obj, $ptype);
+        my $id := ~nqp::objectid($ptype);
         my @result;
         if nqp::existskey(%!conc_table, $id) {
             return [1, %!conc_table{$id}];

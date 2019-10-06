@@ -19,6 +19,12 @@
 # - port the whole approach back to nqp and build the QAST without having
 #   to run EVAL.
 
+# problem cases that should be checked:
+# - https://rt.perl.org/Ticket/Display.html?id=126067
+#   say sprintf('%f %f %f %f', Mu, Any, Nil, NaN);
+# - https://rt.perl.org/Ticket/Display.html?id=126968
+#   say sprintf("%e",1000)    # should be 1.0... instead of 10....
+
 class Rakudo::Internals::Sprintf {
 
     # the grammar for parsing format strings

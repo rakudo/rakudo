@@ -10,7 +10,7 @@ function fakeArgs(isMain) {
 
 
 const code = /*async*/ function() {
-  /*await*/ require('./rakudo.js')(nqp, true);
+  /*await*/ require('./perl6.js')(nqp, true);
 };
 
 const core = require('nqp-runtime/core.js');

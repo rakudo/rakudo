@@ -24,8 +24,8 @@
 
 # files we create
 
-@nfp(@bpm(BUILD_DIR)@/load-compiler.nqp)@: @nfp(src/vm/js/load-compiler.nqp)@
-@nfp(@bpm(BLIB_PERL6)@/load-compiler.js)@:   @nfp(@bpm(BUILD_DIR)@/load-compiler.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@
+@nfp(@bpm(BLIB)@/load-compiler.js)@: @nfp(src/vm/js/load-compiler.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@
+	@$(JS_NQP) $(JS_NQP_FLAGS) --target=js --output=$@ $<
 
 @bpm(RUNNER)@:
 	@echo(+++ Creating JS runner)@

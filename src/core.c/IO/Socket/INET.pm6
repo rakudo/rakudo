@@ -1,17 +1,10 @@
 my class IO::Socket::INET does IO::Socket {
-    my module PIO {
-        constant SOCK_PACKET    = 0;
-        constant SOCK_STREAM    = 1;
-        constant SOCK_DGRAM     = 2;
-        constant SOCK_RAW       = 3;
-        constant SOCK_RDM       = 4;
-        constant SOCK_SEQPACKET = 5;
-        constant SOCK_MAX       = 6;
-        constant PROTO_TCP      = 6;
-        constant PROTO_UDP      = 17;
-        constant MIN_PORT       = 0;
-        constant MAX_PORT       = 65_535; # RFC 793: TCP/UDP port limit
-    }
+    my Int:D constant MIN_PORT = 0;
+    my Int:D constant MAX_PORT = 65_535; # RFC 793: TCP/UDP port limit
+
+    my subset Port
+           of Int:D
+        where MIN_PORT..MAX_PORT;
 
     has Str  $.host;
     has Int  $.port;
@@ -20,8 +13,8 @@ my class IO::Socket::INET does IO::Socket {
     has Int  $.backlog;
     has Bool $.listening;
     has      $.family     = nqp::const::SOCKET_FAMILY_UNSPEC;
-    has      $.proto      = PIO::PROTO_TCP;
-    has      $.type       = PIO::SOCK_STREAM;
+    has      $.type       = nqp::const::SOCKET_TYPE_STREAM;
+    has      $.proto      = nqp::const::SOCKET_PROTOCOL_TCP;
 
     # XXX: this could be a bit smarter about how it deals with unspecified
     # families...
@@ -37,8 +30,8 @@ my class IO::Socket::INET does IO::Socket {
             }
         }
 
-        fail "Invalid port $port.gist(). Must be {PIO::MIN_PORT}..{PIO::MAX_PORT}"
-            unless $port.defined and PIO::MIN_PORT <= $port <= PIO::MAX_PORT;
+        fail "Invalid port $port.gist(). Must be {MIN_PORT}..{MAX_PORT}"
+            unless $port ~~ Port;
 
         return ($host, $port);
     }
@@ -69,7 +62,6 @@ my class IO::Socket::INET does IO::Socket {
             split-host-port :host($localhost), :port($localport), :$family
         orelse fail $_);
 
-        #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
             :$localhost,
             :$localport,
@@ -97,7 +89,6 @@ my class IO::Socket::INET does IO::Socket {
             :$family,
         );
 
-        # TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
             :$host,
             :$port,
@@ -129,7 +120,7 @@ my class IO::Socket::INET does IO::Socket {
             $!localport = nqp::getport($PIO) if !$!localport;
 #?endif
         }
-        elsif $!type == PIO::SOCK_STREAM {
+        elsif $!type == nqp::const::SOCKET_TYPE_STREAM {
             nqp::connect($PIO, nqp::unbox_s($!host), nqp::unbox_i($!port), nqp::unbox_i($!family));
         }
 

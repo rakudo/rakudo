@@ -5,7 +5,9 @@ role Perl6::Metamodel::Concretization {
 
     method add_concretization($obj, $role, $concrete) {
         @!concretizations[+@!concretizations] := [$role, $concrete];
+        nqp::scwbdisable();
         %!conc_table := nqp::hash(); # reset the cache
+        nqp::scwbenable();
     }
 
     method concretizations($obj, :$local = 0, :$transitive = 1) {
@@ -30,7 +32,9 @@ role Perl6::Metamodel::Concretization {
 
     method !rebuild_table() {
         for @!concretizations {
+            nqp::scwbdisable();
             %!conc_table{~nqp::objectid(nqp::decont($_[0]))} := nqp::decont($_[1]);
+            nqp::scwbenable();
         }
     }
 

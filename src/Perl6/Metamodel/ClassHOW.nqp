@@ -24,6 +24,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::ContainerSpecProtocol
     does Perl6::Metamodel::Finalization
     does Perl6::Metamodel::Concretization
+    does Perl6::Metamodel::ConcretizationCache
 {
     has @!roles;
     has @!role_typecheck_list;
@@ -124,6 +125,7 @@ class Perl6::Metamodel::ClassHOW
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
             @stubs := RoleToClassApplier.apply($obj, @ins_roles);
+            self.wipe_conc_cache;
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.

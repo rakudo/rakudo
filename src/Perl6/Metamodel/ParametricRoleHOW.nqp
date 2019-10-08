@@ -154,6 +154,12 @@ class Perl6::Metamodel::ParametricRoleHOW
         # must happen before another specialize happens and re-captures the
         # things we are composing.
         $!specialize_lock.protect({
+            my $class := @pos_args[0];
+            my $conc := nqp::if(nqp::can($class.HOW, 'get_cached_conc'),
+                        $class.HOW.get_cached_conc($class, $obj, @pos_args, %named_args),
+                        nqp::null());
+            return $conc unless nqp::isnull($conc);
+
             # Run the body block to get the type environment (we know
             # the role in this case).
             my $type_env;
@@ -171,7 +177,12 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
 
             # Use it to build concrete role.
-            self.specialize_with($obj, $type_env, @pos_args)
+            $conc := self.specialize_with($obj, $type_env, @pos_args);
+            nqp::if(
+                nqp::can($class.HOW, 'add_conc_to_cache'),
+                $class.HOW.add_conc_to_cache($class, $obj, @pos_args, %named_args, $conc)
+            );
+            $conc
         })
     }
 
@@ -206,8 +217,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))
         }
 
-        # Roles done by this role need fully specializing also; all
-        # they'll be missing is the target class (e.g. our first arg).
+        # Roles done by this role need fully specializing also.
         for self.roles_to_compose($obj) {
             my $ins := my $r := $_;
             if $_.HOW.archetypes.generic {

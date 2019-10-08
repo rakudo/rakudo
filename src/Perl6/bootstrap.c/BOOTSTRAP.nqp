@@ -3954,6 +3954,7 @@ nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 nqp::bindhllsym('perl6', 'Scalar', Scalar);
 nqp::bindhllsym('perl6', 'default_cont_spec',
     Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
+nqp::bindhllsym('perl6', 'Capture', Capture);
 
 #?if jvm
 # On JVM, set up JVM interop bits.

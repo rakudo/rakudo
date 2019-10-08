@@ -1,5 +1,9 @@
 # Cache concretizations on a class. Avoid re-specializing a role if its concretization already exists for the target
 # type object and matches same arguments.
+# This is different from Perl6::Metamodel::Concretization in the way that it:
+# - only used at compile time
+# - provides interface for role specialization to find out if identical specialization has been done already
+# - is not an introspection mechanism
 role Perl6::Metamodel::ConcretizationCache {
     has %!conc_cache;
 
@@ -26,8 +30,10 @@ role Perl6::Metamodel::ConcretizationCache {
         my $capture := self.'!make_capture'(@pos, %named);
         unless nqp::isnull($capture) {
             my $obj-id := ~nqp::objectid($role);
+            nqp::scwbdisable();
             %!conc_cache{$obj-id} := [] unless %!conc_cache{$obj-id};
             nqp::push(%!conc_cache{$obj-id}, [$capture, $concretization]);
+            nqp::scwbenable();
         }
         $concretization
     }

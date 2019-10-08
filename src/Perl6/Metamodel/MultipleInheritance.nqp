@@ -15,6 +15,15 @@ role Perl6::Metamodel::MultipleInheritance {
         @excluded.push($parent);
     }
 
+    method !rebuild_hides_ids() {
+        %!hides_ids := nqp::hash();
+        for @!hides {
+            nqp::scwbdisable();
+            %!hides_ids{~nqp::objectid(nqp::decont($_))} := 1;
+            nqp::scwbenable();
+        }
+    }
+
     # Adds a parent.
     method add_parent($obj, $parent, :$hides) {
         if self.is_composed($obj) {
@@ -41,7 +50,6 @@ role Perl6::Metamodel::MultipleInheritance {
         }
         if $hides {
             @!hides[+@!hides] := $parent;
-            %!hides_ids{~nqp::objectid(nqp::decont($parent))} := 1;
         }
         @!parents[+@!parents] := $parent;
     }
@@ -86,6 +94,7 @@ role Perl6::Metamodel::MultipleInheritance {
     }
 
     method hides_parent($obj, $parent) {
+        self.'!rebuild_hides_ids'() if nqp::elems(%!hides_ids) < nqp::elems(@!hides);
         %!hides_ids{~nqp::objectid(nqp::decont($parent))} || 0;
     }
 

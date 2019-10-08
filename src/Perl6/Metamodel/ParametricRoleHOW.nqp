@@ -96,20 +96,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!composed
     }
 
-    method roles($obj, :$transitive = 1) {
-        if $transitive {
-            my @result;
-            for self.roles_to_compose($obj) {
-                @result.push($_);
-                for $_.HOW.roles($_, :transitive(1)) {
-                    @result.push($_)
-                }
-            }
-            @result
-        }
-        else {
-            self.roles_to_compose($obj)
-        }
+    method roles($obj, :$transitive = 1, :$mro) {
+        self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro);
     }
 
     method role_typecheck_list($obj) {

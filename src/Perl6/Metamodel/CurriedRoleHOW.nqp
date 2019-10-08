@@ -154,25 +154,9 @@ class Perl6::Metamodel::CurriedRoleHOW
         @!pos_args
     }
 
-    # method roles($obj, :$transitive = 1) {
-    #     $!curried_role.HOW.roles($obj, :$transitive)
-    # }
-
-    method roles($obj, :$transitive = 1) {
+    method roles($obj, :$transitive = 1, :$mro = 0) {
         self.complete_parameterization($obj);
-        if $transitive {
-            my @result;
-            for self.roles_to_compose($obj) {
-                @result.push($_);
-                for $_.HOW.roles($_, :transitive(1)) {
-                    @result.push($_)
-                }
-            }
-            @result
-        }
-        else {
-            self.roles_to_compose($obj)
-        }
+        self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro)
     }
 
     method role_typecheck_list($obj) {

@@ -89,26 +89,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
         @!collisions
     }
 
-    method !trans_roles($obj) {
-        my @trans;
-        for @!roles {
-            @trans.push($_);
-            for $_.HOW.'!trans_roles'($_) {
-                @trans.push($_);
-            }
-        }
-        @trans
-    }
-
-    method roles($obj, :$transitive = 1) {
-        if $transitive {
-            # Roles might be duplicated in the list. c3_merge transforms it into simmilar to what .mro(:roles) would
-            # return. Additionally, it allows not to do duplicate processing of repeating roles by RoleToRoleApplier.
-            self.c3_merge([self.'!trans_roles'($obj)])
-        }
-        else {
-            @!roles
-        }
+    # It makes sense for concretizations to default to MRO order of roles.
+    method roles($obj, :$transitive = 1, :$mro = 1) {
+        self.roles-ordered($obj, @!roles, :$transitive, :$mro);
     }
 
     method add_to_role_typecheck_list($obj, $type) {

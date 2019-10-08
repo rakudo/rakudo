@@ -13,16 +13,19 @@ role Perl6::Metamodel::Concretization {
     method concretizations($obj, :$local = 0, :$transitive = 1) {
         my @conc;
         for @!concretizations {
-            nqp::push(@conc, $_[1]);
+            my @c := $transitive ?? [] !! @conc;
+            nqp::push(@c, $_[1]);
             if $transitive && nqp::can($_[1].HOW, 'concretizations') {
                 for $_[1].HOW.concretizations($_[1], :$local) {
-                    nqp::push(@conc, $_);
+                    nqp::push(@c, $_);
                 }
             }
+            nqp::push(@conc, @c) if $transitive;
         }
+        @conc := self.c3_merge(@conc) if $transitive;
         unless $local {
             for self.parents($obj, :local) {
-                for $_.HOW.concretizations($_, :$local) {
+                for $_.HOW.concretizations($_, :$local, :$transitive) {
                     nqp::push(@conc, $_)
                 }
             }

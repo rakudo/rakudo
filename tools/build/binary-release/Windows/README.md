@@ -1,11 +1,13 @@
-# Rakudo Perl 6
+Rakudo Perl 6
+==============
 
 This is a pre-built package of Rakudo Perl 6, a Perl 6 compiler.
 
 This package includes the Rakudo Perl 6 compiler and the module installer Zef.
 
 
-## Running Perl 6
+Running Perl 6
+--------------
 
 To run a Perl 6 program, open a command prompt and type
 
@@ -15,7 +17,8 @@ or start a REPL by calling `perl6.exe` without an argument
 
     C:\path\to\this\folder\bin\perl6.exe
 
-To add the relevant paths to your environment so you don't have to type the full path execute the following script in CMD:
+To add the relevant paths to your environment so you don't have to type the
+full path execute the following script in CMD:
 
     C:\path\to\this\folder\scripts\set-env.bat
 
@@ -24,21 +27,47 @@ or when using Powershell (note the dot at the beginning):
     . C:\path\to\this\folder\scripts\set-env.ps1
 
 
-## Installing modules
+Installing modules
+------------------
 
 To install Perl 6 modules you can use the Zef module installer.
 
     C:\path\to\this\folder\bin\perl6.exe C:\path\to\this\folder\share\perl6\site\bin\zef install JSON::Fast
 
-Modules will be installed into this Perl 6 package and will thus be available even when moving this package.
+Modules will be installed into this Perl 6 package and will thus be available
+even when moving this package.
 
 
 ### Native code modules
 
-To install modules that require a compiler toolchain, you have to have the Microsoft Visual C compiler installed. It's included in the Microsoft BuildTools which can be freely downloaded [here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools).
+To install modules that require a compiler toolchain, you need to have the
+Microsoft Visual C compiler installed. The freely available
+Microsoft BuildTools contain that compiler. You can use the installer script
+
+    C:\path\to\this\folder\bin\vs_build_tools_install_assistant.ps1
+
+to guide you through the installation.
+
+Alternatively you can install the BuildTools manually. They can be downloaded
+[here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools).
+You'll need to select the `C++ build tools` and recommended components.
+
+The compiler is only usable in special Build Tools CMD / PowerShell windows.
+
+To make use of the Build Tools in Rakudo using CMD:
+- start a CMD window using
+    Start Menu -> Visual Studio 2019 ->
+    x86 / x64 Native Tools Command Prompt for VS 2019
+- Execute $scriptPath\set-env.bat
+
+To make use of the Build Tools in Rakudo using PowerShell:
+- start a PowerShell window using
+    Start Menu -> Visual Studio 2019 -> Developer PowerShell for VS 2019
+- Execute $scriptPath\set-env.ps1
 
 
-## Changes
+Changes
+-------
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
@@ -48,7 +77,8 @@ subscribe to [the p6lert service](https://alerts.perl6.org) using the RSS feed,
 twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-p6lert).
 
 
-## Where to get help or answers to questions
+Where to get help or answers to questions
+-----------------------------------------
 
 There are several mailing lists, IRC channels, and wikis available with
 help for Perl 6 and Rakudo. Figuring out the right one to use
@@ -73,27 +103,32 @@ Questions about NQP can also be posted to the #perl6 IRC channel.
 For questions about MoarVM, you can join #moarvm on freenode.
 
 
-## Reporting bugs
+Reporting bugs
+--------------
 
 See https://rakudo.org/bugs
 
 
-## Submitting patches
+Submitting patches
+------------------
 
 If you have a patch that fixes a bug or adds a new feature, please
 create a pull request using github's pull request infrastructure.
 
-See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/CONTRIBUTING.md) for more information.
+See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/CONTRIBUTING.md)
+for more information.
 
 
-## License
+License
+-------
 
 Rakudo Perl 6 is Copyright © 2008-2019, The Perl Foundation. Rakudo Perl 6
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 
 
-## AUTHOR
+AUTHOR
+------
 
 See CREDITS for the many people that have contributed
 to the development of the Rakudo compiler.

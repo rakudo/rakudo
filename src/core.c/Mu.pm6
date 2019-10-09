@@ -832,12 +832,9 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         my int $i = @mro.elems;
         while nqp::isge_i(--$i, 0) {
             my int $idx = nqp::abs_i($mro_high - $i);
-            my $obj := @mro[$idx];
-            note(".> Object at MRO pos $idx is ", $obj.^name, " of ", $obj.HOW.^name) if %*ENV<RAKUDO_DEBUG>;
-            # $obj := SELF.^concretization($obj, :local) if $obj.HOW.archetypes.composable;
-            note(".< Object at MRO pos $idx is ", $obj.^name, " of ", $obj.HOW.^name) if %*ENV<RAKUDO_DEBUG>;
-            my $meth = ($obj.^method_table){name} unless $obj.HOW.archetypes.composable;
-            $meth = ($obj.^submethod_table){name} if !$meth;
+            my Mu \type-obj = @mro[$idx];
+            my $meth = (type-obj.^method_table){name} unless type-obj.HOW.archetypes.composable;
+            $meth = (type-obj.^submethod_table){name} if !$meth;
             nqp::push($results,$meth(SELF, |c))    if $meth;
         }
         if $throw && $results.elems == 0 {

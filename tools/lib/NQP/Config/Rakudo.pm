@@ -402,23 +402,6 @@ sub configure_moar_backend {
 "  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
         $nqp_config->{m_all} =
           '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
-
-        #$config->{'m_install'} = "\t"
-        #  . '$(M_RUN_PERL6) '
-        #  . $self->nfp("tools/build/create-moar-runner.p6")
-        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-        #  . $self->nfp("/bin/perl6-gdb-m")
-        #  . ' "gdb" "" "" ""' . "\n\t"
-        #  . '$(M_RUN_PERL6) '
-        #  . $self->nfp("tools/build/create-moar-runner.p6")
-        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-        #  . $self->nfp("/bin/perl6-lldb-m")
-        #  . ' "lldb" "" "" ""' . "\n\t"
-        #  . '$(M_RUN_PERL6) '
-        #  . $self->nfp("tools/build/create-moar-runner.p6")
-        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-        #  . $self->nfp("/bin/perl6-valgrind-m")
-        #  . ' "valgrind" "" "" ""';
         $nqp_config->{m_install} = '@insert(Makefile-install)@';
     }
     $nqp_config->{c_runner_libs} = join( " ", @c_runner_libs );

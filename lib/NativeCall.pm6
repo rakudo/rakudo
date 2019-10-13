@@ -256,8 +256,6 @@ my Lock $setup-lock .= new;
 # This role is mixed in to any routine that is marked as being a
 # native call.
 our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource] {
-    has int $!setup;
-    has int $!precomp-setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;
     has $!cpp-name-mangler;
@@ -270,7 +268,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 
     method !setup() {
         $setup-lock.protect: {
-            return if $!setup || $*W && $*W.is_precompilation_mode && $!precomp-setup;
+            return if nqp::unbox_i($!call);
+
             # Make sure that C++ methods are treated as mangled (unless set otherwise)
             if self.package.REPR eq 'CPPStruct' and not self.does(NativeCallMangled) {
               self does NativeCallMangled[True];
@@ -309,7 +308,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                     nqp::null());
             }
 
-            ($*W && $*W.is_precompilation_mode ?? $!precomp-setup !! $!setup) = $jitted ?? 2 !! 1;
         }
     }
 
@@ -573,7 +571,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             or $!is-clone # Clones and original would share the invokespec but not the $!do attribute
             or $!any-optionals # the compiled code doesn't support optional parameters yet
             or $*W;    # Avoid issues with compiling specialized version during BEGIN time
-        self!setup() unless $!setup;
+        self!setup() unless nqp::unbox_i($!call);
 
         my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
         self!arity-error(args) if nqp::elems($args) != $!arity;

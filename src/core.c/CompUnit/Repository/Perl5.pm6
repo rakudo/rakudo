@@ -5,8 +5,8 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
         --> CompUnit:D)
     {
         if $spec.from eq 'Perl5' {
-            require Inline::Perl5;
-            my $perl5 = ::('Inline::Perl5').default_perl5;
+            my $compunit = $*REPO.need(CompUnit::DependencySpecification.new(:short-name<Inline::Perl5>));
+            my $perl5 := $compunit.handle.globalish-package<Inline>.WHO<Perl5>.default_perl5;
 
             if $*RAKUDO_MODULE_DEBUG -> $RMD {
                 $RMD("Loading {$spec.short-name} via Inline::Perl5");

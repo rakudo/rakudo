@@ -3049,10 +3049,8 @@ BEGIN {
                 $type_match_possible := 1;
                 $i := 0;
                 while $i < $type_check_count {
-                    my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                     my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $got_prim   := nqp::atpos(@flags, $i) +& 0xF;
-                    my int $literal    := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {
@@ -3060,6 +3058,9 @@ BEGIN {
                             $type_mismatch := 1;
                             last;
                         }
+
+                        # Yes, but does it have the right type? Also look at rw-ness for literals.
+                        my int $literal := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                         if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
                         || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
                         || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
@@ -3071,6 +3072,8 @@ BEGIN {
                         }
                     }
                     else {
+                        my $type_obj := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+
                         # Work out parameter.
                         my $param :=
                             $got_prim == $BIND_VAL_OBJ ?? nqp::atpos(@args, $i) !!
@@ -3095,6 +3098,7 @@ BEGIN {
                             # passed to an Int parameter).
                             if !nqp::istype($type_obj, $param) {
                                 $type_match_possible := 0;
+                                last;
                             }
                         }
                         elsif $type_flags +& $DEFCON_MASK {

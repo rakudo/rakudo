@@ -86,7 +86,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @include(Makefile-backend-common)@
 
-@bpm(PERL6_OPS_DLL)@: @bpm(PERL6_OP_DLLS_SRC)@ @bpm(PERL6_CONT_SRC)@
+@bpm(PERL6_OPS_DLL)@: @bpm(PERL6_OPS_DLL_SRC)@ @bpm(PERL6_CONT_SRC)@
 	@echo(+++ Compiling	$@)@
 	@noecho@@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_OPS_DLL_SRC)@
 	@noecho@@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_CONT_OBJ)@ @bpm(PERL6_CONT_SRC)@

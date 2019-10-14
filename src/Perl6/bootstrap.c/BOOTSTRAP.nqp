@@ -3085,6 +3085,14 @@ BEGIN {
                         # If we're here, it's a non-native.
                         $all_native := 0;
 
+                        # A literal won't work with rw parameter.
+                        my int $literal := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
+                        if $literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i) {
+                            $type_mismatch := 1;
+                            $type_match_possible := 0;
+                            last;
+                        }
+
                         # Check type. If that doesn't rule it out, then check if it's
                         # got definedness constraints. If it does, note that; if we
                         # match but depend on definedness constraints we can't do

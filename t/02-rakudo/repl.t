@@ -9,7 +9,7 @@ my $*REPL-SCRUBBER = -> $_ is copy {
     if $*DISTRO.is-win {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
         " or use rlwrap for a line editor\n\n"//;
-    s/^^ "To exit type 'exit' or '^C'\n"//;
+    s/^^ "To exit type 'exit' or '^Z'\n"//;
     s:g/ ^^ "> "  //; # Strip out the prompts
     s:g/    ">" $ //; # Strip out the final prompt
     s:g/ ^^ "* "+ //; # Strip out the continuation-prompts

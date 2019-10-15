@@ -305,7 +305,7 @@ do {
         method repl-loop(*%adverbs) {
 
             if $*DISTRO.is-win {
-                say "To exit type 'exit' or '^C'";
+                say "To exit type 'exit' or '^Z'";
             } else {
                 say "To exit type 'exit' or '^D'";
             }

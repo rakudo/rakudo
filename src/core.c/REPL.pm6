@@ -304,7 +304,11 @@ do {
 
         method repl-loop(*%adverbs) {
 
-            say "To exit type 'exit' or '^D'";
+            if $*DISTRO.is-win {
+                say "To exit type 'exit' or '^Z'";
+            } else {
+                say "To exit type 'exit' or '^D'";
+            }
 
             my $prompt;
             my $code;

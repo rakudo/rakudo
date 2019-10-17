@@ -5,10 +5,11 @@ use Test::Helpers;
 
 plan 45;
 
+my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
         " or use rlwrap for a line editor\n\n"//;
-    s/^^ "To exit type 'exit' or '^D'\n"//;
+    s/^^ "To exit type 'exit' or $eof\n"//;
     s:g/ ^^ "> "  //; # Strip out the prompts
     s:g/    ">" $ //; # Strip out the final prompt
     s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
@@ -309,7 +310,7 @@ is-run-repl '&say.package', :out{.contains: 'GLOBAL'}, :err(''),
     ｢REPL can auto-print non-Mu things that lack .WHERE and .gist｣;
 
 #https://github.com/rakudo/rakudo/issues/2184
-is-run-repl 'my $fh = $*EXECUTABLE.open(:r)', 
-	:out{.contains: 'IO::Handle' and not .contains('Failed to write')}, 
+is-run-repl 'my $fh = $*EXECUTABLE.open(:r)',
+	:out{.contains: 'IO::Handle' and not .contains('Failed to write')},
 	:err(''),
 	｢no complaints about failed writing to filehandle when opening a file｣;

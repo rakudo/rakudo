@@ -62,20 +62,21 @@ MAIN: {
     $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
-        $cfg->options,      'help!',
-        'prefix=s',         'libdir=s',
+        $cfg->options,
+        'help!',            'prefix=s',
+        'perl6-home=s',     'nqp-home=s',
         'sysroot=s',        'sdkroot=s',
-        'relocatable',      'backends=s',
+        'relocatable!',     'backends=s',
         'no-clean',         'with-nqp=s',
         'gen-nqp:s',        'gen-moar:s',
         'moar-option=s@',   'git-protocol=s',
-        'ignore-errors',    'make-install!',
+        'ignore-errors!',   'make-install!',
         'makefile-timing!', 'git-depth=s',
         'git-reference=s',  'github-user=s',
         'rakudo-repo=s',    'nqp-repo=s',
         'moar-repo=s',      'roast-repo=s',
         'expand=s',         'out=s',
-        'set-var=s@',
+        'set-var=s@',       'silent-build!'
       )
       or do {
         print_help();
@@ -119,7 +120,7 @@ MAIN: {
     unless ( $cfg->opt('expand') ) {
         my $make = $cfg->cfg('make');
 
-        unless ( $cfg->opt('no-clean') ) {
+        if ( $cfg->opt('clean') ) {
             no warnings;
             print "Cleaning up ...\n";
             if ( open my $CLEAN, '-|', "$make clean" ) {
@@ -151,8 +152,8 @@ Configure.pl - $lang Configure
 General Options:
     --help             Show this text
     --prefix=<path>    Install files in dir; also look for executables there
-    --libdir=<path>    Install architecture-specific files in dir; Perl6 modules
-                       included
+    --nqp-home=dir     Directory to install NQP files to
+    --perl6-home=dir   Directory to install Perl 6 files to
     --relocatable
                        Dynamically locate NQP and Perl6 home dirs instead of
                        statically compiling them in. (On AIX and OpenBSD Rakudo
@@ -204,6 +205,7 @@ General Options:
     --set-var="config_variable=value"
                        Sets a config_variable to "value". Can be used multiple
                        times.
+   --no-silent-build   Don't echo commands in Makefile target receipt.
 
 Please note that the --gen-moar and --gen-nqp options are there for convenience
 only and will actually immediately - at Configure time - compile and install

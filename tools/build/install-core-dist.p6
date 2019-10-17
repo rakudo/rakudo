@@ -54,6 +54,6 @@ $*REPO.precomp-repository.precompile(
         :force,
     );
 
-note "installed!";
+#note "installed!";
 
 # vim: ft=perl6

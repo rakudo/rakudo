@@ -486,7 +486,7 @@ class Perl6::Pod {
                 $quoted   := nqp::null();
             }
 
-            if nqp::chars($quoted) {
+            if nqp::chars($quote) || nqp::chars($quoted) {
                 $word := nqp::concat($word, $quoted);
             }
             elsif nqp::chars($unquoted) {
@@ -498,7 +498,7 @@ class Perl6::Pod {
                 @pieces.push($delim) if ($keep eq 'delimiters');
                 $word := '';
             }
-            if !nqp::chars($line) && nqp::chars($word) {
+            if !nqp::chars($line) && (nqp::chars($quote) || nqp::chars($word)) {
                 @pieces.push($word);
                 $word := '';
             }
@@ -526,13 +526,14 @@ class Perl6::Pod {
         # break into an array
         my @arr := string2array($st);
 
-        if nqp::elems(@arr) > 1 {
-            return serialize_object('Array', |@arr).compile_time_value;
-        }
-        else {
+        if nqp::elems(@arr) == 1 {
             # convert a single-element list to a single value
             my $val := @arr[0];
             return $val;
+        }
+        else {
+            # 0 or 2 or more elements are an array
+            return serialize_object('Array', |@arr).compile_time_value;
         }
     }
 

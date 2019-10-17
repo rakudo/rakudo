@@ -6,6 +6,10 @@ role Perl6::Metamodel::LanguageRevision
 
     # The only allowed version format is 6.X
     method set_language_version($obj, $ver = NQPMu) {
+        # Don't override if version is already set
+        if self.ver($obj) {
+            return
+        }
         if nqp::isconcrete($ver) {
             nqp::die("Language version must be a string in '6.<rev>' format, got `$ver`.")
                 unless (nqp::iseq_i(nqp::chars($ver), 3) && nqp::eqat($ver, '6.', 0))

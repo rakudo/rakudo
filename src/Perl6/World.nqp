@@ -596,8 +596,8 @@ class Perl6::World is HLL::World {
             # fast-path the common cases
             if $revision eq 'c' {
                 $*CAN_LOWER_TOPIC := 0;
-                # CORE.c is currently our lowest core, which we don't "load"
-                $!setting_name := 'CORE';
+                # # CORE.c is currently our lowest core, which we don't "load"
+                $!setting_name := 'CORE.c';
                 return;
             }
 
@@ -640,10 +640,7 @@ class Perl6::World is HLL::World {
                 $*CAN_LOWER_TOPIC := 0;
                 # CORE.c is our lowest core, which we don't "load"
             }
-            else {
-                $!setting_name := 'CORE.' ~ $can_rev;
-                # self.load_setting: $ver-match, 'CORE.' ~ $can_rev;
-            }
+            $!setting_name := 'CORE.' ~ $can_rev;
             return;
         }
 
@@ -680,13 +677,10 @@ class Perl6::World is HLL::World {
         }
         else {
             $!setting_name := %*COMPILING<%?OPTIONS><setting> // $default_setting_name;
-            if nqp::eqat($!setting_name, 'NULL', 0) {
+            if nqp::eqat($!setting_name, 'NULL.', 0) {
                 $*COMPILING_CORE_SETTING := 1;
                 $*SET_DEFAULT_LANG_VER := 0;
-                my $lang_ver := nqp::iseq_s($!setting_name, 'NULL')
-                                    ?? '6.c'
-                                    !! '6.' ~ nqp::substr($!setting_name, 5, 1);
-                nqp::getcomp('perl6').set_language_version: $lang_ver;
+                nqp::getcomp('perl6').set_language_version: '6.' ~ nqp::substr($!setting_name, 5, 1);
 
             }
             $*UNIT.annotate('IN_DECL', 'mainline');
@@ -769,8 +763,9 @@ class Perl6::World is HLL::World {
         }
 
         # Bootstrap
-        if $!setting_name eq 'NULL' {
-            my $name   := "Perl6::BOOTSTRAP";
+        # if $!setting_name eq 'NULL' {
+        if nqp::eqat($!setting_name, 'NULL.', 0) {
+            my $name   := "Perl6::BOOTSTRAP::v6" ~ nqp::substr($!setting_name, 5, 1) ;
             my $module := self.load_module_early($/, $name, $*GLOBALish);
             my $EXPORT := $module<EXPORT>.WHO;
             my @to_import := ['MANDATORY', 'DEFAULT'];
@@ -937,8 +932,8 @@ class Perl6::World is HLL::World {
         if $*INSIDE-EVAL && $!have_outer {
             return
         }
-        # Do nothing for the NULL setting.
-        if $setting_name ne 'NULL' {
+        # Do nothing for the NULL.c setting.
+        if $setting_name ne 'NULL.c' {
             # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
             # Load it immediately, so the compile time info is available.
@@ -4824,7 +4819,7 @@ class Perl6::World is HLL::World {
                 if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('perl6').language_revisions,$rev) {
                     $no-outers := 1; # you don't see other COREs!
                     nqp::shift(@name);
-                    $setting_name := 'CORE' ~ (nqp::iseq_s($rev, 'c') ?? '' !! ".$rev");
+                    $setting_name := 'CORE' ~ '.' ~ $rev;
                 }
             }
         }
@@ -5496,8 +5491,6 @@ class Perl6::World is HLL::World {
         }
         if $found_xcbt {
             my $xcbt := $x_comp_bt.new(exception => $p6ex, :$use-case);
-            note("BEGIN TIME EXCEPTION IS AT ", self.current_file, " at ", self.current_line($/));
-            note("EXCEPTION: ", $p6ex.message);
             $xcbt.SET_FILE_LINE(
                 nqp::box_s(self.current_file,self.find_symbol(['Str'], :setting-only)),
                 nqp::box_i(self.current_line($/),self.find_symbol(['Int'], :setting-only)),

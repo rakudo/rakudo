@@ -10,11 +10,6 @@ sub hll-config($config) {
     $config<can-language-versions>
         := nqp::list( '6.c'@for_specmods(, '6.@spec_with_mod@')@ );
     $config<language-revisions> := nqp::hash( 
-        'c', nqp::hash(
-            # Have it here to avoid the need for additional condition 
-            # in World's check-verision-modifier() method
-            'mods', nqp::hash( ), 
-        ),
 @perl(
     # This code is not re-usable, makes no sense to write a dedicated macro
     for my $spec ( $cfg->perl6_specs ) {
@@ -22,9 +17,8 @@ sub hll-config($config) {
         my $pfx = "        ";
         $out .= "$pfx'$letter', nqp::hash(\n";
         my $require = '';
-        my $mods = "";
+        my $mods = "$pfx    'mods', nqp::hash(\n";
         for my $mod ( @$spec[1..$#$spec] ) {
-            $mods = "$pfx    'mods', nqp::hash(\n" unless $mods;
             $mods .= "$pfx        '$mod->[0]', nqp::hash(\n";
             if ( $mod->[1]{require} ) {
                 $require = "$pfx    'require', '$mod->[0]',\n";
@@ -40,7 +34,8 @@ sub hll-config($config) {
 )@
     );
     $config<prefix>           := '@prefix@';
-    $config<libdir>           := '@libdir@';
+    $config<nqp-home>         := '@nqp_home@';
+    $config<perl6-home>       := '@perl6_home@';
     $config<source-digest>    := '@source_digest()@';
 }
 

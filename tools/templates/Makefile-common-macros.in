@@ -13,16 +13,15 @@ TEST_F  = @test_f@
 SYSROOT    = @nfp(@sysroot@)@
 SDKROOT    = @nfp(@sdkroot@)@
 PREFIX     = @nfp(@prefix@)@
-LIBDIR     = @nfp(@libdir@)@
-PERL6_HOME = $(LIBDIR)@nfp(/perl6)@
+PERL6_HOME = @nfp(@perl6_home@)@
 BASE_DIR   = @base_dir@
 
 BOOTSTRAP_SOURCES = \
   @nfp(src/Perl6/Metamodel/BOOTSTRAP.nqp)@ \
   @nfp(src/Perl6/Metamodel/EXPORTHOW.nqp)@ \
 
-COMMON_BOOTSTRAP_SOURCES = \
-    @insert_filelist(common_bootstrap_sources)@
+COMMON_METAMODEL_SOURCES = \
+    @insert_filelist(common_metamodel_sources)@
 
 NQP_CONFIG_DIR = @nfp(3rdparty/nqp-configure/lib)@
 
@@ -35,3 +34,7 @@ CONFIGURE_SOURCES = \
 R_SETTING_SRC = @nfp(src/RESTRICTED.setting)@
 
 SPECTEST_DATA = @nfp(t/spec/spectest.data)@
+
+HARNESS_TYPE = 5
+
+# vim: ft=make noexpandtab ts=4 sw=4

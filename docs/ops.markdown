@@ -24,6 +24,7 @@
     - [p6decontrv](#p6decontrv)
     - [p6definite](#p6definite)
     - [p6finddispatcher](#p6finddispatcher)
+    - [p6getlexclient](#p6getlexclient)
     - [p6getouterctx](#p6getouterctx)
     - [p6init](#p6init)
     - [p6inpre](#p6inpre)
@@ -161,6 +162,12 @@ Decodes the unix timestamp $epoch into a native int array with six fields contai
 
 ## p6finddispatcher
 * p6finddispatcher(str $value)
+
+## p6getlexclient
+* p6getlexclient(str $symbol, int $setting-only)
+
+Takes a name and finds corresponding symbol in lexical scope of [p6clientctx](#p6clientctx). If `$setting-only` is set
+to a _true_ value then lookup is performed only in client's SETTING.
 
 ## p6getouterctx
 * p6getouterctx(Mu $closure)

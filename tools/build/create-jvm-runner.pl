@@ -7,9 +7,9 @@ use 5.008;
 use File::Spec;
 use File::Copy 'cp';
 
-my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp prefix> <blib> <third party jars>\n";
+my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp-home> <perl6-home> <blib> <third party jars>\n";
 
-my ($type, $destdir, $prefix, $nqpprefix, $blib, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $nqp_home, $perl6_home, $blib, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
 my $debugger = 0;
@@ -23,16 +23,14 @@ die "Invalid target type $type" unless $type eq 'dev' || $type eq 'install';
 my $cpsep = $^O eq 'MSWin32' ? ';' : ':';
 my $bat   = $^O eq 'MSWin32' ? '.bat' : '';
 
-my $nqpdir = File::Spec->catfile($nqpprefix, 'share', 'nqp');
-my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($nqpdir, 'lib') : File::Spec->catfile('${NQP_DIR}', 'lib');
-my $nqpjars = $^O eq 'MSWin32' ? $thirdpartyjars : join( $cpsep, map { $_ =~ s,$nqpdir,\${NQP_DIR},g; $_ } split($cpsep, $thirdpartyjars) );
+my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($nqp_home, 'lib') : File::Spec->catfile('${NQP_HOME}', 'lib');
+my $nqpjars = $^O eq 'MSWin32' ? $thirdpartyjars : join( $cpsep, map { $_ =~ s,$nqp_home,\${NQP_HOME},g; $_ } split($cpsep, $thirdpartyjars) );
 my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
-my $perl6dir = $type eq 'install' ? File::Spec->catfile($prefix, 'share', 'perl6') : $prefix;
-my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6dir : '${PERL6_DIR}', 'runtime') : $prefix;
-my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6dir : '${PERL6_DIR}', 'lib') : 'blib';
+my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6_home : '${PERL6_HOME}', 'runtime') : $prefix;
+my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6_home : '${PERL6_HOME}', 'lib') : 'blib';
 my $sharedir = File::Spec->catfile(
-    ($type eq 'install' && $^O ne 'MSWin32' ? '$DIR/..' : $prefix),
-    'share', 'perl6', 'site', 'lib');
+    ($type eq 'install' && $^O ne 'MSWin32' ? '${PERL6_HOME}' : File::Spec->catfile($prefix, 'share', 'perl6') ),
+    'site', 'lib');
 my $perl6jars = join( $cpsep,
     $^O eq 'MSWin32' ? $nqpjars : '${NQP_JARS}',
     File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
@@ -78,15 +76,15 @@ EOS
 
 my $preamble = $^O eq 'MSWin32' ? '@' :
             $type eq 'install'
-? $preamble_unix . ": \${NQP_DIR:=\"\$DIR/../share/nqp\"}
+? $preamble_unix . ": \${NQP_HOME=\"\$DIR/../share/nqp\"}
 : \${NQP_JARS:=\"$nqpjars\"}
-: \${PERL6_DIR:=\"\$DIR/../share/perl6\"}
+: \${PERL6_HOME:=\"\$DIR/../share/perl6\"}
 : \${PERL6_JARS:=\"$perl6jars\"}
 exec "
 : $preamble_unix . "$NQP_LIB
-: \${NQP_DIR:=\"$nqpdir\"}
+: \${NQP_HOME:=\"$nqp_home\"}
 : \${NQP_JARS:=\"$nqpjars\"}
-: \${PERL6_DIR:=\"$perl6dir\"}
+: \${PERL6_HOME:=\"$prefix\"}
 : \${PERL6_JARS:=\"$perl6jars\"}
 exec ";
 my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
@@ -98,7 +96,7 @@ sub install {
         ? File::Spec->catfile($destdir, $bindir, "$name$bat")
         : File::Spec->catfile($bindir, "$name$bat");
 
-    print "Creating '$install_to'\n";
+    #print "Creating '$install_to'\n";
     open my $fh, ">", $install_to or die "open: $!";
     print $fh $preamble, $command, $postamble, "\n" or die "print: $!";
     close $fh or die "close: $!";

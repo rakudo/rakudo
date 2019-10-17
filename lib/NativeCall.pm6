@@ -184,16 +184,16 @@ sub type_code_for(Mu ::T) {
     }
 }
 
-sub gen_native_symbol(Routine $r, :$cpp-name-mangler) {
+sub gen_native_symbol(Routine $r, $name, :$cpp-name-mangler) {
     if ! $r.?native_call_mangled {
         # Native symbol or name is said to be already mangled
-        $r.?native_symbol // $r.name;
+        $r.?native_symbol // $name;
     } elsif $r.package.REPR eq 'CPPStruct' {
         # Mangle C++ classes
-        $cpp-name-mangler($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name));
+        $cpp-name-mangler($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $name));
     } else {
         # Mangle C
-        $cpp-name-mangler($r, $r.?native_symbol // $r.name)
+        $cpp-name-mangler($r, $r.?native_symbol // $name)
     }
 }
 
@@ -234,16 +234,16 @@ my @cpp-name-mangler =
     &NativeCall::Compiler::GNU::mangle_cpp_symbol,
 ;
 
-sub guess-name-mangler(Routine $r, Str $libname) {
+sub guess-name-mangler(Routine $r, $name, Str $libname) {
     if $r.package.REPR eq 'CPPStruct' {
-        my $sym = $r.?native_symbol // ($r.package.^name ~ '::' ~ $r.name);
+        my $sym = $r.?native_symbol // ($r.package.^name ~ '::' ~ $name);
         for @cpp-name-mangler -> &mangler {
             return &mangler if try cglobal($libname, mangler($r, $sym), Pointer)
         }
         die "Don't know how to mangle symbol '$sym' for library '$libname'"
     }
     elsif $r.?native_call_mangled {
-        my $sym = $r.?native_symbol // $r.name;
+        my $sym = $r.?native_symbol // $name;
         for @cpp-name-mangler -> &mangler {
             return &mangler if try cglobal($libname, mangler($r, $sym), Pointer)
         }
@@ -256,21 +256,20 @@ my Lock $setup-lock .= new;
 # This role is mixed in to any routine that is marked as being a
 # native call.
 our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource] {
-    has int $!setup;
-    has int $!precomp-setup;
     has native_callsite $!call is box_target;
     has Mu $!rettype;
     has $!cpp-name-mangler;
     has Pointer $!entry-point;
     has int $!arity;
-    has int $!is-clone;
     has int $!any-optionals;
     has Mu $!optimized-body;
     has Mu $!jit-optimized-body;
+    has $!name;
 
     method !setup() {
         $setup-lock.protect: {
-            return if $!setup || $*W && $*W.is_precompilation_mode && $!precomp-setup;
+            return if nqp::unbox_i($!call);
+
             # Make sure that C++ methods are treated as mangled (unless set otherwise)
             if self.package.REPR eq 'CPPStruct' and not self.does(NativeCallMangled) {
               self does NativeCallMangled[True];
@@ -280,13 +279,13 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             if self.does(NativeCallMangled) and $r.?native_call_mangled {
               # if needed, try to guess mangler
               $!cpp-name-mangler  = %lib{$guessed_libname} //
-                  (%lib{$guessed_libname} = guess-name-mangler($r, $guessed_libname));
+                  (%lib{$guessed_libname} = guess-name-mangler($r, $!name, $guessed_libname));
             }
             my Mu $arg_info := param_list_for($r.signature, $r);
             my $conv = self.?native_call_convention || '';
             my $jitted = nqp::buildnativecall(self,
                 nqp::unbox_s($guessed_libname),                           # library name
-                nqp::unbox_s(gen_native_symbol($r, :$!cpp-name-mangler)), # symbol to call
+                nqp::unbox_s(gen_native_symbol($r, $!name, :$!cpp-name-mangler)), # symbol to call
                 nqp::unbox_s($conv),        # calling convention
                 $arg_info,
                 return_hash_for($r.signature, $r, :$!entry-point));
@@ -303,13 +302,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                     '$!do',
                     nqp::getattr(nqp::hllizefor($body, 'perl6'), ForeignCode, '$!do')
                 );
-                nqp::setinvokespec(self,
-                    Code.HOW.invocation_attr_class(Code),
-                    Code.HOW.invocation_attr_name(Code),
-                    nqp::null());
             }
 
-            ($*W && $*W.is_precompilation_mode ?? $!precomp-setup !! $!setup) = $jitted ?? 2 !! 1;
         }
     }
 
@@ -328,7 +322,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     }
 
     method !create-jit-compiled-function-body(Routine $r) {
-        my $block := QAST::Block.new(:name($r.name), :arity($!arity), :blocktype('declaration_static'));
+        my $block := QAST::Block.new(:name($!name), :arity($!arity), :blocktype('declaration_static'));
         my $locals = 0;
         my $args = 0;
         my (@params, @assigns);
@@ -429,7 +423,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     }
 
     method !create-function-body(Routine $r) {
-        my $block := QAST::Block.new(:name($r.name), :arity($!arity), :blocktype('declaration_static'));
+        my $block := QAST::Block.new(:name($!name), :arity($!arity), :blocktype('declaration_static'));
         my $arglist := QAST::Op.new(:op<list>);
         my $locals = 0;
         for $r.signature.params {
@@ -506,7 +500,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         my $body := nqp::compunitmainline($result);
         $*W.add_object($body) if $*W;
 
-        nqp::setcodename($body, $r.name);
+        nqp::setcodename($body, $!name);
         $body
     }
 
@@ -550,6 +544,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                     $fixups.push($*W.set_attribute(self, $?CLASS, '$!jit-optimized-body',
                         QAST::BVal.new( :value($jit-optimized-body) )));
                     $*W.add_fixup_task(:deserialize_ast($fixups), :fixup_ast($fixups));
+                    Nil
                 }
                 else {
                     $!optimized-body     := self!compile-function-body(self!create-function-body($r));
@@ -559,34 +554,32 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         }
     }
 
-    method clone() {
-        my $clone := callsame;
-        nqp::bindattr_i($clone, $?CLASS, '$!is-clone', 1);
-        nqp::bindattr($clone, $?CLASS, '$!optimized-body', Mu);
-        nqp::bindattr($clone, $?CLASS, '$!jit-optimized-body', Mu);
-        $clone
-    }
-
-    method CALL-ME(|args) {
-        self.create-optimized-call() unless
-            $!optimized-body # Already have the optimized body
-            or $!is-clone # Clones and original would share the invokespec but not the $!do attribute
-            or $!any-optionals # the compiled code doesn't support optional parameters yet
-            or $*W;    # Avoid issues with compiling specialized version during BEGIN time
-        self!setup() unless $!setup;
-
-        my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
-        self!arity-error(args) if nqp::elems($args) != $!arity;
-
-        nqp::nativecall($!rettype, self, $args)
-    }
-
     method !arity-error(\args) {
         X::TypeCheck::Argument.new(
             :objname($.name),
             :arguments(args.list.map(*.^name)),
             :signature(try $r.signature.gist),
         ).throw
+    }
+
+    method setup-nativecall() {
+        $!name = self.name;
+        my Mu \compstuff := nqp::getattr(self, Code, q<@!compstuff>);
+        compstuff[1]() unless nqp::isnull(compstuff);
+        my $replacement := -> |args {
+            self.create-optimized-call() unless
+                $!optimized-body # Already have the optimized body
+                or $!any-optionals # the compiled code doesn't support optional parameters yet
+                or try $*W;    # Avoid issues with compiling specialized version during BEGIN time
+            self!setup() unless nqp::unbox_i($!call);
+
+            my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
+            self!arity-error(args) if nqp::elems($args) != $!arity;
+
+            nqp::nativecall($!rettype, self, $args)
+        };
+        nqp::bindattr(self, Code, '$!do', nqp::getattr($replacement, Code, '$!do'));
+        nqp::setcodename(nqp::getattr(self, Code, '$!do'), $!name);
     }
 }
 
@@ -668,6 +661,7 @@ multi refresh($obj --> 1) is export(:DEFAULT, :utils) {
 multi sub nativecast(Signature $target-type, $source) is export(:DEFAULT) {
     my $r := sub { };
     $r does Native[$r, Str];
+    $r.setup-nativecall;
     nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
     nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
     $r
@@ -753,6 +747,7 @@ sub EXPORT(|) {
     my $native_trait := multi trait_mod:<is>(Routine $r, :$native!) {
         check_routine_sanity($r);
         $r does NativeCall::Native[$r, $native === True ?? Str !! $native];
+        $r.setup-nativecall;
         @routines_to_setup.push: $r;
     };
     Map.new(

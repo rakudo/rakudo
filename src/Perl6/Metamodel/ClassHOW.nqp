@@ -1,7 +1,7 @@
 class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Versioning
+    does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::MethodContainer
@@ -21,6 +21,7 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
+    does Perl6::Metamodel::ContainerSpecProtocol
     does Perl6::Metamodel::Finalization
     does Perl6::Metamodel::Concretization
 {
@@ -52,7 +53,7 @@ class Perl6::Metamodel::ClassHOW
         my $obj := nqp::settypehll($new_type, 'perl6');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
-        $metaclass.set_ver($obj, $ver);
+        $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
         $metaclass.set_api($obj, $api) if $api;
         $metaclass.setup_mixin_cache($obj);
@@ -91,6 +92,11 @@ class Perl6::Metamodel::ClassHOW
 
     method compose($the-obj, :$compiler_services) {
         my $obj := nqp::decont($the-obj);
+
+        # Set class language version if class belongs to the CORE
+        if $*COMPILING_CORE_SETTING {
+            self.set_language_version($the-obj);
+        }
 
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
@@ -215,6 +221,7 @@ class Perl6::Metamodel::ClassHOW
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
+        self.publish_container_spec($obj);
 
         # Compose the meta-methods.
         self.compose_meta_methods($obj);

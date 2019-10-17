@@ -3633,18 +3633,29 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*VAR;
         :my $orig_arg_flat_ok := $*ARG_FLAT_OK;
         :dba('term')
+        # TODO try to use $/ for lookback to check for erroneous
+        #      use of pod6 trailing declarator block, e.g.:
+        #
+        #        #=!
+        #
+        #      instead of
+        #
+        #        #=(
+        #
         [
         ||  [
-            | <prefixish>+ 
-              [ <.arg_flat_nok> <term> 
-                || 
-                {} 
-                   <.panic("Prefix " ~ $<prefixish>[-1].Str 
+            | <prefixish>+
+
+
+              [ <.arg_flat_nok> <term>
+                ||
+                {}
+                   <.panic("Prefix " ~ $<prefixish>[-1].Str
                                      ~ " requires an argument, but no valid term found"
                                      ~ ".\nDid you mean "
-                                     ~ $<prefixish>[-1].Str 
+                                     ~ $<prefixish>[-1].Str
                                      ~ " to be an opening bracket for a declarator block?"
-                          )> 
+                          )>
               ]
             | <.arg_flat_nok> <term>
             ]
@@ -4699,7 +4710,7 @@ if $*COMPILING_CORE_SETTING {
     # If any character other than a space follows the first
     # two, it must be a valid opening bracketing character,
     # otherwise an exception is thrown.
-    # 
+    #
     # Note that declarator blocks retain their special handling
     # even in the one-line format.
     #==========================================================
@@ -4720,7 +4731,7 @@ if $*COMPILING_CORE_SETTING {
     #   this is an ordinary trailing one-line comment:
     #     my $a = #` some comment
     #     3;
-    #     
+    #
     #==========================================================
 
     #```````````
@@ -4733,7 +4744,7 @@ if $*COMPILING_CORE_SETTING {
         <.typed_panic: 'X::Syntax::Comment::Embedded'>
     }
     token comment:sym<#`(...)> {
-        '#`' <?opener> 
+        '#`' <?opener>
         #[ <.quibble(self.slang_grammar('Quote'))> || <.typed_panic: 'X::Syntax::Comment::Embedded'> ]
         <.quibble(self.slang_grammar('Quote'))>
     }
@@ -4759,9 +4770,9 @@ if $*COMPILING_CORE_SETTING {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 if $*DECLARATOR_DOCS eq '' {
                     $*DECLARATOR_DOCS := $<attachment><nibble>;
-                } 
+                }
                 else {
-                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, 
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS,
                          nqp::concat("\n", $<attachment><nibble>));
                 }
             }
@@ -4776,9 +4787,9 @@ if $*COMPILING_CORE_SETTING {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
                 if $*DECLARATOR_DOCS eq '' {
                     $*DECLARATOR_DOCS := $<attachment>;
-                } 
+                }
                 else {
-                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS, 
+                    $*DECLARATOR_DOCS := nqp::concat($*DECLARATOR_DOCS,
                         nqp::concat("\n", $<attachment>));
                 }
             }

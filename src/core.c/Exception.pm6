@@ -1528,14 +1528,6 @@ my class X::Syntax::Comment::Embedded does X::Syntax {
     method message() { "Opening bracket required for #` comment" }
 }
 
-my class X::Syntax::Pod::DeclaratorLeading does X::Syntax  {
-    method message() { "Opening bracket required for #| declarator block" }
-}
-
-my class X::Syntax::Pod::DeclaratorTrailing does X::Syntax {
-    method message() { "Opening bracket required for #= declarator block" }
-}
-
 my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
     method message() {
         '=begin must be followed by an identifier; (did you mean "=begin pod"?)'

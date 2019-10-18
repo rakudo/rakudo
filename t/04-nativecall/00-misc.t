@@ -1,10 +1,28 @@
 use lib <t/packages/  t/04-nativecall  lib>;
+use NativeCall;
 use Test;
 use Test::Helpers;
 use CompileTestLib;
 compile_test_lib '00-misc';
 
-plan 1;
+plan 3;
+
+{ # https://github.com/rakudo/rakudo/issues/3235
+    role Foo {
+        sub calloc(size_t, size_t --> Pointer) is native(Str) { !!! };
+        method test() {
+            calloc(1, 1)
+        }
+    };
+
+    isa-ok Foo.test, Pointer;
+
+    my &calloc := BEGIN {
+        sub calloc(size_t, size_t --> Pointer) is native(Str) { !!! };
+    };
+
+    isa-ok calloc(1, 1), Pointer;
+}
 
 { # https://github.com/rakudo/rakudo/issues/1576
     (my $dir := make-temp-dir).add('Foo.pm6').spurt: ｢

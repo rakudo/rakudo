@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 8;
+plan 9;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -82,5 +82,10 @@ is-run ｢my @a; sink @a; my $b := gather { print 'meow' }; sink $b｣,
 is-run ｢use experimental :macros; macro z($) { quasi {} };
     z $; z <x>; print "pass"｣, :out<pass>,
     'args to macros do not cause useless use warnings';
+
+# https://github.com/rakudo/rakudo/issues/2554
+is-run ｢my @a[Int] = 1,2,3; dd @a｣,
+    'ignored shape specification issues a warning',
+    :err(/'Ignoring [Int] as shape specification'/);
 
 # vim: ft=perl6 expandtab sw=4

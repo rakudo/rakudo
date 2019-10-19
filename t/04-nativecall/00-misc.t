@@ -9,19 +9,19 @@ plan 3;
 
 { # https://github.com/rakudo/rakudo/issues/3235
     role Foo {
-        sub calloc(size_t, size_t --> Pointer) is native(Str) { !!! };
+        sub NCstrlen(Str --> int32) is native('./00-misc') { !!! };
         method test() {
-            calloc(1, 1)
+            NCstrlen '123'
         }
     };
 
-    isa-ok Foo.test, Pointer;
+    is Foo.test, 3;
 
-    my &calloc := BEGIN {
-        sub calloc(size_t, size_t --> Pointer) is native(Str) { !!! };
+    my &NCstrlen := BEGIN {
+        sub NCstrlen(Str --> int32) is native('./00-misc') { !!! };
     };
 
-    isa-ok calloc(1, 1), Pointer;
+    is NCstrlen('123'), 3;
 }
 
 { # https://github.com/rakudo/rakudo/issues/1576

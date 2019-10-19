@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 45;
+plan 46;
 
 compile_test_lib('05-arrays');
 
@@ -199,6 +199,12 @@ subtest 'CArray allocation' => {
     is-deeply .new(CArray[uint8].new(1,2,3)), .new(1,2,3),
       "can we create a {.^name} from a CArray"
       for Buf, Blob;
+}
+
+# https://github.com/rakudo/rakudo/issues/2682
+{
+    my @t2682 := CArray[int32].new(1,2,3);
+    is-deeply @t2682[0..*-2], (1, 2), 'Indexing with WhateverStar works on CArray';
 }
 
 # vim:ft=perl6

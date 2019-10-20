@@ -235,8 +235,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             ?? (
                 $precomp-stores
                 and my $unit = self!load-file($precomp-stores, $id, :refresh)
-                and nqp::sha1($path.slurp(:enc<iso-8859-1>)) eq $unit.source-checksum
-                and self!load-dependencies($unit, $precomp-stores)
+                and do {
+                    LEAVE $unit.close;
+                    nqp::sha1($path.slurp(:enc<iso-8859-1>)) eq $unit.source-checksum
+                    and self!load-dependencies($unit, $precomp-stores)
+                }
             )
             !! ($io.e and $io.s)
         {

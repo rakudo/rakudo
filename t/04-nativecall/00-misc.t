@@ -5,8 +5,6 @@ use Test::Helpers;
 use CompileTestLib;
 compile_test_lib '00-misc';
 
-plan 4;
-
 { # https://github.com/rakudo/rakudo/issues/3235
     role Foo {
         sub NCstrlen(Str --> int32) is native('./00-misc') { !!! };
@@ -43,5 +41,7 @@ unless $*DISTRO.is-win { # https://github.com/rakudo/rakudo/issues/3244
         :compiler-args[«-I "$dir.absolute()" -MFoo»], :out("3\n5\n7\n9\n"),
     'no segfaults when using NC routine after using it during precomp';
 }
+
+done-testing();
 
 # vim:ft=perl6

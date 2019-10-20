@@ -2,7 +2,6 @@ role Perl6::Metamodel::Naming {
     has $!name;
     has $!shortname;
     method set_name($obj, $name) {
-        $name  := nqp::decont_s($name);
         $!name := $name;
         nqp::setdebugtypename($obj, $name);
         if $name {
@@ -28,7 +27,6 @@ role Perl6::Metamodel::Naming {
         }
     }
     method set_shortname($obj, $shortname) {
-        $shortname  := nqp::decont_s($shortname);
         $!shortname := $shortname;
     }
     method name($obj) {

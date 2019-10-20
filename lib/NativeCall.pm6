@@ -592,6 +592,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         nqp::bindattr(self, Code, '$!do', $do);
         nqp::setcodename($do, $!name);
     }
+
+    method soft(--> True) {} # prevent inlining of the original function body
 }
 
 multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is raw is export(:DEFAULT, :types) is default {

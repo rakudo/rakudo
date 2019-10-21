@@ -191,7 +191,7 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
 
-@backend_prefix@-install-main:: @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
+@backend_prefix@-install-main:: @@bpm(PERL6_OPS_DLL)@@ $(R_SETTING_MOAR) @@bpm(INST_PERL6_M)@@ @@bpm(INST_PERL6_DEBUG_M)@@
 	@noecho@$(CP) @bpm(PERL6_OPS_DLL)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
 	@noecho@$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
 	@noecho@$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_M)@)@

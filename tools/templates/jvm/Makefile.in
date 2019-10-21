@@ -88,7 +88,7 @@ sometests: @backend_prefix@-all
 	@noecho@$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
 	@noecho@$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
 
-@backend_prefix@-install-main:: @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
+@backend_prefix@-install-main:: $(RUNTIME_JAR) @@script(create-jvm-runner.pl)@@
 	@noecho@$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
 	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@

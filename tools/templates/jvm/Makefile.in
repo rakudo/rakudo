@@ -84,7 +84,7 @@ sometests: @backend_prefix@-all
 
 @backend_prefix@-runner-default-install: @backend_prefix@-install
 	@echo(+++ Installing @uc(@backend@)@ launcher)@
-	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_HOME))@ @q($(PERL6_HOME))@ "" @q($(NQP_JARS))@
+	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(PERL6_HOME))@ "" @q($(NQP_JARS))@
 	@noecho@$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
 	@noecho@$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
 

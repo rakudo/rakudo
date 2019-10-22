@@ -374,7 +374,7 @@ my class ThreadPoolScheduler does Scheduler {
                         scheduler => self
                       )
                     )),
-                    scheduler-debug("Created initial general worker thread"),
+                    scheduler-debug("Created initial timer worker thread"),
                     self!maybe-start-supervisor
                   )
                 )

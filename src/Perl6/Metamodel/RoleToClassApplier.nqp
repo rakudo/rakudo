@@ -42,6 +42,23 @@ my class RoleToClassApplier {
     }
 
     method apply($target, @roles) {
+
+        # Make sure the same role isn't added more than once, so that we don't
+        # get disambiguation messages on identical methods later, which can be
+        # really confusing.
+        my %seen;
+        for @roles {
+            my $name := $_.HOW.name($_);
+            if nqp::existskey(%seen,$name) {
+                nqp::die(
+                  "Can only apply role '$name' to class '"
+                  ~ $target.HOW.name($target)
+                  ~ "' once"
+                );
+            }
+            nqp::bindkey(%seen,$name,1)
+        }
+
         # If we have many things to compose, then get them into a single helper
         # role first.
         my $to_compose;

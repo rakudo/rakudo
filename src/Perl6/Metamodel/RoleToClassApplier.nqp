@@ -43,20 +43,26 @@ my class RoleToClassApplier {
 
     method apply($target, @roles) {
 
-        # Make sure the same role isn't added more than once, so that we don't
-        # get disambiguation messages on identical methods later, which can be
-        # really confusing.
-        my %seen;
-        for @roles {
-            my $name := $_.HOW.name($_);
-            if nqp::existskey(%seen,$name) {
-                nqp::die(
-                  "Can only apply role '$name' to class '"
-                  ~ $target.HOW.name($target)
-                  ~ "' once"
-                );
+        # Helper sub to handle identical methods from different roles.
+        sub need-to-resolve-method($type, $collision) {
+
+            # if the roles are identical, then
+            my %seen;
+            for $collision.roles -> $name {
+                if nqp::existskey(%seen,$name) {
+                    nqp::die(
+                      "Can only apply role '$name' to class '"
+                      ~ $target.HOW.name($target)
+                      ~ "' once"
+                    );
+                }
+                nqp::bindkey(%seen,$name,1)
             }
-            nqp::bindkey(%seen,$name,1)
+            nqp::die("$type '" ~ $collision.name ~
+                "' must be resolved by class " ~
+                $target.HOW.name($target) ~
+                " because it exists in multiple roles (" ~
+                nqp::join(", ", $collision.roles) ~ ")");
         }
 
         # If we have many things to compose, then get them into a single helper
@@ -81,11 +87,7 @@ my class RoleToClassApplier {
         for @collisions {
             if $_.private {
                 unless has_private_method($target, $_.name) {
-                    nqp::die("Private method '" ~ $_.name ~
-                        "' must be resolved by class " ~
-                        $target.HOW.name($target) ~
-                        " because it exists in multiple roles (" ~
-                        nqp::join(", ", $_.roles) ~ ")");
+                    need-to-resolve-method("Private method",$_);
                 }
             }
             elsif nqp::isconcrete($_.multi) {
@@ -98,20 +100,12 @@ my class RoleToClassApplier {
                     }
                 }
                 unless $match {
-                    nqp::die("Multi method '" ~ $_.name ~ "' with signature " ~
-                        $_.multi.signature.perl ~ " must be resolved by class " ~
-                        $target.HOW.name($target) ~
-                        " because it exists in multiple roles (" ~
-                        nqp::join(", ", $_.roles) ~ ")");
+                    need-to-resolve-method("Multi method",$_);
                 }
             }
             else {
                 unless has_method($target, $_.name, 1) {
-                    nqp::die("Method '" ~ $_.name ~
-                        "' must be resolved by class " ~
-                        $target.HOW.name($target) ~
-                        " because it exists in multiple roles (" ~
-                        nqp::join(", ", $_.roles) ~ ")");
+                    need-to-resolve-method("Method",$_);
                 }
             }
         }

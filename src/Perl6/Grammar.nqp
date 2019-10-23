@@ -806,6 +806,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARATOR_DOCS;
         :my $*PRECEDING_DECL; # for #= comments
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
+        :my $*keep-decl := nqp::existskey(nqp::getenvhash(), 'RAKUDO_POD_DECL_BLOCK_USER_FORMAT');
+
         # TODO use these vars to implement S26 pod data block handling
         :my $*DATA-BLOCKS := [];
         :my %*DATA-BLOCKS := {};
@@ -4692,7 +4694,7 @@ if $*COMPILING_CORE_SETTING {
     }
 
     token comment:sym<#|> {
-        '#|' \h+ $<attachment>=[\N*]
+        '#|' \h $<attachment>=[\N*]
         {
             unless $*POD_BLOCKS_SEEN{ self.from() } {
                 $*POD_BLOCKS_SEEN{ self.from() } := 1;
@@ -4722,9 +4724,17 @@ if $*COMPILING_CORE_SETTING {
     method attach_leading_docs() {
         # TODO allow some limited text layout here
         if ~$*DOC ne '' {
-            my $cont  := Perl6::Pod::serialize_aos(
-                [Perl6::Pod::normalize_text(~$*DOC)]
-            ).compile_time_value;
+            my $cont;
+            if $*keep-decl {
+                $cont := Perl6::Pod::serialize_aos(
+                    [~$*DOC]
+                ).compile_time_value;
+            }
+            else {
+                $cont := Perl6::Pod::serialize_aos(
+                    [Perl6::Pod::normalize_text(~$*DOC)]
+                ).compile_time_value;
+            }
             my $block := $*W.add_constant(
                 'Pod::Block::Declarator', 'type_new',
                 :nocache, :leading([$cont]),

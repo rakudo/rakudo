@@ -64,6 +64,7 @@ proto sub EVAL(
         :outer_ctx($eval_ctx),
         :global(GLOBAL),
         :mast_frames(mast_frames),
+        :language_version(nqp::getcomp('perl6').language_version),
         |(:optimize($_) with nqp::getcomp('perl6').cli-options<optimize>),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
 

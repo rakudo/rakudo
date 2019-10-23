@@ -31,7 +31,7 @@ class Perl6::Compiler is HLL::Compiler {
             $!language_version
         }
         else {
-            $!language_version := self.config<language-version>
+            $!language_version := %*COMPILING<%?OPTIONS><language_version> || self.config<language-version>
         }
     }
     method language_modifier() {

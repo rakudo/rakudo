@@ -6,16 +6,18 @@ sub nativecast($target-type, $source) {
         nqp::decont(map_return_type($target-type)), nqp::decont($source));
 }
 
-our native long     is Int is ctype("long")     is repr("P6int") { };
-our native longlong is Int is ctype("longlong") is repr("P6int") { };
+our native long      is Int is ctype("long")                 is repr("P6int") { };
+our native longlong  is Int is ctype("longlong")             is repr("P6int") { };
 our native ulong     is Int is ctype("long")     is unsigned is repr("P6int") { };
 our native ulonglong is Int is ctype("longlong") is unsigned is repr("P6int") { };
 our native size_t    is Int is ctype("size_t")   is unsigned is repr("P6int") { };
 our native ssize_t   is Int is ctype("size_t")               is repr("P6int") { };
 our native bool      is Int is ctype("bool")                 is repr("P6int") { };
-our class void                                  is repr('Uninstantiable') { };
+
+our class void is repr('Uninstantiable') { };
+
 # Expose a Pointer class for working with raw pointers.
-our class Pointer                               is repr('CPointer') {
+our class Pointer is repr('CPointer') {
     method of() { void }
 
     multi method new() {
@@ -76,22 +78,24 @@ our class Pointer                               is repr('CPointer') {
             )
         }
     }
-    method ^parameterize(Mu:U \p, Mu:U \t) {
-        die "A typed pointer can only hold:\n" ~
-            "  (u)int8, (u)int16, (u)int32, (u)int64, (u)long, (u)longlong, num16, num32, (s)size_t, bool, Str\n" ~
-            "  and types with representation: CArray, CPointer, CStruct, CPPStruct and CUnion" ~
-            "not: {t.^name}"
-            unless t ~~ Int|Num|Bool || t === Str|void || t.REPR eq any <CStruct CUnion CPPStruct CPointer CArray>;
-        my $w := p.^mixin: TypedPointer[t.WHAT];
-        $w.^set_name: "{p.^name}[{t.^name}]";
-        $w;
+    method ^parameterize(Mu:U $this is raw, Mu:U $type is raw) {
+        when $type ~~ any(Int, Num, Str, void)
+          || $type.REPR eq any <CPointer CArray CStruct CPPStruct CUnion> {
+            my $pointer := $this.^mixin: TypedPointer[$type];
+            $pointer.^set_name: $this.^name ~ '[' ~ $type.^name ~ ']';
+            $pointer
+        }
+        default {
+            die "A typed pointer can only hold:\n" ~
+                "  (u)int8, (u)int16, (u)int32, (u)int64, (u)long, (u)longlong, num16, num32, (s)size_t, bool, Str\n" ~
+                "  and types with representation: CArray, CPointer, CStruct, CPPStruct and CUnion\n" ~
+                "not: " ~ $type.^name;
+        }
     }
 }
 
 # CArray class, used to represent C arrays.
 our class CArray is repr('CArray') is array_type(Pointer) {
-    method AT-POS(::?CLASS:D: $pos) { die "CArray cannot be used without a type" }
-
     my role IntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
             nqp::atposref_i(nqp::decont(arr), $pos);
@@ -197,25 +201,25 @@ our class CArray is repr('CArray') is array_type(Pointer) {
             $arr;
         }
     }
-    method ^parameterize(Mu:U \arr, Mu:U \t) {
-        my $mixin;
-        if t ~~ Int {
-            $mixin := IntTypedCArray[t.WHAT];
+
+    method ^parameterize(Mu:U $this is raw, Mu:U $type is raw) {
+        when $type ~~ any(Int, Num, Str)
+          || $type.REPR eq any <CPointer CArray CStruct CPPStruct CUnion> {
+            my $impl  := do given $type {
+                when Int { IntTypedCArray[$type] }
+                when Num { NumTypedCArray[$type] }
+                default  { TypedCArray[$type] }
+            };
+            my $array := $this.^mixin: $impl;
+            $array.^set_name: $this.^name ~ '[' ~ $type.^name ~ ']';
+            $array
         }
-        elsif t ~~ Num {
-            $mixin := NumTypedCArray[t.WHAT];
-        }
-        else {
+        default {
             die "A C array can only hold:\n" ~
                 "  (u)int8, (u)int16, (u)int32, (u)int64, (u)long, (u)longlong, num16, num32, (s)size_t, bool, Str\n" ~
                 "  and types with representation: CArray, CPointer, CStruct, CPPStruct and CUnion\n" ~
-                "not: {t.^name}"
-                unless t === Str || t.REPR eq 'CStruct' | 'CPPStruct' | 'CUnion' | 'CPointer' | 'CArray';
-            $mixin := TypedCArray[t];
+                "not: " ~ $type.^name;
         }
-        my $what := arr.^mixin: $mixin;
-        $what.^set_name("{arr.^name}[{t.^name}]");
-        $what;
     }
 
     method Str { self.join(' ') }

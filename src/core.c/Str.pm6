@@ -2054,44 +2054,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
 #?if !jvm
-    sub get-parts ($nfd is raw) {
-      my int $p = 0;
-      my int $last-prepend = -1;
-      my int $first-extend = -1;
-      while $p < nqp::elems($nfd) &&
-        nqp::iseq_s('Prepend', nqp::getuniprop_str(
-          nqp::atpos_i($nfd, $p),
-          nqp::unipropcode('gcb'))) {
-        $last-prepend = $p;
-        $p = nqp::add_i($p, 1)
-      }
-      $p = nqp::elems($nfd) - 1;
-      while 0 <= $p && nqp::atpos_i($nfd, $p).uniprop('gcb') eq 'Extend' {
-        $first-extend = $p;
-        $p = nqp::sub_i($p, 1)
-      }
-      my $extends :=
-        nqp::if(($first-extend == -1),
-          nqp::create(NFD),
-          nqp::slice($nfd, $first-extend, nqp::sub_i(nqp::elems($nfd), 1))
-        );
-      my $prepends :=
-        nqp::if(($last-prepend == -1),
-          nqp::create(NFD),
-          nqp::slice($nfd, 0, $last-prepend)
-        );
-      my $base :=
-        nqp::slice(
-          $nfd,
-          nqp::if(($last-prepend == -1),
-            0,
-            nqp::add_i($last-prepend, 1)),
-          nqp::if(nqp::iseq_i($first-extend, -1),
-            nqp::sub_i(nqp::elems($nfd), 1),
-            nqp::sub_i($first-extend, 1))
-      );
-      return nqp::list($prepends, $base, $extends);
-    }
     method samemark(Str:D: Str:D $pattern --> Str:D) {
         nqp::if(
           nqp::chars(nqp::unbox_s($pattern)),        # something to work with
@@ -2107,29 +2069,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::islt_i(($i = nqp::add_i($i,1)),$marks-elems),
               nqp::bindpos_s($result,$i,              # store the result of:
                 nqp::stmts(
-                  (my $pattern-nfd := nqp::strtocodes(  # char + accents of mark
+                  (my $marks-nfd := nqp::strtocodes(  # char + accents of mark
                     nqp::atpos($marks,$i),
                     nqp::const::NORMALIZE_NFD,
                     nqp::create(NFD)
                   )),
-                  # Make NFD array of input's
-                  (my $input-nfd := nqp::strtocodes( # char + accents of base
+                  nqp::shift_i($marks-nfd),           # lose the char
+                  (my $marks-base := nqp::strtocodes( # char + accents of base
                     nqp::atpos($base,$i),
                     nqp::const::NORMALIZE_NFD,
                     nqp::create(NFD)
                   )),
-                  (
-                  my $input-parts := get-parts($input-nfd);
-                  my $pattern-parts := get-parts($pattern-nfd);
-                  # This is used below as well
-                  my $pattern-prepends := nqp::atpos($pattern-parts, 0);
-                  my $pattern-extends := nqp::atpos($pattern-parts, 2);
-                  my $out := nqp::create(NFD);
-                  nqp::splice($out, $pattern-prepends, 0, nqp::elems($pattern-prepends));
-                  nqp::splice($out, nqp::atpos($input-parts, 1), nqp::elems($out), 0);
-                  nqp::splice($out, $pattern-extends, nqp::elems($out), 0);
-                  ),
-                  nqp::strfromcodes($out),
+                  nqp::strfromcodes(                  # join base+rest of marks
+                    nqp::splice(
+                      $marks-base,
+                      $marks-nfd,
+                      1,
+                      nqp::sub_i(nqp::elems($marks-base),1)
+                    )
+                  )
                 )
               )
             ),
@@ -2139,28 +2097,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::islt_i(($i = nqp::add_i($i,1)),$base-elems),
               nqp::bindpos_s($result,$i,              # store the result of:
                 nqp::stmts(
-                  ($input-nfd := nqp::strtocodes(    # char+all accents of base
+                  ($marks-base := nqp::strtocodes(    # char+all accents of base
                     nqp::atpos($base,$i),
                     nqp::const::NORMALIZE_NFD,
                     nqp::create(NFD)
                   )),
-                  (
-                    my $input-base := nqp::atpos(get-parts($input-nfd), 1);
-                  ),
                   nqp::strfromcodes(                  # join base+rest of marks
-                    nqp::stmts(
-                      nqp::splice(
-                        $input-base,
-                        $pattern-extends, # NOTE: state of last iteration previous loop
-                        nqp::elems($input-base),
-                        0
-                      ),
-                      nqp::splice(
-                        $input-base,
-                        $pattern-prepends, # NOTE: state of last iteration previous loop
-                        0,
-                        0
-                      )
+                    nqp::splice(
+                      $marks-base,
+                      $marks-nfd, # NOTE: state of last iteration previous loop
+                      1,
+                      nqp::sub_i(nqp::elems($marks-base),1)
                     )
                   )
                 )

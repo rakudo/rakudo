@@ -78,19 +78,19 @@ our class Pointer is repr('CPointer') {
             )
         }
     }
+
     method ^parameterize(Mu:U $this is raw, Mu:U $type is raw) {
-        when $type ~~ any(Int, Num, Str, void)
-          || $type.REPR eq any <CPointer CArray CStruct CPPStruct CUnion> {
-            my $pointer := $this.^mixin: TypedPointer[$type];
-            $pointer.^set_name: $this.^name ~ '[' ~ $type.^name ~ ']';
-            $pointer
-        }
-        default {
+        unless $type ~~ Int | Num | Str | void
+            || $type.REPR eq any <CPointer CArray CStruct CPPStruct CUnion> {
             die "A typed pointer can only hold:\n" ~
                 "  (u)int8, (u)int16, (u)int32, (u)int64, (u)long, (u)longlong, num16, num32, (s)size_t, bool, Str\n" ~
                 "  and types with representation: CArray, CPointer, CStruct, CPPStruct and CUnion\n" ~
                 "not: " ~ $type.^name;
         }
+
+        my $pointer := $this.^mixin: TypedPointer[$type];
+        $pointer.^set_name: $this.^name ~ '[' ~ $type.^name ~ ']';
+        $pointer
     }
 }
 
@@ -203,23 +203,21 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     method ^parameterize(Mu:U $this is raw, Mu:U $type is raw) {
-        when $type ~~ any(Int, Num, Str)
-          || $type.REPR eq any <CPointer CArray CStruct CPPStruct CUnion> {
-            my $impl  := do given $type {
-                when Int { IntTypedCArray[$type] }
-                when Num { NumTypedCArray[$type] }
-                default  { TypedCArray[$type] }
-            };
-            my $array := $this.^mixin: $impl;
-            $array.^set_name: $this.^name ~ '[' ~ $type.^name ~ ']';
-            $array
-        }
-        default {
+        unless $type ~~ any(Int, Num, Str)
+            || $type.REPR eq any <CPointer CArray CStruct CPPStruct CUnion> {
             die "A C array can only hold:\n" ~
                 "  (u)int8, (u)int16, (u)int32, (u)int64, (u)long, (u)longlong, num16, num32, (s)size_t, bool, Str\n" ~
                 "  and types with representation: CArray, CPointer, CStruct, CPPStruct and CUnion\n" ~
                 "not: " ~ $type.^name;
         }
+
+        my $array := $this.^mixin: do given $type {
+            when Int { IntTypedCArray[$type] }
+            when Num { NumTypedCArray[$type] }
+            default  { TypedCArray[$type] }
+        };
+        $array.^set_name: $this.^name ~ '[' ~ $type.^name ~ ']';
+        $array
     }
 
     method Str { self.join(' ') }

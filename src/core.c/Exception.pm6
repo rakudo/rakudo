@@ -771,7 +771,7 @@ my class X::Comp::BeginTime does X::Comp {
     method message() {
         $!exception ~~ X::MOP
             ?? $!exception.message
-            !! "An exception occurred while $!use-case"
+            !! "An exception " ~ $!exception.^name ~ " occurred while $!use-case\n" ~ $!exception.gist.indent(2)
     }
 
     multi method gist(::?CLASS:D: :$sorry = True) {
@@ -2731,10 +2731,18 @@ my class X::Multi::NoMatch is Exception {
     }
 }
 
-my class X::Caller::NotDynamic is Exception {
+my class X::SymbolNotDynamic is Exception {
     has $.symbol;
+    has $.package;
     method message() {
-        "Cannot access '$.symbol' through CALLER, because it is not declared as dynamic";
+        "Cannot access '$!symbol' through $!package, because it is not declared as dynamic";
+    }
+}
+
+# For 6.c backward compatibility.
+my class X::Caller::NotDynamic is X::SymbolNotDynamic {
+    method new(|c) {
+        callwith(:package('CALLER'), |c)
     }
 }
 

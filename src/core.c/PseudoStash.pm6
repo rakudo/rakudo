@@ -4,6 +4,7 @@ my class X::Caller::NotDynamic { ... }
 my class PseudoStash is Map {
     has Mu $!ctx;
     has int $!mode;
+    has Mu $!package;
 
     # Lookup modes.
     my int constant PICK_CHAIN_BY_NAME = 0;
@@ -26,9 +27,7 @@ my class PseudoStash is Map {
         'MY', sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('MY')),
-                $stash);
+            $stash.pseudo-package('MY');
         },
         'CORE', sub ($cur) {
             # In 6.c and 6.d implementations of rakudo CORE was always poiting at the outermost setting.
@@ -51,9 +50,7 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found-ctx)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $found-ctx),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
-                nqp::setwho(
-                  Metamodel::ModuleHOW.new_type(:name('CORE')),
-                    $stash)))
+                $stash.pseudo-package('CORE')))
         },
         'CALLER', sub ($cur) {
             nqp::if(
@@ -66,9 +63,7 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC),
-                nqp::setwho(
-                    Metamodel::ModuleHOW.new_type(:name('CALLER')),
-                    $stash)))
+                $stash.pseudo-package('CALLER')))
         },
         'OUTER', sub ($cur) {
             my Mu $ctx := nqp::ctxouterskipthunks(
@@ -82,17 +77,13 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
-                nqp::setwho(
-                    Metamodel::ModuleHOW.new_type(:name('OUTER')),
-                    $stash)
+                $stash.pseudo-package('OUTER');
             }
         },
         'LEXICAL', sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('LEXICAL')),
-                $stash);
+            $stash.pseudo-package('LEXICAL');
         },
         'OUTERS', sub ($cur) {
             my Mu $ctx := nqp::ctxouterskipthunks(
@@ -106,17 +97,13 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
-                nqp::setwho(
-                    Metamodel::ModuleHOW.new_type(:name('OUTERS')),
-                    $stash)
+                $stash.pseudo-package('OUTERS');
             }
         },
         'DYNAMIC', sub ($cur) {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('DYNAMIC')),
-                $stash);
+            $stash.pseudo-package('DYNAMIC');
         },
         'CALLERS', sub ($cur) {
             nqp::if(
@@ -129,9 +116,7 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN +| REQUIRE_DYNAMIC),
-                nqp::setwho(
-                  Metamodel::ModuleHOW.new_type(:name('CALLERS')),
-                  $stash)))
+                $stash.pseudo-package('CALLERS')))
         },
         'UNIT', sub ($cur) {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
@@ -146,9 +131,7 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage',nqp::ctxlexpad($ctx)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE),
-                nqp::setwho(
-                  Metamodel::ModuleHOW.new_type(:name('UNIT')),
-                  $stash)))
+                $stash.pseudo-package('UNIT')))
         },
         'SETTING', sub ($cur) {
             # Same as UNIT, but go a little further out (two steps, for
@@ -165,9 +148,7 @@ my class PseudoStash is Map {
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx)),
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx),
                 nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN),
-                nqp::setwho(
-                  Metamodel::ModuleHOW.new_type(:name('SETTING')),
-                  $stash)))
+                $stash.pseudo-package('SETTING')))
         },
         'CLIENT', sub ($cur) {
             my $pkg := nqp::getlexrel(
@@ -183,9 +164,7 @@ my class PseudoStash is Map {
             nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
             nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE +| REQUIRE_DYNAMIC);
-            nqp::setwho(
-                Metamodel::ModuleHOW.new_type(:name('CLIENT')),
-                $stash);
+            $stash.pseudo-package('CLIENT');
         },
         'OUR', sub ($cur) {
             nqp::getlexrel(
@@ -194,7 +173,15 @@ my class PseudoStash is Map {
         }
     );
 
+    method pseudo-package(PseudoStash:D: Str:D $name) is raw {
+        nqp::setwho(
+            ($!package := Metamodel::ModuleHOW.new_type(:$name)),
+            nqp::decont(self)
+        )
+    }
+
     multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
+        my Mu \name = nqp::unbox_s($key);
         nqp::if(
           nqp::existskey($pseudoers,$key),
           nqp::atkey($pseudoers,$key)(self),
@@ -203,9 +190,9 @@ my class PseudoStash is Map {
             nqp::stmts(
               (my Mu $res := nqp::if(
                 nqp::existskey(
-                  nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+                  nqp::getattr(self,Map,'$!storage'),name),
                 nqp::atkey(
-                  nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+                  nqp::getattr(self,Map,'$!storage'),name),
                 Nil
               )),
               nqp::if(
@@ -213,7 +200,7 @@ my class PseudoStash is Map {
                   && nqp::bitand_i($!mode,REQUIRE_DYNAMIC)),
                 nqp::if(
                   (try nqp::not_i($res.VAR.dynamic)),
-                  X::Caller::NotDynamic.new(symbol => $key).throw
+                  X::Caller::NotDynamic.new(:symbol($key)).throw
                 )
               ),
               $res
@@ -221,15 +208,13 @@ my class PseudoStash is Map {
             nqp::if(
               nqp::bitand_i(
                 $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
-                ) && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42),  # "*"
-              nqp::ifnull(
-                nqp::getlexreldyn(
-                  nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
-                Nil
-              ),
+                ) && nqp::iseq_i(nqp::ord(name,1),42),  # "*"
+              nqp::unless(
+                &DYNAMIC(name, nqp::getattr(self,PseudoStash,'$!ctx')),
+                Nil),
               nqp::ifnull(                                    # STATIC_CHAIN
                 nqp::getlexrel(
-                  nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
+                  nqp::getattr(self,PseudoStash,'$!ctx'),name),
                 Nil
               )
             )
@@ -259,7 +244,6 @@ my class PseudoStash is Map {
         )
     }
 
-    # for some reason we get an ambiguous dispatch error by making this a multi
     method EXISTS-KEY(PseudoStash:D: Str() $key) {
         nqp::unless(
           nqp::existskey($pseudoers,$key),

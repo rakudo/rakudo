@@ -5,7 +5,7 @@
 my class PseudoStash is Map {
     has Mu $!ctx;
     has int $!mode;
-    has $!package;      # Parent package, for which we serve as .WHO
+    has Mu $!package;      # Parent package, for which we serve as .WHO
 
     # Lookup modes.
     my int constant PICK_CHAIN_BY_NAME = 0;
@@ -218,10 +218,14 @@ my class PseudoStash is Map {
         )
     }
 
+    my sub name4PROCESS(\name) is raw {
+        nqp::if(nqp::eqat(name, '*', 1), nqp::replace(name, 1, 1, ''), name )
+    }
+
     multi method AT-KEY(PseudoStash:D: Str() $key) is raw {
-        my $name := $!package.^name;
+        my Mu \name = nqp::unbox_s($key);
         my Mu $val := nqp::if(
-            (nqp::iseq_s($name, 'CORE')
+            (nqp::iseq_s($!package.^name, 'CORE')
                 && nqp::iseq_i(nqp::chars($key), 3)
                 && nqp::iseq_i(nqp::index($key, 'v6'), 0)),
             self!find-rev-core($key),
@@ -235,27 +239,25 @@ my class PseudoStash is Map {
               nqp::bitand_i($!mode,PRECISE_SCOPE),
               nqp::if(
                 nqp::existskey(
-                  nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+                  nqp::getattr(self,Map,'$!storage'),name),
                 ($val := nqp::atkey(
-                  nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)))
+                  nqp::getattr(self,Map,'$!storage'),name))
               ),
               nqp::stmts(         # DYNAMIC_CHAIN can be combined with STATIC_CHAIN
                 nqp::if(          # DYNAMIC_CHAIN
                     (nqp::isnull($val)
                         && nqp::bitand_i(
                           $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
-                          ) && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42)),  # "*"
-                    ($val := nqp::ifnull(
-                      nqp::getlexreldyn(
-                        nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
-                      nqp::null()
-                    ))
+                          ) && nqp::iseq_i(nqp::ord(name,1),42)),  # "*"
+                    ($val := nqp::unless(
+                        &DYNAMIC(name, nqp::getattr(self,PseudoStash,'$!ctx')),
+                        nqp::null()))
                 ),
                 nqp::if(            # STATIC_CHAIN is the default
                     nqp::isnull($val),
                     ($val := nqp::ifnull(
                         nqp::getlexrel(
-                          nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
+                          nqp::getattr(self,PseudoStash,'$!ctx'),name),
                         nqp::null()
                     ))
                 )
@@ -264,9 +266,12 @@ my class PseudoStash is Map {
             nqp::if(
               (nqp::not_i(nqp::isnull($val))
                 && nqp::bitand_i($!mode,REQUIRE_DYNAMIC)),
-              nqp::if(
-                (try nqp::not_i($val.VAR.dynamic)),
-                ($val := Failure.new(X::Caller::NotDynamic.new(symbol => $key)))
+              nqp::unless(
+                nqp::eqat(name,'*',1),
+                nqp::unless(
+                    (try $val.VAR.dynamic),
+                    ($val := Failure.new(X::SymbolNotDynamic.new(:symbol($key), :package($!package.^name))))
+                )
               )
             )
           )
@@ -277,14 +282,30 @@ my class PseudoStash is Map {
     }
 
     multi method ASSIGN-KEY(PseudoStash:D: Str() $key, Mu \value) is raw {
-        self.AT-KEY($key) = value
+        nqp::if(
+            self.EXISTS-KEY($key),
+            (self.AT-KEY($key) = value),
+            nqp::if(
+                nqp::bitand_i($!mode, DYNAMIC_CHAIN),
+                nqp::stmts(
+                    (my $pkgname := name4PROCESS($key)),
+                    nqp::if(
+                        GLOBAL.WHO.EXISTS-KEY($pkgname),
+                        GLOBAL.WHO.ASSIGN-KEY($pkgname, value),
+                        PROCESS.WHO.ASSIGN-KEY($pkgname, value)
+                    )
+                ),
+                Failure.new(X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>'))
+            )
+        )
     }
 
-    # Walks over contexts, respects combined chains (DYNAMIC_CHAIN +| STATIC_CHAIN). It latter case the inital context
-    # would be repeated for each mode.
+    # Walks over contexts, respects combined chains (DYNAMIC_CHAIN +| STATIC_CHAIN). In the latter case the inital
+    # context would be repeated for each mode.
     my class CtxWalker {
         has Mu $!start-ctx;     # Stash context – this is where we start from.
         has Mu $!ctx;           # Current context.
+        has Mu $!promise-ctx;   # Dynamic context of wrapping Promise
         has int $!stash-mode;
         has $!modes;
 
@@ -295,12 +316,24 @@ my class PseudoStash is Map {
                             (nqp::getattr(pseudo, PseudoStash, '$!mode') || STATIC_CHAIN) # We default to STATIC_CHAIN
             );
             $!modes := nqp::list_i(PRECISE_SCOPE, DYNAMIC_CHAIN, STATIC_CHAIN);
+            self.promise-ctx($!start-ctx);
             self
         }
 
         method new(PseudoStash:D \pseudo) { nqp::create(self)!SET-SELF(pseudo) }
 
         method exhausted() { nqp::isnull($!ctx) }
+
+        method promise-ctx(Mu \ctx) {
+            nqp::bindattr(
+                self, CtxWalker, '$!promise-ctx',
+                nqp::if(
+                    nqp::isnull(my \promise := nqp::getlexreldyn(ctx, '$*PROMISE')),
+                    nqp::null(),
+                    nqp::getattr(promise, Promise, '$!dynamic_context')
+                )
+            )
+        }
 
         method next-ctx() {
             return [] if nqp::isnull($!ctx);
@@ -324,7 +357,19 @@ my class PseudoStash is Map {
                                     nqp::stmts(
                                         nqp::if(
                                             nqp::iseq_i(nqp::atpos_i($!modes,0),DYNAMIC_CHAIN),
-                                            ($!ctx := nqp::ctxcallerskipthunks($!ctx)),
+                                            nqp::stmts(
+                                                ($!ctx := nqp::ctxcallerskipthunks($!ctx)),
+                                                # On dynamic chains if the topmost caller is reached then if the code is
+                                                # Promise-wrapped then jump over the barrier and iterate over the
+                                                # Promise callers.
+                                                nqp::if(
+                                                    nqp::isnull($!ctx) && !nqp::isnull($!promise-ctx),
+                                                    nqp::stmts(
+                                                        ($!ctx := $!promise-ctx),
+                                                        (self.promise-ctx($!ctx))
+                                                    )
+                                                ),
+                                            )
                                         ),
                                         nqp::if(
                                             nqp::iseq_i(nqp::atpos_i($!modes,0),STATIC_CHAIN),
@@ -367,57 +412,73 @@ my class PseudoStash is Map {
                         )
                     )
                 )
-            ),
-            nqp::unless(
-                @target,
-                X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>').throw
             )
         );
-        $ctx := nqp::decont(@target[0]);
         @target
     }
 
+    # BIND-KEY binds to existing symbols only unless pseudo-package is a DYNAMIC_CHAIN. In the latter case it follows
+    # the semantics of &DYNAMIC and tries looking in GLOBAL first. If symbol isn't found again then PROCESS
+    # is used as the last-resort package.
     method BIND-KEY(PseudoStash:D: Str() $key, Mu \value) is raw {
+        my Mu \name = nqp::unbox_s($key);
         nqp::if(
           nqp::existskey($pseudoers,$key),
           X::Bind.new(target => "pseudo-package $key").throw,
           nqp::if(
             nqp::bitand_i($!mode,PRECISE_SCOPE),
             nqp::bindkey(
-                nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key),value
+                nqp::getattr(self,Map,'$!storage'), name, value
             ),
-            nqp::bindkey(
-                nqp::ctxlexpad(nqp::decont(self.lookup-ctx($key)[0])),
-                nqp::unbox_s($key),
-                value
-            ),
+            nqp::stmts(
+                (my @target := self.lookup-ctx($key)),
+                nqp::if(
+                    @target, # Symbol found in a chain?
+                    nqp::bindkey(nqp::ctxlexpad(nqp::decont(@target[0])), name, value),
+                    nqp::if(
+                        nqp::bitand_i($!mode, DYNAMIC_CHAIN),
+                        nqp::stmts(
+                            (my $pkgname := name4PROCESS($key)),
+                            nqp::if(
+                                GLOBAL.WHO.EXISTS-KEY($pkgname),
+                                GLOBAL.WHO.BIND-KEY($pkgname, value),
+                                PROCESS.WHO.BIND-KEY($pkgname, value) # PROCESS is the final fallback
+                            )
+                        ),
+                        X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>').throw
+                    )
+                )
+            )
           )
         )
     }
 
-    # for some reason we get an ambiguous dispatch error by making this a multi
     method EXISTS-KEY(PseudoStash:D: Str() $key) {
+        my Mu \name = nqp::unbox_s($key);
         nqp::unless(
           nqp::existskey($pseudoers,$key),
           nqp::hllbool(
             nqp::if(
               nqp::bitand_i($!mode,PRECISE_SCOPE),
               nqp::existskey(
-                nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+                nqp::getattr(self,Map,'$!storage'), name),
               nqp::if(
                 nqp::bitand_i(
                   $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
-                ) && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42),  # "*"
-                nqp::not_i(
-                  nqp::isnull(
-                    nqp::getlexreldyn(
-                      nqp::getattr(self, PseudoStash, '$!ctx'),
-                      nqp::unbox_s($key)))),
+                ) && nqp::iseq_i(nqp::ord(name, 1), 42),  # "*"
+                nqp::unless(
+                    nqp::not_i(
+                      nqp::isnull(
+                        nqp::getlexreldyn(nqp::getattr(self, PseudoStash, '$!ctx'), name))),
+                    nqp::unless(
+                        GLOBAL.WHO.EXISTS-KEY(name4PROCESS(name)),
+                        PROCESS.WHO.EXISTS-KEY(name4PROCESS(name))
+                    )
+                ),
                 nqp::not_i(           # STATIC_CHAIN
                   nqp::isnull(
                     nqp::getlexrel(
-                      nqp::getattr(self, PseudoStash, '$!ctx'),
-                      nqp::unbox_s($key))))
+                      nqp::getattr(self, PseudoStash, '$!ctx'), name)))
               )
             )
           )
@@ -428,16 +489,25 @@ my class PseudoStash is Map {
     my role CtxSymIterator does Iterator {
         has PseudoStash $!stash;
         has $!stash-mode;
-        has Mu $!ctx;
         has $!ctx-mode;
         has $!ctx-walker;
         has $!iter;
+        has $!keep-trying;
         has $!seen; # this also serves as "the first run" indicator.
+        has $!stashes; # We would also iterate over this stashes if needed.
+        has $!name-translate; # Symbols from PROCESS require <sigil> -> <sigil>* name translation.
 
         method !SET-SELF(PseudoStash:D \pseudo) {
+            $!keep-trying := 1;
             $!stash := pseudo;
             $!ctx-walker := CtxWalker.new(pseudo); # Don't waste memory, create for chained modes only
             $!stash-mode := nqp::getattr(pseudo, PseudoStash, '$!mode'); # Cache for faster access
+            $!name-translate := 0;
+            $!stashes := nqp::list();
+            if nqp::bitand_i($!stash-mode, DYNAMIC_CHAIN) {
+                nqp::push($!stashes, GLOBAL.WHO);
+                nqp::push($!stashes, PROCESS.WHO);
+            }
             self
         }
 
@@ -449,14 +519,20 @@ my class PseudoStash is Map {
                     $!iter,
                     nqp::if(
                         $!ctx-walker.exhausted,
-                        nqp::stmts(
-                            ($!ctx := nqp::null()),
+                        nqp::if(
+                            nqp::elems($!stashes),
+                            nqp::stmts(
+                                (my $stash := nqp::decont(nqp::shift($!stashes))),
+                                ($!iter := nqp::iterator(nqp::getattr($stash, Map, '$!storage'))),
+                                ($!name-translate := 1)
+                            ),
+                            ($!keep-trying := 0)
                         ),
                         nqp::stmts(
                             (my @ctx-info = $!ctx-walker.next-ctx),
-                            ($!ctx := nqp::decont(@ctx-info[0])),
+                            (my $ctx := nqp::decont(@ctx-info[0])),
                             ($!ctx-mode = @ctx-info[1]),
-                            ($!iter := nqp::iterator(nqp::ctxlexpad($!ctx)))
+                            ($!iter := nqp::iterator(nqp::ctxlexpad($ctx)))
                         )
                     )
                 )
@@ -467,7 +543,7 @@ my class PseudoStash is Map {
             my $got-one := 0;
             my $sym;
             nqp::while( # Repeat until got a candidate or no more contexts to iterate left
-                (!nqp::defined($!seen) || ($!ctx && !$got-one)),
+                (!nqp::defined($!seen) || ($!keep-trying && !$got-one)),
                 nqp::stmts(
                     nqp::unless(nqp::defined($!seen), $!seen := nqp::hash()),
                     self.maybe-next-context,
@@ -479,12 +555,15 @@ my class PseudoStash is Map {
                             # dynamic.
                             ($sym := nqp::iterkey_s($!iter)),
                             # The symbol has to be dynamic if pseudo-package is marked as requiring dynamics or if
-                            # we'recurrently iterating over the dynamic chain.
+                            # we're currently iterating over the dynamic chain.
                             ($got-one := !nqp::atkey($!seen,$sym) && (
                                             ! (
                                                 nqp::bitand_i($!stash-mode, REQUIRE_DYNAMIC)
                                                 || $!ctx-mode == DYNAMIC_CHAIN
                                             )
+                                            # XXX Testing for twigil presense results in questionable revelation of
+                                            # NQP/compiler level symbols like $*PERL6_RUNTUME or %*COMPILING.
+                                            || nqp::eqat($sym, '*', 1) # Twigil is dynamic
                                             || (try { nqp::iterval($!iter).VAR.dynamic })
                                         ))
                         )
@@ -494,13 +573,24 @@ my class PseudoStash is Map {
             nqp::bindkey($!seen,$sym,1) if $got-one;
             $got-one
         }
+
+        method sym-name() is raw {
+            my $name := nqp::iterkey_s($!iter);
+            my $sigil := nqp::substr($name,0,1);
+            # Translate sigilled names if found in PROCESS
+            nqp::if(
+                ($!name-translate && nqp::isge_i(nqp::index('$%@', $sigil),0)),
+                nqp::replace($name, 0, 1, nqp::join("", nqp::list($sigil, '*'))),
+                $name
+            )
+        }
     }
 
     my class CtxSymIterator::Pairs does CtxSymIterator {
         method pull-one() is raw {
             nqp::if(
                 self.next-one,
-                Pair.new(nqp::iterkey_s($!iter), nqp::iterval($!iter)),
+                Pair.new(self.sym-name, nqp::iterval($!iter)),
                 IterationEnd
             )
         }
@@ -510,7 +600,7 @@ my class PseudoStash is Map {
         method pull-one() is raw {
             nqp::if(
                 self.next-one,
-                nqp::iterkey_s($!iter),
+                self.sym-name,
                 IterationEnd
             )
         }

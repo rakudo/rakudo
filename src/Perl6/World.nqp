@@ -710,7 +710,7 @@ class Perl6::World is HLL::World {
         }
         else {
             $*GLOBALish :=
-              self.pkg_create_mo($/,$/.how('package'),:name('GLOBAL'));
+              self.pkg_create_mo($/, $/.how('package'), :name('GLOBAL'), :dynamic-stash);
             self.pkg_compose($/, $*GLOBALish);
         }
 
@@ -3237,14 +3237,10 @@ class Perl6::World is HLL::World {
         if nqp::defined($ver) { %args<ver> := $ver; }
         if nqp::defined($api) { %args<api> := $api; }
         if nqp::defined($auth) { %args<auth> := $auth; }
-        if nqp::existskey(%extra, 'base_type') {
-            %args<base_type> := %extra<base_type>;
-        }
-        if nqp::existskey(%extra, 'group') {
-            %args<group> := %extra<group>;
-        }
-        if nqp::existskey(%extra, 'signatured') {
-            %args<signatured> := %extra<signatured>;
+        for ['base_type', 'group', 'signatured', 'dynamic-stash'] -> $arg {
+            if nqp::existskey(%extra, $arg) {
+                %args{$arg} := %extra{$arg};
+            }
         }
         my $mo := $how.new_type(|%args);
         self.add_object_if_no_sc($mo);

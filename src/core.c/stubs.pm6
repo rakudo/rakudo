@@ -30,12 +30,16 @@ my class MixHash { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class Lock::Async { ... }
 
-sub DYNAMIC(\name) is raw {
+sub DYNAMIC(\name, Mu $ctx is raw = nqp::null()) is raw {
+    nqp::unless(
+        nqp::defined($ctx),
+        ($ctx := nqp::ctxcaller(nqp::ctx()))
+    );
     nqp::ifnull(
-      nqp::getlexdyn(name),
+      nqp::getlexreldyn($ctx, name),
       nqp::stmts(
         nqp::unless(
-          nqp::isnull(my \promise := nqp::getlexdyn('$*PROMISE')),
+          nqp::isnull(my \promise := nqp::getlexreldyn($ctx, '$*PROMISE')),
           (my Mu \value := nqp::getlexreldyn(
             nqp::getattr(promise,Promise,'$!dynamic_context'),name)
           )
@@ -43,7 +47,7 @@ sub DYNAMIC(\name) is raw {
         nqp::ifnull(
           value,
           nqp::stmts(
-            (my str $pkgname = nqp::replace(name,1,1,'')),
+            (my str $pkgname = nqp::if(nqp::eqat(name, '*', 1), nqp::replace(name, 1, 1, ''), name )),
             nqp::ifnull(
               nqp::atkey(GLOBAL.WHO,$pkgname),
               nqp::ifnull(

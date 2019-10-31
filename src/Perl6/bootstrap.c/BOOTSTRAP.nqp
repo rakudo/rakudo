@@ -3464,9 +3464,6 @@ BEGIN {
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
     Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!is-dynamic>, :type(int), :package(Stash)));
-    Stash.HOW.add_method(Stash, 'always-dynamic', nqp::getstaticcode(sub ($self) {
-        nqp::bindattr_i(nqp::decont($self), Stash, '$!is-dynamic', 1);
-    }));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.
@@ -3561,8 +3558,7 @@ BEGIN {
     my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
     if nqp::isnull($PROCESS) {
         PROCESS.HOW.compose(PROCESS);
-        Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
-        PROCESS.WHO.always-dynamic;
+        Perl6::Metamodel::ModuleHOW.add_stash(PROCESS, :dynamic-stash);
         $PROCESS := PROCESS;
         nqp::bindhllsym('perl6', 'PROCESS', $PROCESS);
     }

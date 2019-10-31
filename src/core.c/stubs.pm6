@@ -40,8 +40,13 @@ sub DYNAMIC(\name, Mu $ctx is raw = nqp::null()) is raw {
       nqp::stmts(
         nqp::unless(
           nqp::isnull(my \promise := nqp::getlexreldyn($ctx, '$*PROMISE')),
-          (my Mu \value := nqp::getlexreldyn(
-            nqp::getattr(promise,Promise,'$!dynamic_context'),name)
+          nqp::stmts(
+            (my $promise-ctx := nqp::getattr(promise,Promise,'$!dynamic_context')),
+            (my Mu \value :=
+              nqp::ifnull(
+                nqp::getlexreldyn($promise-ctx, name),
+                (&DYNAMIC(name, $promise-ctx))
+            ))
           )
         ),
         nqp::ifnull(

@@ -1,5 +1,5 @@
 role Perl6::Metamodel::Stashing {
-    method add_stash($type_obj) {
+    method add_stash($type_obj, :$dynamic-stash) {
         my $stash_type := Perl6::Metamodel::Configuration.stash_type;
         unless nqp::isnull($stash_type) {
             my $attr_type := Perl6::Metamodel::Configuration.stash_attr_type;
@@ -7,6 +7,8 @@ role Perl6::Metamodel::Stashing {
             nqp::bindattr($stash, $attr_type, '$!storage', my %symbols);
             nqp::bindattr_s($stash, $stash.WHAT, '$!longname',
                 $type_obj.HOW.name($type_obj));
+            nqp::bindattr_i($stash, $stash.WHAT, '$!is-dynamic',
+                nqp::istrue($dynamic-stash));
             nqp::setwho($type_obj, $stash);
         }
         $type_obj

@@ -31,6 +31,26 @@ my class Stash { # declared in BOOTSTRAP
         )
     }
 
+    method ASSIGN-KEY(|) is raw {
+        my $cont := callsame;
+        nqp::if(
+            $!is-dynamic,
+            nqp::stmts(
+                (my $desc := nqp::getattr(nqp::decont($cont.VAR), Scalar, '$!descriptor')),
+                nqp::if(
+                    nqp::isconcrete($desc),
+                    nqp::bindattr_i(
+                        $desc,
+                        ContainerDescriptor,
+                        '$!dynamic',
+                        1
+                    )
+                )
+            )
+        );
+        $cont
+    }
+
     method package_at_key(Stash:D: str $key) {
         my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::ifnull(

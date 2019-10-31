@@ -710,7 +710,7 @@ class Perl6::World is HLL::World {
         }
         else {
             $*GLOBALish :=
-              self.pkg_create_mo($/,$/.how('package'),:name('GLOBAL'));
+              self.pkg_create_mo($/,$/.how('package'),:name('GLOBAL'), :dynamic-stash);
             self.pkg_compose($/, $*GLOBALish);
         }
 

@@ -74,7 +74,6 @@ my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Bool metaclass Perl6::Metamodel::EnumHOW { ... };
 my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub DynamicStash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -3464,16 +3463,10 @@ BEGIN {
 	#     has str $!longname;
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
-    Stash.HOW.add_method(Stash, 'set-longname', nqp::getstaticcode(sub ($self, str $name) {
-            nqp::bindattr_s(nqp::decont($self), Stash, '$!longname', $name);
-        }));
     Stash.HOW.compose_repr(Stash);
 
-    DynamicStash.HOW.add_parent(DynamicStash, Stash);
-    DynamicStash.HOW.compose_repr(DynamicStash);
-
     # Configure the stash type.
-    Perl6::Metamodel::Configuration.set_stash_type(Stash, DynamicStash, Map);
+    Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
 
     # Give everything we've set up so far a Stash.
     Perl6::Metamodel::ClassHOW.add_stash(Mu);
@@ -3522,7 +3515,6 @@ BEGIN {
     Perl6::Metamodel::EnumHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
     Perl6::Metamodel::ClassHOW.add_stash(Stash);
-    Perl6::Metamodel::ClassHOW.add_stash(DynamicStash);
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
     Perl6::Metamodel::ClassHOW.add_stash(Junction);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
@@ -3565,7 +3557,7 @@ BEGIN {
     my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
     if nqp::isnull($PROCESS) {
         PROCESS.HOW.compose(PROCESS);
-        Perl6::Metamodel::ModuleHOW.add_stash(PROCESS, :dynamic);
+        Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
         $PROCESS := PROCESS;
         nqp::bindhllsym('perl6', 'PROCESS', $PROCESS);
     }
@@ -3649,7 +3641,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
-    EXPORT::DEFAULT.WHO<DynamicStash>        := DynamicStash;
 }
 EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
 EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
@@ -3927,7 +3918,7 @@ Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
 
 # Configure the MOP (not persisted as it ends up in a lexical...)
-Perl6::Metamodel::Configuration.set_stash_type(Stash, DynamicStash, Map);
+Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
 Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
 
 # Register default parent types.

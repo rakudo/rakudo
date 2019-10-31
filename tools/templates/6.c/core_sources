@@ -86,7 +86,6 @@ src/core.c/Pair.pm6
 src/core.c/Map.pm6
 src/core.c/Hash.pm6
 src/core.c/Stash.pm6
-src/core.c/DynamicStash.pm6
 src/core.c/Label.pm6
 src/core.c/PseudoStash.pm6
 src/core.c/Parameter.pm6

@@ -2,15 +2,12 @@
 # configured with.
 class Perl6::Metamodel::Configuration {
     my $stash_type := nqp::null();
-    my $dynamic_stash_type := nqp::null();
     my $stash_attr_type := nqp::null();
-    method set_stash_type($type, $dynamic_type, $attr_type) {
+    method set_stash_type($type, $attr_type) {
         $stash_type := $type;
-        $dynamic_stash_type := $dynamic_type;
         $stash_attr_type := $attr_type;
     }
     method stash_type() { $stash_type }
-    method dynamic_stash_type() { $dynamic_stash_type }
     method stash_attr_type() { $stash_attr_type }
 
     my $submethod_type := nqp::null();

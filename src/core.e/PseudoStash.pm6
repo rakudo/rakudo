@@ -227,7 +227,7 @@ my class PseudoStash is Map {
         my Mu $val := nqp::if(
             (nqp::iseq_s($!package.^name, 'CORE')
                 && nqp::iseq_i(nqp::chars($key), 3)
-                && nqp::iseq_i(nqp::index($key, 'v6'), 0)),
+                && nqp::eqat($key, 'v6', 0)),
             self!find-rev-core($key),
             nqp::null()
         );
@@ -265,9 +265,9 @@ my class PseudoStash is Map {
             ),
             nqp::if(
               (nqp::not_i(nqp::isnull($val))
-                && nqp::bitand_i($!mode,REQUIRE_DYNAMIC)),
+                && nqp::bitand_i($!mode, REQUIRE_DYNAMIC)),
               nqp::unless(
-                nqp::eqat(name,'*',1),
+                nqp::eqat(name, '*', 1),
                 nqp::unless(
                     (try $val.VAR.dynamic),
                     ($val := Failure.new(X::SymbolNotDynamic.new(:symbol($key), :package($!package.^name))))
@@ -276,9 +276,8 @@ my class PseudoStash is Map {
             )
           )
         );
-        nqp::isnull($val)
-            ?? Failure.new(X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>'))
-            !! $val
+        nqp::ifnull($val,
+            Failure.new(X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>')))
     }
 
     multi method ASSIGN-KEY(PseudoStash:D: Str() $key, Mu \value) is raw {
@@ -287,14 +286,7 @@ my class PseudoStash is Map {
             (self.AT-KEY($key) = value),
             nqp::if(
                 nqp::bitand_i($!mode, DYNAMIC_CHAIN),
-                nqp::stmts(
-                    (my $pkgname := name4PROCESS($key)),
-                    nqp::if(
-                        GLOBAL.WHO.EXISTS-KEY($pkgname),
-                        GLOBAL.WHO.ASSIGN-KEY($pkgname, value),
-                        PROCESS.WHO.ASSIGN-KEY($pkgname, value)
-                    )
-                ),
+                PROCESS.WHO.ASSIGN-KEY(name4PROCESS($key), value),
                 Failure.new(X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>'))
             )
         )
@@ -453,6 +445,25 @@ my class PseudoStash is Map {
         )
     }
 
+    my sub lookup-with-Promise(Mu \ctx, \name) is raw {
+        my Mu $sym := nqp::null();
+        my Mu $cur-ctx := ctx;
+        nqp::until(
+            nqp::isnull($cur-ctx) || nqp::not_i(nqp::isnull($sym)),
+            nqp::stmts(
+                ($sym := nqp::getlexreldyn($cur-ctx, name)),
+                nqp::ifnull($sym,
+                    ($cur-ctx := nqp::unless(
+                        nqp::isnull(my $promise := nqp::getlexreldyn($cur-ctx, '$*PROMISE')),
+                        nqp::getattr($promise, Promise, '$!dynamic_context'),
+                        nqp::null()
+                    ))
+                )
+            )
+        );
+        $sym
+    }
+
     method EXISTS-KEY(PseudoStash:D: Str() $key) {
         my Mu \name = nqp::unbox_s($key);
         nqp::unless(
@@ -466,10 +477,8 @@ my class PseudoStash is Map {
                 nqp::bitand_i(
                   $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
                 ) && nqp::iseq_i(nqp::ord(name, 1), 42),  # "*"
-                nqp::unless(
-                    nqp::not_i(
-                      nqp::isnull(
-                        nqp::getlexreldyn(nqp::getattr(self, PseudoStash, '$!ctx'), name))),
+                nqp::ifnull(
+                    lookup-with-Promise(nqp::getattr(self, PseudoStash, '$!ctx'), name),
                     nqp::unless(
                         GLOBAL.WHO.EXISTS-KEY(name4PROCESS(name)),
                         PROCESS.WHO.EXISTS-KEY(name4PROCESS(name))

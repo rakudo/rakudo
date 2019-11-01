@@ -32,7 +32,7 @@ branches:
 notifications:
   irc:
     channels:
-      - "irc.freenode.net#perl6-dev"
+      - "irc.freenode.net#raku-dev"
     on_success: change
     on_failure: always
     template:

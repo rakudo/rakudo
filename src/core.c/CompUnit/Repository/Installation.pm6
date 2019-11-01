@@ -233,8 +233,15 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('resources/');
             # $name-path is 'resources/libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
-            my $id             = self!file-id(~$name-path, $dist-id) ~ '.' ~ $file.IO.extension;
-            my $destination    = $resources-dir.add($id);
+            my $id = self!file-id(~$name-path, $dist-id);
+            if $file ~~ /^<[a..z 0..9 . _ / -]>+$/ and not $file.contains('..') {
+                $resources-dir.add($id).mkdir;
+                $id = $id.IO.add($file.IO.basename).Str;
+            }
+            else {
+                $id ~= '.' ~ $file.IO.extension;
+            }
+            my $destination = $resources-dir.add($id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
             my $content = $handle.open.slurp-rest(:bin,:close);
@@ -322,7 +329,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     unlink-if-exists( $resources-dir.add($file) )
                 }
                 when /^resources\// {
-                    unlink-if-exists( $resources-dir.add($file) )
+                    unlink-if-exists( $resources-dir.add($file) );
+                    my $dirname = $file.IO.dirname;
+                    my $dir = $resources-dir.add($dirname);
+                    $dir.rmdir if $dirname ne '.' and $dir.e;
                 }
             }
         }

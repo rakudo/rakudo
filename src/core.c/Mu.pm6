@@ -12,6 +12,8 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
+    method raku(|c) { self.perl(|c) }
+
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {
         nqp::hllbool(nqp::istype(topic, self))

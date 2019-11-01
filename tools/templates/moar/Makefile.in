@@ -199,7 +199,7 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 @expand(@m_install@)@ 
 
 @backend_prefix@-install-post::
-@clean_old_p6_libs@
+@expand(@clean_old_p6_libs@)@
 
 @backend_prefix@-runner-default-install: @backend_prefix@-install
 	@echo(+++ Installing @uc(@backend@)@ launchers)@

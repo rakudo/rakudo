@@ -105,7 +105,7 @@ dev's TODO list)
     handled correctly
 
 Anyone wanting to work on any of the NYI items please coordinate on
-IRC #perl6-dev to avoid duplicate efforts.  Most of the items are
+IRC #raku-dev to avoid duplicate efforts.  Most of the items are
 being worked on in a generally logical order of need and knowledge
 gained during the process of implementing pod features.
 

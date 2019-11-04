@@ -19,7 +19,7 @@
 
 + **BE WARNED about '$\<some-match-var>' inside a sub with a '$/'
   arg** - Use the full syntax for a match variable
-  ('**/$<some-match-var**') for more reliable (or at least
+  ('**$/\<some-match-var>**') for more reliable (or at least
   self-documenting) results.
 
 + **BE WARNED about '$\<a-match-var>' versus

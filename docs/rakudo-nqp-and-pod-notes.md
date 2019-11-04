@@ -1,8 +1,8 @@
 # Notes and hints for working with Rakudo NQP and Pod
 
-## Traps for the Perl 6 programmer
+## Traps for the Raku programmer
 
-+ **DO NOT use '$0' in match results** - The Perl 6 shorthand for a
++ **DO NOT use '$0' in match results** - The Raku shorthand for a
   match variable '**$0**' doesn't work in NQP. Instead, use **$/[0]**
   for the zeroeth match.  Note the parser will be very confused
   otherwise and it currently cannot point to the error.

@@ -87,7 +87,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 #@bpv(HARNESS_TYPE)@ = $(HARNESS_TYPE)
 
-@bpv(HARNESS6)@ = @nfp(./@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
+@bpv(HARNESS6)@ = @nfp(@base_dir@/@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
 @bpv(HARNESS6_WITH_FUDGE)@ = @bpm(HARNESS6)@ --fudge
 
 @bpv(RUN_CLEAN_TARGET_FILES)@ = @bpm(RUN_PERL6)@ -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str if '@verbose@' eq '@'; .IO.unlink if .IO.e } }"

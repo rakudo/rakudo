@@ -492,7 +492,7 @@ proto sub samecase($, $, *%) {*}
 multi sub samecase(Cool:D $string, Cool:D $pattern) { $string.samecase($pattern) }
 
 proto sub split($, $, |) {*}
-multi sub split($pat, Cool:D $target, |c) { $target.split($pat, |c) }
+multi sub split($pat, Cool:D $target, |c) { c ?? $target.split($pat, |c) !! $target.split($pat) }
 
 proto sub chars($, *%) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }

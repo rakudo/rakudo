@@ -370,7 +370,7 @@ my class Cool { # declared in BOOTSTRAP
     proto method UInt(|) {*}
     multi method UInt()  {
         my $got := self.Int;
-        $got < 0
+        $got ~~ Int && $got < 0
           ?? Failure.new(X::OutOfRange.new(
                :what('Coercion to UInt'),
                :$got,

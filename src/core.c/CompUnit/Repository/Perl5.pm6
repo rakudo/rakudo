@@ -26,7 +26,7 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
 
             CATCH {
                 when X::CompUnit::UnsatisfiedDependency {
-                    X::NYI::Available.new(:available('Inline::Perl5'), :feature('Perl 5')).throw;
+                    X::NYI::Available.new(:available('Inline::Perl5'), :feature('Perl')).throw;
                 }
             }
         }

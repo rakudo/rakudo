@@ -2,7 +2,7 @@ class Perl does Systemic {
     has Compiler $.compiler;
 
     submethod BUILD(
-      :$!name      = 'Perl 6',
+      :$!name      = 'Raku',
       :$!auth      = "The Perl Foundation",
       :$!version   = Version.new(nqp::p6box_s(nqp::getcomp('perl6').language_version())),
       :$!compiler  = Compiler.new,

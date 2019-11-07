@@ -23,7 +23,7 @@ class VM does Systemic {
     ) {
 #?if moar
         $!name           = 'moar';
-        $!desc           = $desc // 'Short for "Metamodel On A Runtime", MoarVM is a modern virtual machine built for the Rakudo Perl 6 compiler and the NQP Compiler Toolchain.';
+        $!desc           = $desc // 'Short for "Metamodel On A Runtime", MoarVM is a modern virtual machine built for the Rakudo Raku compiler and the NQP Compiler Toolchain.';
         $!auth           = "The MoarVM Team";
         $!version        = Version.new($!config<version> // "unknown");
         $!prefix         = $!config<prefix>;

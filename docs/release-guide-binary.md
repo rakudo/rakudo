@@ -30,21 +30,20 @@ As of 2019-07-08 CentOS 6 (using glibc 2.12) is a good pick.
 - `docker run -it --name=rakudo-build centos:6 bash`
 - In the container
 ```bash
-$ yum -y update && yum clean all
-$ yum install git perl perl-core gcc make
-$ curl -sSL -o rakudo.tar.gz https://github.com/rakudo/rakudo/releases/download/2019.07.1/rakudo-2019.07.1.tar.gz
-$ tar -xzf rakudo.tar.gz
-$ cd rakudo*
-$ perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
-$ make install
-$ make test
-$ git clone https://github.com/ugexe/zef.git
-$ cd zef
-$ /rakudo-*/install/bin/perl6 -I. bin/zef install .
-$ cd /rakudo-*
-$ cp -r tools/build/binary-release/Linux/* install
-$ mv install rakudo-2019.07.1
-$ tar -czf /rakudo-2019.07.1-linux-64bit.tar.gz rakudo-2019.07.1
+yum -y update && yum clean all
+yum install git perl perl-core gcc make
+curl -sSL -o rakudo.tar.gz https://github.com/rakudo/rakudo/releases/download/2019.07.1/rakudo-2019.07.1.tar.gz
+tar -xzf rakudo.tar.gz
+cd rakudo*
+perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
+make test
+make install
+git clone https://github.com/ugexe/zef.git
+cd zef
+/rakudo-*/install/bin/perl6 -I. bin/zef install .
+cd /rakudo*
+mv install rakudo-2019.07.1
+tar -czf /rakudo-2019.07.1-linux-64bit.tar.gz rakudo-2019.07.1
 ```
 
 - On the host linux (not inside the container) run `docker cp rakudo-build:/rakudo-2019.03.1-linux-64bit.tar.gz .` to copy the archive out of the container. If you happended to stop the container by exitting the console, type `docker start rakudo-build` to start it again and allow copying files out.

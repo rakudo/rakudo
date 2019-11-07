@@ -3476,6 +3476,7 @@ BEGIN {
 	#     has str $!longname;
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
+    Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!snapshot>, :type(Mu), :package(Stash)));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.

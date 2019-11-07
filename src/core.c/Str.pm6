@@ -1175,10 +1175,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             matches))
     }
 
-    proto method subst(|) {
-        $/ := nqp::getlexcaller('$/');
-        {*}
-    }
     multi method subst(Str:D: Str:D $original, Str:D $final, *%options) {
         nqp::if(
           (my $opts := nqp::getattr(%options,Map,'$!storage'))

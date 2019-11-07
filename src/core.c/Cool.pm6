@@ -318,9 +318,13 @@ my class Cool { # declared in BOOTSTRAP
     multi method words(Cool:D:)         { self.Str.words         }
     multi method words(Cool:D: $limit ) { self.Str.words($limit) }
 
-    method subst(|c) {
+    proto method subst(|) {
         $/ := nqp::getlexcaller('$/');
-        self.Stringy.subst(|c);
+        {*}
+    }
+    multi method subst(Cool:D: $original, $replacement, *%options) {
+        $/ := nqp::getlexcaller('$/');
+        self.Stringy.subst($original, $replacement, |%options);
     }
 
     # `$value-to-subst-mutate` will show up in errors when called on non-rw

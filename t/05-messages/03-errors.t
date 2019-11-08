@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 25;
+plan 26;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -174,5 +174,9 @@ cmp-ok X::OutOfRange.new(
 # https://github.com/rakudo/rakudo/issues/2320
 is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
 'Use placeholder variables in a method should yield a useful error message';
+
+# https://github.com/rakudo/rakudo/pull/3289
+fails-like { "a".UInt }, X::Str::Numeric,
+'UInt passes on failure given by Int';
 
 # vim: ft=perl6 expandtab sw=4

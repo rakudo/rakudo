@@ -914,7 +914,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         $d == 0 ?? $r.chomp !! $r;
     }
 
-    multi method subst(Match:D: Str() $replacement --> Str:D) {
+    multi method replace-with(Match:D: Str() $replacement --> Str:D) {
         self.prematch ~ $replacement ~ self.postmatch
     }
 }

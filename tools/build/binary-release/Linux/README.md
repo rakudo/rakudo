@@ -17,7 +17,7 @@ or start a REPL by calling `perl6` without an argument
 
 To add the relevant paths to your environment so you don't have to type the full path run the following script:
 
-    source scripts/set-env.sh
+    `scripts/set-env.sh`
 
 
 ## Installing modules

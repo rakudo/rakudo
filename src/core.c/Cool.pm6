@@ -322,7 +322,7 @@ my class Cool { # declared in BOOTSTRAP
         $/ := nqp::getlexcaller('$/');
         {*}
     }
-    multi method subst(Cool:D: $original, $replacement, *%options) {
+    multi method subst(Cool:D: $original, $replacement = "", *%options) {
         $/ := nqp::getlexcaller('$/');
         self.Stringy.subst($original, $replacement, |%options);
     }

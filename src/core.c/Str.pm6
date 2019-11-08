@@ -1175,7 +1175,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             matches))
     }
 
-    multi method subst(Str:D: Str:D $original, Str:D $final, *%options) {
+    multi method subst(Str:D: Str:D $original, Str:D $final = "", *%options) {
         nqp::if(
           (my $opts := nqp::getattr(%options,Map,'$!storage'))
             && nqp::isgt_i(nqp::elems($opts),1),
@@ -1195,7 +1195,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    multi method subst(Str:D: $matcher, $replacement, *%options) {
+    multi method subst(Str:D: $matcher, $replacement = "", *%options) {
         self!SUBST(nqp::getlexcaller('$/'), $matcher, $replacement, |%options)
     }
     method !SUBST(Str:D: \caller_dollar_slash, $matcher, $replacement,

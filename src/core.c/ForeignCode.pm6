@@ -34,6 +34,10 @@ proto sub EVAL(
 ) {
     die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
       if nqp::istype($code,Callable);
+
+# TEMPORARY HACK
+$lang = 'perl6' if $lang eq 'Raku';
+
     # First look in compiler registry.
     my $compiler := nqp::getcomp($lang);
     if nqp::isnull($compiler) {

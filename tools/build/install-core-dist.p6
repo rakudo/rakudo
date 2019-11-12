@@ -14,6 +14,7 @@ my %provides =
     "snapper"                       => "lib/snapper.pm6",
 ;
 
+%provides<NativeCall::DLL> = "lib/NativeCall/DLL.pm6" if $*VM.name eq 'moar';
 %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.pm6" if $*VM.name eq 'moar';
 
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(

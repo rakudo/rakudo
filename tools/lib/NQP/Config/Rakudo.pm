@@ -520,8 +520,8 @@ sub clean_old_p6_libs {
             'NOTICE',
             "Found stale files in $lib_dir.\n",
             "These files were left by a previous install and cause breakage\n",
-            "in this Rakudo version. The installtion will try to remove them\n",
-            "if possible.\n",
+            "in this Rakudo version. The 'install' phase will try to remove\n",
+            "them if possible.\n",
             "\n",
             @notes
         ) if @notes;

@@ -225,7 +225,9 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 }
                 else {
                     $argument = $param.name
-                        ?? "<$param.usage-name()>"
+                        ?? $param.type.^name ne 'Any'
+                          ?? "<$param.usage-name()=$param.type.^name()>"
+                          !! "<$param.usage-name()>"
                         !! $constraints
                             ?? ($literals-as-constraint == $total-constraints)
                                 ?? $constraints

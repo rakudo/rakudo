@@ -225,9 +225,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 }
                 else {
                     $argument = $param.name
-                        ?? $param.type.^name ne 'Any'
-                          ?? "<$param.usage-name(), $param.type.^name()>"
-                          !! "<$param.usage-name()>"
+                        ?? "<$param.usage-name()>"
                         !! $constraints
                             ?? ($literals-as-constraint == $total-constraints)
                                 ?? $constraints
@@ -245,7 +243,13 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     }
                     @positional.push($argument);
                 }
-                @arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty;  # Use first defined
+
+                # Use first defined
+                if $param.WHY and !@arg-help.first(*.key eq $argument) {
+                    @arg-help.push: $argument => $param.type.^name eq 'Any'
+                      ?? $param.WHY.contents
+                      !! $param.WHY.contents ~ " ($param.type.^name())";
+                }
             }
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents

@@ -13,19 +13,29 @@ nqp::speshreg('perl6', 'privmeth', -> $obj, str $name {
 # fall back to the dispatch:<::> if there is an exception that'd need to be
 # thrown.
 nqp::speshreg('perl6', 'qualmeth', -> $obj, str $name, $type {
-    nqp::speshguardtype($obj, $obj.WHAT);
-    if nqp::istype($obj, $type) {
-        # Resolve to the correct qualified method.
-        nqp::speshguardtype($type, $type.WHAT);
-        $obj.HOW.find_method_qualified($obj, $type, $name)
-    }
-    else {
-        # We'll throw an exception; return a thunk that will delegate to the
-        # slow path implementation to do the throwing.
-        -> $inv, *@pos, *%named {
-            $inv.'dispatch:<::>'($name, $type, |@pos, |%named)
+    my $caller-ctx := nqp::ctxcaller(nqp::ctx());
+    my $caller-type := nqp::decont(nqp::ifnull(
+        nqp::getlexrel($caller-ctx, '$?CONCRETIZATION'),
+        nqp::getlexrel($caller-ctx, '$?CLASS')
+    ));
+    my $meth := nqp::null();
+    nqp::speshguardtype($type, $type.WHAT);
+    for ($caller-type, $obj.WHAT) {
+        if nqp::istype($_, $type) {
+            nqp::speshguardtype($obj, $_);
+            $meth := $_.HOW.find_method_qualified($_, $type, $name);
+            last unless nqp::isnull($meth);
         }
     }
+    nqp::ifnull(
+        $meth,
+        -> $inv, *@pos, *%named {
+            # We'll throw an exception; return a thunk that will delegate to the
+            # slow path implementation to do the throwing.
+            my $*SPESH-THUNKED-DISPATCH := 1;
+            $inv.'dispatch:<::>'($name, $type, |@pos, |%named)
+        }
+    )
 });
 
 # A call like `$obj.?foo` is probably worth specializing via the plugin. In

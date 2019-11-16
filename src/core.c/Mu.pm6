@@ -791,15 +791,31 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is raw {
-        unless nqp::istype(SELF, $type) {
+        my $meth;
+        my $caller-ctx := nqp::ctxcaller(nqp::ctx());
+        # Bypass wrapping thunk if redirected from spesh plugin
+        $caller-ctx := nqp::ctxcaller($caller-ctx) if $*SPESH-THUNKED-DISPATCH;
+        if nqp::istype(self, $type) {
+            my class NO-KNOWN-TYPE { };
+            my Mu $caller-type = nqp::ifnull(
+                nqp::getlexrel($caller-ctx, '$?CONCRETIZATION'),
+                (nqp::ifnull(
+                    nqp::getlexrel($caller-ctx, '$?CLASS'),
+                    NO-KNOWN-TYPE))
+            );
+            $meth = $caller-type.^find_method_qualified($type, $name) unless $caller-type =:= NO-KNOWN-TYPE;
+            $meth = self.^find_method_qualified($type, $name) unless $meth;
+        }
+
+        unless nqp::defined($meth) {
             X::Method::InvalidQualifier.new(
                     method          => $name,
                     invocant        => SELF,
                     qualifier-type  => $type,
-
             ).throw;
         }
-        self.^find_method_qualified($type, $name)(SELF, |c)
+
+        return $meth(SELF, |c)
     }
 
     method dispatch:<!>(Mu \SELF: \name, Mu \type, |c) is raw {
@@ -889,7 +905,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
-                :$super, :$omit, :$include) {
+                :$super, :$omit, :$include, :$roles) {
         # First, build list of classes in the order we'll need them.
         my @classes;
         if $super {

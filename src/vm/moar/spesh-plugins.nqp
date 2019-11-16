@@ -13,11 +13,24 @@ nqp::speshreg('perl6', 'privmeth', -> $obj, str $name {
 # fall back to the dispatch:<::> if there is an exception that'd need to be
 # thrown.
 nqp::speshreg('perl6', 'qualmeth', -> $obj, str $name, $type {
-    my $caller-ctx := nqp::ctxcaller(nqp::ctx());
-    my $caller-type := nqp::decont(nqp::ifnull(
-        nqp::getlexrel($caller-ctx, '$?CONCRETIZATION'),
-        nqp::getlexrel($caller-ctx, '$?CLASS')
-    ));
+    my $ctx := nqp::ctxcaller(nqp::ctx());
+    my $caller-type := nqp::null();
+    # Lookup outers of the caller and locate the first occurence of the symbols of interest
+    nqp::repeat_while(
+        nqp::isnull($caller-type) && !nqp::isnull($ctx),
+        nqp::stmts(
+            (my $pad := nqp::ctxlexpad($ctx)),
+            nqp::if(
+                nqp::existskey($pad, '$?CONCRETIZATION'),
+                ($caller-type := nqp::atkey($pad, '$?CONCRETIZATION')),
+                nqp::if(
+                    nqp::existskey($pad, '$?CLASS'),
+                    ($caller-type := nqp::atkey($pad, '$?CLASS')),
+                )
+            ),
+            ($ctx := nqp::ctxouterskipthunks($ctx)),
+        )
+    );
     my $meth := nqp::null();
     nqp::speshguardtype($type, $type.WHAT);
     for ($caller-type, $obj.WHAT) {

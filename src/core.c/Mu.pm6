@@ -792,18 +792,24 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is raw {
         my $meth;
-        my $caller-ctx := nqp::ctxcaller(nqp::ctx());
+        my $ctx := nqp::ctxcaller(nqp::ctx());
         # Bypass wrapping thunk if redirected from spesh plugin
-        $caller-ctx := nqp::ctxcaller($caller-ctx) if $*SPESH-THUNKED-DISPATCH;
+        $ctx := nqp::ctxcaller($ctx) if $*SPESH-THUNKED-DISPATCH;
         if nqp::istype(self, $type) {
-            my class NO-KNOWN-TYPE { };
-            my Mu $caller-type = nqp::ifnull(
-                nqp::getlexrel($caller-ctx, '$?CONCRETIZATION'),
-                (nqp::ifnull(
-                    nqp::getlexrel($caller-ctx, '$?CLASS'),
-                    NO-KNOWN-TYPE))
-            );
-            $meth = $caller-type.^find_method_qualified($type, $name) unless $caller-type =:= NO-KNOWN-TYPE;
+            my $sym-found := 0;
+            my $caller-type;
+            repeat {
+                my $pad := nqp::ctxlexpad($ctx);
+                for <$?CONCRETIZATION $?CLASS> {
+                    if nqp::existskey($pad, $_) {
+                        $caller-type := nqp::atkey($pad, $_);
+                        $sym-found := 1;
+                        last;
+                    }
+                }
+                $ctx := nqp::ctxouterskipthunks($ctx);
+            } while $ctx && !$sym-found;
+            $meth = $caller-type.^find_method_qualified($type, $name) if $sym-found;
             $meth = self.^find_method_qualified($type, $name) unless $meth;
         }
 

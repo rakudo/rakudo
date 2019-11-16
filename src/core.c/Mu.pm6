@@ -808,7 +808,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
               invocant => SELF,
-              method   => '!' ~ name,
+              method   => name,
               typename => type.^name,
               :private,
             ).throw;

@@ -148,6 +148,13 @@ class Perl6::Metamodel::ParametricRoleHOW
                         nqp::null());
             return $conc unless nqp::isnull($conc);
 
+            # Pre-create a concrete role. We'll finalize it later, in specialize_with method. But for now we need it
+            # to initialize $?CONCRETIZATION by role's body block.
+            my $*MOP-ROLE-CONCRETIZATION := $conc :=
+                $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
+            $conc.HOW.set_language_revision($conc, $obj.HOW.language-revision($obj));
+            $conc.HOW.set_hidden($conc) if $obj.HOW.hidden($obj);
+
             # Run the body block to get the type environment (we know
             # the role in this case).
             my $type_env;
@@ -165,7 +172,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
 
             # Use it to build concrete role.
-            $conc := self.specialize_with($obj, $type_env, @pos_args);
+            $conc := self.specialize_with($obj, $conc, $type_env, @pos_args);
             nqp::if(
                 nqp::can($class.HOW, 'add_conc_to_cache'),
                 $class.HOW.add_conc_to_cache($class, $obj, @pos_args, %named_args, $conc)
@@ -174,13 +181,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         })
     }
 
-    method specialize_with($obj, $type_env, @pos_args) {
-        # Create a concrete role.
-        my $conc := $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
-
-        $conc.HOW.set_language_revision($conc, $obj.HOW.language-revision($obj));
-        $conc.HOW.set_hidden($conc) if $obj.HOW.hidden($obj);
-
+    method specialize_with($obj, $conc, $type_env, @pos_args) {
         # Go through attributes, reifying as needed and adding to
         # the concrete role.
         for self.attributes($obj, :local(1)) {

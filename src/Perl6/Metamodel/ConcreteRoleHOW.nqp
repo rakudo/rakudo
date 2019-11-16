@@ -124,4 +124,36 @@ class Perl6::Metamodel::ConcreteRoleHOW
     method mro($obj, :$roles = 0, :$unhidden = 0) {
         [$obj]
     }
+
+    method find_method_qualified($obj, $qtype, $name) {
+        $obj := nqp::decont($obj);
+        $qtype := nqp::decont($qtype);
+        if $qtype.HOW.archetypes.parametric {
+            my $found-role := nqp::null();
+            for self.concretizations($obj, :transitive) {
+                my $candidate := $_;
+                my $role := $_.HOW.roles($_, :!transitive, :!mro)[0];
+                if nqp::can($role.HOW, 'group') {
+                    $role := $role.HOW.group($role);
+                }
+                if $qtype =:= $role {
+                    # XXX Better be replaced with Exception throwing. The mechanizm could be provided via
+                    # Perl6::Metamodel::Configuration where a property could be set pointing to a Raku object.
+                    # It could be something like:
+                    # Perl6::Metamodel::Configuration.throw("nqp::die message", ['X', 'Method', 'Ambiguous'], |%exception-params);
+                    nqp::die("Ambiguous concretization lookup for " ~ $qtype.HOW.name($qtype))
+                        unless nqp::isnull($found-role);
+                    $found-role := $candidate;
+                }
+            }
+            return nqp::null() if nqp::isnull($found-role);
+            return $found-role.HOW.method_table($found-role){$name}
+                    || $found-role.HOW.submethod_table($found-role){$name}
+                    || nqp::null();
+        } elsif nqp::istype($obj, $qtype) {
+            # Non-parametric, so just locate it from the already concrete type.
+            nqp::findmethod($qtype, $name)
+        }
+        nqp::null()
+    }
 }

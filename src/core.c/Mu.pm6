@@ -848,8 +848,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             Nil
     }
 
-    method !batch-call(Mu \SELF: \name, Capture:D \c, :$throw = False, :$reverse = False) {
-        my @mro := SELF.^mro(:roles);
+    method !batch-call(Mu \SELF: \name, Capture:D \c, :$throw = False, :$reverse = False, :$roles = False) {
+        my @mro := SELF.^mro(:$roles);
         my $results := nqp::create(IterationBuffer);
         my int $mro_high = $reverse ?? 0 !! @mro.elems - 1;
         my int $i = @mro.elems;

@@ -874,20 +874,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         SELF!batch-call(name, c, :throw);
     }
 
-    method dispatch:<.->(Mu \SELF: \name, |c) {
-        SELF!batch-call(name, c, :throw, :reverse)
-    }
-
     method dispatch:<.*>(Mu \SELF: \name, |c) {
         SELF!batch-call(name, c)
-    }
-
-    method dispatch:<.?+>(Mu \SELF: \name, |c) {
-        SELF!batch-call(name, c)
-    }
-
-    method dispatch:<.?->(Mu \SELF: \name, |c) {
-        SELF!batch-call(name, c, :reverse)
     }
 
     method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {

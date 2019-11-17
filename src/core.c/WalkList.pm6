@@ -2,17 +2,17 @@
 my class WalkList is List {
     has Mu $.invocant;
     has $.quiet = False;
-    has $.reverse = False;
 
     method new(|) {
-        callsame.quiet(False).reversed(False)
+        callsame.quiet(False)
     }
 
     proto method invoke(|) {*}
     multi method invoke(::?CLASS:D: Capture:D $args) {
         my @rv;
-        for |($!reverse ?? self.List::reverse !! self) -> &method {
-            @rv.push: $($!invocant.&method(|$args));
+        for |self -> &method {
+            my $val = $!invocant.&method(|$args);
+            @rv.push: $val ~~ Slip ?? $val.List !! $val;
             CATCH {
                 default {
                     $_.throw unless $!quiet;
@@ -32,9 +32,10 @@ my class WalkList is List {
         self
     }
 
-    method reversed(::?CLASS:D: Bool() $reverse = True --> ::?CLASS:D) {
-        $!reverse = $reverse;
-        self
+    method reverse(::?CLASS:D: --> ::?CLASS:D) {
+        self.WHAT.new(|self.List::reverse)
+            .set_invocant($!invocant)
+            .quiet($!quiet)
     }
 
     method set_invocant(::?CLASS:D: Mu \inv) {

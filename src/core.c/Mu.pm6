@@ -3,6 +3,7 @@ my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
+my class WalkList                    { ... }
 
 my class ValueObjAt is ObjAt { }
 
@@ -910,12 +911,21 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             HYPER( -> \obj { obj."$meth-name"(  ) }, SELF )))
     }
 
-    method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
-                :$super, :$omit, :$include, :$roles) {
+    proto method WALK(|) {*}
+    multi method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
+                :$super, :$omit, :$include, :$roles, :$submethods = True, :$methods = True
+                --> WalkList)
+    {
         # First, build list of classes in the order we'll need them.
+
+        my sub maybe-with-roles(Mu \typeobj) {
+            flat typeobj.^parents(:local),
+                 ($roles ?? typeobj.^roles(:local, :transitive, :mro) !! ())
+        }
+
         my @classes;
         if $super {
-            @classes = self.^parents(:local);
+            @classes = maybe-with-roles(self)
         }
         elsif $breadth {
             my @search_list = self.WHAT;
@@ -923,7 +933,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                 append @classes, @search_list;
                 my @new_search_list;
                 for @search_list -> $current {
-                    for flat $current.^parents(:local) -> $next {
+                    for maybe-with-roles($current) -> $next {
                         unless @new_search_list.grep({ $^c.WHAT =:= $next.WHAT }) {
                             push @new_search_list, $next;
                         }
@@ -935,7 +945,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             sub build_ascendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
                     push @classes, $class;
-                    for flat $class.^parents(:local) {
+                    for maybe-with-roles($class) {
                         build_ascendent($^parent);
                     }
                 }
@@ -944,7 +954,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         } elsif $descendant {
             sub build_descendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
-                    for flat $class.^parents(:local) {
+                    for maybe-with-roles($class) {
                         build_descendent($^parent);
                     }
                     push @classes, $class;
@@ -954,7 +964,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         } else {
             # Canonical, the default (just whatever the meta-class says) with us
             # on the start.
-            @classes = self.^mro();
+            @classes = self.^mro(:$roles);
         }
 
         # Now we have classes, build method list.
@@ -962,19 +972,20 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         for @classes -> $class {
             if (!defined($include) || $include.ACCEPTS($class)) &&
               (!defined($omit) || !$omit.ACCEPTS($class)) {
-                try {
-                    for flat $class.^methods(:local) -> $method {
-                        my $check_name = $method.?name;
-                        if $check_name.defined && $check_name eq $name {
-                            @methods.push($method);
-                        }
-                    }
-                    0;
+                if $methods && !$class.HOW.archetypes.composable {
+                    @methods.push: $_ with $class.^method_table{$name}
+                }
+                if $submethods {
+                    @methods.push: $_ with $class.^submethod_table{$name}
                 }
             }
         }
 
-        @methods;
+        WalkList.new(|@methods).set_invocant(self)
+    }
+
+    multi method WALK(Str:D $name, *%n --> WalkList ) {
+        samewith(:$name, |%n)
     }
 }
 

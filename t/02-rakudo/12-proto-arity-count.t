@@ -266,6 +266,7 @@ sub all-the-protos {
     &list,
     &log,
     &log10,
+    &log2,
     &lsb,
     &make,
     &map,

@@ -57,40 +57,62 @@ my class Stash { # declared in BOOTSTRAP
     }
 
     # SNAPSHOT methods are only to be used in conjunction with serialization/deserialization.
-    method TAKE-SNAPSHOT(Stash:D:) is raw {
-        my \storage := nqp::getattr(self, Map, '$!storage');
+    method !BUILD-SNAPSHOT(Stash:D: Stash:D \stash, $schandle, :$level = 0) is raw {
+        my $pfx := "  " x $level;
+        note($pfx, "BUILDING SNAPSHOT OF ", $schandle) if %*ENV<RAKUDO_DEBUG>;
+        my \storage := nqp::getattr(stash, Map, '$!storage');
         my \iter := nqp::iterator(storage);
-        nqp::bindattr(self, Stash, '$!snapshot', nqp::list());
+        my $table := nqp::list();
+        note($pfx, "iter: ", nqp::istrue(iter)) if %*ENV<RAKUDO_DEBUG>;
         while iter {
             nqp::shift(iter);
             my \sym := nqp::iterkey_s(iter);
             my \val := nqp::iterval(iter);
+            note($pfx, "CONSIDERING ", sym) if %*ENV<RAKUDO_DEBUG>;
             # Item is a list of 2 or 3 elements: symbol name, value, and subtable when the value is a package type.
-            my \item := nqp::list(sym, val);
+            my $subtable;
             if !nqp::isconcrete(val) && nqp::istype(val.HOW, Metamodel::PackageHOW) {
-                nqp::push(item, nqp::decont(val.WHO.TAKE-SNAPSHOT));
+                $subtable := self!BUILD-SNAPSHOT(val.WHO, $schandle, level => ($level + 1));
             }
-            nqp::push(nqp::getattr(self, Stash, '$!snapshot'), item);
+                note($pfx, " -> adding as a ", ($subtable && $subtable.elems ?? "subtable" !! "leaf")) if %*ENV<RAKUDO_DEBUG>;
+                nqp::push(
+                    $table,
+                    nqp::if(
+                        ($subtable && $subtable.elems),
+                        nqp::list(sym, val, $subtable),
+                        nqp::list(sym, val),
+                    )
+                );
         }
+        $table
     }
 
-    method !MERGE-SNAPSHOT(Stash:D: @table, \stash) {
-        my \storage := nqp::getattr(self, Map, '$!storage');
+    method TAKE-SNAPSHOT(Stash:D: $schandle) {
+        note("TAKING SNAPSHOT OF ", $!longname, " -- ", $schandle) if %*ENV<RAKUDO_DEBUG>;
+        nqp::bindattr(self, Stash, '$!snapshot', self!BUILD-SNAPSHOT(self, $schandle));
+    }
+
+    method !MERGE-SNAPSHOT(Stash:D: \stash, @table, :$level = 0) {
+        my $pfx = "  " x $level;
+        my \storage := nqp::getattr(stash, Map, '$!storage');
         for @table -> @item {
             my \sym := @item[0];
             my \val := @item[1];
-            my \subtable := @item[2];
+            note($pfx, ": ", sym) if %*ENV<RAKUDO_DEBUG>;
             unless nqp::existskey(storage, sym) && nqp::atkey(storage, sym) =:= val {
+                note($pfx, "WILL STORE ", sym) if %*ENV<RAKUDO_DEBUG>;
                 nqp::bindkey(storage, sym, val);
             }
-            if nqp::defined(subtable) {
-                self!MERGE-SNAPSHOT(subtable, val.WHO);
+            if @item > 2 {
+                note($pfx, "SUBTABLE OF ", sym) if %*ENV<RAKUDO_DEBUG>;
+                self!MERGE-SNAPSHOT(val.WHO, @item[2], level => ($level + 1));
             }
         }
     }
 
     method RESTORE-SNAPSHOT(Stash:D:) {
-        self!MERGE-SNAPSHOT(nqp::getattr(self, Stash, '$!snapshot'), self);
+        note("RESTORING SNAPSHOT") if %*ENV<RAKUDO_DEBUG>;
+        self!MERGE-SNAPSHOT(self, nqp::getattr(self, Stash, '$!snapshot'));
         # Don't keep the old records when we don't need them anymore.
         nqp::bindattr(self, Stash, '$!snapshot', Nil);
     }

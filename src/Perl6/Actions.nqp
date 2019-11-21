@@ -1292,7 +1292,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*W.assert_stubs_defined($/);
         $*W.sort_protos();
 
-        if $*W.is_precompilation_mode {
+        if !$*COMPILING_CORE_SETTING && $*W.is_precompilation_mode {
             # Perform GLOBALish stash fixup as early as possible but after repossession conflicts are resolved. The
             # purpose is to restore correct stash in cases when two package objects with compound names share common
             # prefix. Like, for example, A::B::C::D1 and A::B::C::D2 share A::B::C. In this case sometimes when defined
@@ -1301,7 +1301,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $stash-type := $*W.find_symbol(['Stash'], :setting-only);
             my $glob-stash := $*GLOBALish.WHO;
             if nqp::istype($glob-stash, $stash-type) {
-                $glob-stash.TAKE-SNAPSHOT;
+                $glob-stash.TAKE-SNAPSHOT(nqp::scgethandle($*W.context.sc));
                 $*W.add_fixup_task(
                     :deserialize_ast(
                         QAST::Stmt.new(

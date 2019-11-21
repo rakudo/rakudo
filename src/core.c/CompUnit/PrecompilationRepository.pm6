@@ -300,7 +300,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             whenever $proc.stdout {
                 $out ~= $_
             }
-            unless $RMD {
+            unless $RMD || %*ENV<RAKUDO_DEBUG> {
                 whenever $proc.stderr {
                     $err ~= $_
                 }

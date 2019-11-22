@@ -35,6 +35,10 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(PERL6_DEBUG)@ = perl6-debug@moar::exe@
 @bpv(PERL6_M)@ = perl6-m@moar::exe@
 @bpv(PERL6_DEBUG_M)@ = perl6-debug-m@moar::exe@
+@bpv(RAKU)@ = raku@moar::exe@
+@bpv(RAKU_DEBUG)@ = raku-debug@moar::exe@
+@bpv(RAKU_M)@ = raku-m@moar::exe@
+@bpv(RAKU_DEBUG_M)@ = raku-debug-m@moar::exe@
 @bpv(INST_PERL6)@ = inst-perl6@moar::exe@
 @bpv(INST_PERL6_DEBUG)@ = inst-perl6-debug@moar::exe@
 @bpv(INST_PERL6_M)@ = inst-perl6-m@moar::exe@
@@ -47,11 +51,12 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(PERL6_OPS_DLL_SRC)@  = @nfp(src/vm/moar/ops/perl6_ops.c)@
 @bpv(PERL6_CONT_SRC)@ = @nfp(src/vm/moar/ops/container.c)@
 
-@bpv(GDB_RUNNER)@ = perl6-gdb-m@runner_suffix@
-@bpv(LLDB_RUNNER)@ = perl6-lldb-m@runner_suffix@
-@bpv(VALGRIND_RUNNER)@ = perl6-valgrind-m@runner_suffix@
+@for_langalias(@for_toolchain(@bpv(@uclangalias@_@uctoolchain@_RUNNER)@ = @langalias@-@toolchain@-m@runner_suffix@
+)@)@
 
-@bpv(ALL_TARGETS)@ = $(R_SETTING_MOAR) @bpm(INST_PERL6_M)@ @bpm(INST_PERL6_DEBUG_M)@ @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@ @m_all@
+@bpv(ALL_TARGETS)@ = $(R_SETTING_MOAR) @bpm(INST_PERL6_M)@ @bpm(INST_PERL6_DEBUG_M)@ @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@ \
+@for_langalias(@for_toolchain(		@bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
+)@)@
 
 @bpv(CLEANUPS)@ = \
   $(R_SETTING_MOAR) \
@@ -66,12 +71,13 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   @bpm(PERL6_OPS_DLL)@ \
   @bpm(PERL6_OPS_OBJ)@ \
   @bpm(PERL6_CONT_OBJ)@ \
-  perl6-m.c \
-  perl6-m@moar::obj@ \
-  perl6.c \
-  perl6@moar::obj@ \
-  perl6@moar::exe@ \
-@m_cleanups@
+@for_langalias(@for_toolchain(  @bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
+)@)@  raku-m.c \
+  raku-m@moar::obj@ \
+  raku.c \
+  raku@moar::obj@ \
+  raku@moar::exe@ \
+  perl6@moar::exe@
 
 @bpv(PERL6_OPS_EXTRA)@ = @bpm(PERL6_OPS_DLL)@
 
@@ -97,24 +103,28 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 
 @backend_prefix@-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 
-@perl(
-    for my $toolchain (qw<gdb lldb valgrind>) {
-		my $scope = $cfg->push_config( toolchain => $toolchain );
-		$out .= $macros->expand('@insert(Makefile-gen-runner)@');
-	}
-)@
+@if(platform!=windows @for_langalias(@for_toolchain(
+@bpm(@uclangalias@_@uctoolchain@_RUNNER)@: @@configure_script@@ @bpm(C_RUNNER)@ @bsm(PERL6)@ @bsm(SETTING)@ @@template(raku-@toolchain@-m)@@ @@template(raku-debug-notice)@@ @@template(sh-prelude)@@
+	@echo(+++ Generating	$@)@
+	@noecho@$(RM_F) $@
+	@noecho@$(CONFIGURE) --expand @nfpq(@backend_subdir@/raku-@toolchain@-m)@ --out $@ \
+		--set-var=MOAR=$(MOAR) \
+		--set-var=ctx_subdir=@backend_subdir@ \
+		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@
+	-@noecho@$(CHMOD) 755 $@
+)@)@)@
 
-@bpm(RUNNER)@: @@configure_script@@ @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.windows)@)@@
+@bpm(RUNNER)@: @@configure_script@@ @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/raku-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/raku-m-build.c.windows)@)@@
 	@echo(+++ Generating	$@)@
 	@noecho@$(RM_F) @q(@bpm(RUNNER)@)@
-	@noecho@$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m-build.c)@ --out perl6-m.c \
+	@noecho@$(CONFIGURE) --expand @nfpq(@backend_subdir@/raku-m-build.c)@ --out raku-m.c \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=base_dir=@shquot(@nfp(@base_dir@)@)@ \
 		--set-var=nqp_lib_dir=@shquot(@nfp(@nqp::libdir@)@)@ \
-		--set-var=exec_name=@shquot(@nfp(@base_dir@/$(M_RUNNER))@)@ \
+		--set-var=exec_name=@shquot(@nfp(@base_dir@/@bpm(RUNNER)@)@)@ \
 		--set-var=mbc=perl6.moarvm
-	@noecho@@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@perl6-m@moar::obj@ perl6-m.c
-	@noecho@@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ perl6-m@moar::obj@
+	@noecho@@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@raku-m@moar::obj@ raku-m.c
+	@noecho@@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ raku-m@moar::obj@
 
 @perl(
 	# Use keys and values as macros to conform with possible future changes to
@@ -124,6 +134,10 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
         '@bpm(INST_PERL6_DEBUG)@'   => '@bpm(PERL6_DEBUG)@',
         '@bpm(INST_PERL6_M)@'       => '@bpm(PERL6_M)@',
         '@bpm(INST_PERL6_DEBUG_M)@' => '@bpm(PERL6_DEBUG_M)@',
+        '@bpm(INST_PERL6)@'         => '@bpm(RAKU)@',
+        '@bpm(INST_PERL6_DEBUG)@'   => '@bpm(RAKU_DEBUG)@',
+        '@bpm(INST_PERL6_M)@'       => '@bpm(RAKU_M)@',
+        '@bpm(INST_PERL6_DEBUG_M)@' => '@bpm(RAKU_DEBUG_M)@',
     );
     for my $build (keys %execs) {
         my $installed = $macros->expand($execs{$build});
@@ -189,22 +203,27 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
 	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
+	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 
 @backend_prefix@-install-main:: @@bpm(PERL6_OPS_DLL)@@ $(R_SETTING_MOAR) @@bpm(INST_PERL6_M)@@ @@bpm(INST_PERL6_DEBUG_M)@@
 	@noecho@$(CP) @bpm(PERL6_OPS_DLL)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	@noecho@$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
+	@noecho@$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	@noecho@$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_M)@)@
 	@noecho@$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG_M)@)@
-@expand(@m_install@)@ 
+	@noecho@$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_M)@)@
+	@noecho@$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG_M)@)@
+@if(platform!=windows @for_langalias(@for_toolchain(@insert(Makefile-install)@)@)@
+)@@if(platform==windows @tab@@noecho@$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@)@
 
 @backend_prefix@-install-post::
 @expand(@clean_old_p6_libs@)@
 
 @backend_prefix@-runner-default-install: @backend_prefix@-install
 	@echo(+++ Installing @uc(@backend@)@ launchers)@
-	@noecho@$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6))@
-	@noecho@$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG))@
+	@noecho@$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6)@)@
+	@noecho@$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG)@)@
+	@noecho@$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
+	@noecho@$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
 
 manifest:
 	@echo(+++ Creating	MANIFEST)@

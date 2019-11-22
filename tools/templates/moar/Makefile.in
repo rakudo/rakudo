@@ -213,7 +213,7 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	@noecho@$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_M)@)@
 	@noecho@$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG_M)@)@
 @if(platform!=windows @for_langalias(@for_toolchain(@insert(Makefile-install)@)@)@
-)@@if(platform==windows @tab@@noecho@$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@)@
+)@@if(platform==windows @m_install@)@
 
 @backend_prefix@-install-post::
 @expand(@clean_old_p6_libs@)@

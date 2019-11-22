@@ -760,7 +760,7 @@ sub _m_for_toolchain {
 
     $self->not_in_context( toolchain => 'toolchain' );
 
-    my @tools = @{ $cfg->prop('toolchains') || () };
+    my @tools = @{ $cfg->prop('toolchains') || [] };
     my $out = "";
 
     for my $tool (@tools) {

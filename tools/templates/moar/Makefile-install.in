@@ -1,6 +1,6 @@
-	@noecho@$(CONFIGURE) --expand @nfpq(@backend_subdir@/raku-@toolchain@-m)@ \
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/raku-@toolchain@-m)@ \
 		--out @nfpq($(DESTDIR)$(PREFIX)/bin/@langalias@-@toolchain@-m)@ \
 		--set-var=MOAR=@shquot(\@nfp(\@envvar(DIR)@/$(M_RUNNER))@)@ \
 		--set-var=ctx_subdir=@backend_subdir@ \
 		--set-var=runner_opts=''
-	@noecho@-$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/@langalias@-@toolchain@-m)@
+	$(NOECHO)-$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/@langalias@-@toolchain@-m)@

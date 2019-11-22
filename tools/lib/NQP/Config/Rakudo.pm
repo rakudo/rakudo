@@ -390,7 +390,7 @@ sub configure_moar_backend {
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
             $config->{m_install} = "\t"
-              . q<@noecho@$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
+              . q<$(NOECHO)$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $nqp_config->{mingw_unicode} = '-municode';
@@ -827,7 +827,7 @@ sub _m_gencat {
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Generating\t\$\@)@
-\t\@noecho\@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ $all_prereq > \$\@
+\t\$(NOECHO\@nop())@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ $all_prereq > \$\@
 TPL
 }
 
@@ -837,7 +837,7 @@ sub _m_comp {
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
-\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@prereqs\@
+\t\$(NOECHO\@nop())@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@prereqs\@
 TPL
 }
 
@@ -847,7 +847,7 @@ sub _m_comp_rr {
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
-\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \@prereqs\@
+\t\$(NOECHO\@nop())@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \@prereqs\@
 TPL
 }
 

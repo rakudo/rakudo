@@ -1,10 +1,10 @@
 @insert(sh-prelude)@
 
-"@expand(@MOAR@)@" @expand(@runner_opts@)@ -e @q(  
+"@expand(@MOAR@)@" @expand(@runner_opts@)@ -e @q(
 say "=" x 96;
 
 say qq:to/END/;
-This is Rakudo Perl 6 running in valgrind, a tool for debugging and profiling programs.
+This is Rakudo running in valgrind, a tool for debugging and profiling programs.
 Running a program in valgrind usually takes *a lot* more time than running it directly,
 so please be patient.
 Valgrind options can be added with MVM_VALGRIND_OPTS environment variable.
@@ -16,4 +16,3 @@ say "-" x 96;
 )@
 
 valgrind ${MVM_VALGRIND_OPTS} "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"
-

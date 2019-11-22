@@ -398,10 +398,7 @@ sub configure_moar_backend {
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
     }
     else {
-        $nqp_config->{m_cleanups} =
-"  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
-        $nqp_config->{m_all} =
-          '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
+        $imoar->{toolchains} = [ qw<gdb lldb valgrind> ];
         $nqp_config->{m_install} = '@insert(Makefile-install)@';
     }
     $nqp_config->{c_runner_libs} = join( " ", @c_runner_libs );
@@ -753,6 +750,63 @@ sub _m_for_specmods {
     return _m_for_specs( $self, $text, with_mods => 1 );
 }
 
+# for_toolchain(text)
+# Iterate over tools
+sub _m_for_toolchain {
+    my $self = shift;
+    my $text = shift;
+
+    my $cfg = $self->cfg;
+
+    $self->not_in_context( toolchain => 'toolchain' );
+
+    my @tools = @{ $cfg->prop('toolchains') || () };
+    my $out = "";
+
+    for my $tool (@tools) {
+        my %config = (
+            toolchain => $tool,
+            uctoolchain => uc($tool),
+        );
+        my $tc_ctx = {
+            toolchain => $tool,
+            configs => [ \%config ],
+        };
+        my $scope = $self->cfg->push_ctx( $tc_ctx );
+        $out .= $self->expand($text);
+    }
+
+    return $out
+}
+
+# for_langalias(text)
+# Iterate over perl6 and raku. Temporary, until the end of perl6 deprecation
+# period.
+sub _m_for_langalias {
+    my $self = shift;
+    my $text = shift;
+    my $cfg = $self->cfg;
+    my $out = "";
+
+    $self->not_in_context( langalias => 'langalias' );
+
+    for my $alias (qw<raku perl6>) {
+        my %config = (
+            langalias => $alias,
+            uclangalias => uc($alias),
+            LangAlias => ucfirst($alias),
+        );
+        my $la_ctx = {
+            langalias => $alias,
+            configs => [ \%config ],
+        };
+        my $scope = $self->cfg->push_ctx( $la_ctx );
+        $out .= $self->expand($text);
+    }
+
+    return $out;
+}
+
 sub _m_source_digest {
     my $self = shift;
     my $sha  = Digest::SHA->new;
@@ -799,6 +853,8 @@ TPL
 
 NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
 NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
+NQP::Macros->register_macro( 'for_toolchain', \&_m_for_toolchain );
+NQP::Macros->register_macro( 'for_langalias', \&_m_for_langalias );
 NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
 NQP::Macros->register_macro( 'gencat',        \&_m_gencat );
 NQP::Macros->register_macro( 'comp',          \&_m_comp, in_receipe => 1, );

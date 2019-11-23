@@ -25,7 +25,7 @@
 
 # files we create
 @bsv(PERL6)@ = perl6.@bext@
-@bsv(RAKU)@ = raku.@bext@
+@bsv(RAKUDO)@ = rakudo.@bext@
 @bsv(PERL6_ML)@  = @nfp(@bpm(BLIB_PERL6)@/ModuleLoader.@bext@)@
 @bsv(PERL6_W)@   = @nfp(@bpm(BLIB_PERL6)@/World.@bext@)@
 @bsv(PERL6_G)@   = @nfp(@bpm(BLIB_PERL6)@/Grammar.@bext@)@
@@ -76,7 +76,7 @@
 @bpv(RUNNER)@       = perl6-@backend_abbr@@bpm(RUNNER_SUFFIX)@
 
 @bsv(PERL6_DEBUG)@ = perl6-debug.@bext@
-@bsv(RAKU_DEBUG)@ = raku-debug.@bext@
+@bsv(RAKUDO_DEBUG)@ = rakudo-debug.@bext@
 
 @bpv(CLEANUPS_ALL)@ = \
   *.manifest \
@@ -85,14 +85,14 @@
   @bsm(SETTING_@ucspec@)@ \
   CORE.@lcspec@.setting.@bext@ \)@
   @bsm(PERL6)@ \
-  @bsm(RAKU)@ \
+  @bsm(RAKUDO)@ \
   @backend_prefix@-rakudo_test_run.tar.gz \
   @nfp(@bpm(BUILD_DIR)@/*.nqp)@ \
   @nfp(@bpm(BUILD_DIR)@/*.setting)@ \
   @nfp(@bpm(BUILD_DIR)@/core_sources.*)@ \
   @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/*.nqp)@ \
   @bsm(PERL6_DEBUG)@ \
-  @bsm(RAKU_DEBUG)@ \
+  @bsm(RAKUDO_DEBUG)@ \
   @bpm(DEBUG_RUNNER)@ \
   @bpm(RUNNER)@ \
   @bpm(CLEANUPS)@
@@ -182,7 +182,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @comp_rr(@bsm(PERL6_DEBUG)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@)@ @bsm(PERL6)@)@
 
-@comp_rr(@bsm(RAKU_DEBUG)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@)@ @bsm(RAKU)@)@
+@comp_rr(@bsm(RAKUDO_DEBUG)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/perl6-debug.nqp)@)@ @bsm(RAKUDO)@)@
 
 @for_specs(@gencat(@nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@: @bpm(BOOTSTRAP_@ucspec@_SOURCES)@)@
 
@@ -214,12 +214,12 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @backend_prefix@-install-main::@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(PERL6_PRECOMPS)@ @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @@bsm(PERL6)@@ @@bsm(PERL6_DEBUG)@@ @backend_prefix@-install-pre
 	@echo(+++ Installing files)@
-	$(NOECHO)$(CP) @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
-	$(NOECHO)$(CP) @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	$(NOECHO)$(CP) @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(NOECHO)$(CP) @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(NOECHO)$(CP) @bsm(PERL6)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/@bsm(RAKU)@)@
-	$(NOECHO)$(CP) @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/@bsm(RAKU_DEBUG)@)@
+	$(NOECHO)$(CP)   @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
+	$(NOECHO)$(CP)   @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
+	$(NOECHO)$(CP)   @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(NOECHO)$(CP)   @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(NOECHO)$(CP)   @bsm(PERL6)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/@bsm(RAKUDO)@)@
+	$(NOECHO)$(CP)   @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/@bsm(RAKUDO_DEBUG)@)@
 
 @backend_prefix@-install-post:: @@script(install-core-dist.p6)@@
 	@echo(+++ Preparing installation)@

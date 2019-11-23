@@ -15,6 +15,7 @@ CONFIGURE = $(PERL5) @shquot(@configure_script@)@ @configure_opts()@
 MKPATH  = @mkpath@
 CHMOD   = @chmod@
 CP      = @cp@
+LN_S	= @ln_s@
 RM_F    = @rm_f@
 RM_RF   = @rm_rf@
 TEST_F  = @test_f@

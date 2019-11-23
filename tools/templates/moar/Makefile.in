@@ -35,10 +35,12 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(PERL6_DEBUG)@ = perl6-debug@moar::exe@
 @bpv(PERL6_M)@ = perl6-m@moar::exe@
 @bpv(PERL6_DEBUG_M)@ = perl6-debug-m@moar::exe@
+@bpv(RAKUDO)@ = rakudo@moar::exe@
+@bpv(RAKUDO_DEBUG)@ = rakudo-debug@moar::exe@
 @bpv(RAKU)@ = raku@moar::exe@
 @bpv(RAKU_DEBUG)@ = raku-debug@moar::exe@
-@bpv(RAKU_M)@ = raku-m@moar::exe@
-@bpv(RAKU_DEBUG_M)@ = raku-debug-m@moar::exe@
+@bpv(RAKUDO_M)@ = rakudo-m@moar::exe@
+@bpv(RAKUDO_DEBUG_M)@ = rakudo-debug-m@moar::exe@
 @bpv(INST_PERL6)@ = inst-perl6@moar::exe@
 @bpv(INST_PERL6_DEBUG)@ = inst-perl6-debug@moar::exe@
 @bpv(INST_PERL6_M)@ = inst-perl6-m@moar::exe@
@@ -72,11 +74,11 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   @bpm(PERL6_OPS_OBJ)@ \
   @bpm(PERL6_CONT_OBJ)@ \
 @for_langalias(@for_toolchain(  @bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
-)@)@  raku-m.c \
-  raku-m@moar::obj@ \
-  raku.c \
-  raku@moar::obj@ \
-  raku@moar::exe@ \
+)@)@  rakudo-m.c \
+  rakudo-m@moar::obj@ \
+  rakudo.c \
+  rakudo@moar::obj@ \
+  rakudo@moar::exe@ \
   perl6@moar::exe@
 
 @bpv(PERL6_OPS_EXTRA)@ = @bpm(PERL6_OPS_DLL)@
@@ -104,27 +106,27 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 @backend_prefix@-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 
 @if(platform!=windows @for_langalias(@for_toolchain(
-@bpm(@uclangalias@_@uctoolchain@_RUNNER)@: @@configure_script@@ @bpm(C_RUNNER)@ @bsm(PERL6)@ @bsm(SETTING)@ @@template(raku-@toolchain@-m)@@ @@template(raku-debug-notice)@@ @@template(sh-prelude)@@
+@bpm(@uclangalias@_@uctoolchain@_RUNNER)@: @@configure_script@@ @bpm(C_RUNNER)@ @bsm(PERL6)@ @bsm(SETTING)@ @@template(rakudo-@toolchain@-m)@@ @@template(rakudo-debug-notice)@@ @@template(sh-prelude)@@
 	@echo(+++ Generating	$@)@
 	$(NOECHO)$(RM_F) $@
-	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/raku-@toolchain@-m)@ --out $@ \
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/rakudo-@toolchain@-m)@ --out $@ \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=ctx_subdir=@backend_subdir@ \
 		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@
 	-$(NOECHO)$(CHMOD) 755 $@
 )@)@)@
 
-@bpm(RUNNER)@: @@configure_script@@ @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/raku-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/raku-m-build.c.windows)@)@@
+@bpm(RUNNER)@: @@configure_script@@ @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/rakudo-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/rakudo-m-build.c.windows)@)@@
 	@echo(+++ Generating	$@)@
 	$(NOECHO)$(RM_F) @q(@bpm(RUNNER)@)@
-	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/raku-m-build.c)@ --out raku-m.c \
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/rakudo-m-build.c)@ --out rakudo-m.c \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=base_dir=@shquot(@nfp(@base_dir@)@)@ \
 		--set-var=nqp_lib_dir=@shquot(@nfp(@nqp::libdir@)@)@ \
 		--set-var=exec_name=@shquot(@nfp(@base_dir@/@bpm(RUNNER)@)@)@ \
 		--set-var=mbc=perl6.moarvm
-	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@raku-m@moar::obj@ raku-m.c
-	$(NOECHO)@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ raku-m@moar::obj@
+	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@rakudo-m@moar::obj@ rakudo-m.c
+	$(NOECHO)@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ rakudo-m@moar::obj@
 
 @perl(
 	# Use keys and values as macros to conform with possible future changes to
@@ -134,10 +136,10 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
         '@bpm(INST_PERL6_DEBUG)@'   => '@bpm(PERL6_DEBUG)@',
         '@bpm(INST_PERL6_M)@'       => '@bpm(PERL6_M)@',
         '@bpm(INST_PERL6_DEBUG_M)@' => '@bpm(PERL6_DEBUG_M)@',
-        '@bpm(INST_PERL6)@'         => '@bpm(RAKU)@',
-        '@bpm(INST_PERL6_DEBUG)@'   => '@bpm(RAKU_DEBUG)@',
-        '@bpm(INST_PERL6_M)@'       => '@bpm(RAKU_M)@',
-        '@bpm(INST_PERL6_DEBUG_M)@' => '@bpm(RAKU_DEBUG_M)@',
+        '@bpm(INST_PERL6)@'         => '@bpm(RAKUDO)@',
+        '@bpm(INST_PERL6_DEBUG)@'   => '@bpm(RAKUDO_DEBUG)@',
+        '@bpm(INST_PERL6_M)@'       => '@bpm(RAKUDO_M)@',
+        '@bpm(INST_PERL6_DEBUG_M)@' => '@bpm(RAKUDO_DEBUG_M)@',
     );
     for my $build (keys %execs) {
         my $installed = $macros->expand($execs{$build});
@@ -210,8 +212,8 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	$(NOECHO)$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
 	$(NOECHO)$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_M)@)@
 	$(NOECHO)$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG_M)@)@
-	$(NOECHO)$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_M)@)@
-	$(NOECHO)$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG_M)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_M)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG_M)@)@
 @if(platform!=windows @for_langalias(@for_toolchain(@insert(Makefile-install)@)@)@
 )@@if(platform==windows @m_install@)@
 
@@ -222,9 +224,12 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	@echo(+++ Installing @uc(@backend@)@ launchers)@
 	$(NOECHO)$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6)@)@
 	$(NOECHO)$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG)@)@
-	$(NOECHO)$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
-	$(NOECHO)$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
-
+	$(NOECHO)$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@
+	$(NOECHO)$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@
+@if(with_raku_alias==on @tab@@echo(+++ Creating Raku executable alias)@
+	$(NOECHO)$(LN_S) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
+	$(NOECHO)$(LN_S) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
+)@
 manifest:
 	@echo(+++ Creating	MANIFEST)@
 	$(NOECHO)echo MANIFEST >MANIFEST

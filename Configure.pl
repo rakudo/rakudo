@@ -22,7 +22,8 @@ BEGIN {
                 $set_config = 1;
             }
             else {
-                if ( $msg =~ /[']([^']+)[']\s+already exists and is not an empty/ )
+                if ( $msg =~
+                    /[']([^']+)[']\s+already exists and is not an empty/ )
                 {
                     print "\n===SORRY=== ERROR: "
                       . "Cannot update submodule because directory exists and is not empty.\n"
@@ -62,21 +63,21 @@ MAIN: {
     $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
-        $cfg->options,
-        'help!',            'prefix=s',
-        'perl6-home=s',     'nqp-home=s',
-        'sysroot=s',        'sdkroot=s',
-        'relocatable!',     'backends=s',
-        'no-clean',         'with-nqp=s',
-        'gen-nqp:s',        'gen-moar:s',
-        'moar-option=s@',   'git-protocol=s',
-        'ignore-errors!',   'make-install!',
-        'makefile-timing!', 'git-depth=s',
-        'git-reference=s',  'github-user=s',
-        'rakudo-repo=s',    'nqp-repo=s',
-        'moar-repo=s',      'roast-repo=s',
-        'expand=s',         'out=s',
-        'set-var=s@',       'silent-build!'
+        $cfg->options,    'help!',
+        'prefix=s',       'perl6-home|rakudo-home=s',
+        'nqp-home=s',     'sysroot=s',
+        'sdkroot=s',      'relocatable!',
+        'backends=s',     'no-clean',
+        'with-nqp=s',     'gen-nqp:s',
+        'gen-moar:s',     'moar-option=s@',
+        'git-protocol=s', 'ignore-errors!',
+        'make-install!',  'makefile-timing!',
+        'git-depth=s',    'git-reference=s',
+        'github-user=s',  'rakudo-repo=s',
+        'nqp-repo=s',     'moar-repo=s',
+        'roast-repo=s',   'expand=s',
+        'out=s',          'set-var=s@',
+        'silent-build!'
       )
       or do {
         print_help();
@@ -153,7 +154,8 @@ General Options:
     --help             Show this text
     --prefix=<path>    Install files in dir; also look for executables there
     --nqp-home=dir     Directory to install NQP files to
-    --perl6-home=dir   Directory to install Perl 6 files to
+    --perl6-home=dir, --rakudo-home=dir   
+                       Directory to install Rakudo files to
     --relocatable
                        Dynamically locate NQP and Perl6 home dirs instead of
                        statically compiling them in. (On AIX and OpenBSD Rakudo

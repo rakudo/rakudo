@@ -398,8 +398,7 @@ sub configure_moar_backend {
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
     }
     else {
-        $imoar->{toolchains} = [ qw<gdb lldb valgrind> ];
-        $nqp_config->{m_install} = '@insert(Makefile-install)@';
+        $imoar->{toolchains} = [qw<gdb lldb valgrind>];
     }
     $nqp_config->{c_runner_libs} = join( " ", @c_runner_libs );
     $nqp_config->{moar_lib}      = sprintf(
@@ -410,6 +409,11 @@ sub configure_moar_backend {
         ),
         $nqp_config->{'moar::name'}
     );
+
+    $nqp_config->{'with_raku_alias'} =
+      ( $self->has_option('raku-alias') && !$self->opt('raku-alias') )
+      ? 'off'
+      : 'on';
 
     unless ( $self->backend_error('moar') ) {
         $self->msg( "Using $config->{m_nqp}"
@@ -761,22 +765,22 @@ sub _m_for_toolchain {
     $self->not_in_context( toolchain => 'toolchain' );
 
     my @tools = @{ $cfg->prop('toolchains') || [] };
-    my $out = "";
+    my $out   = "";
 
     for my $tool (@tools) {
         my %config = (
-            toolchain => $tool,
+            toolchain   => $tool,
             uctoolchain => uc($tool),
         );
         my $tc_ctx = {
             toolchain => $tool,
-            configs => [ \%config ],
+            configs   => [ \%config ],
         };
-        my $scope = $self->cfg->push_ctx( $tc_ctx );
+        my $scope = $self->cfg->push_ctx($tc_ctx);
         $out .= $self->expand($text);
     }
 
-    return $out
+    return $out;
 }
 
 # for_langalias(text)
@@ -785,22 +789,22 @@ sub _m_for_toolchain {
 sub _m_for_langalias {
     my $self = shift;
     my $text = shift;
-    my $cfg = $self->cfg;
-    my $out = "";
+    my $cfg  = $self->cfg;
+    my $out  = "";
 
     $self->not_in_context( langalias => 'langalias' );
 
-    for my $alias (qw<raku perl6>) {
+    for my $alias (qw<rakudo perl6>) {
         my %config = (
-            langalias => $alias,
+            langalias   => $alias,
             uclangalias => uc($alias),
-            LangAlias => ucfirst($alias),
+            LangAlias   => ucfirst($alias),
         );
         my $la_ctx = {
             langalias => $alias,
-            configs => [ \%config ],
+            configs   => [ \%config ],
         };
-        my $scope = $self->cfg->push_ctx( $la_ctx );
+        my $scope = $self->cfg->push_ctx($la_ctx);
         $out .= $self->expand($text);
     }
 
@@ -832,8 +836,8 @@ TPL
 }
 
 sub _m_comp {
-    my $self         = shift;
-    my $text         = shift;
+    my $self = shift;
+    my $text = shift;
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
@@ -842,8 +846,8 @@ TPL
 }
 
 sub _m_comp_rr {
-    my $self         = shift;
-    my $text         = shift;
+    my $self = shift;
+    my $text = shift;
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@

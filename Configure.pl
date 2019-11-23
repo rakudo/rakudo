@@ -16,7 +16,7 @@ BEGIN {
         unless ( -e '3rdparty/nqp-configure/LICENSE' ) {
             print "Updating nqp-configure submodule...\n";
             my $msg =
-    qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
+qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
             if ( $? >> 8 == 0 ) {
                 say "OK";
                 $set_config = 1;
@@ -77,7 +77,7 @@ MAIN: {
         'nqp-repo=s',     'moar-repo=s',
         'roast-repo=s',   'expand=s',
         'out=s',          'set-var=s@',
-        'silent-build!'
+        'silent-build!',  'raku-alias!'
       )
       or do {
         print_help();
@@ -161,6 +161,7 @@ General Options:
                        statically compiling them in. (On AIX and OpenBSD Rakudo
                        is always built non-relocatable, since both OSes miss a
                        necessary mechanism.)
+    --no-raku-alias    Don't create `raku` alias for `rakudo` binary
     --sdkroot=<path>   When given, use for searching build tools here, e.g.
                        nqp, java, node etc.
     --sysroot=<path>   When given, use for searching runtime components here

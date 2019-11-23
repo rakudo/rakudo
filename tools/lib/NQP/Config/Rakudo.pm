@@ -390,7 +390,7 @@ sub configure_moar_backend {
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
             $config->{m_install} = "\t"
-              . q<@noecho@$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
+              . q<$(NOECHO)$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $nqp_config->{mingw_unicode} = '-municode';
@@ -398,11 +398,7 @@ sub configure_moar_backend {
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
     }
     else {
-        $nqp_config->{m_cleanups} =
-"  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
-        $nqp_config->{m_all} =
-          '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
-        $nqp_config->{m_install} = '@insert(Makefile-install)@';
+        $imoar->{toolchains} = [qw<gdb lldb valgrind>];
     }
     $nqp_config->{c_runner_libs} = join( " ", @c_runner_libs );
     $nqp_config->{moar_lib}      = sprintf(
@@ -413,6 +409,11 @@ sub configure_moar_backend {
         ),
         $nqp_config->{'moar::name'}
     );
+
+    $nqp_config->{'with_raku_alias'} =
+      ( $self->has_option('raku-alias') && !$self->opt('raku-alias') )
+      ? 'off'
+      : 'on';
 
     unless ( $self->backend_error('moar') ) {
         $self->msg( "Using $config->{m_nqp}"
@@ -753,6 +754,63 @@ sub _m_for_specmods {
     return _m_for_specs( $self, $text, with_mods => 1 );
 }
 
+# for_toolchain(text)
+# Iterate over tools
+sub _m_for_toolchain {
+    my $self = shift;
+    my $text = shift;
+
+    my $cfg = $self->cfg;
+
+    $self->not_in_context( toolchain => 'toolchain' );
+
+    my @tools = @{ $cfg->prop('toolchains') || [] };
+    my $out   = "";
+
+    for my $tool (@tools) {
+        my %config = (
+            toolchain   => $tool,
+            uctoolchain => uc($tool),
+        );
+        my $tc_ctx = {
+            toolchain => $tool,
+            configs   => [ \%config ],
+        };
+        my $scope = $self->cfg->push_ctx($tc_ctx);
+        $out .= $self->expand($text);
+    }
+
+    return $out;
+}
+
+# for_langalias(text)
+# Iterate over perl6 and raku. Temporary, until the end of perl6 deprecation
+# period.
+sub _m_for_langalias {
+    my $self = shift;
+    my $text = shift;
+    my $cfg  = $self->cfg;
+    my $out  = "";
+
+    $self->not_in_context( langalias => 'langalias' );
+
+    for my $alias (qw<rakudo perl6>) {
+        my %config = (
+            langalias   => $alias,
+            uclangalias => uc($alias),
+            LangAlias   => ucfirst($alias),
+        );
+        my $la_ctx = {
+            langalias => $alias,
+            configs   => [ \%config ],
+        };
+        my $scope = $self->cfg->push_ctx($la_ctx);
+        $out .= $self->expand($text);
+    }
+
+    return $out;
+}
+
 sub _m_source_digest {
     my $self = shift;
     my $sha  = Digest::SHA->new;
@@ -773,32 +831,34 @@ sub _m_gencat {
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Generating\t\$\@)@
-\t\@noecho\@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ $all_prereq > \$\@
+\t\$(NOECHO\@nop())@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ $all_prereq > \$\@
 TPL
 }
 
 sub _m_comp {
-    my $self         = shift;
-    my $text         = shift;
+    my $self = shift;
+    my $text = shift;
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
-\t\@noecho@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@prereqs\@
+\t\$(NOECHO\@nop())@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@prereqs\@
 TPL
 }
 
 sub _m_comp_rr {
-    my $self         = shift;
-    my $text         = shift;
+    my $self = shift;
+    my $text = shift;
     return $self->expand(<<TPL);
 $text
 \t\@echo(+++ Compiling\t\$@)@
-\t\@noecho@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \@prereqs\@
+\t\$(NOECHO\@nop())@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \@prereqs\@
 TPL
 }
 
 NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
 NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
+NQP::Macros->register_macro( 'for_toolchain', \&_m_for_toolchain );
+NQP::Macros->register_macro( 'for_langalias', \&_m_for_langalias );
 NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
 NQP::Macros->register_macro( 'gencat',        \&_m_gencat );
 NQP::Macros->register_macro( 'comp',          \&_m_comp, in_receipe => 1, );

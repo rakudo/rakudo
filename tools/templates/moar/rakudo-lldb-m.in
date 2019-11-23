@@ -1,6 +1,5 @@
 @insert(sh-prelude)@
 
-@insert(perl6-debug-notice)@
+@insert(rakudo-debug-notice)@
 
 lldb -o run "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"
-

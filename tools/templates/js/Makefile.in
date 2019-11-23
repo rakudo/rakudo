@@ -18,7 +18,7 @@
 # default js-install from executing.
 @backend_prefix@-install:: @backend_prefix@-all
 	@echo(!!! Installing the js backend is not yet implemented.)@
-	@noecho@exit 1
+	$(NOECHO)exit 1
 
 @include(Makefile-backend-common)@
 
@@ -33,11 +33,11 @@
 
 @backend_prefix@-clean:
 	@echo(+++ Cleaning up @uc(@backend@)@)@
-	@noecho@$(RM_F) @bpm(CLEANUPS_ALL)@
+	$(NOECHO)$(RM_F) @bpm(CLEANUPS_ALL)@
 
 @backend_prefix@-lint:
 	@echo(+++ Linting @uc(@backend@)@ runtime)@
-	@noecho@gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@
+	$(NOECHO)gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@
 
 #js-testable: js-all spectest_checkout spectest_update
 

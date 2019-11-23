@@ -16,13 +16,14 @@ BEGIN {
         unless ( -e '3rdparty/nqp-configure/LICENSE' ) {
             print "Updating nqp-configure submodule...\n";
             my $msg =
-    qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
+qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
             if ( $? >> 8 == 0 ) {
                 say "OK";
                 $set_config = 1;
             }
             else {
-                if ( $msg =~ /[']([^']+)[']\s+already exists and is not an empty/ )
+                if ( $msg =~
+                    /[']([^']+)[']\s+already exists and is not an empty/ )
                 {
                     print "\n===SORRY=== ERROR: "
                       . "Cannot update submodule because directory exists and is not empty.\n"
@@ -62,21 +63,21 @@ MAIN: {
     $config->{$config_status} = join ' ', map { qq("$_") } @ARGV;
 
     GetOptions(
-        $cfg->options,
-        'help!',            'prefix=s',
-        'perl6-home=s',     'nqp-home=s',
-        'sysroot=s',        'sdkroot=s',
-        'relocatable!',     'backends=s',
-        'no-clean',         'with-nqp=s',
-        'gen-nqp:s',        'gen-moar:s',
-        'moar-option=s@',   'git-protocol=s',
-        'ignore-errors!',   'make-install!',
-        'makefile-timing!', 'git-depth=s',
-        'git-reference=s',  'github-user=s',
-        'rakudo-repo=s',    'nqp-repo=s',
-        'moar-repo=s',      'roast-repo=s',
-        'expand=s',         'out=s',
-        'set-var=s@',       'silent-build!'
+        $cfg->options,    'help!',
+        'prefix=s',       'perl6-home|rakudo-home=s',
+        'nqp-home=s',     'sysroot=s',
+        'sdkroot=s',      'relocatable!',
+        'backends=s',     'no-clean',
+        'with-nqp=s',     'gen-nqp:s',
+        'gen-moar:s',     'moar-option=s@',
+        'git-protocol=s', 'ignore-errors!',
+        'make-install!',  'makefile-timing!',
+        'git-depth=s',    'git-reference=s',
+        'github-user=s',  'rakudo-repo=s',
+        'nqp-repo=s',     'moar-repo=s',
+        'roast-repo=s',   'expand=s',
+        'out=s',          'set-var=s@',
+        'silent-build!',  'raku-alias!'
       )
       or do {
         print_help();
@@ -153,12 +154,14 @@ General Options:
     --help             Show this text
     --prefix=<path>    Install files in dir; also look for executables there
     --nqp-home=dir     Directory to install NQP files to
-    --perl6-home=dir   Directory to install Perl 6 files to
+    --perl6-home=dir, --rakudo-home=dir   
+                       Directory to install Rakudo files to
     --relocatable
                        Dynamically locate NQP and Perl6 home dirs instead of
                        statically compiling them in. (On AIX and OpenBSD Rakudo
                        is always built non-relocatable, since both OSes miss a
                        necessary mechanism.)
+    --no-raku-alias    Don't create `raku` alias for `rakudo` binary
     --sdkroot=<path>   When given, use for searching build tools here, e.g.
                        nqp, java, node etc.
     --sysroot=<path>   When given, use for searching runtime components here

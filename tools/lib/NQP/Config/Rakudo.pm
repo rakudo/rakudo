@@ -506,7 +506,7 @@ sub clean_old_p6_libs {
         my $pp_pfx = $self->cfg('make_pp_pfx');
         if (@clean_rules) {
             unshift @clean_rules,
-              "\@echo(+++ Cleaning up outdated MOAR files)\@\n";
+              "\t\@echo(+++ Cleaning up outdated MOAR files)\@\n";
         }
 
         # Don't try removing if DESTDIR is defined for the running make. It is

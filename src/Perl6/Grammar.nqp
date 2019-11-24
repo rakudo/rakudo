@@ -1746,7 +1746,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token special_variable:sym<$.> {
-        <sym> {} <!before \w | '(' | '^' >
+        <sym> {} <!before \w | '(' | ':' | '^' >
         <.obsvar('$.')>
     }
 
@@ -1819,7 +1819,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         [ <?{ $<twigil> && ( $<twigil> eq '.' || $<twigil> eq '.^' ) }>
-            [ <.unsp> | '\\' | <?> ] <?[(]> <!RESTRICTED> <arglist=.postcircumfix>
+            [ <.unsp> | '\\' | <?> ] <?[(:]> <!RESTRICTED> #<arglist=.postcircumfix>
+            :dba('method arguments')
+            [
+                | ':' <!{ $*QSIGIL }> <arglist>
+                | '(' <arglist> ')'
+            ]
         ]?
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
     }

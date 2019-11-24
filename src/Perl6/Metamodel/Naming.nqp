@@ -30,9 +30,9 @@ role Perl6::Metamodel::Naming {
         $!shortname := $shortname;
     }
     method name($obj) {
-        $!name
+        $!name // ($!name := '')
     }
     method shortname($obj) {
-        $!shortname
+        $!shortname // ($!name := '')
     }
 }

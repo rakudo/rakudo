@@ -1822,7 +1822,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             [ <.unsp> | '\\' | <?> ] <?[(:]> <!RESTRICTED> #<arglist=.postcircumfix>
             :dba('method arguments')
             [
-                | ':' <!{ $*QSIGIL }> <arglist>
+                | ':' <?before \s | '{'> <!{ $*QSIGIL }> <arglist>
                 | '(' <arglist> ')'
             ]
         ]?

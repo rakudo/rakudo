@@ -190,6 +190,6 @@ Options:
     --randomize randomize the order in which test-files are processed.
     --no-mixslow - don't spread tests marked "slow" equally over the run (on non-Win)
     --perlpath - path to perl6 (defaults to $*EXECUTABLE)
-    --perl5path - path to perl5 for various helper utilities (defaults to 'perl')
+    --perl5path - path to Perl executable for various helper utilities (defaults to 'perl')
 
 =end pod

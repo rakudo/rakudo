@@ -2,13 +2,13 @@
 use v6;
 
 my $template = q:to/END_TEMPLATE/;
-# Announce: Rakudo Perl 6 compiler, Release #«release-num» («release-name»)
+# Announce: Rakudo compiler, Release #«release-num» («release-name»)
 
 On behalf of the Rakudo development team, I’m very happy to announce the
-«month» «year» release of Rakudo Perl 6 #«release-num». Rakudo is an implementation of
-Perl 6 on the Moar Virtual Machine[^1].
+«month» «year» release of Rakudo #«release-num». Rakudo is an implementation of
+Raku on the Moar Virtual Machine[^1].
 
-This release implements 6.c and 6.d versions of the Perl 6 specification.
+This release implements 6.c and 6.d versions of the Raku specification.
 6.c version of the language is available if you use the `use v6.c`
 version pragma, otherwise 6.d is the default.
 
@@ -35,12 +35,12 @@ The following people contributed to this release:
 «contributors»
 
 If you would like to contribute or find out more information, visit
-<https://perl6.org>, <https://rakudo.org/how-to-help>, ask on the
-<perl6-compiler@perl.org> mailing list, or ask on IRC #perl6 on freenode.
+<https://raku.org>, <https://rakudo.org/how-to-help>, ask on the
+<perl6-compiler@perl.org> mailing list, or ask on IRC #raku on freenode.
 
 Additionally, we invite you to make a donation to The Perl Foundation
-to sponsor Perl 6 development: <https://donate.perlfoundation.org/>
-(put “Perl 6 Core Development Fund” in the ‘Purpose’ text field)
+to sponsor Raku development: <https://donate.perlfoundation.org/>
+(put “Raku Core Development Fund” in the ‘Purpose’ text field)
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».
 
@@ -61,11 +61,11 @@ an estimated delivery date.
 [^2]: What’s the difference between the Rakudo compiler and the Rakudo
 Star distribution?
 
-The Rakudo compiler is a compiler for the Perl 6 language.
+The Rakudo compiler is a compiler for the Raku language.
 Not much more.
 
 The Rakudo Star distribution is the Rakudo compiler plus a selection
-of useful Perl 6 modules, a module installer, Perl 6 introductory
+of useful Raku modules, a module installer, Raku introductory
 documentation, and other software that can be used with the Rakudo
 compiler to enhance its utility.
 END_TEMPLATE

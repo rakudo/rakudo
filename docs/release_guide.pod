@@ -18,7 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2019-10-19   Rakudo #132 (AlexDaniel + kawaii + Releasable)
+  2019-12-21   Rakudo #133 Be the next release manager!
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -509,6 +509,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2019-03-17   2019.03.1                       (AlexDaniel + Releasable)
   2019-07-17   Rakudo #131 "2019.07"           (AlexDaniel + kawaii + Releasable)
   2019-07-28   2019.07.1                       (AlexDaniel + Releasable)
+  2019-11-26   Rakudo #132 "2019.11"           (AlexDaniel + Releasable)
 
 =head1 COPYRIGHT
 

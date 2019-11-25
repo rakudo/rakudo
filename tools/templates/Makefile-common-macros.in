@@ -21,11 +21,11 @@ RM_RF   = @rm_rf@
 TEST_F  = @test_f@
 @shell@
 
-SYSROOT    = @nfp(@sysroot@)@
-SDKROOT    = @nfp(@sdkroot@)@
-PREFIX     = @nfp(@prefix@)@
-PERL6_HOME = @nfp(@perl6_home@)@
-BASE_DIR   = @base_dir@
+SYSROOT     = @nfp(@sysroot@)@
+SDKROOT     = @nfp(@sdkroot@)@
+PREFIX      = @nfp(@prefix@)@
+RAKUDO_HOME = @nfp(@rakudo_home@)@
+BASE_DIR    = @base_dir@
 
 BOOTSTRAP_SOURCES = \
   @nfp(src/Perl6/Metamodel/BOOTSTRAP.nqp)@ \

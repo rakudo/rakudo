@@ -64,7 +64,7 @@ MAIN: {
 
     GetOptions(
         $cfg->options,    'help!',
-        'prefix=s',       'perl6-home|rakudo-home=s',
+        'prefix=s',       'rakudo-home|perl6-home=s',
         'nqp-home=s',     'sysroot=s',
         'sdkroot=s',      'relocatable!',
         'backends=s',     'no-clean',

@@ -45,7 +45,7 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 
 $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
 	@echo(+++ Setting up	$@)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q(@bpm(NQP_HOME)@)@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q(@bpm(NQP_HOME)@)@ @q($(RAKUDO_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
 
 @backend_prefix@-runner-default: @backend_prefix@-all
 	@echo(+++ Setting up @uc(@backend@)@ runner)@
@@ -54,7 +54,7 @@ $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
 
 @bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(PERL6_DEBUG)@
 	@echo(+++ Setting up	$@)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q(@bpm(NQP_HOME)@)@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q(@bpm(NQP_HOME)@)@ @q($(RAKUDO_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
 
 eval-client.pl:
 	@echo(+++ Setting up	$@)@
@@ -84,12 +84,12 @@ sometests: @backend_prefix@-all
 
 @backend_prefix@-runner-default-install: @backend_prefix@-install
 	@echo(+++ Installing @uc(@backend@)@ launcher)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(PERL6_HOME))@ "" @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(RAKUDO_HOME))@ "" @q($(NQP_JARS))@
 	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
 	$(NOECHO)$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
 
 @backend_prefix@-install-main:: $(RUNTIME_JAR) @@script(create-jvm-runner.pl)@@
-	$(NOECHO)$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(NOECHO)$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
 	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
 

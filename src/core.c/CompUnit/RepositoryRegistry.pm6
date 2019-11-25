@@ -88,7 +88,7 @@ class CompUnit::RepositoryRegistry {
 
         my str $prefix = nqp::existskey($ENV,'RAKUDO_PREFIX')
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
-          !! nqp::getcurhllsym('$PERL6_HOME');
+          !! nqp::getcurhllsym('$RAKUDO_HOME');
 
         # XXX Various issues with this stuff on JVM , TEMPORARY
         my str $home;

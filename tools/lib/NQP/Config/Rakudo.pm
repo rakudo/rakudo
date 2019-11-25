@@ -154,9 +154,9 @@ sub configure_refine_vars {
 
     $self->SUPER::configure_refine_vars(@_);
 
-    $config->{perl6_home} = $self->nfp(
+    $config->{rakudo_home} = $self->nfp(
         File::Spec->rel2abs(
-            $config->{perl6_home}
+            $config->{rakudo_home}
               || File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
         )
     );
@@ -343,24 +343,24 @@ sub configure_moar_backend {
     }
 
     if ( $config->{relocatable} eq 'reloc' ) {
-        $nqp_config->{static_nqp_home}          = '';
-        $nqp_config->{static_perl6_home}        = '';
-        $nqp_config->{static_nqp_home_define}   = '';
-        $nqp_config->{static_perl6_home_define} = '';
+        $nqp_config->{static_nqp_home}           = '';
+        $nqp_config->{static_rakudo_home}        = '';
+        $nqp_config->{static_nqp_home_define}    = '';
+        $nqp_config->{static_rakudo_home_define} = '';
     }
     else {
         my $qchar = $config->{quote};
-        $nqp_config->{static_nqp_home}   = $nqp_config->{'nqp::nqp_home'};
-        $nqp_config->{static_perl6_home} = $config->{perl6_home};
+        $nqp_config->{static_nqp_home}    = $nqp_config->{'nqp::nqp_home'};
+        $nqp_config->{static_rakudo_home} = $config->{rakudo_home};
         $nqp_config->{static_nqp_home_define} =
             '-DSTATIC_NQP_HOME='
           . $qchar
           . $self->c_escape_string( $nqp_config->{static_nqp_home} )
           . $qchar;
-        $nqp_config->{static_perl6_home_define} =
-            '-DSTATIC_PERL6_HOME='
+        $nqp_config->{static_rakudo_home_define} =
+            '-DSTATIC_RAKUDO_HOME='
           . $qchar
-          . $self->c_escape_string( $nqp_config->{static_perl6_home} )
+          . $self->c_escape_string( $nqp_config->{static_rakudo_home} )
           . $qchar;
     }
 

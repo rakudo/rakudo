@@ -1819,7 +1819,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         [ <?{ $<twigil> && ( $<twigil> eq '.' || $<twigil> eq '.^' ) }>
-            [ <.unsp> | '\\' | <?> ] <?[(:]> <!RESTRICTED> #<arglist=.postcircumfix>
+            [ <.unsp> | '\\' | <?> ] <?[(:]> <!RESTRICTED>
             :dba('method arguments')
             [
                 | ':' <?before \s | '{'> <!{ $*QSIGIL }> <arglist>

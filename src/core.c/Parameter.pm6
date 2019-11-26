@@ -28,6 +28,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_OPTIONAL        = 1 +< 11;
     my constant $SIG_ELEM_ARRAY_SIGIL        = 1 +< 12;
     my constant $SIG_ELEM_HASH_SIGIL         = 1 +< 13;
+    my constant $SIG_ELEM_DEFAULT_FROM_OUTER = 1 +< 14;
     my constant $SIG_ELEM_IS_CAPTURE         = 1 +< 15;
     my constant $SIG_ELEM_UNDEFINED_ONLY     = 1 +< 16;
     my constant $SIG_ELEM_DEFINED_ONLY       = 1 +< 17;
@@ -574,7 +575,9 @@ my class Parameter { # declared in BOOTSTRAP
                 $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
             }
             $name ~= '!' unless self.optional;
-        } elsif self.optional && !$default {
+        } elsif self.optional
+          && !$default
+          && not $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
             $name ~= '?';
         }
         if $!flags +& $SIG_ELEM_IS_RW {
@@ -606,7 +609,12 @@ my class Parameter { # declared in BOOTSTRAP
 
             $rest ~= ' where { ... }';
         }
-        $rest ~= " = $!default_value.perl()" if $default;
+        if $default {
+            $rest ~= " = $!default_value.perl()";
+        }
+        elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
+            $rest ~= " = OUTER::<$name>";
+        }
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
         }

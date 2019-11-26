@@ -346,37 +346,37 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method ASSIGN-POS(|) is nodal {*}
-    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) {
+    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) is raw {
        SELF.AT-POS(pos) = assignee;                     # defer < 0 check
     }
 
-    multi method ASSIGN-POS(Any:D: int \pos, Mu \assignee) {
-        self.AT-POS(pos) = assignee;                    # defer < 0 check
+    multi method ASSIGN-POS(Any:D \SELF: int \pos, Mu \assignee) is raw {
+        SELF.AT-POS(pos) = assignee;                    # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Int:D \pos, Mu \assignee) {
-        self.AT-POS(pos) = assignee;                    # defer < 0 check
+    multi method ASSIGN-POS(Any:D \SELF: Int:D \pos, Mu \assignee) is raw {
+        SELF.AT-POS(pos) = assignee;                    # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) {
+    multi method ASSIGN-POS(Any:D \SELF: Num:D \pos, Mu \assignee) is raw {
         nqp::isnanorinf(pos)
-          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
-          !! self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+          ?? Failure.new(X::Item.new(aggregate => SELF, index => pos))
+          !! SELF.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Any:D \pos, Mu \assignee) {
-        self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+    multi method ASSIGN-POS(Any:D \SELF: Any:D \pos, Mu \assignee) is raw {
+        SELF.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method ASSIGN-POS(Any:D: \one, \two, Mu \assignee) is raw {
-        self.AT-POS(one).ASSIGN-POS(two, assignee)
+    multi method ASSIGN-POS(Any:D \SELF: \one, \two, Mu \assignee) is raw {
+        SELF.AT-POS(one).ASSIGN-POS(two, assignee)
     }
-    multi method ASSIGN-POS(Any:D: \one, \two, \three, Mu \assignee) is raw {
-        self.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
+    multi method ASSIGN-POS(Any:D \SELF: \one, \two, \three, Mu \assignee) is raw {
+        SELF.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
     }
-    multi method ASSIGN-POS(Any:D: **@indices) {
+    multi method ASSIGN-POS(Any:D \SELF: **@indices) is raw {
         my \value := @indices.pop;
         my $final := @indices.pop;
-        Rakudo::Internals.WALK-AT-POS(self,@indices).ASSIGN-POS($final,value)
+        Rakudo::Internals.WALK-AT-POS(SELF,@indices).ASSIGN-POS($final,value)
     }
 
     proto method BIND-POS(|) {*}

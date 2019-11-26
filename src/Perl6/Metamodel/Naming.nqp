@@ -1,38 +1,43 @@
 role Perl6::Metamodel::Naming {
     has $!name;
     has $!shortname;
+
+    method name($obj) {
+        $!name // ($!name := '')
+    }
+
     method set_name($obj, $name) {
-        $!name := $name;
+        $!name      := $name;
+        $!shortname := NQPMu; # Gets set once it's needed.
         nqp::setdebugtypename($obj, $name);
-        if $name {
-            while (my int $colon := nqp::rindex($name, '::')) != -1 {
-                my int $paren := nqp::rindex($name, '[', $colon - 1);
-                my int $comma := nqp::rindex($name, ',', $colon - 1);
+    }
+
+    method shortname($obj) {
+        sub to_shortname($name) {
+            return '' unless $name;
+
+            my $shortname := $name;
+            while (my int $colon := nqp::rindex($shortname, '::')) >= 0 {
+                my int $paren := nqp::rindex($shortname, '[', $colon - 1);
+                my int $comma := nqp::rindex($shortname, ',', $colon - 1);
                 my int $chop-start :=
                     ($paren < 0 && $comma < 0)
                     ?? 0
-                    !! ($paren != -1 && $paren < $comma)
+                    !! ($paren >= 0 && $paren < $comma)
                         ?? $comma + 1
                         !! $paren + 1;
-                $name := nqp::concat(
-                    nqp::substr($name, 0, $chop-start),
-                    nqp::substr($name, $colon + 2)
+                $shortname := nqp::concat(
+                    nqp::substr($shortname, 0, $chop-start),
+                    nqp::substr($shortname, $colon + 2)
                 );
             }
+            $shortname
+        }
 
-            $!shortname := $name;
-        }
-        else {
-            $!shortname := '';
-        }
+        $!shortname // ($!shortname := to_shortname($!name))
     }
+
     method set_shortname($obj, $shortname) {
         $!shortname := $shortname;
-    }
-    method name($obj) {
-        $!name
-    }
-    method shortname($obj) {
-        $!shortname
     }
 }

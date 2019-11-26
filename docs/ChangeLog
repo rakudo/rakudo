@@ -23,7 +23,7 @@ New in 2019.11:
     + Fixed `.wrap` when used with `callsame`/`nextsame`/etc. [da65fb5b]
     + Fixed a bug when a wrapped method is called first [2e915d74]
     + Fixed `:D` check when used with `where` [58c2d649]
-    + Make socket family handling portable [16607d3f][17f66039]
+    + Made socket family handling portable [16607d3f][17f66039]
         [39b04dc9][7e106265][d7d8d37e]
     + Fixed RakuDoc parser to allow empty config values [7c3b2572]
     + Fixed handling of `:every(Inf)` in `ThreadPoolScheduler.cue`
@@ -33,14 +33,14 @@ New in 2019.11:
         [6b42d314]
     + Made sure that doing keep/break on a vow more than once throws
         [c7ec96aa][0f31d353][5aa998f1][f32b86a9][b8f92d25]
-    + Made sure that Backtrace.list lists all the frames [559c24f0]
+    + Made sure that `Backtrace.list` lists all the frames [559c24f0]
     + Made the `Buf.write-*` methods return self [dae981e8]
     + Allowed type objects on `Buf.write-int/num/bits` [43b5e768]
         [18ff9052]
   + Changes:
     + [6.e] Pseudo-packages now return `Failure` for a missing
         symbol (was `Nil`) [56af07bf]
-    + `EVAL` doesn't wrap evaluated code into own `CORE` context but
+    + `EVAL` no longer wraps evaluated code into own `CORE` context but
         shares the one used by the calling scope. It also means that
         `use v6.X` statement is not effective inside `EVAL`s anymore
         [56af07bf]
@@ -90,15 +90,15 @@ New in 2019.11:
         [19e075ff][c3926928][44a6a0de][696eea2d][1d4c21d0][6f5232f4]
         [3697325c].6297b0e4][519cfdeb][25abfe2b][1e2b0ec5]
   + Internal:
-    + Default NQP vars and ops to int instead of num [290cd792]
+    + NQP vars and ops will now default to int instead of num [290cd792]
         [5876d38a][62e2555e][1e4d3ac4][cf6f6d92]
     + Optimizer: Don't use Int*Ref in first arg
         of `if/unless/while/until` [84ee0c8c]
     + Fixed `BYTE_SUPPLY_DECODER` breaking after exceptions [91624312]
     + Reduced `.moarvm` size by replacing `die X::Foo.new` by
         `X::Foo.new.throw` [6d8f4050][88dfe55c]
-    + Show stagestats for dependent precompilation [238f8e57]
-    + Flush stderr in stagestats report [960e5b4a]
+    + Stagestats are now shown for dependent precompilation [238f8e57]
+        [960e5b4a]
     + Added more tests for symbols in CORE and SETTING [5cd45f91]
         [53bb28d0]
     + Added `nqp::p6client*` family of ops for finding first Raku

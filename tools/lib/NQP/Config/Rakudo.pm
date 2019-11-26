@@ -222,6 +222,8 @@ sub configure_misc {
     my $self   = shift;
     my $config = $self->{config};
 
+    $self->SUPER::configure_misc(@_);
+
     # determine the version of NQP we want
     ( $config->{nqp_want} ) =
       split( ' ',
@@ -585,18 +587,25 @@ sub gen_nqp {
     my $config  = $self->{config};
 
     #my $nqp_bin      = $options->{'with-nqp'};
-    my $nqp_git_spec = $options->{'gen-nqp'};
-    my $gen_nqp      = $options->{'gen-nqp'};
-    my $gen_moar     = $options->{'gen-moar'};
-    my $prefix       = $config->{prefix};
-    my $sdkroot      = $config->{'sdkroot'};
-    my $startdir     = $config->{'base_dir'};
-    my $exe          = $config->{exe};
-    my $nqp_want     = $config->{nqp_want};
-    my $git_protocol = $options->{'git-protocol'} // 'https';
-    my @moar_options = @{ $options->{'moar-option'} // [] };
-    my $impls        = $self->{impls};
-    my $pwd          = cwd;
+    my $nqp_git_spec  = $options->{'gen-nqp'};
+    my $gen_nqp       = $options->{'gen-nqp'};
+    my $gen_moar      = $options->{'gen-moar'};
+    my $force_rebuild = $options->{'force-rebuild'};
+    my $prefix        = $config->{prefix};
+    my $sdkroot       = $config->{'sdkroot'};
+    my $startdir      = $config->{'base_dir'};
+    my $exe           = $config->{exe};
+    my $nqp_want      = $config->{nqp_want};
+    my $git_protocol  = $options->{'git-protocol'} // 'https';
+    my @moar_options  = @{ $options->{'moar-option'} // [] };
+    my $impls         = $self->{impls};
+    my $pwd           = cwd;
+
+    if ( $force_rebuild && !defined $gen_nqp ) {
+        $self->note( "WARNING",
+                "Command line option --force-rebuild"
+              . " is ineffective without --gen-nqp" );
+    }
 
     my %need;
 
@@ -619,12 +628,16 @@ sub gen_nqp {
           $nqp_have ? ( 0 <= cmp_rev( $nqp_have, $nqp_want ) ) : 0;
         my $nqp_ok = $nqp_have && $nqp_ver_ok;
 
-        unless ( !$nqp_have || $nqp_ver_ok || $options->{'ignore-errors'} ) {
+        unless ( $force_rebuild
+            || !$nqp_have
+            || $nqp_ver_ok
+            || $options->{'ignore-errors'} )
+        {
             $self->note( "WARNING",
                 "$bin version $nqp_have is outdated, $nqp_want expected.\n" );
         }
 
-        if ( $nqp_ok or $options->{'ignore-errors'} ) {
+        if ( !$force_rebuild and ( $nqp_ok or $options->{'ignore-errors'} ) ) {
             $impls->{$b}{ok} = 1;
         }
         elsif ( $self->opt('with-nqp') ) {
@@ -641,7 +654,13 @@ sub gen_nqp {
 
     if ( defined $gen_nqp || defined $gen_moar ) {
         my $user = $options->{'github-user'} // 'perl6';
-        $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $nqp_want );
+        # Don't expect any specific default commit in nqp/ if the repo is
+        # already checked out.
+        my $expected_spec =
+          -d File::Spec->catdir( $self->cfg('base_dir'), 'nqp', '.git' )
+          ? undef
+          : $nqp_want;
+        $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $expected_spec );
     }
 
     my @cmd = (
@@ -652,7 +671,8 @@ sub gen_nqp {
     # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
         qw<git-depth git-reference github-user nqp-repo moar-repo
-        nqp-home relocatable ignore-errors with-moar silent-build>
+        nqp-home relocatable ignore-errors with-moar silent-build
+        force-rebuild>
       )
     {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );

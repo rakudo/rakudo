@@ -244,7 +244,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     @positional.push($argument);
                 }
 
-                # Use first defined
+                # Use first defined to add documentation
                 if $param.WHY and !@arg-help.first(*.key eq $argument) {
                     @arg-help.push: $argument => $param.type.^name eq 'Any'
                       ?? $param.WHY.contents

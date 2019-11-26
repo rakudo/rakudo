@@ -222,6 +222,8 @@ sub configure_misc {
     my $self   = shift;
     my $config = $self->{config};
 
+    $self->SUPER::configure_misc(@_);
+
     # determine the version of NQP we want
     ( $config->{nqp_want} ) =
       split( ' ',
@@ -652,7 +654,13 @@ sub gen_nqp {
 
     if ( defined $gen_nqp || defined $gen_moar ) {
         my $user = $options->{'github-user'} // 'perl6';
-        $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $nqp_want );
+        # Don't expect any specific default commit in nqp/ if the repo is
+        # already checked out.
+        my $expected_spec =
+          -d File::Spec->catdir( $self->cfg('base_dir'), 'nqp', '.git' )
+          ? undef
+          : $nqp_want;
+        $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $expected_spec );
     }
 
     my @cmd = (

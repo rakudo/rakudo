@@ -654,10 +654,13 @@ sub gen_nqp {
 
     if ( defined $gen_nqp || defined $gen_moar ) {
         my $user = $options->{'github-user'} // 'perl6';
+
         # Don't expect any specific default commit in nqp/ if the repo is
-        # already checked out.
+        # already checked out and we're force-rebuilding.
         my $expected_spec =
-          -d File::Spec->catdir( $self->cfg('base_dir'), 'nqp', '.git' )
+          ( $force_rebuild
+              && -d File::Spec->catdir( $self->cfg('base_dir'), 'nqp', '.git' )
+          )
           ? undef
           : $nqp_want;
         $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $expected_spec );

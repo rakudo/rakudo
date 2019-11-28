@@ -164,24 +164,32 @@ my class DateTime does Dateish {
         ).in-timezone($timezone)
     }
     multi method new(DateTime:
-      Numeric:D $time is copy, :$timezone = 0, :&formatter, *%_
+      Numeric:D $epoch, :$timezone = 0, :&formatter, *%_
     --> DateTime:D) {
+
         # Interpret $time as a POSIX time.
-        my     $second = $time % 60; $time = $time.Int div 60;
-        my int $minute = $time % 60; $time = $time     div 60;
-        my int $hour   = $time % 24; $time = $time     div 24;
+        my $second := $epoch % 60;
+        my Int $minutes := nqp::div_I($epoch.Int, 60, Int);
+        my Int $minute  := nqp::mod_I($minutes, 60, Int);
+        my Int $hours   := nqp::div_I($minutes, 60, Int);
+        # XXX changing this with a nqp::mod_I causes execution error:
+        # Cannot unbox a type object (Int) to int.  Go figure!
+        my Int $hour    := $hours % 24;
+        my Int $days    := nqp::div_I($hours, 24, Int);
+
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
-        $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
-        my Int $a := $time + 32044;     # date algorithm from Claus Tøndering
-        my Int $b := (4 * $a + 3) div 146097; # 146097 = days in 400 years
-        my Int $c := $a - (146097 * $b) div 4;
-        my Int $d := (4 * $c + 3) div 1461;       # 1461 = days in 4 years
-        my Int $e := $c - ($d * 1461) div 4;
-        my Int $m := (5 * $e + 2) div 153; # 153 = days in Mar-Jul Aug-Dec
-        my int $day   = $e - (153 * $m + 2) div 5 + 1;
-        my int $month = $m + 3 - 12 * ($m div 10);
-        my Int $year  = $b * 100 + $d - 4800 + $m div 10;
+        my Int $julian := $days + 2440588;   # because 2000-01-01 == Unix epoch day 10957
+
+        my Int $a := $julian + 32044;     # date algorithm from Claus Tøndering
+        my Int $b := nqp::div_I(4 * $a + 3, 146097, Int);  # 146097 = days in 400 years
+        my Int $c := $a - nqp::div_I(146097 * $b, 4, Int);
+        my Int $d := nqp::div_I(4 * $c + 3, 1461, Int);  # 1461 = days in 4 years
+        my Int $e := $c - nqp::div_I($d * 1461, 4, Int);
+        my Int $m := nqp::div_I(5 * $e + 2, 153, Int); # 153 = days in Mar-Jul Aug-Dec
+        my Int $day   := $e - nqp::div_I(153 * $m + 2, 5, Int) + 1;
+        my Int $month := $m + 3 - 12 * nqp::div_I($m, 10, Int);
+        my Int $year  := $b * 100 + $d - 4800 + nqp::div_I($m, 10, Int);
 
         my $dt := nqp::eqaddr(self.WHAT,DateTime)
           ?? ( nqp::elems(nqp::getattr(%_,Map,'$!storage'))

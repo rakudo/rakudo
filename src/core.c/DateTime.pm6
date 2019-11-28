@@ -173,27 +173,29 @@ my class DateTime does Dateish {
         # Day month and leap year arithmetic, based on Gregorian day #.
         # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
         $time += 2440588;   # because 2000-01-01 == Unix epoch day 10957
-        my Int $a = $time + 32044;     # date algorithm from Claus Tøndering
-        my Int $b = (4 * $a + 3) div 146097; # 146097 = days in 400 years
-        my Int $c = $a - (146097 * $b) div 4;
-        my Int $d = (4 * $c + 3) div 1461;       # 1461 = days in 4 years
-        my Int $e = $c - ($d * 1461) div 4;
-        my Int $m = (5 * $e + 2) div 153; # 153 = days in Mar-Jul Aug-Dec
+        my Int $a := $time + 32044;     # date algorithm from Claus Tøndering
+        my Int $b := (4 * $a + 3) div 146097; # 146097 = days in 400 years
+        my Int $c := $a - (146097 * $b) div 4;
+        my Int $d := (4 * $c + 3) div 1461;       # 1461 = days in 4 years
+        my Int $e := $c - ($d * 1461) div 4;
+        my Int $m := (5 * $e + 2) div 153; # 153 = days in Mar-Jul Aug-Dec
         my int $day   = $e - (153 * $m + 2) div 5 + 1;
         my int $month = $m + 3 - 12 * ($m div 10);
         my Int $year  = $b * 100 + $d - 4800 + $m div 10;
 
-        my $dt = nqp::eqaddr(self.WHAT,DateTime)
-          ?? ( %_ ?? die "Unexpected named parameter{"s" if %_ > 1} "
-                    ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
-                    ~ "trying to use the named parameter form of .new() but "
-                    ~ "accidentally passed one named parameter as a positional?"
-                  !! nqp::create(self)!SET-SELF(
-                    $year,$month,$day,$hour,$minute,$second,0,&formatter)
-          ) !! self.bless(
-                 :$year,:$month,:$day,
-                 :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_
-               )!SET-DAYCOUNT;
+        my $dt := nqp::eqaddr(self.WHAT,DateTime)
+          ?? ( nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+            ?? die "Unexpected named parameter{"s" if %_ > 1} "
+                 ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
+                 ~ "trying to use the named parameter form of .new() but "
+                 ~ "accidentally passed one named parameter as a positional?"
+            !! nqp::create(self)!SET-SELF(
+                 $year,$month,$day,$hour,$minute,$second,0,&formatter)
+             )
+          !! self.bless(
+               :$year,:$month,:$day,
+               :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_
+             )!SET-DAYCOUNT;
         $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(DateTime:

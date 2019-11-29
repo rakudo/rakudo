@@ -180,7 +180,7 @@ int wmain(int argc, wchar_t *wargv[])
     int flag;
     int new_argc     = 0;
 
-    unsigned int interval_id;
+    unsigned int interval_id = 0;
     char telemeh_inited = 0;
 
     MVMuint32 debugserverport = 0;

@@ -380,7 +380,6 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # Store the contents of an iterator into the Map
     method !STORE_MAP_FROM_ITERATOR_DECONT(\iter --> Map:D) is raw {
         nqp::stmts(
-            ($!storage := nqp::hash),
             nqp::until(
               nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
               nqp::if(
@@ -413,7 +412,6 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     method !STORE_MAP_FROM_ITERATOR(\iter --> Map:D) is raw {
         nqp::stmts(
-            ($!storage := nqp::hash),
             nqp::until(
               nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
               nqp::if(

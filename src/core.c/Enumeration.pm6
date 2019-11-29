@@ -86,20 +86,16 @@ my role NumericStringyEnumeration {
     }
 }
 
-sub ENUM_VALUES(*@args) {
+sub ENUM_VALUES(*@args --> Map:D) {
     my Mu $prev = -1;
-    my %res;
-    for @args {
-        if .^isa(Pair) {
-            %res{.key} = $prev = .value;
-        }
-        else {
-            %res{$_} = $prev.=succ;
-        }
-    }
-    nqp::p6bindattrinvres(
-      nqp::create(Map),Map,'$!storage',nqp::getattr(%res,Map,'$!storage')
-    )
+    my $res := nqp::hash;
+
+    nqp::istype($_,Pair)
+      ?? nqp::bindkey($res, .key, nqp::decont($prev = .value))
+      !! nqp::bindkey($res,   $_, nqp::decont($prev = $prev.succ))
+      for @args;
+
+    nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$res)
 }
 
 Metamodel::EnumHOW.set_composalizer(-> $type, $name, @enum_values {

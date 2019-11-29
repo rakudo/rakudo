@@ -458,7 +458,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!, :$DECONT --> Map:D) {
+    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!, :$DECONT! --> Map:D) {
         nqp::if(
           nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           nqp::if(
@@ -466,36 +466,39 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             nqp::if(
               nqp::eqaddr(map.WHAT,Map),
               nqp::p6bindattrinvres(self,Map,'$!storage',other),
-              nqp::if(
-                $DECONT,
-                self.STORE(map.iterator, :INITIALIZE, :DECONT),
-                nqp::p6bindattrinvres(
-                  self,Map,'$!storage',nqp::clone(other)
-                )
-              )
+              self.STORE(map.iterator, :INITIALIZE, :DECONT)
             ),
             self                      # nothing to do
           ),
+          self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
+        )
+    }
+    multi method STORE(Map:D: Map:D \map, :$INITIALIZE! --> Map:D) {
+        nqp::if(
+          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           nqp::if(
-            $DECONT,
-            self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map),
-            self!STORE_MAP_FROM_OBJECT_HASH(map)
-          )
+            nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
+            nqp::if(
+              nqp::eqaddr(map.WHAT,Map),
+              nqp::p6bindattrinvres(self,Map,'$!storage',other),
+              nqp::p6bindattrinvres(self,Map,'$!storage',nqp::clone(other))
+            ),
+            self                      # nothing to do
+          ),
+          self!STORE_MAP_FROM_OBJECT_HASH(map)
         )
     }
-    multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE!, :$DECONT --> Map:D) {
-        nqp::if(
-          $DECONT,
-          self!STORE_MAP_FROM_ITERATOR_DECONT(iter),
-          self!STORE_MAP_FROM_ITERATOR(iter)
-        )
+    multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE!, :$DECONT! --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR_DECONT(iter)
     }
-    multi method STORE(Map:D: \to_store, :$INITIALIZE!, :$DECONT? --> Map:D) {
-        nqp::if(
-          $DECONT,
-          self!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator),
-          self!STORE_MAP_FROM_ITERATOR(to_store.iterator)
-        )
+    multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE! --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR(iter)
+    }
+    multi method STORE(Map:D: \to_store, :$INITIALIZE!, :$DECONT! --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator)
+    }
+    multi method STORE(Map:D: \to_store, :$INITIALIZE! --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR(to_store.iterator)
     }
     multi method STORE(Map:D: \keys, \values, :$INITIALIZE! --> Map:D) {
         my \iterkeys   := keys.iterator;

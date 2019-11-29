@@ -315,17 +315,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method !STORE_MAP_FROM_MAP(\map --> Nil) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
-          nqp::stmts(
-            (my \iter := nqp::iterator(other)),
-            nqp::while(
-              iter,
-              nqp::bindkey(
-                $!storage,
-                nqp::iterkey_s(nqp::shift(iter)),
-                nqp::iterval(iter)
-              )
-            )
-          )
+          $!storage := nqp::clone(other)
         )
     }
 

@@ -380,6 +380,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # Store the contents of an iterator into the Map
     method !STORE_MAP_FROM_ITERATOR_DECONT(\iter --> Map:D) is raw {
         nqp::stmts(
+            ($!storage := nqp::hash),
             nqp::until(
               nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
               nqp::if(
@@ -412,6 +413,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     method !STORE_MAP_FROM_ITERATOR(\iter --> Map:D) is raw {
         nqp::stmts(
+            ($!storage := nqp::hash),
             nqp::until(
               nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
               nqp::if(
@@ -444,7 +446,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!, :$DECONT? --> Map:D) {
+    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!, :$DECONT --> Map:D) {
         nqp::if(
           nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           nqp::if(
@@ -475,17 +477,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
-    multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE!, :$DECONT? --> Map:D) {
+    multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE!, :$DECONT --> Map:D) {
         nqp::p6bindattrinvres(
           self, Map, '$!storage',
           nqp::getattr(
-            nqp::stmts(
-                (my \new_map := nqp::p6bindattrinvres(nqp::create(self), Map, '$!storage', nqp::hash)),
-                nqp::if(
-                    $DECONT,
-                    new_map!STORE_MAP_FROM_ITERATOR_DECONT(iter),
-                    new_map!STORE_MAP_FROM_ITERATOR(iter)
-                )
+            nqp::if(
+              $DECONT,
+              nqp::create(self)!STORE_MAP_FROM_ITERATOR_DECONT(iter),
+              nqp::create(self)!STORE_MAP_FROM_ITERATOR(iter)
             ),
             Map, '$!storage'
           )
@@ -495,13 +494,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(
           self, Map, '$!storage',
           nqp::getattr(
-            nqp::stmts(
-              (my \new_map := nqp::p6bindattrinvres(nqp::create(self), Map, '$!storage', nqp::hash)),
-              nqp::if(
-                  $DECONT,
-                  new_map!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator),
-                  new_map!STORE_MAP_FROM_ITERATOR(to_store.iterator)
-              )
+            nqp::if(
+              $DECONT,
+              nqp::create(self)!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator),
+              nqp::create(self)!STORE_MAP_FROM_ITERATOR(to_store.iterator)
             ),
             Map, '$!storage'
           )

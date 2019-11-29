@@ -23,24 +23,7 @@ class Dict is Map {
                 'Dict|',
                 nqp::concat(self.^name,'|')
               ),
-              nqp::sha1(
-                nqp::join(
-                  '|',
-                  nqp::stmts(
-                    (my $strings  := nqp::list_s),
-                    (my \iter :=
-                      nqp::iterator(nqp::getattr(self,Map,'$!storage'))),
-                    nqp::while(
-                      iter,
-                      nqp::stmts(
-                        nqp::push_s($strings,nqp::iterkey_s(nqp::shift(iter))),
-                        nqp::push_s($strings,nqp::iterval(iter).Str)
-                      )
-                    ),
-                    $strings
-                  )
-                )
-              )
+              nqp::sha1(self.sort.map({ .key ~ "|" ~ .value }).join("|"))
             ),
             ValueObjAt
           ))

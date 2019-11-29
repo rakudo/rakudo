@@ -296,7 +296,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     # Directly copy from the other Map's internals.
-    method !STORE_MAP_FROM_MAP_DECONT(\map --> Nil) {
+    method !STORE_MAP_FROM_MAP_DECONT(\map --> Map:D) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -310,9 +310,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
           )
-        )
+        );
+        self
     }
-    method !STORE_MAP_FROM_MAP(\map --> Nil) {
+    method !STORE_MAP_FROM_MAP(\map --> Map:D) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -326,13 +327,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
           )
-        )
+        );
+        self
     }
 
     # Directly copy from the Object Hash's internals, but pay respect to the
     # fact that we're only interested in the values (which contain a Pair with
     # the object key and a value that we need to decontainerize.
-    method !STORE_MAP_FROM_OBJECT_HASH_DECONT(\map --> Nil) {
+    method !STORE_MAP_FROM_OBJECT_HASH_DECONT(\map --> Map:D) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -349,9 +351,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
           )
-        )
+        );
+        self
     }
-    method !STORE_MAP_FROM_OBJECT_HASH(\map --> Nil) {
+    method !STORE_MAP_FROM_OBJECT_HASH(\map --> Map:D) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -368,18 +371,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
           )
-        )
+        );
+        self
     }
 
     # Copy the contents of a Mappy thing that's not in a container.
-    method !STORE_MAP_DECONT(\map --> Nil) {
+    method !STORE_MAP_DECONT(\map --> Map:D) {
         nqp::if(
           nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           self!STORE_MAP_FROM_MAP_DECONT(map),
           self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
         )
     }
-    method !STORE_MAP(\map --> Nil) {
+    method !STORE_MAP(\map --> Map:D) {
         nqp::if(
           nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           self!STORE_MAP_FROM_MAP(map),
@@ -472,43 +476,25 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             ),
             self                      # nothing to do
           ),
-          nqp::stmts(
-            (my \new_map := nqp::p6bindattrinvres(nqp::create(self), Map, '$!storage', nqp::hash)),
-            nqp::p6bindattrinvres(
-              self, Map, '$!storage',
-              nqp::if(
-                $DECONT,
-                new_map!STORE_MAP_FROM_OBJECT_HASH_DECONT(map),
-                new_map!STORE_MAP_FROM_OBJECT_HASH(map)
-              )
-            )
+          nqp::if(
+            $DECONT,
+            self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map),
+            self!STORE_MAP_FROM_OBJECT_HASH(map)
           )
         )
     }
     multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE!, :$DECONT --> Map:D) {
-        nqp::p6bindattrinvres(
-          self, Map, '$!storage',
-          nqp::getattr(
-            nqp::if(
-              $DECONT,
-              nqp::create(self)!STORE_MAP_FROM_ITERATOR_DECONT(iter),
-              nqp::create(self)!STORE_MAP_FROM_ITERATOR(iter)
-            ),
-            Map, '$!storage'
-          )
+        nqp::if(
+          $DECONT,
+          self!STORE_MAP_FROM_ITERATOR_DECONT(iter),
+          self!STORE_MAP_FROM_ITERATOR(iter)
         )
     }
     multi method STORE(Map:D: \to_store, :$INITIALIZE!, :$DECONT? --> Map:D) {
-        nqp::p6bindattrinvres(
-          self, Map, '$!storage',
-          nqp::getattr(
-            nqp::if(
-              $DECONT,
-              nqp::create(self)!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator),
-              nqp::create(self)!STORE_MAP_FROM_ITERATOR(to_store.iterator)
-            ),
-            Map, '$!storage'
-          )
+        nqp::if(
+          $DECONT,
+          self!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator),
+          self!STORE_MAP_FROM_ITERATOR(to_store.iterator)
         )
     }
     multi method STORE(Map:D: \keys, \values, :$INITIALIZE! --> Map:D) {
@@ -532,9 +518,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method FLATTENABLE_LIST() { nqp::list() }
-    method FLATTENABLE_HASH() {
-        $!storage
-    }
+    method FLATTENABLE_HASH() { $!storage }
 
     method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n" --> Str:D) {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)

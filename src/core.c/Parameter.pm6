@@ -90,15 +90,15 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     submethod BUILD(
-       Str:D $name      is copy = "",
-       Int:D $flags     is copy = 0,
-      Bool:D $named     is copy = False,
-      Bool:D $optional  is copy = False,
-      Bool:D $mandatory is copy = False,
-      Bool:D $is-copy = False,
-      Bool:D $is-raw = False,
-      Bool:D $is-rw = False,
-      Bool:D $multi-invocant = True,
+       Str:D :$name      is copy = "",
+       Int:D :$flags     is copy = 0,
+      Bool:D :$named     is copy = False,
+      Bool:D :$optional  is copy = False,
+      Bool:D :$mandatory is copy = False,
+      Bool:D :$is-copy = False,
+      Bool:D :$is-raw = False,
+      Bool:D :$is-rw = False,
+      Bool:D :$multi-invocant = True,
              *%args  # type / default / where / sub_signature captured through %_
       ) {
 

@@ -454,7 +454,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               nqp::p6bindattrinvres(self,Map,'$!storage',other),
               nqp::if(
                 $DECONT,
-                samewith(map.iterator, :INITIALIZE, :$DECONT),
+                self.STORE(map.iterator, :INITIALIZE, :DECONT),
                 nqp::p6bindattrinvres(
                   self,Map,'$!storage',nqp::clone(other)
                 )

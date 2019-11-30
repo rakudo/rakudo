@@ -19,7 +19,7 @@ role Perl6::Metamodel::LanguageRevision
             # language_version method report wrong version.
             my $rev;
             if $*W {
-                $rev := $*W.find_symbol(['CORE-SETTING-REV'], :setting-only);
+                $rev := $*W.find_symbol(['CORE-SETTING-REV'], :setting-only) || $*W.setting_revision;
             }
             $ver := nqp::p6clientcorever()                      # 1st: try the run-time code
                     || ($rev && '6.' ~ $rev)                    # 2nd: compile-time if CORE is available

@@ -6,14 +6,24 @@
 
 BEGIN {
     for (
+
+      # Associative
       Map,
       Hash,
+
+      # QuantHash
       Set,
       SetHash,
       Bag,
       BagHash,
       Mix,
       MixHash,
+
+      # Positional
+      List,
+      Array,
+      IterationBuffer,
+
     ) -> \type {
           type.^compose
     }

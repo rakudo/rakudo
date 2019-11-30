@@ -5,7 +5,7 @@ class Dict is Map {
         self.Map::new.STORE(@args, :INITIALIZE, :DECONT);
     }
 
-    method STORE(Dict:D: @args, :$INITIALIZE --> Dict:D) {
+    method STORE(Dict:D: *@args, :$INITIALIZE --> Dict:D) {
         self.Map::STORE(@args, :$INITIALIZE, :DECONT);
     }
 

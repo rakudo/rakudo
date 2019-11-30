@@ -62,6 +62,7 @@ my class Cool { # declared in BOOTSTRAP
     multi method round($base) { self.Numeric.round($base) }
 
     method roots(Cool $n)   { self.Numeric.roots($n)    }
+    method log2()           { self.Numeric.log2         }
     method log10()          { self.Numeric.log10        }
     method unpolar($n)      { self.Numeric.unpolar($n.Numeric) }
 

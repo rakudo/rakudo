@@ -18,6 +18,7 @@ my role Numeric {
     multi method log(Numeric:D: Cool $base) { self.log / $base.Numeric.log }
     multi method log(Numeric:D: Numeric $base) { self.log / $base.log         }
 
+    method log2()  { self.log /  2e0.log }
     method log10() { self.log / 10e0.log }
 
     proto method exp(|) {*}
@@ -75,6 +76,10 @@ multi sub log(Numeric $x) { $x.log }
 multi sub log(Numeric $x, Numeric $base) { $x.log($base) }
 multi sub log(Cool $x)    { $x.Numeric.log }
 multi sub log(Cool $x, Cool $base) { $x.Numeric.log($base.Numeric) }
+
+proto sub log2($, *%) is pure {*}
+multi sub log2(Numeric $x) { $x.log(2e0) }
+multi sub log2(Cool    $x) { $x.Numeric.log(2e0) }
 
 proto sub log10($, *%) is pure {*}
 multi sub log10(Numeric $x) { $x.log(10e0) }

@@ -323,6 +323,7 @@ my @expected = (
   Q{&list},
   Q{&log},
   Q{&log10},
+  Q{&log2},
   Q{&lsb},
   Q{&make},
   Q{&map},

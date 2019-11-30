@@ -518,6 +518,7 @@ class Perl6::World is HLL::World {
     has int $!unit_ready;
     has int $!have_outer;
     has $!setting_name;
+    has $!setting_revision;
 
     method BUILD(*%adv) {
         %!code_object_fixup_list := {};
@@ -538,6 +539,10 @@ class Perl6::World is HLL::World {
           nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),
           $want
         ) == -1
+    }
+
+    method setting_revision() {
+        $!setting_revision
     }
 
     method !check-version-modifier($ver-match, $rev, $modifier, $comp) {
@@ -667,10 +672,13 @@ class Perl6::World is HLL::World {
         $*UNIT_OUTER := self.push_lexpad($/);
         $*UNIT       := self.push_lexpad($/);
 
+        my $comp := nqp::getcomp('perl6');
+
         # If we already have a specified outer context, then that's
         # our setting. Otherwise, load one.
         $!have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
-        my $default_setting_name := 'CORE.' ~ nqp::substr(nqp::getcomp('perl6').language_version, 2, 1);
+        my $default_revision := nqp::substr($comp.language_version, 2, 1);
+        my $default_setting_name := 'CORE.' ~ $default_revision;
         if $!have_outer {
             $!setting_name := $default_setting_name;
             $*UNIT.annotate('IN_DECL', 'eval');
@@ -680,9 +688,13 @@ class Perl6::World is HLL::World {
             if nqp::eqat($!setting_name, 'NULL.', 0) {
                 $*COMPILING_CORE_SETTING := 1;
                 $*SET_DEFAULT_LANG_VER := 0;
-                nqp::getcomp('perl6').set_language_version: '6.' ~ nqp::substr($!setting_name, 5, 1);
-
-            }
+                $!setting_revision := nqp::substr($!setting_name, 5, 1);
+                # Compile core with default language version unless the core revision is higher. I.e. when 6.d is the
+                # default only core.e will be compiled with 6.e compiler.
+                nqp::getcomp('perl6').set_language_version( nqp::isgt_s($!setting_revision, $default_revision)
+                                                            ?? $!setting_revision
+                                                            !! $default_revision );
+                                            }
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
     }

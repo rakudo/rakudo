@@ -5,3 +5,4 @@ src/core.e/Grammar.pm6
 src/core.e/Tuple.pm6
 src/core.e/EXPORTHOW.pm6
 src/core.e/Rakudo/Internals/Sprintf.pm6
+src/core.e/core_epilogue.pm6

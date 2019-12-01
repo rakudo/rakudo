@@ -227,8 +227,13 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	$(NOECHO)$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@
 	$(NOECHO)$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@
 @if(with_raku_alias==on @tab@@echo(+++ Creating Raku executable alias)@
-	$(NOECHO)$(LN_S) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
-	$(NOECHO)$(LN_S) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
+@if(platform!=windows
+	$(NOECHO)$(LN_S) @nfpq(./@bpm(RAKUDO)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
+	$(NOECHO)$(LN_S) @nfpq(./@bpm(RAKUDO_DEBUG)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
+)@@if(platform==windows
+	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
+	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
+)@
 )@
 manifest:
 	@echo(+++ Creating	MANIFEST)@

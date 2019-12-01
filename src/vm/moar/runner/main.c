@@ -161,8 +161,8 @@ int wmain(int argc, wchar_t *wargv[])
     const char    nqp_check_path[28]  = "/lib/NQPCORE.setting.moarvm";
     const size_t  nqp_check_path_size = 27;
 
-          char   *perl6_home;
-          size_t  perl6_home_size;
+          char   *rakudo_home;
+          size_t  rakudo_home_size;
     const char    perl6_rel_path[16]    = "/../share/perl6";
     const size_t  perl6_rel_path_size   = 15;
     const char    perl6_check_path[22]  = "/runtime/perl6.moarvm";
@@ -286,7 +286,7 @@ int wmain(int argc, wchar_t *wargv[])
     exec_dir_path_size = strlen(exec_dir_path);
 #endif
 
-    /* Retrieve PERL6_HOME and NQP_HOME. */
+    /* Retrieve RAKUDO_HOME and NQP_HOME. */
 
 #ifdef STATIC_NQP_HOME
     nqp_home = STRINGIFY(STATIC_NQP_HOME);
@@ -299,46 +299,55 @@ int wmain(int argc, wchar_t *wargv[])
 #endif
     nqp_home_size = strlen(nqp_home);
 
-#ifdef STATIC_PERL6_HOME
-    perl6_home = STRINGIFY(STATIC_PERL6_HOME);
+#ifdef STATIC_RAKUDO_HOME
+    rakudo_home = STRINGIFY(STATIC_RAKUDO_HOME);
 #else
-    if (!retrieve_home(&perl6_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
-            exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
-        fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", perl6_home);
-        return EXIT_FAILURE;
+    if (getenv("PERL6_HOME")) {
+        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
+                exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
+            fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", rakudo_home);
+            return EXIT_FAILURE;
+        }
+    }
+    else {
+        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size, "RAKUDO_HOME",
+                exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
+            fprintf(stderr, "ERROR: RAKUDO_HOME is invalid: %s\n", rakudo_home);
+            return EXIT_FAILURE;
+        }
     }
 #endif
-    perl6_home_size = strlen(perl6_home);
+    rakudo_home_size = strlen(rakudo_home);
 
     /* Put together the lib paths and perl6_file path. */
 
     lib_path[0] = (char*)malloc(nqp_home_size   + 50);
-    lib_path[1] = (char*)malloc(perl6_home_size + 50);
-    lib_path[2] = (char*)malloc(perl6_home_size + 50);
-    perl6_file  = (char*)malloc(perl6_home_size + 50);
+    lib_path[1] = (char*)malloc(rakudo_home_size + 50);
+    lib_path[2] = (char*)malloc(rakudo_home_size + 50);
+    perl6_file  = (char*)malloc(rakudo_home_size + 50);
 
     memcpy(lib_path[0], nqp_home,     nqp_home_size);
-    memcpy(lib_path[1], perl6_home, perl6_home_size);
-    memcpy(lib_path[2], perl6_home, perl6_home_size);
-    memcpy(perl6_file,  perl6_home, perl6_home_size);
+    memcpy(lib_path[1], rakudo_home, rakudo_home_size);
+    memcpy(lib_path[2], rakudo_home, rakudo_home_size);
+    memcpy(perl6_file,  rakudo_home, rakudo_home_size);
 
 #ifdef _WIN32
     strcpy(lib_path[0] +   nqp_home_size, "\\lib");
-    strcpy(lib_path[1] + perl6_home_size, "\\lib");
-    strcpy(lib_path[2] + perl6_home_size, "\\runtime");
+    strcpy(lib_path[1] + rakudo_home_size, "\\lib");
+    strcpy(lib_path[2] + rakudo_home_size, "\\runtime");
 #ifdef MOAR_PERL6_RUNNER_DEBUG
-    strcpy(perl6_file  + perl6_home_size, "\\runtime\\perl6-debug.moarvm");
+    strcpy(perl6_file  + rakudo_home_size, "\\runtime\\perl6-debug.moarvm");
 #else
-    strcpy(perl6_file  + perl6_home_size, "\\runtime\\perl6.moarvm");
+    strcpy(perl6_file  + rakudo_home_size, "\\runtime\\perl6.moarvm");
 #endif
 #else
     strcpy(lib_path[0] +   nqp_home_size, "/lib");
-    strcpy(lib_path[1] + perl6_home_size, "/lib");
-    strcpy(lib_path[2] + perl6_home_size, "/runtime");
+    strcpy(lib_path[1] + rakudo_home_size, "/lib");
+    strcpy(lib_path[2] + rakudo_home_size, "/runtime");
 #ifdef MOAR_PERL6_RUNNER_DEBUG
-    strcpy(perl6_file  + perl6_home_size, "/runtime/perl6-debug.moarvm");
+    strcpy(perl6_file  + rakudo_home_size, "/runtime/perl6-debug.moarvm");
 #else
-    strcpy(perl6_file  + perl6_home_size, "/runtime/perl6.moarvm");
+    strcpy(perl6_file  + rakudo_home_size, "/runtime/perl6.moarvm");
 #endif
 #endif
 
@@ -389,8 +398,8 @@ int wmain(int argc, wchar_t *wargv[])
     free(exec_dir_path);
 #endif
     free(exec_dir_path_temp);
-#ifndef STATIC_PERL6_HOME
-    free(perl6_home);
+#ifndef STATIC_RAKUDO_HOME
+    free(rakudo_home);
 #endif
 #ifndef STATIC_NQP_HOME
     free(nqp_home);

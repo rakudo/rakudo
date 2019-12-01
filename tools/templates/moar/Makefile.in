@@ -198,18 +198,18 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	@bpm(HARNESS6_WITH_FUDGE)@ $(TESTFILES)
 
 @backend_prefix@-install-dirs::
-	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
+	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
 
 @backend_prefix@-install-pre::
 	@echo(+++ Removing old files)@
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 
 @backend_prefix@-install-main:: @@bpm(PERL6_OPS_DLL)@@ $(R_SETTING_MOAR) @@bpm(INST_PERL6_M)@@ @@bpm(INST_PERL6_DEBUG_M)@@
-	$(NOECHO)$(CP) @bpm(PERL6_OPS_DLL)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	$(NOECHO)$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(NOECHO)$(CP) @bpm(PERL6_OPS_DLL)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
+	$(NOECHO)$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 	$(NOECHO)$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_M)@)@
 	$(NOECHO)$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG_M)@)@
 	$(NOECHO)$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_M)@)@

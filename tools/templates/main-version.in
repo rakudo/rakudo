@@ -35,7 +35,7 @@ sub hll-config($config) {
     );
     $config<prefix>           := '@prefix@';
     $config<nqp-home>         := '@nqp_home@';
-    $config<perl6-home>       := '@perl6_home@';
+    $config<rakudo-home>      := '@rakudo_home@';
     $config<source-digest>    := '@source_digest()@';
 }
 

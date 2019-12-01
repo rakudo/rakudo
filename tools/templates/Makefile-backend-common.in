@@ -20,7 +20,7 @@
 @make_pp_pfx@ifndef @bpv(RUNNER_SUFFIX)@
 @bpv(RUNNER_SUFFIX)@ = @runner_suffix@
 @make_pp_pfx@endif
-@bpv(LIBDIR)@	= @nfp($(PERL6_HOME)/lib)@
+@bpv(LIBDIR)@	= @nfp($(RAKUDO_HOME)/lib)@
 @bpv(NQP_HOME)@	= @nfp(@nqp::nqp_home@)@
 
 # files we create
@@ -202,13 +202,13 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 @backend_prefix@-install-dirs::
 	@echo(+++ Creating installation directories)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(PREFIX)/bin)@
-	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME))@
+	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME))@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@)@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
-	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
-	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
+	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
+	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
+	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 
 @backend_prefix@-install-pre:: @backend_prefix@-install-dirs
 
@@ -216,17 +216,17 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 	@echo(+++ Installing files)@
 	$(NOECHO)$(CP)   @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	$(NOECHO)$(CP)   @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	$(NOECHO)$(CP)   @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(NOECHO)$(CP)   @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	$(NOECHO)$(CP)   @bsm(PERL6)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/@bsm(RAKUDO)@)@
-	$(NOECHO)$(CP)   @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/@bsm(RAKUDO_DEBUG)@)@
+	$(NOECHO)$(CP)   @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)$(CP)   @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)$(CP)   @bsm(PERL6)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/@bsm(RAKUDO)@)@
+	$(NOECHO)$(CP)   @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/@bsm(RAKUDO_DEBUG)@)@
 
 @backend_prefix@-install-post:: @@script(install-core-dist.p6)@@
 	@echo(+++ Preparing installation)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/vendor)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/site)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(install-core-dist.p6)@)@ @nfpq($(DESTDIR)$(PERL6_HOME)/core)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(install-core-dist.p6)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
 
 @backend_prefix@-install:: @backend_prefix@-all @backend_prefix@-install-pre @backend_prefix@-install-main @backend_prefix@-install-post
 	@echo(+++ @uc(@backend@)@ BACKEND INSTALLED)@

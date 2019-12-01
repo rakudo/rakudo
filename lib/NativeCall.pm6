@@ -283,6 +283,8 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             }
             my Mu $arg_info := param_list_for($r.signature, $r);
             my $conv = self.?native_call_convention || '';
+            my $serialize_lib_name = $libname !~~ Distribution::Resource;
+            nqp::bindattr_i($!call, native_callsite, 'serialize_lib_name', 0) unless $serialize_lib_name;
             my $jitted = nqp::buildnativecall(self,
                 nqp::unbox_s($guessed_libname),                           # library name
                 nqp::unbox_s(gen_native_symbol($r, $!name, :$!cpp-name-mangler)), # symbol to call
@@ -295,7 +297,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             $!any-optionals = self!any-optionals;
 
             my $body := $jitted ?? $!jit-optimized-body !! $!optimized-body;
-            if $body {
+            if $body and ($serialize_lib_name or not $*W or not $*W.is_precompilation_mode) {
                 nqp::bindattr(
                     self,
                     Code,

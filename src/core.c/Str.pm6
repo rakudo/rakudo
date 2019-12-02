@@ -18,6 +18,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my $empty := nqp::list;   # for nqp::splice
 
+    multi method WHY('Life, the Universe and Everything': --> 42) { }
+
     multi method WHICH(Str:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
@@ -1432,7 +1434,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         limit = Inf if nqp::istype(limit,Whatever);
     }
 
-    method parse-base(Str:D: Int:D $radix --> Numeric:D) {
+    proto method parse-base(|) {*}
+    multi method parse-base(Str:D: Int:D $radix --> Numeric:D) {
         fail X::Syntax::Number::RadixOutOfRange.new(:$radix)
             unless 2 <= $radix <= 36; # (0..9,"a".."z").elems == 36
 
@@ -1482,6 +1485,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $sign * $parsed[0];
         }
     }
+    method !eggify($egg --> Int:D) { self.trans($egg => "01").parse-base(2) }
+    multi method parse-base(Str:D: "camel" --> Int:D) { self!eggify: "🐪🐫" }
+    multi method parse-base(Str:D: "beer"  --> Int:D) { self!eggify: "🍺🍻" }
 
     multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
       :$v is copy, :$k, :$kv, :$p, :$skip-empty --> Seq:D) {

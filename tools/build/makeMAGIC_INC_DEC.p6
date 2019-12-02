@@ -70,6 +70,8 @@ my @ranges =
   0x0AA50 .. 0x0AA59,  # cham digits
   0x0ABF0 .. 0x0ABF9,  # meetei mayek digits
   0x0FF10 .. 0x0FF19,  # fullwidth digits
+  0x1F37A .. 0x1F37B,  # beer mugs
+  0x1F42A .. 0x1F42B,  # camels
 ;
 
 # ranges that start with these, carry (aka "9".succ -> "10" instead of "00")
@@ -113,6 +115,8 @@ my str $carrydigits =
    ~ "\x0ABF0"  # meetei mayek
    ~ "\x0AA50"  # cham
    ~ "\x0FF10"  # fullwidth XXX: should be treated as digit?
+   ~ "\x1F37A"  # beer mugs
+   ~ "\x1F42A"  # camels
 ;
 
 # holes in otherwise contiguous ranges

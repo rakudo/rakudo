@@ -95,10 +95,7 @@ class Perl6::Metamodel::ClassHOW
     method compose($the-obj, :$compiler_services) {
         my $obj := nqp::decont($the-obj);
 
-        # Set class language version if class belongs to the CORE
-        if $*COMPILING_CORE_SETTING {
-            self.set_language_version($the-obj);
-        }
+        self.set_language_version($the-obj);
 
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the

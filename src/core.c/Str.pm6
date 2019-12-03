@@ -1451,35 +1451,37 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !parse-float(int $radix, int $point, int $negate, int $offset) {
         if $point == $offset {             # nothing before decimal point?
             my $fract := nqp::radix_I($radix,self,$point + 1, 0, Int);
-            $fract[2] == nqp::chars(self)    # fraction parsed entirely?
+            nqp::atpos($fract,2) == nqp::chars(self) # frac parsed entirely?
               ?? $negate
-                ?? -($fract[0] / $fract[1])
-                !!  ($fract[0] / $fract[1])
+                ?? -(nqp::atpos($fract,0) / nqp::atpos($fract,1))
+                !!  (nqp::atpos($fract,0) / nqp::atpos($fract,1))
               !! Failure.new(X::Str::Numeric.new(
                    :source(self),
-                   :pos($fract[2] max ($point + 1)),
+                   :pos(nqp::atpos($fract,2) max ($point + 1)),
                    :reason("malformed base-$radix number"),
                  ))
         }
         else {                             # something before decimal point
             my $whole :=
               nqp::radix_I($radix,nqp::substr(self,0,$point),$offset,0,Int);
-            if $whole[2] == $point {         # whole parsed entirely?
+            if nqp::atpos($whole,2) == $point {  # whole parsed entirely?
                 my $fract := nqp::radix_I($radix,self,$point + 1, 0, Int);
-                $fract[2] == nqp::chars(self)  # fraction parsed entirely?
+                nqp::atpos($fract,2) == nqp::chars(self) # frac parsed entirely?
                   ?? $negate
-                    ?? -($whole[0] + $fract[0] / $fract[1])
-                    !!  ($whole[0] + $fract[0] / $fract[1])
+                    ?? -(nqp::atpos($whole,0)
+                          + nqp::atpos($fract,0) / nqp::atpos($fract,1))
+                    !!  (nqp::atpos($whole,0)
+                          + nqp::atpos($fract,0) / nqp::atpos($fract,1))
                   !! Failure.new(X::Str::Numeric.new(
                        :source(self),
-                       :pos($fract[2] max ($point + 1)),
+                       :pos(nqp::atpos($fract,2) max ($point + 1)),
                        :reason("malformed base-$radix number"),
                      ))
             }
             else {                           # whole did not parse entirely
                 Failure.new(X::Str::Numeric.new(
                   :source(self),
-                  :pos($whole[2] max $offset),
+                  :pos(nqp::atpos($whole,2) max $offset),
                   :reason("malformed base-$radix number"),
                 ))
             }
@@ -1487,13 +1489,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     method !parse-int(int $radix, int $negate, int $offset) {
         my $parsed := nqp::radix_I($radix,self,$offset,0,Int);
-        $parsed[2] == nqp::chars(self)       # parsed int entirely?
+        nqp::atpos($parsed,2) == nqp::chars(self)       # parsed int entirely?
           ?? $negate
-            ?? nqp::neg_I($parsed[0],Int)
-            !! $parsed[0]
+            ?? nqp::neg_I(nqp::atpos($parsed,0),Int)
+            !! nqp::atpos($parsed,0)
           !! Failure.new(X::Str::Numeric.new(
                :source(self),
-               :pos($parsed[2] max $offset),
+               :pos(nqp::atpos($parsed,2) max $offset),
                :reason("malformed base-$radix number")
              ))
     }

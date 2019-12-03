@@ -352,16 +352,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Numeric(Str:D: --> Numeric:D) {
-        # Fast-path the integer case if there's no '.'.
-        unless self.contains('.') {
-            my \rr = nqp::radix_I(10, $!value, 0, 0b10, Int);
-            return nqp::atpos(rr, 0) if nqp::iseq_i(nqp::atpos(rr, 2), nqp::chars(self));
-        }
-
-        # Handle special empty string
-        self.trim eq ""
-          ?? 0
-          !! val(self, :val-or-fail)
+        nqp::chars(self)
+          ?? nqp::index(self,'.') == -1    # is there no period?
+               && nqp::atpos(              # no period, so parse as Int
+                    (my $n := nqp::radix_I(10,$!value,0,0b10,Int)),
+                    2
+               ) == nqp::chars(self)
+            ?? nqp::atpos($n,0)            # fast path Int ok
+            !! nqp::findnotcclass(         # any non-whitespace?
+                 nqp::const::CCLASS_WHITESPACE,
+                 self,0,nqp::chars(self)
+               ) == nqp::chars(self)
+              ?? 0                         # just spaces
+              !! val(self, :val-or-fail)   # take the slow route
+          !! 0                             # empty string
     }
 
     multi method gist(Str:D: --> Str:D) { self }

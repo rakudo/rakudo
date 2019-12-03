@@ -47,31 +47,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method DUMP(Str:D: --> Str:D) { self.perl }
 
     method Int(Str:D: --> Int:D) {
-        nqp::if(
-          nqp::isge_i(
-            nqp::findnotcclass(
-              nqp::const::CCLASS_NUMERIC,$!value,0,nqp::chars($!value)),
-            nqp::chars($!value)
-          )
+        nqp::isge_i(
+          nqp::findnotcclass(
+            nqp::const::CCLASS_NUMERIC,self,0,nqp::chars(self)),
+          nqp::chars(self)
+        )
 #?if !jvm
-            # Compare Str.chars == Str.codes to filter out any combining characters
-            && nqp::iseq_i(
-                nqp::chars($!value),
-                nqp::codes($!value)
-            )
+          # check for any combining characters
+          && nqp::iseq_i(nqp::chars(self),nqp::codes(self))
 #?endif
 #?if jvm
             # RT #128542: https://rt.perl.org/Public/Bug/Display.html?id=128542
             # Needs Str.codes impl that doesn't just return chars
 #?endif
-          ,
-          nqp::atpos(nqp::radix_I(10,$!value,0,0,Int),0),  # all numeric chars
-          nqp::if(
-            nqp::istype((my $numeric := self.Numeric),Failure),
-            $numeric,
-            $numeric.Int
-          )
-        )
+          ?? nqp::atpos(nqp::radix_I(10,self,0,0,Int),0)  # all numeric chars
+          !! nqp::istype((my $n := self.Numeric),Int) || nqp::istype($n,Failure)
+            ?? $n
+            !! $n.Int
     }
     method Num(Str:D: --> Num:D) {
         nqp::if(

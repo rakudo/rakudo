@@ -1436,54 +1436,66 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method parse-base(|) {*}
     multi method parse-base(Str:D: Int:D $radix --> Numeric:D) {
-        fail X::Syntax::Number::RadixOutOfRange.new(:$radix)
-            unless 2 <= $radix <= 36; # (0..9,"a".."z").elems == 36
+        2 <= $radix <= 36          # (0..9,"a".."z").elems == 36
+          ?? nqp::eqat(self,'-',0) || nqp::eqat(self,'−',0) # hyphen/minus sign
+            ?? self!parse-base($radix, 1, 1)
+            !! self!parse-base($radix, 0, nqp::eqat(self,'+',0))
+          !! Failure.new(X::Syntax::Number::RadixOutOfRange.new(:$radix))
+    }
 
-        # do not modify $!value directly as that affects other same strings
-        my ($value, $sign, $sign-offset) = $!value, 1, 0;
-        given $value.substr(0,1) {
-            when '-'|'−' { $sign = -1; $sign-offset = 1 }
-            when '+'     {             $sign-offset = 1 }
+    method !parse-base(int $radix, int $negate, int $offset) {
+        nqp::isgt_i((my int $decimal-point = nqp::index(self,'.')),-1)
+          ?? self!parse-float($radix, $decimal-point, $negate, $offset)
+          !! self!parse-int($radix, $negate, $offset)
+    }
+    method !parse-float(int $radix, int $point, int $negate, int $offset) {
+        if $point == $offset {             # nothing before decimal point?
+            my $fract := nqp::radix_I($radix,self,$point + 1, 0, Int);
+            $fract[2] == nqp::chars(self)    # fraction parsed entirely?
+              ?? $negate
+                ?? -($fract[0] / $fract[1])
+                !!  ($fract[0] / $fract[1])
+              !! Failure.new(X::Str::Numeric.new(
+                   :source(self),
+                   :pos($fract[2] max ($point + 1)),
+                   :reason("malformed base-$radix number"),
+                 ))
         }
-
-        if $value.contains('.') { # fractional
-            my ($whole, $fract) = $value.split: '.', 2;
-            my $w-parsed := nqp::radix_I($radix, $whole, $sign-offset, 0, Int);
-            my $f-parsed := nqp::radix_I($radix, $fract, 0,            0, Int);
-
-            # Whole part did not parse in its entirety
-            fail X::Str::Numeric.new(
-                :source($value),
-                :pos($w-parsed[2] max $sign-offset),
-                :reason("malformed base-$radix number"),
-            ) unless $w-parsed[2] == nqp::chars($whole)
-                or nqp::chars($whole) == $sign-offset; # or have no whole part
-
-            # Fractional part did not parse in its entirety
-            fail X::Str::Numeric.new(
-                :source($value),
-                :pos(
-                      ($w-parsed[2] max $sign-offset)
-                    + 1 # decimal dot
-                    + ($f-parsed[2] max 0)
-                ),
-                :reason("malformed base-$radix number"),
-            ) unless $f-parsed[2] == nqp::chars($fract);
-
-            $sign * ($w-parsed[0] + $f-parsed[0]/$f-parsed[1]);
+        else {                             # something before decimal point
+            my $whole :=
+              nqp::radix_I($radix,nqp::substr(self,0,$point),$offset,0,Int);
+            if $whole[2] == $point {         # whole parsed entirely?
+                my $fract := nqp::radix_I($radix,self,$point + 1, 0, Int);
+                $fract[2] == nqp::chars(self)  # fraction parsed entirely?
+                  ?? $negate
+                    ?? -($whole[0] + $fract[0] / $fract[1])
+                    !!  ($whole[0] + $fract[0] / $fract[1])
+                  !! Failure.new(X::Str::Numeric.new(
+                       :source(self),
+                       :pos($fract[2] max ($point + 1)),
+                       :reason("malformed base-$radix number"),
+                     ))
+            }
+            else {                           # whole did not parse entirely
+                Failure.new(X::Str::Numeric.new(
+                  :source(self),
+                  :pos($whole[2] max $offset),
+                  :reason("malformed base-$radix number"),
+                ))
+            }
         }
-        else { # Int
-            my $parsed := nqp::radix_I($radix, $value, $sign-offset, 0, Int);
-
-            # Did not parse the number in its entirety
-            fail X::Str::Numeric.new(
-                :source($value),
-                :pos($parsed[2] max $sign-offset),
-                :reason("malformed base-$radix number"),
-            ) unless $parsed[2] == nqp::chars($value);
-
-            $sign * $parsed[0];
-        }
+    }
+    method !parse-int(int $radix, int $negate, int $offset) {
+        my $parsed := nqp::radix_I($radix,self,$offset,0,Int);
+        $parsed[2] == nqp::chars(self)       # parsed int entirely?
+          ?? $negate
+            ?? nqp::neg_I($parsed[0],Int)
+            !! $parsed[0]
+          !! Failure.new(X::Str::Numeric.new(
+               :source(self),
+               :pos($parsed[2] max $offset),
+               :reason("malformed base-$radix number")
+             ))
     }
     method !eggify($egg --> Int:D) { self.trans($egg => "01").parse-base(2) }
     multi method parse-base(Str:D: "camel" --> Int:D) { self!eggify: "🐪🐫" }

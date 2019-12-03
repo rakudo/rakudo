@@ -213,34 +213,24 @@ multi sub val(*@maybevals) {
     @maybevals.list.map({ val($_) }).eager;
 }
 
-multi sub val(Mu) {
-    warn "Value of type Mu uselessly passed to val()";
-    Mu
+multi sub val(Mu \mu) {
+    warn "{ mu.perl } uselessly passed to val()";
+    mu
 }
 
-# if Slip, preserve slipness
-multi sub val(List:D $maybevals) {
-    nqp::stmts(
-        (my $output := val(|$maybevals)),
-        nqp::if(
-            nqp::istype($maybevals, Slip),
-            $output.Slip,
-            $output
-        )
-    )
-}
+multi sub val(Slip:D \maybevals) { val(|maybevals).Slip }
+multi sub val(List:D \maybevals) { val(|maybevals)      }
 
 multi sub val(Pair:D \ww-thing) is raw {
     # this is a Pair object possible in «» constructs; just pass it through. We
     # capture this specially from the below sub to avoid emitting a warning
     # whenever an affected «» construct is being processed.
-
     ww-thing
 }
 
-multi sub val(\one-thing) {
-    warn "Value of type {one-thing.WHAT.perl} uselessly passed to val()";
-    one-thing;
+multi sub val(\one-thing) is raw {
+    warn "Value of type { one-thing.^name } uselessly passed to val()";
+    one-thing
 }
 
 multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {

@@ -1432,10 +1432,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method parse-base(|) {*}
     multi method parse-base(Str:D: Int:D $radix --> Numeric:D) {
-        2 <= $radix <= 36          # (0..9,"a".."z").elems == 36
-          ?? nqp::eqat(self,'-',0) || nqp::eqat(self,'−',0) # hyphen/minus sign
-            ?? self!parse-base($radix, 1, 1)
-            !! self!parse-base($radix, 0, nqp::eqat(self,'+',0))
+        2 <= $radix <= 36                    # (0..9,"a".."z").elems == 36
+          ?? nqp::chars(self)
+            ?? nqp::atpos(                   # something to parse
+                 (my $r := nqp::radix_I($radix,self,0,0x02,Int)),
+                 2
+               ) == nqp::chars(self)
+              ?? nqp::atpos($r,0)
+              !! self!slow-parse-base($radix,nqp::atpos($r,0),nqp::atpos($r,2))
+            !! self!parse-fail($radix, 0)    # nothing to parse
           !! Failure.new(X::Syntax::Number::RadixOutOfRange.new(:$radix))
     }
 
@@ -1448,50 +1453,46 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
-    # Main entry point for actual parse-basing
-    method !parse-base(int $radix, int $negate, int $offset) {
-        nqp::isgt_i((my int $decimal-point = nqp::index(self,'.')),-1)
-          ?? self!parse-rat($radix, $decimal-point, $negate, $offset)
-          !! self!parse-int($radix, $negate, $offset)
+    # Slow path for non-simple integer values
+    method !slow-parse-base(int $radix, \whole, int $failed-at) {
+        $failed-at == -1                                      # nothing parsed
+          ?? nqp::eqat(self,'.',0)                             # .x ??
+            ?? self!parse-rat($radix, 0, 1)
+            !! nqp::eqat(self,'.',1)                            # -.x −.x +.x ??
+              ?? nqp::eqat(self,'-',0) || nqp::eqat(self,'−',0)  # -. −.
+                ?? nqp::istype((my $f := self!parse-rat($radix, 0, 2)),Failure)
+                  ?? $f                                           # fail
+                  !! -$f                                          # negate val
+                !! nqp::eqat(self,'+',0)                         # +.
+                  ?? self!parse-rat($radix, 0, 2)
+                  !! self!parse-fail($radix, 0)
+              !! self!parse-fail($radix, 0)
+            !! nqp::eqat(self,'.',$failed-at)                   # 123. ??
+              ?? self!parse-rat($radix, whole, $failed-at + 1)
+              !! self!parse-fail($radix, $failed-at)
     }
 
-    # Parse-base what looks to be a Rat
-    method !parse-rat(int $radix, int $point, int $negate, int $offset) {
-        if $point == $offset {             # nothing before decimal point?
-            my $fract := nqp::radix_I($radix,self,$point + 1, 0, Int);
-            nqp::atpos($fract,2) == nqp::chars(self) # frac parsed entirely?
-              ?? $negate
-                ?? -(nqp::atpos($fract,0) / nqp::atpos($fract,1))
-                !!  (nqp::atpos($fract,0) / nqp::atpos($fract,1))
-              !! self!parse-fail($radix, nqp::atpos($fract,2) max ($point + 1))
-        }
-        else {                             # something before decimal point
-            my $whole :=
-              nqp::radix_I($radix,nqp::substr(self,0,$point),$offset,0,Int);
-            if nqp::atpos($whole,2) == $point {  # whole parsed entirely?
-                my $fract := nqp::radix_I($radix,self,$point + 1, 0, Int);
-                nqp::atpos($fract,2) == nqp::chars(self) # frac parsed entirely?
-                  ?? $negate
-                    ?? -(nqp::atpos($whole,0)
-                          + nqp::atpos($fract,0) / nqp::atpos($fract,1))
-                    !!  (nqp::atpos($whole,0)
-                          + nqp::atpos($fract,0) / nqp::atpos($fract,1))
-                  !! self!parse-fail($radix,nqp::atpos($fract,2) max ($point+1))
-            }
-            else {                           # whole did not parse entirely
-                self!parse-fail($radix, nqp::atpos($whole,2) max $offset)
-            }
-        }
-    }
-
-    # Parse-base what looks to be in Int
-    method !parse-int(int $radix, int $negate, int $offset) {
-        my $parsed := nqp::radix_I($radix,self,$offset,0,Int);
-        nqp::atpos($parsed,2) == nqp::chars(self)       # parsed int entirely?
-          ?? $negate
-            ?? nqp::neg_I(nqp::atpos($parsed,0),Int)
-            !! nqp::atpos($parsed,0)
-          !! self!parse-fail($radix, nqp::atpos($parsed,2) max $offset)
+    # Helper path for parsing rats
+    method !parse-rat(int $radix, Int:D $whole, int $offset) {
+        my $fract := nqp::radix_I($radix,self,$offset,0,Int);
+        nqp::atpos($fract,2) == nqp::chars(self)   # fraction parsed entirely?
+          ?? DIVIDE_NUMBERS(
+               nqp::islt_I($whole,0)
+                 ?? nqp::sub_I(
+                      nqp::mul_I($whole,nqp::atpos($fract,1),Int),
+                      nqp::atpos($fract,0),
+                      Int
+                    )
+                 !! nqp::add_I(
+                      nqp::mul_I($whole,nqp::atpos($fract,1),Int),
+                      nqp::atpos($fract,0),
+                      Int
+                    ),
+               nqp::atpos($fract,1),
+               Rat,
+               Rat
+             )
+          !! self!parse-fail($radix, nqp::atpos($fract,2) max $offset)
     }
     method !eggify($egg --> Int:D) { self.trans($egg => "01").parse-base(2) }
     multi method parse-base(Str:D: "camel" --> Int:D) { self!eggify: "🐪🐫" }

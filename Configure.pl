@@ -30,6 +30,12 @@ qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet up
                       . ">>> Please delete the following folder and try again:\n$1\n\n";
                     exit 1;
                 }
+                else {
+                    print "\n===SORRY=== ERROR: "
+                      . "Updating the submodule failed for an unknown reason. The error message was:\n"
+                      . $msg;
+                    exit 1;
+                }
             }
         }
         if ($set_config) {

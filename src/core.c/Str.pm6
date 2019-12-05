@@ -1434,18 +1434,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method parse-base(Str:D: Int:D $radix --> Numeric:D) {
         2 <= $radix <= 36                    # (0..9,"a".."z").elems == 36
           ?? nqp::chars(self)
-            ?? nqp::atpos(                   # something to parse
-                 (my $r := nqp::radix_I($radix,self,0,0x02,Int)),
-                 2
-               ) == nqp::chars(self)
-              ?? nqp::atpos($r,0)
-              !! self!slow-parse-base($radix,nqp::atpos($r,0),nqp::atpos($r,2))
+            ?? self!parse-base($radix)
             !! self!parse-fail($radix, 0)    # nothing to parse
           !! Failure.new(X::Syntax::Number::RadixOutOfRange.new(:$radix))
     }
 
+    # Main entry point for non-empty strings and valid radixes
+    method !parse-base(int $radix --> Numeric:D) {
+        nqp::atpos(
+          (my $r := nqp::radix_I($radix,self,0,0x02,Int)),
+          2
+        ) == nqp::chars(self)
+          ?? nqp::atpos($r,0)
+          !! self!slow-parse-base($radix,nqp::atpos($r,0),nqp::atpos($r,2))
+    }
+
     # Shortcut for generating parsing Failure
-    method !parse-fail($radix, $pos) {
+    method !parse-fail($radix, $pos --> Failure) {
         Failure.new(X::Str::Numeric.new(
           :source(self),
           :$pos,
@@ -1454,7 +1459,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Slow path for non-simple integer values
-    method !slow-parse-base(int $radix, \whole, int $failed-at) {
+    method !slow-parse-base(int $radix, \whole, int $failed-at --> Numeric:D) {
         $failed-at == -1                                      # nothing parsed
           ?? nqp::eqat(self,'.',0)                             # .x ??
             ?? self!parse-rat($radix, 0, 1)
@@ -1473,7 +1478,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Helper path for parsing rats
-    method !parse-rat(int $radix, Int:D $whole, int $offset) {
+    method !parse-rat(int $radix, Int:D $whole, int $offset --> Numeric:D) {
         my $fract := nqp::radix_I($radix,self,$offset,0,Int);
         nqp::atpos($fract,2) == nqp::chars(self)   # fraction parsed entirely?
           ?? DIVIDE_NUMBERS(

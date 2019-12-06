@@ -24,12 +24,12 @@ script:
     - "make spectest"
     - "make install"
     - (cd ~/build/rakudo/rakudo/ && prove -e ~/build/rakudo/rakudo/install/bin/perl6 -vlr t)
-    - 
 
 branches:
    only:
      - master
      - /smoke-me/
+     - travisci.roast
 
 notifications:
   irc:

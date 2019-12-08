@@ -21,7 +21,7 @@ addons:
 
 script:
     - perl Configure.pl $RAKUDO_OPTIONS --moar-option=--cc=$(command -v gcc-6 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "gcc"; else printf "gcc-6"; fi)
-    - "make spectest | tee spectest.log | perl -ne 'my $last = time; while (<>) { if (time - $last > 60) { $last = time; print \"fear the reaper. \"; } }'"
+    - "make spectest | tee spectest.log | perl -ne 'BEGIN { my $last = time; } if (time - $last > 60) { $last = time; print \"fear the reaper. \"; }'"
     - "if [[ \"$?\" != \"0\" ]]; then tail -n 500 spectest.log; exit 1; else rm spectest.log; fi"
     - "make install"
     - (cd ~/build/rakudo/rakudo/ && prove -e ~/build/rakudo/rakudo/install/bin/perl6 -vlr t)

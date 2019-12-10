@@ -2840,13 +2840,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    multi method substr(Str:D: Int:D \start --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
-          nqp::substr($!value,$from) #?js: NFG
-        )
+    method !SUBSTR-START-OOR($from) {
+        Failure.new(X::OutOfRange.new(
+          :what('Start argument to substr'),
+          :got($from.gist),
+          :range("0.." ~ nqp::chars(self)),
+          :comment( nqp::istype($from, Callable) || -$from > nqp::chars(self)
+            ?? ''
+            !! "use *-{abs $from} if you want to index relative to the end"),
+        ))
+    }
+
+    multi method substr(Str:D: Int:D $from --> Str:D) {
+        nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
+          ?? self!SUBSTR-START-OOR($from)
+          !! nqp::substr(self,$from)                                 #?js: NFG
     }
     multi method substr(Str:D: Int:D \start, Int:D \want --> Str:D) {
         nqp::if(

@@ -2200,11 +2200,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method trim-leading(Str:D: --> Str:D) {
-        my str $str = nqp::unbox_s(self);
-        my int $pos = nqp::findnotcclass(
-                          nqp::const::CCLASS_WHITESPACE,
-                          $str, 0, nqp::chars($str));
-        $pos ?? nqp::p6box_s(nqp::substr($str, $pos)) !! self;
+        nqp::substr(
+          self,
+          nqp::findnotcclass(
+            nqp::const::CCLASS_WHITESPACE,self,0,nqp::chars(self)
+          )
+        )
     }
 
     method trim-trailing(Str:D: --> Str:D) {

@@ -2850,23 +2850,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! "use *-{abs $from} if you want to index relative to the end"),
         ))
     }
+    method !SUBSTR-CHARS-OOR($chars) {
+        Failure.new(X::OutOfRange.new(
+          :what('Number of characters argument to substr'),
+          :got($chars.gist),
+          :range<0..^Inf>,
+          :comment("use *-{abs $chars} if you want to index relative to the end"),
+        ))
+    }
 
     multi method substr(Str:D: Int:D $from --> Str:D) {
         nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
           ?? self!SUBSTR-START-OOR($from)
           !! nqp::substr(self,$from)                                 #?js: NFG
     }
-    multi method substr(Str:D: Int:D \start, Int:D \want --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
-          nqp::if(
-            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars) #?js: NFG
-          )
-        )
+    multi method substr(Str:D: Int:D $from, Int:D $want --> Str:D) {
+        nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
+          ?? self!SUBSTR-START-OOR($from)
+          !! nqp::islt_i($want,0)
+            ?? self!SUBSTR-CHARS-OOR($want)
+            !! nqp::substr(self,$from,$want)                         #?js: NFG
     }
     multi method substr(Str:D: Int:D \start, Callable:D \want --> Str:D) {
         nqp::if(

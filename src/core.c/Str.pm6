@@ -2871,17 +2871,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? self!SUBSTR-CHARS-OOR($want)
             !! nqp::substr(self,$from,$want)                         #?js: NFG
     }
-    multi method substr(Str:D: Int:D \start, Callable:D \want --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
-          nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0), #?js: NFG
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars) #?js: NFG
-          )
-        )
+    multi method substr(Str:D: Int:D $from, &want --> Str:D) {
+        self.substr($from, want(nqp::sub_i(nqp::chars(self),$from)).Int)
     }
     multi method substr(Str:D: Callable:D \start --> Str:D) {
         nqp::if(

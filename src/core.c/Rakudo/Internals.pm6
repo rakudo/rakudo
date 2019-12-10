@@ -671,24 +671,6 @@ implementation detail and has no serviceable parts inside"
           nqp::concat(nqp::substr($gist, 0, 20), '...'),
           $gist);
     }
-    method SUBSTR-START-OOR(\from,\max) {
-        Failure.new(X::OutOfRange.new(
-          :what('Start argument to substr'),
-          :got(from.gist),
-          :range("0.." ~ max),
-          :comment( nqp::istype(from, Callable) || -from > max
-            ?? ''
-            !! "use *-{abs from} if you want to index relative to the end"),
-        ))
-    }
-    method SUBSTR-CHARS-OOR(\chars) {
-        Failure.new(X::OutOfRange.new(
-          :what('Number of characters argument to substr'),
-          :got(chars.gist),
-          :range<0..^Inf>,
-          :comment("use *-{abs chars} if you want to index relative to the end"),
-        ))
-    }
 
     my $IS-WIN = do {
         my str $os = Rakudo::Internals.TRANSPOSE(nqp::lc(

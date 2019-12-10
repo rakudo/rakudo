@@ -2901,7 +2901,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::if(
           nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
+          self!SUBSTR-START-OOR($from),
           nqp::if(
             start.max == Inf,
             nqp::substr($!value,$from), #?js: NFG
@@ -2930,7 +2930,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::istype(start,Range)
             ?? start.min + start.excludes-min
             !! start.Int;
-        return Rakudo::Internals.SUBSTR-START-OOR($from,$max)
+        return self!SUBSTR-START-OOR($from)
           if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
 
         my int $chars = nqp::istype(start,Range)
@@ -2944,7 +2944,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               !! $want.Int;
 
         nqp::islt_i($chars,0)
-          ?? Rakudo::Internals.SUBSTR-CHARS-OOR($chars)
+          ?? self!SUBSTR-CHARS-OOR($chars)
           !! Proxy.new(
                FETCH => sub ($) {        # need to access updated HLL Str
                    nqp::substr(nqp::unbox_s(SELF),$from,$chars)

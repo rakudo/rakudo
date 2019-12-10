@@ -70,6 +70,18 @@ role Perl6::Metamodel::AttributeContainer {
         %!attribute_lookup{$name}
     }
 
+    # Returns true if attribute exists locally.
+    method has_attribute($obj, $name) {
+        nqp::existskey(%!attribute_lookup, $name)
+    }
+    method has_public_attribute($obj, $name) {
+        nqp::existskey(%!attribute_lookup, $name) && %!attribute_lookup{$name}.has_accessor
+    }
+
+    method attribute_table($obj) {
+        %!attribute_lookup
+    }
+
     # Introspect attributes.
     method attributes($obj, :$local, :$excl, :$all) {
         my @attrs;

@@ -19,10 +19,12 @@ role Perl6::Metamodel::MethodContainer {
         $code_obj := nqp::decont($code_obj);
         $name := nqp::decont_s($name);
         if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
+            # XXX try within nqp::die() causes a hang. Pre-cache the result and use it later.
+            my $method_type := try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method';
             nqp::die("Package '"
               ~ self.name($obj)
               ~ "' already has a "
-              ~ (try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method')
+              ~ $method_type
               ~ " '"
               ~ $name
               ~ "' (did you mean to declare a multi-method?)");

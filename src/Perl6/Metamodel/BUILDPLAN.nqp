@@ -68,6 +68,20 @@ role Perl6::Metamodel::BUILDPLAN {
             }
         }
 
+        my @ins_roles;
+        sub add_from_roles($name) {
+            @ins_roles := self.ins_roles($obj, :with-submethods-only) unless +@ins_roles;
+            my $i := +@ins_roles;
+            while --$i >= 0 {
+                my $submeth := nqp::atkey(@ins_roles[$i].HOW.submethod_table(@ins_roles[$i]), $name);
+                if !nqp::isnull($submeth) {
+                    nqp::push(@plan, $submeth);
+                }
+            }
+        }
+
+        add_from_roles('BUILD') unless self.lang-rev-before($obj, 'e');
+
         # Does it have its own BUILD?
         my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
         if !nqp::isnull($build) && $build {
@@ -132,6 +146,9 @@ role Perl6::Metamodel::BUILDPLAN {
             }
         }
 
+
+        add_from_roles('TWEAK') unless self.lang-rev-before($obj, 'e');
+
         # Does it have a TWEAK?
         my $TWEAK := $obj.HOW.find_method($obj, 'TWEAK', :no_fallback(1));
         if !nqp::isnull($TWEAK) && $TWEAK {
@@ -181,6 +198,21 @@ role Perl6::Metamodel::BUILDPLAN {
               ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
               !! @EMPTY
         }
+    }
+
+    method ins_roles($obj, :$with-submethods-only = 0) {
+        my @ins_roles;
+        my @target_roles := self.c3_merge([self.roles($obj, :local)]);
+        for @target_roles {
+            my @res := self.concretization_lookup($obj, $_, :local, :transitive);
+            my $conc := @res[0] ?? @res[1] !! $_;
+            my @croles := $conc.HOW.roles($conc, :!transitive);
+            for @croles -> $cr {
+                next if $with-submethods-only && !nqp::can($cr.HOW, 'submethod_table');
+                @ins_roles.push($cr);
+            }
+        }
+        @ins_roles
     }
 
     method BUILDPLAN($obj) {

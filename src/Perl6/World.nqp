@@ -533,7 +533,7 @@ class Perl6::World is HLL::World {
 
     method lang-ver-before(str $want) {
         nqp::chars($want) == 1 || nqp::die(
-          'Version to $*W.lang_ver_before'
+          'Version to $*W.lang-ver-before'
             ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
         nqp::cmp_s(
           nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),
@@ -2053,7 +2053,7 @@ class Perl6::World is HLL::World {
         # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
         # current compiler.
         if nqp::istype($v.HOW, $*W.find_symbol: ['Metamodel', 'LanguageRevision'])
-            ?? $v.HOW.lang-rev-before('e')
+            ?? $v.HOW.lang-rev-before($v, 'e')
             !! $*W.lang-ver-before('e')
         {
             return self.maybe-definite-how-base($v);

@@ -2111,6 +2111,31 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name('$?CLASS')));
                         $*W.install_lexical_symbol($curpad, '::?CLASS',
                             $*W.pkg_create_mo($/, $*W.resolve_mo($/, 'generic'), :name('::?CLASS')));
+
+                        # $?CONCRETIZATION is actually a run-time symbol because it's being initialized when role is
+                        # getting specialized. But we make it ?-twigilled to stay in line with $?ROLE, $?CLASS, etc.,
+                        # and to reduce pollution of lexcial namespace.
+                        my $conc-name := '$?CONCRETIZATION';
+                        $curpad[0].push(
+                            QAST::Var.new( :name($conc-name), :decl<static>, :scope<lexical> ),
+                        );
+                        $curpad.symbol($conc-name, :scope<lexical>);
+                        # The symbol would be set from $*MOP-ROLE-CONCRETIZATION provided by MOP specialization code.
+                        # NOTE The fallback to VMNull is ok here because it won't be revealed to user code which would
+                        # only be ran after the concretization.
+                        $curpad[0].push(
+                            QAST::Stmt.new(
+                                QAST::Op.new(
+                                    :op<bind>,
+                                    QAST::Var.new( :name($conc-name), :scope<lexical> ),
+                                    QAST::VarWithFallback.new(
+                                        :name<$*MOP-ROLE-CONCRETIZATION>,
+                                        :scope<contextual>,
+                                        :fallback( QAST::Op.new( :op<null> ) )
+                                    )
+                                )
+                            )
+                        );
                     }
                     elsif $*PKGDECL eq 'module' {
                         $*W.install_lexical_symbol($curpad, '$?MODULE', $package);

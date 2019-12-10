@@ -2228,14 +2228,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method trim(Str:D: --> Str:D) {
-        my str $str  = nqp::unbox_s(self);
-        my int $pos  = nqp::chars($str) - 1;
         my int $left = nqp::findnotcclass(
-                           nqp::const::CCLASS_WHITESPACE, $str, 0, $pos + 1);
-        $pos = $pos - 1
-            while nqp::isge_i($pos, $left)
-               && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos);
-        nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
+          nqp::const::CCLASS_WHITESPACE,
+          self,
+          0,
+          (my int $pos = nqp::chars(self))
+        );
+        nqp::while(
+          nqp::isgt_i(--$pos,$left)
+            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE,self,$pos),
+          nqp::null
+        );
+        nqp::substr(self,$left,$pos + 1 - $left)
     }
 
     multi method words(Str:D: $limit --> Seq:D) {

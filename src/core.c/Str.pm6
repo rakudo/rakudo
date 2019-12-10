@@ -2209,14 +2209,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method trim-trailing(Str:D: --> Str:D) {
-        my str $str = nqp::unbox_s(self);
-        my int $pos = nqp::chars($str);
-        nqp::while(
-          nqp::isge_i(--$pos, 0)
-            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos),
-          nqp::null
-        );
-        nqp::box_s(nqp::substr($str, 0, $pos + 1), Str)
+        nqp::if(
+          nqp::iscclass(
+            nqp::const::CCLASS_WHITESPACE,
+            self,
+            (my int $pos = nqp::chars(self) - 1)
+          ),
+          nqp::stmts(   # at least one trailing whitespace
+            nqp::while(
+              nqp::isge_i(--$pos,0)
+                && nqp::iscclass(nqp::const::CCLASS_WHITESPACE,self,$pos),
+              nqp::null
+            ),
+            nqp::substr(self,0,$pos + 1)
+          ),
+          self          # no whitespace, so done
+        )
     }
 
     method trim(Str:D: --> Str:D) {

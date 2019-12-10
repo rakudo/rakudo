@@ -2880,6 +2880,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method substr(Str:D: Int:D $from, Whatever --> Str:D) {
         self.substr($from)
     }
+    multi method substr(Str:D: Int:D $from, Num:D $want --> Str:D) {
+        nqp::isnanorinf($want)
+          ?? $want == Inf
+            ?? self.substr($from)
+            !! self!SUBSTR-CHARS-OOR($want)
+          !! self.substr($from, $want.Int)
+    }
     multi method substr(Str:D: &want --> Str:D) {
         self.substr(want(nqp::chars(self)).Int)                      #?js: NFG
     }

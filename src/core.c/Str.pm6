@@ -2877,6 +2877,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           want(nqp::sub_i(nqp::chars(self),$from)).Int               #?js: NFG
         )
     }
+    multi method substr(Str:D: Int:D $from, Whatever --> Str:D) {
+        self.substr($from)
+    }
     multi method substr(Str:D: &want --> Str:D) {
         self.substr(want(nqp::chars(self)).Int)                      #?js: NFG
     }

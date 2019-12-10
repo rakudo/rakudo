@@ -2872,25 +2872,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! nqp::substr(self,$from,$want)                         #?js: NFG
     }
     multi method substr(Str:D: Int:D $from, &want --> Str:D) {
-        self.substr($from, want(nqp::sub_i(nqp::chars(self),$from)).Int)
+        self.substr(
+          $from,
+          want(nqp::sub_i(nqp::chars(self),$from)).Int               #?js: NFG
+        )
     }
     multi method substr(Str:D: &want --> Str:D) {
-        self.substr(want(nqp::chars(self)).Int)
+        self.substr(want(nqp::chars(self)).Int)                      #?js: NFG
     }
     multi method substr(Str:D: &from, Int:D $want --> Str:D) {
-        self.substr(from(nqp::chars(self)).Int, $want)
+        self.substr(from(nqp::chars(self)).Int, $want)               #?js: NFG
     }
-    multi method substr(Str:D: Callable:D \start, Callable:D \want --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
-          nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0), #?js: NFG
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars) #?js: NFG
-          )
-        )
+    multi method substr(Str:D: &from, &want --> Str:D) {
+        my int $from = from(nqp::chars(self)).Int;
+        self.substr($from, want(nqp::sub_i(nqp::chars(self),$from)).Int)
     }
     multi method substr(Str:D: Range:D \start --> Str:D) {
         nqp::if(

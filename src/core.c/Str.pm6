@@ -275,49 +275,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method rindex(Str:D: Cool:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::rindex($!value,$needle.Str)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
+        nqp::islt_i((my $i := nqp::rindex($!value,$needle.Str)),0) ?? Nil !! $i
     }
     multi method rindex(Str:D: Str:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::rindex($!value,$needle)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
+        nqp::islt_i((my $i := nqp::rindex($!value,$needle)),0) ?? Nil !! $i
     }
     multi method rindex(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
         self.rindex: $needle.Str, $pos.Int
     }
     multi method rindex(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
-        nqp::if(
-          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
-          RINDEX-OOR(self,$pos),
-          nqp::if(
-            nqp::islt_i((my int $i = nqp::rindex($!value,$needle.Str,$pos)),0),
-            Nil,
-            nqp::p6box_i($i)
-          )
-        )
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!RINDEX-OOR($pos)
+          !! nqp::islt_i((my $i := nqp::rindex(self,$needle.Str,$pos)),0)
+            ?? Nil
+            !! $i
     }
     multi method rindex(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
-        nqp::if(
-          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
-          RINDEX-OOR(self,$pos),
-          nqp::if(
-            nqp::islt_i((my int $i = nqp::rindex($!value,$needle,$pos)),0),
-            Nil,
-            nqp::p6box_i($i)
-          )
-        )
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!RINDEX-OOR($pos)
+          !! nqp::islt_i((my $i := nqp::rindex(self,$needle,$pos)),0)
+            ?? Nil
+            !! $i
     }
-    sub RINDEX-OOR($string,$pos) {
+    method !RINDEX-OOR($got) {
         Failure.new(X::OutOfRange.new(
           :what("Position in rindex"),
-          :got($pos),
-          :range("0..$string.chars()")
+          :$got,
+          :range("0..{ nqp::chars(self) }")
         ))
     }
 

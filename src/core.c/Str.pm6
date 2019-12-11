@@ -115,11 +115,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method chop(Str:D: --> Str:D) {
-        nqp::if(
-          nqp::isgt_i(nqp::chars($!value),0),
-          nqp::p6box_s(
-            nqp::substr($!value,0,nqp::sub_i(nqp::chars($!value),1))),
-          ''
+        nqp::substr(
+          self,
+          0,
+          nqp::chars(self) && nqp::chars(self) - 1
         )
     }
     multi method chop(Str:D: Int() $chopping --> Str:D) {

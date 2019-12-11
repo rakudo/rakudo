@@ -1,98 +1,58 @@
 role Perl6::Metamodel::C3MRO {
     # Storage of the MRO.
-    has %!mro;
+    has @!mro;
+
+    # The MRO minus anything that is hidden.
+    has @!mro_unhidden;
 
     # Computes C3 MRO.
     method compute_mro($class) {
-        %!mro := nqp::hash(
-            'all', nqp::hash(
-                'all', nqp::list(),
-                'no_roles', nqp::list(),
-            ),
-            'unhidden', nqp::hash(
-                'all', nqp::list(),
-                'no_roles', nqp::list(),
-            ),
-        );
         my @immediate_parents := $class.HOW.parents($class, :local);
-        my @immediate_roles;
-
-        if nqp::can($class.HOW, 'concretizations') {
-            @immediate_roles := $class.HOW.concretizations($class, :local, :transitive);
-        }
 
         # Provided we have immediate parents...
-        my @all;        # MRO with classes and roles
-        my @no_roles;   # MRO with classes only
+        my @result;
         if +@immediate_parents {
-            if (+@immediate_parents == 1) && (+@immediate_roles == 0) {
-                my $parent := @immediate_parents[0];
-                @all := nqp::clone(
-                            nqp::istype($parent.HOW, Perl6::Metamodel::C3MRO)
-                            ?? $parent.HOW.mro($parent, :roles)
-                            !! $parent.HOW.mro($parent)
-                        );
-            }
-            else {
+            if +@immediate_parents == 1 {
+                @result := nqp::clone(@immediate_parents[0].HOW.mro(@immediate_parents[0]));
+            } else {
                 # Build merge list of linearizations of all our parents, add
                 # immediate parents and merge.
                 my @merge_list;
-                @merge_list.push(@immediate_roles);
                 for @immediate_parents {
-                    @merge_list.push(
-                        nqp::istype($_.HOW, Perl6::Metamodel::C3MRO) ?? $_.HOW.mro($_, :roles) !! $_.HOW.mro($_)
-                    );
+                    @merge_list.push($_.HOW.mro($_));
                 }
                 @merge_list.push(@immediate_parents);
-                @all := self.c3_merge(@merge_list);
+                @result := self.c3_merge(@merge_list);
             }
         }
 
         # Put this class on the start of the list, and we're done.
-        @all.unshift($class);
-
-        for @all {
-            if $_.HOW.archetypes.inheritable || nqp::istype($_.HOW, Perl6::Metamodel::NativeHOW) { # i.e. classes or natives
-                nqp::push(@no_roles, $_);
-            }
-        }
+        @result.unshift($class);
+        @!mro := @result;
 
         # Also compute the unhidden MRO (all the things in the MRO that
         # are not somehow hidden).
-        my @unhidden_all;
-        my @unhidden_no_roles;
-        my %hidden;
-        my $skip_hidden_roles := 0;
-        for @all -> $c {
-            my $is_inheritable := $c.HOW.archetypes.inheritable;
-
-            next if $skip_hidden_roles && !$is_inheritable;
-            $skip_hidden_roles := 0;
-
-            if %hidden{~nqp::objectid(nqp::decont($c))} || (nqp::can($c.HOW, 'hidden') && $c.HOW.hidden($c)) {
-                $skip_hidden_roles := 1
-            }
-            else {
-                nqp::push(@unhidden_all, $c);
-                nqp::push(@unhidden_no_roles, $c) if $is_inheritable || nqp::istype($_.HOW, Perl6::Metamodel::NativeHOW);
+        my @unhidden;
+        my @hidden;
+        for @result -> $c {
+            unless nqp::can($c.HOW, 'hidden') && $c.HOW.hidden($c) {
+                my $is_hidden := 0;
+                for @hidden {
+                    if nqp::decont($c) =:= nqp::decont($_) {
+                        $is_hidden := 1;
+                    }
+                }
+                nqp::push(@unhidden, $c) unless $is_hidden;
             }
             if nqp::can($c.HOW, 'hides') {
                 for $c.HOW.hides($c) {
-                    %hidden{~nqp::objectid(nqp::decont($_))} := 1;
+                    nqp::push(@hidden, $_);
                 }
             }
         }
+        @!mro_unhidden := @unhidden;
 
-        %!mro := nqp::hash(
-            'all', nqp::hash(
-                'all', @all,
-                'no_roles', @no_roles,
-            ),
-            'unhidden', nqp::hash(
-                'all', @unhidden_all,
-                'no_roles', @unhidden_no_roles,
-            ),
-        );
+        @!mro
     }
 
     # C3 merge routine.
@@ -163,23 +123,30 @@ role Perl6::Metamodel::C3MRO {
     }
 
     # Introspects the Method Resolution Order.
-    method mro($obj, :$roles = 0, :$unhidden = 0) {
-        unless nqp::existskey(%!mro, 'all') {
-            self.compute_mro($obj);
+    method mro($obj) {
+        my @result := @!mro;
+        if +@result {
+            @result
         }
-        nqp::atkey(
-            nqp::atkey(%!mro, $unhidden ?? 'unhidden' !! 'all'),
-            $roles ?? 'all' !! 'no_roles'
-        )
+        else {
+            # Never computed before; do it best we can so far (and it will
+            # be finalized at compose time).
+            self.compute_mro($obj)
+        }
     }
 
     # Introspects the Method Resolution Order without anything that has
     # been hidden.
-    method mro_unhidden($obj, :$roles = 0) {
-        self.mro($obj, :$roles, :unhidden)
-    }
-
-    method mro_hash() {
-        %!mro
+    method mro_unhidden($obj) {
+        my @result := @!mro_unhidden;
+        if +@result {
+            @result
+        }
+        else {
+            # Never computed before; do it best we can so far (and it will
+            # be finalized at compose time).
+            self.compute_mro($obj);
+            @!mro_unhidden
+        }
     }
 }

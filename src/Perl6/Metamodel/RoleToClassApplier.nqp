@@ -26,6 +26,21 @@ my class RoleToClassApplier {
         return nqp::existskey(%pmt, $name)
     }
 
+    sub has_attribute($target, $name) {
+        my @attributes := $target.HOW.attributes($target, :local(1));
+        for @attributes {
+            if $_.name eq $name { return 1; }
+        }
+        return 0;
+    }
+    sub has_public_attribute($target, $name) {
+        my @attributes := $target.HOW.attributes($target, :local(1));
+        for @attributes {
+            return 1 if nqp::eqat($_.name, $name, 2) && $_.has_accessor;
+        }
+        return 0;
+    }
+
     method apply($target, @roles) {
         # If we have many things to compose, then get them into a single helper
         # role first.
@@ -86,9 +101,6 @@ my class RoleToClassApplier {
 
         my @stubs;
 
-        # Starting with v6.e submethods must not be composed in from roles.
-        my $with_submethods := $target.HOW.lang-rev-before($target, 'e');
-
         # Compose in any methods.
         sub compose_method_table(@methods, @method_names) {
             my $method_iterator := nqp::iterator(@methods);
@@ -98,7 +110,7 @@ my class RoleToClassApplier {
                 try { $yada := $method.yada }
                 if $yada {
                     unless has_method($target, $name, 0)
-                            || $target.HOW.has_public_attribute($target, $name) {
+                            || has_public_attribute($target, $name) {
                         my @needed;
                         for @roles {
                             for nqp::hllize($_.HOW.method_table($_)) -> $m {
@@ -110,10 +122,7 @@ my class RoleToClassApplier {
                         nqp::push(@stubs, nqp::hash('name', $name, 'needed', @needed, 'target', $target));
                     }
                 }
-                elsif !has_method($target, $name, 1)
-                        && ($with_submethods
-                            || !nqp::istype($method, Perl6::Metamodel::Configuration.submethod_type))
-                {
+                elsif !has_method($target, $name, 1) {
                     $target.HOW.add_method($target, $name, $method);
                 }
             }
@@ -185,7 +194,7 @@ my class RoleToClassApplier {
         # Compose in any role attributes.
         my @attributes := $to_compose_meta.attributes($to_compose, :local(1));
         for @attributes {
-            if $target.HOW.has_attribute($target, $_.name) {
+            if has_attribute($target, $_.name) {
                 nqp::die("Attribute '" ~ $_.name ~ "' already exists in the class '" ~
                     $target.HOW.name($target) ~ "', but a role also wishes to compose it");
             }
@@ -196,7 +205,7 @@ my class RoleToClassApplier {
         if nqp::can($to_compose_meta, 'parents') {
             my @parents := $to_compose_meta.parents($to_compose, :local(1));
             for @parents {
-                $target.HOW.add_parent($target, $_, :hides($to_compose_meta.hides_parent($to_compose, $_)));
+                $target.HOW.add_parent($target, $_);
             }
         }
 

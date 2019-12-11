@@ -177,18 +177,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method contains(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
-          nqp::if(
-            (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
-            nqp::isne_i(nqp::index($!value,$needle.Str,$pos),-1)
-          )
+          nqp::isge_i($pos,0)
+            && nqp::islt_i($pos,nqp::chars(self))
+            && nqp::isne_i(nqp::index(self,$needle.Str,$pos),-1)
         )
     }
     multi method contains(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
-          nqp::if(
-            (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
-            nqp::isne_i(nqp::index($!value,$needle,$pos),-1)
-          )
+          nqp::isge_i($pos,0)
+            && nqp::islt_i($pos,nqp::chars(self))
+            && nqp::isne_i(nqp::index(self,$needle,$pos),-1)
         )
     }
     multi method contains(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {

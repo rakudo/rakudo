@@ -153,25 +153,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat($!value,$needle.Str,0))
+        nqp::hllbool(nqp::eqat(self,$needle.Str,0))
     }
     multi method substr-eq(Str:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat($!value,$needle,0))
+        nqp::hllbool(nqp::eqat(self,$needle,0))
     }
     multi method substr-eq(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
-          nqp::if(
-            nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value)),
-            nqp::eqat($!value,$needle.Str,$pos)
-          )
+          nqp::isge_i($pos,0) && nqp::eqat(self,$needle.Str,$pos)
         )
     }
     multi method substr-eq(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
-          nqp::if(
-            nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value)),
-            nqp::eqat($!value,$needle,$pos)
-          )
+          nqp::isge_i($pos,0) && nqp::eqat(self,$needle,$pos)
         )
     }
 

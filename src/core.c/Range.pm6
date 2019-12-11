@@ -332,12 +332,13 @@ my class Range is Cool does Iterable does Positional {
 
     method bounds() { ($!min, $!max) }
     proto method int-bounds(|) {*}
-    multi method int-bounds($from is rw, $to is rw) {
+    multi method int-bounds($from is rw, $to is rw --> Bool:D) {
         nqp::if(
           $!is-int,
           nqp::stmts(
             ($from = $!min + $!excludes-min),
-            ($to   = $!max - $!excludes-max)
+            ($to   = $!max - $!excludes-max),
+            True
           ),
           nqp::if(
             nqp::istype($!min,Real)
@@ -347,9 +348,10 @@ my class Range is Cool does Iterable does Positional {
               && nqp::istype($!max.Int, Int),
             nqp::stmts(
               ($from = $!min.floor + $!excludes-min),
-              ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max))
+              ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max)),
+              True
             ),
-            Failure.new("Cannot determine integer bounds")
+            False
           )
         )
     }

@@ -3,7 +3,7 @@ my $currier := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::LanguageRevision
+    does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
@@ -75,8 +75,6 @@ class Perl6::Metamodel::ParametricRoleHOW
     method compose($the-obj, :$compiler_services) {
         my $obj := nqp::decont($the-obj);
 
-        self.set_language_version($obj);
-
         my @rtl;
         if $!in_group {
             @rtl.push($!group);
@@ -96,8 +94,20 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!composed
     }
 
-    method roles($obj, :$transitive = 1, :$mro) {
-        self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro);
+    method roles($obj, :$transitive = 1) {
+        if $transitive {
+            my @result;
+            for self.roles_to_compose($obj) {
+                @result.push($_);
+                for $_.HOW.roles($_, :transitive(1)) {
+                    @result.push($_)
+                }
+            }
+            @result
+        }
+        else {
+            self.roles_to_compose($obj)
+        }
     }
 
     method role_typecheck_list($obj) {
@@ -142,19 +152,6 @@ class Perl6::Metamodel::ParametricRoleHOW
         # must happen before another specialize happens and re-captures the
         # things we are composing.
         $!specialize_lock.protect({
-            my $class := @pos_args[0];
-            my $conc := nqp::if(nqp::can($class.HOW, 'get_cached_conc'),
-                        $class.HOW.get_cached_conc($class, $obj, @pos_args, %named_args),
-                        nqp::null());
-            return $conc unless nqp::isnull($conc);
-
-            # Pre-create a concrete role. We'll finalize it later, in specialize_with method. But for now we need it
-            # to initialize $?CONCRETIZATION by role's body block.
-            my $*MOP-ROLE-CONCRETIZATION := $conc :=
-                $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
-            $conc.HOW.set_language_revision($conc, $obj.HOW.language-revision($obj));
-            $conc.HOW.set_hidden($conc) if $obj.HOW.hidden($obj);
-
             # Run the body block to get the type environment (we know
             # the role in this case).
             my $type_env;
@@ -172,16 +169,14 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
 
             # Use it to build concrete role.
-            $conc := self.specialize_with($obj, $conc, $type_env, @pos_args);
-            nqp::if(
-                nqp::can($class.HOW, 'add_conc_to_cache'),
-                $class.HOW.add_conc_to_cache($class, $obj, @pos_args, %named_args, $conc)
-            );
-            $conc
+            self.specialize_with($obj, $type_env, @pos_args)
         })
     }
 
-    method specialize_with($obj, $conc, $type_env, @pos_args) {
+    method specialize_with($obj, $type_env, @pos_args) {
+        # Create a concrete role.
+        my $conc := $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
+
         # Go through attributes, reifying as needed and adding to
         # the concrete role.
         for self.attributes($obj, :local(1)) {
@@ -206,7 +201,8 @@ class Perl6::Metamodel::ParametricRoleHOW
             $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))
         }
 
-        # Roles done by this role need fully specializing also.
+        # Roles done by this role need fully specializing also; all
+        # they'll be missing is the target class (e.g. our first arg).
         for self.roles_to_compose($obj) {
             my $ins := my $r := $_;
             if $_.HOW.archetypes.generic {
@@ -225,7 +221,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             if $_.HOW.archetypes.generic {
                 $p := $p.HOW.instantiate_generic($p, $type_env);
             }
-            $conc.HOW.add_parent($conc, $p, :hides(self.hides_parent($obj, $_)));
+            $conc.HOW.add_parent($conc, $p);
         }
 
         # Resolve any array type being passed along (only really used in the
@@ -242,7 +238,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         return $conc;
     }
 
-    method mro($obj, :$roles = 0, :$unhidden = 0) {
+    method mro($obj) {
         [$obj]
     }
 }

@@ -3,7 +3,6 @@ my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
-my class WalkList                    { ... }
 
 my class ValueObjAt is ObjAt { }
 
@@ -792,37 +791,15 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is raw {
-        my $meth;
-        my $ctx := nqp::ctxcaller(nqp::ctx());
-        # Bypass wrapping thunk if redirected from spesh plugin
-        $ctx := nqp::ctxcaller($ctx) if $*SPESH-THUNKED-DISPATCH;
-        if nqp::istype(self, $type) {
-            my $sym-found := 0;
-            my $caller-type;
-            repeat {
-                my $pad := nqp::ctxlexpad($ctx);
-                for <$?CONCRETIZATION $?CLASS> {
-                    if nqp::existskey($pad, $_) {
-                        $caller-type := nqp::atkey($pad, $_);
-                        $sym-found := 1;
-                        last;
-                    }
-                }
-                $ctx := nqp::ctxouterskipthunks($ctx);
-            } while $ctx && !$sym-found;
-            $meth = $caller-type.^find_method_qualified($type, $name) if $sym-found;
-            $meth = self.^find_method_qualified($type, $name) unless $meth;
-        }
-
-        unless nqp::defined($meth) {
+        unless nqp::istype(SELF, $type) {
             X::Method::InvalidQualifier.new(
                     method          => $name,
                     invocant        => SELF,
                     qualifier-type  => $type,
+
             ).throw;
         }
-
-        return $meth(SELF, |c)
+        self.^find_method_qualified($type, $name)(SELF, |c)
     }
 
     method dispatch:<!>(Mu \SELF: \name, Mu \type, |c) is raw {
@@ -831,7 +808,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
               invocant => SELF,
-              method   => name,
+              method   => '!' ~ name,
               typename => type.^name,
               :private,
             ).throw;
@@ -848,34 +825,30 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             Nil
     }
 
-    method !batch-call(Mu \SELF: \name, Capture:D \c, :$throw = False, :$reverse = False, :$roles = False) {
-        my @mro := SELF.^mro(:$roles);
-        my $results := nqp::create(IterationBuffer);
-        my int $mro_high = $reverse ?? 0 !! @mro.elems - 1;
-        my int $i = @mro.elems;
-        while nqp::isge_i(--$i, 0) {
-            my int $idx = nqp::abs_i($mro_high - $i);
-            my Mu \type-obj = @mro[$idx];
-            my $meth = (type-obj.^method_table){name} unless type-obj.HOW.archetypes.composable;
-            $meth = (type-obj.^submethod_table){name} if !$meth;
-            nqp::push($results,$meth(SELF, |c))    if $meth;
-        }
-        if $throw && $results.elems == 0 {
+    method dispatch:<.+>(Mu \SELF: $name, |c) {
+        my @result := SELF.dispatch:<.*>($name, |c);
+        if @result.elems == 0 {
             X::Method::NotFound.new(
               invocant => SELF,
-              method   => name,
+              method   => $name,
               typename => SELF.^name,
             ).throw;
         }
-        $results.List
-    }
-
-    method dispatch:<.+>(Mu \SELF: \name, |c) {
-        SELF!batch-call(name, c, :throw);
+        @result
     }
 
     method dispatch:<.*>(Mu \SELF: \name, |c) {
-        SELF!batch-call(name, c)
+        my @mro = SELF.^mro;
+        my int $mro_count = @mro.elems;
+        my $results := nqp::create(IterationBuffer);
+        my int $i = -1;
+        while nqp::islt_i(++$i,$mro_count) {
+            my $obj = @mro[$i];
+            my $meth = ($obj.^method_table){name};
+            $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
+            nqp::push($results,$meth(SELF, |c))    if $meth;
+        }
+        $results.List
     }
 
     method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {
@@ -899,21 +872,12 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             HYPER( -> \obj { obj."$meth-name"(  ) }, SELF )))
     }
 
-    proto method WALK(|) {*}
-    multi method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
-                :$super, :$omit, :$include, :$roles, :$submethods = True, :$methods = True
-                --> WalkList)
-    {
+    method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
+                :$super, :$omit, :$include) {
         # First, build list of classes in the order we'll need them.
-
-        my sub maybe-with-roles(Mu \typeobj) {
-            flat typeobj.^parents(:local),
-                 ($roles ?? typeobj.^roles(:local, :transitive, :mro) !! ())
-        }
-
         my @classes;
         if $super {
-            @classes = maybe-with-roles(self)
+            @classes = self.^parents(:local);
         }
         elsif $breadth {
             my @search_list = self.WHAT;
@@ -921,7 +885,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                 append @classes, @search_list;
                 my @new_search_list;
                 for @search_list -> $current {
-                    for maybe-with-roles($current) -> $next {
+                    for flat $current.^parents(:local) -> $next {
                         unless @new_search_list.grep({ $^c.WHAT =:= $next.WHAT }) {
                             push @new_search_list, $next;
                         }
@@ -933,7 +897,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             sub build_ascendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
                     push @classes, $class;
-                    for maybe-with-roles($class) {
+                    for flat $class.^parents(:local) {
                         build_ascendent($^parent);
                     }
                 }
@@ -942,7 +906,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         } elsif $descendant {
             sub build_descendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
-                    for maybe-with-roles($class) {
+                    for flat $class.^parents(:local) {
                         build_descendent($^parent);
                     }
                     push @classes, $class;
@@ -952,7 +916,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         } else {
             # Canonical, the default (just whatever the meta-class says) with us
             # on the start.
-            @classes = self.^mro(:$roles);
+            @classes = self.^mro();
         }
 
         # Now we have classes, build method list.
@@ -960,20 +924,19 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         for @classes -> $class {
             if (!defined($include) || $include.ACCEPTS($class)) &&
               (!defined($omit) || !$omit.ACCEPTS($class)) {
-                if $methods && !$class.HOW.archetypes.composable {
-                    @methods.push: $_ with $class.^method_table{$name}
-                }
-                if $submethods {
-                    @methods.push: $_ with $class.^submethod_table{$name}
+                try {
+                    for flat $class.^methods(:local) -> $method {
+                        my $check_name = $method.?name;
+                        if $check_name.defined && $check_name eq $name {
+                            @methods.push($method);
+                        }
+                    }
+                    0;
                 }
             }
         }
 
-        WalkList.new(|@methods).set_invocant(self)
-    }
-
-    multi method WALK(Str:D $name, *%n --> WalkList ) {
-        samewith(:$name, |%n)
+        @methods;
     }
 }
 

@@ -20,7 +20,6 @@ class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::LanguageRevision
 {
     has $!curried_role;
     has $!candidate;                # Will contain matching candidate from curried role group
@@ -83,9 +82,6 @@ class Perl6::Metamodel::CurriedRoleHOW
         }
         if nqp::istype($!curried_role.HOW, Perl6::Metamodel::ParametricRoleGroupHOW) {
             $!candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
-
-            self.set_language_revision($obj, $!candidate.HOW.language-revision($!candidate));
-
             my $type_env;
             try {
                 my @result := $!candidate.HOW.body_block($!candidate)(|@pos_args, |%!named_args);
@@ -154,9 +150,25 @@ class Perl6::Metamodel::CurriedRoleHOW
         @!pos_args
     }
 
-    method roles($obj, :$transitive = 1, :$mro = 0) {
+    # method roles($obj, :$transitive = 1) {
+    #     $!curried_role.HOW.roles($obj, :$transitive)
+    # }
+
+    method roles($obj, :$transitive = 1) {
         self.complete_parameterization($obj);
-        self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro)
+        if $transitive {
+            my @result;
+            for self.roles_to_compose($obj) {
+                @result.push($_);
+                for $_.HOW.roles($_, :transitive(1)) {
+                    @result.push($_)
+                }
+            }
+            @result
+        }
+        else {
+            self.roles_to_compose($obj)
+        }
     }
 
     method role_typecheck_list($obj) {

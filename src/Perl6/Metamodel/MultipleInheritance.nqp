@@ -4,7 +4,6 @@ role Perl6::Metamodel::MultipleInheritance {
 
     # Are any of the parents hidden?
     has @!hides;
-    has %!hides_ids;
 
     # Is this class hidden?
     has $!hidden;
@@ -13,15 +12,6 @@ role Perl6::Metamodel::MultipleInheritance {
     my @excluded;
     method exclude_parent($parent) {
         @excluded.push($parent);
-    }
-
-    method !rebuild_hides_ids() {
-        %!hides_ids := nqp::hash();
-        for @!hides {
-            nqp::scwbdisable();
-            %!hides_ids{~nqp::objectid(nqp::decont($_))} := 1;
-            nqp::scwbenable();
-        }
     }
 
     # Adds a parent.
@@ -91,11 +81,6 @@ role Perl6::Metamodel::MultipleInheritance {
 
     method hides($obj) {
         @!hides
-    }
-
-    method hides_parent($obj, $parent) {
-        self.'!rebuild_hides_ids'() if nqp::elems(%!hides_ids) < nqp::elems(@!hides);
-        %!hides_ids{~nqp::objectid(nqp::decont($parent))} || 0;
     }
 
     method hidden($obj) {

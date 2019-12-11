@@ -13,42 +13,19 @@ nqp::speshreg('perl6', 'privmeth', -> $obj, str $name {
 # fall back to the dispatch:<::> if there is an exception that'd need to be
 # thrown.
 nqp::speshreg('perl6', 'qualmeth', -> $obj, str $name, $type {
-    my $ctx := nqp::ctxcaller(nqp::ctx());
-    my $caller-type := nqp::null();
-    # Lookup outers of the caller and locate the first occurence of the symbols of interest
-    nqp::repeat_while(
-        nqp::isnull($caller-type) && !nqp::isnull($ctx),
-        nqp::stmts(
-            (my $pad := nqp::ctxlexpad($ctx)),
-            nqp::if(
-                nqp::existskey($pad, '$?CONCRETIZATION'),
-                ($caller-type := nqp::atkey($pad, '$?CONCRETIZATION')),
-                nqp::if(
-                    nqp::existskey($pad, '$?CLASS'),
-                    ($caller-type := nqp::atkey($pad, '$?CLASS')),
-                )
-            ),
-            ($ctx := nqp::ctxouterskipthunks($ctx)),
-        )
-    );
-    my $meth := nqp::null();
-    nqp::speshguardtype($type, $type.WHAT);
-    for ($caller-type, $obj.WHAT) {
-        if nqp::istype($_, $type) {
-            nqp::speshguardtype($obj, $_);
-            $meth := $_.HOW.find_method_qualified($_, $type, $name);
-            last unless nqp::isnull($meth);
-        }
+    nqp::speshguardtype($obj, $obj.WHAT);
+    if nqp::istype($obj, $type) {
+        # Resolve to the correct qualified method.
+        nqp::speshguardtype($type, $type.WHAT);
+        $obj.HOW.find_method_qualified($obj, $type, $name)
     }
-    nqp::ifnull(
-        $meth,
+    else {
+        # We'll throw an exception; return a thunk that will delegate to the
+        # slow path implementation to do the throwing.
         -> $inv, *@pos, *%named {
-            # We'll throw an exception; return a thunk that will delegate to the
-            # slow path implementation to do the throwing.
-            my $*SPESH-THUNKED-DISPATCH := 1;
             $inv.'dispatch:<::>'($name, $type, |@pos, |%named)
         }
-    )
+    }
 });
 
 # A call like `$obj.?foo` is probably worth specializing via the plugin. In

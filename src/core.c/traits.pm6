@@ -17,9 +17,7 @@ multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
         $child.^add_parent($parent);
     }
     elsif $parent.HOW.archetypes.inheritalizable() {
-        if nqp::can($parent.HOW, 'methods')
-            && my @required-methods = $parent.^methods.grep({$_.yada}) 
-       {
+        if my @required-methods = $parent.^methods.grep({$_.yada}) {
             my $type = $child.HOW.archetypes.inheritable()
                 ?? 'Class '
                 !! $child.HOW.archetypes.inheritalizable()

@@ -1,6 +1,6 @@
 class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::LanguageRevision
+    does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::MultiMethodContainer
@@ -9,7 +9,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::ArrayType
     does Perl6::Metamodel::Concretization
-    does Perl6::Metamodel::C3MRO
 {
     # Any collisions to resolve.
     has @!collisions;
@@ -89,9 +88,19 @@ class Perl6::Metamodel::ConcreteRoleHOW
         @!collisions
     }
 
-    # It makes sense for concretizations to default to MRO order of roles.
-    method roles($obj, :$transitive = 1, :$mro = 1) {
-        self.roles-ordered($obj, @!roles, :$transitive, :$mro);
+    method roles($obj, :$transitive = 1) {
+        if $transitive {
+            my @trans;
+            for @!roles {
+                @trans.push($_);
+                for $_.HOW.roles($_) {
+                    @trans.push($_);
+                }
+            }
+        }
+        else {
+            @!roles
+        }
     }
 
     method add_to_role_typecheck_list($obj, $type) {
@@ -121,39 +130,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
         nqp::settypecache($obj, @types)
     }
 
-    method mro($obj, :$roles = 0, :$unhidden = 0) {
+    method mro($obj) {
         [$obj]
-    }
-
-    method find_method_qualified($obj, $qtype, $name) {
-        $obj := nqp::decont($obj);
-        $qtype := nqp::decont($qtype);
-        if $qtype.HOW.archetypes.parametric {
-            my $found-role := nqp::null();
-            for self.concretizations($obj, :transitive) {
-                my $candidate := $_;
-                my $role := $_.HOW.roles($_, :!transitive, :!mro)[0];
-                if nqp::can($role.HOW, 'group') {
-                    $role := $role.HOW.group($role);
-                }
-                if $qtype =:= $role {
-                    # XXX Better be replaced with Exception throwing. The mechanizm could be provided via
-                    # Perl6::Metamodel::Configuration where a property could be set pointing to a Raku object.
-                    # It could be something like:
-                    # Perl6::Metamodel::Configuration.throw("nqp::die message", ['X', 'Method', 'Ambiguous'], |%exception-params);
-                    nqp::die("Ambiguous concretization lookup for " ~ $qtype.HOW.name($qtype))
-                        unless nqp::isnull($found-role);
-                    $found-role := $candidate;
-                }
-            }
-            return nqp::null() if nqp::isnull($found-role);
-            return $found-role.HOW.method_table($found-role){$name}
-                    || $found-role.HOW.submethod_table($found-role){$name}
-                    || nqp::null();
-        } elsif nqp::istype($obj, $qtype) {
-            # Non-parametric, so just locate it from the already concrete type.
-            nqp::findmethod($qtype, $name)
-        }
-        nqp::null()
     }
 }

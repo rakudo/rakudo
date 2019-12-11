@@ -24,14 +24,14 @@ class Perl6::Metamodel::SubsetHOW
     method BUILD(:$refinee, :$refinement) {
         $!refinee := $refinee;
         $!refinement := $refinement;
-        $!pre-e-behavior := self.lang-rev-before(self, 'e');
+        $!pre-e-behavior := self.lang-rev-before('e');
     }
 
     method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
         my $metasubset := self.new(:refinee($refinee), :refinement($refinement));
         my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'perl6');
         $metasubset.set_name($type, $name);
-        $metasubset.set_language_version($metasubset, :force);
+        $metasubset.set_language_version($metasubset);
         nqp::settypecheckmode($type, 2);
         self.add_stash($type)
     }

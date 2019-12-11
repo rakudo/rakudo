@@ -141,13 +141,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::hllbool(nqp::eqat(self, $needle, 0))
     }
 
-    multi method ends-with(Str:D: Cool:D $suffix --> Bool:D) {
-        self.ends-with: $suffix.Str
+    multi method ends-with(Str:D: Cool:D $needle --> Bool:D) {
+        self.ends-with: $needle.Str
     }
-    multi method ends-with(Str:D: Str:D $suffix --> Bool:D) {
+    multi method ends-with(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(
           nqp::eqat(
-            $!value,$suffix,nqp::sub_i(nqp::chars($!value),nqp::chars($suffix))
+            self,$needle,nqp::sub_i(nqp::chars(self),nqp::chars($needle))
           )
         )
     }

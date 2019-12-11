@@ -121,11 +121,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::chars(self) && nqp::chars(self) - 1
         )
     }
-    multi method chop(Str:D: Int() $chopping --> Str:D) {
-        nqp::isbig_I(nqp::decont($chopping))
-          || (my int $chars = nqp::sub_i(nqp::chars($!value),$chopping)) <= 0
-          ?? ''
-          !! nqp::p6box_s(nqp::substr($!value,0,$chars))
+    multi method chop(Str:D: Int:D $chopping --> Str:D) {
+        nqp::substr(
+          self,
+          0,
+          nqp::not_i(nqp::isbig_I(nqp::decont($chopping)))
+            && nqp::isgt_i(nqp::chars(self),$chopping)
+            && nqp::sub_i(nqp::chars(self),$chopping)
+        )
+    }
+    multi method chop(Str:D: $chopping --> Str:D) {
+        self.chop($chopping.Int)
     }
 
     multi method starts-with(Str:D: Cool:D $needle --> Bool:D) {

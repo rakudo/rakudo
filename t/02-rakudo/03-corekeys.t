@@ -721,6 +721,7 @@ my @allowed =
       Q{ValueObjAt},
       Q{Variable},
       Q{Version},
+      Q{WalkList},
       Q{Whatever},
       Q{WhateverCode},
       Q{WrapDispatcher},

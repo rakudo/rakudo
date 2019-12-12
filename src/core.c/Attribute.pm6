@@ -15,6 +15,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has Mu $!why;
     #     has $!required;
     #     has Mu $!container_initializer;
+    #     has Attribute $!original; 
 
     method compose(Mu $package, :$compiler_services) {
         # Generate accessor method, if we're meant to have one.

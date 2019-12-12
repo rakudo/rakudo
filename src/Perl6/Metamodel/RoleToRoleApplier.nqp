@@ -230,8 +230,12 @@ my class RoleToRoleApplier {
                 my $skip := 0;
                 my @cur_attrs := $target.HOW.attributes($target, :local(1));
                 for @cur_attrs {
-                    if nqp::decont($_.original) =:= nqp::decont($add_attr.original)
-                        && nqp::decont($_.type) =:= nqp::decont($add_attr.type)
+                    # If $add_attr doesn't know its original attribute object then fallback to the old object address
+                    # match.
+                    if (nqp::can($add_attr, 'original')
+                        && nqp::decont($_.original) =:= nqp::decont($add_attr.original)
+                        && nqp::decont($_.type) =:= nqp::decont($add_attr.type))
+                       || (nqp::decont($_) =:= nqp::decont($add_attr))
                     {
                         $skip := 1;
                     }

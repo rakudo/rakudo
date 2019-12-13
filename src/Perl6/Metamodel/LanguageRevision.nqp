@@ -20,9 +20,8 @@ role Perl6::Metamodel::LanguageRevision
             if $*W && !$*OPTIMIZER-SYMBOLS {
                 $rev := $*W.find_symbol(['CORE-SETTING-REV'], :setting-only) || $*W.setting_revision;
             }
-            $lang-ver := nqp::p6clientcorever()                         # 1st: try the run-time code
-                            || ($rev && '6.' ~ $rev)                    # 2nd: compile-time if CORE is available
-                            || nqp::getcomp('perl6').language_version;  # otherwise try the compiler
+            $lang-ver := ($rev && '6.' ~ $rev)                          # compile-time if CORE is available
+                          || nqp::getcomp('perl6').language_version;    # otherwise try the compiler
         }
         else {
             return

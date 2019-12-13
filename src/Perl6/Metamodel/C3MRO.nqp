@@ -74,7 +74,7 @@ role Perl6::Metamodel::C3MRO {
             }
             else {
                 nqp::push(@unhidden_all, $c);
-                nqp::push(@unhidden_no_roles, $c) if $is_inheritable || nqp::istype($_.HOW, Perl6::Metamodel::NativeHOW);
+                nqp::push(@unhidden_no_roles, $c) if $is_inheritable || nqp::istype($c.HOW, Perl6::Metamodel::NativeHOW);
             }
             if nqp::can($c.HOW, 'hides') {
                 for $c.HOW.hides($c) {

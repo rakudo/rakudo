@@ -376,24 +376,24 @@ do {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my $e := EXCEPTION($ex);
 
-        if %*ENV<RAKUDO_EXCEPTIONS_HANDLER> -> $handler {
-            # REMOVE DEPRECATED CODE ON 201907
-            Rakudo::Deprecations.DEPRECATED: "PERL6_EXCEPTIONS_HANDLER", Nil,
-                '2019.07', :file("N/A"), :line("N/A"),
-                :what("RAKUDO_EXCEPTIONS_HANDLER env var");
+        if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
+            # REMOVE DEPRECATED CODE ON 202011
+            Rakudo::Deprecations.DEPRECATED: "RAKU_EXCEPTIONS_HANDLER", Nil,
+                '2020.11', :file("N/A"), :line("N/A"),
+                :what("PERL6_EXCEPTIONS_HANDLER env var");
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
-                temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
+                temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping
                 unless $class.process($e) {
                     nqp::getcurhllsym('&THE_END')();
                     return
                 }
             }
         }
-        if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
+        if %*ENV<RAKU_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
-                temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping
+                temp %*ENV<RAKU_EXCEPTIONS_HANDLER> = ""; # prevent looping
                 unless $class.process($e) {
                     nqp::getcurhllsym('&THE_END')();
                     return

@@ -3135,7 +3135,7 @@ BEGIN {
                 }
 
                 # If it's possible but needs a bind check, we're not going to be
-                # able to decide it. */
+                # able to decide it.
                 if nqp::existskey($cur_candidate, 'bind_check') {
                     return [$MD_CT_NOT_SURE, NQPMu];
                 }
@@ -3286,8 +3286,8 @@ BEGIN {
             }
         }
 
-        # Build a hash of named camptures, or return a shared empty hash if there
-        # are none. This only poplates the slots that need an array.
+        # Build a hash of named captures, or return a shared empty hash if there
+        # are none. This only populates the slots that need an array.
         method prepare-hash() {
             my int $n := nqp::elems(@!named-capture-counts);
             if $n > 0 {

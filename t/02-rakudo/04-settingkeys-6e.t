@@ -528,6 +528,7 @@ my %allowed = (
     Q{Encoding},
     Q{Endian},
     Q{Enumeration},
+    Q{Env},
     Q{Exception},
     Q{Exceptions},
     Q{Failure},

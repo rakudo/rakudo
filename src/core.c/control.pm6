@@ -211,7 +211,11 @@ sub CLONE-HASH-DECONTAINERIZED(\hash) {
           nqp::iterkey_s(nqp::shift(iter)),
           nqp::if(
             nqp::defined(nqp::iterval(iter)),
-            nqp::decont(nqp::iterval(iter)).Str,
+            nqp::if(
+              nqp::iseq_s(nqp::iterval(iter).^name,'BOOTStr'),
+              nqp::iterval(iter),
+              nqp::unbox_s(nqp::decont(nqp::iterval(iter)).Str)
+            ),
             ''
           )
         )

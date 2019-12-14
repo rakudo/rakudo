@@ -154,7 +154,7 @@ my class Rakudo::Internals {
         0;
     }
 
-    method createENV(int $bind) {
+    method createENV() {
         nqp::stmts(
           (my $hash := nqp::hash),
           (my $iter := nqp::iterator(nqp::getenvhash)),
@@ -163,16 +163,13 @@ my class Rakudo::Internals {
             nqp::bindkey(
               $hash,
               nqp::iterkey_s(nqp::shift($iter)),
-              nqp::if(
-                $bind,
-                val(nqp::iterval($iter)),
-                nqp::p6scalarfromdesc(nqp::null) = val(nqp::iterval($iter))
+              nqp::assign(
+                nqp::p6scalarfromdesc(nqp::null),
+                val(nqp::iterval($iter))
               )
             )
           ),
-          nqp::p6bindattrinvres(
-            nqp::create(nqp::if($bind,Map,Hash)),Map,'$!storage',$hash
-          )
+          $hash
         )
     }
 

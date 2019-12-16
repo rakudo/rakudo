@@ -6,7 +6,18 @@ my $template = q:to/END_TEMPLATE/;
 
 On behalf of the Rakudo development team, I’m very happy to announce the
 «month» «year» release of Rakudo #«release-num». Rakudo is an implementation of
-Raku on the Moar Virtual Machine[^1].
+the Raku[^1] language.
+
+The source tarball for this release is available from
+<https://rakudo.org/files/rakudo>.
+Pre-compiled archives will be available shortly.
+
+New in «release-name»:
+«changes»
+
+The following people contributed to this release:
+
+«contributors»
 
 This release implements 6.c and 6.d versions of the Raku specification.
 6.c version of the language is available if you use the `use v6.c`
@@ -17,22 +28,6 @@ part of 6.c or 6.d specifications, available with a lexically scoped
 pragma. Our goal is to ensure that anything that is tested as part of
 6.c and 6.d specifications will continue to work unchanged. There may
 be incremental spec releases this year as well.
-
-The tarball for this release is available from <https://rakudo.org/files/rakudo>.
-
-Please note: This announcement is not for the Rakudo Star
-distribution[^2] — it’s announcing a new release of the compiler
-only. For the latest Rakudo Star release, see
-<https://rakudo.org/files/star>.
-
-The changes in this release are outlined below:
-
-New in «release-name»:
-«changes»
-
-The following people contributed to this release:
-
-«contributors»
 
 If you would like to contribute or find out more information, visit
 <https://raku.org>, <https://rakudo.org/how-to-help>, ask on the
@@ -56,18 +51,7 @@ Please note that recent releases have known issues running on the JVM.
 We are working to get the JVM backend working again but do not yet have
 an estimated delivery date.
 
-[^1]: See <http://moarvm.org/>
-
-[^2]: What’s the difference between the Rakudo compiler and the Rakudo
-Star distribution?
-
-The Rakudo compiler is a compiler for the Raku language.
-Not much more.
-
-The Rakudo Star distribution is the Rakudo compiler plus a selection
-of useful Raku modules, a module installer, Raku introductory
-documentation, and other software that can be used with the Rakudo
-compiler to enhance its utility.
+[^1]: See <https://raku.org/>
 END_TEMPLATE
 
 my @ENGLISH-MONTHS = flat Any,

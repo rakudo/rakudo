@@ -196,6 +196,60 @@ my role Iterable {
     multi method SetHash(Iterable:D:) { SETIFY(self,SetHash) }
 }
 
+multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
+    nqp::hllbool(
+      nqp::unless(
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+        nqp::if(                                 # not same object
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(                               # same type
+            a.is-lazy,
+            nqp::if(                             # a lazy
+              b.is-lazy,
+              die(X::Cannot::Lazy.new: :action<eqv>) # a && b lazy
+            ),
+            nqp::if(                             # a NOT lazy
+              b.is-lazy,
+              0,                                 # b lazy
+              nqp::if(                           # a && b NOT lazy
+                nqp::istype(a, Positional),
+                nqp::if(
+                  nqp::iseq_i((my int $elems = a.elems),b.elems),
+                  nqp::stmts(                    # same # elems
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems) # not exhausted
+                        && a.AT-POS($i) eqv b.AT-POS($i),         # still same
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)       # exhausted = success!
+                  )
+                ),
+                nqp::stmts(
+                  (my \iter-a = a.iterator),
+                  (my \iter-b = b.iterator),
+                  (my $a = iter-a.pull-one),
+                  (my $b = iter-b.pull-one),
+                  nqp::while(
+                    !nqp::eqaddr(nqp::decont($a), IterationEnd)
+                      && !nqp::eqaddr(nqp::decont($b), IterationEnd)
+                      && $a eqv $b,              # still same
+                    nqp::stmts(
+                      ($a = iter-a.pull-one),
+                      ($b = iter-b.pull-one)
+                    )
+                  ),
+                  nqp::eqaddr(nqp::decont($a), IterationEnd)      # a exhausted
+                    && nqp::eqaddr(nqp::decont($b), IterationEnd) # b exhausted
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+}
+
 #?if jvm
 nqp::p6setitertype(Iterable);
 #?endif

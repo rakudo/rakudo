@@ -61,6 +61,7 @@ my class IO::Socket::INET does IO::Socket {
                 $family == nqp::const::SOCKET_FAMILY_UNSPEC
              || $family == nqp::const::SOCKET_FAMILY_INET
              || $family == nqp::const::SOCKET_FAMILY_INET6
+             || $family == nqp::const::SOCKET_FAMILY_UNIX
         } = nqp::const::SOCKET_FAMILY_UNSPEC,
                *%rest,
         --> IO::Socket::INET:D) {
@@ -87,6 +88,7 @@ my class IO::Socket::INET does IO::Socket {
                $family == nqp::const::SOCKET_FAMILY_UNSPEC
             || $family == nqp::const::SOCKET_FAMILY_INET
             || $family == nqp::const::SOCKET_FAMILY_INET6
+            || $family == nqp::const::SOCKET_FAMILY_UNIX
         } = nqp::const::SOCKET_FAMILY_UNSPEC,
               *%rest,
         --> IO::Socket::INET:D) {

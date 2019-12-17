@@ -29,7 +29,7 @@ development via following command line options:
 This repo is included as a submodule into `rakudo` source repository. To set a user free of manual update of submodules
 upon each update of `nqp-configure` `Configure.pl` does a few things under the hood upon startup:
 
-- First is checks if the submodule has been checked out already. If not then it'll be automatically initialized and
+- First it checks if the submodule has been checked out already. If not then it'll be automatically initialized and
   pulled in.
 - If local copy of `rakudo` repository hasn't been _initialized_ yet then `Configure.pl` sets `submodule.recurse` `git`
   configuration variable to _true_. It is also set _initialized_ status by setting `rakudo.initialized` `git`

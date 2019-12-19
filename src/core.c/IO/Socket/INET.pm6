@@ -139,12 +139,12 @@ my class IO::Socket::INET does IO::Socket {
         self;
     }
 
-    method connect(IO::Socket::INET:U: Str() $host, Int() $port) {
-        self.new(:$host, :$port)
+    method connect(IO::Socket::INET:U: Str() $host, Int() $port, ProtocolFamily:D :$family = PF_UNSPEC) {
+        self.new(:$host, :$port, :family($family.value))
     }
 
-    method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport) {
-        self.new(:$localhost, :$localport, :listen)
+    method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport, ProtocolFamily:D :$family = PF_UNSPEC) {
+        self.new(:$localhost, :$localport, :family($family.value), :listen)
     }
 
     method accept() {

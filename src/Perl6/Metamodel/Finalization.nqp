@@ -7,8 +7,12 @@ role Perl6::Metamodel::Finalization {
         my @destroyers;
         while --$i >= 0 {
             my $class   := @mro[$i];
-            unless self.lang-rev-before($obj, 'e') || !nqp::can($class.HOW, 'ins_roles') {
-                my @ins_roles := $class.HOW.ins_roles($class, :with-submethods-only);
+            my $classHOW := $class.HOW;
+            if !self.lang-rev-before($obj, 'e')
+                && nqp::can($classHOW, 'ins_roles')
+                && nqp::can($classHOW, 'roles')
+            {
+                my @ins_roles := $classHOW.ins_roles($class, :with-submethods-only);
                 my $i := +@ins_roles;
                 while --$i >= 0 {
                     my $submeth := nqp::atkey(@ins_roles[$i].HOW.submethod_table(@ins_roles[$i]), 'DESTROY');
@@ -17,7 +21,7 @@ role Perl6::Metamodel::Finalization {
                     }
                 }
             }
-            my $destroy := $class.HOW.find_method($class, 'DESTROY', :no_fallback(1));
+            my $destroy := $classHOW.find_method($class, 'DESTROY', :no_fallback(1));
             if !nqp::isnull($destroy) && $destroy {
                 nqp::push(@destroyers, $destroy);
             }

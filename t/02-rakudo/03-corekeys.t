@@ -604,6 +604,7 @@ my @allowed =
       Q{PF_LOCAL},
       Q{PF_MAX},
       Q{PF_UNIX},
+      Q{PF_UNSPEC},
       Q{PROCESS},
       Q{PROTO_TCP},
       Q{PROTO_UDP},

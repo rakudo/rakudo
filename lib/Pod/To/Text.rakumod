@@ -88,10 +88,10 @@ sub declarator2text($pod) {
         when Method {
             my @params=$_.signature.params[1..*];
               @params.pop if @params.tail.name eq '%_';
-            'method ' ~ $_.name ~ signature2text(@params)
+              'method ' ~ $_.name ~ signature2text(@params, $_.returns)
         }
         when Sub {
-            'sub ' ~ $_.name ~ signature2text($_.signature.params)
+            'sub ' ~ $_.name ~ signature2text($_.signature.params, $_.returns)
         }
         when .HOW ~~ Metamodel::ClassHOW {
             'class ' ~ $_.raku
@@ -109,11 +109,22 @@ sub declarator2text($pod) {
     "$what\n{$pod.WHEREFORE.WHY.contents}"
 }
 
-sub signature2text($params) {
-      $params.elems ??
-      "(\n\t" ~ $params.map(&param2text).join("\n\t") ~ "\n)"
-      !! "()";
+sub signature2text($params, Mu $returns?) {
+    my $result = '(';
+
+    if $params.elems {
+        $result ~= "\n\t" ~ $params.map(&param2text).join("\n\t")
+    }
+    unless $returns<> =:= Mu {
+        $result ~= "\n\t--> " ~ $returns.raku
+    }
+    if $result.chars > 1 {
+        $result ~= "\n";
+    }
+    $result ~= ')';
+    return $result;
 }
+
 sub param2text($p) {
     $p.raku ~ ',' ~ ( $p.WHY ?? ' # ' ~ $p.WHY !! ' ')
 }

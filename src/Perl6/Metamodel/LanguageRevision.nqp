@@ -14,7 +14,7 @@ role Perl6::Metamodel::LanguageRevision
         }
         elsif nqp::getcomp('perl6') {
             # NOTE: It turns out that nqp::getcomp path for obtaining the language version isn't reliable as sometimes
-            # language_version method report wrong version.
+            # language_version method reports wrong version.
             my $rev;
             # $*W cannot be used at optimization stage.
             if $*W && !$*OPTIMIZER-SYMBOLS {

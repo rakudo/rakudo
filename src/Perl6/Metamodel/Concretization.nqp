@@ -25,8 +25,10 @@ role Perl6::Metamodel::Concretization {
         @conc := self.c3_merge(@conc) if $transitive;
         unless $local {
             for self.parents($obj, :local) {
-                for $_.HOW.concretizations($_, :$local, :$transitive) {
-                    nqp::push(@conc, $_)
+                if nqp::can($_.HOW, 'concretizations') {
+                    for $_.HOW.concretizations($_, :$local, :$transitive) {
+                        nqp::push(@conc, $_)
+                    }
                 }
             }
         }

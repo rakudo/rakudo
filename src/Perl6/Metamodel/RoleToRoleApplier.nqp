@@ -157,6 +157,7 @@ my class RoleToRoleApplier {
                 for $how.multi_methods_to_incorporate($role) {
                     my $name := $_.name;
                     my $to_add := $_.code;
+                    next if !$with_submethods && nqp::istype($to_add, $submethod_type);
                     my $yada := 0;
                     try { $yada := $to_add.yada; }
                     if $yada {

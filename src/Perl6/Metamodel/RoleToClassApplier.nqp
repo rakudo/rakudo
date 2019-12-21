@@ -38,6 +38,7 @@ my class RoleToClassApplier {
         else {
             $to_compose := $concrete.new_type();
             $to_compose_meta := $to_compose.HOW;
+            $to_compose_meta.set_language_revision($to_compose, $target.HOW.language-revision($target));
             for @roles {
                 $to_compose_meta.add_role($to_compose, $_);
             }

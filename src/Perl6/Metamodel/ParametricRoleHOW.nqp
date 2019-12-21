@@ -168,10 +168,10 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
             if $error {
                 nqp::die("Could not instantiate role '" ~ self.name($obj)
-                         ~ "':\n" ~ nqp::getpayload($error))
+                         ~ "':\n" ~ (nqp::getpayload($error) || nqp::getmessage($error)))
             }
 
-            # Use it to build concrete role.
+            # Use it to build a concrete role.
             $conc := self.specialize_with($obj, $conc, $type_env, @pos_args);
             nqp::if(
                 nqp::can($class.HOW, 'add_conc_to_cache'),

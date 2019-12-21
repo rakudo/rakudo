@@ -26,7 +26,7 @@ my class Rakudo::Internals::EvalIdSource {
 }
 proto sub EVAL(
   $code is copy where Blob|Cool|Callable,
-  Str()       :$lang = 'perl6',
+  Str()       :$lang is copy = 'perl6',
   PseudoStash :$context,
   Str()       :$filename = Str,
   Bool()      :$check = False,

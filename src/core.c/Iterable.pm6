@@ -42,7 +42,7 @@ my role Iterable {
                 nqp::if(
                   nqp::istype(got,Iterable),
                   nqp::stmts(
-                    ($!nested := got.flat.iterator),
+                    ($!nested := Flat.new(got.iterator)),
                     self.pull-one
                   ),
                   got
@@ -67,7 +67,7 @@ my role Iterable {
                   target.push(got),
                   nqp::if(
                     nqp::istype(got,Iterable),
-                    got.flat.iterator.push-all(target),
+                    Flat.new(got.iterator).push-all(target),
                     target.push(got)
                   )
                 )

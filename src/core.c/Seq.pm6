@@ -178,7 +178,9 @@ my class Seq is Cool does Iterable does Sequence {
     }
 }
 
-sub GATHER(&block) { Seq.new(Rakudo::Iterator.Gather(&block)) }
+sub GATHER(&block, :$is-lazy) {
+    Seq.new(Rakudo::Iterator.Gather(&block, :$is-lazy))
+}
 
 multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
     nqp::hllbool(

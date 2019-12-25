@@ -1858,8 +1858,6 @@ class Rakudo::Iterator {
               $n
             )
         }
-
-        method is-lazy() { $!is-lazy }
     }
     method Gather(&block, :$is-lazy) { Gather.new(&block, $is-lazy.Bool) }
 

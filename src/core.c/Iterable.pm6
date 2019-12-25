@@ -85,19 +85,24 @@ my role Iterable {
         has $!iterator;
 
         method new(\iterable) {
-            nqp::p6bindattrinvres(
-              nqp::create(self),self,'$!iterable',iterable
-            )
+            my \iter := nqp::create(self);
+            nqp::bindattr(iter,self,'$!iterable',iterable);
+            nqp::bindattr(iter,self,'$!iterator',nqp::null);
+            iter
         }
 
         method pull-one() is raw {
-            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.pull-one
+            nqp::ifnull(
+              $!iterator,
+              $!iterator := $!iterable.iterator
+            ).pull-one
         }
 
         method push-exactly(\target, int $n) {
-            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.push-exactly(target, $n);
+            nqp::ifnull(
+              $!iterator,
+              $!iterator := $!iterable.iterator
+            ).push-exactly(target, $n);
         }
 
         method is-lazy(--> True) { }

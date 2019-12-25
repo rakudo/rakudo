@@ -17,66 +17,7 @@ my role Iterable {
         nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
     }
 
-    my class Flat does Iterator {
-        has Iterator $!source;
-        has Iterator $!nested;
-
-        method new(\source) {
-            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
-        }
-
-        method pull-one() is raw {
-            nqp::if(
-              $!nested,
-              nqp::if(
-                nqp::eqaddr((my \nested := $!nested.pull-one),IterationEnd),
-                nqp::stmts(
-                  ($!nested := Iterator),
-                  self.pull-one
-                ),
-                nested
-              ),
-              nqp::if(
-                nqp::iscont(my \got := $!source.pull-one),
-                got,
-                nqp::if(
-                  nqp::istype(got,Iterable),
-                  nqp::stmts(
-                    ($!nested := Flat.new(got.iterator)),
-                    self.pull-one
-                  ),
-                  got
-                )
-              )
-            )
-        }
-
-        method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              nqp::if(
-                $!nested,
-                nqp::stmts(
-                  $!nested.push-all(target),
-                  ($!nested := Iterator)
-                )
-              ),
-              nqp::until(
-                nqp::eqaddr((my \got := $!source.pull-one), IterationEnd),
-                nqp::if(
-                  nqp::iscont(got),
-                  target.push(got),
-                  nqp::if(
-                    nqp::istype(got,Iterable),
-                    Flat.new(got.iterator).push-all(target),
-                    target.push(got)
-                  )
-                )
-              )
-            )
-        }
-        method is-lazy() { $!source.is-lazy }
-    }
-    method flat(Iterable:D:) { Seq.new(Flat.new(self.iterator)) }
+    method flat(Iterable:D:) { Seq.new(Rakudo::Iterator.Flat(self.iterator)) }
 
     method lazy-if($flag) { $flag ?? self.lazy !! self }
 

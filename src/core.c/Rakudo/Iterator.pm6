@@ -1640,6 +1640,69 @@ class Rakudo::Iterator {
         )
     }
 
+    # Return an iterator that flattens all embedded Iterables into a single
+    # iterator, producing a single sequence of non-Iterable values..
+    my class Flat does Iterator {
+        has Iterator $!source;
+        has Iterator $!nested;
+
+        method new(\source) {
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              $!nested,
+              nqp::if(
+                nqp::eqaddr((my \nested := $!nested.pull-one),IterationEnd),
+                nqp::stmts(
+                  ($!nested := Iterator),
+                  self.pull-one
+                ),
+                nested
+              ),
+              nqp::if(
+                nqp::iscont(my \got := $!source.pull-one),
+                got,
+                nqp::if(
+                  nqp::istype(got,Iterable),
+                  nqp::stmts(
+                    ($!nested := Flat.new(got.iterator)),
+                    self.pull-one
+                  ),
+                  got
+                )
+              )
+            )
+        }
+
+        method push-all(\target --> IterationEnd) {
+            nqp::stmts(
+              nqp::if(
+                $!nested,
+                nqp::stmts(
+                  $!nested.push-all(target),
+                  ($!nested := Iterator)
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr((my \got := $!source.pull-one), IterationEnd),
+                nqp::if(
+                  nqp::iscont(got),
+                  target.push(got),
+                  nqp::if(
+                    nqp::istype(got,Iterable),
+                    Flat.new(got.iterator).push-all(target),
+                    target.push(got)
+                  )
+                )
+              )
+            )
+        }
+        method is-lazy() { $!source.is-lazy }
+    }
+    method Flat(\iterator) { Flat.new(iterator) }
+
     # Return an iterator that will cache a source iterator for the index
     # values that the index iterator provides, from a given offest in the
     # cached source iterator.  Values from the index iterator below the

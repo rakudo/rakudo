@@ -2155,6 +2155,39 @@ class Rakudo::Iterator {
         )
     }
 
+    # Return an iterator that is always lazy, by wrapping it inside another
+    # iterator that indicates to be lazy.  Does not actually call the
+    # iterator until it is really  necessary, preventing any unnecessary
+    # work or external resource usage.
+    my class Lazy does Iterator {
+        has $!iterable;
+        has $!iterator;
+
+        method new(\iterable) {
+            my \iter := nqp::create(self);
+            nqp::bindattr(iter,self,'$!iterable',iterable);
+            nqp::bindattr(iter,self,'$!iterator',nqp::null);
+            iter
+        }
+
+        method pull-one() is raw {
+            nqp::ifnull(
+              $!iterator,
+              $!iterator := $!iterable.iterator
+            ).pull-one
+        }
+
+        method push-exactly(\target, int $n) {
+            nqp::ifnull(
+              $!iterator,
+              $!iterator := $!iterable.iterator
+            ).push-exactly(target, $n);
+        }
+
+        method is-lazy(--> True) { }
+    }
+    method Lazy(\iterable) { Lazy.new(iterable) }
+
     # Return an iterator given a List and an iterator that generates
     # an IterationBuffer of indexes for each pull.  Each value is
     # is a List with the mapped elements.

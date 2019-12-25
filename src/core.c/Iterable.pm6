@@ -80,38 +80,11 @@ my role Iterable {
 
     method lazy-if($flag) { $flag ?? self.lazy !! self }
 
-    my class Lazy does Iterator {
-        has $!iterable;
-        has $!iterator;
-
-        method new(\iterable) {
-            my \iter := nqp::create(self);
-            nqp::bindattr(iter,self,'$!iterable',iterable);
-            nqp::bindattr(iter,self,'$!iterator',nqp::null);
-            iter
-        }
-
-        method pull-one() is raw {
-            nqp::ifnull(
-              $!iterator,
-              $!iterator := $!iterable.iterator
-            ).pull-one
-        }
-
-        method push-exactly(\target, int $n) {
-            nqp::ifnull(
-              $!iterator,
-              $!iterator := $!iterable.iterator
-            ).push-exactly(target, $n);
-        }
-
-        method is-lazy(--> True) { }
-    }
     method lazy() {
         # Return a Seq with an iterator wrapping this Iterable, claiming to
         # be lazy, and implicitly preventing working ahead (by hiding any
         # push-at-least-n of the source iterator).
-        Seq.new(Lazy.new(self))
+        Seq.new(Rakudo::Iterator.Lazy(self))
     }
 
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {

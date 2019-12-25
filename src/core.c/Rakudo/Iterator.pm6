@@ -1721,11 +1721,14 @@ class Rakudo::Iterator {
         has &!resumption;
         has $!push-target;
         has int $!wanted;
+        has Bool $.is-lazy;
 
         my constant PROMPT = nqp::create(Mu);
 
-        method new(&block) {
-            my \iter = nqp::create(self);
+        method new(&block, \is-lazy) {
+            my \iter := 
+              nqp::p6bindattrinvres(nqp::create(self),self,'$!is-lazy',is-lazy);
+
             my int $wanted;
             my $taken;
             my $taker := {
@@ -1856,7 +1859,7 @@ class Rakudo::Iterator {
             )
         }
     }
-    method Gather(&block) { Gather.new(&block) }
+    method Gather(&block, :$is-lazy) { Gather.new(&block, $is-lazy.Bool) }
 
     # Return an iterator for the given low/high integer value (inclusive).
     # Has dedicated .push-all for those cases one needs to fill a list

@@ -110,7 +110,7 @@ my class Capture { # declared in BOOTSTRAP
         if self.^name eq 'Capture' {
             "\\({
                 join ', ',
-                    ((nqp::atpos(@!list, $_).perl for ^nqp::elems(@!list)) if @!list),
+                    ((nqp::atpos(@!list, $_).perl(:arglist) for ^nqp::elems(@!list)) if @!list),
                     %hash.sort.map( *.perl )
             })";
         } else {

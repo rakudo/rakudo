@@ -290,6 +290,11 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             }
             my Mu $arg_info := param_list_for($r.signature, $r);
             my $conv = self.?native_call_convention || '';
+
+            $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
+            $!arity = $r.signature.arity;
+            $!any-optionals = self!any-optionals;
+
             my $jitted = nqp::buildnativecall(self,
                 nqp::unbox_s($guessed_libname),                           # library name
                 nqp::unbox_s(gen_native_symbol($r, $!name, :$!cpp-name-mangler)), # symbol to call
@@ -304,10 +309,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                         :resolve-libname-arg($libname),
                     )
                     !! return_hash_for($r.signature, $r, :$!entry-point));
-            $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
-            $!arity = $r.signature.arity;
-
-            $!any-optionals = self!any-optionals;
 
             my $body := $jitted ?? $!jit-optimized-body !! $!optimized-body;
             if $body {

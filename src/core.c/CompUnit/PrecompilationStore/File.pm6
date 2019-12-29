@@ -85,6 +85,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!update-lock.protect: {
                 $!file.close if $!file;
                 $!file = Nil;
+                $!initialized = False;
             }
         }
 

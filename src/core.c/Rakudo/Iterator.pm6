@@ -2234,17 +2234,29 @@ class Rakudo::Iterator {
         }
 
         method pull-one() is raw {
+#?if !jvm
             nqp::ifnull(
               $!iterator,
               $!iterator := $!iterable.iterator
             ).pull-one
+#?endif
+#?if jvm
+            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
+            $!iterator.pull-one
+#?endif
         }
 
         method push-exactly(\target, int $n) {
+#?if !jvm
             nqp::ifnull(
               $!iterator,
               $!iterator := $!iterable.iterator
             ).push-exactly(target, $n);
+#?endif
+#?if jvm
+            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
+            $!iterator.push-exactly(target, $n);
+#?endif
         }
 
         method is-lazy(--> True) { }

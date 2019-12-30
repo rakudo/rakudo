@@ -159,7 +159,10 @@ sub samewith(|c) {
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
 sub emit(Mu \value --> Nil) {
-    THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,nqp::p6recont_ro(value));
+    nqp::setextype($ex,nqp::const::CONTROL_EMIT);
+    nqp::throw($ex);
 }
 sub done(--> Nil) {
     THROW-NIL(nqp::const::CONTROL_DONE);

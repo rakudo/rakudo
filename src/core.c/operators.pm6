@@ -603,7 +603,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     )
 }
 
-sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms --> Nil) {
+sub REQUIRE_IMPORT($compunit, $existing-path, $top-existing-pkg, $stubname, *@syms --> Nil) {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;

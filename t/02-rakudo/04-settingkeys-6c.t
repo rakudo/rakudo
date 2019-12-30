@@ -80,7 +80,6 @@ my %allowed = (
     Q{&SUPPLY},
     Q{&SUPPLY-ONE-EMIT},
     Q{&SUPPLY-ONE-WHENEVER},
-    Q{&THROW},
     Q{&THROW-NIL},
     Q{&UNBASE},
     Q{&UNBASE_BRACKET},

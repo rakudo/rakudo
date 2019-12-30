@@ -12,7 +12,7 @@ Windows
 - In `C:\rakudo` do `git clone https://github.com/ugexe/zef.git` and `cd zef` and `C:\rakudo\install\bin\perl6.exe -I. bin\zef install .`
 - Copy all files in the `tools\build\binary-release\Windows` folder into the `install` folder.
 - Rename the `install` folder to `rakudo-20XX.XX`.
-- Create a `.zip` archive. Name it `rakudo-20XX.XX-windows-64bit.zip`.
+- Create a `.zip` archive. Name it `rakudo-moar-20XX.XX-01-win-x86_64.zip`.
 - Copy the `.zip` archive out of the Windows VM using the Virtual Box `File Manager` (*Machine -> File Manager...*)
 - Sign the `.zip` archive as described in `release_guide.pod`.
 - Upload the `.zip` archive and signature as described in `release_guide.pod`.
@@ -31,8 +31,7 @@ As of 2019-07-08 CentOS 6 (using glibc 2.12) is a good pick.
 
     yum -y update && yum clean all
     yum install git perl perl-core gcc make
-    # Don't forget to change the link below back to rakudo.org, once the website is back in shape again.
-    curl -o rakudo-2019.03.1.tar.gz https://perlgeek.de/static/p6/rakudo/rakudo-2019.03.1.tar.gz
+    curl -o rakudo-2019.03.1.tar.gz https://rakudo.org/dl/rakudo/rakudo-2019.03.1.tar.gz
     tar -xzf rakudo-2019.03.1.tar.gz
     cd rakudo-2019.03.1
     perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
@@ -44,9 +43,34 @@ As of 2019-07-08 CentOS 6 (using glibc 2.12) is a good pick.
     cd /rakudo-2019.03.1
     cp -r tools/build/binary-release/Linux/* install
     mv install rakudo-2019.03.1
-    tar -czf /rakudo-2019.03.1-linux-64bit.tar.gz rakudo-2019.03.1
+    tar -czf /rakudo-moar-2019.03.1-01-linux-x86_64.tar.gz rakudo-2019.03.1
 
-- On the host linux (not inside the container) run `docker cp rakudo-build:/rakudo-2019.03.1-linux-64bit.tar.gz .` to copy the archive out of the container. If you happended to stop the container by exitting the console, type `docker start rakudo-build` to start it again and allow copying files out.
+- On the host linux (not inside the container) run `docker cp rakudo-build:/rakudo-moar-2019.03.1-01-linux-x86_64.tar.gz .` to copy the archive out of the container. If you happended to stop the container by exitting the console, type `docker start rakudo-build` to start it again and allow copying files out.
+- Sign the tarball archive as described in `release_guide.pod`.
+- Upload the tarball and signature as described in `release_guide.pod`.
+
+
+Mac OS
+======
+
+- Install XCode from the App Store.
+- Open a terminal and do the following:
+
+    curl -o /Applications/rakudo-2019.03.1.tar.gz https://rakudo.org/dl/rakudo/rakudo-2019.03.1.tar.gz
+    cd /Applications
+    tar -xzf rakudo-2019.03.1.tar.gz
+    cd rakudo-2019.03.1
+    perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
+    make install
+    make test
+    git clone https://github.com/ugexe/zef.git
+    cd zef
+    /Applications/rakudo-2019.03.1/install/bin/perl6 -I. bin/zef install .
+    cd /Applications/rakudo-2019.03.1
+    cp -r tools/build/binary-release/MacOS/* install
+    mv install rakudo-2019.03.1
+    tar -czf /rakudo-moar-2019.03.1-01-macos-x86_64.tar.gz rakudo-2019.03.1
+
 - Sign the tarball archive as described in `release_guide.pod`.
 - Upload the tarball and signature as described in `release_guide.pod`.
 

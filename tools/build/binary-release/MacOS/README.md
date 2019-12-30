@@ -11,20 +11,16 @@ Running Raku
 
 To run a Raku program, open a command prompt and type
 
-    C:\path\to\this\folder\bin\raku.exe my_script.p6
+    /path/to/this/folder/bin/raku my_script.p6
 
-or start a REPL by calling `raku.exe` without an argument
+or start a REPL by calling `raku` without an argument
 
-    C:\path\to\this\folder\bin\raku.exe
+    /path/to/this/folder/bin/raku
 
 To add the relevant paths to your environment so you don't have to type the
-full path execute the following script in CMD:
+full path run the following script (don't forget the '$()'):
 
-    C:\path\to\this\folder\scripts\set-env.bat
-
-or when using Powershell (note the dot at the beginning):
-
-    . C:\path\to\this\folder\scripts\set-env.ps1
+    $(scripts/set-env.sh)
 
 
 Installing modules
@@ -32,7 +28,7 @@ Installing modules
 
 To install Raku modules you can use the Zef module installer.
 
-    C:\path\to\this\folder\bin\raku.exe C:\path\to\this\folder\share\perl6\site\bin\zef install JSON::Fast
+    /path/to/this/folder/bin/raku /path/to/this/folder/share/perl6/site/bin/zef install JSON::Fast
 
 Modules will be installed into this Raku package and will thus be available
 even when moving this package.
@@ -41,30 +37,8 @@ even when moving this package.
 Native code modules
 -------------------
 
-To install modules that require a compiler toolchain, you need to have the
-Microsoft Visual C compiler installed. The freely available
-Microsoft BuildTools contain that compiler. You can use the installer script
-
-    C:\path\to\this\folder\bin\vs_build_tools_install_assistant.ps1
-
-to guide you through the installation.
-
-Alternatively you can install the BuildTools manually. They can be downloaded
-[here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools).
-You'll need to select the `C++ build tools` and recommended components.
-
-The compiler is only usable in special Build Tools CMD / PowerShell windows.
-
-To make use of the Build Tools in Rakudo using CMD:
-- start a CMD window using
-    Start Menu -> Visual Studio 2019 ->
-    x86 / x64 Native Tools Command Prompt for VS 2019
-- Execute $scriptPath\set-env.bat
-
-To make use of the Build Tools in Rakudo using PowerShell:
-- start a PowerShell window using
-    Start Menu -> Visual Studio 2019 -> Developer PowerShell for VS 2019
-- Execute $scriptPath\set-env.ps1
+To install modules that require a compiler toolchain, you have to have a
+compiler installed. You can do that by installing `XCode` from the App Store.
 
 
 Changes
@@ -81,9 +55,9 @@ twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-
 Where to get help or answers to questions
 =========================================
 
-There are several mailing lists, IRC channels, and wikis available with
-help for Raku and Rakudo. Figuring out the right one to use
-is often the biggest battle. Here are some rough guidelines:
+There are several mailing lists, IRC channels, and wikis available with help
+for Raku and Rakudo. Figuring out the right one to use is often the biggest
+battle. Here are some rough guidelines:
 
 The central hub for Raku information is [raku.org](https://raku.org/).
 This is always a good starting point.
@@ -111,8 +85,8 @@ See https://rakudo.org/bugs
 Submitting patches
 ==================
 
-If you have a patch that fixes a bug or adds a new feature, please
-create a pull request using github's pull request infrastructure.
+If you have a patch that fixes a bug or adds a new feature, please create a
+pull request using github's pull request infrastructure.
 
 See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/CONTRIBUTING.md)
 for more information.

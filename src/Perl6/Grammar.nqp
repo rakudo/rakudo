@@ -2904,8 +2904,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*W.throw($/, ['X', 'Redeclaration'],
                         symbol => $longname.name(),
                     );
-                    $*DECLARATION_NAME := nqp::hllizefor($longname.name(), 'perl6');
                 }
+                $*DECLARATION_NAME := nqp::hllizefor($longname.name(), 'perl6');
             }
         | <variable>
         | <?>

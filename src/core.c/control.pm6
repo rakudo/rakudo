@@ -105,9 +105,19 @@ multi sub redo(Label:D \x --> Nil) { x.redo }
 
 proto sub succeed(|) {*}
 multi sub succeed(--> Nil) { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
-multi sub succeed(\x --> Nil) { THROW(nqp::const::CONTROL_SUCCEED, x) }
+multi sub succeed(\value --> Nil) {
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,value);
+    nqp::setextype($ex,nqp::const::CONTROL_SUCCEED);
+    nqp::throw($ex);
+}
 multi sub succeed(| --> Nil) {
-    THROW(nqp::const::CONTROL_SUCCEED,RETURN-LIST(nqp::p6argvmarray))
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,nqp::p6bindattrinvres(
+      nqp::create(List),List,'$!reified',nqp::p6argvmarray)
+    );
+    nqp::setextype($ex,nqp::const::CONTROL_SUCCEED);
+    nqp::throw($ex);
 }
 
 sub proceed(--> Nil) { THROW-NIL(nqp::const::CONTROL_PROCEED) }

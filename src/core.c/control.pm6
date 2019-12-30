@@ -59,8 +59,12 @@ multi sub take-rw(|) {
 
 proto sub take(|) {*}
 multi sub take()   { die "take without parameters doesn't make sense" }
-multi sub take(\x) {
-    THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x))
+multi sub take(\value) {
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,nqp::p6recont_ro(value));
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    value
 }
 multi sub take(|) {
     THROW(

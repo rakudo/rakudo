@@ -2882,6 +2882,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token type_declarator:sym<enum> {
         <sym><.kok>
         :my $*IN_DECL := 'enum';
+        :my $*DECLARATION_NAME;
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
@@ -2903,6 +2904,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     $*W.throw($/, ['X', 'Redeclaration'],
                         symbol => $longname.name(),
                     );
+                    $*DECLARATION_NAME := nqp::hllizefor($longname.name(), 'perl6');
                 }
             }
         | <variable>
@@ -2918,6 +2920,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule type_declarator:sym<subset> {
         <sym><.kok> :my $*IN_DECL := 'subset';
+        :my $*DECLARATION_NAME;
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
@@ -2942,6 +2945,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 symbol => $longname.name(),
                             );
                         }
+                        $*DECLARATION_NAME := nqp::hllizefor($longname.name(), 'perl6');
                     }
                 ]?
                 { $*IN_DECL := '' }

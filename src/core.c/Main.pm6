@@ -53,7 +53,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         sub thevalue(\a) {
             ((my \type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS(type.HOW))
               ?? type
-              !! val(a)
+              !! a.val
         }
 
         while @args {

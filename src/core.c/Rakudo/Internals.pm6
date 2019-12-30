@@ -165,7 +165,7 @@ my class Rakudo::Internals {
               nqp::iterkey_s(nqp::shift($iter)),
               nqp::assign(
                 nqp::p6scalarfromdesc(nqp::null),
-                val(nqp::iterval($iter))
+                nqp::box_s(nqp::iterval($iter),Str).val
               )
             )
           ),

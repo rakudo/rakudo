@@ -73,10 +73,13 @@ multi sub take(\value) {
     out
 }
 multi sub take(|) {
-    THROW(
-      nqp::const::CONTROL_TAKE,
-      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
-    )
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,my \out := nqp::p6bindattrinvres(
+      nqp::create(List),List,'$!reified',nqp::p6argvmarray)
+    );
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    out
 }
 
 proto sub goto($, *%) {*}

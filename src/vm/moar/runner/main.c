@@ -148,7 +148,9 @@ int wmain(int argc, wchar_t *wargv[])
 
     char   *exec_path;
     size_t  exec_path_size;
+#ifndef STATIC_EXEC_PATH
     int     res;
+#endif
 
     char   *exec_dir_path;
     char   *exec_dir_path_temp;

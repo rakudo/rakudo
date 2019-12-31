@@ -39,6 +39,15 @@ role Perl6::Metamodel::AttributeContainer {
                 nqp::die("Two or more attributes declared that both want an accessor method '$acc_name'")
                     if %seen_with_accessor{$acc_name} && !nqp::existskey(%orig_meths, $acc_name);
                 %seen_with_accessor{$acc_name} := 1;
+                if nqp::decont($_.original.package) =:= $obj && nqp::existskey($obj.HOW.method_table($obj), $acc_name) {
+                    my $method_package := nqp::decont($obj.HOW.method_table($obj){$acc_name}.package);
+                    unless $method_package =:= $obj {
+                        my $lang := nqp::getlexdyn('$*LANG');
+                        unless nqp::isnull($lang) {
+                            $*LANG.worry('Attribute $.', $acc_name, " won't get its accessor installed on ", $obj.HOW.name($obj), ", a method of the same name already exists in ", $method_package.HOW.name($method_package));
+                        }
+                    }
+                }
             }
 
             # Heuristic to pass along compiler_services only to Perl 6 MOP,

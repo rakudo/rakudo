@@ -996,57 +996,73 @@ my class Supply does Awaitable {
         }
     }
 
-    method lines(Supply:D $self: :$chomp = True ) {
+    proto method lines(|) {*}
+    # optional chomping lines from a Supply
+    multi method lines(Supply:D $self: :$chomp! ) {
+        $chomp
+          ?? self.lines            # need to chomp
+          !! supply {              # no chomping wanted
+                 my str $str;
+                 my int $left;
+                 my int $pos;
+                 my int $nextpos;
+
+                 whenever self -> str $val {
+                     $str = nqp::concat($str,$val);
+                     $pos = 0;
+
+                     while ($left = nqp::chars($str) - $pos) > 0 {
+                         $nextpos = nqp::findcclass(
+                           nqp::const::CCLASS_NEWLINE,$str,$pos,$left);
+
+                         last
+                           if $nextpos >= nqp::chars($str)        # no line delimiter
+                           or nqp::eqat($str,"\r",$nextpos)       # broken CRLF?
+                             && $nextpos == nqp::chars($str) - 1; # yes!
+
+                         emit nqp::p6box_s(nqp::substr($str,$pos,$nextpos - $pos + 1));
+                         $pos = $nextpos + 1;
+                     }
+                     $str = nqp::substr($str,$pos);
+
+                     LAST {
+                         emit nqp::p6box_s($str) if nqp::chars($str);
+                     }
+                 }
+             }
+    }
+
+    # chomping lines from a Supply
+    multi method lines(Supply:D $self:) {
         supply {
             my str $str;
-            my int $chars;
-            my int $left;
             my int $pos;
+            my int $left;
             my int $nextpos;
-            my int $found;
 
-            whenever self -> \val {
-                $str   = $str ~ nqp::unbox_s(val);
-                $chars = nqp::chars($str);
-                $pos   = 0;
+            whenever self -> str $val {
+                $str = nqp::concat($str,$val);
+                $pos = 0;
 
-                while ($left = $chars - $pos) > 0 {
+                while ($left = nqp::chars($str) - $pos) > 0 {
                     $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_NEWLINE, $str, $pos, $left
-                    );
+                      nqp::const::CCLASS_NEWLINE,$str,$pos,$left);
 
                     last
-                      if $nextpos >= $chars     # no line delimiter
-                      or $nextpos == $chars - 1 # broken CRLF ?
-                        && nqp::eqat($str, "\r", $nextpos); # yes!
+                      if $nextpos >= nqp::chars($str)        # no line delimiter
+                      or nqp::eqat($str,"\r",$nextpos)       # broken CRLF?
+                        && $nextpos == nqp::chars($str) - 1; # yes!
 
-                    if $chomp {
-                        emit( ($found = $nextpos - $pos)
-                          ?? nqp::p6box_s(nqp::substr($str,$pos,$found))
-                          !! ''
-                        );
-                        $pos = $nextpos + 1;
-                    }
-                    else {
-                        $found = $nextpos - $pos + 1;
-                        emit(
-                          nqp::p6box_s(nqp::substr($str,$pos,$found)));
-                        $pos = $pos + $found;
-                    }
+                    emit nqp::p6box_s(nqp::substr($str,$pos,$nextpos - $pos));
+                    $pos = $nextpos + 1;
                 }
-                $str = $pos < $chars
-                  ?? nqp::substr($str,$pos)
-                  !! '';
+                $str = nqp::substr($str,$pos);
 
                 LAST {
-                    if $str {
-                        $chars = nqp::chars($str);
-                        emit( $chomp && nqp::iscclass(
-                          nqp::const::CCLASS_NEWLINE,$str,$chars-1)
-                            ?? nqp::p6box_s(nqp::substr($str,0,$chars - 1))
-                            !! nqp::p6box_s($str)
-                        );
-                    }
+                    emit nqp::p6box_s(nqp::substr($str,0,
+                      nqp::chars($str) - nqp::iscclass(    # skip whitespace at end
+                        nqp::const::CCLASS_NEWLINE,$str,nqp::chars($str) - 1)
+                    )) if nqp::chars($str);
                 }
             }
         }

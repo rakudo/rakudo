@@ -1148,15 +1148,16 @@ my class Supply does Awaitable {
         }
     }
 
-    method head(Supply:D: Int(Cool) $number = 1) {
+    multi method head(Supply:D:) {
+        supply { whenever self -> \val { emit val; done } }
+    }
+    multi method head(Supply:D: Int(Cool) $number) {
         supply {
-            my int $todo = $number;
+            my int $todo = $number > 0 && $number + 1;
             whenever self -> \val {
-                if $todo > 0 {
-                    emit val;
-                    $todo = $todo - 1;
-                }
-                done if $todo <= 0;  # nothing left to do
+                --$todo
+                  ?? emit(val)
+                  !! done
             }
         }
     }

@@ -1099,7 +1099,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     );
 
     INIT {
-        # If, e.g., we support Perl up to v6.1.2, set
+        # If, e.g., we support Raku up to v6.1.2, set
         # @MAX_PERL_VERSION to [6, 1, 2].
         @MAX_PERL_VERSION[0] := 6;
     }
@@ -1315,7 +1315,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             stderr().print($*W.group_exception().gist());
         }
 
-        if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl 5
+        if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl
             $mainline[1] := QAST::Stmt.new(wrap_option_p_code($/, $mainline[1]));
         }
         elsif %*COMPILING<%?OPTIONS><n> {
@@ -7076,7 +7076,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if nqp::istype($past, QAST::Op) && $past.op eq 'call' && $past.name eq '&postfix:<ⁿ>';
 
             # Method calls may be to a foreign language, and thus return
-            # values may need type mapping into Perl 6 land.
+            # values may need type mapping into Raku land.
             $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
             if nqp::istype($past, QAST::Op) && $past.op eq 'callmethod' {
                 unless $<OPER> && ($<OPER><sym> eq '.=' || $<OPER><sym> eq '.+' || $<OPER><sym> eq '.?') {

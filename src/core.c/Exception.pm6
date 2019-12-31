@@ -850,8 +850,8 @@ my class X::Worry is Exception { }
 my class X::Worry::P5 is X::Worry { }
 my class X::Worry::P5::Reference is X::Worry::P5 {
     method message {
-q/To pass an array, hash or sub to a function in Perl 6, just pass it as is.
-For other uses of Perl 5's ref operator consider binding with ::= instead.
+q/To pass an array, hash or sub to a function in Raku, just pass it as is.
+For other uses of Perl's ref operator consider binding with ::= instead.
 Parenthesize as \\(...) if you intended a capture of a single variable./
     }
 }
@@ -1091,7 +1091,7 @@ my class X::Undeclared::Symbols does X::Comp {
             $r ~= "Undeclared routine" ~ (%.unk_routines.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.unk_routines.sort(*.key) {
                 $r ~= "    $_.key() &l($_.value)";
-                $r ~= " (in Perl 6 please use " ~ $obs{$_.key()} ~ " instead)" if $obs{$_.key()};
+                $r ~= " (in Raku please use " ~ $obs{$_.key()} ~ " instead)" if $obs{$_.key()};
                 if +%.routine_suggestion{$_.key()}.list {
                     $r ~= ". " ~ s(%.routine_suggestion{$_.key()}.list);
                 }
@@ -1176,7 +1176,7 @@ my class X::Phaser::Multiple does X::Comp {
 my class X::Obsolete does X::Comp {
     has $.old;
     has $.replacement; # can't call it $.new, collides with constructor
-    has $.when = 'in Perl 6';
+    has $.when = 'in Raku';
     method message() { "Unsupported use of $.old; $.when please use $.replacement" }
 }
 
@@ -1435,7 +1435,7 @@ my class X::Syntax::ParentAsHash does X::Syntax {
 
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
-    method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }
+    method message() { qq{In Raku, please use "elsif' instead of "$.what"} }
 }
 
 my class X::Syntax::Reserved does X::Syntax {
@@ -1445,7 +1445,7 @@ my class X::Syntax::Reserved does X::Syntax {
 }
 
 my class X::Syntax::P5 does X::Syntax {
-    method message() { 'This appears to be Perl 5 code' }
+    method message() { 'This appears to be Perl code' }
 }
 
 my class X::Syntax::NegatedPair does X::Syntax {
@@ -1646,7 +1646,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
         }
         $v
           ?? $sugg
-            ?? "Unsupported use of $name variable; in Perl 6 please use $sugg"
+            ?? "Unsupported use of $name variable; in Raku please use $sugg"
             !! "Unsupported use of $name variable"
           !! 'Weird unrecognized variable name: ' ~ $name;
     }
@@ -3027,7 +3027,7 @@ my class X::Assignment::ToShaped is Exception {
 my class X::Language::Unsupported is Exception {
     has $.version;
     method message() {
-        "No compiler available for Perl $.version"
+        "No compiler available for Raku $.version"
     }
 }
 my class X::Language::TooLate is Exception {
@@ -3039,7 +3039,7 @@ my class X::Language::ModRequired is Exception {
     has $.version;
     has $.modifier;
     method message() {
-        "Perl $.version requires $.modifier modifier"
+        "Raku $.version requires $.modifier modifier"
     }
 }
 

@@ -51,7 +51,7 @@ sub p6ize_recursive($x) {
 }
 
 # Helper sub that turns a list of items into an NQPArray. This is needed when
-# using e.g. $*W.find_symbol from Perl 6 code (example: slangs).
+# using e.g. $*W.find_symbol from Raku code (example: slangs).
 sub nqplist(*@arr) { @arr }
 nqp::bindcurhllsym('nqplist', &nqplist);
 
@@ -178,7 +178,7 @@ sub levenshtein_candidate_heuristic(@candidates, $target) {
     }
 }
 
-# This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
+# This builds upon the HLL::World to add the specifics needed by Rakudo.
 class Perl6::World is HLL::World {
 
     my class Perl6CompilationContext is HLL::World::CompilationContext {
@@ -565,7 +565,7 @@ class Perl6::World is HLL::World {
         }
 
         if %lang_rev{$rev}<mods>{$modifier}<deprecate> {
-            $ver-match.PRECURSOR.worry("$modifier modifier is deprecated for Perl 6.$rev");
+            $ver-match.PRECURSOR.worry("$modifier modifier is deprecated for Raku.$rev");
         }
     }
 
@@ -3116,7 +3116,7 @@ class Perl6::World is HLL::World {
         }
     }
 
-    # Takes a data structure of non-Perl 6 objects and wraps them up
+    # Takes a data structure of non-Raku objects and wraps them up
     # recursively.
     # If :$dynamic is passed wraps hashes with dynamic Scalars
     method p6ize_recursive($data, :$dynamic) {

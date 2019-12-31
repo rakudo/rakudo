@@ -1,5 +1,5 @@
-# Takes a foreign code object and tries to make it feel somewhat like a Perl
-# 6 one. Note that it doesn't have signature information we can know about.
+# Takes a foreign code object and tries to make it feel somewhat like a Raku
+# one. Note that it doesn't have signature information we can know about.
 
 my class ForeignCode
   does Callable
@@ -32,7 +32,7 @@ proto sub EVAL(
   Bool()      :$check = False,
   *%_
 ) {
-    die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
+    die "EVAL() in Raku is intended to evaluate strings, did you mean 'try'?"
       if nqp::istype($code,Callable);
 
 # TEMPORARY HACK

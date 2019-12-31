@@ -1,5 +1,5 @@
 # Waits for a promise to be kept or a channel to be able to receive a value
-# and, once it can, unwraps or returns the result. Under Perl 6.c, await will
+# and, once it can, unwraps or returns the result. Under Raku 6.c, await will
 # really block the calling thread. In 6.d, if the thread is on the thread pool
 # then a continuation will be taken, and the thread is freed up.
 

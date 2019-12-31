@@ -358,8 +358,8 @@ role STD {
         self.typed_panic('X::Syntax::NonListAssociative', :left(~$left), :right(~$right));
     }
 
-    # "when" arg assumes more things will become obsolete after Perl 6 comes out...
-    method obs($old, $new, $when = 'in Perl 6', :$ism = 'p5isms') {
+    # "when" arg assumes more things will become obsolete after Raku comes out...
+    method obs($old, $new, $when = 'in Raku', :$ism = 'p5isms') {
         unless $*LANG.pragma($ism) {
             $*W.throw(self.MATCH(), ['X', 'Obsolete'],
                 old         => $old,
@@ -376,7 +376,7 @@ role STD {
         }
         self;
     }
-    method sorryobs($old, $new, $when = 'in Perl 6') {
+    method sorryobs($old, $new, $when = 'in Raku') {
         unless $*LANG.pragma('p5isms') {
             $*W.throw(self.MATCH(), ['X', 'Obsolete'],
                 old         => $old,
@@ -386,7 +386,7 @@ role STD {
         }
         self;
     }
-    method worryobs($old, $new, $when = 'in Perl 6') {
+    method worryobs($old, $new, $when = 'in Raku') {
         unless $*LANG.pragma('p5isms') {
             self.typed_worry('X::Obsolete',
                 old         => $old,
@@ -1314,7 +1314,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <.ws>
     }
 
-    # This is like HLL::Grammar.LANG but it allows to call a token of a Perl 6 level grammar.
+    # This is like HLL::Grammar.LANG but it allows to call a token of a Raku level grammar.
     method FOREIGN_LANG($langname, $regex, *@args) {
         my $grammar := self.slang_grammar($langname);
         if nqp::istype($grammar, NQPMatch) {
@@ -2183,7 +2183,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         }
                         unless $*SCOPE eq 'unit' {
                             if $*PKGDECL eq 'package' {
-                                $/.panic('This appears to be Perl 5 code. If you intended it to be Perl 6 code, please use a Perl 6 style declaration like "unit package Foo;" or "unit module Foo;", or use the block form instead of the semicolon form.');
+                                $/.panic('This appears to be Perl code. If you intended it to be Raku code, please use a Raku style declaration like "unit package Foo;" or "unit module Foo;", or use the block form instead of the semicolon form.');
                             }
                             $/.panic("Semicolon form of '$*PKGDECL' without 'unit' is illegal.  You probably want to use 'unit $*PKGDECL'");
                         }

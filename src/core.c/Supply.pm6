@@ -1092,40 +1092,30 @@ my class Supply does Awaitable {
     method words(Supply:D $self:) {
         supply {
             my str $str;
-            my int $chars;
             my int $left;
             my int $pos;
             my int $nextpos;
-            my int $found;
-            my int $cr;
-            my int $crlf;
 
-            whenever self -> \val {
-                $str   = $str ~ nqp::unbox_s(val);
-                $chars = nqp::chars($str);
-                $pos   = nqp::findnotcclass(
-                  nqp::const::CCLASS_WHITESPACE, $str, 0, $chars);
+            whenever self -> str $val {
+                $str = nqp::concat($str,$val);
+                $pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE,$str,0,nqp::chars($str));
 
-                while ($left = $chars - $pos) > 0 {
+                while ($left = nqp::chars($str) - $pos) > 0 {
                     $nextpos = nqp::findcclass(
-                      nqp::const::CCLASS_WHITESPACE, $str, $pos, $left
-                    );
+                      nqp::const::CCLASS_WHITESPACE,$str,$pos,$left);
 
-                    last unless $left = $chars - $nextpos; # broken word
+                    last unless $left = nqp::chars($str) - $nextpos; # broken word
 
-                    emit( nqp::box_s(
-                      nqp::substr( $str, $pos, $nextpos - $pos ), Str)
-                    );
+                    emit nqp::p6box_s(nqp::substr($str,$pos,$nextpos - $pos));
 
                     $pos = nqp::findnotcclass(
                       nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
                 }
-                $str = $pos < $chars
-                  ?? nqp::substr($str,$pos)
-                  !! '';
+                $str = nqp::substr($str,$pos);
 
                 LAST {
-                    emit( nqp::box_s($str, Str) ) if $str;
+                    emit nqp::p6box_s($str) if nqp::chars($str);
                 }
             }
         }

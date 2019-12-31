@@ -15,9 +15,11 @@ my class Attribute { # declared in BOOTSTRAP
     #     has Mu $!why;
     #     has $!required;
     #     has Mu $!container_initializer;
-    #     has Attribute $!original; 
+    #     has Attribute $!original;
 
     method compose(Mu $package, :$compiler_services) {
+        # If we're originating from a role then $!package has to be adjusted for the new owner.
+        nqp::bindattr(self, Attribute, '$!package', nqp::decont($package));
         # Generate accessor method, if we're meant to have one.
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);

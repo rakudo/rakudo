@@ -3750,7 +3750,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 has_accessor => $twigil eq '.',
                 container_descriptor => $descriptor,
                 type => %cont_info<bind_constraint>,
-                package => $*W.find_symbol(['$?CLASS']));
+                package => $*PACKAGE);
             if %cont_info<build_ast> {
                 %config<container_initializer> := $*W.create_thunk($/,
                     %cont_info<build_ast>);

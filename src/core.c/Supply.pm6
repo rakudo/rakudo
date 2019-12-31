@@ -535,7 +535,7 @@ my class Supply does Awaitable {
     ## A bunch of the more complex combinators, implemented as supply blocks
     ##
 
-    method do(Supply:D $self: &side-effect) {
+    method do(Supply:D: &side-effect) {
         supply {
             whenever self -> \value {
                 side-effect(value);
@@ -571,7 +571,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method reduce(Supply:D $self: &with) {
+    method reduce(Supply:D: &with) {
         supply {
             my $first := True;
             my $reduced := Nil;
@@ -590,7 +590,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method produce(Supply:D $self: &with) {
+    method produce(Supply:D: &with) {
         supply {
             my $first := True;
             my $reduced := Nil;
@@ -750,7 +750,7 @@ my class Supply does Awaitable {
         SupplyAwaitableHandle.not-ready(self)
     }
 
-    method unique(Supply:D $self: :&as, :&with, :$expires) {
+    method unique(Supply:D: :&as, :&with, :$expires) {
         supply {
             if $expires {
                 if &with and !(&with === &[===]) {
@@ -867,7 +867,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method squish(Supply:D $self: :&as, :&with is copy) {
+    method squish(Supply:D: :&as, :&with is copy) {
         &with //= &[===];
         supply {
             my int $first = 1;
@@ -896,10 +896,10 @@ my class Supply does Awaitable {
         }
     }
 
-    multi method rotor(Supply:D $self: Int:D $batch, :$partial) {
+    multi method rotor(Supply:D: Int:D $batch, :$partial) {
         self.rotor(($batch,), :$partial)
     }
-    multi method rotor(Supply:D $self: *@cycle, :$partial) {
+    multi method rotor(Supply:D: *@cycle, :$partial) {
         my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
         supply {
             my Int $elems;
@@ -943,7 +943,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method batch(Supply:D $self: Int(Cool) :$elems = 0, :$seconds) {
+    method batch(Supply:D: Int(Cool) :$elems = 0, :$seconds) {
         supply {
             my int $max = $elems >= 0 ?? $elems !! 0;
             my $batched := nqp::list;
@@ -999,7 +999,7 @@ my class Supply does Awaitable {
     proto method lines(|) {*}
 
     # lines from a Supply with given line-ending
-    multi method lines(Supply:D $self: Str(Cool) :$nl-in! ) {
+    multi method lines(Supply:D: Str(Cool) :$nl-in! ) {
         supply {
             my str $str;
             my str $needle = $nl-in;
@@ -1019,7 +1019,7 @@ my class Supply does Awaitable {
     }
 
     # optional chomping lines from a Supply
-    multi method lines(Supply:D $self: :$chomp! ) {
+    multi method lines(Supply:D: :$chomp! ) {
         $chomp
           ?? self.lines            # need to chomp
           !! supply {              # no chomping wanted
@@ -1054,7 +1054,7 @@ my class Supply does Awaitable {
     }
 
     # chomping lines from a Supply
-    multi method lines(Supply:D $self:) {
+    multi method lines(Supply:D:) {
         supply {
             my str $str;
             my int $pos;
@@ -1089,7 +1089,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method words(Supply:D $self:) {
+    method words(Supply:D:) {
         supply {
             my str $str;
             my int $left;
@@ -1121,7 +1121,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method elems(Supply:D $self: $seconds? ) {
+    method elems(Supply:D: $seconds? ) {
         supply {
             my int $elems = 0;
             if $seconds {
@@ -1204,7 +1204,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method min(Supply:D $self: &by = &infix:<cmp>) {
+    method min(Supply:D: &by = &infix:<cmp>) {
         my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
         supply {
             my $min;
@@ -1216,7 +1216,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method max(Supply:D $self: &by = &infix:<cmp>) {
+    method max(Supply:D: &by = &infix:<cmp>) {
         my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
         supply {
             my $max;
@@ -1228,7 +1228,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method minmax(Supply:D $self: &by = &infix:<cmp>) {
+    method minmax(Supply:D: &by = &infix:<cmp>) {
         my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
         supply {
             my $min;
@@ -1252,7 +1252,7 @@ my class Supply does Awaitable {
         }
     }
 
-    method grab(Supply:D $self: &when_done) {
+    method grab(Supply:D: &when_done) {
         supply {
             my @seen;
             whenever self -> \val {
@@ -1342,7 +1342,7 @@ my class Supply does Awaitable {
     }
 
     proto method throttle(|) {*}
-    multi method throttle(Supply:D $self:
+    multi method throttle(Supply:D:
       Int()  $elems,
       Real() $seconds,
       Real() $delay  = 0,
@@ -1439,7 +1439,7 @@ my class Supply does Awaitable {
             }
         }
     }
-    multi method throttle(Supply:D $self:
+    multi method throttle(Supply:D:
       Int()  $elems,
       Callable:D $process,
       Real() $delay = 0,

@@ -152,9 +152,11 @@ int wmain(int argc, wchar_t *wargv[])
     int     res;
 #endif
 
-    char   *exec_dir_path;
     char   *exec_dir_path_temp;
+#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME))
+    char   *exec_dir_path;
     size_t  exec_dir_path_size;
+#endif
 
           char   *nqp_home;
           size_t  nqp_home_size;
@@ -284,6 +286,7 @@ int wmain(int argc, wchar_t *wargv[])
     /* The +1 is the trailing \0 terminating the string. */
     exec_dir_path_temp = (char*)malloc(exec_path_size + 1);
     memcpy(exec_dir_path_temp, exec_path, exec_path_size + 1);
+#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME))
 #ifdef _WIN32
     PathRemoveFileSpecA(exec_dir_path_temp);
     exec_dir_path_size = strlen(exec_dir_path_temp);
@@ -292,6 +295,7 @@ int wmain(int argc, wchar_t *wargv[])
 #else
     exec_dir_path      = dirname(exec_dir_path_temp);
     exec_dir_path_size = strlen(exec_dir_path);
+#endif
 #endif
 
     /* Retrieve RAKUDO_HOME and NQP_HOME. */

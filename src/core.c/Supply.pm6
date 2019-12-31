@@ -1121,24 +1121,29 @@ my class Supply does Awaitable {
         }
     }
 
-    method elems(Supply:D: $seconds? ) {
+    multi method elems(Supply:D:) {
         supply {
-            my int $elems = 0;
-            if $seconds {
-                my $last_time = time div $seconds;
-                my int $last_elems = $elems;
-                whenever self -> \val {
-                    $last_elems = $elems = $elems + 1;
-                    my $this_time = time div $seconds;
-                    if $this_time != $last_time {
-                        emit $elems;
-                        $last_time = $this_time;
-                    }
-                    LAST emit($elems) if $elems != $last_elems;
+            my int $elems;
+            whenever self { emit ++$elems }
+        }
+    }
+    multi method elems(Supply:D: $seconds ) {
+        supply {
+            my $last-time := nqp::time_i() div $seconds;
+            my $this-time;
+
+            my int $elems;
+            my int $last-elems;
+
+            whenever self {
+                $last-elems = ++$elems;
+                $this-time := nqp::time_i() div $seconds;
+
+                if $this-time != $last-time {
+                    emit $elems;
+                    $last-time := $this-time;
                 }
-            }
-            else {
-                whenever self -> \val { emit $elems = $elems + 1 }
+                LAST emit $elems if $elems != $last-elems;
             }
         }
     }

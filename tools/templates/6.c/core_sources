@@ -173,6 +173,7 @@ src/core.c/CurrentThreadScheduler.pm6
 src/core.c/Promise.pm6
 src/core.c/Channel.pm6
 src/core.c/Supply.pm6
+src/core.c/Rakudo/Supply.pm6
 src/core.c/asyncops.pm6
 src/core.c/IO/Socket.pm6
 src/core.c/IO/Socket/INET.pm6

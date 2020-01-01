@@ -750,9 +750,9 @@ my class Supply does Awaitable {
         SupplyAwaitableHandle.not-ready(self)
     }
 
-    method unique(Supply:D: :&as, :&with, :$expires) {
-        supply {
-            if $expires {
+    multi method unique(Supply:D: :&as, :&with, :$expires!) {
+        $expires
+          ?? supply {
                 if &with and !(&with === &[===]) {
                     my @seen;  # really Mu, but doesn't work in settings
                     my Mu $target;
@@ -819,47 +819,50 @@ my class Supply does Awaitable {
                     }
                 }
             }
-            else { # !$!expires
-                if &with and !(&with === &[===]) {
-                    my @seen;  # really Mu, but doesn't work in settings
-                    my Mu $target;
-                    if &as {
-                        whenever self -> \val {
-                            $target = &as(val);
-                            if @seen.first({ &with($target,$_) } ) =:= Nil {
-                                @seen.push($target);
-                                emit(val);
-                            }
-                        }
-                    }
-                    else {
-                        whenever self -> \val {
-                            if @seen.first({ &with(val,$_) } ) =:= Nil {
-                                @seen.push(val);
-                                emit(val);
-                            }
+          !! self.unique(:&as, :&with)
+    }
+
+    multi method unique(Supply:D: :&as, :&with) {
+        supply {
+            if &with and !(&with === &[===]) {
+                my @seen;  # really Mu, but doesn't work in settings
+                my Mu $target;
+                if &as {
+                    whenever self -> \val {
+                        $target = &as(val);
+                        if @seen.first({ &with($target,$_) } ) =:= Nil {
+                            @seen.push($target);
+                            emit(val);
                         }
                     }
                 }
                 else {
-                    my $seen := nqp::hash();
-                    my str $target;
-                    if &as {
-                        whenever self -> \val {
-                            $target = nqp::unbox_s(&as(val).WHICH);
-                            unless nqp::existskey($seen, $target) {
-                                nqp::bindkey($seen, $target, 1);
-                                emit(val);
-                            }
+                    whenever self -> \val {
+                        if @seen.first({ &with(val,$_) } ) =:= Nil {
+                            @seen.push(val);
+                            emit(val);
                         }
                     }
-                    else {
-                        whenever self -> \val {
-                            $target = nqp::unbox_s(val.WHICH);
-                            unless nqp::existskey($seen, $target) {
-                                nqp::bindkey($seen, $target, 1);
-                                emit(val);
-                            }
+                }
+            }
+            else {
+                my $seen := nqp::hash();
+                my str $target;
+                if &as {
+                    whenever self -> \val {
+                        $target = nqp::unbox_s(&as(val).WHICH);
+                        unless nqp::existskey($seen, $target) {
+                            nqp::bindkey($seen, $target, 1);
+                            emit(val);
+                        }
+                    }
+                }
+                else {
+                    whenever self -> \val {
+                        $target = nqp::unbox_s(val.WHICH);
+                        unless nqp::existskey($seen, $target) {
+                            nqp::bindkey($seen, $target, 1);
+                            emit(val);
                         }
                     }
                 }

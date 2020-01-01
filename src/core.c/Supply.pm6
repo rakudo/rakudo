@@ -354,8 +354,7 @@ my class Supply does Awaitable {
                     tap($t);
                 },
                 -> \value {
-                    my \accepted = try $!test.ACCEPTS(value);
-                    if accepted {
+                    if try $!test.ACCEPTS(value) {
                         emit(value);
                     }
                     elsif $! {

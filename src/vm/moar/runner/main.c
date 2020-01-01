@@ -153,7 +153,7 @@ int wmain(int argc, wchar_t *wargv[])
 #endif
 
     char   *exec_dir_path_temp;
-#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME))
+#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME)) || defined(_WIN32)
     char   *exec_dir_path;
     size_t  exec_dir_path_size;
 #endif

@@ -506,7 +506,7 @@ my class Supply does Awaitable {
             $!source.tap(
                 tap => {
                     $source-tap = $_;
-                    my $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
+                    $t = Tap.new({ self!cleanup($cleaned-up, $source-tap) });
                     tap($t);
                 },
                 -> \value {
@@ -526,8 +526,9 @@ my class Supply does Awaitable {
         }
     }
     method delayed(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        return self unless $time;  # nothing to do
-        Supply.new(Delayed.new(source => self.sanitize, :$time, :$scheduler))
+        $time
+          ?? Supply.new(Delayed.new(source => self.sanitize,:$time,:$scheduler))
+          !! self    # nothing to do
     }
 
     ##

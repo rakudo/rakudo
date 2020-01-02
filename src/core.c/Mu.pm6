@@ -13,7 +13,7 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
-    method raku(|c) { self.perl(|c) }
+    method raku(\SELF: |c) { SELF.perl(|c) }
 
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {

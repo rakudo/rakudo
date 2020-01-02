@@ -14,7 +14,8 @@ my %provides =
     "snapper"                       => "lib/snapper.rakumod",
 ;
 
-%provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.pm6" if $*VM.name eq 'moar';
+%provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod"
+  if $*VM.name eq 'moar';
 
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
     :prefix(@*ARGS[0]),

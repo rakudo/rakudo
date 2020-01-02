@@ -31,7 +31,7 @@ As of 2019-07-08 CentOS 6 (using glibc 2.12) is a good pick.
 
     yum -y update && yum clean all
     yum install git perl perl-core gcc make
-    curl -o rakudo-2019.03.1.tar.gz https://rakudo.org/dl/rakudo/rakudo-2019.03.1.tar.gz
+    curl -L -o rakudo-2019.03.1.tar.gz https://rakudo.org/dl/rakudo/rakudo-2019.03.1.tar.gz
     tar -xzf rakudo-2019.03.1.tar.gz
     cd rakudo-2019.03.1
     perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
@@ -39,11 +39,11 @@ As of 2019-07-08 CentOS 6 (using glibc 2.12) is a good pick.
     make test
     git clone https://github.com/ugexe/zef.git
     cd zef
-    /rakudo-2019.03.1/install/bin/perl6 -I. bin/zef install .
+    /rakudo-2019.03.1/install/bin/raku -I. bin/zef install .
     cd /rakudo-2019.03.1
     cp -r tools/build/binary-release/Linux/* install
     mv install rakudo-2019.03.1
-    tar -czf /rakudo-moar-2019.03.1-01-linux-x86_64.tar.gz rakudo-2019.03.1
+    tar -zcv --owner=0 --group=0 --numeric-owner -f /rakudo-moar-2019.03.1-01-linux-x86_64.tar.gz rakudo-2019.03.1
 
 - On the host linux (not inside the container) run `docker cp rakudo-build:/rakudo-moar-2019.03.1-01-linux-x86_64.tar.gz .` to copy the archive out of the container. If you happended to stop the container by exitting the console, type `docker start rakudo-build` to start it again and allow copying files out.
 - Sign the tarball archive as described in `release_guide.pod`.
@@ -56,7 +56,7 @@ Mac OS
 - Install XCode from the App Store.
 - Open a terminal and do the following:
 
-    curl -o /Applications/rakudo-2019.03.1.tar.gz https://rakudo.org/dl/rakudo/rakudo-2019.03.1.tar.gz
+    curl -L -o /Applications/rakudo-2019.03.1.tar.gz https://rakudo.org/dl/rakudo/rakudo-2019.03.1.tar.gz
     cd /Applications
     tar -xzf rakudo-2019.03.1.tar.gz
     cd rakudo-2019.03.1
@@ -65,11 +65,11 @@ Mac OS
     make test
     git clone https://github.com/ugexe/zef.git
     cd zef
-    /Applications/rakudo-2019.03.1/install/bin/perl6 -I. bin/zef install .
+    /Applications/rakudo-2019.03.1/install/bin/raku -I. bin/zef install .
     cd /Applications/rakudo-2019.03.1
     cp -r tools/build/binary-release/MacOS/* install
     mv install rakudo-2019.03.1
-    tar -czf /rakudo-moar-2019.03.1-01-macos-x86_64.tar.gz rakudo-2019.03.1
+    tar -zcv --owner=0 --group=0 --numeric-owner -f /rakudo-moar-2019.03.1-01-macos-x86_64.tar.gz rakudo-2019.03.1
 
 - Sign the tarball archive as described in `release_guide.pod`.
 - Upload the tarball and signature as described in `release_guide.pod`.

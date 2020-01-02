@@ -531,7 +531,7 @@ implementation detail and has no serviceable parts inside"
         }
 
         multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Array', {
+            SELF.rakuseen('Array', {
                 self.^name
                 ~ '.new(:shape'
                 ~ nqp::decont(self.shape).raku

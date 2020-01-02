@@ -1361,7 +1361,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? False !! so $!descriptor.dynamic
     }
     multi method perl(Array:D \SELF: --> Str:D) {
-        SELF.perlseen('Array', {
+        SELF.rakuseen('Array', {
              '$' x nqp::iscont(SELF)  # self is always deconted
              ~ '['
              ~ self.map({nqp::decont($_).raku}).join(', ')

@@ -106,7 +106,7 @@ key of the Pair should be a valid method name, not '$method'."
     }
 
     multi method perl(Pair:D: :$arglist) {
-        self.perlseen('Pair', -> :$arglist {
+        self.rakuseen('Pair', -> :$arglist {
             nqp::istype($!key, Str) && nqp::isconcrete($!key)
               ?? !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
                 ?? nqp::istype($!value,Bool) && nqp::isconcrete($!value)

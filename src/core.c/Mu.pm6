@@ -606,11 +606,11 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
     multi method gist(Mu:D:) { self.perl }
 
-    method perlseen(Mu:D \SELF: $id, $perl, *%named) {
+    method rakuseen(Mu:D \SELF: $id, $perl, *%named) {
         my $sigil = nqp::iseq_s($id, 'Array') ?? '@'
             !! nqp::iseq_s($id, 'Hash') ?? '%' !! '\\';
-        if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*perlseen'))) {
-            my \sems := $*perlseen;
+        if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*rakuseen'))) {
+            my \sems := $*rakuseen;
             my str $WHICH = nqp::unbox_s(self.WHICH);
             if nqp::existskey(sems,$WHICH) && nqp::atkey(sems,$WHICH) {
                 nqp::bindkey(sems,$WHICH,2);
@@ -629,8 +629,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             }
         }
         else {
-            my $*perlseen := nqp::hash("TOP",1);
-            SELF.perlseen($id,$perl,|%named)
+            my $*rakuseen := nqp::hash("TOP",1);
+            SELF.rakuseen($id,$perl,|%named)
         }
     }
 
@@ -643,7 +643,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
           nqp::if(
             nqp::iscont(self), # a Proxy object would have a conted `self`
             nqp::decont(self).perl,
-            self.perlseen: self.^name, {
+            self.rakuseen: self.^name, {
                 my @attrs;
                 for self.^attributes().flat.grep: { .has_accessor } -> $attr {
                     my $name := substr($attr.Str,2);

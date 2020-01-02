@@ -850,7 +850,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method perl(List:D \SELF: --> Str:D) {
-        SELF.perlseen('List', {
+        SELF.rakuseen('List', {
             my $prefix := nqp::iscont(SELF) ?? '$(' !! '(';
             if self.is-lazy {
                 my @elements = self.head(101);

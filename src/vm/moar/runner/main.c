@@ -185,11 +185,6 @@ int wmain(int argc, wchar_t *wargv[])
     int flag;
     int new_argc     = 0;
 
-#ifdef HAVE_TELEMEH
-    unsigned int interval_id = 0;
-    char telemeh_inited = 0;
-#endif
-
     MVMuint32 debugserverport = 0;
     int start_suspended = 0;
 
@@ -262,6 +257,8 @@ int wmain(int argc, wchar_t *wargv[])
 
 
 #ifdef HAVE_TELEMEH
+    unsigned int interval_id = 0;
+    char telemeh_inited = 0;
     if (getenv("MVM_TELEMETRY_LOG")) {
         char path[256];
         FILE *fp;

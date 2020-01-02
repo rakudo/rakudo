@@ -810,7 +810,8 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                 }
                 $ctx := nqp::ctxouterskipthunks($ctx);
             } while $ctx && !$sym-found;
-            $meth = $caller-type.^find_method_qualified($type, $name) if $sym-found;
+            $meth = $caller-type.^find_method_qualified($type, $name)
+                if $sym-found && nqp::istype($caller-type, $type);
             $meth = self.^find_method_qualified($type, $name) unless $meth;
         }
 

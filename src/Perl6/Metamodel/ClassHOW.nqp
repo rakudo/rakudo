@@ -102,6 +102,7 @@ class Perl6::Metamodel::ClassHOW
         # composer.
         my @roles_to_compose := self.roles_to_compose($obj);
         my @stubs;
+        my $rtca;
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
@@ -121,7 +122,9 @@ class Perl6::Metamodel::ClassHOW
                 self.add_concretization($obj, $r, $ins);
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
-            @stubs := RoleToClassApplier.apply($obj, @ins_roles);
+            $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+            $rtca.prepare($obj, @ins_roles);
+
             self.wipe_conc_cache;
 
             # Add them to the typecheck list, and pull in their
@@ -132,6 +135,13 @@ class Perl6::Metamodel::ClassHOW
                     @!role_typecheck_list[+@!role_typecheck_list] := $_;
                 }
             }
+        }
+
+        # Compose class attributes first. We prioritize them and their accessors over anything coming from roles.
+        self.compose_attributes($obj, :$compiler_services);
+
+        if $rtca {
+            @stubs := $rtca.apply();
         }
 
         # Some things we only do if we weren't already composed once, like
@@ -148,11 +158,11 @@ class Perl6::Metamodel::ClassHOW
         # Incorporate any new multi candidates (needs MRO built).
         self.incorporate_multi_candidates($obj);
 
+        # Compose remaining attributes from roles.
+        self.compose_attributes($obj, :$compiler_services);
+
         # Set up finalization as needed.
         self.setup_finalization($obj);
-
-        # Compose attributes.
-        self.compose_attributes($obj, :$compiler_services);
 
         # Test the remaining stubs
         for @stubs -> %data {

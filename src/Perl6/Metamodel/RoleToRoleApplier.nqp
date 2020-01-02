@@ -262,4 +262,6 @@ my class RoleToRoleApplier {
 
         1;
     }
+
+    Perl6::Metamodel::Configuration.set_role_to_role_applier_type(RoleToRoleApplier);
 }

@@ -108,6 +108,7 @@ class Perl6::Metamodel::EnumHOW
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
         my @roles_to_compose := self.roles_to_compose($obj);
+        my $rtca;
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
@@ -118,7 +119,8 @@ class Perl6::Metamodel::EnumHOW
                     if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
             }
-            RoleToClassApplier.apply($obj, @ins_roles);
+            $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+            $rtca.prepare($obj, @ins_roles);
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
@@ -130,10 +132,19 @@ class Perl6::Metamodel::EnumHOW
             }
         }
 
+        # Compose own attributes first.
+        for self.attributes($obj, :local) {
+            $_.compose($obj);
+        }
+
+        if $rtca {
+            $rtca.apply();
+        }
+
         # Incorporate any new multi candidates (needs MRO built).
         self.incorporate_multi_candidates($obj);
 
-        # Compose attributes.
+        # Compose remaining attributes.
         for self.attributes($obj, :local) {
             $_.compose($obj);
         }

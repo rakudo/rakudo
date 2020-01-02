@@ -12,6 +12,22 @@ class CompUnit::DependencySpecification {
           ($.auth-matcher   //True) ~~ Bool ?? '' !! ":auth<$.auth-matcher>",
           ($.api-matcher    //True) ~~ Bool ?? '' !! ":api<$.api-matcher>";
     }
+
+    # Provide an human readable *unique* serialization string that does *not*
+    # contain the line number in the source where it is invoked.
+    method serialize-id() {
+        my str $str = self.^name
+          ~ '.new(:short-name<'
+          ~ $.short-name
+          ~ '> :from<'
+          ~ $.from
+          ~ '>';
+        $str = $str ~ ' :!version-matcher' unless $.version-matcher;
+        $str = $str ~ ' :!auth-matcher'    unless $.auth-matcher;
+        $str = $str ~ ' :!api-matcher'     unless $.api-matcher;
+
+        $str ~ ')'
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

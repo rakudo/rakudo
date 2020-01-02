@@ -9,7 +9,7 @@ my %provides =
     "Pod::To::Text"                 => "lib/Pod/To/Text.pm6",
     "newline"                       => "lib/newline.rakumod",
     "experimental"                  => "lib/experimental.rakumod",
-    "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm6",
+    "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
     "Telemetry"                     => "lib/Telemetry.rakumod",
     "snapper"                       => "lib/snapper.rakumod",
 ;

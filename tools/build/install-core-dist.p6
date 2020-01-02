@@ -10,7 +10,7 @@ my %provides =
     "newline"                       => "lib/newline.pm6",
     "experimental"                  => "lib/experimental.pm6",
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm6",
-    "Telemetry"                     => "lib/Telemetry.pm6",
+    "Telemetry"                     => "lib/Telemetry.rakumod",
     "snapper"                       => "lib/snapper.rakumod",
 ;
 

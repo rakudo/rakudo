@@ -377,10 +377,6 @@ do {
         my $e := EXCEPTION($ex);
 
         if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
-            # REMOVE DEPRECATED CODE ON 202011
-            Rakudo::Deprecations.DEPRECATED: "RAKU_EXCEPTIONS_HANDLER", Nil,
-                '2020.11', :file("N/A"), :line("N/A"),
-                :what("PERL6_EXCEPTIONS_HANDLER env var");
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping

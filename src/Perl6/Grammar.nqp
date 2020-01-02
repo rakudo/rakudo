@@ -1917,6 +1917,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule package_def {
         :my $longname;
         :my $outer := $*W.cur_lexpad();
+        :my $*DECLARATION_NAME;
         :my $*IMPLICIT := 0;
         :my $*DECLARAND;
         :my $*CODE_OBJECT := $*W.stub_code_object($*PKGDECL eq 'role' ?? 'Sub' !! 'Block');
@@ -1944,7 +1945,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         <!!{ $/.clone_braid_from(self) }>
         [
-            [ <longname> { $longname := $*W.dissect_longname($<longname>); } ]?
+            [ <longname> { $longname := $*W.dissect_longname($<longname>);
+                           $*DECLARATION_NAME := nqp::hllizefor($longname.name(), 'perl6'); } ]?
             <.newpad>
 
             [ :dba('generic role')
@@ -2880,6 +2882,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token type_declarator:sym<enum> {
         <sym><.kok>
         :my $*IN_DECL := 'enum';
+        :my $*DECLARATION_NAME;
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
@@ -2902,6 +2905,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         symbol => $longname.name(),
                     );
                 }
+                $*DECLARATION_NAME := nqp::hllizefor($longname.name(), 'perl6');
             }
         | <variable>
         | <?>
@@ -2916,6 +2920,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     rule type_declarator:sym<subset> {
         <sym><.kok> :my $*IN_DECL := 'subset';
+        :my $*DECLARATION_NAME;
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
@@ -2940,6 +2945,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                                 symbol => $longname.name(),
                             );
                         }
+                        $*DECLARATION_NAME := nqp::hllizefor($longname.name(), 'perl6');
                     }
                 ]?
                 { $*IN_DECL := '' }

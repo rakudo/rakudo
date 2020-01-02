@@ -148,9 +148,6 @@ int wmain(int argc, wchar_t *wargv[])
 
     char   *exec_path;
     size_t  exec_path_size;
-#ifndef STATIC_EXEC_PATH
-    int     res;
-#endif
 
     char   *exec_dir_path_temp;
 #if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME)) || defined(_WIN32)
@@ -202,6 +199,7 @@ int wmain(int argc, wchar_t *wargv[])
     exec_path = STRINGIFY(STATIC_EXEC_PATH);
     exec_path_size = strlen(exec_path);
 #else
+    int res;
     exec_path_size = 4096;
     exec_path = (char*)malloc(exec_path_size);
     res = MVM_exepath(exec_path, &exec_path_size);

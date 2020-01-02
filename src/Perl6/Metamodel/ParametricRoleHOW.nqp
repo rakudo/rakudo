@@ -186,7 +186,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         # the concrete role.
         for self.attributes($obj, :local(1)) {
             $conc.HOW.add_attribute($conc,
-                $_.is_generic ?? $_.instantiate_generic($type_env) !! $_);
+                $_.is_generic ?? $_.instantiate_generic($type_env) !! nqp::clone($_));
         }
 
         # Go through methods and instantiate them; we always do this

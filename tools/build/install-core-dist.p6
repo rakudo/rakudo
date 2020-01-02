@@ -1,7 +1,7 @@
 use lib <lib>;
 use CompUnit::Repository::Staging;
 my %provides = 
-    "Test"                          => "lib/Test.pm6",
+    "Test"                          => "lib/Test.rakumod",
     "NativeCall"                    => "lib/NativeCall.pm6",
     "NativeCall::Types"             => "lib/NativeCall/Types.pm6",
     "NativeCall::Compiler::GNU"     => "lib/NativeCall/Compiler/GNU.pm6",

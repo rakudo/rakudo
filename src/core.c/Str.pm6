@@ -48,7 +48,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method Str(Str:D: --> Str:D)     { self }
     multi method Stringy(Str:D: --> Str:D) { self }
-    multi method DUMP(Str:D: --> Str:D) { self.perl }
+    multi method DUMP(Str:D: --> Str:D) { self.raku }
 
     method Int(Str:D: --> Int:D) {
         nqp::isge_i(
@@ -1377,7 +1377,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         X::TypeCheck.new(
           operation => 'split ($limit argument)',
           expected  => 'any Real type (non-NaN) or Whatever',
-          got       => limit.perl,
+          got       => limit.raku,
         ).throw if limit === NaN;
 
         limit = Inf if nqp::istype(limit,Whatever);

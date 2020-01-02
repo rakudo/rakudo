@@ -114,7 +114,7 @@ my class Signature { # declared in BOOTSTRAP
         # Parameters.
         if self.params.Array -> @params {
             if @params[0].invocant {
-                my $invocant = @params.shift.perl(:$elide-type);
+                my $invocant = @params.shift.raku(:$elide-type);
                 $invocant .= chop(2) if $invocant.ends-with(' $');
                 $text ~= "$invocant: ";
             }
@@ -123,7 +123,7 @@ my class Signature { # declared in BOOTSTRAP
 
             my $sep = '';
             for @params.kv -> $i, $param {
-                $text ~= $sep ~ $_ with $param.perl(:$elide-type);
+                $text ~= $sep ~ $_ with $param.raku(:$elide-type);
 
                 # Remove sigils from anon typed scalars, leaving type only
                 $text .= subst(/» ' $'$/,'') unless $perl;
@@ -134,7 +134,7 @@ my class Signature { # declared in BOOTSTRAP
             }
         }
         if !nqp::isnull($!returns) && !($!returns =:= Mu) {
-            $text = $text ~ ' --> ' ~ $!returns.perl
+            $text = $text ~ ' --> ' ~ $!returns.raku
         }
         # Closer.
         $text ~ ')'
@@ -196,7 +196,7 @@ multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
               nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos_s($nn,0) !! '';
             die "Found named parameter '{
               nqp::chars($key) ?? $key !! '(unnamed)'
-            }' twice in signature {a.perl}: {$p.perl} vs {nqp::atkey($lookup,$key).perl}"
+            }' twice in signature {a.raku}: {$p.raku} vs {nqp::atkey($lookup,$key).raku}"
               if nqp::existskey($lookup,$key);
             nqp::bindkey($lookup,$key,$p);
         }

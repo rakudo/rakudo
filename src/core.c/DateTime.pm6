@@ -436,7 +436,7 @@ my class DateTime does Dateish {
     multi method perl(DateTime:D: --> Str:D) {
         self.^name
           ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second"
-          ~ (',' ~ :$!timezone.perl if $!timezone)
+          ~ (',' ~ :$!timezone.raku if $!timezone)
           ~ ')'
     }
 }

@@ -330,7 +330,7 @@ my class Any { # declared in BOOTSTRAP
         %unexpected
           ?? Failure.new(X::Adverb.new(
                :what('[] slice'),
-               :source(try { self.VAR.name } // self.WHAT.perl),
+               :source(try { self.VAR.name } // self.WHAT.raku),
                :unexpected(%unexpected.keys)))
           !! self
     }
@@ -340,7 +340,7 @@ my class Any { # declared in BOOTSTRAP
         %unexpected
           ?? Failure.new(X::Adverb.new(
                :what('{} slice'),
-               :source(try { self.VAR.name } // self.WHAT.perl),
+               :source(try { self.VAR.name } // self.WHAT.raku),
                :unexpected(%unexpected.keys)))
           !! self
     }
@@ -406,8 +406,8 @@ my class Any { # declared in BOOTSTRAP
     proto method AT-KEY(|) is nodal {*}
     multi method AT-KEY(Any:D: $key) is raw {
         Failure.new( self ~~ Associative
-          ?? "Associative indexing implementation missing from type {self.WHAT.perl}"
-          !! "Type {self.WHAT.perl} does not support associative indexing."
+          ?? "Associative indexing implementation missing from type {self.WHAT.raku}"
+          !! "Type {self.WHAT.raku} does not support associative indexing."
         )
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
@@ -583,7 +583,7 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
 
     Failure.new(X::Adverb.new(
       :what<slice>,
-      :source(try { SELF.VAR.name } // SELF.WHAT.perl),
+      :source(try { SELF.VAR.name } // SELF.WHAT.raku),
       :unexpected(%d.keys),
       :nogo(@nogo),
     ))
@@ -597,8 +597,8 @@ sub dd(|) {
             my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
             my $type := $var.WHAT.^name.split("::").tail;
             my $what := nqp::can($var,'perl')
-              ?? $var.perl
-              !! "($var.^name() without .perl method)";
+              ?? $var.raku
+              !! "($var.^name() without .raku method)";
             note $name ?? "$type $name = $what" !! $what;
         }
     }

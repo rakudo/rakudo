@@ -61,7 +61,7 @@ my class Block { # declared in BOOTSTRAP
     }
 
     multi method perl(Block:D:) {
-        "-> {self.signature.perl.substr(2,*-1)} \{ #`({self.WHICH}) ... \}"
+        "-> {self.signature.raku.substr(2,*-1)} \{ #`({self.WHICH}) ... \}"
     }
 
     method WHY() {

@@ -110,15 +110,15 @@ my class Capture { # declared in BOOTSTRAP
         if self.^name eq 'Capture' {
             "\\({
                 join ', ',
-                    ((nqp::atpos(@!list, $_).perl for ^nqp::elems(@!list)) if @!list),
-                    %hash.sort.map( *.perl )
+                    ((nqp::atpos(@!list, $_).raku for ^nqp::elems(@!list)) if @!list),
+                    %hash.sort.map( *.raku )
             })";
         } else {
             self.^name
               ~ '.new('
-              ~ ( 'list => (' ~ (nqp::atpos(@!list, $_).perl for ^nqp::elems(@!list)).join(', ') ~ ',)' if @!list)
+              ~ ( 'list => (' ~ (nqp::atpos(@!list, $_).raku for ^nqp::elems(@!list)).join(', ') ~ ',)' if @!list)
               ~ (', ' if +@!list and +%hash)
-              ~ ( 'hash => {' ~ %hash.sort.map( *.perl ).join(', ') ~ '}' if +%hash)
+              ~ ( 'hash => {' ~ %hash.sort.map( *.raku ).join(', ') ~ '}' if +%hash)
               ~ ')';
         }
     }

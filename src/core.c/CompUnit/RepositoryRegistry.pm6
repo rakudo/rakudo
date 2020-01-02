@@ -102,7 +102,7 @@ class CompUnit::RepositoryRegistry {
                    (nqp::existskey($ENV,'HOMEPATH')
                      ?? nqp::atkey($ENV,'HOMEPATH') !! '')
                  ) -> $home-path {
-                $home = "{$home-path}{$sep}.perl6";
+                $home = "{$home-path}{$sep}.raku";
                 $home-spec = "inst#$home";
             }
         }

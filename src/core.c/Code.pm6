@@ -22,7 +22,7 @@ my class Code does Callable { # declared in BOOTSTRAP
     multi method prec(Str:D $) { '' }
 
     multi method Str(Code:D:) {
-        warn( self.WHAT.perl ~ " object coerced to string (please use .gist or .perl to do that)"); self.name
+        warn( self.WHAT.raku ~ " object coerced to string (please use .gist or .perl to do that)"); self.name
     }
 
     method outer(Code:D:) {

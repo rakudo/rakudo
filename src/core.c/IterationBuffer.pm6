@@ -46,9 +46,9 @@ my class IterationBuffer {
     }
 
     # For core debugging purposes only: basically warp the IterationBuffer
-    # into a full-fledged List and .perl that.  We don't care that it will
+    # into a full-fledged List and .raku that.  We don't care that it will
     # not round-trip.
-    multi method perl(IterationBuffer:D:) { self.List.perl }
+    multi method perl(IterationBuffer:D:) { self.List.raku }
 }
 
 #?if jvm

@@ -83,7 +83,7 @@ class CompUnit::Repository::Distribution does Distribution {
     }
 
     method perl {
-        self.^name ~ ".new({$!dist.perl}, repo => {$!repo.perl}, repo-name => {$!repo-name.perl})";
+        self.^name ~ ".new({$!dist.raku}, repo => {$!repo.raku}, repo-name => {$!repo-name.raku})";
     }
 }
 
@@ -93,7 +93,7 @@ class Distribution::Hash does Distribution::Locally {
     method new($hash, :$prefix) { self.bless(:meta($hash), :$prefix) }
     method meta { $!meta }
     method perl {
-        self.^name ~ ".new({$!meta.perl}, prefix => {$!prefix.perl})";
+        self.^name ~ ".new({$!meta.raku}, prefix => {$!prefix.raku})";
     }
 }
 
@@ -131,7 +131,7 @@ class Distribution::Path does Distribution::Locally {
     }
     method meta { $!meta }
     method perl {
-       self.^name ~ ".new({$!prefix.perl}, meta-file => {$!meta-file.perl})";
+       self.^name ~ ".new({$!prefix.raku}, meta-file => {$!meta-file.raku})";
     }
 }
 
@@ -165,7 +165,7 @@ class Distribution::Resource {
         self.IO.gist(|c)
     }
     multi method perl(::?CLASS:D: |c) {
-        self.IO.perl(|c)
+        self.IO.raku(|c)
     }
     method absolute(|c) {
         self.IO.absolute(|c)

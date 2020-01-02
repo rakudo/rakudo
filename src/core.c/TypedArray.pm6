@@ -105,13 +105,13 @@
         }
 
         multi method perl(::?CLASS:D \SELF:) {
-            my $args = self.map({ ($_ // TValue).perl(:arglist) }).join(', ');
-            'Array[' ~ TValue.perl ~ '].new(' ~ $args ~ ')';
+            my $args = self.map({ ($_ // TValue).raku(:arglist) }).join(', ');
+            'Array[' ~ TValue.raku ~ '].new(' ~ $args ~ ')';
         }
     }
     method ^parameterize(Mu:U \arr, Mu \t, |c) {
         if nqp::isconcrete(t) {
-            "Can not parameterize {arr.^name} with {t.perl}"
+            "Can not parameterize {arr.^name} with {t.raku}"
         }
         elsif c.elems == 0 {
             my $what := arr.^mixin(TypedArray[t]);

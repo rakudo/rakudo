@@ -31,7 +31,7 @@ my role Numeric {
     multi method Bool(Numeric:D:) { self != 0 }
 
     multi method gist(Numeric:D:) { self.Str }
-    multi method DUMP(Numeric:D:) { self.perl }
+    multi method DUMP(Numeric:D:) { self.raku }
 
     method succ() { self + 1 }
     method pred() { self - 1 }

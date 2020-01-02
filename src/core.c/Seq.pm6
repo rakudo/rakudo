@@ -95,7 +95,7 @@ my class Seq is Cool does Iterable does Sequence {
             # compare RT #127492
             $perl = self.^name ~ '.new-consumed()';
         }
-        else { $perl = self.cache.perl ~ '.Seq' }
+        else { $perl = self.cache.raku ~ '.Seq' }
         nqp::iscont(SELF) ?? '$(' ~ $perl ~ ')' !! $perl
     }
 

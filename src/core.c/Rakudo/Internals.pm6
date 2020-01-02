@@ -534,7 +534,7 @@ implementation detail and has no serviceable parts inside"
             SELF.perlseen('Array', {
                 self.^name
                 ~ '.new(:shape'
-                ~ nqp::decont(self.shape).perl
+                ~ nqp::decont(self.shape).raku
                 ~ ', '
                 ~ self!perl(nqp::create(Array), self.shape)
                 ~ ')'
@@ -544,7 +544,7 @@ implementation detail and has no serviceable parts inside"
         method !perl(@path, @dims) {
             if @dims.elems == 1 {
                  '[' ~
-                    (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).perl }).join(', ') ~
+                    (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).raku }).join(', ') ~
                     ',' x (@dims[0] == 1 && nqp::istype(self.AT-POS(|@path, 0), Iterable)) ~
                  ']'
             }

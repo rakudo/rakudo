@@ -39,7 +39,7 @@ my class Instant is Cool does Real {
         'Instant:' ~ $!tai
     }
     multi method perl(Instant:D: --> Str:D) {
-        "Instant.from-posix{self.to-posix.perl}";
+        "Instant.from-posix{self.to-posix.raku}";
     }
     method Bridge(Instant:D:          ) { $!tai.Bridge }
     method Num   (Instant:D: --> Num:D) { $!tai.Num    }

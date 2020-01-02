@@ -182,7 +182,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method perl(Map:D \SELF: --> Str:D) {
-        my $p = self.^name ~ '.new((' ~ self.sort.map({.perl}).join(',') ~ '))';
+        my $p = self.^name ~ '.new((' ~ self.sort.map({.raku}).join(',') ~ '))';
         nqp::iscont(SELF) ?? '$(' ~ $p ~ ')' !! $p
     }
 

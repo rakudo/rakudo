@@ -111,13 +111,13 @@ key of the Pair should be a valid method name, not '$method'."
               ?? !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
                 ?? nqp::istype($!value,Bool) && nqp::isconcrete($!value)
                    ?? ':' ~ '!' x !$!value ~ $!key
-                   !! ':' ~ $!key ~ '(' ~ $!value.perl ~ ')'
-                !! $!key.perl ~ ' => ' ~ $!value.perl
+                   !! ':' ~ $!key ~ '(' ~ $!value.raku ~ ')'
+                !! $!key.raku ~ ' => ' ~ $!value.raku
               !! nqp::istype($!key, Numeric)
                    && nqp::isconcrete($!key)
                    && !(nqp::istype($!key,Num) && nqp::isnanorinf($!key))
-                ?? $!key.perl ~ ' => ' ~ $!value.perl
-                !! '(' ~ $!key.perl ~ ') => ' ~ $!value.perl
+                ?? $!key.raku ~ ' => ' ~ $!value.raku
+                !! '(' ~ $!key.raku ~ ') => ' ~ $!value.raku
         }, :$arglist)
     }
 

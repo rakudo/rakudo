@@ -15,7 +15,7 @@ my class X::Does::TypeObject is Exception {
     has %.nameds;
     method message() {
         "Cannot use 'does' operator on a type object {$!type.^name}."
-          ~ ("\nAdditional named parameters: {%!nameds.perl}." if %!nameds)
+          ~ ("\nAdditional named parameters: {%!nameds.raku}." if %!nameds)
     }
 }
 

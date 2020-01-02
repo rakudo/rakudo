@@ -254,7 +254,7 @@ my class X::Pragma::MustOneOf is Exception {
 my class X::Pragma::UnknownArg is Exception {
     has $.name;
     has $.arg;
-    method message { "Unknown argument '{$.arg.perl}' specified with the '$.name' pragma." }
+    method message { "Unknown argument '{$.arg.raku}' specified with the '$.name' pragma." }
 }
 my class X::Pragma::OnlyOne is Exception {
     has $.name;
@@ -623,13 +623,13 @@ my class X::IO::NotAChild does X::IO {
     has $.path;
     has $.child;
     method message() {
-      "Path {$.child.perl} is not a child of path {$.path.perl}"
+      "Path {$.child.raku} is not a child of path {$.path.raku}"
     }
 }
 
 my class X::IO::Resolve does X::IO {
     has $.path;
-    method message() { "Failed to completely resolve {$.path.perl}" }
+    method message() { "Failed to completely resolve {$.path.raku}" }
 }
 
 my class X::IO::Rmdir does X::IO {
@@ -1688,9 +1688,9 @@ my class X::Syntax::Number::LiteralType does X::Syntax {
         my $vt := $!value.^name;
         my $value := $vt eq "IntStr" || $vt eq "NumStr" || $vt eq "RatStr" || $vt eq "ComplexStr"
             ?? $!value.Str
-            !! $!value.perl;
+            !! $!value.raku;
         my $val = "Cannot assign a literal of type {$.valuetype} ($value) to { $.native ?? "a native" !! "a" } variable of type $vartype. You can declare the variable to be of type $.suggestiontype, or try to coerce the value with { $value ~ '.' ~ $conversionmethod } or $conversionmethod\($value\)";
-        try $val ~= ", or just write the value as " ~ $!value."$vartype"().perl;
+        try $val ~= ", or just write the value as " ~ $!value."$vartype"().raku;
         $val;
     }
 }
@@ -1981,12 +1981,12 @@ my class X::Hash::Store::OddNumber is Exception {
           "Odd number of elements found where hash initializer expected";
         if $.found == 1 {
             $msg ~= $.last
-              ?? ":\nOnly saw: $.last.perl()"
+              ?? ":\nOnly saw: $.last.raku()"
               !! ":\nOnly saw 1 element"
         }
         else {
             $msg ~= ":\nFound $.found (implicit) elements";
-            $msg ~= ":\nLast element seen: $.last.perl()" if $.last;
+            $msg ~= ":\nLast element seen: $.last.raku()" if $.last;
         }
     }
 }
@@ -2050,7 +2050,7 @@ my class X::Str::Numeric is Exception {
     has $.reason;
     method source-indicator {
         my ($red,$clear,$green,$,$eject) = Rakudo::Internals.error-rcgye;
-        my sub escape($str) { $str.perl.substr(1).chop }
+        my sub escape($str) { $str.raku.substr(1).chop }
         join '', "in '",
                 $green,
                 escape(substr($.source,0, $.pos)),
@@ -2269,7 +2269,7 @@ my class X::TypeCheck is Exception {
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method gotn() {
-        my $perl = (try $!got.perl) // "?";
+        my $perl = (try $!got.raku) // "?";
         my $max-len = 24;
         $max-len += chars $!got.^name if $perl.starts-with: $!got.^name;
         $perl = "$perl.substr(0,$max-len-3)..." if $perl.chars > $max-len;
@@ -2280,7 +2280,7 @@ my class X::TypeCheck is Exception {
     }
     method expectedn() {
         (try $!got.^name eq $!expected.^name
-          ?? $!expected.perl
+          ?? $!expected.raku
           !! $!expected.^name
         ) // "?"
     }
@@ -2561,7 +2561,7 @@ my class X::Numeric::CannotConvert is Exception {
     has $.source;
 
     method message() {
-        "Cannot convert {$!source // $!source.perl} to {$!target // $!target.perl}: $!reason";
+        "Cannot convert {$!source // $!source.raku} to {$!target // $!target.raku}: $!reason";
     }
 
 }
@@ -2591,10 +2591,10 @@ my class X::Numeric::Confused is Exception {
     has $.base;
     method message() {
         "This call only converts base-$.base strings to numbers; value "
-        ~ "{$.num.perl} is of type {$.num.WHAT.^name}, so cannot be converted!"
+        ~ "{$.num.raku} is of type {$.num.WHAT.^name}, so cannot be converted!"
         ~ (
-            "\n(If you really wanted to convert {$.num.perl} to a base-$.base"
-                ~ " string, use {$.num.perl}.base($.base) instead.)"
+            "\n(If you really wanted to convert {$.num.raku} to a base-$.base"
+                ~ " string, use {$.num.raku}.base($.base) instead.)"
             if $.num.^can('base')
         );
     }
@@ -2633,7 +2633,7 @@ my class X::Multi::Ambiguous is Exception {
         my @priors;
         if $.capture {
             for $.capture.list {
-                try @bits.push(.WHAT.perl);
+                try @bits.push(.WHAT.raku);
                 @bits.push($_.^name) if $!;
                 when Failure {
                     @priors.push(" " ~ .mess);
@@ -2647,7 +2647,7 @@ my class X::Multi::Ambiguous is Exception {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    try @bits.push(":$(.key)\($(.value.WHAT.perl))");
+                    try @bits.push(":$(.key)\($(.value.WHAT.raku))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
             }
@@ -2664,7 +2664,7 @@ my class X::Multi::Ambiguous is Exception {
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~ join "\n",
             "Ambiguous call to '$.dispatcher.name()$cap'; these signatures all match:",
-            @.ambiguous.map(*.signature.perl)
+            @.ambiguous.map(*.signature.raku)
     }
 }
 
@@ -2690,7 +2690,7 @@ my class X::Multi::NoMatch is Exception {
         if $.capture {
             for $.capture.list {
                 try @bits.push(
-                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl ~ ':' ~ (.defined ?? "D" !! "U")
+                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.raku ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
                 if nqp::istype($_,Failure) {
@@ -2707,7 +2707,7 @@ my class X::Multi::NoMatch is Exception {
                 else {
                     try @bits.push(":$(.key)\($($where
                         ?? Rakudo::Internals.SHORT-GIST: .value
-                        !! .value.WHAT.perl
+                        !! .value.WHAT.raku
                     ))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }

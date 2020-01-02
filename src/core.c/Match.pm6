@@ -893,12 +893,12 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     multi method perl(Match:D:) {
         my %attrs;
-        %attrs.ASSIGN-KEY("orig", (self.orig // '' ).perl);
-        %attrs.ASSIGN-KEY("from", (self.from // 0  ).perl);
-        %attrs.ASSIGN-KEY("pos",  (self.pos  // 0  ).perl);
-        %attrs.ASSIGN-KEY("made", (self.made // Any).perl);
-        %attrs.ASSIGN-KEY("list", (self.Capture::list // [] ).perl);
-        %attrs.ASSIGN-KEY("hash", (self.Capture::hash // {} ).perl);
+        %attrs.ASSIGN-KEY("orig", (self.orig // '' ).raku);
+        %attrs.ASSIGN-KEY("from", (self.from // 0  ).raku);
+        %attrs.ASSIGN-KEY("pos",  (self.pos  // 0  ).raku);
+        %attrs.ASSIGN-KEY("made", (self.made // Any).raku);
+        %attrs.ASSIGN-KEY("list", (self.Capture::list // [] ).raku);
+        %attrs.ASSIGN-KEY("hash", (self.Capture::hash // {} ).raku);
 
         'Match.new('
             ~ %attrs.fmt('%s => %s', ', ')

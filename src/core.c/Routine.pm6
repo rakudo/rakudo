@@ -68,7 +68,7 @@ my class Routine { # declared in BOOTSTRAP
         if self.name() -> $n {
             $perl ~= " $n";
         }
-        my $sig := self.signature.perl;
+        my $sig := self.signature.raku;
         $perl ~= " $sig.substr(1)" unless $sig eq ':()';
         $perl ~= self.onlystar
           ?? ' {*}'

@@ -31,7 +31,7 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method map(|c) {
         X::Cannot::Map.new(
           what       => self.^name,
-          using      => "'{c.perl.substr(2).chop}'",
+          using      => "'{c.raku.substr(2).chop}'",
           suggestion => "Did a * (Whatever) get absorbed by a list?"
         ).throw;
     }
@@ -986,7 +986,7 @@ Consider using a block if any of these are necessary for your mapping code."
                 method count(Code:D:) { $!count }
             }),
             (my &tester = -> |c {
-                #note "*cough* {c.perl} -> {$test(|c).perl}";
+                #note "*cough* {c.raku} -> {$test(|c).raku}";
                 next unless $test(|c);
                 c.list
             } but CheatArity),
@@ -1049,7 +1049,7 @@ Consider using a block if any of these are necessary for your mapping code."
                             Failure.new("Specified a negated :v adverb"),
                             Failure.new(X::Adverb.new(  # :foo ??
                               :$what,
-                              :source(try { self.VAR.name } // self.WHAT.perl),
+                              :source(try { self.VAR.name } // self.WHAT.raku),
                               :unexpected(%a.keys)))
                           )
                         )
@@ -1060,7 +1060,7 @@ Consider using a block if any of these are necessary for your mapping code."
               ),
               Failure.new(X::Adverb.new(                # multiple adverbs ??
                 :$what,
-                :source(try { self.VAR.name } // self.WHAT.perl),
+                :source(try { self.VAR.name } // self.WHAT.raku),
                 :nogo(%a.keys.grep: /k|v|p/),
                 :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
             ),
@@ -1126,7 +1126,7 @@ Consider using a block if any of these are necessary for your mapping code."
                       ?? die "Specified a negated :v adverb"
                       !! X::Adverb.new(
                            :what<grep>,
-                           :source(try { self.VAR.name } // self.WHAT.perl),
+                           :source(try { self.VAR.name } // self.WHAT.raku),
                            :unexpected($key)
                          ).throw
                 }
@@ -1135,7 +1135,7 @@ Consider using a block if any of these are necessary for your mapping code."
         else {
             X::Adverb.new(
               :what<grep>,
-              :source(try { self.VAR.name } // self.WHAT.perl),
+              :source(try { self.VAR.name } // self.WHAT.raku),
               :nogo(%_.keys.grep: /k|v|kv|p/),
               :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } )
             ).throw

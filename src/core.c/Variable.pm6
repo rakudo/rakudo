@@ -27,7 +27,7 @@ my class Variable {
     }
 
     submethod native(Mu $what) {
-        my $name := $what.perl;
+        my $name := $what.raku;
         $name.starts-with('array') || $name eq 'Mu'
           ?? $name
           !! $name.ends-with('LexRef')

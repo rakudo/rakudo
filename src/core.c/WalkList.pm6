@@ -23,7 +23,7 @@ my class WalkList is List {
         @rv
     }
     multi method invoke(::?CLASS:D: |c) {
-        note "invoke(", c.perl, ")" if %*ENV<RAKUDO_DEBUG>;
+        note "invoke(", c.raku, ")" if %*ENV<RAKUDO_DEBUG>;
         samewith(c)
     }
 

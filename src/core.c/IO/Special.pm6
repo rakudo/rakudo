@@ -20,7 +20,7 @@ class IO::Special does IO {
         )
     }
     multi method Str  (IO::Special:D:) {                    $!what         }
-    multi method perl (IO::Special:D:) { "{self.^name}.new({$!what.perl})" }
+    multi method perl (IO::Special:D:) { "{self.^name}.new({$!what.raku})" }
 
     method IO(IO::Special:D: --> IO::Special:D) { self }
 

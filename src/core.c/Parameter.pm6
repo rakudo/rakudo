@@ -591,7 +591,7 @@ my class Parameter { # declared in BOOTSTRAP
             $rest ~= ' is raw' unless $name eq '|' or $name.starts-with('\\');
         }
         unless nqp::isnull($!sub_signature) {
-            my $sig = $!sub_signature.perl();
+            my $sig = $!sub_signature.raku();
             $sig ~~ s/^^ ':'//;
             $rest ~= ' ' ~ $sig;
         }
@@ -604,13 +604,13 @@ my class Parameter { # declared in BOOTSTRAP
                    (my \value := nqp::atpos(@!post_constraints,0)),
                    Cool
                  ) {
-                return value.perl;
+                return value.raku;
             }
 
             $rest ~= ' where { ... }';
         }
         if $default {
-            $rest ~= " = $!default_value.perl()";
+            $rest ~= " = $!default_value.raku()";
         }
         elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
             $rest ~= " = OUTER::<$name>";

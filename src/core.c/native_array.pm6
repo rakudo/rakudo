@@ -3283,7 +3283,7 @@ my class array does Iterable {
 
     method ^parameterize(Mu:U \arr, Mu \t) {
         if nqp::isconcrete(t) {
-            return "Can not parameterize {arr.^name} with {t.perl}";
+            return "Can not parameterize {arr.^name} with {t.raku}";
         }
         my $t := nqp::decont(t);
         my int $kind = nqp::objprimspec($t);
@@ -3394,8 +3394,8 @@ my class array does Iterable {
     }
 
     multi method perl(array:D:) {
-        'array[' ~ self.of.perl ~ '].new(' ~
-            self.map(*.perl).join(', ') ~ ')'
+        'array[' ~ self.of.raku ~ '].new(' ~
+            self.map(*.raku).join(', ') ~ ')'
     }
 
     method FLATTENABLE_LIST() { self }

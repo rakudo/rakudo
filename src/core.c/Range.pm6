@@ -440,7 +440,7 @@ my class Range is Cool does Iterable does Positional {
     multi method perl(Range:D:) {
         $!is-int && $!min == 0 && !$!excludes-min && $!excludes-max
             ?? "^$!max"
-            !! "{$!min.perl}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.perl()"
+            !! "{$!min.raku}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.raku()"
     }
 
     proto method roll(|) {*}
@@ -656,7 +656,7 @@ my class Range is Cool does Iterable does Positional {
 
     method in-range($got, $what?) {
         self.ACCEPTS($got)
-          || X::OutOfRange.new(:what($what // 'Value'),:got($got.perl),:range(self.gist)).throw
+          || X::OutOfRange.new(:what($what // 'Value'),:got($got.raku),:range(self.gist)).throw
     }
 
     multi method minmax(Range:D:) {

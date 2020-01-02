@@ -12,17 +12,17 @@ my class Pod::Block {
             my $thing = $pod.?"$_"();
             if $thing {
                 %confs{$_} = nqp::istype($thing,Iterable)
-                  ?? $thing.perl
+                  ?? $thing.raku
                   !! $thing.Str;
             }
         }
-        @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
+        @chunks = $leading, $pod.^name, (%confs.raku if %confs), "\n";
         for $pod.contents.flat -> $c {
             if nqp::istype($c,Pod::Block) {
                 @chunks.push: pod-gist($c, $level + 2);
             }
             elsif nqp::istype($c,Positional) {
-                @chunks.append: $c>>.Str.perl.indent($level + 2), "\n";
+                @chunks.append: $c>>.Str.raku.indent($level + 2), "\n";
             }
             else {
                 @chunks.append: $c.Str.indent($level + 2), "\n";

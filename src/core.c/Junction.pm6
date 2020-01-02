@@ -275,7 +275,7 @@ my class Junction { # declared in BOOTSTRAP
         my int $elems = nqp::elems($!storage);
         my int $i     = -1;
         my $perls    := nqp::setelems(nqp::list_s,$elems);
-        nqp::bindpos_s($perls,$i,nqp::atpos($!storage,$i).perl)
+        nqp::bindpos_s($perls,$i,nqp::atpos($!storage,$i).raku)
           while nqp::islt_i(++$i,$elems);
         $!type ~ '(' ~ nqp::join(', ',$perls) ~ ')'
     }

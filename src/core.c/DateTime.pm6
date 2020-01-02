@@ -224,7 +224,7 @@ my class DateTime does Dateish {
           ':'
           (\d\d)                                         # minute
           ':'
-          (\d\d[<[\.,]>\d ** 1..6]?)                     # second
+          (\d\d[<[\.,]>\d ** 1..12]?)                    # second
           (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? # timezone
         $/;
 

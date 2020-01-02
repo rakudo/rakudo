@@ -73,7 +73,7 @@ my class RoleToClassApplier {
                 }
                 unless $match {
                     nqp::die("Multi method '" ~ $_.name ~ "' with signature " ~
-                        $_.multi.signature.perl ~ " must be resolved by class " ~
+                        $_.multi.signature.raku ~ " must be resolved by class " ~
                         $target.HOW.name($target) ~
                         " because it exists in multiple roles (" ~
                         nqp::join(", ", $_.roles) ~ ")");
@@ -181,7 +181,7 @@ my class RoleToClassApplier {
                     }
                     unless $satisfaction {
                         my $name := $req.name;
-                        my $sig := $req.code.signature.perl;
+                        my $sig := $req.code.signature.raku;
                         nqp::die("Multi method '$name' with signature $sig must be implemented by " ~
                             $!target.HOW.name($!target) ~
                             " because it is required by a role");

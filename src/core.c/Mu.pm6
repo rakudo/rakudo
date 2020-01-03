@@ -823,7 +823,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
             ).throw;
         }
 
-        return $meth(SELF, |c)
+        $meth(SELF, |c)
     }
 
     method dispatch:<!>(Mu \SELF: \name, Mu \type, |c) is raw {

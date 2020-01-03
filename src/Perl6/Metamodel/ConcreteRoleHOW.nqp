@@ -152,7 +152,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
                     || nqp::null();
         } elsif nqp::istype($obj, $qtype) {
             # Non-parametric, so just locate it from the already concrete type.
-            nqp::findmethod($qtype, $name)
+            return nqp::findmethod($qtype, $name)
         }
         nqp::null()
     }

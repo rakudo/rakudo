@@ -41,6 +41,7 @@ my class BOOTSTRAPATTR {
     method compose($obj, :$compiler_services) { }
     method gist() { $!type.HOW.name($!type) ~ ' ' ~ $!name }
     method perl() { 'BOOTSTRAPATTR.new' }
+    method raku() { 'BOOTSTRAPATTR.new' }
     method Str()  { $!name }
 }
 

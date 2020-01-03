@@ -28,8 +28,8 @@ for <wallclock cpu max-rss> {
     ok $T."$_"(), "did we get a non-zero value for $_ with a method";
 }
 
-my $T2 = $T.perl.EVAL;
-isa-ok $T2, Telemetry, 'did we get a Telemetry object from T.perl.EVAL';
+my $T2 = $T.raku.EVAL;
+isa-ok $T2, Telemetry, 'did we get a Telemetry object from T.raku.EVAL';
 is $T2{$_}, $T{$_}, "did $_ roundtrip ok in Telemetry?"
   for <wallclock cpu max-rss>;
 
@@ -40,9 +40,9 @@ for <wallclock cpu> {
     ok $P."$_"(), "did we get a non-zero value for $_ using AT-KEY";
 }
 
-my $P2 = $P.perl.EVAL;
+my $P2 = $P.raku.EVAL;
 isa-ok $P2, Telemetry::Period,
-  'did we get a Telemetry::Period object from period.perl.EVAL';
+  'did we get a Telemetry::Period object from period.raku.EVAL';
 is $P2{$_}, $P{$_}, "did $_ roundtrip ok in Telemetry::Period?"
   for <wallclock cpu max-rss>;
 

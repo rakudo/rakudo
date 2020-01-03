@@ -10,13 +10,13 @@ plan 2;
 subtest '.roll' => {
     plan 3;
     
-    throws-like { <a b c d e>.roll(-9999999999999999999999999999999999999999999999999).perl },
+    throws-like { <a b c d e>.roll(-9999999999999999999999999999999999999999999999999).raku },
         Exception, :message{ .contains: <unbox native>.all }, '(1)';
 
-    throws-like { <a b c d e>.roll(-99999999999999999999999999999999999999999999999999999999999999999).perl },
+    throws-like { <a b c d e>.roll(-99999999999999999999999999999999999999999999999999999999999999999).raku },
         Exception, :message{ .contains: <unbox native>.all }, '(2)';
 
-    throws-like { <a b c d e>.roll(99999999999999999999999999999999999999999999999999999999999999999).perl },
+    throws-like { <a b c d e>.roll(99999999999999999999999999999999999999999999999999999999999999999).raku },
         Exception, :message{ .contains: <unbox native>.all }, '(3)';
 }
 

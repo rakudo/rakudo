@@ -22,7 +22,7 @@ ok CompareSomePointer($x), 'Got passed back the pointer I returned';
 ok $x,     'Non-NULL pointer is trueish';
 ok $x.Int, 'Calling .Int on non-NULL pointer is trueish';
 ok +$x,    'Calling prefix:<+> on non-NULL pointer is trueish';
-is +$x.perl.EVAL,          +$x,               'Pointer roundtrips okay using .perl and EVAL';
+is +$x.raku.EVAL,          +$x,               'Pointer roundtrips okay using .raku and EVAL';
 is +Pointer.new,          0, 'Numerical value of Pointer.new is 0';
 is +Pointer.new(0),       0, 'Pointer.new(0) has 0 numerical value';
 is +Pointer.new(1234), 1234, 'Pointer.new(1234) has numerical value 1234';

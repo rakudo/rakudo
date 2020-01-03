@@ -44,7 +44,7 @@ subtest 'chr with large codepoints throws useful error' => {
     for @tests {
         throws-like $^code, Exception,
             :message{ not .contains('negative') and .contains('codepoint') },
-        "$code.perl()";
+        "$code.raku()";
     }
 }
 
@@ -257,7 +257,7 @@ throws-like ｢Blob[num32].new: 2e0｣,
     'sane NYI error for num32 Blob';
 
 # RT#77754
-throws-like ｢callframe.callframe(1).my.perl｣, X::NYI,
+throws-like ｢callframe.callframe(1).my.raku｣, X::NYI,
     'callframe.my throws sane NYI error message';
 
 

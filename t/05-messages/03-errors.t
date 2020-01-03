@@ -98,7 +98,7 @@ throws-like ｢
     (my $x := my class {}.new).^set_name: <Supercalifragilisticexpialidocious>;
     -> Supercalifragilisticexpialidocious {}($x)
 ｣, X::TypeCheck, :message{2 == +.comb: 'Supercalifragilisticexpialidocious'},
-    'X::TypeCheck does not prematurely chop off the .perl';
+    'X::TypeCheck does not prematurely chop off the .raku';
 
 #RT #128646
 subtest '.polymod with zero divisor does not reference guts in error' => {

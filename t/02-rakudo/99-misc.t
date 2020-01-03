@@ -15,14 +15,14 @@ subtest '.lang-ver-before method on Perl6::World' => {
     'using wrong version format as argument throws';
 }
 
-subtest 'IO::Handle.perl.EVAL roundtrips' => {
+subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;
 
     my $orig = IO::Handle.new: :path("foo".IO), :!chomp, :nl-in[<I ♥ Perl 6>],
         :nl-out<foo>, :encoding<ascii>;
 
-    is-deeply IO::Handle.perl.EVAL, IO::Handle, 'type object';
-    given $orig.perl.EVAL -> $evaled {
+    is-deeply IO::Handle.raku.EVAL, IO::Handle, 'type object';
+    given $orig.raku.EVAL -> $evaled {
         is-deeply $evaled, $orig, 'instance';
         is-deeply $evaled."$_"(), $orig."$_"(), $_
             for <path  chomp  nl-in  nl-out  encoding>;
@@ -145,7 +145,7 @@ group-of 2 => 'collation experiment' => {
 }
 
 subtest 'Distribution::Resource can be stringified', {
-    lives-ok { Distribution::Resource.perl }, 'Can use .perl';
+    lives-ok { Distribution::Resource.raku }, 'Can use .raku';
     lives-ok { Distribution::Resource.Str  }, 'Can use .Str';
     lives-ok { Distribution::Resource.gist }, 'Can use .gist';
 }

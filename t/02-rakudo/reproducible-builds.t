@@ -14,7 +14,7 @@ my @checksums;
 my @units;
 for ^2 -> $run {
     $precompilation-repository.precompile(
-        'lib/NativeCall.pm6'.IO,
+        'lib/NativeCall.rakumod'.IO,
         $id,
         :force,
     );

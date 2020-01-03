@@ -146,14 +146,18 @@ class Perl6::Metamodel::ConcreteRoleHOW
                     $found-role := $candidate;
                 }
             }
-            return nqp::null() if nqp::isnull($found-role);
-            return $found-role.HOW.method_table($found-role){$name}
-                    || $found-role.HOW.submethod_table($found-role){$name}
-                    || nqp::null();
-        } elsif nqp::istype($obj, $qtype) {
+            nqp::isnull($found-role)
+              ?? nqp::null()
+              !! $found-role.HOW.method_table($found-role){$name}
+                   || $found-role.HOW.submethod_table($found-role){$name}
+                   || nqp::null()
+        }
+        elsif nqp::istype($obj, $qtype) {
             # Non-parametric, so just locate it from the already concrete type.
             nqp::findmethod($qtype, $name)
         }
-        nqp::null()
+        else {
+            nqp::null()
+        }
     }
 }

@@ -2,12 +2,12 @@ use Perl6::Metamodel;
 use QRegex;
 
 # Here we start to piece together the top of the object model hierarchy.
-# We can't just declare these bits in CORE.setting with normal Perl 6
+# We can't just declare these bits in CORE.setting with normal Raku
 # syntax due to circularity issues. Note that we don't compose any of
 # these - which is equivalent to a { ... } body.
 #
 # One particular circularity we break here is that you can't have
-# inheritance in Perl 6 without traits, but that needs multiple
+# inheritance in Raku without traits, but that needs multiple
 # dispatch, which can't function without some type hierarchy in
 # place. It also needs us to be able to declare signatures with
 # parameters and code objects with dispatchees, which in turn needs
@@ -3909,7 +3909,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 # of type checking. Also, they pun to classes.
 my %excluded := nqp::hash(
     'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
-    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
+    'gist', Mu, 'perl', Mu, 'raku', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
     'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
     'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
     'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,

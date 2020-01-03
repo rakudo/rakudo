@@ -345,7 +345,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::push_s($bytes,"...") if nqp::elems(self) > $todo;
         self.^name ~ ':0x<' ~ nqp::join(" ",$bytes) ~ '>'
     }
-    multi method perl(Blob:D:) {
+    multi method raku(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';
     }
 

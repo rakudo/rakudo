@@ -160,7 +160,7 @@ my role Setty does QuantHash {
           ')'
         )
     }
-    multi method perl(Setty:D $ : --> Str:D) {
+    multi method raku(Setty:D $ : --> Str:D) {
         nqp::if(
           nqp::eqaddr(self,set()),
           'set()',

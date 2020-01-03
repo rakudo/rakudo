@@ -105,7 +105,7 @@ my class Capture { # declared in BOOTSTRAP
         nqp::p6box_s(nqp::join(' ', $str))
     }
     multi method gist(Capture:D:) { self.Capture::perl }
-    multi method perl(Capture:D:) {
+    multi method raku(Capture:D:) {
         my %hash := self.Capture::hash;
         if self.^name eq 'Capture' {
             "\\({

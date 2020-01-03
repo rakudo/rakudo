@@ -44,7 +44,7 @@ role Telemetry::Instrument::Snap does Associative {
         nqp::p6bindattrinvres(nqp::create(self),self,'$!data',$data)
     }
 
-    multi method perl(::?CLASS:D:) {
+    multi method raku(::?CLASS:D:) {
         my $text := nqp::list_s;
         my int $elems = nqp::elems($!data);
         my int $i = -1;
@@ -545,7 +545,7 @@ class Telemetry::Sampler {
         $snaps := nqp::create(IterationBuffer);
     }
 
-    multi method perl(Telemetry::Sampler:D: --> Str:D) {
+    multi method raku(Telemetry::Sampler:D: --> Str:D) {
         self.^name
           ~ '.new('
           ~ self.instruments.map(*.^name).join(",")
@@ -602,7 +602,7 @@ class Telemetry does Associative {
         nqp::p6bindattrinvres($self,Telemetry,'$!samples',$samples);
     }
 
-    multi method perl(Telemetry:D: --> Str:D) {
+    multi method raku(Telemetry:D: --> Str:D) {
         self.^name ~ ".new$!samples.raku()"
     }
 

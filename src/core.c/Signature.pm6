@@ -144,7 +144,7 @@ my class Signature { # declared in BOOTSTRAP
          !nqp::isnull($!code) && $!code ~~ Routine ?? Any !! Mu
     }
 
-    multi method perl(Signature:D:) {
+    multi method raku(Signature:D:) {
         self!gistperl(True, :elide-type(self!deftype))
     }
     multi method gist(Signature:D:) {

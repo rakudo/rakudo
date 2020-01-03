@@ -116,7 +116,7 @@ my class Regex { # declared in BOOTSTRAP
         nqp::ifnull($!source,'')
     }
 
-    multi method perl(Regex:D:) {
+    multi method raku(Regex:D:) {
         nqp::ifnull($!source,'')
     }
 

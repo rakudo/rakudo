@@ -62,7 +62,7 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
                      :type<is>, :subtype<default>,
                      :native($native eq 'Mu' ?? ''!! $native ))  # yuck
               !! $v.throw('X::Comp::NYI',
-                     :feature("is default on shaped $what.perl()"))
+                     :feature("is default on shaped $what.raku()"))
         }
     }
 
@@ -87,7 +87,7 @@ multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
                    :type<is>, :subtype<dynamic>,
                    :native($native eq 'Mu' ?? ''!! $native ))  # yuck
               !! $v.throw('X::Comp::NYI',
-                     :feature("is dynamic on shaped $what.perl()"))
+                     :feature("is dynamic on shaped $what.raku()"))
         }
     }
 }

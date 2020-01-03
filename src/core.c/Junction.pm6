@@ -271,7 +271,7 @@ my class Junction { # declared in BOOTSTRAP
         $!type ~ '(' ~ nqp::join(', ',$gists) ~ ')'
     }
 
-    multi method perl(Junction:D:) {
+    multi method raku(Junction:D:) {
         my int $elems = nqp::elems($!storage);
         my int $i     = -1;
         my $perls    := nqp::setelems(nqp::list_s,$elems);

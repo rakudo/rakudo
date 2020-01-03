@@ -1360,7 +1360,7 @@ my class Array { # declared in BOOTSTRAP
     method dynamic() {
         nqp::isnull($!descriptor) ?? False !! so $!descriptor.dynamic
     }
-    multi method perl(Array:D \SELF: --> Str:D) {
+    multi method raku(Array:D \SELF: --> Str:D) {
         SELF.rakuseen('Array', {
              '$' x nqp::iscont(SELF)  # self is always deconted
              ~ '['

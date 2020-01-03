@@ -13,7 +13,7 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
-    method raku(Mu \SELF: |c) { SELF.perl(|c) }
+    method perl(Mu \SELF: |c) { SELF.raku(|c) }
 
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {
@@ -83,7 +83,7 @@ my class Mu { # declared in BOOTSTRAP
         my role Suggestion[$name] {
             method gist {
                 "No documentation available for type '$name'.
-Perhaps it can be found at https://docs.perl6.org/type/$name"
+Perhaps it can be found at https://docs.raku.org/type/$name"
             }
         }
 
@@ -551,7 +551,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.name) // '';
         $name   ~= ' ' if $name ne '';
         warn "Use of uninitialized value {$name}of type {self.^name} in string"
-                ~ " context.\nMethods .^name, .perl, .gist, or .say can be"
+                ~ " context.\nMethods .^name, .raku, .gist, or .say can be"
                 ~ " used to stringify it to something meaningful.";
         ''
     }
@@ -604,7 +604,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     proto method gist(|) {*}
     multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
-    multi method gist(Mu:D:) { self.perl }
+    multi method gist(Mu:D:) { self.raku }
 
     method rakuseen(Mu:D \SELF: $id, $perl, *%named) {
         my $sigil = nqp::iseq_s($id, 'Array') ?? '@'
@@ -634,27 +634,27 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         }
     }
 
-    proto method perl(|) {*}
-    multi method perl(Mu:U:) { self.^name }
-    multi method perl(Mu:D:) {
+    proto method raku(|) {*}
+    multi method raku(Mu:U:) { self.^name }
+    multi method raku(Mu:D:) {
         nqp::if(
           nqp::eqaddr(self,IterationEnd),
           "IterationEnd",
           nqp::if(
             nqp::iscont(self), # a Proxy object would have a conted `self`
-            nqp::decont(self).perl,
+            nqp::decont(self).raku,
             self.rakuseen: self.^name, {
                 my @attrs;
                 for self.^attributes().flat.grep: { .has_accessor } -> $attr {
                     my $name := substr($attr.Str,2);
-                    @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
+                    @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).raku
                 }
                 self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
             }))
     }
 
     proto method DUMP(|) {*}
-    multi method DUMP(Mu:U:) { self.perl }
+    multi method DUMP(Mu:U:) { self.raku }
     multi method DUMP(Mu:D: :$indent-step = 4, :%ctx?) {
         return DUMP(self, :$indent-step) unless %ctx;
 
@@ -1012,7 +1012,7 @@ multi sub infix:<eqv>(Any:U \a, Any:D \b --> False) { }
 multi sub infix:<eqv>(Any:D \a, Any:D \b) {
     nqp::hllbool(
       nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.perl,b.perl))
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.raku,b.raku))
     )
 }
 

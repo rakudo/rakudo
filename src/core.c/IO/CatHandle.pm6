@@ -7,7 +7,7 @@ my class IO::CatHandle is IO::Handle {
     has Str $.encoding;
     has &.on-switch is rw;
 
-    multi method perl(::?CLASS:D:) {
+    multi method raku(::?CLASS:D:) {
         my @handles =
             ($!active-handle if $!active-handle),
             |nqp::p6bindattrinvres((), List, '$!reified', $!handles);

@@ -37,7 +37,7 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::fromI_I(nqp::decont(value), self)
     }
 
-    multi method perl(Int:D: --> Str:D) {
+    multi method raku(Int:D: --> Str:D) {
         self.Str;
     }
     multi method Bool(Int:D: --> Bool:D) {

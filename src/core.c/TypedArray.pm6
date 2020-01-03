@@ -104,7 +104,7 @@
             )
         }
 
-        multi method perl(::?CLASS:D \SELF:) {
+        multi method raku(::?CLASS:D \SELF:) {
             my $args = self.map({ ($_ // TValue).raku(:arglist) }).join(', ');
             'Array[' ~ TValue.raku ~ '].new(' ~ $args ~ ')';
         }

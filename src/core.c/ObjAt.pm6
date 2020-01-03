@@ -24,7 +24,7 @@ my class ObjAt { # declared in BOOTSTRAP
     multi method gist(ObjAt:D:) {
         nqp::p6box_s(nqp::unbox_s(self));
     }
-    multi method perl(ObjAt:D:) {
+    multi method raku(ObjAt:D:) {
         self.^name ~ ".new(" ~ nqp::p6box_s(nqp::unbox_s(self)).raku ~ ")"
     }
 }

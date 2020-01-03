@@ -437,7 +437,7 @@ my class Range is Cool does Iterable does Positional {
             !! self.list.AT-POS(nqp::unbox_i(pos));
     }
 
-    multi method perl(Range:D:) {
+    multi method raku(Range:D:) {
         $!is-int && $!min == 0 && !$!excludes-min && $!excludes-max
             ?? "^$!max"
             !! "{$!min.raku}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.raku()"

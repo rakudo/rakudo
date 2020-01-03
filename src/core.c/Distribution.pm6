@@ -82,7 +82,7 @@ class CompUnit::Repository::Distribution does Distribution {
         Rakudo::Internals::JSON.to-json: {:$.repo, :$.repo-name, :$.dist-id}
     }
 
-    method perl {
+    method raku {
         self.^name ~ ".new({$!dist.raku}, repo => {$!repo.raku}, repo-name => {$!repo-name.raku})";
     }
 }
@@ -92,7 +92,7 @@ class Distribution::Hash does Distribution::Locally {
     submethod BUILD(:$!meta, :$!prefix --> Nil) { }
     method new($hash, :$prefix) { self.bless(:meta($hash), :$prefix) }
     method meta { $!meta }
-    method perl {
+    method raku {
         self.^name ~ ".new({$!meta.raku}, prefix => {$!prefix.raku})";
     }
 }
@@ -130,7 +130,7 @@ class Distribution::Path does Distribution::Locally {
         self.bless(:$meta, :$prefix, :$meta-file);
     }
     method meta { $!meta }
-    method perl {
+    method raku {
        self.^name ~ ".new({$!prefix.raku}, meta-file => {$!meta-file.raku})";
     }
 }
@@ -164,7 +164,7 @@ class Distribution::Resource {
     multi method gist(::?CLASS:D: |c) {
         self.IO.gist(|c)
     }
-    multi method perl(::?CLASS:D: |c) {
+    multi method raku(::?CLASS:D: |c) {
         self.IO.raku(|c)
     }
     method absolute(|c) {

@@ -70,7 +70,7 @@ my class Complex is Cool does Numeric {
         )
     }
 
-    multi method perl(Complex:D:) {
+    multi method raku(Complex:D:) {
         '<' ~ self.Str ~ '>';
     }
     method conj(Complex:D:) {

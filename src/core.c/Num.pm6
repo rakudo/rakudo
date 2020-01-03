@@ -34,7 +34,7 @@ my class Num does Real { # declared in BOOTSTRAP
     multi method new() { nqp::box_n(0e0, self) }
     multi method new($n) { nqp::box_n($n.Num, self) }
 
-    multi method perl(Num:D:) {
+    multi method raku(Num:D:) {
         my str $res = self.Str;
         nqp::isnanorinf(nqp::unbox_n(self))
           || nqp::isge_i(nqp::index($res,'e'),0)

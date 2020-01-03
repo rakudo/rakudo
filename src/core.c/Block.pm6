@@ -60,7 +60,7 @@ my class Block { # declared in BOOTSTRAP
           !! ()
     }
 
-    multi method perl(Block:D:) {
+    multi method raku(Block:D:) {
         "-> {self.signature.raku.substr(2,*-1)} \{ #`({self.WHICH}) ... \}"
     }
 

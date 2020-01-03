@@ -7,7 +7,7 @@ my class Slip { # is List
 
     multi method Slip(Slip:D: --> Slip:D) { self }
     method CALL-ME (+args)     { args.Slip }
-    multi method perl(Slip:D: --> Str:D) {
+    multi method raku(Slip:D: --> Str:D) {
         nqp::if(
           nqp::eqaddr(self,Empty),
           'Empty',

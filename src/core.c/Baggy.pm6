@@ -327,7 +327,7 @@ my role Baggy does QuantHash {
           ')',
         )
     }
-    multi method perl(Baggy:D: --> Str:D) {
+    multi method raku(Baggy:D: --> Str:D) {
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::stmts(

@@ -322,7 +322,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method gist(Str:D: --> Str:D) { self }
-    multi method perl(Str:D: --> Str:D) {
+    multi method raku(Str:D: --> Str:D) {
         '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
     }
 
@@ -3039,7 +3039,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               !! self                                  # still trailing chars
         }
 
-        method perl() {
+        method raku() {
             "Not done at position {nqp::atpos(self,0)} with value {nqp::atpos(self,1)}"
         }
     }

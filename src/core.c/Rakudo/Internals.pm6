@@ -466,7 +466,7 @@ my class Rakudo::Internals {
 implementation detail and has no serviceable parts inside"
         }
         method Str( --> Str:D) { self.gist }
-        method perl(--> Str:D) { self.gist }
+        method raku(--> Str:D) { self.gist }
     }
 
     our role ShapedArrayCommon {
@@ -530,7 +530,7 @@ implementation detail and has no serviceable parts inside"
             }
         }
 
-        multi method perl(::?CLASS:D \SELF:) {
+        multi method raku(::?CLASS:D \SELF:) {
             SELF.rakuseen('Array', {
                 self.^name
                 ~ '.new(:shape'

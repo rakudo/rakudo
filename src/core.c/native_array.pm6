@@ -3393,7 +3393,7 @@ my class array does Iterable {
         } ).join(' ') ~ ']';
     }
 
-    multi method perl(array:D:) {
+    multi method raku(array:D:) {
         'array[' ~ self.of.raku ~ '].new(' ~
             self.map(*.raku).join(', ') ~ ')'
     }

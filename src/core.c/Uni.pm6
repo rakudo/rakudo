@@ -116,7 +116,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         self.^name ~ ':0x<' ~ self.list.fmt('%04x', ' ') ~ '>'
     }
 
-    multi method perl(Uni:D:) {
+    multi method raku(Uni:D:) {
         'Uni.new(' ~ self.list.fmt('0x%04x', ', ') ~ ')' ~
             (self.WHAT === Uni ?? '' !! '.' ~ self.^name);
     }

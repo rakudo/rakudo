@@ -891,7 +891,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         }
     }
 
-    multi method perl(Match:D:) {
+    multi method raku(Match:D:) {
         my %attrs;
         %attrs.ASSIGN-KEY("orig", (self.orig // '' ).raku);
         %attrs.ASSIGN-KEY("from", (self.from // 0  ).raku);

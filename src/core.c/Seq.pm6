@@ -84,7 +84,7 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
-    multi method perl(Seq:D \SELF:) {
+    multi method raku(Seq:D \SELF:) {
         # If we don't have an iterator, someone grabbed it already;
         # Check for cached $!list; if that's missing too, we're consumed
         my $perl;

@@ -187,7 +187,7 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
-    multi method perl(Hash:D \SELF:) {
+    multi method raku(Hash:D \SELF:) {
         SELF.rakuseen(self.^name, {
             '$' x nqp::iscont(SELF)  # self is always deconted
             ~ '{' ~ self.sort.map({.raku}).join(', ') ~ '}'
@@ -459,7 +459,7 @@ my class Hash { # declared in BOOTSTRAP
               value
             )
         }
-        multi method perl(::?CLASS:D \SELF:) {
+        multi method raku(::?CLASS:D \SELF:) {
             SELF.rakuseen('Hash', {
                 '$' x nqp::iscont(SELF)  # self is always deconted
                 ~ (self.elems
@@ -732,7 +732,7 @@ my class Hash { # declared in BOOTSTRAP
             ))
         }
 
-        multi method perl(::?CLASS:D \SELF:) {
+        multi method raku(::?CLASS:D \SELF:) {
             SELF.rakuseen('Hash', {
                 my $TKey-perl   := TKey.raku;
                 my $TValue-perl := TValue.raku;

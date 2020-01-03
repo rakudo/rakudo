@@ -94,13 +94,13 @@ sub declarator2text($pod) {
             'sub ' ~ $_.name ~ signature2text($_.signature.params)
         }
         when .HOW ~~ Metamodel::ClassHOW {
-            'class ' ~ $_.perl
+            'class ' ~ $_.raku
         }
         when .HOW ~~ Metamodel::ModuleHOW {
-            'module ' ~ $_.perl
+            'module ' ~ $_.raku
         }
         when .HOW ~~ Metamodel::PackageHOW {
-            'package ' ~ $_.perl
+            'package ' ~ $_.raku
         }
         default {
             ''
@@ -115,7 +115,7 @@ sub signature2text($params) {
       !! "()";
 }
 sub param2text($p) {
-    $p.perl ~ ',' ~ ( $p.WHY ?? ' # ' ~ $p.WHY !! ' ')
+    $p.raku ~ ',' ~ ( $p.WHY ?? ' # ' ~ $p.WHY !! ' ')
 }
 
 my %formats =

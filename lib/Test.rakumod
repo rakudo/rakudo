@@ -181,8 +181,8 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                    eq $expected.Str.subst(/\s/, '', :g)
             {
                 # only white space differs, so better show it to the user
-                _diag "expected: $expected.perl()\n"
-                    ~ "     got: $got.perl()";
+                _diag "expected: $expected.raku()\n"
+                    ~ "     got: $got.raku()";
             }
             else {
                 _diag "expected: '$expected'\n"
@@ -209,8 +209,8 @@ multi sub isnt(Mu $got, Mu:U $expected, $desc = '') is export {
         my $test = $got !=== $expected;
         $ok = proclaim($test, $desc);
         if !$test {
-            _diag "expected: anything except '$expected.perl()'\n"
-                ~ "     got: '$got.perl()'";
+            _diag "expected: anything except '$expected.raku()'\n"
+                ~ "     got: '$got.raku()'";
         }
     }
     $time_before = nqp::time_n;
@@ -224,8 +224,8 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
         my $test = $got ne $expected;
         $ok = proclaim($test, $desc);
         if !$test {
-            _diag "expected: anything except '$expected.perl()'\n"
-                ~ "     got: '$got.perl()'";
+            _diag "expected: anything except '$expected.raku()'\n"
+                ~ "     got: '$got.raku()'";
         }
     }
     else {
@@ -253,8 +253,8 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
-            my $expected-desc = (try $expected.perl) // $expected.gist;
-            my      $got-desc = (try $got     .perl) // $got     .gist;
+            my $expected-desc = (try $expected.raku) // $expected.gist;
+            my      $got-desc = (try $got     .raku) // $got     .gist;
             _diag "expected: $expected-desc\n"
                 ~ " matcher: '" ~ ($matcher.?name || $matcher.^name) ~ "'\n"
                 ~ "     got: $got-desc";
@@ -262,7 +262,7 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     }
     else {
         $ok = proclaim(False, $desc);
-        _diag "Could not use '$op.perl()' as a comparator." ~ (
+        _diag "Could not use '$op.raku()' as a comparator." ~ (
             ' If you are trying to use a meta operator, pass it as a '
             ~ "Callable instead of a string: \&[$op]"
             unless nqp::istype($op, Callable)
@@ -464,7 +464,7 @@ multi sub flunk($reason = '') is export {
 }
 
 multi sub isa-ok(
-    Mu $var, Mu $type, $desc = "The object is-a '$type.perl()'"
+    Mu $var, Mu $type, $desc = "The object is-a '$type.raku()'"
 ) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim($var.isa($type), $desc)
@@ -474,11 +474,11 @@ multi sub isa-ok(
 }
 
 multi sub does-ok(
-    Mu $var, Mu $type, $desc = "The object does role '$type.perl()'"
+    Mu $var, Mu $type, $desc = "The object does role '$type.raku()'"
 ) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim($var.does($type), $desc)
-        or _diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.perl);
+        or _diag([~] 'Type: ',  $var.^name, " doesn't do role ", $type.raku);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
@@ -486,7 +486,7 @@ multi sub does-ok(
 multi sub can-ok(
     Mu $var, Str $meth,
     $desc = ($var.defined ?? "An object of type '" !! "The type '")
-        ~ "$var.WHAT.perl()' can do the method '$meth'"
+        ~ "$var.WHAT.raku()' can do the method '$meth'"
 ) is export {
     $time_after = nqp::time_n;
     my $ok = proclaim($var.^can($meth), $desc);
@@ -496,24 +496,24 @@ multi sub can-ok(
 
 multi sub like(
     Str() $got, Regex:D $expected,
-    $desc = "text matches $expected.perl()"
+    $desc = "text matches $expected.raku()"
 ) is export {
     $time_after = nqp::time_n;
     my $ok := proclaim $got ~~ $expected, $desc
-        or _diag "expected a match with: $expected.perl()\n"
-               ~ "                  got: $got.perl()";
+        or _diag "expected a match with: $expected.raku()\n"
+               ~ "                  got: $got.raku()";
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 multi sub unlike(
     Str() $got, Regex:D $expected,
-    $desc = "text does not match $expected.perl()"
+    $desc = "text does not match $expected.raku()"
 ) is export {
     $time_after = nqp::time_n;
     my $ok := proclaim !($got ~~ $expected), $desc
-        or _diag "expected no match with: $expected.perl()\n"
-               ~ "                   got: $got.perl()";
+        or _diag "expected no match with: $expected.raku()\n"
+               ~ "                   got: $got.raku()";
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
@@ -590,8 +590,8 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
     my $test = _is_deeply( $got, $expected );
     my $ok = proclaim($test, $reason);
     if !$test {
-        my $got_perl      = try { $got.perl };
-        my $expected_perl = try { $expected.perl };
+        my $got_perl      = try { $got.raku };
+        my $expected_perl = try { $expected.raku };
         if $got_perl.defined && $expected_perl.defined {
             _diag "expected: $expected_perl\n"
                 ~ "     got: $got_perl";
@@ -626,7 +626,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                         my $ok = $got ~~ $v,;
                         ok $ok, ".$k matches $v.gist()";
                         unless $ok {
-                            _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.perl)
+                            _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.raku)
                               ~ "\nGot:      $got";
                         }
                     }
@@ -851,7 +851,7 @@ If you have 'p6doc' installed, you can do 'p6doc Language/testing'.
 
 You can also check the documentation about testing in Perl 6 online on:
 
-  https://doc.perl6.org/language/testing
+  https://doc.raku.org/language/testing
 
 =end pod
 

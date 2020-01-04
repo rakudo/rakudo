@@ -1082,19 +1082,9 @@ class Rakudo::Iterator {
     }
     method CrossIterables(@iterables) {
         nqp::if(
-          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
-
-          # actually need to do some crossing (probably)
+          nqp::isgt_i(@iterables.elems,0),  # reifies
           CrossIterables.new(@iterables),
-
-          # simpler cases
-          nqp::if(
-            nqp::iseq_i($n,0),
-            # nothing to cross, so return an empty list
-            Rakudo::Iterator.Empty,
-            # only 1 list to cross, which is the list itself
-            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
-          )
+          Rakudo::Iterator.Empty
         )
     }
 
@@ -4019,9 +4009,9 @@ class Rakudo::Iterator {
     }
     method ZipIterables(@iterables) {
         nqp::if(
-          nqp::isgt_i((my int $n = @iterables.elems),0),  # reifies
+          nqp::isgt_i(@iterables.elems,0),  # reifies
           ZipIterables.new(@iterables),
-          Rakudo::Iterator.Empty,
+          Rakudo::Iterator.Empty
         )
     }
 

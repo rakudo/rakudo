@@ -4019,13 +4019,9 @@ class Rakudo::Iterator {
     }
     method ZipIterables(@iterables) {
         nqp::if(
-          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
+          nqp::isgt_i((my int $n = @iterables.elems),0),  # reifies
           ZipIterables.new(@iterables),
-          nqp::if(
-            nqp::iseq_i($n,0),
-            Rakudo::Iterator.Empty,
-            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
-          )
+          Rakudo::Iterator.Empty,
         )
     }
 

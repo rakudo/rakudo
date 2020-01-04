@@ -560,7 +560,7 @@ class MoarVM::Profiler {
         (
 "  #   wallclock   objects    frames   inlined    jitted   OSR   GCs",
 "----+-----------+---------+---------+---------+---------+-----+-----",
-          |self.threads.grep(*.value.nr_frames).sort(*.key).map( {
+          |self.threads_by_id.grep(*.value.nr_frames).sort(*.key).map( {
               sprintf("%3d %11d %9d %9d %9d %9d %5d %5d",
                 .id,
                 .total_time,

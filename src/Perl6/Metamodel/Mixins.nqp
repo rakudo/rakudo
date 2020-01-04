@@ -103,7 +103,7 @@ role Perl6::Metamodel::Mixins {
         # if there is one.
         my $found;
         for $new_type.HOW.attributes($new_type, :local) {
-            if $_.has_accessor {
+            if $_.is_settable {
                 if $found {
                     $found := NQPMu;
                     last;

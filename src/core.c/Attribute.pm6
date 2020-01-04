@@ -2,6 +2,7 @@ my class Attribute { # declared in BOOTSTRAP
     # class Attribute is Any
     #     has str $!name;
     #     has int $!rw;
+    #     has int $!is_settable;
     #     has int $!has_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
@@ -240,6 +241,10 @@ multi sub trait_mod:<does>(Attribute:D $a, Mu:U $role) {
             composer    => $role,
         ).throw;
     }
+}
+
+multi sub trait_mod:<is>(Attribute:D $a, :$accessible!) {
+    nqp::bindattr_i($a,Attribute,'$!has_accessor',1)
 }
 
 # vim: ft=perl6 expandtab sw=4

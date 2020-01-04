@@ -99,7 +99,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 $primspec := $is_oversized_int ?? 0 !! $primspec;
 #?endif
 
-                if $_.has_accessor {
+                if $_.is_settable {
                     nqp::push(@plan,[
                       0 + $primspec,
                       $obj,

@@ -1001,26 +1001,6 @@ my class Supply does Awaitable {
 
     proto method lines(|) {*}
 
-    # lines from a Supply with given line-ending
-    multi method lines(Supply:D: Str(Cool) :$nl-in! ) {
-        supply {
-            my str $str;
-            my str $needle = $nl-in;
-
-            whenever self -> str $val {
-                my $matches := nqp::split($needle,nqp::concat($str,$val));
-                $str = nqp::pop($matches);
-
-                my $iterator := nqp::iterator($matches);
-                emit nqp::p6box_s(nqp::shift($iterator)) while $iterator;
-
-                LAST {
-                    emit nqp::p6box_s($str) if nqp::chars($str);
-                }
-            }
-        }
-    }
-
     # optional chomping lines from a Supply
     multi method lines(Supply:D: :$chomp! ) {
         $chomp

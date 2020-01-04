@@ -645,7 +645,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
             nqp::decont(self).raku,
             self.rakuseen: self.^name, {
                 my @attrs;
-                for self.^attributes().flat.grep: { .has_accessor } -> $attr {
+                for self.^attributes().flat.grep: { .is_settable } -> $attr {
                     my $name := substr($attr.Str,2);
                     @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).raku
                 }

@@ -243,8 +243,15 @@ multi sub trait_mod:<does>(Attribute:D $a, Mu:U $role) {
     }
 }
 
-multi sub trait_mod:<is>(Attribute:D $a, :$accessible!) {
-    nqp::bindattr_i($a,Attribute,'$!has_accessor',1)
+multi sub trait_mod:<is>(Attribute:D $a, :$init!) {
+    if nqp::istype($init,Bool) {
+        nqp::bindattr_i($a,Attribute,'$!is_settable',+$init);
+    }
+#    elsif nqp::istype($init,Pair) {
+#    }
+    else {
+        die "Don't know how to handle 'is init($init)' trait";
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

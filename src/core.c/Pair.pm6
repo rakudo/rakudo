@@ -105,20 +105,39 @@ key of the Pair should be a valid method name, not '$method'."
         })
     }
 
-    multi method raku(Pair:D: Bool:D :$arglist = False) {
-        self.rakuseen('Pair', -> :$arglist {
-            nqp::istype($!key, Str) && nqp::isconcrete($!key)
-              ?? nqp::not_i($arglist) && $!key.is-identifier
-                ?? nqp::istype($!value,Bool) && nqp::isconcrete($!value)
-                   ?? ':' ~ '!' x !$!value ~ $!key
-                   !! ':' ~ $!key ~ '(' ~ $!value.raku ~ ')'
-                !! $!key.raku ~ ' => ' ~ $!value.raku
-              !! nqp::istype($!key, Numeric)
-                   && nqp::isconcrete($!key)
-                   && !(nqp::istype($!key,Num) && nqp::isnanorinf($!key))
-                ?? $!key.raku ~ ' => ' ~ $!value.raku
-                !! '(' ~ $!key.raku ~ ') => ' ~ $!value.raku
-        }, :$arglist)
+    multi method raku(Pair:D: :$arglist = False) {
+        self.rakuseen:
+          self.^name,
+          {   
+              nqp::isconcrete($!key)
+                ?? nqp::istype($!key,Str)
+                     && nqp::not_i($arglist)
+                     && $!key.is-identifier
+                  ?? nqp::eqaddr($!value,True) || nqp::eqaddr($!value,False)
+                    ?? nqp::concat(':',
+                         nqp::concat(nqp::x('!',nqp::not_i($!value)),
+                           $!key))
+                    !! nqp::concat(':',
+                         nqp::concat($!key,
+                           nqp::concat('(',
+                             nqp::concat($!value.raku,
+                               ')'))))
+                  !! nqp::istype($!key,Numeric)
+                       && nqp::not_i(
+                            nqp::istype($!key,Num) && nqp::isnanorinf($!key)
+                          )
+                    ?? nqp::concat($!key.raku,
+                         nqp::concat(' => ',
+                           $!value.raku))
+                    !! nqp::concat('(',
+                         nqp::concat($!key.raku,
+                           nqp::concat(') => ',
+                             $!value.raku)))
+                !! nqp::concat('(',
+                     nqp::concat($!key.^name,
+                       nqp::concat(') => ',
+                         $!value.raku)))
+          }
     }
 
     method fmt($format = "%s\t%s") {

@@ -336,7 +336,84 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method gist(Str:D: --> Str:D) { self }
     multi method raku(Str:D: --> Str:D) {
-        '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
+        nqp::chars(self)
+          ?? self!rakufy
+          !! '""'
+    }
+
+    # Special case escape values for rakufication
+    my $escapes := nqp::hash(
+      "\0",   '\0',
+      '$',    '\$',
+      '@',    '\@',
+      '%',    '\%',
+      '&',    '\&',
+      '{',    '\{',
+      "\b",   '\b',
+      "\x0A", '\n',
+      "\r",   '\r',
+      "\t",   '\t',
+      '"',    '\"',
+      '\\',   '\\\\',
+    );
+
+    # Helper method to create hex representation of char at given index
+    method !hexify-at(int $i) is pure {
+        nqp::concat(
+          '\x[',
+          nqp::concat(
+#?if !jvm
+            nqp::substr(self,$i,1).NFC.map( *.base(16) ).join(','),
+#?endif
+#?if jvm
+            nqp::p6box_i(nqp::ordat(self,$i)).base(16),
+#?endif
+            ']'
+          )
+        )
+    }
+
+    # Under NFG-supporting implementations, must be sure that any leading
+    # combiners are escaped, otherwise they will be combined onto the "
+    # under concatenation closure, which ruins round-tripping. Also handle
+    # the \r\n grapheme correctly.
+    method !rakufy() {
+        my int $i = -1;
+        my $rakufied := nqp::list_s('"');              # array add chars to
+
+        while ++$i < nqp::chars(self) {                # check all chars
+            nqp::push_s(
+              $rakufied,
+#?if !jvm
+              nqp::isge_i(nqp::ordat(self,$i),768)     # different from "0" ??
+                && nqp::isgt_i(
+                     nqp::atpos(
+                       nqp::radix_I(10,                # failure -> value 0
+                         nqp::getuniprop_str(
+                           nqp::ordat(self,$i),
+                           nqp::unipropcode('Canonical_Combining_Class')
+                         ),
+                         0,0,Int
+                       ),
+                       0
+                     ),
+                     0
+                   )
+                ?? self!hexify-at($i)                  # escape since > 0
+                !!
+#?endif
+                   nqp::ifnull(
+                     nqp::atkey($escapes,nqp::substr(self,$i,1)),
+                     nqp::eqat(self,"\r\n",$i)         # not a known escape
+                       ?? '\r\n'                       # it's the common LF
+                       !! nqp::iscclass(nqp::const::CCLASS_PRINTING,self,$i)
+                         ?? nqp::substr(self,$i,1)     # it's a printable
+                         !! self!hexify-at($i)         # need to escape
+                   )
+            )
+        }
+        nqp::push_s($rakufied,'"');
+        nqp::join('',$rakufied)
     }
 
     my class CombAll does PredictiveIterator {

@@ -709,63 +709,6 @@ implementation detail and has no serviceable parts inside"
     method INITTHREAD() { $init-thread }
 #?endif
 
-    my $escapes := nqp::hash(
-     "\0",   '\0',
-     '$',    '\$',
-     '@',    '\@',
-     '%',    '\%',
-     '&',    '\&',
-     '{',    '\{',
-     "\b",   '\b',
-     "\x0A", '\n',
-     "\r",   '\r',
-     "\t",   '\t',
-     '"',    '\"',
-     '\\',   '\\\\',
-    );
-
-    method PERLIFY-STR(Str \string) {
-        sub char-to-escapes(Str $char) is pure {
-#?if !jvm
-            '\x[' ~ $char.NFC.list.map({.base: 16}).join(',') ~ ']'
-#?endif
-#?if jvm
-            '\x[' ~ $char.ord.base(16) ~ ']'
-#?endif
-        }
-
-        # Under NFG-supporting implementations, must be sure that any leading
-        # combiners are escaped, otherwise they will be combined onto the "
-        # under concatenation closure, which ruins round-tripping. Also handle
-        # the \r\n grapheme correctly.
-        my str $to-escape = nqp::unbox_s(string);
-        return '' if nqp::isnull_s($to-escape); # nothing to escape
-
-        my str $escaped = '';
-        my int $chars = nqp::chars($to-escape);
-        my int $i = -1;
-        while ($i = $i + 1) < $chars {
-            my str $char = nqp::substr($to-escape, $i, 1);
-#?if !jvm
-            my int $ord = nqp::ord($char);
-            $escaped ~= nqp::isge_i($ord,256)
-              && +uniprop-str($ord,'Canonical_Combining_Class')
-              ?? char-to-escapes($char)
-              !! nqp::iseq_s($char,"\r\n") ?? '\r\n' !!
-#?endif
-#?if jvm
-            $escaped ~=
-#?endif
-
-              nqp::existskey($escapes,$char)
-                ?? nqp::atkey($escapes,$char)
-                !! nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0)
-                  ?? $char
-                  !! char-to-escapes($char);
-        }
-        $escaped
-    }
-
     # easy access to compile options
     my Mu $compiling-options := %*COMPILING ?? nqp::atkey(%*COMPILING, '%?OPTIONS') !! nqp::hash();
 

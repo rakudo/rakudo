@@ -37,6 +37,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
 
+    method is-identifier(Str:D: ) {
+        for self.split: ("-","'") -> str $part {
+            return False
+              unless nqp::chars($part) && nqp::findnotcclass(
+                nqp::const::CCLASS_ALPHABETIC,
+                $part,0,nqp::chars($part)
+              ) == nqp::chars($part)
+        }
+        True
+    }
+
     multi method Bool(Str:D: --> Bool:D) {
         nqp::hllbool(nqp::chars($!value));
     }

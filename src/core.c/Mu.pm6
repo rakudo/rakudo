@@ -644,13 +644,22 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
             nqp::iscont(self), # a Proxy object would have a conted `self`
             nqp::decont(self).raku,
             self.rakuseen: self.^name, {
-                my @attrs;
-                for self.^attributes().flat.grep: { .has_accessor } -> $attr {
-                    my $name := substr($attr.Str,2);
-                    @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).raku
+                if self.^attributes.map( {
+                    if .has_accessor {
+                        nqp::concat(
+                          nqp::substr(.Str,2),
+                          nqp::concat(' => ',.get_value(self).raku)
+                        )
+                    }
+                } ).join(', ') -> $attributes {
+                    self.^name ~ '.new(' ~ $attributes ~ ')'
                 }
-                self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
-            }))
+                else {
+                    self.^name ~ '.new'
+                }
+            }
+          )
+        )
     }
 
     proto method DUMP(|) {*}

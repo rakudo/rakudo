@@ -1538,17 +1538,7 @@ class Perl6::World is HLL::World {
             if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
                 $value := nqp::decont($value);
             }
-            my $is-packagy := 0;
-            if $!unit_ready && !nqp::isconcrete($value) {
-                my $valueHOW := $value.HOW;
-                $is-packagy :=    nqp::istype($valueHOW, self.find_symbol(['Metamodel',   'Naming'], :setting-only))
-                               && nqp::istype($valueHOW, self.find_symbol(['Metamodel', 'Stashing'], :setting-only));
-            }
-            if $is-packagy {
-                # $pkgdecl parameter will never be used by install_package. 'packagy' is just a stub here.
-                self.install_package($/, nqp::split('::', $key), 'my', 'packagy', $*PACKAGE, $target, $value);
-            }
-            elsif $target.symbol($key) -> %sym {
+            if $target.symbol($key) -> %sym {
                 # There's already a symbol. However, we may be able to merge
                 # if both are multis and have onlystar dispatchers.
                 my $installed := %sym<value>;

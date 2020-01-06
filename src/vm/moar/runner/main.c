@@ -398,7 +398,7 @@ int wmain(int argc, wchar_t *wargv[])
 #ifndef STATIC_EXEC_PATH
     free(exec_path);
 #endif
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(STATIC_NQP_HOME)
     /* dirname's return value is either on the stack or is the same pointer
      * that was passed to it depending on the version of libc used, which leads
      * to double frees. */

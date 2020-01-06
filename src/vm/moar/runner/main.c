@@ -148,25 +148,30 @@ int wmain(int argc, wchar_t *wargv[])
 
     char   *exec_path;
     size_t  exec_path_size;
-    int     res;
 
-    char   *exec_dir_path;
     char   *exec_dir_path_temp;
+#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME)) || defined(_WIN32)
+    char   *exec_dir_path;
     size_t  exec_dir_path_size;
+#endif
 
           char   *nqp_home;
           size_t  nqp_home_size;
+#ifndef STATIC_NQP_HOME
     const char    nqp_rel_path[14]    = "/../share/nqp";
     const size_t  nqp_rel_path_size   = 13;
     const char    nqp_check_path[28]  = "/lib/NQPCORE.setting.moarvm";
     const size_t  nqp_check_path_size = 27;
+#endif
 
           char   *rakudo_home;
           size_t  rakudo_home_size;
+#ifndef STATIC_RAKUDO_HOME
     const char    perl6_rel_path[16]    = "/../share/perl6";
     const size_t  perl6_rel_path_size   = 15;
     const char    perl6_check_path[22]  = "/runtime/perl6.moarvm";
     const size_t  perl6_check_path_size = 21;
+#endif
 
     char *lib_path[3];
     char *perl6_file;
@@ -180,9 +185,6 @@ int wmain(int argc, wchar_t *wargv[])
     int flag;
     int new_argc     = 0;
 
-    unsigned int interval_id = 0;
-    char telemeh_inited = 0;
-
     MVMuint32 debugserverport = 0;
     int start_suspended = 0;
 
@@ -192,6 +194,7 @@ int wmain(int argc, wchar_t *wargv[])
     exec_path = STRINGIFY(STATIC_EXEC_PATH);
     exec_path_size = strlen(exec_path);
 #else
+    int res;
     exec_path_size = 4096;
     exec_path = (char*)malloc(exec_path_size);
     res = MVM_exepath(exec_path, &exec_path_size);
@@ -254,6 +257,8 @@ int wmain(int argc, wchar_t *wargv[])
 
 
 #ifdef HAVE_TELEMEH
+    unsigned int interval_id = 0;
+    char telemeh_inited = 0;
     if (getenv("MVM_TELEMETRY_LOG")) {
         char path[256];
         FILE *fp;
@@ -276,6 +281,7 @@ int wmain(int argc, wchar_t *wargv[])
     /* The +1 is the trailing \0 terminating the string. */
     exec_dir_path_temp = (char*)malloc(exec_path_size + 1);
     memcpy(exec_dir_path_temp, exec_path, exec_path_size + 1);
+#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME)) || defined(_WIN32)
 #ifdef _WIN32
     PathRemoveFileSpecA(exec_dir_path_temp);
     exec_dir_path_size = strlen(exec_dir_path_temp);
@@ -284,6 +290,7 @@ int wmain(int argc, wchar_t *wargv[])
 #else
     exec_dir_path      = dirname(exec_dir_path_temp);
     exec_dir_path_size = strlen(exec_dir_path);
+#endif
 #endif
 
     /* Retrieve RAKUDO_HOME and NQP_HOME. */
@@ -391,7 +398,7 @@ int wmain(int argc, wchar_t *wargv[])
 #ifndef STATIC_EXEC_PATH
     free(exec_path);
 #endif
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(STATIC_NQP_HOME)
     /* dirname's return value is either on the stack or is the same pointer
      * that was passed to it depending on the version of libc used, which leads
      * to double frees. */

@@ -34,6 +34,85 @@ BEGIN {
     }
 }
 
+enum UnicodeClass (
+  AlphabeticChar   => nqp::hllize(nqp::const::CCLASS_ALPHABETIC),
+  AlphanumericChar => nqp::hllize(nqp::const::CCLASS_ALPHANUMERIC),
+  BlankChar        => nqp::hllize(nqp::const::CCLASS_BLANK),
+  ControlChar      => nqp::hllize(nqp::const::CCLASS_CONTROL),
+  HexadecimalChar  => nqp::hllize(nqp::const::CCLASS_HEXADECIMAL),
+  LowercaseChar    => nqp::hllize(nqp::const::CCLASS_LOWERCASE),
+  NewlineChar      => nqp::hllize(nqp::const::CCLASS_NEWLINE),
+  NumericChar      => nqp::hllize(nqp::const::CCLASS_NUMERIC),
+  PrintingChar     => nqp::hllize(nqp::const::CCLASS_PRINTING),
+  PunctuationChar  => nqp::hllize(nqp::const::CCLASS_PUNCTUATION),
+  UppercaseChar    => nqp::hllize(nqp::const::CCLASS_UPPERCASE),
+  WhitespaceChar   => nqp::hllize(nqp::const::CCLASS_WHITESPACE),
+  WordChar         => nqp::hllize(nqp::const::CCLASS_WORD),
+);
+
+enum NotUnicodeClass (
+  NotAlphabeticChar   => nqp::hllize(nqp::const::CCLASS_ALPHABETIC),
+  NotAlphanumericChar => nqp::hllize(nqp::const::CCLASS_ALPHANUMERIC),
+  NotBlankChar        => nqp::hllize(nqp::const::CCLASS_BLANK),
+  NotControlChar      => nqp::hllize(nqp::const::CCLASS_CONTROL),
+  NotHexadecimalChar  => nqp::hllize(nqp::const::CCLASS_HEXADECIMAL),
+  NotLowercaseChar    => nqp::hllize(nqp::const::CCLASS_LOWERCASE),
+  NotNewlineChar      => nqp::hllize(nqp::const::CCLASS_NEWLINE),
+  NotNumericChar      => nqp::hllize(nqp::const::CCLASS_NUMERIC),
+  NotPrintingChar     => nqp::hllize(nqp::const::CCLASS_PRINTING),
+  NotPunctuationChar  => nqp::hllize(nqp::const::CCLASS_PUNCTUATION),
+  NotUppercaseChar    => nqp::hllize(nqp::const::CCLASS_UPPERCASE),
+  NotWhitespaceChar   => nqp::hllize(nqp::const::CCLASS_WHITESPACE),
+  NotWordChar         => nqp::hllize(nqp::const::CCLASS_WORD),
+);
+
+augment class Str {
+    multi method index(Str:D: UnicodeClass \cclass --> Int:D) {
+        (my int $i = nqp::findcclass(
+          cclass.value,self,0,nqp::chars(self))
+        ) == nqp::chars(self)
+          ?? Nil !! $i
+    }
+    multi method index(Str:D: UnicodeClass \cclass, Int:D \pos --> Int:D) {
+        (my int $i = nqp::findcclass(
+          cclass.value,self,pos,nqp::chars(self))
+        ) == nqp::chars(self)
+          ?? Nil !! $i
+    }
+    multi method index(Str:D: NotUnicodeClass \cclass --> Int:D) {
+        (my int $i = nqp::findnotcclass(
+          cclass.value,self,0,nqp::chars(self))
+        ) == nqp::chars(self)
+          ?? Nil !! $i
+    }
+    multi method index(Str:D: NotUnicodeClass \cclass, Int:D \pos --> Int:D) {
+        (my int $i = nqp::findnotcclass(
+          cclass.value,self,pos,nqp::chars(self))
+        ) == nqp::chars(self)
+          ?? Nil !! $i
+    }
+    multi method rindex(Str:D: UnicodeClass \cclass --> Int:D) {
+        nqp::isconcrete(
+          my $i := nqp::flip(self).index(cclass)
+        ) ?? nqp::chars(self) - $i - 1 !! Nil
+    }
+    multi method rindex(Str:D: UnicodeClass \cclass, Int:D \pos --> Int:D) {
+        nqp::isconcrete(
+          my $i := nqp::flip(self).index(cclass, nqp::chars(self) - pos - 1)
+        ) ?? nqp::chars(self) - $i - 1 !! Nil
+    }
+    multi method rindex(Str:D: NotUnicodeClass \cclass --> Int:D) {
+        nqp::isconcrete(
+          my $i := nqp::flip(self).index(cclass)
+        ) ?? nqp::chars(self) - $i - 1 !! Nil
+    }
+    multi method rindex(Str:D: NotUnicodeClass \cclass, Int:D \pos --> Int:D) {
+        nqp::isconcrete(
+          my $i := nqp::flip(self).index(cclass, nqp::chars(self) - pos - 1)
+        ) ?? nqp::chars(self) - $i - 1 !! Nil
+    }
+}
+
 {YOU_ARE_HERE}
 
 # vim: ft=perl6 expandtab sw=4

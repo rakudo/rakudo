@@ -27,7 +27,14 @@ my class IntStr is Int is Str {
     method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method raku(IntStr:D:) { self.^name ~ '.new(' ~ self.Int.raku ~ ', ' ~ self.Str.raku ~ ')' }
+    multi method raku(IntStr:D:) {
+        nqp::concat(self.^name,
+          nqp::concat('.new(',
+            nqp::concat(nqp::tostr_I(self),
+              nqp::concat(', ',
+                nqp::concat(nqp::getattr_s(self,Str,'$!value').raku,')'
+        )))))
+    }
 }
 
 my class NumStr is Num is Str {

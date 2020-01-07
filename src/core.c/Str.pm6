@@ -368,8 +368,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method gist(Str:D: --> Str:D) { self }
     multi method raku(Str:D: --> Str:D) {
         nqp::chars(self)
-          ?? self!rakufy
-          !! '""'
+          ?? nqp::findnotcclass(
+               nqp::const::CCLASS_ALPHANUMERIC,self,0,nqp::chars(self)
+             ) == nqp::chars(self)
+            ?? nqp::concat('"',nqp::concat(self,'"'))  # fast path alpha
+            !! self!rakufy                             # slow path non-alpha
+          !! '""'                                      # empty string
     }
 
     # Special case escape values for rakufication

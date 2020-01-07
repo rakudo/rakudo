@@ -37,15 +37,35 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
 
-    method is-identifier(Str:D: ) {
-        for self.split: ("-","'") -> str $part {
-            return False
-              unless nqp::chars($part) && nqp::findnotcclass(
-                nqp::const::CCLASS_ALPHABETIC,
-                $part,0,nqp::chars($part)
-              ) == nqp::chars($part)
+    proto method is-identifier(|) {*}
+    multi method is-identifier(Str:U: --> False) { }
+    multi method is-identifier(Str:D:) {
+        my int $i;
+        my int $pos;
+
+        while $i < nqp::chars(self) {
+            return False                            # starts with numeric
+              if nqp::iscclass(nqp::const::CCLASS_NUMERIC,self,$i);
+
+            $pos = nqp::findnotcclass(
+              nqp::const::CCLASS_ALPHANUMERIC,self,$i,nqp::chars(self)
+            );
+
+            if $pos == nqp::chars(self) {
+                return True;                        # reached end ok
+            }
+            elsif nqp::eqat(self,'-',$pos) || nqp::eqat(self,"'",$pos) {
+                return False
+                  if $pos == $i                     # - or ' at start
+                  || $pos == nqp::chars(self) - 1;  # - or ' at end
+            }
+            elsif nqp::not_i(nqp::eqat(self,'_',$pos)) {
+                return False;                       # not an underscore
+            }
+            $i = $pos + 1;                          # more to parse
         }
-        True
+
+        False                                       # the empty string
     }
 
     multi method Bool(Str:D: --> Bool:D) {

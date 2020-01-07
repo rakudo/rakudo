@@ -117,7 +117,7 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, @enum_values {
 
 # We use this one because, for example, Int:D === Int:D, has an optimization
 # that simply unboxes the values. That's no good for us, since two different
-# Enumertaion:Ds could have the same Int:D value.
+# Enumeration:Ds could have the same Int:D value.
 multi infix:<===> (Enumeration:D \a, Enumeration:D \b) {
     nqp::hllbool(nqp::eqaddr(nqp::decont(a), nqp::decont(b)))
 }

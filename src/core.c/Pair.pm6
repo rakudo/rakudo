@@ -105,6 +105,37 @@ key of the Pair should be a valid method name, not '$method'."
         })
     }
 
+    proto sub allowed-as-bare-key(|) {*}
+    multi sub allowed-as-bare-key(Mu \key --> False) { }
+    multi sub allowed-as-bare-key(Str:D \key) {
+        my int $i;
+        my int $pos;
+
+        while $i < nqp::chars(key) {
+            return False                            # starts with numeric
+              if nqp::iscclass(nqp::const::CCLASS_NUMERIC,key,$i);
+
+            $pos = nqp::findnotcclass(
+              nqp::const::CCLASS_ALPHANUMERIC,key,$i,nqp::chars(key)
+            );
+
+            if $pos == nqp::chars(key) {
+                return True;                        # reached end ok
+            }
+            elsif nqp::eqat(key,'-',$pos) || nqp::eqat(key,"'",$pos) {
+                return False
+                  if $pos == $i                     # - or ' at start
+                  || $pos == nqp::chars(key) - 1;   # - or ' at end
+            }
+            elsif nqp::not_i(nqp::eqat(key,'_',$pos)) {
+                return False;                       # not an underscore
+            }
+            $i = $pos + 1;                          # more to parse
+        }
+
+        False                                       # the empty string
+    }
+
     multi method raku(Pair:D: :$arglist = False) {
         self.rakuseen:
           self.^name,
@@ -112,7 +143,7 @@ key of the Pair should be a valid method name, not '$method'."
               nqp::isconcrete($!key)
                 ?? nqp::istype($!key,Str)
                      && nqp::not_i($arglist)
-                     && $!key.is-identifier
+                     && allowed-as-bare-key($!key)
                   ?? nqp::eqaddr($!value,True) || nqp::eqaddr($!value,False)
                     ?? nqp::concat(':',
                          nqp::concat(nqp::x('!',nqp::not_i($!value)),

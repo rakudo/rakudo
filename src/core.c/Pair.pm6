@@ -116,7 +116,7 @@ key of the Pair should be a valid method name, not '$method'."
               if nqp::iscclass(nqp::const::CCLASS_NUMERIC,key,$i);
 
             $pos = nqp::findnotcclass(
-              nqp::const::CCLASS_ALPHANUMERIC,key,$i,nqp::chars(key)
+              nqp::const::CCLASS_WORD,key,$i,nqp::chars(key)
             );
 
             if $pos == nqp::chars(key) {
@@ -127,8 +127,8 @@ key of the Pair should be a valid method name, not '$method'."
                   if $pos == $i                     # - or ' at start
                   || $pos == nqp::chars(key) - 1;   # - or ' at end
             }
-            elsif nqp::not_i(nqp::eqat(key,'_',$pos)) {
-                return False;                       # not an underscore
+            else {
+                return False;                       # not a word char
             }
             $i = $pos + 1;                          # more to parse
         }

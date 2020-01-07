@@ -66,7 +66,14 @@ my class NumStr is Num is Str {
     method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
     multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method raku(NumStr:D:) { self.^name ~ '.new(' ~ self.Num.raku ~ ', ' ~ self.Str.raku ~ ')' }
+    multi method raku(NumStr:D:) {
+        nqp::concat(self.^name,
+          nqp::concat('.new(',
+            nqp::concat(nqp::getattr_n(self,Num,'$!value').raku,
+              nqp::concat(', ',
+                nqp::concat(nqp::getattr_s(self,Str,'$!value').raku,')'
+        )))))
+    }
 }
 
 my class RatStr is Rat is Str {

@@ -338,7 +338,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method raku(Str:D: --> Str:D) {
         nqp::chars(self)
           ?? nqp::findnotcclass(
-               nqp::const::CCLASS_ALPHANUMERIC,self,0,nqp::chars(self)
+               nqp::const::CCLASS_WORD,self,0,nqp::chars(self)
              ) == nqp::chars(self)
             ?? nqp::concat('"',nqp::concat(self,'"'))  # fast path alpha
             !! self!rakufy                             # slow path non-alpha

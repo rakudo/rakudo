@@ -105,8 +105,11 @@
         }
 
         multi method raku(::?CLASS:D \SELF:) {
-            my $args = self.map({ ($_ // TValue).raku(:arglist) }).join(', ');
-            'Array[' ~ TValue.raku ~ '].new(' ~ $args ~ ')';
+            my $type := TValue.raku;
+            my $raku := self.map({
+                nqp::isconcrete($_) ?? .raku(:arglist) !! $type
+            }).join(', ');
+            'Array[' ~ $type ~ '].new(' ~ $raku ~ ')';
         }
     }
     method ^parameterize(Mu:U \arr, Mu \t, |c) {

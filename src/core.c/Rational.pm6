@@ -183,84 +183,168 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
           ~ $f
     }
 
-    method base($base, Any $digits? is copy) {
-        # XXX TODO: this $base check can be delegated to Int.base once Num/0 gives Inf/NaN,
-        # instead of throwing (which happens in the .log() call before we reach Int.base
-        2 <= $base <= 36 or fail X::OutOfRange.new(
-            what => "base argument to base", :got($base), :range<2..36>);
-
-        my $prec;
-        if $digits ~~ Whatever {
-            $digits = Nil;
-            $prec = 2**63;
-        }
-        elsif $digits.defined {
-            $digits = $digits.Int;
-            if $digits > 0 {
-                $prec = $digits;
-            }
-            elsif $digits == 0 {
-                return self.round.base($base)
-            }
-            else {
-                fail X::OutOfRange.new(
-                    :what('digits argument to base'), :got($digits),
-                    :range<0..^Inf>,
-                )
-            }
-        }
-        else {
+    proto method base(|) {*}
+    # Convert to given base with sensible number of digits depending on value
+    multi method base(Rational:D: Int:D $base --> Str:D) {
+        if 2 <= $base <= 36 {
             # Limit log calculation to 10**307 or less.
             # log coerces to Num. When larger than 10**307, it overflows and
             # returns Inf.
-            my $lim = 10**307;
+            my constant $lim = 10**307;
             if $!denominator < $lim {
-                $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+                self!base(
+                  $base,
+                  $!denominator < $base**6
+                    ?? 6
+                    !! $!denominator.log($base).ceiling + 1,
+                    0
+                )
             }
             else {
-                # If the internal log method is modified to handle larger numbers,
-                # this branch can be modified/removed.
+                # If the internal log method is modified to handle larger
+                # numbers, this branch can be modified/removed.
                 my $d = $!denominator;
                 my $exp = 0;
                 ++$exp while ($d div= $base) > $lim;
-                $prec = $exp + $d.log($base).ceiling + 2;
+                self!base($base, $exp + $d.log($base).ceiling + 2, 0)
             }
         }
+        else {
+            Failure.new(X::OutOfRange.new(
+              what => "base argument to base",
+              :got($base),
+              :range<2..36>
+            ))
+        }
+    }
+    # Convert to given base until no fraction left: **CAUTION** this will
+    # loop indefinitely for simple values such as 1/3
+    multi method base(Rational:D: Int:D $base, Whatever --> Str:D) {
+        2 <= $base <= 36
+          ?? self!base($base, 0, 0)
+          !! Failure.new(X::OutOfRange.new(
+               what => "base argument to base",
+               :got($base),
+               :range<2..36>
+             ))
+    }
 
-        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
-        my $whole = self.abs.floor;
-        my $fract = self.abs - $whole;
+    # Convert to given base for given number of digits.  This will display
+    # trailing 0's if number of digits exceeds accuracy of value, unless
+    # inhibited with the :no-trailing-zeroes named argument.
+    multi method base(Rational:D:
+      Int:D $base,
+      Int() $digits,
+      Bool:D :$no-trailing-zeroes = False
+    --> Str:D) {
+        2 <= $base <= 36
+          ?? $digits > 0
+            ?? self!base($base, $digits, nqp::not_i($no-trailing-zeroes))
+            !! $digits == 0
+              ?? self.round.base($base)
+              !! Failure.new(X::OutOfRange.new(
+                   :what('digits argument to base'), :got($digits),
+                   :range<0..^Inf>
+                 ))
+          !! Failure.new(X::OutOfRange.new(
+               what => "base argument to base",
+               :got($base),
+               :range<2..36>
+             ))
+    }
+
+    # Lookup table for converting from numerical value to string digit
+    my str $num2digit = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    # Actual .base conversion workhorse.  Takes base, precision (0 for
+    # conversion until no fractional part left) and a flag indicating
+    # whether the preserve trailing zeroes
+    method !base(
+      Int:D $base,             # radix to output value in
+      int $digits,             # number of digits to generate, 0 = indefinite
+      int $trailing-zeroes,    # do not remove trailing zeroes
+    --> Str:D) {
+        my $result := nqp::list_s;
+
+        # set up initial values
+        my $abs;
+        if nqp::islt_I($!numerator,0) {
+            nqp::push_s($result,'-');
+            $abs := -self;
+        }
+        else {
+            $abs := self;
+        }
+        my $whole := $abs.floor;
+        my $fract := $abs - $whole;
 
         # fight floating point noise issues RT#126016
-        if $fract.Num == 1e0 { $whole++; $fract = 0 }
-
-        my $result = $sign ~ $whole.base($base);
-        my @conversion := <0 1 2 3 4 5 6 7 8 9
-                           A B C D E F G H I J
-                           K L M N O P Q R S T
-                           U V W X Y Z>;
-
-        my @fract-digits;
-        while @fract-digits < $prec and ($digits // $fract) {
-            $fract *= $base;
-            my $digit = $fract.floor;
-            push @fract-digits, $digit;
-            $fract -= $digit;
+        if $fract.Num == 1e0 {
+            $whole := $whole + 1;
+            $fract := 0;
         }
 
-        # Round the final number, based on the remaining fractional part
-        if 2*$fract >= 1 {
-            for @fract-digits - 1 ... 0 -> $n {
-                last if ++@fract-digits[$n] < $base;
-                @fract-digits[$n] = 0;
-                $result = $sign ~ ($whole+1).base($base) if $n == 0;
+        # have something after the decimal point
+        if $fract {
+
+            # we have a specific precision in mind
+            if $digits {
+                my str $s = ($fract * $base**$digits).round.base($base);
+                my int $force-decimal;
+                if nqp::chars($s) > $digits {
+                    $whole := $whole + 1;
+                    $s = nqp::substr($s,1);
+                    $force-decimal = 1;
+                }
+                elsif nqp::chars($s) < $digits {
+                    $s = nqp::concat(nqp::x('0',$digits - nqp::chars($s)),$s);
+                }
+                
+                my int $i = nqp::chars($s);
+                if $trailing-zeroes {                # we want trailing zeroes
+                    nqp::while(
+                      nqp::eqat($s,'0',--$i) && $i >= $digits,
+                      nqp::null
+                    );
+                    ++$i; # correct for premature decrement
+                }
+                else {                               # no trailing zeroes
+                    nqp::while(
+                      nqp::eqat($s,'0',$i - 1) && --$i > 0,
+                      nqp::null
+                    );
+                }
+
+                nqp::push_s($result,$whole.base($base));
+                if $i || $force-decimal {
+                    nqp::push_s($result,'.');
+                    nqp::push_s($result,nqp::substr($s,0,$i));
+                }
+            }
+
+            # no precision, go on until nothing left, possibly forever
+            else {
+                nqp::push_s($result,$whole.base($base));
+                nqp::push_s($result,'.');
+                while $fract {
+                    $fract    := $fract * $base;
+                    my $digit := $fract.floor;
+                    nqp::push_s($result,nqp::substr($num2digit,$digit,1));
+                    $fract := $fract - $digit;
+                }
             }
         }
 
-        $result ~
-        (@fract-digits ??
-         $base <= 10   ?? '.' ~ @fract-digits.join !!
-         '.' ~ @conversion[@fract-digits].join     !! '')
+        # nothing after decimal point
+        else {
+            nqp::push_s($result,$whole.base($base));
+            if $digits && $trailing-zeroes {
+                nqp::push_s($result,'.');
+                nqp::push_s($result,nqp::x('0',$digits))
+            }
+        }
+
+        nqp::join('',$result)
     }
 
     method base-repeating($base = 10) {

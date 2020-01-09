@@ -14,6 +14,9 @@ my class Mu { # declared in BOOTSTRAP
     method sink(--> Nil) { }
 
     method perl(Mu \SELF: |c) { SELF.raku(|c) }
+    # although technically not a documented method, some module authors have
+    # used this in the ecosystem.
+    method perlseen(Mu \SELF: |c) { SELF.rakuseen(|c) }
 
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {

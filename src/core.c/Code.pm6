@@ -296,7 +296,7 @@ my class Code does Callable { # declared in BOOTSTRAP
             '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });
                my multi __PRIMED_ANON (|%s(%s)) {
                    my %%chash := %s.hash;
-                   $self(%s%s |{ %%ahash, %%chash }); # |{} workaround RT#77788
+                   $self(%s%s |{ %%ahash, %%chash }); # |{} workaround https://github.com/Raku/old-issue-tracker/issues/2157
                };
                $res }()',
             $primed_sig, $capwrap, $primed_sig, $capwrap,

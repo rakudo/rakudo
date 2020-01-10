@@ -318,7 +318,7 @@ my class IO::Handle {
         method !SET-SELF(\handle, $!close) {
             $!handle   := handle;
             $!searching = 1;
-            $!str       = ""; # RT #126492
+            $!str       = ""; # https://github.com/Raku/old-issue-tracker/issues/4690
             self!next-chunk;
             self
         }

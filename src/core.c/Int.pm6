@@ -375,7 +375,7 @@ multi sub infix:<%>(Int:D \a, Int:D \b --> Int:D) {
       ),
       nqp::if(
         nqp::isne_i(b,0),
-        nqp::mod_i(    # quick fix RT #128318
+        nqp::mod_i(    # quick fix https://github.com/Raku/old-issue-tracker/issues/4999
           nqp::add_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)),b),
           nqp::decont(b)
         ),
@@ -385,7 +385,7 @@ multi sub infix:<%>(Int:D \a, Int:D \b --> Int:D) {
 }
 multi sub infix:<%>(int $a, int $b --> int) {
     # relies on opcode or hardware to detect division by 0
-    nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix RT #128318
+    nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix https://github.com/Raku/old-issue-tracker/issues/4999
 }
 
 multi sub infix:<%%>(int $a, int $b --> Bool:D) {

@@ -92,7 +92,7 @@ my class Seq is Cool does Iterable does Sequence {
             # cannot call .cache on a Seq that's already been iterated,
             # so we need to produce a string that, when EVAL'd, reproduces
             # an already iterated Seq.
-            # compare RT #127492
+            # compare https://github.com/Raku/old-issue-tracker/issues/5124
             $perl = self.^name ~ '.new-consumed()';
         }
         else { $perl = self.cache.raku ~ '.Seq' }

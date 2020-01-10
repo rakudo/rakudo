@@ -108,10 +108,7 @@ do {
     }
 
     my role Completions {
-        # RT #129092: jvm can't do CORE::.keys
-        has @!completions = $*VM.name eq 'jvm'
-            ?? ()
-            !! CORE::.keys.flatmap({
+        has @!completions = CORE::.keys.flatmap({
                     /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
                 }).sort;
 

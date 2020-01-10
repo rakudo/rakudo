@@ -119,16 +119,15 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     multi method Str(::?CLASS:D: --> Str:D) {
         if $!denominator {
-            my $abs   := self.abs;                              # N / D
-            my $whole := $abs.floor;
-            my $fract := $abs - $whole;
-            $fract
+            my \abs   := self.abs;                              # N / D
+            my \whole := abs.floor;
+            (my \fract := abs - whole)
               # fight floating point noise issues RT#126016
-              ?? $fract.Num == 1e0 && nqp::eqaddr(self.WHAT,Rat) # 42.666?
+              ?? fract.Num == 1e0 && nqp::eqaddr(self.WHAT,Rat)  # 42.666?
                 ?? nqp::islt_I($!numerator,0)                    # next Int
-                  ?? nqp::concat("-",nqp::tostr_I($whole + 1))   # < 0
-                  !! nqp::tostr_I($whole + 1)                    # >= 0
-                !! self!STRINGIFY($whole, $fract,                # 42.666
+                  ?? nqp::concat("-",nqp::tostr_I(whole + 1))    # < 0
+                  !! nqp::tostr_I(whole + 1)                     # >= 0
+                !! self!STRINGIFY(whole, fract,                  # 42.666
                      nqp::eqaddr(self.WHAT,Rat)
         # Stringify Rats to at least 6 significant digits. There does not
         # appear to be any written spec for this but there are tests in
@@ -145,13 +144,13 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                        !! $!denominator < 100_000
                          ?? 6
                          !! (nqp::chars(nqp::tostr_I($!denominator))
-                              + nqp::chars(nqp::tostr_I($whole))
+                              + nqp::chars(nqp::tostr_I(whole))
                               + 1
                             )
                    )
               !! nqp::islt_I($!numerator,0)                      # no fract val
-                ?? nqp::concat("-",nqp::tostr_I($whole))         # < 0
-                !! nqp::tostr_I($whole)                          # >= 0
+                ?? nqp::concat("-",nqp::tostr_I(whole))          # < 0
+                !! nqp::tostr_I(whole)                           # >= 0
         }
         else {                                                   # N / 0
               X::Numeric::DivideByZero.new(
@@ -161,10 +160,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method !STRINGIFY(\whole, \fract, int $digits) {
-        my $result := nqp::list_s;
-        nqp::push_s($result,'-') if nqp::isle_I($!numerator,0);
-        nqp::push_s($result,nqp::tostr_I(whole));
-
         my str $s = nqp::tostr_I(
           (fract * nqp::pow_I(10,$digits,Num,Int)).round
         );
@@ -177,12 +172,16 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
           nqp::null
         );
 
-        if $i {
-            nqp::push_s($result,'.');
-            nqp::push_s($result,nqp::substr($s,0,$i));
-        }
-
-        nqp::join('',$result)
+        $i
+          ?? nqp::concat(
+               nqp::isle_I($!numerator,0)
+                 ?? nqp::concat('-',nqp::tostr_I(whole))
+                 !! nqp::tostr_I(whole),
+               nqp::concat('.',nqp::substr($s,0,$i))
+             )
+          !! nqp::isle_I($!numerator,0)
+            ?? nqp::concat('-',nqp::tostr_I(whole))
+            !! nqp::tostr_I(whole)
     }
 
     proto method base(|) {*}

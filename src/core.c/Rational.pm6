@@ -118,69 +118,71 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     multi method Str(::?CLASS:D: --> Str:D) {
-        nqp::if(
-          $!denominator,
-          nqp::stmts(
-            (my $abs   := self.abs),
-            (my $whole := $abs.floor),
-            (my $fract := $abs - $whole),
-            nqp::if(
-              $fract,
-              self!SLOW-STR($whole,$fract),
-              nqp::if(
-                nqp::islt_I($!numerator,0),
-                nqp::concat("-",nqp::tostr_I($whole)),
-                nqp::tostr_I($whole)
-              )
-            )
-          ),
-          X::Numeric::DivideByZero.new(
-            :details('when coercing Rational to Str')
-          ).throw
-        )
-    }
-
-    method !SLOW-STR(\whole, \fract) {
-
-        # fight floating point noise issues RT#126016
-        fract.Num == 1e0 && nqp::eqaddr(self.WHAT,Rat)
-          ?? nqp::islt_I($!numerator,0)
-            ?? nqp::concat("-",nqp::tostr_I(whole + 1))
-            !! nqp::tostr_I(whole + 1)
-          !! self!STRINGIFY(
-               whole,
-               fract,
-               nqp::eqaddr(self.WHAT,Rat)
+        if $!denominator {
+            my $abs   := self.abs;                              # N / D
+            my $whole := $abs.floor;
+            my $fract := $abs - $whole;
+            $fract
+              # fight floating point noise issues RT#126016
+              ?? $fract.Num == 1e0 && nqp::eqaddr(self.WHAT,Rat) # 42.666?
+                ?? nqp::islt_I($!numerator,0)                    # next Int
+                  ?? nqp::concat("-",nqp::tostr_I($whole + 1))   # < 0
+                  !! nqp::tostr_I($whole + 1)                    # >= 0
+                !! self!STRINGIFY($whole, $fract,                # 42.666
+                     nqp::eqaddr(self.WHAT,Rat)
         # Stringify Rats to at least 6 significant digits. There does not
         # appear to be any written spec for this but there are tests in
         # roast that specifically test for 6 digits.
-                 ?? $!denominator < 100_000
-                   ?? 6
-                   !! (nqp::chars($!denominator.Str) + 1)
+                       ?? nqp::islt_I($!denominator,100_000)
+                         ?? 6
+                         !! (nqp::chars(nqp::tostr_I($!denominator)) + 1)
         # TODO v6.d FatRats are tested in roast to have a minimum
         # precision pf 6 decimal places - mostly due to there being no
         # formal spec and the desire to test SOMETHING. With this
         # speed increase, 16 digits would work fine; but it isn't spec.
-        #        !! $!denominator < 1_000_000_000_000_000
-        #          ?? 16
-                 !! $!denominator < 100_000
-                   ?? 6
-                   !! (nqp::chars($!denominator.Str)
-                        + nqp::chars(whole.Str)
-                        + 1
-                      )
-             )
+        #              !! $!denominator < 1_000_000_000_000_000
+        #                ?? 16
+                       !! $!denominator < 100_000
+                         ?? 6
+                         !! (nqp::chars(nqp::tostr_I($!denominator))
+                              + nqp::chars(nqp::tostr_I($whole))
+                              + 1
+                            )
+                   )
+              !! nqp::islt_I($!numerator,0)                      # no fract val
+                ?? nqp::concat("-",nqp::tostr_I($whole))         # < 0
+                !! nqp::tostr_I($whole)                          # >= 0
+        }
+        else {                                                   # N / 0
+              X::Numeric::DivideByZero.new(
+                :details('when coercing Rational to Str')
+              ).throw
+        }
     }
 
-    method !STRINGIFY(\whole, \fract, Int:D $precision) {
-        my $f := (fract * nqp::pow_I(10, $precision, Num, Int)).round;
-        my $fc = nqp::chars($f.Str);
-        $f := $f div 10 while $f %% 10; # Remove trailing zeros
-        (nqp::isle_I($!numerator,0) ?? "-" !! "")
-          ~ whole
-          ~ '.'
-          ~ '0' x ($precision - $fc)
-          ~ $f
+    method !STRINGIFY(\whole, \fract, int $digits) {
+        my $result := nqp::list_s;
+        nqp::push_s($result,'-') if nqp::isle_I($!numerator,0);
+        nqp::push_s($result,nqp::tostr_I(whole));
+
+        my str $s = nqp::tostr_I(
+          (fract * nqp::pow_I(10,$digits,Num,Int)).round
+        );
+        $s = nqp::concat(nqp::x('0',$digits - nqp::chars($s)),$s)
+          if nqp::chars($s) < $digits;
+
+        my int $i = nqp::chars($s);
+        nqp::while(
+          nqp::eqat($s,'0',$i - 1) && --$i > 0,
+          nqp::null
+        );
+
+        if $i {
+            nqp::push_s($result,'.');
+            nqp::push_s($result,nqp::substr($s,0,$i));
+        }
+
+        nqp::join('',$result)
     }
 
     proto method base(|) {*}

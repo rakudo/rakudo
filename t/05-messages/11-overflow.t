@@ -6,7 +6,7 @@ use Test::Helpers;
 
 plan 2;
 
-# RT #125820
+# https://github.com/Raku/old-issue-tracker/issues/4480
 subtest '.roll' => {
     plan 3;
     
@@ -20,7 +20,7 @@ subtest '.roll' => {
         Exception, :message{ .contains: <unbox native>.all }, '(3)';
 }
 
-# RT #125816
+# https://github.com/Raku/old-issue-tracker/issues/4476
 subtest '.indent' => {
     plan 6;
 

@@ -94,6 +94,7 @@ group-of 24 => 'custom operators (imported)' => {
     check-fail { cmp-ok 2,  '<«>»', 1, 'failing <«>» op, Str'      }
 }
 
+# https://github.com/Raku/old-issue-tracker/issues/5347
 group-of 2 => 'no EVAL exploit (RT#128283)' => {
     check-fail { cmp-ok '', '~~>;exit; <z', '', '' };
 }

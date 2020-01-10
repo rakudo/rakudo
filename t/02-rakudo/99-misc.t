@@ -31,7 +31,8 @@ subtest 'IO::Handle.raku.EVAL roundtrips' => {
 
 # https://github.com/MoarVM/MoarVM/issues/971
 if $*DISTRO.is-win {
-    skip 'code too complex for Win32 due to RT#132258';
+    # https://github.com/Raku/old-issue-tracker/issues/6591
+    skip 'code too complex for Win32';
 }
 else {
     is-run :compiler-args[
@@ -49,9 +50,9 @@ else {
     'profiler does not crash';
 }
 
-# RT #132710
+# https://github.com/Raku/old-issue-tracker/issues/6661
 # XXX TODO 6.d REVIEW. Setting traits from multiple multies is undefined
-# and this test may need to be moved to rakudo's test suite. See RT#132710
+# and this test may need to be moved to rakudo's test suite.
 eval-lives-ok ｢
     multi infix:<↑> is assoc<right> is tighter(&infix:<**>) { $^n ** $^m }
     multi infix:<↑↑> ($, 0) is assoc<right> is tighter(&infix:<↑>) { 1 }

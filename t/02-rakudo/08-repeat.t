@@ -3,7 +3,8 @@ use Test;
 
 plan 5;
 
-# RT #127971,130924
+# https://github.com/Raku/old-issue-tracker/issues/5258
+
 {
     dies-ok { my $a = "a" x 2**30; my $b = "b" x 2**30; my $c = $a ~ $b; my $d = $b ~ $a; my $e = $c ~ $d; },
         'concatenating strings with `~` that would create a too large result dies';
@@ -11,7 +12,7 @@ plan 5;
         'repeating strings with `x` that would create a too large result dies';
 }
 
-# RT #128035
+# https://github.com/Raku/old-issue-tracker/issues/5279
 #?rakudo.jvm skip 'OutOfMemoryError: Java heap space'
 {
     my $a;

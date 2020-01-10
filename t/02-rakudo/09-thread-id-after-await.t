@@ -6,7 +6,8 @@ plan 1;
 
 # This test file covers a bug where dynamic lexical caching resulted in a
 # continuation seeing the wrong value after being invoked. This caused issues
-# with getting the wrong $*THREAD. It was reported in RT #131740.
+# with getting the wrong $*THREAD. It was reported in:
+#   https://github.com/Raku/old-issue-tracker/issues/6390
 
 my $c = Channel.new;
 my $p = Promise.new;

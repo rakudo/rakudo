@@ -43,7 +43,8 @@ is ($p.add: 2).deref, 30, '.add(2)';
 
 
 {
-    eval-lives-ok q:to 'CODE', 'Signature matching with Pointer[int32] works (RT #124321)';
+    # https://github.com/Raku/old-issue-tracker/issues/3783
+    eval-lives-ok q:to 'CODE', 'Signature matching with Pointer[int32] works';
         use NativeCall;
 
         sub TakeTwoPointersToInt( Pointer[int32], Pointer[int32] )

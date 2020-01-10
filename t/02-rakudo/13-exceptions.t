@@ -9,7 +9,7 @@ throws-like q<sub foo ( ::T $val ) { my T $a is default($val); }; foo(42)>,
         "exception isn't lost",
         message => q<Default value '(Mu)' will never bind to a parameter of type T>;
 
-# RT #129812
+# https://github.com/Raku/old-issue-tracker/issues/5728
 throws-like q[multi sub f(int $foo is rw) { }; f(42)],
         X::Comp,
         'calling multi sub that expects a rw native argument with a literal is caught at compile time';

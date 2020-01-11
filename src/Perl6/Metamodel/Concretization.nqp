@@ -77,7 +77,7 @@ role Perl6::Metamodel::Concretization {
         }
         unless $local {
             for self.parents($obj, :local) {
-                @result := $_.HOW.concretization_lookup($_, $ptype, :local(0), :$transitive);
+                @result := $_.HOW.concretization_lookup($_, $ptype, :local(0), :$transitive, :$relaxed);
                 return @result if @result[0];
             }
         }

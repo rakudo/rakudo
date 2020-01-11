@@ -3913,6 +3913,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :method, :$invocant_type);
         my $code := methodize_block($/, $*W.stub_code_object('Method'),
             $a_past, $signature, %sig_info);
+        $*W.add_phasers_handling_code($code, $a_past);
+
         install_method($/, $meth_name, 'has', $code, $install_in, :gen-accessor);
     }
 
@@ -4629,7 +4631,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Finish up code object.
         $*W.attach_signature($code, $signature);
         $*W.finish_code_object($code, $past, $*MULTINESS eq 'proto', :yada($yada));
-        $*W.add_phasers_handling_code($code, $past);
+
         $code
     }
 
@@ -4831,6 +4833,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $signature := $*W.create_signature_and_params($/, %sig_info, $past, 'Any',
             :method, :$invocant_type);
         methodize_block($/, $code, $past, $signature, %sig_info);
+        $*W.add_phasers_handling_code($code, $past);
 
         # Need to put self into a register for the regex engine.
         $past[0].push(QAST::Op.new(

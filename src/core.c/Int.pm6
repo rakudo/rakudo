@@ -27,7 +27,10 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     proto method new(|) {*}
-    multi method new(      \value --> Int:D) { self.new: value.Int }
+    multi method new(Any:U $type) {
+        die "Cannot create an Int from a '$type.^name()' type object";
+    }
+    multi method new(Any:D \value --> Int:D) { self.new: value.Int }
     multi method new(int   \value --> Int:D) {
         # rebox the value, so we get rid of any potential mixins
         nqp::fromI_I(nqp::decont(value), self)

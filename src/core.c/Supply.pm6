@@ -674,9 +674,9 @@ my class Supply does Awaitable {
     # split the supply on the given string
     multi method split(Supply:D: Str(Cool) $the-needle) {
         supply {
-            my str $str;
             my str $needle = $the-needle;
 
+            my str $str;
             whenever self -> str $val {
                 my $matches := nqp::split($needle,nqp::concat($str,$val));
                 $str = nqp::pop($matches);  # keep last for next batch
@@ -692,6 +692,35 @@ my class Supply does Awaitable {
                 }
             }
         }
+    }
+
+    # split the supply on the given string
+    multi method split(Supply:D: Str(Cool) $the-needle, :$skip-empty!) {
+        $skip-empty
+          ?? supply {
+                 my str $needle = $the-needle;
+
+                 my str $str;
+                 my str $emittee;
+                 whenever self -> str $val {
+                     my $matches := nqp::split($needle,nqp::concat($str,$val));
+                     $str = nqp::pop($matches);  # keep last for next batch
+
+                     my $iterator := nqp::iterator($matches);
+                     nqp::while(
+                       $iterator,
+                       nqp::if(
+                         nqp::chars($emittee = nqp::shift($iterator)),
+                         emit nqp::p6box_s($emittee)
+                       )
+                     );
+
+                     LAST {
+                         emit nqp::p6box_s($str) if nqp::chars($str);
+                     }
+                 }
+             }
+          !! self.split($the-needle)
     }
 
     ##

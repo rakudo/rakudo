@@ -671,6 +671,29 @@ my class Supply does Awaitable {
         }
     }
 
+    # split the supply on the given string
+    multi method split(Supply:D: Str(Cool) $the-needle) {
+        supply {
+            my str $str;
+            my str $needle = $the-needle;
+
+            whenever self -> str $val {
+                my $matches := nqp::split($needle,nqp::concat($str,$val));
+                $str = nqp::pop($matches);  # keep last for next batch
+
+                my $iterator := nqp::iterator($matches);
+                nqp::while(
+                  $iterator,
+                  emit nqp::p6box_s(nqp::shift($iterator))
+                );
+
+                LAST {
+                    emit nqp::p6box_s($str);
+                }
+            }
+        }
+    }
+
     ##
     ## Coercions
     ##

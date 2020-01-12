@@ -1271,14 +1271,16 @@ my class Supply does Awaitable {
         supply { whenever self -> \val { emit val; done } }
     }
     multi method head(Supply:D: Int(Cool) $number) {
-        supply {
-            my int $todo = $number > 0 && $number + 1;
-            whenever self -> \val {
-                --$todo
-                  ?? emit(val)
-                  !! done
-            }
-        }
+        $number <= 0
+          ?? supply { }
+          !! supply {
+                 my int $todo = $number + 1;
+                 whenever self -> \val {
+                     --$todo
+                       ?? emit(val)
+                       !! done
+                 }
+             }
     }
 
     method tail(Supply:D: Int(Cool) $number = 1) {

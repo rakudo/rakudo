@@ -266,6 +266,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? Nil
             !! $i
     }
+    multi method index(Str:D: @needles --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        $chars = $index = $i
+          if ($i = nqp::index(nqp::substr(self,0,$chars), .Str)) > -1
+          for @needles;
+
+        $index == -1 ?? Nil !! $index
+    }
     method !INDEX-OOR($got) {
         Failure.new(X::OutOfRange.new(
           :what("Position in index"),
@@ -296,6 +306,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::islt_i((my $i := nqp::rindex(self,$needle,$pos)),0)
             ?? Nil
             !! $i
+    }
+    multi method rindex(Str:D: @needles --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        $index = $i
+          if ($i = nqp::rindex(nqp::substr(self,$index + 1), .Str)) > -1
+          for @needles;
+
+        $index == -1 ?? Nil !! $index
     }
     method !RINDEX-OOR($got) {
         Failure.new(X::OutOfRange.new(

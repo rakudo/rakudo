@@ -673,7 +673,7 @@ sub gen_nqp {
 
     # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
-        qw<git-depth git-reference github-user nqp-repo moar-repo
+        qw<git-depth github-user nqp-repo moar-repo
         nqp-home relocatable ignore-errors with-moar silent-build
         force-rebuild>
       )
@@ -681,6 +681,10 @@ sub gen_nqp {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );
         push @cmd, $opt_str if $opt_str;
     }
+
+    push @cmd, '--git-cache-dir=' . $self->shell_quote_filename(
+        File::Spec->rel2abs($options->{'git-cache-dir'}))
+        if $options->{'git-cache-dir'};
 
     push @cmd, "--backends=" . join( ",", $self->active_backends );
 

@@ -28,7 +28,7 @@ my role Iterable {
         Seq.new(Rakudo::Iterator.Lazy(self))
     }
 
-    method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+    method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = $*DEGREE // nqp::cpucores) {
 #?if !js
         HyperSeq.new:
           configuration =>
@@ -41,7 +41,7 @@ my role Iterable {
 #?endif
     }
 
-    method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+    method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = $*DEGREE // nqp::cpucores) {
 #?if !js
         RaceSeq.new:
           configuration =>

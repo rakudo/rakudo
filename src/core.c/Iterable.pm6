@@ -30,7 +30,7 @@ my role Iterable {
 
     method hyper(
       Int(Cool) :$batch = 64,
-      Int(Cool) :$degree = min(nqp::cpucores() - 1,1)
+      Int(Cool) :$degree = max(nqp::cpucores() - 1,1)
     ) {
 #?if !js
         HyperSeq.new:
@@ -46,7 +46,7 @@ my role Iterable {
 
     method race(
       Int(Cool) :$batch = 64,
-      Int(Cool) :$degree = min(nqp::cpucores() - 1,1)
+      Int(Cool) :$degree = max(nqp::cpucores() - 1,1)
     ) {
 #?if !js
         RaceSeq.new:

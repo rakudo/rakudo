@@ -648,12 +648,10 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
             nqp::decont(self).raku,
             self.rakuseen: self.^name, {
                 if self.^attributes.map( {
-                    if .has_accessor {
-                        nqp::concat(
-                          nqp::substr(.Str,2),
-                          nqp::concat(' => ',.get_value(self).raku)
-                        )
-                    }
+                    nqp::concat(
+                      nqp::substr(.Str,2),
+                      nqp::concat(' => ',.get_value(self).raku)
+                    ) if .is_built;
                 } ).join(', ') -> $attributes {
                     self.^name ~ '.new(' ~ $attributes ~ ')'
                 }

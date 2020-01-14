@@ -241,12 +241,13 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
     method usage-name() {
-        nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
-          ?? $!variable_name
-          !! nqp::iseq_i(nqp::index('*!',nqp::substr($!variable_name,1,1)),-1)
-            ?? nqp::substr($!variable_name,1)
-            !! nqp::substr($!variable_name,2)
-
+        nqp::isnull_s($!variable_name)
+          ?? Nil
+          !! nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
+            ?? $!variable_name
+            !! nqp::iseq_i(nqp::index('*!',nqp::substr($!variable_name,1,1)),-1)
+              ?? nqp::substr($!variable_name,1)
+              !! nqp::substr($!variable_name,2)
     }
 
     method sigil() {

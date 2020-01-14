@@ -566,6 +566,18 @@
         }
     }
 
+    # comb the supply for characters
+    proto method comb(|) {*}
+    multi method comb(Supply:D:) {
+        supply {
+            whenever self -> str $str {
+                for ^nqp::chars($str) -> int $i {
+                    emit nqp::box_s(nqp::substr($str,$i,1),Str);
+                }
+            }
+        }
+    }
+
     # split the supply on the needle and adverbs
     multi method split(Supply:D: \needle) {
         supply {

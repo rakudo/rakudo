@@ -3747,6 +3747,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $metaattr := $*W.resolve_mo($/, $*PKGDECL ~ '-attr');
             my %config := hash(
                 name => $attrname,
+                is_settable => $twigil eq '.',
                 has_accessor => $twigil eq '.',
                 container_descriptor => $descriptor,
                 type => %cont_info<bind_constraint>,

@@ -102,7 +102,7 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, @enum_values {
     my Mu $r := Metamodel::ParametricRoleHOW.new_type(:name($name));
     $r.^add_attribute(Attribute.new(
         :name('$!' ~ $name), :type(nqp::decont($type)),
-        :has_accessor(1), :package($r)));
+        :is_settable(1), :has_accessor(1), :package($r)));
     for @enum_values {
         my $key   = $_.key;
         my $value = $_.value;

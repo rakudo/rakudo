@@ -29,6 +29,7 @@ my class BOOTSTRAPATTR {
     method package() { $!package }
     method inlined() { $!inlined }
     method dimensions() { $!dimensions }
+    method is_settable() { 0 }
     method has_accessor() { 0 }
     method positional_delegate() { 0 }
     method associative_delegate() { 0 }
@@ -1395,6 +1396,7 @@ BEGIN {
     # class Attribute is Any {
     #     has str $!name;
     #     has int $!rw;
+    #     has int $!is_settable;
     #     has int $!has_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
@@ -1413,6 +1415,7 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(Mu), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!is_settable>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Attribute)));
@@ -1431,11 +1434,12 @@ BEGIN {
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
-        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$inlined = 0, :$has_accessor,
+        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$inlined = 0, :$is_settable = 0, :$has_accessor = 0,
                 :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
             my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', nqp::decont($type));
+            nqp::bindattr_i($attr, Attribute, '$!is_settable', $is_settable);
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
             nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
@@ -1485,6 +1489,10 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'auto_viv_container', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
                 Attribute, '$!auto_viv_container');
+        }));
+    Attribute.HOW.add_method(Attribute, 'is_settable', nqp::getstaticcode(sub ($self) {
+            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!is_settable'), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'has_accessor', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),

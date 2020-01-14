@@ -174,6 +174,7 @@ src/core.c/Promise.pm6
 src/core.c/Channel.pm6
 src/core.c/Supply.pm6
 src/core.c/Supply-factories.pm6
+src/core.c/Supply-coercers.pm6
 src/core.c/Supplier.pm6
 src/core.c/Rakudo/Supply.pm6
 src/core.c/asyncops.pm6

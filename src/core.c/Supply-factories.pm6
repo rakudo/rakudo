@@ -566,140 +566,50 @@
         }
     }
 
-    # split the supply on the given string
-    multi method split(Supply:D: Str(Cool) $the-needle) {
+    # split the supply on the needle and adverbs
+    multi method split(Supply:D: \needle) {
         supply {
-            my str $needle = $the-needle;
+            my $str = "";  # can also be a Match object
+            my @matches;
+            whenever self -> \value {
+                done unless @matches = ($str ~ value).split(needle, |%_);
+                $str = @matches.pop;  # keep last for next batch
 
-            my str $str;
-            whenever self -> str $val {
-                my $matches := nqp::split($needle,nqp::concat($str,$val));
-                $str = nqp::pop($matches);  # keep last for next batch
+                emit $_ for @matches;
 
-                my $iterator := nqp::iterator($matches);
-                nqp::while(
-                  $iterator,
-                  emit nqp::p6box_s(nqp::shift($iterator))
-                );
-
-                LAST {
-                    emit nqp::p6box_s($str);
-                }
+                LAST { emit $str }
             }
         }
     }
 
-    # split the supply on the given string
-    multi method split(Supply:D: Str(Cool) $the-needle, :$skip-empty!) {
-        $skip-empty
-          ?? supply {                            # skip empties
-                 my str $needle = $the-needle;
+    # split the supply on the needle, limit and adverbs
+    multi method split(Supply:D: \needle, \the-limit) {
+        nqp::istype(the-limit,Whatever) || the-limit == Inf
+          ?? self.split(needle, |%_)
+          !! the-limit <= 0
+            ?? supply { }
+            !! supply {
+                   my $str = "";  # can also be a Match object
+                   my int $todo = the-limit.Int;
+                   my @matches;
 
-                 my str $str;
-                 my str $emittee;
-                 whenever self -> str $val {
-                     my $matches := nqp::split($needle,nqp::concat($str,$val));
-                     $str = nqp::pop($matches);  # keep last for next batch
+                   whenever self -> \value {
 
-                     my $iterator := nqp::iterator($matches);
-                     nqp::while(
-                       $iterator,
-                       nqp::if(
-                         nqp::chars($emittee = nqp::shift($iterator)),
-                         emit nqp::p6box_s($emittee)
-                       )
-                     );
+                       done unless @matches = ($str ~ value).split(needle, |%_);
+                       $str = @matches.pop;  # keep last for next batch
 
-                     LAST {
-                         emit nqp::p6box_s($str) if nqp::chars($str);
-                     }
-                 }
-             }
-          !! self.split($the-needle)             # don't skip empties
-    }
-
-    # split the supply on the given string for a limit
-    multi method split(Supply:D: Str(Cool) $the-needle, Whatever) {
-        self.split($the-needle, |%_)
-    }
-    multi method split(Supply:D: Str(Cool) $the-needle, Numeric(Cool) $the-limit) {
-        $the-limit == Inf
-          ?? self.split($the-needle, |%_)         # there's no limit
-          !! $the-limit <= 0                      # there *is* a limit
-            ?? supply { }                         # but it won't pass anything
-            !! supply {                           # need to pass stuff
-                   my str $needle = $the-needle;
-                   my int $limit  = $the-limit.Int;
-                   my int $emitted;
-
-                   my str $str;
-                   whenever self -> str $val {
-                       my $matches := nqp::split($needle,nqp::concat($str,$val));
-                       $str = nqp::pop($matches);  # keep last for next batch
-
-                       my $iterator := nqp::iterator($matches);
-                       nqp::while(
-                         $iterator,
-                         nqp::if(
-                           nqp::isle_i(++$emitted,$limit),
-                           emit(nqp::p6box_s(nqp::shift($iterator))),
-                           done
-                         )
-                       );
-
-                       LAST {
-                           emit nqp::p6box_s($str) if $emitted < $limit;
+                       if @matches < $todo {
+                           emit $_ for @matches;
+                           $todo = $todo - @matches;
                        }
+                       else {
+                           emit $_ for @matches[^$todo];
+                           $todo = 0;
+                       }
+
+                       LAST { emit $str if $todo }
                    }
                }
-    }
-
-    # split the supply on the given string for a limit while skipping empty
-    multi method split(Supply:D:
-      Str(Cool) $the-needle,
-      Numeric(Cool) $the-limit,
-      :$skip-empty!
-    ) {
-        $the-limit == Inf
-          ?? self.split(                         # there's no limit
-               $the-needle, :$skip-empty, |%_
-             )
-          !! $the-limit <= 0                     # there *is* a limit
-            ?? supply { }                        # nothing will pass
-            !! $skip-empty                       # will skip empties
-              ?? supply {
-                     my str $needle = $the-needle;
-                     my int $limit  = $the-limit.Int;
-
-                     my str $emittee;
-                     my int $emitted;
-                     my str $str;
-                     whenever self -> str $val {
-                         my $matches := nqp::split($needle,nqp::concat($str,$val));
-                         $str = nqp::pop($matches);  # keep last for next batch
-
-                         my $iterator := nqp::iterator($matches);
-                         nqp::while(
-                           $iterator,
-                           nqp::if(
-                             nqp::chars($emittee = nqp::shift($iterator)),
-                             nqp::if(
-                               nqp::isle_i(++$emitted,$limit),
-                               emit(nqp::p6box_s($emittee)),
-                               done
-                             )
-                           )
-                         );
-
-                         LAST {
-                             emit nqp::p6box_s($str)
-                               if nqp::chars($str) && $emitted < $limit;
-                         }
-                     }
-                 }
-              !! self.split(                     # won't skip empties
-                   $the-needle, $the-limit, |%_
-                 )
     }
 
 # vim: ft=perl6 expandtab sw=4

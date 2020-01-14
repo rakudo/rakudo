@@ -2,7 +2,7 @@ my class Attribute { # declared in BOOTSTRAP
     # class Attribute is Any
     #     has str $!name;
     #     has int $!rw;
-    #     has int $!is_settable;
+    #     has int $!is_built;
     #     has int $!has_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
@@ -245,7 +245,7 @@ multi sub trait_mod:<does>(Attribute:D $a, Mu:U $role) {
 
 multi sub trait_mod:<is>(Attribute:D $a, :$built!) {
     if nqp::istype($built,Bool) {
-        nqp::bindattr_i($a,Attribute,'$!is_settable',+$built);
+        nqp::bindattr_i($a,Attribute,'$!is_built',+$built);
     }
 #    elsif nqp::istype($built,Pair) {
 #    }

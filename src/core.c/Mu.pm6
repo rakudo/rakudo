@@ -651,7 +651,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                     nqp::concat(
                       nqp::substr(.Str,2),
                       nqp::concat(' => ',.get_value(self).raku)
-                    ) if .is_settable;
+                    ) if .is_built;
                 } ).join(', ') -> $attributes {
                     self.^name ~ '.new(' ~ $attributes ~ ')'
                 }

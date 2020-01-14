@@ -185,9 +185,9 @@ my class X::Method::NotFound is Exception {
 
         if nqp::can($!invocant.HOW, 'methods') {
             for $!invocant.^methods(:all)>>.name -> $method_name {
-                my $dist = StrDistance.new(:before($.method), :after($method_name));
+                my $dist = StrDistance.new(:before($.method), :after(~$method_name));
                 if $dist <= $max_length {
-                    %suggestions{$method_name} = $dist;
+                    %suggestions{$method_name} = ~$dist;
                 }
             }
         }

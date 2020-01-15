@@ -5,8 +5,6 @@ my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
 my class WalkList                    { ... }
 
-my class ValueObjAt is ObjAt { }
-
 my class Mu { # declared in BOOTSTRAP
 
     method self { self }

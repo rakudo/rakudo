@@ -75,6 +75,7 @@ my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Bool metaclass Perl6::Metamodel::EnumHOW { ... };
 my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub ValueObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -3480,6 +3481,10 @@ BEGIN {
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
     ObjAt.HOW.compose_repr(ObjAt);
 
+    # class ValueObjAt is ObjAt {
+    ValueObjAt.HOW.add_parent(ValueObjAt, ObjAt);
+    ValueObjAt.HOW.compose_repr(ValueObjAt);
+
     # class ForeignCode {
     #     has Mu $!do;                # Code object we delegate to
     ForeignCode.HOW.add_parent(ForeignCode, Any);
@@ -3544,6 +3549,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Capture);
     Perl6::Metamodel::EnumHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
+    Perl6::Metamodel::ClassHOW.add_stash(ValueObjAt);
     Perl6::Metamodel::ClassHOW.add_stash(Stash);
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
     Perl6::Metamodel::ClassHOW.add_stash(Junction);
@@ -3642,6 +3648,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Hash>       := Hash;
     EXPORT::DEFAULT.WHO<Capture>    := Capture;
     EXPORT::DEFAULT.WHO<ObjAt>      := ObjAt;
+    EXPORT::DEFAULT.WHO<ValueObjAt> := ValueObjAt;
     EXPORT::DEFAULT.WHO<Stash>      := Stash;
     EXPORT::DEFAULT.WHO<Scalar>     := Scalar;
     EXPORT::DEFAULT.WHO<IntLexRef>  := IntLexRef;

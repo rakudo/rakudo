@@ -636,29 +636,31 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
     }
 
     proto method raku(|) {*}
-    multi method raku(Mu:U:) { self.^name }
+    multi method raku(Mu:U:) {
+        nqp::eqaddr(self.^find_method("perl").package,Mu)
+          ?? self.^name
+          !! self.perl
+    }
     multi method raku(Mu:D:) {
-        nqp::if(
-          nqp::eqaddr(self,IterationEnd),
-          "IterationEnd",
-          nqp::if(
-            nqp::iscont(self), # a Proxy object would have a conted `self`
-            nqp::decont(self).raku,
-            self.rakuseen: self.^name, {
-                if self.^attributes.map( {
-                    nqp::concat(
-                      nqp::substr(.Str,2),
-                      nqp::concat(' => ',.get_value(self).raku)
-                    ) if .is_built;
-                } ).join(', ') -> $attributes {
-                    self.^name ~ '.new(' ~ $attributes ~ ')'
-                }
-                else {
-                    self.^name ~ '.new'
-                }
-            }
-          )
-        )
+        nqp::eqaddr(self,IterationEnd)
+          ?? "IterationEnd"
+          !! nqp::iscont(self) # a Proxy object would have a conted `self`
+            ?? nqp::decont(self).raku
+            !! nqp::eqaddr(self.^find_method("perl").package,Mu)
+              ?? self.rakuseen: self.^name, {
+                   if self.^attributes.map( {
+                       nqp::concat(
+                         nqp::substr(.Str,2),
+                         nqp::concat(' => ',.get_value(self).raku)
+                       ) if .is_built;
+                   } ).join(', ') -> $attributes {
+                       self.^name ~ '.new(' ~ $attributes ~ ')'
+                   }
+                   else {
+                       self.^name ~ '.new'
+                   }
+                 }
+              !! self.perl    # class has dedicated old-style .perl
     }
 
     proto method DUMP(|) {*}

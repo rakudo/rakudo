@@ -1435,8 +1435,9 @@ BEGIN {
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
-        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$inlined = 0, :$is_built = 0, :$has_accessor = 0,
-                :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
+        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!,
+          :$inlined = 0, :$has_accessor = 0, :$is_built = $has_accessor,
+          :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
             my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', nqp::decont($type));

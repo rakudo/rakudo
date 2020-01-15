@@ -578,6 +578,34 @@
         }
     }
 
+    # comb the supply for N characters at a time
+    multi method comb(Supply:D: Int:D $the-batch) {
+        $the-batch <= 1
+          ?? self.comb
+          !! supply {
+                 my str $str;
+                 my int $batch = $the-batch;
+                 my int $i;
+                 my int $times;
+                 whenever self -> str $val {
+                     $str = nqp::concat($str,$val);
+
+                     my int $i;
+                     my int $times = nqp::chars($str) div $batch;
+                     nqp::while(
+                       $times--,
+                       nqp::stmts(
+                         emit(nqp::box_s(nqp::substr($str,$i,$batch),Str)),
+                         ($i = $i + $batch)
+                       )
+                     );
+                     $str = nqp::substr($str,$i);
+
+                     LAST { emit $str if nqp::chars($str) }
+                 }
+             }
+    }
+
     # split the supply on the needle and adverbs
     multi method split(Supply:D: \needle) {
         supply {

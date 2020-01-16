@@ -604,11 +604,6 @@
              }
     }
 
-    # comb the supply for N characters at a time for a maximum of N
-    multi method comb(Supply:D: Int:D $the-batch, \the-limit) {
-        self.comb($the-batch).head(the-limit)
-    }
-
     # comb the supply for a Str needle
     multi method comb(Supply:D: Str:D $the-needle) {
         $the-needle
@@ -633,11 +628,6 @@
           !! self.comb
     }
 
-    # comb the supply for a Str needle for a max number of time
-    multi method comb(Supply:D: Str:D $the-needle, \the-limit) {
-        self.comb($the-needle).head(the-limit)
-    }
-
     # comb the supply for a Regex needle
     multi method comb(Supply:D: Regex:D $matcher) {
         supply {
@@ -649,6 +639,11 @@
                 $str = nqp::substr($str,@matches.tail.pos) if @matches;
             }
         }
+    }
+
+    # comb the supply for a Str needle for a max number of time
+    multi method comb(Supply:D: \the-thing, \the-limit) {
+        self.comb(the-thing).head(the-limit)
     }
 
     # split the supply on the needle and adverbs

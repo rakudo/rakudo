@@ -461,17 +461,15 @@
     multi method head(Supply:D:) {
         supply { whenever self -> \val { emit val; done } }
     }
-    multi method head(Supply:D: Int(Cool) $number) {
-        $number <= 0
-          ?? supply { }
-          !! supply {
-                 my int $todo = $number + 1;
-                 whenever self -> \val {
-                     --$todo
-                       ?? emit(val)
-                       !! done
-                 }
-             }
+    multi method head(Supply:D: \limit) {
+        nqp::istype(limit,Whatever) || limit == Inf
+          ?? self
+          !! limit <= 0
+            ?? supply { }
+            !! supply {
+                   my int $todo = limit.Int + 1;
+                   whenever self -> \val { --$todo ?? emit(val) !! done }
+               }
     }
 
     method tail(Supply:D: Int(Cool) $number = 1) {

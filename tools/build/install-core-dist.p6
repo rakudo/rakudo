@@ -1,20 +1,21 @@
 use lib <lib>;
 use CompUnit::Repository::Staging;
 my %provides = 
-    "Test"                          => "lib/Test.pm6",
-    "NativeCall"                    => "lib/NativeCall.pm6",
-    "NativeCall::Types"             => "lib/NativeCall/Types.pm6",
-    "NativeCall::Compiler::GNU"     => "lib/NativeCall/Compiler/GNU.pm6",
-    "NativeCall::Compiler::MSVC"    => "lib/NativeCall/Compiler/MSVC.pm6",
-    "Pod::To::Text"                 => "lib/Pod/To/Text.pm6",
-    "newline"                       => "lib/newline.pm6",
-    "experimental"                  => "lib/experimental.pm6",
-    "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.pm6",
-    "Telemetry"                     => "lib/Telemetry.pm6",
-    "snapper"                       => "lib/snapper.pm6",
+    "Test"                          => "lib/Test.rakumod",
+    "NativeCall"                    => "lib/NativeCall.rakumod",
+    "NativeCall::Types"             => "lib/NativeCall/Types.rakumod",
+    "NativeCall::Compiler::GNU"     => "lib/NativeCall/Compiler/GNU.rakumod",
+    "NativeCall::Compiler::MSVC"    => "lib/NativeCall/Compiler/MSVC.rakumod",
+    "Pod::To::Text"                 => "lib/Pod/To/Text.rakumod",
+    "newline"                       => "lib/newline.rakumod",
+    "experimental"                  => "lib/experimental.rakumod",
+    "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
+    "Telemetry"                     => "lib/Telemetry.rakumod",
+    "snapper"                       => "lib/snapper.rakumod",
 ;
 
-%provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.pm6" if $*VM.name eq 'moar';
+%provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod"
+  if $*VM.name eq 'moar';
 
 PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
     :prefix(@*ARGS[0]),

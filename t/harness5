@@ -49,8 +49,11 @@ if ($list_file) {
     $list_file = convert_to_versioned_file($list_file);
 
     my $perl5 = not system $ENV{HARNESS_PERL} . ' -e "exit !try { require Inline::Perl5; 1 }"';
-    print "Inline::Perl5 not installed: not running Perl 5 integration tests\n"
-      if !$perl5;
+    if (!$perl5) {
+        print "Inline::Perl5 not installed: not running Perl 5 integration tests\n";
+        print "You can install Inline::Perl5 into the build directory with\n\n";
+        print "    zef --install-to=inst#$FindBin::Bin/../gen/build_rakudo_home/site install Inline::Perl5\n\n";
+    }
 
     open(my $f, '<', $list_file)
         or die "Can't open file '$list_file' for reading: $!";

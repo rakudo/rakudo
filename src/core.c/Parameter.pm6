@@ -28,6 +28,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_OPTIONAL        = 1 +< 11;
     my constant $SIG_ELEM_ARRAY_SIGIL        = 1 +< 12;
     my constant $SIG_ELEM_HASH_SIGIL         = 1 +< 13;
+    my constant $SIG_ELEM_DEFAULT_FROM_OUTER = 1 +< 14;
     my constant $SIG_ELEM_IS_CAPTURE         = 1 +< 15;
     my constant $SIG_ELEM_UNDEFINED_ONLY     = 1 +< 16;
     my constant $SIG_ELEM_DEFINED_ONLY       = 1 +< 17;
@@ -89,15 +90,15 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     submethod BUILD(
-       Str:D $name      is copy = "",
-       Int:D $flags     is copy = 0,
-      Bool:D $named     is copy = False,
-      Bool:D $optional  is copy = False,
-      Bool:D $mandatory is copy = False,
-      Bool:D $is-copy = False,
-      Bool:D $is-raw = False,
-      Bool:D $is-rw = False,
-      Bool:D $multi-invocant = True,
+       Str:D :$name      is copy = "",
+       Int:D :$flags     is copy = 0,
+      Bool:D :$named     is copy = False,
+      Bool:D :$optional  is copy = False,
+      Bool:D :$mandatory is copy = False,
+      Bool:D :$is-copy = False,
+      Bool:D :$is-raw = False,
+      Bool:D :$is-rw = False,
+      Bool:D :$multi-invocant = True,
              *%args  # type / default / where / sub_signature captured through %_
       ) {
 
@@ -240,12 +241,13 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
     method usage-name() {
-        nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
-          ?? $!variable_name
-          !! nqp::iseq_i(nqp::index('*!',nqp::substr($!variable_name,1,1)),-1)
-            ?? nqp::substr($!variable_name,1)
-            !! nqp::substr($!variable_name,2)
-
+        nqp::isnull_s($!variable_name)
+          ?? Nil
+          !! nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
+            ?? $!variable_name
+            !! nqp::iseq_i(nqp::index('*!',nqp::substr($!variable_name,1,1)),-1)
+              ?? nqp::substr($!variable_name,1)
+              !! nqp::substr($!variable_name,2)
     }
 
     method sigil() {
@@ -518,7 +520,7 @@ my class Parameter { # declared in BOOTSTRAP
         True;
     }
 
-    multi method perl(Parameter:D: Mu:U :$elide-type = Any) {
+    multi method raku(Parameter:D: Mu:U :$elide-type = Any) {
         my $perl = '';
         my $rest = '';
         my $type = $!nominal_type.^name;
@@ -574,7 +576,9 @@ my class Parameter { # declared in BOOTSTRAP
                 $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
             }
             $name ~= '!' unless self.optional;
-        } elsif self.optional && !$default {
+        } elsif self.optional
+          && !$default
+          && not $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
             $name ~= '?';
         }
         if $!flags +& $SIG_ELEM_IS_RW {
@@ -585,10 +589,10 @@ my class Parameter { # declared in BOOTSTRAP
         if $!flags +& $SIG_ELEM_IS_RAW {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
-            $rest ~= ' is raw' unless $name eq '|' or $name.starts-with('\\');
+            $rest ~= ' is raw' unless $name.starts-with('|') || $name.starts-with('\\');
         }
         unless nqp::isnull($!sub_signature) {
-            my $sig = $!sub_signature.perl();
+            my $sig = $!sub_signature.raku();
             $sig ~~ s/^^ ':'//;
             $rest ~= ' ' ~ $sig;
         }
@@ -601,12 +605,17 @@ my class Parameter { # declared in BOOTSTRAP
                    (my \value := nqp::atpos(@!post_constraints,0)),
                    Cool
                  ) {
-                return value.perl;
+                return value.raku;
             }
 
             $rest ~= ' where { ... }';
         }
-        $rest ~= " = $!default_value.perl()" if $default;
+        if $default {
+            $rest ~= " = $!default_value.raku()";
+        }
+        elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
+            $rest ~= " = OUTER::<$name>";
+        }
         if $name or $rest {
             $perl ~= ($perl ?? ' ' !! '') ~ $name;
         }

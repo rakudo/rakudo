@@ -215,7 +215,7 @@ my class Date does Dateish {
           !! self.new-from-daycount(self.daycount - 1)
     }
 
-    multi method perl(Date:D: --> Str:D) {
+    multi method raku(Date:D: --> Str:D) {
         self.^name ~ ".new($!year,$!month,$!day)"
     }
     multi method ACCEPTS(Date:D: DateTime:D $dt --> Bool:D) {

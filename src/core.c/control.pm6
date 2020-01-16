@@ -52,21 +52,40 @@ multi sub return(**@x is raw --> Nil) {
 
 proto sub take-rw(|) {*}
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
-multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
+multi sub take-rw(\value) {
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,value);
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    value
+}
 multi sub take-rw(|) {
-    THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray))
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,my \out := nqp::p6bindattrinvres(
+      nqp::create(List),List,'$!reified',nqp::p6argvmarray)
+    );
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    out
 }
 
 proto sub take(|) {*}
 multi sub take()   { die "take without parameters doesn't make sense" }
-multi sub take(\x) {
-    THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x))
+multi sub take(\value) {
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,my \out := nqp::p6recont_ro(value));
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    out
 }
 multi sub take(|) {
-    THROW(
-      nqp::const::CONTROL_TAKE,
-      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
-    )
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,my \out := nqp::p6bindattrinvres(
+      nqp::create(List),List,'$!reified',nqp::p6argvmarray)
+    );
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    out
 }
 
 proto sub goto($, *%) {*}
@@ -159,7 +178,10 @@ sub samewith(|c) {
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
 sub emit(Mu \value --> Nil) {
-    THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,nqp::p6recont_ro(value));
+    nqp::setextype($ex,nqp::const::CONTROL_EMIT);
+    nqp::throw($ex);
 }
 sub done(--> Nil) {
     THROW-NIL(nqp::const::CONTROL_DONE);

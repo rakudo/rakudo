@@ -185,9 +185,9 @@ my class X::Method::NotFound is Exception {
 
         if nqp::can($!invocant.HOW, 'methods') {
             for $!invocant.^methods(:all)>>.name -> $method_name {
-                my $dist = StrDistance.new(:before($.method), :after($method_name));
+                my $dist = StrDistance.new(:before($.method), :after(~$method_name));
                 if $dist <= $max_length {
-                    %suggestions{$method_name} = $dist;
+                    %suggestions{$method_name} = ~$dist;
                 }
             }
         }
@@ -254,7 +254,7 @@ my class X::Pragma::MustOneOf is Exception {
 my class X::Pragma::UnknownArg is Exception {
     has $.name;
     has $.arg;
-    method message { "Unknown argument '{$.arg.perl}' specified with the '$.name' pragma." }
+    method message { "Unknown argument '{$.arg.raku}' specified with the '$.name' pragma." }
 }
 my class X::Pragma::OnlyOne is Exception {
     has $.name;
@@ -376,24 +376,20 @@ do {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my $e := EXCEPTION($ex);
 
-        if %*ENV<RAKUDO_EXCEPTIONS_HANDLER> -> $handler {
-            # REMOVE DEPRECATED CODE ON 201907
-            Rakudo::Deprecations.DEPRECATED: "PERL6_EXCEPTIONS_HANDLER", Nil,
-                '2019.07', :file("N/A"), :line("N/A"),
-                :what("RAKUDO_EXCEPTIONS_HANDLER env var");
+        if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
-                temp %*ENV<RAKUDO_EXCEPTIONS_HANDLER> = ""; # prevent looping
+                temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping
                 unless $class.process($e) {
                     nqp::getcurhllsym('&THE_END')();
                     return
                 }
             }
         }
-        if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
+        if %*ENV<RAKU_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
-                temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping
+                temp %*ENV<RAKU_EXCEPTIONS_HANDLER> = ""; # prevent looping
                 unless $class.process($e) {
                     nqp::getcurhllsym('&THE_END')();
                     return
@@ -623,13 +619,13 @@ my class X::IO::NotAChild does X::IO {
     has $.path;
     has $.child;
     method message() {
-      "Path {$.child.perl} is not a child of path {$.path.perl}"
+      "Path {$.child.raku} is not a child of path {$.path.raku}"
     }
 }
 
 my class X::IO::Resolve does X::IO {
     has $.path;
-    method message() { "Failed to completely resolve {$.path.perl}" }
+    method message() { "Failed to completely resolve {$.path.raku}" }
 }
 
 my class X::IO::Rmdir does X::IO {
@@ -850,8 +846,8 @@ my class X::Worry is Exception { }
 my class X::Worry::P5 is X::Worry { }
 my class X::Worry::P5::Reference is X::Worry::P5 {
     method message {
-q/To pass an array, hash or sub to a function in Perl 6, just pass it as is.
-For other uses of Perl 5's ref operator consider binding with ::= instead.
+q/To pass an array, hash or sub to a function in Raku, just pass it as is.
+For other uses of Perl's ref operator consider binding with ::= instead.
 Parenthesize as \\(...) if you intended a capture of a single variable./
     }
 }
@@ -1091,7 +1087,7 @@ my class X::Undeclared::Symbols does X::Comp {
             $r ~= "Undeclared routine" ~ (%.unk_routines.elems == 1 ?? "" !! "s") ~ ":\n";
             for %.unk_routines.sort(*.key) {
                 $r ~= "    $_.key() &l($_.value)";
-                $r ~= " (in Perl 6 please use " ~ $obs{$_.key()} ~ " instead)" if $obs{$_.key()};
+                $r ~= " (in Raku please use " ~ $obs{$_.key()} ~ " instead)" if $obs{$_.key()};
                 if +%.routine_suggestion{$_.key()}.list {
                     $r ~= ". " ~ s(%.routine_suggestion{$_.key()}.list);
                 }
@@ -1176,7 +1172,7 @@ my class X::Phaser::Multiple does X::Comp {
 my class X::Obsolete does X::Comp {
     has $.old;
     has $.replacement; # can't call it $.new, collides with constructor
-    has $.when = 'in Perl 6';
+    has $.when = 'in Raku';
     method message() { "Unsupported use of $.old; $.when please use $.replacement" }
 }
 
@@ -1435,7 +1431,7 @@ my class X::Syntax::ParentAsHash does X::Syntax {
 
 my class X::Syntax::Malformed::Elsif does X::Syntax {
     has $.what = 'else if';
-    method message() { qq{In Perl 6, please use "elsif' instead of "$.what"} }
+    method message() { qq{In Raku, please use "elsif' instead of "$.what"} }
 }
 
 my class X::Syntax::Reserved does X::Syntax {
@@ -1445,7 +1441,7 @@ my class X::Syntax::Reserved does X::Syntax {
 }
 
 my class X::Syntax::P5 does X::Syntax {
-    method message() { 'This appears to be Perl 5 code' }
+    method message() { 'This appears to be Perl code' }
 }
 
 my class X::Syntax::NegatedPair does X::Syntax {
@@ -1526,6 +1522,14 @@ my class X::Role::Initialization is Exception {
 
 my class X::Syntax::Comment::Embedded does X::Syntax {
     method message() { "Opening bracket required for #` comment" }
+}
+
+my class X::Syntax::Pod::DeclaratorLeading does X::Syntax  {
+    method message() { "Opening bracket required for #| declarator block" }
+}
+
+my class X::Syntax::Pod::DeclaratorTrailing does X::Syntax {
+    method message() { "Opening bracket required for #= declarator block" }
 }
 
 my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
@@ -1638,7 +1642,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
         }
         $v
           ?? $sugg
-            ?? "Unsupported use of $name variable; in Perl 6 please use $sugg"
+            ?? "Unsupported use of $name variable; in Raku please use $sugg"
             !! "Unsupported use of $name variable"
           !! 'Weird unrecognized variable name: ' ~ $name;
     }
@@ -1680,9 +1684,9 @@ my class X::Syntax::Number::LiteralType does X::Syntax {
         my $vt := $!value.^name;
         my $value := $vt eq "IntStr" || $vt eq "NumStr" || $vt eq "RatStr" || $vt eq "ComplexStr"
             ?? $!value.Str
-            !! $!value.perl;
+            !! $!value.raku;
         my $val = "Cannot assign a literal of type {$.valuetype} ($value) to { $.native ?? "a native" !! "a" } variable of type $vartype. You can declare the variable to be of type $.suggestiontype, or try to coerce the value with { $value ~ '.' ~ $conversionmethod } or $conversionmethod\($value\)";
-        try $val ~= ", or just write the value as " ~ $!value."$vartype"().perl;
+        try $val ~= ", or just write the value as " ~ $!value."$vartype"().raku;
         $val;
     }
 }
@@ -1973,12 +1977,12 @@ my class X::Hash::Store::OddNumber is Exception {
           "Odd number of elements found where hash initializer expected";
         if $.found == 1 {
             $msg ~= $.last
-              ?? ":\nOnly saw: $.last.perl()"
+              ?? ":\nOnly saw: $.last.raku()"
               !! ":\nOnly saw 1 element"
         }
         else {
             $msg ~= ":\nFound $.found (implicit) elements";
-            $msg ~= ":\nLast element seen: $.last.perl()" if $.last;
+            $msg ~= ":\nLast element seen: $.last.raku()" if $.last;
         }
     }
 }
@@ -2042,7 +2046,7 @@ my class X::Str::Numeric is Exception {
     has $.reason;
     method source-indicator {
         my ($red,$clear,$green,$,$eject) = Rakudo::Internals.error-rcgye;
-        my sub escape($str) { $str.perl.substr(1).chop }
+        my sub escape($str) { $str.raku.substr(1).chop }
         join '', "in '",
                 $green,
                 escape(substr($.source,0, $.pos)),
@@ -2261,7 +2265,7 @@ my class X::TypeCheck is Exception {
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method gotn() {
-        my $perl = (try $!got.perl) // "?";
+        my $perl = (try $!got.raku) // "?";
         my $max-len = 24;
         $max-len += chars $!got.^name if $perl.starts-with: $!got.^name;
         $perl = "$perl.substr(0,$max-len-3)..." if $perl.chars > $max-len;
@@ -2272,7 +2276,7 @@ my class X::TypeCheck is Exception {
     }
     method expectedn() {
         (try $!got.^name eq $!expected.^name
-          ?? $!expected.perl
+          ?? $!expected.raku
           !! $!expected.^name
         ) // "?"
     }
@@ -2553,7 +2557,7 @@ my class X::Numeric::CannotConvert is Exception {
     has $.source;
 
     method message() {
-        "Cannot convert {$!source // $!source.perl} to {$!target // $!target.perl}: $!reason";
+        "Cannot convert {$!source // $!source.raku} to {$!target // $!target.raku}: $!reason";
     }
 
 }
@@ -2583,10 +2587,10 @@ my class X::Numeric::Confused is Exception {
     has $.base;
     method message() {
         "This call only converts base-$.base strings to numbers; value "
-        ~ "{$.num.perl} is of type {$.num.WHAT.^name}, so cannot be converted!"
+        ~ "{$.num.raku} is of type {$.num.WHAT.^name}, so cannot be converted!"
         ~ (
-            "\n(If you really wanted to convert {$.num.perl} to a base-$.base"
-                ~ " string, use {$.num.perl}.base($.base) instead.)"
+            "\n(If you really wanted to convert {$.num.raku} to a base-$.base"
+                ~ " string, use {$.num.raku}.base($.base) instead.)"
             if $.num.^can('base')
         );
     }
@@ -2625,7 +2629,7 @@ my class X::Multi::Ambiguous is Exception {
         my @priors;
         if $.capture {
             for $.capture.list {
-                try @bits.push(.WHAT.perl);
+                try @bits.push(.WHAT.raku);
                 @bits.push($_.^name) if $!;
                 when Failure {
                     @priors.push(" " ~ .mess);
@@ -2639,7 +2643,7 @@ my class X::Multi::Ambiguous is Exception {
                     @bits.push(':' ~ ('!' x !.value) ~ .key);
                 }
                 else {
-                    try @bits.push(":$(.key)\($(.value.WHAT.perl))");
+                    try @bits.push(":$(.key)\($(.value.WHAT.raku))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
             }
@@ -2656,7 +2660,7 @@ my class X::Multi::Ambiguous is Exception {
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~ join "\n",
             "Ambiguous call to '$.dispatcher.name()$cap'; these signatures all match:",
-            @.ambiguous.map(*.signature.perl)
+            @.ambiguous.map(*.signature.raku)
     }
 }
 
@@ -2682,7 +2686,7 @@ my class X::Multi::NoMatch is Exception {
         if $.capture {
             for $.capture.list {
                 try @bits.push(
-                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.perl ~ ':' ~ (.defined ?? "D" !! "U")
+                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.raku ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
                 if nqp::istype($_,Failure) {
@@ -2699,7 +2703,7 @@ my class X::Multi::NoMatch is Exception {
                 else {
                     try @bits.push(":$(.key)\($($where
                         ?? Rakudo::Internals.SHORT-GIST: .value
-                        !! .value.WHAT.perl
+                        !! .value.WHAT.raku
                     ))");
                     @bits.push(':' ~ .value.^name) if $!;
                 }
@@ -3027,7 +3031,7 @@ my class X::Assignment::ToShaped is Exception {
 my class X::Language::Unsupported is Exception {
     has $.version;
     method message() {
-        "No compiler available for Perl $.version"
+        "No compiler available for Raku $.version"
     }
 }
 my class X::Language::TooLate is Exception {
@@ -3039,7 +3043,7 @@ my class X::Language::ModRequired is Exception {
     has $.version;
     has $.modifier;
     method message() {
-        "Perl $.version requires $.modifier modifier"
+        "Raku $.version requires $.modifier modifier"
     }
 }
 
@@ -3068,10 +3072,9 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
 
     method message() {
         my $name = $.specification.short-name;
-        my $line = $.specification.source-line-number;
         is-core($name)
             ?? "{$name} is a builtin type, not an external module"
-            !! "Could not find $.specification at line $line in:\n"
+            !! "Could not find $.specification in:\n"
                 ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4)
                 ~ ($.specification ~~ / $<name>=.+ '::from' $ /
                     ?? "\n\nIf you meant to use the :from adverb, use"

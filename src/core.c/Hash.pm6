@@ -187,10 +187,10 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
-    multi method perl(Hash:D \SELF:) {
-        SELF.perlseen(self.^name, {
+    multi method raku(Hash:D \SELF:) {
+        SELF.rakuseen(self.^name, {
             '$' x nqp::iscont(SELF)  # self is always deconted
-            ~ '{' ~ self.sort.map({.perl}).join(', ') ~ '}'
+            ~ '{' ~ self.sort.map({.raku}).join(', ') ~ '}'
         })
     }
 
@@ -459,14 +459,14 @@ my class Hash { # declared in BOOTSTRAP
               value
             )
         }
-        multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Hash', {
+        multi method raku(::?CLASS:D \SELF:) {
+            SELF.rakuseen('Hash', {
                 '$' x nqp::iscont(SELF)  # self is always deconted
                 ~ (self.elems
-                   ?? "(my {TValue.perl} % = {
-                        self.sort.map({.perl}).join(', ')
+                   ?? "(my {TValue.raku} % = {
+                        self.sort.map({.raku}).join(', ')
                        })"
-                   !! "(my {TValue.perl} %)"
+                   !! "(my {TValue.raku} %)"
                   )
             })
         }
@@ -732,19 +732,19 @@ my class Hash { # declared in BOOTSTRAP
             ))
         }
 
-        multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Hash', {
-                my $TKey-perl   := TKey.perl;
-                my $TValue-perl := TValue.perl;
+        multi method raku(::?CLASS:D \SELF:) {
+            SELF.rakuseen('Hash', {
+                my $TKey-perl   := TKey.raku;
+                my $TValue-perl := TValue.raku;
                 $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
                   ?? ( '$(' x nqp::iscont(SELF)
-                        ~ ':{' ~ SELF.sort.map({.perl}).join(', ') ~ '}'
+                        ~ ':{' ~ SELF.sort.map({.raku}).join(', ') ~ '}'
                         ~ ')' x nqp::iscont(SELF)
                      )
                   !! '$' x nqp::iscont(SELF)
                      ~ (self.elems
                           ?? "(my $TValue-perl %\{$TKey-perl\} = {
-                                self.sort.map({.perl}).join(', ')
+                                self.sort.map({.raku}).join(', ')
                              })"
                           !! "(my $TValue-perl %\{$TKey-perl\})"
                      )
@@ -772,7 +772,7 @@ my class Hash { # declared in BOOTSTRAP
 
     method ^parameterize(Mu:U \hash, Mu \t, |c) {
         if nqp::isconcrete(t) {
-            "Can not parameterize {hash.^name} with {t.perl}"
+            "Can not parameterize {hash.^name} with {t.raku}"
         }
         elsif c.elems == 0 {
             my $what := hash.^mixin(TypedHash[t]);

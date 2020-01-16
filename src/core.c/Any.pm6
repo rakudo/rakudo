@@ -330,7 +330,7 @@ my class Any { # declared in BOOTSTRAP
         %unexpected
           ?? Failure.new(X::Adverb.new(
                :what('[] slice'),
-               :source(try { self.VAR.name } // self.WHAT.perl),
+               :source(try { self.VAR.name } // self.WHAT.raku),
                :unexpected(%unexpected.keys)))
           !! self
     }
@@ -340,43 +340,43 @@ my class Any { # declared in BOOTSTRAP
         %unexpected
           ?? Failure.new(X::Adverb.new(
                :what('{} slice'),
-               :source(try { self.VAR.name } // self.WHAT.perl),
+               :source(try { self.VAR.name } // self.WHAT.raku),
                :unexpected(%unexpected.keys)))
           !! self
     }
 
     proto method ASSIGN-POS(|) is nodal {*}
-    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) {
+    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) is raw {
        SELF.AT-POS(pos) = assignee;                     # defer < 0 check
     }
 
-    multi method ASSIGN-POS(Any:D: int \pos, Mu \assignee) {
-        self.AT-POS(pos) = assignee;                    # defer < 0 check
+    multi method ASSIGN-POS(Any:D \SELF: int \pos, Mu \assignee) is raw {
+        SELF.AT-POS(pos) = assignee;                    # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Int:D \pos, Mu \assignee) {
-        self.AT-POS(pos) = assignee;                    # defer < 0 check
+    multi method ASSIGN-POS(Any:D \SELF: Int:D \pos, Mu \assignee) is raw {
+        SELF.AT-POS(pos) = assignee;                    # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) {
+    multi method ASSIGN-POS(Any:D \SELF: Num:D \pos, Mu \assignee) is raw {
         nqp::isnanorinf(pos)
-          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
-          !! self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+          ?? Failure.new(X::Item.new(aggregate => SELF, index => pos))
+          !! SELF.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Any:D \pos, Mu \assignee) {
-        self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+    multi method ASSIGN-POS(Any:D \SELF: Any:D \pos, Mu \assignee) is raw {
+        SELF.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method ASSIGN-POS(Any:D: \one, \two, Mu \assignee) is raw {
-        self.AT-POS(one).ASSIGN-POS(two, assignee)
+    multi method ASSIGN-POS(Any:D \SELF: \one, \two, Mu \assignee) is raw {
+        SELF.AT-POS(one).ASSIGN-POS(two, assignee)
     }
-    multi method ASSIGN-POS(Any:D: \one, \two, \three, Mu \assignee) is raw {
-        self.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
+    multi method ASSIGN-POS(Any:D \SELF: \one, \two, \three, Mu \assignee) is raw {
+        SELF.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
     }
-    multi method ASSIGN-POS(Any:D: **@indices) {
+    multi method ASSIGN-POS(Any:D \SELF: **@indices) is raw {
         my \value := @indices.pop;
         my $final := @indices.pop;
-        Rakudo::Internals.WALK-AT-POS(self,@indices).ASSIGN-POS($final,value)
+        Rakudo::Internals.WALK-AT-POS(SELF,@indices).ASSIGN-POS($final,value)
     }
 
     proto method BIND-POS(|) {*}
@@ -406,8 +406,8 @@ my class Any { # declared in BOOTSTRAP
     proto method AT-KEY(|) is nodal {*}
     multi method AT-KEY(Any:D: $key) is raw {
         Failure.new( self ~~ Associative
-          ?? "Associative indexing implementation missing from type {self.WHAT.perl}"
-          !! "Type {self.WHAT.perl} does not support associative indexing."
+          ?? "Associative indexing implementation missing from type {self.WHAT.raku}"
+          !! "Type {self.WHAT.raku} does not support associative indexing."
         )
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
@@ -583,7 +583,7 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
 
     Failure.new(X::Adverb.new(
       :what<slice>,
-      :source(try { SELF.VAR.name } // SELF.WHAT.perl),
+      :source(try { SELF.VAR.name } // SELF.WHAT.raku),
       :unexpected(%d.keys),
       :nogo(@nogo),
     ))
@@ -597,8 +597,8 @@ sub dd(|) {
             my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
             my $type := $var.WHAT.^name.split("::").tail;
             my $what := nqp::can($var,'perl')
-              ?? $var.perl
-              !! "($var.^name() without .perl method)";
+              ?? $var.raku
+              !! "($var.^name() without .raku method)";
             note $name ?? "$type $name = $what" !! $what;
         }
     }

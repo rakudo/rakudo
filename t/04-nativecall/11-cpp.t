@@ -42,7 +42,7 @@ class Derived1 is repr<CPPStruct> {
     has num64 $.cx;
     has num64 $.cy;
     has uint8 $.c;
-    method new()  is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
+    method new() returns Derived1 is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
 }
 
 sub SizeofDerived1() returns int32 is mangled is native("./11-cpp") { * }
@@ -65,7 +65,7 @@ class Derived2 is repr<CPPStruct> {
     has num64 $.cy;
     has uint8 $.c;
     has Pointer[int32] $.intptr;
-    method new()  is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
+    method new() returns Derived2 is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
     method All_The_Things(int8, int16, int32, long, num32, num64) returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
 
     method ConstInt(int32 is cpp-const)          returns long is native("./11-cpp") is nativeconv('thisgnu') { * }

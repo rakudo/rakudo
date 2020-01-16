@@ -3,8 +3,6 @@ my class StrDistance is Cool {
     has Str $.after;
     has Int $!distance;
 
-    submethod BUILD(Str() :$!before, :$!after --> Nil) { }
-
     method Bool() {
         $.before ne $.after
     }

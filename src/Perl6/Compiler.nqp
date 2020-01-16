@@ -99,7 +99,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method usage($name?, :$use-stderr = False) {
-	my $print-func := $use-stderr ?? &note !! &say; # RT #130760
+	my $print-func := $use-stderr ?? &note !! &say;
     my $compiler := nqp::getcomp("perl6").backend.name;
     my $moar-options := '';
     if nqp::getcomp("perl6").backend.name eq 'moar' {
@@ -174,7 +174,8 @@ Note that only boolean single-letter options may be bundled.
 The following environment variables are respected:
 
   PERL6LIB    Modify the module search path
-  PERL6_HOME  Override the path of the Perl6 runtime files
+  RAKUDO_HOME Override the path of the Raku runtime files
+  PERL6_HOME  Override the path of the Raku runtime files
   NQP_HOME    Override the path of the NQP runtime files
 
 ♥); # end of usage statement

@@ -6,11 +6,11 @@ use nqp;
 
 plan 2;
 
-# RT#132126
+# https://github.com/Raku/old-issue-tracker/issues/6538
 lives-ok {
     nqp::p6bindattrinvres(($ := 42), Int, q|$!value|, nqp::getattr(42, Int, q|$!value|))
 }, 'p6bindattrinvres with getattr of bigint does not crash';
 
-# RT #132300
+# https://github.com/Raku/old-issue-tracker/issues/6614
 is-run ｢use nqp; quietly print nqp::getlexdyn('&DEPRECATED'); print 'pass'｣,
     :out<pass>, 'getlexdyn op does not segfault';

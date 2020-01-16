@@ -2,7 +2,7 @@
 # * Command-line parsing
 #   * Allow both = and space before argument of double-dash args
 #   * Comma-separated list values
-#   * Allow exact Perl 6 forms, quoted away from shell
+#   * Allow exact Raku forms, quoted away from shell
 # * Fix remaining XXXX
 
 my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {

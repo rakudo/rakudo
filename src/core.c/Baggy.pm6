@@ -327,7 +327,7 @@ my role Baggy does QuantHash {
           ')',
         )
     }
-    multi method perl(Baggy:D: --> Str:D) {
+    multi method raku(Baggy:D: --> Str:D) {
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::stmts(
@@ -335,10 +335,10 @@ my role Baggy does QuantHash {
               Rakudo::QuantHash.RAW-VALUES-MAP(self, {
                   nqp::concat(
                     nqp::concat(
-                      nqp::getattr($_,Pair,'$!key').perl,
+                      nqp::getattr($_,Pair,'$!key').raku,
                       '=>'
                     ),
-                    nqp::getattr($_,Pair,'$!value').perl
+                    nqp::getattr($_,Pair,'$!value').raku
                   )
               })
             )),

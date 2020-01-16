@@ -17,7 +17,9 @@ multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
         $child.^add_parent($parent);
     }
     elsif $parent.HOW.archetypes.inheritalizable() {
-        if my @required-methods = $parent.^methods.grep({$_.yada}) {
+        if nqp::can($parent.HOW, 'methods')
+            && my @required-methods = $parent.^methods.grep({$_.yada})
+       {
             my $type = $child.HOW.archetypes.inheritable()
                 ?? 'Class '
                 !! $child.HOW.archetypes.inheritalizable()
@@ -423,7 +425,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
             $!handles := $expr;
         }
 
-        method add_delegator_method($attr: $pkg, $meth_name, $call_name) {
+        method add_delegator_method($attr: Mu $pkg, $meth_name, $call_name) {
             my $meth := method (|c) is rw {
                 $attr.get_value(self)."$call_name"(|c)
             };

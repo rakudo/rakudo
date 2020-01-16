@@ -62,6 +62,7 @@ my class Cool { # declared in BOOTSTRAP
     multi method round($base) { self.Numeric.round($base) }
 
     method roots(Cool $n)   { self.Numeric.roots($n)    }
+    method log2()           { self.Numeric.log2         }
     method log10()          { self.Numeric.log10        }
     method unpolar($n)      { self.Numeric.unpolar($n.Numeric) }
 
@@ -369,13 +370,15 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method UInt(|) {*}
     multi method UInt()  {
-        my $got := self.Int;
-        $got < 0
-          ?? Failure.new(X::OutOfRange.new(
-               :what('Coercion to UInt'),
-               :$got,
-               :range<0..^Inf>))
-          !! $got
+        nqp::istype((my $got := self.Int),Failure)
+          ?? $got
+          !! $got < 0
+            ?? Failure.new(X::OutOfRange.new(
+                 :what('Coercion to UInt'),
+                 :$got,
+                 :range<0..^Inf>
+               ))
+            !! $got
     }
 
     method Num()  {
@@ -455,9 +458,15 @@ proto sub ords($, *%) {*}
 multi sub ords(Cool:D $s) { $s.ords }
 
 proto sub comb($, $, $?, *%) {*}
-multi sub comb(Regex $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
-multi sub comb(Str $matcher, Cool $input, $limit = *) { $input.comb($matcher, $limit) }
-multi sub comb(Int:D $size, Cool $input, $limit = *) { $input.comb($size, $limit) }
+multi sub comb(Regex $matcher, Cool $input, $limit = *, :$match) {
+    $input.comb($matcher, $limit, :$match)
+}
+multi sub comb(Str $matcher, Cool $input, $limit = *) {
+    $input.comb($matcher, $limit)
+}
+multi sub comb(Int:D $size, Cool $input, $limit = *) {
+    $input.comb($size, $limit)
+}
 
 proto sub wordcase($, *%) is pure {*}
 multi sub wordcase(Str:D $x) {$x.wordcase }
@@ -492,7 +501,7 @@ proto sub samecase($, $, *%) {*}
 multi sub samecase(Cool:D $string, Cool:D $pattern) { $string.samecase($pattern) }
 
 proto sub split($, $, |) {*}
-multi sub split($pat, Cool:D $target, |c) { $target.split($pat, |c) }
+multi sub split($pat, Cool:D $target, |c) { c ?? $target.split($pat, |c) !! $target.split($pat) }
 
 proto sub chars($, *%) is pure {*}
 multi sub chars(Cool $x)  { $x.Str.chars }

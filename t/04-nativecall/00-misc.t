@@ -32,7 +32,7 @@ unless $*DISTRO.is-win { # https://github.com/rakudo/rakudo/issues/3244
     (my $dir := make-temp-dir).add('Foo.pm6').spurt: ｢
         use NativeCall;
         sub NCstrlen(Str --> int32) is native(｣
-          ~ './00-misc'.IO.absolute.perl
+          ~ './00-misc'.IO.absolute.raku
         ~ ｢) is export {}
         BEGIN say NCstrlen '123';
         say NCstrlen '12345';

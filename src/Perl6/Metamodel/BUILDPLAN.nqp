@@ -30,6 +30,7 @@ role Perl6::Metamodel::BUILDPLAN {
         # First, we'll create the build plan for just this class.
         my @plan;
         my @attrs := $obj.HOW.attributes($obj, :local(1));
+        my $consider-roles := !self.lang-rev-before($obj, 'e') && nqp::can(self, 'roles');
 
         # Emit any container initializers. Also build hash of attrs we
         # do not touch in any of the BUILDPLAN so we can spit out vivify
@@ -68,6 +69,19 @@ role Perl6::Metamodel::BUILDPLAN {
             }
         }
 
+        sub add_from_roles($name) {
+            my @ins_roles := self.ins_roles($obj, :with-submethods-only) unless +@ins_roles;
+            my $i := +@ins_roles;
+            while --$i >= 0 {
+                my $submeth := nqp::atkey(@ins_roles[$i].HOW.submethod_table(@ins_roles[$i]), $name);
+                if !nqp::isnull($submeth) {
+                    nqp::push(@plan, $submeth);
+                }
+            }
+        }
+
+        add_from_roles('BUILD') if $consider-roles;
+
         # Does it have its own BUILD?
         my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
         if !nqp::isnull($build) && $build {
@@ -85,7 +99,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 $primspec := $is_oversized_int ?? 0 !! $primspec;
 #?endif
 
-                if $_.has_accessor {
+                if $_.is_built {
                     nqp::push(@plan,[
                       0 + $primspec,
                       $obj,
@@ -131,6 +145,8 @@ role Perl6::Metamodel::BUILDPLAN {
                 nqp::push(@plan,[10, $obj, $_.name]);
             }
         }
+
+        add_from_roles('TWEAK') if $consider-roles;
 
         # Does it have a TWEAK?
         my $TWEAK := $obj.HOW.find_method($obj, 'TWEAK', :no_fallback(1));
@@ -181,6 +197,17 @@ role Perl6::Metamodel::BUILDPLAN {
               ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
               !! @EMPTY
         }
+    }
+
+    method ins_roles($obj, :$with-submethods-only = 0) {
+        my @ins_roles;
+        if nqp::can(self, 'concretizations') {
+            for self.concretizations($obj, :local) {
+                next if $with-submethods-only && !nqp::can($_.HOW, 'submethod_table');
+                @ins_roles.push($_);
+            }
+        }
+        @ins_roles
     }
 
     method BUILDPLAN($obj) {

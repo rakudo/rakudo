@@ -50,8 +50,8 @@ our class Pointer                               is repr('CPointer') {
         }
     }
 
-    multi method perl(::?CLASS:U:) { self.^name }
-    multi method perl(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
+    multi method raku(::?CLASS:U:) { self.^name }
+    multi method raku(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
 
     my role TypedPointer[::TValue] {
         method of() { TValue }

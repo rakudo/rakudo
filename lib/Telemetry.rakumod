@@ -38,13 +38,13 @@ role Telemetry::Instrument::Snap does Associative {
         nqp::p6bindattrinvres(
           nqp::clone(self),::?CLASS,'$!data',nqp::decont(data))
     }
-    multi method new(::?CLASS: *@data) {     # provided for .perl roundtripping
+    multi method new(::?CLASS: *@data) {     # provided for .raku roundtripping
         my $data := nqp::list_i;
         nqp::push_i($data,$_) for @data;
         nqp::p6bindattrinvres(nqp::create(self),self,'$!data',$data)
     }
 
-    multi method perl(::?CLASS:D:) {
+    multi method raku(::?CLASS:D:) {
         my $text := nqp::list_s;
         my int $elems = nqp::elems($!data);
         my int $i = -1;
@@ -545,7 +545,7 @@ class Telemetry::Sampler {
         $snaps := nqp::create(IterationBuffer);
     }
 
-    multi method perl(Telemetry::Sampler:D: --> Str:D) {
+    multi method raku(Telemetry::Sampler:D: --> Str:D) {
         self.^name
           ~ '.new('
           ~ self.instruments.map(*.^name).join(",")
@@ -589,7 +589,7 @@ class Telemetry does Associative {
 
         $self
     }
-    multi method new(Telemetry: *@samples) { # needed for .perl roundtripping
+    multi method new(Telemetry: *@samples) { # needed for .raku roundtripping
         my $self := nqp::create(self);
         nqp::bindattr($self,Telemetry,'$!sampler',
           my $sampler := nqp::decont($*SAMPLER));
@@ -602,8 +602,8 @@ class Telemetry does Associative {
         nqp::p6bindattrinvres($self,Telemetry,'$!samples',$samples);
     }
 
-    multi method perl(Telemetry:D: --> Str:D) {
-        self.^name ~ ".new$!samples.perl()"
+    multi method raku(Telemetry:D: --> Str:D) {
+        self.^name ~ ".new$!samples.raku()"
     }
 
     method sampler() { $!sampler }

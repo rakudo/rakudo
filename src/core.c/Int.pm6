@@ -27,7 +27,10 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     proto method new(|) {*}
-    multi method new(      \value --> Int:D) { self.new: value.Int }
+    multi method new(Any:U $type) {
+        die "Cannot create an Int from a '$type.^name()' type object";
+    }
+    multi method new(Any:D \value --> Int:D) { self.new: value.Int }
     multi method new(int   \value --> Int:D) {
         # rebox the value, so we get rid of any potential mixins
         nqp::fromI_I(nqp::decont(value), self)
@@ -37,7 +40,7 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::fromI_I(nqp::decont(value), self)
     }
 
-    multi method perl(Int:D: --> Str:D) {
+    multi method raku(Int:D: --> Str:D) {
         self.Str;
     }
     multi method Bool(Int:D: --> Bool:D) {
@@ -109,6 +112,9 @@ my class Int does Real { # declared in BOOTSTRAP
           !! Failure.new(X::OutOfRange.new(
                :what('base argument to base'),:got($base),:range<2..36>))
     }
+    method !eggify($egg --> Str:D) { self.base(2).trans("01" => $egg) }
+    multi method base(Int:D: "camel" --> Str:D) { self!eggify: "🐪🐫" }
+    multi method base(Int:D: "beer"  --> Str:D) { self!eggify: "🍺🍻" }
 
     # If self is Int, we assume mods are Ints also.  (div fails otherwise.)
     # If do-not-want, user should cast invocant to proper domain.
@@ -214,7 +220,7 @@ my class Int does Real { # declared in BOOTSTRAP
             when int32  { Range.new(         -2147483648, 2147483647         ) }
             when int16  { Range.new(              -32768, 32767              ) }
             when int8   { Range.new(                -128, 127                ) }
-            # Bring back in a future Perl 6 version, or just put on the type object
+            # Bring back in a future Raku version, or just put on the type object
             #when int4   { Range.new(                  -8, 7                  ) }
             #when int2   { Range.new(                  -2, 1                  ) }
             #when int1   { Range.new(                  -1, 0                  ) }
@@ -224,7 +230,7 @@ my class Int does Real { # declared in BOOTSTRAP
             when uint16 { Range.new( 0, 65535                ) }
             when uint8  { Range.new( 0, 255                  ) }
             when byte   { Range.new( 0, 255                  ) }
-            # Bring back in a future Perl 6 version, or just put on the type object
+            # Bring back in a future Raku version, or just put on the type object
             #when uint4  { Range.new( 0, 15                   ) }
             #when uint2  { Range.new( 0, 3                    ) }
             #when uint1  { Range.new( 0, 1                    ) }
@@ -372,7 +378,7 @@ multi sub infix:<%>(Int:D \a, Int:D \b --> Int:D) {
       ),
       nqp::if(
         nqp::isne_i(b,0),
-        nqp::mod_i(    # quick fix RT #128318
+        nqp::mod_i(    # quick fix https://github.com/Raku/old-issue-tracker/issues/4999
           nqp::add_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)),b),
           nqp::decont(b)
         ),
@@ -382,7 +388,7 @@ multi sub infix:<%>(Int:D \a, Int:D \b --> Int:D) {
 }
 multi sub infix:<%>(int $a, int $b --> int) {
     # relies on opcode or hardware to detect division by 0
-    nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix RT #128318
+    nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b) # quick fix https://github.com/Raku/old-issue-tracker/issues/4999
 }
 
 multi sub infix:<%%>(int $a, int $b --> Bool:D) {

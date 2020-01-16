@@ -57,7 +57,7 @@ my class Routine { # declared in BOOTSTRAP
         }
     }
 
-    multi method perl(Routine:D:) {
+    multi method raku(Routine:D:) {
         my $perl = ( self.^name ~~ m/^\w+/ ).lc;
         if self.is_dispatcher {
             $perl = "proto $perl";
@@ -68,7 +68,7 @@ my class Routine { # declared in BOOTSTRAP
         if self.name() -> $n {
             $perl ~= " $n";
         }
-        my $sig := self.signature.perl;
+        my $sig := self.signature.raku;
         $perl ~= " $sig.substr(1)" unless $sig eq ':()';
         $perl ~= self.onlystar
           ?? ' {*}'

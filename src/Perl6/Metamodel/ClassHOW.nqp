@@ -24,11 +24,13 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::ContainerSpecProtocol
     does Perl6::Metamodel::Finalization
     does Perl6::Metamodel::Concretization
+    does Perl6::Metamodel::ConcretizationCache
 {
     has @!roles;
     has @!role_typecheck_list;
     has @!fallbacks;
     has $!composed;
+    has $!pun_source; # If class is coming from a pun then this is the source role
 
     my $archetypes := Perl6::Metamodel::Archetypes.new(
         :nominal(1), :inheritable(1), :augmentable(1) );
@@ -93,16 +95,14 @@ class Perl6::Metamodel::ClassHOW
     method compose($the-obj, :$compiler_services) {
         my $obj := nqp::decont($the-obj);
 
-        # Set class language version if class belongs to the CORE
-        if $*COMPILING_CORE_SETTING {
-            self.set_language_version($the-obj);
-        }
+        self.set_language_version($obj);
 
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
         my @roles_to_compose := self.roles_to_compose($obj);
         my @stubs;
+        my $rtca;
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
@@ -110,11 +110,22 @@ class Perl6::Metamodel::ClassHOW
                 @!roles[+@!roles] := $r;
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 my $ins := $r.HOW.specialize($r, $obj);
+                # If class is a result of pun then transfer hidden flag from the source role
+                if $!pun_source =:= $r {
+                    self.set_hidden($obj) if $ins.HOW.hidden($ins);
+                    self.set_language_revision($obj, $ins.HOW.language-revision($ins), :force);
+                }
+                # Significant change of behavior on d/e revisions boundary; pre-6.e classes cannot consume 6.e roles.
+                self.check-type-compat($obj, $ins, ['e'])
+                    if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
                 self.add_concretization($obj, $r, $ins);
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
-            @stubs := RoleToClassApplier.apply($obj, @ins_roles);
+            $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+            $rtca.prepare($obj, @ins_roles);
+
+            self.wipe_conc_cache;
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
@@ -124,6 +135,13 @@ class Perl6::Metamodel::ClassHOW
                     @!role_typecheck_list[+@!role_typecheck_list] := $_;
                 }
             }
+        }
+
+        # Compose class attributes first. We prioritize them and their accessors over anything coming from roles.
+        self.compose_attributes($obj, :$compiler_services);
+
+        if $rtca {
+            @stubs := $rtca.apply();
         }
 
         # Some things we only do if we weren't already composed once, like
@@ -140,11 +158,11 @@ class Perl6::Metamodel::ClassHOW
         # Incorporate any new multi candidates (needs MRO built).
         self.incorporate_multi_candidates($obj);
 
+        # Compose remaining attributes from roles.
+        self.compose_attributes($obj, :$compiler_services);
+
         # Set up finalization as needed.
         self.setup_finalization($obj);
-
-        # Compose attributes.
-        self.compose_attributes($obj, :$compiler_services);
 
         # Test the remaining stubs
         for @stubs -> %data {
@@ -232,16 +250,8 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
 
-    method roles($obj, :$local, :$transitive = 1) {
-        my @result;
-        for @!roles {
-            @result.push($_);
-            if $transitive {
-                for $_.HOW.roles($_, :transitive(1)) {
-                    @result.push($_);
-                }
-            }
-        }
+    method roles($obj, :$local, :$transitive = 1, :$mro = 0) {
+        my @result := self.roles-ordered($obj, @!roles, :$transitive, :$mro);
         unless $local {
             my $first := 1;
             for self.mro($obj) {
@@ -249,7 +259,7 @@ class Perl6::Metamodel::ClassHOW
                     $first := 0;
                     next;
                 }
-                for $_.HOW.roles($_, :$transitive, :local(1)) {
+                for $_.HOW.roles($_, :$transitive, :$mro, :local(1)) {
                     @result.push($_);
                 }
             }
@@ -298,5 +308,9 @@ class Perl6::Metamodel::ClassHOW
     # Does the type have any fallbacks?
     method has_fallbacks($obj) {
         return nqp::istype($obj, $junction_type) || +@!fallbacks;
+    }
+
+    method set_pun_source($obj, $role) {
+        $!pun_source := nqp::decont($role);
     }
 }

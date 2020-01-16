@@ -1360,11 +1360,11 @@ my class Array { # declared in BOOTSTRAP
     method dynamic() {
         nqp::isnull($!descriptor) ?? False !! so $!descriptor.dynamic
     }
-    multi method perl(Array:D \SELF: --> Str:D) {
-        SELF.perlseen('Array', {
+    multi method raku(Array:D \SELF: --> Str:D) {
+        SELF.rakuseen('Array', {
              '$' x nqp::iscont(SELF)  # self is always deconted
              ~ '['
-             ~ self.map({nqp::decont($_).perl}).join(', ')
+             ~ self.map({nqp::decont($_).raku}).join(', ')
              ~ ',' x (self.elems == 1 && nqp::istype(self.AT-POS(0),Iterable))
              ~ ']'
         })

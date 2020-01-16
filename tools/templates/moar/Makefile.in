@@ -35,6 +35,12 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(PERL6_DEBUG)@ = perl6-debug@moar::exe@
 @bpv(PERL6_M)@ = perl6-m@moar::exe@
 @bpv(PERL6_DEBUG_M)@ = perl6-debug-m@moar::exe@
+@bpv(RAKUDO)@ = rakudo@moar::exe@
+@bpv(RAKUDO_DEBUG)@ = rakudo-debug@moar::exe@
+@bpv(RAKU)@ = raku@moar::exe@
+@bpv(RAKU_DEBUG)@ = raku-debug@moar::exe@
+@bpv(RAKUDO_M)@ = rakudo-m@moar::exe@
+@bpv(RAKUDO_DEBUG_M)@ = rakudo-debug-m@moar::exe@
 @bpv(INST_PERL6)@ = inst-perl6@moar::exe@
 @bpv(INST_PERL6_DEBUG)@ = inst-perl6-debug@moar::exe@
 @bpv(INST_PERL6_M)@ = inst-perl6-m@moar::exe@
@@ -47,11 +53,12 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(PERL6_OPS_DLL_SRC)@  = @nfp(src/vm/moar/ops/perl6_ops.c)@
 @bpv(PERL6_CONT_SRC)@ = @nfp(src/vm/moar/ops/container.c)@
 
-@bpv(GDB_RUNNER)@ = perl6-gdb-m@runner_suffix@
-@bpv(LLDB_RUNNER)@ = perl6-lldb-m@runner_suffix@
-@bpv(VALGRIND_RUNNER)@ = perl6-valgrind-m@runner_suffix@
+@for_langalias(@for_toolchain(@bpv(@uclangalias@_@uctoolchain@_RUNNER)@ = @langalias@-@toolchain@-m@runner_suffix@
+)@)@
 
-@bpv(ALL_TARGETS)@ = $(R_SETTING_MOAR) @bpm(INST_PERL6_M)@ @bpm(INST_PERL6_DEBUG_M)@ @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@ @m_all@
+@bpv(ALL_TARGETS)@ = $(R_SETTING_MOAR) @bpm(INST_PERL6_M)@ @bpm(INST_PERL6_DEBUG_M)@ @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@ \
+@for_langalias(@for_toolchain(		@bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
+)@)@
 
 @bpv(CLEANUPS)@ = \
   $(R_SETTING_MOAR) \
@@ -66,12 +73,13 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   @bpm(PERL6_OPS_DLL)@ \
   @bpm(PERL6_OPS_OBJ)@ \
   @bpm(PERL6_CONT_OBJ)@ \
-  perl6-m.c \
-  perl6-m@moar::obj@ \
-  perl6.c \
-  perl6@moar::obj@ \
-  perl6@moar::exe@ \
-@m_cleanups@
+@for_langalias(@for_toolchain(  @bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
+)@)@  rakudo-m.c \
+  rakudo-m@moar::obj@ \
+  rakudo.c \
+  rakudo@moar::obj@ \
+  rakudo@moar::exe@ \
+  perl6@moar::exe@
 
 @bpv(PERL6_OPS_EXTRA)@ = @bpm(PERL6_OPS_DLL)@
 
@@ -79,42 +87,46 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 #@bpv(HARNESS_TYPE)@ = $(HARNESS_TYPE)
 
-@bpv(HARNESS6)@ = @nfp(./@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
+@bpv(HARNESS6)@ = @nfp(@base_dir@/@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
 @bpv(HARNESS6_WITH_FUDGE)@ = @bpm(HARNESS6)@ --fudge
 
-@bpv(RUN_CLEAN_TARGET_FILES)@ = @bpm(RUN_PERL6)@ -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str unless '@noecho@' eq '@'; .IO.unlink if .IO.e } }"
+@bpv(RUN_CLEAN_TARGET_FILES)@ = @bpm(RUN_PERL6)@ -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str if '@verbose@' eq '@'; .IO.unlink if .IO.e } }"
 
 @include(Makefile-backend-common)@
 
 @bpm(PERL6_OPS_DLL)@: @bpm(PERL6_OPS_DLL_SRC)@ @bpm(PERL6_CONT_SRC)@
 	@echo(+++ Compiling	$@)@
-	@noecho@@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_OPS_DLL_SRC)@
-	@noecho@@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_CONT_OBJ)@ @bpm(PERL6_CONT_SRC)@
-	@noecho@@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(PERL6_OPS_DLL)@ @bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_CONT_OBJ)@ @moar_lib@
+	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_OPS_DLL_SRC)@
+	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(PERL6_CONT_OBJ)@ @bpm(PERL6_CONT_SRC)@
+	$(NOECHO)@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(PERL6_OPS_DLL)@ @bpm(PERL6_OPS_OBJ)@ @bpm(PERL6_CONT_OBJ)@ @moar_lib@
 
 $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING_SRC)
-	@noecho@@bpm(RUN_PERL6)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
+	$(NOECHO)@bpm(RUN_PERL6)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
 @backend_prefix@-runner-default: @bpm(INST_PERL6)@ @bpm(INST_PERL6_DEBUG)@
 
-@perl(
-    for my $toolchain (qw<gdb lldb valgrind>) {
-		my $scope = $cfg->push_config( toolchain => $toolchain );
-		$out .= $macros->expand('@insert(Makefile-gen-runner)@');
-	}
-)@
-
-@bpm(RUNNER)@: @@configure_script@@ @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/perl6-m-build.c.windows)@)@@
+@if(platform!=windows @for_langalias(@for_toolchain(
+@bpm(@uclangalias@_@uctoolchain@_RUNNER)@: @@configure_script@@ @bpm(C_RUNNER)@ @bsm(PERL6)@ @bsm(SETTING)@ @@template(rakudo-@toolchain@-m)@@ @@template(rakudo-debug-notice)@@ @@template(sh-prelude)@@
 	@echo(+++ Generating	$@)@
-	@noecho@$(RM_F) @q(@bpm(RUNNER)@)@
-	@noecho@$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-m-build.c)@ --out perl6-m.c \
+	$(NOECHO)$(RM_F) $@
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/rakudo-@toolchain@-m)@ --out $@ \
+		--set-var=MOAR=$(MOAR) \
+		--set-var=ctx_subdir=@backend_subdir@ \
+		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@
+	-$(NOECHO)$(CHMOD) 755 $@
+)@)@)@
+
+@bpm(RUNNER)@: @@configure_script@@ @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/rakudo-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/rakudo-m-build.c.windows)@)@@
+	@echo(+++ Generating	$@)@
+	$(NOECHO)$(RM_F) @q(@bpm(RUNNER)@)@
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/rakudo-m-build.c)@ --out rakudo-m.c \
 		--set-var=MOAR=$(MOAR) \
 		--set-var=base_dir=@shquot(@nfp(@base_dir@)@)@ \
 		--set-var=nqp_lib_dir=@shquot(@nfp(@nqp::libdir@)@)@ \
-		--set-var=exec_name=@shquot(@nfp(@base_dir@/$(M_RUNNER))@)@ \
+		--set-var=exec_name=@shquot(@nfp(@base_dir@/@bpm(RUNNER)@)@)@ \
 		--set-var=mbc=perl6.moarvm
-	@noecho@@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@perl6-m@moar::obj@ perl6-m.c
-	@noecho@@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ perl6-m@moar::obj@
+	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@rakudo-m@moar::obj@ rakudo-m.c
+	$(NOECHO)@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ rakudo-m@moar::obj@
 
 @perl(
 	# Use keys and values as macros to conform with possible future changes to
@@ -124,6 +136,10 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
         '@bpm(INST_PERL6_DEBUG)@'   => '@bpm(PERL6_DEBUG)@',
         '@bpm(INST_PERL6_M)@'       => '@bpm(PERL6_M)@',
         '@bpm(INST_PERL6_DEBUG_M)@' => '@bpm(PERL6_DEBUG_M)@',
+        '@bpm(INST_PERL6)@'         => '@bpm(RAKUDO)@',
+        '@bpm(INST_PERL6_DEBUG)@'   => '@bpm(RAKUDO_DEBUG)@',
+        '@bpm(INST_PERL6_M)@'       => '@bpm(RAKUDO_M)@',
+        '@bpm(INST_PERL6_DEBUG_M)@' => '@bpm(RAKUDO_DEBUG_M)@',
     );
     for my $build (keys %execs) {
         my $installed = $macros->expand($execs{$build});
@@ -182,53 +198,66 @@ $(R_SETTING_MOAR): @bsm(PERL6)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING
 	@bpm(HARNESS6_WITH_FUDGE)@ $(TESTFILES)
 
 @backend_prefix@-install-dirs::
-	@noecho@$(MKPATH) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
+	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
 
 @backend_prefix@-install-pre::
 	@echo(+++ Removing old files)@
-	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
-	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	@noecho@@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(PERL6_BOOTSTRAP_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 
 @backend_prefix@-install-main:: @@bpm(PERL6_OPS_DLL)@@ $(R_SETTING_MOAR) @@bpm(INST_PERL6_M)@@ @@bpm(INST_PERL6_DEBUG_M)@@
-	@noecho@$(CP) @bpm(PERL6_OPS_DLL)@ @nfpq($(DESTDIR)$(PERL6_HOME)/runtime/dynext)@
-	@noecho@$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@ 
-	@noecho@$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_M)@)@
-	@noecho@$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG_M)@)@
-@expand(@m_install@)@ 
+	$(NOECHO)$(CP) @bpm(PERL6_OPS_DLL)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
+	$(NOECHO)$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_M)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG_M)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_M)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG_M)@)@
+@if(platform!=windows @for_langalias(@for_toolchain(@insert(Makefile-install)@)@)@
+)@@if(platform==windows @m_install@)@
 
 @backend_prefix@-install-post::
-@clean_old_p6_libs@
+@expand(@clean_old_p6_libs@)@
 
 @backend_prefix@-runner-default-install: @backend_prefix@-install
 	@echo(+++ Installing @uc(@backend@)@ launchers)@
-	@noecho@$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6))@
-	@noecho@$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/$(M_PERL6_DEBUG))@
-
+	$(NOECHO)$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6)@)@
+	$(NOECHO)$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG)@)@
+	$(NOECHO)$(CP) $(M_INST_PERL6) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@
+	$(NOECHO)$(CP) $(M_INST_PERL6_DEBUG) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@
+@if(with_raku_alias==on @tab@@echo(+++ Creating Raku executable alias)@
+@if(platform!=windows
+	$(NOECHO)$(LN_S) @nfpq(./@bpm(RAKUDO)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
+	$(NOECHO)$(LN_S) @nfpq(./@bpm(RAKUDO_DEBUG)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
+)@@if(platform==windows
+	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
+	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
+)@
+)@
 manifest:
 	@echo(+++ Creating	MANIFEST)@
-	@noecho@echo MANIFEST >MANIFEST
+	$(NOECHO)echo MANIFEST >MANIFEST
 	@nowcho@git ls-files | $(PERL5) -ne '/^\./ || print' >>MANIFEST
 	@nowcho@cd @nfp(t/spec)@ && git clean -xdf
 	@nowcho@find @nfp(t/spec)@ -type f | grep -v '\.git' >>MANIFEST
 	@nowcho@sort -u -o MANIFEST MANIFEST
 
 release: manifest
-	@noecho@[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
+	$(NOECHO)[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
 	@echo(+++ Releasing $(VERSION))@
-	@noecho@bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'
-	@noecho@[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
-	@noecho@@bpm(RUN_PERL6)@ -ne 'say "rakudo-$(VERSION)@slash@$$_"' MANIFEST | \
+	$(NOECHO)bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'
+	$(NOECHO)[ -d rakudo-$(VERSION) ] || ln -s . rakudo-$(VERSION)
+	$(NOECHO)@bpm(RUN_PERL6)@ -ne 'say "rakudo-$(VERSION)@slash@$$_"' MANIFEST | \
 		tar -zcv --owner=0 --group=0 --numeric-owner -T - -f rakudo-$(VERSION).tar.gz
-	@noecho@rm rakudo-$(VERSION)
+	$(NOECHO)rm rakudo-$(VERSION)
 
 
 ##  cleaning
 @backend_prefix@-clean:
 	@echo(+++ Cleaning up @uc(@backend@)@)@
-	@noecho@$(RM_F) @bpm(CLEANUPS_ALL)@
-	@noecho@$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
+	$(NOECHO)$(RM_F) @bpm(CLEANUPS_ALL)@
+	$(NOECHO)$(RM_F) non-existent-copy-mtgt non-existent-copy-stgt
 
 @backend_prefix@-testclean:
 

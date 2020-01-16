@@ -82,6 +82,8 @@ role Perl6::Metamodel::Mixins {
         # Create new type, derive it from ourself and then add
         # all the roles we're mixing it.
         my $new_type := self.new_type(:name($new_name), :repr($obj.REPR), :is_mixin);
+        $new_type.HOW.set_language_revision($new_type, $obj.HOW.language-revision($obj))
+            if $obj.HOW.is_composed($obj);
         $new_type.HOW.set_is_mixin($new_type);
         $new_type.HOW.add_parent($new_type, $obj.WHAT);
         for @roles {
@@ -101,7 +103,7 @@ role Perl6::Metamodel::Mixins {
         # if there is one.
         my $found;
         for $new_type.HOW.attributes($new_type, :local) {
-            if $_.has_accessor {
+            if $_.is_built {
                 if $found {
                     $found := NQPMu;
                     last;

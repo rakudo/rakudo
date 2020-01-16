@@ -1,8 +1,8 @@
 # Notes and hints for working with Rakudo NQP and Pod
 
-## Traps for the Perl 6 programmer
+## Traps for the Raku programmer
 
-+ **DO NOT use '$0' in match results** - The Perl 6 shorthand for a
++ **DO NOT use '$0' in match results** - The Raku shorthand for a
   match variable '**$0**' doesn't work in NQP. Instead, use **$/[0]**
   for the zeroeth match.  Note the parser will be very confused
   otherwise and it currently cannot point to the error.
@@ -19,7 +19,7 @@
 
 + **BE WARNED about '$\<some-match-var>' inside a sub with a '$/'
   arg** - Use the full syntax for a match variable
-  ('**/$<some-match-var**') for more reliable (or at least
+  ('**$/\<some-match-var>**') for more reliable (or at least
   self-documenting) results.
 
 + **BE WARNED about '$\<a-match-var>' versus
@@ -105,7 +105,7 @@ dev's TODO list)
     handled correctly
 
 Anyone wanting to work on any of the NYI items please coordinate on
-IRC #perl6-dev to avoid duplicate efforts.  Most of the items are
+IRC #raku-dev to avoid duplicate efforts.  Most of the items are
 being worked on in a generally logical order of need and knowledge
 gained during the process of implementing pod features.
 

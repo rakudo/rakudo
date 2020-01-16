@@ -154,7 +154,7 @@ my class Rakudo::Internals {
         0;
     }
 
-    method createENV(int $bind) {
+    method createENV() {
         nqp::stmts(
           (my $hash := nqp::hash),
           (my $iter := nqp::iterator(nqp::getenvhash)),
@@ -163,16 +163,13 @@ my class Rakudo::Internals {
             nqp::bindkey(
               $hash,
               nqp::iterkey_s(nqp::shift($iter)),
-              nqp::if(
-                $bind,
-                val(nqp::iterval($iter)),
-                nqp::p6scalarfromdesc(nqp::null) = val(nqp::iterval($iter))
+              nqp::assign(
+                nqp::p6scalarfromdesc(nqp::null),
+                val(nqp::box_s(nqp::iterval($iter),Str))
               )
             )
           ),
-          nqp::p6bindattrinvres(
-            nqp::create(nqp::if($bind,Map,Hash)),Map,'$!storage',$hash
-          )
+          $hash
         )
     }
 
@@ -469,7 +466,7 @@ my class Rakudo::Internals {
 implementation detail and has no serviceable parts inside"
         }
         method Str( --> Str:D) { self.gist }
-        method perl(--> Str:D) { self.gist }
+        method raku(--> Str:D) { self.gist }
     }
 
     our role ShapedArrayCommon {
@@ -533,11 +530,11 @@ implementation detail and has no serviceable parts inside"
             }
         }
 
-        multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Array', {
+        multi method raku(::?CLASS:D \SELF:) {
+            SELF.rakuseen('Array', {
                 self.^name
                 ~ '.new(:shape'
-                ~ nqp::decont(self.shape).perl
+                ~ nqp::decont(self.shape).raku
                 ~ ', '
                 ~ self!perl(nqp::create(Array), self.shape)
                 ~ ')'
@@ -547,7 +544,7 @@ implementation detail and has no serviceable parts inside"
         method !perl(@path, @dims) {
             if @dims.elems == 1 {
                  '[' ~
-                    (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).perl }).join(', ') ~
+                    (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).raku }).join(', ') ~
                     ',' x (@dims[0] == 1 && nqp::istype(self.AT-POS(|@path, 0), Iterable)) ~
                  ']'
             }
@@ -671,24 +668,6 @@ implementation detail and has no serviceable parts inside"
           nqp::concat(nqp::substr($gist, 0, 20), '...'),
           $gist);
     }
-    method SUBSTR-START-OOR(\from,\max) {
-        Failure.new(X::OutOfRange.new(
-          :what('Start argument to substr'),
-          :got(from.gist),
-          :range("0.." ~ max),
-          :comment( nqp::istype(from, Callable) || -from > max
-            ?? ''
-            !! "use *-{abs from} if you want to index relative to the end"),
-        ))
-    }
-    method SUBSTR-CHARS-OOR(\chars) {
-        Failure.new(X::OutOfRange.new(
-          :what('Number of characters argument to substr'),
-          :got(chars.gist),
-          :range<0..^Inf>,
-          :comment("use *-{abs chars} if you want to index relative to the end"),
-        ))
-    }
 
     my $IS-WIN = do {
         my str $os = Rakudo::Internals.TRANSPOSE(nqp::lc(
@@ -729,63 +708,6 @@ implementation detail and has no serviceable parts inside"
     my $init-thread := nqp::currentthread();
     method INITTHREAD() { $init-thread }
 #?endif
-
-    my $escapes := nqp::hash(
-     "\0",   '\0',
-     '$',    '\$',
-     '@',    '\@',
-     '%',    '\%',
-     '&',    '\&',
-     '{',    '\{',
-     "\b",   '\b',
-     "\x0A", '\n',
-     "\r",   '\r',
-     "\t",   '\t',
-     '"',    '\"',
-     '\\',   '\\\\',
-    );
-
-    method PERLIFY-STR(Str \string) {
-        sub char-to-escapes(Str $char) is pure {
-#?if !jvm
-            '\x[' ~ $char.NFC.list.map({.base: 16}).join(',') ~ ']'
-#?endif
-#?if jvm
-            '\x[' ~ $char.ord.base(16) ~ ']'
-#?endif
-        }
-
-        # Under NFG-supporting implementations, must be sure that any leading
-        # combiners are escaped, otherwise they will be combined onto the "
-        # under concatenation closure, which ruins round-tripping. Also handle
-        # the \r\n grapheme correctly.
-        my str $to-escape = nqp::unbox_s(string);
-        return '' if nqp::isnull_s($to-escape); # nothing to escape
-
-        my str $escaped = '';
-        my int $chars = nqp::chars($to-escape);
-        my int $i = -1;
-        while ($i = $i + 1) < $chars {
-            my str $char = nqp::substr($to-escape, $i, 1);
-#?if !jvm
-            my int $ord = nqp::ord($char);
-            $escaped ~= nqp::isge_i($ord,256)
-              && +uniprop-str($ord,'Canonical_Combining_Class')
-              ?? char-to-escapes($char)
-              !! nqp::iseq_s($char,"\r\n") ?? '\r\n' !!
-#?endif
-#?if jvm
-            $escaped ~=
-#?endif
-
-              nqp::existskey($escapes,$char)
-                ?? nqp::atkey($escapes,$char)
-                !! nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0)
-                  ?? $char
-                  !! char-to-escapes($char);
-        }
-        $escaped
-    }
 
     # easy access to compile options
     my Mu $compiling-options := %*COMPILING ?? nqp::atkey(%*COMPILING, '%?OPTIONS') !! nqp::hash();

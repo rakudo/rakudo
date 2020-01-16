@@ -8,7 +8,7 @@
 # Hot-paths are free to use the nqp:: op set directly on this, and do things
 # outside the scope of the method API it exposes. This type is engineered for
 # performance over friendliness, and should not be encountered in normal use
-# of Perl 6. Do NOT add any checks and validation to methods in here. They
+# of Raku. Do NOT add any checks and validation to methods in here. They
 # need to remain trivially inlineable for performance reasons.
 my class IterationBuffer {
     method clear(IterationBuffer:D: --> Nil) {
@@ -46,9 +46,9 @@ my class IterationBuffer {
     }
 
     # For core debugging purposes only: basically warp the IterationBuffer
-    # into a full-fledged List and .perl that.  We don't care that it will
+    # into a full-fledged List and .raku that.  We don't care that it will
     # not round-trip.
-    multi method perl(IterationBuffer:D:) { self.List.perl }
+    multi method raku(IterationBuffer:D:) { self.List.raku }
 }
 
 #?if jvm

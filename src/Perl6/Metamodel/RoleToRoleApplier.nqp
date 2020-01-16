@@ -13,12 +13,16 @@ my class RoleToRoleApplier {
         my %priv_meth_info;
         my @priv_meth_names;
         my %priv_meth_providers;
+        my $with_submethods := $target.HOW.lang-rev-before($target, 'e');
+        my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
         for @roles {
             my $role := $_;
             sub build_meth_info(@methods, @meth_names, %meth_info_to_use, @meth_names_to_use, %meth_providers_to_use) {
                 my $meth_iterator := nqp::iterator(@methods);
                 for @meth_names -> $name {
                     my $meth := nqp::shift($meth_iterator);
+                    # Don't apply submethods for v6.e targets.
+                    next unless $with_submethods || !nqp::istype($meth, $submethod_type);
                     my @meth_list;
                     my @meth_providers;
                     if nqp::existskey(%meth_info_to_use, $name) {
@@ -153,6 +157,7 @@ my class RoleToRoleApplier {
                 for $how.multi_methods_to_incorporate($role) {
                     my $name := $_.name;
                     my $to_add := $_.code;
+                    next if !$with_submethods && nqp::istype($to_add, $submethod_type);
                     my $yada := 0;
                     try { $yada := $to_add.yada; }
                     if $yada {
@@ -217,17 +222,22 @@ my class RoleToRoleApplier {
         }
 
         # Now do the other bits.
-        for @roles {
-            my $how := $_.HOW;
+        for @roles -> $r {
+            my $how := $r.HOW;
 
             # Compose is any attributes, unless there's a conflict.
-            my @attributes := $how.attributes($_, :local(1));
-            for @attributes {
-                my $add_attr := $_;
+            my @attributes := $how.attributes($r, :local(1));
+            for @attributes -> $add_attr {
                 my $skip := 0;
                 my @cur_attrs := $target.HOW.attributes($target, :local(1));
                 for @cur_attrs {
-                    if $_ =:= $add_attr {
+                    # If $add_attr doesn't know its original attribute object then fallback to the old object address
+                    # match.
+                    if (nqp::can($add_attr, 'original')
+                        && nqp::decont($_.original) =:= nqp::decont($add_attr.original)
+                        && nqp::decont($_.type) =:= nqp::decont($add_attr.type))
+                       || (nqp::decont($_) =:= nqp::decont($add_attr))
+                    {
                         $skip := 1;
                     }
                     else {
@@ -243,13 +253,15 @@ my class RoleToRoleApplier {
 
             # Any parents can also just be copied over.
             if nqp::can($how, 'parents') {
-                my @parents := $how.parents($_, :local(1));
-                for @parents {
-                    $target.HOW.add_parent($target, $_);
+                my @parents := $how.parents($r, :local(1));
+                for @parents -> $p {
+                    $target.HOW.add_parent($target, $p, :hides($how.hides_parent($r, $p)));
                 }
             }
         }
 
         1;
     }
+
+    Perl6::Metamodel::Configuration.set_role_to_role_applier_type(RoleToRoleApplier);
 }

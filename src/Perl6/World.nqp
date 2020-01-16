@@ -51,7 +51,7 @@ sub p6ize_recursive($x) {
 }
 
 # Helper sub that turns a list of items into an NQPArray. This is needed when
-# using e.g. $*W.find_symbol from Perl 6 code (example: slangs).
+# using e.g. $*W.find_symbol from Raku code (example: slangs).
 sub nqplist(*@arr) { @arr }
 nqp::bindcurhllsym('nqplist', &nqplist);
 
@@ -178,7 +178,7 @@ sub levenshtein_candidate_heuristic(@candidates, $target) {
     }
 }
 
-# This builds upon the HLL::World to add the specifics needed by Rakudo Perl 6.
+# This builds upon the HLL::World to add the specifics needed by Rakudo.
 class Perl6::World is HLL::World {
 
     my class Perl6CompilationContext is HLL::World::CompilationContext {
@@ -518,6 +518,7 @@ class Perl6::World is HLL::World {
     has int $!unit_ready;
     has int $!have_outer;
     has $!setting_name;
+    has $!setting_revision;
 
     method BUILD(*%adv) {
         %!code_object_fixup_list := {};
@@ -532,12 +533,16 @@ class Perl6::World is HLL::World {
 
     method lang-ver-before(str $want) {
         nqp::chars($want) == 1 || nqp::die(
-          'Version to $*W.lang_ver_before'
+          'Version to $*W.lang-ver-before'
             ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
         nqp::cmp_s(
           nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),
           $want
         ) == -1
+    }
+
+    method setting_revision() {
+        $!setting_revision
     }
 
     method !check-version-modifier($ver-match, $rev, $modifier, $comp) {
@@ -560,7 +565,7 @@ class Perl6::World is HLL::World {
         }
 
         if %lang_rev{$rev}<mods>{$modifier}<deprecate> {
-            $ver-match.PRECURSOR.worry("$modifier modifier is deprecated for Perl 6.$rev");
+            $ver-match.PRECURSOR.worry("$modifier modifier is deprecated for Raku.$rev");
         }
     }
 
@@ -667,10 +672,13 @@ class Perl6::World is HLL::World {
         $*UNIT_OUTER := self.push_lexpad($/);
         $*UNIT       := self.push_lexpad($/);
 
+        my $comp := nqp::getcomp('perl6');
+
         # If we already have a specified outer context, then that's
         # our setting. Otherwise, load one.
         $!have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
-        my $default_setting_name := 'CORE.' ~ nqp::substr(nqp::getcomp('perl6').language_version, 2, 1);
+        my $default_revision := nqp::substr($comp.language_version, 2, 1);
+        my $default_setting_name := 'CORE.' ~ $default_revision;
         if $!have_outer {
             $!setting_name := $default_setting_name;
             $*UNIT.annotate('IN_DECL', 'eval');
@@ -680,9 +688,13 @@ class Perl6::World is HLL::World {
             if nqp::eqat($!setting_name, 'NULL.', 0) {
                 $*COMPILING_CORE_SETTING := 1;
                 $*SET_DEFAULT_LANG_VER := 0;
-                nqp::getcomp('perl6').set_language_version: '6.' ~ nqp::substr($!setting_name, 5, 1);
-
-            }
+                $!setting_revision := nqp::substr($!setting_name, 5, 1);
+                # Compile core with default language version unless the core revision is higher. I.e. when 6.d is the
+                # default only core.e will be compiled with 6.e compiler.
+                nqp::getcomp('perl6').set_language_version( nqp::isgt_s($!setting_revision, $default_revision)
+                                                            ?? $!setting_revision
+                                                            !! $default_revision );
+                                            }
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
     }
@@ -1468,7 +1480,6 @@ class Perl6::World is HLL::World {
         $RMD("  Late loading '$module_name'") if $RMD;
 
         # Immediate loading.
-        my $line := self.current_line($/);
         my $true := self.find_symbol(['True'], :setting-only);
         my $spec := self.find_symbol(['CompUnit', 'DependencySpecification'], :setting-only).new(
             :short-name($module_name),
@@ -1476,13 +1487,16 @@ class Perl6::World is HLL::World {
             :auth-matcher(%opts<auth> // $true),
             :api-matcher(%opts<api> // $true),
             :version-matcher(%opts<ver> // $true),
-            :source-line-number($line)
         );
         self.add_object_if_no_sc($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);
         my $comp_unit := $registry.head.need($spec);
         my $globalish := $comp_unit.handle.globalish-package;
         nqp::gethllsym('perl6','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
+
+        CATCH {
+            self.rethrow($/, $_);
+        }
 
         return $comp_unit;
     }
@@ -2041,7 +2055,7 @@ class Perl6::World is HLL::World {
         # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
         # current compiler.
         if nqp::istype($v.HOW, $*W.find_symbol: ['Metamodel', 'LanguageRevision'])
-            ?? $v.HOW.lang-rev-before('e')
+            ?? $v.HOW.lang-rev-before($v, 'e')
             !! $*W.lang-ver-before('e')
         {
             return self.maybe-definite-how-base($v);
@@ -3104,7 +3118,7 @@ class Perl6::World is HLL::World {
         }
     }
 
-    # Takes a data structure of non-Perl 6 objects and wraps them up
+    # Takes a data structure of non-Raku objects and wraps them up
     # recursively.
     # If :$dynamic is passed wraps hashes with dynamic Scalars
     method p6ize_recursive($data, :$dynamic) {

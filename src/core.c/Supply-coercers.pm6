@@ -1,0 +1,864 @@
+    ##
+    ## Coercions
+    ##
+
+    multi method Supply(Supply:D:) { self }
+
+    method Channel(Supply:D:) {
+        my $c = Channel.new();
+        self.sanitize.tap:
+            -> \val { $c.send(val) },
+            done => { $c.close },
+            quit => -> $ex { $c.fail($ex) };
+        $c
+    }
+
+    my class ConcQueue is repr('ConcBlockingQueue') { }
+    multi method list(Supply:D:) {
+        self.Seq.list
+    }
+    method Seq(Supply:D:) {
+        gather {
+            my Mu \queue = nqp::create(ConcQueue);
+            my $exception;
+            self.tap(
+                -> \val { nqp::push(queue, val) },
+                done => -> { nqp::push(queue, ConcQueue) }, # type obj as sentinel
+                quit => -> \ex { $exception := ex; nqp::push(queue, ConcQueue) });
+            loop {
+                my \got = nqp::shift(queue);
+                if got =:= ConcQueue {
+                    $exception.DEFINITE
+                        ?? $exception.throw
+                        !! last
+                }
+                else {
+                    take got;
+                }
+            }
+        }
+    }
+
+    method Promise(Supply:D:) {
+        my $p = Promise.new;
+        my $v = $p.vow;
+        my $final := Nil;
+        my $t = self.tap:
+            -> \val { $final := val },
+            done => { $v.keep($final) },
+            quit => -> \ex { $v.break(ex) };
+        $p
+    }
+
+    method wait(Supply:D:) { await self.Promise }
+
+    my class SupplyAwaitableHandle does Awaitable::Handle {
+        has $!supply;
+
+        method not-ready(Supply:D \supply) {
+            nqp::create(self)!not-ready(supply)
+        }
+        method !not-ready(\supply) {
+            $!already = False;
+            $!supply := supply;
+            self
+        }
+
+        method subscribe-awaiter(&subscriber --> Nil) {
+            my $final := Nil;
+            $!supply.tap:
+                -> \val { $final := val },
+                done => { subscriber(True, $final) },
+                quit => -> \ex { subscriber(False, ex) };
+        }
+    }
+
+    method get-await-handle(--> Awaitable::Handle) {
+        SupplyAwaitableHandle.not-ready(self)
+    }
+
+    multi method unique(Supply:D: :&as, :&with, :$expires!) {
+        $expires
+          ?? supply {
+                if &with and !(&with === &[===]) {
+                    my @seen;  # really Mu, but doesn't work in settings
+                    my Mu $target;
+                    if &as {
+                        whenever self -> \val {
+                            my $now := now;
+                            $target = &as(val);
+                            my $index =
+                              @seen.first({&with($target,$_[0])},:k);
+                            with $index {
+                                if $now > @seen[$index][1] {  # expired
+                                    @seen[$index][1] = $now+$expires;
+                                    emit(val);
+                                }
+                            }
+                            else {
+                                @seen.push: [$target, $now+$expires];
+                                emit(val);
+                            }
+                        }
+                    }
+                    else {
+                        whenever self -> \val {
+                            my $now := now;
+                            my $index =
+                              @seen.first({&with(val,$_[0])},:k);
+                            with $index {
+                                if $now > @seen[$index][1] {  # expired
+                                    @seen[$index][1] = $now+$expires;
+                                    emit(val);
+                                }
+                            }
+                            else {
+                                @seen.push: [val, $now+$expires];
+                                emit(val);
+                            }
+                        }
+                    }
+                }
+                else {
+                    my $seen := nqp::hash();
+                    my str $target;
+                    if &as {
+                        whenever self -> \val {
+                            my $now := now;
+                            $target = nqp::unbox_s(&as(val).WHICH);
+                            if !nqp::existskey($seen,$target) ||
+                              $now > nqp::atkey($seen,$target) { #expired
+                                emit(val);
+                                nqp::bindkey($seen,$target,$now+$expires);
+                            }
+                        }
+                    }
+                    else {
+                        whenever self -> \val {
+                            my $now := now;
+                            $target = nqp::unbox_s(val.WHICH);
+                            if !nqp::existskey($seen,$target) ||
+                              $now > nqp::atkey($seen,$target) { #expired
+                                emit(val);
+                                nqp::bindkey($seen,$target,$now+$expires);
+                            }
+                        }
+                    }
+                }
+            }
+          !! self.unique(:&as, :&with)
+    }
+
+    multi method unique(Supply:D: :&as, :&with) {
+        supply {
+            if &with and !(&with === &[===]) {
+                my @seen;  # really Mu, but doesn't work in settings
+                my Mu $target;
+                if &as {
+                    whenever self -> \val {
+                        $target = &as(val);
+                        if @seen.first({ &with($target,$_) } ) =:= Nil {
+                            @seen.push($target);
+                            emit(val);
+                        }
+                    }
+                }
+                else {
+                    whenever self -> \val {
+                        if @seen.first({ &with(val,$_) } ) =:= Nil {
+                            @seen.push(val);
+                            emit(val);
+                        }
+                    }
+                }
+            }
+            else {
+                my $seen := nqp::hash();
+                my str $target;
+                if &as {
+                    whenever self -> \val {
+                        $target = nqp::unbox_s(&as(val).WHICH);
+                        unless nqp::existskey($seen, $target) {
+                            nqp::bindkey($seen, $target, 1);
+                            emit(val);
+                        }
+                    }
+                }
+                else {
+                    whenever self -> \val {
+                        $target = nqp::unbox_s(val.WHICH);
+                        unless nqp::existskey($seen, $target) {
+                            nqp::bindkey($seen, $target, 1);
+                            emit(val);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    method squish(Supply:D: :&as, :&with is copy) {
+        &with //= &[===];
+        supply {
+            my int $first = 1;
+            my Mu $last;
+            my Mu $target;
+
+            if &as {
+                whenever self -> \val {
+                    $target = &as(val);
+                    if $first || !&with($last,$target) {
+                        $first = 0;
+                        emit(val);
+                    }
+                    $last  = $target;
+                }
+            }
+            else {
+                whenever self -> \val {
+                    if $first || !&with($last, val) {
+                        $first = 0;
+                        emit(val);
+                    }
+                    $last = val;
+                }
+            }
+        }
+    }
+
+    multi method rotor(Supply:D: Int:D $batch, :$partial) {
+        self.rotor(($batch,), :$partial)
+    }
+    multi method rotor(Supply:D: *@cycle, :$partial) {
+        my @c := @cycle.is-lazy ?? @cycle !! (@cycle xx *).flat.cache;
+        supply {
+            my Int $elems;
+            my Int $gap;
+            my int $to-skip;
+            my int $skip;
+            my \c = @c.iterator;
+
+            sub next-batch(--> Nil) {
+                given c.pull-one {
+                    when Pair {
+                        $elems   = +.key;
+                        $gap     = +.value;
+                        $to-skip = $gap > 0 ?? $gap !! 0;
+                    }
+                    default {
+                        $elems   = +$_;
+                        $gap     = 0;
+                        $to-skip = 0;
+                    }
+                }
+            }
+            next-batch;
+
+            my @batched;
+            sub flush(--> Nil) {
+                emit( @batched.splice(0, +@batched, @batched[* + $gap .. *]) );
+                $skip = $to-skip;
+            }
+
+            whenever self -> \val {
+                @batched.push: val unless $skip && $skip--;
+                if @batched.elems == $elems {
+                    flush;
+                    next-batch;
+                }
+                LAST {
+                    flush if @batched and $partial;
+                }
+            }
+        }
+    }
+
+    method batch(Supply:D: Int(Cool) :$elems = 0, :$seconds) {
+        supply {
+            my int $max = $elems >= 0 ?? $elems !! 0;
+            my $batched := nqp::list;
+            my $last_time;
+            sub flush(--> Nil) {
+                emit($batched);
+                $batched := nqp::list;
+            }
+            sub final-flush(--> Nil) {
+                flush if nqp::elems($batched);
+            }
+
+            if $seconds {
+                $last_time = time div $seconds;
+
+                if $elems > 0 { # and $seconds
+                    whenever self -> \val {
+                        my $this_time = time div $seconds;
+                        if $this_time != $last_time {
+                            flush if nqp::elems($batched);
+                            $last_time = $this_time;
+                            nqp::push($batched,val);
+                        }
+                        else {
+                            nqp::push($batched,val);
+                            flush if nqp::iseq_i(nqp::elems($batched),$max);
+                        }
+                        LAST { final-flush; }
+                    }
+                }
+                else {
+                    whenever self -> \val {
+                        my $this_time = time div $seconds;
+                        if $this_time != $last_time {
+                            flush if nqp::elems($batched);
+                            $last_time = $this_time;
+                        }
+                        nqp::push($batched,val);
+                        LAST { final-flush; }
+                    }
+                }
+            }
+            else { # just $elems
+                whenever self -> \val {
+                    nqp::push($batched,val);
+                    flush if nqp::isge_i(nqp::elems($batched),$max);
+                    LAST { final-flush; }
+                }
+            }
+        }
+    }
+
+    proto method lines(|) {*}
+
+    # optional chomping lines from a Supply
+    multi method lines(Supply:D: :$chomp! ) {
+        $chomp
+          ?? self.lines            # need to chomp
+          !! supply {              # no chomping wanted
+                 my str $str;
+                 my int $left;
+                 my int $pos;
+                 my int $nextpos;
+
+                 whenever self -> str $val {
+                     $str = nqp::concat($str,$val);
+                     $pos = 0;
+
+                     while ($left = nqp::chars($str) - $pos) > 0 {
+                         $nextpos = nqp::findcclass(
+                           nqp::const::CCLASS_NEWLINE,$str,$pos,$left);
+
+                         last
+                           if $nextpos >= nqp::chars($str)        # no line delimiter
+                           or nqp::eqat($str,"\r",$nextpos)       # broken CRLF?
+                             && $nextpos == nqp::chars($str) - 1; # yes!
+
+                         emit nqp::p6box_s(nqp::substr($str,$pos,$nextpos - $pos + 1));
+                         $pos = $nextpos + 1;
+                     }
+                     $str = nqp::substr($str,$pos);
+
+                     LAST {
+                         emit nqp::p6box_s($str) if nqp::chars($str);
+                     }
+                 }
+             }
+    }
+
+    # chomping lines from a Supply
+    multi method lines(Supply:D:) {
+        supply {
+            my str $str;
+            my int $pos;
+            my int $left;
+            my int $nextpos;
+
+            whenever self -> str $val {
+                $str = nqp::concat($str,$val);
+                $pos = 0;
+
+                while ($left = nqp::chars($str) - $pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_NEWLINE,$str,$pos,$left);
+
+                    last
+                      if $nextpos >= nqp::chars($str)        # no line delimiter
+                      or nqp::eqat($str,"\r",$nextpos)       # broken CRLF?
+                        && $nextpos == nqp::chars($str) - 1; # yes!
+
+                    emit nqp::p6box_s(nqp::substr($str,$pos,$nextpos - $pos));
+                    $pos = $nextpos + 1;
+                }
+                $str = nqp::substr($str,$pos);
+
+                LAST {
+                    emit nqp::p6box_s(nqp::substr($str,0,
+                      nqp::chars($str) - nqp::iscclass(    # skip whitespace at end
+                        nqp::const::CCLASS_NEWLINE,$str,nqp::chars($str) - 1)
+                    )) if nqp::chars($str);
+                }
+            }
+        }
+    }
+
+    method words(Supply:D:) {
+        supply {
+            my str $str;
+            my int $left;
+            my int $pos;
+            my int $nextpos;
+
+            whenever self -> str $val {
+                $str = nqp::concat($str,$val);
+                $pos = nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE,$str,0,nqp::chars($str));
+
+                while ($left = nqp::chars($str) - $pos) > 0 {
+                    $nextpos = nqp::findcclass(
+                      nqp::const::CCLASS_WHITESPACE,$str,$pos,$left);
+
+                    last unless $left = nqp::chars($str) - $nextpos; # broken word
+
+                    emit nqp::p6box_s(nqp::substr($str,$pos,$nextpos - $pos));
+
+                    $pos = nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE,$str,$nextpos,$left);
+                }
+                $str = nqp::substr($str,$pos);
+
+                LAST {
+                    emit nqp::p6box_s($str) if nqp::chars($str);
+                }
+            }
+        }
+    }
+
+    multi method elems(Supply:D:) {
+        supply {
+            my int $elems;
+            whenever self { emit ++$elems }
+        }
+    }
+    multi method elems(Supply:D: $seconds ) {
+        supply {
+            my $last-time := nqp::time_i() div $seconds;
+            my $this-time;
+
+            my int $elems;
+            my int $last-elems;
+
+            whenever self {
+                $last-elems = ++$elems;
+                $this-time := nqp::time_i() div $seconds;
+
+                if $this-time != $last-time {
+                    emit $elems;
+                    $last-time := $this-time;
+                }
+                LAST emit $elems if $elems != $last-elems;
+            }
+        }
+    }
+
+    multi method head(Supply:D:) {
+        supply { whenever self -> \val { emit val; done } }
+    }
+    multi method head(Supply:D: Int(Cool) $number) {
+        $number <= 0
+          ?? supply { }
+          !! supply {
+                 my int $todo = $number + 1;
+                 whenever self -> \val {
+                     --$todo
+                       ?? emit(val)
+                       !! done
+                 }
+             }
+    }
+
+    method tail(Supply:D: Int(Cool) $number = 1) {
+        my int $size = $number;
+
+        supply {
+            if $size == 1 {
+                my $last;
+                whenever self -> \val {
+                    $last := val;
+                    LAST emit $last;
+                }
+            }
+            elsif $size > 1 {
+                my $lastn := nqp::list;
+                my int $index = 0;
+                nqp::setelems($lastn,$number);  # presize list
+                nqp::setelems($lastn,0);
+
+                whenever self -> \val {
+                    nqp::bindpos($lastn,$index,val);
+                    $index = ($index + 1) % $size;
+                    LAST {
+                        my int $todo = nqp::elems($lastn);
+                        $index = 0           # start from beginning
+                          if $todo < $size;  # if not a full set
+                        while $todo {
+                            emit nqp::atpos($lastn,$index);
+                            $index = ($index + 1) % $size;
+                            $todo = $todo - 1;
+                        }
+                    }
+                }
+            }
+            else {  # number <= 0, needed to keep tap open
+                whenever self -> \val { }
+            }
+        }
+    }
+
+    method skip(Supply:D: Int(Cool) $number = 1) {
+        supply {
+            my int $size = $number + 1;
+            my int $skipping = $size > 1;
+            whenever self {
+                .emit unless $skipping && ($skipping = --$size)
+            }
+        }
+    }
+
+    method min(Supply:D: &by = &infix:<cmp>) {
+        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
+        supply {
+            my $min;
+            whenever self -> \val {
+                if val.defined and !$min.defined || cmp(val,$min) < 0 {
+                    emit( $min := val );
+                }
+            }
+        }
+    }
+
+    method max(Supply:D: &by = &infix:<cmp>) {
+        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
+        supply {
+            my $max;
+            whenever self -> \val {
+                 if val.defined and !$max.defined || cmp(val,$max) > 0 {
+                     emit( $max = val );
+                 }
+            }
+        }
+    }
+
+    method minmax(Supply:D: &by = &infix:<cmp>) {
+        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
+        supply {
+            my $min;
+            my $max;
+            whenever self -> \val {
+                if nqp::istype(val,Failure) {
+                    val.throw;  # XXX or just ignore ???
+                }
+                elsif val.defined {
+                    if !$min.defined {
+                        emit( Range.new($min = val, $max = val) );
+                    }
+                    elsif cmp(val,$min) < 0 {
+                        emit( Range.new( $min = val, $max ) );
+                    }
+                    elsif cmp(val,$max) > 0 {
+                        emit( Range.new( $min, $max = val ) );
+                    }
+                }
+            }
+        }
+    }
+
+    method grab(Supply:D: &when_done) {
+        supply {
+            my @seen;
+            whenever self -> \val {
+                @seen.push: val;
+                LAST {
+                    emit($_) for when_done(@seen);
+                }
+            }
+        }
+    }
+
+    method reverse(Supply:D:)        { self.grab( {.reverse} ) }
+    multi method sort(Supply:D:)     { self.grab( {.sort} ) }
+    multi method sort(Supply:D: &by) { self.grab( {.sort(&by)} ) }
+
+    method zip(**@s, :&with) {
+        @s.unshift(self) if self.DEFINITE;  # add if instance method
+        return supply { } unless +@s;       # nothing to be done
+
+        X::Supply::Combinator.new(
+           combinator => 'zip'
+        ).throw unless Rakudo::Internals.ALL_DEFINED_TYPE(@s,Supply);
+
+        return @s[0]  if +@s == 1;          # nothing to be done
+
+        supply {
+            my @values = nqp::create(Array) xx +@s;
+            for @s.kv -> $index, $supply {
+                if &with {
+                    whenever $supply -> \val {
+                        @values[$index].push(val);
+                        emit( [[&with]] @values.map(*.shift) ) if all(@values);
+                        LAST { done }
+                    }
+                }
+                else {
+                    whenever $supply -> \val {
+                        @values[$index].push(val);
+                        emit( $(@values.map(*.shift).list.eager) ) if all(@values);
+                        LAST { done }
+                    }
+                }
+            }
+        }
+    }
+
+    method zip-latest(**@s, :&with, :$initial ) {
+        @s.unshift(self) if self.DEFINITE;  # add if instance method
+        return supply { } unless +@s;       # nothing to do.
+
+        X::Supply::Combinator.new(
+           combinator => 'zip-latest'
+        ).throw unless Rakudo::Internals.ALL_DEFINED_TYPE(@s,Supply);
+
+        return @s[0] if +@s == 1;           # nothing to do.
+
+        supply {
+            my @values;
+
+            my $uninitialised = +@s; # how many supplies have yet to emit until we
+                                     # can start emitting, too?
+
+            if $initial {
+                @values = @$initial;
+                $uninitialised = 0 max $uninitialised - @$initial;
+            }
+
+            for @s.kv -> $index, $supply {
+                if &with {
+                    whenever $supply -> \val {
+                        --$uninitialised
+                        if $uninitialised > 0 && not @values.EXISTS-POS($index);
+                        @values[$index] = val;
+                        emit( [[&with]] @values ) unless $uninitialised;
+                    }
+                }
+                else {
+                    whenever $supply -> \val {
+                        --$uninitialised
+                            if $uninitialised > 0 && not @values.EXISTS-POS($index);
+                        @values[$index] = val;
+                        emit( @values.List.item ) unless $uninitialised;
+                    }
+                }
+            }
+        }
+    }
+
+    proto method throttle(|) {*}
+    multi method throttle(Supply:D:
+      Int()  $elems,
+      Real() $seconds,
+      Real() $delay  = 0,
+      :$scheduler    = $*SCHEDULER,
+      :$control,
+      :$status,
+      :$bleed,
+      :$vent-at,
+    ) {
+        my $timer = Supply.interval($seconds,$delay,:$scheduler);
+        my int $limit   = $elems;
+        my int $vent = $vent-at if $bleed;
+        supply {
+            my @buffer;
+            my int $allowed = $limit;
+            my int $emitted;
+            my int $bled;
+            my int $done;
+            sub emit-status($id --> Nil) {
+               $status.emit(
+                 { :$allowed, :$bled, :buffered(+@buffer),
+                   :$emitted, :$id,   :$limit,  :$vent-at } );
+            }
+
+            whenever $timer -> \tick {
+                if +@buffer -> \buffered {
+                    my int $todo = buffered > $limit ?? $limit !! buffered;
+                    emit(@buffer.shift) for ^$todo;
+                    $emitted = $emitted + $todo;
+                    $allowed = $limit   - $todo;
+                }
+                else {
+                    $allowed = $limit;
+                }
+                if $done && !@buffer {
+                    done;
+                }
+            }
+
+            whenever self -> \val {
+                if $allowed {
+                    emit(val);
+                    $emitted = $emitted + 1;
+                    $allowed = $allowed - 1;
+                }
+                elsif $vent && +@buffer >= $vent {
+                    $bleed.emit(val);
+                }
+                else {
+                    @buffer.push(val);
+                }
+                LAST {
+                    if $status {
+                        emit-status("done");
+                        $status.done;
+                    }
+                    if $bleed && @buffer {
+                        $bleed.emit(@buffer.shift) while @buffer;
+                        $bleed.done;
+                    }
+                    $done = 1;
+                }
+            }
+
+            if $control {
+                whenever $control -> \val {
+                   my str $type;
+                   my str $value;
+                   Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
+
+                   if $type eq 'limit' {
+                       my int $extra = $value - $limit;
+                       $allowed = $extra > 0 || $allowed + $extra >= 0
+                         ?? $allowed + $extra
+                         !! 0;
+                       $limit = $value;
+                   }
+                   elsif $type eq 'bleed' && $bleed {
+                       my int $todo = $value min +@buffer;
+                       $bleed.emit(@buffer.shift) for ^$todo;
+                       $bled = $bled + $todo;
+                   }
+                   elsif $type eq 'status' && $status {
+                       emit-status($value);
+                   }
+                   elsif $type eq 'vent-at' && $bleed {
+                       $vent = $value;
+                       if $vent && +@buffer > $vent {
+                           $bleed.emit(@buffer.shift)
+                             until !@buffer || +@buffer == $vent;
+                       }
+                   }
+                }
+            }
+        }
+    }
+    multi method throttle(Supply:D:
+      Int()  $elems,
+      Callable:D $process,
+      Real() $delay = 0,
+      :$scheduler   = $*SCHEDULER,
+      :$control,
+      :$status,
+      :$bleed,
+      :$vent-at,
+    ) {
+        sleep $delay if $delay;
+        my @buffer;
+        my int $limit   = $elems;
+        my int $allowed = $limit;
+        my int $running;
+        my int $emitted;
+        my int $bled;
+        my int $done;
+        my int $vent = $vent-at if $bleed;
+        my $ready = Supplier::Preserving.new;
+        sub start-process(\val --> Nil) {
+            my $p = Promise.start( $process, :$scheduler, val );
+            $running = $running + 1;
+            $allowed = $allowed - 1;
+            $p.then: { $ready.emit($p) };
+        }
+        sub emit-status($id --> Nil) {
+           $status.emit(
+             { :$allowed, :$bled, :buffered(+@buffer),
+               :$emitted, :$id,   :$limit, :$running } );
+        }
+        supply {
+            whenever $ready.Supply -> \val { # when a process is ready
+                $running = $running - 1;
+                $allowed = $allowed + 1;
+                emit(val);
+                $emitted = $emitted + 1;
+                start-process(@buffer.shift) if $allowed > 0 && @buffer;
+
+                if $done && !$running {
+                    $control.done if $control;
+                    if $status {
+                        emit-status("done");
+                        $status.done;
+                    }
+                    if $bleed && @buffer {
+                        $bleed.emit(@buffer.shift) while @buffer;
+                        $bleed.done;
+                    }
+                    done;
+                }
+            }
+
+            if $control {
+                whenever $control -> \val {
+                    my str $type;
+                    my str $value;
+                    Rakudo::Internals.KEY_COLON_VALUE(val,$type,$value);
+
+                    if $type eq 'limit' {
+                        $allowed = $allowed + $value - $limit;
+                        $limit   = $value;
+                        start-process(@buffer.shift)
+                          while $allowed > 0 && @buffer;
+                    }
+                    elsif $type eq 'bleed' && $bleed {
+                        my int $todo = $value min +@buffer;
+                        $bleed.emit(@buffer.shift) for ^$todo;
+                        $bled = $bled + $todo;
+                    }
+                    elsif $type eq 'status' && $status {
+                        emit-status($value);
+                    }
+                    elsif $type eq 'vent-at' && $bleed {
+                        $vent = $value;
+                        if $vent && +@buffer > $vent {
+                            $bleed.emit(@buffer.shift)
+                              until !@buffer || +@buffer == $vent;
+                        }
+                    }
+                }
+            }
+
+            whenever self -> \val {
+                $allowed > 0
+                  ?? start-process(val)
+                  !! $vent && $vent == +@buffer
+                    ?? $bleed.emit(val)
+                    !! @buffer.push(val);
+                LAST { $done = 1 }
+            }
+        }
+    }
+
+    method share(Supply:D:) {
+        my $sup = Supplier.new;
+        self.tap:
+            -> \msg { $sup.emit(msg) },
+            done => -> { $sup.done() },
+            quit => -> \ex { $sup.quit(ex) }
+        $sup.Supply
+    }
+}
+
+# vim: ft=perl6 expandtab sw=4

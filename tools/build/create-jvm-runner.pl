@@ -7,9 +7,9 @@ use 5.008;
 use File::Spec;
 use File::Copy 'cp';
 
-my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp-home> <perl6-home> <blib> <third party jars>\n";
+my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp-home> <rakudo-home> <blib> <third party jars>\n";
 
-my ($type, $destdir, $prefix, $nqp_home, $perl6_home, $blib, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $nqp_home, $rakudo_home, $blib, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
 my $debugger = 0;
@@ -26,10 +26,10 @@ my $bat   = $^O eq 'MSWin32' ? '.bat' : '';
 my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($nqp_home, 'lib') : File::Spec->catfile('${NQP_HOME}', 'lib');
 my $nqpjars = $^O eq 'MSWin32' ? $thirdpartyjars : join( $cpsep, map { $_ =~ s,$nqp_home,\${NQP_HOME},g; $_ } split($cpsep, $thirdpartyjars) );
 my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
-my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6_home : '${PERL6_HOME}', 'runtime') : $prefix;
-my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $perl6_home : '${PERL6_HOME}', 'lib') : 'blib';
+my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $rakudo_home : '${RAKUDO_HOME}', 'runtime') : $prefix;
+my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $rakudo_home : '${RAKUDO_HOME}', 'lib') : 'blib';
 my $sharedir = File::Spec->catfile(
-    ($type eq 'install' && $^O ne 'MSWin32' ? '${PERL6_HOME}' : File::Spec->catfile($prefix, 'share', 'perl6') ),
+    ($type eq 'install' && $^O ne 'MSWin32' ? '${RAKUDO_HOME}' : File::Spec->catfile($prefix, 'share', 'perl6') ),
     'site', 'lib');
 my $perl6jars = join( $cpsep,
     $^O eq 'MSWin32' ? $nqpjars : '${NQP_JARS}',
@@ -78,13 +78,13 @@ my $preamble = $^O eq 'MSWin32' ? '@' :
             $type eq 'install'
 ? $preamble_unix . ": \${NQP_HOME=\"\$DIR/../share/nqp\"}
 : \${NQP_JARS:=\"$nqpjars\"}
-: \${PERL6_HOME:=\"\$DIR/../share/perl6\"}
+: \${RAKUDO_HOME:=\"\$DIR/../share/perl6\"}
 : \${PERL6_JARS:=\"$perl6jars\"}
 exec "
 : $preamble_unix . "$NQP_LIB
 : \${NQP_HOME:=\"$nqp_home\"}
 : \${NQP_JARS:=\"$nqpjars\"}
-: \${PERL6_HOME:=\"$prefix\"}
+: \${RAKUDO_HOME:=\"$prefix\"}
 : \${PERL6_JARS:=\"$perl6jars\"}
 exec ";
 my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';

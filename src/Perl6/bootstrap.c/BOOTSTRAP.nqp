@@ -2,12 +2,12 @@ use Perl6::Metamodel;
 use QRegex;
 
 # Here we start to piece together the top of the object model hierarchy.
-# We can't just declare these bits in CORE.setting with normal Perl 6
+# We can't just declare these bits in CORE.setting with normal Raku
 # syntax due to circularity issues. Note that we don't compose any of
 # these - which is equivalent to a { ... } body.
 #
 # One particular circularity we break here is that you can't have
-# inheritance in Perl 6 without traits, but that needs multiple
+# inheritance in Raku without traits, but that needs multiple
 # dispatch, which can't function without some type hierarchy in
 # place. It also needs us to be able to declare signatures with
 # parameters and code objects with dispatchees, which in turn needs
@@ -29,6 +29,7 @@ my class BOOTSTRAPATTR {
     method package() { $!package }
     method inlined() { $!inlined }
     method dimensions() { $!dimensions }
+    method is_built() { 0 }
     method has_accessor() { 0 }
     method positional_delegate() { 0 }
     method associative_delegate() { 0 }
@@ -41,6 +42,7 @@ my class BOOTSTRAPATTR {
     method compose($obj, :$compiler_services) { }
     method gist() { $!type.HOW.name($!type) ~ ' ' ~ $!name }
     method perl() { 'BOOTSTRAPATTR.new' }
+    method raku() { 'BOOTSTRAPATTR.new' }
     method Str()  { $!name }
 }
 
@@ -73,6 +75,7 @@ my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Bool metaclass Perl6::Metamodel::EnumHOW { ... };
 my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub ValueObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
 my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -1394,6 +1397,7 @@ BEGIN {
     # class Attribute is Any {
     #     has str $!name;
     #     has int $!rw;
+    #     has int $!is_built;
     #     has int $!has_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
@@ -1406,11 +1410,13 @@ BEGIN {
     #     has int $!associative_delegate;
     #     has Mu $!why;
     #     has Mu $!container_initializer;
+    #     has Attribute $!orig; # original attribute object used for instantiation
     Attribute.HOW.add_parent(Attribute, Any);
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(Mu), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!is_built>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Attribute)));
@@ -1424,17 +1430,22 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!associative_delegate>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_initializer>, :type(Mu), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!original>, :type(Attribute), :package(Attribute)));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!composed>, :type(int), :package(Attribute)));
 
     # Need new and accessor methods for Attribute in here for now.
     Attribute.HOW.add_method(Attribute, 'new',
-        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, :$inlined = 0, :$has_accessor,
-                :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
+        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!,
+          :$inlined = 0, :$has_accessor = 0, :$is_built = $has_accessor,
+          :$positional_delegate = 0, :$associative_delegate = 0, *%other) {
             my $attr := nqp::create($self);
             nqp::bindattr_s($attr, Attribute, '$!name', $name);
             nqp::bindattr($attr, Attribute, '$!type', nqp::decont($type));
+            nqp::bindattr_i($attr, Attribute, '$!is_built', $is_built);
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
             nqp::bindattr($attr, Attribute, '$!package', $package);
             nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
+            nqp::bindattr($attr, Attribute, '$!original', $attr);
             if nqp::existskey(%other, 'auto_viv_primitive') {
                 nqp::bindattr($attr, Attribute, '$!auto_viv_container',
                     %other<auto_viv_primitive>);
@@ -1480,6 +1491,10 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'auto_viv_container', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
                 Attribute, '$!auto_viv_container');
+        }));
+    Attribute.HOW.add_method(Attribute, 'is_built', nqp::getstaticcode(sub ($self) {
+            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
+                Attribute, '$!is_built'), "perl6");
         }));
     Attribute.HOW.add_method(Attribute, 'has_accessor', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
@@ -1542,6 +1557,10 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'container_initializer', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
                 Attribute, '$!container_initializer');
+        }));
+    Attribute.HOW.add_method(Attribute, 'original', nqp::getstaticcode(sub ($self) {
+            nqp::getattr(nqp::decont($self),
+                Attribute, '$!original');
         }));
     Attribute.HOW.add_method(Attribute, 'is_generic', nqp::getstaticcode(sub ($self) {
             my $dcself   := nqp::decont($self);
@@ -3049,17 +3068,19 @@ BEGIN {
                 $type_match_possible := 1;
                 $i := 0;
                 while $i < $type_check_count {
-                    my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                     my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $got_prim   := nqp::atpos(@flags, $i) +& 0xF;
-                    my int $literal    := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                     if $type_flags +& $TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {
                             # Object; won't do.
                             $type_mismatch := 1;
+                            $type_match_possible := 0;
                             last;
                         }
+
+                        # Yes, but does it have the right type? Also look at rw-ness for literals.
+                        my int $literal := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                         if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
                         || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
                         || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
@@ -3071,6 +3092,8 @@ BEGIN {
                         }
                     }
                     else {
+                        my $type_obj := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+
                         # Work out parameter.
                         my $param :=
                             $got_prim == $BIND_VAL_OBJ ?? nqp::atpos(@args, $i) !!
@@ -3080,6 +3103,14 @@ BEGIN {
 
                         # If we're here, it's a non-native.
                         $all_native := 0;
+
+                        # A literal won't work with rw parameter.
+                        my int $literal := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
+                        if $literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i) {
+                            $type_mismatch := 1;
+                            $type_match_possible := 0;
+                            last;
+                        }
 
                         # Check type. If that doesn't rule it out, then check if it's
                         # got definedness constraints. If it does, note that; if we
@@ -3095,6 +3126,7 @@ BEGIN {
                             # passed to an Int parameter).
                             if !nqp::istype($type_obj, $param) {
                                 $type_match_possible := 0;
+                                last;
                             }
                         }
                         elsif $type_flags +& $DEFCON_MASK {
@@ -3115,7 +3147,7 @@ BEGIN {
                 }
 
                 # If it's possible but needs a bind check, we're not going to be
-                # able to decide it. */
+                # able to decide it.
                 if nqp::existskey($cur_candidate, 'bind_check') {
                     return [$MD_CT_NOT_SURE, NQPMu];
                 }
@@ -3266,8 +3298,8 @@ BEGIN {
             }
         }
 
-        # Build a hash of named camptures, or return a shared empty hash if there
-        # are none. This only poplates the slots that need an array.
+        # Build a hash of named captures, or return a shared empty hash if there
+        # are none. This only populates the slots that need an array.
         method prepare-hash() {
             my int $n := nqp::elems(@!named-capture-counts);
             if $n > 0 {
@@ -3450,6 +3482,10 @@ BEGIN {
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
     ObjAt.HOW.compose_repr(ObjAt);
 
+    # class ValueObjAt is ObjAt {
+    ValueObjAt.HOW.add_parent(ValueObjAt, ObjAt);
+    ValueObjAt.HOW.compose_repr(ValueObjAt);
+
     # class ForeignCode {
     #     has Mu $!do;                # Code object we delegate to
     ForeignCode.HOW.add_parent(ForeignCode, Any);
@@ -3515,6 +3551,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Capture);
     Perl6::Metamodel::EnumHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
+    Perl6::Metamodel::ClassHOW.add_stash(ValueObjAt);
     Perl6::Metamodel::ClassHOW.add_stash(Stash);
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
     Perl6::Metamodel::ClassHOW.add_stash(Junction);
@@ -3613,6 +3650,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Hash>       := Hash;
     EXPORT::DEFAULT.WHO<Capture>    := Capture;
     EXPORT::DEFAULT.WHO<ObjAt>      := ObjAt;
+    EXPORT::DEFAULT.WHO<ValueObjAt> := ValueObjAt;
     EXPORT::DEFAULT.WHO<Stash>      := Stash;
     EXPORT::DEFAULT.WHO<Scalar>     := Scalar;
     EXPORT::DEFAULT.WHO<IntLexRef>  := IntLexRef;
@@ -3889,7 +3927,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 # of type checking. Also, they pun to classes.
 my %excluded := nqp::hash(
     'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
-    'gist', Mu, 'perl', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
+    'gist', Mu, 'perl', Mu, 'raku', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
     'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
     'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
     'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
@@ -3935,6 +3973,7 @@ nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
 nqp::bindhllsym('perl6', 'Scalar', Scalar);
 nqp::bindhllsym('perl6', 'default_cont_spec',
     Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
+nqp::bindhllsym('perl6', 'Capture', Capture);
 
 #?if jvm
 # On JVM, set up JVM interop bits.

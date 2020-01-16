@@ -849,24 +849,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         })
     }
 
-    multi method perl(List:D \SELF: --> Str:D) {
-        SELF.perlseen('List', {
+    multi method raku(List:D \SELF: --> Str:D) {
+        SELF.rakuseen('List', {
             my $prefix := nqp::iscont(SELF) ?? '$(' !! '(';
             if self.is-lazy {
                 my @elements = self.head(101);
                 if @elements > 100 {
                     @elements.pop;
-                    $prefix ~ @elements.map({.perl}).join(', ') ~ '...).lazy';
+                    $prefix ~ @elements.map({.raku}).join(', ') ~ '...).lazy';
                 }
                 else {
-                    $prefix ~ @elements.map({.perl}).join(', ') ~ ').lazy';
+                    $prefix ~ @elements.map({.raku}).join(', ') ~ ').lazy';
                 }
             }
             elsif self.elems -> $elems {
                 $prefix ~ (
                   $elems == 1
-                    ?? self[0].perl ~ ',)'
-                    !! self.map( {.perl} ).join(', ') ~ ')'
+                    ?? self[0].raku ~ ',)'
+                    !! self.map( {.raku} ).join(', ') ~ ')'
                 )
             }
             else {

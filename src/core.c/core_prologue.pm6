@@ -56,7 +56,7 @@ my class Rakudo::Internals::IterationSet is repr('VMHash') { }
 my constant $?NL = "\x0A";
 
 # Make sure we have an environment
-PROCESS::<%ENV> := Rakudo::Internals.createENV(0);
+PROCESS::<%ENV> := Rakudo::Internals.createENV;
 
 # This thread pool scheduler will be the default one.
 #?if !js

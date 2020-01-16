@@ -44,7 +44,14 @@ sub MAIN(
         my $inline-perl5-is-installed = run(
             $perlpath, '-e', 'exit 1 if (try require Inline::Perl5) === Nil'
         ).exitcode == 0;
-        say "Inline::Perl5 not installed: not running Perl 5 integration tests" unless $inline-perl5-is-installed;
+
+        unless $inline-perl5-is-installed {
+            say 'Inline::Perl5 not installed: not running Perl 5 integration tests';
+            say 'You can install Inline::Perl5 into the build directory with';
+            say '';
+            say "    zef --install-to=inst#{$*PROGRAM.parent}/../gen/build_rakudo_home/site install Inline::Perl5";
+            say '';
+        }
 
         my %traits = :perl5($inline-perl5-is-installed),
                     :long(!$quick), :$stress, :slow,
@@ -190,6 +197,6 @@ Options:
     --randomize randomize the order in which test-files are processed.
     --no-mixslow - don't spread tests marked "slow" equally over the run (on non-Win)
     --perlpath - path to perl6 (defaults to $*EXECUTABLE)
-    --perl5path - path to perl5 for various helper utilities (defaults to 'perl')
+    --perl5path - path to Perl executable for various helper utilities (defaults to 'perl')
 
 =end pod

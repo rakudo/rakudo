@@ -173,6 +173,10 @@ src/core.c/CurrentThreadScheduler.pm6
 src/core.c/Promise.pm6
 src/core.c/Channel.pm6
 src/core.c/Supply.pm6
+src/core.c/Supply-factories.pm6
+src/core.c/Supply-coercers.pm6
+src/core.c/Supplier.pm6
+src/core.c/Rakudo/Supply.pm6
 src/core.c/asyncops.pm6
 src/core.c/IO/Socket.pm6
 src/core.c/IO/Socket/INET.pm6
@@ -211,6 +215,7 @@ src/core.c/CompUnit/Repository/AbsolutePath.pm6
 src/core.c/CompUnit/Repository/NQP.pm6
 src/core.c/CompUnit/Repository/Perl5.pm6
 src/core.c/CompUnit/Repository/Unknown.pm6
+src/core.c/WalkList.pm6
 @if(backend==jvm
 src/vm/jvm/CompUnit/Repository/Java.pm6
 src/vm/jvm/CompUnit/Repository/JavaRuntime.pm6)@

@@ -2,6 +2,7 @@ my class Attribute { # declared in BOOTSTRAP
     # class Attribute is Any
     #     has str $!name;
     #     has int $!rw;
+    #     has int $!is_built;
     #     has int $!has_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
@@ -15,13 +16,16 @@ my class Attribute { # declared in BOOTSTRAP
     #     has Mu $!why;
     #     has $!required;
     #     has Mu $!container_initializer;
+    #     has Attribute $!original;
+    #     has Attribute $!composed;
 
     method compose(Mu $package, :$compiler_services) {
+        return if $!composed;
         # Generate accessor method, if we're meant to have one.
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);
             my $meth_name := nqp::substr($name, 2);
-            unless $package.^declares_method($meth_name) {
+            unless $package.^declares_method($meth_name) || $package.^has_multi_candidate($meth_name) {
                 my $dcpkg := nqp::decont($package);
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
@@ -157,6 +161,8 @@ my class Attribute { # declared in BOOTSTRAP
             }
         }
 
+        nqp::bindattr_i(self, Attribute, '$!composed', 1);
+
         # Apply any handles trait we may have.
         self.apply_handles($package);
     }
@@ -234,6 +240,17 @@ multi sub trait_mod:<does>(Attribute:D $a, Mu:U $role) {
             target-name => 'an attribute',
             composer    => $role,
         ).throw;
+    }
+}
+
+multi sub trait_mod:<is>(Attribute:D $a, :$built!) {
+    if nqp::istype($built,Bool) {
+        nqp::bindattr_i($a,Attribute,'$!is_built',+$built);
+    }
+#    elsif nqp::istype($built,Pair) {
+#    }
+    else {
+        die "Don't know how to handle 'is built($built.raku())' trait";
     }
 }
 

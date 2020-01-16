@@ -55,6 +55,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             if $handle {
                 $dependency.checksum = $checksum;
                 say $dependency.serialize;
+                $*OUT.flush;
             }
             else {
                 nqp::exit(0);

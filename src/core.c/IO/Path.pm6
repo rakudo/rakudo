@@ -181,8 +181,8 @@ my class IO::Path is Cool does IO {
           ?? qq|"$.absolute".IO|
           !! qq|"$.path".IO|
     }
-    multi method perl(IO::Path:D:) {
-        self.^name ~ ".new({$.path.perl}, {:$!SPEC.perl}, {:$!CWD.perl})"
+    multi method raku(IO::Path:D:) {
+        self.^name ~ ".new({$.path.raku}, {:$!SPEC.raku}, {:$!CWD.raku})"
     }
 
     method sibling(IO::Path:D: Str() \sibling) {
@@ -721,26 +721,26 @@ my class IO::Path is Cool does IO {
 
 my class IO::Path::Cygwin is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Cygwin) ) }
-    multi method perl(::?CLASS:D:) {
-        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    multi method raku(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
     }
 }
 my class IO::Path::QNX is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::QNX) ) }
-    multi method perl(::?CLASS:D:) {
-        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    multi method raku(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
     }
 }
 my class IO::Path::Unix is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Unix) ) }
-    multi method perl(::?CLASS:D:) {
-        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    multi method raku(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
     }
 }
 my class IO::Path::Win32 is IO::Path {
     method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Win32) ) }
-    multi method perl(::?CLASS:D:) {
-        self.^name ~ ".new({$.path.perl}, {:$.CWD.perl})"
+    multi method raku(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
     }
 }
 

@@ -59,7 +59,7 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
         else {
             check-name($lowest, $value, $file-name);
         }
-        CATCH { die "$_\nError: Line: $line\n\@array: @array.perl()" }
+        CATCH { die "$_\nError: Line: $line\n\@array: @array.raku()" }
     }
     my Bool:D $has-tested = False;
     for %LOSES{$file-name}{$uniprop}.keys -> $pvalue {

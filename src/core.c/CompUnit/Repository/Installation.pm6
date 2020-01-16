@@ -639,7 +639,7 @@ The distribution $name does not seem to have a \"provides\" section in its META6
 and so the packages will not be installed in the correct location.
 Please ask the author to add a \"provides\" section, mapping every exposed namespace to a
 file location in the distribution.
-See http://design.perl6.org/S22.html#provides for more information.\n";
+See http://design.raku.org/S22.html#provides for more information.\n";
     }
 }
 

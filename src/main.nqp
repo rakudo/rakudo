@@ -31,11 +31,12 @@ my $install-dir := $execname eq ''
     ?? $comp.config<prefix>
     !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
 
-my $perl6-home := $comp.config<static_perl6_home>
+my $rakudo-home := $comp.config<static_rakudo_home>
     // nqp::getenvhash()<PERL6_HOME>
+    // nqp::getenvhash()<RAKUDO_HOME>
     // $install-dir ~ '/share/perl6';
-if nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep {
-    $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
+if nqp::substr($rakudo-home, nqp::chars($rakudo-home) - 1) eq $sep {
+    $rakudo-home := nqp::substr($rakudo-home, 0, nqp::chars($rakudo-home) - 1);
 }
 
 my $nqp-home := $comp.config<static_nqp_home>
@@ -45,7 +46,7 @@ if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {
     $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
 }
 
-nqp::bindhllsym('perl6', '$PERL6_HOME', $perl6-home);
+nqp::bindhllsym('perl6', '$RAKUDO_HOME', $rakudo-home);
 nqp::bindhllsym('perl6', '$NQP_HOME', $nqp-home);
 
 

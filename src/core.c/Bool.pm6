@@ -7,7 +7,7 @@ BEGIN {
     Bool.^add_method('ACCEPTS', my proto method ACCEPTS(|) {*});
     Bool.^add_method('pick',    my proto method pick(|) {*});
     Bool.^add_method('roll',    my proto method roll(|) {*});
-    Bool.^add_method('perl',    my proto method perl(|) {*});
+    Bool.^add_method('raku',    my proto method raku(|) {*});
 }
 BEGIN {
     Bool.^add_multi_method('Bool',    my multi method Bool(Bool:D:)    { self });
@@ -17,7 +17,7 @@ BEGIN {
     Bool.^add_multi_method('Int',     my multi method Int(Bool:D:)     { self ?? 1 !! 0 });
     Bool.^add_multi_method('Real',    my multi method Real(Bool:D:)    { self ?? 1 !! 0 });
     Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:D: Mu \topic ) { self });
-    Bool.^add_multi_method('perl', my multi method perl(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' });
+    Bool.^add_multi_method('raku', my multi method raku(Bool:D:) { self ?? 'Bool::True' !! 'Bool::False' });
 
     Bool.^add_multi_method('pick', my multi method pick(Bool:U:)    { nqp::hllbool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
     Bool.^add_multi_method('roll', my multi method roll(Bool:U:)    { nqp::hllbool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
@@ -26,7 +26,7 @@ BEGIN {
     Bool.^add_multi_method('Bool',    my multi method Bool(Bool:U:)    { Bool::False });
     Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: \topic ) { nqp::istype(topic, Bool) });
     Bool.^add_multi_method('gist',    my multi method gist(Bool:U:)    { '(Bool)' });
-    Bool.^add_multi_method('perl', my multi method perl(Bool:U:) { 'Bool' });
+    Bool.^add_multi_method('raku', my multi method raku(Bool:U:) { 'Bool' });
 
     Bool.^add_multi_method('pick', my multi method pick(Bool:U: $n) { self.^enum_value_list.pick($n) });
     Bool.^add_multi_method('roll', my multi method roll(Bool:U: $n) { self.^enum_value_list.roll($n) });

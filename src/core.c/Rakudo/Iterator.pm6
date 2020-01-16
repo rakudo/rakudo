@@ -1082,19 +1082,9 @@ class Rakudo::Iterator {
     }
     method CrossIterables(@iterables) {
         nqp::if(
-          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
-
-          # actually need to do some crossing (probably)
+          nqp::isgt_i(@iterables.elems,0),  # reifies
           CrossIterables.new(@iterables),
-
-          # simpler cases
-          nqp::if(
-            nqp::iseq_i($n,0),
-            # nothing to cross, so return an empty list
-            Rakudo::Iterator.Empty,
-            # only 1 list to cross, which is the list itself
-            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
-          )
+          Rakudo::Iterator.Empty
         )
     }
 
@@ -1640,6 +1630,69 @@ class Rakudo::Iterator {
         )
     }
 
+    # Return an iterator that flattens all embedded Iterables into a single
+    # iterator, producing a single sequence of non-Iterable values..
+    my class Flat does Iterator {
+        has Iterator $!source;
+        has Iterator $!nested;
+
+        method new(\source) {
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              $!nested,
+              nqp::if(
+                nqp::eqaddr((my \nested := $!nested.pull-one),IterationEnd),
+                nqp::stmts(
+                  ($!nested := Iterator),
+                  self.pull-one
+                ),
+                nested
+              ),
+              nqp::if(
+                nqp::iscont(my \got := $!source.pull-one),
+                got,
+                nqp::if(
+                  nqp::istype(got,Iterable),
+                  nqp::stmts(
+                    ($!nested := Flat.new(got.iterator)),
+                    self.pull-one
+                  ),
+                  got
+                )
+              )
+            )
+        }
+
+        method push-all(\target --> IterationEnd) {
+            nqp::stmts(
+              nqp::if(
+                $!nested,
+                nqp::stmts(
+                  $!nested.push-all(target),
+                  ($!nested := Iterator)
+                )
+              ),
+              nqp::until(
+                nqp::eqaddr((my \got := $!source.pull-one), IterationEnd),
+                nqp::if(
+                  nqp::iscont(got),
+                  target.push(got),
+                  nqp::if(
+                    nqp::istype(got,Iterable),
+                    Flat.new(got.iterator).push-all(target),
+                    target.push(got)
+                  )
+                )
+              )
+            )
+        }
+        method is-lazy() { $!source.is-lazy }
+    }
+    method Flat(\iterator) { Flat.new(iterator) }
+
     # Return an iterator that will cache a source iterator for the index
     # values that the index iterator provides, from a given offest in the
     # cached source iterator.  Values from the index iterator below the
@@ -2154,6 +2207,51 @@ class Rakudo::Iterator {
           )
         )
     }
+
+    # Return an iterator that is always lazy, by wrapping it inside another
+    # iterator that indicates to be lazy.  Does not actually call the
+    # iterator until it is really  necessary, preventing any unnecessary
+    # work or external resource usage.
+    my class Lazy does Iterator {
+        has $!iterable;
+        has $!iterator;
+
+        method new(\iterable) {
+            my \iter := nqp::create(self);
+            nqp::bindattr(iter,self,'$!iterable',iterable);
+            nqp::bindattr(iter,self,'$!iterator',nqp::null);
+            iter
+        }
+
+        method pull-one() is raw {
+#?if !jvm
+            nqp::ifnull(
+              $!iterator,
+              $!iterator := $!iterable.iterator
+            ).pull-one
+#?endif
+#?if jvm
+            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
+            $!iterator.pull-one
+#?endif
+        }
+
+        method push-exactly(\target, int $n) {
+#?if !jvm
+            nqp::ifnull(
+              $!iterator,
+              $!iterator := $!iterable.iterator
+            ).push-exactly(target, $n);
+#?endif
+#?if jvm
+            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
+            $!iterator.push-exactly(target, $n);
+#?endif
+        }
+
+        method is-lazy(--> True) { }
+    }
+    method Lazy(\iterable) { Lazy.new(iterable) }
 
     # Return an iterator given a List and an iterator that generates
     # an IterationBuffer of indexes for each pull.  Each value is
@@ -3149,13 +3247,9 @@ class Rakudo::Iterator {
     }
     method RoundrobinIterables(@iterables) {
         nqp::if(
-          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
+          nqp::isgt_i(@iterables.elems,0),  # reifies
           RoundrobinIterables.new(@iterables),
-          nqp::if(
-            nqp::iseq_i($n,0),
-            Rakudo::Iterator.Empty,
-            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
-          )
+          Rakudo::Iterator.Empty,
         )
     }
 
@@ -3915,13 +4009,9 @@ class Rakudo::Iterator {
     }
     method ZipIterables(@iterables) {
         nqp::if(
-          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
+          nqp::isgt_i(@iterables.elems,0),  # reifies
           ZipIterables.new(@iterables),
-          nqp::if(
-            nqp::iseq_i($n,0),
-            Rakudo::Iterator.Empty,
-            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
-          )
+          Rakudo::Iterator.Empty
         )
     }
 

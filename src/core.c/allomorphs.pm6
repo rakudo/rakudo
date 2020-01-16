@@ -27,7 +27,14 @@ my class IntStr is Int is Str {
     method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
     multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(IntStr:D:) { self.^name ~ '.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method raku(IntStr:D:) {
+        nqp::concat(self.^name,
+          nqp::concat('.new(',
+            nqp::concat(nqp::tostr_I(self),
+              nqp::concat(', ',
+                nqp::concat(nqp::getattr_s(self,Str,'$!value').raku,')'
+        )))))
+    }
 }
 
 my class NumStr is Num is Str {
@@ -59,7 +66,14 @@ my class NumStr is Num is Str {
     method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
     multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(NumStr:D:) { self.^name ~ '.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method raku(NumStr:D:) {
+        nqp::concat(self.^name,
+          nqp::concat('.new(',
+            nqp::concat(nqp::getattr_n(self,Num,'$!value').raku,
+              nqp::concat(', ',
+                nqp::concat(nqp::getattr_s(self,Str,'$!value').raku,')'
+        )))))
+    }
 }
 
 my class RatStr is Rat is Str {
@@ -116,7 +130,7 @@ my class RatStr is Rat is Str {
     }
     multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method raku(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.raku ~ ', ' ~ self.Str.raku ~ ')' }
 }
 
 my class ComplexStr is Complex is Str {
@@ -150,7 +164,7 @@ my class ComplexStr is Complex is Str {
     method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
     multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(ComplexStr:D:) { self.^name ~ '.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method raku(ComplexStr:D:) { self.^name ~ '.new(' ~ self.Complex.raku ~ ', ' ~ self.Str.raku ~ ')' }
 }
 
 # we define cmp ops for these allomorphic types as numeric first, then Str. If
@@ -213,34 +227,24 @@ multi sub val(*@maybevals) {
     @maybevals.list.map({ val($_) }).eager;
 }
 
-multi sub val(Mu) {
-    warn "Value of type Mu uselessly passed to val()";
-    Mu
+multi sub val(Mu \mu) {
+    warn "{ mu.raku } uselessly passed to val()";
+    mu
 }
 
-# if Slip, preserve slipness
-multi sub val(List:D $maybevals) {
-    nqp::stmts(
-        (my $output := val(|$maybevals)),
-        nqp::if(
-            nqp::istype($maybevals, Slip),
-            $output.Slip,
-            $output
-        )
-    )
-}
+multi sub val(Slip:D \maybevals) { val(|maybevals).Slip }
+multi sub val(List:D \maybevals) { val(|maybevals)      }
 
 multi sub val(Pair:D \ww-thing) is raw {
     # this is a Pair object possible in «» constructs; just pass it through. We
     # capture this specially from the below sub to avoid emitting a warning
     # whenever an affected «» construct is being processed.
-
     ww-thing
 }
 
-multi sub val(\one-thing) {
-    warn "Value of type {one-thing.WHAT.perl} uselessly passed to val()";
-    one-thing;
+multi sub val(\one-thing) is raw {
+    warn "Value of type { one-thing.^name } uselessly passed to val()";
+    one-thing
 }
 
 multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {

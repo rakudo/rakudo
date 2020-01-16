@@ -41,7 +41,7 @@ my class MixHash does Mixy {
           },
           STORE => -> $, Real() $value {
               nqp::if(
-                nqp::istype($value,Failure),   # RT 128927
+                nqp::istype($value,Failure),   # https://github.com/Raku/old-issue-tracker/issues/5567
                 $value.throw,
                 nqp::if(
                   $!elems,
@@ -137,7 +137,7 @@ my class MixHash does Mixy {
             },
             STORE => -> $, Real() \value {
                 nqp::if(
-                  nqp::istype(value,Failure),  # RT 128927
+                  nqp::istype(value,Failure),  # https://github.com/Raku/old-issue-tracker/issues/5567
                   value.throw,
                   nqp::if(
                     nqp::existskey(elems,$key),

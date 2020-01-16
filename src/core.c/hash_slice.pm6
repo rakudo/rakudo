@@ -166,7 +166,9 @@ multi sub postcircumfix:<{ }>(\SELF, Bool() :$v!, *%other) is raw {
       !! SELF{SELF.keys.list};
 }
 multi sub postcircumfix:<{ }>(Mu \SELF, *%other ) is raw {
-    %other ?? SELF.ZEN-KEY(|%other) !! nqp::decont(SELF)
+    nqp::elems(nqp::getattr(%other,Map,'$!storage'))
+      ?? SELF.ZEN-KEY(|%other)
+      !! nqp::decont(SELF)
 }
 
 proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}

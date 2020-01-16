@@ -6,7 +6,7 @@ my class Rat is Cool does Rational[Int, Int] {
     method FatRat(Rat:D: Real $? --> FatRat:D) {
         FatRat.new($!numerator, $!denominator)
     }
-    multi method perl(Rat:D: --> Str:D) {
+    multi method raku(Rat:D: --> Str:D) {
         if $!denominator == 1 {
             $!numerator ~ '.0'
         }
@@ -37,7 +37,7 @@ my class FatRat is Cool does Rational[Int, Int] {
           ?? Rat.new($!numerator, $!denominator)
           !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
-    multi method perl(FatRat:D: --> Str:D) {
+    multi method raku(FatRat:D: --> Str:D) {
         "FatRat.new($!numerator, $!denominator)";
     }
 }

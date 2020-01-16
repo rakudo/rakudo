@@ -20,7 +20,7 @@ my class Duration is Cool does Real {
 
     multi method Str(Duration:D: --> Str:D) { ~$.tai }
 
-    multi method perl(Duration:D: --> Str:D) { "Duration.new({$.tai.perl})" }
+    multi method raku(Duration:D: --> Str:D) { "Duration.new({$.tai.raku})" }
 }
 
 multi sub prefix:<->(Duration:D $a --> Duration:D) {

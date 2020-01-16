@@ -104,11 +104,13 @@ sub param_list_for(Signature $sig, &r?) {
 }
 
 # Builds a hash of type information for the specified return type.
-sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point) {
+sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point, :$resolve-libname, :$resolve-libname-arg) {
     my Mu $result := nqp::hash();
     my $returns := $s.returns;
     nqp::bindkey($result, 'typeobj',     nqp::decont($returns))     if $with-typeobj;
     nqp::bindkey($result, 'entry_point', nqp::decont($entry-point)) if $entry-point;
+    nqp::bindkey($result, 'resolve_lib_name_arg', nqp::decont($resolve-libname-arg)) if $resolve-libname-arg;
+    nqp::bindkey($result, 'resolve_lib_name', nqp::getattr(nqp::decont($resolve-libname), Code, '$!do')) if $resolve-libname;
     if $returns ~~ Str {
         my $enc := &r.?native_call_encoded() || 'utf8';
         nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
@@ -253,6 +255,11 @@ sub guess-name-mangler(Routine $r, $name, Str $libname) {
 
 my Lock $setup-lock .= new;
 
+sub resolve-libname($libname) {
+    CATCH { default { note $_ } }
+    $libname.platform-library-name.Str
+}
+
 # This role is mixed in to any routine that is marked as being a
 # native call.
 our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource] {
@@ -283,16 +290,25 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             }
             my Mu $arg_info := param_list_for($r.signature, $r);
             my $conv = self.?native_call_convention || '';
+
+            $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
+            $!arity = $r.signature.arity;
+            $!any-optionals = self!any-optionals;
+
             my $jitted = nqp::buildnativecall(self,
                 nqp::unbox_s($guessed_libname),                           # library name
                 nqp::unbox_s(gen_native_symbol($r, $!name, :$!cpp-name-mangler)), # symbol to call
                 nqp::unbox_s($conv),        # calling convention
                 $arg_info,
-                return_hash_for($r.signature, $r, :$!entry-point));
-            $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
-            $!arity = $r.signature.arity;
-
-            $!any-optionals = self!any-optionals;
+                ($libname and $libname ~~ Distribution::Resource)
+                    ?? return_hash_for(
+                        $r.signature,
+                        $r,
+                        :$!entry-point,
+                        :&resolve-libname,
+                        :resolve-libname-arg($libname),
+                    )
+                    !! return_hash_for($r.signature, $r, :$!entry-point));
 
             my $body := $jitted ?? $!jit-optimized-body !! $!optimized-body;
             if $body {

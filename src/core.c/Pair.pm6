@@ -105,20 +105,70 @@ key of the Pair should be a valid method name, not '$method'."
         })
     }
 
-    multi method perl(Pair:D: :$arglist) {
-        self.perlseen('Pair', -> :$arglist {
-            nqp::istype($!key, Str) && nqp::isconcrete($!key)
-              ?? !$arglist && $!key ~~ /^ [<alpha>\w*] +% <[\-']> $/
-                ?? nqp::istype($!value,Bool) && nqp::isconcrete($!value)
-                   ?? ':' ~ '!' x !$!value ~ $!key
-                   !! ':' ~ $!key ~ '(' ~ $!value.perl ~ ')'
-                !! $!key.perl ~ ' => ' ~ $!value.perl
-              !! nqp::istype($!key, Numeric)
-                   && nqp::isconcrete($!key)
-                   && !(nqp::istype($!key,Num) && nqp::isnanorinf($!key))
-                ?? $!key.perl ~ ' => ' ~ $!value.perl
-                !! '(' ~ $!key.perl ~ ') => ' ~ $!value.perl
-        }, :$arglist)
+    proto sub allowed-as-bare-key(|) {*}
+    multi sub allowed-as-bare-key(Mu \key --> False) { }
+    multi sub allowed-as-bare-key(Str:D \key) {
+        my int $i;
+        my int $pos;
+
+        while $i < nqp::chars(key) {
+            return False                            # starts with numeric
+              if nqp::iscclass(nqp::const::CCLASS_NUMERIC,key,$i);
+
+            $pos = nqp::findnotcclass(
+              nqp::const::CCLASS_WORD,key,$i,nqp::chars(key)
+            );
+
+            if $pos == nqp::chars(key) {
+                return True;                        # reached end ok
+            }
+            elsif nqp::eqat(key,'-',$pos) || nqp::eqat(key,"'",$pos) {
+                return False
+                  if $pos == $i                     # - or ' at start
+                  || $pos == nqp::chars(key) - 1;   # - or ' at end
+            }
+            else {
+                return False;                       # not a word char
+            }
+            $i = $pos + 1;                          # more to parse
+        }
+
+        False                                       # the empty string
+    }
+
+    multi method raku(Pair:D: :$arglist = False) {
+        self.rakuseen:
+          self.^name,
+          {   
+              nqp::isconcrete($!key)
+                ?? nqp::istype($!key,Str)
+                     && nqp::not_i($arglist)
+                     && allowed-as-bare-key($!key)
+                  ?? nqp::eqaddr($!value,True) || nqp::eqaddr($!value,False)
+                    ?? nqp::concat(':',
+                         nqp::concat(nqp::x('!',nqp::not_i($!value)),
+                           $!key))
+                    !! nqp::concat(':',
+                         nqp::concat($!key,
+                           nqp::concat('(',
+                             nqp::concat($!value.raku,
+                               ')'))))
+                  !! nqp::istype($!key,Numeric)
+                       && nqp::not_i(
+                            nqp::istype($!key,Num) && nqp::isnanorinf($!key)
+                          )
+                    ?? nqp::concat($!key.raku,
+                         nqp::concat(' => ',
+                           $!value.raku))
+                    !! nqp::concat('(',
+                         nqp::concat($!key.raku,
+                           nqp::concat(') => ',
+                             $!value.raku)))
+                !! nqp::concat('(',
+                     nqp::concat($!key.^name,
+                       nqp::concat(') => ',
+                         $!value.raku)))
+          }
     }
 
     method fmt($format = "%s\t%s") {

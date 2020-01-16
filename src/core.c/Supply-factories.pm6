@@ -628,6 +628,18 @@
           !! self.comb
     }
 
+    # Don't allow the :match named parameters
+    multi method comb(Supply:D: Regex:D $matcher, :$match!) {
+        $match
+          ?? die "Cannot return Match objects with Supply.comb(Regex)"
+          !! self.comb($matcher)
+    }
+    multi method comb(Supply:D: Regex:D $matcher, \the-limit, :$match!) {
+        $match
+          ?? die "Cannot return Match objects with Supply.comb(Regex,limit)"
+          !! self.comb($matcher,the-limit)
+    }
+
     # comb the supply for a Regex needle
     multi method comb(Supply:D: Regex:D $matcher) {
         supply {

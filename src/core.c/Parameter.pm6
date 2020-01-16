@@ -562,11 +562,10 @@ my class Parameter { # declared in BOOTSTRAP
         my $default = self.default();
         if self.slurpy {
             $name = $!flags +& $SIG_ELEM_SLURPY_ONEARG
-              ?? "+$name"
+              ?? '+' ~ ($name.starts-with('\\') ?? $name.substr(1) !! $name)
               !! $!flags +& $SIG_ELEM_SLURPY_LOL
-                ?? "**$name"
-                !! "*$name";
-
+                ?? '**' ~ $name
+                !! '*' ~ $name;
         } elsif self.named {
             my $name1 := substr($name,1);
             if @(self.named_names).first({$_ && $_ eq $name1}) {
@@ -589,7 +588,7 @@ my class Parameter { # declared in BOOTSTRAP
         if $!flags +& $SIG_ELEM_IS_RAW {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
-            $rest ~= ' is raw' unless $name.starts-with('|') || $name.starts-with('\\');
+            $rest ~= ' is raw' without '|\\+'.index($name.substr(0,1));
         }
         unless nqp::isnull($!sub_signature) {
             my $sig = $!sub_signature.raku();

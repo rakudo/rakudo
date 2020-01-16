@@ -585,8 +585,6 @@
           !! supply {
                  my str $str;
                  my int $batch = $the-batch;
-                 my int $i;
-                 my int $times;
                  whenever self -> str $val {
                      $str = nqp::concat($str,$val);
 
@@ -606,54 +604,70 @@
              }
     }
 
-    # comb the supply for N characters at a time for a maximum of N
-    multi method comb(Supply:D: Int:D $the-batch, \the-limit) {
-        nqp::istype(the-limit,Whatever) || the-limit == Inf
-          ?? self.comb($the-batch)
-          !! the-limit <= 0
-            ?? supply { }
-            !! $the-batch <= 1
-              ?? self.comb.head(the-limit)
-              !! supply {
-                     my str $str;
-                     my int $batch = $the-batch;
-                     my int $limit = the-limit.Int;
+    # comb the supply for a Str needle
+    multi method comb(Supply:D: Str:D $the-needle) {
+        $the-needle
+          ?? supply {
+                 my str $str;
+                 my str $needle = $the-needle;
+                 whenever self -> str $val {
+                     $str = nqp::concat($str,$val);
+
                      my int $i;
-                     my int $times;
-                     whenever self -> str $val {
-                         $str = nqp::concat($str,$val);
-
-                         my int $i;
-                         my int $times = nqp::chars($str) div $batch;
-                         $times = $limit if $times > $limit;
-                         $limit = $limit - $times;
-
-                         nqp::while(
-                           $times--,
-                           nqp::stmts(
-                             emit(nqp::box_s(nqp::substr($str,$i,$batch),Str)),
-                             ($i = $i + $batch)
-                           )
-                         );
-                         done unless $limit;
-
-                         $str = nqp::substr($str,$i);
-
-                         LAST { emit $str if $limit && nqp::chars($str) }
-                     }
+                     my int $pos;
+                     nqp::while(
+                       nqp::isgt_i(($i = nqp::index($str,$needle,$pos)),-1),
+                       nqp::stmts(
+                         emit($the-needle),
+                         ($pos = $i + 1)
+                       )
+                     );
+                     $str = nqp::substr($str,$pos);
                  }
+             }
+          !! self.comb
+    }
+
+    # Don't allow the :match named parameters
+    multi method comb(Supply:D: Regex:D $matcher, :$match!) {
+        $match
+          ?? die "Cannot return Match objects with Supply.comb(Regex)"
+          !! self.comb($matcher)
+    }
+    multi method comb(Supply:D: Regex:D $matcher, \the-limit, :$match!) {
+        $match
+          ?? die "Cannot return Match objects with Supply.comb(Regex,limit)"
+          !! self.comb($matcher,the-limit)
+    }
+
+    # comb the supply for a Regex needle
+    multi method comb(Supply:D: Regex:D $matcher) {
+        supply {
+            my str $str;
+            whenever self -> str $val {
+                $str = nqp::concat($str,$val);
+                my @matches = $str.comb($matcher, :match);
+                emit .Str for @matches;
+                $str = nqp::substr($str,@matches.tail.pos) if @matches;
+            }
+        }
+    }
+
+    # comb the supply for a Str needle for a max number of time
+    multi method comb(Supply:D: \the-thing, \the-limit) {
+        self.comb(the-thing).head(the-limit)
     }
 
     # split the supply on the needle and adverbs
     multi method split(Supply:D: \needle) {
         supply {
-            my $str = "";  # can also be a Match object
+            my $str = "";  # prevent warning on first batch
             my @matches;
             whenever self -> \value {
                 done unless @matches = ($str ~ value).split(needle, |%_);
-                $str = @matches.pop;  # keep last for next batch
+                $str = @matches.pop.Str;  # keep last for next batch
 
-                emit $_ for @matches;
+                emit .Str for @matches;
 
                 LAST { emit $str }
             }
@@ -662,32 +676,7 @@
 
     # split the supply on the needle, limit and adverbs
     multi method split(Supply:D: \needle, \the-limit) {
-        nqp::istype(the-limit,Whatever) || the-limit == Inf
-          ?? self.split(needle, |%_)
-          !! the-limit <= 0
-            ?? supply { }
-            !! supply {
-                   my $str = "";  # can also be a Match object
-                   my int $todo = the-limit.Int;
-                   my @matches;
-
-                   whenever self -> \value {
-
-                       done unless @matches = ($str ~ value).split(needle, |%_);
-                       $str = @matches.pop;  # keep last for next batch
-
-                       if @matches < $todo {
-                           emit $_ for @matches;
-                           $todo = $todo - @matches;
-                       }
-                       else {
-                           emit $_ for @matches[^$todo];
-                           $todo = 0;
-                       }
-
-                       LAST { emit $str if $todo }
-                   }
-               }
+        self.split(needle, |%_).head(the-limit)
     }
 
 # vim: ft=perl6 expandtab sw=4

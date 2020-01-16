@@ -646,7 +646,7 @@
                 $str = nqp::concat($str,$val);
                 my @matches = $str.comb($matcher, :match);
                 emit .Str for @matches;
-                $str = nqp::substr($str,@matches.tail.pos);
+                $str = nqp::substr($str,@matches.tail.pos) if @matches;
             }
         }
     }

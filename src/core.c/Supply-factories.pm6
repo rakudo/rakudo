@@ -640,6 +640,30 @@
                  }
     }
 
+    # comb the supply for a needle
+    multi method comb(Supply:D: Str:D $the-needle) {
+        $the-needle
+          ?? supply {
+                 my str $str;
+                 my str $needle = $the-needle;
+                 whenever self -> str $val {
+                     $str = nqp::concat($str,$val);
+
+                     my int $i;
+                     my int $pos;
+                     nqp::while(
+                       nqp::isgt_i(($i = nqp::index($str,$needle,$pos)),-1),
+                       nqp::stmts(
+                         emit($the-needle),
+                         ($pos = $i + 1)
+                       )
+                     );
+                     $str = nqp::substr($str,$pos);
+                 }
+             }
+          !! self.comb
+    }
+
     # split the supply on the needle and adverbs
     multi method split(Supply:D: \needle) {
         supply {

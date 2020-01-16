@@ -585,8 +585,6 @@
           !! supply {
                  my str $str;
                  my int $batch = $the-batch;
-                 my int $i;
-                 my int $times;
                  whenever self -> str $val {
                      $str = nqp::concat($str,$val);
 
@@ -618,8 +616,6 @@
                      my str $str;
                      my int $batch = $the-batch;
                      my int $limit = the-limit.Int;
-                     my int $i;
-                     my int $times;
                      whenever self -> str $val {
                          $str = nqp::concat($str,$val);
 

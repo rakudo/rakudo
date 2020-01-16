@@ -606,9 +606,7 @@
 
     # comb the supply for N characters at a time for a maximum of N
     multi method comb(Supply:D: Int:D $the-batch, \the-limit) {
-        nqp::istype(the-limit,Whatever) || the-limit == Inf
-          ?? self.comb($the-batch)
-          !! self.comb($the-batch).head(the-limit)
+        self.comb($the-batch).head(the-limit)
     }
 
     # comb the supply for a needle
@@ -637,9 +635,7 @@
 
     # comb the supply for a needle for a max number of time
     multi method comb(Supply:D: Str:D $the-needle, \the-limit) {
-        nqp::istype(the-limit,Whatever) || the-limit == Inf
-          ?? self.comb($the-needle)
-          !! self.comb($the-needle).head(the-limit)
+        self.comb($the-needle).head(the-limit)
     }
 
     # split the supply on the needle and adverbs
@@ -660,32 +656,7 @@
 
     # split the supply on the needle, limit and adverbs
     multi method split(Supply:D: \needle, \the-limit) {
-        nqp::istype(the-limit,Whatever) || the-limit == Inf
-          ?? self.split(needle, |%_)
-          !! the-limit <= 0
-            ?? supply { }
-            !! supply {
-                   my $str = "";  # can also be a Match object
-                   my int $todo = the-limit.Int;
-                   my @matches;
-
-                   whenever self -> \value {
-
-                       done unless @matches = ($str ~ value).split(needle, |%_);
-                       $str = @matches.pop;  # keep last for next batch
-
-                       if @matches < $todo {
-                           emit $_ for @matches;
-                           $todo = $todo - @matches;
-                       }
-                       else {
-                           emit $_ for @matches[^$todo];
-                           $todo = 0;
-                       }
-
-                       LAST { emit $str if $todo }
-                   }
-               }
+        self.split(needle, |%_).head(the-limit)
     }
 
 # vim: ft=perl6 expandtab sw=4

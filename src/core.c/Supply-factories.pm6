@@ -641,13 +641,13 @@
     # split the supply on the needle and adverbs
     multi method split(Supply:D: \needle) {
         supply {
-            my $str = "";  # can also be a Match object
+            my $str = "";  # prevent warning on first batch
             my @matches;
             whenever self -> \value {
                 done unless @matches = ($str ~ value).split(needle, |%_);
-                $str = @matches.pop;  # keep last for next batch
+                $str = @matches.pop.Str;  # keep last for next batch
 
-                emit $_ for @matches;
+                emit .Str for @matches;
 
                 LAST { emit $str }
             }

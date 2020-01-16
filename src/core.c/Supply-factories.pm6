@@ -608,36 +608,7 @@
     multi method comb(Supply:D: Int:D $the-batch, \the-limit) {
         nqp::istype(the-limit,Whatever) || the-limit == Inf
           ?? self.comb($the-batch)
-          !! the-limit <= 0
-            ?? supply { }
-            !! $the-batch <= 1
-              ?? self.comb.head(the-limit)
-              !! supply {
-                     my str $str;
-                     my int $batch = $the-batch;
-                     my int $limit = the-limit.Int;
-                     whenever self -> str $val {
-                         $str = nqp::concat($str,$val);
-
-                         my int $i;
-                         my int $times = nqp::chars($str) div $batch;
-                         $times = $limit if $times > $limit;
-                         $limit = $limit - $times;
-
-                         nqp::while(
-                           $times--,
-                           nqp::stmts(
-                             emit(nqp::box_s(nqp::substr($str,$i,$batch),Str)),
-                             ($i = $i + $batch)
-                           )
-                         );
-                         done unless $limit;
-
-                         $str = nqp::substr($str,$i);
-
-                         LAST { emit $str if $limit && nqp::chars($str) }
-                     }
-                 }
+          !! self.comb($the-batch).head(the-limit)
     }
 
     # comb the supply for a needle
@@ -662,6 +633,13 @@
                  }
              }
           !! self.comb
+    }
+
+    # comb the supply for a needle for a max number of time
+    multi method comb(Supply:D: Str:D $the-needle, \the-limit) {
+        nqp::istype(the-limit,Whatever) || the-limit == Inf
+          ?? self.comb($the-needle)
+          !! self.comb($the-needle).head(the-limit)
     }
 
     # split the supply on the needle and adverbs

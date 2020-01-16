@@ -461,6 +461,9 @@
     multi method head(Supply:D:) {
         supply { whenever self -> \val { emit val; done } }
     }
+    multi method head(Supply:D: Callable:D $limit) {
+        self.tail(-$limit(0))
+    }
     multi method head(Supply:D: \limit) {
         nqp::istype(limit,Whatever) || limit == Inf
           ?? self

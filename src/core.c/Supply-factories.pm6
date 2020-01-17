@@ -628,16 +628,20 @@
           !! self.comb
     }
 
-    # Don't allow the :match named parameters
-    multi method comb(Supply:D: Regex:D $matcher, :$match!) {
+    # Specifying :match forces a collect of all strings first
+    multi method comb(Supply:D: Regex:D $matcher, :$match!, |c) {
         $match
-          ?? die "Cannot return Match objects with Supply.comb(Regex)"
-          !! self.comb($matcher)
-    }
-    multi method comb(Supply:D: Regex:D $matcher, \the-limit, :$match!) {
-        $match
-          ?? die "Cannot return Match objects with Supply.comb(Regex,limit)"
-          !! self.comb($matcher,the-limit)
+          ?? supply {
+                 my $parts := nqp::list_s;
+                 whenever self -> str $val {
+                     nqp::push_s($parts,$val);
+                     LAST {
+                         emit $_
+                           for nqp::join('',$parts).comb($matcher, :match, |c);
+                     }
+                 }
+             }
+          !! self.comb($matcher, |c)
     }
 
     # comb the supply for a Regex needle

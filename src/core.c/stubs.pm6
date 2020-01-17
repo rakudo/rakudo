@@ -38,16 +38,18 @@ sub DYNAMIC(\name, Mu $ctx is raw = nqp::null()) is raw {
     nqp::ifnull(
       nqp::getlexreldyn($ctx, name),
       nqp::stmts(
-        nqp::unless(
+        (my \outer-ctx := nqp::if(
           nqp::isnull(my \promise := nqp::getlexreldyn($ctx, '$*PROMISE')),
-          nqp::stmts(
-            (my $promise-ctx := nqp::getattr(promise,Promise,'$!dynamic_context')),
+          nqp::getlexreldyn($ctx, '$*CONTINUATION-OUTER-CTX'),
+          nqp::getattr(promise,Promise,'$!dynamic_context')
+        )),
+        nqp::unless(
+            nqp::isnull(outer-ctx),
             (my Mu \value :=
               nqp::ifnull(
-                nqp::getlexreldyn($promise-ctx, name),
-                (&DYNAMIC(name, $promise-ctx))
+                nqp::getlexreldyn(outer-ctx, name),
+                (&DYNAMIC(name, outer-ctx))
             ))
-          )
         ),
         nqp::ifnull(
           value,

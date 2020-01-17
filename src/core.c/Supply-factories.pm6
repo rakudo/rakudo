@@ -683,4 +683,13 @@
         self.split(needle, |%_).head(the-limit)
     }
 
+    # encode chunks with the given encoding
+    method encode(Supply:D: $encoding = "utf8") {
+        supply {
+            whenever self -> \val {
+                emit val.encode($encoding);
+            }
+        }
+    }
+
 # vim: ft=perl6 expandtab sw=4

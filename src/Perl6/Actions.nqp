@@ -4104,7 +4104,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $predeclared {
                     my $Routine := $*W.find_symbol(['Routine'], :setting-only);
                     unless nqp::istype($predeclared<value>, $Routine)
-                        && nqp::getattr_i($predeclared<value>, $Routine, '$!yada') {
+                        && $predeclared<value>.yada {
                         $*W.throw($/, ['X', 'Redeclaration'],
                                 symbol => ~$<deflongname>.ast,
                                 what   => 'routine',

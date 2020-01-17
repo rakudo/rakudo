@@ -297,7 +297,7 @@ my class PseudoStash is Map {
     my class CtxWalker {
         has Mu $!start-ctx;     # Stash context – this is where we start from.
         has Mu $!ctx;           # Current context.
-        has Mu $!promise-ctx;   # Dynamic context of wrapping Promise
+        has Mu $!outer-ctx;     # Outer context of the current continuation.
         has int $!stash-mode;
         has $!modes;
 
@@ -308,7 +308,7 @@ my class PseudoStash is Map {
                             (nqp::getattr(pseudo, PseudoStash, '$!mode') || STATIC_CHAIN) # We default to STATIC_CHAIN
             );
             $!modes := nqp::list_i(PRECISE_SCOPE, DYNAMIC_CHAIN, STATIC_CHAIN);
-            self.promise-ctx($!start-ctx);
+            self.outer-ctx($!start-ctx);
             self
         }
 
@@ -316,15 +316,15 @@ my class PseudoStash is Map {
 
         method exhausted() { nqp::isnull($!ctx) }
 
-        method promise-ctx(Mu \ctx) {
+        method outer-ctx(Mu \ctx) {
             nqp::bindattr(
-                self, CtxWalker, '$!promise-ctx',
+                self, CtxWalker, '$!outer-ctx',
                 nqp::if(
                     nqp::isnull(my \promise := nqp::getlexreldyn(ctx, '$*PROMISE')),
-                    nqp::null(),
+                    nqp::getlexreldyn(ctx, '$*CONTINUATION-OUTER-CTX'),
                     nqp::getattr(promise, Promise, '$!dynamic_context')
                 )
-            )
+            );
         }
 
         method next-ctx() {
@@ -351,14 +351,14 @@ my class PseudoStash is Map {
                                             nqp::iseq_i(nqp::atpos_i($!modes,0),DYNAMIC_CHAIN),
                                             nqp::stmts(
                                                 ($!ctx := nqp::ctxcallerskipthunks($!ctx)),
-                                                # On dynamic chains if the topmost caller is reached then if the code is
-                                                # Promise-wrapped then jump over the barrier and iterate over the
-                                                # Promise callers.
+                                                # On dynamic chains if the topmost caller is reached then if there is
+                                                # any outer context then switch over to it. This we can find dynamics
+                                                # behind Promise or await barriers.
                                                 nqp::if(
-                                                    nqp::isnull($!ctx) && !nqp::isnull($!promise-ctx),
+                                                    nqp::isnull($!ctx) && !nqp::isnull($!outer-ctx),
                                                     nqp::stmts(
-                                                        ($!ctx := $!promise-ctx),
-                                                        (self.promise-ctx($!ctx))
+                                                        ($!ctx := $!outer-ctx),
+                                                        (self.outer-ctx($!ctx))
                                                     )
                                                 ),
                                             )
@@ -445,7 +445,7 @@ my class PseudoStash is Map {
         )
     }
 
-    my sub lookup-with-Promise(Mu \ctx, \name) is raw {
+    my sub dyn-lookup-with-outers(Mu \ctx, \name) is raw {
         my Mu $sym := nqp::null();
         my Mu $cur-ctx := ctx;
         nqp::until(
@@ -453,12 +453,12 @@ my class PseudoStash is Map {
             nqp::stmts(
                 ($sym := nqp::getlexreldyn($cur-ctx, name)),
                 nqp::ifnull($sym,
-                    ($cur-ctx := nqp::unless(
+                    ($cur-ctx := nqp::if(
                         nqp::isnull(my $promise := nqp::getlexreldyn($cur-ctx, '$*PROMISE')),
-                        nqp::getattr($promise, Promise, '$!dynamic_context'),
-                        nqp::null()
-                    ))
-                )
+                        nqp::getlexreldyn($cur-ctx, '$*CONTINUATION-OUTER-CTX'),
+                        nqp::getattr($promise, Promise, '$!dynamic_context')
+                    )),
+                ),
             )
         );
         $sym
@@ -478,7 +478,7 @@ my class PseudoStash is Map {
                   $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
                 ) && nqp::iseq_i(nqp::ord(name, 1), 42),  # "*"
                 nqp::ifnull(
-                    lookup-with-Promise(nqp::getattr(self, PseudoStash, '$!ctx'), name),
+                    dyn-lookup-with-outers(nqp::getattr(self, PseudoStash, '$!ctx'), name),
                     nqp::unless(
                         GLOBAL.WHO.EXISTS-KEY(name4PROCESS(name)),
                         PROCESS.WHO.EXISTS-KEY(name4PROCESS(name))

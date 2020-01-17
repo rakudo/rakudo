@@ -547,13 +547,12 @@ my class Parameter { # declared in BOOTSTRAP
 
     multi method raku(Parameter:D: Mu:U :$elide-type = Any) {
         my $perl = '';
-        my $rest = '';
-        my $type = $!nominal_type.^name;
+        $perl ~= "::$_ " for @.type_captures;
+
+        my $modifier = $.modifier;
+        my $type     = $!nominal_type.^name;
         $type = $!coerce_type.^name ~ "($type)"
           unless nqp::isnull($!coerce_type);
-        my $modifier = self.modifier;
-
-        $perl ~= "::$_ " for @($.type_captures);
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $!flags +& $SIG_ELEM_CODE_SIGIL {
@@ -564,61 +563,47 @@ my class Parameter { # declared in BOOTSTRAP
                 !nqp::eqaddr($!nominal_type, nqp::decont($elide-type)) {
             $perl ~= $type ~ $modifier;
         }
-        my $name = $.name;
-        if $name {
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $name = '|' ~ $name;
-            } elsif $!flags +& $SIG_ELEM_IS_RAW {
-                $name = '\\' ~ $name without '@$%&'.index(substr($name,0,1));
-            }
+
+        my $prefix     = $.prefix;
+        my $sigil      = $.sigil;
+        my $twigil     = $.twigil;
+        my $usage-name = $.usage-name // '';
+        my $name       = '';
+        if $prefix eq '+' && $sigil eq '\\' {
+            # We don't want \ to end up in the name of slurpy parameters, but
+            # we still need to know whether or not they have this sigil later.
+            $name ~= $prefix ~ $usage-name;
         } else {
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $name = '|';
-            } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
-                $name = '@';
-            } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
-                $name = '%';
-            } elsif $!flags +& $SIG_ELEM_CODE_SIGIL {
-                $name = '&';
-            } else {
-                $name = '$';
-            }
+            $name ~= $prefix ~ $sigil ~ $twigil ~ $usage-name;
         }
-        my $default = self.default();
-        if self.slurpy {
-            $name = $!flags +& $SIG_ELEM_SLURPY_ONEARG
-              ?? '+' ~ ($name.starts-with('\\') ?? $name.substr(1) !! $name)
-              !! $!flags +& $SIG_ELEM_SLURPY_LOL
-                ?? '**' ~ $name
-                !! '*' ~ $name;
-        } elsif self.named {
-            my $name1 := substr($name,1);
-            if @(self.named_names).first({$_ && $_ eq $name1}) {
-                $name = ':' ~ $name;
-            }
-            for @(self.named_names).grep({$_ && $_ ne $name1}) {
-                $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
-            }
-            $name ~= '!' unless self.optional;
-        } elsif self.optional
-          && !$default
-          && not $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
-            $name ~= '?';
+        if $.named {
+            my $var-is-named = False;
+            my @outer-names  = gather for @.named_names {
+                if !$var-is-named && $_ eq $usage-name {
+                    $var-is-named = True;
+                } else {
+                    .take;
+                }
+            };
+            $name = ":$name" if $var-is-named;
+            $name = ":$_\($name)" for @outer-names;
         }
+        $name ~= $.suffix;
+        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
+
+        my $rest = '';
         if $!flags +& $SIG_ELEM_IS_RW {
             $rest ~= ' is rw';
         } elsif $!flags +& $SIG_ELEM_IS_COPY {
             $rest ~= ' is copy';
         }
-        if $!flags +& $SIG_ELEM_IS_RAW {
+        if $!flags +& $SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
-            $rest ~= ' is raw' without '|\\+'.index($name.substr(0,1));
+            $rest ~= ' is raw';
         }
         unless nqp::isnull($!sub_signature) {
-            my $sig = $!sub_signature.raku();
-            $sig ~~ s/^^ ':'//;
-            $rest ~= ' ' ~ $sig;
+            $rest ~= ' ' ~ $!sub_signature.raku.substr: 1;
         }
         unless nqp::isnull(@!post_constraints) {
             # it's a Cool constant
@@ -634,16 +619,15 @@ my class Parameter { # declared in BOOTSTRAP
 
             $rest ~= ' where { ... }';
         }
-        if $default {
+        if $.default {
             $rest ~= " = $!default_value.raku()";
         }
         elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
             $rest ~= " = OUTER::<$name>";
         }
-        if $name or $rest {
-            $perl ~= ($perl ?? ' ' !! '') ~ $name;
-        }
-        $perl ~ $rest;
+        $perl ~= $rest if $rest;
+
+        $perl
     }
 
     method sub_signature(Parameter:D:) {

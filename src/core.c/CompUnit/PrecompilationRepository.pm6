@@ -70,7 +70,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$unit") }
 #?if !jvm
         my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
-        $unit.close;
 #?endif
 #?if jvm
         my $handle := CompUnit::Loader.load-precompilation($unit.bytecode);
@@ -150,6 +149,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 unless %loaded{$dependency-precomp.id}:exists {
                     %loaded{$dependency-precomp.id} = self!load-handle-for-path($dependency-precomp);
                 }
+                $dependency-precomp.close;
             }
         }
 
@@ -195,9 +195,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 and (not $source or ($checksum //= nqp::sha1($source.slurp(:enc<iso-8859-1>))) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
+                my $checksum = $unit.checksum;
                 my \loaded = self!load-handle-for-path($unit);
+                $unit.close;
                 $loaded-lock.protect: { %loaded{$id} = loaded };
-                return (loaded, $unit.checksum);
+                return (loaded, $checksum);
             }
             else {
                 $RMD("Outdated precompiled {$unit}{$source ?? " for $source" !! ''}\n"

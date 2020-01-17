@@ -283,6 +283,28 @@ my class Parameter { # declared in BOOTSTRAP
                 ?? '*'
                 !! ''
     }
+
+    method prefix(Parameter:D: --> Str:D) {
+        nqp::bitand_i($!flags, nqp::bitor_i($SIG_ELEM_SLURPY_POS, $SIG_ELEM_SLURPY_NAMED))
+          ?? '*'
+          !! nqp::bitand_i($!flags, $SIG_ELEM_SLURPY_LOL)
+            ?? '**'
+            !! nqp::bitand_i($!flags, $SIG_ELEM_SLURPY_ONEARG)
+              ?? '+'
+              !! ''
+    }
+
+    method suffix(Parameter:D: --> Str:D) {
+        nqp::isnull(@!named_names)
+          ?? nqp::bitand_i($!flags, $SIG_ELEM_IS_OPTIONAL)
+          && nqp::not_i(nqp::bitand_i($!flags, $SIG_ELEM_HAS_DEFAULT))
+            ?? '?'
+            !! ''
+          !! nqp::bitand_i($!flags, nqp::bitor_i($SIG_ELEM_IS_OPTIONAL, $SIG_ELEM_HAS_DEFAULT))
+             ?? ''
+             !! '!'
+    }
+
     method modifier() {
         nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY)
           ?? ':D'

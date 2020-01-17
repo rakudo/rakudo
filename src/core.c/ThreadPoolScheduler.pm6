@@ -60,6 +60,9 @@ my class ThreadPoolScheduler does Scheduler {
                 my $success;
                 my $result;
                 nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
+                    # To preserve the ability of resolving dynamic symbols, we need to preserve the outer context to be
+                    # able to trace up its call stack for dynamic symbol lookup.
+                    my $*CONTINUATION-OUTER-CTX := nqp::ctxouterskipthunks(nqp::ctx());
                     $handle.subscribe-awaiter(-> \success, \result {
                         $success := success;
                         $result := result;

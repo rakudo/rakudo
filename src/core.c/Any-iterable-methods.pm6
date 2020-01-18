@@ -1529,9 +1529,9 @@ Consider using a block if any of these are necessary for your mapping code."
         )
     }
 
-    method collate {
-        self.sort(&[coll]);
-    }
+    proto method collate(|) {*}
+    multi method collate() { self.sort(&[coll]) }
+
     sub find-reducer-for-op(&op) {
         nqp::if(
           nqp::iseq_s(&op.prec("prec"),"f="),

@@ -586,6 +586,7 @@
     method reverse(Supply:D:)        { self.grab( {.reverse} ) }
     multi method sort(Supply:D:)     { self.grab( {.sort} ) }
     multi method sort(Supply:D: &by) { self.grab( {.sort(&by)} ) }
+    multi method collate(Supply:D:)  { self.grab( {.collate} ) }
 
     method zip(**@s, :&with) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method

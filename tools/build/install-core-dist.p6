@@ -12,6 +12,7 @@ my %provides =
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
     "Telemetry"                     => "lib/Telemetry.rakumod",
     "snapper"                       => "lib/snapper.rakumod",
+    "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
 ;
 
 %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod"

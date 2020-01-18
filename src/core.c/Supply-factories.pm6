@@ -692,4 +692,26 @@
         }
     }
 
+    # decode chunks with the given encoding
+    method decode(Supply:D: $encoding = "utf8") {
+        supply {
+            my str $str;
+            whenever self -> \val {
+                my str $decoded = nqp::concat($str,val.decode($encoding));
+                if nqp::chars($decoded) > 1 {
+                    emit nqp::box_s(
+                      nqp::substr($decoded,0,nqp::chars($decoded) - 1),
+                      Str
+                    );
+                    $str = nqp::substr($decoded,nqp::chars($decoded) - 1);
+                }
+                else  {
+                    $str = $decoded;
+                }
+
+                LAST { emit nqp::box_s($str,Str) if nqp::chars($str) }
+            }
+        }
+    }
+
 # vim: ft=perl6 expandtab sw=4

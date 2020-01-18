@@ -197,31 +197,75 @@
         }
     }
 
-    method squish(Supply:D: :&as, :&with is copy) {
-        &with //= &[===];
+    multi method squish(Supply:D:) {
         supply {
             my int $first = 1;
-            my Mu $last;
-            my Mu $target;
-
-            if &as {
-                whenever self -> \val {
-                    $target = &as(val);
-                    if $first || !&with($last,$target) {
-                        $first = 0;
-                        emit(val);
-                    }
-                    $last  = $target;
+            my $last;
+            my $which;
+            whenever self -> \val {
+                if $first {
+                    emit val;
+                    $first = 0;
+                    $last := val.WHICH;
+                }
+                elsif $last ne ($which := val.WHICH) {
+                    emit val;
+                    $last := $which;
                 }
             }
-            else {
-                whenever self -> \val {
-                    if $first || !&with($last, val) {
-                        $first = 0;
-                        emit(val);
-                    }
-                    $last = val;
+        }
+    }
+    multi method squish(Supply:D: :&as!, :&with!) {
+        supply {
+            my int $first = 1;
+            my $target;
+            my $last;
+            whenever self -> \val {
+                $target := as(val);
+                if $first {
+                    emit val;
+                    $first = 0;
                 }
+                else {
+                    emit val unless with($last, $target);
+                }
+                $last := $target;
+            }
+        }
+    }
+    multi method squish(Supply:D: :&as!) {
+        supply {
+            my int $first = 1;
+            my $target;
+            my $last;
+            my $which;
+            whenever self -> \val {
+                $target := as(val);
+                if $first {
+                    emit val;
+                    $first = 0;
+                    $last := $target.WHICH;
+                }
+                elsif $last ne ($which := $target.WHICH) {
+                    emit val;
+                    $last := $which;
+                }
+            }
+        }
+    }
+    multi method squish(Supply:D: :&with!) {
+        supply {
+            my int $first = 1;
+            my $last;
+            whenever self -> \val {
+                if $first {
+                    emit val;
+                    $first = 0;
+                }
+                elsif nqp::not_i(with($last, val)) {
+                    emit val;
+                }
+                $last := val;
             }
         }
     }

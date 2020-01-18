@@ -90,6 +90,9 @@ class CompUnit::RepositoryRegistry {
           ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
           !! nqp::getcurhllsym('$RAKUDO_HOME');
 
+        # normalize $prefix if needed since it will be used in a hash lookup
+        $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
+
         # XXX Various issues with this stuff on JVM , TEMPORARY
         my str $home;
         my str $home-spec;

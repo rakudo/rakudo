@@ -270,6 +270,75 @@
         }
     }
 
+    multi method repeated(Supply:D:) {
+        supply {
+            my int $first = 1;
+            my $last;
+            my $which;
+            whenever self -> \val {
+                if $first {
+                    $first = 0;
+                    $last := val.WHICH;
+                }
+                else {
+                    emit val if $last eq ($which := val.WHICH);
+                    $last := $which;
+                }
+            }
+        }
+    }
+    multi method repeated(Supply:D: :&as!, :&with!) {
+        supply {
+            my int $first = 1;
+            my $target;
+            my $last;
+            whenever self -> \val {
+                $target := as(val);
+                if $first {
+                    $first = 0;
+                }
+                elsif with($last, $target) {
+                    emit val
+                }
+                $last := $target;
+            }
+        }
+    }
+    multi method repeated(Supply:D: :&as!) {
+        supply {
+            my int $first = 1;
+            my $target;
+            my $last;
+            my $which;
+            whenever self -> \val {
+                $target := as(val);
+                if $first {
+                    $first = 0;
+                    $last := $target.WHICH;
+                }
+                else {
+                    emit val if $last eq ($which := $target.WHICH);
+                    $last := $which;
+                }
+            }
+        }
+    }
+    multi method repeated(Supply:D: :&with!) {
+        supply {
+            my int $first = 1;
+            my $last;
+            whenever self -> \val {
+                if $first {
+                    $first = 0;
+                }
+                elsif with($last, val) {
+                    emit val;
+                }
+                $last := val;
+            }
+        }
+    }
+
     multi method rotor(Supply:D: Int:D $batch, :$partial) {
         self.rotor(($batch,), :$partial)
     }

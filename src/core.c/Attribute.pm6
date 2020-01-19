@@ -3,6 +3,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has str $!name;
     #     has int $!rw;
     #     has int $!is_built;
+    #     has int $!is_bound;
     #     has int $!has_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
@@ -247,8 +248,15 @@ multi sub trait_mod:<is>(Attribute:D $a, :$built!) {
     if nqp::istype($built,Bool) {
         nqp::bindattr_i($a,Attribute,'$!is_built',+$built);
     }
-#    elsif nqp::istype($built,Pair) {
-#    }
+    elsif nqp::istype($built,Pair) {
+        if $built.key eq 'bind' {
+            nqp::bindattr_i($a,Attribute,'$!is_built',1);
+            nqp::bindattr_i($a,Attribute,'$!is_bound',+$built.value);
+        }
+        else {
+            die "Don't know how to handle 'is built($built.raku())' trait";
+        }
+    }
     else {
         die "Don't know how to handle 'is built($built.raku())' trait";
     }

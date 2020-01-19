@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 46;
+plan 49;
 
 compile_test_lib('05-arrays');
 
@@ -137,6 +137,25 @@ compile_test_lib('05-arrays');
     @parr[0] = 12.3e0;
     @parr[1] = 45.6e0;
     is-approx SumAFloatArray(@parr), 57.9e0, 'sum of float array';
+}
+
+# https://github.com/Raku/doc/pull/3171
+{
+    sub RememberTheString(CArray[uint8]) returns size_t is native("./05-arrays") { * }
+    sub RetrieveTheString() returns CArray[uint8] is native("./05-arrays") { * }
+
+    # Cf. https://github.com/Raku/old-issue-tracker/issues/5859
+    sub uint8ify (*@list) { @list».&{ my uint8 $ = $_ } }
+
+    my $string = "Hello\nWörld!";
+    my $array = CArray[uint8].new($string, :translate-nl);
+    my @wanted = "Hello\nWörld!\0".encode('utf8', :translate-nl).list;
+
+    # Check if argument forwarding (translate-nl) and NUL termination works
+    # on the Str constructor candidate for $array:
+    is-deeply $array.list.&uint8ify, @wanted, 'correct marshalling';
+    is RememberTheString($array), 13, 'remembered correct string';
+    is-deeply RetrieveTheString()[0 ..^ @wanted].&uint8ify, @wanted, 'same string';
 }
 
 # https://github.com/Raku/old-issue-tracker/issues/5663

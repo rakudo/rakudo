@@ -244,6 +244,10 @@ our class CArray is repr('CArray') is array_type(Pointer) {
             nqp::create(self)
         }
     }
+    multi method new(Str:D $str, :enc(:$encoding) = 'utf8', *%encode-opts) {
+        # Add NUL terminator to the encoded C string:
+        self.new($str.encode($encoding, |%encode-opts).list, 0)
+    }
 }
 
 # duplicated code from NativeCall.pm to support Pointer.deref

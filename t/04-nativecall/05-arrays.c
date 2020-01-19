@@ -87,3 +87,14 @@ DLLEXPORT float SumAFloatArray(float *floats) {
 DLLEXPORT int TakeAStructArrayWithANull(Struct **structs) {
     return structs[1] == NULL;
 }
+
+static const char *the_string;
+
+DLLEXPORT size_t RememberTheString(const char *str) {
+	the_string = str;
+	return strlen(the_string);
+}
+
+DLLEXPORT const char *RetrieveTheString() {
+	return the_string;
+}

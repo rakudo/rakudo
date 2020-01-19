@@ -288,7 +288,13 @@
                     tap($t);
                 },
                 -> \value {
-                    $!scheduler.cue: { emit(value) }
+                    # XXX Both $*CONTINUATION-OUTER-CTX are needed to bypass over two barriers. Can it be done more
+                    # elegant? Where those barriers are coming from?
+                    my $*CONTINUATION-OUTER-CTX := nqp::ctxouterskipthunks(nqp::ctx());
+                    $!scheduler.cue: {
+                        my $*CONTINUATION-OUTER-CTX := nqp::ctxouterskipthunks(nqp::ctx());
+                        emit(value)
+                    }
                 },
                 done => -> {
                     $!scheduler.cue: { done(); self!cleanup($cleaned-up, $source-tap); }

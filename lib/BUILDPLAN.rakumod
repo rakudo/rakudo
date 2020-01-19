@@ -34,7 +34,7 @@ sub BUILDALLPLAN(\obj --> Str:D) is export {
       ~ ":\n"
       ~ (build-description(HOW(obj) eq 'role'
            ?? obj.^pun.^BUILDALLPLAN
-           !! obj.^BUILDALLPLANi
+           !! obj.^BUILDALLPLAN
          ) || "No actions found")
 }
 

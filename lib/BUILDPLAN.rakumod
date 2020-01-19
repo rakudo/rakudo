@@ -89,6 +89,8 @@ sub build-description(@plan --> Str:D) is export {
 #   10 class attr_name = touch/vivify attribute if part of mixin
 #   11 same as 0, but init to nqp::list if value absent (nqp only)
 #   12 same as 0, but init to nqp::hash if value absent (nqp only)
+#   13 same as 0 but *bind* the received value
+#   14 same as 4 but *bind* the default value
 #===================================================
 
 # description of the action of a single op
@@ -100,14 +102,25 @@ sub showop(@actions --> Str:D) {
     if $op < 0 {
         "Don't know how to handle: {@actions.raku}"
     }
-    elsif $op < 4 {
-        "nqp::getattr@ps[$op]\(obj,$type,$attr) = :\$@actions[3]"
+    elsif $op == 0 {
+        "nqp::getattr(obj,$type,$attr) = :\$@actions[3] if possible"
     }
-    elsif $op < 8 {
-        "nqp::getattr@ps[$op - 4]\(obj,$type,$attr) //= "
+    elsif $op < 4 {
+        "nqp::bindattr@ps[$op]\(obj,$type,$attr,:\$@actions[3]) if possible"
+    }
+    elsif $op == 4 {
+        "nqp::getattr(obj,$type,$attr) = "
           ~ (nqp::istype(@actions[3],Callable)
               ?? "execute-code()"
               !! @actions[3].raku)
+          ~ " if not set"
+    }
+    elsif $op < 8 {
+        "nqp::bindattr@ps[$op - 4]\(obj,$type,$attr,"
+          ~ (nqp::istype(@actions[3],Callable)
+              ?? "execute-code()"
+              !! @actions[3].raku)
+          ~ ") if not set"
     }
     elsif $op == 8 {
         my $reason = @actions[3] === 1
@@ -124,6 +137,16 @@ sub showop(@actions --> Str:D) {
     elsif $op < 13 {
         "nqp::getattr@ps[$op]\(obj,$type,$attr) //:= nqp::"
           ~ $op == 11 ?? 'list' !! 'hash'
+    }
+    elsif $op == 13 {
+        "nqp::bindattr\(obj,$type,$attr,:\$@actions[3]) if possible"
+    }
+    elsif $op == 14 {
+        "nqp::bindattr(obj,$type,$attr,"
+          ~ (nqp::istype(@actions[3],Callable)
+              ?? "execute-code()"
+              !! @actions[3].raku)
+          ~ ") if not set"
     }
     else {
         "Don't know how to handle: {@actions.raku}"

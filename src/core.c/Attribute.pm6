@@ -100,7 +100,9 @@ my class Attribute { # declared in BOOTSTRAP
                 # Get the compiler to generate us an accessor when possible.
                 elsif $compiler_services.DEFINITE {
                     $meth := $compiler_services.generate_accessor($meth_name,
-                        $dcpkg, $name, $!type, self.rw ?? 1 !! 0);
+                        $dcpkg, $name, $!type,
+                        self.rw || self.is_bound ?? 1 !! 0
+                    );
                 }
 
                 # No compiler services available, so do it as a closure.

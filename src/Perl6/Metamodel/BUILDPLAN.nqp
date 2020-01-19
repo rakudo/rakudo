@@ -26,6 +26,8 @@ role Perl6::Metamodel::BUILDPLAN {
     #   10 class attr_name = touch/vivify attribute if part of mixin
     #   11 same as 0, but init to nqp::list if value absent (nqp only)
     #   12 same as 0, but init to nqp::hash if value absent (nqp only)
+    #   13 same as 0 but *bind* the received value
+    #   14 same as 4 but *bind* the default value
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
@@ -41,7 +43,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 my $ci := $_.container_initializer;
                 if nqp::isconcrete($ci) {
 
-                    # GH #1226
+                    # https://github.com/rakudo/rakudo/issues/1226
                     if nqp::can($_, 'build') {
                         my $default := $_.build;
                         if nqp::isconcrete($default) {
@@ -101,7 +103,7 @@ role Perl6::Metamodel::BUILDPLAN {
 
                 if $_.is_built {
                     nqp::push(@plan,[
-                      0 + $primspec,
+                      ($primspec || !$_.is_bound ?? 0 + $primspec !! 13),
                       $obj,
                       $_.name,
                       nqp::substr($_.name, 2)
@@ -129,7 +131,7 @@ role Perl6::Metamodel::BUILDPLAN {
 #?endif
                 if nqp::isconcrete($default) {
                     nqp::push(@plan,[
-                      4 + $primspec,
+                      ($primspec || !$_.is_bound ?? 4 + $primspec !! 14),
                       $obj,
                       $_.name,
                       $default

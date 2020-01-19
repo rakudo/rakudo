@@ -290,6 +290,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
+
                           nqp::if(
                             nqp::iseq_i($code,11),
                             nqp::if(             # 11
@@ -302,6 +303,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                                 nqp::list
                               )
                             ),
+
                             nqp::if(
                               nqp::iseq_i($code,12),
                               nqp::if(           # 12
@@ -314,13 +316,44 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                                   nqp::hash
                                 )
                               ),
-                              die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
-                  ))))))))),
+
+                              nqp::if(
+                                nqp::iseq_i($code,13),
+                                nqp::if(         # 13
+                                  nqp::existskey($init,nqp::atpos($task,3)),
+                                  nqp::bindattr(self,
+                                    nqp::atpos($task,1),nqp::atpos($task,2),
+                                    %attrinit.AT-KEY(nqp::atpos($task,3)))
+                                ),
+
+                                nqp::if(
+                                  nqp::iseq_i($code,14),
+                                  nqp::unless(   # 14
+                                    nqp::attrinited(self,
+                                      nqp::atpos($task,1),
+                                      nqp::atpos($task,2)
+                                    ),
+                                    nqp::bindattr(self,
+                                      nqp::atpos($task,1),
+                                      nqp::atpos($task,2),
+                                      nqp::if(
+                                        nqp::istype(nqp::atpos($task,3),Block),
+                                        nqp::atpos($task,3)(self,
+                                          nqp::getattr(self,
+                                            nqp::atpos($task,1),
+                                            nqp::atpos($task,2)
+                                          )),
+                                        nqp::atpos($task,3)
+                                      )
+                                    )
+                                  ),
+                                  die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
+                  ))))))))))),
 
                   nqp::if(                       # 0
                     nqp::existskey($init,nqp::atpos($task,3)),
                     (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
-                      = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                      = %attrinit.AT-KEY(nqp::atpos($task,3)))
                   )
                 )
               )
@@ -477,6 +510,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
+
                           nqp::if(
                             nqp::iseq_i($code,10),
                             # Force vivification, for the sake of meta-object
@@ -498,6 +532,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                               ),
                               ($i = nqp::sub_i($i,1))
                             ),
+
                             nqp::if(
                               nqp::iseq_i($code,11),
                               nqp::if(           # 11
@@ -510,6 +545,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                                   nqp::list
                                 )
                               ),
+
                               nqp::if(
                                 nqp::iseq_i($code,12),
                                 nqp::if(         # 12
@@ -522,8 +558,39 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                                     nqp::hash
                                   )
                                 ),
-                                die('Invalid ' ~ self.^name ~ ".BUILD_LEAST_DERIVED plan: $code"),
-              )))))))))),
+
+                                nqp::if(
+                                  nqp::iseq_i($code,13),
+                                  nqp::if(       # 13
+                                    nqp::existskey($init,nqp::atpos($task,3)),
+                                    nqp::bindattr(self,
+                                      nqp::atpos($task,1),nqp::atpos($task,2),
+                                      %attrinit.AT-KEY(nqp::atpos($task,3))),
+                                  ),
+
+                                  nqp::if(
+                                    nqp::iseq_i($code,14),
+                                    nqp::unless( # 14
+                                      nqp::attrinited(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      ),
+                                      nqp::bindattr(self,
+                                        nqp::atpos($task,1),nqp::atpos($task,2),
+                                        nqp::if(
+                                          nqp::istype(
+                                            nqp::atpos($task,3),Block),
+                                          nqp::atpos($task,3)(self,
+                                            nqp::getattr(self,
+                                            nqp::atpos($task,1),
+                                            nqp::atpos($task,2)
+                                          )),
+                                          nqp::atpos($task,3)
+                                        )
+                                      )
+                                    ),
+                                    die('Invalid ' ~ self.^name ~ ".BUILD_LEAST_DERIVED plan: $code"),
+              )))))))))))),
 
               nqp::if(                           # 0
                 nqp::existskey($init,nqp::atpos($task,3)),

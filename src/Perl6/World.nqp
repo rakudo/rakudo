@@ -3557,8 +3557,8 @@ class Perl6::World is HLL::World {
                           QAST::SVal.new( :value(nqp::atpos($task,2)) );
 
                         my int $code := nqp::atpos($task,0);
-                        # 0,11,12 = initialize opaque from %init
-                        if $code == 0 || $code == 11 || $code == 12 {
+                        # 0,11,12,13 = initialize opaque from %init
+                        if $code == 0 || $code == 11 || $code == 12 || $code == 13 {
 
 # 'a'
                             my $key :=
@@ -3599,6 +3599,17 @@ class Perl6::World is HLL::World {
                                 );
                             }
 
+# nqp::bindattr(self,Foo,'$!a',tmp)
+                            elsif $code == 13 {
+                                $if.push(
+                                  QAST::Op.new(
+                                    :op('bindattr'),
+                                    $self, $class, $attr,
+                                    QAST::Var.new( :name($tmp), :scope<local> )
+                                  )
+                                );
+                            }
+
 # nqp::getattr(self,Foo,'$!a') = tmp
                             else {
                                 $if.push(
@@ -3614,7 +3625,7 @@ class Perl6::World is HLL::World {
 
                             # 11,12
 # bindattr(self,Foo,'$!a',nqp::list|hash)
-                            if $code {
+                            if $code == 11 || $code == 12 {
                                 $if.push(
                                   QAST::Op.new(:op<bindattr>,
                                     $self, $class, $attr,
@@ -3656,7 +3667,7 @@ class Perl6::World is HLL::World {
                         }
 
                         # 4 = set opaque with default if not set yet
-                        elsif $code == 4 {
+                        elsif $code == 4 || $code == 14 {
 
 # nqp::unless(
 #   nqp::attrinited(self,Foo,'$!a'),
@@ -3694,6 +3705,17 @@ class Perl6::World is HLL::World {
                                     )
                                   )
                                 );
+                            }
+
+                            elsif $code == 14 {
+# (nqp::bindattr(self,Foo,'$!a',$code(self,nqp::getattr(self,Foo,'$!a'))))
+                                $unless.push(
+                                  QAST::Op.new(
+                                    :op('bindattr'),
+                                    $self, $class, $attr,
+                                    $initializer
+                                  )
+                                )
                             }
 
                             else {

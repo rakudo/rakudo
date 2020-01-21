@@ -1,5 +1,6 @@
-my class Range  { ... }
-my class Match  { ... }
+my class Range   { ... }
+my class Match   { ... }
+my class Version { ... }
 my class X::Cannot::Capture      { ... }
 my class X::Str::InvalidCharName { ... }
 my class X::Str::Numeric  { ... }
@@ -96,6 +97,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             )
         )
     }
+    method Version(Str:D: --> Version:D) { Version.new(self) }
 
     multi method ACCEPTS(Str:D: Str:D \other --> Bool:D) {
         nqp::hllbool(nqp::iseq_s(nqp::unbox_s(other),$!value));

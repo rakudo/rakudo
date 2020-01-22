@@ -23,6 +23,9 @@ class Distro does Systemic {
         $!version = Version.new($version);
         $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
     }
+
+    # This is a temporary migration method needed for installation
+    method cur-sep() { "," }
 }
 
 sub INITIALIZE-A-DISTRO-NOW() {

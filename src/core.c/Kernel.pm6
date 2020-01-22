@@ -9,9 +9,16 @@ class Kernel does Systemic {
     has Str $!arch;
     has Int $!bits;
 
+#?if !jvm
+    has $!uname;
+    method !uname {
+        $!uname ?? $!uname !! ($!uname := nqp::uname())
+    }
+#?endif
+
     method !uname-s {
 #?if !jvm
-        nqp::atpos_s(nqp::uname(), nqp::const::UNAME_SYSNAME)
+        nqp::atpos_s(self!uname, nqp::const::UNAME_SYSNAME)
 #?endif
 #?if jvm
         try shell('uname -s', :out, :!err).out.slurp(:close).chomp;
@@ -20,7 +27,7 @@ class Kernel does Systemic {
 
     method !uname-r {
 #?if !jvm
-        nqp::atpos_s(nqp::uname(), nqp::const::UNAME_RELEASE)
+        nqp::atpos_s(self!uname, nqp::const::UNAME_RELEASE)
 #?endif
 #?if jvm
         try shell('uname -r', :out, :!err).out.slurp(:close).chomp;
@@ -29,7 +36,7 @@ class Kernel does Systemic {
 
     method !uname-v {
 #?if !jvm
-        nqp::atpos_s(nqp::uname(), nqp::const::UNAME_VERSION)
+        nqp::atpos_s(self!uname, nqp::const::UNAME_VERSION)
 #?endif
 #?if jvm
         try shell('uname -v', :out, :!err).out.slurp(:close).chomp;
@@ -38,7 +45,7 @@ class Kernel does Systemic {
 
     method !uname-m {
 #?if !jvm
-        nqp::atpos_s(nqp::uname(), nqp::const::UNAME_MACHINE)
+        nqp::atpos_s(self!uname, nqp::const::UNAME_MACHINE)
 #?endif
 #?if jvm
         try shell('uname -m', :out, :!err).out.slurp(:close).chomp;

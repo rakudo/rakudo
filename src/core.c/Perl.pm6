@@ -1,13 +1,12 @@
 class Perl does Systemic {
-    has Compiler $.compiler;
+    has Compiler $.compiler is built(:bind) = Compiler.new;
 
-    submethod BUILD(
-      :$!name      = 'Perl 6',
-      :$!auth      = "The Perl Foundation",
-      :$!version   = Version.new(nqp::p6box_s(nqp::getcomp('perl6').language_version())),
-      :$!compiler  = Compiler.new,
-      --> Nil
-    ) { }
+    submethod TWEAK(--> Nil) {
+        # https://github.com/rakudo/rakudo/issues/3436
+        nqp::bind($!name,'Perl 6');
+        nqp::bind($!auth,'The Perl Foundation');
+        nqp::bind($!version,nqp::getcomp('perl6').language_version.Version);
+    }
 
     method VMnames { <moar jvm js> }
 

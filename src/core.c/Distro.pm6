@@ -4,24 +4,15 @@
 # with the values that you expected and how to get them in your situation.
 
 class Distro does Systemic {
-    has Str $.release;
-    has Bool $.is-win;
-    has Str $.path-sep;
+    has Str $.release  is built(:bind);
+    has Bool $.is-win  is built(False);
+    has Str $.path-sep is built(:bind);
 
-    submethod BUILD (
-      :$name,
-      :$version,
-      :$!release,
-      :$!auth,
-      :$!path-sep,
-      :$!signature  = Blob,
-      :$!desc = Str
-      --> Nil
-    ) {
-        $!name = $name.lc;    # lowercase
-        $!name ~~ s:g/" "//;  # spaceless
-        $!version = Version.new($version);
-        $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
+    submethod TWEAK (--> Nil) {
+        # https://github.com/rakudo/rakudo/issues/3436
+        nqp::bind($!name,$!name.lc.trans(" " => ""));  # lowercase spaceless
+        nqp::bind($!version,$!version.Version);
+        $!is-win := so $!name eq any <mswin32 mingw msys cygwin>;
     }
 
     # This is a temporary migration method needed for installation
@@ -30,13 +21,13 @@ class Distro does Systemic {
 
 sub INITIALIZE-A-DISTRO-NOW() {
 #?if jvm
-    my $properties := INITIALIZE-A-VM-NOW.properties;
+    my $properties := VM.new.properties;
     my $name       := $properties<os.name>;
     my $version    := $properties<os.version>;
     my $path-sep   := $properties<path.separator>;
 #?endif
 #?if !jvm
-    my $config   := INITIALIZE-A-VM-NOW.config;
+    my $config   := VM.new.config;
     my $name     := $config<osname>;
     my $version  := $config<osvers>;
     my $path-sep := $name eq 'MSWin32' ?? ';' !! ':';

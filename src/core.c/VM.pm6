@@ -5,52 +5,76 @@ my constant $?COMPILATION-ID :=
   )));
 
 class VM does Systemic {
-    has $.config;
-#?if jvm
-    has $.properties;
-#?endif
-    has $.prefix;
-    has $.precomp-ext;
-    has $.precomp-target;
-
-    submethod BUILD(
-      :$!config,
-      :$desc,
-#?if jvm
-      :$!properties,
-#?endif
-      --> Nil
-    ) {
 #?if moar
-        $!name           = 'moar';
-        $!desc           = $desc // 'Short for "Metamodel On A Runtime", MoarVM is a modern virtual machine built for the Rakudo compiler and the NQP Compiler Toolchain.';
-        $!auth           = "The MoarVM Team";
-        $!version        = Version.new($!config<version> // "unknown");
-        $!prefix         = $!config<prefix>;
-        $!precomp-ext    = "moarvm";
-        $!precomp-target = "mbc";
+    has $.config         is built(:bind) = nqp::backendconfig;
+    has $.prefix         is built(:bind) = $!config<prefix>;
+    has $.precomp-ext    is built(:bind) = "moarvm";
+    has $.precomp-target is built(:bind) = "mbc";
 #?endif
 #?if jvm
-        $!name           = 'jvm';
-        $!desc           = $desc // 'The Java Virtual Machine';
-        $!auth           = $!properties<java.vendor> // "unknown";
-        $!version        = Version.new($!properties<java.specification.version> // "unknown");
-        $!prefix         = $!properties<perl6.prefix>;
-        $!precomp-ext    = "jar";
-        $!precomp-target = "jar";
-        $!config<os.name> = $!properties<os.name> // "unknown";
+    has $.config         is built(:bind) = default-JVM-config;
+    has $.properties     is built(:bind) = default-JVM-properties;
+    has $.prefix         is built(:bind) = $!properties<perl6.prefix>;
+    has $.precomp-ext    is built(:bind) = "jar";
+    has $.precomp-target is built(:bind) = "jar";
 #?endif
 #?if js
-        $!name           = 'js';
-        $!desc           = $desc // 'JavaScript';
-        $!auth           = "unknown";
-        $!version        = Version.new("unknown");
-        $!prefix         = 'todo-prefix';
-        $!precomp-ext    = "js";
-        $!precomp-target = "js";
+    has $.config         is built(:bind) = nqp::backendconfig;
+    has $.prefix         is built(:bind) = 'todo-prefix';
+    has $.precomp-ext    is built(:bind) = "js";
+    has $.precomp-target is built(:bind) = "js";
+#?endif
+
+    submethod TWEAK(--> Nil) {
+#?if moar
+        # https://github.com/rakudo/rakudo/issues/3436
+        nqp::bind($!name,'moar');
+        nqp::bind($!desc,'Short for "Metamodel On A Runtime", MoarVM is a modern virtual machine built for the Rakudo compiler and the NQP Compiler Toolchain.');
+        nqp::bind($!auth,'The MoarVM Team');
+        nqp::bind($!version,Version.new($!config<version> // "unknown"));
+#?endif
+#?if jvm
+        # https://github.com/rakudo/rakudo/issues/3436
+        nqp::bind($!name,'jvm');
+        nqp::bind($!desc,'The Java Virtual Machine');
+        nqp::bind($!auth,$!properties<java.vendor> // 'unknown');
+        nqp::bind($!version,Version.new($!properties<java.specification.version> // "unknown"));
+        $!config<os.name> := $!properties<os.name> // 'unknown');
+#?endif
+#?if js
+        # https://github.com/rakudo/rakudo/issues/3436
+        nqp::bind($!name,'js');
+        nqp::bind($!desc,'JavaScript');
+        nqp::bind($!auth,'unknown');
+        nqp::bind($!version,Version.new($!config<version> // 'unknown'));
 #?endif
 # add new backends here please
     }
+
+#?if jvm
+    sub default-JVM-config(--> Hash) {
+        my %CONFIG;
+        my $jenv := nqp::backendconfig();
+        my Mu $enviter := nqp::iterator($jenv);
+        my $key;
+        while $enviter {
+            $key = nqp::p6box_s(nqp::iterkey_s(nqp::shift($enviter)));
+            %CONFIG{$key} = nqp::p6box_s(nqp::iterval($enviter));
+        }
+        %CONFIG;
+    }
+    sub default-JVM-properties(--> Hash) {
+        my %PROPS;
+        my $jenv := nqp::jvmgetproperties();
+        my Mu $enviter := nqp::iterator($jenv);
+        my $key;
+        while $enviter {
+            $key = nqp::p6box_s(nqp::iterkey_s(nqp::shift($enviter)));
+            %PROPS{$key} = nqp::p6box_s(nqp::iterval($enviter));
+        }
+        %PROPS;
+    }
+#?endif
 
     method platform-library-name(IO::Path $library, Version :$version) {
         my int $is-win = Rakudo::Internals.IS-WIN;
@@ -100,39 +124,8 @@ class VM does Systemic {
     }
 }
 
-sub INITIALIZE-A-VM-NOW() {
-#?if !jvm
-    VM.new(:config(nqp::backendconfig));
-#?endif
-#?if jvm
-    my $config := do {
-        my %CONFIG;
-        my $jenv := nqp::backendconfig();
-        my Mu $enviter := nqp::iterator($jenv);
-        my $key;
-        while $enviter {
-            $key = nqp::p6box_s(nqp::iterkey_s(nqp::shift($enviter)));
-            %CONFIG{$key} = nqp::p6box_s(nqp::iterval($enviter));
-        }
-        %CONFIG;
-    }
-    my $properties := do {
-        my %PROPS;
-        my $jenv := nqp::jvmgetproperties();
-        my Mu $enviter := nqp::iterator($jenv);
-        my $key;
-        while $enviter {
-            $key = nqp::p6box_s(nqp::iterkey_s(nqp::shift($enviter)));
-            %PROPS{$key} = nqp::p6box_s(nqp::iterval($enviter));
-        }
-        %PROPS;
-    }
-    VM.new(:$config,:$properties);
-#?endif
-}
-
 Rakudo::Internals.REGISTER-DYNAMIC: '$*VM', {
-    PROCESS::<$VM> := INITIALIZE-A-VM-NOW();
+    PROCESS::<$VM> := VM.new;
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -71,8 +71,6 @@ class Kernel does Systemic {
     }
 
     method version(--> Version:D) {
-        # it doesn't make sense to return a Version object here, but its currently enforced by roast
-        # TODO: remove Version checks from roast? and check ecosystem for fallout.
         $!version
           ?? $!version
           # https://github.com/rakudo/rakudo/issues/3436

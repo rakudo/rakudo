@@ -596,9 +596,11 @@ sub dd(|) {
             my $var  := nqp::shift($args);
             my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
             my $type := $var.WHAT.^name.split("::").tail;
-            my $what := nqp::can($var,'perl')
+            my $what := nqp::can($var,'raku')
               ?? $var.raku
-              !! "($var.^name() without .raku method)";
+              !! nqp::can($var,'perl')
+                ?? $var.perl
+                !! "($var.^name() without .raku or .perl method)";
             note $name ?? "$type $name = $what" !! $what;
         }
     }

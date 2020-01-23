@@ -1611,7 +1611,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$|',    "the filehandle's .out-buffer attribute",
       '$?',    '$! for handling child errors also',
       '$@',    '$!',
-      '$]',    '$*PERL.version or $*PERL.compiler.version',
+      '$]',    '$*RAKU.version or $*RAKU.compiler.version',
 
       '$^C',   'COMPILING namespace',
       '$^H',   '$?FOO variables',
@@ -1620,7 +1620,7 @@ my class X::Syntax::Perl5Var does X::Syntax {
       '$^R',   'an explicit result variable',
       '$^S',   'context function',
       '$^T',   '$*INIT-INSTANT',
-      '$^V',   '$*PERL.version or $*PERL.compiler.version',
+      '$^V',   '$*RAKU.version or $*RAKU.compiler.version',
       '$^X',   '$*EXECUTABLE-NAME',
 
       '@-',    '.from method',

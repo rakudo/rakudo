@@ -261,7 +261,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
 
-            my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
+            my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
             for %provides.sort {
                 my $id = CompUnit::PrecompilationId.new-without-check($_.value.values[0]<file>);
                 $precomp.store.delete($compiler-id, $id);

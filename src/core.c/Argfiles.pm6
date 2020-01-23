@@ -10,10 +10,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*ARGFILES', {
     # time the user may have already modified $*IN's attributes to their liking
     PROCESS::<$ARGFILES> = @*ARGS
       ?? IO::ArgFiles.new(@*ARGS)
-      !! IO::ArgFiles.new:
-          (my $in := $*IN),
-          :nl-in($in.nl-in), :chomp($in.chomp), :encoding($in.encoding),
-          :bin(nqp::hllbool(nqp::isfalse($in.encoding)));
+      !! $*IN
 }
 
 # vim: ft=perl6 expandtab sw=4

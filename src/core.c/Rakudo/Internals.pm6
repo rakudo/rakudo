@@ -940,22 +940,19 @@ implementation detail and has no serviceable parts inside"
     }
     method INITIALIZE-DYNAMIC(str \name) is raw {
 #nqp::say('Initializing ' ~ name);
-        nqp::stmts(
-          (my str $with = nqp::concat(
-            nqp::getcomp('perl6').language_version, nqp::concat("\0", name))),
-          nqp::if(
-            nqp::existskey(
-              nqp::unless($initializers,$initializers := nqp::hash),
-              $with
-            ),
-            nqp::atkey($initializers,$with)(),
-            nqp::if(
-              nqp::existskey($initializers,name),
-              nqp::atkey($initializers,name)(),
-              Failure.new(X::Dynamic::NotFound.new(:name(name)))
+        nqp::ifnull(
+          nqp::atkey(
+            $initializers,
+            nqp::concat(
+              nqp::getcomp('perl6').language_version,
+              nqp::concat("\0",name)
             )
+          ),
+          nqp::ifnull(
+            nqp::atkey($initializers,name),
+            { Failure.new(X::Dynamic::NotFound.new(:name(name))) }
           )
-        )
+        )();
     }
 
     method EXPAND-LITERAL-RANGE(Str:D \x,$list) {

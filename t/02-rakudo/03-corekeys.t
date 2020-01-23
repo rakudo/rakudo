@@ -625,6 +625,7 @@ my @allowed =
       Q{QuantHash},
       Q{REPL},
       Q{RaceSeq},
+      Q{Raku},
       Q{Rakudo},
       Q{Range},
       Q{Rat},

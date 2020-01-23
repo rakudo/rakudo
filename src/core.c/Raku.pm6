@@ -1,9 +1,9 @@
-class Perl does Systemic {
+class Raku does Systemic {
     has Compiler $.compiler is built(:bind) = Compiler.new;
 
     submethod TWEAK(--> Nil) {
         # https://github.com/rakudo/rakudo/issues/3436
-        nqp::bind($!name,'Perl 6');
+        nqp::bind($!name,'Raku');
         nqp::bind($!auth,'The Perl Foundation');
         nqp::bind($!version,nqp::getcomp('perl6').language_version.Version);
     }
@@ -24,5 +24,7 @@ class Perl does Systemic {
         }
     }
 }
+
+class Perl is Raku { }  # indeed :-)
 
 # vim: ft=perl6 expandtab sw=4

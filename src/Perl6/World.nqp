@@ -4115,12 +4115,30 @@ class Perl6::World is HLL::World {
         })
     }
 
+    # Set up lookup for newbie type errors in typenames
+    my $newbies := nqp::hash(
+      'Integer',   ('Int',),
+      'integer',   ('Int','int'),
+      'Float',     ('Num',),
+      'float',     ('Num','num'),
+      'Number',    ('Num',),
+      'number',    ('Num','num'),
+      'String',    ('Str',),
+      'string',    ('Str','str'),
+    );
+
     method suggest_typename($name) {
         my %seen;
         %seen{$name} := 1;
         my @candidates := [[], [], []];
         my &inner-evaluator := make_levenshtein_evaluator($name, @candidates);
         my @suggestions;
+
+        if nqp::atkey($newbies,$name) -> @alternates {
+            for @alternates {
+                nqp::push(@suggestions,$_);
+            }
+        }
 
         sub evaluator($name, $object, $has_object, $hash) {
             # only care about type objects

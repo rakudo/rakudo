@@ -316,7 +316,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                     self,
                     Code,
                     '$!do',
-                    nqp::getattr(nqp::hllizefor($body, 'perl6'), ForeignCode, '$!do')
+                    nqp::getattr(nqp::hllizefor($body, 'Raku'), ForeignCode, '$!do')
                 );
             }
 
@@ -504,7 +504,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     }
 
     method !compile-function-body(Mu $block) {
-        my $perl6comp := nqp::getcomp("perl6");
+        my $perl6comp := nqp::getcomp("Raku");
         my @stages = $perl6comp.stages;
         Nil until @stages.shift eq 'optimize';
 

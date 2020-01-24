@@ -58,8 +58,8 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
         str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_vivify_for, "vivify_for");
-        str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "perl6");
-        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_perl6, "perl6");
+        str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "Raku");
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_perl6, "Raku");
         str_p6ex = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "P6EX");
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
         str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");

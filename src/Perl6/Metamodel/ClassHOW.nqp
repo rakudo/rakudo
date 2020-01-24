@@ -52,7 +52,7 @@ class Perl6::Metamodel::ClassHOW
         else {
             $new_type := nqp::newtype($metaclass, $repr);
         }
-        my $obj := nqp::settypehll($new_type, 'perl6');
+        my $obj := nqp::settypehll($new_type, 'Raku');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
@@ -288,7 +288,7 @@ class Perl6::Metamodel::ClassHOW
     method find_method_fallback($obj, $name) {
         # If the object is a junction, need to do a junction dispatch.
         if $obj.WHAT =:= $junction_type && $junction_autothreader {
-            my $p6name := nqp::hllizefor($name, 'perl6');
+            my $p6name := nqp::hllizefor($name, 'Raku');
             return -> *@pos_args, *%named_args {
                 $junction_autothreader($p6name, |@pos_args, |%named_args)
             };

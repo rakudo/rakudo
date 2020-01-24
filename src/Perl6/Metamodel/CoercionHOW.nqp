@@ -57,10 +57,10 @@ class Perl6::Metamodel::CoercionHOW
 }
 BEGIN {
     my $root := nqp::newtype(Perl6::Metamodel::CoercionHOW, 'Uninstantiable');
-    nqp::settypehll($root, 'perl6');
+    nqp::settypehll($root, 'Raku');
     nqp::setparameterizer($root, sub ($type, $params) {
         # Re-use same HOW.
-        nqp::settypehll(nqp::newtype($type.HOW, 'Uninstantiable'), 'perl6');
+        nqp::settypehll(nqp::newtype($type.HOW, 'Uninstantiable'), 'Raku');
     });
     (Perl6::Metamodel::CoercionHOW.WHO)<root> := $root;
 }

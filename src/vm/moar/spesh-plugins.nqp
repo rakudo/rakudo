@@ -4,7 +4,7 @@
 # Private method resolution can be specialized based on invocant type. This is
 # used for speeding up resolution of private method calls in roles; those in
 # classes can be resolved by static optimization.
-nqp::speshreg('perl6', 'privmeth', -> $obj, str $name {
+nqp::speshreg('Raku', 'privmeth', -> $obj, str $name {
     nqp::speshguardtype($obj, $obj.WHAT);
     $obj.HOW.find_private_method($obj, $name)
 });
@@ -12,7 +12,7 @@ nqp::speshreg('perl6', 'privmeth', -> $obj, str $name {
 # A resolution like `self.Foo::bar()` can have the resolution specialized. We
 # fall back to the dispatch:<::> if there is an exception that'd need to be
 # thrown.
-nqp::speshreg('perl6', 'qualmeth', -> $obj, str $name, $type {
+nqp::speshreg('Raku', 'qualmeth', -> $obj, str $name, $type {
     my $ctx := nqp::ctxcaller(nqp::ctx());
     my $caller-type := nqp::null();
     # Lookup outers of the caller and locate the first occurence of the symbols of interest
@@ -59,7 +59,7 @@ nqp::speshreg('perl6', 'qualmeth', -> $obj, str $name, $type {
 # should consider an upper limit on table size for the really polymorphic
 # things).
 sub discard-and-nil(*@pos, *%named) { Nil }
-nqp::speshreg('perl6', 'maybemeth', -> $obj, str $name {
+nqp::speshreg('Raku', 'maybemeth', -> $obj, str $name {
     nqp::speshguardtype($obj, $obj.WHAT);
     my $meth := nqp::tryfindmethod($obj, $name);
     nqp::isconcrete($meth)
@@ -105,7 +105,7 @@ sub identity($obj) { $obj }
     }
 
     sub decontrv_plugin($rv) {
-        $Iterable := nqp::gethllsym('perl6', 'Iterable') if nqp::isnull($Iterable);
+        $Iterable := nqp::gethllsym('Raku', 'Iterable') if nqp::isnull($Iterable);
         nqp::speshguardtype($rv, nqp::what_nd($rv));
         if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
             # Guard that it's concrete, so this only applies for container
@@ -146,8 +146,8 @@ sub identity($obj) { $obj }
         }
     }
 
-    nqp::speshreg('perl6', 'decontrv', &decontrv_plugin);
-    nqp::speshreg('perl6', 'decontrv_6c', -> $rv {
+    nqp::speshreg('Raku', 'decontrv', &decontrv_plugin);
+    nqp::speshreg('Raku', 'decontrv_6c', -> $rv {
         # This emulates a bug where Proxy was never decontainerized no
         # matter what. The ecosystem came to depend on that, so we will
         # accept it for now. We need to revisit this in the future.
@@ -171,7 +171,7 @@ sub identity($obj) { $obj }
     }
 
     sub return_error($got, $wanted) {
-        my %ex := nqp::gethllsym('perl6', 'P6EX');
+        my %ex := nqp::gethllsym('Raku', 'P6EX');
         if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Return') {
             nqp::die("Type check failed for return value; expected '" ~
                 $wanted.HOW.name($wanted) ~ "' but got '" ~
@@ -242,7 +242,7 @@ sub identity($obj) { $obj }
         }
     }
 
-    nqp::speshreg('perl6', 'typecheckrv', sub ($rv, $type) {
+    nqp::speshreg('Raku', 'typecheckrv', sub ($rv, $type) {
         my $orig_type := $type;
 
         # If the type is Mu or unset, then we can resolve to identity.
@@ -314,7 +314,7 @@ sub identity($obj) { $obj }
 # We case-analyze assignments and provide these optimized paths for a range of
 # common situations.
 sub assign-type-error($desc, $value) {
-    my %x := nqp::gethllsym('perl6', 'P6EX');
+    my %x := nqp::gethllsym('Raku', 'P6EX');
     if nqp::ishash(%x) {
         %x<X::TypeCheck::Assignment>($desc.name, $value, $desc.of);
     }
@@ -371,7 +371,7 @@ sub assign-scalar-bindpos($cont, $value) {
 }
 
 # Assignment to a $ sigil variable, usually Scalar.
-nqp::speshreg('perl6', 'assign', sub ($cont, $value) {
+nqp::speshreg('Raku', 'assign', sub ($cont, $value) {
     # Whatever we do, we'll guard on the type of the container and its
     # concreteness.
     nqp::speshguardtype($cont, nqp::what_nd($cont));

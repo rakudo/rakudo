@@ -287,7 +287,7 @@ my class Binder {
         my $nom_type;
         unless $got_native || ($is_rw && $desired_native) {
             # HLL-ize.
-            $oval := nqp::hllizefor($oval, 'perl6');
+            $oval := nqp::hllizefor($oval, 'Raku');
 
             # Skip nominal type check if not needed.
             unless $no_nom_type_check {
@@ -318,7 +318,7 @@ my class Binder {
                     ) ?? nqp::atpos($post, 0) !! $nom_type;
 
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('perl6', 'P6EX');
+                        my %ex := nqp::gethllsym('Raku', 'P6EX');
                         if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
                             $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
                                 "'; expected " ~ $expected.HOW.name($expected) ~
@@ -344,7 +344,7 @@ my class Binder {
                             my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
                             my $class  := $nom_type.HOW.name($nom_type);
                             my $got    := $oval.HOW.name($oval);
-                            my %ex     := nqp::gethllsym('perl6', 'P6EX');
+                            my %ex     := nqp::gethllsym('Raku', 'P6EX');
                             if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
                                 $method   := '<anon>' if nqp::isnull_s($method) || $method eq '';
                                 $error[0] := $flags +& $SIG_ELEM_INVOCANT
@@ -438,7 +438,7 @@ my class Binder {
                 }
                 else {
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('perl6', 'P6EX');
+                        my %ex := nqp::gethllsym('Raku', 'P6EX');
                         if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
                             $error[0] := "Parameter '$varname' expected a writable container, but got an " ~
                                 ~ $oval.HOW.name($oval) ~ " value";
@@ -531,7 +531,7 @@ my class Binder {
                 }
                 unless $result {
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('perl6', 'P6EX');
+                        my %ex := nqp::gethllsym('Raku', 'P6EX');
                         if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
                             $error[0] := "Constraint type check failed for parameter '$varname'";
                         } else {
@@ -1182,7 +1182,7 @@ role ContainerDescriptor::Whence {
         my $next := $!next-descriptor;
         nqp::isconcrete($next)
             ?? $next
-            !! ($!next-descriptor := nqp::gethllsym('perl6', 'default_cont_spec'))
+            !! ($!next-descriptor := nqp::gethllsym('Raku', 'default_cont_spec'))
     }
     method of() { self.next.of }
     method default() { self.next.default }
@@ -1499,35 +1499,35 @@ BEGIN {
         }));
     Attribute.HOW.add_method(Attribute, 'is_built', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!is_built'), "perl6");
+                Attribute, '$!is_built'), "Raku");
         }));
     Attribute.HOW.add_method(Attribute, 'is_bound', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!is_bound'), "perl6");
+                Attribute, '$!is_bound'), "Raku");
         }));
     Attribute.HOW.add_method(Attribute, 'has_accessor', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!has_accessor'), "perl6");
+                Attribute, '$!has_accessor'), "Raku");
         }));
     Attribute.HOW.add_method(Attribute, 'rw', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!rw'), "perl6");
+                Attribute, '$!rw'), "Raku");
         }));
     Attribute.HOW.add_method(Attribute, 'set_rw', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!rw', 1);
-            nqp::hllboolfor(1, "perl6")
+            nqp::hllboolfor(1, "Raku")
         }));
     Attribute.HOW.add_method(Attribute, 'set_readonly', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!ro', 1);
-            nqp::hllboolfor(1, "perl6")
+            nqp::hllboolfor(1, "Raku")
         }));
     Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {
             $*W.add_object_if_no_sc($value);
             nqp::bindattr(nqp::decont($self),
                 Attribute, '$!required', $value);
-            nqp::hllboolfor(1, "perl6")
+            nqp::hllboolfor(1, "Raku")
         }));
     Attribute.HOW.add_method(Attribute, 'required', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
@@ -1538,7 +1538,7 @@ BEGIN {
             unless nqp::getattr_i($dcself, Attribute, '$!ro') {
                 nqp::bindattr_i($dcself, Attribute, '$!rw', 1);
             }
-            nqp::hllboolfor(1, "perl6")
+            nqp::hllboolfor(1, "Raku")
         }));
     Attribute.HOW.add_method(Attribute, 'set_build', nqp::getstaticcode(sub ($self, $closure) {
             nqp::bindattr(nqp::decont($self), Attribute, '$!build_closure', $closure);
@@ -1551,7 +1551,7 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'set_box_target', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!box_target', 1);
-            nqp::hllboolfor(1, "perl6")
+            nqp::hllboolfor(1, "Raku")
         }));
     Attribute.HOW.add_method(Attribute, 'box_target', nqp::getstaticcode(sub ($self) {
             nqp::getattr_i(nqp::decont($self),
@@ -1579,7 +1579,7 @@ BEGIN {
                 Attribute, '$!package');
             my $build := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!build_closure');
-            nqp::hllboolfor($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build), "perl6");
+            nqp::hllboolfor($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build), "Raku");
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             my $dcself   := nqp::decont($self);
@@ -1656,7 +1656,7 @@ BEGIN {
                     }
                 }
                 else {
-                    my %x := nqp::gethllsym('perl6', 'P6EX');
+                    my %x := nqp::gethllsym('Raku', 'P6EX');
                     if nqp::ishash(%x) {
                         %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
                     }
@@ -1687,7 +1687,7 @@ BEGIN {
                     nqp::casattr($cont, Scalar, '$!value', $expected, $val);
                 }
                 else {
-                    my %x := nqp::gethllsym('perl6', 'P6EX');
+                    my %x := nqp::gethllsym('Raku', 'P6EX');
                     if nqp::ishash(%x) {
                         %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
                     }
@@ -1709,7 +1709,7 @@ BEGIN {
                     nqp::atomicbindattr($cont, Scalar, '$!value', $val);
                 }
                 else {
-                    my %x := nqp::gethllsym('perl6', 'P6EX');
+                    my %x := nqp::gethllsym('Raku', 'P6EX');
                     if nqp::ishash(%x) {
                         %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
                     }
@@ -1835,7 +1835,7 @@ BEGIN {
                 my $is_generic := $_.is_generic();
                 if $is_generic { return $is_generic }
             }
-            return nqp::hllboolfor(0, "perl6");
+            return nqp::hllboolfor(0, "Raku");
         }));
     Signature.HOW.add_method(Signature, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Go through parameters, builidng new list. If any
@@ -1870,7 +1870,7 @@ BEGIN {
                             Signature, '$!returns')
                     )
                 ),
-                'perl6'
+                'Raku'
             );
         }));
     Signature.HOW.compose_repr(Signature);
@@ -1908,7 +1908,7 @@ BEGIN {
             my $type := nqp::getattr($self, Parameter, '$!nominal_type');
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
             nqp::hllboolfor($type.HOW.archetypes.generic ||
-                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic), "perl6")
+                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic), "Raku")
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -1954,7 +1954,7 @@ BEGIN {
             }
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                my %ex := nqp::gethllsym('Raku', 'P6EX');
                 if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Trait::Invalid') {
                     nqp::die("Cannot use 'is rw' on optional parameter '$varname'");
                 }
@@ -2244,7 +2244,7 @@ BEGIN {
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
-            nqp::hllboolfor(nqp::defined($disp_list), "perl6");
+            nqp::hllboolfor(nqp::defined($disp_list), "Raku");
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
@@ -2281,8 +2281,8 @@ BEGIN {
         }));
     Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
         nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
-            nqp::bindhllsym('perl6', 'MD_Pos', $Positional);
-            nqp::bindhllsym('perl6', 'MD_PBF', $PositionalBindFailover);
+            nqp::bindhllsym('Raku', 'MD_Pos', $Positional);
+            nqp::bindhllsym('Raku', 'MD_PBF', $PositionalBindFailover);
         }));
     Routine.HOW.add_method(Routine, '!sort_dispatchees_internal', nqp::getstaticcode(sub ($self) {
             my int $SLURPY_ARITY      := nqp::bitshiftl_i(1, 30);
@@ -2667,7 +2667,7 @@ BEGIN {
             my @possibles;
             my int $done := 0;
             my int $done_bind_check := 0;
-            my $Positional := nqp::gethllsym('perl6', 'MD_Pos');
+            my $Positional := nqp::gethllsym('Raku', 'MD_Pos');
             until $done {
                 $cur_candidate := nqp::atpos(@candidates, $cur_idx);
 
@@ -2718,7 +2718,7 @@ BEGIN {
                                     if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
                                     elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
                                     elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
-                                    else { $param := nqp::hllizefor($param, 'perl6') }
+                                    else { $param := nqp::hllizefor($param, 'Raku') }
                                 }
                                 else {
                                     $param := $got_prim == $BIND_VAL_INT ?? Int !!
@@ -2735,7 +2735,7 @@ BEGIN {
                                 }
                                 else {
                                     if $type_obj =:= $Positional {
-                                        my $PositionalBindFailover := nqp::gethllsym('perl6', 'MD_PBF');
+                                        my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
                                         unless nqp::istype($param, $PositionalBindFailover) {
                                             $type_mismatch := 1;
                                         }
@@ -2957,7 +2957,7 @@ BEGIN {
                 $junctional_res;
             }
             elsif nqp::elems(@possibles) == 0 {
-                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                my %ex := nqp::gethllsym('Raku', 'P6EX');
                 if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Multi::NoMatch') {
                     nqp::die("Cannot call " ~ $self.name() ~
                         "; no signatures match");
@@ -2967,7 +2967,7 @@ BEGIN {
                 }
             }
             else {
-                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                my %ex := nqp::gethllsym('Raku', 'P6EX');
                 if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Multi::Ambiguous') {
                     nqp::die("Ambiguous call to " ~ $self.name());
                 }
@@ -3203,7 +3203,7 @@ BEGIN {
             my $dcself := nqp::decont($self);
             nqp::hllboolfor(
               nqp::bitand_i(nqp::getattr_i($dcself, Routine, '$!flags'), $bit),
-              "perl6"
+              "Raku"
             );
         }));
     Routine.HOW.add_method(Routine, 'set_rw', nqp::getstaticcode(sub ($self) {
@@ -3601,7 +3601,7 @@ BEGIN {
                     }
                 }
                 else {
-                    my %ex := nqp::gethllsym('perl6', 'P6EX');
+                    my %ex := nqp::gethllsym('Raku', 'P6EX');
                     if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Method::NotFound') {
                         nqp::die("No such method 'CALL-ME' for invocant of type '" ~ $self.HOW.name($self) ~ "'");
                     }
@@ -3615,12 +3615,12 @@ BEGIN {
     Mu.HOW.compose_invocation(Mu);
 
     # If we don't already have a PROCESS, set it up.
-    my $PROCESS := nqp::gethllsym('perl6', 'PROCESS');
+    my $PROCESS := nqp::gethllsym('Raku', 'PROCESS');
     if nqp::isnull($PROCESS) {
         PROCESS.HOW.compose(PROCESS);
         Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
         $PROCESS := PROCESS;
-        nqp::bindhllsym('perl6', 'PROCESS', $PROCESS);
+        nqp::bindhllsym('Raku', 'PROCESS', $PROCESS);
     }
 
     # Bool::False and Bool::True.
@@ -3713,7 +3713,7 @@ nqp::p6settypes(EXPORT::DEFAULT.WHO);
 #?endif
 
 # HLL configuration: interop, boxing and exit handling.
-nqp::sethllconfig('perl6', nqp::hash(
+nqp::sethllconfig('Raku', nqp::hash(
     'int_box', Int,
     'num_box', Num,
     'str_box', Str,
@@ -3820,7 +3820,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 
             if @exceptions {
                 if nqp::elems(@exceptions) > 1 {
-                    my %ex := nqp::gethllsym('perl6', 'P6EX');
+                    my %ex := nqp::gethllsym('Raku', 'P6EX');
                     if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::PhaserExceptions') {
                         nqp::atkey(%ex, 'X::PhaserExceptions')(@exceptions);
                     }
@@ -3876,12 +3876,12 @@ nqp::sethllconfig('perl6', nqp::hash(
     },
     'method_not_found_error', -> $obj, str $name {
         if $name eq 'STORE' {
-            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            my %ex := nqp::gethllsym('Raku', 'P6EX');
             if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Assignment::RO') {
                 nqp::atkey(%ex, 'X::Assignment::RO')($obj);
             }
         }
-        my %ex := nqp::gethllsym('perl6', 'P6EX');
+        my %ex := nqp::gethllsym('Raku', 'P6EX');
         if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Method::NotFound') {
             nqp::atkey(%ex, 'X::Method::NotFound')($obj, $name, $obj.HOW.name($obj));
         }
@@ -3890,7 +3890,7 @@ nqp::sethllconfig('perl6', nqp::hash(
 #?endif
     'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {
         if $cat == nqp::const::CONTROL_RETURN {
-            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            my %ex := nqp::gethllsym('Raku', 'P6EX');
             if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::ControlFlow::Return') {
                 nqp::atkey(%ex, 'X::ControlFlow::Return')($out_of_dyn_scope);
             }
@@ -3899,7 +3899,7 @@ nqp::sethllconfig('perl6', nqp::hash(
         else {
             my $ex := nqp::newexception();
             nqp::setextype($ex, $cat);
-            nqp::getcomp('perl6').handle-control($ex);
+            nqp::getcomp('Raku').handle-control($ex);
         }
     },
     'finalize_handler', -> @objs {
@@ -3990,17 +3990,17 @@ Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 # Put PROCESS in place, and ensure it's never repossessed.
 nqp::neverrepossess(PROCESS.WHO);
 nqp::neverrepossess(nqp::getattr(PROCESS.WHO, Map, '$!storage'));
-nqp::bindhllsym('perl6', 'PROCESS', PROCESS);
+nqp::bindhllsym('Raku', 'PROCESS', PROCESS);
 
 # Stash Scalar and a default container spec away in the HLL state.
-nqp::bindhllsym('perl6', 'Scalar', Scalar);
-nqp::bindhllsym('perl6', 'default_cont_spec',
+nqp::bindhllsym('Raku', 'Scalar', Scalar);
+nqp::bindhllsym('Raku', 'default_cont_spec',
     Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
-nqp::bindhllsym('perl6', 'Capture', Capture);
+nqp::bindhllsym('Raku', 'Capture', Capture);
 
 #?if jvm
 # On JVM, set up JVM interop bits.
-nqp::gethllsym('perl6', 'JavaModuleLoader').set_interop_loader(-> {
+nqp::gethllsym('Raku', 'JavaModuleLoader').set_interop_loader(-> {
     nqp::jvmrakudointerop()
 });
 Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);

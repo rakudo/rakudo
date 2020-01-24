@@ -4,7 +4,7 @@ use Perl6::Compiler;
 
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
-$comp.language('perl6');
+$comp.language('Raku');
 $comp.parsegrammar(Perl6::Grammar);
 $comp.parseactions(Perl6::Actions);
 $comp.addstage('syntaxcheck', :before<ast>);
@@ -12,7 +12,7 @@ $comp.addstage('optimize', :after<ast>);
 
 
 nqp::bindattr($comp, HLL::Compiler, '%!cli-options', nqp::hash());
-nqp::bindattr($comp, HLL::Compiler, '$!user_progname', nqp::gethllsym('perl6', 'progname'));
+nqp::bindattr($comp, HLL::Compiler, '$!user_progname', nqp::gethllsym('Raku', 'progname'));
 
 $comp.set_language_version('6.d');
 
@@ -31,20 +31,20 @@ sub hll-config($config) {
 
 hll-config($comp.config);
 
-nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
+nqp::bindhllsym('Raku', '$COMPILER_CONFIG', $comp.config);
 
 
 # Set up END block list, which we'll run at exit.
-nqp::bindhllsym('perl6', '@END_PHASERS', []);
+nqp::bindhllsym('Raku', '@END_PHASERS', []);
 
 # In an embedding environment, let @*ARGS be empty instead of crashing
-nqp::bindhllsym('perl6', '$!ARGITER', 0);
+nqp::bindhllsym('Raku', '$!ARGITER', 0);
 
-nqp::sethllconfig('perl6', nqp::hash(
+nqp::sethllconfig('Raku', nqp::hash(
     'uncaught_control', -> $exception {
-        nqp::getcomp('perl6').handle-control($exception);
+        nqp::getcomp('Raku').handle-control($exception);
     },
     'uncaught_exception', -> $exception {
-        nqp::getcomp('perl6').handle-exception($exception);
+        nqp::getcomp('Raku').handle-exception($exception);
     }
 ));

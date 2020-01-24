@@ -410,10 +410,10 @@ my class Rakudo::Internals {
             my $dim_type := nqp::newtype($key.AT-POS(0), 'MultiDimArray');
             nqp::composetype($dim_type, nqp::hash('array',
                 nqp::hash('dimensions', $dims, 'type', $type)));
-            nqp::settypehll($dim_type, 'perl6');
+            nqp::settypehll($dim_type, 'Raku');
             $dim_type
         });
-        nqp::settypehll($root, 'perl6');
+        nqp::settypehll($root, 'Raku');
         $root
     }
 
@@ -944,7 +944,7 @@ implementation detail and has no serviceable parts inside"
           nqp::atkey(
             $initializers,
             nqp::concat(
-              nqp::getcomp('perl6').language_version,
+              nqp::getcomp('Raku').language_version,
               nqp::concat("\0",name)
             )
           ),

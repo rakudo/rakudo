@@ -40,7 +40,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method new_type(:$name!, :$repr) {
         # Build and configure the type's basic details.
         my $meta := self.new(:selector($selector_creator()));
-        my $type_obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
+        my $type_obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
         $meta.set_name($type_obj, $name);
         $meta.set_pun_repr($meta, $repr) if $repr;
         $meta.set_boolification_mode($type_obj, 5);
@@ -107,7 +107,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             CATCH { $error := $! }
         }
         if $error {
-            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            my %ex := nqp::gethllsym('Raku', 'P6EX');
             if nqp::existskey(%ex, 'X::Role::Parametric::NoSuchCandidate') {
                 %ex{'X::Role::Parametric::NoSuchCandidate'}($obj);
             }

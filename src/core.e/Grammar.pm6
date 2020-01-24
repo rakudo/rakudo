@@ -32,7 +32,7 @@ my class Grammar is Match {
             if nqp::islist($highexpect) {
                 my %seen;
                 for ^nqp::elems($highexpect) {
-                    my $x = nqp::hllizefor(nqp::shift($highexpect),'perl6');
+                    my $x = nqp::hllizefor(nqp::shift($highexpect),'Raku');
                     push @expected, $x unless %seen{$x}++;
                 }
                 @expected .= sort;

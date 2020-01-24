@@ -9,13 +9,13 @@ nqp::p6init();
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
 
-$comp.language('perl6');
+$comp.language('Raku');
 $comp.parsegrammar(Perl6::Grammar);
 $comp.parseactions(Perl6::Actions);
 $comp.addstage('syntaxcheck', :before<ast>);
 $comp.addstage('optimize', :after<ast>);
 hll-config($comp.config);
-nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
+nqp::bindhllsym('Raku', '$COMPILER_CONFIG', $comp.config);
 
 
 # Determine Perl6 and NQP dirs.
@@ -46,8 +46,8 @@ if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {
     $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
 }
 
-nqp::bindhllsym('perl6', '$RAKUDO_HOME', $rakudo-home);
-nqp::bindhllsym('perl6', '$NQP_HOME', $nqp-home);
+nqp::bindhllsym('Raku', '$RAKUDO_HOME', $rakudo-home);
+nqp::bindhllsym('Raku', '$NQP_HOME', $nqp-home);
 
 
 # Add extra command line options.
@@ -68,10 +68,10 @@ my @clo := $comp.commandline_options();
 #?endif
 
 # Set up END block list, which we'll run at exit.
-nqp::bindhllsym('perl6', '@END_PHASERS', []);
+nqp::bindhllsym('Raku', '@END_PHASERS', []);
 
 # In an embedding environment, let @*ARGS be empty instead of crashing
-nqp::bindhllsym('perl6', '$!ARGITER', 0);
+nqp::bindhllsym('Raku', '$!ARGITER', 0);
 
 #?if jvm
 sub MAIN(*@ARGS) {
@@ -86,7 +86,7 @@ sub MAIN(*@ARGS) {
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
 
     # do all the necessary actions at the end, if any
-    if nqp::gethllsym('perl6', '&THE_END') -> $THE_END {
+    if nqp::gethllsym('Raku', '&THE_END') -> $THE_END {
         $THE_END()
     }
 }

@@ -473,7 +473,7 @@ do {
         }
     }
 
-    my Mu $comp := nqp::getcomp('perl6');
+    my Mu $comp := nqp::getcomp('Raku');
     $comp.^add_method('handle-exception',
         method (|) {
             my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);

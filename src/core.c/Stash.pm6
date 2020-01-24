@@ -52,7 +52,7 @@ my class Stash { # declared in BOOTSTRAP
     }
 
     method merge-symbols(Stash:D: Hash $globalish) { # NQP gives a Hash, not a Stash
-        nqp::gethllsym('perl6','ModuleLoader').merge_globals(self,$globalish)
+        nqp::gethllsym('Raku','ModuleLoader').merge_globals(self,$globalish)
           if $globalish.defined;
     }
 }

@@ -46,7 +46,7 @@ role Perl6::Metamodel::Mixins {
         if $need-mixin-attribute {
             my $found := $mixin_type.HOW.mixin_attribute($mixin_type);
             unless $found {
-                my %ex := nqp::gethllsym('perl6', 'P6EX');
+                my %ex := nqp::gethllsym('Raku', 'P6EX');
                 if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::Role::Initialization') {
                     nqp::atkey(%ex, 'X::Role::Initialization')(@roles[0]);
                 }

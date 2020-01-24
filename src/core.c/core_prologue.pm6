@@ -35,8 +35,8 @@ my role Iterable { ... }
 my role PositionalBindFailover { ... }
 
 # Make Iterable available for the code-gen.
-BEGIN nqp::bindhllsym('perl6', 'Iterable', Iterable);
-nqp::bindhllsym('perl6', 'Iterable', Iterable);
+BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);
+nqp::bindhllsym('Raku', 'Iterable', Iterable);
 
 # Set up Empty, which is a Slip created with an empty IterationBuffer (which
 # we also stub here). This is needed in a bunch of simple constructs (like if

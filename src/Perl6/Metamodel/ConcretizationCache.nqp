@@ -11,7 +11,7 @@ role Perl6::Metamodel::ConcretizationCache {
     method !make_capture(@pos, %named) {
         if nqp::isnull($capture_type) {
             # Fetch and preserve Capture type object. But don't do so until it's fully ready.
-            $capture_type := nqp::gethllsym('perl6', 'Capture');
+            $capture_type := nqp::gethllsym('Raku', 'Capture');
             return nqp::null()
                 if nqp::isnull($capture_type) || !$capture_type.HOW.is_composed($capture_type)
         }

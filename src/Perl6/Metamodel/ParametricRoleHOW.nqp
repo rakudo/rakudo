@@ -35,7 +35,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     my $anon_id := 1;
     method new_type(:$name, :$ver, :$auth, :$api, :$repr, :$signatured, *%extra) {
         my $metarole := self.new(:signatured($signatured), :specialize_lock(NQPLock.new));
-        my $type := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'perl6');
+        my $type := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'Raku');
         $metarole.set_name($type, $name // "<anon|{$anon_id++}>");
         $metarole.set_ver($type, $ver);
         $metarole.set_auth($type, $auth) if $auth;

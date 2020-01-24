@@ -26,7 +26,7 @@ my class Rakudo::Internals::EvalIdSource {
 }
 proto sub EVAL(
   $code is copy where Blob|Cool|Callable,
-  Str()       :$lang is copy = 'perl6',
+  Str()       :$lang is copy = 'Raku',
   PseudoStash :$context,
   Str()       :$filename = Str,
   Bool()      :$check = False,
@@ -36,7 +36,7 @@ proto sub EVAL(
       if nqp::istype($code,Callable);
 
 # TEMPORARY HACK
-$lang = 'perl6' if $lang eq 'Raku';
+$lang = 'Raku' if $lang eq 'perl6';
 
     # First look in compiler registry.
     my $compiler := nqp::getcomp($lang);
@@ -68,8 +68,8 @@ $lang = 'perl6' if $lang eq 'Raku';
         :outer_ctx($eval_ctx),
         :global(GLOBAL),
         :mast_frames(mast_frames),
-        :language_version(nqp::getcomp('perl6').language_version),
-        |(:optimize($_) with nqp::getcomp('perl6').cli-options<optimize>),
+        :language_version(nqp::getcomp('Raku').language_version),
+        |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
 
     if $check {
@@ -105,7 +105,7 @@ multi sub EVAL(
 }
 
 proto sub EVALFILE($, *%) {*}
-multi sub EVALFILE($filename, :$lang = 'perl6', Bool() :$check = False) {
+multi sub EVALFILE($filename, :$lang = 'Raku', Bool() :$check = False) {
     EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
 }
 

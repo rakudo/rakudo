@@ -38,16 +38,16 @@ sub p6ize_recursive($x) {
         for $x {
             nqp::push(@copy, p6ize_recursive($_));
         }
-        return nqp::hllizefor(@copy, 'perl6');
+        return nqp::hllizefor(@copy, 'Raku');
     }
     elsif nqp::ishash($x) {
         my %copy := nqp::hash();
         for $x {
             %copy{$_.key} := p6ize_recursive($_.value);
         }
-        return nqp::hllizefor(%copy, 'perl6').item;
+        return nqp::hllizefor(%copy, 'Raku').item;
     }
-    nqp::hllizefor($x, 'perl6');
+    nqp::hllizefor($x, 'Raku');
 }
 
 # Helper sub that turns a list of items into an NQPArray. This is needed when
@@ -536,7 +536,7 @@ class Perl6::World is HLL::World {
           'Version to $*W.lang-ver-before'
             ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
         nqp::cmp_s(
-          nqp::substr(nqp::getcomp('perl6').language_version, 2, 1),
+          nqp::substr(nqp::getcomp('Raku').language_version, 2, 1),
           $want
         ) == -1
     }
@@ -672,7 +672,7 @@ class Perl6::World is HLL::World {
         $*UNIT_OUTER := self.push_lexpad($/);
         $*UNIT       := self.push_lexpad($/);
 
-        my $comp := nqp::getcomp('perl6');
+        my $comp := nqp::getcomp('Raku');
 
         # If we already have a specified outer context, then that's
         # our setting. Otherwise, load one.
@@ -691,7 +691,7 @@ class Perl6::World is HLL::World {
                 $!setting_revision := nqp::substr($!setting_name, 5, 1);
                 # Compile core with default language version unless the core revision is higher. I.e. when 6.d is the
                 # default only core.e will be compiled with 6.e compiler.
-                nqp::getcomp('perl6').set_language_version( nqp::isgt_s($!setting_revision, $default_revision)
+                nqp::getcomp('Raku').set_language_version( nqp::isgt_s($!setting_revision, $default_revision)
                                                             ?? $!setting_revision
                                                             !! $default_revision );
                                             }
@@ -1452,7 +1452,7 @@ class Perl6::World is HLL::World {
 
         # Immediate loading.
         my $line   := self.current_line($/);
-        my $module := nqp::gethllsym('perl6', 'ModuleLoader').load_module($module_name, {},
+        my $module := nqp::gethllsym('Raku', 'ModuleLoader').load_module($module_name, {},
             $cur_GLOBALish, :$line);
 
         # During deserialization, ensure that we get this module loaded.
@@ -1492,7 +1492,7 @@ class Perl6::World is HLL::World {
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);
         my $comp_unit := $registry.head.need($spec);
         my $globalish := $comp_unit.handle.globalish-package;
-        nqp::gethllsym('perl6','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
+        nqp::gethllsym('Raku','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
 
         CATCH {
             self.rethrow($/, $_);
@@ -2578,7 +2578,7 @@ class Perl6::World is HLL::World {
         my $precomp;
         my $compiler_thunk := {
             # Fix up GLOBAL.
-            nqp::bindhllsym('perl6', 'GLOBAL', $*GLOBALish);
+            nqp::bindhllsym('Raku', 'GLOBAL', $*GLOBALish);
 
             # Compile the block.
             $precomp := self.compile_in_context($code_past, $code_type);
@@ -2599,7 +2599,7 @@ class Perl6::World is HLL::World {
                 $compiler_thunk();
             }
 
-            unless nqp::getcomp('perl6').backend.name eq 'js' {
+            unless nqp::getcomp('Raku').backend.name eq 'js' {
                 # Temporarly disabled for js untill we figure the bug out
                 my $code_obj := nqp::getcodeobj(nqp::curcode());
                 unless nqp::isnull($code_obj) {
@@ -2908,12 +2908,12 @@ class Perl6::World is HLL::World {
         # Compile it, set wrapper's static lexpad, then invoke the wrapper,
         # which fixes up the lexicals.
         my $compunit := QAST::CompUnit.new(
-            :hll('perl6'),
+            :hll('Raku'),
             :sc(self.sc()),
             :compilation_mode(0),
             $wrapper
         );
-        my $comp := nqp::getcomp('perl6');
+        my $comp := nqp::getcomp('Raku');
         my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1),
              :lineposcache($*LINEPOSCACHE));
         my $mainline := $comp.backend.compunit_mainline($precomp);
@@ -4245,7 +4245,7 @@ class Perl6::World is HLL::World {
             method update($code) {
                 if !nqp::isnull($!resolved) && !nqp::istype($!resolved, NQPMu) {
                     nqp::p6captureouters2([$code],
-                        nqp::getcomp('perl6').backend.name eq 'moar'
+                        nqp::getcomp('Raku').backend.name eq 'moar'
                             ?? nqp::getstaticcode($!resolved)
                             !! $!resolved);
                 }
@@ -4870,7 +4870,7 @@ class Perl6::World is HLL::World {
                 && nqp::iseq_i(nqp::index(@name[0], 'v6'),0) {
                 my $rev := nqp::substr(@name[0],2,1);
                 # If a supported language revision requested
-                if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('perl6').language_revisions,$rev) {
+                if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('Raku').language_revisions,$rev) {
                     $no-outers := 1; # you don't see other COREs!
                     nqp::shift(@name);
                     $setting_name := 'CORE' ~ '.' ~ $rev;
@@ -5390,12 +5390,12 @@ class Perl6::World is HLL::World {
                 if nqp::islist($p.value) {
                     my @a := [];
                     for $p.value {
-                        nqp::push(@a, nqp::hllizefor($_, 'perl6'));
+                        nqp::push(@a, nqp::hllizefor($_, 'Raku'));
                     }
-                    %opts{$p.key} := nqp::hllizefor(@a, 'perl6');
+                    %opts{$p.key} := nqp::hllizefor(@a, 'Raku');
                 }
                 else {
-                    %opts{$p.key} := nqp::hllizefor($p.value, 'perl6');
+                    %opts{$p.key} := nqp::hllizefor($p.value, 'Raku');
                 }
             }
             %opts<filename> := nqp::box_s(self.current_file,self.find_symbol(['Str'], :setting-only));

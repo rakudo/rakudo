@@ -51,17 +51,17 @@ role Perl6::Metamodel::MethodContainer {
         # Always need local methods on the list.
         my @meths;
         for @!method_order {
-            @meths.push(nqp::hllizefor($_, 'perl6'));
+            @meths.push(nqp::hllizefor($_, 'Raku'));
         }
 
         # If local flag was not passed, include those from parents.
         unless $local {
             for self.parents($obj, :all($all), :excl($excl)) {
                 for nqp::hllize($_.HOW.method_table($_)) {
-                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'Raku'));
                 }
                 for nqp::hllize($_.HOW.submethod_table($_)) {
-                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'Raku'));
                 }
             }
         }

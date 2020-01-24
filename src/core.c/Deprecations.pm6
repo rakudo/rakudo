@@ -67,7 +67,7 @@ class Rakudo::Deprecations {
     my $ver;
     method DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool :$lang-vers) {
         $ver //= $*RAKU.compiler.version;
-        my $version = $lang-vers ?? nqp::getcomp('perl6').language_version !! $ver;
+        my $version = $lang-vers ?? nqp::getcomp('Raku').language_version !! $ver;
         # if $lang-vers was given, treat the provided versions as language
         # versions, rather than compiler versions. Note that we can't
         # `state` the lang version (I think) because different CompUnits

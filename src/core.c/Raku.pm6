@@ -5,7 +5,7 @@ class Raku does Systemic {
         # https://github.com/rakudo/rakudo/issues/3436
         nqp::bind($!name,'Raku');
         nqp::bind($!auth,'The Perl Foundation');
-        nqp::bind($!version,nqp::getcomp('perl6').language_version.Version);
+        nqp::bind($!version,nqp::getcomp('Raku').language_version.Version);
     }
 
     method VMnames { <moar jvm js> }
@@ -17,7 +17,7 @@ class Raku does Systemic {
     my $version-cache-lock := Lock.new;
     method version {
         $version-cache-lock.protect: {
-            my $comp-ver := nqp::getcomp('perl6').language_version();
+            my $comp-ver := nqp::getcomp('Raku').language_version();
             nqp::existskey($version-cache,$comp-ver)
               ?? nqp::atkey($version-cache,$comp-ver)
               !! nqp::bindkey($version-cache,$comp-ver,Version.new($comp-ver))

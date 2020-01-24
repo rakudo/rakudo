@@ -456,14 +456,14 @@ sub MAIN(*@ARGS) {
     # Create and configure compiler object.
     my $comp := Perl6::Debugger.new();
 
-    $comp.language('perl6');
+    $comp.language('Raku');
     $comp.parsegrammar(Perl6::HookGrammar);
     $comp.parseactions(Perl6::HookActions);
     $comp.addstage('syntaxcheck', :before<ast>);
     $comp.addstage('optimize', :after<ast>);
     hll-config($comp.config);
     my $COMPILER_CONFIG := $comp.config;
-    nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
+    nqp::bindhllsym('Raku', '$COMPILER_CONFIG', $comp.config);
 
 
     # Determine Perl6 and NQP dirs.
@@ -494,8 +494,8 @@ sub MAIN(*@ARGS) {
         $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
     }
 
-    nqp::bindhllsym('perl6', '$RAKUDO_HOME', $rakudo-home);
-    nqp::bindhllsym('perl6', '$NQP_HOME', $nqp-home);
+    nqp::bindhllsym('Raku', '$RAKUDO_HOME', $rakudo-home);
+    nqp::bindhllsym('Raku', '$NQP_HOME', $nqp-home);
 
 
     # Add extra command line options.
@@ -510,7 +510,7 @@ sub MAIN(*@ARGS) {
     my @*MODULES := [];
 
     # Set up END block list, which we'll run at exit.
-    nqp::bindhllsym('perl6', '@END_PHASERS', []);
+    nqp::bindhllsym('Raku', '@END_PHASERS', []);
 
     # Force loading of the debugger module.
     my $debugger;
@@ -540,7 +540,7 @@ sub MAIN(*@ARGS) {
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
 
     # Run any END blocks before exiting.
-    for nqp::gethllsym('perl6', '@END_PHASERS') {
+    for nqp::gethllsym('Raku', '@END_PHASERS') {
         my $result := $_();
         nqp::isfalse(nqp::isnull($result))
             && nqp::can($result, 'sink') && $result.sink;

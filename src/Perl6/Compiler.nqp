@@ -55,7 +55,7 @@ class Perl6::Compiler is HLL::Compiler {
 
         my $argiter := nqp::iterator(@args);
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
-        nqp::bindhllsym('perl6', '$!ARGITER', $argiter);
+        nqp::bindhllsym('Raku', '$!ARGITER', $argiter);
         my $super := nqp::findmethod(HLL::Compiler, 'command_eval');
         my %*COMPILING;
         %*COMPILING<%?OPTIONS> := %options;
@@ -100,9 +100,9 @@ class Perl6::Compiler is HLL::Compiler {
 
     method usage($name?, :$use-stderr = False) {
 	my $print-func := $use-stderr ?? &note !! &say;
-    my $compiler := nqp::getcomp("perl6").backend.name;
+    my $compiler := nqp::getcomp("Raku").backend.name;
     my $moar-options := '';
-    if nqp::getcomp("perl6").backend.name eq 'moar' {
+    if nqp::getcomp("Raku").backend.name eq 'moar' {
         $moar-options := q♥  --profile[=name]     write profile information to a file
                          Extension controls format:
                            .json outputs in JSON

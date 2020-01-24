@@ -21,7 +21,7 @@ class Compiler does Systemic {
     }
 
     method verbose-config(:$say) {
-        my $compiler := nqp::getcomp("perl6");
+        my $compiler := nqp::getcomp("Raku");
         my $backend  := $compiler.backend;
         my $name     := $backend.name;
 

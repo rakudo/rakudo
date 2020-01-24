@@ -822,7 +822,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*LASTQUOTE := [0,0];
 
         {
-            nqp::getcomp('perl6').reset_language_version();
+            nqp::getcomp('Raku').reset_language_version();
             $*W.comp_unit_stage0($/)
         }
 
@@ -851,7 +851,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     rule lang-version {
-        :my $comp := nqp::getcomp('perl6');
+        :my $comp := nqp::getcomp('Raku');
         [
           <.ws>? 'use' <version> {} # <-- update $/ so we can grab $<version>
           # we parse out the numeral, since we could have "6d"
@@ -1186,7 +1186,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.kok>
         [
         || <?{
-              nqp::getcomp('perl6').language_version eq '6.c'
+              nqp::getcomp('Raku').language_version eq '6.c'
             || $*WHENEVER_COUNT >= 0
           }>
         || <.typed_panic('X::Comp::WheneverOutOfScope')>
@@ -5639,7 +5639,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
         nqp::push_s(@pplist, $newpp);
 
         # yes, the currying is necessary. Otherwise weird things can happen,
-        # e.g.  perl6 -e 'q:w:x//; q:ww:v//' turning the second into q:w:x:v//
+        # e.g.  raku -e 'q:w:x//; q:ww:v//' turning the second into q:w:x:v//
         role postproc[@curlist] {
             method postprocessors() {
                 @curlist;

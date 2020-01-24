@@ -698,8 +698,8 @@ register_op_desugar('p6forstmt', -> $qast {
 });
 register_op_desugar('p6scalarfromdesc', -> $qast {
     my $desc := QAST::Node.unique('descriptor');
-    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
-    my $default_cont_spec := nqp::gethllsym('perl6', 'default_cont_spec');
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
+    my $default_cont_spec := nqp::gethllsym('Raku', 'default_cont_spec');
     QAST::Stmt.new(
         QAST::Op.new(
             :op('bind'),
@@ -741,7 +741,7 @@ register_op_desugar('p6scalarfromdesc', -> $qast {
 # eventually have everything using this version of the op.
 register_op_desugar('p6scalarfromcertaindesc', -> $qast {
     my $desc := QAST::Node.unique('descriptor');
-    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
     QAST::Stmt.new(
         QAST::Op.new(
             :op('bind'),
@@ -767,7 +767,7 @@ register_op_desugar('p6scalarfromcertaindesc', -> $qast {
     )
 });
 register_op_desugar('p6scalarwithvalue', -> $qast {
-    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
     QAST::Op.new(
         :op('p6assign'),
         QAST::Op.new(
@@ -782,7 +782,7 @@ register_op_desugar('p6scalarwithvalue', -> $qast {
 });
 register_op_desugar('p6recont_ro', -> $qast {
     my $result := QAST::Node.unique('result');
-    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
     QAST::Stmt.new(
         QAST::Op.new(
             :op('bind'),
@@ -818,7 +818,7 @@ register_op_desugar('p6recont_ro', -> $qast {
 });
 register_op_desugar('p6var', -> $qast {
     my $result := QAST::Node.unique('result');
-    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
+    my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
     QAST::Stmt.new(
         QAST::Op.new(
             :op('bind'),
@@ -853,7 +853,7 @@ register_op_desugar('p6var', -> $qast {
     my $is_moar;
     register_op_desugar('p6decontrv_internal', -> $qast {
         unless nqp::isconcrete($is_moar) {
-            $is_moar := nqp::getcomp('perl6').backend.name eq 'moar';
+            $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
         }
         if $is_moar {
             my $result := QAST::Node.unique('result');
@@ -876,8 +876,8 @@ register_op_desugar('p6var', -> $qast {
         }
         else {
             my $result := QAST::Node.unique('result');
-            my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Scalar')) );
-            my $Iterable := QAST::WVal.new( :value(nqp::gethllsym('perl6', 'Iterable')) );
+            my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
+            my $Iterable := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Iterable')) );
             QAST::Stmt.new(
                 QAST::Op.new(
                     :op('bind'),
@@ -943,7 +943,7 @@ register_op_desugar('p6var', -> $qast {
     my $is_moar;
     register_op_desugar('p6assign', -> $qast {
         unless nqp::isconcrete($is_moar) {
-            $is_moar := nqp::getcomp('perl6').backend.name eq 'moar';
+            $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
         }
         if $is_moar {
             my $cont := QAST::Node.unique('assign_cont');
@@ -1379,7 +1379,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Wrap everything in a QAST::CompUnit.
         make QAST::CompUnit.new(
-            :hll('perl6'),
+            :hll('Raku'),
 
             # Serialization related bits.
             :sc($*W.sc()),
@@ -2431,7 +2431,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub single_top_level_whenever($block) {
         if $*WHENEVER_COUNT == 1
-        && nqp::getcomp('perl6').language_version ne '6.c' {
+        && nqp::getcomp('Raku').language_version ne '6.c' {
             my $stmts := $block[1];
             if nqp::istype($stmts, QAST::Stmts) {
                 my @stmts := $stmts.list;
@@ -3923,7 +3923,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
 
     sub decontrv_op() {
-        $*W.lang-ver-before('d') && nqp::getcomp('perl6').backend.name eq 'moar'
+        $*W.lang-ver-before('d') && nqp::getcomp('Raku').backend.name eq 'moar'
             ?? 'p6decontrv_6c'
             !! 'p6decontrv'
     }
@@ -4302,7 +4302,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Operations need checking for their inlinability. If they are OK in
             # themselves, it comes down to the children.
             elsif nqp::istype($node, QAST::Op) {
-                if nqp::getcomp('QAST').operations.is_inlinable('perl6', $node.op) {
+                if nqp::getcomp('QAST').operations.is_inlinable('Raku', $node.op) {
                     my $replacement := $node.shallow_clone();
                     my int $i := 0;
                     my int $n := +@($node);
@@ -6428,7 +6428,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         $past.node($/);
-        nqp::getcomp('QAST').operations.attach_result_type('perl6', $past);
+        nqp::getcomp('QAST').operations.attach_result_type('Raku', $past);
         make $past;
     }
 
@@ -8847,7 +8847,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # (e.g. we can get the same errors).
         my $need_full_binder := 1;
         unless nqp::defined($use_vm_binder) {
-            $use_vm_binder := nqp::getcomp('perl6').backend.name eq 'moar' || nqp::getcomp('perl6').backend.name eq 'js';
+            $use_vm_binder := nqp::getcomp('Raku').backend.name eq 'moar' || nqp::getcomp('Raku').backend.name eq 'js';
         }
         if $use_vm_binder {
             # If there are zero parameters, then we can trivially leave it to
@@ -10396,7 +10396,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method pod_block:sym<finish>($/) {
         $*W.install_lexical_symbol(
-          $*UNIT,'$=finish', nqp::hllizefor(~$<finish>, 'perl6'));
+          $*UNIT,'$=finish', nqp::hllizefor(~$<finish>, 'Raku'));
     }
 
     method pod_content:sym<config>($/) {

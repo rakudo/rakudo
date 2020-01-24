@@ -338,18 +338,18 @@ my class Problems {
 
         %opts<pre>             := nqp::box_s($pre, $!symbols.find_symbol(['Str']));
         %opts<post>            := nqp::box_s($post, $!symbols.find_symbol(['Str']));
-        %opts<is-compile-time> := nqp::hllboolfor(1, "perl6");
+        %opts<is-compile-time> := nqp::hllboolfor(1, "Raku");
 
         for %opts -> $p {
             if nqp::islist($p.value) {
                 my @a := [];
                 for $p.value {
-                    nqp::push(@a, nqp::hllizefor($_, 'perl6'));
+                    nqp::push(@a, nqp::hllizefor($_, 'Raku'));
                 }
-                %opts{$p.key} := nqp::hllizefor(@a, 'perl6');
+                %opts{$p.key} := nqp::hllizefor(@a, 'Raku');
             }
             else {
-                %opts{$p.key} := nqp::hllizefor($p.value, 'perl6');
+                %opts{$p.key} := nqp::hllizefor($p.value, 'Raku');
             }
         }
         my $file        := nqp::getlexdyn('$?FILES');
@@ -2381,7 +2381,7 @@ class Perl6::Optimizer {
                 }
                 else {
                     $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
-                        :private(nqp::hllboolfor(1, "perl6")), :method($name),
+                        :private(nqp::hllboolfor(1, "Raku")), :method($name),
                         :typename($pkg.HOW.name($pkg)), :invocant($pkg));
                     return 1;
                 }
@@ -2390,7 +2390,7 @@ class Perl6::Optimizer {
 
         # If resolution didn't work out this way, and we're on the MoarVM
         # backend, use a spesh plugin to help speed it up.
-        if nqp::getcomp('perl6').backend.name eq 'moar' {
+        if nqp::getcomp('Raku').backend.name eq 'moar' {
             my $inv := $op.shift;
             my $name := $op.shift;
             my $pkg := $op.shift;
@@ -2409,7 +2409,7 @@ class Perl6::Optimizer {
 
     method optimize_qual_method_call($op) {
         # Spesh plugins only available on MoarVM.
-        return $op unless nqp::getcomp('perl6').backend.name eq 'moar';
+        return $op unless nqp::getcomp('Raku').backend.name eq 'moar';
 
         # We can only optimize if we have a compile-time-known name.
         my $name_node := $op[1];
@@ -2451,7 +2451,7 @@ class Perl6::Optimizer {
 
     method optimize_maybe_method_call($op) {
         # Spesh plugins only available on MoarVM.
-        return $op unless nqp::getcomp('perl6').backend.name eq 'moar';
+        return $op unless nqp::getcomp('Raku').backend.name eq 'moar';
 
         # We can only optimize if we have a compile-time-known name.
         my $name_node := $op[1];
@@ -2803,7 +2803,7 @@ class Perl6::Optimizer {
         }
 
         my %opts := nqp::hash();
-        %opts<protoguilt> := $protoguilt // nqp::hllboolfor(0, "perl6");
+        %opts<protoguilt> := $protoguilt // nqp::hllboolfor(0, "Raku");
         %opts<arguments> := @arg_names;
         %opts<objname> := $obj.name;
         %opts<signature> := nqp::can($obj, 'is_dispatcher') && $obj.is_dispatcher && !$protoguilt ??
@@ -3113,7 +3113,7 @@ class Perl6::Optimizer {
     # we may be passing.
     method call_ct_chosen_multi($call, $proto, $chosen) {
         self.simplify_refs($call, $chosen.signature);
-        if nqp::getcomp('perl6').backend.name eq 'jvm' {
+        if nqp::getcomp('Raku').backend.name eq 'jvm' {
             my @cands := $proto.dispatchees();
             my int $idx := 0;
             for @cands {

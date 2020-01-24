@@ -250,7 +250,7 @@ my class ThreadPoolScheduler does Scheduler {
                     CONTROL {
                         default {
                             my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
-                            nqp::getcomp('perl6').handle-control($vm-ex);
+                            nqp::getcomp('Raku').handle-control($vm-ex);
                         }
                     }
                     CATCH {

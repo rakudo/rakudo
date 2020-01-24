@@ -12,7 +12,7 @@ role Perl6::Metamodel::LanguageRevision
                 unless (nqp::iseq_i(nqp::chars($ver), 3) && nqp::eqat($ver, '6.', 0));
             $lang-ver := $ver;
         }
-        elsif nqp::getcomp('perl6') {
+        elsif nqp::getcomp('Raku') {
             # NOTE: It turns out that nqp::getcomp path for obtaining the language version isn't reliable as sometimes
             # language_version method reports wrong version.
             my $rev;
@@ -21,7 +21,7 @@ role Perl6::Metamodel::LanguageRevision
                 $rev := $*W.find_symbol(['CORE-SETTING-REV'], :setting-only) || $*W.setting_revision;
             }
             $lang-ver := ($rev && '6.' ~ $rev)                          # compile-time if CORE is available
-                          || nqp::getcomp('perl6').language_version;    # otherwise try the compiler
+                          || nqp::getcomp('Raku').language_version;    # otherwise try the compiler
         }
         else {
             return

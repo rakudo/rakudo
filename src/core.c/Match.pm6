@@ -891,18 +891,17 @@ my class Match is Capture is Cool does NQPMatchRole {
         }
     }
 
-    multi method raku(Match:D:) {
-        my %attrs;
-        %attrs.ASSIGN-KEY("orig", (self.orig // '' ).raku);
-        %attrs.ASSIGN-KEY("from", (self.from // 0  ).raku);
-        %attrs.ASSIGN-KEY("pos",  (self.pos  // 0  ).raku);
-        %attrs.ASSIGN-KEY("made", (self.made // Any).raku);
-        %attrs.ASSIGN-KEY("list", (self.Capture::list // [] ).raku);
-        %attrs.ASSIGN-KEY("hash", (self.Capture::hash // {} ).raku);
+    multi method raku(Match:D: --> Str:D) {
+        my $attrs := nqp::list_s;
 
-        'Match.new('
-            ~ %attrs.fmt('%s => %s', ', ')
-            ~ ')'
+        nqp::push_s($attrs,(orig => self.orig // '').raku);
+        nqp::push_s($attrs,(from => self.from // 0).raku);
+        nqp::push_s($attrs,(pos  => self.pos // 0).raku);
+        nqp::push_s($attrs,(list => $_).raku) with self.Capture::list;
+        nqp::push_s($attrs,(hash => $_).raku) with self.Capture::hash;
+        nqp::push_s($attrs,(made => $_).raku) with self.made;
+
+        nqp::concat('Match.new(',nqp::concat(nqp::join(', ',$attrs),')'))
     }
     multi method gist (Match:D: $d = 0) {
         return "#<failed match>" unless self;

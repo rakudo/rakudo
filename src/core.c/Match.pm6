@@ -897,8 +897,8 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::push_s($attrs,(orig => self.orig // '').raku);
         nqp::push_s($attrs,(from => self.from // 0).raku);
         nqp::push_s($attrs,(pos  => self.pos // 0).raku);
-        nqp::push_s($attrs,(list => $_).raku) with self.Capture::list;
-        nqp::push_s($attrs,(hash => $_).raku) with self.Capture::hash;
+        if self.Capture::list -> @list { nqp::push_s($attrs,:@list.raku) }
+        if self.Capture::hash -> %hash { nqp::push_s($attrs,:%hash.raku) }
         nqp::push_s($attrs,(made => $_).raku) with self.made;
 
         nqp::concat('Match.new(',nqp::concat(nqp::join(', ',$attrs),')'))

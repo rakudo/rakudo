@@ -9,6 +9,8 @@ my class Match is Capture is Cool does NQPMatchRole {
     method ast()  { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
     method made() { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
 
+    method Int(--> Int:D) { self.Str.Int }
+
     method STR() {
         nqp::if(
           nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),

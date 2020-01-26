@@ -236,7 +236,8 @@ my class Proc::Async {
         X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
           if $!w;
         $!stdin-fd := $handle.native-descriptor;
-        @!close-after-exit.push($handle) if $handle ~~ IO::Pipe;
+        @!close-after-exit.push($handle)
+          if nqp::istype($handle,IO::Pipe);
     }
     multi method bind-stdin(Proc::Async::Pipe:D $pipe --> Nil) {
         $!w

@@ -234,7 +234,7 @@ proto sub run(|) {*}
 multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
+    my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.spawn(@args, :$cwd, :$env);
     $proc
 }
@@ -243,13 +243,13 @@ proto sub shell($, *%) {*}
 multi sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
+    my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.shell($cmd, :$cwd, :$env);
     $proc
 }
 
 sub QX($cmd, :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:out);
+    my $proc := Proc.new(:out);
     $proc.shell($cmd, :$cwd, :$env);
     $proc.out.slurp(:close) // Failure.new("Unable to read from '$cmd'")
 }

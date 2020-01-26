@@ -5,7 +5,7 @@ my class Proc {
     has IO::Pipe $.in;
     has IO::Pipe $.out;
     has IO::Pipe $.err;
-    has $.exitcode = -1;  # distinguish uninitialized from 0 status
+    has $.exitcode is default(Nil);
     has $.signal;
     has $.pid is default(Nil);
     has @.command;
@@ -155,7 +155,8 @@ my class Proc {
         CATCH { default { self!set-status(0x100) } }
         &!start-stdout() if &!start-stdout;
         &!start-stderr() if &!start-stderr;
-        self!set-status(await($!finished).status) if $!exitcode == -1;
+        self!set-status(await($!finished).status)
+          if nqp::istype($!exitcode,Nil);
     }
 
     method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {

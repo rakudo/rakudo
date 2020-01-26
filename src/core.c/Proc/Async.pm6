@@ -145,7 +145,7 @@ my class Proc::Async {
         the-supply //= Supplier::Preserving.new;
 
         if nqp::iscont(fd-vow) {
-            my $native-descriptor = Promise.new;
+            my $native-descriptor := Promise.new;
             fd-vow = $native-descriptor.vow;
             Pipe.new(the-supply.Supply.Tappable, $native-descriptor, |self!pipe-cbs(permit-channel))
         }
@@ -158,7 +158,7 @@ my class Proc::Async {
         my \sup = Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc,
             :translate-nl($translate-nl // $!translate-nl));
         if nqp::iscont(fd-vow) {
-            my $native-descriptor = Promise.new;
+            my $native-descriptor := Promise.new;
             fd-vow = $native-descriptor.vow;
             Pipe.new(sup.Supply.Tappable, $native-descriptor, |self!pipe-cbs(permit-channel))
         }
@@ -267,17 +267,17 @@ my class Proc::Async {
         $!ready_promise
     }
 
-    method !capture(\callbacks,\std,\the-supply) {
-        my $promise = Promise.new;
-        my $vow = $promise.vow;
-        my $ss = Rakudo::Internals::SupplySequencer.new(
+    method !capture(\callbacks,\std,\the-supply --> Promise) {
+        my $promise := Promise.new;
+        my $vow := $promise.vow;
+        my $ss := Rakudo::Internals::SupplySequencer.new(
             on-data-ready => -> \data { the-supply.emit(data) },
             on-completed  => -> { the-supply.done(); $vow.keep(the-supply) },
             on-error      => -> \err { the-supply.quit(err); $vow.keep((the-supply,err)) });
         nqp::bindkey(callbacks,
             std ~ '_bytes' ,
             -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) });
-        $promise;
+        $promise
     }
 
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
@@ -325,7 +325,7 @@ my class Proc::Async {
         });
 
         nqp::bindkey($callbacks, 'error', -> Mu \err {
-            my $error = X::OS.new(os-error => err);
+            my $error := X::OS.new(os-error => err);
             $!exit_promise.break($error);
             $!ready_vow.break($error);
         });
@@ -389,8 +389,8 @@ my class Proc::Async {
         X::Proc::Async::OpenForWriting.new(:method<write>, proc => self).throw if !$!w;
         X::Proc::Async::MustBeStarted.new(:method<write>, proc => self).throw  if !$!started;
 
-        my $p = Promise.new;
-        my $v = $p.vow;
+        my $p := Promise.new;
+        my $v := $p.vow;
         nqp::asyncwritebytes(
             $!process_handle,
             $scheduler.queue,

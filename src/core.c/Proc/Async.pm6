@@ -281,24 +281,24 @@ my class Proc::Async {
         $promise
     }
 
-    method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
+    method start(Proc::Async:D:
+      :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD
+    --> Promise) {
         X::Proc::Async::AlreadyStarted.new(proc => self).throw
           if $!started;
-        $!started = True;
 
-        my @blockers;
-        if $!stdin-fd ~~ Promise {
-            @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
-        }
-        @blockers
-            ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
-            !! self!start-internal(:$scheduler, :$ENV, :$cwd)
+        $!started := True;
+        nqp::istype($!stdin-fd,Promise)
+          ?? start {
+                 await $!stdin-fd.then({ $!stdin-fd := .result });
+                 await self!start-internal($scheduler, $ENV, $cwd);
+             }
+          !! self!start-internal($scheduler, $ENV, $cwd)
     }
 
-    method !start-internal(:$scheduler, :$ENV, :$cwd) {
+    method !start-internal($scheduler, $ENV, $cwd --> Promise) {
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
-
-        $!exit_promise = Promise.new;
+        $!exit_promise := Promise.new;
 
         my Mu $callbacks := nqp::hash();
         nqp::bindkey($callbacks, 'done', -> Mu \status {
@@ -310,18 +310,15 @@ my class Proc::Async {
 
         nqp::bindkey($callbacks, 'ready', -> Mu \handles = Nil, $pid = 0 {
             if nqp::isconcrete(handles) {
-                with $!stdout_descriptor_vow {
-                    my $fd = nqp::atpos_i(handles, 0);
-                    $fd < 0
-                        ?? .break("Descriptor not available")
-                        !! .keep($fd)
-                }
-                with $!stderr_descriptor_vow {
-                    my $fd = nqp::atpos_i(handles, 1);
-                    $fd < 0
-                        ?? .break("Descriptor not available")
-                        !! .keep($fd)
-                }
+                nqp::atpos_i(handles,0) < 0
+                  ?? .break("STDOUT descriptor not available")
+                  !! .keep(nqp::atpos_i(handles,0))
+                  with $!stdout_descriptor_vow;
+
+                nqp::atpos_i(handles,1) < 0
+                  ?? .break("STDERR descriptor not available")
+                  !! .keep(nqp::atpos_i(handles,1))
+                  with $!stderr_descriptor_vow;
             }
             $!ready_vow.keep($pid);
         });
@@ -336,10 +333,12 @@ my class Proc::Async {
           self!capture($callbacks,'stdout',$!stdout_supply),
           $!stdout_descriptor_used
         )) if $!stdout_supply;
+
         @!promises.push(Promise.anyof(
           self!capture($callbacks,'stderr',$!stderr_supply),
           $!stderr_descriptor_used
         )) if $!stderr_supply;
+
         @!promises.push(
           self!capture($callbacks,'merge',$!merge_supply)
         ) if $!merge_supply;
@@ -358,6 +357,7 @@ my class Proc::Async {
         );
         $!handle_available_promise.keep(True);
         nqp::permit($!process_handle, 0, -1) if $!merge_supply;
+
         Promise.allof( $!exit_promise, @!promises ).then({
             .close for @!close-after-exit;
             $!exit_promise.status == Broken

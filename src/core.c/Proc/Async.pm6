@@ -136,9 +136,9 @@ my class Proc::Async {
     }
 
     method !pipe(\what, \the-supply, \type, \value, \fd-vow, \permit-channel) {
-        X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
+        X::Proc::Async::TapBeforeSpawn.new(handle => what, :proc(self)).throw
           if $!started;
-        X::Proc::Async::CharsOrBytes.new(handle => what, proc => self).throw
+        X::Proc::Async::CharsOrBytes.new(handle => what, :proc(self)).throw
           if the-supply and type != value;
 
         type         = value;
@@ -233,7 +233,8 @@ my class Proc::Async {
 
     proto method bind-stdin($) {*}
     multi method bind-stdin(IO::Handle:D $handle --> Nil) {
-        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw if $!w;
+        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
+          if $!w;
         $!stdin-fd := $handle.native-descriptor;
         @!close-after-exit.push($handle) if $handle ~~ IO::Pipe;
     }
@@ -281,7 +282,8 @@ my class Proc::Async {
     }
 
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
-        X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
+        X::Proc::Async::AlreadyStarted.new(proc => self).throw
+          if $!started;
         $!started = True;
 
         my @blockers;
@@ -365,72 +367,78 @@ my class Proc::Async {
     }
 
     method print(Proc::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
-        X::Proc::Async::OpenForWriting.new(:method<print>, proc => self).throw if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<print>, proc => self).throw  if !$!started;
-
-        self.write($!encoder.encode-chars($str))
+        $!w
+          ?? $!started
+            ?? self.write($!encoder.encode-chars($str))
+            !! X::Proc::Async::MustBeStarted.new(:method<print>, :proc(self)).throw
+          !! X::Proc::Async::OpenForWriting.new(:method<print>, :proc(self)).throw
     }
 
     method put(Proc::Async:D: \x, |c) {
-        X::Proc::Async::OpenForWriting.new(:method<say>, proc => self).throw if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<say>, proc => self).throw  if !$!started;
-
-        self.print( x.join ~ "\n", |c );
+        $!w
+          ?? $!started
+            ?? self.print( x.join ~ "\n", |c )
+            !! X::Proc::Async::MustBeStarted.new(:method<say>,:proc(self)).throw
+          !! X::Proc::Async::OpenForWriting.new( :method<say>,:proc(self)).throw
     }
 
     method say(Proc::Async:D: \x, |c) {
-        X::Proc::Async::OpenForWriting.new(:method<say>, proc => self).throw if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<say>, proc => self).throw  if !$!started;
-
-        self.print( x.gist ~ "\n", |c );
+        $!w
+          ?? $!started
+            ?? self.print( x.gist ~ "\n", |c )
+            !! X::Proc::Async::MustBeStarted.new(:method<say>,:proc(self)).throw
+          !! X::Proc::Async::OpenForWriting.new( :method<say>,:proc(self)).throw
     }
 
     method write(Proc::Async:D: Blob:D $b, :$scheduler = $*SCHEDULER) {
-        X::Proc::Async::OpenForWriting.new(:method<write>, proc => self).throw if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<write>, proc => self).throw  if !$!started;
-
-        my $p := Promise.new;
-        my $v := $p.vow;
-        nqp::asyncwritebytes(
-            $!process_handle,
-            $scheduler.queue,
-            -> Mu \bytes, Mu \err {
-                if err {
-                    $v.break(err);
-                }
-                else {
-                    $v.keep(bytes);
-                }
-            },
-            nqp::decont($b), ProcessCancellation);
-        $p
+        if $!w && $!started {
+            my $p := Promise.new;
+            my $v := $p.vow;
+            nqp::asyncwritebytes(
+                $!process_handle,
+                $scheduler.queue,
+                -> Mu \bytes, Mu \err {
+                    err
+                      ?? $v.break(err)
+                      !! $v.keep(bytes)
+                },
+                nqp::decont($b), ProcessCancellation
+            );
+            $p
+        }
+        else {
+            $!w
+              ?? X::Proc::Async::MustBeStarted.new(:method<write>, :proc(self)).throw
+              !! X::Proc::Async::OpenForWriting.new(:method<write>, :proc(self)).throw;
+        }
     }
 
-    method close-stdin(Proc::Async:D:) {
-        X::Proc::Async::OpenForWriting.new(:method<close-stdin>, proc => self).throw
-          if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<close-stdin>, proc => self).throw
-          if !$!started;
-
-        nqp::closefh($!process_handle);
-        True;
+    method close-stdin(Proc::Async:D: --> True) {
+        $!w
+          ?? $!started
+            ?? nqp::closefh($!process_handle)
+            !! X::Proc::Async::MustBeStarted.new(:method<close-stdin>, :proc(self)).throw
+          !! X::Proc::Async::OpenForWriting.new(:method<close-stdin>, :proc(self)).throw
     }
 
     # Note: some of the duplicated code in methods could be moved to
     # proto, but at the moment (2017-06-02) that makes the call 24% slower
     proto method kill(|) {*}
     multi method kill(Proc::Async:D: Signal:D \signal = SIGHUP) {
-        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle, signal.value)
+        $!started
+          ?? nqp::killprocasync($!process_handle, signal.value)
+          !! X::Proc::Async::MustBeStarted.new(:method<kill>, :proc(self)).throw
     }
     multi method kill(Proc::Async:D: Int:D \signal) {
-        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle, signal)
+        $!started
+          ?? nqp::killprocasync($!process_handle, signal)
+          !! X::Proc::Async::MustBeStarted.new(:method<kill>, :proc(self)).throw
     }
 
     multi method kill(Proc::Async:D: Str:D \signal) {
-        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle, $*KERNEL.signal: signal)
+        $!started
+          ?? nqp::killprocasync($!process_handle, $*KERNEL.signal: signal)
+          !! X::Proc::Async::MustBeStarted.new(:method<kill>, :proc(self)).throw
     }
 }
 

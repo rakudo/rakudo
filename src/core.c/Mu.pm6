@@ -1099,40 +1099,6 @@ multi sub infix:<eqv>(Any:D \a, Any:D \b) {
     )
 }
 
-multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
-    nqp::hllbool(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-        nqp::if(                                 # not same object
-          nqp::eqaddr(a.WHAT,b.WHAT),
-          nqp::if(                               # same type
-            a.is-lazy,
-            nqp::if(                             # a lazy
-              b.is-lazy,
-              die(X::Cannot::Lazy.new: :action<eqv>) # a && b lazy
-            ),
-            nqp::if(                             # a NOT lazy
-              b.is-lazy,
-              0,                                 # b lazy
-              nqp::if(                           # a && b NOT lazy
-                nqp::iseq_i((my int $elems = a.elems),b.elems),
-                nqp::stmts(                      # same # elems
-                  (my int $i = -1),
-                  nqp::while(
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems) # not exhausted
-                      && a.AT-POS($i) eqv b.AT-POS($i),         # still same
-                    nqp::null
-                  ),
-                  nqp::iseq_i($i,$elems)         # exhausted = success!
-                )
-              )
-            )
-          )
-        )
-      )
-    )
-}
-
 sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
     my Mu $capture := nqp::usecapture();
     my Mu $topic   := nqp::captureposarg($capture, 0);

@@ -58,8 +58,8 @@ my class Proc::Async {
     # the native descriptor of the underlying pipe.
     class Pipe is Supply {
         my class PermitOnTap does Tappable {
-            has Tappable $.delegate;
-            has &.on-tap;
+            has Tappable $.delegate is built(:bind);
+            has &.on-tap is built(:bind);
             method tap(|c) {
                 &!on-tap();
                 $!delegate.tap(|c)
@@ -69,10 +69,8 @@ my class Proc::Async {
             method sane() { self.delegate.sane }
         }
 
-        has Promise $.native-descriptor;
-        has &!on-nd-used;
-
-        submethod BUILD(:$!native-descriptor!, :&!on-nd-used) {}
+        has Promise $.native-descriptor is built(:bind);
+        has &!on-nd-used is built(:bind);
 
         method native-descriptor() {
             &!on-nd-used();

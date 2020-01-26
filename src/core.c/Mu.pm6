@@ -714,21 +714,26 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
           ?? "IterationEnd"
           !! nqp::iscont(self) # a Proxy object would have a conted `self`
             ?? nqp::decont(self).raku
-            !! nqp::eqaddr(self.^find_method("perl").package,Mu)
-              ?? self.rakuseen: self.^name, {
-                   if self.^attributes.map( {
-                       nqp::concat(
-                         nqp::substr(.Str,2),
-                         nqp::concat(' => ',.get_value(self).raku)
-                       ) if .is_built;
-                   } ).join(', ') -> $attributes {
-                       self.^name ~ '.new(' ~ $attributes ~ ')'
-                   }
-                   else {
-                       self.^name ~ '.new'
-                   }
-                 }
+            !! nqp::eqaddr((my $proto := self.^find_method("perl")).package,Mu)
+                 && $proto.dispatchees == 1
+              ?? self!default-raku
               !! self.perl    # class has dedicated old-style .perl
+    }
+
+    method !default-raku() {
+        self.rakuseen: self.^name, {
+            if self.^attributes.map( {
+                nqp::concat(
+                  nqp::substr(.Str,2),
+                  nqp::concat(' => ',.get_value(self).raku)
+                ) if .is_built;
+            } ).join(', ') -> $attributes {
+                self.^name ~ '.new(' ~ $attributes ~ ')'
+            }
+            else {
+                self.^name ~ '.new'
+            }
+        }
     }
 
     proto method DUMP(|) {*}

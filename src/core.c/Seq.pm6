@@ -183,7 +183,7 @@ sub GATHER(&block) { Seq.new(Rakudo::Iterator.Gather(&block)) }
 multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
     nqp::hllbool(
       nqp::unless(
-        nqp::eqaddr(a,b),
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::if(
           nqp::eqaddr(a.WHAT,b.WHAT),
           nqp::if(

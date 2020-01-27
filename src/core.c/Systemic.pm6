@@ -7,10 +7,10 @@ role Systemic {
 
     multi method gist(Systemic:D: --> Str:D) {
         $!version
-          ?? "$!name ($!version)"
-          !! $!name
+          ?? "$.name ($.version)"
+          !! $.name
     }
-    method Str(--> Str:D) { $!name }
+    method Str(--> Str:D) { $.name }
 }
 
 # vim: ft=perl6 expandtab sw=4

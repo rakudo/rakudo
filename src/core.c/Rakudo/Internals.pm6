@@ -768,7 +768,7 @@ implementation detail and has no serviceable parts inside"
     }
 
 # Keep track of the differences between TAI and UTC for internal use.
-# The "BEGIN" and "END" comments are for tools/update-tai-utc.pl.
+# The "BEGIN" and "END" comments are for tools/add-leap-second.raku.
 #
 # Some handy tables:
 # http://tf.nist.gov/pubs/bulletin/leapsecond.htm

@@ -273,9 +273,13 @@
     }
 
     method first(Supply:D: :$end, |c) {
-        $end
-          ?? self.grep(|c).tail
-          !! self.grep(|c).head
+        c.list
+          ?? $end
+            ?? self.grep(|c).tail
+            !! self.grep(|c).head
+          !! $end
+            ?? self.tail
+            !! self.head
     }
 
     my class ScheduleOn does SimpleOpTappable {

@@ -1,4 +1,4 @@
-#!raku
+#!/usr/bin/env raku
 
 # This helper script is intended to make adding leap seconds to the
 # Raku system as easy as possible: by just giving the date for which
@@ -15,7 +15,7 @@ sub MAIN(
   #| the date for which to add a leap second
   Str $the-date,
   #| the source file containing leap second logic (default: src/core.c/Rakudo/Internals.pm6)
-  $from = 'src/core.c/Rakudo/Internals.pm6'
+  $the-source = 'src/core.c/Rakudo/Internals.pm6'
 ) {
 
     # set up the new leap second info
@@ -24,7 +24,7 @@ sub MAIN(
     my $before = $date.earlier(:1day);
 
     # run through the source file and update as appropriate
-    for $from.IO.lines -> $line {
+    for $the-source.IO.lines -> $line {
         say "        '$before',"
           if $line eq '        #END leap-second-dates';
         say "        $epoch,"

@@ -1,6 +1,14 @@
 # This module is primarily intended for debugging the object creation
 # internals, specifically the so-called BUILDPLAN and BUILDALLPLAN, as
 # created by src/Perl6/Metamodel/BUILDPLAN.nqp.
+#
+# If you're just interested in seeing the BUILDPLAN of one or more
+# classes, you can specify these classes as arguments to "use":
+#
+#    $ raku -e 'use BUILDPLAN Instant'
+#    class Instant BUILDPLAN:
+#     0: nqp::getattr(obj,Instant,'$!tai') = :$tai if possible
+#     1: vivify nqp::getattr(obj,Instant,'$!tai') if part of a mixin
 
 use nqp;
 
@@ -151,4 +159,11 @@ sub showop(@actions --> Str:D) {
     else {
         "Don't know how to handle: {@actions.raku}"
     }
+}
+
+sub EXPORT(*@classes) {
+    note BUILDPLAN(nqp::isconcrete($_) ?? ::($_) !! $_)
+      for @classes;
+
+    EXPORT::DEFAULT::
 }

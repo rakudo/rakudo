@@ -3875,25 +3875,30 @@ nqp::sethllconfig('Raku', nqp::hash(
         }
     },
     'method_not_found_error', -> $obj, str $name {
-        if $name eq 'STORE' {
-            my %ex := nqp::gethllsym('Raku', 'P6EX');
-            if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Assignment::RO') {
-                nqp::atkey(%ex, 'X::Assignment::RO')($obj);
+        if nqp::gethllsym('Raku', 'P6EX') -> %ex {
+            if $name eq 'STORE' {
+                if nqp::atkey(%ex,'X::Assignment::RO') -> $thrower {
+                    $thrower($obj);
+                }
+            }
+            elsif nqp::atkey(%ex,'X::Method::NotFound') -> $thrower {
+                $thrower($obj, $name, $obj.HOW.name($obj));
             }
         }
-        my %ex := nqp::gethllsym('Raku', 'P6EX');
-        if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::Method::NotFound') {
-            nqp::atkey(%ex, 'X::Method::NotFound')($obj, $name, $obj.HOW.name($obj));
-        }
+
+        # no thrower found
         nqp::die("Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'");
     },
 #?endif
     'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {
         if $cat == nqp::const::CONTROL_RETURN {
-            my %ex := nqp::gethllsym('Raku', 'P6EX');
-            if !nqp::isnull(%ex) && nqp::existskey(%ex,'X::ControlFlow::Return') {
-                nqp::atkey(%ex, 'X::ControlFlow::Return')($out_of_dyn_scope);
+            if nqp::gethllsym('Raku', 'P6EX') -> %ex {
+                if nqp::atkey(%ex,'X::ControlFlow::Return') -> $thrower {
+                    $thrower($out_of_dyn_scope);
+                }
             }
+
+            # no thrower found
             nqp::die('Attempt to return outside of any Routine');
         }
         else {

@@ -26,6 +26,7 @@ my class WhateverCode { ... }
 my class X::Attribute::Required { ... }
 my class X::Numeric::Overflow { ... }
 my class X::Numeric::Underflow { ... }
+my class X::TypeCheck::Attribute::Default { ... }
 
 # Stub these or we can't use any sigil other than $.
 my role Positional { ... }

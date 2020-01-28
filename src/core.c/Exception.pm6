@@ -2367,6 +2367,15 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     }
 }
 
+my class X::TypeCheck::Attribute::Default is X::TypeCheck does X::Comp {
+    has str $.name;
+    has $.operation;
+    method message {
+        self.priors() ~
+        "Can never $.operation default value $.gotn to attribute '$.name', it expects: $.expectedn"
+    }
+}
+
 my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
     has $.action;
     method message {

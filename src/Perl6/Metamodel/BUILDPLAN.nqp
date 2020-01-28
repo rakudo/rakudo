@@ -124,12 +124,47 @@ role Perl6::Metamodel::BUILDPLAN {
         for @attrs {
             if nqp::can($_, 'build') {
                 my $default := $_.build;
-                my int $primspec := nqp::objprimspec($_.type);
+                my $type    := $_.type;
+                my int $primspec := nqp::objprimspec($type);
 #?if js
                 my int $is_oversized_int := $primspec == 4 || $primspec == 5;
                 $primspec := $is_oversized_int ?? 0 !! $primspec;
 #?endif
+
+                # compile check constants for correct type
                 if nqp::isconcrete($default) {
+                    if $default.HOW.name($default) eq 'Method' {
+                        # cannot typecheck code to be run later
+                    }
+                    elsif $primspec {
+                        # add typecheck on natives
+                    }
+                    elsif nqp::istype($default,$type) {
+                        # type checks out ok
+                    }
+                    elsif nqp::istype($type,$*W.find_symbol(["Associative"])) {
+                        # cannot do type checks on associatives
+                    }
+                    elsif nqp::istype(
+                      $type,
+                      my $Positional := $*W.find_symbol(["Positional"])
+                    ) && nqp::istype($default,$Positional.of) {
+                        # type of positional checks out ok
+                    }
+                    else {
+                        # constant value did not typecheck ok
+                        my $typecheck := $*W.find_symbol(["X","TypeCheck","Attribute","Default"]);
+                        if nqp::can($typecheck,'new') {
+                            $typecheck.new(
+                              operation => $_.is_bound ?? 'bind' !! 'assign',
+                              name      => $_.name,
+                              got       => $default,
+                              expected  => $type,
+                            ).throw;
+                        }
+                    }
+
+                    # all ok, push the action
                     nqp::push(@plan,[
                       ($primspec || !$_.is_bound ?? 4 + $primspec !! 14),
                       $obj,

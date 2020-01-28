@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 10;
+plan 11;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -155,3 +155,5 @@ class ParameterChild is Parameter {
     has $.foobar
 }
 is ParameterChild.new(foobar => 'Baz').foobar, 'Baz', 'Subclassing of Parameter works';
+
+is Parameter.new(:name('$a'), :type(Int), :optional).perl, 'Int $a?', 'Parameter takes by-name parameters itself';

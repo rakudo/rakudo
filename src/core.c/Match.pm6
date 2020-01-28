@@ -915,6 +915,9 @@ my class Match is Capture is Cool does NQPMatchRole {
         $d == 0 ?? $r.chomp !! $r;
     }
 
+    method replace-with(Match:D: Str() $replacement --> Str:D) {
+        self.prematch ~ $replacement ~ self.postmatch
+    }
 }
 
 multi sub infix:<eqv>(Match:D \a, Match:D \b) {

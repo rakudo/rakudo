@@ -152,16 +152,7 @@ role Perl6::Metamodel::BUILDPLAN {
                         # type of positional checks out ok
                     }
                     else {
-                        # constant value did not typecheck ok
-                        my $typecheck := $*W.find_symbol(["X","TypeCheck","Attribute","Default"]);
-                        if nqp::can($typecheck,'new') {
-                            $typecheck.new(
-                              operation => $_.is_bound ?? 'bind' !! 'assign',
-                              name      => $_.name,
-                              got       => $default,
-                              expected  => $type,
-                            ).throw;
-                        }
+                        self.throw_typecheck($_, $default, $type);
                     }
 
                     # all ok, push the action
@@ -233,6 +224,24 @@ role Perl6::Metamodel::BUILDPLAN {
             @!BUILDALLPLAN := +@mro > 1
               ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
               !! @EMPTY
+        }
+    }
+
+    # constant value did not typecheck ok
+    method throw_typecheck($attr, $default, $type) {
+        my $typecheck := $*W.find_symbol(["X","TypeCheck","Attribute","Default"]);
+        if nqp::can($typecheck,'new') {
+            $typecheck.new(
+              operation => $attr.is_bound ?? 'bind' !! 'assign',
+              name      => $attr.name,
+              got       => $default,
+              expected  => $type,
+            ).throw;
+        }
+
+        # should only be in the setting
+        else {
+            nqp::die("Attribute '" ~ $attr.name ~ "'s default does not match type");
         }
     }
 

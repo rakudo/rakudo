@@ -39,7 +39,7 @@ class VM does Systemic {
         nqp::bind($!desc,'The Java Virtual Machine');
         nqp::bind($!auth,$!properties<java.vendor> // 'unknown');
         nqp::bind($!version,Version.new($!properties<java.specification.version> // "unknown"));
-        $!config<os.name> := $!properties<os.name> // 'unknown');
+        $!config<os.name> := $!properties<os.name> // 'unknown';
 #?endif
 #?if js
         # https://github.com/rakudo/rakudo/issues/3436

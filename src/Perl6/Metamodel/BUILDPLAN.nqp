@@ -133,7 +133,7 @@ role Perl6::Metamodel::BUILDPLAN {
 
                 # compile check constants for correct type
                 if nqp::isconcrete($default) {
-                    if nqp::istype($default, $*W.find_symbol(["Code"])) {
+                    if $default.HOW.name($default) eq 'Method' {
                         # cannot typecheck code to be run later
                     }
                     elsif $primspec {

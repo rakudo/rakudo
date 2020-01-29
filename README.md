@@ -136,7 +136,7 @@ Run the full spectest:
 To run a single test, one must use `make` because of the tooling required to
 run the spectests.  For example:
 
-    $ make t/spec/S12-traits/parameterized.t
+    $ make t/spec/S03-operators/comparison.t
 
 Run all tests in one S* directory with a sh script. One example:
 

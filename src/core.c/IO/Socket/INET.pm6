@@ -122,8 +122,8 @@ my class IO::Socket::INET does IO::Socket {
         # which is derived from the protocol, is SOCK_STREAM then connect() is called.
         if $!listening || $!localhost || $!localport {
             nqp::bindsock($PIO, nqp::unbox_s($!localhost || "0.0.0.0"),
-                                 nqp::unbox_i($!localport || 0), nqp::unbox_i($!family),
-                                 nqp::unbox_i($!backlog || 128));
+                                 nqp::unbox_i($!localport || 0), nqp::unbox_i($!family));
+            nqp::listen($PIO, nqp::unbox_i($!backlog || 128));
         }
 
         if $!listening {

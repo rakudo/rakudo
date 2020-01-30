@@ -133,29 +133,36 @@ role Perl6::Metamodel::BUILDPLAN {
 
                 # compile check constants for correct type
                 if nqp::isconcrete($default) {
+                    my $Code;
+                    my $Positional;
+                    my $Associative;
                     if !nqp::isnull(nqp::getlexdyn('$*W')) && $*W.in_unit_parse {
-                        # We're not currently compiling, skip typechecking for now.
-                        if nqp::istype(nqp::decont($default), $*W.find_symbol(["Code"])) {
-                            # cannot typecheck code to be run later
-                        }
-                        elsif $primspec {
-                            # add typecheck on natives
-                        }
-                        elsif nqp::istype($default,$type) {
-                            # type checks out ok
-                        }
-                        elsif nqp::istype($type,$*W.find_symbol(["Associative"])) {
-                            # cannot do type checks on associatives
-                        }
-                        elsif nqp::istype(
-                          $type,
-                          my $Positional := $*W.find_symbol(["Positional"])
-                        ) && nqp::istype($default,$Positional.of) {
-                            # type of positional checks out ok
-                        }
-                        else {
-                            self.throw_typecheck($_, $default, $type);
-                        }
+                        $Code := $*W.find_symbol(["Code"], :setting-only);
+                        $Associative := $*W.find_symbol(["Associative"], :setting-only);
+                        $Positional := $*W.find_symbol(["Positional"], :setting-only)
+                    }
+                    else {
+                        $Code := nqp::gethllsym('Raku', 'Code');
+                        $Associative := nqp::gethllsym('Raku', 'Associative');
+                        $Positional := nqp::gethllsym('Raku', 'Positional');
+                    }
+                    if nqp::istype(nqp::decont($default), $Code) {
+                        # cannot typecheck code to be run later
+                    }
+                    elsif $primspec {
+                        # add typecheck on natives
+                    }
+                    elsif nqp::istype($default,$type) {
+                        # type checks out ok
+                    }
+                    elsif nqp::istype($type, $Associative) {
+                        # cannot do type checks on associatives
+                    }
+                    elsif nqp::istype($type, $Positional) && nqp::istype($default,$Positional.of) {
+                        # type of positional checks out ok
+                    }
+                    else {
+                        self.throw_typecheck($_, $default, $type);
                     }
 
                     # all ok, push the action
@@ -232,9 +239,12 @@ role Perl6::Metamodel::BUILDPLAN {
 
     # constant value did not typecheck ok
     method throw_typecheck($attr, $default, $type) {
-        my $typecheck := $*W.find_symbol(["X","TypeCheck","Attribute","Default"]);
-        if nqp::can($typecheck,'new') {
-            $typecheck.new(
+        my $Typecheck := try $*W.find_symbol(["X","TypeCheck","Attribute","Default"]);
+        if nqp::isnull($Typecheck) || nqp::istype($Typecheck, NQPMu) {
+            $Typecheck := nqp::gethllsym('Raku', 'X::TypeCheck::Attribute::Default');
+        }
+        if nqp::can($Typecheck,'new') {
+            $Typecheck.new(
               operation => $attr.is_bound ?? 'bind' !! 'assign',
               name      => $attr.name,
               got       => $default,

@@ -34,6 +34,12 @@ BEGIN {
     }
 }
 
+# Provide symbols for attribute defaults typechecking by create_BUILDPLAN.
+nqp::bindhllsym('Raku', 'Code', Code);
+nqp::bindhllsym('Raku', 'Associative', Associative);
+nqp::bindhllsym('Raku', 'Positional', Positional);
+nqp::bindhllsym('Raku', 'X::TypeCheck::Attribute::Default', X::TypeCheck::Attribute::Default);
+
 {YOU_ARE_HERE}
 
 # vim: ft=perl6 expandtab sw=4

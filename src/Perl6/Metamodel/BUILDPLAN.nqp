@@ -133,26 +133,29 @@ role Perl6::Metamodel::BUILDPLAN {
 
                 # compile check constants for correct type
                 if nqp::isconcrete($default) {
-                    if nqp::istype($default, $*W.find_symbol(["Code"])) {
-                        # cannot typecheck code to be run later
-                    }
-                    elsif $primspec {
-                        # add typecheck on natives
-                    }
-                    elsif nqp::istype($default,$type) {
-                        # type checks out ok
-                    }
-                    elsif nqp::istype($type,$*W.find_symbol(["Associative"])) {
-                        # cannot do type checks on associatives
-                    }
-                    elsif nqp::istype(
-                      $type,
-                      my $Positional := $*W.find_symbol(["Positional"])
-                    ) && nqp::istype($default,$Positional.of) {
-                        # type of positional checks out ok
-                    }
-                    else {
-                        self.throw_typecheck($_, $default, $type);
+                    if !nqp::isnull(nqp::getlexdyn('$*W')) && $*W.in_unit_parse {
+                        # We're not currently compiling, skip typechecking for now.
+                        if nqp::istype(nqp::decont($default), $*W.find_symbol(["Code"])) {
+                            # cannot typecheck code to be run later
+                        }
+                        elsif $primspec {
+                            # add typecheck on natives
+                        }
+                        elsif nqp::istype($default,$type) {
+                            # type checks out ok
+                        }
+                        elsif nqp::istype($type,$*W.find_symbol(["Associative"])) {
+                            # cannot do type checks on associatives
+                        }
+                        elsif nqp::istype(
+                          $type,
+                          my $Positional := $*W.find_symbol(["Positional"])
+                        ) && nqp::istype($default,$Positional.of) {
+                            # type of positional checks out ok
+                        }
+                        else {
+                            self.throw_typecheck($_, $default, $type);
+                        }
                     }
 
                     # all ok, push the action

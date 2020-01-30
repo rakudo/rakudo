@@ -48,8 +48,6 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_NOT_READONLY = $SIG_ELEM_IS_RW
                                          +| $SIG_ELEM_IS_COPY
                                          +| $SIG_ELEM_IS_RAW;
-    my constant $SIG_ELEM_HAS_DEFAULT = $SIG_ELEM_DEFAULT_IS_LITERAL
-                                     +| $SIG_ELEM_DEFAULT_FROM_OUTER;
 
     my $sigils2bit := nqp::null;
     sub set-sigil-bits(str $sigil, \flags --> Nil) {
@@ -262,8 +260,7 @@ my class Parameter { # declared in BOOTSTRAP
                 ?? '%'
                 !! nqp::bitand_i($!flags,$SIG_ELEM_CODE_SIGIL)
                   ?? '&'
-                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
-                  && nqp::not_i(nqp::bitand_i($!flags,$SIG_ELEM_HAS_DEFAULT))
+                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::isnull($!default_value)
                     ?? '\\'
                     !! '$'
             !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::iseq_i(
@@ -296,13 +293,12 @@ my class Parameter { # declared in BOOTSTRAP
 
     method suffix(Parameter:D: --> Str:D) {
         nqp::isnull(@!named_names)
-          ?? nqp::bitand_i($!flags, $SIG_ELEM_IS_OPTIONAL)
-          && nqp::not_i(nqp::bitand_i($!flags, $SIG_ELEM_HAS_DEFAULT))
+          ?? nqp::bitand_i($!flags, $SIG_ELEM_IS_OPTIONAL) && nqp::isnull($!default_value)
             ?? '?'
             !! ''
-          !! nqp::bitand_i($!flags, nqp::bitor_i($SIG_ELEM_IS_OPTIONAL, $SIG_ELEM_HAS_DEFAULT))
-             ?? ''
-             !! '!'
+          !! nqp::bitand_i($!flags, $SIG_ELEM_IS_OPTIONAL)
+            ?? ''
+            !! '!'
     }
 
     method modifier() {

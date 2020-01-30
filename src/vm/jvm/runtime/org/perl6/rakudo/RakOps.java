@@ -434,7 +434,7 @@ public final class RakOps {
     }
 
     public static SixModelObject getThrower(ThreadContext tc, String type) {
-        SixModelObject exHash = Ops.gethllsym("perl6", "P6EX", tc);
+        SixModelObject exHash = Ops.gethllsym("Raku", "P6EX", tc);
         return exHash == null ? null : Ops.atkey(exHash, type, tc);
     }
 

@@ -515,6 +515,7 @@ class Perl6::World is HLL::World {
     # To temporarily keep fixup task QAST.
     has $!setting_fixup_task;
 
+    has int $!in_unit_parse;
     has int $!unit_ready;
     has int $!have_outer;
     has $!setting_name;
@@ -525,6 +526,7 @@ class Perl6::World is HLL::World {
         $!record_precompilation_dependencies := 1;
         %!quote_lang_cache := {};
         $!unit_ready := 0;
+        $!in_unit_parse := 0;
     }
 
     method create_nested() {
@@ -543,6 +545,10 @@ class Perl6::World is HLL::World {
 
     method setting_revision() {
         $!setting_revision
+    }
+
+    method in_unit_parse() {
+        $!in_unit_parse
     }
 
     method !check-version-modifier($ver-match, $rev, $modifier, $comp) {
@@ -697,6 +703,9 @@ class Perl6::World is HLL::World {
                                             }
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
+
+        # Unit compilation started
+        $!in_unit_parse := 1;
     }
 
     method comp_unit_stage1 ($/) {
@@ -828,6 +837,9 @@ class Perl6::World is HLL::World {
     }
 
     method mop_up_and_check($/) {
+
+        # Unit has been parsed. Some services are not available past this point.
+        $!in_unit_parse := 0;
 
         # Install POD-related variables.
         $*POD_PAST := self.add_constant(

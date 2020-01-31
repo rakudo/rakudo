@@ -15,7 +15,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method implementation()   { self.config<implementation> }
-    method language_name()    { 'Perl' }
+    method language_name()    { 'Raku' }
     method reset_language_version() {
         $!language_version := NQPMu;
         $!language_modifier := NQPMu;

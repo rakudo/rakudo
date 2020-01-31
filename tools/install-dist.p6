@@ -40,11 +40,11 @@ sub find-meta-file($dir) {
     ('META6.json', 'META.info').map({$dir.child($_)}).first: {$_ ~~ :f}
 }
 
-multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-prefix)!, :for(:$repo-name)!) {
+multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-prefix)!, :for(:$repo-name)!, Bool :$build = True) {
     my $meta-file = find-meta-file($dist-prefix.IO);
     my $dist      = Distribution::Path.new($dist-prefix.IO, :$meta-file);
 
-    build(:dist-prefix($dist-prefix.IO));
+    build(:dist-prefix($dist-prefix.IO)) if $build;
 
     CompUnit::Repository::Staging.new(
         :prefix($repo-prefix),
@@ -55,11 +55,11 @@ multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-prefix)!, :for(:$repo-name
     $_.unlink for <version repo.lock precomp/.lock>.map: {$repo-prefix.IO.child($_)};
 }
 
-multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-id) = 'site', Bool :$force) {
+multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-id) = 'site', Bool :$force, Bool :$build = True) {
     my $meta-file = find-meta-file($dist-prefix.IO);
     my $dist      = Distribution::Path.new($dist-prefix.IO, :$meta-file);
 
-    build(:dist-prefix($dist-prefix.IO));
+    build(:dist-prefix($dist-prefix.IO)) if $build;
 
     my $repo = first * ~~ CompUnit::Repository::Installable,
         CompUnit::RepositoryRegistry.repository-for-name($repo-id),

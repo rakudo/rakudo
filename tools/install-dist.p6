@@ -69,6 +69,13 @@ multi sub MAIN(:from(:$dist-prefix) = '.', :to(:$repo-id) = 'site', Bool :$force
     $repo.install($dist, :$force);
 }
 
+multi sub MAIN(:from(:$dist-prefix) = '.', Bool :$only-build!) {
+    my $meta-file = find-meta-file($dist-prefix.IO);
+    my $dist      = Distribution::Path.new($dist-prefix.IO, :$meta-file);
+
+    build(:dist-prefix($dist-prefix.IO));
+}
+
 sub build(IO::Path :$dist-prefix) {
     my $meta-file = find-meta-file($dist-prefix);
     my $meta = Rakudo::Internals::JSON.from-json($meta-file.slurp);

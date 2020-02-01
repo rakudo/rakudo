@@ -19,7 +19,7 @@ tar -xzf rakudo.tgz
 cd rakudo-*
 
 # Build Rakudo
-perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
+perl Configure.pl --gen-moar --gen-nqp --backends=moar --moar-option='--toolchain=gnu' --relocatable
 make
 make install
 

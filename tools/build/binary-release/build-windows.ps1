@@ -35,7 +35,7 @@ cd rakudo-*
 
 # Build Rakudo
 
-perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
+perl Configure.pl --gen-moar --gen-nqp --backends=moar --moar-option='--toolchain=msvc' --relocatable
 CheckLastExitCode
 nmake install
 CheckLastExitCode
@@ -54,16 +54,15 @@ CheckLastExitCode
 cd zef
 ..\install\bin\raku.exe -I. bin\zef install .
 CheckLastExitCode
+cd ..
 
 
 # Prepare the package
 
-cp -r "tools\build\binary-release\Windows\*" install
+cp -Force -r "tools\build\binary-release\Windows\*" install
 cp LICENSE install
 
-$version = Get-Content -Path .\VERSION -Raw
-$version = $version.Trim()
-mv install rakudo-$version
+mv install rakudo-$Env:VERSION
 
-Compress-Archive -Path rakudo-$version -DestinationPath ..\rakudo-win.zip
+Compress-Archive -Path rakudo-$Env:VERSION -DestinationPath ..\rakudo-win.zip
 

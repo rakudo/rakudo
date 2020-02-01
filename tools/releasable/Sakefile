@@ -74,8 +74,7 @@ my $rakudo-archive = “$RAKUDO-PATH/rakudo-{$version-rakudo}.tar.gz”;
 my $nqp-test-dir    = $temp.add: ‘nqp-test’;
 my $rakudo-test-dir = $temp.add: ‘rakudo-test’;
 
-my @tarball-distributors = ‘rakudo@rakudo.org:public_html/downloads/’,
-                           ‘rakudo@www.p6c.org:public_html/downloads/’;
+my @tarball-distributors = 'rakudo.org@lavm-perl6infra-1.atikon.io:public_html/downloads/';
 
 my @canary-distributors  = ‘rakudo@www.p6c.org:public_html/downloads/’;
 

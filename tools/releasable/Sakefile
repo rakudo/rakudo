@@ -23,8 +23,8 @@ use File::Directory::Tree;
 my $THREADS  = 7;
 
 # These are used so that you can run tests on a faster machine.
-my $SSH      = ‘alex@localhost’; # TODO make it configurable
-my $SSH-PATH = ‘/home/alex/git/Releasable/’; # TODO make it configurable
+my $SSH      = %*ENV<RELEASE_SSH> // "{qx{whoami}.trim}@localhost";
+my $SSH-PATH = %*ENV<RELEASE_HOME>;
 my $RSYNC    = “$SSH:$SSH-PATH”;
 
 my $WIKIPEDIA-NAME = %*ENV<WIKIPEDIA-NAME>; # currently not used
@@ -66,6 +66,7 @@ spurt ‘BRANCH_MOAR’,    $branch-moar;
 spurt ‘BRANCH_NQP’,     $branch-nqp;
 spurt ‘BRANCH_RAKUDO’,  $branch-rakudo;
 spurt ‘BRANCH_ROAST’,   $branch-roast;
+
 
 my $temp = “temp”.IO;
 my $nqp-archive    = “$NQP-PATH/nqp-{$version-nqp}.tar.gz”;

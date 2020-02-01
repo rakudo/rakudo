@@ -210,14 +210,14 @@ task ‘rakudo-push’, { # Step ??? (rakudo release guide)
 
 task ‘nqp-upload’, { # Step ❽ (nqp release guide)
     for @tarball-distributors {
-        run ‘scp’, $nqp-archive, “{$nqp-archive}.asc”, “$_/nqp/”
+        run ‘scp -p 2222’, $nqp-archive, “{$nqp-archive}.asc”, “$_/nqp/”
     }
     True
 }
 
 task ‘rakudo-upload’, { # Step ⓲ (rakudo release guide)
     for @tarball-distributors {
-        run ‘scp’, $rakudo-archive, “{$rakudo-archive}.asc”, “$_/rakudo/”
+        run ‘scp -p 2222’, $rakudo-archive, “{$rakudo-archive}.asc”, “$_/rakudo/”
     }
     True
 }

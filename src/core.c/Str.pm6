@@ -583,25 +583,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! self.comb(1,$limit)
     }
 
-    multi method comb(Str:D: Regex:D $pattern, :$match --> Seq:D) {
-        Seq.new(nqp::if(
-          $match,
-          self.match($pattern, :g),
-          self.match($pattern, :g, :as(Str))
-        ).iterator)
-    }
-    multi method comb(Str:D: Regex:D $pattern, $limit, :$match --> Seq:D) {
-        nqp::if(
-          nqp::istype($limit,Whatever) || $limit == Inf,
-          self.comb($pattern, :$match),
-          Seq.new(nqp::if(
-            $match,
-            self.match($pattern, :x(1..$limit)),
-            self.match($pattern, :x(1..$limit), :as(Str))
-          ).iterator)
-        )
-    }
-
     # cache cursor initialization lookup
     my $cursor-init := Match.^lookup("!cursor_init");
 
@@ -688,6 +669,28 @@ my class Str does Stringy { # declared in BOOTSTRAP
               )
             )
         }
+    }
+
+    multi method comb(Str:D: Regex:D $regex, :$match --> Seq:D) {
+        Seq.new(
+          POST-ITERATOR.new(
+            $regex($cursor-init(Match,self,:0c)),
+            CURSOR-GLOBAL,
+            $match ?? POST-MATCH !! POST-STR
+          )
+        )
+    }
+    multi method comb(Str:D: Regex:D $regex, $limit, :$match --> Seq:D) {
+        my \iterator := POST-ITERATOR.new(
+          $regex($cursor-init(Match,self,:0c)),
+          CURSOR-GLOBAL,
+          $match ?? POST-MATCH !! POST-STR
+        );
+        Seq.new(
+          nqp::istype($limit,Whatever) || $limit == Inf
+            ?? iterator
+            !! Rakudo::Iterator.NextNValues(iterator, $limit.Int)
+        )
     }
 
     # Look for short/long named parameter and remove it from the hash

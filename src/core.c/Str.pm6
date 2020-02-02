@@ -671,25 +671,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method comb(Str:D: Regex:D $regex, :$match --> Seq:D) {
-        Seq.new(
-          POST-ITERATOR.new(
-            $regex($cursor-init(Match,self,:0c)),
-            CURSOR-GLOBAL,
-            $match ?? POST-MATCH !! POST-STR
-          )
-        )
-    }
-    multi method comb(Str:D: Regex:D $regex, $limit, :$match --> Seq:D) {
+    method !match-iterator(&regex, &kind, \limit) {
         my \iterator := POST-ITERATOR.new(
-          $regex($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL,
-          $match ?? POST-MATCH !! POST-STR
+          regex($cursor-init(Match,self,:0c)),CURSOR-GLOBAL,&kind
         );
+        nqp::istype(limit,Whatever) || limit == Inf
+          ?? iterator
+          !! Rakudo::Iterator.NextNValues(iterator, limit.Int)
+    }
+
+    multi method comb(Str:D: Regex:D $regex, $limit = *, :$match --> Seq:D) {
         Seq.new(
-          nqp::istype($limit,Whatever) || $limit == Inf
-            ?? iterator
-            !! Rakudo::Iterator.NextNValues(iterator, $limit.Int)
+          self!match-iterator($regex, $match ?? POST-MATCH !! POST-STR, $limit)
         )
     }
 

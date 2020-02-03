@@ -270,71 +270,52 @@
         }
     }
 
+    sub seen(IterationBuffer:D \seen, \value, &with) {
+        my int $i = -1;
+        my int $elems = nqp::elems(seen);
+        return 1 if with(value, nqp::atpos(seen,$i))
+          while ++$i < $elems;
+
+        # not seen
+        nqp::push(seen, value);
+        0
+    }
+
     multi method repeated(Supply:D:) {
         supply {
-            my int $first = 1;
-            my $last;
+            my $seen := nqp::hash;
             my $which;
             whenever self -> \val {
-                if $first {
-                    $first = 0;
-                    $last := val.WHICH;
-                }
-                else {
-                    emit val if $last eq ($which := val.WHICH);
-                    $last := $which;
-                }
+                nqp::existskey($seen,($which := val.WHICH))
+                  ?? emit(val)
+                  !! nqp::bindkey($seen,$which,1)
             }
         }
     }
     multi method repeated(Supply:D: :&as!, :&with!) {
         supply {
-            my int $first = 1;
-            my $target;
-            my $last;
+            my $seen := nqp::create(IterationBuffer);
             whenever self -> \val {
-                $target := as(val);
-                if $first {
-                    $first = 0;
-                }
-                elsif with($last, $target) {
-                    emit val
-                }
-                $last := $target;
+                emit(val) if seen($seen, as(val), &with);
             }
         }
     }
     multi method repeated(Supply:D: :&as!) {
         supply {
-            my int $first = 1;
-            my $target;
-            my $last;
+            my $seen := nqp::hash;
             my $which;
             whenever self -> \val {
-                $target := as(val);
-                if $first {
-                    $first = 0;
-                    $last := $target.WHICH;
-                }
-                else {
-                    emit val if $last eq ($which := $target.WHICH);
-                    $last := $which;
-                }
+                nqp::existskey($seen,($which := as(val).WHICH))
+                  ?? emit(val)
+                  !! nqp::bindkey($seen,$which,1)
             }
         }
     }
     multi method repeated(Supply:D: :&with!) {
         supply {
-            my int $first = 1;
-            my $last;
+            my $seen := nqp::create(IterationBuffer);
             whenever self -> \val {
-                if $first {
-                    $first = 0;
-                }
-                elsif with($last, val) {
-                    emit val;
-                }
-                $last := val;
+                emit(val) if seen($seen, val, &with);
             }
         }
     }

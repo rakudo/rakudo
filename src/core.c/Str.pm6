@@ -1539,82 +1539,120 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method parse-base(Str:D: "camel" --> Int:D) { self!eggify: "🐪🐫" }
     multi method parse-base(Str:D: "beer"  --> Int:D) { self!eggify: "🍺🍻" }
 
-    multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
+    multi method split(Str:D: Regex:D $regex, $limit is copy = Inf;;
+      :$v , :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
 
+        # sanity checks
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
-
         self!ensure-limit-sanity($limit);
-        return Seq.new(Rakudo::Iterator.Empty) if $limit <= 0;
 
-        my \matches = $limit == Inf
-          ?? self!match-list($/, $pat($cursor-init(Match,self,:0c)),
-                CURSOR-GLOBAL, POST-MATCH)
-          !! self.match($pat, :x(1..$limit-1));
-
-        my str $str   = nqp::unbox_s(self);
-        my int $elems = matches.elems;  # make sure all reified
-        return Seq.new(Rakudo::Iterator.OneValue(self)) unless $elems;
-
-        my $matches  := nqp::getattr(matches,List,'$!reified');
-        my $result   := nqp::create(IterationBuffer);
-        my int $i = -1;
-        my int $pos;
-        my int $found;
-
-        if $any || $skip-empty {
-            my int $notskip = !$skip-empty;
-            my int $next;
-            while nqp::islt_i(++$i,$elems) {
-                my $match := nqp::decont(nqp::atpos($matches,$i));
-                $found  = nqp::getattr_i($match,Match,'$!from');
-                $next   = $match.to;
-                if $notskip {
-                    nqp::push($result,
-                      nqp::substr($str,$pos,nqp::sub_i($found,$pos)));
-                }
-                elsif nqp::sub_i($found,$pos) -> $chars {
-                    nqp::push($result,
-                      nqp::substr($str,$pos,$chars));
-                }
-                nqp::if(
-                  $any,
-                  nqp::if(
-                    $v,
-                    nqp::push($result,$match),                  # v
-                    nqp::if(
-                      $k,
-                      nqp::push($result,0),                     # k
-                      nqp::if(
-                        $kv,
-                        nqp::stmts(
-                          nqp::push($result,0),                 # kv
-                          nqp::push($result,$match)             # kv
-                        ),
-                        nqp::push($result, Pair.new(0,$match))  # $p
-                      )
-                    )
-                  )
-                );
-                $pos = $next;
-            }
-            nqp::push($result,nqp::substr($str,$pos))
-              if $notskip || nqp::islt_i($pos,nqp::chars($str));
+        if $limit <= 0 {
+            Seq.new(Rakudo::Iterator.Empty)
         }
         else {
-            my $match;
-            nqp::setelems($result,$elems + 1);
-            while nqp::islt_i(++$i,$elems) {
-                $match := nqp::decont(nqp::atpos($matches,$i));
-                $found  = nqp::getattr_i($match,Match,'$!from');
-                nqp::bindpos($result,$i,
-                  nqp::substr($str,$pos,nqp::sub_i($found,$pos)));
-                $pos = $match.to;
-            }
-            nqp::bindpos($result,$i,nqp::substr($str,$pos));
-        }
 
-        Seq.new(Rakudo::Iterator.ReifiedList($result))
+            # get all the matches
+            self!match-iterator($regex, POST-MATCH, $limit - 1)
+              .push-all(my \matches := nqp::create(IterationBuffer));
+
+            # do the split
+            nqp::elems(matches)
+              ?? $any
+                ?? $k || $v
+                  ?? self!split-with-kv(matches,?$k,?$v,!$skip-empty)
+                  !! $kv
+                    ?? self!split-with-kv(matches, 1, 1, !$skip-empty)
+                    !! self!split-with-p(matches, !$skip-empty)
+                !! $skip-empty
+                  ?? self!split-empty(matches)
+                  !! self!split(matches)
+              !! Seq.new(Rakudo::Iterator.OneValue(self))
+        }
+    }
+
+    method !split-with-kv(\matches, int $k, int $v, int $dontskip --> Seq:D) {
+        my \result := nqp::create(IterationBuffer);
+
+        my $match;
+        my int $pos;
+        my int $found;
+        while nqp::elems(matches) {
+            $match := nqp::shift(matches);
+            $found  = nqp::getattr_i($match,Match,'$!from');
+            if $dontskip {
+                nqp::push(result,nqp::substr(self,$pos,$found - $pos));
+            }
+            elsif $found - $pos -> int $chars {
+                nqp::push(result,nqp::substr(self,$pos,$chars));
+            }
+            nqp::push(result,0)      if $k;
+            nqp::push(result,$match) if $v;
+            $pos = nqp::getattr_i($match,Match,'$!pos');
+        }
+        nqp::push(result,nqp::substr(self,$pos))
+          if $dontskip || $pos < nqp::chars(self);
+
+        result.Seq
+    }
+
+    method !split-with-p(\matches, int $dontskip --> Seq:D) {
+        my \result := nqp::create(IterationBuffer);
+
+        my $match;
+        my int $pos;
+        my int $found;
+        while nqp::elems(matches) {
+            $match := nqp::shift(matches);
+            $found  = nqp::getattr_i($match,Match,'$!from');
+            if $dontskip {
+                nqp::push(result,nqp::substr(self,$pos,$found - $pos));
+            }
+            elsif $found - $pos -> int $chars {
+                nqp::push(result,nqp::substr(self,$pos,$chars));
+            }
+            nqp::push(result, Pair.new(0,$match));
+            $pos = nqp::getattr_i($match,Match,'$!pos')
+        }
+        nqp::push(result,nqp::substr(self,$pos))
+          if $dontskip || $pos < nqp::chars(self);
+
+        result.Seq
+    }
+
+    method !split-empty(\matches --> Seq:D) {
+        my \result := nqp::create(IterationBuffer);
+
+        my $match;
+        my int $pos;
+        while nqp::elems(matches) {
+            $match := nqp::shift(matches);
+            if nqp::getattr_i($match,Match,'$!from') - $pos -> int $chars {
+                nqp::push(result,nqp::substr(self,$pos,$chars));
+            }
+            $pos = nqp::getattr_i($match,Match,'$!pos');
+        }
+        nqp::push(result,nqp::substr(self,$pos))
+          if $pos < nqp::chars(self);
+
+        result.Seq
+    }
+
+    method !split(\matches --> Seq:D) {
+        my \result := nqp::create(IterationBuffer);
+
+        my $match;
+        my int $pos;
+        while nqp::elems(matches) {
+            $match := nqp::shift(matches);
+            nqp::push(
+              result,
+              nqp::substr(self,$pos,nqp::getattr_i($match,Match,'$!from')-$pos)
+            );
+            $pos = nqp::getattr_i($match,Match,'$!pos');
+        }
+        nqp::push(result,nqp::substr(self,$pos));
+
+        result.Seq
     }
 
     multi method split(Str:D: Str(Cool) $match;;

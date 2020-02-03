@@ -1546,8 +1546,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
         self!ensure-limit-sanity($limit);
 
-        if $limit <= 0 {
-            Seq.new(Rakudo::Iterator.Empty)
+        if $limit <= 1 {
+            Seq.new($limit == 1
+              ?? Rakudo::Iterator.OneValue(self)
+              !! Rakudo::Iterator.Empty
+            )
         }
         else {
 

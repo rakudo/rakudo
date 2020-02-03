@@ -45,6 +45,12 @@ my class IterationBuffer {
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',self)
     }
 
+    # For maintainability mainly, and possibly for creating smaller, more
+    # inlineable candidates
+    method Seq(IterationBuffer:D:) {
+        Seq.new(Rakudo::Iterator.ReifiedList(self))
+    }
+
     # For core debugging purposes only: basically warp the IterationBuffer
     # into a full-fledged List and .raku that.  We don't care that it will
     # not round-trip.

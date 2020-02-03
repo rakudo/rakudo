@@ -126,7 +126,7 @@
                         whenever self -> \val {
                             my $now := now;
                             $target = nqp::unbox_s(&as(val).WHICH);
-                            if !nqp::existskey($seen,$target) ||
+                            if nqp::not_i(nqp::existskey($seen,$target)) ||
                               $now > nqp::atkey($seen,$target) { #expired
                                 emit(val);
                                 nqp::bindkey($seen,$target,$now+$expires);
@@ -137,7 +137,7 @@
                         whenever self -> \val {
                             my $now := now;
                             $target = nqp::unbox_s(val.WHICH);
-                            if !nqp::existskey($seen,$target) ||
+                            if nqp::not_i(nqp::existskey($seen,$target)) ||
                               $now > nqp::atkey($seen,$target) { #expired
                                 emit(val);
                                 nqp::bindkey($seen,$target,$now+$expires);
@@ -152,43 +152,36 @@
     multi method unique(Supply:D: :&as, :&with) {
         supply {
             if &with and !(&with === &[===]) {
-                my @seen;  # really Mu, but doesn't work in settings
+                my $seen := nqp::create(IterationBuffer);
                 my Mu $target;
                 if &as {
                     whenever self -> \val {
-                        $target = &as(val);
-                        if @seen.first({ &with($target,$_) } ) =:= Nil {
-                            @seen.push($target);
-                            emit(val);
-                        }
+                        emit(val) unless seen($seen, as(val), &with);
                     }
                 }
                 else {
                     whenever self -> \val {
-                        if @seen.first({ &with(val,$_) } ) =:= Nil {
-                            @seen.push(val);
-                            emit(val);
-                        }
+                        emit(val) unless seen($seen, val, &with);
                     }
                 }
             }
             else {
                 my $seen := nqp::hash();
-                my str $target;
+                my $which;
                 if &as {
                     whenever self -> \val {
-                        $target = nqp::unbox_s(&as(val).WHICH);
-                        unless nqp::existskey($seen, $target) {
-                            nqp::bindkey($seen, $target, 1);
+                        $which := as(val).WHICH;
+                        unless nqp::existskey($seen, $which) {
+                            nqp::bindkey($seen, $which, 1);
                             emit(val);
                         }
                     }
                 }
                 else {
                     whenever self -> \val {
-                        $target = nqp::unbox_s(val.WHICH);
-                        unless nqp::existskey($seen, $target) {
-                            nqp::bindkey($seen, $target, 1);
+                        $which := val.WHICH;
+                        unless nqp::existskey($seen, $which) {
+                            nqp::bindkey($seen, $which, 1);
                             emit(val);
                         }
                     }

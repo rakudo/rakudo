@@ -634,6 +634,29 @@ my class Rakudo::QuantHash {
         )
     }
 
+    method SUB-ITERATOR-FROM-BAG(\elems, Mu \iterator) {
+        nqp::stmts(
+          nqp::until(
+            nqp::eqaddr(
+              (my \pulled := nqp::decont(iterator.pull-one)),
+              IterationEnd
+            ),
+            nqp::if(
+              nqp::existskey(elems,(my \which := pulled.WHICH)),
+              nqp::stmts(
+                (my \pair := nqp::atkey(elems,which)),
+                nqp::if(
+                  nqp::isgt_i((my \freq := nqp::getattr(pair,Pair,'$!value')),1),
+                  nqp::bindattr(pair,Pair,'$!value',nqp::sub_i(freq,1)),
+                  nqp::deletekey(elems,which)
+                )
+              )
+            )
+          ),
+          elems
+        )
+    }
+
     # Add to given IterationSet with baggy semantics the keys of given Map
     method ADD-MAP-TO-BAG(\elems, \map) {
         nqp::stmts(

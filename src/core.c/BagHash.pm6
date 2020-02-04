@@ -310,6 +310,22 @@ my class BagHash does Baggy {
           Rakudo::Iterator.Empty
         ))
     }
+
+#--- convenience methods
+    method add(\to-add --> Nil) {
+        nqp::bindattr(
+          self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
+        ) unless $!elems;
+        Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
+          $!elems, to-add.iterator, self.keyof
+        );
+    }
+
+    method remove(\to-remove --> Nil) {
+        Rakudo::QuantHash.SUB-ITERATOR-FROM-BAG(
+          $!elems, to-remove.iterator
+        ) if $!elems;
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

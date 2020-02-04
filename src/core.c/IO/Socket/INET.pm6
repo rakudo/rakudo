@@ -128,7 +128,8 @@ my class IO::Socket::INET does IO::Socket {
 
         if $!listening {
 #?if !js
-            $!localport = nqp::getport($PIO) if !$!localport;
+            $!localport = nqp::getport($PIO)
+                   unless $!localport || ($!family == nqp::const::SOCKET_FAMILY_UNIX);
 #?endif
         }
         elsif $!type == PIO::SOCK_STREAM {

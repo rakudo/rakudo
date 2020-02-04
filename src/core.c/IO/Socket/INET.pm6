@@ -68,7 +68,7 @@ my class IO::Socket::INET does IO::Socket {
 
         ($localhost, $localport) = (
             split-host-port :host($localhost), :port($localport), :$family
-        orelse fail $_);
+        orelse fail $_) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
@@ -97,7 +97,7 @@ my class IO::Socket::INET does IO::Socket {
             :$host,
             :$port,
             :$family,
-        );
+        ) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
 
         # TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(

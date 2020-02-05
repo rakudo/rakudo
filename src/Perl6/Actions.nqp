@@ -5425,7 +5425,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             # Set name, if there is one.
             if $<name> {
-                %*PARAM_INFO<variable_name> := ~$/;
+                %*PARAM_INFO<variable_name> := ~$<declname>;
                 %*PARAM_INFO<desigilname> := ~$<name>;
             }
             %*PARAM_INFO<sigil> := my $sigil := ~$<sigil>;
@@ -5461,7 +5461,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $twigil eq '' || $twigil eq '*' {
                 # Need to add the name.
                 if $<name> {
-                    my $name := ~$/;
+                    my $name := ~$<declname>;
                     if $<name><sigterm> {
                         $name := nqp::substr($name, 0, nqp::chars($name) - nqp::chars(~$<name><sigterm>));
                         %*PARAM_INFO<variable_name> := $name;

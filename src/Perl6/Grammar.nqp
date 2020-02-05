@@ -2743,14 +2743,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>
-        | <sigil> <twigil>?
-          [
-          || <?{ $<sigil>.Str eq '&' }>
-              [<?identifier> {} <name=.sublongname> | <sigterm>]
-          || <name=.identifier>
-          || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
-          || $<name>=[<[/!]>]
-          ]?
+        | $<declname>=[
+            <sigil> <twigil>?
+            [
+            || <?{ $<sigil>.Str eq '&' }>
+               [<?identifier> {} <name=.sublongname> | <sigterm>]
+            || <name=.identifier>
+            || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
+            || $<name>=[<[/!]>]
+            ]?
+          ]
 
           :dba('shape declaration')
           :my $*IN_DECL := '';
